@@ -38,17 +38,14 @@ namespace RealmForge.Infrastructure.Migrations
                     b.Property<int>("BaseSpeedInFeet")
                         .HasColumnType("integer");
 
-                    b.Property<DateTime>("CreatedAtUtc")
-                        .HasColumnType("timestamp with time zone");
-
                     b.Property<int>("CreatureType")
                         .HasColumnType("integer");
 
                     b.Property<bool>("IsOfficialSRD")
                         .HasColumnType("boolean");
 
-                    b.Property<DateTime?>("UpdatedAtUtc")
-                        .HasColumnType("timestamp with time zone");
+                    b.Property<int>("Ruleset")
+                        .HasColumnType("integer");
 
                     b.HasKey("Id");
 
