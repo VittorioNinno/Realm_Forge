@@ -28,6 +28,10 @@ namespace RealmForge.Infrastructure.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
+                    b.PrimitiveCollection<int[]>("AllowedSizes")
+                        .IsRequired()
+                        .HasColumnType("integer[]");
+
                     b.Property<string>("AuthorId")
                         .HasColumnType("text");
 
@@ -37,13 +41,11 @@ namespace RealmForge.Infrastructure.Migrations
                     b.Property<DateTime>("CreatedAtUtc")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<int>("CreatureType")
+                        .HasColumnType("integer");
+
                     b.Property<bool>("IsOfficialSRD")
                         .HasColumnType("boolean");
-
-                    b.Property<string>("Size")
-                        .IsRequired()
-                        .HasMaxLength(30)
-                        .HasColumnType("character varying(30)");
 
                     b.Property<DateTime?>("UpdatedAtUtc")
                         .HasColumnType("timestamp with time zone");
