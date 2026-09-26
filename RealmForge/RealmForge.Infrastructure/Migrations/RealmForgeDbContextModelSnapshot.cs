@@ -82,6 +82,129 @@ namespace RealmForge.Infrastructure.Migrations
                     b.ToTable("SpeciesTranslations");
                 });
 
+            modelBuilder.Entity("RealmForge.Domain.Entities.Subspecies", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("AuthorId")
+                        .HasColumnType("text");
+
+                    b.Property<int?>("BaseSpeedOverrideInFeet")
+                        .HasColumnType("integer");
+
+                    b.Property<bool>("IsOfficialSRD")
+                        .HasColumnType("boolean");
+
+                    b.Property<int>("Ruleset")
+                        .HasColumnType("integer");
+
+                    b.Property<Guid>("SpeciesId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("SpeciesId");
+
+                    b.ToTable("Subspecies");
+                });
+
+            modelBuilder.Entity("RealmForge.Domain.Entities.SubspeciesTranslation", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasMaxLength(4000)
+                        .HasColumnType("character varying(4000)");
+
+                    b.Property<int>("Language")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("character varying(150)");
+
+                    b.Property<Guid>("SubspeciesId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("SubspeciesId", "Language")
+                        .IsUnique();
+
+                    b.ToTable("SubspeciesTranslations");
+                });
+
+            modelBuilder.Entity("RealmForge.Domain.Entities.Trait", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("AuthorId")
+                        .HasColumnType("text");
+
+                    b.Property<bool>("IsOfficialSRD")
+                        .HasColumnType("boolean");
+
+                    b.Property<int>("RequiredLevel")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(1);
+
+                    b.Property<int>("Ruleset")
+                        .HasColumnType("integer");
+
+                    b.Property<Guid?>("SpeciesId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("SubspeciesId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("SpeciesId");
+
+                    b.HasIndex("SubspeciesId");
+
+                    b.ToTable("Traits");
+                });
+
+            modelBuilder.Entity("RealmForge.Domain.Entities.TraitTranslation", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasMaxLength(4000)
+                        .HasColumnType("character varying(4000)");
+
+                    b.Property<int>("Language")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("character varying(150)");
+
+                    b.Property<Guid>("TraitId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TraitId", "Language")
+                        .IsUnique();
+
+                    b.ToTable("TraitTranslations");
+                });
+
             modelBuilder.Entity("RealmForge.Domain.Entities.SpeciesTranslation", b =>
                 {
                     b.HasOne("RealmForge.Domain.Entities.Species", "Species")
@@ -93,7 +216,73 @@ namespace RealmForge.Infrastructure.Migrations
                     b.Navigation("Species");
                 });
 
+            modelBuilder.Entity("RealmForge.Domain.Entities.Subspecies", b =>
+                {
+                    b.HasOne("RealmForge.Domain.Entities.Species", "Species")
+                        .WithMany("Subspecies")
+                        .HasForeignKey("SpeciesId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Species");
+                });
+
+            modelBuilder.Entity("RealmForge.Domain.Entities.SubspeciesTranslation", b =>
+                {
+                    b.HasOne("RealmForge.Domain.Entities.Subspecies", "Subspecies")
+                        .WithMany("Translations")
+                        .HasForeignKey("SubspeciesId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Subspecies");
+                });
+
+            modelBuilder.Entity("RealmForge.Domain.Entities.Trait", b =>
+                {
+                    b.HasOne("RealmForge.Domain.Entities.Species", "Species")
+                        .WithMany("Traits")
+                        .HasForeignKey("SpeciesId")
+                        .OnDelete(DeleteBehavior.Cascade);
+
+                    b.HasOne("RealmForge.Domain.Entities.Subspecies", "Subspecies")
+                        .WithMany("Traits")
+                        .HasForeignKey("SubspeciesId")
+                        .OnDelete(DeleteBehavior.Cascade);
+
+                    b.Navigation("Species");
+
+                    b.Navigation("Subspecies");
+                });
+
+            modelBuilder.Entity("RealmForge.Domain.Entities.TraitTranslation", b =>
+                {
+                    b.HasOne("RealmForge.Domain.Entities.Trait", "Trait")
+                        .WithMany("Translations")
+                        .HasForeignKey("TraitId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Trait");
+                });
+
             modelBuilder.Entity("RealmForge.Domain.Entities.Species", b =>
+                {
+                    b.Navigation("Subspecies");
+
+                    b.Navigation("Traits");
+
+                    b.Navigation("Translations");
+                });
+
+            modelBuilder.Entity("RealmForge.Domain.Entities.Subspecies", b =>
+                {
+                    b.Navigation("Traits");
+
+                    b.Navigation("Translations");
+                });
+
+            modelBuilder.Entity("RealmForge.Domain.Entities.Trait", b =>
                 {
                     b.Navigation("Translations");
                 });
