@@ -22,6 +22,60 @@ namespace RealmForge.Infrastructure.Migrations
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
+            modelBuilder.Entity("RealmForge.Domain.Entities.Feat", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("AuthorId")
+                        .HasColumnType("text");
+
+                    b.Property<int>("Category")
+                        .HasColumnType("integer");
+
+                    b.Property<bool>("IsOfficialSRD")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Prerequisite")
+                        .HasColumnType("text");
+
+                    b.Property<int>("Ruleset")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("Feats");
+                });
+
+            modelBuilder.Entity("RealmForge.Domain.Entities.FeatTranslation", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<Guid>("FeatId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("Language")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("character varying(150)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("FeatId");
+
+                    b.ToTable("FeatTranslations");
+                });
+
             modelBuilder.Entity("RealmForge.Domain.Entities.Species", b =>
                 {
                     b.Property<Guid>("Id")
@@ -205,6 +259,17 @@ namespace RealmForge.Infrastructure.Migrations
                     b.ToTable("TraitTranslations");
                 });
 
+            modelBuilder.Entity("RealmForge.Domain.Entities.FeatTranslation", b =>
+                {
+                    b.HasOne("RealmForge.Domain.Entities.Feat", "Feat")
+                        .WithMany("Translations")
+                        .HasForeignKey("FeatId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Feat");
+                });
+
             modelBuilder.Entity("RealmForge.Domain.Entities.SpeciesTranslation", b =>
                 {
                     b.HasOne("RealmForge.Domain.Entities.Species", "Species")
@@ -264,6 +329,11 @@ namespace RealmForge.Infrastructure.Migrations
                         .IsRequired();
 
                     b.Navigation("Trait");
+                });
+
+            modelBuilder.Entity("RealmForge.Domain.Entities.Feat", b =>
+                {
+                    b.Navigation("Translations");
                 });
 
             modelBuilder.Entity("RealmForge.Domain.Entities.Species", b =>
