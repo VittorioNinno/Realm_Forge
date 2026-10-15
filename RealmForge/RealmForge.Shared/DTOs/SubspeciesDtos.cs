@@ -24,7 +24,6 @@ namespace RealmForge.Shared.DTOs
 	public record CreateSubspeciesDto(
 		int? BaseSpeedOverrideInFeet,
 		RulesetVersion Ruleset,
-		bool IsOfficialSRD,
 		List<SubspeciesTranslationDto> Translations,
 		List<CreateTraitDto>? Traits = null
 	);
@@ -36,7 +35,6 @@ namespace RealmForge.Shared.DTOs
 		Guid Id,
 		int? BaseSpeedOverrideInFeet,
 		RulesetVersion Ruleset,
-		bool IsOfficialSRD,
 		List<SubspeciesTranslationDto> Translations
 	);
 

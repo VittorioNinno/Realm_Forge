@@ -122,7 +122,6 @@ namespace RealmForge.Client.Localization
 			_ => ruleset.ToString()
 		};
 
-		public static string LabelIsSRD(LanguageCode lang) => lang == LanguageCode.It ? "Contenuto Ufficiale (SRD)" : "Official Content (SRD)";
 		public static string BadgeSRD(LanguageCode lang) => lang == LanguageCode.It ? "SRD" : "SRD";
 		public static string BadgeHomebrew(LanguageCode lang) => lang == LanguageCode.It ? "Homebrew" : "Homebrew";
 		public static string LabelRequiredLevel(int level, LanguageCode lang) => lang == LanguageCode.It ? $"Livello {level}" : $"Level {level}";

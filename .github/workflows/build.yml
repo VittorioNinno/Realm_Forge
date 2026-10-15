@@ -128,6 +128,43 @@ jobs:
           test "$name" = "Keen Mind"
           test "$pre" = "Level 4+, Intelligence 13+"
 
+      - name: Check species re-sync on a database seeded by the old seeders
+        shell: bash
+        env:
+          ConnectionStrings__DefaultConnection: ${{ env.CONN }}
+          ASPNETCORE_ENVIRONMENT: Development
+          ASPNETCORE_URLS: http://localhost:5080
+        run: |
+          set -e
+          q() { psql -h localhost -U postgres -d realm_forge_ci -tAc "$1"; }
+          restart() {
+            pkill -f RealmForge.Api || true; sleep 3
+            dotnet run --project RealmForge/RealmForge.Api --no-launch-profile > "$1" 2>&1 &
+            for i in $(seq 1 60); do curl -sf http://localhost:5080/api/feats >/dev/null && break; sleep 2; done
+          }
+          elf=20000000-0000-0000-0000-000000000005
+          expected=$(q "SELECT count(*) FROM \"Traits\" WHERE \"IsOfficialSRD\"")
+          # Old-style data: a stale SRD trait with a random id, an outdated trait name, a Homebrew lineage on an SRD species
+          q "INSERT INTO \"Traits\" (\"Id\",\"RequiredLevel\",\"SpeciesId\",\"Ruleset\",\"IsOfficialSRD\") VALUES ('bbbbbbbb-0000-0000-0000-000000000001',1,'$elf',2,true);
+             INSERT INTO \"TraitTranslations\" (\"Id\",\"TraitId\",\"Language\",\"Name\",\"Description\") VALUES ('bbbbbbbb-0000-0000-0000-000000000002','bbbbbbbb-0000-0000-0000-000000000001',1,'Stale trait','x');
+             UPDATE \"TraitTranslations\" SET \"Name\" = 'Outdated' WHERE \"Name\" = 'Darkvision';
+             INSERT INTO \"Subspecies\" (\"Id\",\"SpeciesId\",\"Ruleset\",\"IsOfficialSRD\") VALUES ('cccccccc-0000-0000-0000-000000000001','$elf',2,false);
+             INSERT INTO \"SubspeciesTranslations\" (\"Id\",\"SubspeciesId\",\"Language\",\"Name\",\"Description\") VALUES ('cccccccc-0000-0000-0000-000000000002','cccccccc-0000-0000-0000-000000000001',1,'Homebrew Elf','x');" >/dev/null
+          restart api4.log
+          stale=$(q "SELECT count(*) FROM \"Traits\" WHERE \"Id\" = 'bbbbbbbb-0000-0000-0000-000000000001'")
+          outdated=$(q "SELECT count(*) FROM \"TraitTranslations\" WHERE \"Name\" = 'Outdated'")
+          homebrew=$(q "SELECT count(*) FROM \"Subspecies\" WHERE \"Id\" = 'cccccccc-0000-0000-0000-000000000001'")
+          after=$(q "SELECT count(*) FROM \"Traits\" WHERE \"IsOfficialSRD\"")
+          ids1=$(q "SELECT md5(string_agg(\"Id\"::text, ',' ORDER BY \"Id\")) FROM \"Traits\"")
+          restart api5.log
+          ids2=$(q "SELECT md5(string_agg(\"Id\"::text, ',' ORDER BY \"Id\")) FROM \"Traits\"")
+          echo "::notice title=database::species resync: stale SRD trait left=$stale, outdated names left=$outdated, homebrew lineage kept=$homebrew, SRD traits=$after/$expected, ids stable across restarts=$([ "$ids1" = "$ids2" ] && echo yes || echo no)"
+          test "$stale" = "0"
+          test "$outdated" = "0"
+          test "$homebrew" = "1"
+          test "$after" = "$expected"
+          test "$ids1" = "$ids2"
+
       - name: Check authentication and Homebrew ownership
         shell: bash
         env:

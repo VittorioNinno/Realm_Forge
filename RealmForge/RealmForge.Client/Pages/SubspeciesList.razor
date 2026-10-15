@@ -265,7 +265,6 @@
     // Form fields
     private int? newSpeedOverride = null;
     private RulesetVersion newRuleset = RulesetVersion.Dnd5e_2024;
-    private bool newIsSRD = false;
     private string nameIt = "";
     private string descIt = "";
     private string nameEn = "";
@@ -320,7 +319,6 @@
         
         newSpeedOverride = null;
         newRuleset = parentRuleset;
-        newIsSRD = false;
         
         nameIt = "";
         descIt = "";
@@ -352,7 +350,6 @@
             {
                 newSpeedOverride = detailIt.BaseSpeedOverrideInFeet;
                 newRuleset = detailIt.Ruleset;
-                newIsSRD = detailIt.IsOfficialSRD;
 
                 nameIt = detailIt.Name;
                 descIt = detailIt.Description;
@@ -400,7 +397,6 @@
                 editingId,
                 newSpeedOverride,
                 newRuleset,
-                newIsSRD,
                 translations
             );
             success = await SubspeciesService.UpdateAsync(editingId, updateDto);
@@ -410,7 +406,6 @@
             var createDto = new CreateSubspeciesDto(
                 newSpeedOverride,
                 newRuleset,
-                newIsSRD,
                 translations,
                 new List<CreateTraitDto>()
             );
