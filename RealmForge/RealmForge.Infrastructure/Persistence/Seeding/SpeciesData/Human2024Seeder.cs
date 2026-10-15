@@ -1,5 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
-using RealmForge.Domain.Entities;
+﻿using RealmForge.Domain.Entities;
 using RealmForge.Shared.Enums;
 
 namespace RealmForge.Infrastructure.Persistence.Seeding.SpeciesData
@@ -9,14 +8,12 @@ namespace RealmForge.Infrastructure.Persistence.Seeding.SpeciesData
 		//	Deterministic GUID for 2024 SRD Human aggregate
 		public static readonly Guid SpeciesId = Guid.Parse("20000000-0000-0000-0000-000000000001");
 
-		public static async Task SeedAsync(RealmForgeDbContext context)
+		///	<summary>
+		///	Builds the canonical SRD definition of this species. Persistence is handled by SpeciesSeeder.
+		///	</summary>
+		public static Species Build()
 		{
-			if (await context.Species.AnyAsync(s => s.Id == SpeciesId))
-			{
-				return;
-			}
-
-			var human = new Species
+			return new Species
 			{
 				Id = SpeciesId,
 				BaseSpeedInFeet = 30,
@@ -107,9 +104,6 @@ namespace RealmForge.Infrastructure.Persistence.Seeding.SpeciesData
 				},
 				Subspecies = new List<Subspecies>()
 			};
-
-			context.Species.Add(human);
-			await context.SaveChangesAsync();
 		}
 	}
 }

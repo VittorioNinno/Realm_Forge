@@ -1,5 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
-using RealmForge.Domain.Entities;
+﻿using RealmForge.Domain.Entities;
 using RealmForge.Shared.Enums;
 
 namespace RealmForge.Infrastructure.Persistence.Seeding.SpeciesData
@@ -12,14 +11,12 @@ namespace RealmForge.Infrastructure.Persistence.Seeding.SpeciesData
 		public static readonly Guid HighElfSubspeciesId = Guid.Parse("20000000-0000-0000-0005-000000000002");
 		public static readonly Guid WoodElfSubspeciesId = Guid.Parse("20000000-0000-0000-0005-000000000003");
 
-		public static async Task SeedAsync(RealmForgeDbContext context)
+		///	<summary>
+		///	Builds the canonical SRD definition of this species. Persistence is handled by SpeciesSeeder.
+		///	</summary>
+		public static Species Build()
 		{
-			if (await context.Species.AnyAsync(s => s.Id == SpeciesId))
-			{
-				return;
-			}
-
-			var elf = new Species
+			return new Species
 			{
 				Id = SpeciesId,
 				BaseSpeedInFeet = 30,
@@ -395,9 +392,6 @@ namespace RealmForge.Infrastructure.Persistence.Seeding.SpeciesData
 					}
 				}
 			};
-
-			context.Species.Add(elf);
-			await context.SaveChangesAsync();
 		}
 	}
 }
