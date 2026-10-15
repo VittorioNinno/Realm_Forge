@@ -136,7 +136,7 @@ In development the API applies pending migrations and synchronizes the SRD data 
 
 ## 🌱 Seed Data Conventions / Convenzioni sui dati SRD
 
-- One seeder file per entry, exposing `public static Feat Build()`; `FeatSeeder` discovers them automatically, so a new file cannot be forgotten.
+- One seeder file per entry, exposing `public static Feat Build()` / `public static Species Build()`; `FeatSeeder` and `SpeciesSeeder` discover them automatically, so a new file cannot be forgotten.
   *Un file per voce con `Build()`; `FeatSeeder` li trova da solo, quindi un nuovo file non può essere dimenticato.*
 - At startup missing SRD rows are inserted and existing ones are **updated** to match the seed (one query, one transaction).
   *All'avvio le righe SRD mancanti vengono inserite e quelle esistenti **aggiornate** (una query, una transazione).*
@@ -180,8 +180,8 @@ dotnet test RealmForge/RealmForge.slnx
 ## 🗺️ Roadmap
 
 - [ ] Backgrounds 2024 (with Origin feats) · *Background 2024 (con i Talenti di Origine)*
-- [ ] Species seeders with deterministic ids and re-sync, as for feats · *Seeder delle specie con id deterministici e risincronizzazione*
-- [ ] Remember the selected language across reloads · *Ricordare la lingua scelta tra un ricaricamento e l'altro*
+- [x] Species seeders with deterministic ids and re-sync, as for feats · *Seeder delle specie con id deterministici e risincronizzazione*
+- [x] Remember the selected language across reloads · *Ricordare la lingua scelta tra un ricaricamento e l'altro*
 - [ ] Spells · *Incantesimi*
 - [ ] Classes · *Classi*
 - [ ] Character sheet · *Scheda personaggio*
