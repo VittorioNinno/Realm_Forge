@@ -248,6 +248,10 @@ jobs:
         with:
           node-version: '22'
 
+      - name: Build once
+        # Building API and client with two concurrent "dotnet run" makes them race on the shared projects (flaky starts)
+        run: dotnet build RealmForge/RealmForge.slnx --configuration Debug
+
       - name: Start API and client
         shell: bash
         env:
@@ -256,10 +260,18 @@ jobs:
         run: |
           # Point the client at the CI API (plain http)
           echo '{ "ApiBaseUrl": "http://localhost:5080/" }' > RealmForge/RealmForge.Client/wwwroot/appsettings.Development.json
-          ASPNETCORE_URLS=http://localhost:5080 nohup dotnet run --project RealmForge/RealmForge.Api --no-launch-profile > api.log 2>&1 &
-          nohup dotnet run --project RealmForge/RealmForge.Client --launch-profile http > client.log 2>&1 &
-          for i in $(seq 1 90); do curl -sf http://localhost:5080/api/feats >/dev/null && curl -sf http://localhost:5227 >/dev/null && break; sleep 3; done
-          curl -sf http://localhost:5227 >/dev/null
+          ASPNETCORE_URLS=http://localhost:5080 nohup dotnet run --no-build --project RealmForge/RealmForge.Api --no-launch-profile > api.log 2>&1 &
+          nohup dotnet run --no-build --project RealmForge/RealmForge.Client --launch-profile http > client.log 2>&1 &
+          for i in $(seq 1 60); do
+            curl -sf http://localhost:5080/api/feats >/dev/null && curl -sf http://localhost:5227 >/dev/null && exit 0
+            sleep 3
+          done
+          # Startup failed: show why
+          curl -sf http://localhost:5080/api/feats >/dev/null && echo "::error title=ui::API is up" || echo "::error title=ui::API did not start"
+          curl -sf http://localhost:5227 >/dev/null && echo "::error title=ui::client is up" || echo "::error title=ui::client did not start"
+          tail -n 15 api.log | sed 's/^/::error title=api-log::/'
+          tail -n 15 client.log | sed 's/^/::error title=client-log::/'
+          exit 1
 
       - name: Run UI smoke test
         working-directory: .github/ui-smoke
