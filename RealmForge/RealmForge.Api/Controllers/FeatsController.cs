@@ -1,9 +1,11 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using RealmForge.Domain.DTOs;
+using RealmForge.Api.Localization;
 using RealmForge.Domain.Entities;
-using RealmForge.Domain.Enums;
 using RealmForge.Infrastructure.Persistence;
+using RealmForge.Shared.DTOs;
+using RealmForge.Shared.Enums;
+using RealmForge.Shared.Localization;
 
 namespace RealmForge.Api.Controllers
 {
@@ -11,6 +13,8 @@ namespace RealmForge.Api.Controllers
 	[Route("api/[controller]")]
 	public class FeatsController : ControllerBase
 	{
+		private const int ShortDescriptionLength = 160;
+
 		private readonly RealmForgeDbContext _context;
 
 		public FeatsController(RealmForgeDbContext context)
@@ -18,14 +22,14 @@ namespace RealmForge.Api.Controllers
 			_context = context;
 		}
 
+		//	GET: api/feats?lang=2&category=1&ruleset=2&isOfficial=true
 		[HttpGet]
 		public async Task<ActionResult<List<FeatResponseDto>>> GetFeats(
-			[FromQuery] int lang = (int)LanguageCode.It,
-			[FromQuery] int? category = null,
-			[FromQuery] int? ruleset = null,
+			[FromQuery] LanguageCode lang = LanguageCode.It,
+			[FromQuery] FeatCategory? category = null,
+			[FromQuery] RulesetVersion? ruleset = null,
 			[FromQuery] bool? isOfficial = null)
 		{
-			var targetLang = (LanguageCode)lang;
 			var query = _context.Feats
 				.Include(f => f.Translations)
 				.AsSplitQuery()
@@ -33,12 +37,12 @@ namespace RealmForge.Api.Controllers
 
 			if (category.HasValue)
 			{
-				query = query.Where(f => f.Category == (FeatCategory)category.Value);
+				query = query.Where(f => f.Category == category.Value);
 			}
 
 			if (ruleset.HasValue)
 			{
-				query = query.Where(f => f.Ruleset == (RulesetVersion)ruleset.Value);
+				query = query.Where(f => f.Ruleset == ruleset.Value);
 			}
 
 			if (isOfficial.HasValue)
@@ -50,18 +54,15 @@ namespace RealmForge.Api.Controllers
 
 			var dtos = feats.Select(f =>
 			{
-				var tr = f.Translations.FirstOrDefault(t => t.Language == targetLang)
-						 ?? f.Translations.FirstOrDefault(t => t.Language == LanguageCode.It)
-						 ?? f.Translations.FirstOrDefault();
-
+				var tr = f.Translations.Localize(lang);
 				var desc = tr?.Description ?? string.Empty;
-				var shortDesc = desc.Length > 160 ? desc[..157] + "..." : desc;
+				var shortDesc = desc.Length > ShortDescriptionLength ? desc[..(ShortDescriptionLength - 3)] + "..." : desc;
 
 				return new FeatResponseDto(
 					f.Id,
 					tr?.Name ?? "Unknown",
 					f.Category,
-					f.Prerequisite,
+					FormatPrerequisite(f, tr, lang),
 					f.Ruleset,
 					f.IsOfficialSRD,
 					shortDesc
@@ -71,13 +72,12 @@ namespace RealmForge.Api.Controllers
 			return Ok(dtos);
 		}
 
+		//	GET: api/feats/{id}?lang=2
 		[HttpGet("{id:guid}")]
-		public async Task<ActionResult<FeatDetailResponseDto>> GetFeatDetail(Guid id, [FromQuery] int lang = (int)LanguageCode.It)
+		public async Task<ActionResult<FeatDetailResponseDto>> GetFeatDetail(Guid id, [FromQuery] LanguageCode lang = LanguageCode.It)
 		{
-			var targetLang = (LanguageCode)lang;
 			var feat = await _context.Feats
 				.Include(f => f.Translations)
-				.AsSplitQuery()
 				.AsNoTracking()
 				.FirstOrDefaultAsync(f => f.Id == id);
 
@@ -86,68 +86,57 @@ namespace RealmForge.Api.Controllers
 				return NotFound();
 			}
 
-			var tr = feat.Translations.FirstOrDefault(t => t.Language == targetLang)
-					 ?? feat.Translations.FirstOrDefault(t => t.Language == LanguageCode.It)
-					 ?? feat.Translations.FirstOrDefault();
-
-			return Ok(new FeatDetailResponseDto(
-				feat.Id,
-				tr?.Name ?? "Unknown",
-				feat.Category,
-				feat.Prerequisite,
-				feat.Ruleset,
-				feat.IsOfficialSRD,
-				tr?.Description ?? string.Empty
-			));
+			return Ok(ToDetailDto(feat, lang));
 		}
 
+		//	POST: api/feats
 		[HttpPost]
-		public async Task<ActionResult<FeatResponseDto>> CreateFeat([FromBody] CreateFeatDto dto)
+		public async Task<ActionResult<FeatDetailResponseDto>> CreateFeat([FromBody] CreateFeatDto dto, [FromQuery] LanguageCode lang = LanguageCode.It)
 		{
-			if (dto.Translations == null || !dto.Translations.Any())
+			var error = Validate(dto.Prerequisites, dto.Translations.Select(t => (t.Language, t.Name)));
+			if (error != null)
 			{
-				return BadRequest("At least one translation must be provided.");
+				return Problem(statusCode: StatusCodes.Status400BadRequest, title: error);
 			}
 
-			//	Map payload to entity, allowing Entity Framework to handle identity generation
 			var feat = new Feat
 			{
 				Category = dto.Category,
-				Prerequisite = dto.Prerequisite,
 				Ruleset = dto.Ruleset,
+
 				//	Content created through the API is always Homebrew; SRD data comes only from the seeders
 				IsOfficialSRD = false,
+
 				Translations = dto.Translations.Select(t => new FeatTranslation
 				{
 					Language = t.Language,
-					Name = t.Name,
-					Description = t.Description
+					Name = t.Name.Trim(),
+					Description = t.Description?.Trim() ?? string.Empty,
+					PrerequisiteNote = NormalizeNote(t.PrerequisiteNote)
 				}).ToList()
 			};
+
+			ApplyPrerequisites(feat, dto.Prerequisites);
 
 			_context.Feats.Add(feat);
 			await _context.SaveChangesAsync();
 
-			var firstTranslation = feat.Translations.FirstOrDefault();
-			var response = new FeatResponseDto(
-				feat.Id,
-				firstTranslation?.Name ?? "Unknown",
-				feat.Category,
-				feat.Prerequisite,
-				feat.Ruleset,
-				feat.IsOfficialSRD,
-				firstTranslation?.Description ?? string.Empty
-			);
-
-			return CreatedAtAction(nameof(GetFeatDetail), new { id = feat.Id }, response);
+			return CreatedAtAction(nameof(GetFeatDetail), new { id = feat.Id }, ToDetailDto(feat, lang));
 		}
 
+		//	PUT: api/feats/{id}
 		[HttpPut("{id:guid}")]
 		public async Task<IActionResult> UpdateFeat(Guid id, [FromBody] UpdateFeatDto dto)
 		{
 			if (id != dto.Id)
 			{
-				return BadRequest("ID mismatch between route and payload.");
+				return Problem(statusCode: StatusCodes.Status400BadRequest, title: "ID mismatch between route and payload.");
+			}
+
+			var error = Validate(dto.Prerequisites, dto.Translations.Select(t => (t.Language, t.Name)));
+			if (error != null)
+			{
+				return Problem(statusCode: StatusCodes.Status400BadRequest, title: error);
 			}
 
 			var feat = await _context.Feats
@@ -165,60 +154,47 @@ namespace RealmForge.Api.Controllers
 				return Problem(statusCode: StatusCodes.Status403Forbidden, title: "Official SRD content is read-only.");
 			}
 
-			// Update core mechanical data
 			feat.Category = dto.Category;
-			feat.Prerequisite = dto.Prerequisite;
 			feat.Ruleset = dto.Ruleset;
+			ApplyPrerequisites(feat, dto.Prerequisites);
 
-			var dtoLanguages = dto.Translations.Select(t => t.Language).ToList();
+			var dtoLanguages = dto.Translations.Select(t => t.Language).ToHashSet();
 
-			//	Safely remove translations omitted from the payload to prevent orphan records
-			var translationsToRemove = feat.Translations
-				.Where(t => !dtoLanguages.Contains(t.Language))
-				.ToList();
-
-			foreach (var tr in translationsToRemove)
+			//	Remove translations omitted from the payload
+			foreach (var tr in feat.Translations.Where(t => !dtoLanguages.Contains(t.Language)).ToList())
 			{
 				feat.Translations.Remove(tr);
 			}
 
-			//	Process incoming translations for updates or insertions
+			//	Update existing translations or add new ones
 			foreach (var tDto in dto.Translations)
 			{
-				var existingTranslation = feat.Translations.FirstOrDefault(t => t.Language == tDto.Language);
+				var existing = feat.Translations.FirstOrDefault(t => t.Language == tDto.Language);
 
-				if (existingTranslation != null)
+				if (existing != null)
 				{
-					existingTranslation.Name = tDto.Name;
-					existingTranslation.Description = tDto.Description;
+					existing.Name = tDto.Name.Trim();
+					existing.Description = tDto.Description?.Trim() ?? string.Empty;
+					existing.PrerequisiteNote = NormalizeNote(tDto.PrerequisiteNote);
 				}
 				else
 				{
 					feat.Translations.Add(new FeatTranslation
 					{
 						Language = tDto.Language,
-						Name = tDto.Name,
-						Description = tDto.Description
+						Name = tDto.Name.Trim(),
+						Description = tDto.Description?.Trim() ?? string.Empty,
+						PrerequisiteNote = NormalizeNote(tDto.PrerequisiteNote)
 					});
 				}
 			}
 
-			try
-			{
-				await _context.SaveChangesAsync();
-			}
-			catch (DbUpdateConcurrencyException ex)
-			{
-				//	Advanced diagnostics for tracking entity failure states
-				var failedEntityName = ex.Entries.FirstOrDefault()?.Entity.GetType().Name ?? "Unknown";
-				var state = ex.Entries.FirstOrDefault()?.State.ToString() ?? "N/A";
-
-				throw new Exception($"Concurrency error on entity '{failedEntityName}' during '{state}' operation. Verify that the database primary keys match the payload and that no orphaned data is interfering.", ex);
-			}
+			await _context.SaveChangesAsync();
 
 			return NoContent();
 		}
 
+		//	DELETE: api/feats/{id}
 		[HttpDelete("{id:guid}")]
 		public async Task<IActionResult> DeleteFeat(Guid id)
 		{
@@ -240,5 +216,78 @@ namespace RealmForge.Api.Controllers
 
 			return NoContent();
 		}
+
+		#region Mapping & validation
+
+		private static FeatDetailResponseDto ToDetailDto(Feat feat, LanguageCode lang)
+		{
+			var tr = feat.Translations.Localize(lang);
+
+			return new FeatDetailResponseDto(
+				feat.Id,
+				tr?.Name ?? "Unknown",
+				feat.Category,
+				FormatPrerequisite(feat, tr, lang),
+				feat.Ruleset,
+				feat.IsOfficialSRD,
+				tr?.Description ?? string.Empty,
+				ToPrerequisiteDto(feat),
+				tr?.PrerequisiteNote
+			);
+		}
+
+		private static FeatPrerequisiteDto ToPrerequisiteDto(Feat feat) => new()
+		{
+			MinimumLevel = feat.PrerequisiteMinimumLevel,
+			Abilities = feat.PrerequisiteAbilities.ToList(),
+			MinimumScore = feat.PrerequisiteMinimumScore,
+			Feature = feat.PrerequisiteFeature
+		};
+
+		private static string? FormatPrerequisite(Feat feat, FeatTranslation? tr, LanguageCode lang) =>
+			FeatPrerequisiteFormatter.Format(ToPrerequisiteDto(feat), tr?.PrerequisiteNote, feat.Ruleset, lang);
+
+		private static void ApplyPrerequisites(Feat feat, FeatPrerequisiteDto? p)
+		{
+			p ??= new FeatPrerequisiteDto();
+			var hasAbilities = p.Abilities.Count > 0 && p.MinimumScore.HasValue;
+
+			feat.PrerequisiteMinimumLevel = p.MinimumLevel;
+			feat.PrerequisiteAbilities = hasAbilities ? p.Abilities.Distinct().OrderBy(a => a).ToList() : new List<AbilityScore>();
+			feat.PrerequisiteMinimumScore = hasAbilities ? p.MinimumScore : null;
+			feat.PrerequisiteFeature = p.Feature;
+		}
+
+		private static string? NormalizeNote(string? note) =>
+			string.IsNullOrWhiteSpace(note) ? null : note.Trim();
+
+		private static string? Validate(FeatPrerequisiteDto? p, IEnumerable<(LanguageCode Language, string Name)> translations)
+		{
+			var list = translations.ToList();
+
+			if (list.Count == 0 || list.Any(t => string.IsNullOrWhiteSpace(t.Name)))
+			{
+				return "Every translation must have a name.";
+			}
+
+			if (list.GroupBy(t => t.Language).Any(g => g.Count() > 1))
+			{
+				return "Only one translation per language is allowed.";
+			}
+
+			if (p?.MinimumLevel is < 1 or > 20)
+			{
+				return "Minimum level must be between 1 and 20.";
+			}
+
+			if (p?.MinimumScore is < 1 or > 30)
+			{
+				return "Minimum ability score must be between 1 and 30.";
+			}
+
+			return null;
+		}
+
+		#endregion
 	}
 }

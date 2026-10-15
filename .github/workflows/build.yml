@@ -1,0 +1,129 @@
+name: build
+
+on:
+  push:
+    branches: [ main, develop, 'fix/**', 'feat/**', 'refactor/**' ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Restore
+        run: dotnet restore RealmForge/RealmForge.slnx
+
+      - name: Build
+        shell: bash
+        run: |
+          set -o pipefail
+          dotnet build RealmForge/RealmForge.slnx --no-restore --configuration Release | tee build.log
+          echo "::notice title=build::$(grep -oE 'warning [A-Z]+[0-9]+' build.log | sort | uniq -c | sort -rn | tr '\n' ';')"
+          echo "::notice title=build::$(grep -oE 'different versions of "[^"]+"' build.log | sort | uniq -c | tr '\n' ';')"
+          echo "::notice title=build::$(grep -oE 'warning CS[0-9]+: [^[]{0,120}' build.log | sort -u | head -20 | tr '\n' ';')"
+
+      - name: Test
+        shell: bash
+        run: |
+          set -o pipefail
+          dotnet test RealmForge/RealmForge.slnx --no-build --configuration Release | tee test.log
+          grep -E "Passed!|Failed!|error" test.log | sed 's/^/::notice title=tests::/' || true
+
+  database:
+    runs-on: ubuntu-latest
+    needs: build
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          # Throwaway CI database: no password at all (trust auth), so nothing secret is stored here
+          POSTGRES_HOST_AUTH_METHOD: trust
+          POSTGRES_DB: realm_forge_ci
+        ports: [ "5432:5432" ]
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      CONN: Host=localhost;Port=5432;Database=realm_forge_ci;Username=postgres
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Restore and install dotnet-ef
+        run: |
+          dotnet restore RealmForge/RealmForge.slnx
+          dotnet tool install --global dotnet-ef --version 10.0.12
+
+      - name: Apply migrations up to AddFeatsTable and insert a legacy Homebrew feat
+        shell: bash
+        run: |
+          set -e
+          dotnet ef database update AddFeatsTable --project RealmForge/RealmForge.Infrastructure --startup-project RealmForge/RealmForge.Api --connection "$CONN"
+          psql -h localhost -U postgres -d realm_forge_ci -v ON_ERROR_STOP=1 -c "
+            INSERT INTO \"Feats\" (\"Id\",\"Category\",\"Prerequisite\",\"Ruleset\",\"IsOfficialSRD\",\"AuthorId\")
+            VALUES ('aaaaaaaa-0000-0000-0000-000000000001', 2, 'Elf or Half-Elf', 2, false, NULL);
+            INSERT INTO \"FeatTranslations\" (\"Id\",\"FeatId\",\"Language\",\"Name\",\"Description\")
+            VALUES ('aaaaaaaa-0000-0000-0000-000000000002','aaaaaaaa-0000-0000-0000-000000000001',1,'Legacy','x'),
+                   ('aaaaaaaa-0000-0000-0000-000000000003','aaaaaaaa-0000-0000-0000-000000000001',2,'Legacy IT','x');"
+
+      - name: Apply remaining migrations and check the legacy prerequisite survived
+        shell: bash
+        run: |
+          set -e
+          dotnet ef database update --project RealmForge/RealmForge.Infrastructure --startup-project RealmForge/RealmForge.Api --connection "$CONN"
+          notes=$(psql -h localhost -U postgres -d realm_forge_ci -tAc "SELECT count(*) FROM \"FeatTranslations\" WHERE \"PrerequisiteNote\" = 'Elf or Half-Elf'")
+          echo "::notice title=database::legacy homebrew notes preserved: $notes/2"
+          test "$notes" = "2"
+
+      - name: Start the API and check seeding
+        shell: bash
+        env:
+          ConnectionStrings__DefaultConnection: ${{ env.CONN }}
+          ASPNETCORE_ENVIRONMENT: Development
+          ASPNETCORE_URLS: http://localhost:5080
+        run: |
+          set -e
+          dotnet run --project RealmForge/RealmForge.Api --no-launch-profile > api.log 2>&1 &
+          for i in $(seq 1 60); do curl -sf http://localhost:5080/api/feats >/dev/null && break; sleep 2; done
+          feats=$(curl -sf "http://localhost:5080/api/feats?isOfficial=true" | jq length)
+          species=$(curl -sf "http://localhost:5080/api/species" | jq 'map(select(.isOfficialSRD)) | length')
+          keen=$(curl -sf "http://localhost:5080/api/feats/11111111-2222-3333-4444-555555555571?lang=2" | jq -r .prerequisite)
+          status=$(curl -s -o /dev/null -w '%{http_code}' -X DELETE "http://localhost:5080/api/feats/11111111-2222-3333-4444-555555555571")
+          echo "::notice title=database::SRD feats=$feats species=$species | Keen Mind (IT) prerequisite='$keen' | DELETE SRD -> $status"
+          grep -iE "fail|error" api.log | head -10 | sed 's/^/::warning title=api-log::/' || true
+          test "$feats" = "117"
+          test "$species" = "19"
+          test "$keen" = "Livello 4+, Intelligenza 13+"
+          test "$status" = "403"
+
+      - name: Restart the API and check that existing SRD rows are re-synchronized
+        shell: bash
+        env:
+          ConnectionStrings__DefaultConnection: ${{ env.CONN }}
+          ASPNETCORE_ENVIRONMENT: Development
+          ASPNETCORE_URLS: http://localhost:5080
+        run: |
+          set -e
+          pkill -f RealmForge.Api || true
+          sleep 3
+          # Simulate a database seeded by the old seeders: no structured prerequisites, outdated name
+          psql -h localhost -U postgres -d realm_forge_ci -v ON_ERROR_STOP=1 -c "
+            UPDATE \"Feats\" SET \"PrerequisiteMinimumLevel\" = NULL, \"PrerequisiteAbilities\" = '{}', \"PrerequisiteMinimumScore\" = NULL
+            WHERE \"Id\" = '11111111-2222-3333-4444-555555555571';
+            UPDATE \"FeatTranslations\" SET \"Name\" = 'Outdated' WHERE \"FeatId\" = '11111111-2222-3333-4444-555555555571';"
+          dotnet run --project RealmForge/RealmForge.Api --no-launch-profile > api2.log 2>&1 &
+          for i in $(seq 1 60); do curl -sf http://localhost:5080/api/feats >/dev/null && break; sleep 2; done
+          detail=$(curl -sf "http://localhost:5080/api/feats/11111111-2222-3333-4444-555555555571?lang=1")
+          name=$(echo "$detail" | jq -r .name); pre=$(echo "$detail" | jq -r .prerequisite)
+          echo "::notice title=database::after resync: name='$name' prerequisite='$pre'"
+          test "$name" = "Keen Mind"
+          test "$pre" = "Level 4+, Intelligence 13+"

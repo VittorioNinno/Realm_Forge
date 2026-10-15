@@ -1,4 +1,4 @@
-﻿using RealmForge.Domain.Enums;
+﻿using RealmForge.Shared.Enums;
 
 namespace RealmForge.Client.Services
 {

@@ -1,7 +1,7 @@
 ﻿@inherits LayoutComponentBase
 @using RealmForge.Client.Localization
 @using RealmForge.Client.Services
-@using RealmForge.Domain.Enums
+@using RealmForge.Shared.Enums
 @implements IDisposable
 @inject LanguageStateService LanguageState
 
@@ -28,6 +28,7 @@
         </div>
 
         <article class="content px-4">
+            <RealmForge.Client.Components.ApiErrorBanner />
             @Body
         </article>
     </main>

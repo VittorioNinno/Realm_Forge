@@ -1,6 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using RealmForge.Domain.Entities;
-using RealmForge.Domain.Enums;
+using RealmForge.Shared.Enums;
 
 namespace RealmForge.Infrastructure.Persistence.Seeding.SpeciesData
 {

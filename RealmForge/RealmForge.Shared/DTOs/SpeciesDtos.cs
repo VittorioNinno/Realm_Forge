@@ -1,6 +1,6 @@
-﻿using RealmForge.Domain.Enums;
+﻿using RealmForge.Shared.Enums;
 
-namespace RealmForge.Domain.DTOs
+namespace RealmForge.Shared.DTOs
 {
 	///	<summary>
 	///	Localized trait response DTO.
