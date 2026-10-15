@@ -36,6 +36,26 @@ try {
   if (await page.getByText('Accedi per forgiare').count() !== 0) throw new Error('create button still hidden after login');
   ok('signed-in user sees the create button');
 
+  // Layout guard for the "Forgia Talento" modal (desktop width)
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await page.getByText('+ NUOVO TALENTO').click();
+  await page.locator('[data-test=prereq-level]').waitFor({ timeout: 15000 });
+  const layout = await page.evaluate(() => {
+    const box = (el) => el.getBoundingClientRect();
+    const level = box(document.querySelector('[data-test=prereq-level]'));
+    const feature = box(document.querySelector('[data-test=prereq-feature] .rf-custom-select-trigger'));
+    const truncated = [...document.querySelectorAll('.rf-label-single-line')]
+      .filter((l) => l.offsetParent !== null && l.scrollWidth > l.clientWidth + 1)
+      .map((l) => l.textContent.trim());
+    return { topDelta: Math.abs(level.top - feature.top), heightDelta: Math.abs(level.height - feature.height), truncated };
+  });
+  results.push(`INFO modal layout: top delta=${layout.topDelta.toFixed(1)}px, height delta=${layout.heightDelta.toFixed(1)}px, truncated labels=[${layout.truncated.join(', ')}]`);
+  if (layout.topDelta > 2) throw new Error('level and feature controls are not aligned');
+  if (layout.heightDelta > 4) throw new Error('level and feature controls have different heights');
+  if (layout.truncated.length > 0) throw new Error(`truncated labels: ${layout.truncated.join(', ')}`);
+  ok('feat modal layout: controls aligned, no truncated labels');
+  await page.getByRole('button', { name: 'ANNULLA' }).click();
+
   await page.reload();
   await page.getByText(email).first().waitFor({ timeout: 60000 });
   ok('session survives a page reload');

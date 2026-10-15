@@ -1,4 +1,4 @@
-:root {
+﻿:root {
     --rf-bg-main: #0d0d0d;
     --rf-bg-surface: #111111;
     --rf-bg-card: #161616;
@@ -239,6 +239,18 @@ h1, h2, h3, h4, h5, h6, .rf-page-title, .brand-title {
     color: var(--rf-orange-primary);
     margin-bottom: 6px;
     display: block;
+}
+
+/* Labels inside multi-column rows must never wrap, otherwise the controls below them misalign */
+.rf-label-single-line {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.rf-form-control:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
 }
 
 /* --- STANDARD FORM CONTROLS (Input / Textarea) --- */
