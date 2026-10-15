@@ -149,7 +149,11 @@ jobs:
              INSERT INTO \"TraitTranslations\" (\"Id\",\"TraitId\",\"Language\",\"Name\",\"Description\") VALUES ('bbbbbbbb-0000-0000-0000-000000000002','bbbbbbbb-0000-0000-0000-000000000001',1,'Stale trait','x');
              UPDATE \"TraitTranslations\" SET \"Name\" = 'Outdated' WHERE \"Name\" = 'Darkvision';
              INSERT INTO \"Subspecies\" (\"Id\",\"SpeciesId\",\"Ruleset\",\"IsOfficialSRD\") VALUES ('cccccccc-0000-0000-0000-000000000001','$elf',2,false);
-             INSERT INTO \"SubspeciesTranslations\" (\"Id\",\"SubspeciesId\",\"Language\",\"Name\",\"Description\") VALUES ('cccccccc-0000-0000-0000-000000000002','cccccccc-0000-0000-0000-000000000001',1,'Homebrew Elf','x');" >/dev/null
+             INSERT INTO \"SubspeciesTranslations\" (\"Id\",\"SubspeciesId\",\"Language\",\"Name\",\"Description\") VALUES ('cccccccc-0000-0000-0000-000000000002','cccccccc-0000-0000-0000-000000000001',1,'Homebrew Elf','x');
+             DELETE FROM \"Traits\" WHERE \"SpeciesId\" = '$elf' AND \"IsOfficialSRD\" AND \"Id\" <> 'bbbbbbbb-0000-0000-0000-000000000001';
+             DELETE FROM \"SpeciesTranslations\" WHERE \"SpeciesId\" = '$elf' AND \"Language\" = 2;
+             DELETE FROM \"Subspecies\" WHERE \"Id\" = '20000000-0000-0000-0005-000000000001';" >/dev/null
+          # The rows deleted above (Elf base traits, Italian Elf name, Drow lineage) must be re-created by the sync
           restart api4.log
           stale=$(q "SELECT count(*) FROM \"Traits\" WHERE \"Id\" = 'bbbbbbbb-0000-0000-0000-000000000001'")
           outdated=$(q "SELECT count(*) FROM \"TraitTranslations\" WHERE \"Name\" = 'Outdated'")
@@ -158,6 +162,13 @@ jobs:
           ids1=$(q "SELECT md5(string_agg(\"Id\"::text, ',' ORDER BY \"Id\")) FROM \"Traits\"")
           restart api5.log
           ids2=$(q "SELECT md5(string_agg(\"Id\"::text, ',' ORDER BY \"Id\")) FROM \"Traits\"")
+          elf_it=$(q "SELECT count(*) FROM \"SpeciesTranslations\" WHERE \"SpeciesId\" = '$elf' AND \"Language\" = 2")
+          drow=$(q "SELECT count(*) FROM \"Subspecies\" WHERE \"Id\" = '20000000-0000-0000-0005-000000000001'")
+          v5=$(q "SELECT count(*) FROM \"Traits\" WHERE \"IsOfficialSRD\" AND substring(\"Id\"::text,15,1)='5'")
+          echo "::notice title=database::species resync (re-created rows): Elf IT name=$elf_it, Drow lineage=$drow, deterministic SRD trait ids=$v5"
+          test "$elf_it" = "1"
+          test "$drow" = "1"
+          test "$v5" = "$expected"
           echo "::notice title=database::species resync: stale SRD trait left=$stale, outdated names left=$outdated, homebrew lineage kept=$homebrew, SRD traits=$after/$expected, ids stable across restarts=$([ "$ids1" = "$ids2" ] && echo yes || echo no)"
           test "$stale" = "0"
           test "$outdated" = "0"
@@ -237,6 +248,10 @@ jobs:
         with:
           node-version: '22'
 
+      - name: Build once
+        # Building API and client with two concurrent "dotnet run" makes them race on the shared projects (flaky starts)
+        run: dotnet build RealmForge/RealmForge.slnx --configuration Debug
+
       - name: Start API and client
         shell: bash
         env:
@@ -245,10 +260,18 @@ jobs:
         run: |
           # Point the client at the CI API (plain http)
           echo '{ "ApiBaseUrl": "http://localhost:5080/" }' > RealmForge/RealmForge.Client/wwwroot/appsettings.Development.json
-          ASPNETCORE_URLS=http://localhost:5080 nohup dotnet run --project RealmForge/RealmForge.Api --no-launch-profile > api.log 2>&1 &
-          nohup dotnet run --project RealmForge/RealmForge.Client --launch-profile http > client.log 2>&1 &
-          for i in $(seq 1 90); do curl -sf http://localhost:5080/api/feats >/dev/null && curl -sf http://localhost:5227 >/dev/null && break; sleep 3; done
-          curl -sf http://localhost:5227 >/dev/null
+          ASPNETCORE_URLS=http://localhost:5080 nohup dotnet run --no-build --project RealmForge/RealmForge.Api --no-launch-profile > api.log 2>&1 &
+          nohup dotnet run --no-build --project RealmForge/RealmForge.Client --launch-profile http > client.log 2>&1 &
+          for i in $(seq 1 60); do
+            curl -sf http://localhost:5080/api/feats >/dev/null && curl -sf http://localhost:5227 >/dev/null && exit 0
+            sleep 3
+          done
+          # Startup failed: show why
+          curl -sf http://localhost:5080/api/feats >/dev/null && echo "::error title=ui::API is up" || echo "::error title=ui::API did not start"
+          curl -sf http://localhost:5227 >/dev/null && echo "::error title=ui::client is up" || echo "::error title=ui::client did not start"
+          tail -n 15 api.log | sed 's/^/::error title=api-log::/'
+          tail -n 15 client.log | sed 's/^/::error title=client-log::/'
+          exit 1
 
       - name: Run UI smoke test
         working-directory: .github/ui-smoke

@@ -187,8 +187,10 @@ namespace RealmForge.Api.Controllers
 				}
 				else
 				{
-					feat.Translations.Add(new FeatTranslation
+					//	Added through the context so EF inserts it (a preset Guid key would otherwise be treated as an existing row)
+					_context.FeatTranslations.Add(new FeatTranslation
 					{
+						FeatId = feat.Id,
 						Language = tDto.Language,
 						Name = tDto.Name.Trim(),
 						Description = tDto.Description?.Trim() ?? string.Empty,
