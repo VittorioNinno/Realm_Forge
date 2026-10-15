@@ -105,6 +105,8 @@
 
                         @* CARD FOOTER: Actions *@
                         <div class="pt-3 d-flex justify-content-end align-items-center gap-2" style="border-top: 1px solid var(--rf-border-subtle);">
+                            @if (!sub.IsOfficialSRD)
+                            {
                             <button class="btn btn-sm btn-rf-outline text-uppercase"
                                     style="letter-spacing: 1px;"
                                     @onclick="() => OpenEditModal(sub.Id)">
@@ -116,6 +118,7 @@
                                     @onclick="() => OpenDeleteModal(sub.Id, sub.Name)">
                                 @UiText.Delete(LanguageState.CurrentLanguage)
                             </button>
+                            }
                         </div>
                     </div>
                 </div>
@@ -173,12 +176,6 @@
                 </div>
 
                 <div class="mb-4 d-flex align-items-center">
-                    <label class="rf-checkbox-wrapper mb-0">
-                        <input type="checkbox" class="rf-checkbox" @bind="newIsSRD" />
-                        <span class="small fw-bold" style="color: var(--rf-text-secondary);">
-                            @UiText.LabelIsSRD(LanguageState.CurrentLanguage)
-                        </span>
-                    </label>
                 </div>
 
                 <div class="p-3 mb-3 rounded" style="background-color: var(--rf-bg-card); border-left: 3px solid var(--rf-orange-primary);">
