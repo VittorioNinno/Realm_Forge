@@ -37,8 +37,18 @@ namespace RealmForge.Infrastructure.Migrations
                     b.Property<bool>("IsOfficialSRD")
                         .HasColumnType("boolean");
 
-                    b.Property<string>("Prerequisite")
-                        .HasColumnType("text");
+                    b.PrimitiveCollection<int[]>("PrerequisiteAbilities")
+                        .IsRequired()
+                        .HasColumnType("integer[]");
+
+                    b.Property<int?>("PrerequisiteFeature")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("PrerequisiteMinimumLevel")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("PrerequisiteMinimumScore")
+                        .HasColumnType("integer");
 
                     b.Property<int>("Ruleset")
                         .HasColumnType("integer");
@@ -69,9 +79,14 @@ namespace RealmForge.Infrastructure.Migrations
                         .HasMaxLength(150)
                         .HasColumnType("character varying(150)");
 
+                    b.Property<string>("PrerequisiteNote")
+                        .HasMaxLength(300)
+                        .HasColumnType("character varying(300)");
+
                     b.HasKey("Id");
 
-                    b.HasIndex("FeatId");
+                    b.HasIndex("FeatId", "Language")
+                        .IsUnique();
 
                     b.ToTable("FeatTranslations");
                 });

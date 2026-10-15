@@ -1,7 +1,5 @@
-﻿using Microsoft.EntityFrameworkCore;
-using RealmForge.Domain.Entities;
-using RealmForge.Domain.Enums;
-using RealmForge.Infrastructure.Persistence;
+﻿using RealmForge.Domain.Entities;
+using RealmForge.Shared.Enums;
 
 namespace RealmForge.Infrastructure.Persistence.Seeding.FeatsData;
 
@@ -15,23 +13,19 @@ public static class RitualCaster2024Seeder
 	public static readonly Guid TranslationItId = Guid.Parse("11111111-2222-3333-4444-555555551332");
 
 	///	<summary>
-	///	Asynchronously seeds the Ritual Caster feat if it does not already exist.
+	///	Builds the canonical SRD definition of this feat. Persistence is handled by FeatSeeder.
 	///	</summary>
-	///	<param name="context">The database context instance.</param>
-	public static async Task SeedAsync(RealmForgeDbContext context)
+	public static Feat Build()
 	{
-		if (await context.Feats.AnyAsync(f => f.Id == FeatId))
-		{
-			return;
-		}
-
-		var feat = new Feat
+		return new Feat
 		{
 			Id = FeatId,
 			Ruleset = RulesetVersion.Dnd5e_2024,
 			IsOfficialSRD = true,
 			Category = FeatCategory.General,
-			Prerequisite = "Level 4+; Intelligence, Wisdom, or Charisma 13+",
+			PrerequisiteMinimumLevel = 4,
+			PrerequisiteAbilities = new List<AbilityScore> { AbilityScore.Intelligence, AbilityScore.Wisdom, AbilityScore.Charisma },
+			PrerequisiteMinimumScore = 13,
 			Translations = new List<FeatTranslation>
 			{
 				new FeatTranslation
@@ -50,8 +44,5 @@ public static class RitualCaster2024Seeder
 				}
 			}
 		};
-
-		context.Feats.Add(feat);
-		await context.SaveChangesAsync();
 	}
 }

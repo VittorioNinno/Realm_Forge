@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Components.Web;
+﻿using Microsoft.AspNetCore.Components.Web;
 using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
 using RealmForge.Client;
 using RealmForge.Client.Services;
@@ -17,7 +17,12 @@ namespace RealmForge.Client
 			//	API base URL comes from wwwroot/appsettings*.json, falling back to the client's own origin (hosted deployment)
 			var apiBaseUrl = builder.Configuration["ApiBaseUrl"] ?? builder.HostEnvironment.BaseAddress;
 
-			builder.Services.AddScoped(sp => new HttpClient
+			//	Failed API calls are reported to ApiErrorState and shown by the layout banner
+			builder.Services.AddScoped<ApiErrorState>();
+			builder.Services.AddScoped(sp => new HttpClient(new ApiErrorHandler(sp.GetRequiredService<ApiErrorState>())
+			{
+				InnerHandler = new HttpClientHandler()
+			})
 			{
 				BaseAddress = new Uri(apiBaseUrl)
 			});

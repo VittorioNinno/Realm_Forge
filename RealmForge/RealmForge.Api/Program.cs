@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using RealmForge.Infrastructure.Persistence;
+using RealmForge.Infrastructure.Persistence.Seeding;
 using Scalar.AspNetCore;
 
 namespace RealmForge.Api
@@ -17,6 +18,9 @@ namespace RealmForge.Api
 
 			//	Register controllers
 			builder.Services.AddControllers();
+
+			//	RFC 7807 problem details for errors and unhandled exceptions
+			builder.Services.AddProblemDetails();
 
 			//	Configure OpenAPI / Swagger
 			builder.Services.AddOpenApi();
@@ -39,6 +43,9 @@ namespace RealmForge.Api
 			var app = builder.Build();
 
 			//	Configure the HTTP request pipeline
+			app.UseExceptionHandler();
+			app.UseStatusCodePages();
+
 			if (app.Environment.IsDevelopment())
 			{
 				app.MapOpenApi();
@@ -53,21 +60,18 @@ namespace RealmForge.Api
 
 			app.MapControllers();
 
-			//	Execute automated database seeding during startup
+			//	Apply pending migrations (development only) and synchronize the SRD data
 			using (var scope = app.Services.CreateScope())
 			{
-				var services = scope.ServiceProvider;
-				try
+				var dbContext = scope.ServiceProvider.GetRequiredService<RealmForgeDbContext>();
+				var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
+
+				if (app.Environment.IsDevelopment())
 				{
-					var dbContext = services.GetRequiredService<RealmForgeDbContext>();
-					await RealmForge.Infrastructure.Persistence.Seeding.SpeciesSeeder.SeedAsync(dbContext);
-					await RealmForge.Infrastructure.Persistence.Seeding.FeatSeeder.SeedAsync(dbContext);
+					await dbContext.Database.MigrateAsync();
 				}
-				catch (Exception ex)
-				{
-					var logger = services.GetRequiredService<ILogger<Program>>();
-					logger.LogError(ex, "An error occurred while seeding the database.");
-				}
+
+				await DatabaseSeeder.SeedAsync(dbContext, logger);
 			}
 
 			await app.RunAsync();

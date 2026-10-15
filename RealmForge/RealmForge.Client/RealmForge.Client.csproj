@@ -14,7 +14,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\RealmForge.Domain\RealmForge.Domain.csproj" />
+    <ProjectReference Include="..\RealmForge.Shared\RealmForge.Shared.csproj" />
   </ItemGroup>
 
 </Project>
