@@ -1,9 +1,11 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using RealmForge.Shared.DTOs;
 using RealmForge.Domain.Entities;
 using RealmForge.Shared.Enums;
 using RealmForge.Api.Localization;
+using RealmForge.Api.Security;
 using RealmForge.Infrastructure.Persistence;
 
 namespace RealmForge.Api.Controllers
@@ -13,10 +15,12 @@ namespace RealmForge.Api.Controllers
 	public class SpeciesController : ControllerBase
 	{
 		private readonly RealmForgeDbContext _context;
+		private readonly ContentAccess _access;
 
-		public SpeciesController(RealmForgeDbContext context)
+		public SpeciesController(RealmForgeDbContext context, ContentAccess access)
 		{
 			_context = context;
+			_access = access;
 		}
 
 		//	GET: api/species?lang=1&ruleset=2&isOfficial=true
@@ -61,7 +65,8 @@ namespace RealmForge.Api.Controllers
 					s.IsOfficialSRD,
 					translation?.Language ?? lang,
 					s.Traits.Count,
-					s.Subspecies.Count
+					s.Subspecies.Count,
+					CanEdit: _access.CanModify(s, User)
 				);
 			});
 
@@ -139,7 +144,8 @@ namespace RealmForge.Api.Controllers
 					sub.BaseSpeedOverrideInFeet,
 					sub.Ruleset,
 					sub.IsOfficialSRD,
-					exclusiveTraits
+					exclusiveTraits,
+					CanEdit: _access.CanModify(sub, User)
 				);
 			})
 			.ToList();
@@ -155,7 +161,8 @@ namespace RealmForge.Api.Controllers
 				species.IsOfficialSRD,
 				translation?.Language ?? lang,
 				baseTraits,
-				subspeciesList
+				subspeciesList,
+				CanEdit: _access.CanModify(species, User)
 			);
 
 			return Ok(response);
@@ -163,6 +170,7 @@ namespace RealmForge.Api.Controllers
 
 		//	POST: api/species
 		[HttpPost]
+		[Authorize]
 		public async Task<ActionResult<SpeciesResponseDto>> Create([FromBody] CreateSpeciesDto dto)
 		{
 			if (dto.Translations == null || !dto.Translations.Any())
@@ -182,6 +190,7 @@ namespace RealmForge.Api.Controllers
 				CreatureType = dto.CreatureType,
 				Ruleset = dto.Ruleset,
 				IsOfficialSRD = false,
+				AuthorId = ContentAccess.GetUserId(User),
 				Translations = dto.Translations.Select(t => new SpeciesTranslation
 				{
 					Language = t.Language,
@@ -193,6 +202,7 @@ namespace RealmForge.Api.Controllers
 					RequiredLevel = tr.RequiredLevel,
 					Ruleset = tr.Ruleset,
 					IsOfficialSRD = false,
+					AuthorId = ContentAccess.GetUserId(User),
 					Translations = tr.Translations.Select(trt => new TraitTranslation
 					{
 						Language = trt.Language,
@@ -205,6 +215,7 @@ namespace RealmForge.Api.Controllers
 					BaseSpeedOverrideInFeet = sub.BaseSpeedOverrideInFeet,
 					Ruleset = sub.Ruleset,
 					IsOfficialSRD = false,
+					AuthorId = ContentAccess.GetUserId(User),
 					Translations = sub.Translations.Select(sbt => new SubspeciesTranslation
 					{
 						Language = sbt.Language,
@@ -216,6 +227,7 @@ namespace RealmForge.Api.Controllers
 						RequiredLevel = tr.RequiredLevel,
 						Ruleset = tr.Ruleset,
 						IsOfficialSRD = false,
+						AuthorId = ContentAccess.GetUserId(User),
 						Translations = tr.Translations.Select(trt => new TraitTranslation
 						{
 							Language = trt.Language,
@@ -242,7 +254,8 @@ namespace RealmForge.Api.Controllers
 				species.IsOfficialSRD,
 				firstTranslation?.Language ?? LanguageCode.En,
 				TraitCount: species.Traits.Count,
-				SubspeciesCount: species.Subspecies.Count
+				SubspeciesCount: species.Subspecies.Count,
+				CanEdit: _access.CanModify(species, User)
 			);
 
 			return CreatedAtAction(nameof(GetById), new { id = species.Id }, response);
@@ -250,6 +263,7 @@ namespace RealmForge.Api.Controllers
 
 		//	PUT: api/species/{id}
 		[HttpPut("{id:guid}")]
+		[Authorize]
 		public async Task<IActionResult> UpdateSpecies(Guid id, [FromBody] UpdateSpeciesDto dto)
 		{
 			if (id != dto.Id)
@@ -266,10 +280,10 @@ namespace RealmForge.Api.Controllers
 				return NotFound();
 			}
 
-			//	Official SRD content is read-only: it can only be changed through the seeders
-			if (species.IsOfficialSRD)
+			var denied = this.EnsureCanModify(_access, species);
+			if (denied != null)
 			{
-				return Problem(statusCode: StatusCodes.Status403Forbidden, title: "Official SRD content is read-only.");
+				return denied;
 			}
 
 			//	Update core mechanical data
@@ -319,6 +333,7 @@ namespace RealmForge.Api.Controllers
 
 		//	DELETE: api/species/{id}
 		[HttpDelete("{id:guid}")]
+		[Authorize]
 		public async Task<IActionResult> DeleteSpecies(Guid id)
 		{
 			var species = await _context.Species.FindAsync(id);
@@ -328,10 +343,10 @@ namespace RealmForge.Api.Controllers
 				return NotFound();
 			}
 
-			//	Official SRD content is read-only: it can only be changed through the seeders
-			if (species.IsOfficialSRD)
+			var denied = this.EnsureCanModify(_access, species);
+			if (denied != null)
 			{
-				return Problem(statusCode: StatusCodes.Status403Forbidden, title: "Official SRD content is read-only.");
+				return denied;
 			}
 
 			_context.Species.Remove(species);

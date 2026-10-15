@@ -1,9 +1,11 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using RealmForge.Shared.DTOs;
 using RealmForge.Domain.Entities;
 using RealmForge.Shared.Enums;
 using RealmForge.Api.Localization;
+using RealmForge.Api.Security;
 using RealmForge.Infrastructure.Persistence;
 
 namespace RealmForge.Api.Controllers
@@ -16,13 +18,15 @@ namespace RealmForge.Api.Controllers
 	public class SubspeciesController : ControllerBase
 	{
 		private readonly RealmForgeDbContext _context;
+		private readonly ContentAccess _access;
 
 		///	<summary>
 		///	Initializes a new instance of the SubspeciesController.
 		///	</summary>
-		public SubspeciesController(RealmForgeDbContext context)
+		public SubspeciesController(RealmForgeDbContext context, ContentAccess access)
 		{
 			_context = context;
+			_access = access;
 		}
 
 		///	<summary>
@@ -82,7 +86,8 @@ namespace RealmForge.Api.Controllers
 					sub.BaseSpeedOverrideInFeet,
 					sub.Ruleset,
 					sub.IsOfficialSRD,
-					exclusiveTraits
+					exclusiveTraits,
+					CanEdit: _access.CanModify(sub, User)
 				);
 			});
 
@@ -136,7 +141,8 @@ namespace RealmForge.Api.Controllers
 				sub.BaseSpeedOverrideInFeet,
 				sub.Ruleset,
 				sub.IsOfficialSRD,
-				exclusiveTraits
+				exclusiveTraits,
+				CanEdit: _access.CanModify(sub, User)
 			);
 
 			return Ok(response);
@@ -146,6 +152,7 @@ namespace RealmForge.Api.Controllers
 		///	Creates a new subspecies linked to a specific parent species.
 		///	</summary>
 		[HttpPost("~/api/species/{speciesId:guid}/subspecies")]
+		[Authorize]
 		public async Task<ActionResult<SubspeciesResponseDto>> Create(Guid speciesId, [FromBody] CreateSubspeciesDto dto)
 		{
 			if (dto.Translations == null || !dto.Translations.Any())
@@ -153,10 +160,16 @@ namespace RealmForge.Api.Controllers
 				return BadRequest("At least one translation must be provided.");
 			}
 
-			var speciesExists = await _context.Species.AnyAsync(s => s.Id == speciesId);
-			if (!speciesExists)
+			var parent = await _context.Species.FindAsync(speciesId);
+			if (parent == null)
 			{
 				return NotFound("Parent species not found.");
+			}
+
+			//	Lineages can extend SRD species or the user's own Homebrew species, not other users' content
+			if (!parent.IsOfficialSRD && !_access.CanModify(parent, User))
+			{
+				return Problem(statusCode: StatusCodes.Status403Forbidden, title: "You can only add lineages to SRD species or to your own Homebrew species.");
 			}
 
 			var subspecies = new Subspecies
@@ -165,6 +178,7 @@ namespace RealmForge.Api.Controllers
 				BaseSpeedOverrideInFeet = dto.BaseSpeedOverrideInFeet,
 				Ruleset = dto.Ruleset,
 				IsOfficialSRD = false,
+				AuthorId = ContentAccess.GetUserId(User),
 				Translations = dto.Translations.Select(t => new SubspeciesTranslation
 				{
 					Language = t.Language,
@@ -176,6 +190,7 @@ namespace RealmForge.Api.Controllers
 					RequiredLevel = tr.RequiredLevel,
 					Ruleset = tr.Ruleset,
 					IsOfficialSRD = false,
+					AuthorId = ContentAccess.GetUserId(User),
 					Translations = tr.Translations.Select(trt => new TraitTranslation
 					{
 						Language = trt.Language,
@@ -197,7 +212,8 @@ namespace RealmForge.Api.Controllers
 				subspecies.BaseSpeedOverrideInFeet,
 				subspecies.Ruleset,
 				subspecies.IsOfficialSRD,
-				new List<TraitResponseDto>()
+				new List<TraitResponseDto>(),
+				CanEdit: _access.CanModify(subspecies, User)
 			);
 
 			return CreatedAtAction(nameof(GetById), new { id = subspecies.Id }, response);
@@ -207,6 +223,7 @@ namespace RealmForge.Api.Controllers
 		///	Updates an existing subspecies mechanical data and translations.
 		///	</summary>
 		[HttpPut("{id:guid}")]
+		[Authorize]
 		public async Task<IActionResult> UpdateSubspecies(Guid id, [FromBody] UpdateSubspeciesDto dto)
 		{
 			if (id != dto.Id)
@@ -223,10 +240,10 @@ namespace RealmForge.Api.Controllers
 				return NotFound();
 			}
 
-			//	Official SRD content is read-only: it can only be changed through the seeders
-			if (subspecies.IsOfficialSRD)
+			var denied = this.EnsureCanModify(_access, subspecies);
+			if (denied != null)
 			{
-				return Problem(statusCode: StatusCodes.Status403Forbidden, title: "Official SRD content is read-only.");
+				return denied;
 			}
 
 			subspecies.BaseSpeedOverrideInFeet = dto.BaseSpeedOverrideInFeet;
@@ -271,6 +288,7 @@ namespace RealmForge.Api.Controllers
 		///	Deletes a subspecies by its unique identifier.
 		///	</summary>
 		[HttpDelete("{id:guid}")]
+		[Authorize]
 		public async Task<IActionResult> DeleteSubspecies(Guid id)
 		{
 			var subspecies = await _context.Subspecies.FindAsync(id);
@@ -280,10 +298,10 @@ namespace RealmForge.Api.Controllers
 				return NotFound();
 			}
 
-			//	Official SRD content is read-only: it can only be changed through the seeders
-			if (subspecies.IsOfficialSRD)
+			var denied = this.EnsureCanModify(_access, subspecies);
+			if (denied != null)
 			{
-				return Problem(statusCode: StatusCodes.Status403Forbidden, title: "Official SRD content is read-only.");
+				return denied;
 			}
 
 			_context.Subspecies.Remove(subspecies);

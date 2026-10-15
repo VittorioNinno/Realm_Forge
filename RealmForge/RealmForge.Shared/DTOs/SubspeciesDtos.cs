@@ -14,7 +14,8 @@ namespace RealmForge.Shared.DTOs
 		int? BaseSpeedOverrideInFeet,
 		RulesetVersion Ruleset,
 		bool IsOfficialSRD,
-		List<TraitResponseDto> Traits
+		List<TraitResponseDto> Traits,
+		bool CanEdit = false
 	);
 
 	///	<summary>
