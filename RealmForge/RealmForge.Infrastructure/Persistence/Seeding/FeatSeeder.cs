@@ -84,9 +84,12 @@ public static class FeatSeeder
 
 				if (target is null)
 				{
-					feat.Translations.Add(new FeatTranslation
+					//	Added through the context: a new child with a preset Guid key, discovered only via the collection,
+					//	would be taken by EF for an existing row (UPDATE affecting 0 rows)
+					context.FeatTranslations.Add(new FeatTranslation
 					{
 						Id = source.Id,
+						FeatId = feat.Id,
 						Language = source.Language,
 						Name = source.Name,
 						Description = source.Description,
