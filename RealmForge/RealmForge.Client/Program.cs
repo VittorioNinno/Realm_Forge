@@ -46,9 +46,14 @@ namespace RealmForge.Client
 			builder.Services.AddScoped<FeatDataService>();
 
 			//	UI language state management service
-			builder.Services.AddScoped<LanguageStateService>();
+			builder.Services.AddSingleton<LanguageStateService>();
 
-			await builder.Build().RunAsync();
+			var host = builder.Build();
+
+			//	Restore the saved UI language before the first render (no flash of the default language)
+			await host.Services.GetRequiredService<LanguageStateService>().InitializeAsync();
+
+			await host.RunAsync();
 		}
 	}
 }

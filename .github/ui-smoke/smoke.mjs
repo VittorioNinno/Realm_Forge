@@ -63,6 +63,14 @@ try {
   await page.getByRole('button', { name: 'Esci' }).click();
   await page.getByText('Accedi per forgiare').first().waitFor({ timeout: 30000 });
   ok('logout restores the anonymous view');
+
+  await page.getByRole('button', { name: /EN/ }).click();
+  await page.getByText('Sign in to forge').first().waitFor({ timeout: 15000 });
+  await page.reload();
+  await page.getByText('Sign in to forge').first().waitFor({ timeout: 60000 });
+  const htmlLang = await page.evaluate(() => document.documentElement.lang);
+  if (htmlLang !== 'en') throw new Error(`html lang is '${htmlLang}' after reload`);
+  ok('selected language (EN) survives a reload and sets <html lang="en">');
 } catch (e) {
   results.push(`FAIL ${e.message.split('\n')[0]}`);
   const stored = await page.evaluate(() => localStorage.getItem('realmforge.auth')).catch(() => 'n/a');

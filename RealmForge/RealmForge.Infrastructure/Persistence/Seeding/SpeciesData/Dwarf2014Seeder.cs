@@ -1,5 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
-using RealmForge.Domain.Entities;
+﻿using RealmForge.Domain.Entities;
 using RealmForge.Shared.Enums;
 
 namespace RealmForge.Infrastructure.Persistence.Seeding.SpeciesData
@@ -11,14 +10,12 @@ namespace RealmForge.Infrastructure.Persistence.Seeding.SpeciesData
 		public static readonly Guid HillDwarfSubspeciesId = Guid.Parse("10000000-0000-0000-0009-000000000001");
 		public static readonly Guid MountainDwarfSubspeciesId = Guid.Parse("10000000-0000-0000-0009-000000000002");
 
-		public static async Task SeedAsync(RealmForgeDbContext context)
+		///	<summary>
+		///	Builds the canonical SRD definition of this species. Persistence is handled by SpeciesSeeder.
+		///	</summary>
+		public static Species Build()
 		{
-			if (await context.Species.AnyAsync(s => s.Id == SpeciesId))
-			{
-				return;
-			}
-
-			var dwarf = new Species
+			return new Species
 			{
 				Id = SpeciesId,
 				BaseSpeedInFeet = 25,
@@ -285,9 +282,6 @@ namespace RealmForge.Infrastructure.Persistence.Seeding.SpeciesData
 					}
 				}
 			};
-
-			context.Species.Add(dwarf);
-			await context.SaveChangesAsync();
 		}
 	}
 }
