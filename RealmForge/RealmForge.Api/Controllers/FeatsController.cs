@@ -1,6 +1,8 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using RealmForge.Api.Localization;
+using RealmForge.Api.Security;
 using RealmForge.Domain.Entities;
 using RealmForge.Infrastructure.Persistence;
 using RealmForge.Shared.DTOs;
@@ -16,10 +18,12 @@ namespace RealmForge.Api.Controllers
 		private const int ShortDescriptionLength = 160;
 
 		private readonly RealmForgeDbContext _context;
+		private readonly ContentAccess _access;
 
-		public FeatsController(RealmForgeDbContext context)
+		public FeatsController(RealmForgeDbContext context, ContentAccess access)
 		{
 			_context = context;
+			_access = access;
 		}
 
 		//	GET: api/feats?lang=2&category=1&ruleset=2&isOfficial=true
@@ -65,7 +69,8 @@ namespace RealmForge.Api.Controllers
 					FormatPrerequisite(f, tr, lang),
 					f.Ruleset,
 					f.IsOfficialSRD,
-					shortDesc
+					shortDesc,
+					_access.CanModify(f, User)
 				);
 			}).OrderBy(f => f.Name).ToList();
 
@@ -86,11 +91,12 @@ namespace RealmForge.Api.Controllers
 				return NotFound();
 			}
 
-			return Ok(ToDetailDto(feat, lang));
+			return Ok(ToDetailDto(feat, lang, _access.CanModify(feat, User)));
 		}
 
 		//	POST: api/feats
 		[HttpPost]
+		[Authorize]
 		public async Task<ActionResult<FeatDetailResponseDto>> CreateFeat([FromBody] CreateFeatDto dto, [FromQuery] LanguageCode lang = LanguageCode.It)
 		{
 			var error = Validate(dto.Prerequisites, dto.Translations.Select(t => (t.Language, t.Name)));
@@ -106,6 +112,7 @@ namespace RealmForge.Api.Controllers
 
 				//	Content created through the API is always Homebrew; SRD data comes only from the seeders
 				IsOfficialSRD = false,
+				AuthorId = ContentAccess.GetUserId(User),
 
 				Translations = dto.Translations.Select(t => new FeatTranslation
 				{
@@ -121,11 +128,12 @@ namespace RealmForge.Api.Controllers
 			_context.Feats.Add(feat);
 			await _context.SaveChangesAsync();
 
-			return CreatedAtAction(nameof(GetFeatDetail), new { id = feat.Id }, ToDetailDto(feat, lang));
+			return CreatedAtAction(nameof(GetFeatDetail), new { id = feat.Id }, ToDetailDto(feat, lang, canEdit: true));
 		}
 
 		//	PUT: api/feats/{id}
 		[HttpPut("{id:guid}")]
+		[Authorize]
 		public async Task<IActionResult> UpdateFeat(Guid id, [FromBody] UpdateFeatDto dto)
 		{
 			if (id != dto.Id)
@@ -148,10 +156,10 @@ namespace RealmForge.Api.Controllers
 				return NotFound();
 			}
 
-			//	Official SRD content is read-only: it can only be changed through the seeders
-			if (feat.IsOfficialSRD)
+			var denied = this.EnsureCanModify(_access, feat);
+			if (denied != null)
 			{
-				return Problem(statusCode: StatusCodes.Status403Forbidden, title: "Official SRD content is read-only.");
+				return denied;
 			}
 
 			feat.Category = dto.Category;
@@ -196,6 +204,7 @@ namespace RealmForge.Api.Controllers
 
 		//	DELETE: api/feats/{id}
 		[HttpDelete("{id:guid}")]
+		[Authorize]
 		public async Task<IActionResult> DeleteFeat(Guid id)
 		{
 			var feat = await _context.Feats.FindAsync(id);
@@ -205,10 +214,10 @@ namespace RealmForge.Api.Controllers
 				return NotFound();
 			}
 
-			//	Official SRD content is read-only: it can only be changed through the seeders
-			if (feat.IsOfficialSRD)
+			var denied = this.EnsureCanModify(_access, feat);
+			if (denied != null)
 			{
-				return Problem(statusCode: StatusCodes.Status403Forbidden, title: "Official SRD content is read-only.");
+				return denied;
 			}
 
 			_context.Feats.Remove(feat);
@@ -219,7 +228,7 @@ namespace RealmForge.Api.Controllers
 
 		#region Mapping & validation
 
-		private static FeatDetailResponseDto ToDetailDto(Feat feat, LanguageCode lang)
+		private static FeatDetailResponseDto ToDetailDto(Feat feat, LanguageCode lang, bool canEdit)
 		{
 			var tr = feat.Translations.Localize(lang);
 
@@ -232,7 +241,8 @@ namespace RealmForge.Api.Controllers
 				feat.IsOfficialSRD,
 				tr?.Description ?? string.Empty,
 				ToPrerequisiteDto(feat),
-				tr?.PrerequisiteNote
+				tr?.PrerequisiteNote,
+				canEdit
 			);
 		}
 

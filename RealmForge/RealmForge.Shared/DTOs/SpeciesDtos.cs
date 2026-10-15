@@ -29,7 +29,8 @@ namespace RealmForge.Shared.DTOs
 		bool IsOfficialSRD,
 		LanguageCode Language,
 		int TraitCount = 0,
-		int SubspeciesCount = 0
+		int SubspeciesCount = 0,
+		bool CanEdit = false
 	);
 
 	///	<summary>
@@ -46,7 +47,8 @@ namespace RealmForge.Shared.DTOs
 		bool IsOfficialSRD,
 		LanguageCode Language,
 		List<TraitResponseDto> BaseTraits,
-		List<SubspeciesResponseDto> Subspecies
+		List<SubspeciesResponseDto> Subspecies,
+		bool CanEdit = false
 	);
 
 	///	<summary>

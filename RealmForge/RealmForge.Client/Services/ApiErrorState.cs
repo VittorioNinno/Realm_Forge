@@ -4,6 +4,7 @@
 	{
 		Unreachable = 1,
 		Forbidden = 2,
+		Unauthorized = 5,
 		Validation = 3,
 		Server = 4
 	}

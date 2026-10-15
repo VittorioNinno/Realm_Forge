@@ -44,13 +44,58 @@ namespace RealmForge.Client.Localization
 		public static string NoDescription(LanguageCode lang) => lang == LanguageCode.It ? "Nessuna annotazione disponibile." : "No notes available.";
 		#endregion
 
+		#region Account
+		public static string AccountTitle(LanguageCode lang) => lang == LanguageCode.It ? "Account" : "Account";
+		public static string AccountLoginTitle(LanguageCode lang) => lang == LanguageCode.It ? "ACCEDI ALLA FORGIA" : "SIGN IN TO THE FORGE";
+		public static string AccountRegisterTitle(LanguageCode lang) => lang == LanguageCode.It ? "CREA UN ACCOUNT" : "CREATE AN ACCOUNT";
+		public static string AccountSignedInAs(LanguageCode lang) => lang == LanguageCode.It ? "Accesso effettuato come" : "Signed in as";
+		public static string AccountSwitchToRegister(LanguageCode lang) => lang == LanguageCode.It ? "Non hai un account? Registrati" : "No account? Register";
+		public static string AccountSwitchToLogin(LanguageCode lang) => lang == LanguageCode.It ? "Hai già un account? Accedi" : "Already registered? Sign in";
+		public static string LabelPassword(LanguageCode lang) => lang == LanguageCode.It ? "Password" : "Password";
+		public static string PasswordHint(LanguageCode lang) => lang == LanguageCode.It
+			? "Almeno 6 caratteri, con una maiuscola, una minuscola, un numero e un simbolo."
+			: "At least 6 characters, with an uppercase, a lowercase letter, a digit and a symbol.";
+		public static string BtnLogin(LanguageCode lang) => lang == LanguageCode.It ? "Accedi" : "Sign in";
+		public static string BtnRegister(LanguageCode lang) => lang == LanguageCode.It ? "Registrati" : "Register";
+		public static string BtnLoginToForge(LanguageCode lang) => lang == LanguageCode.It ? "Accedi per forgiare" : "Sign in to forge";
+		public static string BtnLogout(LanguageCode lang) => lang == LanguageCode.It ? "Esci" : "Sign out";
+
+		public static string AuthError(string code, LanguageCode lang) => (code, lang == LanguageCode.It) switch
+		{
+			("InvalidCredentials", true) => "Email o password non corrette.",
+			("InvalidCredentials", false) => "Wrong email or password.",
+			("MissingFields", true) => "Inserisci email e password.",
+			("MissingFields", false) => "Enter email and password.",
+			("Unreachable", true) => "Impossibile contattare il server.",
+			("Unreachable", false) => "Cannot reach the server.",
+			("DuplicateUserName" or "DuplicateEmail", true) => "Esiste già un account con questa email.",
+			("DuplicateUserName" or "DuplicateEmail", false) => "An account with this email already exists.",
+			("InvalidEmail" or "InvalidUserName", true) => "Email non valida.",
+			("InvalidEmail" or "InvalidUserName", false) => "Invalid email.",
+			("PasswordTooShort", true) => "La password deve avere almeno 6 caratteri.",
+			("PasswordTooShort", false) => "The password must be at least 6 characters long.",
+			("PasswordRequiresDigit", true) => "La password deve contenere un numero.",
+			("PasswordRequiresDigit", false) => "The password must contain a digit.",
+			("PasswordRequiresUpper", true) => "La password deve contenere una lettera maiuscola.",
+			("PasswordRequiresUpper", false) => "The password must contain an uppercase letter.",
+			("PasswordRequiresLower", true) => "La password deve contenere una lettera minuscola.",
+			("PasswordRequiresLower", false) => "The password must contain a lowercase letter.",
+			("PasswordRequiresNonAlphanumeric", true) => "La password deve contenere un simbolo (es. ! ? #).",
+			("PasswordRequiresNonAlphanumeric", false) => "The password must contain a symbol (e.g. ! ? #).",
+			(_, true) => "Operazione non riuscita. Riprova.",
+			(_, false) => "Something went wrong. Please try again."
+		};
+		#endregion
+
 		#region Common Validation & Errors
 		public static string ApiError(RealmForge.Client.Services.ApiErrorKind kind, LanguageCode lang) => (kind, lang == LanguageCode.It) switch
 		{
 			(RealmForge.Client.Services.ApiErrorKind.Unreachable, true) => "Impossibile contattare il server. Verifica che l'API sia avviata.",
 			(RealmForge.Client.Services.ApiErrorKind.Unreachable, false) => "Cannot reach the server. Check that the API is running.",
-			(RealmForge.Client.Services.ApiErrorKind.Forbidden, true) => "Operazione non consentita: i contenuti SRD ufficiali sono in sola lettura.",
-			(RealmForge.Client.Services.ApiErrorKind.Forbidden, false) => "Operation not allowed: official SRD content is read-only.",
+			(RealmForge.Client.Services.ApiErrorKind.Forbidden, true) => "Operazione non consentita: puoi modificare solo i tuoi contenuti Homebrew (gli SRD sono in sola lettura).",
+			(RealmForge.Client.Services.ApiErrorKind.Forbidden, false) => "Operation not allowed: you can only modify your own Homebrew content (SRD is read-only).",
+			(RealmForge.Client.Services.ApiErrorKind.Unauthorized, true) => "Accesso richiesto: effettua il login per creare o modificare contenuti.",
+			(RealmForge.Client.Services.ApiErrorKind.Unauthorized, false) => "Sign-in required: log in to create or edit content.",
 			(RealmForge.Client.Services.ApiErrorKind.Validation, true) => "Dati non validi: controlla i campi del modulo.",
 			(RealmForge.Client.Services.ApiErrorKind.Validation, false) => "Invalid data: please check the form fields.",
 			(_, true) => "Errore del server. Riprova tra poco.",
