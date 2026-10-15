@@ -1,4 +1,4 @@
-using Microsoft.Extensions.Logging;
+﻿using Microsoft.Extensions.Logging;
 
 namespace RealmForge.Infrastructure.Persistence.Seeding;
 
@@ -20,6 +20,16 @@ public static class DatabaseSeeder
 		{
 			await seed();
 			logger.LogInformation("SRD seeding completed for {Module}.", module);
+		}
+		catch (Microsoft.EntityFrameworkCore.DbUpdateConcurrencyException ex)
+		{
+			foreach (var entry in ex.Entries)
+			{
+				logger.LogError("Concurrency failure on {Entity} ({State}) key={Key}", entry.Metadata.ClrType.Name, entry.State,
+					string.Join(",", entry.Properties.Where(p => p.Metadata.IsPrimaryKey()).Select(p => p.CurrentValue)));
+			}
+			logger.LogError(ex, "SRD seeding failed for {Module}. The other modules will still be seeded.", module);
+			context.ChangeTracker.Clear();
 		}
 		catch (Exception ex)
 		{

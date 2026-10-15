@@ -34,7 +34,7 @@ jobs:
           start old.log
           echo "::notice title=upgrade::OLD code: SRD traits=$(q 'SELECT count(*) FROM "Traits" WHERE "IsOfficialSRD"') v5=$(q "SELECT count(*) FROM \"Traits\" WHERE \"IsOfficialSRD\" AND substring(\"Id\"::text,15,1)='5'")"
           pkill -f RealmForge.Api; sleep 3
-          git checkout -q origin/develop
+          git checkout -q ${{ github.sha }}
           start new.log
           echo "::notice title=upgrade::NEW code: SRD traits=$(q 'SELECT count(*) FROM "Traits" WHERE "IsOfficialSRD"') v5=$(q "SELECT count(*) FROM \"Traits\" WHERE \"IsOfficialSRD\" AND substring(\"Id\"::text,15,1)='5'") orphans=$(q 'SELECT count(*) FROM "Traits" WHERE "SpeciesId" IS NULL AND "SubspeciesId" IS NULL')"
-          grep -iE "seeding|fail|exception" new.log | head -15 | sed 's/^/::notice title=upgrade-log::/' || true
+          grep -iE "Concurrency failure|seeding (completed|failed)" new.log | head -15 | sed 's/^/::notice title=upgrade-log::/' || true
