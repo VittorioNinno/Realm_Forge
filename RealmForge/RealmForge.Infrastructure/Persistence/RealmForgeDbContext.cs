@@ -1,10 +1,11 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using RealmForge.Domain.Entities;
-using RealmForge.Infrastructure.Persistence.Seeding;
+using RealmForge.Infrastructure.Identity;
 
 namespace RealmForge.Infrastructure.Persistence
 {
-	public class RealmForgeDbContext : DbContext
+	public class RealmForgeDbContext : IdentityDbContext<ApplicationUser>
 	{
 		public RealmForgeDbContext(DbContextOptions<RealmForgeDbContext> options)
 			: base(options)

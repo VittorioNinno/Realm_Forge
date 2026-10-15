@@ -1,5 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using RealmForge.Infrastructure.Persistence;
+using RealmForge.Api.Security;
+using RealmForge.Infrastructure.Identity;
 using RealmForge.Infrastructure.Persistence.Seeding;
 using Scalar.AspNetCore;
 
@@ -15,6 +17,17 @@ namespace RealmForge.Api
 			var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
 			builder.Services.AddDbContext<RealmForgeDbContext>(options =>
 				options.UseNpgsql(connectionString));
+
+			//	Accounts: ASP.NET Core Identity with bearer tokens (endpoints mapped under /api/auth)
+			builder.Services.AddAuthorization();
+			builder.Services.AddIdentityApiEndpoints<ApplicationUser>(options =>
+				{
+					options.User.RequireUniqueEmail = true;
+				})
+				.AddEntityFrameworkStores<RealmForgeDbContext>();
+
+			//	Ownership rules for SRD and Homebrew content
+			builder.Services.AddSingleton<ContentAccess>();
 
 			//	Register controllers
 			builder.Services.AddControllers();
@@ -56,8 +69,10 @@ namespace RealmForge.Api
 
 			app.UseCors(CorsPolicyName);
 
+			app.UseAuthentication();
 			app.UseAuthorization();
 
+			app.MapGroup("/api/auth").WithTags("Auth").MapIdentityApi<ApplicationUser>();
 			app.MapControllers();
 
 			//	Apply pending migrations (development only) and synchronize the SRD data

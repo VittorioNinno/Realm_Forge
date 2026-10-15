@@ -98,12 +98,12 @@ jobs:
           species=$(curl -sf "http://localhost:5080/api/species" | jq 'map(select(.isOfficialSRD)) | length')
           keen=$(curl -sf "http://localhost:5080/api/feats/11111111-2222-3333-4444-555555555571?lang=2" | jq -r .prerequisite)
           status=$(curl -s -o /dev/null -w '%{http_code}' -X DELETE "http://localhost:5080/api/feats/11111111-2222-3333-4444-555555555571")
-          echo "::notice title=database::SRD feats=$feats species=$species | Keen Mind (IT) prerequisite='$keen' | DELETE SRD -> $status"
+          echo "::notice title=database::SRD feats=$feats species=$species | Keen Mind (IT) prerequisite='$keen' | anonymous DELETE SRD -> $status"
           grep -iE "fail|error" api.log | head -10 | sed 's/^/::warning title=api-log::/' || true
           test "$feats" = "117"
           test "$species" = "19"
           test "$keen" = "Livello 4+, Intelligenza 13+"
-          test "$status" = "403"
+          test "$status" = "401"
 
       - name: Restart the API and check that existing SRD rows are re-synchronized
         shell: bash
@@ -127,3 +127,96 @@ jobs:
           echo "::notice title=database::after resync: name='$name' prerequisite='$pre'"
           test "$name" = "Keen Mind"
           test "$pre" = "Level 4+, Intelligence 13+"
+
+      - name: Check authentication and Homebrew ownership
+        shell: bash
+        env:
+          ConnectionStrings__DefaultConnection: ${{ env.CONN }}
+          ASPNETCORE_ENVIRONMENT: Development
+          ASPNETCORE_URLS: http://localhost:5080
+        run: |
+          set -e
+          api=http://localhost:5080
+          if ! curl -sf $api/api/feats >/dev/null; then
+            dotnet run --project RealmForge/RealmForge.Api --no-launch-profile > api3.log 2>&1 &
+            for i in $(seq 1 60); do curl -sf $api/api/feats >/dev/null && break; sleep 2; done
+          fi
+          code() { curl -s -o /dev/null -w '%{http_code}' "$@"; }
+          json='-H Content-Type:application/json'
+
+          # Random throwaway password generated per run (meets Identity's default rules)
+          PW="Rf-$(openssl rand -hex 12)A!"
+          cred() { jq -nc --arg e "$1" --arg p "$PW" '{email:$e,password:$p}'; }
+          test "$(code -X POST $api/api/auth/register $json -d "$(cred alice@example.com)")" = "200"
+          test "$(code -X POST $api/api/auth/register $json -d "$(cred bob@example.com)")" = "200"
+          A=$(curl -sf -X POST $api/api/auth/login $json -d "$(cred alice@example.com)" | jq -r .accessToken)
+          B=$(curl -sf -X POST $api/api/auth/login $json -d "$(cred bob@example.com)" | jq -r .accessToken)
+
+          feat='{"category":2,"ruleset":2,"prerequisites":{"minimumLevel":4,"abilities":[1],"minimumScore":13},"translations":[{"language":1,"name":"Forge Test","description":"x","prerequisiteNote":"Dwarf"},{"language":2,"name":"Prova Forgia","description":"x","prerequisiteNote":"Nano"}]}'
+          anon_create=$(code -X POST $api/api/feats $json -d "$feat")
+          created=$(curl -sf -X POST "$api/api/feats?lang=2" $json -H "Authorization: Bearer $A" -d "$feat")
+          id=$(echo "$created" | jq -r .id); pre=$(echo "$created" | jq -r .prerequisite); can=$(echo "$created" | jq -r .canEdit)
+          update=$(echo "$feat" | jq --arg id "$id" '. + {id: $id}')
+          own_update=$(code -X PUT $api/api/feats/$id $json -H "Authorization: Bearer $A" -d "$update")
+          other_update=$(code -X PUT $api/api/feats/$id $json -H "Authorization: Bearer $B" -d "$update")
+          other_delete=$(code -X DELETE $api/api/feats/$id -H "Authorization: Bearer $B")
+          srd_delete=$(code -X DELETE $api/api/feats/11111111-2222-3333-4444-555555555571 -H "Authorization: Bearer $A")
+          b_can=$(curl -sf "$api/api/feats/$id" -H "Authorization: Bearer $B" | jq -r .canEdit)
+          own_delete=$(code -X DELETE $api/api/feats/$id -H "Authorization: Bearer $A")
+
+          echo "::notice title=database::auth: anonymous create=$anon_create | created prerequisite='$pre' canEdit=$can | own PUT=$own_update | other PUT=$other_update DELETE=$other_delete canEdit=$b_can | SRD DELETE=$srd_delete | own DELETE=$own_delete"
+          test "$anon_create" = "401"
+          test "$pre" = "Livello 4+, Forza 13+, Nano"
+          test "$can" = "true"
+          test "$own_update" = "204"
+          test "$other_update" = "403"
+          test "$other_delete" = "403"
+          test "$b_can" = "false"
+          test "$srd_delete" = "403"
+          test "$own_delete" = "204"
+
+  ui:
+    runs-on: ubuntu-latest
+    needs: build
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          # Throwaway CI database: no password at all (trust auth), so nothing secret is stored here
+          POSTGRES_HOST_AUTH_METHOD: trust
+          POSTGRES_DB: realm_forge_ci
+        ports: [ "5432:5432" ]
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: '10.0.x'
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+
+      - name: Start API and client
+        shell: bash
+        env:
+          ConnectionStrings__DefaultConnection: Host=localhost;Port=5432;Database=realm_forge_ci;Username=postgres
+          ASPNETCORE_ENVIRONMENT: Development
+        run: |
+          # Point the client at the CI API (plain http)
+          echo '{ "ApiBaseUrl": "http://localhost:5080/" }' > RealmForge/RealmForge.Client/wwwroot/appsettings.Development.json
+          ASPNETCORE_URLS=http://localhost:5080 nohup dotnet run --project RealmForge/RealmForge.Api --no-launch-profile > api.log 2>&1 &
+          nohup dotnet run --project RealmForge/RealmForge.Client --launch-profile http > client.log 2>&1 &
+          for i in $(seq 1 90); do curl -sf http://localhost:5080/api/feats >/dev/null && curl -sf http://localhost:5227 >/dev/null && break; sleep 3; done
+          curl -sf http://localhost:5227 >/dev/null
+
+      - name: Run UI smoke test
+        working-directory: .github/ui-smoke
+        run: |
+          npm init -y >/dev/null
+          npm install playwright@1 >/dev/null
+          npx playwright install --with-deps chromium >/dev/null
+          node smoke.mjs

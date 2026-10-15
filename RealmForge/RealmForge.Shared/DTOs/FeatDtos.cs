@@ -31,7 +31,8 @@ namespace RealmForge.Shared.DTOs
 		string? Prerequisite,
 		RulesetVersion Ruleset,
 		bool IsOfficialSRD,
-		string ShortDescription
+		string ShortDescription,
+		bool CanEdit = false
 	);
 
 	public record FeatDetailResponseDto(
@@ -43,7 +44,8 @@ namespace RealmForge.Shared.DTOs
 		bool IsOfficialSRD,
 		string Description,
 		FeatPrerequisiteDto Prerequisites,
-		string? PrerequisiteNote
+		string? PrerequisiteNote,
+		bool CanEdit = false
 	);
 
 	public class CreateFeatDto

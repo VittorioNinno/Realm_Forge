@@ -1,0 +1,18 @@
+﻿@using RealmForge.Client.Localization
+@using RealmForge.Client.Services
+@inject AuthService Auth
+@inject LanguageStateService LanguageState
+
+<AuthorizeView>
+    <Authorized>
+        <span class="small text-secondary ms-3">@context.User.Identity?.Name</span>
+        <button class="btn btn-sm btn-rf-outline px-2 py-1" @onclick="Auth.LogoutAsync">
+            @UiText.BtnLogout(LanguageState.CurrentLanguage)
+        </button>
+    </Authorized>
+    <NotAuthorized>
+        <a href="account" class="btn btn-sm btn-rf-outline px-2 py-1 ms-3">
+            @UiText.BtnLogin(LanguageState.CurrentLanguage)
+        </a>
+    </NotAuthorized>
+</AuthorizeView>

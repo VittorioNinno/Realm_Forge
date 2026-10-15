@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Components.Web;
 using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
 using RealmForge.Client;
+using Microsoft.AspNetCore.Components.Authorization;
 using RealmForge.Client.Services;
 
 namespace RealmForge.Client
@@ -18,14 +19,26 @@ namespace RealmForge.Client
 			var apiBaseUrl = builder.Configuration["ApiBaseUrl"] ?? builder.HostEnvironment.BaseAddress;
 
 			//	Failed API calls are reported to ApiErrorState and shown by the layout banner
+			//	Pipeline: ApiErrorHandler (reports final failures) -> AuthHeaderHandler (bearer token + refresh) -> network
 			builder.Services.AddScoped<ApiErrorState>();
+			builder.Services.AddScoped<TokenStore>();
 			builder.Services.AddScoped(sp => new HttpClient(new ApiErrorHandler(sp.GetRequiredService<ApiErrorState>())
 			{
-				InnerHandler = new HttpClientHandler()
+				InnerHandler = new AuthHeaderHandler(sp.GetRequiredService<TokenStore>())
+				{
+					InnerHandler = new HttpClientHandler()
+				}
 			})
 			{
 				BaseAddress = new Uri(apiBaseUrl)
 			});
+
+			//	Authentication state for AuthorizeView and the account page
+			builder.Services.AddAuthorizationCore();
+			builder.Services.AddCascadingAuthenticationState();
+			builder.Services.AddScoped<AuthService>();
+			builder.Services.AddScoped<TokenAuthenticationStateProvider>();
+			builder.Services.AddScoped<AuthenticationStateProvider>(sp => sp.GetRequiredService<TokenAuthenticationStateProvider>());
 
 			//	API data management service
 			builder.Services.AddScoped<SpeciesDataService>();
