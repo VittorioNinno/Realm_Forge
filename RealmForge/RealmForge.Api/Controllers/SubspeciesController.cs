@@ -260,8 +260,10 @@ namespace RealmForge.Api.Controllers
 				}
 				else
 				{
-					subspecies.Translations.Add(new SubspeciesTranslation
+					//	Added through the context so EF inserts it (a preset Guid key would otherwise be treated as an existing row)
+					_context.SubspeciesTranslations.Add(new SubspeciesTranslation
 					{
+						SubspeciesId = subspecies.Id,
 						Language = tDto.Language,
 						Name = tDto.Name,
 						Description = tDto.Description
