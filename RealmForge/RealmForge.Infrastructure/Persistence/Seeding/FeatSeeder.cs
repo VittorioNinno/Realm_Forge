@@ -61,7 +61,7 @@ public static class FeatSeeder
 		await Alert2024Seeder.SeedAsync(context);
 		await Crafter2024Seeder.SeedAsync(context);
 		await Healer2024Seeder.SeedAsync(context);
-		await Lucky2014Seeder.SeedAsync(context);
+		await Lucky2024Seeder.SeedAsync(context);
 		await MagicInitiate2024Seeder.SeedAsync(context);
 		await Musician2024Seeder.SeedAsync(context);
 		await SavageAttacker2024Seeder.SeedAsync(context);
