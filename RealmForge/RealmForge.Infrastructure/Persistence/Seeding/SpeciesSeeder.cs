@@ -112,7 +112,7 @@ namespace RealmForge.Infrastructure.Persistence.Seeding
 				species.AllowedSizes = definition.AllowedSizes;
 				species.Ruleset = definition.Ruleset;
 
-				SyncSpeciesTranslations(species, definition);
+				SyncSpeciesTranslations(context, species, definition);
 				SyncTraits(context, species.Traits, definition.Traits);
 				SyncSubspecies(context, species, definition);
 			}
@@ -123,14 +123,14 @@ namespace RealmForge.Infrastructure.Persistence.Seeding
 
 		#region Synchronization
 
-		private static void SyncSpeciesTranslations(Species target, Species source)
+		private static void SyncSpeciesTranslations(RealmForgeDbContext context, Species target, Species source)
 		{
 			foreach (var tr in source.Translations)
 			{
 				var current = target.Translations.FirstOrDefault(t => t.Language == tr.Language);
 				if (current is null)
 				{
-					target.Translations.Add(new SpeciesTranslation { Id = tr.Id, Language = tr.Language, Name = tr.Name, Description = tr.Description });
+					context.SpeciesTranslations.Add(new SpeciesTranslation { Id = tr.Id, SpeciesId = target.Id, Language = tr.Language, Name = tr.Name, Description = tr.Description });
 				}
 				else
 				{
@@ -155,7 +155,9 @@ namespace RealmForge.Infrastructure.Persistence.Seeding
 				var current = target.Subspecies.FirstOrDefault(s => s.Id == sub.Id);
 				if (current is null)
 				{
-					target.Subspecies.Add(sub);
+					//	New rows with preset Guid keys must be added through the context, otherwise EF treats them as existing
+					sub.SpeciesId = target.Id;
+					context.Subspecies.Add(sub);
 					continue;
 				}
 
@@ -167,7 +169,7 @@ namespace RealmForge.Infrastructure.Persistence.Seeding
 					var currentTr = current.Translations.FirstOrDefault(t => t.Language == tr.Language);
 					if (currentTr is null)
 					{
-						current.Translations.Add(new SubspeciesTranslation { Id = tr.Id, Language = tr.Language, Name = tr.Name, Description = tr.Description });
+						context.SubspeciesTranslations.Add(new SubspeciesTranslation { Id = tr.Id, SubspeciesId = current.Id, Language = tr.Language, Name = tr.Name, Description = tr.Description });
 					}
 					else
 					{
@@ -195,7 +197,9 @@ namespace RealmForge.Infrastructure.Persistence.Seeding
 				var current = target.FirstOrDefault(t => t.Id == trait.Id);
 				if (current is null)
 				{
+					//	Owner FK is fixed up from the collection on SaveChanges; Add marks the trait and its translations as new rows
 					target.Add(trait);
+					context.Traits.Add(trait);
 					continue;
 				}
 
@@ -207,7 +211,7 @@ namespace RealmForge.Infrastructure.Persistence.Seeding
 					var currentTr = current.Translations.FirstOrDefault(t => t.Language == tr.Language);
 					if (currentTr is null)
 					{
-						current.Translations.Add(new TraitTranslation { Id = tr.Id, Language = tr.Language, Name = tr.Name, Description = tr.Description });
+						context.TraitTranslations.Add(new TraitTranslation { Id = tr.Id, TraitId = current.Id, Language = tr.Language, Name = tr.Name, Description = tr.Description });
 					}
 					else
 					{

@@ -1,7 +1,7 @@
 name: verify-upgrade
 on:
   push:
-    branches: [ 'ci/verify-species-upgrade' ]
+    branches: [ 'ci/verify-species-upgrade', 'fix/species-sync-new-rows' ]
 jobs:
   upgrade:
     runs-on: ubuntu-latest
