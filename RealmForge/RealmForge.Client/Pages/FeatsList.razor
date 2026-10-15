@@ -23,9 +23,16 @@
         </div>
 
         <div>
-            <button class="btn btn-rf-orange" @onclick="OpenCreateModal">
-                @UiText.BtnAddFeat(LanguageState.CurrentLanguage)
-            </button>
+            <AuthorizeView>
+                <Authorized>
+                    <button class="btn btn-rf-orange" @onclick="OpenCreateModal">
+                        @UiText.BtnAddFeat(LanguageState.CurrentLanguage)
+                    </button>
+                </Authorized>
+                <NotAuthorized>
+                    <a href="account" class="btn btn-rf-outline">@UiText.BtnLoginToForge(LanguageState.CurrentLanguage)</a>
+                </NotAuthorized>
+            </AuthorizeView>
         </div>
     </div>
 
@@ -206,7 +213,7 @@
             </div>
 
             <div class="d-flex justify-content-between align-items-center pt-3 mt-4" style="border-top: 1px solid var(--rf-border-light);">
-                @if (!SelectedFeat.IsOfficialSRD)
+                @if (SelectedFeat.CanEdit)
                 {
                 <div class="d-flex gap-3">
                     <button class="btn btn-sm btn-rf-outline text-uppercase"

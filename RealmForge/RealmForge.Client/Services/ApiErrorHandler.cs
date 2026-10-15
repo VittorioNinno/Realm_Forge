@@ -17,6 +17,12 @@ namespace RealmForge.Client.Services
 
 		protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
 		{
+			//	Login/registration report their own errors in the account page
+			if (request.RequestUri?.AbsolutePath.Contains("/api/auth/") == true)
+			{
+				return await base.SendAsync(request, cancellationToken);
+			}
+
 			HttpResponseMessage response;
 
 			try
@@ -31,8 +37,10 @@ namespace RealmForge.Client.Services
 
 			switch (response.StatusCode)
 			{
-				case HttpStatusCode.Forbidden:
 				case HttpStatusCode.Unauthorized:
+					_state.Report(ApiErrorKind.Unauthorized);
+					break;
+				case HttpStatusCode.Forbidden:
 					_state.Report(ApiErrorKind.Forbidden);
 					break;
 				case HttpStatusCode.BadRequest:
