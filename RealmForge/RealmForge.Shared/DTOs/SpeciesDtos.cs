@@ -57,7 +57,6 @@ namespace RealmForge.Shared.DTOs
 	public record CreateTraitDto(
 		int RequiredLevel,
 		RulesetVersion Ruleset,
-		bool IsOfficialSRD,
 		List<TraitTranslationDto> Translations
 	);
 
@@ -69,7 +68,6 @@ namespace RealmForge.Shared.DTOs
 		List<CreatureSize> AllowedSizes,
 		CreatureType CreatureType,
 		RulesetVersion Ruleset,
-		bool IsOfficialSRD,
 		List<SpeciesTranslationDto> Translations,
 		List<CreateTraitDto>? BaseTraits = null,
 		List<CreateSubspeciesDto>? Subspecies = null
@@ -84,7 +82,6 @@ namespace RealmForge.Shared.DTOs
 		List<CreatureSize> AllowedSizes,
 		CreatureType CreatureType,
 		RulesetVersion Ruleset,
-		bool IsOfficialSRD,
 		List<SpeciesTranslationDto> Translations
 	);
 

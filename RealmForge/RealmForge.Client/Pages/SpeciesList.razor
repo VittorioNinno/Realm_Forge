@@ -579,7 +579,6 @@
     private RulesetVersion newRuleset = RulesetVersion.Dnd5e_2024;
     private CreatureType newCreatureType = CreatureType.Humanoid;
     private HashSet<CreatureSize> selectedSizes = new() { CreatureSize.Medium };
-    private bool newIsSRD = false;
     private string nameIt = "";
     private string descIt = "";
     private string nameEn = "";
@@ -645,7 +644,6 @@
         newRuleset = RulesetVersion.Dnd5e_2024;
         newCreatureType = CreatureType.Humanoid;
         selectedSizes = new HashSet<CreatureSize> { CreatureSize.Medium };
-        newIsSRD = false;
         nameIt = "";
         descIt = "";
         nameEn = "";
@@ -679,7 +677,6 @@
                 newRuleset = detailIt.Ruleset;
                 newCreatureType = detailIt.CreatureType;
                 selectedSizes = new HashSet<CreatureSize>(detailIt.AllowedSizes);
-                newIsSRD = detailIt.IsOfficialSRD;
 
                 nameIt = detailIt.Name;
                 descIt = detailIt.Description;
@@ -747,7 +744,6 @@
                 selectedSizes.ToList(),
                 newCreatureType,
                 newRuleset,
-                newIsSRD,
                 translations
             );
             success = await SpeciesService.UpdateSpeciesAsync(editingId, updateDto);
@@ -759,7 +755,6 @@
                 selectedSizes.ToList(),
                 newCreatureType,
                 newRuleset,
-                newIsSRD,
                 translations
             );
             success = await SpeciesService.CreateSpeciesAsync(createDto);
