@@ -4,8 +4,8 @@ using System.Net.Http;
 using System.Net.Http.Json;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
-using RealmForge.Domain.DTOs;
-using RealmForge.Domain.Enums;
+using RealmForge.Shared.DTOs;
+using RealmForge.Shared.Enums;
 
 namespace RealmForge.Client.Services
 {

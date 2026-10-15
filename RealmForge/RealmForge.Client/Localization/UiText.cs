@@ -1,4 +1,4 @@
-﻿using RealmForge.Domain.Enums;
+﻿using RealmForge.Shared.Enums;
 
 namespace RealmForge.Client.Localization
 {
@@ -45,6 +45,18 @@ namespace RealmForge.Client.Localization
 		#endregion
 
 		#region Common Validation & Errors
+		public static string ApiError(RealmForge.Client.Services.ApiErrorKind kind, LanguageCode lang) => (kind, lang == LanguageCode.It) switch
+		{
+			(RealmForge.Client.Services.ApiErrorKind.Unreachable, true) => "Impossibile contattare il server. Verifica che l'API sia avviata.",
+			(RealmForge.Client.Services.ApiErrorKind.Unreachable, false) => "Cannot reach the server. Check that the API is running.",
+			(RealmForge.Client.Services.ApiErrorKind.Forbidden, true) => "Operazione non consentita: i contenuti SRD ufficiali sono in sola lettura.",
+			(RealmForge.Client.Services.ApiErrorKind.Forbidden, false) => "Operation not allowed: official SRD content is read-only.",
+			(RealmForge.Client.Services.ApiErrorKind.Validation, true) => "Dati non validi: controlla i campi del modulo.",
+			(RealmForge.Client.Services.ApiErrorKind.Validation, false) => "Invalid data: please check the form fields.",
+			(_, true) => "Errore del server. Riprova tra poco.",
+			(_, false) => "Server error. Please try again shortly."
+		};
+
 		public static string ErrFillNames(LanguageCode lang) =>
 			lang == LanguageCode.It ? "Inserire sia il nome italiano che quello inglese prima di salvare!" : "Please provide both Italian and English names before saving!";
 
@@ -108,6 +120,14 @@ namespace RealmForge.Client.Localization
 
 		public static string LabelPrerequisite(LanguageCode lang) => lang == LanguageCode.It ? "Prerequisito:" : "Prerequisite:";
 		public static string PlaceholderPrerequisite(LanguageCode lang) => lang == LanguageCode.It ? "Es. Livello 4+, Forza 13+" : "e.g. Level 4+, Strength 13+";
+		public static string LabelMinimumLevel(LanguageCode lang) => lang == LanguageCode.It ? "Livello minimo" : "Minimum level";
+		public static string LabelMinimumScore(LanguageCode lang) => lang == LanguageCode.It ? "Punteggio minimo" : "Minimum score";
+		public static string LabelRequiredFeature(LanguageCode lang) => lang == LanguageCode.It ? "Privilegio / Addestramento" : "Feature / Training";
+		public static string LabelAnyOfAbilities(LanguageCode lang) => lang == LanguageCode.It ? "Caratteristiche (almeno una)" : "Abilities (any one of)";
+		public static string LabelPreview(LanguageCode lang) => lang == LanguageCode.It ? "Anteprima:" : "Preview:";
+		public static string LabelPrerequisiteNote(LanguageCode lang) => lang == LanguageCode.It ? "Altro prerequisito (testo libero)" : "Other prerequisite (free text)";
+		public static string PlaceholderPrerequisiteNoteIt(LanguageCode lang) => lang == LanguageCode.It ? "Es. Elfo o Mezzelfo" : "e.g. Elfo o Mezzelfo (Italian)";
+		public static string PlaceholderPrerequisiteNoteEn(LanguageCode lang) => lang == LanguageCode.It ? "Es. Elf or Half-Elf (inglese)" : "e.g. Elf or Half-Elf";
 
 		public static string PlaceholderFeatNameIt(LanguageCode lang) => lang == LanguageCode.It ? "Es. Abile, Allerta, Fortunato..." : "e.g. Skilled, Alert, Lucky...";
 		public static string PlaceholderFeatNameEn(LanguageCode lang) => lang == LanguageCode.It ? "Es. Skilled, Alert, Lucky..." : "e.g. Skilled, Alert, Lucky...";
