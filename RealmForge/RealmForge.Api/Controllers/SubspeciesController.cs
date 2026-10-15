@@ -167,7 +167,7 @@ namespace RealmForge.Api.Controllers
 				SpeciesId = speciesId,
 				BaseSpeedOverrideInFeet = dto.BaseSpeedOverrideInFeet,
 				Ruleset = dto.Ruleset,
-				IsOfficialSRD = dto.IsOfficialSRD,
+				IsOfficialSRD = false,
 				Translations = dto.Translations.Select(t => new SubspeciesTranslation
 				{
 					Language = t.Language,
@@ -178,7 +178,7 @@ namespace RealmForge.Api.Controllers
 				{
 					RequiredLevel = tr.RequiredLevel,
 					Ruleset = tr.Ruleset,
-					IsOfficialSRD = tr.IsOfficialSRD,
+					IsOfficialSRD = false,
 					Translations = tr.Translations.Select(trt => new TraitTranslation
 					{
 						Language = trt.Language,
@@ -226,9 +226,14 @@ namespace RealmForge.Api.Controllers
 				return NotFound();
 			}
 
+			//	Official SRD content is read-only: it can only be changed through the seeders
+			if (subspecies.IsOfficialSRD)
+			{
+				return Problem(statusCode: StatusCodes.Status403Forbidden, title: "Official SRD content is read-only.");
+			}
+
 			subspecies.BaseSpeedOverrideInFeet = dto.BaseSpeedOverrideInFeet;
 			subspecies.Ruleset = dto.Ruleset;
-			subspecies.IsOfficialSRD = dto.IsOfficialSRD;
 
 			foreach (var tDto in dto.Translations)
 			{
@@ -276,6 +281,12 @@ namespace RealmForge.Api.Controllers
 			if (subspecies == null)
 			{
 				return NotFound();
+			}
+
+			//	Official SRD content is read-only: it can only be changed through the seeders
+			if (subspecies.IsOfficialSRD)
+			{
+				return Problem(statusCode: StatusCodes.Status403Forbidden, title: "Official SRD content is read-only.");
 			}
 
 			_context.Subspecies.Remove(subspecies);

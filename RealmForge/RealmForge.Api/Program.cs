@@ -23,11 +23,14 @@ namespace RealmForge.Api
 
 			const string CorsPolicyName = "AllowBlazorClient";
 
+			//	Only the configured client origins may call the API (see "Cors:AllowedOrigins" in appsettings)
+			var allowedOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() ?? Array.Empty<string>();
+
 			builder.Services.AddCors(options =>
 			{
 				options.AddPolicy(CorsPolicyName, policy =>
 				{
-					policy.AllowAnyOrigin()
+					policy.WithOrigins(allowedOrigins)
 							.AllowAnyMethod()
 							.AllowAnyHeader();
 				});
