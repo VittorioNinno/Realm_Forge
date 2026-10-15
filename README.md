@@ -1,51 +1,201 @@
 # RealmForge
 
-[🇬🇧 English]  
-A modular, multi-language web platform for managing TTRPG campaigns, sessions, and rules (inspired by modern D&D mechanics).
+[![build](https://github.com/VittorioNinno/realm-forge/actions/workflows/build.yml/badge.svg?branch=develop)](https://github.com/VittorioNinno/realm-forge/actions/workflows/build.yml)
 
-[🇮🇹 Italiano]  
-Piattaforma web modulare e multilingua per la gestione di campagne, sessioni e regole TTRPG (ispirata alle meccaniche moderne di D&D).
+[🇬🇧 English]
+A modular, bilingual web platform for managing tabletop RPG campaigns, sessions and rules, inspired by D&D 5e (2014) and 5.5e (2024).
+
+[🇮🇹 Italiano]
+*Piattaforma web modulare e bilingue per la gestione di campagne, sessioni e regole di giochi di ruolo da tavolo, ispirata a D&D 5e (2014) e 5.5e (2024).*
 
 ---
 
-## 🛠️ Tech Stack / Tecnologie Principali
-- **Backend:** ASP.NET Core (C#)
-- **Frontend:** Blazor WebAssembly / Custom UI
-- **Database:** PostgreSQL (Entity Framework Core)
+## ✨ Features / Funzionalità
 
-## 🌍 Project Goals / Obiettivi del Progetto
-- **Native multi-language support** · *Supporto nativo multilingua*  
-  Starting with English and Italian, built for future localizations.  
-  *Inizialmente in Inglese e Italiano, con architettura aperta a future localizzazioni.*
+- **Native bilingual support** · *Bilinguismo nativo*
+  Italian and English everywhere, from database translations to the UI, switchable at runtime without reloading.
+  *Italiano e inglese ovunque, dalle traduzioni nel database all'interfaccia, con cambio lingua immediato senza ricaricare.*
 
-- **Flexible TTRPG Compendium** · *Compendio e Schede Flessibili*  
-  Modular management of character sheets, class rules, species, and compendiums.  
-  *Gestione flessibile di schede personaggio, regole di classe, specie e compendi.*
+- **SRD vs Homebrew separation** · *Separazione SRD / Homebrew*
+  Official SRD content is read-only and kept in sync by the seeders; Homebrew belongs to its author.
+  *I contenuti SRD ufficiali sono in sola lettura e sincronizzati dai seeder; gli Homebrew appartengono al loro autore.*
 
-- **Licensing & Content Separation** · *Separazione Contenuti & Licenze*  
-  Clear boundary between official SRD material (public domain) and Homebrew/private content.  
-  *Netta separazione tra contenuti ufficiali SRD (pubblico dominio) e Homebrew/privati.*
+- **User accounts** · *Account utente*
+  Registration and sign-in; anyone can browse, only signed-in users can forge content.
+  *Registrazione e accesso; tutti possono consultare, solo gli utenti autenticati possono forgiare contenuti.*
 
-## 🚀 Local setup / Avvio in locale
+- **Dark Fantasy design system** · *Design system "Dark Fantasy"*
+  Dark surfaces, forge-orange accents and custom components.
+  *Superfici scure, accenti arancione forgia e componenti personalizzati.*
 
-1. **Database connection** · *Connessione al database* (stored with user-secrets, never committed · *salvata con user-secrets, mai nel repository*)
-   ```bash
-   cd RealmForge/RealmForge.Api
-   dotnet user-secrets set "ConnectionStrings:DefaultConnection" "Host=localhost;Port=5432;Database=realm_forge_db;Username=postgres;Password=<password>"
-   ```
-2. **Admin e-mail** · *Email amministratore* (optional · *facoltativo*): add your account to `Auth:AdminEmails` in `RealmForge.Api/appsettings.Development.json` to manage Homebrew created before authentication.
-3. **Run** · *Avvio*
-   ```bash
-   dotnet run --project RealmForge/RealmForge.Api --launch-profile https
-   dotnet run --project RealmForge/RealmForge.Client --launch-profile https
-   ```
-   In development the API applies pending migrations and synchronizes the SRD data at startup.
-   *In sviluppo l'API applica le migrazioni e sincronizza i dati SRD all'avvio.*
+### Module status / Stato dei moduli
 
-## 🧪 CI
+| Module · *Modulo* | Status · *Stato* | Notes · *Note* |
+|---|---|---|
+| Species & lineages · *Specie e sottospecie* | ✅ | 9 SRD 2014 + 10 SRD 2024 species, speed and traits recalculated per lineage · *velocità e tratti ricalcolati per sottospecie* |
+| Feats · *Talenti* | ✅ | 117 SRD feats (42 × 2014, 75 × 2024), structured bilingual prerequisites, "Forge Feat" editor · *prerequisiti strutturati bilingue, editor "Forgia Talento"* |
+| Accounts & ownership · *Account e proprietà* | ✅ | ASP.NET Core Identity, bearer tokens, per-author Homebrew · *Homebrew per autore* |
+| Backgrounds 2024 · *Background 2024* | 🔜 | Next module, linked to Origin feats · *Prossimo modulo, collegato ai Talenti di Origine* |
+| Spells · *Incantesimi* | 📋 | Planned · *Pianificato* |
+| Classes · *Classi* | 📋 | Planned · *Pianificato* |
+| Character sheet · *Scheda personaggio* | 📋 | Planned · *Pianificato* |
 
-Every push builds the solution, runs the tests, checks migrations and seeding on PostgreSQL and drives the UI in a headless browser.
-To generate an EF Core migration on GitHub, push a commit whose message contains `[ef-migration:MigrationName]`.
+---
+
+## 🛠️ Tech Stack / Tecnologie
+
+| Area | Technology · *Tecnologia* |
+|---|---|
+| Backend | ASP.NET Core (.NET 10), controllers, ProblemDetails, OpenAPI + Scalar |
+| Frontend | Blazor WebAssembly (.NET 10), custom components, Markdig |
+| Database | PostgreSQL + Entity Framework Core 10 (Npgsql) |
+| Auth | ASP.NET Core Identity API endpoints (bearer tokens) |
+| Tests & CI | xUnit, GitHub Actions, PostgreSQL service container, Playwright (headless Chromium) |
+
+## 🧱 Architecture / Architettura
+
+```
+RealmForge/
+├── RealmForge.Shared          DTOs, enums, FeatPrerequisiteFormatter (used by API and client)
+├── RealmForge.Domain          Entities (GameEntity, translations) — server only
+├── RealmForge.Infrastructure  DbContext, Identity, migrations, SRD seeders
+├── RealmForge.Api             REST API, auth endpoints, ownership rules (ContentAccess)
+├── RealmForge.Client          Blazor WebAssembly UI
+└── RealmForge.Tests           Seed-data integrity, formatter and GUID tests
+```
+
+- The client references **only** `RealmForge.Shared`: domain entities never reach the WebAssembly bundle.
+  *Il client referenzia **solo** `RealmForge.Shared`: le entità di dominio non finiscono nel bundle WebAssembly.*
+- Every localized entity has a `…Translation` table with a unique `(EntityId, Language)` index.
+  *Ogni entità localizzata ha una tabella `…Translation` con indice univoco `(EntityId, Language)`.*
+
+---
+
+## 🚀 Getting Started / Avvio in locale
+
+### Prerequisites / Prerequisiti
+- [.NET 10 SDK](https://dotnet.microsoft.com/download)
+- PostgreSQL (local · *locale*)
+
+### 1. Database connection / Connessione al database
+The connection string is **never committed**: it lives in your user profile via user-secrets.
+*La connection string **non è mai nel repository**: sta nel tuo profilo utente tramite user-secrets.*
+
+```bash
+cd RealmForge/RealmForge.Api
+dotnet user-secrets set "ConnectionStrings:DefaultConnection" "Host=localhost;Port=5432;Database=realm_forge_db;Username=postgres;Password=<password>"
+dotnet user-secrets list   # check · verifica
+```
+
+In Visual Studio: right-click `RealmForge.Api` → **Manage User Secrets** · *tasto destro → **Gestisci segreti utente***.
+If the value is missing, the API stops at startup and prints this command.
+*Se manca, l'API si ferma all'avvio e mostra questo comando.*
+
+### 2. Administrator (optional) / Amministratore (facoltativo)
+Add your e-mail to `Auth:AdminEmails` in `RealmForge.Api/appsettings.Development.json` to manage Homebrew created before accounts existed (it has no author).
+*Aggiungi la tua email in `Auth:AdminEmails` per gestire gli Homebrew creati prima degli account (non hanno autore).*
+
+### 3. Run / Avvio
+
+```bash
+dotnet run --project RealmForge/RealmForge.Api --launch-profile https
+dotnet run --project RealmForge/RealmForge.Client --launch-profile https
+```
+
+| | URL |
+|---|---|
+| Client | https://localhost:7171 |
+| API | https://localhost:7086 |
+| API reference (Scalar) | https://localhost:7086/scalar |
+
+In development the API applies pending migrations and synchronizes the SRD data at startup.
+*In sviluppo l'API applica le migrazioni in sospeso e sincronizza i dati SRD all'avvio.*
+
+---
+
+## 📜 Content Rules / Regole sui contenuti
+
+| | SRD | Homebrew |
+|---|---|---|
+| Source · *Origine* | Seeders only · *Solo seeder* | Created from the UI/API · *Creato da UI/API* |
+| Read · *Lettura* | Everyone · *Tutti* | Everyone · *Tutti* |
+| Edit / delete · *Modifica / elimina* | Nobody (403) · *Nessuno* | Author or admin · *Autore o amministratore* |
+
+- Content created through the API is **always** Homebrew; the `IsOfficialSRD` flag cannot be set by clients.
+  *I contenuti creati via API sono **sempre** Homebrew; il flag `IsOfficialSRD` non è impostabile dal client.*
+- Responses include `CanEdit`, computed by the server for the current user; the UI shows Edit/Delete only when it is `true`.
+  *Le risposte includono `CanEdit`, calcolato dal server; l'interfaccia mostra Modifica/Elimina solo se è `true`.*
+
+## 🌍 Localization / Localizzazione
+
+- **Data** · *Dati*: translations are stored per language; the API picks **requested language → English → any available**.
+  *Le traduzioni sono salvate per lingua; l'API sceglie **lingua richiesta → inglese → qualsiasi disponibile**.*
+- **UI texts** · *Testi dell'interfaccia*: `RealmForge.Client/Localization/UiText.cs`.
+- **Feat prerequisites** · *Prerequisiti dei talenti*: stored as data (level, abilities, score, feature) and rendered by `FeatPrerequisiteFormatter` with the correct wording per ruleset (e.g. 2014 "Proficiency with medium armor" / 2024 "Medium Armor Training").
+  *Salvati come dati e resi da `FeatPrerequisiteFormatter` con la dicitura corretta per regolamento.*
+
+## 🌱 Seed Data Conventions / Convenzioni sui dati SRD
+
+- One seeder file per entry, exposing `public static Feat Build()`; `FeatSeeder` discovers them automatically, so a new file cannot be forgotten.
+  *Un file per voce con `Build()`; `FeatSeeder` li trova da solo, quindi un nuovo file non può essere dimenticato.*
+- At startup missing SRD rows are inserted and existing ones are **updated** to match the seed (one query, one transaction).
+  *All'avvio le righe SRD mancanti vengono inserite e quelle esistenti **aggiornate** (una query, una transazione).*
+- Duplicate ids fail fast at startup and in the tests.
+  *Gli id duplicati bloccano l'avvio e fanno fallire i test.*
+- **New modules** must generate ids with `DeterministicGuid` (UUIDv5) from readable keys instead of hand-written GUIDs:
+  *I **nuovi moduli** devono generare gli id con `DeterministicGuid` invece di GUID scritti a mano:*
+
+  ```csharp
+  DeterministicGuid.ForSrd(RulesetVersion.Dnd5e_2024, "spell", "fireball");        // entity
+  DeterministicGuid.ForSrd(RulesetVersion.Dnd5e_2024, "spell", "fireball", "it");  // Italian translation
+  ```
+  Existing ids are kept as they are: changing them would orphan rows in existing databases.
+  *Gli id esistenti restano invariati: cambiarli scollegherebbe le righe nei database esistenti.*
+
+## 🗄️ Migrations / Migrazioni
+
+```bash
+dotnet ef migrations add <Name> --project RealmForge/RealmForge.Infrastructure --startup-project RealmForge/RealmForge.Api
+```
+
+No local SDK tools? Push a commit whose message contains `[ef-migration:<Name>]`: GitHub generates the migration and commits it to the branch.
+*Senza strumenti locali? Fai un push con `[ef-migration:<Nome>]` nel messaggio del commit: GitHub genera la migrazione e la aggiunge al branch.*
+
+## 🧪 Tests & CI / Test e CI
+
+Every push and pull request runs three jobs · *Ogni push e pull request esegue tre job*:
+
+| Job | Checks · *Verifica* |
+|---|---|
+| `build` | Build without warnings + unit tests · *Compilazione senza warning + test* |
+| `database` | Migrations on PostgreSQL 17, data preservation, SRD seeding and re-sync, auth and ownership rules (401/403/204) · *Migrazioni, conservazione dei dati, seeding, regole di accesso* |
+| `ui` | Headless browser: sign-in flow, conditional buttons, session after reload, modal layout · *Browser headless: accesso, pulsanti condizionati, sessione, layout del modale* |
+
+```bash
+dotnet test RealmForge/RealmForge.slnx
+```
+
+---
+
+## 🗺️ Roadmap
+
+- [ ] Backgrounds 2024 (with Origin feats) · *Background 2024 (con i Talenti di Origine)*
+- [ ] Species seeders with deterministic ids and re-sync, as for feats · *Seeder delle specie con id deterministici e risincronizzazione*
+- [ ] Remember the selected language across reloads · *Ricordare la lingua scelta tra un ricaricamento e l'altro*
+- [ ] Spells · *Incantesimi*
+- [ ] Classes · *Classi*
+- [ ] Character sheet · *Scheda personaggio*
+- [ ] Campaigns and sessions · *Campagne e sessioni*
 
 ## 📄 License / Licenza
-Released under the [MIT License](LICENSE) / Rilasciato sotto licenza [MIT License](LICENSE).
+
+Source code released under the [MIT License](LICENSE).
+*Codice sorgente rilasciato sotto licenza [MIT](LICENSE).*
+
+### SRD attribution
+
+This work includes material taken from the System Reference Document 5.1 ("SRD 5.1") by Wizards of the Coast LLC and available at https://dnd.wizards.com/resources/systems-reference-document. The SRD 5.1 is licensed under the Creative Commons Attribution 4.0 International License available at https://creativecommons.org/licenses/by/4.0/legalcode.
+
+This work includes material from the System Reference Document 5.2 ("SRD 5.2") by Wizards of the Coast LLC, available at https://www.dndbeyond.com/srd. The SRD 5.2 is licensed under the Creative Commons Attribution 4.0 International License, available at https://creativecommons.org/licenses/by/4.0/legalcode.
+
+RealmForge is compatible with fifth edition. · *RealmForge è compatibile con la quinta edizione.*
