@@ -205,6 +205,8 @@
             </div>
 
             <div class="d-flex justify-content-between align-items-center pt-3 mt-4" style="border-top: 1px solid var(--rf-border-light);">
+                @if (!SelectedFeat.IsOfficialSRD)
+                {
                 <div class="d-flex gap-3">
                     <button class="btn btn-sm btn-rf-outline text-uppercase"
                             style="letter-spacing: 1px;"
@@ -218,6 +220,11 @@
                         @UiText.Delete(LanguageState.CurrentLanguage)
                     </button>
                 </div>
+                }
+                else
+                {
+                    <div></div>
+                }
                 <button class="btn btn-rf-outline text-uppercase" style="letter-spacing: 1px;" @onclick="CloseDetail">
                     @UiText.BtnClose(LanguageState.CurrentLanguage)
                 </button>
@@ -275,12 +282,6 @@
                                @bind="newPrerequisite" />
                     </div>
                     <div class="col-md-4 d-flex align-items-end">
-                        <label class="rf-checkbox-wrapper mb-2">
-                            <input type="checkbox" class="rf-checkbox" @bind="newIsSRD" />
-                            <span class="small fw-bold" style="color: var(--rf-text-secondary);">
-                                @UiText.LabelIsSRD(LanguageState.CurrentLanguage)
-                            </span>
-                        </label>
                     </div>
                 </div>
 

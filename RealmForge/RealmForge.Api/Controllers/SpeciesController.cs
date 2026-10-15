@@ -185,7 +185,7 @@ namespace RealmForge.Api.Controllers
 				AllowedSizes = dto.AllowedSizes,
 				CreatureType = dto.CreatureType,
 				Ruleset = dto.Ruleset,
-				IsOfficialSRD = dto.IsOfficialSRD,
+				IsOfficialSRD = false,
 				Translations = dto.Translations.Select(t => new SpeciesTranslation
 				{
 					Language = t.Language,
@@ -196,7 +196,7 @@ namespace RealmForge.Api.Controllers
 				{
 					RequiredLevel = tr.RequiredLevel,
 					Ruleset = tr.Ruleset,
-					IsOfficialSRD = tr.IsOfficialSRD,
+					IsOfficialSRD = false,
 					Translations = tr.Translations.Select(trt => new TraitTranslation
 					{
 						Language = trt.Language,
@@ -208,7 +208,7 @@ namespace RealmForge.Api.Controllers
 				{
 					BaseSpeedOverrideInFeet = sub.BaseSpeedOverrideInFeet,
 					Ruleset = sub.Ruleset,
-					IsOfficialSRD = sub.IsOfficialSRD,
+					IsOfficialSRD = false,
 					Translations = sub.Translations.Select(sbt => new SubspeciesTranslation
 					{
 						Language = sbt.Language,
@@ -219,7 +219,7 @@ namespace RealmForge.Api.Controllers
 					{
 						RequiredLevel = tr.RequiredLevel,
 						Ruleset = tr.Ruleset,
-						IsOfficialSRD = tr.IsOfficialSRD,
+						IsOfficialSRD = false,
 						Translations = tr.Translations.Select(trt => new TraitTranslation
 						{
 							Language = trt.Language,
@@ -270,12 +270,17 @@ namespace RealmForge.Api.Controllers
 				return NotFound();
 			}
 
+			//	Official SRD content is read-only: it can only be changed through the seeders
+			if (species.IsOfficialSRD)
+			{
+				return Problem(statusCode: StatusCodes.Status403Forbidden, title: "Official SRD content is read-only.");
+			}
+
 			//	Update core mechanical data
 			species.BaseSpeedInFeet = dto.BaseSpeedInFeet;
 			species.AllowedSizes = dto.AllowedSizes;
 			species.CreatureType = dto.CreatureType;
 			species.Ruleset = dto.Ruleset;
-			species.IsOfficialSRD = dto.IsOfficialSRD;
 
 			//	Safely update translations (Upsert approach)
 			foreach (var tDto in dto.Translations)
@@ -325,6 +330,12 @@ namespace RealmForge.Api.Controllers
 			if (species == null)
 			{
 				return NotFound();
+			}
+
+			//	Official SRD content is read-only: it can only be changed through the seeders
+			if (species.IsOfficialSRD)
+			{
+				return Problem(statusCode: StatusCodes.Status403Forbidden, title: "Official SRD content is read-only.");
 			}
 
 			_context.Species.Remove(species);

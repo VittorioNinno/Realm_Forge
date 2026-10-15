@@ -5,7 +5,7 @@ using RealmForge.Domain.Entities;
 using RealmForge.Domain.Enums;
 using RealmForge.Infrastructure.Persistence;
 
-namespace RealmForge.Server.Controllers
+namespace RealmForge.Api.Controllers
 {
 	[ApiController]
 	[Route("api/[controller]")]
@@ -115,7 +115,8 @@ namespace RealmForge.Server.Controllers
 				Category = dto.Category,
 				Prerequisite = dto.Prerequisite,
 				Ruleset = dto.Ruleset,
-				IsOfficialSRD = dto.IsOfficialSRD,
+				//	Content created through the API is always Homebrew; SRD data comes only from the seeders
+				IsOfficialSRD = false,
 				Translations = dto.Translations.Select(t => new FeatTranslation
 				{
 					Language = t.Language,
@@ -158,11 +159,16 @@ namespace RealmForge.Server.Controllers
 				return NotFound();
 			}
 
+			//	Official SRD content is read-only: it can only be changed through the seeders
+			if (feat.IsOfficialSRD)
+			{
+				return Problem(statusCode: StatusCodes.Status403Forbidden, title: "Official SRD content is read-only.");
+			}
+
 			// Update core mechanical data
 			feat.Category = dto.Category;
 			feat.Prerequisite = dto.Prerequisite;
 			feat.Ruleset = dto.Ruleset;
-			feat.IsOfficialSRD = dto.IsOfficialSRD;
 
 			var dtoLanguages = dto.Translations.Select(t => t.Language).ToList();
 
@@ -221,6 +227,12 @@ namespace RealmForge.Server.Controllers
 			if (feat == null)
 			{
 				return NotFound();
+			}
+
+			//	Official SRD content is read-only: it can only be changed through the seeders
+			if (feat.IsOfficialSRD)
+			{
+				return Problem(statusCode: StatusCodes.Status403Forbidden, title: "Official SRD content is read-only.");
 			}
 
 			_context.Feats.Remove(feat);
