@@ -1,5 +1,5 @@
 ﻿using RealmForge.Domain.Common;
-using RealmForge.Domain.Enums;
+using RealmForge.Shared.Enums;
 
 namespace RealmForge.Domain.Entities
 {
@@ -20,7 +20,7 @@ namespace RealmForge.Domain.Entities
 		public ICollection<TraitTranslation> Translations { get; set; } = new List<TraitTranslation>();
 	}
 
-	public class TraitTranslation
+	public class TraitTranslation : ITranslation
 	{
 		public Guid Id { get; set; } = Guid.NewGuid();
 

@@ -131,6 +131,11 @@ namespace RealmForge.Infrastructure.Persistence
 			modelBuilder.Entity<Feat>(entity =>
 			{
 				entity.HasKey(f => f.Id);
+				entity.Property(f => f.Category).IsRequired();
+				entity.Property(f => f.Ruleset).IsRequired();
+				entity.Property(f => f.IsOfficialSRD).IsRequired();
+				entity.Property(f => f.PrerequisiteAbilities).IsRequired();
+
 				entity.HasMany(f => f.Translations)
 						.WithOne(t => t.Feat)
 						.HasForeignKey(t => t.FeatId)
@@ -143,6 +148,10 @@ namespace RealmForge.Infrastructure.Persistence
 				entity.HasKey(t => t.Id);
 				entity.Property(t => t.Name).IsRequired().HasMaxLength(150);
 				entity.Property(t => t.Description).IsRequired();
+				entity.Property(t => t.PrerequisiteNote).HasMaxLength(300);
+
+				//	Unique index: a feat cannot have two translations for the same language
+				entity.HasIndex(t => new { t.FeatId, t.Language }).IsUnique();
 			});
 		}
 	}

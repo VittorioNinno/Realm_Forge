@@ -1,8 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
-using RealmForge.Domain.Enums;
+using RealmForge.Shared.Enums;
 
-namespace RealmForge.Domain.DTOs
+namespace RealmForge.Shared.DTOs
 {
 	/// <summary>
 	/// Localized subspecies or lineage response DTO, including exclusive traits.

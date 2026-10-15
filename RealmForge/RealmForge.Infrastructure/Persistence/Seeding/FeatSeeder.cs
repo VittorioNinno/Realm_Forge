@@ -1,140 +1,108 @@
-﻿using RealmForge.Infrastructure.Persistence.Seeding.FeatsData;
+﻿using System.Reflection;
+using Microsoft.EntityFrameworkCore;
+using RealmForge.Domain.Entities;
+using RealmForge.Infrastructure.Persistence.Seeding.FeatsData;
 
 namespace RealmForge.Infrastructure.Persistence.Seeding;
 
 ///	<summary>
-///	Orchestrates the automated database seeding for feats at application startup.
+///	Synchronizes the official SRD feats with the database.
+///	Missing feats are inserted; existing SRD feats are updated to match their seed definition,
+///	so fixes to the seed texts reach existing databases too. Homebrew rows are never touched.
 ///	</summary>
 public static class FeatSeeder
 {
 	///	<summary>
-	///	Asynchronously executes all individual feat seeders.
+	///	Every feat definition, discovered from the static classes in the FeatsData namespace that expose
+	///	<c>public static Feat Build()</c>. Adding a new seeder file is enough: it cannot be forgotten.
 	///	</summary>
-	///	<param name="context">The database context instance.</param>
-	public static async Task SeedAsync(RealmForgeDbContext context)
+	public static IReadOnlyList<Feat> GetDefinitions()
 	{
-		//	Official SRD 2014 (5e)
-		await Alert2014Seeder.SeedAsync(context);
-		await Athlete2014Seeder.SeedAsync(context);
-		await Actor2014Seeder.SeedAsync(context);
-		await Charger2014Seeder.SeedAsync(context);
-		await CrossbowExpert2014Seeder.SeedAsync(context);
-		await DefensiveDuelist2014Seeder.SeedAsync(context);
-		await DualWielder2014Seeder.SeedAsync(context);
-		await DungeonDelver2014Seeder.SeedAsync(context);
-		await Durable2014Seeder.SeedAsync(context);
-		await ElementalAdept2014Seeder.SeedAsync(context);
-		await Grappler2014Seeder.SeedAsync(context);
-		await GreatWeaponMaster2014Seeder.SeedAsync(context);
-		await Healer2014Seeder.SeedAsync(context);
-		await HeavilyArmored2014Seeder.SeedAsync(context);
-		await HeavyArmorMaster2014Seeder.SeedAsync(context);
-		await InspiringLeader2014Seeder.SeedAsync(context);
-		await KeenMind2014Seeder.SeedAsync(context);
-		await LightlyArmored2014Seeder.SeedAsync(context);
-		await Linguist2014Seeder.SeedAsync(context);
-		await Lucky2014Seeder.SeedAsync(context);
-		await MageSlayer2014Seeder.SeedAsync(context);
-		await MagicInitiate2014Seeder.SeedAsync(context);
-		await MartialAdept2014Seeder.SeedAsync(context);
-		await MediumArmorMaster2014Seeder.SeedAsync(context);
-		await Mobile2014Seeder.SeedAsync(context);
-		await ModeratelyArmored2014Seeder.SeedAsync(context);
-		await MountedCombatant2014Seeder.SeedAsync(context);
-		await Observant2014Seeder.SeedAsync(context);
-		await PolearmMaster2014Seeder.SeedAsync(context);
-		await Resilient2014Seeder.SeedAsync(context);
-		await RitualCaster2014Seeder.SeedAsync(context);
-		await SavageAttacker2014Seeder.SeedAsync(context);
-		await Sentinel2014Seeder.SeedAsync(context);
-		await Sharpshooter2014Seeder.SeedAsync(context);
-		await ShieldMaster2014Seeder.SeedAsync(context);
-		await Skilled2014Seeder.SeedAsync(context);
-		await Skulker2014Seeder.SeedAsync(context);
-		await SpellSniper2014Seeder.SeedAsync(context);
-		await TavernBrawler2014Seeder.SeedAsync(context);
-		await Tough2014Seeder.SeedAsync(context);
-		await WarCaster2014Seeder.SeedAsync(context);
-		await WeaponMaster2014Seeder.SeedAsync(context);
+		var definitions = typeof(Alert2014Seeder).Assembly.GetTypes()
+			.Where(t => t.Namespace == typeof(Alert2014Seeder).Namespace && t.IsAbstract && t.IsSealed)
+			.Select(t => t.GetMethod("Build", BindingFlags.Public | BindingFlags.Static, Type.EmptyTypes))
+			.Where(m => m is not null && m.ReturnType == typeof(Feat))
+			.Select(m => (Feat)m!.Invoke(null, null)!)
+			.ToList();
 
-		//	Official SRD 2024 (5.5e)
-		await Alert2024Seeder.SeedAsync(context);
-		await Crafter2024Seeder.SeedAsync(context);
-		await Healer2024Seeder.SeedAsync(context);
-		await Lucky2024Seeder.SeedAsync(context);
-		await MagicInitiate2024Seeder.SeedAsync(context);
-		await Musician2024Seeder.SeedAsync(context);
-		await SavageAttacker2024Seeder.SeedAsync(context);
-		await Skilled2024Seeder.SeedAsync(context);
-		await TavernBrawler2024Seeder.SeedAsync(context);
-		await Tough2024Seeder.SeedAsync(context);
+		EnsureUniqueIds(definitions);
+		return definitions;
+	}
 
-		await AbilityScoreImprovement2024Seeder.SeedAsync(context);
-		await Actor2024Seeder.SeedAsync(context);
-		await Athlete2024Seeder.SeedAsync(context);
-		await Charger2024Seeder.SeedAsync(context);
-		await Chef2024Seeder.SeedAsync(context);
-		await CrossbowExpert2024Seeder.SeedAsync(context);
-		await Crusher2024Seeder.SeedAsync(context);
-		await DefensiveDuelist2024Seeder.SeedAsync(context);
-		await DualWielder2024Seeder.SeedAsync(context);
-		await Durable2024Seeder.SeedAsync(context);
-		await ElementalAdept2024Seeder.SeedAsync(context);
-		await FeyTouched2024Seeder.SeedAsync(context);
-		await Grappler2024Seeder.SeedAsync(context);
-		await GreatWeaponMaster2024Seeder.SeedAsync(context);
-		await HeavilyArmored2024Seeder.SeedAsync(context);
-		await HeavyArmorMaster2024Seeder.SeedAsync(context);
-		await InspiringLeader2024Seeder.SeedAsync(context);
-		await KeenMind2024Seeder.SeedAsync(context);
-		await LightlyArmored2024Seeder.SeedAsync(context);
-		await MageSlayer2024Seeder.SeedAsync(context);
-		await MartialWeaponTraining2024Seeder.SeedAsync(context);
-		await MediumArmorMaster2024Seeder.SeedAsync(context);
-		await ModeratelyArmored2024Seeder.SeedAsync(context);
-		await MountedCombatant2024Seeder.SeedAsync(context);
-		await Observant2024Seeder.SeedAsync(context);
-		await Piercer2024Seeder.SeedAsync(context);
-		await Poisoner2024Seeder.SeedAsync(context);
-		await PolearmMaster2024Seeder.SeedAsync(context);
-		await Resilient2024Seeder.SeedAsync(context);
-		await RitualCaster2024Seeder.SeedAsync(context);
-		await Sentinel2024Seeder.SeedAsync(context);
-		await ShadowTouched2024Seeder.SeedAsync(context);
-		await Sharpshooter2024Seeder.SeedAsync(context);
-		await ShieldMaster2024Seeder.SeedAsync(context);
-		await SkillExpert2024Seeder.SeedAsync(context);
-		await Skulker2024Seeder.SeedAsync(context);
-		await Slasher2024Seeder.SeedAsync(context);
-		await Speedy2024Seeder.SeedAsync(context);
-		await SpellSniper2024Seeder.SeedAsync(context);
-		await Telekinetic2024Seeder.SeedAsync(context);
-		await Telepathic2024Seeder.SeedAsync(context);
-		await WarCaster2024Seeder.SeedAsync(context);
-		await WeaponMaster2024Seeder.SeedAsync (context);
+	///	<summary>
+	///	Fails fast when two definitions share a feat id or a translation id (copy-paste mistakes).
+	///	</summary>
+	public static void EnsureUniqueIds(IEnumerable<Feat> definitions)
+	{
+		var list = definitions.ToList();
 
-		await Archery2024Seeder.SeedAsync(context);
-		await BlindFighting2024Seeder.SeedAsync(context);
-		await Defense2024Seeder.SeedAsync(context);
-		await Dueling2024Seeder.SeedAsync(context);
-		await GreatWeaponFighting2024Seeder.SeedAsync(context);
-		await Interception2024Seeder.SeedAsync(context);
-		await Protection2024Seeder.SeedAsync(context);
-		await ThrownWeaponFighting2024Seeder.SeedAsync(context);
-		await TwoWeaponFighting2024Seeder.SeedAsync(context);
-		await UnarmedFighting2024Seeder.SeedAsync(context);
+		var duplicateFeatIds = list.GroupBy(f => f.Id).Where(g => g.Count() > 1).Select(g => g.Key).ToList();
+		var duplicateTranslationIds = list.SelectMany(f => f.Translations).GroupBy(t => t.Id).Where(g => g.Count() > 1).Select(g => g.Key).ToList();
 
-		await BoonOfCombatProwess2024Seeder.SeedAsync(context);
-		await BoonOfDimensionalTravel2024Seeder.SeedAsync(context);
-		await BoonOfEnergyResistance2024Seeder.SeedAsync(context);
-		await BoonOfFate2024Seeder.SeedAsync(context);
-		await BoonOfFortitude2024Seeder.SeedAsync(context);
-		await BoonOfIrresistibleOffense2024Seeder.SeedAsync(context);
-		await BoonOfRecovery2024Seeder.SeedAsync(context);
-		await BoonOfSkill2024Seeder.SeedAsync(context);
-		await BoonOfSpeed2024Seeder.SeedAsync(context);
-		await BoonOfSpellRecall2024Seeder.SeedAsync(context);
-		await BoonOfTheNightSpirit2024Seeder.SeedAsync(context);
-		await BoonOfTruesight2024Seeder.SeedAsync(context);
+		if (duplicateFeatIds.Count > 0 || duplicateTranslationIds.Count > 0)
+		{
+			throw new InvalidOperationException(
+				$"Duplicate ids in feat seed data. Feats: [{string.Join(", ", duplicateFeatIds)}] Translations: [{string.Join(", ", duplicateTranslationIds)}]");
+		}
+	}
+
+	public static async Task SeedAsync(RealmForgeDbContext context, CancellationToken cancellationToken = default)
+	{
+		var definitions = GetDefinitions();
+		var ids = definitions.Select(d => d.Id).ToList();
+
+		//	One query for all existing seeded feats instead of one round-trip per feat
+		var existing = await context.Feats
+			.Include(f => f.Translations)
+			.Where(f => ids.Contains(f.Id))
+			.ToDictionaryAsync(f => f.Id, cancellationToken);
+
+		foreach (var definition in definitions)
+		{
+			if (!existing.TryGetValue(definition.Id, out var feat))
+			{
+				context.Feats.Add(definition);
+				continue;
+			}
+
+			//	Never overwrite user content, even in the unlikely case of an id clash
+			if (!feat.IsOfficialSRD)
+			{
+				continue;
+			}
+
+			feat.Category = definition.Category;
+			feat.Ruleset = definition.Ruleset;
+			feat.PrerequisiteMinimumLevel = definition.PrerequisiteMinimumLevel;
+			feat.PrerequisiteAbilities = definition.PrerequisiteAbilities;
+			feat.PrerequisiteMinimumScore = definition.PrerequisiteMinimumScore;
+			feat.PrerequisiteFeature = definition.PrerequisiteFeature;
+
+			foreach (var source in definition.Translations)
+			{
+				var target = feat.Translations.FirstOrDefault(t => t.Language == source.Language);
+
+				if (target is null)
+				{
+					feat.Translations.Add(new FeatTranslation
+					{
+						Id = source.Id,
+						Language = source.Language,
+						Name = source.Name,
+						Description = source.Description,
+						PrerequisiteNote = source.PrerequisiteNote
+					});
+				}
+				else
+				{
+					target.Name = source.Name;
+					target.Description = source.Description;
+					target.PrerequisiteNote = source.PrerequisiteNote;
+				}
+			}
+		}
+
+		//	Single transaction: either the whole SRD set is synchronized or nothing changes
+		await context.SaveChangesAsync(cancellationToken);
 	}
 }

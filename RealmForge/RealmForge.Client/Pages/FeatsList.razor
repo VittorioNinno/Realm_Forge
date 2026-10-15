@@ -2,8 +2,9 @@
 @using RealmForge.Client.Components
 @using RealmForge.Client.Localization
 @using RealmForge.Client.Services
-@using RealmForge.Domain.DTOs
-@using RealmForge.Domain.Enums
+@using RealmForge.Shared.DTOs
+@using RealmForge.Shared.Enums
+@using RealmForge.Shared.Localization
 @using Markdig
 @implements IDisposable
 @inject FeatDataService FeatService
@@ -273,16 +274,47 @@
                     </div>
                 </div>
 
-                <div class="row g-3 mb-3">
-                    <div class="col-md-8">
-                        <label class="rf-form-label">@UiText.LabelPrerequisite(LanguageState.CurrentLanguage)</label>
-                        <input type="text"
-                               class="rf-form-control"
-                               placeholder="@UiText.PlaceholderPrerequisite(LanguageState.CurrentLanguage)"
-                               @bind="newPrerequisite" />
+                <div class="p-3 mb-3 rounded" style="background-color: var(--rf-bg-card); border-left: 3px solid var(--rf-border-light);">
+                    <div class="fw-bold mb-2 small text-uppercase" style="letter-spacing: 0.5px;">
+                        @UiText.LabelPrerequisite(LanguageState.CurrentLanguage)
                     </div>
-                    <div class="col-md-4 d-flex align-items-end">
+
+                    <div class="row g-3 mb-2">
+                        <div class="col-md-4">
+                            <label class="rf-form-label">@UiText.LabelMinimumLevel(LanguageState.CurrentLanguage)</label>
+                            <input type="number" class="rf-form-control" min="1" max="20" @bind="prereqLevel" placeholder="—" />
+                        </div>
+                        <div class="col-md-4">
+                            <label class="rf-form-label">@UiText.LabelMinimumScore(LanguageState.CurrentLanguage)</label>
+                            <input type="number" class="rf-form-control" min="1" max="30" @bind="prereqScore" placeholder="13" />
+                        </div>
+                        <div class="col-md-4">
+                            <label class="rf-form-label">@UiText.LabelRequiredFeature(LanguageState.CurrentLanguage)</label>
+                            <RfSelect TValue="FeatFeatureRequirement?"
+                                      @bind-Value="prereqFeature"
+                                      Options="@FeatureOptions" />
+                        </div>
                     </div>
+
+                    <label class="rf-form-label">@UiText.LabelAnyOfAbilities(LanguageState.CurrentLanguage)</label>
+                    <div class="rf-pill-group mb-2">
+                        @foreach (var ability in Enum.GetValues<AbilityScore>())
+                        {
+                            var current = ability;
+                            <button type="button"
+                                    class="rf-pill-btn @(prereqAbilities.Contains(current) ? "active" : "")"
+                                    @onclick="() => ToggleAbility(current)">
+                                @FeatPrerequisiteFormatter.AbilityName(current, LanguageState.CurrentLanguage)
+                            </button>
+                        }
+                    </div>
+
+                    @if (!string.IsNullOrEmpty(PrerequisitePreview))
+                    {
+                        <div class="small" style="color: var(--rf-text-secondary);">
+                            @UiText.LabelPreview(LanguageState.CurrentLanguage) <strong style="color: #ffffff;">@PrerequisitePreview</strong>
+                        </div>
+                    }
                 </div>
 
                 <div class="p-3 mb-3 rounded" style="background-color: var(--rf-bg-card); border-left: 3px solid var(--rf-orange-primary);">
@@ -293,6 +325,13 @@
                                class="rf-form-control"
                                placeholder="@UiText.PlaceholderFeatNameIt(LanguageState.CurrentLanguage)"
                                @bind="nameIt" />
+                    </div>
+                    <div class="mb-2">
+                        <label class="rf-form-label">@UiText.LabelPrerequisiteNote(LanguageState.CurrentLanguage)</label>
+                        <input type="text"
+                               class="rf-form-control"
+                               placeholder="@UiText.PlaceholderPrerequisiteNoteIt(LanguageState.CurrentLanguage)"
+                               @bind="noteIt" />
                     </div>
                     <div>
                         <label class="rf-form-label">@UiText.LabelDescription(LanguageState.CurrentLanguage)</label>
@@ -308,6 +347,13 @@
                                class="rf-form-control"
                                placeholder="@UiText.PlaceholderFeatNameEn(LanguageState.CurrentLanguage)"
                                @bind="nameEn" />
+                    </div>
+                    <div class="mb-2">
+                        <label class="rf-form-label" style="color: var(--rf-text-secondary);">@UiText.LabelPrerequisiteNote(LanguageState.CurrentLanguage)</label>
+                        <input type="text"
+                               class="rf-form-control"
+                               placeholder="@UiText.PlaceholderPrerequisiteNoteEn(LanguageState.CurrentLanguage)"
+                               @bind="noteEn" />
                     </div>
                     <div>
                         <label class="rf-form-label" style="color: var(--rf-text-secondary);">@UiText.LabelDescription(LanguageState.CurrentLanguage)</label>
@@ -388,9 +434,13 @@
 
     private FeatCategory newCategory = FeatCategory.Origin;
     private RulesetVersion newRuleset = RulesetVersion.Dnd5e_2024;
-    private string? newPrerequisite = null;
-    private bool newIsSRD = false;
+    private int? prereqLevel;
+    private int? prereqScore;
+    private FeatFeatureRequirement? prereqFeature;
+    private List<AbilityScore> prereqAbilities = new();
     private string nameIt = "";
+    private string noteIt = "";
+    private string noteEn = "";
     private string descIt = "";
     private string nameEn = "";
     private string descEn = "";
@@ -404,6 +454,45 @@
             ? AllFeats
             : AllFeats.Where(f => f.Name.Contains(SearchTerm, StringComparison.OrdinalIgnoreCase) ||
                                   f.ShortDescription.Contains(SearchTerm, StringComparison.OrdinalIgnoreCase));
+
+    private List<RfSelect<FeatFeatureRequirement?>.OptionItem> FeatureOptions =>
+        new List<RfSelect<FeatFeatureRequirement?>.OptionItem> { new(null, "—") }
+            .Concat(Enum.GetValues<FeatFeatureRequirement>()
+                .Select(f => new RfSelect<FeatFeatureRequirement?>.OptionItem(f, FeatPrerequisiteFormatter.FeatureName(f, newRuleset, LanguageState.CurrentLanguage))))
+            .ToList();
+
+    private FeatPrerequisiteDto BuildPrerequisites() => new()
+    {
+        MinimumLevel = prereqLevel,
+        Abilities = prereqAbilities.ToList(),
+        MinimumScore = prereqAbilities.Count > 0 ? (prereqScore ?? 13) : null,
+        Feature = prereqFeature
+    };
+
+    private string? PrerequisitePreview =>
+        FeatPrerequisiteFormatter.Format(
+            BuildPrerequisites(),
+            LanguageState.CurrentLanguage == LanguageCode.It ? noteIt : noteEn,
+            newRuleset,
+            LanguageState.CurrentLanguage);
+
+    private void ToggleAbility(AbilityScore ability)
+    {
+        if (!prereqAbilities.Remove(ability))
+        {
+            prereqAbilities.Add(ability);
+        }
+    }
+
+    private void ResetPrerequisites()
+    {
+        prereqLevel = null;
+        prereqScore = null;
+        prereqFeature = null;
+        prereqAbilities = new List<AbilityScore>();
+        noteIt = "";
+        noteEn = "";
+    }
 
     protected override async Task OnInitializedAsync()
     {
@@ -462,8 +551,7 @@
         formValidationMessage = null;
         newCategory = FeatCategory.Origin;
         newRuleset = RulesetVersion.Dnd5e_2024;
-        newPrerequisite = null;
-        newIsSRD = false;
+        ResetPrerequisites();
         nameIt = "";
         descIt = "";
         nameEn = "";
@@ -493,8 +581,12 @@
             {
                 newCategory = detailIt.Category;
                 newRuleset = detailIt.Ruleset;
-                newPrerequisite = detailIt.Prerequisite;
-                newIsSRD = detailIt.IsOfficialSRD;
+                prereqLevel = detailIt.Prerequisites.MinimumLevel;
+                prereqScore = detailIt.Prerequisites.MinimumScore;
+                prereqFeature = detailIt.Prerequisites.Feature;
+                prereqAbilities = detailIt.Prerequisites.Abilities.ToList();
+                noteIt = detailIt.PrerequisiteNote ?? "";
+                noteEn = detailEn.PrerequisiteNote ?? "";
 
                 nameIt = detailIt.Name;
                 descIt = detailIt.Description;
@@ -535,13 +627,12 @@
             {
                 Id = editingId,
                 Category = newCategory,
-                Prerequisite = string.IsNullOrWhiteSpace(newPrerequisite) ? null : newPrerequisite.Trim(),
+                Prerequisites = BuildPrerequisites(),
                 Ruleset = newRuleset,
-                IsOfficialSRD = newIsSRD,
                 Translations = new List<UpdateFeatTranslationDto>
                 {
-                    new UpdateFeatTranslationDto { Language = LanguageCode.It, Name = nameIt.Trim(), Description = descIt?.Trim() ?? string.Empty },
-                    new UpdateFeatTranslationDto { Language = LanguageCode.En, Name = nameEn.Trim(), Description = descEn?.Trim() ?? string.Empty }
+                    new UpdateFeatTranslationDto { Language = LanguageCode.It, Name = nameIt.Trim(), Description = descIt?.Trim() ?? string.Empty, PrerequisiteNote = noteIt },
+                    new UpdateFeatTranslationDto { Language = LanguageCode.En, Name = nameEn.Trim(), Description = descEn?.Trim() ?? string.Empty, PrerequisiteNote = noteEn }
                 }
             };
             success = await FeatService.UpdateFeatAsync(editingId, updateDto);
@@ -551,13 +642,12 @@
             var createDto = new CreateFeatDto
             {
                 Category = newCategory,
-                Prerequisite = string.IsNullOrWhiteSpace(newPrerequisite) ? null : newPrerequisite.Trim(),
+                Prerequisites = BuildPrerequisites(),
                 Ruleset = newRuleset,
-                IsOfficialSRD = newIsSRD,
                 Translations = new List<CreateFeatTranslationDto>
                 {
-                    new CreateFeatTranslationDto { Language = LanguageCode.It, Name = nameIt.Trim(), Description = descIt?.Trim() ?? string.Empty },
-                    new CreateFeatTranslationDto { Language = LanguageCode.En, Name = nameEn.Trim(), Description = descEn?.Trim() ?? string.Empty }
+                    new CreateFeatTranslationDto { Language = LanguageCode.It, Name = nameIt.Trim(), Description = descIt?.Trim() ?? string.Empty, PrerequisiteNote = noteIt },
+                    new CreateFeatTranslationDto { Language = LanguageCode.En, Name = nameEn.Trim(), Description = descEn?.Trim() ?? string.Empty, PrerequisiteNote = noteEn }
                 }
             };
             success = await FeatService.CreateFeatAsync(createDto);

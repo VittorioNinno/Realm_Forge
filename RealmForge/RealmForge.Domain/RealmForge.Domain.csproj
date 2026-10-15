@@ -6,4 +6,8 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\RealmForge.Shared\RealmForge.Shared.csproj" />
+  </ItemGroup>
+
 </Project>

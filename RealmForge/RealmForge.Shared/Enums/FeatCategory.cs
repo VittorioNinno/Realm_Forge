@@ -1,4 +1,4 @@
-﻿namespace RealmForge.Domain.Enums
+﻿namespace RealmForge.Shared.Enums
 {
 	public enum FeatCategory
 	{

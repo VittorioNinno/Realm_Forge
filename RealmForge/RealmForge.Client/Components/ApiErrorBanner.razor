@@ -1,0 +1,27 @@
+﻿@using RealmForge.Client.Localization
+@using RealmForge.Client.Services
+@implements IDisposable
+@inject ApiErrorState ErrorState
+@inject LanguageStateService LanguageState
+
+@if (ErrorState.Current is ApiErrorKind kind)
+{
+    <div class="alert alert-warning bg-dark border-warning text-warning d-flex justify-content-between align-items-center p-2 small mb-3" role="alert">
+        <span>@UiText.ApiError(kind, LanguageState.CurrentLanguage)</span>
+        <button type="button" class="btn btn-sm btn-rf-outline px-2 py-0" @onclick="ErrorState.Clear">✕</button>
+    </div>
+}
+
+@code {
+    protected override void OnInitialized()
+    {
+        ErrorState.OnChange += Refresh;
+    }
+
+    private void Refresh() => InvokeAsync(StateHasChanged);
+
+    public void Dispose()
+    {
+        ErrorState.OnChange -= Refresh;
+    }
+}

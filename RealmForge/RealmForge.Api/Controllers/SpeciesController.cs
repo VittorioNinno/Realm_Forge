@@ -1,8 +1,9 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using RealmForge.Domain.DTOs;
+using RealmForge.Shared.DTOs;
 using RealmForge.Domain.Entities;
-using RealmForge.Domain.Enums;
+using RealmForge.Shared.Enums;
+using RealmForge.Api.Localization;
 using RealmForge.Infrastructure.Persistence;
 
 namespace RealmForge.Api.Controllers
@@ -21,7 +22,7 @@ namespace RealmForge.Api.Controllers
 		//	GET: api/species?lang=1&ruleset=2&isOfficial=true
 		[HttpGet]
 		public async Task<ActionResult<IEnumerable<SpeciesResponseDto>>> GetAll(
-			[FromQuery] LanguageCode lang = LanguageCode.En,
+			[FromQuery] LanguageCode lang = LanguageCode.It,
 			[FromQuery] RulesetVersion? ruleset = null,
 			[FromQuery] bool? isOfficial = null)
 		{
@@ -47,8 +48,7 @@ namespace RealmForge.Api.Controllers
 
 			var result = speciesList.Select(s =>
 			{
-				var translation = s.Translations.FirstOrDefault(t => t.Language == lang)
-								  ?? s.Translations.FirstOrDefault();
+				var translation = s.Translations.Localize(lang);
 
 				return new SpeciesResponseDto(
 					s.Id,
@@ -72,7 +72,7 @@ namespace RealmForge.Api.Controllers
 		[HttpGet("{id:guid}")]
 		public async Task<ActionResult<SpeciesDetailResponseDto>> GetById(
 			Guid id,
-			[FromQuery] LanguageCode lang = LanguageCode.En)
+			[FromQuery] LanguageCode lang = LanguageCode.It)
 		{
 			var species = await _context.Species
 				.Include(s => s.Translations)
@@ -92,15 +92,13 @@ namespace RealmForge.Api.Controllers
 				return NotFound();
 			}
 
-			var translation = species.Translations.FirstOrDefault(t => t.Language == lang)
-							  ?? species.Translations.FirstOrDefault();
+			var translation = species.Translations.Localize(lang);
 
 			var baseTraits = species.Traits
 				.OrderBy(t => t.RequiredLevel)
 				.Select(t =>
 				{
-					var traitTranslation = t.Translations.FirstOrDefault(tr => tr.Language == lang)
-										   ?? t.Translations.FirstOrDefault();
+					var traitTranslation = t.Translations.Localize(lang);
 
 					return new TraitResponseDto(
 						t.Id,
@@ -115,15 +113,13 @@ namespace RealmForge.Api.Controllers
 
 			var subspeciesList = species.Subspecies.Select(sub =>
 			{
-				var subTranslation = sub.Translations.FirstOrDefault(tr => tr.Language == lang)
-									 ?? sub.Translations.FirstOrDefault();
+				var subTranslation = sub.Translations.Localize(lang);
 
 				var exclusiveTraits = sub.Traits
 					.OrderBy(t => t.RequiredLevel)
 					.Select(t =>
 					{
-						var traitTranslation = t.Translations.FirstOrDefault(tr => tr.Language == lang)
-											   ?? t.Translations.FirstOrDefault();
+						var traitTranslation = t.Translations.Localize(lang);
 
 						return new TraitResponseDto(
 							t.Id,
