@@ -286,34 +286,41 @@
                         @UiText.LabelPrerequisite(LanguageState.CurrentLanguage)
                     </div>
 
-                    <div class="row g-3 mb-2">
+                    @* Row 1: level + required feature *@
+                    <div class="row g-3 mb-3 align-items-end">
                         <div class="col-md-4">
-                            <label class="rf-form-label">@UiText.LabelMinimumLevel(LanguageState.CurrentLanguage)</label>
-                            <input type="number" class="rf-form-control" min="1" max="20" @bind="prereqLevel" placeholder="—" />
+                            <label class="rf-form-label rf-label-single-line">@UiText.LabelMinimumLevel(LanguageState.CurrentLanguage)</label>
+                            <input type="number" class="rf-form-control" min="1" max="20" @bind="prereqLevel" placeholder="—" data-test="prereq-level" />
                         </div>
-                        <div class="col-md-4">
-                            <label class="rf-form-label">@UiText.LabelMinimumScore(LanguageState.CurrentLanguage)</label>
-                            <input type="number" class="rf-form-control" min="1" max="30" @bind="prereqScore" placeholder="13" />
-                        </div>
-                        <div class="col-md-4">
-                            <label class="rf-form-label">@UiText.LabelRequiredFeature(LanguageState.CurrentLanguage)</label>
+                        <div class="col-md-8" data-test="prereq-feature">
+                            <label class="rf-form-label rf-label-single-line">@UiText.LabelRequiredFeature(LanguageState.CurrentLanguage)</label>
                             <RfSelect TValue="FeatFeatureRequirement?"
                                       @bind-Value="prereqFeature"
                                       Options="@FeatureOptions" />
                         </div>
                     </div>
 
-                    <label class="rf-form-label">@UiText.LabelAnyOfAbilities(LanguageState.CurrentLanguage)</label>
-                    <div class="rf-pill-group mb-2">
-                        @foreach (var ability in Enum.GetValues<AbilityScore>())
-                        {
-                            var current = ability;
-                            <button type="button"
-                                    class="rf-pill-btn @(prereqAbilities.Contains(current) ? "active" : "")"
-                                    @onclick="() => ToggleAbility(current)">
-                                @FeatPrerequisiteFormatter.AbilityName(current, LanguageState.CurrentLanguage)
-                            </button>
-                        }
+                    @* Row 2: abilities (any one of) + the minimum score they must reach *@
+                    <div class="row g-3 mb-2 align-items-start">
+                        <div class="col-md-8">
+                            <label class="rf-form-label rf-label-single-line">@UiText.LabelAnyOfAbilities(LanguageState.CurrentLanguage)</label>
+                            <div class="rf-pill-group">
+                                @foreach (var ability in Enum.GetValues<AbilityScore>())
+                                {
+                                    var current = ability;
+                                    <button type="button"
+                                            class="rf-pill-btn @(prereqAbilities.Contains(current) ? "active" : "")"
+                                            @onclick="() => ToggleAbility(current)">
+                                        @FeatPrerequisiteFormatter.AbilityName(current, LanguageState.CurrentLanguage)
+                                    </button>
+                                }
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="rf-form-label rf-label-single-line">@UiText.LabelMinimumScore(LanguageState.CurrentLanguage)</label>
+                            <input type="number" class="rf-form-control" min="1" max="30" @bind="prereqScore" placeholder="13"
+                                   disabled="@(prereqAbilities.Count == 0)" data-test="prereq-score" />
+                        </div>
                     </div>
 
                     @if (!string.IsNullOrEmpty(PrerequisitePreview))
