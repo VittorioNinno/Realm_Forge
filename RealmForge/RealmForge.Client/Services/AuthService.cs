@@ -1,5 +1,6 @@
 ﻿using System.Net.Http.Json;
 using System.Text.Json;
+using RealmForge.Shared.DTOs;
 
 namespace RealmForge.Client.Services
 {
@@ -67,6 +68,38 @@ namespace RealmForge.Client.Services
 		}
 
 		public Task LogoutAsync() => _tokens.ClearAsync();
+
+		///	<summary>
+		///	Profile and Homebrew counts of the signed-in user; null when there is no valid session.
+		///	</summary>
+		public async Task<AccountSummaryDto?> GetAccountSummaryAsync()
+		{
+			try
+			{
+				var response = await _http.GetAsync("api/account/summary");
+				return response.IsSuccessStatusCode ? await response.Content.ReadFromJsonAsync<AccountSummaryDto>() : null;
+			}
+			catch (HttpRequestException)
+			{
+				return null;
+			}
+		}
+
+		///	<summary>
+		///	Changes the password through Identity's /manage/info endpoint (the current password is required).
+		///	</summary>
+		public async Task<AuthResult> ChangePasswordAsync(string oldPassword, string newPassword)
+		{
+			try
+			{
+				var response = await _http.PostAsJsonAsync("api/auth/manage/info", new { oldPassword, newPassword });
+				return response.IsSuccessStatusCode ? AuthResult.Ok() : AuthResult.Fail(await ReadIdentityErrorsAsync(response));
+			}
+			catch (HttpRequestException)
+			{
+				return AuthResult.Fail("Unreachable");
+			}
+		}
 
 		///	<summary>
 		///	Returns the email of the logged-in user, or null when there is no valid session.
