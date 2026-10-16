@@ -4,14 +4,11 @@ using System.Text;
 namespace RealmForge.Api.Email
 {
 	///	<summary>
-	///	RealmForge e-mail layout: same palette and fonts as the client (dark surfaces, forge orange, Cinzel titles).
-	///	Built with tables and inline styles because mail clients ignore most modern CSS; the logo is attached inline
-	///	and referenced as cid:{LogoCid} so it shows even while the site runs on localhost.
+	///	RealmForge e-mail layout: same palette and fonts as the client (dark surfaces, forge orange, Cinzel titles),
+	///	headed by the RealmForge wordmark. Built with tables and inline styles because mail clients ignore most modern CSS.
 	///	</summary>
 	public static class EmailTemplate
 	{
-		public const string LogoCidPlaceholder = "{{LOGO_CID}}";
-
 		//	Palette of RealmForge.Client/wwwroot/css/app.css
 		private const string BgMain = "#0d0d0d";
 		private const string BgCard = "#161616";
@@ -130,7 +127,7 @@ namespace RealmForge.Api.Email
 			        <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="max-width:560px;">
 			          <tr>
 			            <td align="center" style="padding:0 0 22px;">
-			              <img src="cid:{LogoCidPlaceholder}" width="150" height="150" alt="RealmForge" style="display:block;width:150px;height:150px;border:0;border-radius:14px;">
+			              <span style="font-family:{FontDisplay};font-size:26px;line-height:32px;font-weight:700;letter-spacing:5px;color:{Orange};">REALMFORGE</span>
 			            </td>
 			          </tr>
 			          <tr>

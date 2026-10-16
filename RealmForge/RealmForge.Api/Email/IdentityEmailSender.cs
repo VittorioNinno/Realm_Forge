@@ -16,16 +16,6 @@ namespace RealmForge.Api.Email
 	///	</summary>
 	public class IdentityEmailSender : IEmailSender<ApplicationUser>
 	{
-		//	Logo embedded in the assembly (Email/Assets/logo.jpg), read once
-		private static readonly Lazy<byte[]> LogoBytes = new(() =>
-		{
-			using var stream = typeof(IdentityEmailSender).Assembly.GetManifestResourceStream("RealmForge.Api.Email.Assets.logo.jpg")
-				?? throw new InvalidOperationException("E-mail logo resource not found");
-			using var copy = new MemoryStream();
-			stream.CopyTo(copy);
-			return copy.ToArray();
-		});
-
 		private readonly EmailOptions _options;
 		private readonly IHttpContextAccessor _http;
 		private readonly string[] _allowedOrigins;
@@ -117,12 +107,7 @@ namespace RealmForge.Api.Email
 			message.From.Add(new MailboxAddress(_options.FromName, _options.FromAddress ?? username));
 			message.To.Add(MailboxAddress.Parse(to));
 			message.Subject = subject;
-			//	The logo travels inside the e-mail (inline attachment referenced as cid:), so it shows without a public URL
-			var body = new BodyBuilder { TextBody = text };
-			var logo = body.LinkedResources.Add("realmforge-logo.jpg", LogoBytes.Value, new ContentType("image", "jpeg"));
-			logo.ContentId = MimeKit.Utils.MimeUtils.GenerateMessageId();
-			body.HtmlBody = html.Replace(EmailTemplate.LogoCidPlaceholder, logo.ContentId);
-			message.Body = body.ToMessageBody();
+			message.Body = new BodyBuilder { HtmlBody = html, TextBody = text }.ToMessageBody();
 
 			//	Port 465 uses TLS from the first byte; 587 (and 25) start in clear text and switch with STARTTLS
 			var security = _options.Port == 465 ? SecureSocketOptions.SslOnConnect : SecureSocketOptions.StartTls;
