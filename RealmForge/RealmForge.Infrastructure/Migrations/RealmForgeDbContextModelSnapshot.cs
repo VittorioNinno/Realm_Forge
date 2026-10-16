@@ -154,6 +154,91 @@ namespace RealmForge.Infrastructure.Migrations
                     b.ToTable("AspNetUserTokens", (string)null);
                 });
 
+            modelBuilder.Entity("RealmForge.Domain.Entities.Background", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.PrimitiveCollection<int[]>("AbilityOptions")
+                        .IsRequired()
+                        .HasColumnType("integer[]");
+
+                    b.Property<string>("AuthorId")
+                        .HasColumnType("text");
+
+                    b.Property<bool>("IsOfficialSRD")
+                        .HasColumnType("boolean");
+
+                    b.Property<Guid?>("OriginFeatId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("Ruleset")
+                        .HasColumnType("integer");
+
+                    b.PrimitiveCollection<int[]>("SkillProficiencies")
+                        .IsRequired()
+                        .HasColumnType("integer[]");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("OriginFeatId");
+
+                    b.ToTable("Backgrounds");
+                });
+
+            modelBuilder.Entity("RealmForge.Domain.Entities.BackgroundTranslation", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("BackgroundId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Equipment")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
+
+                    b.Property<string>("FeatureDescription")
+                        .HasColumnType("text");
+
+                    b.Property<string>("FeatureName")
+                        .HasMaxLength(150)
+                        .HasColumnType("character varying(150)");
+
+                    b.Property<int>("Language")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Languages")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("character varying(150)");
+
+                    b.Property<string>("OriginFeatNote")
+                        .HasMaxLength(300)
+                        .HasColumnType("character varying(300)");
+
+                    b.Property<string>("ToolProficiencies")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("BackgroundId", "Language")
+                        .IsUnique();
+
+                    b.ToTable("BackgroundTranslations");
+                });
+
             modelBuilder.Entity("RealmForge.Domain.Entities.Feat", b =>
                 {
                     b.Property<Guid>("Id")
@@ -521,6 +606,27 @@ namespace RealmForge.Infrastructure.Migrations
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("RealmForge.Domain.Entities.Background", b =>
+                {
+                    b.HasOne("RealmForge.Domain.Entities.Feat", "OriginFeat")
+                        .WithMany()
+                        .HasForeignKey("OriginFeatId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("OriginFeat");
+                });
+
+            modelBuilder.Entity("RealmForge.Domain.Entities.BackgroundTranslation", b =>
+                {
+                    b.HasOne("RealmForge.Domain.Entities.Background", "Background")
+                        .WithMany("Translations")
+                        .HasForeignKey("BackgroundId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Background");
+                });
+
             modelBuilder.Entity("RealmForge.Domain.Entities.FeatTranslation", b =>
                 {
                     b.HasOne("RealmForge.Domain.Entities.Feat", "Feat")
@@ -591,6 +697,11 @@ namespace RealmForge.Infrastructure.Migrations
                         .IsRequired();
 
                     b.Navigation("Trait");
+                });
+
+            modelBuilder.Entity("RealmForge.Domain.Entities.Background", b =>
+                {
+                    b.Navigation("Translations");
                 });
 
             modelBuilder.Entity("RealmForge.Domain.Entities.Feat", b =>
