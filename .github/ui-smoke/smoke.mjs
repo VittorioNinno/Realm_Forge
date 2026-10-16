@@ -34,6 +34,13 @@ try {
   const compendiumLinks = (await page.locator('[data-test=nav-compendium] a').allInnerTexts()).map((t) => t.trim());
   if (compendiumLinks.join(',') !== 'Specie,Background,Talenti') throw new Error(`unexpected compendium links: ${compendiumLinks.join(',')}`);
 
+  // Brand: emblem in the sidebar and logo in the dashboard hero, both loaded
+  await page.goto(`${base}/`);
+  await page.locator('[data-test=home-hero] img').waitFor({ timeout: 30000 });
+  const images = await page.evaluate(() => [...document.querySelectorAll('.rf-brand-icon, .rf-hero-logo')].map((i) => `${i.className}:${i.complete && i.naturalWidth > 0}`));
+  if (images.length !== 2 || images.some((i) => !i.endsWith(':true'))) throw new Error(`logo images not loaded: ${images.join(', ')}`);
+  ok('logo shown in the sidebar and in the dashboard');
+
   await page.goto(`${base}/account`);
   await page.getByText('Non hai un account? Registrati').waitFor({ timeout: 30000 });
   const collapsedLinks = await page.locator('[data-test=nav-compendium] a').count();
