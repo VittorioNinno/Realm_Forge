@@ -200,7 +200,26 @@ jobs:
           A=$(curl -sf -X POST $api/api/auth/login $json -d "$(cred alice@example.com)" | jq -r .accessToken)
           B=$(curl -sf -X POST $api/api/auth/login $json -d "$(cred bob@example.com)" | jq -r .accessToken)
 
+
           feat='{"category":2,"ruleset":2,"prerequisites":{"minimumLevel":4,"abilities":[1],"minimumScore":13},"translations":[{"language":1,"name":"Forge Test","description":"x","prerequisiteNote":"Dwarf"},{"language":2,"name":"Prova Forgia","description":"x","prerequisiteNote":"Nano"}]}'
+
+          # E-mail confirmation: without SMTP the API logs the confirmation link; creating content needs a confirmed address
+          feat_unconfirmed=$(curl -s -o /dev/null -D - -X POST $api/api/feats $json -H "Authorization: Bearer $A" -d "$feat" \
+            | tr -d '\r' | awk 'NR==1{print $2} tolower($1)=="x-realmforge-error:"{print $2}' | paste -sd' ')
+          confirm() {
+            link=$(grep -rhoE "for $1: [^ ]+" --include='*.log' . | tail -1 | sed 's/^.*: //')
+            test -n "$link"
+            code "$api/api/auth/confirmEmail?${link#*\?}"
+          }
+          confirm_bad=$(code "$api/api/auth/confirmEmail?userId=00000000-0000-0000-0000-000000000000&code=bad")
+          confirm_a=$(confirm alice@example.com); confirm_b=$(confirm bob@example.com)
+          confirmed=$(curl -sf $api/api/auth/manage/info -H "Authorization: Bearer $A" | jq .isEmailConfirmed)
+          echo "::notice title=database::e-mail: unconfirmed create=$feat_unconfirmed | bad link=$confirm_bad | confirm alice=$confirm_a bob=$confirm_b | alice confirmed=$confirmed"
+          if [ "$confirm_a" != "200" ]; then
+            grep -rh -A12 -E "fail: |Exception" --include='*.log' . | grep -v '^--$' | head -40 | sed 's/^/::error title=api-log::/'
+          fi
+          test "$feat_unconfirmed" = "403 EmailNotConfirmed" && test "$confirm_bad" = "401" && test "$confirm_a" = "200" && test "$confirm_b" = "200" && test "$confirmed" = "true"
+
           anon_create=$(code -X POST $api/api/feats $json -d "$feat")
           created=$(curl -sf -X POST "$api/api/feats?lang=2" $json -H "Authorization: Bearer $A" -d "$feat")
           id=$(echo "$created" | jq -r .id); pre=$(echo "$created" | jq -r .prerequisite); can=$(echo "$created" | jq -r .canEdit)
