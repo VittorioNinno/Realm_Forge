@@ -86,9 +86,7 @@
                                     <span class="badge @(sub.Ruleset == RulesetVersion.Dnd5e_2024 ? "badge-edition-2024" : "badge-edition-2014")">
                                         @UiText.FormatRuleset(sub.Ruleset, LanguageState.CurrentLanguage)
                                     </span>
-                                    <span class="badge @(sub.IsOfficialSRD ? "badge-srd" : "badge-homebrew")">
-                                        @(sub.IsOfficialSRD ? UiText.BadgeSRD(LanguageState.CurrentLanguage) : UiText.BadgeHomebrew(LanguageState.CurrentLanguage))
-                                    </span>
+                                    <RealmForge.Client.Components.ContentBadge IsBase="sub.IsOfficialSRD" Source="sub.Source" />
                                 </div>
                             </div>
 

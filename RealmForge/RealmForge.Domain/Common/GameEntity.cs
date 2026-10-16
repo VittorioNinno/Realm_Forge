@@ -14,5 +14,8 @@ namespace RealmForge.Domain.Common
 
 		//	If null, it represents base system content; otherwise, it stores the author identifier
 		public string? AuthorId { get; set; }
+
+		//	Origin of the text for base content (null for Homebrew)
+		public ContentSource? Source { get; set; }
 	}
 }

@@ -30,14 +30,14 @@ public static class Athlete2014Seeder
 					Id = TranslationEnId,
 					Language = LanguageCode.En,
 					Name = "Athlete",
-					Description = "You gain the following benefits:\n- Increase Strength or Dexterity by 1, to a maximum of 20.\n- Standing up from prone costs only 5 feet of movement.\n- Climbing does not halve your speed.\n- You can make a running long jump or running high jump after moving just 5 feet on foot, rather than 10 feet."
+					Description = "Hard training has made your body agile and powerful.\n- **Strength or Dexterity +1.** Increase one of the two scores by 1, to a maximum of 20.\n- **Back on Your Feet.** Getting up from prone uses only 5 feet of your movement.\n- **Climber.** Climbing doesn't halve your speed.\n- **Short Run-Up.** A running long jump or high jump needs only a 5-foot run-up on foot instead of 10 feet."
 				},
 				new FeatTranslation
 				{
 					Id = TranslationItId,
 					Language = LanguageCode.It,
 					Name = "Atleta",
-					Description = "Ottieni i seguenti benefici:\n- Aumenta il punteggio di Forza o Destrezza di 1, fino a un massimo di 20.\n- Alzarsi dalla condizione di prono richiede solo 1,5 metri di movimento.\n- Scalare non dimezza la velocità.\n- Puoi effettuare un salto in lungo o in alto con rincorsa muovendoti di soli 1,5 metri, anziché 3 metri."
+					Description = "Un duro allenamento ha reso il corpo del personaggio agile e potente.\n- **Forza o Destrezza +1.** Uno dei due punteggi aumenta di 1, fino a un massimo di 20.\n- **Subito in piedi.** Rialzarsi da prono costa solo 1,5 metri di movimento.\n- **Scalatore.** Arrampicarsi non dimezza la velocità.\n- **Rincorsa breve.** Per un salto in lungo o in alto con rincorsa bastano 1,5 metri di corsa a piedi invece di 3."
 				}
 			}
 		};

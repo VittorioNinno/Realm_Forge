@@ -39,6 +39,57 @@ public class FeatSeedDataTests
 		}
 	}
 
+	//	Feats whose text comes from the System Reference Documents (CC BY 4.0)
+	private static readonly string[] Srd51Feats = { "Grappler" };
+	private static readonly string[] Srd52Feats =
+	{
+		"Alert", "Magic Initiate", "Savage Attacker", "Skilled", "Ability Score Improvement", "Grappler",
+		"Archery", "Defense", "Great Weapon Fighting", "Two-Weapon Fighting",
+		"Boon of Combat Prowess", "Boon of Dimensional Travel", "Boon of Fate", "Boon of Irresistible Offense",
+		"Boon of Spell Recall", "Boon of the Night Spirit", "Boon of Truesight"
+	};
+
+	[Fact]
+	public void SRD_feats_are_labelled_with_their_SRD_version()
+	{
+		foreach (var feat in Feats)
+		{
+			var name = feat.Translations.Single(t => t.Language == LanguageCode.En).Name;
+			var expected = feat.Ruleset == RulesetVersion.Dnd5e_2014
+				? (Srd51Feats.Contains(name) ? ContentSource.Srd51 : ContentSource.RealmForge)
+				: (Srd52Feats.Contains(name) ? ContentSource.Srd52 : ContentSource.RealmForge);
+
+			Assert.True(expected == feat.Source, $"{name} ({feat.Ruleset}) is {feat.Source}, expected {expected}");
+		}
+
+		Assert.Equal(1, Feats.Count(f => f.Source == ContentSource.Srd51));
+		Assert.Equal(17, Feats.Count(f => f.Source == ContentSource.Srd52));
+	}
+
+	[Theory]
+	[InlineData(RulesetVersion.Dnd5e_2014)]
+	[InlineData(RulesetVersion.Dnd5e_2024)]
+	public void RealmForge_feats_do_not_reuse_rulebook_phrasing(RulesetVersion ruleset)
+	{
+		//	Base feats outside the SRD carry text written for RealmForge; these phrasings belong to the printed rulebooks
+		string[] rulebookPhrases =
+		[
+			"following benefit", "Always on the lookout for danger", "Prerequisite:",
+			"benefici seguenti", "seguenti benefici", "Prerequisito:"
+		];
+
+		foreach (var feat in Feats.Where(f => f.Ruleset == ruleset && f.Source == ContentSource.RealmForge))
+		{
+			foreach (var tr in feat.Translations)
+			{
+				foreach (var phrase in rulebookPhrases)
+				{
+					Assert.False(tr.Description.Contains(phrase, StringComparison.OrdinalIgnoreCase), $"{tr.Name} ({tr.Language}) contains \"{phrase}\"");
+				}
+			}
+		}
+	}
+
 	[Fact]
 	public void Ability_prerequisites_always_have_a_minimum_score()
 	{

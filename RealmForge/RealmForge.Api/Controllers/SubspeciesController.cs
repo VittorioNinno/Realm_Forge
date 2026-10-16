@@ -87,7 +87,8 @@ namespace RealmForge.Api.Controllers
 					sub.Ruleset,
 					sub.IsOfficialSRD,
 					exclusiveTraits,
-					CanEdit: _access.CanModify(sub, User)
+					CanEdit: _access.CanModify(sub, User),
+					Source: sub.Source
 				);
 			});
 
@@ -142,7 +143,8 @@ namespace RealmForge.Api.Controllers
 				sub.Ruleset,
 				sub.IsOfficialSRD,
 				exclusiveTraits,
-				CanEdit: _access.CanModify(sub, User)
+				CanEdit: _access.CanModify(sub, User),
+				Source: sub.Source
 			);
 
 			return Ok(response);
@@ -213,7 +215,8 @@ namespace RealmForge.Api.Controllers
 				subspecies.Ruleset,
 				subspecies.IsOfficialSRD,
 				new List<TraitResponseDto>(),
-				CanEdit: _access.CanModify(subspecies, User)
+				CanEdit: _access.CanModify(subspecies, User),
+				Source: subspecies.Source
 			);
 
 			return CreatedAtAction(nameof(GetById), new { id = subspecies.Id }, response);

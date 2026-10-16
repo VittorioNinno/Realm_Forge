@@ -30,14 +30,14 @@ public static class DefensiveDuelist2014Seeder
 					Id = TranslationEnId,
 					Language = LanguageCode.En,
 					Name = "Defensive Duelist",
-					Description = "Prerequisite: Dexterity 13 or higher\nWhen you are wielding a finesse weapon with which you are proficient and another creature hits you with a melee attack, you can use your reaction to add your proficiency bonus to your AC for that attack, potentially causing the attack to miss you."
+					Description = "Your blade is as much a shield as a weapon.\n- **Parry.** While you wield a finesse weapon you are proficient with, when a creature hits you with a melee attack you can use your reaction to add your proficiency bonus to your AC against that attack, possibly turning the hit into a miss."
 				},
 				new FeatTranslation
 				{
 					Id = TranslationItId,
 					Language = LanguageCode.It,
 					Name = "Duellante Difensivo",
-					Description = "Prerequisito: Destrezza 13 o superiore\nQuando il personaggio impugna un'arma accurata in cui è competente e un'altra creatura lo colpisce con un attacco in mischia, egli può usare la sua reazione per aggiungere il suo bonus di competenza alla sua CA per quell'attacco, cosa che potrebbe fare in modo che l'attacco lo manchi."
+					Description = "La lama del personaggio è tanto uno scudo quanto un'arma.\n- **Parata.** Mentre impugna un'arma accurata in cui ha competenza, quando una creatura lo colpisce con un attacco in mischia può usare la reazione per aggiungere il suo bonus di competenza alla CA contro quell'attacco, che potrebbe così mancarlo."
 				}
 			}
 		};

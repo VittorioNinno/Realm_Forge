@@ -27,13 +27,13 @@ namespace RealmForge.Infrastructure.Persistence.Seeding.SpeciesData
 					{
 						Language = LanguageCode.It,
 						Name = "Umano",
-						Description = "Sparsi in ogni angolo del multiverso, gli umani sono tanto sfaccettati quanto numerosi e tentano di vivere la loro vita al massimo delle proprie possibilità. Il loro spirito ambizioso e intraprendente è lodato, rispettato e temuto in molti mondi.\n\nGli umani presentano aspetti tanto variegati quanto la popolazione della Terra, e venerano molti dèi diversi. La loro origine è ancora oggetto di dibattito tra gli studiosi, ma pare che uno dei primi raduni di questa specie abbia avuto luogo a Sigil, la città dalla forma geometrica di toro al centro del multiverso e il luogo di nascita della lingua comune. Da qui, gli umani potrebbero essersi diffusi in ogni angolo del multiverso, portando con sé lo spirito cosmopolita della Città delle Porte."
+						Description = "Gli umani si trovano quasi ovunque e sono tanto vari quanto numerosi. Sapendo di avere poco tempo, cercano di realizzare quanto più possibile, e la loro ambizione e il loro ingegno suscitano ammirazione, rispetto e talvolta timore.\n\nGli umani hanno aspetti molto diversi tra loro e venerano molti dei. Gli studiosi discutono ancora su dove abbia avuto origine l'umanità; una teoria diffusa la colloca in una grande città al crocevia dei piani, da cui gli umani si sarebbero sparsi per i mondi portando con sé uno spirito cosmopolita e la lingua Comune."
 					},
 					new SpeciesTranslation
 					{
 						Language = LanguageCode.En,
 						Name = "Human",
-						Description = "Found throughout the multiverse, humans are as varied as they are numerous, and they endeavor to achieve as much as they can in the years they are given. Their ambition and resourcefulness are commended, respected, and feared on many worlds.\n\nHumans are as diverse in appearance as the people of Earth, and they have many gods. Scholars dispute the origin of humanity, but one of the earliest known human gatherings is said to have occurred in Sigil, the torus-shaped city at the center of the multiverse and the place where the Common language was born. From there, humans could have spread to every part of the multiverse, bringing the City of Doors' cosmopolitanism with them."
+						Description = "Humans are found almost everywhere and are as varied as they are numerous. Knowing their time is short, they try to accomplish as much as they can, and their ambition and ingenuity earn them admiration, respect, and sometimes fear.\n\nHumans differ widely in appearance and worship many gods. Scholars still argue about where humanity began; one popular theory places its origin in a great city at the crossroads of the planes, from which humans spread across the worlds carrying a cosmopolitan spirit and the Common tongue."
 					}
 				},
 				Traits = new List<Trait>

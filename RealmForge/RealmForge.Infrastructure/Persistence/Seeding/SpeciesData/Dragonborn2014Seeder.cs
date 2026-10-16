@@ -53,13 +53,13 @@ namespace RealmForge.Infrastructure.Persistence.Seeding.SpeciesData
 					{
 						Language = LanguageCode.It,
 						Name = "Dragonide",
-						Description = "I dragonidi, generati dai draghi come il loro stesso nome implica, si fanno strada con fierezza in un mondo che li accoglie con titubanza e incomprensione. Creati dalle divinità draconiche o dai draghi stessi, combinano i migliori attributi dei draghi e degli umanoidi."
+						Description = "I dragonidi portano il sangue e la fierezza dei draghi in un corpo umanoide. Coperti di scaglie, dalle spalle larghe e orgogliosi, percorrono un mondo che spesso li guarda con sospetto e rispondono pretendendo da sé stessi il massimo in onore e abilità."
 					},
 					new SpeciesTranslation
 					{
 						Language = LanguageCode.En,
 						Name = "Dragonborn",
-						Description = "Born of dragons, as their name proclaims, the dragonborn walk proudly through a world that greets them with fearful incomprehension. Shaped by draconic gods or the dragons themselves, dragonborn combine the best attributes of dragons and humanoids."
+						Description = "Dragonborn carry the blood and pride of dragons in a humanoid frame. Scaled, broad-shouldered, and proud, they walk through a world that often regards them with suspicion, and they answer it by holding themselves to the highest standards of honor and skill."
 					}
 				},
 				Traits = new List<Trait>

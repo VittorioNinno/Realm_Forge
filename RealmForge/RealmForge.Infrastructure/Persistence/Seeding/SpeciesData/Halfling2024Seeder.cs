@@ -27,13 +27,13 @@ namespace RealmForge.Infrastructure.Persistence.Seeding.SpeciesData
 					{
 						Language = LanguageCode.It,
 						Name = "Halfling",
-						Description = "Amati e guidati da dèi che celebrano la vita, la casa e la famiglia, gli halfling tendono a riunirsi in comunità bucoliche che contribuiscono alla propria crescita. Ciò nonostante, molti individui possiedono uno spirito audace che li spinge a partire all'avventura per esplorare un vasto mondo e stringere nuove amicizie. La loro taglia minuta gli consente di mescolarsi tra la folla senza farsi notare e di intrufolarsi in spazi angusti.\n\nChiunque abbia viaggiato con loro ha assistito alla celebre \"fortuna degli halfling\", una forza misteriosa che sembra intervenire ogni volta che si trovano in pericolo di vita. Questo dono divino contribuisce anche a una longevità di circa 150 anni."
+						Description = "Gli halfling sono protetti da dei che hanno a cuore la vita, la casa e il focolare, e tendono a riunirsi in tranquille comunità di campagna dove famiglia e vicini plasmano la loro esistenza. Molti di loro, però, hanno un'indole audace e curiosa che li spinge a scoprire il mondo e a farsi amici lungo la strada. La piccola statura permette loro di passare inosservati tra la folla e di infilarsi in passaggi stretti.\n\nChi viaggia con gli halfling si accorge presto della loro famosa fortuna, una forza silenziosa che sembra intervenire quando il pericolo è più grande. Lo stesso dono potrebbe spiegare la loro lunga vita, di circa 150 anni."
 					},
 					new SpeciesTranslation
 					{
 						Language = LanguageCode.En,
 						Name = "Halfling",
-						Description = "Cherished and guided by gods who value life, home, and hearth, halflings gravitate toward bucolic havens where family and community help shape their lives. That said, many halflings possess a brave and adventurous spirit that leads them on journeys of discovery to explore a bigger world and make new friends along the way. Their size helps them pass through crowds unnoticed and slip through tight spaces.\n\nAnyone who has spent time around halflings has likely witnessed the storied \"luck of the halflings\" in action, an unseen force intervening on their behalf in mortal danger. That unusual gift also contributes to their robust life spans of about 150 years."
+						Description = "Halflings are watched over by gods who cherish life, home, and hearth, and they tend to gather in peaceful countryside communities where family and neighbors shape their lives. Plenty of them, though, have a bold and curious streak that sends them off to see the wider world and make friends along the way. Their small size lets them pass unnoticed through crowds and squeeze through narrow gaps.\n\nThose who travel with halflings soon notice their famous luck, a quiet force that seems to step in when danger is greatest. The same gift may help explain their long lives of about 150 years."
 					}
 				},
 				Traits = new List<Trait>

@@ -22,6 +22,7 @@ public static class GreatWeaponFighting2024Seeder
 			Id = FeatId,
 			Ruleset = RulesetVersion.Dnd5e_2024,
 			IsOfficialSRD = true,
+			Source = ContentSource.Srd52,
 			Category = FeatCategory.FightingStyle,
 			PrerequisiteFeature = FeatFeatureRequirement.FightingStyle,
 			Translations = new List<FeatTranslation>

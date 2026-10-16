@@ -29,13 +29,13 @@ namespace RealmForge.Infrastructure.Persistence.Seeding.SpeciesData
 					{
 						Language = LanguageCode.It,
 						Name = "Umano",
-						Description = "Gli umani sono la razza comune più adattabile e ambiziosa. Presentano la maggiore varietà di gusti, credenze morali e usanze nelle molte regioni in cui si sono insediati. Erigono città destinate a sfidare il tempo e fondano grandi regni capaci di durare molti secoli."
+						Description = "Gli umani sono il più adattabile e intraprendente tra i popoli comuni. Usanze, credenze e ambizioni variano enormemente da una terra all'altra, e nel corso di una vita relativamente breve fondano città e regni destinati a durare per generazioni."
 					},
 					new SpeciesTranslation
 					{
 						Language = LanguageCode.En,
 						Name = "Human",
-						Description = "Humans are the most adaptable and ambitious people among the common races. They have widely varying tastes, morals, and customs in the many different lands where they have settled. They build cities to last for the ages, and great kingdoms that can persist for long centuries."
+						Description = "Humans are the most adaptable and driven of the common peoples. Their customs, beliefs, and ambitions vary enormously from land to land, and in their relatively short lives they found cities and kingdoms meant to endure for generations."
 					}
 				},
 				Traits = new List<Trait>
@@ -75,13 +75,13 @@ namespace RealmForge.Infrastructure.Persistence.Seeding.SpeciesData
 							{
 								Language = LanguageCode.It,
 								Name = "Umano Standard",
-								Description = "L'umano convenzionale, temprato da una naturale versatilità e determinazione diffusa in ogni campo."
+								Description = "Il tipo di umano più comune, capace un po' in tutto e determinato a riuscire in ogni campo."
 							},
 							new SubspeciesTranslation
 							{
 								Language = LanguageCode.En,
 								Name = "Standard Human",
-								Description = "The conventional human, marked by well-rounded versatility and drive across all endeavors."
+								Description = "The most common kind of human, capable of a little of everything and driven to succeed in every field."
 							}
 						},
 						Traits = new List<Trait>
@@ -120,13 +120,13 @@ namespace RealmForge.Infrastructure.Persistence.Seeding.SpeciesData
 							{
 								Language = LanguageCode.It,
 								Name = "Umano Variante",
-								Description = "Se la campagna utilizza la regola facoltativa dei talenti, il Dungeon Master può autorizzare questa versione focalizzata su specializzazione e talento innato."
+								Description = "Una versione opzionale dell'umano per i gruppi che usano i talenti: meno aumenti di caratteristica in cambio di un'abilità e di un talento che definiscono la specialità del personaggio."
 							},
 							new SubspeciesTranslation
 							{
 								Language = LanguageCode.En,
 								Name = "Variant Human",
-								Description = "If your campaign uses optional feats, your Dungeon Master might allow these variant traits focused on specialized expertise."
+								Description = "An optional version of the human for groups that use feats: fewer ability increases in exchange for a skill and a feat that define the character's specialty."
 							}
 						},
 						Traits = new List<Trait>
@@ -142,13 +142,13 @@ namespace RealmForge.Infrastructure.Persistence.Seeding.SpeciesData
 									{
 										Language = LanguageCode.It,
 										Name = "Incremento di Caratteristica Variante",
-										Description = "Due punteggi di caratteristica diversi a scelta aumentano di 1 ciascuno."
+										Description = "Il personaggio sceglie due punteggi di caratteristica diversi: ciascuno aumenta di 1."
 									},
 									new TraitTranslation
 									{
 										Language = LanguageCode.En,
 										Name = "Ability Score Increase (Variant)",
-										Description = "Two different ability scores of your choice increase by 1."
+										Description = "Choose two different ability scores: each increases by 1."
 									}
 								}
 							},
@@ -163,13 +163,13 @@ namespace RealmForge.Infrastructure.Persistence.Seeding.SpeciesData
 									{
 										Language = LanguageCode.It,
 										Name = "Abilità",
-										Description = "Ottieni competenza in un'abilità a tua scelta."
+										Description = "Il personaggio ottiene competenza in un'abilità a sua scelta."
 									},
 									new TraitTranslation
 									{
 										Language = LanguageCode.En,
 										Name = "Skills",
-										Description = "You gain proficiency in one skill of your choice."
+										Description = "You become proficient in one skill of your choice."
 									}
 								}
 							},
@@ -184,13 +184,13 @@ namespace RealmForge.Infrastructure.Persistence.Seeding.SpeciesData
 									{
 										Language = LanguageCode.It,
 										Name = "Talento",
-										Description = "Ottieni un talento a tua scelta."
+										Description = "Il personaggio inizia con un talento a sua scelta."
 									},
 									new TraitTranslation
 									{
 										Language = LanguageCode.En,
 										Name = "Feat",
-										Description = "You gain one feat of your choice."
+										Description = "You start with one feat of your choice."
 									}
 								}
 							}

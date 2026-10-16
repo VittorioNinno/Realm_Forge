@@ -33,14 +33,14 @@ public static class Actor2024Seeder
 					Id = TranslationEnId,
 					Language = LanguageCode.En,
 					Name = "Actor",
-					Description = "You gain the following benefits:\n- **Ability Score Increase.** Increase your Charisma score by 1, to a maximum of 20.\n- **Impersonation.** While you're disguised as a real or fictional person, you have Advantage on Charisma (Deception or Performance) checks to convince others that you are that person.\n- **Mimicry.** You can mimic the sounds of other creatures, including speech. A creature that hears the mimicry must succeed on a Wisdom (Insight) check to determine the effect is faked (DC 8 plus your Charisma modifier and Proficiency Bonus)."
+					Description = "Stage training lets you become someone else in voice and manner.\n- **Charisma +1.** Increase your Charisma score by 1, to a maximum of 20.\n- **In Character.** While disguised as a real or invented person, you have Advantage on Charisma (Deception or Performance) checks made to pass yourself off as that person.\n- **Sound Imitation.** You can imitate the sounds other creatures make, speech included. A listener realizes the sound is an imitation only by succeeding on a Wisdom (Insight) check against DC 8 + your Charisma modifier + your Proficiency Bonus."
 				},
 				new FeatTranslation
 				{
 					Id = TranslationItId,
 					Language = LanguageCode.It,
 					Name = "Attore",
-					Description = "Il personaggio ottiene i seguenti benefici:\n- **Incremento dei Punteggi di Caratteristica.** Il suo punteggio di Carisma aumenta di 1, fino a un massimo di 20.\n- **Impersonificazione.** Quando il personaggio si finge qualcun altro (che sia reale o fittizio), ha Vantaggio alle prove di Carisma (Inganno o Intrattenere) per convincere gli altri della sua identità.\n- **Imitare.** Il personaggio può imitare i suoni emessi da altre creature, inclusa la parlata. Una creatura che ascolti l'imitazione deve superare una prova di Saggezza (Intuizione) per capirne la natura ingannevole (CD 8 più il modificatore di Carisma e il bonus di competenza)."
+					Description = "L'esperienza sul palco permette al personaggio di diventare qualcun altro nella voce e nei modi.\n- **Carisma +1.** Il punteggio di Carisma aumenta di 1, fino a un massimo di 20.\n- **Nella parte.** Mentre è travestito da una persona reale o inventata, ha Vantaggio alle prove di Carisma (Inganno o Intrattenere) effettuate per spacciarsi per quella persona.\n- **Imitazione dei suoni.** Può imitare i suoni emessi da altre creature, voce compresa. Chi ascolta capisce che si tratta di un'imitazione solo se supera una prova di Saggezza (Intuizione) con CD 8 + il modificatore di Carisma del personaggio + il suo bonus di competenza."
 				}
 			}
 		};

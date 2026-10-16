@@ -56,6 +56,50 @@ try {
   ok('feat modal layout: controls aligned, no truncated labels');
   await page.getByRole('button', { name: 'ANNULLA' }).click();
 
+  // Backgrounds: page, "Forge Background" layout and end-to-end creation
+  await page.goto(`${base}/backgrounds`);
+  await page.getByText('+ NUOVO BACKGROUND').click();
+  await page.locator('[data-test=bg-name-It]').waitFor({ timeout: 15000 });
+  const bgLayout = await page.evaluate(() => {
+    const top = (sel) => document.querySelector(sel).getBoundingClientRect().top;
+    const truncated = [...document.querySelectorAll('.rf-label-single-line')]
+      .filter((l) => l.offsetParent !== null && l.scrollWidth > l.clientWidth + 1)
+      .map((l) => l.textContent.trim());
+    return {
+      topDelta: Math.abs(top('[data-test=bg-ruleset] .rf-custom-select-trigger') - top('[data-test=bg-origin-feat] .rf-custom-select-trigger')),
+      truncated,
+    };
+  });
+  results.push(`INFO background modal: top delta=${bgLayout.topDelta.toFixed(1)}px, truncated labels=[${bgLayout.truncated.join(', ')}]`);
+  if (bgLayout.topDelta > 2) throw new Error('ruleset and origin feat controls are not aligned');
+  if (bgLayout.truncated.length > 0) throw new Error(`truncated labels: ${bgLayout.truncated.join(', ')}`);
+
+  await page.locator('[data-test=bg-origin-feat] .rf-custom-select-trigger').click();
+  await page.locator('.rf-custom-select-option', { hasText: 'Allerta' }).click();
+  await page.getByRole('button', { name: 'Intuizione' }).click();
+  await page.getByRole('button', { name: 'Religione' }).click();
+  await page.locator('[data-test=bg-name-It]').fill('Accolito UI');
+  await page.locator('[data-test=bg-name-En]').fill('UI Acolyte');
+  await page.getByRole('button', { name: 'SALVA BACKGROUND' }).click();
+  await page.locator('.rf-card', { hasText: 'Accolito UI' }).waitFor({ timeout: 15000 });
+  const card = await page.locator('.rf-card', { hasText: 'Accolito UI' }).innerText();
+  if (!card.includes('Allerta') || !card.includes('Intuizione')) throw new Error(`background card misses feat/skills: ${card.replace(/\s+/g, ' ')}`);
+  ok('background modal aligned; homebrew background created from the UI with origin feat and skills');
+
+  // Exact title match: substring filters are case-insensitive ("Intuizione" contains "ui")
+  await page.locator('.rf-card').filter({ has: page.locator('.rf-card-title', { hasText: /^Accolito$/ }) }).click();
+  await page.locator('[data-test=bg-characteristics]').waitFor({ timeout: 15000 });
+  const tables = await page.locator('[data-test=bg-characteristics] .rf-dice-table').evaluateAll((ts) =>
+    ts.map((t) => `${t.querySelector('th').textContent.trim()}x${t.querySelectorAll('tbody tr').length}`));
+  results.push(`INFO Acolyte tables: ${tables.join(', ')}`);
+  if (tables.join(',') !== 'd8x8,d6x6,d6x6,d6x6') throw new Error(`unexpected characteristic tables: ${tables.join(', ')}`);
+  const source = (await page.locator('[data-test=content-source]').first().innerText()).trim();
+  const badge = (await page.locator('.rf-modal-dialog [data-test=content-badge]').first().textContent()).trim(); // textContent: the badge CSS uppercases the rendered text
+  results.push(`INFO Acolyte badge='${badge}' source='${source}'`);
+  if (badge !== 'Base' || source !== 'Fonte: SRD 5.1 (CC BY 4.0)') throw new Error(`unexpected badge/source: ${badge} / ${source}`);
+  await page.getByRole('button', { name: 'CHIUDI' }).click();
+  ok('SRD Acolyte: four characteristic tables (d8, d6, d6, d6), badge "Base", source SRD 5.1');
+
   await page.reload();
   await page.getByText(email).first().waitFor({ timeout: 60000 });
   ok('session survives a page reload');
@@ -78,7 +122,9 @@ try {
   results.push(`DEBUG auth calls: ${authCalls.join(' | ')}`);
   await page.screenshot({ path: 'ui-failure.png', fullPage: true });
 } finally {
-  for (const r of results) console.log(`::notice title=ui::${r}`);
+  // GitHub shows at most 10 annotations per step: one line per result in the log, one summary annotation
+  for (const r of results) console.log(r);
+  console.log(`::notice title=ui::${results.filter((r) => r.startsWith('OK')).length} checks passed — ${results.join(' · ')}`);
   for (const c of consoleErrors.slice(0, 5)) console.log(`::warning title=ui-console::${c.slice(0, 200)}`);
   await browser.close();
   if (results.some((r) => r.startsWith('FAIL'))) process.exit(1);

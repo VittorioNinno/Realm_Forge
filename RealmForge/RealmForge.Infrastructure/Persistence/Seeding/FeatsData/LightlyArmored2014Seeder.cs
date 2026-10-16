@@ -30,14 +30,14 @@ public static class LightlyArmored2014Seeder
 					Id = TranslationEnId,
 					Language = LanguageCode.En,
 					Name = "Lightly Armored",
-					Description = "You have trained to master the use of light armor, gaining the following benefits:\n- Increase your Strength or Dexterity score by 1, to a maximum of 20.\n- You gain proficiency with light armor."
+					Description = "You have learned to fight unhindered in light protection.\n- **Strength or Dexterity +1.** Increase one of the two scores by 1, to a maximum of 20.\n- **Light Armor Training.** You gain proficiency with light armor."
 				},
 				new FeatTranslation
 				{
 					Id = TranslationItId,
 					Language = LanguageCode.It,
 					Name = "Corazze Leggere",
-					Description = "Il personaggio si è addestrato per padroneggiare l'utilizzo delle armature leggere e ottiene i benefici seguenti:\n- Il suo punteggio di Forza o di Destrezza aumenta di 1, fino a un massimo di 20.\n- Ottiene competenza nelle armature leggere."
+					Description = "Il personaggio ha imparato a combattere senza impacci con protezioni leggere.\n- **Forza o Destrezza +1.** Uno dei due punteggi aumenta di 1, fino a un massimo di 20.\n- **Addestramento nelle armature leggere.** Ottiene competenza nelle armature leggere."
 				}
 			}
 		};

@@ -130,9 +130,7 @@
                                     <span class="badge @(feat.Ruleset == RulesetVersion.Dnd5e_2024 ? "badge-edition-2024" : "badge-edition-2014")">
                                         @UiText.FormatRuleset(feat.Ruleset, LanguageState.CurrentLanguage)
                                     </span>
-                                    <span class="badge @(feat.IsOfficialSRD ? "badge-srd" : "badge-homebrew")">
-                                        @(feat.IsOfficialSRD ? UiText.BadgeSRD(LanguageState.CurrentLanguage) : UiText.BadgeHomebrew(LanguageState.CurrentLanguage))
-                                    </span>
+                                    <RealmForge.Client.Components.ContentBadge IsBase="feat.IsOfficialSRD" Source="feat.Source" />
                                 </div>
                             </div>
 
@@ -183,9 +181,7 @@
                         <span class="badge @(SelectedFeat.Ruleset == RulesetVersion.Dnd5e_2024 ? "badge-edition-2024" : "badge-edition-2014")">
                             @UiText.FormatRuleset(SelectedFeat.Ruleset, LanguageState.CurrentLanguage)
                         </span>
-                        <span class="badge @(SelectedFeat.IsOfficialSRD ? "badge-srd" : "badge-homebrew")">
-                            @(SelectedFeat.IsOfficialSRD ? UiText.BadgeSRD(LanguageState.CurrentLanguage) : UiText.BadgeHomebrew(LanguageState.CurrentLanguage))
-                        </span>
+                        <RealmForge.Client.Components.ContentBadge IsBase="SelectedFeat.IsOfficialSRD" Source="SelectedFeat.Source" ShowSource="true" />
                         <span class="badge bg-dark border border-warning text-warning">
                             @UiText.FormatFeatCategory(SelectedFeat.Category, LanguageState.CurrentLanguage)
                         </span>

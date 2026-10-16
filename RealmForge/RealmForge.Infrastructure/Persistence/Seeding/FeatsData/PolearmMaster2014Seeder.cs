@@ -30,14 +30,14 @@ public static class PolearmMaster2014Seeder
 					Id = TranslationEnId,
 					Language = LanguageCode.En,
 					Name = "Polearm Master",
-					Description = "You can keep your enemies at bay with reach weapons. You gain the following benefits:\n- When you take the Attack action and attack with only a glaive, halberd, or quarterstaff, you can use a bonus action to make a melee attack with the opposite end of the weapon. The weapon's damage die for this attack is a d4, and the attack deals bludgeoning damage.\n- While you are wielding a glaive, halberd, pike, or quarterstaff, other creatures provoke an opportunity attack from you when they enter your reach."
+					Description = "Reach weapons let you control the space around you.\n- **Butt Strike.** When you take the Attack action and attack only with a glaive, halberd, or quarterstaff, you can use a bonus action to make a melee attack with the other end of the weapon. This attack uses a d4 as its damage die and deals bludgeoning damage.\n- **Guarded Reach.** While you wield a glaive, halberd, pike, or quarterstaff, creatures provoke an opportunity attack from you when they enter your reach."
 				},
 				new FeatTranslation
 				{
 					Id = TranslationItId,
 					Language = LanguageCode.It,
 					Name = "Maestro delle Armi su Asta",
-					Description = "Il personaggio ottiene i benefici seguenti:\n- Quando effettua l'azione di Attacco e attacca soltanto con un'alabarda, un bastone ferrato o un falcione, può usare un'azione bonus per effettuare un attacco in mischia con l'estremità opposta dell'arma. Questo attacco usa lo stesso modificatore di caratteristica dell'attacco primario. Il dado dei danni dell'arma per questo attacco è un d4 e l'arma infligge danni contundenti.\n- Mentre impugna un'alabarda, un bastone ferrato, un falcione o una picca, le altre creature provocano un attacco di opportunità da parte sua quando entrano nella portata che egli possiede con quell'arma."
+					Description = "Le armi con portata permettono al personaggio di controllare lo spazio intorno a sé.\n- **Colpo d'impugnatura.** Quando usa l'azione Attacco e attacca solo con un falcione, un'alabarda o un bastone ferrato, può usare un'azione bonus per effettuare un attacco in mischia con l'altra estremità dell'arma. Questo attacco usa un d4 come dado di danno e infligge danni contundenti.\n- **Portata sorvegliata.** Mentre impugna un falcione, un'alabarda, una picca o un bastone ferrato, le creature che entrano nella sua portata provocano un attacco di opportunità da parte sua."
 				}
 			}
 		};

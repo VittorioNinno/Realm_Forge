@@ -49,13 +49,13 @@ namespace RealmForge.Infrastructure.Persistence.Seeding.SpeciesData
 					{
 						Language = LanguageCode.It,
 						Name = "Dragonide",
-						Description = "Gli antenati dei dragonidi hanno avuto origine dalle uova di draghi cromatici e metallici. Secondo una leggenda, queste uova furono benedette dagli dei draconici Bahamut e Tiamat, che desideravano popolare il multiverso con degli esseri creati a propria immagine e somiglianza. Un'altra, invece, sostiene che i draghi abbiano dato vita a questa specie senza la benedizione degli dei. A prescindere da quale sia la loro origine, i dragonidi si sono ormai stabiliti nel Piano Materiale.\n\nI dragonidi sembrano draghi bipedi senza ali, con squame, occhi luminosi, ossa spesse e corna sulle loro teste. La colorazione e altri tratti testimoniano il loro retaggio draconico."
+						Description = "I dragonidi fanno risalire le loro origini ai draghi. Alcune leggende narrano che i primi siano usciti da uova benedette dagli dei draconici; altre sostengono che furono i draghi stessi a plasmarli. Qualunque sia la verità, i dragonidi hanno da tempo trovato una propria dimora tra i popoli del mondo.\n\nHanno l'aspetto di draghi senza ali che camminano su due zampe, con scaglie, occhi luminosi, ossa robuste e corna, e i loro colori ricordano spesso quelli dei draghi della loro stirpe."
 					},
 					new SpeciesTranslation
 					{
 						Language = LanguageCode.En,
 						Name = "Dragonborn",
-						Description = "The ancestors of dragonborn hatched from the eggs of chromatic and metallic dragons. One story holds that these eggs were blessed by the dragon gods Bahamut and Tiamat, who wanted to populate the multiverse with people created in their image. Another story claims that dragons created the first dragonborn without the gods' blessings. Whatever their origin, dragonborn have made homes for themselves on the Material Plane.\n\nDragonborn look like wingless, bipedal dragons—scaly, bright-eyed, and thick-boned with horns on their heads—and their coloration and other features are reminiscent of their draconic ancestors."
+						Description = "Dragonborn trace their origins to dragons. Some legends say the first of them hatched from eggs blessed by dragon gods; others claim the dragons shaped them on their own. Whatever the truth, dragonborn have long since made their own homes among the peoples of the world.\n\nThey stand like wingless dragons on two legs, with scales, bright eyes, heavy bones, and horns, and their coloring often recalls the dragons of their bloodline."
 					}
 				},
 				Traits = new List<Trait>

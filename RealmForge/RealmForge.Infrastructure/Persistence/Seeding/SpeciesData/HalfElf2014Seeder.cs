@@ -27,13 +27,13 @@ namespace RealmForge.Infrastructure.Persistence.Seeding.SpeciesData
 					{
 						Language = LanguageCode.It,
 						Name = "Mezzelfo",
-						Description = "I mezzelfi camminano tra due mondi senza mai appartenere fino in fondo a nessuno di essi, e a detta di alcuni uniscono le migliori qualità dei loro genitori elfi e umani: la curiosità, la creatività e l'ambizione degli umani temperate dai sensi raffinati, dall'amore per la natura e dal senso artistico degli elfi."
+						Description = "I mezzelfi crescono tra due popoli senza appartenere del tutto a nessuno dei due. Molti uniscono l'intraprendenza e la curiosità umane ai sensi acuti, all'amore per la natura e al gusto per la bellezza degli elfi, e spesso diventano abili nel fare da ponte tra i mondi a cui appartengono."
 					},
 					new SpeciesTranslation
 					{
 						Language = LanguageCode.En,
 						Name = "Half-Elf",
-						Description = "Walking in two worlds but truly belonging to neither, half-elves combine what some say are the best qualities of their elf and human parents: human curiosity, inventiveness, and ambition tempered by the refined senses, love of nature, and artistic tastes of the elves."
+						Description = "Half-elves grow up between two peoples without fully belonging to either. Many combine a human's drive and curiosity with an elf's keen senses, love of nature, and eye for beauty, and they often become skilled at bridging the worlds they straddle."
 					}
 				},
 				Traits = new List<Trait>

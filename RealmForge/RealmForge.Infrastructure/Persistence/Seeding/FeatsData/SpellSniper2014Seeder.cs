@@ -31,14 +31,14 @@ public static class SpellSniper2014Seeder
 					Id = TranslationEnId,
 					Language = LanguageCode.En,
 					Name = "Spell Sniper",
-					Description = "You have learned techniques to enhance your attacks with certain kinds of spells, gaining the following benefits:\n- When you cast a spell that requires you to make an attack roll, the spell's range is doubled.\n- Your ranged spell attacks ignore half cover and three-quarters cover.\n- You learn one cantrip that requires an attack roll. Choose the cantrip from the bard, cleric, druid, sorcerer, warlock, or wizard spell list. Your spellcasting ability for this cantrip depends on the spell list you chose from: Charisma for bard, sorcerer, or warlock; Wisdom for cleric or druid; or Intelligence for wizard."
+					Description = "You have refined the spells you hurl at distant targets.\n- **Extended Reach.** Spells you cast that require an attack roll have their range doubled.\n- **Precise Spells.** Your ranged spell attacks ignore half cover and three-quarters cover.\n- **Attack Cantrip.** You learn one cantrip that requires an attack roll, chosen from the bard, cleric, druid, sorcerer, warlock, or wizard spell list. Its spellcasting ability is Charisma for bard, sorcerer, or warlock; Wisdom for cleric or druid; Intelligence for wizard."
 				},
 				new FeatTranslation
 				{
 					Id = TranslationItId,
 					Language = LanguageCode.It,
 					Name = "Cecchino Magico",
-					Description = "Il personaggio ha appreso le tecniche che gli consentono di potenziare i suoi attacchi con certi tipi di incantesimi e ottiene i benefici seguenti:\n- Quando lancia un incantesimo che gli richiede di effettuare un tiro per colpire, la gittata dell'incantesimo è raddoppiata.\n- Gli attacchi a distanza con un incantesimo ignorano metà copertura e tre quarti di copertura.\n- Apprende un trucchetto che richiede un tiro per colpire. Può sceglierlo dalle liste del bardo, chierico, druido, mago, stregone o warlock. La sua caratteristica da incantatore per questo trucchetto dipende dalla lista degli incantesimi da cui è stato scelto: Carisma per il bardo, lo stregone o il warlock; Saggezza per il chierico o il druido; Intelligenza per il mago."
+					Description = "Il personaggio ha affinato gli incantesimi che scaglia contro bersagli lontani.\n- **Portata estesa.** La gittata degli incantesimi che lancia e che richiedono un tiro per colpire raddoppia.\n- **Incantesimi precisi.** I suoi attacchi con incantesimo a distanza ignorano la mezza copertura e la copertura tre quarti.\n- **Trucchetto d'attacco.** Impara un trucchetto che richiede un tiro per colpire, scelto dalla lista degli incantesimi del bardo, chierico, druido, mago, stregone o warlock. La caratteristica da incantatore è Carisma per bardo, stregone o warlock; Saggezza per chierico o druido; Intelligenza per mago."
 				}
 			}
 		};
