@@ -726,3 +726,13 @@ select.rf-form-control {
     border: 1px dashed rgba(79, 195, 247, 0.5);
     color: var(--rf-text-secondary);
 }
+
+/* Browser "show password" eye (Edge / Chromium on Windows): light on the dark fields */
+input[type="password"]::-ms-reveal {
+    filter: invert(1) brightness(1.4);
+    opacity: 0.85;
+}
+
+input[type="password"]::-ms-reveal:hover {
+    opacity: 1;
+}
