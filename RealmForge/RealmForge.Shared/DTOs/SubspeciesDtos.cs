@@ -16,7 +16,8 @@ namespace RealmForge.Shared.DTOs
 		bool IsOfficialSRD,
 		List<TraitResponseDto> Traits,
 		bool CanEdit = false,
-		ContentSource? Source = null
+		ContentSource? Source = null,
+		ContentVisibility Visibility = ContentVisibility.Public
 	);
 
 	///	<summary>
@@ -26,7 +27,8 @@ namespace RealmForge.Shared.DTOs
 		int? BaseSpeedOverrideInFeet,
 		RulesetVersion Ruleset,
 		List<SubspeciesTranslationDto> Translations,
-		List<CreateTraitDto>? Traits = null
+		List<CreateTraitDto>? Traits = null,
+		ContentVisibility Visibility = ContentVisibility.Private
 	);
 
 	///	<summary>
@@ -36,7 +38,8 @@ namespace RealmForge.Shared.DTOs
 		Guid Id,
 		int? BaseSpeedOverrideInFeet,
 		RulesetVersion Ruleset,
-		List<SubspeciesTranslationDto> Translations
+		List<SubspeciesTranslationDto> Translations,
+		ContentVisibility Visibility = ContentVisibility.Private
 	);
 
 	///	<summary>

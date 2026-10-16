@@ -56,6 +56,9 @@ namespace RealmForge.Api.Controllers
 				query = query.Where(s => s.IsOfficialSRD == isOfficial.Value);
 			}
 
+			//	Private Homebrew of other users and link-only entries are not listed
+			query = ContentAccess.ListedFor(query, User);
+
 			var subspeciesList = await query.ToListAsync();
 
 			var result = subspeciesList.Select(sub =>
@@ -88,7 +91,8 @@ namespace RealmForge.Api.Controllers
 					sub.IsOfficialSRD,
 					exclusiveTraits,
 					CanEdit: _access.CanModify(sub, User),
-					Source: sub.Source
+					Source: sub.Source,
+					Visibility: sub.Visibility
 				);
 			});
 
@@ -111,7 +115,8 @@ namespace RealmForge.Api.Controllers
 				.AsNoTracking()
 				.FirstOrDefaultAsync(s => s.Id == id);
 
-			if (sub == null)
+			//	Private entries of other users answer 404, as if they did not exist
+			if (sub == null || !_access.CanView(sub, User))
 			{
 				return NotFound();
 			}
@@ -144,7 +149,8 @@ namespace RealmForge.Api.Controllers
 				sub.IsOfficialSRD,
 				exclusiveTraits,
 				CanEdit: _access.CanModify(sub, User),
-				Source: sub.Source
+				Source: sub.Source,
+				Visibility: sub.Visibility
 			);
 
 			return Ok(response);
@@ -182,6 +188,7 @@ namespace RealmForge.Api.Controllers
 				Ruleset = dto.Ruleset,
 				IsOfficialSRD = false,
 				AuthorId = ContentAccess.GetUserId(User),
+				Visibility = dto.Visibility,
 				Translations = dto.Translations.Select(t => new SubspeciesTranslation
 				{
 					Language = t.Language,
@@ -194,6 +201,7 @@ namespace RealmForge.Api.Controllers
 					Ruleset = tr.Ruleset,
 					IsOfficialSRD = false,
 					AuthorId = ContentAccess.GetUserId(User),
+					Visibility = dto.Visibility,
 					Translations = tr.Translations.Select(trt => new TraitTranslation
 					{
 						Language = trt.Language,
@@ -217,7 +225,8 @@ namespace RealmForge.Api.Controllers
 				subspecies.IsOfficialSRD,
 				new List<TraitResponseDto>(),
 				CanEdit: _access.CanModify(subspecies, User),
-				Source: subspecies.Source
+				Source: subspecies.Source,
+				Visibility: subspecies.Visibility
 			);
 
 			return CreatedAtAction(nameof(GetById), new { id = subspecies.Id }, response);
@@ -253,6 +262,7 @@ namespace RealmForge.Api.Controllers
 
 			subspecies.BaseSpeedOverrideInFeet = dto.BaseSpeedOverrideInFeet;
 			subspecies.Ruleset = dto.Ruleset;
+			subspecies.Visibility = dto.Visibility;
 
 			foreach (var tDto in dto.Translations)
 			{

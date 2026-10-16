@@ -228,6 +228,8 @@ namespace RealmForge.Client.Localization
 			(RealmForge.Client.Services.ApiErrorKind.Unreachable, false) => "Cannot reach the server. Check that the API is running.",
 			(RealmForge.Client.Services.ApiErrorKind.Forbidden, true) => "Operazione non consentita: puoi modificare solo i tuoi contenuti Homebrew (gli SRD sono in sola lettura).",
 			(RealmForge.Client.Services.ApiErrorKind.Forbidden, false) => "Operation not allowed: you can only modify your own Homebrew content (SRD is read-only).",
+			(RealmForge.Client.Services.ApiErrorKind.NotAvailable, true) => ContentNotAvailable(lang),
+			(RealmForge.Client.Services.ApiErrorKind.NotAvailable, false) => ContentNotAvailable(lang),
 			(RealmForge.Client.Services.ApiErrorKind.EmailNotConfirmed, true) => "Conferma il tuo indirizzo email per creare o modificare contenuti (trovi il pulsante per reinviare l'email nella pagina account).",
 			(RealmForge.Client.Services.ApiErrorKind.EmailNotConfirmed, false) => "Confirm your e-mail address to create or edit content (the button to resend the e-mail is on the account page).",
 			(RealmForge.Client.Services.ApiErrorKind.Unauthorized, true) => "Accesso richiesto: effettua il login per creare o modificare contenuti.",
@@ -259,6 +261,42 @@ namespace RealmForge.Client.Localization
 		};
 
 		//	Platform content (seeded, read-only for everyone); the text origin is shown by FormatSource
+		//	Homebrew visibility and sharing
+		public static string LabelVisibility(LanguageCode lang) => lang == LanguageCode.It ? "Visibilità" : "Visibility";
+		public static string FormatVisibility(ContentVisibility visibility, LanguageCode lang) => (visibility, lang == LanguageCode.It) switch
+		{
+			(ContentVisibility.Private, true) => "Privato",
+			(ContentVisibility.Private, false) => "Private",
+			(ContentVisibility.Link, true) => "Con link",
+			(ContentVisibility.Link, false) => "With link",
+			(_, true) => "Pubblico",
+			(_, false) => "Public"
+		};
+		public static string VisibilityHint(ContentVisibility visibility, LanguageCode lang) => (visibility, lang == LanguageCode.It) switch
+		{
+			(ContentVisibility.Private, true) => "Solo tu puoi vederlo.",
+			(ContentVisibility.Private, false) => "Only you can see it.",
+			(ContentVisibility.Link, true) => "Chi ha il link può vederlo; non compare negli elenchi degli altri utenti.",
+			(ContentVisibility.Link, false) => "Anyone with the link can see it; it does not appear in other users' lists.",
+			(_, true) => "Visibile a tutti negli elenchi del Compendio.",
+			(_, false) => "Listed for everyone in the Compendium."
+		};
+		public static string ShareHint(ContentVisibility visibility, LanguageCode lang) => (visibility == ContentVisibility.Link, lang == LanguageCode.It) switch
+		{
+			(true, true) => "Condivisibile tramite link (sola lettura).",
+			(true, false) => "Shareable through its link (read-only).",
+			(false, true) => "Pubblico: visibile a tutti. Puoi anche inviarne il link.",
+			(false, false) => "Public: visible to everyone. You can also send its link."
+		};
+		public static string SharePrivateHint(LanguageCode lang) => lang == LanguageCode.It
+			? "Privato: per condividerlo imposta la visibilità su \"Con link\" o \"Pubblico\" con Modifica."
+			: "Private: to share it, set its visibility to \"With link\" or \"Public\" with Edit.";
+		public static string BtnCopyLink(LanguageCode lang) => lang == LanguageCode.It ? "Copia link" : "Copy link";
+		public static string LinkCopied(LanguageCode lang) => lang == LanguageCode.It ? "Link copiato ✓" : "Link copied ✓";
+		public static string ContentNotAvailable(LanguageCode lang) => lang == LanguageCode.It
+			? "Contenuto non disponibile: potrebbe essere privato o essere stato eliminato."
+			: "Content not available: it may be private or it was deleted.";
+
 		public static string BadgeBase(LanguageCode lang) => lang == LanguageCode.It ? "Base" : "Base";
 
 		public static string FormatSource(ContentSource? source, LanguageCode lang) => (source, lang == LanguageCode.It) switch

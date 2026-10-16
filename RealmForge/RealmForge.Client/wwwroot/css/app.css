@@ -117,7 +117,8 @@ h1, h2, h3, h4, h5, h6, .rf-page-title, .brand-title {
 .badge-edition-2024,
 .badge-edition-2014,
 .badge-srd,
-.badge-homebrew {
+.badge-homebrew,
+.badge-visibility {
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -157,6 +158,13 @@ h1, h2, h3, h4, h5, h6, .rf-page-title, .brand-title {
     background: rgba(171, 71, 188, 0.15) !important;
     color: #ce93d8 !important;
     border: 1px solid rgba(171, 71, 188, 0.55) !important;
+}
+
+/* Homebrew visibility (Private / With link) - Slate Blue */
+.badge-visibility {
+    background: rgba(79, 195, 247, 0.12) !important;
+    color: #81d4fa !important;
+    border: 1px solid rgba(79, 195, 247, 0.5) !important;
 }
 
 /* D&D Wizard styled buttons */
@@ -703,4 +711,18 @@ select.rf-form-control {
     border: 1px solid var(--rf-orange-primary);
     background-color: rgba(255, 140, 0, 0.08);
     color: var(--rf-text-primary);
+}
+
+/* Share box in Homebrew details */
+.rf-share {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem 0.75rem;
+    margin-bottom: 1rem;
+    padding: 0.6rem 0.9rem;
+    border-radius: 4px;
+    border: 1px dashed rgba(79, 195, 247, 0.5);
+    color: var(--rf-text-secondary);
 }
