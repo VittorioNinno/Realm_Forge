@@ -1,4 +1,4 @@
-.rf-account {
+﻿.rf-account {
     display: flex;
     align-items: center;
     gap: 0.5rem;
@@ -46,6 +46,7 @@
 
 .rf-account-logout {
     flex: 0 0 auto;
+    padding: 0;
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -81,3 +82,12 @@
         background-color: var(--rf-orange-primary);
         color: #111;
     }
+
+/* Icons inside the account buttons: centered, without the right margin the menu gives to its icons */
+.rf-account-logout ::deep .rf-nav-icon,
+.rf-account-login ::deep .rf-nav-icon {
+    margin: 0;
+    flex: 0 0 auto;
+    width: 1rem;
+    height: 1rem;
+}

@@ -7,5 +7,8 @@ namespace RealmForge.Infrastructure.Identity
 	///	</summary>
 	public class ApplicationUser : IdentityUser
 	{
+		//	Set when the account is created; null for accounts registered before this field existed
+		//	(EF overwrites the initializer with the stored value when loading a user)
+		public DateTimeOffset? RegisteredAt { get; set; } = DateTimeOffset.UtcNow;
 	}
 }
