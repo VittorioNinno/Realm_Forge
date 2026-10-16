@@ -12,7 +12,8 @@ public class EmailTemplateTests
 	{
 		var html = EmailTemplate.ActionEmail("preview", It, En, "https://localhost:7171/confirm-email?userId=1&code=a+b");
 
-		Assert.Contains($"cid:{EmailTemplate.LogoCidPlaceholder}", html);
+		Assert.Contains(">REALMFORGE</span>", html);
+		Assert.DoesNotContain("<img", html);
 		Assert.Contains("https://localhost:7171/confirm-email?userId=1&amp;code=a+b", html);
 		Assert.Contains(">Conferma email</a>", html);
 		Assert.Contains(">Confirm e-mail</a>", html);
@@ -30,14 +31,5 @@ public class EmailTemplateTests
 		Assert.Contains("Conferma il tuo indirizzo email", text);
 		Assert.Contains("Confirm your e-mail address", text);
 		Assert.Equal(2, text.Split("https://example.test/x").Length - 1);
-	}
-
-	[Fact]
-	public void Logo_is_embedded_in_the_api_assembly()
-	{
-		using var stream = typeof(IdentityEmailSender).Assembly.GetManifestResourceStream("RealmForge.Api.Email.Assets.logo.jpg");
-
-		Assert.NotNull(stream);
-		Assert.True(stream!.Length > 1000);
 	}
 }
