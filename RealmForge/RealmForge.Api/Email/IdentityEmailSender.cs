@@ -147,9 +147,10 @@ namespace RealmForge.Api.Email
 
 				_logger.LogInformation("E-mail sent to {Email}: {Subject}", to, subject);
 			}
-			catch (AuthenticationException ex)
+			//	Gmail answers wrong credentials with "5.7.8" and closes the connection instead of a plain authentication error
+			catch (Exception ex) when (ex is AuthenticationException || (ex is SmtpProtocolException or SmtpCommandException && ex.Message.Contains("5.7.8")))
 			{
-				_logger.LogError(ex, "SMTP login refused for {Username} on {Host}:{Port}. With Gmail, Email:Password must be an app password of that account (2-Step Verification on).",
+				_logger.LogError(ex, "SMTP login refused for {Username} on {Host}:{Port}. With Gmail, Email:Password must be an app password generated in that same account (2-Step Verification on), not the normal password.",
 					_options.Username, _options.Host, _options.Port);
 			}
 			catch (Exception ex) when (ex is SmtpCommandException or SmtpProtocolException or SslHandshakeException or System.Net.Sockets.SocketException or IOException or TimeoutException)
