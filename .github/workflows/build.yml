@@ -234,6 +234,12 @@ jobs:
           bg_bad=$(code -X POST $api/api/backgrounds $json -H "Authorization: Bearer $A" -d "$(echo "$bg" | jq '.originFeatId = "00000000-0000-0000-0000-000000000001"')")
           bg_other=$(code -X PUT $api/api/backgrounds/$bg_id $json -H "Authorization: Bearer $B" -d "$(echo "$bg" | jq --arg id "$bg_id" '. + {id:$id}')")
           bg_en=$(curl -sf "$api/api/backgrounds/$bg_id?lang=1" | jq -r '.originFeatName + " / " + .originFeatNote')
+          # Account summary: own data and Homebrew counts while alice's background exists
+          acc_anon=$(code $api/api/account/summary)
+          acc=$(curl -sf $api/api/account/summary -H "Authorization: Bearer $A" | jq -c '{email, isAdmin, registered: (.registeredAt != null), backgrounds: .homebrew.backgrounds}')
+          acc_bob=$(curl -sf $api/api/account/summary -H "Authorization: Bearer $B" | jq -c '.homebrew.backgrounds')
+          echo "::notice title=database::account: anonymous=$acc_anon | alice=$acc | bob backgrounds=$acc_bob"
+          test "$acc_anon" = "401" && test "$acc" = '{"email":"alice@example.com","isAdmin":false,"registered":true,"backgrounds":1}' && test "$acc_bob" = "0"
           bg_delete=$(code -X DELETE $api/api/backgrounds/$bg_id -H "Authorization: Bearer $A")
           echo "::notice title=database::backgrounds: anonymous create=$bg_anon | created feat(IT)='$bg_feat' skills=$bg_skills gold=$bg_gold (negative=$bg_bad_gold) | EN='$bg_en' | unknown feat=$bg_bad | other PUT=$bg_other | own DELETE=$bg_delete"
           test "$bg_gold" = "50" && test "$bg_bad_gold" = "400"

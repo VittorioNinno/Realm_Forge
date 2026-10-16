@@ -147,9 +147,62 @@ namespace RealmForge.Client.Localization
 			("PasswordRequiresLower", false) => "The password must contain a lowercase letter.",
 			("PasswordRequiresNonAlphanumeric", true) => "La password deve contenere un simbolo (es. ! ? #).",
 			("PasswordRequiresNonAlphanumeric", false) => "The password must contain a symbol (e.g. ! ? #).",
+			("MissingPasswords", true) => "Compila tutti i campi della password.",
+			("MissingPasswords", false) => "Fill in all the password fields.",
+			("PasswordMismatch", true) => "La password attuale non è corretta.",
+			("PasswordMismatch", false) => "The current password is wrong.",
+			("PasswordsDiffer", true) => "Le due nuove password non coincidono.",
+			("PasswordsDiffer", false) => "The two new passwords do not match.",
 			(_, true) => "Operazione non riuscita. Riprova.",
 			(_, false) => "Something went wrong. Please try again."
 		};
+
+		//	Account page (signed in)
+		public static string LabelSubspeciesShort(LanguageCode lang) => lang == LanguageCode.It ? "Sottospecie" : "Subspecies";
+		public static string AccountProfileTitle(LanguageCode lang) => lang == LanguageCode.It ? "Il tuo account" : "Your account";
+		public static string AccountRole(bool isAdmin, LanguageCode lang) => (isAdmin, lang == LanguageCode.It) switch
+		{
+			(true, true) => "Amministratore",
+			(true, false) => "Administrator",
+			(false, true) => "Utente",
+			(false, false) => "User"
+		};
+		public static string AccountRoleHint(bool isAdmin, LanguageCode lang) => (isAdmin, lang == LanguageCode.It) switch
+		{
+			(true, true) => "Puoi modificare tutti i contenuti Homebrew.",
+			(true, false) => "You can edit every Homebrew entry.",
+			(false, true) => "Puoi creare contenuti Homebrew e modificare i tuoi.",
+			(false, false) => "You can create Homebrew content and edit your own."
+		};
+		//	Dates are formatted by hand: the WebAssembly runtime may not ship culture data for every language
+		private static readonly string[] MonthsIt = ["gennaio", "febbraio", "marzo", "aprile", "maggio", "giugno", "luglio", "agosto", "settembre", "ottobre", "novembre", "dicembre"];
+		private static readonly string[] MonthsEn = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+
+		public static string FormatDate(DateTimeOffset date, LanguageCode lang) => lang == LanguageCode.It
+			? $"{date.Day} {MonthsIt[date.Month - 1]} {date.Year}"
+			: $"{date.Day} {MonthsEn[date.Month - 1]} {date.Year}";
+
+		public static string LabelMemberSince(LanguageCode lang) => lang == LanguageCode.It ? "Registrato il" : "Member since";
+		public static string LabelNotAvailable(LanguageCode lang) => lang == LanguageCode.It ? "non disponibile" : "not available";
+		public static string LabelEmailStatus(LanguageCode lang) => lang == LanguageCode.It ? "Email" : "Email";
+		public static string EmailStatus(bool confirmed, LanguageCode lang) => (confirmed, lang == LanguageCode.It) switch
+		{
+			(true, true) => "verificata",
+			(true, false) => "verified",
+			(false, true) => "non verificata",
+			(false, false) => "not verified"
+		};
+		public static string LabelInterfaceLanguage(LanguageCode lang) => lang == LanguageCode.It ? "Lingua dell'interfaccia" : "Interface language";
+		public static string AccountHomebrewTitle(LanguageCode lang) => lang == LanguageCode.It ? "I tuoi contenuti Homebrew" : "Your Homebrew content";
+		public static string AccountHomebrewEmpty(LanguageCode lang) => lang == LanguageCode.It
+			? "Non hai ancora creato contenuti: usa i pulsanti \"Forgia\" nelle pagine del Compendio."
+			: "You have not created any content yet: use the \"Forge\" buttons in the Compendium pages.";
+		public static string AccountSecurityTitle(LanguageCode lang) => lang == LanguageCode.It ? "Cambia password" : "Change password";
+		public static string LabelCurrentPassword(LanguageCode lang) => lang == LanguageCode.It ? "Password attuale" : "Current password";
+		public static string LabelNewPassword(LanguageCode lang) => lang == LanguageCode.It ? "Nuova password" : "New password";
+		public static string LabelRepeatPassword(LanguageCode lang) => lang == LanguageCode.It ? "Ripeti la nuova password" : "Repeat the new password";
+		public static string BtnChangePassword(LanguageCode lang) => lang == LanguageCode.It ? "Aggiorna password" : "Update password";
+		public static string PasswordChanged(LanguageCode lang) => lang == LanguageCode.It ? "Password aggiornata." : "Password updated.";
 		#endregion
 
 		#region Common Validation & Errors

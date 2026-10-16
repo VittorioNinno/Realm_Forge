@@ -54,4 +54,6 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add RealmForge/RealmForge.Infrastructure/Migrations
           git commit -m "chore(db): add EF migration ${{ steps.name.outputs.value }}"
+          # Commits pushed while the migration was being generated would reject a plain push
+          git pull --rebase origin "${{ github.ref_name }}"
           git push

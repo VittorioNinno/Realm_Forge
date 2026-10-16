@@ -40,7 +40,18 @@ try {
   await page.locator('[data-test=nav-compendium] button').click();
   await page.locator('[data-test=nav-compendium] a').first().waitFor({ timeout: 5000 });
   await page.locator('[data-test=nav-compendium] button').click();
-  ok('"Compendio" menu group: Specie, Background, Talenti; collapsed elsewhere and toggles on click');
+  // Every menu icon sits inside its entry (not on the hover edge) and in the same column as the "Compendio" icon
+  // (measured on the account page, where the group starts closed: open it, measure, close it again)
+  await page.locator('[data-test=nav-compendium] button').click();
+  await page.locator('[data-test=nav-compendium] a').first().waitFor({ timeout: 5000 });
+  const iconGaps = await page.evaluate(() => [...document.querySelectorAll('.sidebar .nav-link, .sidebar .rf-nav-group-toggle')].map((el) => {
+    const icon = el.querySelector('svg').getBoundingClientRect();
+    return { label: el.textContent.trim(), inset: Math.round(icon.left - el.getBoundingClientRect().left), left: Math.round(icon.left) };
+  }));
+  results.push(`INFO menu icons: ${iconGaps.map((g) => `${g.label}@${g.left}(+${g.inset})`).join(', ')}`);
+  if (iconGaps.length !== 5 || iconGaps.some((g) => g.inset < 8) || new Set(iconGaps.map((g) => g.left)).size !== 1) throw new Error('menu icons are not padded or not aligned');
+  await page.locator('[data-test=nav-compendium] button').click();
+  ok('"Compendio" menu group: Specie, Background, Talenti; collapsed elsewhere and toggles on click; icons padded and aligned');
   await page.getByText('Non hai un account? Registrati').click();
   await page.locator('input[type=email]').fill(email);
   await page.locator('input[type=password]').fill(throwawayCredential);
@@ -134,6 +145,26 @@ try {
   if (schemes !== 6 || charlatanSource !== 'Fonte: testo RealmForge') throw new Error(`unexpected Charlatan detail: rows=${schemes} source=${charlatanSource}`);
   await page.getByRole('button', { name: 'CHIUDI' }).click();
   ok('Charlatan: schemes table rendered from Markdown (6 rows), source RealmForge');
+
+  // Account page: profile, Homebrew counts (the UI created one background) and password change
+  await page.goto(`${base}/account`);
+  await page.locator('[data-test=account-role]').waitFor({ timeout: 30000 });
+  const role = (await page.locator('[data-test=account-role]').innerText()).trim();
+  const stats = (await page.locator('[data-test=account-homebrew] .rf-account-stat').allInnerTexts()).map((t) => t.replace(/\s+/g, ' ').trim());
+  results.push(`INFO account role='${role}' homebrew=[${stats.join(' | ')}]`);
+  if (!/^utente$/i.test(role) || !stats.some((t) => /^0 talenti$/i.test(t)) || !stats.some((t) => /^1 background$/i.test(t))) throw new Error('unexpected account summary');
+  const newCredential = ['Rf', crypto.randomUUID(), 'B!'].join('-');
+  await page.locator('[data-test=pwd-current]').fill('wrong-password-1A!');
+  await page.locator('[data-test=pwd-new]').fill(newCredential);
+  await page.locator('[data-test=pwd-repeat]').fill(newCredential);
+  await page.getByRole('button', { name: 'Aggiorna password' }).click();
+  await page.getByText('La password attuale non è corretta.').waitFor({ timeout: 15000 });
+  await page.locator('[data-test=pwd-current]').fill(throwawayCredential);
+  await page.getByRole('button', { name: 'Aggiorna password' }).click();
+  await page.getByText('Password aggiornata.').waitFor({ timeout: 15000 });
+  ok('account page: role "Utente", Homebrew counts (0 feats, 1 background), password change rejects a wrong current password and succeeds with the right one');
+  await page.goto(`${base}/backgrounds`);
+  await page.getByText('Accolito').first().waitFor({ timeout: 30000 });
 
   await page.reload();
   await page.getByText(email).first().waitFor({ timeout: 60000 });
