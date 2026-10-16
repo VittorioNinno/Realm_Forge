@@ -187,6 +187,9 @@ namespace RealmForge.Infrastructure.Migrations
                     b.Property<int?>("Source")
                         .HasColumnType("integer");
 
+                    b.Property<int>("Visibility")
+                        .HasColumnType("integer");
+
                     b.HasKey("Id");
 
                     b.HasIndex("OriginFeatId");
@@ -299,6 +302,9 @@ namespace RealmForge.Infrastructure.Migrations
                     b.Property<int?>("Source")
                         .HasColumnType("integer");
 
+                    b.Property<int>("Visibility")
+                        .HasColumnType("integer");
+
                     b.HasKey("Id");
 
                     b.ToTable("Feats");
@@ -365,6 +371,9 @@ namespace RealmForge.Infrastructure.Migrations
                     b.Property<int?>("Source")
                         .HasColumnType("integer");
 
+                    b.Property<int>("Visibility")
+                        .HasColumnType("integer");
+
                     b.HasKey("Id");
 
                     b.ToTable("Species");
@@ -423,6 +432,9 @@ namespace RealmForge.Infrastructure.Migrations
 
                     b.Property<Guid>("SpeciesId")
                         .HasColumnType("uuid");
+
+                    b.Property<int>("Visibility")
+                        .HasColumnType("integer");
 
                     b.HasKey("Id");
 
@@ -489,6 +501,9 @@ namespace RealmForge.Infrastructure.Migrations
 
                     b.Property<Guid?>("SubspeciesId")
                         .HasColumnType("uuid");
+
+                    b.Property<int>("Visibility")
+                        .HasColumnType("integer");
 
                     b.HasKey("Id");
 
