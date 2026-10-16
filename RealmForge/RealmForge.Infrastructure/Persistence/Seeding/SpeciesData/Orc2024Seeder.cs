@@ -27,13 +27,13 @@ namespace RealmForge.Infrastructure.Persistence.Seeding.SpeciesData
 					{
 						Language = LanguageCode.It,
 						Name = "Orco",
-						Description = "I racconti degli orchi parlano di un dio possente che vagava per le terre aperte del mondo e che donò ai suoi figli ciò di cui avevano bisogno per attraversare vaste pianure, caverne profonde e mari in tempesta e per affrontare i mostri che vi si annidano. Qualunque dio seguano oggi, gli orchi conservano quei doni: resistenza, determinazione e occhi che vedono al buio.\n\nGli orchi sono in genere alti e massicci, con la pelle grigia, orecchie molto appuntite e canini inferiori sporgenti come piccole zanne. Alcuni crescono con le storie dei grandi viaggi dei loro antenati e sognano di eguagliarli; altri preferiscono lasciarsi alle spalle le vecchie storie e trovare la propria strada."
+						Description = "Gli orchi fanno risalire la loro creazione a Gruumsh, un dio possente che vagava per le terre aperte del Piano Materiale. Gruumsh donò ai suoi figli ciò di cui avevano bisogno per attraversare vaste pianure, caverne profonde e mari in tempesta e per affrontare i mostri che vi si annidano. Anche chi si rivolge ad altri dei conserva i doni di Gruumsh: resistenza, determinazione e occhi che vedono al buio.\n\nGli orchi sono in genere alti e massicci, con la pelle grigia, orecchie molto appuntite e canini inferiori sporgenti come piccole zanne. In alcuni mondi i giovani orchi crescono con le storie dei grandi viaggi dei loro antenati e si chiedono quando Gruumsh li chiamerà a eguagliarne le gesta; altri preferiscono lasciarsi alle spalle le vecchie storie e trovare la propria strada."
 					},
 					new SpeciesTranslation
 					{
 						Language = LanguageCode.En,
 						Name = "Orc",
-						Description = "Orc stories tell of a mighty god who roamed the open lands of the world and gave his children the gifts they would need to cross wide plains, deep caverns, and stormy seas and to stand against the monsters found there. Whatever gods they follow today, orcs keep those gifts: stamina, determination, and eyes that see in the dark.\n\nOrcs tend to be tall and broad, with gray skin, sharply pointed ears, and lower canines that jut like small tusks. Some grow up on tales of their ancestors' great journeys and dream of matching them; others prefer to leave the old stories behind and make their own way."
+						Description = "Orcs trace their creation to Gruumsh, a mighty god who roamed the open lands of the Material Plane. Gruumsh gave his children the gifts they would need to cross wide plains, deep caverns, and stormy seas and to stand against the monsters found there. Even those who turn to other gods keep Gruumsh's gifts: endurance, determination, and eyes that see in the dark.\n\nOrcs tend to be tall and broad, with gray skin, sharply pointed ears, and lower canines that jut like small tusks. On some worlds young orcs grow up on tales of their ancestors' great journeys and wonder when Gruumsh will call on them to match those deeds; others prefer to leave the old stories behind and make their own way."
 					}
 				},
 				Traits = new List<Trait>

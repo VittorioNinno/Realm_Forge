@@ -30,14 +30,14 @@ public static class Observant2014Seeder
 					Id = TranslationEnId,
 					Language = LanguageCode.En,
 					Name = "Observant",
-					Description = "Little escapes your notice.\n- **Intelligence or Wisdom +1.** Increase one of the two scores by 1, to a maximum of 20.\n- **Lip Reading.** If you can see the mouth of a creature speaking a language you understand, you can tell what it says by reading its lips.\n- **Sharp Eye.** You gain a +5 bonus to your passive Wisdom (Perception) and passive Intelligence (Investigation) scores."
+					Description = "Little escapes your notice.\n- Increase your Intelligence or Wisdom score by 1, to a maximum of 20.\n- If you can see the mouth of a creature speaking a language you understand, you can tell what it says by reading its lips.\n- You gain a +5 bonus to your passive Wisdom (Perception) and passive Intelligence (Investigation) scores."
 				},
 				new FeatTranslation
 				{
 					Id = TranslationItId,
 					Language = LanguageCode.It,
 					Name = "Osservatore",
-					Description = "Poco sfugge all'attenzione del personaggio.\n- **Intelligenza o Saggezza +1.** Uno dei due punteggi aumenta di 1, fino a un massimo di 20.\n- **Leggere le labbra.** Se può vedere la bocca di una creatura che parla un linguaggio che comprende, capisce cosa dice leggendone le labbra.\n- **Occhio acuto.** Ottiene un bonus di +5 ai punteggi passivi di Saggezza (Percezione) e di Intelligenza (Indagare)."
+					Description = "Poco sfugge all'attenzione del personaggio.\n- Il punteggio di Intelligenza o Saggezza aumenta di 1, fino a un massimo di 20.\n- Se può vedere la bocca di una creatura che parla un linguaggio che comprende, capisce cosa dice leggendone le labbra.\n- Ottiene un bonus di +5 ai punteggi passivi di Saggezza (Percezione) e di Intelligenza (Indagare)."
 				}
 			}
 		};

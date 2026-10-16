@@ -31,14 +31,14 @@ public static class UnarmedFighting2024Seeder
 					Id = TranslationEnId,
 					Language = LanguageCode.En,
 					Name = "Unarmed Fighting",
-					Description = "Your bare hands are trained weapons.\n- **Trained Strikes.** When your Unarmed Strike hits and deals damage, you can deal Bludgeoning damage equal to 1d6 + your Strength modifier instead of the normal damage. If you are holding no weapons and no Shield when you make the attack roll, use a d8 instead of the d6.\n- **Crushing Hold.** At the start of each of your turns, you can deal 1d4 Bludgeoning damage to one creature you have Grappled."
+					Description = "Your bare hands are trained weapons.\n\nWhen your Unarmed Strike hits and deals damage, you can deal Bludgeoning damage equal to 1d6 + your Strength modifier instead of the normal damage. If you are holding no weapons and no Shield when you make the attack roll, use a d8 instead of the d6.\n\nAt the start of each of your turns, you can deal 1d4 Bludgeoning damage to one creature you have Grappled."
 				},
 				new FeatTranslation
 				{
 					Id = TranslationItId,
 					Language = LanguageCode.It,
 					Name = "Combattere Disarmato",
-					Description = "Le mani nude del personaggio sono armi addestrate.\n- **Colpi addestrati.** Quando il suo colpo senz'armi colpisce e infligge danni, può infliggere danni contundenti pari a 1d6 + il suo modificatore di Forza invece dei danni normali. Se quando effettua il tiro per colpire non impugna armi né uno scudo, usa un d8 al posto del d6.\n- **Stretta schiacciante.** All'inizio di ogni suo turno, può infliggere 1d4 danni contundenti a una creatura che sta afferrando."
+					Description = "Le mani nude del personaggio sono armi addestrate.\n\nQuando il suo Colpo Senz'Armi colpisce e infligge danni, può infliggere danni contundenti pari a 1d6 + il suo modificatore di Forza invece dei danni normali. Se quando effettua il tiro per colpire non impugna armi né uno scudo, usa un d8 al posto del d6.\n\nAll'inizio di ogni suo turno, può infliggere 1d4 danni contundenti a una creatura che sta afferrando."
 				}
 			}
 		};

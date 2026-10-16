@@ -33,14 +33,14 @@ public static class KeenMind2024Seeder
 					Id = TranslationEnId,
 					Language = LanguageCode.En,
 					Name = "Keen Mind",
-					Description = "You absorb knowledge quickly and retain it well.\n- **Intelligence +1.** Increase your Intelligence score by 1, to a maximum of 20.\n- **Scholarly Focus.** Pick Arcana, History, Investigation, Nature, or Religion. You gain proficiency in that skill or, if you already have it, Expertise.\n- **Fast Learner.** You can take the Study action as a Bonus Action."
+					Description = "You absorb knowledge quickly and retain it well.\n- **Ability Score Increase.** Increase your Intelligence score by 1, to a maximum of 20.\n- **Lore Knowledge.** Pick Arcana, History, Investigation, Nature, or Religion. You gain proficiency in that skill or, if you already have it, Expertise.\n- **Quick Study.** You can take the Study action as a Bonus Action."
 				},
 				new FeatTranslation
 				{
 					Id = TranslationItId,
 					Language = LanguageCode.It,
 					Name = "Mente Acuta",
-					Description = "Il personaggio assimila il sapere in fretta e lo conserva con cura.\n- **Intelligenza +1.** Il punteggio di Intelligenza aumenta di 1, fino a un massimo di 20.\n- **Campo di studio.** Sceglie Arcano, Storia, Indagare, Natura o Religione. Ottiene competenza in quell'abilità oppure, se l'ha già, Maestria.\n- **Apprendimento rapido.** Può effettuare l'azione Studiare come azione bonus."
+					Description = "Il personaggio assimila il sapere in fretta e lo conserva con cura.\n- **Incremento dei Punteggi di Caratteristica.** Il punteggio di Intelligenza aumenta di 1, fino a un massimo di 20.\n- **Conoscenza Profonda.** Sceglie Arcano, Storia, Indagare, Natura o Religione. Ottiene competenza in quell'abilità oppure, se l'ha già, Maestria.\n- **Studio Celere.** Può effettuare l'azione Studiare come Azione Bonus."
 				}
 			}
 		};

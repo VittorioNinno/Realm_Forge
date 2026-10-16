@@ -31,14 +31,14 @@ public static class Interception2024Seeder
 					Id = TranslationEnId,
 					Language = LanguageCode.En,
 					Name = "Interception",
-					Description = "You step in to soften blows meant for your allies.\n- **Intercept.** When a creature you can see hits another creature within 5 feet of you with an attack roll, you can use your Reaction to reduce the damage the target takes by 1d10 + your Proficiency Bonus. You must be holding a Shield or a Simple or Martial weapon to do this."
+					Description = "You step in to soften blows meant for your allies.\n\nWhen a creature you can see hits another creature within 5 feet of you with an attack roll, you can use your Reaction to reduce the damage the target takes by 1d10 + your Proficiency Bonus. You must be holding a Shield or a Simple or Martial weapon to do this."
 				},
 				new FeatTranslation
 				{
 					Id = TranslationItId,
 					Language = LanguageCode.It,
 					Name = "Intercettazione",
-					Description = "Il personaggio si frappone per attutire i colpi diretti ai suoi alleati.\n- **Intercettare.** Quando una creatura che può vedere colpisce con un tiro per colpire un'altra creatura entro 1,5 metri da lui, può usare la Reazione per ridurre i danni subiti dal bersaglio di 1d10 + il suo bonus di competenza. Per farlo deve impugnare uno scudo o un'arma semplice o da guerra."
+					Description = "Il personaggio si frappone per attutire i colpi diretti ai suoi alleati.\n\nQuando una creatura che può vedere colpisce con un tiro per colpire un'altra creatura entro 1,5 metri da lui, può usare la Reazione per ridurre i danni subiti dal bersaglio di 1d10 + il suo Bonus di Competenza. Per farlo deve impugnare uno scudo o un'arma semplice o da guerra."
 				}
 			}
 		};

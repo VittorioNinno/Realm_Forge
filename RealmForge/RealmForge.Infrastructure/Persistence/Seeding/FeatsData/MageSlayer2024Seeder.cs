@@ -31,14 +31,14 @@ public static class MageSlayer2024Seeder
 					Id = TranslationEnId,
 					Language = LanguageCode.En,
 					Name = "Mage Slayer",
-					Description = "You have trained to hunt down spellcasters.\n- **Strength or Dexterity +1.** Increase one of the two scores by 1, to a maximum of 20.\n- **Break Concentration.** A concentrating creature you damage has Disadvantage on its saving throw to keep Concentration.\n- **Iron Will.** When you fail an Intelligence, Wisdom, or Charisma saving throw, you can succeed instead. You can't do this again until you finish a Short or Long Rest."
+					Description = "You have trained to hunt down spellcasters.\n- **Ability Score Increase.** Increase your Strength or Dexterity score by 1, to a maximum of 20.\n- **Concentration Breaker.** A concentrating creature you damage has Disadvantage on its saving throw to keep Concentration.\n- **Guarded Mind.** When you fail an Intelligence, Wisdom, or Charisma saving throw, you can succeed instead. You can't do this again until you finish a Short or Long Rest."
 				},
 				new FeatTranslation
 				{
 					Id = TranslationItId,
 					Language = LanguageCode.It,
 					Name = "Sterminatore di Maghi",
-					Description = "Il personaggio si è addestrato a dare la caccia agli incantatori.\n- **Forza o Destrezza +1.** Uno dei due punteggi aumenta di 1, fino a un massimo di 20.\n- **Spezzare la concentrazione.** Una creatura concentrata a cui infligge danni ha Svantaggio al tiro salvezza per mantenere la Concentrazione.\n- **Volontà di ferro.** Quando fallisce un tiro salvezza su Intelligenza, Saggezza o Carisma, può invece superarlo. Non può farlo di nuovo finché non termina un riposo breve o lungo."
+					Description = "Il personaggio si è addestrato a dare la caccia agli incantatori.\n- **Incremento dei Punteggi di Caratteristica.** Il punteggio di Forza o Destrezza aumenta di 1, fino a un massimo di 20.\n- **Spezza Concentrazione.** Una creatura concentrata a cui infligge danni ha Svantaggio al Tiro Salvezza per mantenere la Concentrazione.\n- **Scudo Mentale.** Quando fallisce un Tiro Salvezza su Intelligenza, Saggezza o Carisma, può invece superarlo. Non può farlo di nuovo finché non termina un Riposo Breve o Lungo."
 				}
 			}
 		};

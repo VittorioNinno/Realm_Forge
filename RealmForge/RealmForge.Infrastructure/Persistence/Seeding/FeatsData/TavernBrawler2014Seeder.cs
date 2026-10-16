@@ -30,14 +30,14 @@ public static class TavernBrawler2014Seeder
 					Id = TranslationEnId,
 					Language = LanguageCode.En,
 					Name = "Tavern Brawler",
-					Description = "Any object within reach can be a weapon in your hands.\n- **Strength or Constitution +1.** Increase one of the two scores by 1, to a maximum of 20.\n- **Brawler's Training.** You are proficient with improvised weapons and unarmed strikes.\n- **Heavy Fists.** Your unarmed strikes use a d4 as their damage die.\n- **Grab Hold.** When you hit a creature with an unarmed strike or an improvised weapon on your turn, you can use a bonus action to try to grapple it."
+					Description = "Any object within reach can be a weapon in your hands.\n- Increase your Strength or Constitution score by 1, to a maximum of 20.\n- You are proficient with improvised weapons and unarmed strikes.\n- Your unarmed strikes use a d4 as their damage die.\n- When you hit a creature with an unarmed strike or an improvised weapon on your turn, you can use a bonus action to try to grapple it."
 				},
 				new FeatTranslation
 				{
 					Id = TranslationItId,
 					Language = LanguageCode.It,
 					Name = "Lottatore da Taverna",
-					Description = "Qualsiasi oggetto a portata di mano può diventare un'arma per il personaggio.\n- **Forza o Costituzione +1.** Uno dei due punteggi aumenta di 1, fino a un massimo di 20.\n- **Addestramento da rissa.** Ha competenza nelle armi improvvisate e nei colpi senz'armi.\n- **Pugni pesanti.** I suoi colpi senz'armi usano un d4 come dado di danno.\n- **Presa.** Quando colpisce una creatura con un colpo senz'armi o un'arma improvvisata durante il suo turno, può usare un'azione bonus per tentare di afferrarla."
+					Description = "Qualsiasi oggetto a portata di mano può diventare un'arma per il personaggio.\n- Il punteggio di Forza o Costituzione aumenta di 1, fino a un massimo di 20.\n- Ha competenza nelle armi improvvisate e nei colpi senz'armi.\n- I suoi colpi senz'armi usano un d4 come dado di danno.\n- Quando colpisce una creatura con un colpo senz'armi o un'arma improvvisata durante il suo turno, può usare un'azione bonus per tentare di afferrarla."
 				}
 			}
 		};

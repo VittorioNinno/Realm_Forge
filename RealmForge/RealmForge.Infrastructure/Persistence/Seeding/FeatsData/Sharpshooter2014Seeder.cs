@@ -30,14 +30,14 @@ public static class Sharpshooter2014Seeder
 					Id = TranslationEnId,
 					Language = LanguageCode.En,
 					Name = "Sharpshooter",
-					Description = "Your shots find their mark where others would miss.\n- **Long Shots.** Attacking at long range doesn't give you disadvantage on ranged weapon attack rolls.\n- **Around Cover.** Your ranged weapon attacks ignore half cover and three-quarters cover.\n- **Power Shot.** Before attacking with a ranged weapon you are proficient with, you can accept a -5 penalty to the attack roll; if the attack hits, it deals 10 extra damage."
+					Description = "Your shots find their mark where others would miss.\n- Attacking at long range doesn't give you disadvantage on ranged weapon attack rolls.\n- Your ranged weapon attacks ignore half cover and three-quarters cover.\n- Before attacking with a ranged weapon you are proficient with, you can accept a -5 penalty to the attack roll; if the attack hits, it deals 10 extra damage."
 				},
 				new FeatTranslation
 				{
 					Id = TranslationItId,
 					Language = LanguageCode.It,
 					Name = "Tiratore Scelto",
-					Description = "I tiri del personaggio vanno a segno dove altri mancherebbero.\n- **Tiri lunghi.** Attaccare a gittata lunga non gli impone svantaggio ai tiri per colpire con armi a distanza.\n- **Oltre la copertura.** I suoi attacchi con armi a distanza ignorano la mezza copertura e la copertura tre quarti.\n- **Tiro potente.** Prima di attaccare con un'arma a distanza in cui ha competenza, può accettare una penalità di -5 al tiro per colpire; se l'attacco colpisce, infligge 10 danni aggiuntivi."
+					Description = "I tiri del personaggio vanno a segno dove altri mancherebbero.\n- Attaccare a gittata lunga non gli impone svantaggio ai tiri per colpire con armi a distanza.\n- I suoi attacchi con armi a distanza ignorano la mezza copertura e la copertura tre quarti.\n- Prima di attaccare con un'arma a distanza in cui ha competenza, può accettare una penalità di -5 al tiro per colpire; se l'attacco colpisce, infligge 10 danni aggiuntivi."
 				}
 			}
 		};

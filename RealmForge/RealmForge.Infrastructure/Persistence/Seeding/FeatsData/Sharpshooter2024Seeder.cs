@@ -33,14 +33,14 @@ public static class Sharpshooter2024Seeder
 					Id = TranslationEnId,
 					Language = LanguageCode.En,
 					Name = "Sharpshooter",
-					Description = "Your shots find their mark where others would miss.\n- **Dexterity +1.** Increase your Dexterity score by 1, to a maximum of 20.\n- **Around Cover.** Your ranged weapon attacks ignore Half Cover and Three-Quarters Cover.\n- **Point-Blank Shooting.** Having an enemy within 5 feet of you doesn't give you Disadvantage on attack rolls with Ranged weapons.\n- **Long Shots.** Attacking at long range doesn't give you Disadvantage on attack rolls with Ranged weapons."
+					Description = "Your shots find their mark where others would miss.\n- **Ability Score Increase.** Increase your Dexterity score by 1, to a maximum of 20.\n- **Bypass Cover.** Your ranged weapon attacks ignore Half Cover and Three-Quarters Cover.\n- **Firing in Melee.** Having an enemy within 5 feet of you doesn't give you Disadvantage on attack rolls with Ranged weapons.\n- **Long Shots.** Attacking at long range doesn't give you Disadvantage on attack rolls with Ranged weapons."
 				},
 				new FeatTranslation
 				{
 					Id = TranslationItId,
 					Language = LanguageCode.It,
 					Name = "Tiratore Scelto",
-					Description = "I tiri del personaggio vanno a segno dove altri mancherebbero.\n- **Destrezza +1.** Il punteggio di Destrezza aumenta di 1, fino a un massimo di 20.\n- **Oltre la copertura.** I suoi attacchi con armi a distanza ignorano la mezza copertura e la copertura tre quarti.\n- **Tiro ravvicinato.** Avere un nemico entro 1,5 metri non gli impone Svantaggio ai tiri per colpire con armi a distanza.\n- **Tiri lunghi.** Attaccare a gittata lunga non gli impone Svantaggio ai tiri per colpire con armi a distanza."
+					Description = "I tiri del personaggio vanno a segno dove altri mancherebbero.\n- **Incremento dei Punteggi di Caratteristica.** Il punteggio di Destrezza aumenta di 1, fino a un massimo di 20.\n- **Ignora Copertura.** I suoi attacchi con armi a distanza ignorano la Mezza Copertura e la Copertura Tre Quarti.\n- **Sparo in Mischia.** Avere un nemico entro 1,5 metri non gli impone Svantaggio ai tiri per colpire con armi a distanza.\n- **Tiri Lunghi.** Attaccare a gittata lunga non gli impone Svantaggio ai tiri per colpire con armi a distanza."
 				}
 			}
 		};

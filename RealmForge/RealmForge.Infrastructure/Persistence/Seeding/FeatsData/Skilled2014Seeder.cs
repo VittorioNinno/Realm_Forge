@@ -30,14 +30,14 @@ public static class Skilled2014Seeder
 					Id = TranslationEnId,
 					Language = LanguageCode.En,
 					Name = "Skilled",
-					Description = "You pick up new abilities quickly.\n- **Three Proficiencies.** Choose any three skills or tools, in any combination, and gain proficiency with them."
+					Description = "You pick up new abilities quickly.\n- Choose any three skills or tools, in any combination, and gain proficiency with them."
 				},
 				new FeatTranslation
 				{
 					Id = TranslationItId,
 					Language = LanguageCode.It,
 					Name = "Abile",
-					Description = "Il personaggio impara in fretta.\n- **Tre competenze.** Sceglie tre abilità o strumenti, in qualsiasi combinazione, e ne ottiene la competenza."
+					Description = "Il personaggio impara in fretta.\n- Sceglie tre abilità o strumenti, in qualsiasi combinazione, e ne ottiene la competenza."
 				}
 			}
 		};

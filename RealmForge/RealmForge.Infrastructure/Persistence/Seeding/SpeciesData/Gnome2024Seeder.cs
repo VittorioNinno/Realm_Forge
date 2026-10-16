@@ -29,13 +29,13 @@ namespace RealmForge.Infrastructure.Persistence.Seeding.SpeciesData
 					{
 						Language = LanguageCode.It,
 						Name = "Gnomo",
-						Description = "Gli gnomi sono un popolo magico che si dice sia stato creato da dei dell'invenzione, dell'illusione e dei luoghi nascosti sotto terra. I primi gnomi vivevano in foreste e tane e si facevano vedere di rado, ingannando i predatori più grossi con trappole e gallerie labirintiche. I loro dei, facendo visita in incognito, insegnarono loro una magia da cui nacquero le stirpi degli gnomi delle foreste e degli gnomi delle rocce.\n\nGli gnomi sono piccoli, con occhi grandi e orecchie appuntite, e vivono circa 425 anni. Molti amano avere qualcosa sopra la testa, anche se si tratta solo di un cappello."
+						Description = "Gli gnomi sono un popolo magico creato da dei dell'invenzione, dell'illusione e della vita sotterranea. I primi gnomi vivevano in foreste e tane e si facevano vedere di rado dagli altri popoli; ciò che mancava loro in statura lo compensavano con l'ingegno, ingannando i predatori con trappole e gallerie labirintiche. Impararono la magia da dei come Garl Glittergold, Baervan Wildwanderer e Baravar Cloakshadow, che li visitavano in incognito, e da quella magia nacquero col tempo le stirpi degli gnomi delle foreste e degli gnomi delle rocce.\n\nGli gnomi sono piccoli, con occhi grandi e orecchie appuntite, e vivono circa 425 anni. Molti amano avere un tetto sopra la testa, anche se quel tetto è solo un cappello."
 					},
 					new SpeciesTranslation
 					{
 						Language = LanguageCode.En,
 						Name = "Gnome",
-						Description = "Gnomes are a magical people said to have been made by gods of invention, illusion, and the hidden places underground. The first gnomes kept to forests and burrows and were rarely seen, outwitting larger predators with traps and maze-like tunnels. Their gods, visiting in disguise, taught them magic that eventually gave rise to the forest gnome and rock gnome lineages.\n\nGnomes are small, with large eyes and pointed ears, and live around 425 years. Many of them like having something over their heads, even if it is only a hat."
+						Description = "Gnomes are a magical people created by gods of invention, illusion, and life underground. The first gnomes kept to forests and burrows and were rarely seen by other folk; what they lacked in size they made up for in cleverness, outwitting predators with traps and maze-like tunnels. They learned magic from gods such as Garl Glittergold, Baervan Wildwanderer, and Baravar Cloakshadow, who visited them in disguise, and that magic eventually gave rise to the forest gnome and rock gnome lineages.\n\nGnomes are small, with large eyes and pointed ears, and live around 425 years. Many of them like having a roof over their heads, even if that roof is only a hat."
 					}
 				},
 				Traits = new List<Trait>
