@@ -235,6 +235,9 @@ jobs:
           bg_en=$(curl -sf "$api/api/backgrounds/$bg_id?lang=1" | jq -r '.originFeatName + " / " + .originFeatNote')
           bg_delete=$(code -X DELETE $api/api/backgrounds/$bg_id -H "Authorization: Bearer $A")
           echo "::notice title=database::backgrounds: anonymous create=$bg_anon | created feat(IT)='$bg_feat' skills=$bg_skills | EN='$bg_en' | unknown feat=$bg_bad | other PUT=$bg_other | own DELETE=$bg_delete"
+          bg_srd=$(curl -sf "$api/api/backgrounds?isOfficial=true&lang=2" | jq -c '[.[] | {name, skills: .skillProficiencies}]')
+          echo "::notice title=database::SRD backgrounds: $bg_srd"
+          test "$bg_srd" = '[{"name":"Accolito","skills":[7,15]}]'
           test "$bg_anon" = "401"
           test "$bg_feat" = "Allerta"
           test "$bg_skills" = "[7,15]"

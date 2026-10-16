@@ -9,6 +9,14 @@ public class BackgroundSeedDataTests
 	private static readonly IReadOnlyList<Background> Backgrounds = BackgroundSeeder.GetDefinitions();
 
 	[Fact]
+	public void Only_SRD_backgrounds_are_seeded()
+	{
+		//	SRD 5.1 contains a single background (Acolyte); SRD 5.2 adds Criminal, Sage and Soldier
+		Assert.Single(Backgrounds, b => b.Ruleset == RulesetVersion.Dnd5e_2014);
+		Assert.True(Backgrounds.Count(b => b.Ruleset == RulesetVersion.Dnd5e_2024) <= 4);
+	}
+
+	[Fact]
 	public void Ids_are_unique_and_identical_on_every_build()
 	{
 		BackgroundSeeder.EnsureUniqueIds(Backgrounds);
