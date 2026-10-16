@@ -1,5 +1,6 @@
-using RealmForge.Domain.Entities;
+﻿using RealmForge.Domain.Entities;
 using RealmForge.Infrastructure.Persistence.Seeding;
+using RealmForge.Infrastructure.Persistence.Seeding.BackgroundsData;
 using RealmForge.Shared.Enums;
 
 namespace RealmForge.Tests;
@@ -9,12 +10,27 @@ public class BackgroundSeedDataTests
 	private static readonly IReadOnlyList<Background> Backgrounds = BackgroundSeeder.GetDefinitions();
 
 	[Fact]
-	public void Only_SRD_backgrounds_are_seeded()
+	public void SRD_backgrounds_are_labelled_and_the_others_are_RealmForge_text()
 	{
-		//	SRD 5.1 contains a single background (Acolyte); SRD 5.2 adds Criminal, Sage and Soldier
-		var acolyte = Assert.Single(Backgrounds, b => b.Ruleset == RulesetVersion.Dnd5e_2014);
-		Assert.Equal(ContentSource.Srd51, acolyte.Source);
-		Assert.True(Backgrounds.Count(b => b.Ruleset == RulesetVersion.Dnd5e_2024) <= 4);
+		//	SRD 5.1 contains a single background (Acolyte); every other 2014 background is text written for RealmForge
+		var srd51 = Assert.Single(Backgrounds, b => b.Source == ContentSource.Srd51);
+		Assert.Equal(Acolyte2014Seeder.BackgroundId, srd51.Id);
+		Assert.All(Backgrounds.Where(b => b.Ruleset == RulesetVersion.Dnd5e_2014 && b.Id != srd51.Id),
+			b => Assert.Equal(ContentSource.RealmForge, b.Source));
+	}
+
+	[Fact]
+	public void Charlatan_has_its_proficiencies_and_tables()
+	{
+		var charlatan = Assert.Single(Backgrounds, b => b.Id == Charlatan2014Seeder.BackgroundId);
+		Assert.Equal(new[] { Skill.Deception, Skill.SleightOfHand }, charlatan.SkillProficiencies);
+
+		foreach (var tr in charlatan.Translations)
+		{
+			Assert.Equal((8, 6, 6, 6), (tr.PersonalityTraits.Count, tr.Ideals.Count, tr.Bonds.Count, tr.Flaws.Count));
+			Assert.False(string.IsNullOrWhiteSpace(tr.ToolProficiencies));
+			Assert.Contains("| 6 |", tr.Description);
+		}
 	}
 
 	[Fact]
