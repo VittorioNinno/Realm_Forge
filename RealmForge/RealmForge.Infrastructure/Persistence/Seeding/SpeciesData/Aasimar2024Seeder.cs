@@ -27,13 +27,13 @@ namespace RealmForge.Infrastructure.Persistence.Seeding.SpeciesData
 					{
 						Language = LanguageCode.It,
 						Name = "Aasimar",
-						Description = "Gli aasimar (pronunciato così come si scrive) sono mortali che portano nelle loro anime una scintilla dei Piani Superiori. Che discendano da un essere angelico o siano stati infusi con del potere celestiale, possono sfruttare questa loro caratteristica per portare la luce, guarire il prossimo o scatenare l'ira dei cieli. Gli aasimar possono generarsi all'interno di qualsiasi popolazione di mortali. Assomigliano ai propri genitori, ma possono vivere fino a 160 anni e possiedono dei tratti che lasciano intendere il loro retaggio celestiale, come lentiggini metalliche, occhi luminosi, un'aureola o la pelle dello stesso colore di quella di un angelo (argento, verde opalescente o rosso ramato). Inizialmente, questi tratti sono difficili da notare, ma diventano sempre più ovvi man mano che l'aasimar impara a rivelare la sua piena natura celestiale."
+						Description = "Gli aasimar sono mortali la cui anima custodisce una scintilla di luce celestiale. Alcuni la devono a un antenato divino, altri a una benedizione ricevuta prima della nascita; in ogni caso, quella scintilla può essere ravvivata in un calore che guarisce o in un'ira sfolgorante. Un aasimar può nascere presso qualsiasi popolo e somiglia molto alla sua famiglia, ma piccoli segni lo distinguono: lentiggini che brillano come metallo, occhi che catturano la luce, un tenue alone o una pelle sfumata d'argento, verde pallido o rame. Questi segni si fanno più evidenti man mano che l'aasimar impara a svelare la propria natura celestiale, e la sua vita può durare fino a circa 160 anni."
 					},
 					new SpeciesTranslation
 					{
 						Language = LanguageCode.En,
 						Name = "Aasimar",
-						Description = "Aasimar (pronounced AH-sih-mar) are mortals who carry a spark of the Upper Planes within their souls. Whether descended from an angelic being or infused with celestial power, they can fan that spark to bring light, healing, and heavenly fury. Aasimar can arise among any population of mortals. They resemble their parents, but they live for up to 160 years and have features that hint at their celestial heritage, such as metallic freckles, luminous eyes, a halo, or the skin color of an angel (silver, opalescent green, or coppery red). These features start subtle and become obvious when the aasimar learns to reveal their full celestial nature."
+						Description = "Aasimar are mortals whose souls hold a spark of celestial light. Some owe it to a heavenly ancestor, others to a blessing received before birth; either way, the spark can be stirred into healing warmth or blazing wrath. An aasimar can be born to any people and looks much like their family, yet subtle signs set them apart: freckles that glint like metal, eyes that catch the light, a faint halo, or skin tinged silver, pale green, or copper. These signs grow stronger as the aasimar learns to unveil their celestial nature, and they can live up to about 160 years."
 					}
 				},
 				Traits = new List<Trait>
@@ -49,13 +49,13 @@ namespace RealmForge.Infrastructure.Persistence.Seeding.SpeciesData
 							{
 								Language = LanguageCode.It,
 								Name = "Scurovisione",
-								Description = "Ha scurovisione fino a un raggio di 18 metri."
+								Description = "Il personaggio vede nell'oscurità fino a 18 metri."
 							},
 							new TraitTranslation
 							{
 								Language = LanguageCode.En,
 								Name = "Darkvision",
-								Description = "You have Darkvision with a range of 60 feet."
+								Description = "You can see in darkness out to 60 feet."
 							}
 						}
 					},
@@ -70,13 +70,13 @@ namespace RealmForge.Infrastructure.Persistence.Seeding.SpeciesData
 							{
 								Language = LanguageCode.It,
 								Name = "Resistenza celestiale",
-								Description = "Possiede resistenza ai danni necrotici e radiosi."
+								Description = "Il personaggio ha Resistenza ai danni necrotici e radiosi."
 							},
 							new TraitTranslation
 							{
 								Language = LanguageCode.En,
 								Name = "Celestial Resistance",
-								Description = "You have Resistance to Necrotic damage and Radiant damage."
+								Description = "You have Resistance to Necrotic and Radiant damage."
 							}
 						}
 					},
@@ -91,13 +91,13 @@ namespace RealmForge.Infrastructure.Persistence.Seeding.SpeciesData
 							{
 								Language = LanguageCode.It,
 								Name = "Portatore di luce",
-								Description = "Conosce il trucchetto luce. La caratteristica da incantatore per questo trucchetto è Carisma."
+								Description = "Il personaggio conosce il trucchetto Luce e usa il Carisma come caratteristica da incantatore per lanciarlo."
 							},
 							new TraitTranslation
 							{
 								Language = LanguageCode.En,
 								Name = "Light Bearer",
-								Description = "You know the Light cantrip. Charisma is your spellcasting ability for it."
+								Description = "You know the Light cantrip, using Charisma as your spellcasting ability for it."
 							}
 						}
 					},
@@ -112,13 +112,13 @@ namespace RealmForge.Infrastructure.Persistence.Seeding.SpeciesData
 							{
 								Language = LanguageCode.It,
 								Name = "Mani curative",
-								Description = "Con un'azione di Magia, può toccare una creatura e tirare un numero di d4 pari al suo bonus di competenza. La creatura che ha toccato recupera un numero di punti ferita pari al risultato totale del tiro. Dopo aver usato questo tratto, il personaggio non può riutilizzarlo prima di aver completato un riposo lungo."
+								Description = "Con un'azione Magia, il personaggio tocca una creatura e tira un numero di d4 pari al suo bonus di competenza; la creatura recupera punti ferita pari al totale. Può usare di nuovo questo tratto solo dopo aver terminato un riposo lungo."
 							},
 							new TraitTranslation
 							{
 								Language = LanguageCode.En,
 								Name = "Healing Hands",
-								Description = "As a Magic action, you touch a creature and roll a number of d4s equal to your Proficiency Bonus. The creature regains a number of Hit Points equal to the total rolled. Once you use this trait, you can't use it again until you finish a Long Rest."
+								Description = "With a Magic action, you touch a creature and roll a number of d4s equal to your Proficiency Bonus; the creature regains Hit Points equal to the total. You can use this trait again only after finishing a Long Rest."
 							}
 						}
 					},
@@ -133,13 +133,13 @@ namespace RealmForge.Infrastructure.Persistence.Seeding.SpeciesData
 							{
 								Language = LanguageCode.It,
 								Name = "Rivelazione celestiale",
-								Description = "Quando raggiunge il 3° livello, può trasformarsi come azione bonus utilizzando una delle opzioni seguenti (scegli l'opzione ogni volta che si trasforma). La trasformazione dura per 1 minuto o finché non la interrompe (nessuna azione richiesta). Una volta effettuata, non può ripeterla finché non completa un riposo lungo.\n\nFino al termine della trasformazione, una volta per ogni suo turno, quando il personaggio infligge danni a un bersaglio con un attacco o un incantesimo, può infliggergli danni extra. L'ammontare di danni extra corrisponde il suo bonus di competenza, con tipologia necrotica per Sudario necrotico o radiosa per Ali celesti e Bagliore interiore.\n\n• Ali celesti: Due ali luminose spuntano temporaneamente dalla schiena del personaggio. Fino al termine della trasformazione, è dotato di una velocità di volo pari alla sua velocità.\n• Bagliore interiore: Una luce bruciante si irradia temporaneamente dagli occhi e dalla bocca del tuo personaggio. Per la durata dell'effetto, emana luce intensa in un'area di 3 metri di raggio e luce fioca per altri 3 metri. Alla fine di ogni turno, tutte le creature entro 3 metri dal personaggio subiscono danni radiosi pari al suo bonus di competenza.\n• Sudario necrotico: Gli occhi del personaggio diventano per un istante vere e proprie pozze di oscurità e ali incapaci di spiccare il volo spuntano temporaneamente dalla sua schiena. Fatta eccezione per i suoi alleati, tutte le creature entro 3 metri dal personaggio devono effettuare un tiro salvezza su Carisma (CD 8 più il modificatore di Carisma e il bonus di competenza), altrimenti saranno spaventate fino al termine del turno successivo."
+								Description = "Dal livello del personaggio 3, può usare un'azione bonus per svelare la propria natura celestiale in una delle forme seguenti, scegliendo la forma ogni volta. La trasformazione dura 1 minuto o finché non vi pone fine (senza bisogno di azioni), e non può ripeterla finché non termina un riposo lungo.\n\nMentre è trasformato, una volta in ciascuno dei suoi turni può aggiungere danni extra pari al suo bonus di competenza a un bersaglio che danneggia con un attacco o un incantesimo. I danni extra sono necrotici per Velo Necrotico e radiosi per le altre due forme.\n\n• Ali Celesti: Ali spettrali si dispiegano dalla sua schiena, conferendogli una velocità di volo pari alla sua velocità fino al termine della trasformazione.\n• Radiosità Interiore: Una luce accecante sgorga dai suoi occhi e dalla sua bocca. Emette luce intensa in un raggio di 3 metri e luce fioca per altri 3 metri, e alla fine di ciascuno dei suoi turni ogni creatura entro 3 metri da lui subisce danni radiosi pari al suo bonus di competenza.\n• Velo Necrotico: I suoi occhi diventano pozze d'ombra e dalla sua schiena spuntano ali incapaci di volare. Ogni creatura entro 3 metri da lui che non sia sua alleata effettua un tiro salvezza su Carisma (CD 8 + il suo modificatore di Carisma + il suo bonus di competenza); se lo fallisce, ha la condizione di spaventato fino alla fine del turno successivo del personaggio."
 							},
 							new TraitTranslation
 							{
 								Language = LanguageCode.En,
 								Name = "Celestial Revelation",
-								Description = "When you reach character level 3, you can transform as a Bonus Action using one of the options below (choose the option each time you transform). The transformation lasts for 1 minute or until you end it (no action required). Once you transform, you can't do so again until you finish a Long Rest.\n\nOnce on each of your turns before the transformation ends, you can deal extra damage to one target when you deal damage to it with an attack or a spell. The extra damage equals your Proficiency Bonus, and the extra damage's type is either Necrotic for Necrotic Shroud or Radiant for Heavenly Wings and Inner Radiance.\n\n• Heavenly Wings: Two spectral wings sprout from your back temporarily. Until the transformation ends, you have a Fly Speed equal to your Speed.\n• Inner Radiance: Searing light temporarily radiates from your eyes and mouth. For the duration, you shed Bright Light in a 10-foot radius and Dim Light for an additional 10 feet, and at the end of each of your turns, each creature within 10 feet of you takes Radiant damage equal to your Proficiency Bonus.\n• Necrotic Shroud: Your eyes briefly become pools of darkness, and flightless wings sprout from your back temporarily. Creatures other than your allies within 10 feet of you must succeed on a Charisma saving throw (DC 8 plus your Charisma modifier and Proficiency Bonus) or have the Frightened condition until the end of your next turn."
+								Description = "From character level 3, you can take a Bonus Action to unveil your celestial nature in one of the forms below, choosing the form each time. The change lasts 1 minute or until you end it (no action needed), and you can't do it again until you finish a Long Rest.\n\nWhile transformed, once on each of your turns you can add extra damage equal to your Proficiency Bonus to one target you damage with an attack or a spell. The extra damage is Necrotic for Necrotic Shroud and Radiant for the other two forms.\n\n• Heavenly Wings: Ghostly wings unfold from your back, giving you a Fly Speed equal to your Speed until the change ends.\n• Inner Radiance: Blinding light pours from your eyes and mouth. You shed Bright Light in a 10-foot radius and Dim Light for a further 10 feet, and at the end of each of your turns every creature within 10 feet of you takes Radiant damage equal to your Proficiency Bonus.\n• Necrotic Shroud: Your eyes turn to pools of shadow and flightless wings sprout from your back. Each creature within 10 feet of you that isn't your ally makes a Charisma saving throw (DC 8 + your Charisma modifier + your Proficiency Bonus) or has the Frightened condition until the end of your next turn."
 							}
 						}
 					}

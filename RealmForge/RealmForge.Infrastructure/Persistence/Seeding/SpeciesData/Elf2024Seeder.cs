@@ -30,13 +30,13 @@ namespace RealmForge.Infrastructure.Persistence.Seeding.SpeciesData
 					{
 						Language = LanguageCode.It,
 						Name = "Elfo",
-						Description = "Creati dal dio Corellon, i primi elfi erano in grado di cambiare la propria forma a piacimento. Persero questa capacità quando Corellon li maledisse per aver cospirato con la divinità Lolth, che tentò invano di usurparne il dominio. Quando Lolth venne gettata nell'abisso, molti elfi la rinnegarono e ottennero il perdono di Corellon. Tuttavia, ciò che il loro dio gli aveva sottratto era ormai andato perduto per sempre.\n\nOrmai privi della loro abilità mutaforma, gli elfi si ritirarono nella Selva Fatata, dove il loro dolore si intensificò per via dell'influenza di quel piano. Nel tempo, spinti dalla curiosità, furono in molti ad avventurarsi in altri piani di esistenza, inclusi i mondi del Piano Materiale.\n\nGli elfi hanno orecchie a punta e sono privi di peli facciali o corporei. Vivono per circa 750 anni e quando hanno bisogno di riposarsi vanno in trance anziché dormire. Così facendo, assumono uno stato che gli consente di rimanere consapevoli dell'ambiente circostante, mentre si lasciano trasportare dai propri ricordi e le proprie riflessioni.\n\nQuando gli elfi vivono in un luogo per più di un millennio, l'ambiente che li circonda finisce per trasformarli leggermente, donandogli determinati tipi di magia. Alcuni esempi di questo fenomeno sono i drow, gli elfi alti e gli elfi dei boschi."
+						Description = "I racconti elfici narrano che un tempo il loro popolo potesse cambiare forma a piacimento, finché un tradimento divino non gli costò per sempre quel dono. Nel dolore, molti si ritirarono nel regno fatato; col tempo, la curiosità li spinse di nuovo a vagare per altri piani e mondi.\n\nGli elfi hanno orecchie appuntite e sono privi di peli sul viso e sul corpo, e vivono circa 750 anni. Invece di dormire riposano in trance, restando consapevoli di ciò che li circonda mentre si perdono in ricordi e meditazioni. Nel corso di mille anni o più, la terra in cui abitano li trasforma lentamente e dona loro la propria magia: drow, elfi alti ed elfi dei boschi ne sono gli esempi più noti."
 					},
 					new SpeciesTranslation
 					{
 						Language = LanguageCode.En,
 						Name = "Elf",
-						Description = "Created by the god Corellon, the first elves could change their forms at will. They lost this ability when Corellon cursed them for plotting with the deity Lolth, who tried and failed to usurp Corellon's dominion. When Lolth was cast into the Abyss, most elves renounced her and earned Corellon's forgiveness, but that which Corellon had taken from them was lost forever.\n\nNo longer able to shape-shift at will, the elves retreated to the Feywild, where their sorrow was deepened by that plane's influence. Over time, curiosity led many of them to explore other planes of existence, including worlds in the Material Plane.\n\nElves have pointed ears and lack facial and body hair. They live for around 750 years, and they don't sleep but instead enter a trance when they need to rest. In that state, they remain aware of their surroundings while immersing themselves in memories and meditations.\n\nAn environment subtly transforms elves after they inhabit it for a millennium or more, and it grants them certain kinds of magic. Drow, high elves, and wood elves are examples of elves who have been transformed thus."
+						Description = "Elven tales say their people were once able to change shape at will, until a divine betrayal cost them that gift forever. Grieving, many withdrew to the realm of the fey; in time, curiosity drew them out again to wander other planes and worlds.\n\nElves have pointed ears and no facial or body hair, and they live for around 750 years. Instead of sleeping, they rest in a trance, staying aware of their surroundings while lost in memory and meditation. Over a thousand years or more, the land they inhabit subtly reshapes them and grants them its own magic: drow, high elves, and wood elves are the best-known results."
 					}
 				},
 				Traits = new List<Trait>
@@ -139,13 +139,13 @@ namespace RealmForge.Infrastructure.Persistence.Seeding.SpeciesData
 							{
 								Language = LanguageCode.It,
 								Name = "Drow",
-								Description = "In genere, i drow dimorano nel Sottosuolo, un ambiente che ha plasmato i loro tratti. Alcuni individui e società appartenenti a questa razza lo evitano del tutto, eppure sono pervasi dalla sua magia. Per esempio, nell'ambientazione di Eberron, i drow popolano le foreste pluviali e le rovine ciclopiche sul continente di Xen'drik."
+								Description = "I drow sono stati plasmati dalle caverne senza luce che si estendono sotto la superficie. Alcuni di loro non hanno mai vissuto sottoterra, ma portano comunque nel sangue la magia delle profondità."
 							},
 							new SubspeciesTranslation
 							{
 								Language = LanguageCode.En,
 								Name = "Drow",
-								Description = "Drow typically dwell in the Underdark and have been shaped by it. Some drow individuals and societies avoid the Underdark altogether yet carry its magic. In the Eberron setting, for example, drow dwell in rainforests and cyclopean ruins on the continent of Xen'drik."
+								Description = "Drow have been shaped by the lightless caverns deep beneath the surface. Some of them have never lived underground, yet still carry the magic of the depths in their blood."
 							}
 						},
 						Traits = new List<Trait>
@@ -226,13 +226,13 @@ namespace RealmForge.Infrastructure.Persistence.Seeding.SpeciesData
 							{
 								Language = LanguageCode.It,
 								Name = "Elfo Alto",
-								Description = "Gli elfi alti sono stati infusi con la magia degli attraversamenti tra la Selva Fatata e il Piano Materiale. In alcuni mondi, questa specie si è data altri nomi. Per esempio, si chiamano elfi del sole o elfi della luna nell'ambientazione dei Forgotten Realms, Silvanesti e Qualinesti in Dragonlance e Aereni in Eberron."
+								Description = "Gli elfi alti portano in sé la magia dei luoghi in cui il regno fatato tocca il mondo mortale. Terre diverse li conoscono con nomi diversi, spesso legati al sole, alla luna o ai loro antichi regni."
 							},
 							new SubspeciesTranslation
 							{
 								Language = LanguageCode.En,
 								Name = "High Elf",
-								Description = "High elves have been infused with the magic of crossings between the Feywild and the Material Plane. On some worlds, high elves refer to themselves by other names. For example, they call themselves sun or moon elves in the Forgotten Realms setting, Silvanesti and Qualinesti in the Dragonlance setting, and Aereni in the Eberron setting."
+								Description = "High elves carry the magic of places where the realm of the fey touches the mortal world. Different lands know them by different names, often linked to the sun, the moon, or their ancient kingdoms."
 							}
 						},
 						Traits = new List<Trait>
@@ -314,13 +314,13 @@ namespace RealmForge.Infrastructure.Persistence.Seeding.SpeciesData
 							{
 								Language = LanguageCode.It,
 								Name = "Elfo dei Boschi",
-								Description = "Gli elfi dei boschi incarnano la magia delle foreste primordiali. Vengono chiamati anche in molti altri modi, come elfi selvaggi, elfi verdi ed elfi delle foreste. I Grugach sono elfi dei boschi solitari dell'ambiente di Greyhawk, mentre i Kagonesti e i Tairnadal appartengono rispettivamente alle ambientazioni di Dragonlance ed Eberron."
+								Description = "Gli elfi dei boschi custodiscono in sé la magia delle foreste antiche. Sono conosciuti con molti nomi, come elfi selvaggi o elfi verdi, e molti vivono lontano dalle città, nel cuore dei boschi."
 							},
 							new SubspeciesTranslation
 							{
 								Language = LanguageCode.En,
 								Name = "Wood Elf",
-								Description = "Wood elves carry the magic of primeval forests within themselves. They are known by many other names, including wild elves, green elves, and forest elves. Grugach are reclusive wood elves of the Greyhawk setting, while the Kagonesti and the Tairnadal are wood elves of the Dragonlance and Eberron settings, respectively."
+								Description = "Wood elves hold the magic of ancient forests within them. They go by many names, such as wild elves or green elves, and many live far from cities, in deep woodland."
 							}
 						},
 						Traits = new List<Trait>

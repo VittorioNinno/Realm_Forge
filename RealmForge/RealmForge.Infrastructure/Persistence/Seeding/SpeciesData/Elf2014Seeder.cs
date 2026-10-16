@@ -30,13 +30,13 @@ namespace RealmForge.Infrastructure.Persistence.Seeding.SpeciesData
 					{
 						Language = LanguageCode.It,
 						Name = "Elfo",
-						Description = "Gli elfi sono un popolo magico dalla grazia ultraterrena: pur vivendo nel mondo, non ne fanno parte completamente. Vivono in luoghi di bellezza eterea, al centro di foreste millenarie o all'interno di torri argentate."
+						Description = "Gli elfi sono un popolo aggraziato e longevo, toccato dalla magia, che sembra appartenere solo in parte al mondo che lo circonda. Vivono in luoghi di quieta bellezza, dalle foreste antiche alle sottili torri di pietra chiara."
 					},
 					new SpeciesTranslation
 					{
 						Language = LanguageCode.En,
 						Name = "Elf",
-						Description = "Elves are a magical people of otherworldly grace, living in the world but not entirely part of it. They live in places of ethereal beauty, in the midst of ancient forests or in silvery spires."
+						Description = "Elves are a graceful, long-lived people touched by magic, who seem to belong only partly to the world around them. They make their homes in places of quiet beauty, from ancient forests to slender towers of pale stone."
 					}
 				},
 				Traits = new List<Trait>
@@ -139,13 +139,13 @@ namespace RealmForge.Infrastructure.Persistence.Seeding.SpeciesData
 							{
 								Language = LanguageCode.It,
 								Name = "Elfo Alto",
-								Description = "Dotato di una mente brillante e padronanza di alcune forme basilari di magia."
+								Description = "Gli elfi alti hanno una mente pronta e almeno una conoscenza di base della magia arcana."
 							},
 							new SubspeciesTranslation
 							{
 								Language = LanguageCode.En,
 								Name = "High Elf",
-								Description = "Possesses a keen mind and mastery of at least the basics of magic."
+								Description = "High elves have a quick mind and at least a basic command of arcane magic."
 							}
 						},
 						Traits = new List<Trait>
@@ -206,13 +206,13 @@ namespace RealmForge.Infrastructure.Persistence.Seeding.SpeciesData
 							{
 								Language = LanguageCode.It,
 								Name = "Elfo dei Boschi",
-								Description = "Dotato di sensi acuti, profondo intuito e un passo rapido e silenzioso attraverso le foreste natie."
+								Description = "Gli elfi dei boschi hanno sensi acuti e passi rapidi e silenziosi, e si muovono nelle loro foreste quasi senza essere visti."
 							},
 							new SubspeciesTranslation
 							{
 								Language = LanguageCode.En,
 								Name = "Wood Elf",
-								Description = "Possesses keen senses and intuition, with fleet feet carrying them quickly and stealthily through native forests."
+								Description = "Wood elves have sharp senses and quick, silent feet, and move through their forest homes almost unseen."
 							}
 						},
 						Traits = new List<Trait>
@@ -228,13 +228,13 @@ namespace RealmForge.Infrastructure.Persistence.Seeding.SpeciesData
 									{
 										Language = LanguageCode.It,
 										Name = "Piede Lesto (10,5 m)",
-										Description = "La velocità base sul terreno aumenta a 10,5 metri (35 ft)."
+										Description = "La velocità base sul terreno del personaggio è di 10,5 metri."
 									},
 									new TraitTranslation
 									{
 										Language = LanguageCode.En,
 										Name = "Fleet of Foot (35 ft.)",
-										Description = "Your base walking speed increases to 35 feet."
+										Description = "Your base walking speed is 35 feet."
 									}
 								}
 							},
@@ -249,13 +249,13 @@ namespace RealmForge.Infrastructure.Persistence.Seeding.SpeciesData
 									{
 										Language = LanguageCode.It,
 										Name = "Maschera della Selva",
-										Description = "Può tentare di nascondersi anche quando è solo leggermente oscurato da fogliame, pioggia battente o neve."
+										Description = "Il personaggio può tentare di nascondersi anche quando è solo leggermente oscurato da fenomeni naturali come fogliame, pioggia battente, neve che cade o nebbia."
 									},
 									new TraitTranslation
 									{
 										Language = LanguageCode.En,
 										Name = "Mask of the Wild",
-										Description = "You can attempt to hide even when you are only lightly obscured by foliage, heavy rain, or snow."
+										Description = "You can try to hide when you are only lightly obscured by natural phenomena such as foliage, heavy rain, falling snow, or mist."
 									}
 								}
 							}
@@ -272,13 +272,13 @@ namespace RealmForge.Infrastructure.Persistence.Seeding.SpeciesData
 							{
 								Language = LanguageCode.It,
 								Name = "Elfo Oscuro (Drow)",
-								Description = "Discendenti dagli elfi esiliati nelle viscere dell'Underdark, custodi di una potente magia innata."
+								Description = "I drow sono elfi i cui antenati furono cacciati nelle profondità senza luce sotto la superficie. La vita sotterranea ha affinato la loro vista nell'oscurità e ha donato loro una magia innata."
 							},
 							new SubspeciesTranslation
 							{
 								Language = LanguageCode.En,
 								Name = "Dark Elf (Drow)",
-								Description = "Descended from elves banished to the Underdark, dwelling in subterranean depths with innate magical powers."
+								Description = "Drow are elves whose ancestors were driven into the lightless depths below the surface. Life underground has sharpened their sight in darkness and given them innate magic."
 							}
 						},
 						Traits = new List<Trait>
@@ -294,13 +294,13 @@ namespace RealmForge.Infrastructure.Persistence.Seeding.SpeciesData
 									{
 										Language = LanguageCode.It,
 										Name = "Scurovisione Superiore (36 m)",
-										Description = "La scurovisione arriva fino a 36 metri di raggio (120 ft)."
+										Description = "La scurovisione del personaggio arriva fino a 36 metri invece che a 18."
 									},
 									new TraitTranslation
 									{
 										Language = LanguageCode.En,
 										Name = "Superior Darkvision (120 ft.)",
-										Description = "Your darkvision has a radius of 120 feet."
+										Description = "Your darkvision reaches out to 120 feet instead of 60."
 									}
 								}
 							},
@@ -315,13 +315,13 @@ namespace RealmForge.Infrastructure.Persistence.Seeding.SpeciesData
 									{
 										Language = LanguageCode.It,
 										Name = "Sensibilità alla Luce del精度",
-										Description = "Svantaggio ai tiri per colpire e alle prove di Percezione basate sulla vista quando bersaglio o personaggio si trovano in piena luce solare."
+										Description = "Mentre il personaggio, o ciò che cerca di vedere o di attaccare, si trova alla luce diretta del sole, ha svantaggio ai tiri per colpire e alle prove di Saggezza (Percezione) basate sulla vista."
 									},
 									new TraitTranslation
 									{
 										Language = LanguageCode.En,
 										Name = "Sunlight Sensitivity",
-										Description = "Disadvantage on attack rolls and Wisdom (Perception) checks that rely on sight when you or the target are in direct sunlight."
+										Description = "While you or what you are trying to see or attack is in direct sunlight, you have disadvantage on attack rolls and on Wisdom (Perception) checks that rely on sight."
 									}
 								}
 							},
@@ -336,13 +336,13 @@ namespace RealmForge.Infrastructure.Persistence.Seeding.SpeciesData
 									{
 										Language = LanguageCode.It,
 										Name = "Magia Drow",
-										Description = "Conosce Luci Danzanti. Al 3° livello lancia Luminescenza; al 5° livello lancia Oscurità (Carisma è la caratteristica da incantatore)."
+										Description = "Il personaggio conosce il trucchetto luci danzanti. Dal 3° livello può lanciare anche luminescenza, e dal 5° livello oscurità; ciascuno di questi due incantesimi può essere lanciato una volta in questo modo, e il personaggio ne recupera l'uso dopo un riposo lungo. Il Carisma è la caratteristica da incantatore per tutti e tre."
 									},
 									new TraitTranslation
 									{
 										Language = LanguageCode.En,
 										Name = "Drow Magic",
-										Description = "You know the Dancing Lights cantrip. At 3rd level, cast Faerie Fire; at 5th level, cast Darkness (Charisma is spellcasting ability)."
+										Description = "You know the dancing lights cantrip. From 3rd level you can also cast faerie fire, and from 5th level darkness; each of these two spells can be cast once this way, and you regain the use after a long rest. Charisma is your spellcasting ability for all three."
 									}
 								}
 							}
