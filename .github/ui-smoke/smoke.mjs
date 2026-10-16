@@ -86,7 +86,8 @@ try {
   if (!card.includes('Allerta') || !card.includes('Intuizione')) throw new Error(`background card misses feat/skills: ${card.replace(/\s+/g, ' ')}`);
   ok('background modal aligned; homebrew background created from the UI with origin feat and skills');
 
-  await page.locator('.rf-card', { hasText: 'Accolito' }).filter({ hasNotText: 'UI' }).first().click();
+  // Exact title match: substring filters are case-insensitive ("Intuizione" contains "ui")
+  await page.locator('.rf-card').filter({ has: page.locator('.rf-card-title', { hasText: /^Accolito$/ }) }).click();
   await page.locator('[data-test=bg-characteristics]').waitFor({ timeout: 15000 });
   const tables = await page.locator('[data-test=bg-characteristics] .rf-dice-table').evaluateAll((ts) =>
     ts.map((t) => `${t.querySelector('th').textContent.trim()}x${t.querySelectorAll('tbody tr').length}`));
