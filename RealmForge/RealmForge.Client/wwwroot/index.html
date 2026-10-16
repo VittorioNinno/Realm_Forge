@@ -45,6 +45,12 @@
                 let listener = null;
                 let pongs = 0;
 
+                // Coming back to this tab (also from another browser profile or window): let .NET refresh stale states
+                // (visibilitychange covers switching tabs, focus covers switching between windows side by side)
+                const backToTab = () => { if (document.visibilityState === 'visible' && listener) { listener.invokeMethodAsync('OnTabMessage', 'tab-visible'); } };
+                document.addEventListener('visibilitychange', backToTab);
+                window.addEventListener('focus', backToTab);
+
                 if (channel) {
                     channel.onmessage = (e) => {
                         const type = e.data && e.data.type;
