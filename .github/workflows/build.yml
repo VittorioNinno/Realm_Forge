@@ -27,6 +27,10 @@ jobs:
           echo "::notice title=build::$(grep -oE 'warning [A-Z]+[0-9]+' build.log | sort | uniq -c | sort -rn | tr '\n' ';')"
           echo "::notice title=build::$(grep -oE 'different versions of "[^"]+"' build.log | sort | uniq -c | tr '\n' ';')"
           echo "::notice title=build::$(grep -oE 'warning CS[0-9]+: [^[]{0,120}' build.log | sort -u | head -20 | tr '\n' ';')"
+          # NuGet audit: vulnerable packages (package, version, advisory link)
+          if grep -qE 'warning NU190[1-4]' build.log; then
+            grep -oE "warning NU190[1-4]: [^[]{0,220}" build.log | sort -u | head -10 | sed 's/^/::warning title=nuget-audit::/'
+          fi
 
       - name: Test
         shell: bash
