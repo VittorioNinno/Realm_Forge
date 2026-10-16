@@ -181,6 +181,9 @@ namespace RealmForge.Infrastructure.Migrations
                         .IsRequired()
                         .HasColumnType("integer[]");
 
+                    b.Property<int?>("Source")
+                        .HasColumnType("integer");
+
                     b.HasKey("Id");
 
                     b.HasIndex("OriginFeatId");
@@ -290,6 +293,9 @@ namespace RealmForge.Infrastructure.Migrations
                     b.Property<int>("Ruleset")
                         .HasColumnType("integer");
 
+                    b.Property<int?>("Source")
+                        .HasColumnType("integer");
+
                     b.HasKey("Id");
 
                     b.ToTable("Feats");
@@ -353,6 +359,9 @@ namespace RealmForge.Infrastructure.Migrations
                     b.Property<int>("Ruleset")
                         .HasColumnType("integer");
 
+                    b.Property<int?>("Source")
+                        .HasColumnType("integer");
+
                     b.HasKey("Id");
 
                     b.ToTable("Species");
@@ -404,6 +413,9 @@ namespace RealmForge.Infrastructure.Migrations
                         .HasColumnType("boolean");
 
                     b.Property<int>("Ruleset")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("Source")
                         .HasColumnType("integer");
 
                     b.Property<Guid>("SpeciesId")
@@ -464,6 +476,9 @@ namespace RealmForge.Infrastructure.Migrations
                         .HasDefaultValue(1);
 
                     b.Property<int>("Ruleset")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("Source")
                         .HasColumnType("integer");
 
                     b.Property<Guid?>("SpeciesId")
