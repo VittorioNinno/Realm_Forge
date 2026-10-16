@@ -29,13 +29,13 @@ namespace RealmForge.Infrastructure.Persistence.Seeding.SpeciesData
 					{
 						Language = LanguageCode.It,
 						Name = "Halfling",
-						Description = "La maggior parte degli halfling ambisce soltanto a godersi le comodità di casa: un posto placido e tranquillo dove stabilirsi, lontano dai mostri famelici e dagli scontri tra eserciti, un fuoco scoppiettante, un lauto pasto, un buon vino e una buona conversazione."
+						Description = "La maggior parte degli halfling non desidera altro che una casa accogliente: un luogo tranquillo lontano da mostri e guerre, con un focolare caldo, un buon pasto e una piacevole compagnia. Quelli che si mettono in viaggio portano con sé lo stesso allegro senso pratico."
 					},
 					new SpeciesTranslation
 					{
 						Language = LanguageCode.En,
 						Name = "Halfling",
-						Description = "The comforts of home are the goals of most halflings' lives: a place to settle in peace and quiet, far from marauding monsters and clashing armies; a blazing fire and a generous meal; fine drink and fine conversation."
+						Description = "Most halflings want nothing more than a comfortable home: a quiet place far from monsters and wars, with a warm hearth, a good meal, and pleasant company. Those who do take to the road bring that same cheerful practicality with them."
 					}
 				},
 				Traits = new List<Trait>
@@ -117,13 +117,13 @@ namespace RealmForge.Infrastructure.Persistence.Seeding.SpeciesData
 							{
 								Language = LanguageCode.It,
 								Name = "Halfling Piedelesto",
-								Description = "Un halfling piedelesto è abile nel non farsi notare e può perfino usare le altre persone come copertura. Tende a essere sempre gentile e ad andare d'accordo con gli altri."
+								Description = "Gli halfling piedelesto sono cordiali e alla mano, ed esperti nel sottrarsi alla vista, persino nascondendosi dietro altre persone."
 							},
 							new SubspeciesTranslation
 							{
 								Language = LanguageCode.En,
 								Name = "Lightfoot Halfling",
-								Description = "As a lightfoot halfling, you can easily hide from notice, even using other people as cover. You're inclined to be affable and get along well with others."
+								Description = "Lightfoot halflings are friendly and easygoing, and are experts at slipping out of sight, even behind other people."
 							}
 						},
 						Traits = new List<Trait>
@@ -162,13 +162,13 @@ namespace RealmForge.Infrastructure.Persistence.Seeding.SpeciesData
 							{
 								Language = LanguageCode.It,
 								Name = "Halfling Tozzo",
-								Description = "Un halfling tozzo è più robusto della media degli halfling e vanta una certa resistenza al veleno. Stando ad alcuni, gli halfling tozzi avrebbero sangue nanico nelle vene."
+								Description = "Gli halfling tozzi sono più resistenti della maggior parte dei loro simili e sopportano veleni che abbatterebbero altri. C'è chi sostiene che nelle loro famiglie scorra sangue nanico."
 							},
 							new SubspeciesTranslation
 							{
 								Language = LanguageCode.En,
 								Name = "Stout Halfling",
-								Description = "As a stout halfling, you're hardier than average and have some resistance to poison. Some say that stouts have dwarven blood."
+								Description = "Stout halflings are tougher than most of their kin and shrug off poisons that would fell others. Some claim there is dwarven blood in their families."
 							}
 						},
 						Traits = new List<Trait>
@@ -184,13 +184,13 @@ namespace RealmForge.Infrastructure.Persistence.Seeding.SpeciesData
 									{
 										Language = LanguageCode.It,
 										Name = "Resilienza dei Tozzi",
-										Description = "Un halfling tozzo dispone di vantaggio ai tiri salvezza contro il veleno e di resistenza ai danni da veleno."
+										Description = "Il veleno fatica ad avere effetto sul personaggio: ha vantaggio ai tiri salvezza contro di esso e resistenza ai danni da veleno."
 									},
 									new TraitTranslation
 									{
 										Language = LanguageCode.En,
 										Name = "Stout Resilience",
-										Description = "You have advantage on saving throws against poison, and you have resistance against poison damage."
+										Description = "Poison has a hard time affecting you: you have advantage on saving throws against it and resistance to poison damage."
 									}
 								}
 							}

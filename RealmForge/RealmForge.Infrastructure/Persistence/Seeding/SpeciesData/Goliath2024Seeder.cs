@@ -95,13 +95,13 @@ namespace RealmForge.Infrastructure.Persistence.Seeding.SpeciesData
 					{
 						Language = LanguageCode.It,
 						Name = "Goliath",
-						Description = "Con una statura di gran lunga superiore a quella di molte altre specie, i goliat sono lontani discendenti dei primi giganti. In quanto tali, possiedono dei doni soprannaturali che si manifestano in vari modi, come la capacità di crescere rapidamente e raggiungere in via temporanea l'altezza dei loro antenati.\n\nI goliat hanno caratteristiche fisiche che testimoniano il loro retaggio. Per esempio, alcuni di loro assomigliano a giganti delle pietre, mentre altri a giganti del fuoco. A prescindere da quale sia la loro discendenza specifica, i goliat hanno forgiato il proprio percorso nel multiverso, senza immischiarsi nei conflitti interni che hanno devastato i giganti nel corso della loro storia, e con l'obiettivo di raggiungere vette mai sfiorate nemmeno dai loro antenati."
+						Description = "I goliath superano in altezza la maggior parte delle persone e il loro sangue porta l'eredità degli antichi giganti. Quell'eredità si manifesta in doni soprannaturali, tra cui la capacità di crescere per breve tempo fino ad avvicinarsi alla statura dei loro imponenti antenati.\n\nI tratti di un goliath ricordano spesso un particolare tipo di gigante, come quelli delle pietre, del gelo o del fuoco. Liberi dalle faide che da sempre dividono i giganti, i goliath seguono una propria strada e aspirano a salire più in alto di quanto abbiano mai fatto i loro avi."
 					},
 					new SpeciesTranslation
 					{
 						Language = LanguageCode.En,
 						Name = "Goliath",
-						Description = "Towering over most folk, goliaths are distant descendants of giants. Each goliath bears the favors of the first giants—favors that manifest in various supernatural boons, including the ability to quickly grow and temporarily approach the height of goliaths' gigantic kin.\n\nGoliaths have physical characteristics that are reminiscent of the giants in their family lines. For example, some goliaths look like stone giants, while others resemble fire giants. Whatever giants they count as kin, goliaths have forged their own path in the multiverse—unencumbered by the internecine conflicts that have ravaged giantkind for ages—and seek heights above those reached by their ancestors."
+						Description = "Goliaths stand head and shoulders above most people, and their blood carries the legacy of the ancient giants. That inheritance shows in supernatural gifts, including the power to swell briefly toward the size of their towering ancestors.\n\nA goliath's features often echo a particular kind of giant, resembling stone, frost, or fire giants. Free of the feuds that have long divided giantkind, goliaths follow their own path and strive to climb higher than their forebears ever did."
 					}
 				},
 				Traits = new List<Trait>
