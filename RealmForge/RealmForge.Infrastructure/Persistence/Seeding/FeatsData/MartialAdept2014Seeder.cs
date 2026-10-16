@@ -30,14 +30,14 @@ public static class MartialAdept2014Seeder
 					Id = TranslationEnId,
 					Language = LanguageCode.En,
 					Name = "Martial Adept",
-					Description = "You have martial training that allows you to perform special combat maneuvers. You gain the following benefits:\n- You learn two maneuvers of your choice from among those available to the Battle Master archetype in the fighter class. If a maneuver you use requires your target to make a saving throw to resist the maneuver's effects, the saving throw DC equals 8 + your proficiency bonus + your Strength or Dexterity modifier (your choice).\n- If you already have superiority dice, you gain one more; otherwise, you have one superiority die, which is a d6. This die is used to fuel your maneuvers. A superiority die is expended when you use it. You regain your expended superiority dice when you finish a short or long rest."
+					Description = "You have learned some of the tricks of seasoned battle masters.\n- **Maneuvers.** You learn two maneuvers of your choice from those available to the fighter's Battle Master archetype. When a maneuver calls for a saving throw, the DC is 8 + your proficiency bonus + your Strength or Dexterity modifier (your choice).\n- **Superiority Die.** You gain one superiority die, a d6 (or one extra die, if you already have some). You expend a die each time you use a maneuver, and you regain all expended dice when you finish a short or long rest."
 				},
 				new FeatTranslation
 				{
 					Id = TranslationItId,
 					Language = LanguageCode.It,
 					Name = "Adepto Marziale",
-					Description = "Il personaggio si è sottoposto a un addestramento marziale che gli permette di effettuare alcune manovre speciali in combattimento. Ottiene i benefici seguenti:\n- Impara due manovre a sua scelta tra quelle disponibili per l'archetipo del Maestro di Battaglia nella classe del guerriero. Se una manovra da lui utilizzata richiede che il bersaglio effettui un tiro salvezza per resistere agli effetti della manovra, la CD del tiro salvezza è pari a 8 + il bonus di competenza del personaggio + il modificatore di Forza o di Destrezza del personaggio (a scelta del personaggio).\n- Ottiene un dado di superiorità, un d6 (in aggiunta agli eventuali dadi di superiorità forniti da un'altra fonte). Usa questo dado per alimentare le sue manovre. Un dado di superiorità è considerato speso quando il personaggio lo usa. Il personaggio recupera i dadi di superiorità spesi quando completa un riposo breve o lungo."
+					Description = "Il personaggio ha appreso alcuni trucchi dei veterani del campo di battaglia.\n- **Manovre.** Impara due manovre a sua scelta tra quelle disponibili all'archetipo Maestro di Battaglia del guerriero. Quando una manovra richiede un tiro salvezza, la CD è 8 + il suo bonus di competenza + il suo modificatore di Forza o di Destrezza (a sua scelta).\n- **Dado di superiorità.** Ottiene un dado di superiorità, un d6 (o un dado aggiuntivo, se ne possiede già). Spende un dado ogni volta che usa una manovra e recupera tutti i dadi spesi quando termina un riposo breve o lungo."
 				}
 			}
 		};

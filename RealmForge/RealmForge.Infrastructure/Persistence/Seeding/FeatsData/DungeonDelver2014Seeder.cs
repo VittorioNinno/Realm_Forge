@@ -30,14 +30,14 @@ public static class DungeonDelver2014Seeder
 					Id = TranslationEnId,
 					Language = LanguageCode.En,
 					Name = "Dungeon Delver",
-					Description = "Alert to the hidden traps and secret doors found in many dungeons, you gain the following benefits:\n- You have advantage on Wisdom (Perception) and Intelligence (Investigation) checks made to detect the presence of secret doors.\n- You have advantage on saving throws made to avoid or resist traps.\n- You have resistance to the damage dealt by traps.\n- You can search for traps while traveling at a normal pace, instead of only at a slow pace."
+					Description = "Years underground have taught you where danger hides.\n- **Hidden Passages.** You have advantage on Wisdom (Perception) and Intelligence (Investigation) checks to find secret doors.\n- **Trap Sense.** You have advantage on saving throws to avoid or resist traps, and resistance to damage dealt by traps.\n- **Watchful Travel.** You can look for traps while traveling at a normal pace, not only at a slow pace."
 				},
 				new FeatTranslation
 				{
 					Id = TranslationItId,
 					Language = LanguageCode.It,
 					Name = "Esperto di Dungeon",
-					Description = "Il personaggio sa riconoscere le trappole nascoste e le porte segrete in molti dungeon e ottiene i benefici seguenti:\n- Dispone di vantaggio alle prove di Saggezza (Percezione) e Intelligenza (Indagare) effettuate per individuare la presenza di porte segrete.\n- Dispone di vantaggio ai tiri salvezza effettuati per evitare le trappole o resistere alle trappole.\n- Dispone di resistenza ai danni inferti dalle trappole.\n- Può cercare trappole mentre si muove a passo normale, anziché soltanto a passo lento."
+					Description = "Anni passati sottoterra hanno insegnato al personaggio dove si nasconde il pericolo.\n- **Passaggi nascosti.** Ha vantaggio alle prove di Saggezza (Percezione) e Intelligenza (Indagare) per trovare porte segrete.\n- **Senso delle trappole.** Ha vantaggio ai tiri salvezza per evitare o resistere alle trappole e resistenza ai danni inflitti dalle trappole.\n- **Viaggio vigile.** Può cercare trappole anche mentre viaggia a passo normale, non solo a passo lento."
 				}
 			}
 		};

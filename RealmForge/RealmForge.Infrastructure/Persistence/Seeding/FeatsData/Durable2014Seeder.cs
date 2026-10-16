@@ -30,14 +30,14 @@ public static class Durable2014Seeder
 					Id = TranslationEnId,
 					Language = LanguageCode.En,
 					Name = "Durable",
-					Description = "Hardy and resilient, you gain the following benefits:\n- Increase your Constitution score by 1, to a maximum of 20.\n- When you roll a Hit Die to regain hit points, the minimum number of hit points you regain from the roll equals twice your Constitution modifier (minimum of 2)."
+					Description = "Your body bounces back faster than most.\n- **Constitution +1.** Increase your Constitution score by 1, to a maximum of 20.\n- **Solid Recovery.** When you roll a Hit Die to regain hit points, that die restores at least twice your Constitution modifier (never fewer than 2)."
 				},
 				new FeatTranslation
 				{
 					Id = TranslationItId,
 					Language = LanguageCode.It,
 					Name = "Tenace",
-					Description = "Il personaggio è robusto e resiliente, e ottiene i benefici seguenti:\n- Il suo punteggio di Costituzione aumenta di 1, fino a un massimo di 20.\n- Quando tira un Dado Vita per recuperare punti ferita, il numero minimo di punti ferita che recupera con il tiro è pari al doppio del suo modificatore di Costituzione (fino a un minimo di 2)."
+					Description = "Il corpo del personaggio si riprende più in fretta di quello degli altri.\n- **Costituzione +1.** Il punteggio di Costituzione aumenta di 1, fino a un massimo di 20.\n- **Ripresa solida.** Quando tira un Dado Vita per recuperare punti ferita, quel dado gli restituisce almeno il doppio del suo modificatore di Costituzione (mai meno di 2)."
 				}
 			}
 		};

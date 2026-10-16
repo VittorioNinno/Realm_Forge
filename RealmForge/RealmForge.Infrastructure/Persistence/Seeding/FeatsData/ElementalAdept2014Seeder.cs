@@ -31,14 +31,14 @@ public static class ElementalAdept2014Seeder
 					Id = TranslationEnId,
 					Language = LanguageCode.En,
 					Name = "Elemental Adept",
-					Description = "When you gain this feat, choose one of the following damage types: acid, cold, fire, lightning, or thunder.\nSpells you cast ignore resistance to damage of the chosen type. In addition, when you roll damage for a spell you cast that deals damage of that type, you can treat any 1 on a damage die as a 2.\nYou can select this feat multiple times. Each time you do so, you must choose a different damage type."
+					Description = "You bend one element to your will.\n- **Chosen Element.** Pick acid, cold, fire, lightning, or thunder.\n- **Pierce Resistance.** Your spells ignore resistance to damage of the chosen type.\n- **Steady Power.** When you roll damage for one of your spells that deals the chosen type, any 1 on a damage die counts as a 2.\n- **Repeatable.** You can take this feat more than once, choosing a different damage type each time."
 				},
 				new FeatTranslation
 				{
 					Id = TranslationItId,
 					Language = LanguageCode.It,
 					Name = "Adepto Elementale",
-					Description = "Quando il personaggio ottiene questo talento, sceglie uno dei tipi di danni seguenti: acido, freddo, fulmine, fuoco o tuono.\nGli incantesimi che lancia ignorano la resistenza ai danni del tipo scelto. Inoltre, quando tira per i danni di un incantesimo da lui lanciato che infligge danni di quel tipo, può considerare ogni 1 ai dadi dei danni come un 2.\nUn personaggio può selezionare questo talento più volte. Ogni volta che lo fa, deve scegliere un tipo di danno diverso."
+					Description = "Il personaggio piega un elemento al proprio volere.\n- **Elemento prescelto.** Sceglie acido, freddo, fuoco, fulmine o tuono.\n- **Oltre le resistenze.** I suoi incantesimi ignorano la resistenza ai danni del tipo scelto.\n- **Potere costante.** Quando tira i danni di un suo incantesimo che infligge il tipo scelto, ogni 1 su un dado di danno conta come 2.\n- **Ripetibile.** Può ottenere questo talento più volte, scegliendo ogni volta un tipo di danno diverso."
 				}
 			}
 		};

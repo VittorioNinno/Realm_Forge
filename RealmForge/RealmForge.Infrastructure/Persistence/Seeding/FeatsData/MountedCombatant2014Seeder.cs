@@ -30,14 +30,14 @@ public static class MountedCombatant2014Seeder
 					Id = TranslationEnId,
 					Language = LanguageCode.En,
 					Name = "Mounted Combatant",
-					Description = "You are a dangerous foe to face while mounted. While you are mounted and aren't incapacitated, you gain the following benefits:\n- You have advantage on melee attack rolls against any unmounted creature that is smaller than your mount.\n- You can force an attack targeted at your mount to target you instead.\n- If your mount is subjected to an effect that allows it to make a Dexterity saving throw to take only half damage, it instead takes no damage if it succeeds on the saving throw, and only half damage if it fails."
+					Description = "You and your mount fight as one.\nWhile you are mounted and not incapacitated:\n- **High Ground.** You have advantage on melee attack rolls against unmounted creatures smaller than your mount.\n- **Protect the Mount.** You can make an attack aimed at your mount target you instead.\n- **Evasive Mount.** When your mount makes a Dexterity saving throw against an effect that deals half damage on a success, it takes no damage if it succeeds and only half damage if it fails."
 				},
 				new FeatTranslation
 				{
 					Id = TranslationItId,
 					Language = LanguageCode.It,
 					Name = "Combattente in Sella",
-					Description = "Il personaggio è un nemico pericoloso da affrontare quando è in sella. Finché è in sella e non è incapacitato, ottiene i benefici seguenti:\n- Dispone di vantaggio ai tiri per colpire in mischia contro qualsiasi creatura che non sia a sua volta in sella e che sia più piccola della sua cavalcatura.\n- Può obbligare un attacco che bersaglierebbe la sua cavalcatura a bersagliare invece lui.\n- Se la sua cavalcatura è soggetta a un effetto che gli permette di effettuare un tiro salvezza su Destrezza per subire solo la metà dei danni, non subisce alcun danno se supera il tiro salvezza e soltanto la metà dei danni se lo fallisce."
+					Description = "Il personaggio e la sua cavalcatura combattono come una cosa sola.\nMentre è in sella e non è incapacitato:\n- **Posizione elevata.** Ha vantaggio ai tiri per colpire in mischia contro le creature non in sella più piccole della sua cavalcatura.\n- **Proteggere la cavalcatura.** Può fare in modo che un attacco diretto alla sua cavalcatura bersagli invece lui.\n- **Cavalcatura agile.** Quando la sua cavalcatura effettua un tiro salvezza su Destrezza contro un effetto che infligge metà danni in caso di successo, non subisce danni se lo supera e subisce solo metà danni se lo fallisce."
 				}
 			}
 		};

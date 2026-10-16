@@ -32,14 +32,14 @@ public static class Skulker2014Seeder
 					Id = TranslationEnId,
 					Language = LanguageCode.En,
 					Name = "Skulker",
-					Description = "You are expert at slinking through shadows. You gain the following benefits:\n- You can try to hide when you are lightly obscured from the creature from which you are hiding.\n- When you are hidden from a creature and miss it with a ranged weapon attack, making the attack doesn't reveal your position.\n- Dim light doesn't impose disadvantage on your Wisdom (Perception) checks relying on sight."
+					Description = "Shadows are your natural element.\n- **Hide in Light Cover.** You can try to hide from a creature even when you are only lightly obscured from it.\n- **Silent Misses.** If you are hidden from a creature and miss it with a ranged weapon attack, the attack doesn't give away your position.\n- **Eyes in the Gloom.** Dim light doesn't give you disadvantage on Wisdom (Perception) checks that rely on sight."
 				},
 				new FeatTranslation
 				{
 					Id = TranslationItId,
 					Language = LanguageCode.It,
 					Name = "Appostato",
-					Description = "Il personaggio è abile nello sgusciare tra le ombre e ottiene i benefici seguenti:\n- Può cercare di nascondersi quando si trova in un'area leggermente oscurata rispetto alla creatura da cui si nasconde.\n- Quando è nascosto da una creatura e la manca con un attacco con un'arma a distanza, l'attacco sferrato non rivela la sua posizione.\n- La luce fioca non impone svantaggio alle sue prove di Saggezza (Percezione) basate sulla vista."
+					Description = "L'ombra è l'elemento naturale del personaggio.\n- **Nascondersi nella penombra.** Può tentare di nascondersi da una creatura anche quando è solo leggermente oscurato rispetto a essa.\n- **Mancati silenziosi.** Se è nascosto a una creatura e la manca con un attacco con un'arma a distanza, l'attacco non rivela la sua posizione.\n- **Occhi nella penombra.** La luce fioca non gli impone svantaggio alle prove di Saggezza (Percezione) basate sulla vista."
 				}
 			}
 		};

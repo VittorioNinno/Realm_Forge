@@ -30,14 +30,14 @@ public static class Sentinel2014Seeder
 					Id = TranslationEnId,
 					Language = LanguageCode.En,
 					Name = "Sentinel",
-					Description = "You have mastered techniques to take advantage of every drop in any enemy's guard, gaining the following benefits:\n- When you hit a creature with an opportunity attack, the creature's speed becomes 0 for the rest of the turn.\n- Creatures within 5 feet of you provoke opportunity attacks from you even if they take the Disengage action before leaving your reach.\n- When a creature within 5 feet of you makes an attack against a target other than you (and that target doesn't have this feat), you can use your reaction to make a melee weapon attack against the attacking creature."
+					Description = "Enemies near you can neither slip away nor ignore you.\n- **Stop in Their Tracks.** A creature you hit with an opportunity attack has its speed reduced to 0 for the rest of the turn.\n- **No Easy Exit.** Creatures within 5 feet of you provoke opportunity attacks from you even if they take the Disengage action before leaving your reach.\n- **Protector.** When a creature within 5 feet of you attacks a target other than you, and that target doesn't have this feat, you can use your reaction to make a melee weapon attack against the attacker."
 				},
 				new FeatTranslation
 				{
 					Id = TranslationItId,
 					Language = LanguageCode.It,
 					Name = "Sentinella",
-					Description = "Il personaggio ha padroneggiato le tecniche che gli consentono di approfittare di ogni minuscolo varco nelle difese del nemico e ottiene i benefici seguenti:\n- Quando colpisce una creatura con un attacco di opportunità, la velocità di quella creatura diventa 0 per il resto del turno.\n- Le creature provocano attacchi di opportunità da parte sua anche quando effettuano l'azione di Disimpegno prima di uscire dalla sua portata.\n- Quando una creatura entro 1,5 metri dal personaggio effettua un attacco contro un bersaglio diverso da lui (e quel bersaglio non possiede questo talento), il personaggio può usare la sua reazione per effettuare un attacco con un'arma da mischia contro la creatura attaccante."
+					Description = "I nemici vicini al personaggio non possono né sgusciare via né ignorarlo.\n- **Fermarli sul posto.** Una creatura colpita da un suo attacco di opportunità ha velocità 0 per il resto del turno.\n- **Nessuna via di fuga.** Le creature entro 1,5 metri da lui provocano attacchi di opportunità anche se usano l'azione Disimpegno prima di uscire dalla sua portata.\n- **Protettore.** Quando una creatura entro 1,5 metri da lui attacca un bersaglio diverso da lui, e quel bersaglio non possiede questo talento, può usare la reazione per effettuare un attacco con un'arma da mischia contro l'attaccante."
 				}
 			}
 		};

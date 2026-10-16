@@ -31,14 +31,14 @@ public static class HeavyArmorMaster2014Seeder
 					Id = TranslationEnId,
 					Language = LanguageCode.En,
 					Name = "Heavy Armor Master",
-					Description = "You can use your armor to deflect strikes that would kill others. You gain the following benefits:\n- Increase your Strength score by 1, to a maximum of 20.\n- While you are wearing heavy armor, bludgeoning, piercing, and slashing damage that you take from non magical weapons is reduced by 3."
+					Description = "Your armor shrugs off blows that would fell others.\n- **Strength +1.** Increase your Strength score by 1, to a maximum of 20.\n- **Damage Reduction.** While you wear heavy armor, bludgeoning, piercing, and slashing damage you take from nonmagical weapons is reduced by 3."
 				},
 				new FeatTranslation
 				{
 					Id = TranslationItId,
 					Language = LanguageCode.It,
 					Name = "Maestro delle Armature Pesanti",
-					Description = "Il personaggio può usare la sua armatura per deviare colpi che risulterebbero letali per gli altri. Ottiene i benefici seguenti:\n- Il suo punteggio di Forza aumenta di 1, fino a un massimo di 20.\n- Mentre indossa un'armatura pesante, i danni contundenti, perforanti e taglienti che subisce dalle armi non magiche sono ridotti di 3."
+					Description = "L'armatura del personaggio respinge colpi che abbatterebbero chiunque altro.\n- **Forza +1.** Il punteggio di Forza aumenta di 1, fino a un massimo di 20.\n- **Riduzione dei danni.** Mentre indossa un'armatura pesante, i danni contundenti, perforanti e taglienti che subisce da armi non magiche sono ridotti di 3."
 				}
 			}
 		};

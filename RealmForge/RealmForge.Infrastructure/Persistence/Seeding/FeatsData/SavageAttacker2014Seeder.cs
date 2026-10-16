@@ -30,14 +30,14 @@ public static class SavageAttacker2014Seeder
 					Id = TranslationEnId,
 					Language = LanguageCode.En,
 					Name = "Savage Attacker",
-					Description = "Once per turn when you roll damage for a melee weapon attack, you can reroll the weapon's damage dice and use either total."
+					Description = "Your blows land with brutal force.\n- **Brutal Damage.** Once per turn, when you roll damage for a melee weapon attack, you can roll the weapon's damage dice again and use whichever total you prefer."
 				},
 				new FeatTranslation
 				{
 					Id = TranslationItId,
 					Language = LanguageCode.It,
 					Name = "Aggressore Selvaggio",
-					Description = "Una volta per turno, quando il personaggio tira per i danni di un attacco con un'arma da mischia, può ripetere il tiro per i danni dell'arma e scegliere quale risultato usare."
+					Description = "I colpi del personaggio si abbattono con forza brutale.\n- **Danni brutali.** Una volta per turno, quando tira i danni di un attacco con un'arma da mischia, può ritirare i dadi di danno dell'arma e usare il totale che preferisce."
 				}
 			}
 		};
