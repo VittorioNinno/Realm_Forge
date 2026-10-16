@@ -32,16 +32,11 @@
         </div>
 
         <div>
-            <AuthorizeView>
-                <Authorized>
-                    <button class="btn btn-rf-orange" @onclick="OpenCreateModal">
-                        @UiText.BtnAddSubspecies(LanguageState.CurrentLanguage)
-                    </button>
-                </Authorized>
-                <NotAuthorized>
-                    <a href="account" class="btn btn-rf-outline">@UiText.BtnLoginToForge(LanguageState.CurrentLanguage)</a>
-                </NotAuthorized>
-            </AuthorizeView>
+            <ForgeAction>
+                <button class="btn btn-rf-orange" @onclick="OpenCreateModal">
+                    @UiText.BtnAddSubspecies(LanguageState.CurrentLanguage)
+                </button>
+            </ForgeAction>
         </div>
     </div>
 

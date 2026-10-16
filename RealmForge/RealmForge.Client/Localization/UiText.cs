@@ -112,6 +112,20 @@ namespace RealmForge.Client.Localization
 			: "At least 6 characters, with an uppercase, a lowercase letter, a digit and a symbol.";
 		public static string BtnLogin(LanguageCode lang) => lang == LanguageCode.It ? "Accedi" : "Sign in";
 		public static string BtnRegister(LanguageCode lang) => lang == LanguageCode.It ? "Registrati" : "Register";
+		public static string BtnVerifyToForge(LanguageCode lang) => lang == LanguageCode.It ? "Verifica l'email per forgiare" : "Verify your e-mail to forge";
+		public static string HintVerifyToForge(LanguageCode lang) => lang == LanguageCode.It
+			? "Per creare o modificare contenuti Homebrew devi prima confermare il tuo indirizzo email."
+			: "Confirm your e-mail address before creating or editing Homebrew content.";
+		public static string BtnResendConfirmation(LanguageCode lang) => lang == LanguageCode.It ? "Invia di nuovo l'email di verifica" : "Send the verification e-mail again";
+		public static string ConfirmationSent(string email, LanguageCode lang) => lang == LanguageCode.It
+			? $"Email di verifica inviata a {email}. Controlla anche la cartella spam."
+			: $"Verification e-mail sent to {email}. Check your spam folder too.";
+		public static string ConfirmEmailTitle(LanguageCode lang) => lang == LanguageCode.It ? "Conferma email" : "Confirm e-mail";
+		public static string ConfirmEmailWorking(LanguageCode lang) => lang == LanguageCode.It ? "Conferma in corso..." : "Confirming...";
+		public static string ConfirmEmailDone(LanguageCode lang) => lang == LanguageCode.It
+			? "Indirizzo email confermato: ora puoi creare e modificare i tuoi contenuti Homebrew."
+			: "E-mail address confirmed: you can now create and edit your Homebrew content.";
+		public static string BtnGoToAccount(LanguageCode lang) => lang == LanguageCode.It ? "Vai al tuo account" : "Go to your account";
 		public static string BtnLoginToForge(LanguageCode lang) => lang == LanguageCode.It ? "Accedi per forgiare" : "Sign in to forge";
 		public static string BtnLogout(LanguageCode lang) => lang == LanguageCode.It ? "Esci" : "Sign out";
 		public static string NavAccount(LanguageCode lang) => lang == LanguageCode.It ? "Il mio account" : "My account";
@@ -149,6 +163,8 @@ namespace RealmForge.Client.Localization
 			("PasswordRequiresNonAlphanumeric", false) => "The password must contain a symbol (e.g. ! ? #).",
 			("MissingPasswords", true) => "Compila tutti i campi della password.",
 			("MissingPasswords", false) => "Fill in all the password fields.",
+			("InvalidConfirmationLink", true) => "Il link di conferma non è valido o è scaduto: richiedine uno nuovo dalla pagina account.",
+			("InvalidConfirmationLink", false) => "The confirmation link is invalid or has expired: ask for a new one from the account page.",
 			("PasswordMismatch", true) => "La password attuale non è corretta.",
 			("PasswordMismatch", false) => "The current password is wrong.",
 			("PasswordsDiffer", true) => "Le due nuove password non coincidono.",
@@ -212,6 +228,8 @@ namespace RealmForge.Client.Localization
 			(RealmForge.Client.Services.ApiErrorKind.Unreachable, false) => "Cannot reach the server. Check that the API is running.",
 			(RealmForge.Client.Services.ApiErrorKind.Forbidden, true) => "Operazione non consentita: puoi modificare solo i tuoi contenuti Homebrew (gli SRD sono in sola lettura).",
 			(RealmForge.Client.Services.ApiErrorKind.Forbidden, false) => "Operation not allowed: you can only modify your own Homebrew content (SRD is read-only).",
+			(RealmForge.Client.Services.ApiErrorKind.EmailNotConfirmed, true) => "Conferma il tuo indirizzo email per creare o modificare contenuti (trovi il pulsante per reinviare l'email nella pagina account).",
+			(RealmForge.Client.Services.ApiErrorKind.EmailNotConfirmed, false) => "Confirm your e-mail address to create or edit content (the button to resend the e-mail is on the account page).",
 			(RealmForge.Client.Services.ApiErrorKind.Unauthorized, true) => "Accesso richiesto: effettua il login per creare o modificare contenuti.",
 			(RealmForge.Client.Services.ApiErrorKind.Unauthorized, false) => "Sign-in required: log in to create or edit content.",
 			(RealmForge.Client.Services.ApiErrorKind.Validation, true) => "Dati non validi: controlla i campi del modulo.",

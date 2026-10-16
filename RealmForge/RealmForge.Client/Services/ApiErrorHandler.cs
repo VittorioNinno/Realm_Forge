@@ -41,7 +41,9 @@ namespace RealmForge.Client.Services
 					_state.Report(ApiErrorKind.Unauthorized);
 					break;
 				case HttpStatusCode.Forbidden:
-					_state.Report(ApiErrorKind.Forbidden);
+					//	The API marks the "e-mail not confirmed" case with a header, to tell it apart from ownership errors
+					var emailNotConfirmed = response.Headers.TryGetValues("X-RealmForge-Error", out var codes) && codes.Contains("EmailNotConfirmed");
+					_state.Report(emailNotConfirmed ? ApiErrorKind.EmailNotConfirmed : ApiErrorKind.Forbidden);
 					break;
 				case HttpStatusCode.BadRequest:
 				case HttpStatusCode.Conflict:

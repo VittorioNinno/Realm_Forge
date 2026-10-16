@@ -1,5 +1,6 @@
 // UI smoke test: drives the real Blazor client in headless Chromium.
 import { chromium } from 'playwright';
+import { readFileSync } from 'node:fs';
 
 const base = 'http://localhost:5227';
 const email = `ui${Date.now()}@example.com`;
@@ -61,10 +62,23 @@ try {
   if (headerText.includes(email) || /Esci|Accedi/.test(headerText)) throw new Error(`account controls still in the header: ${headerText.replace(/\s+/g, ' ')}`);
   ok('registration signs the user in; the account sits at the bottom of the sidebar, not in the header');
 
+  // New account: e-mail not confirmed yet, so the compendium asks to verify it instead of offering the create button
+  await page.goto(`${base}/feats`);
+  await page.locator('[data-test=verify-to-forge]').waitFor({ timeout: 30000 });
+  ok('unconfirmed account sees "Verifica l\'email per forgiare" instead of the create button');
+
+  // Without SMTP the API writes the confirmation link to its log (the UI job starts it with output in api.log)
+  const link = readFileSync('../../api.log', 'utf8').match(new RegExp(`for ${email.replace(/[.]/g, '\\.')}: (\\S+)`))?.[1];
+  if (!link || !link.startsWith(`${base}/confirm-email?`)) throw new Error(`confirmation link not found or not pointing to the client: ${link}`);
+  await page.goto(link);
+  await page.locator('[data-test=confirm-email-ok]').waitFor({ timeout: 30000 });
+  ok('confirmation link (to the client page) confirms the e-mail');
+
   await page.goto(`${base}/feats`);
   await page.getByText('Allerta').first().waitFor({ timeout: 30000 });
+  await page.getByText('+ NUOVO TALENTO').waitFor({ timeout: 30000 });
   if (await page.getByText('Accedi per forgiare').count() !== 0) throw new Error('create button still hidden after login');
-  ok('signed-in user sees the create button');
+  ok('signed-in user with a confirmed e-mail sees the create button');
 
   // Layout guard for the "Forgia Talento" modal (desktop width)
   await page.setViewportSize({ width: 1280, height: 900 });
@@ -150,6 +164,8 @@ try {
   await page.goto(`${base}/account`);
   await page.locator('[data-test=account-role]').waitFor({ timeout: 30000 });
   const role = (await page.locator('[data-test=account-role]').innerText()).trim();
+  const emailStatus = (await page.locator('[data-test=account-email-status]').innerText()).trim();
+  if (emailStatus !== 'verificata' || await page.locator('[data-test=account-verify]').count() !== 0) throw new Error(`unexpected e-mail status: ${emailStatus}`);
   const stats = (await page.locator('[data-test=account-homebrew] .rf-account-stat').allInnerTexts()).map((t) => t.replace(/\s+/g, ' ').trim());
   results.push(`INFO account role='${role}' homebrew=[${stats.join(' | ')}]`);
   if (!/^utente$/i.test(role) || !stats.some((t) => /^0 talenti$/i.test(t)) || !stats.some((t) => /^1 background$/i.test(t))) throw new Error('unexpected account summary');

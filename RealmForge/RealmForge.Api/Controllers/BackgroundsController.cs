@@ -89,6 +89,7 @@ namespace RealmForge.Api.Controllers
 
 		//	POST: api/backgrounds
 		[HttpPost]
+		[RequireConfirmedEmail]
 		[Authorize]
 		public async Task<ActionResult<BackgroundDetailResponseDto>> CreateBackground([FromBody] SaveBackgroundDto dto, [FromQuery] LanguageCode lang = LanguageCode.It)
 		{
@@ -119,6 +120,7 @@ namespace RealmForge.Api.Controllers
 
 		//	PUT: api/backgrounds/{id}
 		[HttpPut("{id:guid}")]
+		[RequireConfirmedEmail]
 		[Authorize]
 		public async Task<IActionResult> UpdateBackground(Guid id, [FromBody] SaveBackgroundDto dto)
 		{

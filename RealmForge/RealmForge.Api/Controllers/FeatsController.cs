@@ -98,6 +98,7 @@ namespace RealmForge.Api.Controllers
 
 		//	POST: api/feats
 		[HttpPost]
+		[RequireConfirmedEmail]
 		[Authorize]
 		public async Task<ActionResult<FeatDetailResponseDto>> CreateFeat([FromBody] CreateFeatDto dto, [FromQuery] LanguageCode lang = LanguageCode.It)
 		{
@@ -135,6 +136,7 @@ namespace RealmForge.Api.Controllers
 
 		//	PUT: api/feats/{id}
 		[HttpPut("{id:guid}")]
+		[RequireConfirmedEmail]
 		[Authorize]
 		public async Task<IActionResult> UpdateFeat(Guid id, [FromBody] UpdateFeatDto dto)
 		{

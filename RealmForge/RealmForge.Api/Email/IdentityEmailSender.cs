@@ -1,0 +1,147 @@
+﻿using System.Net;
+using System.Net.Mail;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.WebUtilities;
+using Microsoft.Extensions.Options;
+using RealmForge.Infrastructure.Identity;
+
+namespace RealmForge.Api.Email
+{
+	///	<summary>
+	///	E-mails sent by the Identity endpoints (/api/auth): account confirmation and password reset.
+	///	Links point to the Blazor client (e.g. /confirm-email), which then calls the API.
+	///	Texts are bilingual because the user's language is not known when the account is created.
+	///	</summary>
+	public class IdentityEmailSender : IEmailSender<ApplicationUser>
+	{
+		private readonly EmailOptions _options;
+		private readonly IHttpContextAccessor _http;
+		private readonly string[] _allowedOrigins;
+		private readonly ILogger<IdentityEmailSender> _logger;
+
+		public IdentityEmailSender(IOptions<EmailOptions> options, IHttpContextAccessor http, IConfiguration configuration, ILogger<IdentityEmailSender> logger)
+		{
+			_options = options.Value;
+			_http = http;
+			_allowedOrigins = configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() ?? Array.Empty<string>();
+			_logger = logger;
+		}
+
+		public Task SendConfirmationLinkAsync(ApplicationUser user, string email, string confirmationLink)
+		{
+			var link = ToClientLink("confirm-email", confirmationLink);
+
+			return SendAsync(email, "Conferma il tuo account RealmForge · Confirm your RealmForge account", link,
+				Body("Conferma il tuo indirizzo email", "Per creare e condividere contenuti Homebrew su RealmForge conferma il tuo indirizzo email:", "Conferma email",
+					"Confirm your e-mail address", "To create and share Homebrew content on RealmForge, please confirm your e-mail address:", "Confirm e-mail",
+					link));
+		}
+
+		public Task SendPasswordResetLinkAsync(ApplicationUser user, string email, string resetLink)
+		{
+			var link = ToClientLink("reset-password", resetLink);
+
+			return SendAsync(email, "Reimposta la password · Reset your password", link,
+				Body("Reimposta la password", "Hai chiesto di reimpostare la password del tuo account RealmForge:", "Reimposta password",
+					"Reset your password", "You asked to reset the password of your RealmForge account:", "Reset password",
+					link));
+		}
+
+		public Task SendPasswordResetCodeAsync(ApplicationUser user, string email, string resetCode)
+		{
+			var code = WebUtility.HtmlEncode(resetCode);
+
+			return SendAsync(email, "Codice per reimpostare la password · Password reset code", resetCode,
+				$"""
+				<div style="font-family:Arial,sans-serif;max-width:560px">
+				  <h2 style="color:#ff8c00">Reimposta la password</h2>
+				  <p>Usa questo codice per reimpostare la password del tuo account RealmForge:</p>
+				  <p style="font-size:18px;font-family:monospace;background:#f2f2f2;padding:12px">{code}</p>
+				  <hr style="border:0;border-top:1px solid #ddd;margin:24px 0">
+				  <h2 style="color:#ff8c00">Reset your password</h2>
+				  <p>Use this code to reset the password of your RealmForge account (shown above).</p>
+				  <p style="color:#888;font-size:12px">Se non hai fatto tu questa richiesta, ignora questa email. · If you did not ask for this, ignore this e-mail.</p>
+				</div>
+				""");
+		}
+
+		//	Identity builds links to its own API endpoint; the same query (userId, code, ...) is sent to the client page instead
+		private string ToClientLink(string clientPage, string identityLink)
+		{
+			var query = QueryHelpers.ParseQuery(new Uri(identityLink).Query)
+				.ToDictionary(kv => kv.Key, kv => (string?)kv.Value.ToString());
+
+			return QueryHelpers.AddQueryString($"{ClientBaseUrl().TrimEnd('/')}/{clientPage}", query);
+		}
+
+		//	The client that sent the request (registration or "resend" button) when it is an allowed origin, otherwise the configured one
+		private string ClientBaseUrl()
+		{
+			var origin = _http.HttpContext?.Request.Headers.Origin.ToString();
+
+			if (!string.IsNullOrWhiteSpace(origin) && _allowedOrigins.Contains(origin, StringComparer.OrdinalIgnoreCase))
+			{
+				return origin;
+			}
+
+			return _options.ClientBaseUrl ?? _allowedOrigins.FirstOrDefault() ?? "http://localhost:5227";
+		}
+
+		private static string Body(string titleIt, string textIt, string buttonIt, string titleEn, string textEn, string buttonEn, string link)
+		{
+			var href = WebUtility.HtmlEncode(link);
+			string Button(string label) =>
+				$"""<p><a href="{href}" style="display:inline-block;background:#ff8c00;color:#111;padding:10px 18px;border-radius:4px;text-decoration:none;font-weight:bold">{label}</a></p>""";
+
+			return $"""
+				<div style="font-family:Arial,sans-serif;max-width:560px">
+				  <h2 style="color:#ff8c00">{titleIt}</h2>
+				  <p>{textIt}</p>
+				  {Button(buttonIt)}
+				  <hr style="border:0;border-top:1px solid #ddd;margin:24px 0">
+				  <h2 style="color:#ff8c00">{titleEn}</h2>
+				  <p>{textEn}</p>
+				  {Button(buttonEn)}
+				  <p style="color:#888;font-size:12px">Se il pulsante non funziona, copia questo indirizzo nel browser · If the button does not work, paste this address into your browser:<br>{href}</p>
+				  <p style="color:#888;font-size:12px">Se non hai fatto tu questa richiesta, ignora questa email. · If you did not ask for this, ignore this e-mail.</p>
+				</div>
+				""";
+		}
+
+		private async Task SendAsync(string to, string subject, string logValue, string html)
+		{
+			if (!_options.IsConfigured)
+			{
+				//	Development / CI: no SMTP server, the link is written to the log so the flow can still be completed
+				_logger.LogWarning("E-mail not sent (SMTP not configured). {Subject} for {Email}: {Link}", subject, to, logValue);
+				return;
+			}
+
+			try
+			{
+				using var message = new MailMessage
+				{
+					From = new MailAddress(_options.FromAddress ?? _options.Username!, _options.FromName),
+					Subject = subject,
+					Body = html,
+					IsBodyHtml = true
+				};
+				message.To.Add(to);
+
+				using var client = new SmtpClient(_options.Host, _options.Port)
+				{
+					EnableSsl = true,
+					Credentials = new NetworkCredential(_options.Username, _options.Password)
+				};
+
+				await client.SendMailAsync(message);
+				_logger.LogInformation("E-mail sent to {Email}: {Subject}", to, subject);
+			}
+			catch (Exception ex) when (ex is SmtpException or InvalidOperationException or FormatException)
+			{
+				//	Registration must not fail because of the mail server: the user can ask for a new e-mail from the account page
+				_logger.LogError(ex, "Could not send e-mail to {Email} ({Subject})", to, subject);
+			}
+		}
+	}
+}
