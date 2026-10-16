@@ -1,4 +1,4 @@
-.page {
+﻿.page {
     position: relative;
     display: flex;
     flex-direction: column;
@@ -76,3 +76,15 @@ main {
         padding-right: 1.5rem !important;
     }
 }
+
+.rf-github-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    color: var(--rf-text-secondary);
+    font-size: 0.85rem;
+}
+
+    .rf-github-link:hover {
+        color: var(--rf-text-primary);
+    }

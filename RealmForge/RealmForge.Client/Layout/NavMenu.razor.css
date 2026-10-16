@@ -136,3 +136,23 @@
             background-color: rgba(255,255,255,0.1);
             color: white;
         }
+
+/* Sidebar body: navigation on top, account area pushed to the bottom.
+   Mobile: Bootstrap hides it while collapsed; desktop: always shown as a flex column */
+.rf-sidebar-body {
+    flex-direction: column;
+}
+
+    .rf-sidebar-body:not(.collapse) {
+        display: flex;
+    }
+
+.rf-nav {
+    flex: 1 0 auto;
+}
+
+@media (min-width: 641px) {
+    .rf-sidebar-body.collapse {
+        display: flex;
+    }
+}

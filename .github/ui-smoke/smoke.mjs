@@ -45,8 +45,10 @@ try {
   await page.locator('input[type=email]').fill(email);
   await page.locator('input[type=password]').fill(throwawayCredential);
   await page.getByRole('button', { name: 'Registrati' }).click();
-  await page.getByText(email).first().waitFor({ timeout: 30000 });
-  ok('registration signs the user in and shows the email in the header');
+  await page.locator('[data-test=account-area]', { hasText: email }).waitFor({ timeout: 30000 });
+  const headerText = await page.locator('main .top-row').innerText();
+  if (headerText.includes(email) || /Esci|Accedi/.test(headerText)) throw new Error(`account controls still in the header: ${headerText.replace(/\s+/g, ' ')}`);
+  ok('registration signs the user in; the account sits at the bottom of the sidebar, not in the header');
 
   await page.goto(`${base}/feats`);
   await page.getByText('Allerta').first().waitFor({ timeout: 30000 });
@@ -137,17 +139,21 @@ try {
   await page.getByText(email).first().waitFor({ timeout: 60000 });
   ok('session survives a page reload');
 
-  await page.getByRole('button', { name: 'Esci' }).click();
+  await page.locator('[data-test=account-area]').getByRole('button', { name: 'Esci' }).click();
   await page.getByText('Accedi per forgiare').first().waitFor({ timeout: 30000 });
-  ok('logout restores the anonymous view');
+  await page.locator('[data-test=account-area]', { hasText: 'Accedi' }).waitFor({ timeout: 15000 });
+  ok('logout from the sidebar restores the anonymous view');
 
-  await page.getByRole('button', { name: /EN/ }).click();
+  await page.locator('[data-test=lang-select] button').click();
+  const languages = (await page.locator('[data-test=lang-select] [role=option]').allInnerTexts()).map((t) => t.trim());
+  if (languages.join(',') !== 'English,Italiano') throw new Error(`unexpected language options: ${languages.join(',')}`);
+  await page.locator('[data-test=lang-select] [role=option]', { hasText: 'English' }).click();
   await page.getByText('Sign in to forge').first().waitFor({ timeout: 15000 });
   await page.reload();
   await page.getByText('Sign in to forge').first().waitFor({ timeout: 60000 });
   const htmlLang = await page.evaluate(() => document.documentElement.lang);
   if (htmlLang !== 'en') throw new Error(`html lang is '${htmlLang}' after reload`);
-  ok('selected language (EN) survives a reload and sets <html lang="en">');
+  ok('language drop-down (English, Italiano): EN survives a reload and sets <html lang="en">');
 } catch (e) {
   results.push(`FAIL ${e.message.split('\n')[0]}`);
   const stored = await page.evaluate(() => localStorage.getItem('realmforge.auth')).catch(() => 'n/a');

@@ -1,18 +1,36 @@
-﻿@using RealmForge.Client.Localization
+@using RealmForge.Client.Localization
 @using RealmForge.Client.Services
+@implements IDisposable
 @inject AuthService Auth
 @inject LanguageStateService LanguageState
 
-<AuthorizeView>
-    <Authorized>
-        <span class="small text-secondary ms-3">@context.User.Identity?.Name</span>
-        <button class="btn btn-sm btn-rf-outline px-2 py-1" @onclick="Auth.LogoutAsync">
-            @UiText.BtnLogout(LanguageState.CurrentLanguage)
-        </button>
-    </Authorized>
-    <NotAuthorized>
-        <a href="account" class="btn btn-sm btn-rf-outline px-2 py-1 ms-3">
-            @UiText.BtnLogin(LanguageState.CurrentLanguage)
-        </a>
-    </NotAuthorized>
-</AuthorizeView>
+@* Account area pinned at the bottom of the sidebar *@
+<div class="rf-account" data-test="account-area" @onclick:stopPropagation="true">
+    <AuthorizeView>
+        <Authorized>
+            <a href="account" class="rf-account-user" title="@UiText.NavAccount(LanguageState.CurrentLanguage)">
+                <span class="rf-account-avatar">@Initial(context.User.Identity?.Name)</span>
+                <span class="rf-account-name">@context.User.Identity?.Name</span>
+            </a>
+            <button type="button" class="rf-account-logout" aria-label="@UiText.BtnLogout(LanguageState.CurrentLanguage)"
+                    title="@UiText.BtnLogout(LanguageState.CurrentLanguage)" @onclick="Auth.LogoutAsync">
+                <NavIcon Name="logout" />
+            </button>
+        </Authorized>
+        <NotAuthorized>
+            <a href="account" class="rf-account-login">
+                <NavIcon Name="account" />
+                <span>@UiText.BtnLogin(LanguageState.CurrentLanguage)</span>
+            </a>
+        </NotAuthorized>
+    </AuthorizeView>
+</div>
+
+@code {
+    protected override void OnInitialized() => LanguageState.OnLanguageChanged += StateHasChanged;
+
+    private static string Initial(string? name) =>
+        string.IsNullOrWhiteSpace(name) ? "?" : name.Trim()[0].ToString().ToUpperInvariant();
+
+    public void Dispose() => LanguageState.OnLanguageChanged -= StateHasChanged;
+}
