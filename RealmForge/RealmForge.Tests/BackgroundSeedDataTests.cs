@@ -85,6 +85,22 @@ public class BackgroundSeedDataTests
 	}
 
 	[Fact]
+	public void Guild_artisan_has_its_proficiencies_and_tables()
+	{
+		var artisan = Assert.Single(Backgrounds, b => b.Id == GuildArtisan2014Seeder.BackgroundId);
+		Assert.Equal(new[] { Skill.Insight, Skill.Persuasion }, artisan.SkillProficiencies);
+		Assert.Equal(ContentSource.RealmForge, artisan.Source);
+
+		foreach (var tr in artisan.Translations)
+		{
+			Assert.Equal((8, 6, 6, 6), (tr.PersonalityTraits.Count, tr.Ideals.Count, tr.Bonds.Count, tr.Flaws.Count));
+			Assert.Contains("| 20 |", tr.Description);
+			Assert.False(string.IsNullOrWhiteSpace(tr.Languages));
+			Assert.Equal(4, tr.Equipment!.Split('\n').Length);
+		}
+	}
+
+	[Fact]
 	public void Ids_are_unique_and_identical_on_every_build()
 	{
 		BackgroundSeeder.EnsureUniqueIds(Backgrounds);
