@@ -68,6 +68,19 @@ namespace RealmForge.Api
 
 			var app = builder.Build();
 
+			//	One line at startup tells which mail settings are in use (never the password)
+			var email = app.Services.GetRequiredService<Microsoft.Extensions.Options.IOptions<EmailOptions>>().Value;
+			var startupLogger = app.Services.GetRequiredService<ILogger<Program>>();
+			if (email.IsConfigured)
+			{
+				startupLogger.LogInformation("E-mail: SMTP {Host}:{Port} as {Username}, sender {From}, password {PasswordState}",
+					email.Host, email.Port, email.Username, email.FromAddress ?? email.Username, string.IsNullOrWhiteSpace(email.Password) ? "MISSING" : "set");
+			}
+			else
+			{
+				startupLogger.LogWarning("E-mail: SMTP not configured, confirmation links are written to this log");
+			}
+
 			//	Checked after Build() so that design-time tools (dotnet ef migrations add) keep working without a database
 			if (string.IsNullOrWhiteSpace(connectionString))
 			{
