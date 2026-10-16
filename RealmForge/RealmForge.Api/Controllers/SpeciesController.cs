@@ -173,6 +173,7 @@ namespace RealmForge.Api.Controllers
 
 		//	POST: api/species
 		[HttpPost]
+		[RequireConfirmedEmail]
 		[Authorize]
 		public async Task<ActionResult<SpeciesResponseDto>> Create([FromBody] CreateSpeciesDto dto)
 		{
@@ -267,6 +268,7 @@ namespace RealmForge.Api.Controllers
 
 		//	PUT: api/species/{id}
 		[HttpPut("{id:guid}")]
+		[RequireConfirmedEmail]
 		[Authorize]
 		public async Task<IActionResult> UpdateSpecies(Guid id, [FromBody] UpdateSpeciesDto dto)
 		{

@@ -39,10 +39,25 @@
                         <dt>@UiText.LabelMemberSince(LanguageState.CurrentLanguage)</dt>
                         <dd>@(summary.RegisteredAt is DateTimeOffset at ? UiText.FormatDate(at.ToLocalTime(), LanguageState.CurrentLanguage) : UiText.LabelNotAvailable(LanguageState.CurrentLanguage))</dd>
                         <dt>@UiText.LabelEmailStatus(LanguageState.CurrentLanguage)</dt>
-                        <dd>@UiText.EmailStatus(summary.EmailConfirmed, LanguageState.CurrentLanguage)</dd>
+                        <dd data-test="account-email-status">@UiText.EmailStatus(summary.EmailConfirmed, LanguageState.CurrentLanguage)</dd>
                         <dt>@UiText.LabelInterfaceLanguage(LanguageState.CurrentLanguage)</dt>
                         <dd>@UiText.LanguageName(LanguageState.CurrentLanguage)</dd>
                     </dl>
+
+                    @if (!summary.EmailConfirmed)
+                    {
+                        @* Unconfirmed address: creation is blocked until the link in the e-mail is opened *@
+                        <div class="rf-account-verify mt-3" data-test="account-verify">
+                            <span class="small">@UiText.HintVerifyToForge(LanguageState.CurrentLanguage)</span>
+                            <button class="btn btn-sm btn-rf-orange" disabled="@isResending" @onclick="ResendConfirmationAsync">
+                                @(isResending ? "..." : UiText.BtnResendConfirmation(LanguageState.CurrentLanguage))
+                            </button>
+                        </div>
+                        @if (resendMessage != null)
+                        {
+                            <div class="small mt-2" style="color: var(--rf-text-secondary);" data-test="account-verify-sent">@resendMessage</div>
+                        }
+                    }
                 }
             </div>
 
@@ -200,6 +215,25 @@
 
     private static string Initial(string? name) =>
         string.IsNullOrWhiteSpace(name) ? "?" : name.Trim()[0].ToString().ToUpperInvariant();
+
+    private bool isResending;
+    private string? resendMessage;
+
+    private async Task ResendConfirmationAsync()
+    {
+        if (summary is null)
+        {
+            return;
+        }
+
+        isResending = true;
+        var result = await Auth.ResendConfirmationAsync(summary.Email);
+        isResending = false;
+
+        resendMessage = result.Success
+            ? UiText.ConfirmationSent(summary.Email, LanguageState.CurrentLanguage)
+            : UiText.AuthError(result.Errors.FirstOrDefault() ?? "Unknown", LanguageState.CurrentLanguage);
+    }
 
     private async Task ChangePasswordAsync()
     {
