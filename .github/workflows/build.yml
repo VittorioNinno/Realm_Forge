@@ -223,6 +223,26 @@ jobs:
           test "$srd_delete" = "403"
           test "$own_delete" = "204"
 
+          # Backgrounds: homebrew creation with an origin feat, localized feat name, ownership and validation
+          alert=11111111-2222-3333-4444-555555555544
+          bg=$(jq -nc --arg f "$alert" '{ruleset:2, abilityOptions:[4,5,6], skillProficiencies:[7,15], originFeatId:$f,
+            translations:[{language:1,name:"Test Acolyte",description:"x",originFeatNote:"Cleric list"},{language:2,name:"Accolito di prova",description:"x",originFeatNote:"lista del Chierico"}]}')
+          bg_anon=$(code -X POST $api/api/backgrounds $json -d "$bg")
+          bg_created=$(curl -sf -X POST "$api/api/backgrounds?lang=2" $json -H "Authorization: Bearer $A" -d "$bg")
+          bg_id=$(echo "$bg_created" | jq -r .id); bg_feat=$(echo "$bg_created" | jq -r .originFeatName); bg_skills=$(echo "$bg_created" | jq -c .skillProficiencies)
+          bg_bad=$(code -X POST $api/api/backgrounds $json -H "Authorization: Bearer $A" -d "$(echo "$bg" | jq '.originFeatId = "00000000-0000-0000-0000-000000000001"')")
+          bg_other=$(code -X PUT $api/api/backgrounds/$bg_id $json -H "Authorization: Bearer $B" -d "$(echo "$bg" | jq --arg id "$bg_id" '. + {id:$id}')")
+          bg_en=$(curl -sf "$api/api/backgrounds/$bg_id?lang=1" | jq -r '.originFeatName + " / " + .originFeatNote')
+          bg_delete=$(code -X DELETE $api/api/backgrounds/$bg_id -H "Authorization: Bearer $A")
+          echo "::notice title=database::backgrounds: anonymous create=$bg_anon | created feat(IT)='$bg_feat' skills=$bg_skills | EN='$bg_en' | unknown feat=$bg_bad | other PUT=$bg_other | own DELETE=$bg_delete"
+          test "$bg_anon" = "401"
+          test "$bg_feat" = "Allerta"
+          test "$bg_skills" = "[7,15]"
+          test "$bg_en" = "Alert / Cleric list"
+          test "$bg_bad" = "400"
+          test "$bg_other" = "403"
+          test "$bg_delete" = "204"
+
   ui:
     runs-on: ubuntu-latest
     needs: build

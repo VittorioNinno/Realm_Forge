@@ -248,6 +248,12 @@ h1, h2, h3, h4, h5, h6, .rf-page-title, .brand-title {
     text-overflow: ellipsis;
 }
 
+/* Pills that cannot be selected because the maximum was reached */
+.rf-pill-btn:disabled {
+    opacity: 0.35;
+    cursor: not-allowed;
+}
+
 .rf-form-control:disabled {
     opacity: 0.45;
     cursor: not-allowed;

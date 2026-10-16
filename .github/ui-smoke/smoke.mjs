@@ -56,6 +56,36 @@ try {
   ok('feat modal layout: controls aligned, no truncated labels');
   await page.getByRole('button', { name: 'ANNULLA' }).click();
 
+  // Backgrounds: page, "Forge Background" layout and end-to-end creation
+  await page.goto(`${base}/backgrounds`);
+  await page.getByText('+ NUOVO BACKGROUND').click();
+  await page.locator('[data-test=bg-name-It]').waitFor({ timeout: 15000 });
+  const bgLayout = await page.evaluate(() => {
+    const top = (sel) => document.querySelector(sel).getBoundingClientRect().top;
+    const truncated = [...document.querySelectorAll('.rf-label-single-line')]
+      .filter((l) => l.offsetParent !== null && l.scrollWidth > l.clientWidth + 1)
+      .map((l) => l.textContent.trim());
+    return {
+      topDelta: Math.abs(top('[data-test=bg-ruleset] .rf-custom-select-trigger') - top('[data-test=bg-origin-feat] .rf-custom-select-trigger')),
+      truncated,
+    };
+  });
+  results.push(`INFO background modal: top delta=${bgLayout.topDelta.toFixed(1)}px, truncated labels=[${bgLayout.truncated.join(', ')}]`);
+  if (bgLayout.topDelta > 2) throw new Error('ruleset and origin feat controls are not aligned');
+  if (bgLayout.truncated.length > 0) throw new Error(`truncated labels: ${bgLayout.truncated.join(', ')}`);
+
+  await page.locator('[data-test=bg-origin-feat] .rf-custom-select-trigger').click();
+  await page.locator('.rf-custom-select-option', { hasText: 'Allerta' }).click();
+  await page.getByRole('button', { name: 'Intuizione' }).click();
+  await page.getByRole('button', { name: 'Religione' }).click();
+  await page.locator('[data-test=bg-name-It]').fill('Accolito UI');
+  await page.locator('[data-test=bg-name-En]').fill('UI Acolyte');
+  await page.getByRole('button', { name: 'SALVA BACKGROUND' }).click();
+  await page.locator('.rf-card', { hasText: 'Accolito UI' }).waitFor({ timeout: 15000 });
+  const card = await page.locator('.rf-card', { hasText: 'Accolito UI' }).innerText();
+  if (!card.includes('Allerta') || !card.includes('Intuizione')) throw new Error(`background card misses feat/skills: ${card.replace(/\s+/g, ' ')}`);
+  ok('background modal aligned; homebrew background created from the UI with origin feat and skills');
+
   await page.reload();
   await page.getByText(email).first().waitFor({ timeout: 60000 });
   ok('session survives a page reload');
