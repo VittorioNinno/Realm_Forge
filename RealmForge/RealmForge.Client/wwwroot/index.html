@@ -9,7 +9,10 @@
     <link rel="preload" id="webassembly" />
     <link rel="stylesheet" href="lib/bootstrap/dist/css/bootstrap.min.css" />
     <link rel="stylesheet" href="css/app.css" />
-    <link rel="icon" type="image/png" href="favicon.png" />
+    <!-- RealmForge emblem (new file names, so browsers do not keep the cached Blazor icon) -->
+    <link rel="icon" type="image/png" sizes="32x32" href="img/favicon-32.png" />
+    <link rel="icon" type="image/png" sizes="192x192" href="img/icon-192.png" />
+    <link rel="apple-touch-icon" href="img/apple-touch-icon.png" />
     <link href="RealmForge.Client.styles.css" rel="stylesheet" />
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -32,9 +35,39 @@
         <span class="dismiss">🗙</span>
     </div>
     <script>
-        // Small helpers called from .NET (LanguageStateService)
+        // Small helpers called from .NET (LanguageStateService, CrossTabService)
         window.realmForge = {
-            setDocumentLanguage: (lang) => { document.documentElement.lang = lang; }
+            setDocumentLanguage: (lang) => { document.documentElement.lang = lang; },
+
+            // Messages between the RealmForge tabs open in the same browser (e.g. "e-mail confirmed")
+            tabs: (() => {
+                const channel = 'BroadcastChannel' in window ? new BroadcastChannel('realmforge') : null;
+                let listener = null;
+                let pongs = 0;
+
+                if (channel) {
+                    channel.onmessage = (e) => {
+                        const type = e.data && e.data.type;
+                        if (type === 'ping') { channel.postMessage({ type: 'pong' }); }
+                        else if (type === 'pong') { pongs++; }
+                        else if (type && listener) { listener.invokeMethodAsync('OnTabMessage', type); }
+                    };
+                }
+
+                return {
+                    listen: (dotnetRef) => { listener = dotnetRef; },
+                    announce: (type) => { if (channel) { channel.postMessage({ type }); } },
+                    // True when at least one other RealmForge tab answers within 400 ms
+                    hasOtherTabs: () => new Promise((resolve) => {
+                        if (!channel) { resolve(false); return; }
+                        pongs = 0;
+                        channel.postMessage({ type: 'ping' });
+                        setTimeout(() => resolve(pongs > 0), 400);
+                    }),
+                    // Browsers allow it only for tabs opened by a link with no history (like a link in an e-mail)
+                    tryClose: () => { window.close(); }
+                };
+            })()
         };
     </script>
     <script src="_framework/blazor.webassembly#[.{fingerprint}].js"></script>

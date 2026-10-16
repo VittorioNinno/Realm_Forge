@@ -3,6 +3,7 @@
 @implements IDisposable
 @inject AuthService Auth
 @inject LanguageStateService LanguageState
+@inject CrossTabService CrossTab
 
 @* Create button of the compendium pages: sign in first, then confirm the e-mail, then forge *@
 @if (!isAuthenticated)
@@ -27,7 +28,21 @@ else if (emailConfirmed == true)
     private bool isAuthenticated;
     private bool? emailConfirmed;
 
-    protected override void OnInitialized() => LanguageState.OnLanguageChanged += StateHasChanged;
+    protected override void OnInitialized()
+    {
+        LanguageState.OnLanguageChanged += StateHasChanged;
+        CrossTab.OnEmailConfirmed += HandleEmailConfirmed;
+    }
+
+    //	The e-mail was confirmed in another tab (link in the e-mail): show the create button right away
+    private async void HandleEmailConfirmed()
+    {
+        if (isAuthenticated)
+        {
+            emailConfirmed = await Auth.IsEmailConfirmedAsync();
+            await InvokeAsync(StateHasChanged);
+        }
+    }
 
     //	Re-evaluated on every authentication change (sign-in, sign-out, token refresh)
     protected override async Task OnParametersSetAsync()
@@ -36,5 +51,9 @@ else if (emailConfirmed == true)
         emailConfirmed = isAuthenticated ? await Auth.IsEmailConfirmedAsync() : null;
     }
 
-    public void Dispose() => LanguageState.OnLanguageChanged -= StateHasChanged;
+    public void Dispose()
+    {
+        LanguageState.OnLanguageChanged -= StateHasChanged;
+        CrossTab.OnEmailConfirmed -= HandleEmailConfirmed;
+    }
 }

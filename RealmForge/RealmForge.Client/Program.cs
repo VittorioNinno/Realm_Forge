@@ -37,6 +37,7 @@ namespace RealmForge.Client
 			builder.Services.AddAuthorizationCore();
 			builder.Services.AddCascadingAuthenticationState();
 			builder.Services.AddScoped<AuthService>();
+			builder.Services.AddScoped<CrossTabService>();
 			builder.Services.AddScoped<TokenAuthenticationStateProvider>();
 			builder.Services.AddScoped<AuthenticationStateProvider>(sp => sp.GetRequiredService<TokenAuthenticationStateProvider>());
 
