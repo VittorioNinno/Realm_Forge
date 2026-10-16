@@ -41,15 +41,13 @@ try {
   await page.locator('[data-test=nav-compendium] a').first().waitFor({ timeout: 5000 });
   await page.locator('[data-test=nav-compendium] button').click();
   // Every menu icon sits inside its entry (not on the hover edge) and in the same column as the "Compendio" icon
-  await page.locator('[data-test=nav-compendium] button').click();
-  await page.locator('[data-test=nav-compendium] a').first().waitFor({ timeout: 5000 });
+  // (the group is already open here: this is a compendium page)
   const iconGaps = await page.evaluate(() => [...document.querySelectorAll('.sidebar .nav-link, .sidebar .rf-nav-group-toggle')].map((el) => {
     const icon = el.querySelector('svg').getBoundingClientRect();
     return { label: el.textContent.trim(), inset: Math.round(icon.left - el.getBoundingClientRect().left), left: Math.round(icon.left) };
   }));
   results.push(`INFO menu icons: ${iconGaps.map((g) => `${g.label}@${g.left}(+${g.inset})`).join(', ')}`);
   if (iconGaps.some((g) => g.inset < 8) || new Set(iconGaps.map((g) => g.left)).size !== 1) throw new Error('menu icons are not padded or not aligned');
-  await page.locator('[data-test=nav-compendium] button').click();
   ok('"Compendio" menu group: Specie, Background, Talenti; collapsed elsewhere and toggles on click; icons padded and aligned');
   await page.getByText('Non hai un account? Registrati').click();
   await page.locator('input[type=email]').fill(email);
