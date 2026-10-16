@@ -100,6 +100,15 @@ try {
   await page.getByRole('button', { name: 'CHIUDI' }).click();
   ok('SRD Acolyte: four characteristic tables (d8, d6, d6, d6), badge "Base", source SRD 5.1');
 
+  await page.locator('.rf-card').filter({ has: page.locator('.rf-card-title', { hasText: /^Ciarlatano$/ }) }).click();
+  await page.locator('[data-test=bg-characteristics]').waitFor({ timeout: 15000 });
+  const schemes = await page.locator('.rf-modal-dialog table:not(.rf-dice-table) tbody tr').count();
+  const charlatanSource = (await page.locator('[data-test=content-source]').first().innerText()).trim();
+  results.push(`INFO Charlatan schemes rows=${schemes} source='${charlatanSource}'`);
+  if (schemes !== 6 || charlatanSource !== 'Fonte: testo RealmForge') throw new Error(`unexpected Charlatan detail: rows=${schemes} source=${charlatanSource}`);
+  await page.getByRole('button', { name: 'CHIUDI' }).click();
+  ok('Charlatan: schemes table rendered from Markdown (6 rows), source RealmForge');
+
   await page.reload();
   await page.getByText(email).first().waitFor({ timeout: 60000 });
   ok('session survives a page reload');
