@@ -45,5 +45,12 @@ namespace RealmForge.Domain.Entities
 		//	2014: background feature (e.g. "Shelter of the Faithful")
 		public string? FeatureName { get; set; }
 		public string? FeatureDescription { get; set; }
+
+		//	Suggested characteristics: an introduction and the four tables (entry N = die roll N+1)
+		public string? CharacteristicsIntro { get; set; }
+		public List<string> PersonalityTraits { get; set; } = new();
+		public List<string> Ideals { get; set; } = new();
+		public List<string> Bonds { get; set; } = new();
+		public List<string> Flaws { get; set; } = new();
 	}
 }

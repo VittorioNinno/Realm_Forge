@@ -86,6 +86,15 @@ try {
   if (!card.includes('Allerta') || !card.includes('Intuizione')) throw new Error(`background card misses feat/skills: ${card.replace(/\s+/g, ' ')}`);
   ok('background modal aligned; homebrew background created from the UI with origin feat and skills');
 
+  await page.locator('.rf-card', { hasText: 'Accolito' }).filter({ hasNotText: 'UI' }).first().click();
+  await page.locator('[data-test=bg-characteristics]').waitFor({ timeout: 15000 });
+  const tables = await page.locator('[data-test=bg-characteristics] .rf-dice-table').evaluateAll((ts) =>
+    ts.map((t) => `${t.querySelector('th').textContent.trim()}x${t.querySelectorAll('tbody tr').length}`));
+  results.push(`INFO Acolyte tables: ${tables.join(', ')}`);
+  if (tables.join(',') !== 'd8x8,d6x6,d6x6,d6x6') throw new Error(`unexpected characteristic tables: ${tables.join(', ')}`);
+  await page.getByRole('button', { name: 'CHIUDI' }).click();
+  ok('SRD Acolyte shows its four characteristic tables (d8, d6, d6, d6)');
+
   await page.reload();
   await page.getByText(email).first().waitFor({ timeout: 60000 });
   ok('session survives a page reload');

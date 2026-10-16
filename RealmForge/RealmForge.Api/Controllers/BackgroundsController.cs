@@ -224,6 +224,11 @@ namespace RealmForge.Api.Controllers
 				tr?.Equipment,
 				tr?.FeatureName,
 				tr?.FeatureDescription,
+				tr?.CharacteristicsIntro,
+				tr?.PersonalityTraits.ToList() ?? new List<string>(),
+				tr?.Ideals.ToList() ?? new List<string>(),
+				tr?.Bonds.ToList() ?? new List<string>(),
+				tr?.Flaws.ToList() ?? new List<string>(),
 				canEdit);
 		}
 
@@ -244,8 +249,16 @@ namespace RealmForge.Api.Controllers
 			target.OriginFeatNote = Normalize(source.OriginFeatNote);
 			target.FeatureName = Normalize(source.FeatureName);
 			target.FeatureDescription = Normalize(source.FeatureDescription);
+			target.CharacteristicsIntro = Normalize(source.CharacteristicsIntro);
+			target.PersonalityTraits = CleanList(source.PersonalityTraits);
+			target.Ideals = CleanList(source.Ideals);
+			target.Bonds = CleanList(source.Bonds);
+			target.Flaws = CleanList(source.Flaws);
 			return target;
 		}
+
+		private static List<string> CleanList(IEnumerable<string>? values) =>
+			(values ?? Enumerable.Empty<string>()).Where(v => !string.IsNullOrWhiteSpace(v)).Select(v => v.Trim()).Take(20).ToList();
 
 		private static string? Normalize(string? value) =>
 			string.IsNullOrWhiteSpace(value) ? null : value.Trim();

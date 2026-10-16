@@ -94,6 +94,11 @@ public static class BackgroundSeeder
 				target.OriginFeatNote = source.OriginFeatNote;
 				target.FeatureName = source.FeatureName;
 				target.FeatureDescription = source.FeatureDescription;
+				target.CharacteristicsIntro = source.CharacteristicsIntro;
+				target.PersonalityTraits = source.PersonalityTraits;
+				target.Ideals = source.Ideals;
+				target.Bonds = source.Bonds;
+				target.Flaws = source.Flaws;
 			}
 		}
 

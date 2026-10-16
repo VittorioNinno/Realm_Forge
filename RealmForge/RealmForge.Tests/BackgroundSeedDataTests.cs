@@ -43,6 +43,21 @@ public class BackgroundSeedDataTests
 	}
 
 	[Fact]
+	public void Characteristic_tables_have_the_same_size_in_both_languages()
+	{
+		foreach (var background in Backgrounds)
+		{
+			var it = background.Translations.Single(t => t.Language == LanguageCode.It);
+			var en = background.Translations.Single(t => t.Language == LanguageCode.En);
+
+			Assert.Equal(en.PersonalityTraits.Count, it.PersonalityTraits.Count);
+			Assert.Equal(en.Ideals.Count, it.Ideals.Count);
+			Assert.Equal(en.Bonds.Count, it.Bonds.Count);
+			Assert.Equal(en.Flaws.Count, it.Flaws.Count);
+		}
+	}
+
+	[Fact]
 	public void Origin_feats_exist_in_the_feat_seed_data()
 	{
 		var featIds = FeatSeeder.GetDefinitions().Select(f => f.Id).ToHashSet();
