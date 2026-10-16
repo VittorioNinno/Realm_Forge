@@ -35,7 +35,7 @@ A modular, bilingual web platform for managing tabletop RPG campaigns, sessions 
 | Species & lineages · *Specie e sottospecie* | ✅ | 9 base 2014 + 10 base 2024 species, speed and traits recalculated per lineage · *velocità e tratti ricalcolati per sottospecie* |
 | Feats · *Talenti* | ✅ | 117 base feats (42 × 2014, 75 × 2024), structured bilingual prerequisites, "Forge Feat" editor · *prerequisiti strutturati bilingue, editor "Forgia Talento"* |
 | Accounts & ownership · *Account e proprietà* | ✅ | ASP.NET Core Identity, bearer tokens, per-author Homebrew · *Homebrew per autore* |
-| Backgrounds · *Background* | ✅ | 4 base 2014 backgrounds (Acolyte, Charlatan, Criminal, Entertainer) with feature and characteristic tables; 2024 backgrounds linked to Origin feats, base content in progress · *4 background base 2014 con privilegio e tabelle delle caratteristiche; background 2024 collegati ai Talenti di Origine, contenuti base in arrivo* |
+| Backgrounds · *Background* | ✅ | 5 base 2014 backgrounds (Acolyte, Charlatan, Criminal, Entertainer, Folk Hero) with feature and characteristic tables; 2024 backgrounds linked to Origin feats, base content in progress · *5 background base 2014 con privilegio e tabelle delle caratteristiche; background 2024 collegati ai Talenti di Origine, contenuti base in arrivo* |
 | Spells · *Incantesimi* | 📋 | Planned · *Pianificato* |
 | Classes · *Classi* | 📋 | Planned · *Pianificato* |
 | Character sheet · *Scheda personaggio* | 📋 | Planned · *Pianificato* |
