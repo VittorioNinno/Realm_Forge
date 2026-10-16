@@ -1,4 +1,4 @@
-@using RealmForge.Client.Localization
+﻿@using RealmForge.Client.Localization
 @using RealmForge.Client.Services
 @implements IDisposable
 @inject LanguageStateService LanguageState
@@ -15,7 +15,7 @@
     </div>
 </div>
 
-<div class="@NavMenuCssClass nav-scrollable" @onclick="ToggleNavMenu">
+<div class="@NavMenuCssClass nav-scrollable rf-sidebar-body" @onclick="ToggleNavMenu">
     <nav class="flex-column rf-nav">
         <div class="nav-item px-3">
             <NavLink class="nav-link" href="" Match="NavLinkMatch.All">
@@ -48,6 +48,9 @@
             }
         </div>
     </nav>
+
+    @* Account (sign in / signed-in user and sign out) pinned at the bottom of the sidebar *@
+    <UserMenu />
 </div>
 
 @code {

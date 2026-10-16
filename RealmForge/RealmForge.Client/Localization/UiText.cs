@@ -114,6 +114,16 @@ namespace RealmForge.Client.Localization
 		public static string BtnRegister(LanguageCode lang) => lang == LanguageCode.It ? "Registrati" : "Register";
 		public static string BtnLoginToForge(LanguageCode lang) => lang == LanguageCode.It ? "Accedi per forgiare" : "Sign in to forge";
 		public static string BtnLogout(LanguageCode lang) => lang == LanguageCode.It ? "Esci" : "Sign out";
+		public static string NavAccount(LanguageCode lang) => lang == LanguageCode.It ? "Il mio account" : "My account";
+		public static string LabelLanguage(LanguageCode lang) => lang == LanguageCode.It ? "Lingua" : "Language";
+
+		//	Each language is shown in its own name, so it can be found whatever the current language is
+		public static string LanguageName(LanguageCode lang) => lang switch
+		{
+			LanguageCode.It => "Italiano",
+			LanguageCode.En => "English",
+			_ => lang.ToString()
+		};
 
 		public static string AuthError(string code, LanguageCode lang) => (code, lang == LanguageCode.It) switch
 		{
