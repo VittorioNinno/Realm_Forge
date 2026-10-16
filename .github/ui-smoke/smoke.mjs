@@ -83,9 +83,15 @@ try {
   // Without SMTP the API writes the confirmation link to its log (the UI job starts it with output in api.log)
   const link = readFileSync('../../api.log', 'utf8').match(new RegExp(`for ${email.replace(/[.]/g, '\\.')}: (\\S+)`))?.[1];
   if (!link || !link.startsWith(`${base}/confirm-email?`)) throw new Error(`confirmation link not found or not pointing to the client: ${link}`);
-  await page.goto(link);
-  await page.locator('[data-test=confirm-email-ok]').waitFor({ timeout: 30000 });
-  ok('confirmation link (to the client page) confirms the e-mail');
+  // The link opens in a new tab (as from an e-mail): it confirms, updates the tab already open and closes itself
+  const linkTab = await page.context().newPage();
+  await linkTab.goto(link);
+  await linkTab.locator('[data-test=confirm-email-ok]').waitFor({ timeout: 30000 });
+  await page.getByText('+ NUOVO TALENTO').waitFor({ timeout: 15000 });
+  await linkTab.waitForEvent('close', { timeout: 10000 }).catch(() => {});
+  results.push(`INFO confirmation tab closed by itself=${linkTab.isClosed()}`);
+  if (!linkTab.isClosed()) { await linkTab.close(); }
+  ok('confirmation link (to the client page) confirms the e-mail and the tab already open updates without reloading');
 
   await page.goto(`${base}/feats`);
   await page.getByText('Allerta').first().waitFor({ timeout: 30000 });
