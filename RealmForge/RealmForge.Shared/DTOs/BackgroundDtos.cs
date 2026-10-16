@@ -13,7 +13,8 @@ namespace RealmForge.Shared.DTOs
 		Guid? OriginFeatId,
 		string? OriginFeatName,
 		bool CanEdit = false,
-		ContentSource? Source = null
+		ContentSource? Source = null,
+		ContentVisibility Visibility = ContentVisibility.Public
 	);
 
 	public record BackgroundDetailResponseDto(
@@ -39,7 +40,8 @@ namespace RealmForge.Shared.DTOs
 		List<string> Bonds,
 		List<string> Flaws,
 		bool CanEdit = false,
-		ContentSource? Source = null
+		ContentSource? Source = null,
+		ContentVisibility Visibility = ContentVisibility.Public
 	);
 
 	public class SaveBackgroundDto
@@ -51,6 +53,7 @@ namespace RealmForge.Shared.DTOs
 		public List<Skill> SkillProficiencies { get; set; } = new();
 		public Guid? OriginFeatId { get; set; }
 		public int? EquipmentGoldAlternative { get; set; }
+		public ContentVisibility Visibility { get; set; } = ContentVisibility.Private;
 		public List<BackgroundTranslationDto> Translations { get; set; } = new();
 	}
 

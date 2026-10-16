@@ -33,7 +33,8 @@ namespace RealmForge.Shared.DTOs
 		bool IsOfficialSRD,
 		string ShortDescription,
 		bool CanEdit = false,
-		ContentSource? Source = null
+		ContentSource? Source = null,
+		ContentVisibility Visibility = ContentVisibility.Public
 	);
 
 	public record FeatDetailResponseDto(
@@ -47,11 +48,13 @@ namespace RealmForge.Shared.DTOs
 		FeatPrerequisiteDto Prerequisites,
 		string? PrerequisiteNote,
 		bool CanEdit = false,
-		ContentSource? Source = null
+		ContentSource? Source = null,
+		ContentVisibility Visibility = ContentVisibility.Public
 	);
 
 	public class CreateFeatDto
 	{
+		public ContentVisibility Visibility { get; set; } = ContentVisibility.Private;
 		public FeatCategory Category { get; set; }
 		public FeatPrerequisiteDto Prerequisites { get; set; } = new();
 		public RulesetVersion Ruleset { get; set; }
@@ -70,6 +73,7 @@ namespace RealmForge.Shared.DTOs
 
 	public class UpdateFeatDto
 	{
+		public ContentVisibility Visibility { get; set; } = ContentVisibility.Private;
 		public Guid Id { get; set; }
 		public FeatCategory Category { get; set; }
 		public FeatPrerequisiteDto Prerequisites { get; set; } = new();

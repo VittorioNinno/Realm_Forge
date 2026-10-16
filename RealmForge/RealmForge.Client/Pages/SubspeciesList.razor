@@ -81,7 +81,7 @@
                                     <span class="badge @(sub.Ruleset == RulesetVersion.Dnd5e_2024 ? "badge-edition-2024" : "badge-edition-2014")">
                                         @UiText.FormatRuleset(sub.Ruleset, LanguageState.CurrentLanguage)
                                     </span>
-                                    <RealmForge.Client.Components.ContentBadge IsBase="sub.IsOfficialSRD" Source="sub.Source" />
+                                    <RealmForge.Client.Components.ContentBadge IsBase="sub.IsOfficialSRD" Source="sub.Source" Visibility="sub.Visibility" />
                                 </div>
                             </div>
 
@@ -178,6 +178,8 @@
                 <div class="mb-4 d-flex align-items-center">
                 </div>
 
+                <VisibilityPicker @bind-Value="newVisibility" AllowLink="false" />
+
                 <div class="p-3 mb-3 rounded" style="background-color: var(--rf-bg-card); border-left: 3px solid var(--rf-orange-primary);">
                     <div class="fw-bold mb-2 small" style="color: var(--rf-orange-primary);">@UiText.TabItalian(LanguageState.CurrentLanguage)</div>
                     <div class="mb-2">
@@ -258,6 +260,7 @@
     // Form fields
     private int? newSpeedOverride = null;
     private RulesetVersion newRuleset = RulesetVersion.Dnd5e_2024;
+    private ContentVisibility newVisibility = ContentVisibility.Private;
     private string nameIt = "";
     private string descIt = "";
     private string nameEn = "";
@@ -312,6 +315,7 @@
         
         newSpeedOverride = null;
         newRuleset = parentRuleset;
+        newVisibility = ContentVisibility.Private;
         
         nameIt = "";
         descIt = "";
@@ -343,6 +347,7 @@
             {
                 newSpeedOverride = detailIt.BaseSpeedOverrideInFeet;
                 newRuleset = detailIt.Ruleset;
+                newVisibility = detailIt.Visibility == ContentVisibility.Link ? ContentVisibility.Private : detailIt.Visibility;
 
                 nameIt = detailIt.Name;
                 descIt = detailIt.Description;
@@ -390,7 +395,8 @@
                 editingId,
                 newSpeedOverride,
                 newRuleset,
-                translations
+                translations,
+                Visibility: newVisibility
             );
             success = await SubspeciesService.UpdateAsync(editingId, updateDto);
         }
@@ -400,7 +406,8 @@
                 newSpeedOverride,
                 newRuleset,
                 translations,
-                new List<CreateTraitDto>()
+                new List<CreateTraitDto>(),
+                Visibility: newVisibility
             );
             
             var created = await SubspeciesService.CreateAsync(ParentSpeciesId, createDto);

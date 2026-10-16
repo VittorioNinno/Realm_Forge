@@ -223,8 +223,20 @@ jobs:
           anon_create=$(code -X POST $api/api/feats $json -d "$feat")
           created=$(curl -sf -X POST "$api/api/feats?lang=2" $json -H "Authorization: Bearer $A" -d "$feat")
           id=$(echo "$created" | jq -r .id); pre=$(echo "$created" | jq -r .prerequisite); can=$(echo "$created" | jq -r .canEdit)
-          update=$(echo "$feat" | jq --arg id "$id" '. + {id: $id}')
+          # Visibility: new Homebrew is private; "link" makes it readable but not listed; "public" lists it
+          listed() { curl -sf "$api/api/feats" "$@" | jq --arg id "$id" '[.[] | select(.id == $id)] | length'; }
+          vis_default=$(echo "$created" | jq .visibility)
+          b_private=$(code "$api/api/feats/$id" -H "Authorization: Bearer $B"); anon_private=$(code "$api/api/feats/$id")
+          list_private="anon=$(listed) bob=$(listed -H "Authorization: Bearer $B") alice=$(listed -H "Authorization: Bearer $A")"
+          update=$(echo "$feat" | jq --arg id "$id" '. + {id: $id, visibility: 1}')
+          link_update=$(code -X PUT $api/api/feats/$id $json -H "Authorization: Bearer $A" -d "$update")
+          anon_link=$(code "$api/api/feats/$id"); list_link=$(listed)
+          update=$(echo "$feat" | jq --arg id "$id" '. + {id: $id, visibility: 0}')
           own_update=$(code -X PUT $api/api/feats/$id $json -H "Authorization: Bearer $A" -d "$update")
+          list_public=$(listed)
+          echo "::notice title=database::visibility: default=$vis_default | private detail bob=$b_private anon=$anon_private | private listed $list_private | link PUT=$link_update detail anon=$anon_link listed=$list_link | public listed=$list_public"
+          test "$vis_default" = "2" && test "$b_private" = "404" && test "$anon_private" = "404" && test "$list_private" = "anon=0 bob=0 alice=1"
+          test "$link_update" = "204" && test "$anon_link" = "200" && test "$list_link" = "0" && test "$list_public" = "1"
           other_update=$(code -X PUT $api/api/feats/$id $json -H "Authorization: Bearer $B" -d "$update")
           other_delete=$(code -X DELETE $api/api/feats/$id -H "Authorization: Bearer $B")
           srd_delete=$(code -X DELETE $api/api/feats/11111111-2222-3333-4444-555555555571 -H "Authorization: Bearer $A")
@@ -244,7 +256,7 @@ jobs:
 
           # Backgrounds: homebrew creation with an origin feat, localized feat name, ownership and validation
           alert=11111111-2222-3333-4444-555555555544
-          bg=$(jq -nc --arg f "$alert" '{ruleset:2, abilityOptions:[4,5,6], skillProficiencies:[7,15], originFeatId:$f, equipmentGoldAlternative:50,
+          bg=$(jq -nc --arg f "$alert" '{ruleset:2, abilityOptions:[4,5,6], skillProficiencies:[7,15], originFeatId:$f, equipmentGoldAlternative:50, visibility:1,
             translations:[{language:1,name:"Test Acolyte",description:"x",originFeatNote:"Cleric list"},{language:2,name:"Accolito di prova",description:"x",originFeatNote:"lista del Chierico"}]}')
           bg_anon=$(code -X POST $api/api/backgrounds $json -d "$bg")
           bg_created=$(curl -sf -X POST "$api/api/backgrounds?lang=2" $json -H "Authorization: Bearer $A" -d "$bg")
