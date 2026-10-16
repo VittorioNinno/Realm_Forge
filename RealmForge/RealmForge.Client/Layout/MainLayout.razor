@@ -4,6 +4,7 @@
 @using RealmForge.Shared.Enums
 @implements IDisposable
 @inject LanguageStateService LanguageState
+@inject CrossTabService CrossTab
 
 <div class="page">
     <div class="sidebar">
@@ -33,6 +34,15 @@
     protected override void OnInitialized()
     {
         LanguageState.OnLanguageChanged += StateHasChanged;
+    }
+
+    //	Listen to messages from other RealmForge tabs (e.g. e-mail confirmed from the link in the e-mail)
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await CrossTab.StartAsync();
+        }
     }
 
     public void Dispose()

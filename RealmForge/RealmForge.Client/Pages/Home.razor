@@ -6,13 +6,9 @@
 
 <PageTitle>RealmForge - Dashboard</PageTitle>
 
-@* Welcome hero: RealmForge emblem next to the title (stacked on narrow screens) *@
-<div class="rf-hero py-4" data-test="home-hero">
-    <img src="img/logo.jpg" alt="RealmForge" class="rf-hero-logo" width="168" height="168" />
-    <div>
-        <h1 class="rf-page-title mb-2">@UiText.HomeTitle(LanguageState.CurrentLanguage)</h1>
-        <p class="text-secondary lead fs-6 mb-0">@UiText.HomeSubtitle(LanguageState.CurrentLanguage)</p>
-    </div>
+<div class="py-4">
+    <h1 class="rf-page-title mb-2">@UiText.HomeTitle(LanguageState.CurrentLanguage)</h1>
+    <p class="text-secondary lead fs-6">@UiText.HomeSubtitle(LanguageState.CurrentLanguage)</p>
 </div>
 
 @code {

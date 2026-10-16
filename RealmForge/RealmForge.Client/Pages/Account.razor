@@ -6,6 +6,7 @@
 @implements IDisposable
 @inject AuthService Auth
 @inject LanguageStateService LanguageState
+@inject CrossTabService CrossTab
 @inject NavigationManager Navigation
 
 <PageTitle>RealmForge - @UiText.AccountTitle(LanguageState.CurrentLanguage)</PageTitle>
@@ -190,6 +191,18 @@
     protected override void OnInitialized()
     {
         LanguageState.OnLanguageChanged += StateHasChanged;
+        CrossTab.OnEmailConfirmed += HandleEmailConfirmed;
+    }
+
+    //	The e-mail was confirmed in another tab: refresh the status shown here
+    private async void HandleEmailConfirmed()
+    {
+        if (wasAuthenticated == true)
+        {
+            summary = await Auth.GetAccountSummaryAsync();
+            resendMessage = null;
+            await InvokeAsync(StateHasChanged);
+        }
     }
 
     //	The summary is (re)loaded whenever the authentication state changes (sign-in on this page, sign-out elsewhere)
@@ -308,5 +321,6 @@
     public void Dispose()
     {
         LanguageState.OnLanguageChanged -= StateHasChanged;
+        CrossTab.OnEmailConfirmed -= HandleEmailConfirmed;
     }
 }

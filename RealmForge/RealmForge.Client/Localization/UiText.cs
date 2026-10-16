@@ -125,6 +125,9 @@ namespace RealmForge.Client.Localization
 		public static string ConfirmEmailDone(LanguageCode lang) => lang == LanguageCode.It
 			? "Indirizzo email confermato: ora puoi creare e modificare i tuoi contenuti Homebrew."
 			: "E-mail address confirmed: you can now create and edit your Homebrew content.";
+		public static string ConfirmEmailOtherTab(LanguageCode lang) => lang == LanguageCode.It
+			? "La scheda di RealmForge già aperta è stata aggiornata: questa scheda si chiuderà da sola."
+			: "The RealmForge tab you already had open has been updated: this tab will close by itself.";
 		public static string BtnGoToAccount(LanguageCode lang) => lang == LanguageCode.It ? "Vai al tuo account" : "Go to your account";
 		public static string BtnLoginToForge(LanguageCode lang) => lang == LanguageCode.It ? "Accedi per forgiare" : "Sign in to forge";
 		public static string BtnLogout(LanguageCode lang) => lang == LanguageCode.It ? "Esci" : "Sign out";
