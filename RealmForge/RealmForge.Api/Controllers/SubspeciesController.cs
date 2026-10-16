@@ -154,6 +154,7 @@ namespace RealmForge.Api.Controllers
 		///	Creates a new subspecies linked to a specific parent species.
 		///	</summary>
 		[HttpPost("~/api/species/{speciesId:guid}/subspecies")]
+		[RequireConfirmedEmail]
 		[Authorize]
 		public async Task<ActionResult<SubspeciesResponseDto>> Create(Guid speciesId, [FromBody] CreateSubspeciesDto dto)
 		{
@@ -226,6 +227,7 @@ namespace RealmForge.Api.Controllers
 		///	Updates an existing subspecies mechanical data and translations.
 		///	</summary>
 		[HttpPut("{id:guid}")]
+		[RequireConfirmedEmail]
 		[Authorize]
 		public async Task<IActionResult> UpdateSubspecies(Guid id, [FromBody] UpdateSubspeciesDto dto)
 		{

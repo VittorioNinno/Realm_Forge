@@ -86,6 +86,71 @@ namespace RealmForge.Client.Services
 		}
 
 		///	<summary>
+		///	Whether the signed-in user's e-mail is confirmed; null when there is no valid session.
+		///	</summary>
+		public async Task<bool?> IsEmailConfirmedAsync()
+		{
+			if (await _tokens.GetAsync() is null)
+			{
+				return null;
+			}
+
+			try
+			{
+				var response = await _http.GetAsync("api/auth/manage/info");
+				if (!response.IsSuccessStatusCode)
+				{
+					return null;
+				}
+
+				var info = await response.Content.ReadFromJsonAsync<JsonElement>();
+				return info.TryGetProperty("isEmailConfirmed", out var confirmed) && confirmed.GetBoolean();
+			}
+			catch (HttpRequestException)
+			{
+				return null;
+			}
+		}
+
+		///	<summary>
+		///	Sends a new confirmation e-mail (Identity answers 200 even for unknown addresses, so nothing leaks).
+		///	</summary>
+		public async Task<AuthResult> ResendConfirmationAsync(string email)
+		{
+			try
+			{
+				var response = await _http.PostAsJsonAsync("api/auth/resendConfirmationEmail", new { email });
+				return response.IsSuccessStatusCode ? AuthResult.Ok() : AuthResult.Fail("Unknown");
+			}
+			catch (HttpRequestException)
+			{
+				return AuthResult.Fail("Unreachable");
+			}
+		}
+
+		///	<summary>
+		///	Confirms the e-mail with the userId/code pair received in the confirmation link.
+		///	</summary>
+		public async Task<AuthResult> ConfirmEmailAsync(string userId, string code, string? changedEmail)
+		{
+			var url = $"api/auth/confirmEmail?userId={Uri.EscapeDataString(userId)}&code={Uri.EscapeDataString(code)}";
+			if (!string.IsNullOrWhiteSpace(changedEmail))
+			{
+				url += $"&changedEmail={Uri.EscapeDataString(changedEmail)}";
+			}
+
+			try
+			{
+				var response = await _http.GetAsync(url);
+				return response.IsSuccessStatusCode ? AuthResult.Ok() : AuthResult.Fail("InvalidConfirmationLink");
+			}
+			catch (HttpRequestException)
+			{
+				return AuthResult.Fail("Unreachable");
+			}
+		}
+
+		///	<summary>
 		///	Changes the password through Identity's /manage/info endpoint (the current password is required).
 		///	</summary>
 		public async Task<AuthResult> ChangePasswordAsync(string oldPassword, string newPassword)

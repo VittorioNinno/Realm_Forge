@@ -95,7 +95,23 @@ If the value is missing, the API stops at startup and prints this command.
 Add your e-mail to `Auth:AdminEmails` in `RealmForge.Api/appsettings.Development.json` to manage Homebrew created before accounts existed (it has no author).
 *Aggiungi la tua email in `Auth:AdminEmails` per gestire gli Homebrew creati prima degli account (non hanno autore).*
 
-### 3. Run / Avvio
+### 3. E-mail (optional) / Email (facoltativo)
+New accounts must confirm their e-mail before creating or editing Homebrew. With Gmail, create an **app password** (Google account → Security → 2-Step Verification → App passwords) and store it in user-secrets:
+*I nuovi account devono confermare l'email prima di creare o modificare Homebrew. Con Gmail crea una **password per le app** (Account Google → Sicurezza → Verifica in due passaggi → Password per le app) e salvala negli user-secrets:*
+
+```bash
+cd RealmForge/RealmForge.Api
+dotnet user-secrets set "Email:Host" "smtp.gmail.com"
+dotnet user-secrets set "Email:Port" "587"
+dotnet user-secrets set "Email:Username" "<you>@gmail.com"
+dotnet user-secrets set "Email:Password" "<16-character app password>"
+dotnet user-secrets set "Email:FromAddress" "<you>@gmail.com"
+```
+
+Without these settings no e-mail is sent: the confirmation link is written to the API console, so you can open it from there.
+*Senza queste impostazioni nessuna email viene inviata: il link di conferma compare nella console dell'API e puoi aprirlo da lì.*
+
+### 4. Run / Avvio
 
 ```bash
 dotnet run --project RealmForge/RealmForge.Api --launch-profile https

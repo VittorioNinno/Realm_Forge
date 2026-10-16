@@ -1,9 +1,11 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using RealmForge.Infrastructure.Persistence;
 using RealmForge.Api.Security;
 using RealmForge.Infrastructure.Identity;
 using RealmForge.Infrastructure.Persistence.Seeding;
 using Scalar.AspNetCore;
+using Microsoft.AspNetCore.Identity;
+using RealmForge.Api.Email;
 
 namespace RealmForge.Api
 {
@@ -31,6 +33,14 @@ namespace RealmForge.Api
 			//	Ownership rules for SRD and Homebrew content
 			builder.Services.AddSingleton<ContentAccess>();
 
+			//	E-mails for account confirmation and password reset (SMTP settings in the "Email" section / user-secrets)
+			builder.Services.Configure<EmailOptions>(builder.Configuration.GetSection("Email"));
+			builder.Services.AddHttpContextAccessor();
+			builder.Services.AddTransient<IEmailSender<ApplicationUser>, IdentityEmailSender>();
+
+			//	Creating or editing content requires a confirmed e-mail address
+			builder.Services.AddScoped<RequireConfirmedEmailFilter>();
+
 			//	Register controllers
 			builder.Services.AddControllers();
 
@@ -51,7 +61,8 @@ namespace RealmForge.Api
 				{
 					policy.WithOrigins(allowedOrigins)
 							.AllowAnyMethod()
-							.AllowAnyHeader();
+							.AllowAnyHeader()
+							.WithExposedHeaders(RequireConfirmedEmailFilter.ErrorHeader);
 				});
 			});
 
