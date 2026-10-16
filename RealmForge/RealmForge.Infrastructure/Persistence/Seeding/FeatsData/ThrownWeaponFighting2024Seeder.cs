@@ -31,14 +31,14 @@ public static class ThrownWeaponFighting2024Seeder
 					Id = TranslationEnId,
 					Language = LanguageCode.En,
 					Name = "Thrown Weapon Fighting",
-					Description = "Your throws carry extra force.\n- **Forceful Throw.** When you hit with a ranged attack roll using a weapon with the Thrown property, you gain a +2 bonus to the damage roll."
+					Description = "Your throws carry extra force.\n\nWhen you hit with a ranged attack roll using a weapon with the Thrown property, you gain a +2 bonus to the damage roll."
 				},
 				new FeatTranslation
 				{
 					Id = TranslationItId,
 					Language = LanguageCode.It,
 					Name = "Combattere con Armi da Lancio",
-					Description = "I lanci del personaggio hanno una forza in più.\n- **Lancio potente.** Quando colpisce con un tiro per colpire a distanza usando un'arma con la proprietà da lancio, ottiene un bonus di +2 al tiro per i danni."
+					Description = "I lanci del personaggio hanno una forza in più.\n\nQuando colpisce con un tiro per colpire a distanza usando un'arma con la proprietà da lancio, ottiene un bonus di +2 al tiro per i danni."
 				}
 			}
 		};

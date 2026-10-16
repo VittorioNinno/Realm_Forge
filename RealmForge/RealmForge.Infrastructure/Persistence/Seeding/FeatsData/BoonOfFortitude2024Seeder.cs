@@ -31,14 +31,14 @@ public static class BoonOfFortitude2024Seeder
 					Id = TranslationEnId,
 					Language = LanguageCode.En,
 					Name = "Boon of Fortitude",
-					Description = "Your body has become extraordinarily hard to break.\n- **Ability +1.** Increase one ability score of your choice by 1, to a maximum of 30.\n- **Iron Constitution.** Your Hit Point maximum increases by 40.\n- **Vigorous Healing.** Whenever you regain Hit Points, you can regain extra Hit Points equal to your Constitution modifier. After doing so, you can't gain this extra healing again until the start of your next turn."
+					Description = "Your body has become extraordinarily hard to break.\n- **Ability Score Increase.** Increase one ability score of your choice by 1, to a maximum of 30.\n- **Fortified Health.** Your Hit Point maximum increases by 40. Whenever you regain Hit Points, you can regain extra Hit Points equal to your Constitution modifier. After doing so, you can't gain this extra healing again until the start of your next turn."
 				},
 				new FeatTranslation
 				{
 					Id = TranslationItId,
 					Language = LanguageCode.It,
 					Name = "Dono della Tempra",
-					Description = "Il corpo del personaggio è diventato straordinariamente difficile da abbattere.\n- **Caratteristica +1.** Un punteggio di caratteristica a scelta aumenta di 1, fino a un massimo di 30.\n- **Costituzione di ferro.** Il suo massimo dei punti ferita aumenta di 40.\n- **Guarigione vigorosa.** Ogni volta che recupera punti ferita, può recuperarne in aggiunta un numero pari al suo modificatore di Costituzione. Dopo averlo fatto, non può ottenere di nuovo questa guarigione aggiuntiva fino all'inizio del suo turno successivo."
+					Description = "Il corpo del personaggio è diventato straordinariamente difficile da abbattere.\n- **Incremento dei Punteggi di Caratteristica.** Un punteggio di caratteristica a scelta aumenta di 1, fino a un massimo di 30.\n- **Salute Rafforzata.** Il suo massimo dei Punti Ferita aumenta di 40. Ogni volta che recupera Punti Ferita, può recuperarne in aggiunta un numero pari al suo modificatore di Costituzione. Dopo averlo fatto, non può ottenere di nuovo questa guarigione aggiuntiva fino all'inizio del suo turno successivo."
 				}
 			}
 		};

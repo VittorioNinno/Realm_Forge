@@ -120,13 +120,13 @@ namespace RealmForge.Infrastructure.Persistence.Seeding.SpeciesData
 							{
 								Language = LanguageCode.It,
 								Name = "Umano Variante",
-								Description = "Una versione opzionale dell'umano per i gruppi che usano i talenti: meno aumenti di caratteristica in cambio di un'abilità e di un talento che definiscono la specialità del personaggio."
+								Description = "Una versione opzionale dell'umano per le campagne che usano i talenti, se il Dungeon Master lo consente: meno aumenti di caratteristica in cambio di un'abilità e di un talento che definiscono la specialità del personaggio."
 							},
 							new SubspeciesTranslation
 							{
 								Language = LanguageCode.En,
 								Name = "Variant Human",
-								Description = "An optional version of the human for groups that use feats: fewer ability increases in exchange for a skill and a feat that define the character's specialty."
+								Description = "An optional version of the human for campaigns that use feats, if the Dungeon Master allows it: fewer ability increases in exchange for a skill and a feat that define the character's specialty."
 							}
 						},
 						Traits = new List<Trait>

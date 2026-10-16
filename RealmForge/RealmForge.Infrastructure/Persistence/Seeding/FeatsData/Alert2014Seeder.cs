@@ -30,14 +30,14 @@ public static class Alert2014Seeder
 					Id = TranslationEnId,
 					Language = LanguageCode.En,
 					Name = "Alert",
-					Description = "Your senses never fully switch off.\n- **Quick Reflexes.** Add +5 to your initiative rolls.\n- **Never Caught Off Guard.** As long as you are conscious, you can't be surprised.\n- **No Blind Spots.** Creatures hidden from you don't gain advantage on attack rolls against you just because they are hidden."
+					Description = "Your senses never fully switch off.\n- Add +5 to your initiative rolls.\n- As long as you are conscious, you can't be surprised.\n- Creatures hidden from you don't gain advantage on attack rolls against you just because they are hidden."
 				},
 				new FeatTranslation
 				{
 					Id = TranslationItId,
 					Language = LanguageCode.It,
 					Name = "Allerta",
-					Description = "I sensi del personaggio restano sempre all'erta.\n- **Riflessi pronti.** Aggiunge +5 ai tiri per l'iniziativa.\n- **Mai colto alla sprovvista.** Finché è cosciente, non può essere sorpreso.\n- **Nessun punto cieco.** Le creature nascoste al personaggio non ottengono vantaggio ai tiri per colpirlo per il solo fatto di essere nascoste."
+					Description = "I sensi del personaggio restano sempre all'erta.\n- Aggiunge +5 ai tiri per l'iniziativa.\n- Finché è cosciente, non può essere sorpreso.\n- Le creature nascoste al personaggio non ottengono vantaggio ai tiri per colpirlo per il solo fatto di essere nascoste."
 				}
 			}
 		};

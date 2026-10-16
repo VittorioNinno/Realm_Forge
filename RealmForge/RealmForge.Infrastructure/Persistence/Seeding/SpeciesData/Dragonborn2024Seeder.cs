@@ -49,13 +49,13 @@ namespace RealmForge.Infrastructure.Persistence.Seeding.SpeciesData
 					{
 						Language = LanguageCode.It,
 						Name = "Dragonide",
-						Description = "I dragonidi fanno risalire le loro origini ai draghi. Alcune leggende narrano che i primi siano usciti da uova benedette dagli dei draconici; altre sostengono che furono i draghi stessi a plasmarli. Qualunque sia la verità, i dragonidi hanno da tempo trovato una propria dimora tra i popoli del mondo.\n\nHanno l'aspetto di draghi senza ali che camminano su due zampe, con scaglie, occhi luminosi, ossa robuste e corna, e i loro colori ricordano spesso quelli dei draghi della loro stirpe."
+						Description = "I dragonidi fanno risalire le loro origini alle uova dei draghi cromatici e metallici. Una leggenda narra che gli dei draghi Bahamut e Tiamat abbiano benedetto quelle uova per popolare il multiverso di creature a loro immagine; un'altra sostiene che i draghi abbiano creato i primi dragonidi senza alcuna benedizione divina. Qualunque sia la verità, i dragonidi hanno da tempo trovato una propria dimora sul Piano Materiale.\n\nHanno l'aspetto di draghi senza ali che camminano su due zampe, con scaglie, occhi luminosi, ossa robuste e corna, e i loro colori ricordano spesso quelli dei draghi della loro stirpe."
 					},
 					new SpeciesTranslation
 					{
 						Language = LanguageCode.En,
 						Name = "Dragonborn",
-						Description = "Dragonborn trace their origins to dragons. Some legends say the first of them hatched from eggs blessed by dragon gods; others claim the dragons shaped them on their own. Whatever the truth, dragonborn have long since made their own homes among the peoples of the world.\n\nThey stand like wingless dragons on two legs, with scales, bright eyes, heavy bones, and horns, and their coloring often recalls the dragons of their bloodline."
+						Description = "Dragonborn trace their origins to the eggs of chromatic and metallic dragons. One legend holds that the dragon gods Bahamut and Tiamat blessed those eggs to fill the multiverse with people made in their image; another says the dragons created the first dragonborn without any divine blessing. Whatever the truth, dragonborn have long since made their homes on the Material Plane.\n\nThey stand like wingless dragons on two legs, with scales, bright eyes, heavy bones, and horns, and their coloring often recalls the dragons of their bloodline."
 					}
 				},
 				Traits = new List<Trait>

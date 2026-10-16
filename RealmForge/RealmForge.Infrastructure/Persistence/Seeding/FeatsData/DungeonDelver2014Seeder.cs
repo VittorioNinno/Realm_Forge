@@ -30,14 +30,14 @@ public static class DungeonDelver2014Seeder
 					Id = TranslationEnId,
 					Language = LanguageCode.En,
 					Name = "Dungeon Delver",
-					Description = "Years underground have taught you where danger hides.\n- **Hidden Passages.** You have advantage on Wisdom (Perception) and Intelligence (Investigation) checks to find secret doors.\n- **Trap Sense.** You have advantage on saving throws to avoid or resist traps, and resistance to damage dealt by traps.\n- **Watchful Travel.** You can look for traps while traveling at a normal pace, not only at a slow pace."
+					Description = "Years underground have taught you where danger hides.\n- You have advantage on Wisdom (Perception) and Intelligence (Investigation) checks to find secret doors.\n- You have advantage on saving throws to avoid or resist traps, and resistance to damage dealt by traps.\n- You can look for traps while traveling at a normal pace, not only at a slow pace."
 				},
 				new FeatTranslation
 				{
 					Id = TranslationItId,
 					Language = LanguageCode.It,
 					Name = "Esperto di Dungeon",
-					Description = "Anni passati sottoterra hanno insegnato al personaggio dove si nasconde il pericolo.\n- **Passaggi nascosti.** Ha vantaggio alle prove di Saggezza (Percezione) e Intelligenza (Indagare) per trovare porte segrete.\n- **Senso delle trappole.** Ha vantaggio ai tiri salvezza per evitare o resistere alle trappole e resistenza ai danni inflitti dalle trappole.\n- **Viaggio vigile.** Può cercare trappole anche mentre viaggia a passo normale, non solo a passo lento."
+					Description = "Anni passati sottoterra hanno insegnato al personaggio dove si nasconde il pericolo.\n- Ha vantaggio alle prove di Saggezza (Percezione) e Intelligenza (Indagare) per trovare porte segrete.\n- Ha vantaggio ai tiri salvezza per evitare o resistere alle trappole e resistenza ai danni inflitti dalle trappole.\n- Può cercare trappole anche mentre viaggia a passo normale, non solo a passo lento."
 				}
 			}
 		};

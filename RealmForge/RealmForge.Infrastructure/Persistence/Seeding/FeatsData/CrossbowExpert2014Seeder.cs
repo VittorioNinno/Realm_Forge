@@ -30,14 +30,14 @@ public static class CrossbowExpert2014Seeder
 					Id = TranslationEnId,
 					Language = LanguageCode.En,
 					Name = "Crossbow Expert",
-					Description = "Crossbows hold no secrets for you.\n- **Fast Reload.** You ignore the loading property of crossbows you are proficient with.\n- **Point-Blank Shooting.** Having a hostile creature within 5 feet of you doesn't give you disadvantage on ranged attack rolls.\n- **Off-Hand Crossbow.** When you take the Attack action and attack with a one-handed weapon, you can use a bonus action to attack with a loaded hand crossbow you are holding."
+					Description = "Crossbows hold no secrets for you.\n- You ignore the loading property of crossbows you are proficient with.\n- Having a hostile creature within 5 feet of you doesn't give you disadvantage on ranged attack rolls.\n- When you take the Attack action and attack with a one-handed weapon, you can use a bonus action to attack with a loaded hand crossbow you are holding."
 				},
 				new FeatTranslation
 				{
 					Id = TranslationItId,
 					Language = LanguageCode.It,
 					Name = "Esperto di Balestre",
-					Description = "Le balestre non hanno segreti per il personaggio.\n- **Ricarica rapida.** Ignora la proprietà ricarica delle balestre in cui ha competenza.\n- **Tiro ravvicinato.** Avere una creatura ostile entro 1,5 metri non gli impone svantaggio ai tiri per colpire a distanza.\n- **Balestra nella mano secondaria.** Quando usa l'azione Attacco e attacca con un'arma a una mano, può usare un'azione bonus per attaccare con una balestra a mano carica che impugna."
+					Description = "Le balestre non hanno segreti per il personaggio.\n- Ignora la proprietà ricarica delle balestre in cui ha competenza.\n- Avere una creatura ostile entro 1,5 metri non gli impone svantaggio ai tiri per colpire a distanza.\n- Quando usa l'azione Attacco e attacca con un'arma a una mano, può usare un'azione bonus per attaccare con una balestra a mano carica che impugna."
 				}
 			}
 		};

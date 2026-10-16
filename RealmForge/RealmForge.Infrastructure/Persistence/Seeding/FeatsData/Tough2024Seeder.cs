@@ -30,14 +30,14 @@ public static class Tough2024Seeder
 					Id = TranslationEnId,
 					Language = LanguageCode.En,
 					Name = "Tough",
-					Description = "You can take more punishment than most.\n- **Extra Hit Points.** When you take this feat, your Hit Point maximum increases by twice your character level. Each time you gain a character level afterward, it increases by a further 2."
+					Description = "You can take more punishment than most.\n\nWhen you take this feat, your Hit Point maximum increases by twice your character level. Each time you gain a character level afterward, it increases by a further 2."
 				},
 				new FeatTranslation
 				{
 					Id = TranslationItId,
 					Language = LanguageCode.It,
 					Name = "Robusto",
-					Description = "Il personaggio sopporta più colpi della maggior parte delle persone.\n- **Punti ferita aggiuntivi.** Quando ottiene questo talento, il suo massimo dei punti ferita aumenta di un ammontare pari al doppio del suo livello del personaggio. Ogni volta che sale di livello in seguito, aumenta di altri 2."
+					Description = "Il personaggio sopporta più colpi della maggior parte delle persone.\n\nQuando ottiene questo talento, il suo massimo dei Punti Ferita aumenta di un ammontare pari al doppio del suo livello del personaggio. Ogni volta che sale di livello in seguito, aumenta di altri 2."
 				}
 			}
 		};
