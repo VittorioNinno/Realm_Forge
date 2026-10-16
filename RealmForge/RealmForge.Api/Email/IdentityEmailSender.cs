@@ -16,6 +16,16 @@ namespace RealmForge.Api.Email
 	///	</summary>
 	public class IdentityEmailSender : IEmailSender<ApplicationUser>
 	{
+		//	Logo embedded in the assembly (Email/Assets/logo.jpg), read once
+		private static readonly Lazy<byte[]> LogoBytes = new(() =>
+		{
+			using var stream = typeof(IdentityEmailSender).Assembly.GetManifestResourceStream("RealmForge.Api.Email.Assets.logo.jpg")
+				?? throw new InvalidOperationException("E-mail logo resource not found");
+			using var copy = new MemoryStream();
+			stream.CopyTo(copy);
+			return copy.ToArray();
+		});
+
 		private readonly EmailOptions _options;
 		private readonly IHttpContextAccessor _http;
 		private readonly string[] _allowedOrigins;
@@ -32,39 +42,39 @@ namespace RealmForge.Api.Email
 		public Task SendConfirmationLinkAsync(ApplicationUser user, string email, string confirmationLink)
 		{
 			var link = ToClientLink("confirm-email", confirmationLink);
+			var it = new EmailTemplate.Section("Conferma il tuo indirizzo email",
+				"Benvenuto nella Forgia! Per creare e condividere contenuti Homebrew su RealmForge conferma il tuo indirizzo email.", "Conferma email");
+			var en = new EmailTemplate.Section("Confirm your e-mail address",
+				"Welcome to the Forge! To create and share Homebrew content on RealmForge, please confirm your e-mail address.", "Confirm e-mail");
 
 			return SendAsync(email, "Conferma il tuo account RealmForge · Confirm your RealmForge account", link,
-				Body("Conferma il tuo indirizzo email", "Per creare e condividere contenuti Homebrew su RealmForge conferma il tuo indirizzo email:", "Conferma email",
-					"Confirm your e-mail address", "To create and share Homebrew content on RealmForge, please confirm your e-mail address:", "Confirm e-mail",
-					link));
+				EmailTemplate.ActionEmail("Conferma il tuo indirizzo email per iniziare a forgiare.", it, en, link),
+				EmailTemplate.PlainText(it, en, link));
 		}
 
 		public Task SendPasswordResetLinkAsync(ApplicationUser user, string email, string resetLink)
 		{
 			var link = ToClientLink("reset-password", resetLink);
+			var it = new EmailTemplate.Section("Reimposta la password",
+				"Hai chiesto di reimpostare la password del tuo account RealmForge.", "Reimposta password");
+			var en = new EmailTemplate.Section("Reset your password",
+				"You asked to reset the password of your RealmForge account.", "Reset password");
 
 			return SendAsync(email, "Reimposta la password · Reset your password", link,
-				Body("Reimposta la password", "Hai chiesto di reimpostare la password del tuo account RealmForge:", "Reimposta password",
-					"Reset your password", "You asked to reset the password of your RealmForge account:", "Reset password",
-					link));
+				EmailTemplate.ActionEmail("Reimposta la password del tuo account RealmForge.", it, en, link),
+				EmailTemplate.PlainText(it, en, link));
 		}
 
 		public Task SendPasswordResetCodeAsync(ApplicationUser user, string email, string resetCode)
 		{
-			var code = WebUtility.HtmlEncode(resetCode);
+			var it = new EmailTemplate.Section("Reimposta la password",
+				"Usa questo codice per reimpostare la password del tuo account RealmForge:", string.Empty);
+			var en = new EmailTemplate.Section("Reset your password",
+				"Use this code to reset the password of your RealmForge account:", string.Empty);
 
 			return SendAsync(email, "Codice per reimpostare la password · Password reset code", resetCode,
-				$"""
-				<div style="font-family:Arial,sans-serif;max-width:560px">
-				  <h2 style="color:#ff8c00">Reimposta la password</h2>
-				  <p>Usa questo codice per reimpostare la password del tuo account RealmForge:</p>
-				  <p style="font-size:18px;font-family:monospace;background:#f2f2f2;padding:12px">{code}</p>
-				  <hr style="border:0;border-top:1px solid #ddd;margin:24px 0">
-				  <h2 style="color:#ff8c00">Reset your password</h2>
-				  <p>Use this code to reset the password of your RealmForge account (shown above).</p>
-				  <p style="color:#888;font-size:12px">Se non hai fatto tu questa richiesta, ignora questa email. · If you did not ask for this, ignore this e-mail.</p>
-				</div>
-				""");
+				EmailTemplate.CodeEmail("Il tuo codice per reimpostare la password.", it, en, resetCode),
+				EmailTemplate.PlainText(it, en, resetCode));
 		}
 
 		//	Identity builds links to its own API endpoint; the same query (userId, code, ...) is sent to the client page instead.
@@ -90,28 +100,7 @@ namespace RealmForge.Api.Email
 			return _options.ClientBaseUrl ?? _allowedOrigins.FirstOrDefault() ?? "http://localhost:5227";
 		}
 
-		private static string Body(string titleIt, string textIt, string buttonIt, string titleEn, string textEn, string buttonEn, string link)
-		{
-			var href = WebUtility.HtmlEncode(link);
-			string Button(string label) =>
-				$"""<p><a href="{href}" style="display:inline-block;background:#ff8c00;color:#111;padding:10px 18px;border-radius:4px;text-decoration:none;font-weight:bold">{label}</a></p>""";
-
-			return $"""
-				<div style="font-family:Arial,sans-serif;max-width:560px">
-				  <h2 style="color:#ff8c00">{titleIt}</h2>
-				  <p>{textIt}</p>
-				  {Button(buttonIt)}
-				  <hr style="border:0;border-top:1px solid #ddd;margin:24px 0">
-				  <h2 style="color:#ff8c00">{titleEn}</h2>
-				  <p>{textEn}</p>
-				  {Button(buttonEn)}
-				  <p style="color:#888;font-size:12px">Se il pulsante non funziona, copia questo indirizzo nel browser · If the button does not work, paste this address into your browser:<br>{href}</p>
-				  <p style="color:#888;font-size:12px">Se non hai fatto tu questa richiesta, ignora questa email. · If you did not ask for this, ignore this e-mail.</p>
-				</div>
-				""";
-		}
-
-		private async Task SendAsync(string to, string subject, string logValue, string html)
+		private async Task SendAsync(string to, string subject, string logValue, string html, string text)
 		{
 			if (!_options.IsConfigured)
 			{
@@ -128,7 +117,12 @@ namespace RealmForge.Api.Email
 			message.From.Add(new MailboxAddress(_options.FromName, _options.FromAddress ?? username));
 			message.To.Add(MailboxAddress.Parse(to));
 			message.Subject = subject;
-			message.Body = new BodyBuilder { HtmlBody = html }.ToMessageBody();
+			//	The logo travels inside the e-mail (inline attachment referenced as cid:), so it shows without a public URL
+			var body = new BodyBuilder { TextBody = text };
+			var logo = body.LinkedResources.Add("realmforge-logo.jpg", LogoBytes.Value, new ContentType("image", "jpeg"));
+			logo.ContentId = MimeKit.Utils.MimeUtils.GenerateMessageId();
+			body.HtmlBody = html.Replace(EmailTemplate.LogoCidPlaceholder, logo.ContentId);
+			message.Body = body.ToMessageBody();
 
 			//	Port 465 uses TLS from the first byte; 587 (and 25) start in clear text and switch with STARTTLS
 			var security = _options.Port == 465 ? SecureSocketOptions.SslOnConnect : SecureSocketOptions.StartTls;
