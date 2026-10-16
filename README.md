@@ -195,9 +195,11 @@ Source code released under the [MIT License](LICENSE).
 
 ### SRD attribution
 
-Entries whose source is shown as SRD 5.1 in the app use text from the System Reference Document; all other base content is text written for RealmForge.
-*Le voci con fonte SRD 5.1 usano il testo del System Reference Document; tutti gli altri contenuti Base sono testi scritti per RealmForge.*
+Entries whose source is shown as SRD 5.1 or SRD 5.2 in the app use text from the System Reference Documents; all other base content is text written for RealmForge.
+*Le voci con fonte SRD 5.1 o SRD 5.2 usano il testo dei System Reference Document; tutti gli altri contenuti Base sono testi scritti per RealmForge.*
 
 This work includes material taken from the System Reference Document 5.1 ("SRD 5.1") by Wizards of the Coast LLC and available at https://dnd.wizards.com/resources/systems-reference-document. The SRD 5.1 is licensed under the Creative Commons Attribution 4.0 International License available at https://creativecommons.org/licenses/by/4.0/legalcode.
+
+This work includes material from the System Reference Document 5.2 ("SRD 5.2") by Wizards of the Coast LLC, available at https://www.dndbeyond.com/srd. The SRD 5.2 is licensed under the Creative Commons Attribution 4.0 International License, available at https://creativecommons.org/licenses/by/4.0/legalcode.
 
 RealmForge is compatible with fifth edition. · *RealmForge è compatibile con la quinta edizione.*
