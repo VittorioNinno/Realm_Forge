@@ -111,9 +111,7 @@
                                     <span class="badge @(sp.Ruleset == RulesetVersion.Dnd5e_2024 ? "badge-edition-2024" : "badge-edition-2014")">
                                         @UiText.FormatRuleset(sp.Ruleset, LanguageState.CurrentLanguage)
                                     </span>
-                                    <span class="badge @(sp.IsOfficialSRD ? "badge-srd" : "badge-homebrew")">
-                                        @(sp.IsOfficialSRD ? UiText.BadgeSRD(LanguageState.CurrentLanguage) : UiText.BadgeHomebrew(LanguageState.CurrentLanguage))
-                                    </span>
+                                    <RealmForge.Client.Components.ContentBadge IsBase="sp.IsOfficialSRD" Source="sp.Source" />
                                 </div>
                             </div>
 
@@ -199,9 +197,7 @@
                             <span class="badge @(selectedDetail.Ruleset == RulesetVersion.Dnd5e_2024 ? "badge-edition-2024" : "badge-edition-2014")">
                                 @UiText.FormatRuleset(selectedDetail.Ruleset, LanguageState.CurrentLanguage)
                             </span>
-                            <span class="badge @(selectedDetail.IsOfficialSRD ? "badge-srd" : "badge-homebrew")">
-                                @(selectedDetail.IsOfficialSRD ? UiText.BadgeSRD(LanguageState.CurrentLanguage) : UiText.BadgeHomebrew(LanguageState.CurrentLanguage))
-                            </span>
+                            <RealmForge.Client.Components.ContentBadge IsBase="selectedDetail.IsOfficialSRD" Source="selectedDetail.Source" ShowSource="true" />
                         </div>
                     </div>
 

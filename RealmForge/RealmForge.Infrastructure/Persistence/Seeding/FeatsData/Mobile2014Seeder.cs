@@ -30,14 +30,14 @@ public static class Mobile2014Seeder
 					Id = TranslationEnId,
 					Language = LanguageCode.En,
 					Name = "Mobile",
-					Description = "You are exceptionally speedy and agile. You gain the following benefits:\n- Your speed increases by 10 feet.\n- When you use the Dash action, difficult terrain doesn't cost you extra movement on that turn.\n- When you make a melee attack against a creature, you don't provoke opportunity attacks from that creature for the rest of the turn, whether you hit or not."
+					Description = "You are fast and hard to pin down.\n- **Swift.** Your speed increases by 10 feet.\n- **Sure-Footed Dash.** On a turn in which you take the Dash action, difficult terrain costs you no extra movement.\n- **Hit and Run.** After you make a melee attack against a creature, that creature can't make opportunity attacks against you for the rest of your turn, whether you hit or missed."
 				},
 				new FeatTranslation
 				{
 					Id = TranslationItId,
 					Language = LanguageCode.It,
 					Name = "Mobilità",
-					Description = "Il personaggio è straordinariamente agile e veloce, e ottiene i benefici seguenti:\n- La sua velocità aumenta di 3 metri.\n- Quando usa l'azione di Scatto, il terreno difficile non gli costa movimento extra in quel turno.\n- Quando effettua un attacco in mischia contro una creatura, non provoca attacchi di opportunità da parte di quella creatura per il resto del turno, che l'attacco colpisca o meno."
+					Description = "Il personaggio è veloce e difficile da bloccare.\n- **Rapido.** La sua velocità aumenta di 3 metri.\n- **Scatto sicuro.** Nel turno in cui usa l'azione Scatto, il terreno difficile non gli costa movimento aggiuntivo.\n- **Colpisci e fuggi.** Dopo aver effettuato un attacco in mischia contro una creatura, quella creatura non può effettuare attacchi di opportunità contro di lui per il resto del turno, che l'attacco sia andato a segno o meno."
 				}
 			}
 		};

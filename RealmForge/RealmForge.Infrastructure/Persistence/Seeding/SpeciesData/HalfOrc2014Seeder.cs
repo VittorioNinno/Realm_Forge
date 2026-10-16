@@ -27,13 +27,13 @@ namespace RealmForge.Infrastructure.Persistence.Seeding.SpeciesData
 					{
 						Language = LanguageCode.It,
 						Name = "Mezzorco",
-						Description = "I mezzorchi combinano la forza bruta, le zanne prominenti e la furia dei loro progenitori orchi con l'ingegno, l'ambizione e l'autodisciplina ereditate dal sangue umano. Molti cercano gloria guadagnandosi rispetto come fieri guerrieri e indomiti avventurieri."
+						Description = "I mezzorchi ereditano dagli orchi la forza, le zanne e il temperamento feroce, e dagli umani l'ambizione e l'autocontrollo. Molti partono per dimostrare il proprio valore in un mondo pronto a giudicarli, guadagnandosi fama come guerrieri e avventurieri formidabili."
 					},
 					new SpeciesTranslation
 					{
 						Language = LanguageCode.En,
 						Name = "Half-Orc",
-						Description = "Half-orcs combine the physical might, prominent tusks, and savage fury of their orc heritage with the ambition, cunning, and self-discipline of their human blood. Many venture into the world to prove their worth as fierce warriors and legendary adventurers."
+						Description = "Half-orcs inherit an orc's strength, tusks, and fierce temper along with a human's ambition and self-control. Many set out to prove their worth in a world quick to judge them, earning renown as formidable warriors and adventurers."
 					}
 				},
 				Traits = new List<Trait>

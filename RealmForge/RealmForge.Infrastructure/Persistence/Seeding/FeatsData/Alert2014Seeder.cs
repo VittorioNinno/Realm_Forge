@@ -30,14 +30,14 @@ public static class Alert2014Seeder
 					Id = TranslationEnId,
 					Language = LanguageCode.En,
 					Name = "Alert",
-					Description = "Always on the lookout for danger, you gain the following benefits:\n- You gain a +5 bonus to initiative.\n- You can't be surprised while you are conscious.\n- Other creatures don't gain advantage on attack rolls against you as a result of being hidden from you."
+					Description = "Your senses never fully switch off.\n- **Quick Reflexes.** Add +5 to your initiative rolls.\n- **Never Caught Off Guard.** As long as you are conscious, you can't be surprised.\n- **No Blind Spots.** Creatures hidden from you don't gain advantage on attack rolls against you just because they are hidden."
 				},
 				new FeatTranslation
 				{
 					Id = TranslationItId,
 					Language = LanguageCode.It,
 					Name = "Allerta",
-					Description = "Il personaggio tiene sempre gli occhi aperti in caso di pericolo e ottiene i benefici seguenti:\n- Bonus di +5 all'iniziativa.\n- Non può essere sorpreso finché è cosciente.\n- Le altre creature non dispongono di vantaggio ai tiri per colpire contro di lui quando non sono viste da lui."
+					Description = "I sensi del personaggio restano sempre all'erta.\n- **Riflessi pronti.** Aggiunge +5 ai tiri per l'iniziativa.\n- **Mai colto alla sprovvista.** Finché è cosciente, non può essere sorpreso.\n- **Nessun punto cieco.** Le creature nascoste al personaggio non ottengono vantaggio ai tiri per colpirlo per il solo fatto di essere nascoste."
 				}
 			}
 		};

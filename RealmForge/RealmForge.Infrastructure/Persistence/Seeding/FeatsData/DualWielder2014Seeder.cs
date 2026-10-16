@@ -30,14 +30,14 @@ public static class DualWielder2014Seeder
 					Id = TranslationEnId,
 					Language = LanguageCode.En,
 					Name = "Dual Wielder",
-					Description = "You master fighting with two weapons, gaining the following benefits:\n- You gain a +1 bonus to AC while you are wielding a separate melee weapon in each hand.\n- You can use two-weapon fighting even when the one-handed melee weapons you are wielding aren't light.\n- You can draw or stow two one-handed weapons when you would normally be able to draw or stow only one."
+					Description = "Fighting with a weapon in each hand comes naturally to you.\n- **Double Guard.** While you wield a separate melee weapon in each hand, you gain a +1 bonus to AC.\n- **Heavier Pairs.** You can fight with two weapons even when the one-handed melee weapons you wield lack the light property.\n- **Quick Draw.** Whenever you could draw or stow one one-handed weapon, you can draw or stow two instead."
 				},
 				new FeatTranslation
 				{
 					Id = TranslationItId,
 					Language = LanguageCode.It,
 					Name = "Combattente a Due Armi",
-					Description = "Il personaggio è un maestro nel combattimento con due armi e ottiene i benefici seguenti:\n- Ottiene un bonus di +1 alla CA mentre impugna un'arma da mischia separata in ogni mano.\n- Può combattere con due armi anche quando le armi da mischia a una mano che impugna non sono leggere.\n- Può estrarre o rinfoderare due armi a una mano quando normalmente sarebbe in grado di estrarne o rinfoderarne solo una."
+					Description = "Combattere con un'arma in ciascuna mano è naturale per il personaggio.\n- **Doppia guardia.** Mentre impugna un'arma da mischia distinta in ciascuna mano, ottiene un bonus di +1 alla CA.\n- **Coppie più pesanti.** Può combattere con due armi anche se le armi da mischia a una mano che impugna non hanno la proprietà leggera.\n- **Estrazione rapida.** Quando potrebbe estrarre o riporre un'arma a una mano, può estrarne o riporne due."
 				}
 			}
 		};

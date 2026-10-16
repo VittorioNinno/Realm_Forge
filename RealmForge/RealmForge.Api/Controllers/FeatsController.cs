@@ -70,7 +70,8 @@ namespace RealmForge.Api.Controllers
 					f.Ruleset,
 					f.IsOfficialSRD,
 					shortDesc,
-					_access.CanModify(f, User)
+					_access.CanModify(f, User),
+					f.Source
 				);
 			}).OrderBy(f => f.Name).ToList();
 
@@ -244,7 +245,8 @@ namespace RealmForge.Api.Controllers
 				tr?.Description ?? string.Empty,
 				ToPrerequisiteDto(feat),
 				tr?.PrerequisiteNote,
-				canEdit
+				canEdit,
+				feat.Source
 			);
 		}
 

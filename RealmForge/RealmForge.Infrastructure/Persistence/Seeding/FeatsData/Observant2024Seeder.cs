@@ -33,14 +33,14 @@ public static class Observant2024Seeder
 					Id = TranslationEnId,
 					Language = LanguageCode.En,
 					Name = "Observant",
-					Description = "You gain the following benefits:\n- **Ability Score Increase.** Increase your Intelligence or Wisdom score by 1, to a maximum of 20.\n- **Keen Observer.** Choose one of the following skills: Insight, Investigation, or Perception. If you lack proficiency with the chosen skill, you gain proficiency in it, and if you already have proficiency in it, you gain Expertise in it.\n- **Quick Search.** You can take the Search action as a Bonus Action."
+					Description = "Little escapes your notice.\n- **Intelligence or Wisdom +1.** Increase one of the two scores by 1, to a maximum of 20.\n- **Trained Eye.** Pick Insight, Investigation, or Perception. You gain proficiency in that skill or, if you already have it, Expertise.\n- **Quick Search.** You can take the Search action as a Bonus Action."
 				},
 				new FeatTranslation
 				{
 					Id = TranslationItId,
 					Language = LanguageCode.It,
 					Name = "Osservatore",
-					Description = "Il personaggio ottiene i seguenti benefici:\n- **Incremento dei Punteggi di Caratteristica.** Il suo punteggio di Intelligenza o Saggezza aumenta di 1, fino a un massimo di 20.\n- **Osservatore Attento.** Il personaggio sceglie una tra le seguenti abilità: Intuizione, Indagare o Percezione. Ottiene competenza nell'abilità scelta se non la possiede, e Maestria se invece la possiede già.\n- **Ricerca Rapida.** Il personaggio può utilizzare l'azione di Ricerca come Azione Bonus."
+					Description = "Poco sfugge all'attenzione del personaggio.\n- **Intelligenza o Saggezza +1.** Uno dei due punteggi aumenta di 1, fino a un massimo di 20.\n- **Occhio allenato.** Sceglie Intuizione, Indagare o Percezione. Ottiene competenza in quell'abilità oppure, se l'ha già, Maestria.\n- **Ricerca rapida.** Può effettuare l'azione Cercare come azione bonus."
 				}
 			}
 		};

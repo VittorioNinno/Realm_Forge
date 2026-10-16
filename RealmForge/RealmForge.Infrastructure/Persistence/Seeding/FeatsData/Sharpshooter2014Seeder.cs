@@ -30,14 +30,14 @@ public static class Sharpshooter2014Seeder
 					Id = TranslationEnId,
 					Language = LanguageCode.En,
 					Name = "Sharpshooter",
-					Description = "You have mastered ranged weapons and can make shots that others find impossible. You gain the following benefits:\n- Attacking at long range doesn't impose disadvantage on your ranged weapon attack rolls.\n- Your ranged weapon attacks ignore half cover and three-quarters cover.\n- Before you make an attack with a ranged weapon that you are proficient with, you can choose to take a -5 penalty to the attack roll. If the attack hits, you add +10 to the attack's damage."
+					Description = "Your shots find their mark where others would miss.\n- **Long Shots.** Attacking at long range doesn't give you disadvantage on ranged weapon attack rolls.\n- **Around Cover.** Your ranged weapon attacks ignore half cover and three-quarters cover.\n- **Power Shot.** Before attacking with a ranged weapon you are proficient with, you can accept a -5 penalty to the attack roll; if the attack hits, it deals 10 extra damage."
 				},
 				new FeatTranslation
 				{
 					Id = TranslationItId,
 					Language = LanguageCode.It,
 					Name = "Tiratore Scelto",
-					Description = "Il personaggio ha padroneggiato l'utilizzo delle armi a distanza ed è in grado di effettuare tiri che per gli altri risulterebbero impossibili. Ottiene i benefici seguenti:\n- Gli attacchi a gittata lunga non impongono svantaggio ai tiri per colpire delle sue armi a distanza.\n- Gli attacchi delle sue armi a distanza ignorano metà copertura e tre quarti di copertura.\n- Prima di effettuare un attacco con un'arma a distanza in cui è competente, può scegliere di subire una penalità di -5 al tiro per colpire. Se l'attacco colpisce, il personaggio aggiunge +10 ai danni dell'attacco."
+					Description = "I tiri del personaggio vanno a segno dove altri mancherebbero.\n- **Tiri lunghi.** Attaccare a gittata lunga non gli impone svantaggio ai tiri per colpire con armi a distanza.\n- **Oltre la copertura.** I suoi attacchi con armi a distanza ignorano la mezza copertura e la copertura tre quarti.\n- **Tiro potente.** Prima di attaccare con un'arma a distanza in cui ha competenza, può accettare una penalità di -5 al tiro per colpire; se l'attacco colpisce, infligge 10 danni aggiuntivi."
 				}
 			}
 		};

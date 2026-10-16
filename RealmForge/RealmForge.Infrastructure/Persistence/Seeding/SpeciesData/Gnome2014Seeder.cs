@@ -29,13 +29,13 @@ namespace RealmForge.Infrastructure.Persistence.Seeding.SpeciesData
 					{
 						Language = LanguageCode.It,
 						Name = "Gnomo",
-						Description = "L'energia e l'entusiasmo per la vita traspare in ogni centimetro del minuscolo corpo di uno gnomo. Dal punto di vista di uno gnomo, essere vivi è una cosa meravigliosa ed è giusto spremere ogni goccia di divertimento da una vita che spazia dai tre ai cinque secoli tra invenzioni, esplorazioni e risate."
+						Description = "Gli gnomi sono un piccolo popolo traboccante di energia e curiosità. Per uno gnomo il semplice fatto di essere vivo è una gioia, e riempie i suoi tre-cinque secoli di vita di esplorazioni, invenzioni e risate."
 					},
 					new SpeciesTranslation
 					{
 						Language = LanguageCode.En,
 						Name = "Gnome",
-						Description = "A gnome's energy and enthusiasm for living shines through every inch of his or her tiny body. As far as gnomes are concerned, being alive is a wonderful thing, and they squeeze every ounce of enjoyment out of their three to five centuries of life exploring, inventing, and laughing."
+						Description = "Gnomes are small folk bursting with energy and curiosity. To a gnome, simply being alive is a delight, and they fill their three to five centuries with exploration, invention, and laughter."
 					}
 				},
 				Traits = new List<Trait>
@@ -117,13 +117,13 @@ namespace RealmForge.Infrastructure.Persistence.Seeding.SpeciesData
 							{
 								Language = LanguageCode.It,
 								Name = "Gnomo delle Foreste",
-								Description = "Uno gnomo delle foreste ha una propensione naturale per l'illusione e gode di una rapidità e furtività innata nei boschi incontaminati."
+								Description = "Gli gnomi delle foreste hanno un talento naturale per l'illusione e si muovono rapidi e silenziosi nei boschi in cui vivono."
 							},
 							new SubspeciesTranslation
 							{
 								Language = LanguageCode.En,
 								Name = "Forest Gnome",
-								Description = "As a forest gnome, you have a natural knack for illusion and inherent quickness and stealth in sylvan forests."
+								Description = "Forest gnomes have a natural gift for illusion and move quickly and quietly through the woods they call home."
 							}
 						},
 						Traits = new List<Trait>
@@ -139,13 +139,13 @@ namespace RealmForge.Infrastructure.Persistence.Seeding.SpeciesData
 									{
 										Language = LanguageCode.It,
 										Name = "Illusionista Nato",
-										Description = "Conosce il trucchetto Illusione Minore (Intelligenza è la caratteristica da incantatore)."
+										Description = "Il personaggio conosce il trucchetto illusione minore e usa l'Intelligenza come caratteristica da incantatore."
 									},
 									new TraitTranslation
 									{
 										Language = LanguageCode.En,
 										Name = "Natural Illusionist",
-										Description = "You know the minor illusion cantrip (Intelligence is your spellcasting ability for it)."
+										Description = "You know the minor illusion cantrip, using Intelligence as your spellcasting ability."
 									}
 								}
 							},
@@ -160,13 +160,13 @@ namespace RealmForge.Infrastructure.Persistence.Seeding.SpeciesData
 									{
 										Language = LanguageCode.It,
 										Name = "Parlare con le Piccole Bestie",
-										Description = "Attraverso suoni e gesti può comunicare concetti semplici alle bestie di taglia Piccola o inferiore."
+										Description = "Con suoni e gesti, il personaggio può comunicare idee semplici alle bestie di taglia Piccola o inferiore."
 									},
 									new TraitTranslation
 									{
 										Language = LanguageCode.En,
 										Name = "Speak with Small Beasts",
-										Description = "Through sounds and gestures, you can communicate simple ideas with Small or smaller beasts."
+										Description = "With sounds and gestures, you can share simple ideas with beasts of Small size or smaller."
 									}
 								}
 							}
@@ -183,13 +183,13 @@ namespace RealmForge.Infrastructure.Persistence.Seeding.SpeciesData
 							{
 								Language = LanguageCode.It,
 								Name = "Gnomo delle Rocce",
-								Description = "Dotato di creatività innata, resistenza superiore e perizia artigianale per congegni tecnologici e riparazioni."
+								Description = "Gli gnomi delle rocce sono inventori tenaci e ingegnosi, con un talento per la costruzione di piccoli congegni a orologeria."
 							},
 							new SubspeciesTranslation
 							{
 								Language = LanguageCode.En,
 								Name = "Rock Gnome",
-								Description = "Endowed with natural inventiveness, superior hardiness, and tinkering expertise for technological clockwork devices."
+								Description = "Rock gnomes are hardy, inventive tinkerers with a talent for building small clockwork devices."
 							}
 						},
 						Traits = new List<Trait>

@@ -33,14 +33,14 @@ public static class InspiringLeader2024Seeder
 					Id = TranslationEnId,
 					Language = LanguageCode.En,
 					Name = "Inspiring Leader",
-					Description = "You gain the following benefits:\n- **Ability Score Increase.** Increase your Wisdom or Charisma score by 1, to a maximum of 20.\n- **Bolstering Performance.** When you finish a Short or Long Rest, you can give an inspiring performance: a speech, song, or dance. When you do so, choose up to six allies (which can include yourself) within 30 feet of yourself who witness the performance. The chosen creatures each gain Temporary Hit Points equal to your character level plus the modifier of the ability you increased with this feat."
+					Description = "Your words and presence steel your companions.\n- **Wisdom or Charisma +1.** Increase one of the two scores by 1, to a maximum of 20.\n- **Rousing Performance.** When you finish a Short or Long Rest, you can deliver a speech, song, or dance. Up to six allies of your choice (you can include yourself) within 30 feet who witness it each gain Temporary Hit Points equal to your character level + the modifier of the ability you increased with this feat."
 				},
 				new FeatTranslation
 				{
 					Id = TranslationItId,
 					Language = LanguageCode.It,
 					Name = "Condottiero Ispiratore",
-					Description = "Il personaggio ottiene i seguenti benefici:\n- **Incremento dei Punteggi di Caratteristica.** Il suo punteggio di Saggezza o Carisma aumenta di 1, fino a un massimo di 20.\n- **Spettacolo Corroborante.** Quando il personaggio completa un Riposo Breve o Lungo, può esibirsi in uno spettacolo ispiratore come un discorso, una canzone o un ballo, a cui possono assistere fino a 6 alleati a scelta (incluso se stesso) entro 9 metri da sé. Le creature selezionate ottengono ciascuna una quantità di punti ferita temporanei pari al livello del personaggio, più il modificatore della caratteristica aumentata con questo talento."
+					Description = "Le parole e la presenza del personaggio rafforzano i suoi compagni.\n- **Saggezza o Carisma +1.** Uno dei due punteggi aumenta di 1, fino a un massimo di 20.\n- **Esibizione incoraggiante.** Quando termina un riposo breve o lungo, può tenere un discorso, cantare o danzare. Fino a sei alleati a sua scelta (può includere sé stesso) entro 9 metri che assistono all'esibizione ottengono ciascuno punti ferita temporanei pari al suo livello del personaggio + il modificatore della caratteristica aumentata con questo talento."
 				}
 			}
 		};

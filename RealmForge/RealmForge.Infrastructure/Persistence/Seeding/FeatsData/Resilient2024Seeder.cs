@@ -31,14 +31,14 @@ public static class Resilient2024Seeder
 					Id = TranslationEnId,
 					Language = LanguageCode.En,
 					Name = "Resilient",
-					Description = "You gain the following benefits:\n- **Ability Score Increase.** Choose one ability in which you lack saving throw proficiency. Increase the chosen ability score by 1, to a maximum of 20.\n- **Saving Throw Proficiency.** You gain saving throw proficiency with the chosen ability."
+					Description = "You have hardened yourself against one kind of threat.\n- **Chosen Ability +1.** Choose an ability whose saving throws you aren't proficient in, and increase that score by 1, to a maximum of 20.\n- **Saving Throw Training.** You gain saving throw proficiency with the chosen ability."
 				},
 				new FeatTranslation
 				{
 					Id = TranslationItId,
 					Language = LanguageCode.It,
 					Name = "Resiliente",
-					Description = "Il personaggio ottiene i seguenti benefici:\n- **Incremento dei Punteggi di Caratteristica.** Il personaggio sceglie una caratteristica in cui non ha la relativa competenza nei tiri salvezza. Aumenta il punteggio di 1, fino a un massimo di 20.\n- **Competenza nei Tiri Salvezza.** Il personaggio ottiene competenza nei tiri salvezza con la caratteristica selezionata."
+					Description = "Il personaggio si è temprato contro un tipo di minaccia.\n- **Caratteristica scelta +1.** Sceglie una caratteristica nei cui tiri salvezza non ha competenza e ne aumenta il punteggio di 1, fino a un massimo di 20.\n- **Addestramento ai tiri salvezza.** Ottiene competenza nei tiri salvezza di quella caratteristica."
 				}
 			}
 		};

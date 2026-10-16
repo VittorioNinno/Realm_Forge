@@ -248,6 +248,43 @@ h1, h2, h3, h4, h5, h6, .rf-page-title, .brand-title {
     text-overflow: ellipsis;
 }
 
+/* Suggested characteristics tables (d6 / d8 / d10) */
+.rf-dice-table {
+    width: 100%;
+    font-size: 0.85rem;
+    border-collapse: collapse;
+}
+
+    .rf-dice-table th {
+        color: var(--rf-orange-primary);
+        font-size: 0.75em;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        text-align: left;
+        padding: 0.35rem 0.5rem;
+        border-bottom: 1px solid var(--rf-border-light);
+    }
+
+    .rf-dice-table td {
+        padding: 0.35rem 0.5rem;
+        vertical-align: top;
+        color: var(--rf-text-secondary);
+        border-bottom: 1px solid var(--rf-border-subtle);
+    }
+
+        .rf-dice-table td:first-child {
+            width: 2.5rem;
+            color: var(--rf-text-primary);
+            font-weight: 700;
+            text-align: center;
+        }
+
+/* Pills that cannot be selected because the maximum was reached */
+.rf-pill-btn:disabled {
+    opacity: 0.35;
+    cursor: not-allowed;
+}
+
 .rf-form-control:disabled {
     opacity: 0.45;
     cursor: not-allowed;

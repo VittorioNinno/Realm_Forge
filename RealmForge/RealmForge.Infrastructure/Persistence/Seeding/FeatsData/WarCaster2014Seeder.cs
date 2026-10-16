@@ -31,14 +31,14 @@ public static class WarCaster2014Seeder
 					Id = TranslationEnId,
 					Language = LanguageCode.En,
 					Name = "War Caster",
-					Description = "You have practiced casting spells in the midst of combat, learning techniques that grant you the following benefits:\n- You have advantage on Constitution saving throws that you make to maintain your concentration on a spell when you take damage.\n- You can perform the somatic components of spells even when you have weapons or a shield in one or both hands.\n- When a hostile creature's movement provokes an opportunity attack from you, you can use your reaction to cast a spell at the creature, rather than making an opportunity attack. The spell must have a casting time of 1 action and must target only that creature."
+					Description = "You cast spells calmly even in the thick of battle.\n- **Steady Concentration.** You have advantage on Constitution saving throws to keep concentrating on a spell when you take damage.\n- **Hands Full.** You can perform somatic components even with weapons or a shield in one or both hands.\n- **Spell Instead of Strike.** When a hostile creature's movement provokes an opportunity attack from you, you can use your reaction to cast a spell at it instead. The spell must have a casting time of 1 action and must target only that creature."
 				},
 				new FeatTranslation
 				{
 					Id = TranslationItId,
 					Language = LanguageCode.It,
 					Name = "Incantatore da Guerra",
-					Description = "Il personaggio si è allenato a lanciare incantesimi nel bel mezzo di un combattimento e ha appreso le tecniche che gli forniscono i benefici seguenti:\n- Dispone di vantaggio ai tiri salvezza su Costituzione che effettua per mantenere la concentrazione su un incantesimo quando subisce danni.\n- Può fornire le componenti somatiche degli incantesimi anche quando impugna armi o uno scudo con una o entrambe le mani.\n- Quando il movimento di una creatura ostile provoca un attacco di opportunità da parte sua, il personaggio può usare la sua reazione per lanciare un incantesimo sulla creatura anziché effettuare un attacco di opportunità. L'incantesimo deve avere un tempo di lancio di 1 azione e deve bersagliare solo quella creatura."
+					Description = "Il personaggio lancia incantesimi con calma anche nel pieno della battaglia.\n- **Concentrazione salda.** Ha vantaggio ai tiri salvezza su Costituzione per mantenere la concentrazione su un incantesimo quando subisce danni.\n- **Mani occupate.** Può eseguire le componenti somatiche anche con armi o uno scudo in una o entrambe le mani.\n- **Incantesimo invece del colpo.** Quando il movimento di una creatura ostile provoca un suo attacco di opportunità, può invece usare la reazione per lanciarle contro un incantesimo. L'incantesimo deve avere un tempo di lancio di 1 azione e bersagliare solo quella creatura."
 				}
 			}
 		};

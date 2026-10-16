@@ -66,7 +66,8 @@ namespace RealmForge.Api.Controllers
 					translation?.Language ?? lang,
 					s.Traits.Count,
 					s.Subspecies.Count,
-					CanEdit: _access.CanModify(s, User)
+					CanEdit: _access.CanModify(s, User),
+					Source: s.Source
 				);
 			});
 
@@ -145,7 +146,8 @@ namespace RealmForge.Api.Controllers
 					sub.Ruleset,
 					sub.IsOfficialSRD,
 					exclusiveTraits,
-					CanEdit: _access.CanModify(sub, User)
+					CanEdit: _access.CanModify(sub, User),
+					Source: sub.Source
 				);
 			})
 			.ToList();
@@ -162,7 +164,8 @@ namespace RealmForge.Api.Controllers
 				translation?.Language ?? lang,
 				baseTraits,
 				subspeciesList,
-				CanEdit: _access.CanModify(species, User)
+				CanEdit: _access.CanModify(species, User),
+				Source: species.Source
 			);
 
 			return Ok(response);
@@ -255,7 +258,8 @@ namespace RealmForge.Api.Controllers
 				firstTranslation?.Language ?? LanguageCode.En,
 				TraitCount: species.Traits.Count,
 				SubspeciesCount: species.Subspecies.Count,
-				CanEdit: _access.CanModify(species, User)
+				CanEdit: _access.CanModify(species, User),
+				Source: species.Source
 			);
 
 			return CreatedAtAction(nameof(GetById), new { id = species.Id }, response);

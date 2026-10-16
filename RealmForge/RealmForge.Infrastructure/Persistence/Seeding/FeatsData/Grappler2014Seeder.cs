@@ -22,6 +22,7 @@ public static class Grappler2014Seeder
 			Id = FeatId,
 			Ruleset = RulesetVersion.Dnd5e_2014,
 			IsOfficialSRD = true,
+			Source = ContentSource.Srd51,
 			Category = FeatCategory.General,
 			PrerequisiteAbilities = new List<AbilityScore> { AbilityScore.Strength },
 			PrerequisiteMinimumScore = 13,

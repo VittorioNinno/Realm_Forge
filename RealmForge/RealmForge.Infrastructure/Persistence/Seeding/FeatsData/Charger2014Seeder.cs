@@ -30,14 +30,14 @@ public static class Charger2014Seeder
 					Id = TranslationEnId,
 					Language = LanguageCode.En,
 					Name = "Charger",
-					Description = "When you use your action to Dash, you can use a bonus action to make one melee weapon attack or to shove a creature.\nIf you move at least 10 feet in a straight line immediately before taking this bonus action, you either gain a +5 bonus to the attack's damage roll (if you chose to make a melee attack and hit) or push the target up to 10 feet away from you (if you chose to shove and you succeed)."
+					Description = "You turn a sprint into a weapon.\n- **Attack on the Run.** When you take the Dash action, you can use a bonus action to make one melee weapon attack or to shove a creature.\n- **Momentum.** If you moved at least 10 feet in a straight line right before that bonus action, a hit with the melee attack deals 5 extra damage, or a successful shove pushes the target up to 10 feet away from you."
 				},
 				new FeatTranslation
 				{
 					Id = TranslationItId,
 					Language = LanguageCode.It,
 					Name = "Carica",
-					Description = "Quando il personaggio usa la sua azione di Scatto, può usare un'azione bonus per effettuare un attacco con un'arma da mischia o per spingere una creatura.\nSe si muove di almeno 3 metri in linea retta subito prima di effettuare questa azione bonus, sceglie se ottenere un bonus di +5 al tiro per i danni dell'attacco (se ha scelto di effettuare un attacco in mischia e ha colpito) o di spingere il bersaglio fino a un massimo di 3 metri allontanandolo da sé (se ha scelto di spingere e ha avuto successo)."
+					Description = "Il personaggio trasforma lo slancio in un'arma.\n- **Attacco in corsa.** Quando usa l'azione Scatto, può usare un'azione bonus per effettuare un attacco con un'arma da mischia o per spingere una creatura.\n- **Slancio.** Se subito prima di quell'azione bonus si è mosso di almeno 3 metri in linea retta, l'attacco da mischia, se colpisce, infligge 5 danni aggiuntivi, oppure la spinta, se riesce, allontana il bersaglio fino a 3 metri da lui."
 				}
 			}
 		};

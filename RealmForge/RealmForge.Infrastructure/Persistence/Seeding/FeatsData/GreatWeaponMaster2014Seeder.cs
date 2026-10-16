@@ -30,14 +30,14 @@ public static class GreatWeaponMaster2014Seeder
 					Id = TranslationEnId,
 					Language = LanguageCode.En,
 					Name = "Great Weapon Master",
-					Description = "You've learned to put the weight of a weapon to your advantage, letting its momentum empower your strikes. You gain the following benefits:\n- On your turn, when you score a critical hit with a melee weapon or reduce a creature to 0 hit points with one, you can make one melee weapon attack as a bonus action.\n- Before you make a melee attack with a heavy weapon that you are proficient with, you can choose to take a -5 penalty to the attack roll. If the attack hits, you add +10 to the attack's damage."
+					Description = "Heavy weapons become an extension of your strength.\n- **Follow-Through.** On your turn, when a melee weapon attack of yours scores a critical hit or drops a creature to 0 hit points, you can make one melee weapon attack as a bonus action.\n- **All-Out Swing.** Before attacking with a heavy melee weapon you are proficient with, you can accept a -5 penalty to the attack roll; if the attack hits, it deals 10 extra damage."
 				},
 				new FeatTranslation
 				{
 					Id = TranslationItId,
 					Language = LanguageCode.It,
 					Name = "Maestro d'Armi Possenti",
-					Description = "Il personaggio ha imparato a sfruttare a proprio vantaggio il peso di un'arma, lasciando che il suo slancio infonda maggiore potenza ai suoi colpi. Ottiene i benefici seguenti:\n- Nel proprio turno, quando mette a segno un colpo critico con un'arma da mischia o porta un personaggio a 0 punti ferita con un attacco del genere, può effettuare un attacco con un'arma da mischia come azione bonus.\n- Prima di effettuare un attacco in mischia con un'arma pesante in cui è competente, può scegliere di subire una penalità di -5 al tiro per colpire. Se l'attacco colpisce, il personaggio aggiunge +10 ai danni dell'attacco."
+					Description = "Le armi pesanti diventano un prolungamento della forza del personaggio.\n- **Colpo successivo.** Durante il suo turno, quando un suo attacco con un'arma da mischia mette a segno un colpo critico o porta una creatura a 0 punti ferita, può effettuare un attacco con un'arma da mischia come azione bonus.\n- **Colpo a tutta forza.** Prima di attaccare con un'arma da mischia pesante in cui ha competenza, può accettare una penalità di -5 al tiro per colpire; se l'attacco colpisce, infligge 10 danni aggiuntivi."
 				}
 			}
 		};

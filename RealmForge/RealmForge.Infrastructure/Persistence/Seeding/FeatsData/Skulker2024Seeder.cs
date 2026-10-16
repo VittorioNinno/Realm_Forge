@@ -33,14 +33,14 @@ public static class Skulker2024Seeder
 					Id = TranslationEnId,
 					Language = LanguageCode.En,
 					Name = "Skulker",
-					Description = "You gain the following benefits:\n- **Ability Score Increase.** Increase your Dexterity score by 1, to a maximum of 20.\n- **Blindsight.** You have Blindsight with a range of 10 feet.\n- **Fog of War.** You exploit the distractions of battle, gaining Advantage on any Dexterity (Stealth) check you make as part of the Hide action during combat.\n- **Sniper.** If you make an attack roll while hidden and the roll misses, making the attack roll doesn't reveal your location."
+					Description = "Shadows and confusion are your allies.\n- **Dexterity +1.** Increase your Dexterity score by 1, to a maximum of 20.\n- **Blindsight.** You have Blindsight out to 10 feet.\n- **Lost in the Fray.** In combat, you have Advantage on Dexterity (Stealth) checks you make as part of the Hide action.\n- **Silent Misses.** If you miss with an attack roll while hidden, the attack doesn't reveal where you are."
 				},
 				new FeatTranslation
 				{
 					Id = TranslationItId,
 					Language = LanguageCode.It,
 					Name = "Appostato",
-					Description = "Il personaggio ottiene i seguenti benefici:\n- **Incremento dei Punteggi di Caratteristica.** Il suo punteggio di Destrezza aumenta di 1, fino a un massimo di 20.\n- **Vista Cieca.** Il personaggio ottiene Vista Cieca con un raggio di 3 metri.\n- **Nebbia della Guerra.** Il personaggio è in grado di sfruttare le distrazioni della battaglia, ottenendo Vantaggio alle prove di Destrezza (Furtività) effettuate come parte dell'azione di Nascondersi durante il combattimento.\n- **Cecchino.** Se il personaggio effettua un tiro per colpire mentre è nascosto e il colpo manca il bersaglio, effettuare l'attacco non rivela la sua posizione."
+					Description = "L'ombra e la confusione sono alleate del personaggio.\n- **Destrezza +1.** Il punteggio di Destrezza aumenta di 1, fino a un massimo di 20.\n- **Vista cieca.** Ha vista cieca entro 3 metri.\n- **Perso nella mischia.** In combattimento ha Vantaggio alle prove di Destrezza (Furtività) effettuate come parte dell'azione Nascondersi.\n- **Mancati silenziosi.** Se manca un tiro per colpire mentre è nascosto, l'attacco non rivela dove si trova."
 				}
 			}
 		};

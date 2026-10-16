@@ -29,13 +29,13 @@ namespace RealmForge.Infrastructure.Persistence.Seeding.SpeciesData
 					{
 						Language = LanguageCode.It,
 						Name = "Nano",
-						Description = "Sfarzosi reami scavati nelle viscere delle montagne, il martellare dei picconi nelle miniere di profondità, una fiera dedizione al clan e alla tradizione e un odio bruciante per orchi e goblin accomunano tutti i nani. Massicci e compatti, reggono al passare del tempo con stoica tenacia."
+						Description = "I nani sono un popolo robusto e tenace che scava sale e città nel cuore delle montagne. Fedeli al clan e alla tradizione, orgogliosi del proprio lavoro e lenti a dimenticare un torto, possono vivere per secoli e affrontano le avversità con una pazienza incrollabile."
 					},
 					new SpeciesTranslation
 					{
 						Language = LanguageCode.En,
 						Name = "Dwarf",
-						Description = "Kingdoms rich in ancient grandeur carved into the roots of mountains, picks and hammers echoing in deep mines, fierce commitment to clan and tradition, and a burning hatred of goblins and orcs unite all dwarves. Bold and hardy, they weather centuries with stoic endurance."
+						Description = "Dwarves are a stout, enduring people who carve halls and cities deep into the mountains. Loyal to clan and tradition, proud of their craft, and slow to forget a wrong, they can live for centuries and face hardship with unshakable patience."
 					}
 				},
 				Traits = new List<Trait>
@@ -201,13 +201,13 @@ namespace RealmForge.Infrastructure.Persistence.Seeding.SpeciesData
 							{
 								Language = LanguageCode.It,
 								Name = "Nano delle Colline",
-								Description = "Dotato di sensi acuti, profonda intuizione e straordinaria resilienza fisica e mentale."
+								Description = "I nani delle colline sono noti per i sensi acuti, l'intuito profondo e una notevole tempra fisica e mentale."
 							},
 							new SubspeciesTranslation
 							{
 								Language = LanguageCode.En,
 								Name = "Hill Dwarf",
-								Description = "Blessed with keen senses, deep intuition, and remarkable physical and mental resilience."
+								Description = "Hill dwarves are known for sharp senses, deep intuition, and remarkable toughness of body and mind."
 							}
 						},
 						Traits = new List<Trait>
@@ -246,13 +246,13 @@ namespace RealmForge.Infrastructure.Persistence.Seeding.SpeciesData
 							{
 								Language = LanguageCode.It,
 								Name = "Nano delle Montagne",
-								Description = "Forte e temprato da una vita dura in territori aspri, esperto nell'uso marziale delle armature."
+								Description = "I nani delle montagne sono forti e resistenti, temprati da una vita difficile tra le alte vette, e sono abituati a combattere in armatura."
 							},
 							new SubspeciesTranslation
 							{
 								Language = LanguageCode.En,
 								Name = "Mountain Dwarf",
-								Description = "Strong and rugged from a hard life in harsh mountainous terrain, skilled in the martial use of armors."
+								Description = "Mountain dwarves are strong and hardy, shaped by a demanding life among high peaks, and are used to fighting in armor."
 							}
 						},
 						Traits = new List<Trait>
@@ -268,13 +268,13 @@ namespace RealmForge.Infrastructure.Persistence.Seeding.SpeciesData
 									{
 										Language = LanguageCode.It,
 										Name = "Addestramento nelle Armature Naniche",
-										Description = "Ottieni competenza nelle armature leggere e medie."
+										Description = "Il personaggio ha competenza nelle armature leggere e medie."
 									},
 									new TraitTranslation
 									{
 										Language = LanguageCode.En,
 										Name = "Dwarven Armor Training",
-										Description = "You have proficiency with light and medium armor."
+										Description = "You are proficient with light and medium armor."
 									}
 								}
 							}

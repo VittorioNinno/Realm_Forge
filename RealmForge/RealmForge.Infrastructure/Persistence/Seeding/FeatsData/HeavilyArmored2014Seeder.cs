@@ -31,14 +31,14 @@ public static class HeavilyArmored2014Seeder
 					Id = TranslationEnId,
 					Language = LanguageCode.En,
 					Name = "Heavily Armored",
-					Description = "You have trained to master the use of heavy armor, gaining the following benefits:\n- Increase your Strength score by 1, to a maximum of 20.\n- You gain proficiency with heavy armor."
+					Description = "You have learned to move and fight under the heaviest protection.\n- **Strength +1.** Increase your Strength score by 1, to a maximum of 20.\n- **Heavy Armor Training.** You gain proficiency with heavy armor."
 				},
 				new FeatTranslation
 				{
 					Id = TranslationItId,
 					Language = LanguageCode.It,
 					Name = "Corazze Pesanti",
-					Description = "Il personaggio si è addestrato per padroneggiare l'utilizzo delle armature pesanti e ottiene i benefici seguenti:\n- Il suo punteggio di Forza aumenta di 1, fino a un massimo di 20.\n- Ottiene competenza nelle armature pesanti."
+					Description = "Il personaggio ha imparato a muoversi e combattere sotto le protezioni più pesanti.\n- **Forza +1.** Il punteggio di Forza aumenta di 1, fino a un massimo di 20.\n- **Addestramento nelle armature pesanti.** Ottiene competenza nelle armature pesanti."
 				}
 			}
 		};

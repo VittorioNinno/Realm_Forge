@@ -32,14 +32,14 @@ public static class HeavyArmorMaster2024Seeder
 					Id = TranslationEnId,
 					Language = LanguageCode.En,
 					Name = "Heavy Armor Master",
-					Description = "You gain the following benefits:\n- **Ability Score Increase.** Increase your Constitution or Strength score by 1, to a maximum of 20.\n- **Damage Reduction.** When you're hit by an attack while you're wearing Heavy armor, any Bludgeoning, Piercing, and Slashing damage dealt to you by that attack is reduced by an amount equal to your Proficiency Bonus."
+					Description = "Your armor shrugs off blows that would fell others.\n- **Constitution or Strength +1.** Increase one of the two scores by 1, to a maximum of 20.\n- **Damage Reduction.** While you wear Heavy armor, when an attack hits you, the Bludgeoning, Piercing, and Slashing damage it deals you is reduced by your Proficiency Bonus."
 				},
 				new FeatTranslation
 				{
 					Id = TranslationItId,
 					Language = LanguageCode.It,
 					Name = "Maestro delle Armature Pesanti",
-					Description = "Il personaggio ottiene i seguenti benefici:\n- **Incremento dei Punteggi di Caratteristica.** Il suo punteggio di Costituzione o Forza aumenta di 1, fino a un massimo di 20.\n- **Riduzione dei Danni.** Quando il personaggio viene colpito da un attacco mentre indossa un'armatura pesante, eventuali danni contundenti, perforanti o taglienti subiti vengono ridotti di un valore pari al suo bonus di competenza."
+					Description = "L'armatura del personaggio respinge colpi che abbatterebbero chiunque altro.\n- **Costituzione o Forza +1.** Uno dei due punteggi aumenta di 1, fino a un massimo di 20.\n- **Riduzione dei danni.** Mentre indossa un'armatura pesante, quando un attacco lo colpisce, i danni contundenti, perforanti e taglienti che gli infligge sono ridotti di un ammontare pari al suo bonus di competenza."
 				}
 			}
 		};

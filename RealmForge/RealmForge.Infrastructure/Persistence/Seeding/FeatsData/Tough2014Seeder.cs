@@ -30,14 +30,14 @@ public static class Tough2014Seeder
 					Id = TranslationEnId,
 					Language = LanguageCode.En,
 					Name = "Tough",
-					Description = "Your hit point maximum increases by an amount equal to twice your level when you gain this feat. Whenever you gain a level thereafter, your hit point maximum increases by an additional 2 hit points."
+					Description = "You can take more punishment than most.\n- **Extra Hit Points.** When you take this feat, your hit point maximum increases by twice your level. Each time you gain a level afterward, it increases by a further 2."
 				},
 				new FeatTranslation
 				{
 					Id = TranslationItId,
 					Language = LanguageCode.It,
 					Name = "Robusto",
-					Description = "Il massimo dei punti ferita del personaggio aumenta di un ammontare pari al doppio del suo livello quando il personaggio ottiene questo talento. Da allora in poi, ogni volta che il personaggio acquisisce un livello, il massimo dei suoi punti ferita aumenta di 2 punti ferita aggiuntivi."
+					Description = "Il personaggio sopporta più colpi della maggior parte delle persone.\n- **Punti ferita aggiuntivi.** Quando ottiene questo talento, il suo massimo dei punti ferita aumenta di un ammontare pari al doppio del suo livello. Ogni volta che sale di livello in seguito, aumenta di altri 2."
 				}
 			}
 		};

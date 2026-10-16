@@ -30,14 +30,14 @@ public static class Healer2014Seeder
 					Id = TranslationEnId,
 					Language = LanguageCode.En,
 					Name = "Healer",
-					Description = "You are an able physician, allowing you to mend wounds quickly and get your allies back in the fight. You gain the following benefits:\n- When you use a healer's kit to stabilize a dying creature, that creature also regains 1 hit point.\n- As an action, you can spend one use of a healer's kit to tend to a creature and restore 1d6 + 4 hit points to it, plus additional hit points equal to the creature's maximum number of Hit Dice. The creature can't regain hit points from this feat again until it finishes a short or long rest."
+					Description = "Your field medicine keeps your companions on their feet.\n- **Stabilize and Revive.** When you stabilize a dying creature with a healer's kit, it also regains 1 hit point.\n- **Field Treatment.** As an action, you can expend one use of a healer's kit to treat a creature, which regains 1d6 + 4 hit points plus as many hit points as its maximum number of Hit Dice. A creature can benefit from this treatment again only after finishing a short or long rest."
 				},
 				new FeatTranslation
 				{
 					Id = TranslationItId,
 					Language = LanguageCode.It,
 					Name = "Guaritore",
-					Description = "Il personaggio è un abile guaritore, in grado di medicare le ferite rapidamente e di consentire ai suoi alleati di tornare a combattere. Ottiene i benefici seguenti:\n- Quando usa una borsa del guaritore per stabilizzare una creatura morente, quella creatura recupera anche 1 punto ferita.\n- Con un'azione, può spendere un utilizzo della borsa del guaritore per curare una creatura e ripristinare 1d6 + 4 dei suoi punti ferita, più un numero di punti ferita aggiuntivi pari al massimo dei Dadi Vita della creatura. La creatura non può recuperare altri punti ferita tramite questo talento finché non completa un riposo breve o lungo."
+					Description = "Le cure da campo del personaggio tengono in piedi i suoi compagni.\n- **Stabilizzare e rianimare.** Quando stabilizza una creatura morente con una borsa del guaritore, quella creatura recupera anche 1 punto ferita.\n- **Cure sul campo.** Come azione, può spendere un utilizzo di una borsa del guaritore per curare una creatura, che recupera 1d6 + 4 punti ferita più tanti punti ferita quanto il suo numero massimo di Dadi Vita. La stessa creatura può beneficiare di nuovo di queste cure solo dopo aver terminato un riposo breve o lungo."
 				}
 			}
 		};

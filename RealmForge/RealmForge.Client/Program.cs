@@ -44,6 +44,7 @@ namespace RealmForge.Client
 			builder.Services.AddScoped<SpeciesDataService>();
 			builder.Services.AddScoped<SubspeciesDataService>();
 			builder.Services.AddScoped<FeatDataService>();
+			builder.Services.AddScoped<BackgroundDataService>();
 
 			//	UI language state management service
 			builder.Services.AddSingleton<LanguageStateService>();

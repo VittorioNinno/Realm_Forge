@@ -30,14 +30,14 @@ public static class Healer2024Seeder
 					Id = TranslationEnId,
 					Language = LanguageCode.En,
 					Name = "Healer",
-					Description = "You gain the following benefits:\n- Battle Medic. If you have a Healer's Kit, you can expend one use of it and tend to a creature within 5 feet of yourself as a Utilize action. That creature can expend one of its Hit Point Dice, and you then roll that die. The creature regains a number of Hit Points equal to the roll plus your Proficiency Bonus.\n- Healing Rerolls. Whenever you roll a die to determine the number of Hit Points you restore with a spell or with this feat's Battle Medic benefit, you can reroll the die if it rolls a 1, and you must use the new roll."
+					Description = "Your field medicine keeps your companions on their feet.\n- **Field Medic.** If you have a Healer's Kit, you can take the Utilize action to spend one use of it and treat a creature within 5 feet of you. That creature can spend one of its Hit Point Dice; you roll it, and the creature regains Hit Points equal to the roll + your Proficiency Bonus.\n- **Reliable Healing.** When you roll a die to determine Hit Points restored by a spell or by Field Medic, you can reroll a 1, but you must keep the new result."
 				},
 				new FeatTranslation
 				{
 					Id = TranslationItId,
 					Language = LanguageCode.It,
 					Name = "Guaritore",
-					Description = "Il personaggio ottiene i seguenti benefici:\n- Medico combattente. Se il personaggio ha con sé una borsa del guaritore, può consumare un uso con un'azione di Utilizzo per curare una creatura entro 1,5 metri da sé. Dopodiché, la creatura può spendere uno dei suoi Dadi Vita per effettuare un tiro. Così facendo, recupera un numero di punti ferita pari al risultato del tiro più il bonus di competenza del personaggio.\n- Tiro ripetuto per guarigione. Quando tiri un dado per determinare il numero di punti ferita ripristinati dal personaggio con un incantesimo o col beneficio Medico combattente fornito dal talento, puoi ripetere il tiro se ottieni 1. Tuttavia, dovrai utilizzare il nuovo risultato."
+					Description = "Le cure da campo del personaggio tengono in piedi i suoi compagni.\n- **Medico da campo.** Se possiede una borsa del guaritore, può effettuare l'azione Utilizzare per spenderne un utilizzo e curare una creatura entro 1,5 metri. Quella creatura può spendere uno dei suoi Dadi Vita; il personaggio lo tira e la creatura recupera punti ferita pari al risultato + il bonus di competenza del personaggio.\n- **Cure affidabili.** Quando tira un dado per determinare i punti ferita ripristinati da un incantesimo o da Medico da campo, può ritirare un 1, ma deve tenere il nuovo risultato."
 				}
 			}
 		};
