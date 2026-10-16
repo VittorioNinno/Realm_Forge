@@ -19,6 +19,10 @@ namespace RealmForge.Domain.Entities
 		public Guid? OriginFeatId { get; set; }
 		public Feat? OriginFeat { get; set; }
 
+		//	Gold pieces the character can take instead of the equipment list (option B, e.g. 50 for 2024 backgrounds);
+		//	null when the background offers only its equipment list
+		public int? EquipmentGoldAlternative { get; set; }
+
 		public ICollection<BackgroundTranslation> Translations { get; set; } = new List<BackgroundTranslation>();
 	}
 

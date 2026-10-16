@@ -4,6 +4,7 @@
 @using RealmForge.Client.Services
 @using RealmForge.Shared.DTOs
 @using RealmForge.Shared.Enums
+@using RealmForge.Shared.Text
 @implements IDisposable
 @inject SpeciesDataService SpeciesService
 @inject LanguageStateService LanguageState
@@ -133,7 +134,7 @@
 
                             @* CARD DESCRIPTION *@
                             <p class="small lh-base mb-3" style="color: var(--rf-text-secondary); text-align: left;">
-                                @(string.IsNullOrWhiteSpace(sp.Description) ? UiText.NoDescription(LanguageState.CurrentLanguage) : sp.Description)
+                                @(string.IsNullOrWhiteSpace(sp.Description) ? UiText.NoDescription(LanguageState.CurrentLanguage) : MarkdownPreview.ToPlainText(sp.Description, 220))
                             </p>
                         </div>
 
@@ -255,9 +256,9 @@
 
                 @* DESCRIPTIONS *@
                 <div class="mb-4">
-                    <p class="small lh-base mb-2" style="color: var(--rf-text-secondary); text-align: left;">
-                        @selectedDetail.Description
-                    </p>
+                    <div class="rf-markdown-container small mb-2">
+                        @((MarkupString)MarkdownText.ToHtml(selectedDetail.Description))
+                    </div>
 
                     @* Active Subspecies Lore Callout *@
                     @if (ActiveSubspecies != null && !string.IsNullOrWhiteSpace(ActiveSubspecies.Description))
@@ -266,9 +267,9 @@
                             <strong class="text-warning small d-block mb-1 text-uppercase" style="letter-spacing: 0.5px;">
                                 @ActiveSubspecies.Name
                             </strong>
-                            <p class="small mb-0 text-light" style="text-align: left; line-height: 1.5;">
-                                @ActiveSubspecies.Description
-                            </p>
+                            <div class="rf-markdown-container small text-light">
+                                @((MarkupString)MarkdownText.ToHtml(ActiveSubspecies.Description))
+                            </div>
                         </div>
                     }
                 </div>
@@ -313,9 +314,9 @@
                                     }
                                 </div>
                             </div>
-                            <p class="small mb-0" style="color: var(--rf-text-secondary); text-align: left; line-height: 1.5;">
-                                @item.Trait.Description
-                            </p>
+                            <div class="rf-markdown-container small">
+                                @((MarkupString)MarkdownText.ToHtml(item.Trait.Description))
+                            </div>
                         </div>
                     }
                 </div>

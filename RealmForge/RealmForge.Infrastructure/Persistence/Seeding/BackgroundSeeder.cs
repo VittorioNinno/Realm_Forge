@@ -76,6 +76,7 @@ public static class BackgroundSeeder
 			background.AbilityOptions = definition.AbilityOptions;
 			background.SkillProficiencies = definition.SkillProficiencies;
 			background.OriginFeatId = definition.OriginFeatId;
+			background.EquipmentGoldAlternative = definition.EquipmentGoldAlternative;
 
 			foreach (var source in definition.Translations)
 			{
