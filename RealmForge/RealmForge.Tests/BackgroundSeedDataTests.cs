@@ -52,6 +52,24 @@ public class BackgroundSeedDataTests
 	}
 
 	[Fact]
+	public void Entertainer_has_its_proficiencies_tables_and_gladiator_variant()
+	{
+		var entertainer = Assert.Single(Backgrounds, b => b.Id == Entertainer2014Seeder.BackgroundId);
+		Assert.Equal(new[] { Skill.Acrobatics, Skill.Performance }, entertainer.SkillProficiencies);
+		Assert.Equal(ContentSource.RealmForge, entertainer.Source);
+
+		foreach (var tr in entertainer.Translations)
+		{
+			Assert.Equal((8, 6, 6, 6), (tr.PersonalityTraits.Count, tr.Ideals.Count, tr.Bonds.Count, tr.Flaws.Count));
+			Assert.Contains("| 10 |", tr.Description);
+			Assert.Equal(4, tr.Equipment!.Split('\n').Length);
+		}
+
+		Assert.Contains("Variant: Gladiator", entertainer.Translations.Single(t => t.Language == LanguageCode.En).Description);
+		Assert.Contains("Variante: Gladiatore", entertainer.Translations.Single(t => t.Language == LanguageCode.It).Description);
+	}
+
+	[Fact]
 	public void Ids_are_unique_and_identical_on_every_build()
 	{
 		BackgroundSeeder.EnsureUniqueIds(Backgrounds);
