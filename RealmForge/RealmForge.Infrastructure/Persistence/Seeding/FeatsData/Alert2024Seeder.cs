@@ -22,6 +22,7 @@ public static class Alert2024Seeder
 			Id = FeatId,
 			Ruleset = RulesetVersion.Dnd5e_2024,
 			IsOfficialSRD = true,
+			Source = ContentSource.Srd52,
 			Category = FeatCategory.Origin,
 			Translations = new List<FeatTranslation>
 			{
