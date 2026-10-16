@@ -8,6 +8,7 @@
 @implements IDisposable
 @inject FeatDataService FeatService
 @inject LanguageStateService LanguageState
+@inject ApiErrorState ApiErrors
 @inject NavigationManager Navigation
 
 <PageTitle>RealmForge - @UiText.FeatsTitle(LanguageState.CurrentLanguage)</PageTitle>
@@ -124,7 +125,7 @@
                                     <span class="badge @(feat.Ruleset == RulesetVersion.Dnd5e_2024 ? "badge-edition-2024" : "badge-edition-2014")">
                                         @UiText.FormatRuleset(feat.Ruleset, LanguageState.CurrentLanguage)
                                     </span>
-                                    <RealmForge.Client.Components.ContentBadge IsBase="feat.IsOfficialSRD" Source="feat.Source" />
+                                    <RealmForge.Client.Components.ContentBadge IsBase="feat.IsOfficialSRD" Source="feat.Source" Visibility="feat.Visibility" />
                                 </div>
                             </div>
 
@@ -175,7 +176,7 @@
                         <span class="badge @(SelectedFeat.Ruleset == RulesetVersion.Dnd5e_2024 ? "badge-edition-2024" : "badge-edition-2014")">
                             @UiText.FormatRuleset(SelectedFeat.Ruleset, LanguageState.CurrentLanguage)
                         </span>
-                        <RealmForge.Client.Components.ContentBadge IsBase="SelectedFeat.IsOfficialSRD" Source="SelectedFeat.Source" ShowSource="true" />
+                        <RealmForge.Client.Components.ContentBadge IsBase="SelectedFeat.IsOfficialSRD" Source="SelectedFeat.Source" Visibility="SelectedFeat.Visibility" ShowSource="true" />
                         <span class="badge bg-dark border border-warning text-warning">
                             @UiText.FormatFeatCategory(SelectedFeat.Category, LanguageState.CurrentLanguage)
                         </span>
@@ -183,6 +184,11 @@
                 </div>
                 <button class="btn btn-sm btn-rf-outline" @onclick="CloseDetail">✕</button>
             </div>
+
+            @if (!SelectedFeat.IsOfficialSRD)
+            {
+                <ShareLink Visibility="SelectedFeat.Visibility" CanEdit="SelectedFeat.CanEdit" Path="@($"feats?id={SelectedFeat.Id}")" />
+            }
 
             @if (!string.IsNullOrWhiteSpace(SelectedFeat.Prerequisite))
             {
@@ -270,6 +276,8 @@
                                   Options="@(Enum.GetValues<RulesetVersion>().Select(r => new RfSelect<RulesetVersion>.OptionItem(r, UiText.FormatRuleset(r, LanguageState.CurrentLanguage))).ToList())" />
                     </div>
                 </div>
+
+                <VisibilityPicker @bind-Value="newVisibility" />
 
                 <div class="p-3 mb-3 rounded" style="background-color: var(--rf-bg-card); border-left: 3px solid var(--rf-border-light);">
                     <div class="fw-bold mb-2 small text-uppercase" style="letter-spacing: 0.5px;">
@@ -438,6 +446,7 @@
 
     private FeatCategory newCategory = FeatCategory.Origin;
     private RulesetVersion newRuleset = RulesetVersion.Dnd5e_2024;
+    private ContentVisibility newVisibility = ContentVisibility.Private;
     private int? prereqLevel;
     private int? prereqScore;
     private FeatFeatureRequirement? prereqFeature;
@@ -512,6 +521,12 @@
         if (QueryFeatId.HasValue)
         {
             await OpenDetailAsync(QueryFeatId.Value);
+
+            //	Shared link to a private or deleted entry
+            if (SelectedFeat == null)
+            {
+                ApiErrors.Report(ApiErrorKind.NotAvailable);
+            }
         }
     }
 
@@ -555,6 +570,7 @@
         formValidationMessage = null;
         newCategory = FeatCategory.Origin;
         newRuleset = RulesetVersion.Dnd5e_2024;
+        newVisibility = ContentVisibility.Private;
         ResetPrerequisites();
         nameIt = "";
         descIt = "";
@@ -585,6 +601,7 @@
             {
                 newCategory = detailIt.Category;
                 newRuleset = detailIt.Ruleset;
+                newVisibility = detailIt.Visibility;
                 prereqLevel = detailIt.Prerequisites.MinimumLevel;
                 prereqScore = detailIt.Prerequisites.MinimumScore;
                 prereqFeature = detailIt.Prerequisites.Feature;
@@ -633,6 +650,7 @@
                 Category = newCategory,
                 Prerequisites = BuildPrerequisites(),
                 Ruleset = newRuleset,
+                Visibility = newVisibility,
                 Translations = new List<UpdateFeatTranslationDto>
                 {
                     new UpdateFeatTranslationDto { Language = LanguageCode.It, Name = nameIt.Trim(), Description = descIt?.Trim() ?? string.Empty, PrerequisiteNote = noteIt },
@@ -648,6 +666,7 @@
                 Category = newCategory,
                 Prerequisites = BuildPrerequisites(),
                 Ruleset = newRuleset,
+                Visibility = newVisibility,
                 Translations = new List<CreateFeatTranslationDto>
                 {
                     new CreateFeatTranslationDto { Language = LanguageCode.It, Name = nameIt.Trim(), Description = descIt?.Trim() ?? string.Empty, PrerequisiteNote = noteIt },

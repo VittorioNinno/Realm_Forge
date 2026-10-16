@@ -7,6 +7,11 @@
 <span class="badge @(IsBase ? "badge-srd" : "badge-homebrew")" title="@SourceTooltip" data-test="content-badge">
     @(IsBase ? UiText.BadgeBase(LanguageState.CurrentLanguage) : UiText.BadgeHomebrew(LanguageState.CurrentLanguage))
 </span>
+@if (!IsBase && Visibility != ContentVisibility.Public)
+{
+    @* Homebrew that is not listed for everyone: "Privato" or "Con link" *@
+    <span class="badge badge-visibility" data-test="visibility-badge">@UiText.FormatVisibility(Visibility, LanguageState.CurrentLanguage)</span>
+}
 @if (ShowSource && IsBase && Source is not null)
 {
     <span class="small align-self-center" style="color: var(--rf-text-muted); cursor: help;" title="@SourceTooltip" data-test="content-source">@SourceText</span>
@@ -16,6 +21,7 @@
     [Parameter] public bool IsBase { get; set; }
     [Parameter] public ContentSource? Source { get; set; }
     [Parameter] public bool ShowSource { get; set; }
+    [Parameter] public ContentVisibility Visibility { get; set; } = ContentVisibility.Public;
 
     private string? SourceText => IsBase ? UiText.FormatSource(Source, LanguageState.CurrentLanguage) : null;
     private string? SourceTooltip => IsBase ? UiText.SourceDetails(Source, LanguageState.CurrentLanguage) : null;

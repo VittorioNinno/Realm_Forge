@@ -48,6 +48,9 @@ namespace RealmForge.Api.Controllers
 				query = query.Where(s => s.IsOfficialSRD == isOfficial.Value);
 			}
 
+			//	Private Homebrew of other users and link-only entries are not listed
+			query = ContentAccess.ListedFor(query, User);
+
 			var speciesList = await query.ToListAsync();
 
 			var result = speciesList.Select(s =>
@@ -67,7 +70,8 @@ namespace RealmForge.Api.Controllers
 					s.Traits.Count,
 					s.Subspecies.Count,
 					CanEdit: _access.CanModify(s, User),
-					Source: s.Source
+					Source: s.Source,
+					Visibility: s.Visibility
 				);
 			});
 
@@ -93,7 +97,8 @@ namespace RealmForge.Api.Controllers
 				.AsNoTracking()
 				.FirstOrDefaultAsync(s => s.Id == id);
 
-			if (species == null)
+			//	Private entries of other users answer 404, as if they did not exist
+			if (species == null || !_access.CanView(species, User))
 			{
 				return NotFound();
 			}
@@ -117,7 +122,8 @@ namespace RealmForge.Api.Controllers
 				})
 				.ToList();
 
-			var subspeciesList = species.Subspecies.Select(sub =>
+			//	Lineages follow the list rule: other users' private or link-only lineages are left out
+			var subspeciesList = species.Subspecies.Where(sub => _access.IsListed(sub, User)).Select(sub =>
 			{
 				var subTranslation = sub.Translations.Localize(lang);
 
@@ -147,7 +153,8 @@ namespace RealmForge.Api.Controllers
 					sub.IsOfficialSRD,
 					exclusiveTraits,
 					CanEdit: _access.CanModify(sub, User),
-					Source: sub.Source
+					Source: sub.Source,
+					Visibility: sub.Visibility
 				);
 			})
 			.ToList();
@@ -165,7 +172,8 @@ namespace RealmForge.Api.Controllers
 				baseTraits,
 				subspeciesList,
 				CanEdit: _access.CanModify(species, User),
-				Source: species.Source
+				Source: species.Source,
+				Visibility: species.Visibility
 			);
 
 			return Ok(response);
@@ -195,6 +203,7 @@ namespace RealmForge.Api.Controllers
 				Ruleset = dto.Ruleset,
 				IsOfficialSRD = false,
 				AuthorId = ContentAccess.GetUserId(User),
+				Visibility = dto.Visibility,
 				Translations = dto.Translations.Select(t => new SpeciesTranslation
 				{
 					Language = t.Language,
@@ -207,6 +216,7 @@ namespace RealmForge.Api.Controllers
 					Ruleset = tr.Ruleset,
 					IsOfficialSRD = false,
 					AuthorId = ContentAccess.GetUserId(User),
+					Visibility = dto.Visibility,
 					Translations = tr.Translations.Select(trt => new TraitTranslation
 					{
 						Language = trt.Language,
@@ -220,6 +230,7 @@ namespace RealmForge.Api.Controllers
 					Ruleset = sub.Ruleset,
 					IsOfficialSRD = false,
 					AuthorId = ContentAccess.GetUserId(User),
+					Visibility = dto.Visibility,
 					Translations = sub.Translations.Select(sbt => new SubspeciesTranslation
 					{
 						Language = sbt.Language,
@@ -232,6 +243,7 @@ namespace RealmForge.Api.Controllers
 						Ruleset = tr.Ruleset,
 						IsOfficialSRD = false,
 						AuthorId = ContentAccess.GetUserId(User),
+						Visibility = dto.Visibility,
 						Translations = tr.Translations.Select(trt => new TraitTranslation
 						{
 							Language = trt.Language,
@@ -260,7 +272,8 @@ namespace RealmForge.Api.Controllers
 				TraitCount: species.Traits.Count,
 				SubspeciesCount: species.Subspecies.Count,
 				CanEdit: _access.CanModify(species, User),
-				Source: species.Source
+				Source: species.Source,
+				Visibility: species.Visibility
 			);
 
 			return CreatedAtAction(nameof(GetById), new { id = species.Id }, response);
@@ -297,6 +310,7 @@ namespace RealmForge.Api.Controllers
 			species.AllowedSizes = dto.AllowedSizes;
 			species.CreatureType = dto.CreatureType;
 			species.Ruleset = dto.Ruleset;
+			species.Visibility = dto.Visibility;
 
 			//	Safely update translations (Upsert approach)
 			foreach (var tDto in dto.Translations)

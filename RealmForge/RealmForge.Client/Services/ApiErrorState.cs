@@ -7,7 +7,8 @@
 		Unauthorized = 5,
 		Validation = 3,
 		Server = 4,
-		EmailNotConfirmed = 6
+		EmailNotConfirmed = 6,
+		NotAvailable = 7
 	}
 
 	///	<summary>

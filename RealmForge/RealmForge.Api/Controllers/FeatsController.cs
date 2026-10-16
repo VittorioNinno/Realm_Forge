@@ -55,6 +55,9 @@ namespace RealmForge.Api.Controllers
 				query = query.Where(f => f.IsOfficialSRD == isOfficial.Value);
 			}
 
+			//	Private Homebrew of other users and link-only entries are not listed
+			query = ContentAccess.ListedFor(query, User);
+
 			var feats = await query.ToListAsync();
 
 			var dtos = feats.Select(f =>
@@ -72,7 +75,8 @@ namespace RealmForge.Api.Controllers
 					f.IsOfficialSRD,
 					shortDesc,
 					_access.CanModify(f, User),
-					f.Source
+					f.Source,
+					f.Visibility
 				);
 			}).OrderBy(f => f.Name).ToList();
 
@@ -88,7 +92,8 @@ namespace RealmForge.Api.Controllers
 				.AsNoTracking()
 				.FirstOrDefaultAsync(f => f.Id == id);
 
-			if (feat == null)
+			//	Private entries of other users answer 404, as if they did not exist
+			if (feat == null || !_access.CanView(feat, User))
 			{
 				return NotFound();
 			}
@@ -116,6 +121,7 @@ namespace RealmForge.Api.Controllers
 				//	Content created through the API is always Homebrew; SRD data comes only from the seeders
 				IsOfficialSRD = false,
 				AuthorId = ContentAccess.GetUserId(User),
+				Visibility = dto.Visibility,
 
 				Translations = dto.Translations.Select(t => new FeatTranslation
 				{
@@ -168,6 +174,7 @@ namespace RealmForge.Api.Controllers
 
 			feat.Category = dto.Category;
 			feat.Ruleset = dto.Ruleset;
+			feat.Visibility = dto.Visibility;
 			ApplyPrerequisites(feat, dto.Prerequisites);
 
 			var dtoLanguages = dto.Translations.Select(t => t.Language).ToHashSet();
@@ -249,7 +256,8 @@ namespace RealmForge.Api.Controllers
 				ToPrerequisiteDto(feat),
 				tr?.PrerequisiteNote,
 				canEdit,
-				feat.Source
+				feat.Source,
+				feat.Visibility
 			);
 		}
 

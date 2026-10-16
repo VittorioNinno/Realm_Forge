@@ -17,5 +17,8 @@ namespace RealmForge.Domain.Common
 
 		//	Origin of the text for base content (null for Homebrew)
 		public ContentSource? Source { get; set; }
+
+		//	Homebrew sharing: public (listed), link (readable with the link) or private (author only)
+		public ContentVisibility Visibility { get; set; } = ContentVisibility.Public;
 	}
 }

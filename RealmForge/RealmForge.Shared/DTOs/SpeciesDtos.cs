@@ -31,7 +31,8 @@ namespace RealmForge.Shared.DTOs
 		int TraitCount = 0,
 		int SubspeciesCount = 0,
 		bool CanEdit = false,
-		ContentSource? Source = null
+		ContentSource? Source = null,
+		ContentVisibility Visibility = ContentVisibility.Public
 	);
 
 	///	<summary>
@@ -50,7 +51,8 @@ namespace RealmForge.Shared.DTOs
 		List<TraitResponseDto> BaseTraits,
 		List<SubspeciesResponseDto> Subspecies,
 		bool CanEdit = false,
-		ContentSource? Source = null
+		ContentSource? Source = null,
+		ContentVisibility Visibility = ContentVisibility.Public
 	);
 
 	///	<summary>
@@ -72,7 +74,8 @@ namespace RealmForge.Shared.DTOs
 		RulesetVersion Ruleset,
 		List<SpeciesTranslationDto> Translations,
 		List<CreateTraitDto>? BaseTraits = null,
-		List<CreateSubspeciesDto>? Subspecies = null
+		List<CreateSubspeciesDto>? Subspecies = null,
+		ContentVisibility Visibility = ContentVisibility.Private
 	);
 
 	///	<summary>
@@ -84,7 +87,8 @@ namespace RealmForge.Shared.DTOs
 		List<CreatureSize> AllowedSizes,
 		CreatureType CreatureType,
 		RulesetVersion Ruleset,
-		List<SpeciesTranslationDto> Translations
+		List<SpeciesTranslationDto> Translations,
+		ContentVisibility Visibility = ContentVisibility.Private
 	);
 
 	///	<summary>

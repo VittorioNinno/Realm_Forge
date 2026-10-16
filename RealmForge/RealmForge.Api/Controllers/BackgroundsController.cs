@@ -48,6 +48,9 @@ namespace RealmForge.Api.Controllers
 				query = query.Where(b => b.IsOfficialSRD == isOfficial.Value);
 			}
 
+			//	Private Homebrew of other users and link-only entries are not listed
+			query = ContentAccess.ListedFor(query, User);
+
 			var backgrounds = await query.ToListAsync();
 
 			var dtos = backgrounds.Select(b =>
@@ -67,7 +70,8 @@ namespace RealmForge.Api.Controllers
 					b.OriginFeatId,
 					b.OriginFeat?.Translations.Localize(lang)?.Name,
 					_access.CanModify(b, User),
-					b.Source);
+					b.Source,
+					b.Visibility);
 			}).OrderBy(b => b.Name).ToList();
 
 			return Ok(dtos);
@@ -79,7 +83,8 @@ namespace RealmForge.Api.Controllers
 		{
 			var background = await WithDetails(_context.Backgrounds.AsNoTracking()).FirstOrDefaultAsync(b => b.Id == id);
 
-			if (background == null)
+			//	Private entries of other users answer 404, as if they did not exist
+			if (background == null || !_access.CanView(background, User))
 			{
 				return NotFound();
 			}
@@ -236,7 +241,8 @@ namespace RealmForge.Api.Controllers
 				tr?.Bonds.ToList() ?? new List<string>(),
 				tr?.Flaws.ToList() ?? new List<string>(),
 				canEdit,
-				b.Source);
+				b.Source,
+				b.Visibility);
 		}
 
 		private static void ApplyMechanics(Background background, SaveBackgroundDto dto)
@@ -245,6 +251,7 @@ namespace RealmForge.Api.Controllers
 			background.SkillProficiencies = dto.SkillProficiencies.Distinct().OrderBy(s => s).ToList();
 			background.OriginFeatId = dto.OriginFeatId;
 			background.EquipmentGoldAlternative = dto.EquipmentGoldAlternative;
+			background.Visibility = dto.Visibility;
 		}
 
 		private static BackgroundTranslation ApplyTranslation(BackgroundTranslation target, BackgroundTranslationDto source)
