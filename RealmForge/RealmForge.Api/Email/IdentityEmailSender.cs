@@ -120,8 +120,12 @@ namespace RealmForge.Api.Email
 				return;
 			}
 
+			//	IsConfigured guarantees host and username
+			var host = _options.Host!;
+			var username = _options.Username!;
+
 			var message = new MimeMessage();
-			message.From.Add(new MailboxAddress(_options.FromName, _options.FromAddress ?? _options.Username!));
+			message.From.Add(new MailboxAddress(_options.FromName, _options.FromAddress ?? username));
 			message.To.Add(MailboxAddress.Parse(to));
 			message.Subject = subject;
 			message.Body = new BodyBuilder { HtmlBody = html }.ToMessageBody();
@@ -134,10 +138,10 @@ namespace RealmForge.Api.Email
 				using var client = new SmtpClient();
 				client.Timeout = 30000;
 
-				await client.ConnectAsync(_options.Host, _options.Port, security);
+				await client.ConnectAsync(host, _options.Port, security);
 
 				//	App passwords are shown by Google in groups of four characters: the spaces are not part of the password
-				await client.AuthenticateAsync(_options.Username, (_options.Password ?? string.Empty).Replace(" ", string.Empty));
+				await client.AuthenticateAsync(username, (_options.Password ?? string.Empty).Replace(" ", string.Empty));
 				await client.SendAsync(message);
 				await client.DisconnectAsync(true);
 
