@@ -65,10 +65,11 @@ namespace RealmForge.Api.Email
 				""");
 		}
 
-		//	Identity builds links to its own API endpoint; the same query (userId, code, ...) is sent to the client page instead
+		//	Identity builds links to its own API endpoint; the same query (userId, code, ...) is sent to the client page instead.
+		//	Identity hands the link over HTML-encoded ("&amp;code="), so it is decoded before reading the query
 		private string ToClientLink(string clientPage, string identityLink)
 		{
-			var query = QueryHelpers.ParseQuery(new Uri(identityLink).Query)
+			var query = QueryHelpers.ParseQuery(new Uri(WebUtility.HtmlDecode(identityLink)).Query)
 				.ToDictionary(kv => kv.Key, kv => (string?)kv.Value.ToString());
 
 			return QueryHelpers.AddQueryString($"{ClientBaseUrl().TrimEnd('/')}/{clientPage}", query);
