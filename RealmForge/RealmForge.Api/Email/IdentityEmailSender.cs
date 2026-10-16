@@ -1,5 +1,7 @@
 ﻿using System.Net;
-using System.Net.Mail;
+using MailKit.Net.Smtp;
+using MailKit.Security;
+using MimeKit;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.Extensions.Options;
@@ -118,30 +120,39 @@ namespace RealmForge.Api.Email
 				return;
 			}
 
+			var message = new MimeMessage();
+			message.From.Add(new MailboxAddress(_options.FromName, _options.FromAddress ?? _options.Username!));
+			message.To.Add(MailboxAddress.Parse(to));
+			message.Subject = subject;
+			message.Body = new BodyBuilder { HtmlBody = html }.ToMessageBody();
+
+			//	Port 465 uses TLS from the first byte; 587 (and 25) start in clear text and switch with STARTTLS
+			var security = _options.Port == 465 ? SecureSocketOptions.SslOnConnect : SecureSocketOptions.StartTls;
+
 			try
 			{
-				using var message = new MailMessage
-				{
-					From = new MailAddress(_options.FromAddress ?? _options.Username!, _options.FromName),
-					Subject = subject,
-					Body = html,
-					IsBodyHtml = true
-				};
-				message.To.Add(to);
+				using var client = new SmtpClient();
+				client.Timeout = 30000;
 
-				using var client = new SmtpClient(_options.Host, _options.Port)
-				{
-					EnableSsl = true,
-					Credentials = new NetworkCredential(_options.Username, _options.Password)
-				};
+				await client.ConnectAsync(_options.Host, _options.Port, security);
 
-				await client.SendMailAsync(message);
+				//	App passwords are shown by Google in groups of four characters: the spaces are not part of the password
+				await client.AuthenticateAsync(_options.Username, (_options.Password ?? string.Empty).Replace(" ", string.Empty));
+				await client.SendAsync(message);
+				await client.DisconnectAsync(true);
+
 				_logger.LogInformation("E-mail sent to {Email}: {Subject}", to, subject);
 			}
-			catch (Exception ex) when (ex is SmtpException or InvalidOperationException or FormatException)
+			catch (AuthenticationException ex)
+			{
+				_logger.LogError(ex, "SMTP login refused for {Username} on {Host}:{Port}. With Gmail, Email:Password must be an app password of that account (2-Step Verification on).",
+					_options.Username, _options.Host, _options.Port);
+			}
+			catch (Exception ex) when (ex is SmtpCommandException or SmtpProtocolException or SslHandshakeException or System.Net.Sockets.SocketException or IOException or TimeoutException)
 			{
 				//	Registration must not fail because of the mail server: the user can ask for a new e-mail from the account page
-				_logger.LogError(ex, "Could not send e-mail to {Email} ({Subject})", to, subject);
+				_logger.LogError(ex, "Could not send e-mail to {Email} through {Host}:{Port} ({Security}). Check host and port (Gmail: smtp.gmail.com, 587) and that no antivirus mail shield intercepts the connection.",
+					to, _options.Host, _options.Port, security);
 			}
 		}
 	}

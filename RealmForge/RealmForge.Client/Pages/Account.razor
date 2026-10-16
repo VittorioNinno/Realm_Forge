@@ -114,9 +114,9 @@
                         <input type="password" class="rf-form-control" autocomplete="new-password" data-test="pwd-repeat" @bind="repeatPassword" />
                     </div>
                 </div>
-                <div class="d-flex justify-content-between align-items-center mt-3">
+                <div class="d-flex justify-content-between align-items-center gap-3 mt-3">
                     <span class="small" style="color: var(--rf-text-muted);">@UiText.PasswordHint(LanguageState.CurrentLanguage)</span>
-                    <button class="btn btn-rf-orange" @onclick="ChangePasswordAsync" disabled="@isBusy">
+                    <button class="btn btn-sm btn-rf-orange flex-shrink-0 text-nowrap px-3" @onclick="ChangePasswordAsync" disabled="@isBusy">
                         @(isBusy ? "..." : UiText.BtnChangePassword(LanguageState.CurrentLanguage))
                     </button>
                 </div>
