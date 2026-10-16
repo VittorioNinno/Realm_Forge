@@ -34,12 +34,18 @@ try {
   const compendiumLinks = (await page.locator('[data-test=nav-compendium] a').allInnerTexts()).map((t) => t.trim());
   if (compendiumLinks.join(',') !== 'Specie,Background,Talenti') throw new Error(`unexpected compendium links: ${compendiumLinks.join(',')}`);
 
-  // Brand: emblem in the sidebar and logo in the dashboard hero, both loaded
+  // Brand: emblem next to the title in the sidebar, RealmForge favicon instead of the Blazor one
   await page.goto(`${base}/`);
-  await page.locator('[data-test=home-hero] img').waitFor({ timeout: 30000 });
-  const images = await page.evaluate(() => [...document.querySelectorAll('.rf-brand-icon, .rf-hero-logo')].map((i) => `${i.className}:${i.complete && i.naturalWidth > 0}`));
-  if (images.length !== 2 || images.some((i) => !i.endsWith(':true'))) throw new Error(`logo images not loaded: ${images.join(', ')}`);
-  ok('logo shown in the sidebar and in the dashboard');
+  await page.locator('.rf-brand-icon').waitFor({ timeout: 30000 });
+  const brand = await page.evaluate(async () => {
+    const icon = document.querySelector('.rf-brand-icon');
+    const favicon = document.querySelector('link[rel=icon]').getAttribute('href');
+    const status = (await fetch(favicon)).status;
+    return { loaded: icon.complete && icon.naturalWidth > 0, favicon, status, heroLogos: document.querySelectorAll('main img').length };
+  });
+  results.push(`INFO brand icon loaded=${brand.loaded} favicon=${brand.favicon} (${brand.status}) images in page body=${brand.heroLogos}`);
+  if (!brand.loaded || brand.favicon !== 'img/favicon-32.png' || brand.status !== 200 || brand.heroLogos !== 0) throw new Error('unexpected brand icons');
+  ok('emblem in the sidebar only, RealmForge favicon served');
 
   await page.goto(`${base}/account`);
   await page.getByText('Non hai un account? Registrati').waitFor({ timeout: 30000 });
