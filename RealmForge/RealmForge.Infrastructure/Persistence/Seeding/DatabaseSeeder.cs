@@ -12,6 +12,9 @@ public static class DatabaseSeeder
 	{
 		await RunAsync("species", () => SpeciesSeeder.SeedAsync(context), context, logger);
 		await RunAsync("feats", () => FeatSeeder.SeedAsync(context, cancellationToken), context, logger);
+
+		//	After feats: backgrounds reference their Origin feat
+		await RunAsync("backgrounds", () => BackgroundSeeder.SeedAsync(context, cancellationToken), context, logger);
 	}
 
 	private static async Task RunAsync(string module, Func<Task> seed, RealmForgeDbContext context, ILogger logger)
