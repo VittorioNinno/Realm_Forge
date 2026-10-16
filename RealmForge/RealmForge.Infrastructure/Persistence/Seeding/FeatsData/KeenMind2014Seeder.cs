@@ -30,14 +30,14 @@ public static class KeenMind2014Seeder
 					Id = TranslationEnId,
 					Language = LanguageCode.En,
 					Name = "Keen Mind",
-					Description = "You have a mind that can track time, direction, and detail with uncanny precision. You gain the following benefits:\n- Increase your Intelligence score by 1, to a maximum of 20.\n- You always know which way is north.\n- You always know the number of hours left before the next sunrise or sunset.\n- You can accurately recall anything you have seen or heard within the past month."
+					Description = "Your memory and sense of orientation are flawless.\n- **Intelligence +1.** Increase your Intelligence score by 1, to a maximum of 20.\n- **Inner Compass.** You always know which direction is north.\n- **Sense of Time.** You always know how many hours remain until the next sunrise or sunset.\n- **Perfect Recall.** You can accurately remember anything you saw or heard during the past month."
 				},
 				new FeatTranslation
 				{
 					Id = TranslationItId,
 					Language = LanguageCode.It,
 					Name = "Mente Acuta",
-					Description = "La mente del personaggio è in grado di tenere conto del tempo, della direzione e dei dettagli con straordinaria precisione. Il personaggio ottiene i benefici seguenti:\n- Il suo punteggio di Intelligenza aumenta di 1, fino a un massimo di 20.\n- Sa sempre in che direzione si trova il nord.\n- Sa sempre quante ore mancano alla prossima alba o al prossimo tramonto.\n- Riesce a ricordare con precisione tutto ciò che ha visto o sentito nell'arco dell'ultimo mese."
+					Description = "La memoria e il senso dell'orientamento del personaggio sono impeccabili.\n- **Intelligenza +1.** Il punteggio di Intelligenza aumenta di 1, fino a un massimo di 20.\n- **Bussola interiore.** Sa sempre in che direzione si trova il nord.\n- **Senso del tempo.** Sa sempre quante ore mancano alla prossima alba o al prossimo tramonto.\n- **Memoria perfetta.** Ricorda con precisione tutto ciò che ha visto o sentito nell'ultimo mese."
 				}
 			}
 		};

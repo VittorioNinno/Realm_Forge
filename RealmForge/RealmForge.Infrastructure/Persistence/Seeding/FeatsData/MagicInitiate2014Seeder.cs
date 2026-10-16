@@ -30,14 +30,14 @@ public static class MagicInitiate2014Seeder
 					Id = TranslationEnId,
 					Language = LanguageCode.En,
 					Name = "Magic Initiate",
-					Description = "Choose a class: bard, cleric, druid, sorcerer, warlock, or wizard. You learn two cantrips of your choice from that class's spell list.\nIn addition, choose one 1st-level spell from that same list. You learn that spell and can cast it at its lowest level. Once you cast it, you must finish a long rest before you can cast it again.\nYour spellcasting ability for these spells depends on the class you chose: Charisma for bard, sorcerer, or warlock; Wisdom for cleric or druid; or Intelligence for wizard."
+					Description = "You have picked up the basics of one tradition of magic.\n- **Chosen Tradition.** Choose bard, cleric, druid, sorcerer, warlock, or wizard. Your spellcasting ability for this feat is Charisma for bard, sorcerer, or warlock; Wisdom for cleric or druid; Intelligence for wizard.\n- **Cantrips.** You learn two cantrips of your choice from that class's spell list.\n- **1st-Level Spell.** You also learn one 1st-level spell from the same list. You can cast it at its lowest level once, and then you must finish a long rest before casting it this way again."
 				},
 				new FeatTranslation
 				{
 					Id = TranslationItId,
 					Language = LanguageCode.It,
 					Name = "Iniziato alla Magia",
-					Description = "Il personaggio sceglie una classe: bardo, chierico, druido, mago, stregone o warlock. Apprende due trucchetti a sua scelta dalla lista di incantesimi di quella classe.\nSceglie inoltre un incantesimo di 1° livello da apprendere da quella stessa lista. Usando questo talento, può lanciare quell'incantesimo una volta al suo livello più basso e deve completare un riposo lungo prima di poterlo lanciare di nuovo in questo modo.\nLa caratteristica da incantatore del personaggio per questi incantesimi dipende dalla classe scelta: Carisma per il bardo, lo stregone o il warlock; Saggezza per il chierico o il druido; Intelligenza per il mago."
+					Description = "Il personaggio ha appreso le basi di una tradizione magica.\n- **Tradizione prescelta.** Sceglie bardo, chierico, druido, mago, stregone o warlock. La caratteristica da incantatore per questo talento è Carisma per bardo, stregone o warlock; Saggezza per chierico o druido; Intelligenza per mago.\n- **Trucchetti.** Impara due trucchetti a sua scelta dalla lista degli incantesimi di quella classe.\n- **Incantesimo di 1° livello.** Impara anche un incantesimo di 1° livello dalla stessa lista. Può lanciarlo al livello più basso una volta, poi deve terminare un riposo lungo prima di poterlo lanciare di nuovo in questo modo."
 				}
 			}
 		};
