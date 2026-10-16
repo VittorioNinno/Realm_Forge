@@ -192,6 +192,16 @@
     {
         LanguageState.OnLanguageChanged += StateHasChanged;
         CrossTab.OnEmailConfirmed += HandleEmailConfirmed;
+        CrossTab.OnTabVisible += HandleTabVisible;
+    }
+
+    //	Back to this tab while the e-mail is still unconfirmed: re-check (it may have been confirmed in another window)
+    private void HandleTabVisible()
+    {
+        if (summary is { EmailConfirmed: false })
+        {
+            HandleEmailConfirmed();
+        }
     }
 
     //	The e-mail was confirmed in another tab: refresh the status shown here
@@ -322,5 +332,6 @@
     {
         LanguageState.OnLanguageChanged -= StateHasChanged;
         CrossTab.OnEmailConfirmed -= HandleEmailConfirmed;
+        CrossTab.OnTabVisible -= HandleTabVisible;
     }
 }
