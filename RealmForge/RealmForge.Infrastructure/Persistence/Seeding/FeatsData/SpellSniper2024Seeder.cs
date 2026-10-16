@@ -32,14 +32,14 @@ public static class SpellSniper2024Seeder
 					Id = TranslationEnId,
 					Language = LanguageCode.En,
 					Name = "Spell Sniper",
-					Description = "You gain the following benefits:\n- **Ability Score Increase.** Increase your Intelligence, Wisdom, or Charisma score by 1, to a maximum of 20.\n- **Bypass Cover.** Your attack rolls for spells ignore Half Cover and Three-Quarters Cover.\n- **Casting in Melee.** Being within 5 feet of an enemy doesn't impose Disadvantage on your attack rolls with spells.\n- **Increased Range.** When you cast a spell that has a range of at least 10 feet and requires you to make an attack roll, you can increase the spell's range by 60 feet."
+					Description = "You have refined the spells you hurl at distant targets.\n- **Intelligence, Wisdom, or Charisma +1.** Increase one of these scores by 1, to a maximum of 20.\n- **Around Cover.** Your spell attack rolls ignore Half Cover and Three-Quarters Cover.\n- **Close-Quarters Casting.** Having an enemy within 5 feet of you doesn't give you Disadvantage on spell attack rolls.\n- **Extended Reach.** When you cast a spell with a range of at least 10 feet that requires an attack roll, you can increase its range by 60 feet."
 				},
 				new FeatTranslation
 				{
 					Id = TranslationItId,
 					Language = LanguageCode.It,
 					Name = "Cecchino Magico",
-					Description = "Il personaggio ottiene i seguenti benefici:\n- **Incremento dei Punteggi di Caratteristica.** Il suo punteggio di Intelligenza, Saggezza o Carisma aumenta di 1, fino a un massimo di 20.\n- **Ignora Copertura.** I tiri per colpire del personaggio per gli incantesimi ignorano la mezza copertura e i tre quarti di copertura.\n- **Lancio in Mischia.** Anche se il personaggio si trova a 1,5 metri da un nemico, non subisce Svantaggio ai tiri per colpire con gli incantesimi.\n- **Gittata Aumentata.** Quando il personaggio lancia un incantesimo con una gittata di almeno 3 metri e che richiede di effettuare un tiro per colpire, può aumentare tale gittata di 18 metri."
+					Description = "Il personaggio ha affinato gli incantesimi che scaglia contro bersagli lontani.\n- **Intelligenza, Saggezza o Carisma +1.** Uno di questi punteggi aumenta di 1, fino a un massimo di 20.\n- **Oltre la copertura.** I suoi tiri per colpire con incantesimi ignorano la mezza copertura e la copertura tre quarti.\n- **Incantesimi ravvicinati.** Avere un nemico entro 1,5 metri non gli impone Svantaggio ai tiri per colpire con incantesimi.\n- **Portata estesa.** Quando lancia un incantesimo con gittata di almeno 3 metri che richiede un tiro per colpire, può aumentarne la gittata di 18 metri."
 				}
 			}
 		};

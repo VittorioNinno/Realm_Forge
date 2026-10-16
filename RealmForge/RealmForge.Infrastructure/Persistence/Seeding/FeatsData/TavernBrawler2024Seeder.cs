@@ -30,14 +30,14 @@ public static class TavernBrawler2024Seeder
 					Id = TranslationEnId,
 					Language = LanguageCode.En,
 					Name = "Tavern Brawler",
-					Description = "You gain the following benefits:\n- **Enhanced Unarmed Strike.** When you hit with your Unarmed Strike and deal damage, you can deal Bludgeoning damage equal to 1d4 plus your Strength modifier instead of the normal damage of an Unarmed Strike.\n- **Damage Rerolls.** Whenever you roll a damage die for your Unarmed Strike, you can reroll the die if it rolls a 1, and you must use the new roll.\n- **Improvised Weaponry.** You have proficiency with improvised weapons.\n- **Push.** When you hit a creature with an Unarmed Strike as part of the Attack action on your turn, you can deal damage to the target and also push it 5 feet away from you. You can use this benefit only once per turn."
+					Description = "Fists, chairs, and bottles are all weapons in your hands.\n- **Heavy Fists.** When your Unarmed Strike hits and deals damage, you can deal Bludgeoning damage equal to 1d4 + your Strength modifier instead of the normal damage.\n- **Steady Punches.** When you roll a damage die for your Unarmed Strike and get a 1, you can reroll it, but you must use the new result.\n- **Improvised Weapons.** You are proficient with improvised weapons.\n- **Shove Back.** Once per turn, when you hit a creature with an Unarmed Strike as part of the Attack action, you can both damage it and push it 5 feet away from you."
 				},
 				new FeatTranslation
 				{
 					Id = TranslationItId,
 					Language = LanguageCode.It,
 					Name = "Lottatore da Taverna",
-					Description = "Il personaggio ottiene i seguenti benefici:\n- **Colpo Senz'armi Migliorato.** Quando il personaggio colpisce con un colpo senz'armi e infligge dei danni, può infliggere 1d4 danni contundenti più il suo modificatore di Forza invece dei normali danni del colpo senz'armi.\n- **Tiro Ripetuto per i Danni.** Quando il personaggio tira per i danni di un colpo senz'armi, se ottiene 1 può ripetere il tiro. Tuttavia, dovrà utilizzare il nuovo risultato.\n- **Armi Improvvisate.** Il personaggio ha competenza nelle armi improvvisate.\n- **Spinta.** Quando il personaggio colpisce una creatura con un colpo senz'armi come parte di un'azione di Attacco nel suo turno, può infliggere danni al bersaglio e spingerlo via di 1,5 metri da sé. Questo beneficio è utilizzabile una sola volta per turno."
+					Description = "Pugni, sedie e bottiglie sono tutte armi nelle mani del personaggio.\n- **Pugni pesanti.** Quando il suo colpo senz'armi colpisce e infligge danni, può infliggere danni contundenti pari a 1d4 + il suo modificatore di Forza invece dei danni normali.\n- **Pugni costanti.** Quando tira un dado di danno per il suo colpo senz'armi e ottiene 1, può ritirarlo, ma deve usare il nuovo risultato.\n- **Armi improvvisate.** Ha competenza nelle armi improvvisate.\n- **Respingere.** Una volta per turno, quando colpisce una creatura con un colpo senz'armi durante l'azione Attacco, può sia infliggerle danni sia spingerla di 1,5 metri lontano da sé."
 				}
 			}
 		};

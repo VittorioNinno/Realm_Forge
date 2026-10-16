@@ -31,14 +31,14 @@ public static class BoonOfRecovery2024Seeder
 					Id = TranslationEnId,
 					Language = LanguageCode.En,
 					Name = "Boon of Recovery",
-					Description = "You gain the following benefits:\n- **Ability Score Increase.** Increase one ability score of your choice by 1, to a maximum of 30.\n- **Last Stand.** When you would be reduced to 0 Hit Points, you can drop to 1 Hit Point instead and regain a number of Hit Points equal to half your Hit Point maximum. Once you use this benefit, you can't use it again until you finish a Long Rest.\n- **Recover Vitality.** You have a pool of ten d10s. As a Bonus Action, you can expend dice from the pool, roll those dice, and regain a number of Hit Points equal to the roll's total. You regain all the expended dice when you finish a Long Rest."
+					Description = "Your life force refuses to give out.\n- **Ability +1.** Increase one ability score of your choice by 1, to a maximum of 30.\n- **Refuse to Fall.** When you would drop to 0 Hit Points, you can drop to 1 Hit Point instead and then regain Hit Points equal to half your Hit Point maximum. You can't do this again until you finish a Long Rest.\n- **Reserve of Vitality.** You have a reserve of ten d10s. As a Bonus Action, you can spend any number of dice from the reserve, roll them, and regain Hit Points equal to the total. You recover all spent dice when you finish a Long Rest."
 				},
 				new FeatTranslation
 				{
 					Id = TranslationItId,
 					Language = LanguageCode.It,
 					Name = "Dono del Recupero",
-					Description = "Il personaggio ottiene i seguenti benefici:\n- **Incremento dei Punteggi di Caratteristica.** Il punteggio di una sua caratteristica a scelta aumenta di 1, fino a un massimo di 30.\n- **Incrollabile.** Quando il personaggio viene ridotto a 0 Punti Ferita, può invece scendere a 1 Punto Ferita e recuperarne una quantità pari alla metà dei suoi Punti Ferita massimi. Una volta utilizzato questo beneficio, il personaggio non può riutilizzarlo finché non completa un Riposo Lungo.\n- **Recupero di Vitalità.** Il personaggio dispone di una riserva di dieci d10. Come Azione Bonus, può consumare dadi dalla riserva, tirarli e recuperare un numero di Punti Ferita pari al totale del tiro. Il personaggio recupera tutti i dadi spesi quando completa un Riposo Lungo."
+					Description = "La forza vitale del personaggio si rifiuta di cedere.\n- **Caratteristica +1.** Un punteggio di caratteristica a scelta aumenta di 1, fino a un massimo di 30.\n- **Rifiutarsi di cadere.** Quando scenderebbe a 0 punti ferita, può invece scendere a 1 punto ferita e poi recuperare punti ferita pari alla metà del suo massimo. Non può farlo di nuovo finché non termina un riposo lungo.\n- **Riserva di vitalità.** Dispone di una riserva di dieci d10. Come azione bonus, può spendere un qualsiasi numero di dadi della riserva, tirarli e recuperare punti ferita pari al totale. Recupera tutti i dadi spesi quando termina un riposo lungo."
 				}
 			}
 		};

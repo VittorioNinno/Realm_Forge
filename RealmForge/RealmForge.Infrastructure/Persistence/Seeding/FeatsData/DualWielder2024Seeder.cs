@@ -33,14 +33,14 @@ public static class DualWielder2024Seeder
 					Id = TranslationEnId,
 					Language = LanguageCode.En,
 					Name = "Dual Wielder",
-					Description = "You gain the following benefits:\n- **Ability Score Increase.** Increase your Strength or Dexterity score by 1, to a maximum of 20.\n- **Enhanced Dual Wielding.** When you take the Attack action on your turn and attack with a weapon that has the Light property, you can make one extra attack as a Bonus Action later on the same turn with a different weapon, which must be a Melee weapon that lacks the Two-Handed property. You don't add your ability modifier to the extra attack's damage unless that modifier is negative.\n- **Quick Draw.** You can draw or stow two weapons that lack the Two-Handed property when you would normally be able to draw or stow only one."
+					Description = "Fighting with a weapon in each hand comes naturally to you.\n- **Strength or Dexterity +1.** Increase one of the two scores by 1, to a maximum of 20.\n- **Wider Choice of Weapons.** When you take the Attack action and attack with a Light weapon, you can make one extra attack as a Bonus Action later that turn with a different weapon, which must be a Melee weapon without the Two-Handed property. You don't add your ability modifier to this extra attack's damage unless the modifier is negative.\n- **Quick Draw.** Whenever you could draw or stow one weapon without the Two-Handed property, you can draw or stow two instead."
 				},
 				new FeatTranslation
 				{
 					Id = TranslationItId,
 					Language = LanguageCode.It,
 					Name = "Combattente a Due Armi",
-					Description = "Il personaggio ottiene i seguenti benefici:\n- **Incremento dei Punteggi di Caratteristica.** Il suo punteggio di Forza o Destrezza aumenta di 1, fino a un massimo di 20.\n- **Combattere con Due Armi Migliorato.** Quando il personaggio utilizza un'azione di Attacco nel suo turno per attaccare con un'arma Leggera, durante lo stesso turno può usare un'azione bonus per sferrarne uno extra con un'arma diversa, a patto che sia un'arma da mischia senza la proprietà a due mani. Non può aggiungere il proprio modificatore di caratteristica all'attacco extra, a meno che non sia di valore negativo.\n- **Estrazione Rapida.** Il personaggio può estrarre o rinfoderare due armi senza la proprietà a due mani quando normalmente potrebbe eseguire tali azioni solo con una."
+					Description = "Combattere con un'arma in ciascuna mano è naturale per il personaggio.\n- **Forza o Destrezza +1.** Uno dei due punteggi aumenta di 1, fino a un massimo di 20.\n- **Scelta di armi più ampia.** Quando effettua l'azione Attacco e attacca con un'arma leggera, può effettuare un attacco aggiuntivo come azione bonus più avanti nello stesso turno con un'arma diversa, che deve essere un'arma da mischia senza la proprietà a due mani. Non aggiunge il modificatore di caratteristica ai danni di questo attacco aggiuntivo, a meno che non sia negativo.\n- **Estrazione rapida.** Quando potrebbe estrarre o riporre un'arma senza la proprietà a due mani, può estrarne o riporne due."
 				}
 			}
 		};

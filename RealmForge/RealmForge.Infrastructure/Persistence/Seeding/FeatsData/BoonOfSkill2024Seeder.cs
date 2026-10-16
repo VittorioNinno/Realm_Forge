@@ -31,14 +31,14 @@ public static class BoonOfSkill2024Seeder
 					Id = TranslationEnId,
 					Language = LanguageCode.En,
 					Name = "Boon of Skill",
-					Description = "You gain the following benefits:\n- **Ability Score Increase.** Increase one ability score of your choice by 1, to a maximum of 30.\n- **All-Around Adept.** You gain proficiency in all skills.\n- **Expertise.** Choose one skill in which you lack Expertise. You gain Expertise in that skill."
+					Description = "There is almost nothing you can't turn your hand to.\n- **Ability +1.** Increase one ability score of your choice by 1, to a maximum of 30.\n- **Jack of All Skills.** You gain proficiency in every skill.\n- **Mastery.** Choose one skill in which you don't have Expertise: you gain Expertise in it."
 				},
 				new FeatTranslation
 				{
 					Id = TranslationItId,
 					Language = LanguageCode.It,
 					Name = "Dono dell'Abilità",
-					Description = "Il personaggio ottiene i seguenti benefici:\n- **Incremento dei Punteggi di Caratteristica.** Il punteggio di una sua caratteristica a scelta aumenta di 1, fino a un massimo di 30.\n- **Adepto Eclettico.** Il personaggio ottiene competenza in tutte le Abilità.\n- **Maestria.** Il personaggio sceglie un'Abilità in cui non possiede Maestria. Ottiene Maestria in quell'Abilità."
+					Description = "Non c'è quasi nulla in cui il personaggio non sappia cimentarsi.\n- **Caratteristica +1.** Un punteggio di caratteristica a scelta aumenta di 1, fino a un massimo di 30.\n- **Esperto di tutto.** Ottiene competenza in tutte le abilità.\n- **Maestria.** Sceglie un'abilità in cui non ha Maestria: ottiene Maestria in quell'abilità."
 				}
 			}
 		};

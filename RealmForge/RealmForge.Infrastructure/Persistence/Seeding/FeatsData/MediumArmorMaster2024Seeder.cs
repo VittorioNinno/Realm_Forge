@@ -32,14 +32,14 @@ public static class MediumArmorMaster2024Seeder
 					Id = TranslationEnId,
 					Language = LanguageCode.En,
 					Name = "Medium Armor Master",
-					Description = "You gain the following benefits:\n- **Ability Score Increase.** Increase your Strength or Dexterity score by 1, to a maximum of 20.\n- **Dexterous Wearer.** While you're wearing Medium armor, you can add 3, rather than 2, to your AC if you have a Dexterity score of 16 or higher."
+					Description = "You move in medium armor as if it weren't there.\n- **Strength or Dexterity +1.** Increase one of the two scores by 1, to a maximum of 20.\n- **Better Fit.** While wearing Medium armor, you can add up to 3, rather than 2, to your AC if your Dexterity is 16 or higher."
 				},
 				new FeatTranslation
 				{
 					Id = TranslationItId,
 					Language = LanguageCode.It,
 					Name = "Maestro delle Armature Medie",
-					Description = "Il personaggio ottiene i seguenti benefici:\n- **Incremento dei Punteggi di Caratteristica.** Il suo punteggio di Forza o Destrezza aumenta di 1, fino a un massimo di 20.\n- **Agilità con Armatura.** Mentre indossa un'armatura media, il personaggio può aggiungere 3 alla sua CA (invece di 2) se ha un punteggio di Destrezza di 16 o superiore."
+					Description = "Il personaggio si muove in armatura media come se non la indossasse.\n- **Forza o Destrezza +1.** Uno dei due punteggi aumenta di 1, fino a un massimo di 20.\n- **Vestibilità migliore.** Mentre indossa un'armatura media, se ha Destrezza 16 o superiore può aggiungere alla CA fino a 3 anziché fino a 2."
 				}
 			}
 		};

@@ -33,14 +33,14 @@ public static class Charger2024Seeder
 					Id = TranslationEnId,
 					Language = LanguageCode.En,
 					Name = "Charger",
-					Description = "You gain the following benefits:\n- **Ability Score Increase.** Increase your Strength or Dexterity score by 1, to a maximum of 20.\n- **Improved Dash.** When you take the Dash action, your Speed increases by 10 feet for that action.\n- **Charge Attack.** If you move at least 10 feet in a straight line toward a target immediately before hitting it with a melee attack roll as part of the Attack action, choose one of the following effects: gain a 1d8 bonus to the attack's damage roll, or push the target up to 10 feet away if it is no more than one size larger than you. You can use this benefit only once on each of your turns."
+					Description = "You turn a running start into a devastating blow.\n- **Strength or Dexterity +1.** Increase one of the two scores by 1, to a maximum of 20.\n- **Faster Dash.** When you take the Dash action, your Speed increases by 10 feet for that action.\n- **Charging Hit.** If you move at least 10 feet in a straight line toward a target right before hitting it with a melee attack roll during the Attack action, choose one: the attack deals an extra 1d8 damage, or you push the target up to 10 feet away (only if it is no more than one size larger than you). You can use this benefit only once per turn."
 				},
 				new FeatTranslation
 				{
 					Id = TranslationItId,
 					Language = LanguageCode.It,
 					Name = "Carica",
-					Description = "Il personaggio ottiene i seguenti benefici:\n- **Incremento dei Punteggi di Caratteristica.** Il suo punteggio di Forza o Destrezza aumenta di 1, fino a un massimo di 20.\n- **Scatto Migliorato.** Quando il personaggio effettua l'azione di Scatto, la sua velocità aumenta di 3 metri per quell'azione.\n- **Attacco in Carica.** Se il personaggio percorre almeno 3 metri in linea retta verso un bersaglio subito prima di colpirlo con un tiro per colpire in mischia come parte dell'azione di Attacco, sceglie uno dei seguenti effetti: ottiene 1d8 danni bonus al tiro per i danni, oppure spinge via il bersaglio di 3 metri se la sua taglia è superiore di massimo una categoria rispetto a quella del personaggio. Questo beneficio è utilizzabile una sola volta per turno."
+					Description = "Il personaggio trasforma una rincorsa in un colpo devastante.\n- **Forza o Destrezza +1.** Uno dei due punteggi aumenta di 1, fino a un massimo di 20.\n- **Scatto più rapido.** Quando effettua l'azione Scatto, la sua velocità aumenta di 3 metri per quell'azione.\n- **Colpo in carica.** Se si muove di almeno 3 metri in linea retta verso un bersaglio subito prima di colpirlo con un tiro per colpire in mischia durante l'azione Attacco, sceglie un effetto: l'attacco infligge 1d8 danni aggiuntivi, oppure spinge il bersaglio fino a 3 metri di distanza (solo se non è più di una taglia più grande di lui). Può usare questo beneficio solo una volta per turno."
 				}
 			}
 		};

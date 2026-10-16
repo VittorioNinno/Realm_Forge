@@ -30,14 +30,14 @@ public static class Musician2024Seeder
 					Id = TranslationEnId,
 					Language = LanguageCode.En,
 					Name = "Musician",
-					Description = "You gain the following benefits:\n- **Instrument Training.** You gain proficiency with three Musical Instruments of your choice.\n- **Encouraging Song.** As you finish a Short or Long Rest, you can play a song on a Musical Instrument with which you have proficiency and give Heroic Inspiration to allies who hear the song. The number of allies you can affect in this way equals your Proficiency Bonus."
+					Description = "Your music lifts the spirits of those who hear it.\n- **Instrument Training.** You gain proficiency with three Musical Instruments of your choice.\n- **Uplifting Song.** When you finish a Short or Long Rest, you can play a song on an instrument you are proficient with. Allies who hear it gain Heroic Inspiration, up to a number of allies equal to your Proficiency Bonus."
 				},
 				new FeatTranslation
 				{
 					Id = TranslationItId,
 					Language = LanguageCode.It,
 					Name = "Musicista",
-					Description = "Il personaggio ottiene i seguenti benefici:\n- **Formazione Musicale.** Il personaggio ottiene competenza in tre strumenti musicali a tua scelta.\n- **Canzone Incoraggiante.** Dopo aver completato un Riposo Breve o Lungo, il personaggio può suonare una canzone utilizzando uno strumento in cui ha competenza, in modo da conferire Ispirazione Eroica agli alleati che la ascoltano. Il numero di alleati che possono beneficiare di questo effetto equivale al bonus di competenza del personaggio."
+					Description = "La musica del personaggio solleva il morale di chi la ascolta.\n- **Addestramento musicale.** Ottiene competenza in tre strumenti musicali a sua scelta.\n- **Canzone incoraggiante.** Quando termina un riposo breve o lungo, può suonare una canzone con uno strumento in cui ha competenza. Gli alleati che la ascoltano ottengono Ispirazione Eroica, fino a un numero di alleati pari al suo bonus di competenza."
 				}
 			}
 		};

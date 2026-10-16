@@ -31,14 +31,14 @@ public static class MageSlayer2024Seeder
 					Id = TranslationEnId,
 					Language = LanguageCode.En,
 					Name = "Mage Slayer",
-					Description = "You gain the following benefits:\n- **Ability Score Increase.** Increase your Strength or Dexterity score by 1, to a maximum of 20.\n- **Concentration Breaker.** When you damage a creature that is concentrating, it has Disadvantage on the saving throw it makes to maintain Concentration.\n- **Guarded Mind.** If you fail an Intelligence, a Wisdom, or a Charisma saving throw, you can cause yourself to succeed instead. Once you use this benefit, you can't use it again until you finish a Short or Long Rest."
+					Description = "You have trained to hunt down spellcasters.\n- **Strength or Dexterity +1.** Increase one of the two scores by 1, to a maximum of 20.\n- **Break Concentration.** A concentrating creature you damage has Disadvantage on its saving throw to keep Concentration.\n- **Iron Will.** When you fail an Intelligence, Wisdom, or Charisma saving throw, you can succeed instead. You can't do this again until you finish a Short or Long Rest."
 				},
 				new FeatTranslation
 				{
 					Id = TranslationItId,
 					Language = LanguageCode.It,
 					Name = "Sterminatore di Maghi",
-					Description = "Il personaggio ottiene i seguenti benefici:\n- **Incremento dei Punteggi di Caratteristica.** Il suo punteggio di Forza o Destrezza aumenta di 1, fino a un massimo di 20.\n- **Spezza Concentrazione.** Quando il personaggio infligge danni a una creatura che si sta concentrando, questa avrà Svantaggio ai tiri salvezza effettuati per mantenere la concentrazione.\n- **Scudo Mentale.** Se il personaggio fallisce un tiro salvezza su Intelligenza, Saggezza o Carisma, può fare in modo di superarlo. Dopo aver usato questo beneficio, non può riutilizzarlo prima di aver completato un Riposo Breve o Lungo."
+					Description = "Il personaggio si è addestrato a dare la caccia agli incantatori.\n- **Forza o Destrezza +1.** Uno dei due punteggi aumenta di 1, fino a un massimo di 20.\n- **Spezzare la concentrazione.** Una creatura concentrata a cui infligge danni ha Svantaggio al tiro salvezza per mantenere la Concentrazione.\n- **Volontà di ferro.** Quando fallisce un tiro salvezza su Intelligenza, Saggezza o Carisma, può invece superarlo. Non può farlo di nuovo finché non termina un riposo breve o lungo."
 				}
 			}
 		};

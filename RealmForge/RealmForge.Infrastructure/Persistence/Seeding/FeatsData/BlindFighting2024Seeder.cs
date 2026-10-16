@@ -31,14 +31,14 @@ public static class BlindFighting2024Seeder
 					Id = TranslationEnId,
 					Language = LanguageCode.En,
 					Name = "Blind Fighting",
-					Description = "You have Blindsight with a range of 10 feet."
+					Description = "You fight by sound and instinct as much as by sight.\n- **Blindsight.** You have Blindsight out to 10 feet."
 				},
 				new FeatTranslation
 				{
 					Id = TranslationItId,
 					Language = LanguageCode.It,
 					Name = "Combattere alla Cieca",
-					Description = "Il personaggio ottiene Vista Cieca con un raggio di 3 metri."
+					Description = "Il personaggio combatte affidandosi all'udito e all'istinto quanto alla vista.\n- **Vista cieca.** Ha vista cieca entro 3 metri."
 				}
 			}
 		};

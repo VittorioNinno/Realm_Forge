@@ -31,14 +31,14 @@ public static class FeyTouched2024Seeder
 					Id = TranslationEnId,
 					Language = LanguageCode.En,
 					Name = "Fey Touched",
-					Description = "Your exposure to the Feywild's magic grants you the following benefits:\n- **Ability Score Increase.** Increase your Intelligence, Wisdom, or Charisma score by 1, to a maximum of 20.\n- **Fey Magic.** Choose one level 1 spell from the Divination or Enchantment school of magic. You always have that spell and the Misty Step spell prepared. You can cast each of these spells without expending a spell slot. Once you cast either spell in this way, you can't cast that spell in this way again until you finish a Long Rest. You can also cast these spells using spell slots you have of the appropriate level. The spells' spellcasting ability is the ability increased by this feat."
+					Description = "Contact with the magic of the Feywild has left its mark on you.\n- **Intelligence, Wisdom, or Charisma +1.** Increase one of these scores by 1, to a maximum of 20. This is your spellcasting ability for this feat.\n- **Fey Gifts.** You always have Misty Step prepared, plus one level 1 Divination or Enchantment spell of your choice. You can cast each of them once without a spell slot, regaining that free casting when you finish a Long Rest, and you can also cast them with spell slots of the right level."
 				},
 				new FeatTranslation
 				{
 					Id = TranslationItId,
 					Language = LanguageCode.It,
 					Name = "Contaminazione Fatata",
-					Description = "Grazie alla contaminazione con la magia fatata, il personaggio ottiene i seguenti benefici:\n- **Incremento dei Punteggi di Caratteristica.** Il suo punteggio di Intelligenza, Saggezza o Carisma aumenta di 1, fino a un massimo di 20.\n- **Magia Fatata.** Il personaggio sceglie un incantesimo di 1° livello dalla scuola di magia di Divinazione o Ammaliamento. L'incantesimo Passo Velato e l'incantesimo scelto sono sempre considerati preparati. Il personaggio può lanciare ciascuno di questi incantesimi senza spendere uno slot incantesimo. Dopo averne lanciato uno senza spendere slot, non può farlo di nuovo in questo modo prima di aver completato un Riposo Lungo. Può anche lanciare questi incantesimi usando gli slot a sua disposizione del livello appropriato. La loro caratteristica da incantatore è quella aumentata dal talento."
+					Description = "Il contatto con la magia della Selva Fatata ha lasciato il segno sul personaggio.\n- **Intelligenza, Saggezza o Carisma +1.** Uno di questi punteggi aumenta di 1, fino a un massimo di 20. È la sua caratteristica da incantatore per questo talento.\n- **Doni fatati.** Ha sempre preparati Passo Velato e un incantesimo di 1° livello di Divinazione o di Ammaliamento a sua scelta. Può lanciare ciascuno dei due una volta senza spendere uno slot, recuperando questo lancio gratuito quando termina un riposo lungo, e può lanciarli anche usando slot incantesimo del livello adeguato."
 				}
 			}
 		};

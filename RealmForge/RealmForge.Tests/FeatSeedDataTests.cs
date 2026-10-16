@@ -68,6 +68,7 @@ public class FeatSeedDataTests
 
 	[Theory]
 	[InlineData(RulesetVersion.Dnd5e_2014)]
+	[InlineData(RulesetVersion.Dnd5e_2024)]
 	public void RealmForge_feats_do_not_reuse_rulebook_phrasing(RulesetVersion ruleset)
 	{
 		//	Base feats outside the SRD carry text written for RealmForge; these phrasings belong to the printed rulebooks
