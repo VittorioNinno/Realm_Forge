@@ -94,7 +94,7 @@ try {
   results.push(`INFO Acolyte tables: ${tables.join(', ')}`);
   if (tables.join(',') !== 'd8x8,d6x6,d6x6,d6x6') throw new Error(`unexpected characteristic tables: ${tables.join(', ')}`);
   const source = (await page.locator('[data-test=content-source]').first().innerText()).trim();
-  const badge = (await page.locator('.rf-modal-dialog [data-test=content-badge]').first().innerText()).trim();
+  const badge = (await page.locator('.rf-modal-dialog [data-test=content-badge]').first().textContent()).trim(); // textContent: the badge CSS uppercases the rendered text
   results.push(`INFO Acolyte badge='${badge}' source='${source}'`);
   if (badge !== 'Base' || source !== 'Fonte: SRD 5.1 (CC BY 4.0)') throw new Error(`unexpected badge/source: ${badge} / ${source}`);
   await page.getByRole('button', { name: 'CHIUDI' }).click();
