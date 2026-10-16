@@ -104,7 +104,7 @@
 
                             @* CARD DESCRIPTION *@
                             <p class="small lh-base mb-3" style="color: var(--rf-text-secondary); text-align: left;">
-                                @(string.IsNullOrWhiteSpace(sub.Description) ? UiText.NoDescription(LanguageState.CurrentLanguage) : sub.Description)
+                                @(string.IsNullOrWhiteSpace(sub.Description) ? UiText.NoDescription(LanguageState.CurrentLanguage) : RealmForge.Shared.Text.MarkdownPreview.ToPlainText(sub.Description, 220))
                             </p>
                         </div>
 

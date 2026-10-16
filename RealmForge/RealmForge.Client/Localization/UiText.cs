@@ -9,7 +9,11 @@ namespace RealmForge.Client.Localization
 			lang == LanguageCode.It ? "Dashboard" : "Dashboard";
 
 		public static string NavSpecies(LanguageCode lang) =>
-			lang == LanguageCode.It ? "Compendio Specie" : "Species Compendium";
+			lang == LanguageCode.It ? "Specie" : "Species";
+
+		//	Reference data (species, backgrounds, feats) is grouped under a collapsible "Compendium" section
+		public static string NavCompendium(LanguageCode lang) =>
+			lang == LanguageCode.It ? "Compendio" : "Compendium";
 
 		public static string VersionNotice(LanguageCode lang) =>
 			lang == LanguageCode.It ? "RealmForge TTRPG Suite v0.1" : "RealmForge TTRPG Suite v0.1";
@@ -66,9 +70,16 @@ namespace RealmForge.Client.Localization
 		public static string LabelOriginFeatNote(LanguageCode lang) => lang == LanguageCode.It ? "Variante del talento" : "Feat variant";
 		public static string PlaceholderOriginFeatNoteIt(LanguageCode lang) => lang == LanguageCode.It ? "Es. lista degli incantesimi del Chierico" : "e.g. lista degli incantesimi del Chierico";
 		public static string PlaceholderOriginFeatNoteEn(LanguageCode lang) => lang == LanguageCode.It ? "Es. Cleric spell list" : "e.g. Cleric spell list";
-		public static string LabelToolProficiencies(LanguageCode lang) => lang == LanguageCode.It ? "Competenze negli attrezzi" : "Tool proficiencies";
+		public static string LabelToolProficiencies(LanguageCode lang) => lang == LanguageCode.It ? "Competenze negli strumenti" : "Tool proficiencies";
 		public static string LabelLanguages(LanguageCode lang) => lang == LanguageCode.It ? "Linguaggi" : "Languages";
 		public static string LabelEquipment(LanguageCode lang) => lang == LanguageCode.It ? "Equipaggiamento" : "Equipment";
+		public static string LabelEquipmentHint(LanguageCode lang) => lang == LanguageCode.It ? "un oggetto per riga" : "one item per line";
+		public static string LabelEquipmentChoice(LanguageCode lang) => lang == LanguageCode.It ? "Scegli A o B" : "Choose A or B";
+		public static string LabelEquipmentOptionA(LanguageCode lang) => lang == LanguageCode.It ? "Opzione A · Equipaggiamento" : "Option A · Equipment";
+		public static string LabelEquipmentOptionB(LanguageCode lang) => lang == LanguageCode.It ? "Opzione B · Monete d'oro" : "Option B · Gold";
+		public static string LabelGoldAlternative(LanguageCode lang) => lang == LanguageCode.It ? "Opzione B (mo)" : "Option B (gp)";
+		public static string HintGoldAlternative(LanguageCode lang) => lang == LanguageCode.It ? "Monete d'oro al posto dell'equipaggiamento; vuoto se il background offre solo l'equipaggiamento" : "Gold pieces instead of the equipment; leave empty if the background offers only its equipment";
+		public static string FormatGold(int gp, LanguageCode lang) => lang == LanguageCode.It ? $"{gp} mo" : $"{gp} gp";
 		public static string LabelFeatureName(LanguageCode lang) => lang == LanguageCode.It ? "Privilegio" : "Feature";
 		public static string LabelFeatureDescription(LanguageCode lang) => lang == LanguageCode.It ? "Descrizione del privilegio" : "Feature description";
 		public static string LabelSuggestedCharacteristics(LanguageCode lang) => lang == LanguageCode.It ? "Caratteristiche suggerite" : "Suggested characteristics";
@@ -103,6 +114,16 @@ namespace RealmForge.Client.Localization
 		public static string BtnRegister(LanguageCode lang) => lang == LanguageCode.It ? "Registrati" : "Register";
 		public static string BtnLoginToForge(LanguageCode lang) => lang == LanguageCode.It ? "Accedi per forgiare" : "Sign in to forge";
 		public static string BtnLogout(LanguageCode lang) => lang == LanguageCode.It ? "Esci" : "Sign out";
+		public static string NavAccount(LanguageCode lang) => lang == LanguageCode.It ? "Il mio account" : "My account";
+		public static string LabelLanguage(LanguageCode lang) => lang == LanguageCode.It ? "Lingua" : "Language";
+
+		//	Each language is shown in its own name, so it can be found whatever the current language is
+		public static string LanguageName(LanguageCode lang) => lang switch
+		{
+			LanguageCode.It => "Italiano",
+			LanguageCode.En => "English",
+			_ => lang.ToString()
+		};
 
 		public static string AuthError(string code, LanguageCode lang) => (code, lang == LanguageCode.It) switch
 		{
@@ -171,12 +192,23 @@ namespace RealmForge.Client.Localization
 
 		public static string FormatSource(ContentSource? source, LanguageCode lang) => (source, lang == LanguageCode.It) switch
 		{
-			(ContentSource.Srd51, true) => "Fonte: SRD 5.1 (CC BY 4.0)",
-			(ContentSource.Srd51, false) => "Source: SRD 5.1 (CC BY 4.0)",
-			(ContentSource.Srd52, true) => "Fonte: SRD 5.2 (CC BY 4.0)",
-			(ContentSource.Srd52, false) => "Source: SRD 5.2 (CC BY 4.0)",
+			(ContentSource.Srd51, true) => "Fonte: SRD 5.1",
+			(ContentSource.Srd51, false) => "Source: SRD 5.1",
+			(ContentSource.Srd52, true) => "Fonte: SRD 5.2",
+			(ContentSource.Srd52, false) => "Source: SRD 5.2",
 			(_, true) => "Fonte: testo RealmForge",
 			(_, false) => "Source: RealmForge text"
+		};
+
+		//	Tooltip on the source label: SRD texts are reused under the Creative Commons Attribution 4.0 licence
+		public static string SourceDetails(ContentSource? source, LanguageCode lang) => (source, lang == LanguageCode.It) switch
+		{
+			(ContentSource.Srd51 or ContentSource.Srd52, true) =>
+				$"Testo tratto dal System Reference Document {(source == ContentSource.Srd51 ? "5.1" : "5.2")} di Wizards of the Coast, distribuito con licenza Creative Commons Attribuzione 4.0 (CC BY 4.0).",
+			(ContentSource.Srd51 or ContentSource.Srd52, false) =>
+				$"Text from the System Reference Document {(source == ContentSource.Srd51 ? "5.1" : "5.2")} by Wizards of the Coast, licensed under Creative Commons Attribution 4.0 (CC BY 4.0).",
+			(_, true) => "Testo scritto per RealmForge.",
+			(_, false) => "Text written for RealmForge."
 		};
 		public static string BadgeHomebrew(LanguageCode lang) => lang == LanguageCode.It ? "Homebrew" : "Homebrew";
 		public static string LabelRequiredLevel(int level, LanguageCode lang) => lang == LanguageCode.It ? $"Livello {level}" : $"Level {level}";
@@ -253,7 +285,7 @@ namespace RealmForge.Client.Localization
 		#endregion
 
 		#region Species Compendium
-		public static string SpeciesTitle(LanguageCode lang) => lang == LanguageCode.It ? "COMPENDIO SPECIE" : "SPECIES COMPENDIUM";
+		public static string SpeciesTitle(LanguageCode lang) => lang == LanguageCode.It ? "Specie" : "Species";
 
 		public static string SpeciesSubtitle(LanguageCode lang) =>
 			lang == LanguageCode.It

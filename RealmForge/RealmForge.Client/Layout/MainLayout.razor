@@ -14,17 +14,11 @@
         <div class="top-row px-4 d-flex justify-content-between align-items-center">
             <span class="text-secondary small">@UiText.VersionNotice(LanguageState.CurrentLanguage)</span>
 
-            <div class="d-flex align-items-center gap-2">
-                <button class="btn btn-sm @(LanguageState.CurrentLanguage == LanguageCode.It ? "btn-rf-orange" : "btn-rf-outline") px-2 py-1"
-                        @onclick="() => LanguageState.SetLanguage(LanguageCode.It)">
-                    🇮🇹 IT
-                </button>
-                <button class="btn btn-sm @(LanguageState.CurrentLanguage == LanguageCode.En ? "btn-rf-orange" : "btn-rf-outline") px-2 py-1"
-                        @onclick="() => LanguageState.SetLanguage(LanguageCode.En)">
-                    🇬🇧 EN
-                </button>
-                <RealmForge.Client.Components.UserMenu />
-                <a href="https://github.com/VittorioNinno/realm-forge" target="_blank" class="ms-3 text-secondary text-decoration-none">GitHub</a>
+            <div class="d-flex align-items-center gap-3">
+                <RealmForge.Client.Components.LanguageSelector />
+                <a href="https://github.com/VittorioNinno/realm-forge" target="_blank" rel="noopener" class="rf-github-link" title="GitHub">
+                    <NavIcon Name="github" /> <span>GitHub</span>
+                </a>
             </div>
         </div>
 

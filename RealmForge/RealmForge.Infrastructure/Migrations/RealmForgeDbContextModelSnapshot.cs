@@ -168,6 +168,9 @@ namespace RealmForge.Infrastructure.Migrations
                     b.Property<string>("AuthorId")
                         .HasColumnType("text");
 
+                    b.Property<int?>("EquipmentGoldAlternative")
+                        .HasColumnType("integer");
+
                     b.Property<bool>("IsOfficialSRD")
                         .HasColumnType("boolean");
 

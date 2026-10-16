@@ -2,6 +2,7 @@
 @using RealmForge.Client.Services
 @implements IDisposable
 @inject LanguageStateService LanguageState
+@inject NavigationManager Navigation
 
 <div class="top-row ps-3 navbar navbar-dark">
     <div class="container-fluid">
@@ -14,53 +15,82 @@
     </div>
 </div>
 
-<div class="@NavMenuCssClass nav-scrollable" @onclick="ToggleNavMenu">
-    <nav class="flex-column">
+<div class="@NavMenuCssClass nav-scrollable rf-sidebar-body" @onclick="ToggleNavMenu">
+    <nav class="flex-column rf-nav">
         <div class="nav-item px-3">
             <NavLink class="nav-link" href="" Match="NavLinkMatch.All">
-                <span class="bi bi-house-door-fill" aria-hidden="true"></span> @UiText.NavDashboard(LanguageState.CurrentLanguage)
+                <NavIcon Name="home" /> @UiText.NavDashboard(LanguageState.CurrentLanguage)
             </NavLink>
         </div>
-        @* --- SPECIES NAVIGATION ITEM --- *@
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="species">
-                <span class="bi bi-person-badge-fill" aria-hidden="true"></span> @UiText.NavSpecies(LanguageState.CurrentLanguage)
-            </NavLink>
-        </div>
-        @* --- BACKGROUNDS NAVIGATION ITEM --- *@
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="backgrounds">
-                <span class="bi bi-compass-fill me-2" aria-hidden="true"></span>
-                @UiText.BackgroundsTitle(LanguageState.CurrentLanguage)
-            </NavLink>
-        </div>
-        @* --- FEATS NAVIGATION ITEM --- *@
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="feats">
-                <span class="bi bi-award-fill me-2" aria-hidden="true"></span>
-                @UiText.FeatsTitle(LanguageState.CurrentLanguage)
-            </NavLink>
+
+        @* Reference data: always reachable, but kept out of the way in a collapsible section at the bottom *@
+        <div class="rf-nav-group px-3" data-test="nav-compendium">
+            <button type="button" class="rf-nav-group-toggle" aria-expanded="@compendiumOpen"
+                    @onclick="ToggleCompendium" @onclick:stopPropagation="true">
+                <NavIcon Name="compendium" />
+                <span class="flex-grow-1 text-start">@UiText.NavCompendium(LanguageState.CurrentLanguage)</span>
+                <span class="rf-nav-chevron @(compendiumOpen ? "open" : null)"><NavIcon Name="chevron" /></span>
+            </button>
+
+            @if (compendiumOpen)
+            {
+                <div class="rf-nav-group-items">
+                    <NavLink class="nav-link" href="species">
+                        <NavIcon Name="species" /> @UiText.NavSpecies(LanguageState.CurrentLanguage)
+                    </NavLink>
+                    <NavLink class="nav-link" href="backgrounds">
+                        <NavIcon Name="backgrounds" /> @UiText.BackgroundsTitle(LanguageState.CurrentLanguage)
+                    </NavLink>
+                    <NavLink class="nav-link" href="feats">
+                        <NavIcon Name="feats" /> @UiText.FeatsTitle(LanguageState.CurrentLanguage)
+                    </NavLink>
+                </div>
+            }
         </div>
     </nav>
+
+    @* Account (sign in / signed-in user and sign out) pinned at the bottom of the sidebar *@
+    <UserMenu />
 </div>
 
 @code {
+    private static readonly string[] CompendiumRoutes = ["species", "subspecies", "backgrounds", "feats"];
+
     private bool collapseNavMenu = true;
+    private bool compendiumOpen;
 
     private string? NavMenuCssClass => collapseNavMenu ? "collapse" : null;
 
-    private void ToggleNavMenu()
-    {
-        collapseNavMenu = !collapseNavMenu;
-    }
+    private void ToggleNavMenu() => collapseNavMenu = !collapseNavMenu;
+
+    private void ToggleCompendium() => compendiumOpen = !compendiumOpen;
 
     protected override void OnInitialized()
     {
+        //	Opened automatically when the user lands directly on a compendium page
+        compendiumOpen = IsCompendiumRoute(Navigation.Uri);
         LanguageState.OnLanguageChanged += StateHasChanged;
+        Navigation.LocationChanged += HandleLocationChanged;
+    }
+
+    private void HandleLocationChanged(object? sender, LocationChangedEventArgs e)
+    {
+        if (!compendiumOpen && IsCompendiumRoute(e.Location))
+        {
+            compendiumOpen = true;
+            StateHasChanged();
+        }
+    }
+
+    private bool IsCompendiumRoute(string uri)
+    {
+        var path = Navigation.ToBaseRelativePath(uri).Split('?', '#')[0].Split('/')[0];
+        return CompendiumRoutes.Contains(path, StringComparer.OrdinalIgnoreCase);
     }
 
     public void Dispose()
     {
         LanguageState.OnLanguageChanged -= StateHasChanged;
+        Navigation.LocationChanged -= HandleLocationChanged;
     }
 }

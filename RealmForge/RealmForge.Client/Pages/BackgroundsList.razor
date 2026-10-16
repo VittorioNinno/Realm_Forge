@@ -5,7 +5,6 @@
 @using RealmForge.Shared.DTOs
 @using RealmForge.Shared.Enums
 @using RealmForge.Shared.Localization
-@using Markdig
 @implements IDisposable
 @inject BackgroundDataService BackgroundService
 @inject FeatDataService FeatService
@@ -181,11 +180,46 @@
                 {
                     <div><strong>@UiText.LabelLanguages(LanguageState.CurrentLanguage):</strong> <span class="text-light">@SelectedBackground.Languages</span></div>
                 }
-                @if (!string.IsNullOrWhiteSpace(SelectedBackground.Equipment))
-                {
-                    <div><strong>@UiText.LabelEquipment(LanguageState.CurrentLanguage):</strong> <span class="text-light">@SelectedBackground.Equipment</span></div>
-                }
             </div>
+
+            @if (!string.IsNullOrWhiteSpace(SelectedBackground.Equipment) || SelectedBackground.EquipmentGoldAlternative is not null)
+            {
+                <div class="p-3 mb-3 rounded" style="background-color: var(--rf-bg-main); border-left: 3px solid #ffb74d;" data-test="bg-equipment">
+                    <strong class="small d-block mb-2 text-uppercase" style="color: var(--rf-orange-primary); letter-spacing: 0.5px;">
+                        @UiText.LabelEquipment(LanguageState.CurrentLanguage)
+                        @if (SelectedBackground.EquipmentGoldAlternative is not null)
+                        {
+                            <span class="fw-normal" style="color: var(--rf-text-muted);"> · @UiText.LabelEquipmentChoice(LanguageState.CurrentLanguage)</span>
+                        }
+                    </strong>
+
+                    @if (SelectedBackground.EquipmentGoldAlternative is int gold)
+                    {
+                        <div class="rf-equipment-option" data-test="bg-equipment-a">
+                            <div class="rf-equipment-option-title">@UiText.LabelEquipmentOptionA(LanguageState.CurrentLanguage)</div>
+                            <ul class="rf-equipment-list">
+                                @foreach (var item in EquipmentItems(SelectedBackground.Equipment))
+                                {
+                                    <li>@item</li>
+                                }
+                            </ul>
+                        </div>
+                        <div class="rf-equipment-option" data-test="bg-equipment-b">
+                            <div class="rf-equipment-option-title">@UiText.LabelEquipmentOptionB(LanguageState.CurrentLanguage)</div>
+                            <div class="text-light small">@UiText.FormatGold(gold, LanguageState.CurrentLanguage)</div>
+                        </div>
+                    }
+                    else
+                    {
+                        <ul class="rf-equipment-list mb-0">
+                            @foreach (var item in EquipmentItems(SelectedBackground.Equipment))
+                            {
+                                <li>@item</li>
+                            }
+                        </ul>
+                    }
+                </div>
+            }
 
             @if (!string.IsNullOrWhiteSpace(SelectedBackground.FeatureName))
             {
@@ -194,14 +228,14 @@
                         @UiText.LabelFeatureName(LanguageState.CurrentLanguage): @SelectedBackground.FeatureName
                     </strong>
                     <div class="rf-markdown-container small">
-                        @((MarkupString)RenderMarkdown(SelectedBackground.FeatureDescription))
+                        @((MarkupString)MarkdownText.ToHtml(SelectedBackground.FeatureDescription))
                     </div>
                 </div>
             }
 
             <div class="mb-3 p-3 rounded" style="background-color: var(--rf-bg-main); border-left: 3px solid var(--rf-border-light);">
                 <div class="rf-markdown-container">
-                    @((MarkupString)RenderMarkdown(SelectedBackground.Description))
+                    @((MarkupString)MarkdownText.ToHtml(SelectedBackground.Description))
                 </div>
             </div>
 
@@ -215,10 +249,10 @@
                     {
                         <p class="small mb-3" style="color: var(--rf-text-secondary); text-align: left;">@SelectedBackground.CharacteristicsIntro</p>
                     }
-                    <div class="row g-3">
+                    <div class="d-flex flex-column gap-3">
                         @foreach (var (title, items) in CharacteristicTables(SelectedBackground))
                         {
-                            <div class="col-lg-6">
+                            <div>
                                 <table class="rf-dice-table">
                                     <thead><tr><th>@DieLabel(items.Count)</th><th>@title</th></tr></thead>
                                     <tbody>
@@ -343,6 +377,14 @@
                                 @GameTerms.SkillName(current, LanguageState.CurrentLanguage)
                             </button>
                         }
+                    </div>
+
+                    <div class="row g-2 mt-2 align-items-end" data-test="bg-gold">
+                        <div class="col-sm-4">
+                            <label class="rf-form-label rf-label-single-line">@UiText.LabelGoldAlternative(LanguageState.CurrentLanguage)</label>
+                            <input type="number" min="0" max="10000" class="rf-form-control" @bind="form.EquipmentGoldAlternative" />
+                        </div>
+                        <div class="col-sm-8 small pb-2" style="color: var(--rf-text-muted);">@UiText.HintGoldAlternative(LanguageState.CurrentLanguage)</div>
                     </div>
                 </div>
 
@@ -508,7 +550,8 @@
                 Ruleset = it.Ruleset,
                 AbilityOptions = it.AbilityOptions.ToList(),
                 SkillProficiencies = it.SkillProficiencies.ToList(),
-                OriginFeatId = it.OriginFeatId
+                OriginFeatId = it.OriginFeatId,
+                EquipmentGoldAlternative = it.EquipmentGoldAlternative
             };
             formIt = ToForm(it, LanguageCode.It);
             formEn = ToForm(en, LanguageCode.En);
@@ -517,6 +560,10 @@
 
         isModalLoading = false;
     }
+
+    //	Equipment is stored one item per line; older single-line texts are shown as a single entry
+    private static IEnumerable<string> EquipmentItems(string? equipment) =>
+        (equipment ?? string.Empty).Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
 
     private static BackgroundTranslationDto ToForm(BackgroundDetailResponseDto d, LanguageCode lang) => new()
     {
@@ -655,10 +702,6 @@
     private string AbilityList(IEnumerable<AbilityScore> abilities) =>
         string.Join(", ", abilities.Select(a => FeatPrerequisiteFormatter.AbilityName(a, LanguageState.CurrentLanguage)));
 
-    private static readonly MarkdownPipeline markdownPipeline = new MarkdownPipelineBuilder().UseAdvancedExtensions().Build();
-
-    private static string RenderMarkdown(string? text) =>
-        string.IsNullOrWhiteSpace(text) ? string.Empty : Markdown.ToHtml(text.Replace("\n- ", "\n\n- "), markdownPipeline);
 
     #endregion
 

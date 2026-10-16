@@ -30,6 +30,7 @@ namespace RealmForge.Shared.DTOs
 		string? ToolProficiencies,
 		string? Languages,
 		string? Equipment,
+		int? EquipmentGoldAlternative,
 		string? FeatureName,
 		string? FeatureDescription,
 		string? CharacteristicsIntro,
@@ -49,6 +50,7 @@ namespace RealmForge.Shared.DTOs
 		public List<AbilityScore> AbilityOptions { get; set; } = new();
 		public List<Skill> SkillProficiencies { get; set; } = new();
 		public Guid? OriginFeatId { get; set; }
+		public int? EquipmentGoldAlternative { get; set; }
 		public List<BackgroundTranslationDto> Translations { get; set; } = new();
 	}
 
@@ -59,6 +61,7 @@ namespace RealmForge.Shared.DTOs
 		public string Description { get; set; } = string.Empty;
 		public string? ToolProficiencies { get; set; }
 		public string? Languages { get; set; }
+		//	One item per line; the detail view renders it as a list
 		public string? Equipment { get; set; }
 		public string? OriginFeatNote { get; set; }
 		public string? FeatureName { get; set; }

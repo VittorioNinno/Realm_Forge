@@ -6,6 +6,7 @@ using RealmForge.Api.Security;
 using RealmForge.Domain.Entities;
 using RealmForge.Infrastructure.Persistence;
 using RealmForge.Shared.DTOs;
+using RealmForge.Shared.Text;
 using RealmForge.Shared.Enums;
 using RealmForge.Shared.Localization;
 
@@ -59,8 +60,8 @@ namespace RealmForge.Api.Controllers
 			var dtos = feats.Select(f =>
 			{
 				var tr = f.Translations.Localize(lang);
-				var desc = tr?.Description ?? string.Empty;
-				var shortDesc = desc.Length > ShortDescriptionLength ? desc[..(ShortDescriptionLength - 3)] + "..." : desc;
+				//	Card preview: plain text without Markdown marks, cut on a word boundary
+				var shortDesc = MarkdownPreview.ToPlainText(tr?.Description, ShortDescriptionLength);
 
 				return new FeatResponseDto(
 					f.Id,

@@ -1,0 +1,58 @@
+@using RealmForge.Client.Localization
+@using RealmForge.Client.Services
+@using RealmForge.Shared.Enums
+@implements IDisposable
+@inject LanguageStateService LanguageState
+
+@* Language drop-down: lists every LanguageCode, so new languages appear without layout changes *@
+<div class="rf-lang-select" data-test="lang-select" @onkeydown="HandleKeyDown">
+    <button type="button" class="rf-lang-trigger" aria-haspopup="listbox" aria-expanded="@isOpen"
+            title="@UiText.LabelLanguage(LanguageState.CurrentLanguage)" @onclick="() => isOpen = !isOpen">
+        <NavIcon Name="language" />
+        <span>@UiText.LanguageName(LanguageState.CurrentLanguage)</span>
+        <span class="rf-lang-chevron @(isOpen ? "open" : null)"><NavIcon Name="chevron" /></span>
+    </button>
+
+    @if (isOpen)
+    {
+        @* Transparent layer: a click anywhere outside closes the menu *@
+        <div class="rf-lang-backdrop" @onclick="() => isOpen = false"></div>
+        <ul class="rf-lang-menu" role="listbox">
+            @foreach (var lang in Enum.GetValues<LanguageCode>().OrderBy(l => UiText.LanguageName(l)))
+            {
+                var current = lang;
+                var selected = current == LanguageState.CurrentLanguage;
+                <li role="option" aria-selected="@selected" class="rf-lang-option @(selected ? "selected" : null)"
+                    @onclick="() => Select(current)">
+                    <span>@UiText.LanguageName(current)</span>
+                    @if (selected)
+                    {
+                        <NavIcon Name="check" />
+                    }
+                </li>
+            }
+        </ul>
+    }
+</div>
+
+@code {
+    private bool isOpen;
+
+    protected override void OnInitialized() => LanguageState.OnLanguageChanged += StateHasChanged;
+
+    private void Select(LanguageCode lang)
+    {
+        isOpen = false;
+        LanguageState.SetLanguage(lang);
+    }
+
+    private void HandleKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key == "Escape")
+        {
+            isOpen = false;
+        }
+    }
+
+    public void Dispose() => LanguageState.OnLanguageChanged -= StateHasChanged;
+}
