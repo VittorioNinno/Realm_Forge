@@ -44,6 +44,41 @@ namespace RealmForge.Client.Localization
 		public static string NoDescription(LanguageCode lang) => lang == LanguageCode.It ? "Nessuna annotazione disponibile." : "No notes available.";
 		#endregion
 
+		#region Backgrounds
+		public static string BackgroundsTitle(LanguageCode lang) => lang == LanguageCode.It ? "Background" : "Backgrounds";
+		public static string BackgroundsSubtitle(LanguageCode lang) => lang == LanguageCode.It
+			? "Origini, competenze e talenti di partenza dei personaggi"
+			: "Character origins, proficiencies and starting feats";
+		public static string LoadingBackgrounds(LanguageCode lang) => lang == LanguageCode.It ? "Consultazione degli archivi..." : "Consulting the archives...";
+		public static string NoBackgroundsFound(LanguageCode lang) => lang == LanguageCode.It ? "Nessun background trovato." : "No backgrounds found.";
+		public static string BtnAddBackground(LanguageCode lang) => lang == LanguageCode.It ? "+ NUOVO BACKGROUND" : "+ ADD BACKGROUND";
+		public static string BtnSaveBackground(LanguageCode lang) => lang == LanguageCode.It ? "SALVA BACKGROUND" : "SAVE BACKGROUND";
+		public static string ModalTitleAddBackground(LanguageCode lang) => lang == LanguageCode.It ? "FORGIA BACKGROUND" : "FORGE BACKGROUND";
+		public static string LabelSearchBackground(LanguageCode lang) => lang == LanguageCode.It ? "Cerca background" : "Search background";
+		public static string PlaceholderSearchBackgrounds(LanguageCode lang) => lang == LanguageCode.It ? "Es. Accolito, Soldato..." : "e.g. Acolyte, Soldier...";
+		public static string LabelMechanics(LanguageCode lang) => lang == LanguageCode.It ? "Meccaniche" : "Mechanics";
+		public static string LabelAbilityOptions(LanguageCode lang) => lang == LanguageCode.It ? "Caratteristiche (max 3)" : "Abilities (max 3)";
+		public static string LabelAbilityOptionsShort(LanguageCode lang) => lang == LanguageCode.It ? "Caratteristiche:" : "Abilities:";
+		public static string LabelSkillProficiencies(LanguageCode lang) => lang == LanguageCode.It ? "Competenze nelle abilità (max 4)" : "Skill proficiencies (max 4)";
+		public static string LabelSkillsShort(LanguageCode lang) => lang == LanguageCode.It ? "Abilità:" : "Skills:";
+		public static string LabelOriginFeat(LanguageCode lang) => lang == LanguageCode.It ? "Talento di origine" : "Origin feat";
+		public static string LabelOriginFeatShort(LanguageCode lang) => lang == LanguageCode.It ? "Talento:" : "Feat:";
+		public static string LabelOriginFeatNote(LanguageCode lang) => lang == LanguageCode.It ? "Variante del talento" : "Feat variant";
+		public static string PlaceholderOriginFeatNoteIt(LanguageCode lang) => lang == LanguageCode.It ? "Es. lista degli incantesimi del Chierico" : "e.g. lista degli incantesimi del Chierico";
+		public static string PlaceholderOriginFeatNoteEn(LanguageCode lang) => lang == LanguageCode.It ? "Es. Cleric spell list" : "e.g. Cleric spell list";
+		public static string LabelToolProficiencies(LanguageCode lang) => lang == LanguageCode.It ? "Competenze negli attrezzi" : "Tool proficiencies";
+		public static string LabelLanguages(LanguageCode lang) => lang == LanguageCode.It ? "Linguaggi" : "Languages";
+		public static string LabelEquipment(LanguageCode lang) => lang == LanguageCode.It ? "Equipaggiamento" : "Equipment";
+		public static string LabelFeatureName(LanguageCode lang) => lang == LanguageCode.It ? "Privilegio" : "Feature";
+		public static string LabelFeatureDescription(LanguageCode lang) => lang == LanguageCode.It ? "Descrizione del privilegio" : "Feature description";
+		public static string BtnOpenFeat(LanguageCode lang) => lang == LanguageCode.It ? "Apri talento →" : "Open feat →";
+		public static string NoOriginFeat(LanguageCode lang) => lang == LanguageCode.It ? "Nessuno" : "None";
+		public static string DeleteBackgroundWarning(LanguageCode lang, string name) => lang == LanguageCode.It
+			? $"Eliminare definitivamente il background \"{name}\"? L'operazione non può essere annullata."
+			: $"Permanently delete the background \"{name}\"? This cannot be undone.";
+		public static string ErrDeleteBackground(LanguageCode lang) => lang == LanguageCode.It ? "Errore durante l'eliminazione del background." : "Failed to delete background.";
+		#endregion
+
 		#region Account
 		public static string AccountTitle(LanguageCode lang) => lang == LanguageCode.It ? "Account" : "Account";
 		public static string AccountLoginTitle(LanguageCode lang) => lang == LanguageCode.It ? "ACCEDI ALLA FORGIA" : "SIGN IN TO THE FORGE";
