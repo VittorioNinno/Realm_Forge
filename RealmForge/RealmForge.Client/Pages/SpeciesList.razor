@@ -8,6 +8,7 @@
 @implements IDisposable
 @inject SpeciesDataService SpeciesService
 @inject LanguageStateService LanguageState
+@inject ApiErrorState ApiErrors
 @inject NavigationManager NavManager
 
 <PageTitle>RealmForge - @UiText.SpeciesTitle(LanguageState.CurrentLanguage)</PageTitle>
@@ -107,7 +108,7 @@
                                     <span class="badge @(sp.Ruleset == RulesetVersion.Dnd5e_2024 ? "badge-edition-2024" : "badge-edition-2014")">
                                         @UiText.FormatRuleset(sp.Ruleset, LanguageState.CurrentLanguage)
                                     </span>
-                                    <RealmForge.Client.Components.ContentBadge IsBase="sp.IsOfficialSRD" Source="sp.Source" />
+                                    <RealmForge.Client.Components.ContentBadge IsBase="sp.IsOfficialSRD" Source="sp.Source" Visibility="sp.Visibility" />
                                 </div>
                             </div>
 
@@ -193,7 +194,7 @@
                             <span class="badge @(selectedDetail.Ruleset == RulesetVersion.Dnd5e_2024 ? "badge-edition-2024" : "badge-edition-2014")">
                                 @UiText.FormatRuleset(selectedDetail.Ruleset, LanguageState.CurrentLanguage)
                             </span>
-                            <RealmForge.Client.Components.ContentBadge IsBase="selectedDetail.IsOfficialSRD" Source="selectedDetail.Source" ShowSource="true" />
+                            <RealmForge.Client.Components.ContentBadge IsBase="selectedDetail.IsOfficialSRD" Source="selectedDetail.Source" Visibility="selectedDetail.Visibility" ShowSource="true" />
                         </div>
                     </div>
 
@@ -248,6 +249,11 @@
                         </span>
                     </div>
                 </div>
+
+                @if (!selectedDetail.IsOfficialSRD)
+                {
+                    <ShareLink Visibility="selectedDetail.Visibility" CanEdit="selectedDetail.CanEdit" Path="@($"species?speciesId={selectedDetail.Id}")" />
+                }
 
                 @* DESCRIPTIONS *@
                 <div class="mb-4">
@@ -420,6 +426,8 @@
                     </div>
                 </div>
 
+                <VisibilityPicker @bind-Value="newVisibility" />
+
                 <div class="p-3 mb-3 rounded" style="background-color: var(--rf-bg-card); border-left: 3px solid var(--rf-orange-primary);">
                     <div class="fw-bold mb-2 small" style="color: var(--rf-orange-primary);">@UiText.TabItalian(LanguageState.CurrentLanguage)</div>
                     <div class="mb-2">
@@ -569,6 +577,7 @@
     // Form fields
     private int newSpeed = 30;
     private RulesetVersion newRuleset = RulesetVersion.Dnd5e_2024;
+    private ContentVisibility newVisibility = ContentVisibility.Private;
     private CreatureType newCreatureType = CreatureType.Humanoid;
     private HashSet<CreatureSize> selectedSizes = new() { CreatureSize.Medium };
     private string nameIt = "";
@@ -589,6 +598,13 @@
         if (DeepLinkSpeciesId.HasValue)
         {
             await OpenDetailModal(DeepLinkSpeciesId.Value);
+
+            //	Shared link to a private or deleted entry
+            if (selectedDetail == null)
+            {
+                CloseDetailModal();
+                ApiErrors.Report(ApiErrorKind.NotAvailable);
+            }
         }
     }
 
@@ -634,6 +650,7 @@
         formValidationMessage = null;
         newSpeed = 30;
         newRuleset = RulesetVersion.Dnd5e_2024;
+        newVisibility = ContentVisibility.Private;
         newCreatureType = CreatureType.Humanoid;
         selectedSizes = new HashSet<CreatureSize> { CreatureSize.Medium };
         nameIt = "";
@@ -667,6 +684,7 @@
             {
                 newSpeed = detailIt.BaseSpeedInFeet;
                 newRuleset = detailIt.Ruleset;
+                newVisibility = detailIt.Visibility;
                 newCreatureType = detailIt.CreatureType;
                 selectedSizes = new HashSet<CreatureSize>(detailIt.AllowedSizes);
 
@@ -736,7 +754,8 @@
                 selectedSizes.ToList(),
                 newCreatureType,
                 newRuleset,
-                translations
+                translations,
+                Visibility: newVisibility
             );
             success = await SpeciesService.UpdateSpeciesAsync(editingId, updateDto);
         }
@@ -747,7 +766,8 @@
                 selectedSizes.ToList(),
                 newCreatureType,
                 newRuleset,
-                translations
+                translations,
+                Visibility: newVisibility
             );
             success = await SpeciesService.CreateSpeciesAsync(createDto);
         }

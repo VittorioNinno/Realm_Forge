@@ -124,11 +124,19 @@ try {
   await page.getByRole('button', { name: 'Religione' }).click();
   await page.locator('[data-test=bg-name-It]').fill('Accolito UI');
   await page.locator('[data-test=bg-name-En]').fill('UI Acolyte');
+  const defaultVisibility = (await page.locator('[data-test=visibility-picker] .rf-pill-btn.active').innerText()).trim();
+  if (!/^privato$/i.test(defaultVisibility)) throw new Error(`new Homebrew should default to Privato, got ${defaultVisibility}`);
   await page.getByRole('button', { name: 'SALVA BACKGROUND' }).click();
   await page.locator('.rf-card', { hasText: 'Accolito UI' }).waitFor({ timeout: 15000 });
   const card = await page.locator('.rf-card', { hasText: 'Accolito UI' }).innerText();
   if (!card.includes('Allerta') || !card.includes('Intuizione')) throw new Error(`background card misses feat/skills: ${card.replace(/\s+/g, ' ')}`);
-  ok('background modal aligned; homebrew background created from the UI with origin feat and skills');
+  if (!/privato/i.test(card)) throw new Error(`background card misses the Privato badge: ${card.replace(/\s+/g, ' ')}`);
+  ok('background modal aligned; homebrew background created from the UI with origin feat and skills, private by default');
+
+  await page.locator('.rf-card').filter({ has: page.locator('.rf-card-title', { hasText: /^Accolito UI$/ }) }).click();
+  await page.locator('[data-test=share-private]').waitFor({ timeout: 15000 });
+  await page.getByRole('button', { name: 'CHIUDI' }).click();
+  ok('private Homebrew detail explains how to share it');
 
   // Exact title match: substring filters are case-insensitive ("Intuizione" contains "ui")
   await page.locator('.rf-card').filter({ has: page.locator('.rf-card-title', { hasText: /^Accolito$/ }) }).click();
