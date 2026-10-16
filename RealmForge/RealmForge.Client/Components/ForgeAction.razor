@@ -32,6 +32,16 @@ else if (emailConfirmed == true)
     {
         LanguageState.OnLanguageChanged += StateHasChanged;
         CrossTab.OnEmailConfirmed += HandleEmailConfirmed;
+        CrossTab.OnTabVisible += HandleTabVisible;
+    }
+
+    //	Back to this tab while still unconfirmed: the confirmation may have happened elsewhere
+    private void HandleTabVisible()
+    {
+        if (emailConfirmed == false)
+        {
+            HandleEmailConfirmed();
+        }
     }
 
     //	The e-mail was confirmed in another tab (link in the e-mail): show the create button right away
@@ -55,5 +65,6 @@ else if (emailConfirmed == true)
     {
         LanguageState.OnLanguageChanged -= StateHasChanged;
         CrossTab.OnEmailConfirmed -= HandleEmailConfirmed;
+        CrossTab.OnTabVisible -= HandleTabVisible;
     }
 }

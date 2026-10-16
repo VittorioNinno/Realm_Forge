@@ -10,6 +10,7 @@ namespace RealmForge.Client.Services
 	public class CrossTabService : IAsyncDisposable
 	{
 		public const string EmailConfirmed = "email-confirmed";
+		public const string TabVisible = "tab-visible";
 
 		private readonly IJSRuntime _js;
 		private DotNetObjectReference<CrossTabService>? _reference;
@@ -23,6 +24,12 @@ namespace RealmForge.Client.Services
 		///	Raised when another tab reports that the e-mail address was confirmed.
 		///	</summary>
 		public event Action? OnEmailConfirmed;
+
+		///	<summary>
+		///	Raised when the user comes back to this tab. Other tabs cannot always notify it (different browser
+		///	profiles or private windows do not share messages), so pages waiting for a confirmation re-check.
+		///	</summary>
+		public event Action? OnTabVisible;
 
 		public async Task StartAsync()
 		{
@@ -47,6 +54,10 @@ namespace RealmForge.Client.Services
 			if (message == EmailConfirmed)
 			{
 				OnEmailConfirmed?.Invoke();
+			}
+			else if (message == TabVisible)
+			{
+				OnTabVisible?.Invoke();
 			}
 		}
 

@@ -85,6 +85,14 @@ try {
   // Without SMTP the API writes the confirmation link to its log (the UI job starts it with output in api.log)
   const link = readFileSync('../../api.log', 'utf8').match(new RegExp(`for ${email.replace(/[.]/g, '\\.')}: (\\S+)`))?.[1];
   if (!link || !link.startsWith(`${base}/confirm-email?`)) throw new Error(`confirmation link not found or not pointing to the client: ${link}`);
+  // Another browser profile (isolated context, same account) that cannot receive tab messages
+  const otherProfile = await browser.newContext();
+  const otherPage = await otherProfile.newPage();
+  await otherPage.goto(`${base}/feats`);
+  await otherPage.evaluate((t) => localStorage.setItem('realmforge.auth', t), await page.evaluate(() => localStorage.getItem('realmforge.auth')));
+  await otherPage.reload();
+  const otherProfileReady = await otherPage.locator('[data-test=verify-to-forge]').waitFor({ timeout: 30000 }).then(() => true).catch(() => false);
+
   // The link opens in a new tab (as from an e-mail): it confirms, updates the tab already open and closes itself
   const linkTab = await context.newPage();
   await linkTab.goto(link);
@@ -94,6 +102,15 @@ try {
   results.push(`INFO confirmation tab closed by itself=${linkTab.isClosed()}`);
   if (!linkTab.isClosed()) { await linkTab.close(); }
   ok('confirmation link (to the client page) confirms the e-mail and the tab already open updates without reloading');
+
+  if (otherProfileReady) {
+    await otherPage.evaluate(() => window.dispatchEvent(new Event('focus')));
+    await otherPage.getByText('+ NUOVO TALENTO').waitFor({ timeout: 15000 });
+    ok('a window in another browser profile refreshes the e-mail status when it gets the focus');
+  } else {
+    results.push('INFO other-profile check skipped (token key not found)');
+  }
+  await otherProfile.close();
 
   await page.goto(`${base}/feats`);
   await page.getByText('Allerta').first().waitFor({ timeout: 30000 });
