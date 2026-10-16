@@ -215,6 +215,9 @@ jobs:
           confirm_a=$(confirm alice@example.com); confirm_b=$(confirm bob@example.com)
           confirmed=$(curl -sf $api/api/auth/manage/info -H "Authorization: Bearer $A" | jq .isEmailConfirmed)
           echo "::notice title=database::e-mail: unconfirmed create=$feat_unconfirmed | bad link=$confirm_bad | confirm alice=$confirm_a bob=$confirm_b | alice confirmed=$confirmed"
+          if [ "$confirm_a" != "200" ]; then
+            grep -rh -A12 -E "fail: |Exception" --include='*.log' . | grep -v '^--$' | head -40 | sed 's/^/::error title=api-log::/'
+          fi
           test "$feat_unconfirmed" = "403 EmailNotConfirmed" && test "$confirm_bad" = "401" && test "$confirm_a" = "200" && test "$confirm_b" = "200" && test "$confirmed" = "true"
 
           anon_create=$(code -X POST $api/api/feats $json -d "$feat")
