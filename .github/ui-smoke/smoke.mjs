@@ -10,7 +10,9 @@ const results = [];
 const ok = (name) => { results.push(`OK ${name}`); };
 
 const browser = await chromium.launch();
-const page = await browser.newPage();
+// Explicit context: the e-mail confirmation test opens a second tab in the same browser session
+const context = await browser.newContext();
+const page = await context.newPage();
 const consoleErrors = [];
 page.on('console', (m) => { if (m.type() === 'error' || m.type() === 'warning') consoleErrors.push(m.text()); });
 const authCalls = [];
@@ -84,7 +86,7 @@ try {
   const link = readFileSync('../../api.log', 'utf8').match(new RegExp(`for ${email.replace(/[.]/g, '\\.')}: (\\S+)`))?.[1];
   if (!link || !link.startsWith(`${base}/confirm-email?`)) throw new Error(`confirmation link not found or not pointing to the client: ${link}`);
   // The link opens in a new tab (as from an e-mail): it confirms, updates the tab already open and closes itself
-  const linkTab = await page.context().newPage();
+  const linkTab = await context.newPage();
   await linkTab.goto(link);
   await linkTab.locator('[data-test=confirm-email-ok]').waitFor({ timeout: 30000 });
   await page.getByText('+ NUOVO TALENTO').waitFor({ timeout: 15000 });
