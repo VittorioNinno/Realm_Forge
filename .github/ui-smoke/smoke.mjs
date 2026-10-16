@@ -93,8 +93,12 @@ try {
     ts.map((t) => `${t.querySelector('th').textContent.trim()}x${t.querySelectorAll('tbody tr').length}`));
   results.push(`INFO Acolyte tables: ${tables.join(', ')}`);
   if (tables.join(',') !== 'd8x8,d6x6,d6x6,d6x6') throw new Error(`unexpected characteristic tables: ${tables.join(', ')}`);
+  const source = (await page.locator('[data-test=content-source]').first().innerText()).trim();
+  const badge = (await page.locator('.rf-modal-dialog [data-test=content-badge]').first().innerText()).trim();
+  results.push(`INFO Acolyte badge='${badge}' source='${source}'`);
+  if (badge !== 'Base' || source !== 'Fonte: SRD 5.1 (CC BY 4.0)') throw new Error(`unexpected badge/source: ${badge} / ${source}`);
   await page.getByRole('button', { name: 'CHIUDI' }).click();
-  ok('SRD Acolyte shows its four characteristic tables (d8, d6, d6, d6)');
+  ok('SRD Acolyte: four characteristic tables (d8, d6, d6, d6), badge "Base", source SRD 5.1');
 
   await page.reload();
   await page.getByText(email).first().waitFor({ timeout: 60000 });

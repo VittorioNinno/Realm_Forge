@@ -18,6 +18,7 @@ public static class Acolyte2014Seeder
 			Id = BackgroundId,
 			Ruleset = RulesetVersion.Dnd5e_2014,
 			IsOfficialSRD = true,
+			Source = ContentSource.Srd51,
 			SkillProficiencies = new List<Skill> { Skill.Insight, Skill.Religion },
 			Translations = new List<BackgroundTranslation>
 			{

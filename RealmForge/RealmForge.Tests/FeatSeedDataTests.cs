@@ -40,6 +40,12 @@ public class FeatSeedDataTests
 	}
 
 	[Fact]
+	public void Base_feats_are_marked_as_RealmForge_text()
+	{
+		Assert.All(Feats, f => Assert.Equal(ContentSource.RealmForge, f.Source));
+	}
+
+	[Fact]
 	public void Ability_prerequisites_always_have_a_minimum_score()
 	{
 		foreach (var feat in Feats.Where(f => f.PrerequisiteAbilities.Count > 0))

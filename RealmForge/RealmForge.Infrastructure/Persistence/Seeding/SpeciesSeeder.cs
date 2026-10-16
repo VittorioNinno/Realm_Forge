@@ -38,6 +38,7 @@ namespace RealmForge.Infrastructure.Persistence.Seeding
 				var first = (Species)build.Invoke(null, null)!;
 				var second = (Species)build.Invoke(null, null)!;
 				AssignStableIds(first, second);
+				AssignSource(first);
 				definitions.Add(first);
 			}
 
@@ -107,6 +108,7 @@ namespace RealmForge.Infrastructure.Persistence.Seeding
 					continue;
 				}
 
+				species.Source = definition.Source;
 				species.BaseSpeedInFeet = definition.BaseSpeedInFeet;
 				species.CreatureType = definition.CreatureType;
 				species.AllowedSizes = definition.AllowedSizes;
@@ -161,6 +163,7 @@ namespace RealmForge.Infrastructure.Persistence.Seeding
 					continue;
 				}
 
+				current.Source = sub.Source;
 				current.BaseSpeedOverrideInFeet = sub.BaseSpeedOverrideInFeet;
 				current.Ruleset = sub.Ruleset;
 
@@ -203,6 +206,7 @@ namespace RealmForge.Infrastructure.Persistence.Seeding
 					continue;
 				}
 
+				current.Source = trait.Source;
 				current.RequiredLevel = trait.RequiredLevel;
 				current.Ruleset = trait.Ruleset;
 
@@ -225,6 +229,27 @@ namespace RealmForge.Infrastructure.Persistence.Seeding
 		#endregion
 
 		#region Stable ids
+
+		//	Base content without an explicit source is text written for RealmForge; lineages and traits inherit the species source
+		private static void AssignSource(Species species)
+		{
+			species.Source ??= ContentSource.RealmForge;
+
+			foreach (var trait in species.Traits)
+			{
+				trait.Source ??= species.Source;
+			}
+
+			foreach (var sub in species.Subspecies)
+			{
+				sub.Source ??= species.Source;
+
+				foreach (var trait in sub.Traits)
+				{
+					trait.Source ??= sub.Source;
+				}
+			}
+		}
 
 		private static void AssignStableIds(Species a, Species b)
 		{

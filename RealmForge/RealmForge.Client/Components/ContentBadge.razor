@@ -1,0 +1,21 @@
+﻿@using RealmForge.Client.Localization
+@using RealmForge.Client.Services
+@using RealmForge.Shared.Enums
+@inject LanguageStateService LanguageState
+
+@* "Base" (platform content) or "Homebrew" badge; the text source is shown as tooltip and, optionally, inline *@
+<span class="badge @(IsBase ? "badge-srd" : "badge-homebrew")" title="@SourceText" data-test="content-badge">
+    @(IsBase ? UiText.BadgeBase(LanguageState.CurrentLanguage) : UiText.BadgeHomebrew(LanguageState.CurrentLanguage))
+</span>
+@if (ShowSource && IsBase && Source is not null)
+{
+    <span class="small align-self-center" style="color: var(--rf-text-muted);" data-test="content-source">@SourceText</span>
+}
+
+@code {
+    [Parameter] public bool IsBase { get; set; }
+    [Parameter] public ContentSource? Source { get; set; }
+    [Parameter] public bool ShowSource { get; set; }
+
+    private string? SourceText => IsBase ? UiText.FormatSource(Source, LanguageState.CurrentLanguage) : null;
+}

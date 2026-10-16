@@ -92,9 +92,7 @@
                                     <span class="badge @(bg.Ruleset == RulesetVersion.Dnd5e_2024 ? "badge-edition-2024" : "badge-edition-2014")">
                                         @UiText.FormatRuleset(bg.Ruleset, LanguageState.CurrentLanguage)
                                     </span>
-                                    <span class="badge @(bg.IsOfficialSRD ? "badge-srd" : "badge-homebrew")">
-                                        @(bg.IsOfficialSRD ? UiText.BadgeSRD(LanguageState.CurrentLanguage) : UiText.BadgeHomebrew(LanguageState.CurrentLanguage))
-                                    </span>
+                                    <RealmForge.Client.Components.ContentBadge IsBase="bg.IsOfficialSRD" Source="bg.Source" />
                                 </div>
                             </div>
 
@@ -146,9 +144,7 @@
                         <span class="badge @(SelectedBackground.Ruleset == RulesetVersion.Dnd5e_2024 ? "badge-edition-2024" : "badge-edition-2014")">
                             @UiText.FormatRuleset(SelectedBackground.Ruleset, LanguageState.CurrentLanguage)
                         </span>
-                        <span class="badge @(SelectedBackground.IsOfficialSRD ? "badge-srd" : "badge-homebrew")">
-                            @(SelectedBackground.IsOfficialSRD ? UiText.BadgeSRD(LanguageState.CurrentLanguage) : UiText.BadgeHomebrew(LanguageState.CurrentLanguage))
-                        </span>
+                        <RealmForge.Client.Components.ContentBadge IsBase="SelectedBackground.IsOfficialSRD" Source="SelectedBackground.Source" ShowSource="true" />
                     </div>
                 </div>
                 <button class="btn btn-sm btn-rf-outline" @onclick="CloseDetail">✕</button>

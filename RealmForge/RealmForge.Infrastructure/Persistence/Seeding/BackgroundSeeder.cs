@@ -1,6 +1,7 @@
 ﻿using System.Reflection;
 using Microsoft.EntityFrameworkCore;
 using RealmForge.Domain.Entities;
+using RealmForge.Shared.Enums;
 
 namespace RealmForge.Infrastructure.Persistence.Seeding;
 
@@ -22,6 +23,11 @@ public static class BackgroundSeeder
 			.Where(m => m is not null && m.ReturnType == typeof(Background))
 			.Select(m => (Background)m!.Invoke(null, null)!)
 			.ToList();
+
+		foreach (var definition in definitions)
+		{
+			definition.Source ??= ContentSource.RealmForge;
+		}
 
 		EnsureUniqueIds(definitions);
 		return definitions;
@@ -66,6 +72,7 @@ public static class BackgroundSeeder
 			}
 
 			background.Ruleset = definition.Ruleset;
+			background.Source = definition.Source;
 			background.AbilityOptions = definition.AbilityOptions;
 			background.SkillProficiencies = definition.SkillProficiencies;
 			background.OriginFeatId = definition.OriginFeatId;

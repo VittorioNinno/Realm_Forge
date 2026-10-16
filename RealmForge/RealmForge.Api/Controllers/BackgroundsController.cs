@@ -64,7 +64,8 @@ namespace RealmForge.Api.Controllers
 					b.SkillProficiencies.ToList(),
 					b.OriginFeatId,
 					b.OriginFeat?.Translations.Localize(lang)?.Name,
-					_access.CanModify(b, User));
+					_access.CanModify(b, User),
+					b.Source);
 			}).OrderBy(b => b.Name).ToList();
 
 			return Ok(dtos);
@@ -229,7 +230,8 @@ namespace RealmForge.Api.Controllers
 				tr?.Ideals.ToList() ?? new List<string>(),
 				tr?.Bonds.ToList() ?? new List<string>(),
 				tr?.Flaws.ToList() ?? new List<string>(),
-				canEdit);
+				canEdit,
+				b.Source);
 		}
 
 		private static void ApplyMechanics(Background background, SaveBackgroundDto dto)
