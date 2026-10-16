@@ -31,6 +31,11 @@ namespace RealmForge.Shared.DTOs
 		string? Equipment,
 		string? FeatureName,
 		string? FeatureDescription,
+		string? CharacteristicsIntro,
+		List<string> PersonalityTraits,
+		List<string> Ideals,
+		List<string> Bonds,
+		List<string> Flaws,
 		bool CanEdit = false
 	);
 
@@ -56,5 +61,10 @@ namespace RealmForge.Shared.DTOs
 		public string? OriginFeatNote { get; set; }
 		public string? FeatureName { get; set; }
 		public string? FeatureDescription { get; set; }
+		public string? CharacteristicsIntro { get; set; }
+		public List<string> PersonalityTraits { get; set; } = new();
+		public List<string> Ideals { get; set; } = new();
+		public List<string> Bonds { get; set; } = new();
+		public List<string> Flaws { get; set; } = new();
 	}
 }

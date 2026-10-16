@@ -52,10 +52,44 @@
         <textarea class="rf-form-control" rows="2" @bind="Model.Equipment"></textarea>
     </div>
 
-    <div>
+    <div class="mb-2">
         <label class="rf-form-label rf-label-single-line">@UiText.LabelDescription(Lang)</label>
         <textarea class="rf-form-control" rows="3" @bind="Model.Description"></textarea>
     </div>
+
+    <button type="button" class="btn btn-link p-0 small text-decoration-none" style="color: var(--rf-orange-primary);"
+            @onclick="() => showCharacteristics = !showCharacteristics" data-test="bg-toggle-characteristics-@Model.Language">
+        @(showCharacteristics ? UiText.BtnHideCharacteristics(Lang) : UiText.BtnShowCharacteristics(Lang))
+    </button>
+
+    @if (showCharacteristics)
+    {
+        <div class="mt-2">
+            <div class="mb-2">
+                <label class="rf-form-label rf-label-single-line">@UiText.LabelCharacteristicsIntro(Lang)</label>
+                <textarea class="rf-form-control" rows="2" @bind="Model.CharacteristicsIntro"></textarea>
+            </div>
+            <div class="small mb-2" style="color: var(--rf-text-muted);">@UiText.HintOnePerLine(Lang)</div>
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <label class="rf-form-label rf-label-single-line">@UiText.LabelPersonalityTraits(Lang)</label>
+                    <textarea class="rf-form-control" rows="4" @bind="Traits"></textarea>
+                </div>
+                <div class="col-md-6">
+                    <label class="rf-form-label rf-label-single-line">@UiText.LabelIdeals(Lang)</label>
+                    <textarea class="rf-form-control" rows="4" @bind="Ideals"></textarea>
+                </div>
+                <div class="col-md-6">
+                    <label class="rf-form-label rf-label-single-line">@UiText.LabelBonds(Lang)</label>
+                    <textarea class="rf-form-control" rows="4" @bind="Bonds"></textarea>
+                </div>
+                <div class="col-md-6">
+                    <label class="rf-form-label rf-label-single-line">@UiText.LabelFlaws(Lang)</label>
+                    <textarea class="rf-form-control" rows="4" @bind="Flaws"></textarea>
+                </div>
+            </div>
+        </div>
+    }
 </div>
 
 @code {
@@ -65,4 +99,16 @@
     [Parameter] public bool IsPrimary { get; set; }
 
     private LanguageCode Lang => LanguageState.CurrentLanguage;
+    private bool showCharacteristics;
+
+    //	Tables are edited as one entry per line
+    private string Traits { get => Join(Model.PersonalityTraits); set => Model.PersonalityTraits = Split(value); }
+    private string Ideals { get => Join(Model.Ideals); set => Model.Ideals = Split(value); }
+    private string Bonds { get => Join(Model.Bonds); set => Model.Bonds = Split(value); }
+    private string Flaws { get => Join(Model.Flaws); set => Model.Flaws = Split(value); }
+
+    private static string Join(List<string> items) => string.Join("\n", items);
+
+    private static List<string> Split(string? text) =>
+        (text ?? string.Empty).Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).ToList();
 }

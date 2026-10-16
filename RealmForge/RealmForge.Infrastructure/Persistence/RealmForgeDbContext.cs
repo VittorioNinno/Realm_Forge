@@ -191,6 +191,10 @@ namespace RealmForge.Infrastructure.Persistence
 				entity.Property(t => t.Equipment).HasMaxLength(2000);
 				entity.Property(t => t.OriginFeatNote).HasMaxLength(300);
 				entity.Property(t => t.FeatureName).HasMaxLength(150);
+				entity.Property(t => t.PersonalityTraits).IsRequired();
+				entity.Property(t => t.Ideals).IsRequired();
+				entity.Property(t => t.Bonds).IsRequired();
+				entity.Property(t => t.Flaws).IsRequired();
 
 				//	Unique index: a background cannot have two translations for the same language
 				entity.HasIndex(t => new { t.BackgroundId, t.Language }).IsUnique();

@@ -71,6 +71,15 @@ namespace RealmForge.Client.Localization
 		public static string LabelEquipment(LanguageCode lang) => lang == LanguageCode.It ? "Equipaggiamento" : "Equipment";
 		public static string LabelFeatureName(LanguageCode lang) => lang == LanguageCode.It ? "Privilegio" : "Feature";
 		public static string LabelFeatureDescription(LanguageCode lang) => lang == LanguageCode.It ? "Descrizione del privilegio" : "Feature description";
+		public static string LabelSuggestedCharacteristics(LanguageCode lang) => lang == LanguageCode.It ? "Caratteristiche suggerite" : "Suggested characteristics";
+		public static string LabelCharacteristicsIntro(LanguageCode lang) => lang == LanguageCode.It ? "Introduzione" : "Introduction";
+		public static string LabelPersonalityTraits(LanguageCode lang) => lang == LanguageCode.It ? "Tratti caratteriali" : "Personality traits";
+		public static string LabelIdeals(LanguageCode lang) => lang == LanguageCode.It ? "Ideali" : "Ideals";
+		public static string LabelBonds(LanguageCode lang) => lang == LanguageCode.It ? "Legami" : "Bonds";
+		public static string LabelFlaws(LanguageCode lang) => lang == LanguageCode.It ? "Difetti" : "Flaws";
+		public static string HintOnePerLine(LanguageCode lang) => lang == LanguageCode.It ? "Una voce per riga, nell'ordine del tiro di dado" : "One entry per line, in die-roll order";
+		public static string BtnShowCharacteristics(LanguageCode lang) => lang == LanguageCode.It ? "▸ Caratteristiche suggerite" : "▸ Suggested characteristics";
+		public static string BtnHideCharacteristics(LanguageCode lang) => lang == LanguageCode.It ? "▾ Caratteristiche suggerite" : "▾ Suggested characteristics";
 		public static string BtnOpenFeat(LanguageCode lang) => lang == LanguageCode.It ? "Apri talento →" : "Open feat →";
 		public static string NoOriginFeat(LanguageCode lang) => lang == LanguageCode.It ? "Nessuno" : "None";
 		public static string DeleteBackgroundWarning(LanguageCode lang, string name) => lang == LanguageCode.It
