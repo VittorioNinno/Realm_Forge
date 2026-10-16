@@ -34,6 +34,24 @@ public class BackgroundSeedDataTests
 	}
 
 	[Fact]
+	public void Criminal_has_its_proficiencies_tables_and_spy_variant()
+	{
+		var criminal = Assert.Single(Backgrounds, b => b.Id == Criminal2014Seeder.BackgroundId);
+		Assert.Equal(new[] { Skill.Deception, Skill.Stealth }, criminal.SkillProficiencies);
+		Assert.Equal(ContentSource.RealmForge, criminal.Source);
+
+		foreach (var tr in criminal.Translations)
+		{
+			Assert.Equal((8, 6, 6, 6), (tr.PersonalityTraits.Count, tr.Ideals.Count, tr.Bonds.Count, tr.Flaws.Count));
+			Assert.Contains("| 8 |", tr.Description);
+			Assert.Equal(3, tr.Equipment!.Split('\n').Length);
+		}
+
+		Assert.Contains("Variant: Spy", criminal.Translations.Single(t => t.Language == LanguageCode.En).Description);
+		Assert.Contains("Variante: Spia", criminal.Translations.Single(t => t.Language == LanguageCode.It).Description);
+	}
+
+	[Fact]
 	public void Ids_are_unique_and_identical_on_every_build()
 	{
 		BackgroundSeeder.EnsureUniqueIds(Backgrounds);
