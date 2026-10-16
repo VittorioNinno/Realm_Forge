@@ -279,6 +279,33 @@ h1, h2, h3, h4, h5, h6, .rf-page-title, .brand-title {
             text-align: center;
         }
 
+/* Background equipment: option A (items) and option B (gold), stacked */
+.rf-equipment-option + .rf-equipment-option {
+    margin-top: 0.75rem;
+    padding-top: 0.75rem;
+    border-top: 1px solid var(--rf-border-subtle);
+}
+
+.rf-equipment-option-title {
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    color: var(--rf-text-primary);
+    margin-bottom: 0.35rem;
+}
+
+.rf-equipment-list {
+    margin: 0;
+    padding-left: 1.1rem;
+    font-size: 0.875rem;
+    color: var(--rf-text-primary);
+}
+
+    .rf-equipment-list li + li {
+        margin-top: 0.15rem;
+    }
+
 /* Pills that cannot be selected because the maximum was reached */
 .rf-pill-btn:disabled {
     opacity: 0.35;

@@ -1,4 +1,4 @@
-@using RealmForge.Client.Localization
+﻿@using RealmForge.Client.Localization
 @using RealmForge.Client.Services
 @using RealmForge.Shared.DTOs
 @using RealmForge.Shared.Enums
@@ -48,8 +48,8 @@
     }
 
     <div class="mb-2">
-        <label class="rf-form-label rf-label-single-line">@UiText.LabelEquipment(Lang)</label>
-        <textarea class="rf-form-control" rows="2" @bind="Model.Equipment"></textarea>
+        <label class="rf-form-label rf-label-single-line">@UiText.LabelEquipment(Lang) <span class="fw-normal text-lowercase" style="color: var(--rf-text-muted);">(@UiText.LabelEquipmentHint(Lang))</span></label>
+        <textarea class="rf-form-control" rows="4" @bind="Model.Equipment"></textarea>
     </div>
 
     <div class="mb-2">

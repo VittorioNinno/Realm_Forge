@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Authorization;
+﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using RealmForge.Api.Localization;
@@ -6,6 +6,7 @@ using RealmForge.Api.Security;
 using RealmForge.Domain.Entities;
 using RealmForge.Infrastructure.Persistence;
 using RealmForge.Shared.DTOs;
+using RealmForge.Shared.Text;
 using RealmForge.Shared.Enums;
 
 namespace RealmForge.Api.Controllers
@@ -17,6 +18,7 @@ namespace RealmForge.Api.Controllers
 		private const int ShortDescriptionLength = 160;
 		private const int MaxAbilityOptions = 3;
 		private const int MaxSkills = 4;
+		private const int MaxGoldAlternative = 10000;
 
 		private readonly RealmForgeDbContext _context;
 		private readonly ContentAccess _access;
@@ -51,8 +53,8 @@ namespace RealmForge.Api.Controllers
 			var dtos = backgrounds.Select(b =>
 			{
 				var tr = b.Translations.Localize(lang);
-				var desc = tr?.Description ?? string.Empty;
-				var shortDesc = desc.Length > ShortDescriptionLength ? desc[..(ShortDescriptionLength - 3)] + "..." : desc;
+				//	Card preview: plain text without Markdown marks, cut on a word boundary
+				var shortDesc = MarkdownPreview.ToPlainText(tr?.Description, ShortDescriptionLength);
 
 				return new BackgroundResponseDto(
 					b.Id,
@@ -223,6 +225,7 @@ namespace RealmForge.Api.Controllers
 				tr?.ToolProficiencies,
 				tr?.Languages,
 				tr?.Equipment,
+				b.EquipmentGoldAlternative,
 				tr?.FeatureName,
 				tr?.FeatureDescription,
 				tr?.CharacteristicsIntro,
@@ -239,6 +242,7 @@ namespace RealmForge.Api.Controllers
 			background.AbilityOptions = dto.AbilityOptions.Distinct().OrderBy(a => a).ToList();
 			background.SkillProficiencies = dto.SkillProficiencies.Distinct().OrderBy(s => s).ToList();
 			background.OriginFeatId = dto.OriginFeatId;
+			background.EquipmentGoldAlternative = dto.EquipmentGoldAlternative;
 		}
 
 		private static BackgroundTranslation ApplyTranslation(BackgroundTranslation target, BackgroundTranslationDto source)
@@ -285,6 +289,11 @@ namespace RealmForge.Api.Controllers
 			if (dto.SkillProficiencies.Distinct().Count() > MaxSkills)
 			{
 				return $"A background can grant at most {MaxSkills} skill proficiencies.";
+			}
+
+			if (dto.EquipmentGoldAlternative is < 0 or > MaxGoldAlternative)
+			{
+				return $"The gold alternative must be between 0 and {MaxGoldAlternative} gp.";
 			}
 
 			if (dto.OriginFeatId is Guid featId && !await _context.Feats.AnyAsync(f => f.Id == featId))

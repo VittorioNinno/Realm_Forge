@@ -23,7 +23,24 @@ try {
   await page.getByText('Allerta').first().waitFor({ timeout: 30000 });
   ok('feats list loaded from the API');
 
+  // Card previews are plain text: no Markdown marks, list dashes or table pipes
+  const cardTexts = await page.locator('.rf-card').allInnerTexts();
+  const marked = cardTexts.filter((t) => /\*\*|(^|\n)- |\|/.test(t));
+  if (marked.length) throw new Error(`Markdown marks in ${marked.length} card previews: ${marked[0].replace(/\s+/g, ' ').slice(0, 160)}`);
+  ok(`feat cards show plain-text previews (${cardTexts.length} cards)`);
+
+  // Navigation: reference pages live in the collapsible "Compendio" group, opened on compendium routes
+  const compendiumLinks = (await page.locator('[data-test=nav-compendium] a').allInnerTexts()).map((t) => t.trim());
+  if (compendiumLinks.join(',') !== 'Specie,Background,Talenti') throw new Error(`unexpected compendium links: ${compendiumLinks.join(',')}`);
+
   await page.goto(`${base}/account`);
+  await page.getByText('Non hai un account? Registrati').waitFor({ timeout: 30000 });
+  const collapsedLinks = await page.locator('[data-test=nav-compendium] a').count();
+  if (collapsedLinks !== 0) throw new Error(`compendium group should start collapsed outside the compendium (${collapsedLinks} links)`);
+  await page.locator('[data-test=nav-compendium] button').click();
+  await page.locator('[data-test=nav-compendium] a').first().waitFor({ timeout: 5000 });
+  await page.locator('[data-test=nav-compendium] button').click();
+  ok('"Compendio" menu group: Specie, Background, Talenti; collapsed elsewhere and toggles on click');
   await page.getByText('Non hai un account? Registrati').click();
   await page.locator('input[type=email]').fill(email);
   await page.locator('input[type=password]').fill(throwawayCredential);
@@ -93,12 +110,19 @@ try {
     ts.map((t) => `${t.querySelector('th').textContent.trim()}x${t.querySelectorAll('tbody tr').length}`));
   results.push(`INFO Acolyte tables: ${tables.join(', ')}`);
   if (tables.join(',') !== 'd8x8,d6x6,d6x6,d6x6') throw new Error(`unexpected characteristic tables: ${tables.join(', ')}`);
+  // One table per row: every table starts at the same x, on its own line, with the same width
+  const boxes = await page.locator('[data-test=bg-characteristics] .rf-dice-table').evaluateAll((ts) => ts.map((t) => t.getBoundingClientRect()).map((r) => [Math.round(r.left), Math.round(r.top), Math.round(r.width)]));
+  const stacked = boxes.every((b, i) => i === 0 || (b[0] === boxes[0][0] && b[2] === boxes[0][2] && b[1] > boxes[i - 1][1]));
+  if (!stacked) throw new Error(`characteristic tables are not stacked: ${JSON.stringify(boxes)}`);
+  const equipment = await page.locator('[data-test=bg-equipment] li').count();
+  results.push(`INFO Acolyte equipment items=${equipment}`);
+  if (equipment !== 6) throw new Error(`expected 6 equipment items, got ${equipment}`);
   const source = (await page.locator('[data-test=content-source]').first().innerText()).trim();
   const badge = (await page.locator('.rf-modal-dialog [data-test=content-badge]').first().textContent()).trim(); // textContent: the badge CSS uppercases the rendered text
   results.push(`INFO Acolyte badge='${badge}' source='${source}'`);
-  if (badge !== 'Base' || source !== 'Fonte: SRD 5.1 (CC BY 4.0)') throw new Error(`unexpected badge/source: ${badge} / ${source}`);
+  if (badge !== 'Base' || source !== 'Fonte: SRD 5.1') throw new Error(`unexpected badge/source: ${badge} / ${source}`);
   await page.getByRole('button', { name: 'CHIUDI' }).click();
-  ok('SRD Acolyte: four characteristic tables (d8, d6, d6, d6), badge "Base", source SRD 5.1');
+  ok('SRD Acolyte: four stacked characteristic tables (d8, d6, d6, d6), equipment list, badge "Base", source SRD 5.1');
 
   await page.locator('.rf-card').filter({ has: page.locator('.rf-card-title', { hasText: /^Ciarlatano$/ }) }).click();
   await page.locator('[data-test=bg-characteristics]').waitFor({ timeout: 15000 });
