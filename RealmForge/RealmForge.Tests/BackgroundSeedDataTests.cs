@@ -101,6 +101,22 @@ public class BackgroundSeedDataTests
 	}
 
 	[Fact]
+	public void Hermit_has_its_proficiencies_and_tables()
+	{
+		var hermit = Assert.Single(Backgrounds, b => b.Id == Hermit2014Seeder.BackgroundId);
+		Assert.Equal(new[] { Skill.Medicine, Skill.Religion }, hermit.SkillProficiencies);
+		Assert.Equal(ContentSource.RealmForge, hermit.Source);
+
+		foreach (var tr in hermit.Translations)
+		{
+			Assert.Equal((8, 6, 6, 6), (tr.PersonalityTraits.Count, tr.Ideals.Count, tr.Bonds.Count, tr.Flaws.Count));
+			Assert.Contains("| 8 |", tr.Description);
+			Assert.False(string.IsNullOrWhiteSpace(tr.Languages));
+			Assert.Equal(5, tr.Equipment!.Split('\n').Length);
+		}
+	}
+
+	[Fact]
 	public void Ids_are_unique_and_identical_on_every_build()
 	{
 		BackgroundSeeder.EnsureUniqueIds(Backgrounds);
