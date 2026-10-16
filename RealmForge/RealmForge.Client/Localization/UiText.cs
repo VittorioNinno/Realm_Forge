@@ -77,8 +77,8 @@ namespace RealmForge.Client.Localization
 		public static string LabelEquipmentChoice(LanguageCode lang) => lang == LanguageCode.It ? "Scegli A o B" : "Choose A or B";
 		public static string LabelEquipmentOptionA(LanguageCode lang) => lang == LanguageCode.It ? "Opzione A · Equipaggiamento" : "Option A · Equipment";
 		public static string LabelEquipmentOptionB(LanguageCode lang) => lang == LanguageCode.It ? "Opzione B · Monete d'oro" : "Option B · Gold";
-		public static string LabelGoldAlternative(LanguageCode lang) => lang == LanguageCode.It ? "Alternativa in monete d'oro (opzione B)" : "Gold alternative (option B)";
-		public static string HintGoldAlternative(LanguageCode lang) => lang == LanguageCode.It ? "Vuoto se il background offre solo l'equipaggiamento" : "Leave empty if the background offers only its equipment";
+		public static string LabelGoldAlternative(LanguageCode lang) => lang == LanguageCode.It ? "Opzione B (mo)" : "Option B (gp)";
+		public static string HintGoldAlternative(LanguageCode lang) => lang == LanguageCode.It ? "Monete d'oro al posto dell'equipaggiamento; vuoto se il background offre solo l'equipaggiamento" : "Gold pieces instead of the equipment; leave empty if the background offers only its equipment";
 		public static string FormatGold(int gp, LanguageCode lang) => lang == LanguageCode.It ? $"{gp} mo" : $"{gp} gp";
 		public static string LabelFeatureName(LanguageCode lang) => lang == LanguageCode.It ? "Privilegio" : "Feature";
 		public static string LabelFeatureDescription(LanguageCode lang) => lang == LanguageCode.It ? "Descrizione del privilegio" : "Feature description";
