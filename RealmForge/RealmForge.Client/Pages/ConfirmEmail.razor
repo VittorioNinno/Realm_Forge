@@ -4,6 +4,7 @@
 @implements IDisposable
 @inject AuthService Auth
 @inject LanguageStateService LanguageState
+@inject CrossTabService CrossTab
 
 <PageTitle>RealmForge - @UiText.ConfirmEmailTitle(LanguageState.CurrentLanguage)</PageTitle>
 
@@ -20,6 +21,11 @@
     else if (result.Success)
     {
         <div class="alert bg-dark border-success text-success" data-test="confirm-email-ok">@UiText.ConfirmEmailDone(LanguageState.CurrentLanguage)</div>
+        @if (otherTabOpen)
+        {
+            @* The tab already open has been updated: this one (opened from the e-mail) closes itself *@
+            <p class="small text-secondary" data-test="confirm-email-closing">@UiText.ConfirmEmailOtherTab(LanguageState.CurrentLanguage)</p>
+        }
         <a href="account" class="btn btn-rf-orange">@UiText.BtnGoToAccount(LanguageState.CurrentLanguage)</a>
     }
     else
@@ -40,6 +46,8 @@
     [SupplyParameterFromQuery(Name = "changedEmail")] public string? ChangedEmail { get; set; }
 
     private AuthResult? result;
+    private bool otherTabOpen;
+    private bool announced;
 
     protected override async Task OnInitializedAsync()
     {
@@ -48,6 +56,26 @@
         result = string.IsNullOrWhiteSpace(UserId) || string.IsNullOrWhiteSpace(Code)
             ? AuthResult.Fail("InvalidConfirmationLink")
             : await Auth.ConfirmEmailAsync(UserId, Code, ChangedEmail);
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        //	The confirmation runs in OnInitializedAsync: act on the first render after it succeeded
+        if (announced || result?.Success != true)
+        {
+            return;
+        }
+
+        announced = true;
+        await CrossTab.AnnounceAsync(CrossTabService.EmailConfirmed);
+        otherTabOpen = await CrossTab.HasOtherTabsAsync();
+
+        if (otherTabOpen)
+        {
+            StateHasChanged();
+            await Task.Delay(2500);
+            await CrossTab.TryCloseAsync();
+        }
     }
 
     public void Dispose() => LanguageState.OnLanguageChanged -= StateHasChanged;
