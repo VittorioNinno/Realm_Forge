@@ -30,13 +30,13 @@ namespace RealmForge.Infrastructure.Persistence.Seeding.SpeciesData
 					{
 						Language = LanguageCode.It,
 						Name = "Tiefling",
-						Description = "I tiefling nascono nei Piani Inferiori oppure discendono da immondi che provengono da lì. Attraverso il sangue sono legati a un diavolo, a un demone o a un altro immondo; questo legame è la loro eredità immonda. Offre potere, ma non stabilisce se un tiefling sia buono o malvagio.\n\nOgni tiefling sceglie se accettare o combattere quell'eredità, attingendo alla furia selvaggia dell'Abisso, alla cupa disperazione dei piani più tetri o all'ordine ardente degli Inferi."
+						Description = "I tiefling nascono nei Piani Inferiori oppure discendono da immondi che provengono da lì. Il loro sangue li lega a un diavolo, a un demone o a un altro immondo; questo legame è la loro eredità immonda. Promette potere, ma non influisce sulla visione morale del tiefling.\n\nOgni tiefling sceglie se accettare o rinnegare quell'eredità, attingendo alla furia caotica dell'Abisso, al cupo terrore dell'Ade o al dominio infuocato dei Nove Inferi."
 					},
 					new SpeciesTranslation
 					{
 						Language = LanguageCode.En,
 						Name = "Tiefling",
-						Description = "Tieflings are either born in the Lower Planes or descend from fiends who came from there. Through their blood they are bound to a devil, a demon, or another fiend; this bond is their fiendish legacy. It offers power, but it does not decide whether a tiefling is good or evil.\n\nEach tiefling chooses whether to embrace or resist that legacy, drawing on the wild fury of the Abyss, the bleak despair of the gloomier planes, or the burning order of the Hells."
+						Description = "Tieflings (pronounced TEE-flings) are either born in the Lower Planes or descend from fiends who came from there. Their blood binds them to a devil, a demon, or another Fiend; this bond is their fiendish legacy. It promises power, but it has no bearing on a tiefling's moral outlook.\n\nEach tiefling chooses whether to embrace or lament that legacy, drawing on the chaotic fury of the Abyss, the grim dread of Hades, or the fiery dominion of the Nine Hells."
 					}
 				},
 				Traits = new List<Trait>
@@ -97,13 +97,13 @@ namespace RealmForge.Infrastructure.Persistence.Seeding.SpeciesData
 							{
 								Language = LanguageCode.It,
 								Name = "Abissale",
-								Description = "I tiefling dell'eredità abissale sentono il richiamo dei piani più caotici e disperati. La maggior parte ha demoni tra i propri antenati, e corna, pelliccia, zanne o odori insoliti sono comuni tra loro."
+								Description = "L'entropia dell'Abisso, il caos di Pandemonium e la disperazione di Carceri richiamano i tiefling dell'eredità abissale. La maggior parte di loro ha demoni tra i propri antenati, e corna, pelliccia, zanne o odori insoliti sono comuni tra loro."
 							},
 							new SubspeciesTranslation
 							{
 								Language = LanguageCode.En,
 								Name = "Abyssal",
-								Description = "Tieflings of the abyssal legacy feel the pull of the most chaotic and despairing planes. Most have demons among their ancestors, and horns, fur, tusks, or unusual scents are common among them."
+								Description = "The entropy of the Abyss, the chaos of Pandemonium, and the despair of Carceri call to tieflings of the abyssal legacy. Most of them have demons among their ancestors, and horns, fur, tusks, or peculiar scents are common among them."
 							}
 						},
 						Traits = new List<Trait>
@@ -184,13 +184,13 @@ namespace RealmForge.Infrastructure.Persistence.Seeding.SpeciesData
 							{
 								Language = LanguageCode.It,
 								Name = "Ctonio",
-								Description = "I tiefling dell'eredità ctonia sono attratti dai piani dell'avidità, della tetraggine e della prigionia. Alcuni hanno un aspetto scarno e cadaverico, altri una bellezza inquietante, altri ancora condividono tratti con le megere o con altri immondi di malvagità egoista."
+								Description = "I tiefling dell'eredità ctonia sentono il richiamo di Carceri, l'avidità di Gehenna e la tetraggine dell'Ade. Alcuni hanno un aspetto cadaverico, altri la bellezza ultraterrena di una succube, altri ancora condividono tratti con una megera notturna, uno yugoloth o un altro antenato immondo Neutrale Malvagio."
 							},
 							new SubspeciesTranslation
 							{
 								Language = LanguageCode.En,
 								Name = "Chthonic",
-								Description = "Tieflings of the chthonic legacy are drawn to the planes of greed, gloom, and imprisonment. Some look gaunt and deathly, others have an unsettling beauty, and others share features with hags or other fiends of selfish evil."
+								Description = "Tieflings of the chthonic legacy feel the pull of Carceri, the greed of Gehenna, and the gloom of Hades. Some look cadaverous, others have the unearthly beauty of a succubus, and others share features with a night hag, a yugoloth, or another Neutral Evil fiendish ancestor."
 							}
 						},
 						Traits = new List<Trait>
@@ -271,13 +271,13 @@ namespace RealmForge.Infrastructure.Persistence.Seeding.SpeciesData
 							{
 								Language = LanguageCode.It,
 								Name = "Infernale",
-								Description = "I tiefling dell'eredità infernale sono legati ai regni ordinati degli Inferi e ai loro campi di battaglia senza fine. La maggior parte discende da diavoli, e corna, aculei, code, occhi dorati e un lieve odore di fumo o di zolfo sono comuni tra loro."
+								Description = "L'eredità infernale lega i tiefling a Gehenna, ai Nove Inferi e ai campi di battaglia senza fine dell'Acheronte. La maggior parte discende da diavoli, e corna, aculei, code, occhi dorati e un lieve odore di zolfo o di fumo sono comuni tra loro."
 							},
 							new SubspeciesTranslation
 							{
 								Language = LanguageCode.En,
 								Name = "Infernal",
-								Description = "Tieflings of the infernal legacy are tied to the ordered realms of the Hells and their endless battlefields. Most descend from devils, and horns, spines, tails, golden eyes, and a faint smell of smoke or sulfur are common among them."
+								Description = "The infernal legacy ties tieflings to Gehenna, to the Nine Hells, and to the endless battlefields of Acheron. Most of them descend from devils, and horns, spines, tails, golden eyes, and a faint smell of sulfur or smoke are common among them."
 							}
 						},
 						Traits = new List<Trait>

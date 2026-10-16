@@ -27,13 +27,13 @@ namespace RealmForge.Infrastructure.Persistence.Seeding.SpeciesData
 					{
 						Language = LanguageCode.It,
 						Name = "Tiefling",
-						Description = "I tiefling discendono da famiglie umane segnate molto tempo fa da un patto con un signore degli Inferi. Corna ricurve, pelle dalle sfumature rossastre, lunghe code e occhi di un unico colore pieno rivelano l'eredità immonda che scorre ancora nel loro sangue."
+						Description = "I tiefling discendono da stirpi umane segnate generazioni fa da un patto con Asmodeus, signore supremo dei Nove Inferi. Corna ricurve, pelle dalle sfumature rossastre, lunghe code e occhi di un unico colore pieno rivelano l'eredità infernale che scorre ancora nel loro sangue."
 					},
 					new SpeciesTranslation
 					{
 						Language = LanguageCode.En,
 						Name = "Tiefling",
-						Description = "Tieflings descend from human families marked long ago by a bargain with a lord of the Hells. Curving horns, skin in shades of red, long tails, and eyes of a single solid color reveal the fiendish heritage that still runs in their blood."
+						Description = "Tieflings descend from human bloodlines marked generations ago by a pact with Asmodeus, overlord of the Nine Hells. Curving horns, skin in shades of red, long tails, and eyes of a single solid color reveal the infernal heritage that still runs in their blood."
 					}
 				},
 				Traits = new List<Trait>

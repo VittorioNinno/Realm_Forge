@@ -32,14 +32,14 @@ public static class ElementalAdept2024Seeder
 					Id = TranslationEnId,
 					Language = LanguageCode.En,
 					Name = "Elemental Adept",
-					Description = "You bend one element to your will.\n- **Intelligence, Wisdom, or Charisma +1.** Increase one of these scores by 1, to a maximum of 20.\n- **Chosen Element.** Pick acid, cold, fire, lightning, or thunder. Your spells ignore Resistance to damage of that type, and when you roll damage for a spell you cast that deals it, any 1 on a damage die can be treated as a 2.\n- **Repeatable.** You can take this feat more than once, choosing a different element each time."
+					Description = "You bend one element to your will.\n- **Ability Score Increase.** Increase your Intelligence, Wisdom, or Charisma score by 1, to a maximum of 20.\n- **Energy Mastery.** Pick acid, cold, fire, lightning, or thunder. Your spells ignore Resistance to damage of that type, and when you roll damage for a spell you cast that deals it, any 1 on a damage die can be treated as a 2.\n- **Repeatable.** You can take this feat more than once, choosing a different element each time."
 				},
 				new FeatTranslation
 				{
 					Id = TranslationItId,
 					Language = LanguageCode.It,
 					Name = "Adepto Elementale",
-					Description = "Il personaggio piega un elemento al proprio volere.\n- **Intelligenza, Saggezza o Carisma +1.** Uno di questi punteggi aumenta di 1, fino a un massimo di 20.\n- **Elemento prescelto.** Sceglie acido, freddo, fuoco, fulmine o tuono. I suoi incantesimi ignorano la Resistenza ai danni di quel tipo e, quando tira i danni di un incantesimo che lancia e che li infligge, può considerare ogni 1 su un dado di danno come un 2.\n- **Ripetibile.** Può ottenere questo talento più volte, scegliendo ogni volta un elemento diverso."
+					Description = "Il personaggio piega un elemento al proprio volere.\n- **Incremento dei Punteggi di Caratteristica.** Il punteggio di Intelligenza, Saggezza o Carisma aumenta di 1, fino a un massimo di 20.\n- **Padronanza dell'Energia.** Sceglie acido, freddo, fuoco, fulmine o tuono. I suoi incantesimi ignorano la Resistenza ai danni di quel tipo e, quando tira i danni di un incantesimo che lancia e che li infligge, può considerare ogni 1 su un dado di danno come un 2.\n- **Ripetibile.** Può ottenere questo talento più volte, scegliendo ogni volta un elemento diverso."
 				}
 			}
 		};

@@ -272,13 +272,13 @@ namespace RealmForge.Infrastructure.Persistence.Seeding.SpeciesData
 							{
 								Language = LanguageCode.It,
 								Name = "Elfo Oscuro (Drow)",
-								Description = "I drow sono elfi i cui antenati furono cacciati nelle profondità senza luce sotto la superficie. La vita sotterranea ha affinato la loro vista nell'oscurità e ha donato loro una magia innata."
+								Description = "I drow sono elfi i cui antenati furono banditi nel Sottosuolo. La vita in quelle profondità ha affinato la loro vista nell'oscurità e ha donato loro una magia innata."
 							},
 							new SubspeciesTranslation
 							{
 								Language = LanguageCode.En,
 								Name = "Dark Elf (Drow)",
-								Description = "Drow are elves whose ancestors were driven into the lightless depths below the surface. Life underground has sharpened their sight in darkness and given them innate magic."
+								Description = "Drow are elves whose ancestors were banished to the Underdark. Life in those depths has sharpened their sight in darkness and given them innate magic."
 							}
 						},
 						Traits = new List<Trait>
@@ -336,13 +336,13 @@ namespace RealmForge.Infrastructure.Persistence.Seeding.SpeciesData
 									{
 										Language = LanguageCode.It,
 										Name = "Magia Drow",
-										Description = "Il personaggio conosce il trucchetto luci danzanti. Dal 3° livello può lanciare anche luminescenza, e dal 5° livello oscurità; ciascuno di questi due incantesimi può essere lanciato una volta in questo modo, e il personaggio ne recupera l'uso dopo un riposo lungo. Il Carisma è la caratteristica da incantatore per tutti e tre."
+										Description = "Il personaggio conosce il trucchetto Luci Danzanti. Dal 3° livello può lanciare anche Luminescenza, e dal 5° livello Oscurità; ciascuno di questi due incantesimi può essere lanciato una volta in questo modo, e il personaggio ne recupera l'uso dopo un riposo lungo. Il Carisma è la caratteristica da incantatore per tutti e tre."
 									},
 									new TraitTranslation
 									{
 										Language = LanguageCode.En,
 										Name = "Drow Magic",
-										Description = "You know the dancing lights cantrip. From 3rd level you can also cast faerie fire, and from 5th level darkness; each of these two spells can be cast once this way, and you regain the use after a long rest. Charisma is your spellcasting ability for all three."
+										Description = "You know the Dancing Lights cantrip. From 3rd level you can also cast Faerie Fire, and from 5th level Darkness; each of these two spells can be cast once this way, and you regain the use after a long rest. Charisma is your spellcasting ability for all three."
 									}
 								}
 							}

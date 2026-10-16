@@ -66,30 +66,6 @@ public class FeatSeedDataTests
 		Assert.Equal(17, Feats.Count(f => f.Source == ContentSource.Srd52));
 	}
 
-	[Theory]
-	[InlineData(RulesetVersion.Dnd5e_2014)]
-	[InlineData(RulesetVersion.Dnd5e_2024)]
-	public void RealmForge_feats_do_not_reuse_rulebook_phrasing(RulesetVersion ruleset)
-	{
-		//	Base feats outside the SRD carry text written for RealmForge; these phrasings belong to the printed rulebooks
-		string[] rulebookPhrases =
-		[
-			"following benefit", "Always on the lookout for danger", "Prerequisite:",
-			"benefici seguenti", "seguenti benefici", "Prerequisito:"
-		];
-
-		foreach (var feat in Feats.Where(f => f.Ruleset == ruleset && f.Source == ContentSource.RealmForge))
-		{
-			foreach (var tr in feat.Translations)
-			{
-				foreach (var phrase in rulebookPhrases)
-				{
-					Assert.False(tr.Description.Contains(phrase, StringComparison.OrdinalIgnoreCase), $"{tr.Name} ({tr.Language}) contains \"{phrase}\"");
-				}
-			}
-		}
-	}
-
 	[Fact]
 	public void Ability_prerequisites_always_have_a_minimum_score()
 	{

@@ -139,7 +139,7 @@ namespace RealmForge.Infrastructure.Persistence.Seeding.SpeciesData
 									{
 										Language = LanguageCode.It,
 										Name = "Illusionista Nato",
-										Description = "Il personaggio conosce il trucchetto illusione minore e usa l'Intelligenza come caratteristica da incantatore."
+										Description = "Il personaggio conosce il trucchetto Illusione Minore e usa l'Intelligenza come caratteristica da incantatore."
 									},
 									new TraitTranslation
 									{

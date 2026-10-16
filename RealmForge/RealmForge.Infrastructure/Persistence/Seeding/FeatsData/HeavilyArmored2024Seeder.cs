@@ -32,14 +32,14 @@ public static class HeavilyArmored2024Seeder
 					Id = TranslationEnId,
 					Language = LanguageCode.En,
 					Name = "Heavily Armored",
-					Description = "You have learned to fight under the heaviest protection.\n- **Constitution or Strength +1.** Increase one of the two scores by 1, to a maximum of 20.\n- **Heavy Armor Training.** You gain training with Heavy armor."
+					Description = "You have learned to fight under the heaviest protection.\n- **Ability Score Increase.** Increase your Constitution or Strength score by 1, to a maximum of 20.\n- **Armor Training.** You gain training with Heavy armor."
 				},
 				new FeatTranslation
 				{
 					Id = TranslationItId,
 					Language = LanguageCode.It,
 					Name = "Corazze Pesanti",
-					Description = "Il personaggio ha imparato a combattere sotto le protezioni più pesanti.\n- **Costituzione o Forza +1.** Uno dei due punteggi aumenta di 1, fino a un massimo di 20.\n- **Addestramento nelle armature pesanti.** Ottiene l'addestramento nelle armature pesanti."
+					Description = "Il personaggio ha imparato a combattere sotto le protezioni più pesanti.\n- **Incremento dei Punteggi di Caratteristica.** Il punteggio di Costituzione o Forza aumenta di 1, fino a un massimo di 20.\n- **Competenza nelle Armature.** Ottiene l'addestramento nelle armature pesanti."
 				}
 			}
 		};

@@ -31,14 +31,14 @@ public static class ModeratelyArmored2014Seeder
 					Id = TranslationEnId,
 					Language = LanguageCode.En,
 					Name = "Moderately Armored",
-					Description = "You have learned to fight behind medium armor and a shield.\n- **Strength or Dexterity +1.** Increase one of the two scores by 1, to a maximum of 20.\n- **Armor Training.** You gain proficiency with medium armor and shields."
+					Description = "You have learned to fight behind medium armor and a shield.\n- Increase your Strength or Dexterity score by 1, to a maximum of 20.\n- You gain proficiency with medium armor and shields."
 				},
 				new FeatTranslation
 				{
 					Id = TranslationItId,
 					Language = LanguageCode.It,
 					Name = "Corazze Medie",
-					Description = "Il personaggio ha imparato a combattere protetto da un'armatura media e da uno scudo.\n- **Forza o Destrezza +1.** Uno dei due punteggi aumenta di 1, fino a un massimo di 20.\n- **Addestramento.** Ottiene competenza nelle armature medie e negli scudi."
+					Description = "Il personaggio ha imparato a combattere protetto da un'armatura media e da uno scudo.\n- Il punteggio di Forza o Destrezza aumenta di 1, fino a un massimo di 20.\n- Ottiene competenza nelle armature medie e negli scudi."
 				}
 			}
 		};

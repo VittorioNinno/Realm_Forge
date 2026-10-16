@@ -30,14 +30,14 @@ public static class ShieldMaster2014Seeder
 					Id = TranslationEnId,
 					Language = LanguageCode.En,
 					Name = "Shield Master",
-					Description = "Your shield is both a wall and a weapon.\nWhile you wield a shield:\n- **Shield Shove.** If you take the Attack action on your turn, you can use a bonus action to try to shove a creature within 5 feet of you with your shield.\n- **Cover Yourself.** If you aren't incapacitated, you add your shield's AC bonus to Dexterity saving throws against spells or other harmful effects that target only you.\n- **Shield Wall.** When an effect lets you make a Dexterity saving throw to take only half damage, you can use your reaction to take no damage if you succeed, raising your shield between yourself and the source of the effect."
+					Description = "Your shield is both a wall and a weapon.\nWhile you wield a shield:\n- If you take the Attack action on your turn, you can use a bonus action to try to shove a creature within 5 feet of you with your shield.\n- If you aren't incapacitated, you add your shield's AC bonus to Dexterity saving throws against spells or other harmful effects that target only you.\n- When an effect lets you make a Dexterity saving throw to take only half damage, you can use your reaction to take no damage if you succeed, raising your shield between yourself and the source of the effect."
 				},
 				new FeatTranslation
 				{
 					Id = TranslationItId,
 					Language = LanguageCode.It,
 					Name = "Maestro degli Scudi",
-					Description = "Lo scudo del personaggio è al tempo stesso un muro e un'arma.\nMentre impugna uno scudo:\n- **Spinta con lo scudo.** Se usa l'azione Attacco nel suo turno, può usare un'azione bonus per tentare di spingere con lo scudo una creatura entro 1,5 metri da lui.\n- **Ripararsi.** Se non è incapacitato, aggiunge il bonus alla CA dello scudo ai tiri salvezza su Destrezza contro incantesimi o altri effetti dannosi che bersagliano solo lui.\n- **Muro di scudi.** Quando un effetto gli consente un tiro salvezza su Destrezza per subire solo metà danni, può usare la reazione per non subire alcun danno se lo supera, frapponendo lo scudo tra sé e la fonte dell'effetto."
+					Description = "Lo scudo del personaggio è al tempo stesso un muro e un'arma.\nMentre impugna uno scudo:\n- Se usa l'azione Attacco nel suo turno, può usare un'azione bonus per tentare di spingere con lo scudo una creatura entro 1,5 metri da lui.\n- Se non è incapacitato, aggiunge il bonus alla CA dello scudo ai tiri salvezza su Destrezza contro incantesimi o altri effetti dannosi che bersagliano solo lui.\n- Quando un effetto gli consente un tiro salvezza su Destrezza per subire solo metà danni, può usare la reazione per non subire alcun danno se lo supera, frapponendo lo scudo tra sé e la fonte dell'effetto."
 				}
 			}
 		};

@@ -30,14 +30,14 @@ public static class WeaponMaster2014Seeder
 					Id = TranslationEnId,
 					Language = LanguageCode.En,
 					Name = "Weapon Master",
-					Description = "You have practiced with many kinds of weapons.\n- **Strength or Dexterity +1.** Increase one of the two scores by 1, to a maximum of 20.\n- **Weapon Training.** You gain proficiency with four weapons of your choice."
+					Description = "You have practiced with many kinds of weapons.\n- Increase your Strength or Dexterity score by 1, to a maximum of 20.\n- You gain proficiency with four weapons of your choice."
 				},
 				new FeatTranslation
 				{
 					Id = TranslationItId,
 					Language = LanguageCode.It,
 					Name = "Maestro d'Armi",
-					Description = "Il personaggio si è esercitato con molti tipi di armi.\n- **Forza o Destrezza +1.** Uno dei due punteggi aumenta di 1, fino a un massimo di 20.\n- **Addestramento nelle armi.** Ottiene competenza in quattro armi a sua scelta."
+					Description = "Il personaggio si è esercitato con molti tipi di armi.\n- Il punteggio di Forza o Destrezza aumenta di 1, fino a un massimo di 20.\n- Ottiene competenza in quattro armi a sua scelta."
 				}
 			}
 		};

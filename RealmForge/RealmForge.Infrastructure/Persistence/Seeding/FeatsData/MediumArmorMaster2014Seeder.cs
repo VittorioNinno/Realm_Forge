@@ -31,14 +31,14 @@ public static class MediumArmorMaster2014Seeder
 					Id = TranslationEnId,
 					Language = LanguageCode.En,
 					Name = "Medium Armor Master",
-					Description = "You move in medium armor as if it weren't there.\n- **Quiet Armor.** Medium armor doesn't give you disadvantage on Dexterity (Stealth) checks.\n- **Better Fit.** While wearing medium armor, you can add up to 3, rather than 2, to your AC if your Dexterity is 16 or higher."
+					Description = "You move in medium armor as if it weren't there.\n- Medium armor doesn't give you disadvantage on Dexterity (Stealth) checks.\n- While wearing medium armor, you can add up to 3, rather than 2, to your AC if your Dexterity is 16 or higher."
 				},
 				new FeatTranslation
 				{
 					Id = TranslationItId,
 					Language = LanguageCode.It,
 					Name = "Maestro delle Armature Medie",
-					Description = "Il personaggio si muove in armatura media come se non la indossasse.\n- **Armatura silenziosa.** Le armature medie non gli impongono svantaggio alle prove di Destrezza (Furtività).\n- **Vestibilità migliore.** Mentre indossa un'armatura media, se ha Destrezza 16 o superiore può aggiungere alla CA fino a 3 anziché fino a 2."
+					Description = "Il personaggio si muove in armatura media come se non la indossasse.\n- Le armature medie non gli impongono svantaggio alle prove di Destrezza (Furtività).\n- Mentre indossa un'armatura media, se ha Destrezza 16 o superiore può aggiungere alla CA fino a 3 anziché fino a 2."
 				}
 			}
 		};
