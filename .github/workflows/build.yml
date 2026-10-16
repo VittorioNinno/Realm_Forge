@@ -238,6 +238,13 @@ jobs:
           bg_srd=$(curl -sf "$api/api/backgrounds?isOfficial=true&lang=2" | jq -c '[.[] | {name, skills: .skillProficiencies}]')
           echo "::notice title=database::SRD backgrounds: $bg_srd"
           test "$bg_srd" = '[{"name":"Accolito","skills":[7,15]}]'
+          sources=$(curl -sf "$api/api/feats?isOfficial=true" | jq -c '[.[].source] | unique')
+          acolyte_source=$(curl -sf "$api/api/backgrounds?isOfficial=true" | jq -r '.[0].source')
+          homebrew_source=$(echo "$created" | jq -r .source)
+          echo "::notice title=database::sources: base feats=$sources | Acolyte=$acolyte_source | homebrew=$homebrew_source"
+          test "$sources" = "[1]"
+          test "$acolyte_source" = "2"
+          test "$homebrew_source" = "null"
           test "$bg_anon" = "401"
           test "$bg_feat" = "Allerta"
           test "$bg_skills" = "[7,15]"

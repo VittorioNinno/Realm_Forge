@@ -16,9 +16,9 @@ A modular, bilingual web platform for managing tabletop RPG campaigns, sessions 
   Italian and English everywhere, from database translations to the UI, switchable at runtime without reloading.
   *Italiano e inglese ovunque, dalle traduzioni nel database all'interfaccia, con cambio lingua immediato senza ricaricare.*
 
-- **SRD vs Homebrew separation** · *Separazione SRD / Homebrew*
-  Official SRD content is read-only and kept in sync by the seeders; Homebrew belongs to its author.
-  *I contenuti SRD ufficiali sono in sola lettura e sincronizzati dai seeder; gli Homebrew appartengono al loro autore.*
+- **Base vs Homebrew separation** · *Separazione Base / Homebrew*
+  Base content is part of the platform: read-only and kept in sync by the seeders, with its text source shown in the app. Homebrew belongs to its author.
+  *I contenuti Base fanno parte della piattaforma: sola lettura, sincronizzati dai seeder, con la fonte del testo indicata nell'app. Gli Homebrew appartengono al loro autore.*
 
 - **User accounts** · *Account utente*
   Registration and sign-in; anyone can browse, only signed-in users can forge content.
@@ -32,8 +32,8 @@ A modular, bilingual web platform for managing tabletop RPG campaigns, sessions 
 
 | Module · *Modulo* | Status · *Stato* | Notes · *Note* |
 |---|---|---|
-| Species & lineages · *Specie e sottospecie* | ✅ | 9 SRD 2014 + 10 SRD 2024 species, speed and traits recalculated per lineage · *velocità e tratti ricalcolati per sottospecie* |
-| Feats · *Talenti* | ✅ | 117 SRD feats (42 × 2014, 75 × 2024), structured bilingual prerequisites, "Forge Feat" editor · *prerequisiti strutturati bilingue, editor "Forgia Talento"* |
+| Species & lineages · *Specie e sottospecie* | ✅ | 9 base 2014 + 10 base 2024 species, speed and traits recalculated per lineage · *velocità e tratti ricalcolati per sottospecie* |
+| Feats · *Talenti* | ✅ | 117 base feats (42 × 2014, 75 × 2024), structured bilingual prerequisites, "Forge Feat" editor · *prerequisiti strutturati bilingue, editor "Forgia Talento"* |
 | Accounts & ownership · *Account e proprietà* | ✅ | ASP.NET Core Identity, bearer tokens, per-author Homebrew · *Homebrew per autore* |
 | Backgrounds 2024 · *Background 2024* | 🔜 | Next module, linked to Origin feats · *Prossimo modulo, collegato ai Talenti di Origine* |
 | Spells · *Incantesimi* | 📋 | Planned · *Pianificato* |
@@ -58,7 +58,7 @@ A modular, bilingual web platform for managing tabletop RPG campaigns, sessions 
 RealmForge/
 ├── RealmForge.Shared          DTOs, enums, FeatPrerequisiteFormatter (used by API and client)
 ├── RealmForge.Domain          Entities (GameEntity, translations) — server only
-├── RealmForge.Infrastructure  DbContext, Identity, migrations, SRD seeders
+├── RealmForge.Infrastructure  DbContext, Identity, migrations, base content seeders
 ├── RealmForge.Api             REST API, auth endpoints, ownership rules (ContentAccess)
 ├── RealmForge.Client          Blazor WebAssembly UI
 └── RealmForge.Tests           Seed-data integrity, formatter and GUID tests
@@ -108,16 +108,17 @@ dotnet run --project RealmForge/RealmForge.Client --launch-profile https
 | API | https://localhost:7086 |
 | API reference (Scalar) | https://localhost:7086/scalar |
 
-In development the API applies pending migrations and synchronizes the SRD data at startup.
-*In sviluppo l'API applica le migrazioni in sospeso e sincronizza i dati SRD all'avvio.*
+In development the API applies pending migrations and synchronizes the base content at startup.
+*In sviluppo l'API applica le migrazioni in sospeso e sincronizza i contenuti Base all'avvio.*
 
 ---
 
 ## 📜 Content Rules / Regole sui contenuti
 
-| | SRD | Homebrew |
+| | Base | Homebrew |
 |---|---|---|
-| Source · *Origine* | Seeders only · *Solo seeder* | Created from the UI/API · *Creato da UI/API* |
+| Origin · *Origine* | Seeders only · *Solo seeder* | Created from the UI/API · *Creato da UI/API* |
+| Text source · *Fonte del testo* | `RealmForge` text, or `SRD 5.1` / `SRD 5.2` when taken from the SRD · *testo RealmForge, oppure SRD 5.1 / 5.2* | The author · *L'autore* |
 | Read · *Lettura* | Everyone · *Tutti* | Everyone · *Tutti* |
 | Edit / delete · *Modifica / elimina* | Nobody (403) · *Nessuno* | Author or admin · *Autore o amministratore* |
 
@@ -134,12 +135,12 @@ In development the API applies pending migrations and synchronizes the SRD data 
 - **Feat prerequisites** · *Prerequisiti dei talenti*: stored as data (level, abilities, score, feature) and rendered by `FeatPrerequisiteFormatter` with the correct wording per ruleset (e.g. 2014 "Proficiency with medium armor" / 2024 "Medium Armor Training").
   *Salvati come dati e resi da `FeatPrerequisiteFormatter` con la dicitura corretta per regolamento.*
 
-## 🌱 Seed Data Conventions / Convenzioni sui dati SRD
+## 🌱 Seed Data Conventions / Convenzioni sui contenuti Base
 
 - One seeder file per entry, exposing `public static Feat Build()` / `public static Species Build()`; `FeatSeeder` and `SpeciesSeeder` discover them automatically, so a new file cannot be forgotten.
   *Un file per voce con `Build()`; `FeatSeeder` li trova da solo, quindi un nuovo file non può essere dimenticato.*
-- At startup missing SRD rows are inserted and existing ones are **updated** to match the seed (one query, one transaction).
-  *All'avvio le righe SRD mancanti vengono inserite e quelle esistenti **aggiornate** (una query, una transazione).*
+- At startup missing base rows are inserted and existing ones are **updated** to match the seed (one query, one transaction).
+  *All'avvio le righe Base mancanti vengono inserite e quelle esistenti **aggiornate** (una query, una transazione).*
 - Duplicate ids fail fast at startup and in the tests.
   *Gli id duplicati bloccano l'avvio e fanno fallire i test.*
 - **New modules** must generate ids with `DeterministicGuid` (UUIDv5) from readable keys instead of hand-written GUIDs:
@@ -168,7 +169,7 @@ Every push and pull request runs three jobs · *Ogni push e pull request esegue 
 | Job | Checks · *Verifica* |
 |---|---|
 | `build` | Build without warnings + unit tests · *Compilazione senza warning + test* |
-| `database` | Migrations on PostgreSQL 17, data preservation, SRD seeding and re-sync, auth and ownership rules (401/403/204) · *Migrazioni, conservazione dei dati, seeding, regole di accesso* |
+| `database` | Migrations on PostgreSQL 17, data preservation, base content seeding and re-sync, auth and ownership rules (401/403/204) · *Migrazioni, conservazione dei dati, seeding, regole di accesso* |
 | `ui` | Headless browser: sign-in flow, conditional buttons, session after reload, modal layout · *Browser headless: accesso, pulsanti condizionati, sessione, layout del modale* |
 
 ```bash
@@ -194,8 +195,9 @@ Source code released under the [MIT License](LICENSE).
 
 ### SRD attribution
 
-This work includes material taken from the System Reference Document 5.1 ("SRD 5.1") by Wizards of the Coast LLC and available at https://dnd.wizards.com/resources/systems-reference-document. The SRD 5.1 is licensed under the Creative Commons Attribution 4.0 International License available at https://creativecommons.org/licenses/by/4.0/legalcode.
+Entries whose source is shown as SRD 5.1 in the app use text from the System Reference Document; all other base content is text written for RealmForge.
+*Le voci con fonte SRD 5.1 usano il testo del System Reference Document; tutti gli altri contenuti Base sono testi scritti per RealmForge.*
 
-This work includes material from the System Reference Document 5.2 ("SRD 5.2") by Wizards of the Coast LLC, available at https://www.dndbeyond.com/srd. The SRD 5.2 is licensed under the Creative Commons Attribution 4.0 International License, available at https://creativecommons.org/licenses/by/4.0/legalcode.
+This work includes material taken from the System Reference Document 5.1 ("SRD 5.1") by Wizards of the Coast LLC and available at https://dnd.wizards.com/resources/systems-reference-document. The SRD 5.1 is licensed under the Creative Commons Attribution 4.0 International License available at https://creativecommons.org/licenses/by/4.0/legalcode.
 
 RealmForge is compatible with fifth edition. · *RealmForge è compatibile con la quinta edizione.*

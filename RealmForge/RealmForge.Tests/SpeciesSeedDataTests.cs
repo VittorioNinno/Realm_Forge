@@ -17,6 +17,18 @@ public class SpeciesSeedDataTests
 	}
 
 	[Fact]
+	public void Species_lineages_and_traits_are_marked_as_RealmForge_text()
+	{
+		foreach (var species in Species)
+		{
+			Assert.Equal(ContentSource.RealmForge, species.Source);
+			Assert.All(species.Traits, t => Assert.Equal(ContentSource.RealmForge, t.Source));
+			Assert.All(species.Subspecies, s => Assert.Equal(ContentSource.RealmForge, s.Source));
+			Assert.All(species.Subspecies.SelectMany(s => s.Traits), t => Assert.Equal(ContentSource.RealmForge, t.Source));
+		}
+	}
+
+	[Fact]
 	public void Ids_are_unique()
 	{
 		SpeciesSeeder.EnsureUniqueIds(Species);

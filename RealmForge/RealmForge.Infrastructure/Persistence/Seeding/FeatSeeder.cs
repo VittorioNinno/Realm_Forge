@@ -2,6 +2,7 @@
 using Microsoft.EntityFrameworkCore;
 using RealmForge.Domain.Entities;
 using RealmForge.Infrastructure.Persistence.Seeding.FeatsData;
+using RealmForge.Shared.Enums;
 
 namespace RealmForge.Infrastructure.Persistence.Seeding;
 
@@ -24,6 +25,12 @@ public static class FeatSeeder
 			.Where(m => m is not null && m.ReturnType == typeof(Feat))
 			.Select(m => (Feat)m!.Invoke(null, null)!)
 			.ToList();
+
+		//	Base content without an explicit source is text written for RealmForge
+		foreach (var definition in definitions)
+		{
+			definition.Source ??= ContentSource.RealmForge;
+		}
 
 		EnsureUniqueIds(definitions);
 		return definitions;
@@ -72,6 +79,7 @@ public static class FeatSeeder
 			}
 
 			feat.Category = definition.Category;
+			feat.Source = definition.Source;
 			feat.Ruleset = definition.Ruleset;
 			feat.PrerequisiteMinimumLevel = definition.PrerequisiteMinimumLevel;
 			feat.PrerequisiteAbilities = definition.PrerequisiteAbilities;

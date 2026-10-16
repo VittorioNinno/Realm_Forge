@@ -166,7 +166,18 @@ namespace RealmForge.Client.Localization
 			_ => ruleset.ToString()
 		};
 
-		public static string BadgeSRD(LanguageCode lang) => lang == LanguageCode.It ? "SRD" : "SRD";
+		//	Platform content (seeded, read-only for everyone); the text origin is shown by FormatSource
+		public static string BadgeBase(LanguageCode lang) => lang == LanguageCode.It ? "Base" : "Base";
+
+		public static string FormatSource(ContentSource? source, LanguageCode lang) => (source, lang == LanguageCode.It) switch
+		{
+			(ContentSource.Srd51, true) => "Fonte: SRD 5.1 (CC BY 4.0)",
+			(ContentSource.Srd51, false) => "Source: SRD 5.1 (CC BY 4.0)",
+			(ContentSource.Srd52, true) => "Fonte: SRD 5.2 (CC BY 4.0)",
+			(ContentSource.Srd52, false) => "Source: SRD 5.2 (CC BY 4.0)",
+			(_, true) => "Fonte: testo RealmForge",
+			(_, false) => "Source: RealmForge text"
+		};
 		public static string BadgeHomebrew(LanguageCode lang) => lang == LanguageCode.It ? "Homebrew" : "Homebrew";
 		public static string LabelRequiredLevel(int level, LanguageCode lang) => lang == LanguageCode.It ? $"Livello {level}" : $"Level {level}";
 		#endregion

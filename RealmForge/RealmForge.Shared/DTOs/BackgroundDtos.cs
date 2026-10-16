@@ -12,7 +12,8 @@ namespace RealmForge.Shared.DTOs
 		List<Skill> SkillProficiencies,
 		Guid? OriginFeatId,
 		string? OriginFeatName,
-		bool CanEdit = false
+		bool CanEdit = false,
+		ContentSource? Source = null
 	);
 
 	public record BackgroundDetailResponseDto(
@@ -36,7 +37,8 @@ namespace RealmForge.Shared.DTOs
 		List<string> Ideals,
 		List<string> Bonds,
 		List<string> Flaws,
-		bool CanEdit = false
+		bool CanEdit = false,
+		ContentSource? Source = null
 	);
 
 	public class SaveBackgroundDto

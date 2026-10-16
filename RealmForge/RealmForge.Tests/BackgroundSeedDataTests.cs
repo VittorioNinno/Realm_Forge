@@ -12,7 +12,8 @@ public class BackgroundSeedDataTests
 	public void Only_SRD_backgrounds_are_seeded()
 	{
 		//	SRD 5.1 contains a single background (Acolyte); SRD 5.2 adds Criminal, Sage and Soldier
-		Assert.Single(Backgrounds, b => b.Ruleset == RulesetVersion.Dnd5e_2014);
+		var acolyte = Assert.Single(Backgrounds, b => b.Ruleset == RulesetVersion.Dnd5e_2014);
+		Assert.Equal(ContentSource.Srd51, acolyte.Source);
 		Assert.True(Backgrounds.Count(b => b.Ruleset == RulesetVersion.Dnd5e_2024) <= 4);
 	}
 

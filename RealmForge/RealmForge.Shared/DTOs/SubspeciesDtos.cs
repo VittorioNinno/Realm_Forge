@@ -15,7 +15,8 @@ namespace RealmForge.Shared.DTOs
 		RulesetVersion Ruleset,
 		bool IsOfficialSRD,
 		List<TraitResponseDto> Traits,
-		bool CanEdit = false
+		bool CanEdit = false,
+		ContentSource? Source = null
 	);
 
 	///	<summary>
