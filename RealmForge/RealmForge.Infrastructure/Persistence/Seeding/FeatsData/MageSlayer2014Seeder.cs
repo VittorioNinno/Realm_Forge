@@ -30,14 +30,14 @@ public static class MageSlayer2014Seeder
 					Id = TranslationEnId,
 					Language = LanguageCode.En,
 					Name = "Mage Slayer",
-					Description = "You have trained to hunt down spellcasters.\n- **Punish the Caster.** When a creature within 5 feet of you casts a spell, you can use your reaction to make a melee weapon attack against it.\n- **Break Concentration.** A creature you damage while it is concentrating on a spell has disadvantage on the saving throw to keep its concentration.\n- **Close-Range Ward.** You have advantage on saving throws against spells cast by creatures within 5 feet of you."
+					Description = "You have trained to hunt down spellcasters.\n- When a creature within 5 feet of you casts a spell, you can use your reaction to make a melee weapon attack against it.\n- A creature you damage while it is concentrating on a spell has disadvantage on the saving throw to keep its concentration.\n- You have advantage on saving throws against spells cast by creatures within 5 feet of you."
 				},
 				new FeatTranslation
 				{
 					Id = TranslationItId,
 					Language = LanguageCode.It,
 					Name = "Sterminatore di Maghi",
-					Description = "Il personaggio si è addestrato a dare la caccia agli incantatori.\n- **Punire l'incantatore.** Quando una creatura entro 1,5 metri da lui lancia un incantesimo, può usare la reazione per effettuare un attacco con un'arma da mischia contro di essa.\n- **Spezzare la concentrazione.** Una creatura a cui infligge danni mentre si concentra su un incantesimo ha svantaggio al tiro salvezza per mantenere la concentrazione.\n- **Difesa ravvicinata.** Ha vantaggio ai tiri salvezza contro gli incantesimi lanciati da creature entro 1,5 metri da lui."
+					Description = "Il personaggio si è addestrato a dare la caccia agli incantatori.\n- Quando una creatura entro 1,5 metri da lui lancia un incantesimo, può usare la reazione per effettuare un attacco con un'arma da mischia contro di essa.\n- Una creatura a cui infligge danni mentre si concentra su un incantesimo ha svantaggio al tiro salvezza per mantenere la concentrazione.\n- Ha vantaggio ai tiri salvezza contro gli incantesimi lanciati da creature entro 1,5 metri da lui."
 				}
 			}
 		};

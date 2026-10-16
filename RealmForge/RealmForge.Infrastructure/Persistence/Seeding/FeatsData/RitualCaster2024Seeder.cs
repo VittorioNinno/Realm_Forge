@@ -33,14 +33,14 @@ public static class RitualCaster2024Seeder
 					Id = TranslationEnId,
 					Language = LanguageCode.En,
 					Name = "Ritual Caster",
-					Description = "You have studied the patient art of rituals.\n- **Intelligence, Wisdom, or Charisma +1.** Increase one of these scores by 1, to a maximum of 20. This is your spellcasting ability for these spells.\n- **Known Rituals.** You always have prepared a number of level 1 spells with the Ritual tag equal to your Proficiency Bonus, and you can cast them with any spell slots you have. Each time your Proficiency Bonus increases, add one more level 1 Ritual spell to them.\n- **Swift Ritual.** Once per Long Rest, you can cast one of your prepared Ritual spells with its normal casting time instead of the longer ritual time, without spending a spell slot."
+					Description = "You have studied the patient art of rituals.\n- **Ability Score Increase.** Increase your Intelligence, Wisdom, or Charisma score by 1, to a maximum of 20. This is your spellcasting ability for these spells.\n- **Ritual Spells.** You always have prepared a number of level 1 spells with the Ritual tag equal to your Proficiency Bonus, and you can cast them with any spell slots you have. Each time your Proficiency Bonus increases, add one more level 1 Ritual spell to them.\n- **Quick Ritual.** Once per Long Rest, you can cast one of your prepared Ritual spells with its normal casting time instead of the longer ritual time, without spending a spell slot."
 				},
 				new FeatTranslation
 				{
 					Id = TranslationItId,
 					Language = LanguageCode.It,
 					Name = "Incantatore Rituale",
-					Description = "Il personaggio ha studiato la paziente arte dei rituali.\n- **Intelligenza, Saggezza o Carisma +1.** Uno di questi punteggi aumenta di 1, fino a un massimo di 20. È la sua caratteristica da incantatore per questi incantesimi.\n- **Rituali conosciuti.** Ha sempre preparati un numero di incantesimi di 1° livello con il descrittore rituale pari al suo bonus di competenza e può lanciarli con qualsiasi slot incantesimo di cui dispone. Ogni volta che il suo bonus di competenza aumenta, ne aggiunge un altro di 1° livello con il descrittore rituale.\n- **Rituale rapido.** Una volta per riposo lungo, può lanciare uno dei suoi incantesimi rituali preparati con il normale tempo di lancio invece del tempo più lungo del rituale, senza spendere uno slot incantesimo."
+					Description = "Il personaggio ha studiato la paziente arte dei rituali.\n- **Incremento dei Punteggi di Caratteristica.** Il punteggio di Intelligenza, Saggezza o Carisma aumenta di 1, fino a un massimo di 20. È la sua caratteristica da incantatore per questi incantesimi.\n- **Incantesimi Rituali.** Ha sempre preparati un numero di incantesimi di 1° livello con il descrittore rituale pari al suo Bonus di Competenza e può lanciarli con qualsiasi slot incantesimo di cui dispone. Ogni volta che il suo Bonus di Competenza aumenta, ne aggiunge un altro di 1° livello con il descrittore rituale.\n- **Rituale Rapido.** Una volta per Riposo Lungo, può lanciare uno dei suoi incantesimi rituali preparati con il normale tempo di lancio invece del tempo più lungo del rituale, senza spendere uno slot incantesimo."
 				}
 			}
 		};

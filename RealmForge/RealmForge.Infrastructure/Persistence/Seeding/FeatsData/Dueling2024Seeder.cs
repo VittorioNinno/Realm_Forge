@@ -31,14 +31,14 @@ public static class Dueling2024Seeder
 					Id = TranslationEnId,
 					Language = LanguageCode.En,
 					Name = "Dueling",
-					Description = "You favor a single blade and an open hand.\n- **Focused Strikes.** While you hold a Melee weapon in one hand and no other weapons, you gain a +2 bonus to damage rolls with that weapon."
+					Description = "You favor a single blade and an open hand.\n\nWhile you hold a Melee weapon in one hand and no other weapons, you gain a +2 bonus to damage rolls with that weapon."
 				},
 				new FeatTranslation
 				{
 					Id = TranslationItId,
 					Language = LanguageCode.It,
 					Name = "Duellare",
-					Description = "Il personaggio predilige un'unica lama e la mano libera.\n- **Colpi mirati.** Mentre impugna un'arma da mischia in una mano e nessun'altra arma, ottiene un bonus di +2 ai tiri per i danni con quell'arma."
+					Description = "Il personaggio predilige un'unica lama e la mano libera.\n\nMentre impugna un'arma da mischia in una mano e nessun'altra arma, ottiene un bonus di +2 ai tiri per i danni con quell'arma."
 				}
 			}
 		};
