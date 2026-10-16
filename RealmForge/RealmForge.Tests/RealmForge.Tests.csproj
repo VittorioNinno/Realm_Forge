@@ -21,6 +21,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\RealmForge.Api\RealmForge.Api.csproj" />
     <ProjectReference Include="..\RealmForge.Infrastructure\RealmForge.Infrastructure.csproj" />
     <ProjectReference Include="..\RealmForge.Shared\RealmForge.Shared.csproj" />
   </ItemGroup>
