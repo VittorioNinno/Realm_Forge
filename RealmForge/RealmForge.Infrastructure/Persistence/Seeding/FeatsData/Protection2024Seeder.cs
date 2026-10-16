@@ -31,14 +31,14 @@ public static class Protection2024Seeder
 					Id = TranslationEnId,
 					Language = LanguageCode.En,
 					Name = "Protection",
-					Description = "When a creature you can see attacks a target other than you that is within 5 feet of you, you can take a Reaction to interpose your Shield if you're holding one. You impose Disadvantage on the triggering attack roll and all other attack rolls against the target until the start of your next turn if you remain within 5 feet of the target."
+					Description = "You raise your shield to guard those beside you.\n- **Shield an Ally.** When a creature you can see attacks a target other than you within 5 feet of you, you can use your Reaction to interpose your Shield, if you are holding one. That attack roll, and every other attack roll against the target until the start of your next turn, has Disadvantage, as long as you stay within 5 feet of the target."
 				},
 				new FeatTranslation
 				{
 					Id = TranslationItId,
 					Language = LanguageCode.It,
 					Name = "Protezione",
-					Description = "Quando una creatura che il personaggio è in grado di vedere attacca un bersaglio diverso dal personaggio entro 1,5 metri da lui, il personaggio può utilizzare una Reazione per proteggerlo con lo Scudo (se ne impugna uno). Così facendo, conferisce Svantaggio al tiro per colpire scatenante e a tutti gli altri tiri per colpire eseguiti contro quel bersaglio fino all'inizio del proprio turno successivo, se il personaggio rimane entro 1,5 metri dal bersaglio."
+					Description = "Il personaggio alza lo scudo per proteggere chi gli sta accanto.\n- **Proteggere un alleato.** Quando una creatura che può vedere attacca un bersaglio diverso da lui entro 1,5 metri, può usare la Reazione per frapporre il suo scudo, se ne impugna uno. Quel tiro per colpire, e ogni altro tiro per colpire contro il bersaglio fino all'inizio del suo turno successivo, ha Svantaggio, purché resti entro 1,5 metri dal bersaglio."
 				}
 			}
 		};

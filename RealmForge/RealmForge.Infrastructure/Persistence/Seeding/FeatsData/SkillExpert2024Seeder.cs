@@ -31,14 +31,14 @@ public static class SkillExpert2024Seeder
 					Id = TranslationEnId,
 					Language = LanguageCode.En,
 					Name = "Skill Expert",
-					Description = "You gain the following benefits:\n- **Ability Score Increase.** Increase one ability score of your choice by 1, to a maximum of 20.\n- **Skill Proficiency.** You gain proficiency in one skill of your choice.\n- **Expertise.** Choose one skill in which you have proficiency but lack Expertise. You gain Expertise with that skill."
+					Description = "You have honed your talents to a remarkable degree.\n- **Ability +1.** Increase one ability score of your choice by 1, to a maximum of 20.\n- **New Skill.** You gain proficiency in one skill of your choice.\n- **Expertise.** Choose one skill you are proficient in but lack Expertise in: you gain Expertise in it."
 				},
 				new FeatTranslation
 				{
 					Id = TranslationItId,
 					Language = LanguageCode.It,
 					Name = "Abilità Impeccabile",
-					Description = "Il personaggio ottiene i seguenti benefici:\n- **Incremento dei Punteggi di Caratteristica.** Il punteggio di una caratteristica a sua scelta aumenta di 1, fino a un massimo di 20.\n- **Competenza nelle Abilità.** Il personaggio acquisisce competenza in un'abilità a sua scelta.\n- **Maestria.** Il personaggio sceglie un'abilità in cui ha competenza, ma non Maestria, così da ottenere quest'ultima."
+					Description = "Il personaggio ha affinato i suoi talenti a un livello notevole.\n- **Caratteristica +1.** Un punteggio di caratteristica a scelta aumenta di 1, fino a un massimo di 20.\n- **Nuova abilità.** Ottiene competenza in un'abilità a sua scelta.\n- **Maestria.** Sceglie un'abilità in cui ha competenza ma non Maestria: ottiene Maestria in quell'abilità."
 				}
 			}
 		};

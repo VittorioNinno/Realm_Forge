@@ -30,14 +30,14 @@ public static class Lucky2024Seeder
 					Id = TranslationEnId,
 					Language = LanguageCode.En,
 					Name = "Lucky",
-					Description = "You gain the following benefits:\n- **Luck Points.** You have a number of Luck Points equal to your Proficiency Bonus and can spend the points on the benefits below. You regain your expended Luck Points when you finish a Long Rest.\n- **Advantage.** When you roll a d20 for a D20 Test, you can spend 1 Luck Point to give yourself Advantage on the roll.\n- **Disadvantage.** When a creature rolls a d20 for an attack roll against you, you can spend 1 Luck Point to impose Disadvantage on that roll."
+					Description = "Fortune has a habit of smiling on you.\n- **Luck Points.** You have Luck Points equal to your Proficiency Bonus, and you regain all spent points when you finish a Long Rest.\n- **Lucky Break.** When you roll a d20 for a D20 Test, you can spend 1 Luck Point to give that roll Advantage.\n- **Bad Luck for Them.** When a creature rolls a d20 to attack you, you can spend 1 Luck Point to give that roll Disadvantage."
 				},
 				new FeatTranslation
 				{
 					Id = TranslationItId,
 					Language = LanguageCode.It,
 					Name = "Fortunato",
-					Description = "Il personaggio ottiene i seguenti benefici:\n- **Punti Fortuna.** Il personaggio dispone di un numero di Punti Fortuna pari al suo bonus di competenza, che può consumare per i benefici elencati di seguito. I Punti Fortuna consumati vengono recuperati dopo aver completato un Riposo Lungo.\n- **Vantaggio.** Quando il personaggio effettua una prova con il d20, può consumare 1 Punto Fortuna per ottenere Vantaggio sul tiro.\n- **Svantaggio.** Quando una creatura effettua un tiro per colpire con il d20 contro il personaggio, può consumare 1 Punto Fortuna per conferire Svantaggio a quel tiro."
+					Description = "La fortuna ha l'abitudine di sorridere al personaggio.\n- **Punti fortuna.** Ha un numero di punti fortuna pari al suo bonus di competenza e recupera tutti quelli spesi quando termina un riposo lungo.\n- **Colpo di fortuna.** Quando tira un d20 per una Prova del d20, può spendere 1 punto fortuna per dare Vantaggio a quel tiro.\n- **Sfortuna altrui.** Quando una creatura tira un d20 per attaccarlo, può spendere 1 punto fortuna per imporre Svantaggio a quel tiro."
 				}
 			}
 		};

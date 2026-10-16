@@ -31,14 +31,14 @@ public static class MartialWeaponTraining2024Seeder
 					Id = TranslationEnId,
 					Language = LanguageCode.En,
 					Name = "Martial Weapon Training",
-					Description = "You gain the following benefits:\n- **Ability Score Increase.** Increase your Strength or Dexterity score by 1, to a maximum of 20.\n- **Weapon Proficiency.** You gain proficiency with Martial weapons."
+					Description = "You have trained with the weapons of professional soldiers.\n- **Strength or Dexterity +1.** Increase one of the two scores by 1, to a maximum of 20.\n- **Martial Weapons.** You gain proficiency with Martial weapons."
 				},
 				new FeatTranslation
 				{
 					Id = TranslationItId,
 					Language = LanguageCode.It,
 					Name = "Competenza nelle Armi da Guerra",
-					Description = "Il personaggio ottiene i seguenti benefici:\n- **Incremento dei Punteggi di Caratteristica.** Il suo punteggio di Forza o Destrezza aumenta di 1, fino a un massimo di 20.\n- **Competenza nelle Armi.** Il personaggio ottiene competenza nelle armi da guerra."
+					Description = "Il personaggio si è addestrato con le armi dei soldati di professione.\n- **Forza o Destrezza +1.** Uno dei due punteggi aumenta di 1, fino a un massimo di 20.\n- **Armi da guerra.** Ottiene competenza nelle armi da guerra."
 				}
 			}
 		};

@@ -31,14 +31,14 @@ public static class UnarmedFighting2024Seeder
 					Id = TranslationEnId,
 					Language = LanguageCode.En,
 					Name = "Unarmed Fighting",
-					Description = "When you hit with your Unarmed Strike and deal damage, you can deal Bludgeoning damage equal to 1d6 plus your Strength modifier instead of the normal damage of an Unarmed Strike. If you aren't holding any weapons or a Shield when you make the attack roll, the d6 becomes a d8.\n\nAt the start of each of your turns, you can deal 1d4 Bludgeoning damage to one creature Grappled by you."
+					Description = "Your bare hands are trained weapons.\n- **Trained Strikes.** When your Unarmed Strike hits and deals damage, you can deal Bludgeoning damage equal to 1d6 + your Strength modifier instead of the normal damage. If you are holding no weapons and no Shield when you make the attack roll, use a d8 instead of the d6.\n- **Crushing Hold.** At the start of each of your turns, you can deal 1d4 Bludgeoning damage to one creature you have Grappled."
 				},
 				new FeatTranslation
 				{
 					Id = TranslationItId,
 					Language = LanguageCode.It,
 					Name = "Combattere Disarmato",
-					Description = "Quando il personaggio colpisce con un Colpo Senz'Armi e infligge danni, può infliggere danni Contundenti pari a 1d6 più il suo modificatore di Forza invece dei normali danni di un Colpo Senz'Armi. Se non impugna alcuna arma o Scudo quando effettua il tiro per colpire, il d6 diventa un d8.\n\nAll'inizio di ogni suo turno, il personaggio può infliggere 1d4 danni Contundenti a una creatura da lui Afferrata."
+					Description = "Le mani nude del personaggio sono armi addestrate.\n- **Colpi addestrati.** Quando il suo colpo senz'armi colpisce e infligge danni, può infliggere danni contundenti pari a 1d6 + il suo modificatore di Forza invece dei danni normali. Se quando effettua il tiro per colpire non impugna armi né uno scudo, usa un d8 al posto del d6.\n- **Stretta schiacciante.** All'inizio di ogni suo turno, può infliggere 1d4 danni contundenti a una creatura che sta afferrando."
 				}
 			}
 		};

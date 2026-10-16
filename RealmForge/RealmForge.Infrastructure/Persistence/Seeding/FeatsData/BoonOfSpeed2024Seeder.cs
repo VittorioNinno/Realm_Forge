@@ -31,14 +31,14 @@ public static class BoonOfSpeed2024Seeder
 					Id = TranslationEnId,
 					Language = LanguageCode.En,
 					Name = "Boon of Speed",
-					Description = "You gain the following benefits:\n- **Ability Score Increase.** Increase one ability score of your choice by 1, to a maximum of 30.\n- **Escape Artist.** As a Bonus Action, you can take the Disengage action, which also ends the Grappled condition on you.\n- **Quickness.** Your Speed increases by 30 feet."
+					Description = "You move faster than the eye can follow.\n- **Ability +1.** Increase one ability score of your choice by 1, to a maximum of 30.\n- **Slip Free.** As a Bonus Action, you can take the Disengage action; doing so also ends the Grappled condition on you.\n- **Swiftness.** Your Speed increases by 30 feet."
 				},
 				new FeatTranslation
 				{
 					Id = TranslationItId,
 					Language = LanguageCode.It,
 					Name = "Dono della Velocità",
-					Description = "Il personaggio ottiene i seguenti benefici:\n- **Incremento dei Punteggi di Caratteristica.** Il punteggio di una sua caratteristica a scelta aumenta di 1, fino a un massimo di 30.\n- **Artista della Fuga.** Come Azione Bonus, il personaggio può intraprendere l'Azione di Disimpegno, la quale termina anche la condizione Afferrato su di lui.\n- **Rapidità.** La Velocità del personaggio aumenta di 9 metri."
+					Description = "Il personaggio si muove più veloce di quanto l'occhio riesca a seguire.\n- **Caratteristica +1.** Un punteggio di caratteristica a scelta aumenta di 1, fino a un massimo di 30.\n- **Divincolarsi.** Come azione bonus, può effettuare l'azione Disimpegno; così facendo pone anche fine alla condizione di afferrato su di sé.\n- **Rapidità.** La sua velocità aumenta di 9 metri."
 				}
 			}
 		};

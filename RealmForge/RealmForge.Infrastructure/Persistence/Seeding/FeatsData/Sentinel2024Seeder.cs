@@ -33,14 +33,14 @@ public static class Sentinel2024Seeder
 					Id = TranslationEnId,
 					Language = LanguageCode.En,
 					Name = "Sentinel",
-					Description = "You gain the following benefits:\n- **Ability Score Increase.** Increase your Strength or Dexterity score by 1, to a maximum of 20.\n- **Guardian.** Immediately after a creature within 5 feet of you takes the Disengage action or hits a target other than you with an attack, you can make an Opportunity Attack against that creature.\n- **Halt.** When you hit a creature with an Opportunity Attack, the creature's Speed becomes 0 for the rest of the current turn."
+					Description = "Enemies near you can neither slip away nor ignore you.\n- **Strength or Dexterity +1.** Increase one of the two scores by 1, to a maximum of 20.\n- **Watchful Guard.** Right after a creature within 5 feet of you takes the Disengage action, or hits a target other than you with an attack, you can make an Opportunity Attack against it.\n- **Stop in Their Tracks.** When your Opportunity Attack hits a creature, its Speed becomes 0 for the rest of the current turn."
 				},
 				new FeatTranslation
 				{
 					Id = TranslationItId,
 					Language = LanguageCode.It,
 					Name = "Sentinella",
-					Description = "Il personaggio ottiene i seguenti benefici:\n- **Incremento dei Punteggi di Caratteristica.** Il suo punteggio di Forza o Destrezza aumenta di 1, fino a un massimo di 20.\n- **Guardiano.** Subito dopo che una creatura entro 1,5 metri dal personaggio effettua un'azione di Disimpegno o colpisce un bersaglio diverso dal personaggio con un attacco, quest'ultimo può eseguire un Attacco di Opportunità contro la creatura.\n- **Fermo.** Quando il personaggio colpisce una creatura con un Attacco di Opportunità, la velocità della creatura scende a 0 per il resto del turno in corso."
+					Description = "I nemici vicini al personaggio non possono né sgusciare via né ignorarlo.\n- **Forza o Destrezza +1.** Uno dei due punteggi aumenta di 1, fino a un massimo di 20.\n- **Guardia vigile.** Subito dopo che una creatura entro 1,5 metri da lui effettua l'azione Disimpegno, o colpisce con un attacco un bersaglio diverso da lui, può effettuare un attacco di opportunità contro di essa.\n- **Fermarli sul posto.** Quando un suo attacco di opportunità colpisce una creatura, la velocità di quella creatura diventa 0 per il resto del turno in corso."
 				}
 			}
 		};

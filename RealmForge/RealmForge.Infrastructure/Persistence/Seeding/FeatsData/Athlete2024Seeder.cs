@@ -33,14 +33,14 @@ public static class Athlete2024Seeder
 					Id = TranslationEnId,
 					Language = LanguageCode.En,
 					Name = "Athlete",
-					Description = "You gain the following benefits:\n- **Ability Score Increase.** Increase your Strength or Dexterity score by 1, to a maximum of 20.\n- **Climb Speed.** You gain a Climb Speed equal to your Speed.\n- **Hop Up.** When you have the Prone condition, you can right yourself with only 5 feet of movement.\n- **Jumping.** You can make a running Long or High Jump after moving only 5 feet."
+					Description = "Constant training has made your body agile and strong.\n- **Strength or Dexterity +1.** Increase one of the two scores by 1, to a maximum of 20.\n- **Natural Climber.** You gain a Climb Speed equal to your Speed.\n- **Quick to Rise.** Standing up from Prone costs you only 5 feet of movement.\n- **Short Run-Up.** You need to move only 5 feet before making a running Long Jump or High Jump."
 				},
 				new FeatTranslation
 				{
 					Id = TranslationItId,
 					Language = LanguageCode.It,
 					Name = "Atleta",
-					Description = "Il personaggio ottiene i seguenti benefici:\n- **Incremento dei Punteggi di Caratteristica.** Il suo punteggio di Forza o Destrezza aumenta di 1, fino a un massimo di 20.\n- **Velocità di Scalata.** Il personaggio ottiene una velocità di scalata pari alla propria velocità.\n- **Rialzarsi.** Se il personaggio è prono, può rimettersi in piedi usando solo 1,5 metri di movimento.\n- **Saltare.** Il personaggio può eseguire un salto in alto o in lungo in corsa dopo aver percorso solo 1,5 metri."
+					Description = "Un allenamento costante ha reso il corpo del personaggio agile e forte.\n- **Forza o Destrezza +1.** Uno dei due punteggi aumenta di 1, fino a un massimo di 20.\n- **Scalatore nato.** Ottiene una velocità di scalata pari alla sua velocità.\n- **Subito in piedi.** Rialzarsi dalla condizione di prono gli costa solo 1,5 metri di movimento.\n- **Rincorsa breve.** Gli basta muoversi di 1,5 metri prima di effettuare un salto in lungo o in alto con rincorsa."
 				}
 			}
 		};
