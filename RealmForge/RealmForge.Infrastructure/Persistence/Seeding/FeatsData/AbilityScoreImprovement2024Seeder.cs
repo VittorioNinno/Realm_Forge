@@ -22,6 +22,7 @@ public static class AbilityScoreImprovement2024Seeder
 			Id = FeatId,
 			Ruleset = RulesetVersion.Dnd5e_2024,
 			IsOfficialSRD = true,
+			Source = ContentSource.Srd52,
 			Category = FeatCategory.General,
 			PrerequisiteMinimumLevel = 4,
 			Translations = new List<FeatTranslation>
