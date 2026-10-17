@@ -25,6 +25,9 @@ namespace RealmForge.Api.Email
 		///	</summary>
 		public record Section(string Title, string Text, string ButtonLabel);
 
+		///	<summary>
+		///	E-mail with one call-to-action link (confirmation, password reset), repeated in Italian and English.
+		///	</summary>
 		public static string ActionEmail(string preheader, Section italian, Section english, string link)
 		{
 			var href = WebUtility.HtmlEncode(link);
@@ -41,23 +44,6 @@ namespace RealmForge.Api.Email
 					  <a href="{href}" style="color:{Orange};text-decoration:underline;">{href}</a>
 					</p>
 					""");
-
-			return Layout(preheader, content.ToString());
-		}
-
-		public static string CodeEmail(string preheader, Section italian, Section english, string code)
-		{
-			var encoded = WebUtility.HtmlEncode(code);
-			string CodeBox() => $"""
-				<table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin:18px 0 4px;">
-				  <tr><td style="background:{BgMain};border:1px solid {BorderLight};border-left:3px solid {Orange};border-radius:4px;padding:12px 18px;font-family:Consolas,'Courier New',monospace;font-size:18px;letter-spacing:2px;color:{TextPrimary};">{encoded}</td></tr>
-				</table>
-				""";
-
-			var content = new StringBuilder()
-				.Append(Title(italian.Title)).Append(Paragraph(italian.Text)).Append(CodeBox())
-				.Append(Divider())
-				.Append(Title(english.Title)).Append(Paragraph(english.Text)).Append(CodeBox());
 
 			return Layout(preheader, content.ToString());
 		}

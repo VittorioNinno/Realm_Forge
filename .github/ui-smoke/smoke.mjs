@@ -254,6 +254,38 @@ try {
   await page.locator('[data-test=account-area]', { hasText: 'Accedi' }).waitFor({ timeout: 15000 });
   ok('logout from the sidebar restores the anonymous view');
 
+  // Password recovery: "Password dimenticata?" on the sign-in form -> e-mail with a link to /reset-password -> new password signs in
+  await page.goto(`${base}/reset-password`);
+  await page.locator('[data-test=reset-password-invalid]').waitFor({ timeout: 30000 });
+  await page.goto(`${base}/account`);
+  await page.locator('[data-test=forgot-password-link]').click();
+  await page.locator('[data-test=forgot-email]').fill(email);
+  await page.locator('[data-test=forgot-submit]').click();
+  await page.locator('[data-test=forgot-password-sent]').waitFor({ timeout: 15000 });
+  let resetLink;
+  for (let i = 0; i < 20 && !resetLink; i++) {
+    resetLink = readFileSync('../../api.log', 'utf8').match(new RegExp(`Reset your password for ${email.replace(/[.]/g, '\\.')}: (\\S+)`))?.[1];
+    if (!resetLink) await page.waitForTimeout(500);
+  }
+  if (!resetLink || !resetLink.startsWith(`${base}/reset-password?email=`)) throw new Error(`reset link not found or not pointing to the client: ${resetLink}`);
+  const resetCredential = ['Rf', crypto.randomUUID(), 'C!'].join('-');
+  await page.goto(resetLink);
+  await page.locator('[data-test=reset-new]').fill(resetCredential);
+  await page.locator('[data-test=reset-repeat]').fill(`${resetCredential}x`);
+  await page.locator('[data-test=reset-submit]').click();
+  await page.getByText('Le due nuove password non coincidono.').waitFor({ timeout: 15000 });
+  await page.locator('[data-test=reset-repeat]').fill(resetCredential);
+  await page.locator('[data-test=reset-submit]').click();
+  await page.locator('[data-test=reset-password-done]').waitFor({ timeout: 15000 });
+  await page.goto(`${base}/account`);
+  await page.locator('input[type=email]').fill(email);
+  await page.locator('input[type=password]').fill(resetCredential);
+  await page.getByRole('button', { name: 'Accedi', exact: true }).click();
+  await page.locator('[data-test=account-area]', { hasText: email }).waitFor({ timeout: 30000 });
+  await page.locator('[data-test=account-area]').getByRole('button', { name: 'Esci' }).click();
+  await page.locator('[data-test=account-area]', { hasText: 'Accedi' }).waitFor({ timeout: 15000 });
+  ok('password recovery: link on the sign-in form, e-mail link to /reset-password, mismatch rejected, new password signs in');
+
   await page.locator('[data-test=lang-select] button').click();
   const languages = (await page.locator('[data-test=lang-select] [role=option]').allInnerTexts()).map((t) => t.trim());
   if (languages.join(',') !== 'English,Italiano') throw new Error(`unexpected language options: ${languages.join(',')}`);
