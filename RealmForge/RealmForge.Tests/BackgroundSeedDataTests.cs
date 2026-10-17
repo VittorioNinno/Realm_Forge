@@ -254,6 +254,22 @@ public class BackgroundSeedDataTests
 	}
 
 	[Fact]
+	public void Charlatan_2024_has_skilled_and_its_proficiencies()
+	{
+		var charlatan = Assert.Single(Backgrounds, b => b.Id == Charlatan2024Seeder.BackgroundId);
+		Assert.Equal(ContentSource.RealmForge, charlatan.Source);
+		Assert.Equal(new[] { AbilityScore.Dexterity, AbilityScore.Constitution, AbilityScore.Charisma }, charlatan.AbilityOptions);
+		Assert.Equal(new[] { Skill.Deception, Skill.SleightOfHand }, charlatan.SkillProficiencies);
+		Assert.Equal(Skilled2024Seeder.FeatId, charlatan.OriginFeatId);
+		Assert.Equal(50, charlatan.EquipmentGoldAlternative);
+
+		foreach (var tr in charlatan.Translations)
+		{
+			Assert.Equal(4, tr.Equipment!.Split('\n').Length);
+		}
+	}
+
+	[Fact]
 	public void Ids_are_unique_and_identical_on_every_build()
 	{
 		BackgroundSeeder.EnsureUniqueIds(Backgrounds);
