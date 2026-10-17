@@ -278,11 +278,14 @@ jobs:
           bg_delete=$(code -X DELETE $api/api/backgrounds/$bg_id -H "Authorization: Bearer $A")
           echo "::notice title=database::backgrounds: anonymous create=$bg_anon | created feat(IT)='$bg_feat' skills=$bg_skills gold=$bg_gold (negative=$bg_bad_gold) | EN='$bg_en' | unknown feat=$bg_bad | other PUT=$bg_other | own DELETE=$bg_delete"
           test "$bg_gold" = "50" && test "$bg_bad_gold" = "400"
-          bg_srd=$(curl -sf "$api/api/backgrounds?isOfficial=true&lang=2" | jq -c '[.[] | {name, skills: .skillProficiencies, source}] | sort_by(.name)')
+          bg_srd=$(curl -sf "$api/api/backgrounds?isOfficial=true&ruleset=1&lang=2" | jq -c '[.[] | {name, skills: .skillProficiencies, source}] | sort_by(.name)')
           echo "::notice title=database::base backgrounds: $bg_srd"
           test "$bg_srd" = '[{"name":"Accolito","skills":[7,15],"source":2},{"name":"Artigiano di Gilda","skills":[7,14],"source":1},{"name":"Ciarlatano","skills":[5,16],"source":1},{"name":"Criminale","skills":[5,17],"source":1},{"name":"Eremita","skills":[10,15],"source":1},{"name":"Eroe Popolare","skills":[2,18],"source":1},{"name":"Forestiero","skills":[4,18],"source":1},{"name":"Intrattenitore","skills":[1,13],"source":1},{"name":"Marinaio","skills":[4,12],"source":1},{"name":"Monello","skills":[16,17],"source":1},{"name":"Nobile","skills":[6,14],"source":1},{"name":"Sapiente","skills":[3,6],"source":1},{"name":"Soldato","skills":[4,8],"source":1}]'
+          bg_2024=$(curl -sf "$api/api/backgrounds?isOfficial=true&ruleset=2&lang=2" | jq -c '[.[] | {name, abilities: .abilityOptions, skills: .skillProficiencies, feat: .originFeatName, source}] | sort_by(.name)')
+          echo "::notice title=database::base backgrounds 2024: $bg_2024"
+          test "$bg_2024" = '[{"name":"Accolito","abilities":[4,5,6],"skills":[7,15],"feat":"Iniziato alla Magia","source":3}]'
           sources=$(curl -sf "$api/api/feats?isOfficial=true" | jq -c '[.[].source] | unique')
-          acolyte_source=$(curl -sf "$api/api/backgrounds?isOfficial=true&lang=1" | jq -r '.[] | select(.name == "Acolyte") | .source')
+          acolyte_source=$(curl -sf "$api/api/backgrounds?isOfficial=true&ruleset=1&lang=1" | jq -r '.[] | select(.name == "Acolyte") | .source')
           homebrew_source=$(echo "$created" | jq -r .source)
           echo "::notice title=database::sources: base feats=$sources | Acolyte=$acolyte_source | homebrew=$homebrew_source"
           test "$sources" = "[1,2,3]"
