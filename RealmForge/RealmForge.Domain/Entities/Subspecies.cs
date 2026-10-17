@@ -3,6 +3,9 @@ using RealmForge.Shared.Enums;
 
 namespace RealmForge.Domain.Entities
 {
+	///	<summary>
+	///	Subspecies or lineage of a species (e.g. Wood Elf, Drow), with an optional speed override and its own traits.
+	///	</summary>
 	public class Subspecies : GameEntity
 	{
 		//	Foreign key and navigation property to the parent Species
@@ -19,6 +22,9 @@ namespace RealmForge.Domain.Entities
 		public ICollection<SubspeciesTranslation> Translations { get; set; } = new List<SubspeciesTranslation>();
 	}
 
+	///	<summary>
+	///	Texts of a subspecies in one language (unique per subspecies and language).
+	///	</summary>
 	public class SubspeciesTranslation : ITranslation
 	{
 		public Guid Id { get; set; } = Guid.NewGuid();

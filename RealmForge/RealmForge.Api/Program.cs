@@ -9,6 +9,10 @@ using RealmForge.Api.Email;
 
 namespace RealmForge.Api
 {
+	///	<summary>
+	///	API entry point: PostgreSQL, Identity with bearer tokens under /api/auth, e-mail, CORS for the Blazor client,
+	///	migrations (development) and the synchronization of the Base content at startup.
+	///	</summary>
 	public class Program
 	{
 		public static async Task Main(string[] args)

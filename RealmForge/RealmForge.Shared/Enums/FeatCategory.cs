@@ -1,5 +1,8 @@
 ﻿namespace RealmForge.Shared.Enums
 {
+	///	<summary>
+	///	Feat category (the 2014 feats are all General).
+	///	</summary>
 	public enum FeatCategory
 	{
 		Origin = 1,

@@ -12,6 +12,10 @@ using RealmForge.Shared.Localization;
 
 namespace RealmForge.Api.Controllers
 {
+	///	<summary>
+	///	Feats: localized list (filters by category, ruleset and Base/Homebrew) and detail with the prerequisite text
+	///	built by FeatPrerequisiteFormatter, and Homebrew create/update/delete.
+	///	</summary>
 	[ApiController]
 	[Route("api/[controller]")]
 	public class FeatsController : ControllerBase

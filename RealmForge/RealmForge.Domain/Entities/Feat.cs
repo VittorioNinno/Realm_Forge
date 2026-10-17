@@ -3,6 +3,9 @@ using RealmForge.Shared.Enums;
 
 namespace RealmForge.Domain.Entities
 {
+	///	<summary>
+	///	Feat with category and structured prerequisites; names and descriptions are in <see cref="FeatTranslation"/>.
+	///	</summary>
 	public class Feat : GameEntity
 	{
 		public FeatCategory Category { get; set; } = FeatCategory.General;
@@ -16,6 +19,9 @@ namespace RealmForge.Domain.Entities
 		public ICollection<FeatTranslation> Translations { get; set; } = new List<FeatTranslation>();
 	}
 
+	///	<summary>
+	///	Texts of a feat in one language (unique per feat and language).
+	///	</summary>
 	public class FeatTranslation : ITranslation
 	{
 		public Guid Id { get; set; } = Guid.NewGuid();

@@ -5,6 +5,9 @@ using RealmForge.Shared.Enums;
 
 namespace RealmForge.Client.Services
 {
+	///	<summary>
+	///	Client for /api/feats: list, detail and Homebrew create/update/delete.
+	///	</summary>
 	public class FeatDataService
 	{
 		private readonly HttpClient _http;

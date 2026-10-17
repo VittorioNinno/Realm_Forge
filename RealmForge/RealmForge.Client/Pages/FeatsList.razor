@@ -67,7 +67,7 @@
                       Options="@(new List<RfSelect<string>.OptionItem>
                       {
                           new("", UiText.FilterOriginAll(LanguageState.CurrentLanguage)),
-                          new("srd", UiText.FilterOnlySRD(LanguageState.CurrentLanguage)),
+                          new("srd", UiText.FilterOnlyBase(LanguageState.CurrentLanguage)),
                           new("homebrew", UiText.FilterOnlyHomebrew(LanguageState.CurrentLanguage))
                       })" />
         </div>
