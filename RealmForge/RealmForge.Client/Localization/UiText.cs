@@ -32,6 +32,9 @@ namespace RealmForge.Client.Localization
 				? "Gestisci le tue campagne, compendi e regole per i tuoi giochi di ruolo da tavolo."
 				: "Manage your campaigns, compendiums, and rulebooks for tabletop roleplaying games.";
 
+		public static string DashboardUnavailable(LanguageCode lang) => lang == LanguageCode.It
+			? "Impossibile leggere il compendio dal server. Se il sito è rimasto inattivo, il server si sta riavviando: riprova tra un minuto."
+			: "Could not read the compendium from the server. If the site was idle, the server is starting up: try again in a minute.";
 		public static string DashboardAnonymousHint(LanguageCode lang) => lang == LanguageCode.It
 			? "Tutti possono consultare il compendio. Accedi per forgiare i tuoi contenuti Homebrew e condividerli."
 			: "Anyone can browse the compendium. Sign in to forge your own Homebrew content and share it.";
