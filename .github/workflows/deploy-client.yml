@@ -42,20 +42,10 @@ jobs:
         with:
           dotnet-version: '10.0.x'
 
-      - name: Publish client
-        run: dotnet publish RealmForge/RealmForge.Client/RealmForge.Client.csproj --configuration Release --output publish
-
-      - name: Production settings and routing
+      - name: Publish client with the production settings
         env:
           API: ${{ vars.API_BASE_URL }}
-        run: |
-          cd publish/wwwroot
-          # The client reads the API address from appsettings.json (a trailing slash is required by HttpClient.BaseAddress)
-          jq -n --arg url "${API%/}/" '{ApiBaseUrl: $url}' > appsettings.json
-          rm -f appsettings.Development.json
-          # Every route (/reset-password, /confirm-email, ...) is served by index.html, as in the development server
-          echo '/* /index.html 200' > _redirects
-          echo "::notice title=deploy-client::$(find . -type f | wc -l) files, API $(jq -r .ApiBaseUrl appsettings.json)"
+        run: .github/scripts/publish-client.sh "$API" publish
 
       # --branch=main is the production branch of a Pages project created with "Upload assets" (other names publish a preview)
       - name: Deploy to Cloudflare Pages
