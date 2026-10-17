@@ -2,9 +2,9 @@ name: build
 
 on:
   push:
-    branches: [ main, develop, release, 'fix/**', 'feat/**', 'refactor/**' ]
+    branches: [ develop, release, 'fix/**', 'feat/**', 'refactor/**' ]
   pull_request:
-    branches: [ main, develop ]
+    branches: [ develop ]
 
 # Runners pinned to Ubuntu 24.04: ubuntu-latest moves to Ubuntu 26 from 19 October 2026 (actions/runner-images#14748);
 # move to the new image deliberately, in its own PR, once the jobs pass on it.
@@ -378,7 +378,8 @@ jobs:
           node smoke.mjs
 
   # The API image as Render builds it: Production environment, PORT from the platform, a postgresql:// URL as on Neon,
-  # migrations at startup, health check, data protection keys stored in the database, and a client publish
+  # migrations at startup, health check, data protection keys stored in the database, and a client publish.
+  # The allowed origin is given with a trailing slash on purpose: it must still match the browser's Origin header
   container:
     runs-on: ubuntu-24.04
     needs: build
@@ -407,7 +408,7 @@ jobs:
               -e PORT=10000 \
               -e ConnectionStrings__DefaultConnection="postgresql://postgres@localhost:5432/realm_forge_prod?sslmode=disable" \
               -e Database__MigrateOnStartup=true \
-              -e Cors__AllowedOrigins__0=https://realmforge.example \
+              -e Cors__AllowedOrigins__0=https://realmforge.example/ \
               realmforge-api > /dev/null
             for i in $(seq 1 60); do
               if curl -sf http://localhost:10000/health > /dev/null; then return 0; fi
@@ -443,7 +444,8 @@ jobs:
 
       - name: Publish the client as deploy-client does
         run: |
-          dotnet publish RealmForge/RealmForge.Client/RealmForge.Client.csproj --configuration Release --output publish
+          .github/scripts/publish-client.sh https://realmforge-api.example publish
+          test "$(jq -r .ApiBaseUrl publish/wwwroot/appsettings.json)" = "https://realmforge-api.example/"
           files=$(find publish/wwwroot -type f | wc -l)
           largest=$(find publish/wwwroot -type f -printf '%s\n' | sort -n | tail -1)
           echo "::notice title=container::client publish: $files files, largest $((largest / 1024)) KiB (Cloudflare Pages: max 20000 files, 25 MiB each)"
