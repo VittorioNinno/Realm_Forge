@@ -270,6 +270,22 @@ public class BackgroundSeedDataTests
 	}
 
 	[Fact]
+	public void Criminal_2024_comes_from_SRD_5_2_with_alert()
+	{
+		var criminal = Assert.Single(Backgrounds, b => b.Id == Criminal2024Seeder.BackgroundId);
+		Assert.Equal(ContentSource.Srd52, criminal.Source);
+		Assert.Equal(new[] { AbilityScore.Dexterity, AbilityScore.Constitution, AbilityScore.Intelligence }, criminal.AbilityOptions);
+		Assert.Equal(new[] { Skill.SleightOfHand, Skill.Stealth }, criminal.SkillProficiencies);
+		Assert.Equal(Alert2024Seeder.FeatId, criminal.OriginFeatId);
+		Assert.Equal(50, criminal.EquipmentGoldAlternative);
+
+		foreach (var tr in criminal.Translations)
+		{
+			Assert.Equal(6, tr.Equipment!.Split('\n').Length);
+		}
+	}
+
+	[Fact]
 	public void Ids_are_unique_and_identical_on_every_build()
 	{
 		BackgroundSeeder.EnsureUniqueIds(Backgrounds);
