@@ -4,11 +4,20 @@ using RealmForge.Shared.DTOs;
 
 namespace RealmForge.Client.Services
 {
+	///	<summary>
+	///	Outcome of an account operation: on failure, Identity error codes (e.g. "PasswordTooShort") or client codes
+	///	("Unreachable", "InvalidCredentials") that UiText.AuthError turns into messages.
+	///	</summary>
 	public record AuthResult(bool Success, IReadOnlyList<string> Errors)
 	{
 		public static AuthResult Ok() => new(true, Array.Empty<string>());
 		public static AuthResult Fail(params string[] errors) => new(false, errors);
 	}
+
+	///	<summary>
+	///	The signed-in user as returned by /api/auth/manage/info.
+	///	</summary>
+	public record CurrentUser(string Email, bool EmailConfirmed);
 
 	///	<summary>
 	///	Login, registration and logout against the ASP.NET Core Identity endpoints (/api/auth/*).
@@ -78,33 +87,6 @@ namespace RealmForge.Client.Services
 			{
 				var response = await _http.GetAsync("api/account/summary");
 				return response.IsSuccessStatusCode ? await response.Content.ReadFromJsonAsync<AccountSummaryDto>() : null;
-			}
-			catch (HttpRequestException)
-			{
-				return null;
-			}
-		}
-
-		///	<summary>
-		///	Whether the signed-in user's e-mail is confirmed; null when there is no valid session.
-		///	</summary>
-		public async Task<bool?> IsEmailConfirmedAsync()
-		{
-			if (await _tokens.GetAsync() is null)
-			{
-				return null;
-			}
-
-			try
-			{
-				var response = await _http.GetAsync("api/auth/manage/info");
-				if (!response.IsSuccessStatusCode)
-				{
-					return null;
-				}
-
-				var info = await response.Content.ReadFromJsonAsync<JsonElement>();
-				return info.TryGetProperty("isEmailConfirmed", out var confirmed) && confirmed.GetBoolean();
 			}
 			catch (HttpRequestException)
 			{
@@ -201,9 +183,10 @@ namespace RealmForge.Client.Services
 		}
 
 		///	<summary>
-		///	Returns the email of the logged-in user, or null when there is no valid session.
+		///	E-mail address and confirmation status of the signed-in user (one call to /manage/info);
+		///	null when there is no valid session.
 		///	</summary>
-		public async Task<string?> GetCurrentEmailAsync()
+		public async Task<CurrentUser?> GetCurrentUserAsync()
 		{
 			if (await _tokens.GetAsync() is null)
 			{
@@ -219,7 +202,9 @@ namespace RealmForge.Client.Services
 				}
 
 				var info = await response.Content.ReadFromJsonAsync<JsonElement>();
-				return info.TryGetProperty("email", out var email) ? email.GetString() : null;
+				var email = info.TryGetProperty("email", out var e) ? e.GetString() : null;
+				var confirmed = info.TryGetProperty("isEmailConfirmed", out var c) && c.GetBoolean();
+				return email is null ? null : new CurrentUser(email, confirmed);
 			}
 			catch (HttpRequestException)
 			{
