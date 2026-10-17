@@ -11,6 +11,10 @@ using RealmForge.Shared.Enums;
 
 namespace RealmForge.Api.Controllers
 {
+	///	<summary>
+	///	Backgrounds (2014 and 2024): localized list and detail, and Homebrew create/update/delete.
+	///	Reads follow the visibility rules of <see cref="ContentAccess"/>; writes need a confirmed e-mail and ownership.
+	///	</summary>
 	[ApiController]
 	[Route("api/[controller]")]
 	public class BackgroundsController : ControllerBase

@@ -1,8 +1,11 @@
-using RealmForge.Domain.Common;
+﻿using RealmForge.Domain.Common;
 using RealmForge.Shared.Enums;
 
 namespace RealmForge.Api.Localization
 {
+	///	<summary>
+	///	Picks the translation to return for the requested language.
+	///	</summary>
 	public static class TranslationExtensions
 	{
 		///	<summary>

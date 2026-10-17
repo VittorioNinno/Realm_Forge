@@ -3,6 +3,9 @@ using RealmForge.Shared.Enums;
 
 namespace RealmForge.Domain.Entities
 {
+	///	<summary>
+	///	Trait granted by a species or by a subspecies, unlocked at <see cref="RequiredLevel"/>.
+	///	</summary>
 	public class Trait : GameEntity
 	{
 		//	Character level required to unlock this trait (defaults to 1)
@@ -20,6 +23,9 @@ namespace RealmForge.Domain.Entities
 		public ICollection<TraitTranslation> Translations { get; set; } = new List<TraitTranslation>();
 	}
 
+	///	<summary>
+	///	Texts of a trait in one language (unique per trait and language).
+	///	</summary>
 	public class TraitTranslation : ITranslation
 	{
 		public Guid Id { get; set; } = Guid.NewGuid();

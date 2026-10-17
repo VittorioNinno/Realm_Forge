@@ -1,5 +1,8 @@
 ﻿namespace RealmForge.Shared.Enums
 {
+	///	<summary>
+	///	Creature sizes allowed for a species.
+	///	</summary>
 	public enum CreatureSize
 	{
 		Tiny = 1,

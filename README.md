@@ -21,8 +21,12 @@ A modular, bilingual web platform for managing tabletop RPG campaigns, sessions 
   *I contenuti Base fanno parte della piattaforma: sola lettura, sincronizzati dai seeder, con la fonte del testo indicata nell'app. Gli Homebrew appartengono al loro autore.*
 
 - **User accounts** · *Account utente*
-  Registration and sign-in; anyone can browse, only signed-in users can forge content.
-  *Registrazione e accesso; tutti possono consultare, solo gli utenti autenticati possono forgiare contenuti.*
+  Registration and sign-in; anyone can browse, only signed-in users with a confirmed e-mail can forge content. Password change from the account page and password recovery by e-mail.
+  *Registrazione e accesso; tutti possono consultare, solo gli utenti con email confermata possono forgiare contenuti. Cambio password dalla pagina account e recupero password via email.*
+
+- **Homebrew sharing** · *Condivisione Homebrew*
+  Every Homebrew entry is private, shareable through its link, or public (listed for everyone).
+  *Ogni contenuto Homebrew è privato, condivisibile tramite link oppure pubblico (visibile a tutti nelle liste).*
 
 - **Dark Fantasy design system** · *Design system "Dark Fantasy"*
   Dark surfaces, forge-orange accents and custom components.
@@ -34,8 +38,8 @@ A modular, bilingual web platform for managing tabletop RPG campaigns, sessions 
 |---|---|---|
 | Species & lineages · *Specie e sottospecie* | ✅ | 9 base 2014 + 10 base 2024 species, speed and traits recalculated per lineage · *velocità e tratti ricalcolati per sottospecie* |
 | Feats · *Talenti* | ✅ | 117 base feats (42 × 2014, 75 × 2024), structured bilingual prerequisites, "Forge Feat" editor · *prerequisiti strutturati bilingue, editor "Forgia Talento"* |
-| Accounts & ownership · *Account e proprietà* | ✅ | ASP.NET Core Identity, bearer tokens, per-author Homebrew · *Homebrew per autore* |
-| Backgrounds · *Background* | ✅ | 13 base 2014 backgrounds (Acolyte, Charlatan, Criminal, Entertainer, Folk Hero, Guild Artisan, Hermit, Noble, Outlander, Sage, Sailor, Soldier, Urchin) with feature and characteristic tables; 2024 backgrounds linked to Origin feats: all 16 base backgrounds: Acolyte, Criminal, Sage and Soldier (SRD 5.2); Artisan, Charlatan, Entertainer, Farmer, Guard, Guide, Hermit, Merchant, Noble, Sailor, Scribe, Wayfarer · *13 background base 2014 con privilegio e tabelle delle caratteristiche; background 2024 collegati ai Talenti di Origine: tutti i 16 background base: Accolito, Criminale, Sapiente e Soldato (SRD 5.2); Artigiano, Ciarlatano, Contadino, Eremita, Guardia, Guida, Intrattenitore, Marinaio, Mercante, Nobile, Scriba, Viandante* |
+| Accounts & ownership · *Account e proprietà* | ✅ | ASP.NET Core Identity, bearer tokens, e-mail confirmation, password recovery, per-author Homebrew with private / link / public visibility · *conferma email, recupero password, Homebrew per autore con visibilità privata / link / pubblica* |
+| Backgrounds · *Background* | ✅ | 13 base 2014 backgrounds with feature and characteristic tables; 16 base 2024 backgrounds with ability scores, Origin feat and equipment options A/B (Acolyte, Criminal, Sage and Soldier from SRD 5.2) · *13 background base 2014 con privilegio e tabelle delle caratteristiche; 16 background base 2024 con caratteristiche, Talento di Origine e opzioni di equipaggiamento A/B (Accolito, Criminale, Sapiente e Soldato dall'SRD 5.2)* |
 | Spells · *Incantesimi* | 📋 | Planned · *Pianificato* |
 | Classes · *Classi* | 📋 | Planned · *Pianificato* |
 | Character sheet · *Scheda personaggio* | 📋 | Planned · *Pianificato* |
@@ -61,7 +65,7 @@ RealmForge/
 ├── RealmForge.Infrastructure  DbContext, Identity, migrations, base content seeders
 ├── RealmForge.Api             REST API, auth endpoints, ownership rules (ContentAccess)
 ├── RealmForge.Client          Blazor WebAssembly UI
-└── RealmForge.Tests           Seed-data integrity, formatter and GUID tests
+└── RealmForge.Tests           Seed-data integrity, formatter, e-mail template and GUID tests
 ```
 
 - The client references **only** `RealmForge.Shared`: domain entities never reach the WebAssembly bundle.
@@ -108,8 +112,8 @@ dotnet user-secrets set "Email:Password" "<16-character app password>"
 dotnet user-secrets set "Email:FromAddress" "<you>@gmail.com"
 ```
 
-Without these settings no e-mail is sent: the confirmation link is written to the API console, so you can open it from there.
-*Senza queste impostazioni nessuna email viene inviata: il link di conferma compare nella console dell'API e puoi aprirlo da lì.*
+Without these settings no e-mail is sent: the confirmation and password reset links are written to the API console, so you can open them from there.
+*Senza queste impostazioni nessuna email viene inviata: i link di conferma e di reimpostazione della password compaiono nella console dell'API e puoi aprirli da lì.*
 
 ### 4. Run / Avvio
 
@@ -153,8 +157,10 @@ In development the API applies pending migrations and synchronizes the base cont
 
 ## 🌱 Seed Data Conventions / Convenzioni sui contenuti Base
 
-- One seeder file per entry, exposing `public static Feat Build()` / `public static Species Build()`; `FeatSeeder` and `SpeciesSeeder` discover them automatically, so a new file cannot be forgotten.
-  *Un file per voce con `Build()`; `FeatSeeder` li trova da solo, quindi un nuovo file non può essere dimenticato.*
+- One seeder file per entry (`FeatsData/`, `SpeciesData/`, `BackgroundsData/`), exposing `public static Feat Build()` / `Species Build()` / `Background Build()`; `FeatSeeder`, `SpeciesSeeder` and `BackgroundSeeder` discover them automatically, so a new file cannot be forgotten.
+  *Un file per voce con `Build()`; `FeatSeeder`, `SpeciesSeeder` e `BackgroundSeeder` li trovano da soli, quindi un nuovo file non può essere dimenticato.*
+- Base content whose text is not in the SRD is written for RealmForge (official game terms, same mechanics) and has source `RealmForge`; text taken from the SRD has source `Srd51` / `Srd52`. Dice tables keep the same order in every language, so a roll gives the same result.
+  *I contenuti Base il cui testo non è nell'SRD sono scritti per RealmForge (termini di gioco ufficiali, stesse meccaniche) con fonte `RealmForge`; i testi presi dall'SRD hanno fonte `Srd51` / `Srd52`. Le tabelle dei dadi hanno lo stesso ordine in ogni lingua, così un tiro dà lo stesso risultato.*
 - At startup missing base rows are inserted and existing ones are **updated** to match the seed (one query, one transaction).
   *All'avvio le righe Base mancanti vengono inserite e quelle esistenti **aggiornate** (una query, una transazione).*
 - Duplicate ids fail fast at startup and in the tests.
@@ -185,8 +191,8 @@ Every push and pull request runs three jobs · *Ogni push e pull request esegue 
 | Job | Checks · *Verifica* |
 |---|---|
 | `build` | Build without warnings + unit tests · *Compilazione senza warning + test* |
-| `database` | Migrations on PostgreSQL 17, data preservation, base content seeding and re-sync, auth and ownership rules (401/403/204) · *Migrazioni, conservazione dei dati, seeding, regole di accesso* |
-| `ui` | Headless browser: sign-in flow, conditional buttons, session after reload, modal layout · *Browser headless: accesso, pulsanti condizionati, sessione, layout del modale* |
+| `database` | Migrations on PostgreSQL 17, data preservation, base content seeding and re-sync, auth and ownership rules (401/403/204), e-mail confirmation, password reset, visibility · *Migrazioni, conservazione dei dati, seeding, regole di accesso, conferma email, reset password, visibilità* |
+| `ui` | Headless browser: dashboard, registration and e-mail confirmation across tabs, password change and recovery, search and filters, modal layout, Base content rendering, language switch · *Browser headless: dashboard, registrazione e conferma email tra schede, cambio e recupero password, ricerca e filtri, layout dei modali, contenuti Base, cambio lingua* |
 
 ```bash
 dotnet test RealmForge/RealmForge.slnx
@@ -199,6 +205,7 @@ dotnet test RealmForge/RealmForge.slnx
 - [x] Backgrounds 2024 (with Origin feats) · *Background 2024 (con i Talenti di Origine)*
 - [x] Species seeders with deterministic ids and re-sync, as for feats · *Seeder delle specie con id deterministici e risincronizzazione*
 - [x] Remember the selected language across reloads · *Ricordare la lingua scelta tra un ricaricamento e l'altro*
+- [x] E-mail confirmation, Homebrew visibility and password recovery · *Conferma email, visibilità degli Homebrew e recupero password*
 - [ ] Spells · *Incantesimi*
 - [ ] Classes · *Classi*
 - [ ] Character sheet · *Scheda personaggio*

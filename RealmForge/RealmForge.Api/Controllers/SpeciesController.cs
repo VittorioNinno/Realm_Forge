@@ -10,6 +10,10 @@ using RealmForge.Infrastructure.Persistence;
 
 namespace RealmForge.Api.Controllers
 {
+	///	<summary>
+	///	Species with their traits and subspecies: localized list and detail, and Homebrew create/update/delete.
+	///	Subspecies of Base species can be added as Homebrew (see SubspeciesController).
+	///	</summary>
 	[ApiController]
 	[Route("api/[controller]")]
 	public class SpeciesController : ControllerBase

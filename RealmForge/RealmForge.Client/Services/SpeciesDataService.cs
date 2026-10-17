@@ -5,6 +5,9 @@ using RealmForge.Shared.Enums;
 
 namespace RealmForge.Client.Services
 {
+	///	<summary>
+	///	Client for /api/species: list, detail with traits and subspecies, and Homebrew create/update/delete.
+	///	</summary>
 	public class SpeciesDataService
 	{
 		private readonly HttpClient _http;

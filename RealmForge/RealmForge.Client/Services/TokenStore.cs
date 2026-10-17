@@ -2,6 +2,9 @@
 
 namespace RealmForge.Client.Services
 {
+	///	<summary>
+	///	Bearer and refresh tokens returned by /api/auth/login, with the access token expiry.
+	///	</summary>
 	public record AuthTokens(string AccessToken, string RefreshToken, DateTimeOffset ExpiresAt);
 
 	///	<summary>

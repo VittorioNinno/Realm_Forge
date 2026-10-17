@@ -24,6 +24,9 @@ namespace RealmForge.Shared.DTOs
 			MinimumLevel is null && Feature is null && (Abilities.Count == 0 || MinimumScore is null);
 	}
 
+	///	<summary>
+	///	Feat in the localized list (cards), with the prerequisite already formatted.
+	///	</summary>
 	public record FeatResponseDto(
 		Guid Id,
 		string Name,
@@ -37,6 +40,9 @@ namespace RealmForge.Shared.DTOs
 		ContentVisibility Visibility = ContentVisibility.Public
 	);
 
+	///	<summary>
+	///	Feat detail in one language.
+	///	</summary>
 	public record FeatDetailResponseDto(
 		Guid Id,
 		string Name,
@@ -52,6 +58,9 @@ namespace RealmForge.Shared.DTOs
 		ContentVisibility Visibility = ContentVisibility.Public
 	);
 
+	///	<summary>
+	///	Homebrew feat sent on create, with one translation per language.
+	///	</summary>
 	public class CreateFeatDto
 	{
 		public ContentVisibility Visibility { get; set; } = ContentVisibility.Private;
@@ -61,6 +70,9 @@ namespace RealmForge.Shared.DTOs
 		public List<CreateFeatTranslationDto> Translations { get; set; } = new();
 	}
 
+	///	<summary>
+	///	Texts of a new Homebrew feat in one language.
+	///	</summary>
 	public class CreateFeatTranslationDto
 	{
 		public LanguageCode Language { get; set; }
@@ -71,6 +83,9 @@ namespace RealmForge.Shared.DTOs
 		public string? PrerequisiteNote { get; set; }
 	}
 
+	///	<summary>
+	///	Homebrew feat sent on update.
+	///	</summary>
 	public class UpdateFeatDto
 	{
 		public ContentVisibility Visibility { get; set; } = ContentVisibility.Private;
@@ -81,6 +96,9 @@ namespace RealmForge.Shared.DTOs
 		public List<UpdateFeatTranslationDto> Translations { get; set; } = new();
 	}
 
+	///	<summary>
+	///	Texts of a Homebrew feat in one language, on update.
+	///	</summary>
 	public class UpdateFeatTranslationDto
 	{
 		public LanguageCode Language { get; set; }
