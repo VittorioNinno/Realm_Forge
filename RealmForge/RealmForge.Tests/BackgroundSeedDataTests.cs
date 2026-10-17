@@ -197,6 +197,27 @@ public class BackgroundSeedDataTests
 	}
 
 	[Fact]
+	public void Urchin_has_its_proficiencies_and_tables()
+	{
+		var urchin = Assert.Single(Backgrounds, b => b.Id == Urchin2014Seeder.BackgroundId);
+		Assert.Equal(new[] { Skill.SleightOfHand, Skill.Stealth }, urchin.SkillProficiencies);
+		Assert.Equal(ContentSource.RealmForge, urchin.Source);
+
+		foreach (var tr in urchin.Translations)
+		{
+			Assert.Equal((8, 6, 6, 6), (tr.PersonalityTraits.Count, tr.Ideals.Count, tr.Bonds.Count, tr.Flaws.Count));
+			Assert.Null(tr.Languages);
+			Assert.Equal(6, tr.Equipment!.Split('\n').Length);
+		}
+	}
+
+	[Fact]
+	public void All_thirteen_2014_base_backgrounds_are_seeded()
+	{
+		Assert.Equal(13, Backgrounds.Count(b => b.Ruleset == RulesetVersion.Dnd5e_2014 && b.IsOfficialSRD));
+	}
+
+	[Fact]
 	public void Ids_are_unique_and_identical_on_every_build()
 	{
 		BackgroundSeeder.EnsureUniqueIds(Backgrounds);
