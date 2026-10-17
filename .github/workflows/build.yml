@@ -6,9 +6,11 @@ on:
   pull_request:
     branches: [ main, develop ]
 
+# Runners pinned to Ubuntu 24.04: ubuntu-latest moves to Ubuntu 26 from 19 October 2026 (actions/runner-images#14748);
+# move to the new image deliberately, in its own PR, once the jobs pass on it.
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v5
 
@@ -40,7 +42,7 @@ jobs:
           grep -E "Passed!|Failed!|error" test.log | sed 's/^/::notice title=tests::/' || true
 
   database:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     needs: build
     services:
       postgres:
@@ -318,7 +320,7 @@ jobs:
           test "$bg_delete" = "204"
 
   ui:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     needs: build
     services:
       postgres:
