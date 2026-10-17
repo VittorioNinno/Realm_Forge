@@ -124,6 +124,12 @@ namespace RealmForge.Client.Localization
 		public static string PasswordHint(LanguageCode lang) => lang == LanguageCode.It
 			? "Almeno 6 caratteri, con una maiuscola, una minuscola, un numero e un simbolo."
 			: "At least 6 characters, with an uppercase, a lowercase letter, a digit and a symbol.";
+		public static string ShowPassword(LanguageCode lang) => lang == LanguageCode.It ? "Mostra password" : "Show password";
+		public static string HidePassword(LanguageCode lang) => lang == LanguageCode.It ? "Nascondi password" : "Hide password";
+		public static string PasswordRepeatDiffers(LanguageCode lang) => lang == LanguageCode.It
+			? "Attenzione: la password ripetuta è diversa dalla nuova."
+			: "Careful: the repeated password differs from the new one.";
+		public static string PasswordsMatch(LanguageCode lang) => lang == LanguageCode.It ? "Le password coincidono." : "The passwords match.";
 		public static string BtnLogin(LanguageCode lang) => lang == LanguageCode.It ? "Accedi" : "Sign in";
 		public static string BtnRegister(LanguageCode lang) => lang == LanguageCode.It ? "Registrati" : "Register";
 		public static string BtnVerifyToForge(LanguageCode lang) => lang == LanguageCode.It ? "Verifica l'email per forgiare" : "Verify your e-mail to forge";

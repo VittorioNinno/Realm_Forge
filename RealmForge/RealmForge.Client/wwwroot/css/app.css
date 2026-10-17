@@ -773,13 +773,56 @@ select.rf-form-control {
     color: var(--rf-text-secondary);
 }
 
-/* Browser "show password" eye (Edge / Chromium on Windows): light on the dark fields */
-input[type="password"]::-ms-reveal {
-    filter: invert(1) brightness(1.4);
-    opacity: 0.85;
+/* Password field with the show / hide button (PasswordInput). The browser's own eye (Edge) is hidden:
+   it appears only while typing and vanishes after leaving the field or after autofill */
+input::-ms-reveal,
+input::-ms-clear {
+    display: none;
 }
 
-input[type="password"]::-ms-reveal:hover {
-    opacity: 1;
+.rf-password {
+    position: relative;
+}
+
+    .rf-password .rf-form-control {
+        padding-right: 2.75rem;
+    }
+
+.rf-password-toggle {
+    position: absolute;
+    top: 0;
+    right: 0;
+    height: 100%;
+    width: 2.6rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    background: none;
+    border: 0;
+    border-radius: 0 4px 4px 0;
+    color: var(--rf-text-muted);
+    cursor: pointer;
+    transition: color 0.2s ease;
+}
+
+    .rf-password-toggle:hover,
+    .rf-password-toggle[aria-pressed="true"] {
+        color: var(--rf-orange-primary);
+    }
+
+    .rf-password-toggle:focus-visible {
+        outline: 2px solid var(--rf-orange-primary);
+        outline-offset: -2px;
+    }
+
+.rf-password-invalid .rf-form-control,
+.rf-password-invalid .rf-form-control:focus {
+    border-color: #ffc107;
+    box-shadow: 0 0 8px rgba(255, 193, 7, 0.25);
+}
+
+.rf-password-match:empty {
+    display: none;
 }
 
