@@ -302,6 +302,22 @@ public class BackgroundSeedDataTests
 	}
 
 	[Fact]
+	public void Farmer_2024_has_tough_and_its_proficiencies()
+	{
+		var farmer = Assert.Single(Backgrounds, b => b.Id == Farmer2024Seeder.BackgroundId);
+		Assert.Equal(ContentSource.RealmForge, farmer.Source);
+		Assert.Equal(new[] { AbilityScore.Strength, AbilityScore.Constitution, AbilityScore.Wisdom }, farmer.AbilityOptions);
+		Assert.Equal(new[] { Skill.AnimalHandling, Skill.Nature }, farmer.SkillProficiencies);
+		Assert.Equal(Tough2024Seeder.FeatId, farmer.OriginFeatId);
+		Assert.Equal(50, farmer.EquipmentGoldAlternative);
+
+		foreach (var tr in farmer.Translations)
+		{
+			Assert.Equal(7, tr.Equipment!.Split('\n').Length);
+		}
+	}
+
+	[Fact]
 	public void Ids_are_unique_and_identical_on_every_build()
 	{
 		BackgroundSeeder.EnsureUniqueIds(Backgrounds);
