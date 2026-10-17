@@ -1,8 +1,11 @@
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using RealmForge.Domain.Common;
 
 namespace RealmForge.Api.Security
 {
+	///	<summary>
+	///	Controller helpers that turn the <see cref="ContentAccess"/> rules into HTTP responses.
+	///	</summary>
 	public static class ContentAccessExtensions
 	{
 		///	<summary>
@@ -12,7 +15,7 @@ namespace RealmForge.Api.Security
 		{
 			if (entity.IsOfficialSRD)
 			{
-				return controller.Problem(statusCode: StatusCodes.Status403Forbidden, title: "Official SRD content is read-only.");
+				return controller.Problem(statusCode: StatusCodes.Status403Forbidden, title: "Base content is read-only.");
 			}
 
 			if (!access.CanModify(entity, controller.User))

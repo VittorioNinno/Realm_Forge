@@ -26,6 +26,9 @@ namespace RealmForge.Domain.Entities
 		public ICollection<BackgroundTranslation> Translations { get; set; } = new List<BackgroundTranslation>();
 	}
 
+	///	<summary>
+	///	Texts of a background in one language (unique per background and language).
+	///	</summary>
 	public class BackgroundTranslation : ITranslation
 	{
 		public Guid Id { get; set; } = Guid.NewGuid();

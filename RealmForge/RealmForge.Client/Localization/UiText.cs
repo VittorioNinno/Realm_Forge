@@ -2,6 +2,10 @@
 
 namespace RealmForge.Client.Localization
 {
+	///	<summary>
+	///	All the texts of the user interface, in Italian and English, grouped by page or component.
+	///	Data texts (names, descriptions) come translated from the API instead.
+	///	</summary>
 	public static class UiText
 	{
 		#region Navigation & Layout
@@ -261,8 +265,8 @@ namespace RealmForge.Client.Localization
 		{
 			(RealmForge.Client.Services.ApiErrorKind.Unreachable, true) => "Impossibile contattare il server. Verifica che l'API sia avviata.",
 			(RealmForge.Client.Services.ApiErrorKind.Unreachable, false) => "Cannot reach the server. Check that the API is running.",
-			(RealmForge.Client.Services.ApiErrorKind.Forbidden, true) => "Operazione non consentita: puoi modificare solo i tuoi contenuti Homebrew (gli SRD sono in sola lettura).",
-			(RealmForge.Client.Services.ApiErrorKind.Forbidden, false) => "Operation not allowed: you can only modify your own Homebrew content (SRD is read-only).",
+			(RealmForge.Client.Services.ApiErrorKind.Forbidden, true) => "Operazione non consentita: puoi modificare solo i tuoi contenuti Homebrew (i contenuti Base sono in sola lettura).",
+			(RealmForge.Client.Services.ApiErrorKind.Forbidden, false) => "Operation not allowed: you can only modify your own Homebrew content (Base content is read-only).",
 			(RealmForge.Client.Services.ApiErrorKind.NotAvailable, true) => ContentNotAvailable(lang),
 			(RealmForge.Client.Services.ApiErrorKind.NotAvailable, false) => ContentNotAvailable(lang),
 			(RealmForge.Client.Services.ApiErrorKind.EmailNotConfirmed, true) => "Conferma il tuo indirizzo email per creare o modificare contenuti (trovi il pulsante per reinviare l'email nella pagina account).",
@@ -364,7 +368,7 @@ namespace RealmForge.Client.Localization
 		public static string FilterRulesetAll(LanguageCode lang) => lang == LanguageCode.It ? "Tutte le Edizioni" : "All Editions";
 		public static string FilterOriginAll(LanguageCode lang) => lang == LanguageCode.It ? "Tutte le Origini" : "All Origins";
 		//	"Base" is the platform content (SRD text or RealmForge text), as on the card badges
-		public static string FilterOnlySRD(LanguageCode lang) => lang == LanguageCode.It ? "Solo Base" : "Base Only";
+		public static string FilterOnlyBase(LanguageCode lang) => lang == LanguageCode.It ? "Solo Base" : "Base Only";
 		public static string FilterOnlyHomebrew(LanguageCode lang) => lang == LanguageCode.It ? "Solo Homebrew" : "Homebrew Only";
 		#endregion
 

@@ -6,6 +6,10 @@ using RealmForge.Client.Services;
 
 namespace RealmForge.Client
 {
+	///	<summary>
+	///	Blazor WebAssembly entry point: HttpClient pipeline (error banner, bearer token and refresh),
+	///	authentication state, data services and the saved UI language.
+	///	</summary>
 	public class Program
 	{
 		public static async Task Main(string[] args)

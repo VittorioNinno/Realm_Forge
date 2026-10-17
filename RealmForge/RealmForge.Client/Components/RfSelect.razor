@@ -1,13 +1,13 @@
 ﻿@typeparam TValue
 
 <div class="rf-custom-select-wrapper" @onclick:stopPropagation="true">
-    @* Barra principale del Select (mantiene larghezza 100% del contenitore) *@
+    @* Select bar (keeps the full width of its container) *@
     <div class="rf-custom-select-trigger @(isOpen ? "active" : "")" @onclick="ToggleOpen">
         <span class="rf-select-value">@GetSelectedLabel()</span>
         <span class="rf-select-arrow @(isOpen ? "open" : "")">▼</span>
     </div>
 
-    @* Menu a tendina a tema Nero / Arancione *@
+    @* Drop-down list in the dark / orange theme *@
     @if (isOpen)
     {
         <div class="rf-custom-select-menu">

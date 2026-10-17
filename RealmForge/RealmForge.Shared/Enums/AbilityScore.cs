@@ -1,5 +1,8 @@
 ﻿namespace RealmForge.Shared.Enums;
 
+///	<summary>
+///	The six ability scores.
+///	</summary>
 public enum AbilityScore
 {
 	Strength = 1,
