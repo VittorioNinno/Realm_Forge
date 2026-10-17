@@ -177,10 +177,11 @@ try {
   ok('private Homebrew detail explains how to share it');
 
   // Exact title match: substring filters are case-insensitive ("Intuizione" contains "ui")
-  // Two base backgrounds are called "Accolito" (2014 and 2024): pick each one by its edition badge
-  const acolyteCard = (edition) => page.locator('.rf-card')
-    .filter({ has: page.locator('.rf-card-title', { hasText: /^Accolito$/ }) })
+  // Many base backgrounds exist in both editions with the same name: pick each one by its edition badge
+  const backgroundCard = (name, edition) => page.locator('.rf-card')
+    .filter({ has: page.locator('.rf-card-title', { hasText: new RegExp(`^${name}$`) }) })
     .filter({ has: page.locator(`.badge-edition-${edition}`) });
+  const acolyteCard = (edition) => backgroundCard('Accolito', edition);
   await acolyteCard('2014').click();
   await page.locator('[data-test=bg-characteristics]').waitFor({ timeout: 15000 });
   const tables = await page.locator('[data-test=bg-characteristics] .rf-dice-table').evaluateAll((ts) =>
@@ -213,7 +214,7 @@ try {
   await page.getByRole('button', { name: 'CHIUDI' }).click();
   ok('SRD 5.2 Acolyte: Magic Initiate (Cleric), equipment options A (6 items) and B (50 gp), source SRD 5.2');
 
-  await page.locator('.rf-card').filter({ has: page.locator('.rf-card-title', { hasText: /^Ciarlatano$/ }) }).click();
+  await backgroundCard('Ciarlatano', '2014').click();
   await page.locator('[data-test=bg-characteristics]').waitFor({ timeout: 15000 });
   const schemes = await page.locator('.rf-modal-dialog table:not(.rf-dice-table) tbody tr').count();
   const charlatanSource = (await page.locator('[data-test=content-source]').first().innerText()).trim();
