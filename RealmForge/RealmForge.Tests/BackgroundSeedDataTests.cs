@@ -334,6 +334,23 @@ public class BackgroundSeedDataTests
 	}
 
 	[Fact]
+	public void Guide_2024_has_magic_initiate_druid_and_its_proficiencies()
+	{
+		var guide = Assert.Single(Backgrounds, b => b.Id == Guide2024Seeder.BackgroundId);
+		Assert.Equal(ContentSource.RealmForge, guide.Source);
+		Assert.Equal(new[] { AbilityScore.Dexterity, AbilityScore.Constitution, AbilityScore.Wisdom }, guide.AbilityOptions);
+		Assert.Equal(new[] { Skill.Stealth, Skill.Survival }, guide.SkillProficiencies);
+		Assert.Equal(MagicInitiate2024Seeder.FeatId, guide.OriginFeatId);
+		Assert.Equal(50, guide.EquipmentGoldAlternative);
+		Assert.Equal(new[] { "Druid", "Druido" }, guide.Translations.OrderBy(t => t.Language).Select(t => t.OriginFeatNote));
+
+		foreach (var tr in guide.Translations)
+		{
+			Assert.Equal(8, tr.Equipment!.Split('\n').Length);
+		}
+	}
+
+	[Fact]
 	public void Ids_are_unique_and_identical_on_every_build()
 	{
 		BackgroundSeeder.EnsureUniqueIds(Backgrounds);
