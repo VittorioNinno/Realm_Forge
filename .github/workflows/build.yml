@@ -224,6 +224,24 @@ jobs:
           fi
           test "$feat_unconfirmed" = "403 EmailNotConfirmed" && test "$confirm_bad" = "401" && test "$confirm_a" = "200" && test "$confirm_b" = "200" && test "$confirmed" = "true"
 
+          # Password recovery (separate account, so alice's and bob's sessions stay valid): the logged link opens the
+          # client page /reset-password with email and code; the code works once and the new password signs in
+          test "$(code -X POST $api/api/auth/register $json -d "$(cred carol@example.com)")" = "200"
+          test "$(confirm carol@example.com)" = "200"
+          forgot_unknown=$(code -X POST $api/api/auth/forgotPassword $json -d '{"email":"nobody@example.com"}')
+          forgot=$(code -X POST $api/api/auth/forgotPassword $json -d '{"email":"carol@example.com"}')
+          sleep 1
+          reset_link=$(grep -rhoE "Reset your password for carol@example.com: [^ ]+" --include='*.log' . | tail -1 | sed 's/^.*: //')
+          reset_code=$(echo "$reset_link" | grep -oE '[?&]code=[^&]+' | cut -d= -f2-)
+          NEWPW="Rf-$(openssl rand -hex 12)B!"
+          reset_body=$(jq -nc --arg c "$reset_code" --arg p "$NEWPW" '{email:"carol@example.com",resetCode:$c,newPassword:$p}')
+          reset=$(code -X POST $api/api/auth/resetPassword $json -d "$reset_body")
+          reset_again=$(curl -s -X POST $api/api/auth/resetPassword $json -d "$reset_body" | jq -r '.errors | keys | join(",")')
+          login_old=$(code -X POST $api/api/auth/login $json -d "$(cred carol@example.com)")
+          login_new=$(code -X POST $api/api/auth/login $json -d "$(jq -nc --arg p "$NEWPW" '{email:"carol@example.com",password:$p}')")
+          echo "::notice title=database::password reset: unknown address=$forgot_unknown | forgot=$forgot | link page=$(echo "$reset_link" | grep -oE '/reset-password\?email=[^&]+' ) | reset=$reset | code reused=$reset_again | old password=$login_old | new password=$login_new"
+          test "$forgot_unknown" = "200" && test "$forgot" = "200" && test -n "$reset_code" && test "$reset" = "200" && test "$reset_again" = "InvalidToken" && test "$login_old" = "401" && test "$login_new" = "200"
+
           anon_create=$(code -X POST $api/api/feats $json -d "$feat")
           created=$(curl -sf -X POST "$api/api/feats?lang=2" $json -H "Authorization: Bearer $A" -d "$feat")
           id=$(echo "$created" | jq -r .id); pre=$(echo "$created" | jq -r .prerequisite); can=$(echo "$created" | jq -r .canEdit)

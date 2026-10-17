@@ -167,6 +167,40 @@ namespace RealmForge.Client.Services
 		}
 
 		///	<summary>
+		///	Asks for a password reset e-mail. Identity answers 200 for unknown or unconfirmed addresses too
+		///	(and sends nothing), so the page never reveals whether an account exists.
+		///	</summary>
+		public async Task<AuthResult> ForgotPasswordAsync(string email)
+		{
+			try
+			{
+				var response = await _http.PostAsJsonAsync("api/auth/forgotPassword", new { email });
+				return response.IsSuccessStatusCode ? AuthResult.Ok() : AuthResult.Fail("Unknown");
+			}
+			catch (HttpRequestException)
+			{
+				return AuthResult.Fail("Unreachable");
+			}
+		}
+
+		///	<summary>
+		///	Sets a new password with the e-mail and the code received in the reset link.
+		///	An expired or already used code comes back as "InvalidToken".
+		///	</summary>
+		public async Task<AuthResult> ResetPasswordAsync(string email, string resetCode, string newPassword)
+		{
+			try
+			{
+				var response = await _http.PostAsJsonAsync("api/auth/resetPassword", new { email, resetCode, newPassword });
+				return response.IsSuccessStatusCode ? AuthResult.Ok() : AuthResult.Fail(await ReadIdentityErrorsAsync(response));
+			}
+			catch (HttpRequestException)
+			{
+				return AuthResult.Fail("Unreachable");
+			}
+		}
+
+		///	<summary>
 		///	Returns the email of the logged-in user, or null when there is no valid session.
 		///	</summary>
 		public async Task<string?> GetCurrentEmailAsync()

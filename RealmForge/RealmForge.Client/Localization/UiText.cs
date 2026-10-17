@@ -128,6 +128,27 @@ namespace RealmForge.Client.Localization
 		public static string ConfirmEmailOtherTab(LanguageCode lang) => lang == LanguageCode.It
 			? "La scheda di RealmForge già aperta è stata aggiornata: questa scheda si chiuderà da sola."
 			: "The RealmForge tab you already had open has been updated: this tab will close by itself.";
+		//	Password recovery (/forgot-password and /reset-password)
+		public static string LinkForgotPassword(LanguageCode lang) => lang == LanguageCode.It ? "Password dimenticata?" : "Forgot your password?";
+		public static string ForgotPasswordTitle(LanguageCode lang) => lang == LanguageCode.It ? "PASSWORD DIMENTICATA" : "FORGOT PASSWORD";
+		public static string ForgotPasswordIntro(LanguageCode lang) => lang == LanguageCode.It
+			? "Inserisci l'email del tuo account: ti invieremo un link per scegliere una nuova password."
+			: "Enter your account e-mail: we will send you a link to choose a new password.";
+		public static string BtnSendResetLink(LanguageCode lang) => lang == LanguageCode.It ? "Invia il link" : "Send the link";
+		public static string ForgotPasswordSent(string email, LanguageCode lang) => lang == LanguageCode.It
+			? $"Se {email} corrisponde a un account con email confermata, riceverai a breve un link per reimpostare la password. Controlla anche la cartella spam."
+			: $"If {email} belongs to an account with a confirmed e-mail, you will shortly receive a link to reset your password. Check your spam folder too.";
+		public static string ForgotPasswordUnconfirmedHint(LanguageCode lang) => lang == LanguageCode.It
+			? "Per sicurezza il link viene inviato solo agli indirizzi già confermati."
+			: "For security, the link is only sent to addresses that have already been confirmed.";
+		public static string ResetPasswordTitle(LanguageCode lang) => lang == LanguageCode.It ? "NUOVA PASSWORD" : "NEW PASSWORD";
+		public static string ResetPasswordFor(string email, LanguageCode lang) => lang == LanguageCode.It ? $"Scegli una nuova password per {email}." : $"Choose a new password for {email}.";
+		public static string BtnSetPassword(LanguageCode lang) => lang == LanguageCode.It ? "Salva la nuova password" : "Save the new password";
+		public static string ResetPasswordDone(LanguageCode lang) => lang == LanguageCode.It
+			? "Password aggiornata: ora puoi accedere con la nuova password."
+			: "Password updated: you can now sign in with the new password.";
+		public static string BtnBackToLogin(LanguageCode lang) => lang == LanguageCode.It ? "Torna all'accesso" : "Back to sign in";
+		public static string BtnRequestNewLink(LanguageCode lang) => lang == LanguageCode.It ? "Richiedi un nuovo link" : "Ask for a new link";
 		public static string BtnGoToAccount(LanguageCode lang) => lang == LanguageCode.It ? "Vai al tuo account" : "Go to your account";
 		public static string BtnLoginToForge(LanguageCode lang) => lang == LanguageCode.It ? "Accedi per forgiare" : "Sign in to forge";
 		public static string BtnLogout(LanguageCode lang) => lang == LanguageCode.It ? "Esci" : "Sign out";
@@ -170,6 +191,10 @@ namespace RealmForge.Client.Localization
 			("InvalidConfirmationLink", false) => "The confirmation link is invalid or has expired: ask for a new one from the account page.",
 			("PasswordMismatch", true) => "La password attuale non è corretta.",
 			("PasswordMismatch", false) => "The current password is wrong.",
+			("InvalidToken" or "InvalidResetLink", true) => "Il link per reimpostare la password non è valido o è scaduto: richiedine uno nuovo.",
+			("InvalidToken" or "InvalidResetLink", false) => "The password reset link is invalid or has expired: ask for a new one.",
+			("MissingEmail", true) => "Inserisci la tua email.",
+			("MissingEmail", false) => "Enter your e-mail.",
 			("PasswordsDiffer", true) => "Le due nuove password non coincidono.",
 			("PasswordsDiffer", false) => "The two new passwords do not match.",
 			(_, true) => "Operazione non riuscita. Riprova.",
