@@ -356,7 +356,8 @@ namespace RealmForge.Client.Localization
 		public static string FilterAll(LanguageCode lang) => lang == LanguageCode.It ? "Tutti" : "All";
 		public static string FilterRulesetAll(LanguageCode lang) => lang == LanguageCode.It ? "Tutte le Edizioni" : "All Editions";
 		public static string FilterOriginAll(LanguageCode lang) => lang == LanguageCode.It ? "Tutte le Origini" : "All Origins";
-		public static string FilterOnlySRD(LanguageCode lang) => lang == LanguageCode.It ? "Solo Ufficiale (SRD)" : "Official SRD Only";
+		//	"Base" is the platform content (SRD text or RealmForge text), as on the card badges
+		public static string FilterOnlySRD(LanguageCode lang) => lang == LanguageCode.It ? "Solo Base" : "Base Only";
 		public static string FilterOnlyHomebrew(LanguageCode lang) => lang == LanguageCode.It ? "Solo Homebrew" : "Homebrew Only";
 		#endregion
 
@@ -432,6 +433,11 @@ namespace RealmForge.Client.Localization
 		public static string LoadingArchives(LanguageCode lang) =>
 			lang == LanguageCode.It ? "Consultazione degli archivi..." : "Consulting the archives...";
 
+		public static string LabelSearchSpecies(LanguageCode lang) => lang == LanguageCode.It ? "Cerca specie" : "Search species";
+		public static string PlaceholderSearchSpecies(LanguageCode lang) => lang == LanguageCode.It ? "Es. Elfo, Nano..." : "e.g. Elf, Dwarf...";
+		public static string NoSpeciesMatch(LanguageCode lang) => lang == LanguageCode.It
+			? "Nessuna specie corrisponde alla ricerca."
+			: "No species match your search.";
 		public static string NoSpeciesFound(LanguageCode lang) =>
 			lang == LanguageCode.It
 				? "Nessuna specie registrata nel compendio per la lingua selezionata."

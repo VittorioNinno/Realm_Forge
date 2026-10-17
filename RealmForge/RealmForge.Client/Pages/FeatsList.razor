@@ -32,7 +32,7 @@
     </div>
 
     <div class="row g-3 mb-4 p-3 rounded" style="background-color: var(--rf-bg-surface); border: 1px solid var(--rf-border-light);">
-        <div class="col-md-6 col-sm-12">
+        <div class="col-md-4 col-sm-12">
             <label class="rf-form-label small text-uppercase" style="letter-spacing: 0.5px;">
                 @UiText.LabelSearchFeat(LanguageState.CurrentLanguage)
             </label>
@@ -43,7 +43,7 @@
                    @bind:event="oninput" />
         </div>
 
-        <div class="col-md-6 col-sm-12">
+        <div class="col-md-4 col-sm-6">
             <label class="rf-form-label small text-uppercase" style="letter-spacing: 0.5px;">
                 @UiText.LabelRuleset(LanguageState.CurrentLanguage)
             </label>
@@ -55,6 +55,20 @@
                           new("", UiText.FilterRulesetAll(LanguageState.CurrentLanguage)),
                           new(((int)RulesetVersion.Dnd5e_2024).ToString(), UiText.FormatRuleset(RulesetVersion.Dnd5e_2024, LanguageState.CurrentLanguage)),
                           new(((int)RulesetVersion.Dnd5e_2014).ToString(), UiText.FormatRuleset(RulesetVersion.Dnd5e_2014, LanguageState.CurrentLanguage))
+                      })" />
+        </div>
+
+        <div class="col-md-4 col-sm-6">
+            <label class="rf-form-label small text-uppercase" style="letter-spacing: 0.5px;">
+                @UiText.LabelOrigin(LanguageState.CurrentLanguage)
+            </label>
+            <RfSelect TValue="string"
+                      @bind-Value="OriginFilter"
+                      Options="@(new List<RfSelect<string>.OptionItem>
+                      {
+                          new("", UiText.FilterOriginAll(LanguageState.CurrentLanguage)),
+                          new("srd", UiText.FilterOnlySRD(LanguageState.CurrentLanguage)),
+                          new("homebrew", UiText.FilterOnlyHomebrew(LanguageState.CurrentLanguage))
                       })" />
         </div>
 
@@ -462,11 +476,15 @@
     private Guid featToDeleteId;
     private string featToDeleteName = string.Empty;
 
+    //	Origin filter ("" = all, "srd" = Base, "homebrew"): applied to the loaded list together with the text search
+    private string OriginFilter { get; set; } = string.Empty;
+
     private IEnumerable<FeatResponseDto> FilteredFeats =>
-        string.IsNullOrWhiteSpace(SearchTerm)
-            ? AllFeats
-            : AllFeats.Where(f => f.Name.Contains(SearchTerm, StringComparison.OrdinalIgnoreCase) ||
-                                  f.ShortDescription.Contains(SearchTerm, StringComparison.OrdinalIgnoreCase));
+        AllFeats
+            .Where(f => OriginFilter switch { "srd" => f.IsOfficialSRD, "homebrew" => !f.IsOfficialSRD, _ => true })
+            .Where(f => string.IsNullOrWhiteSpace(SearchTerm)
+                        || f.Name.Contains(SearchTerm.Trim(), StringComparison.OrdinalIgnoreCase)
+                        || f.ShortDescription.Contains(SearchTerm.Trim(), StringComparison.OrdinalIgnoreCase));
 
     private List<RfSelect<FeatFeatureRequirement?>.OptionItem> FeatureOptions =>
         new List<RfSelect<FeatFeatureRequirement?>.OptionItem> { new(null, "—") }

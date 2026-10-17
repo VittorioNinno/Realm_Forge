@@ -32,7 +32,7 @@
     </div>
 
     <div class="row g-3 mb-4 p-3 rounded" style="background-color: var(--rf-bg-surface); border: 1px solid var(--rf-border-light);">
-        <div class="col-md-6 col-sm-12">
+        <div class="col-md-4 col-sm-12">
             <label class="rf-form-label small text-uppercase" style="letter-spacing: 0.5px;">
                 @UiText.LabelSearchBackground(LanguageState.CurrentLanguage)
             </label>
@@ -43,7 +43,7 @@
                    @bind:event="oninput" />
         </div>
 
-        <div class="col-md-6 col-sm-12">
+        <div class="col-md-4 col-sm-6">
             <label class="rf-form-label small text-uppercase" style="letter-spacing: 0.5px;">
                 @UiText.LabelRuleset(LanguageState.CurrentLanguage)
             </label>
@@ -51,6 +51,20 @@
                       @bind-Value="SelectedRuleset"
                       OnChange="LoadBackgroundsAsync"
                       Options="@RulesetFilterOptions" />
+        </div>
+
+        <div class="col-md-4 col-sm-6">
+            <label class="rf-form-label small text-uppercase" style="letter-spacing: 0.5px;">
+                @UiText.LabelOrigin(LanguageState.CurrentLanguage)
+            </label>
+            <RfSelect TValue="string"
+                      @bind-Value="OriginFilter"
+                      Options="@(new List<RfSelect<string>.OptionItem>
+                      {
+                          new("", UiText.FilterOriginAll(LanguageState.CurrentLanguage)),
+                          new("srd", UiText.FilterOnlySRD(LanguageState.CurrentLanguage)),
+                          new("homebrew", UiText.FilterOnlyHomebrew(LanguageState.CurrentLanguage))
+                      })" />
         </div>
     </div>
 
@@ -460,11 +474,15 @@
     private string deleteName = string.Empty;
     private string? deleteError;
 
+    //	Origin filter ("" = all, "srd" = Base, "homebrew"): applied to the loaded list together with the text search
+    private string OriginFilter = string.Empty;
+
     private IEnumerable<BackgroundResponseDto> FilteredBackgrounds =>
-        string.IsNullOrWhiteSpace(SearchTerm)
-            ? AllBackgrounds
-            : AllBackgrounds.Where(b => b.Name.Contains(SearchTerm, StringComparison.OrdinalIgnoreCase)
-                                        || b.ShortDescription.Contains(SearchTerm, StringComparison.OrdinalIgnoreCase));
+        AllBackgrounds
+            .Where(b => OriginFilter switch { "srd" => b.IsOfficialSRD, "homebrew" => !b.IsOfficialSRD, _ => true })
+            .Where(b => string.IsNullOrWhiteSpace(SearchTerm)
+                        || b.Name.Contains(SearchTerm.Trim(), StringComparison.OrdinalIgnoreCase)
+                        || b.ShortDescription.Contains(SearchTerm.Trim(), StringComparison.OrdinalIgnoreCase));
 
     private List<RfSelect<RulesetVersion?>.OptionItem> RulesetFilterOptions => new()
     {
