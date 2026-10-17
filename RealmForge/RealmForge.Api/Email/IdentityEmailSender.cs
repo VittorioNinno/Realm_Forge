@@ -42,6 +42,7 @@ namespace RealmForge.Api.Email
 				EmailTemplate.PlainText(it, en, link));
 		}
 
+		//	Not called by the Identity API endpoints (they send a code, see SendPasswordResetCodeAsync); kept for the interface
 		public Task SendPasswordResetLinkAsync(ApplicationUser user, string email, string resetLink)
 		{
 			var link = ToClientLink("reset-password", resetLink);
@@ -55,16 +56,20 @@ namespace RealmForge.Api.Email
 				EmailTemplate.PlainText(it, en, link));
 		}
 
+		//	The Identity endpoint /api/auth/forgotPassword sends a reset code (only to confirmed addresses).
+		//	The e-mail links to the client page /reset-password with the address and the code already filled in
 		public Task SendPasswordResetCodeAsync(ApplicationUser user, string email, string resetCode)
 		{
+			var link = QueryHelpers.AddQueryString($"{ClientBaseUrl().TrimEnd('/')}/reset-password",
+				new Dictionary<string, string?> { ["email"] = email, ["code"] = resetCode });
 			var it = new EmailTemplate.Section("Reimposta la password",
-				"Usa questo codice per reimpostare la password del tuo account RealmForge:", string.Empty);
+				"Hai chiesto di reimpostare la password del tuo account RealmForge. Il link vale per un tempo limitato.", "Reimposta password");
 			var en = new EmailTemplate.Section("Reset your password",
-				"Use this code to reset the password of your RealmForge account:", string.Empty);
+				"You asked to reset the password of your RealmForge account. The link is valid for a limited time.", "Reset password");
 
-			return SendAsync(email, "Codice per reimpostare la password · Password reset code", resetCode,
-				EmailTemplate.CodeEmail("Il tuo codice per reimpostare la password.", it, en, resetCode),
-				EmailTemplate.PlainText(it, en, resetCode));
+			return SendAsync(email, "Reimposta la password · Reset your password", link,
+				EmailTemplate.ActionEmail("Reimposta la password del tuo account RealmForge.", it, en, link),
+				EmailTemplate.PlainText(it, en, link));
 		}
 
 		//	Identity builds links to its own API endpoint; the same query (userId, code, ...) is sent to the client page instead.
