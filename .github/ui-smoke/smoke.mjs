@@ -176,6 +176,16 @@ try {
   await page.getByRole('button', { name: 'CHIUDI' }).click();
   ok('private Homebrew detail explains how to share it');
 
+  // Origin filter (client-side, as on the species page): "Solo Homebrew" leaves only the background created above
+  await page.locator('.rf-custom-select-trigger', { hasText: 'Tutte le Origini' }).click();
+  await page.locator('.rf-custom-select-option', { hasText: 'Solo Homebrew' }).click();
+  const homebrewTitles = (await page.locator('.rf-card .rf-card-title').allTextContents()).map((t) => t.trim()); // textContent: titles are uppercased by CSS
+  results.push(`INFO backgrounds with "Solo Homebrew": ${homebrewTitles.join(', ')}`);
+  if (homebrewTitles.join(',') !== 'Accolito UI') throw new Error(`origin filter: unexpected cards ${homebrewTitles.join(', ')}`);
+  await page.locator('.rf-custom-select-trigger', { hasText: 'Solo Homebrew' }).click();
+  await page.locator('.rf-custom-select-option', { hasText: 'Tutte le Origini' }).click();
+  ok('background origin filter: "Solo Homebrew" shows only the user\'s Homebrew');
+
   // Exact title match: substring filters are case-insensitive ("Intuizione" contains "ui")
   // Many base backgrounds exist in both editions with the same name: pick each one by its edition badge
   const backgroundCard = (name, edition) => page.locator('.rf-card')
@@ -222,6 +232,19 @@ try {
   if (schemes !== 6 || charlatanSource !== 'Fonte: testo RealmForge') throw new Error(`unexpected Charlatan detail: rows=${schemes} source=${charlatanSource}`);
   await page.getByRole('button', { name: 'CHIUDI' }).click();
   ok('Charlatan: schemes table rendered from Markdown (6 rows), source RealmForge');
+
+  // Species: text search on name and description, with a dedicated message when nothing matches
+  await page.goto(`${base}/species`);
+  await page.locator('.rf-card').first().waitFor({ timeout: 30000 });
+  const speciesTotal = await page.locator('.rf-card').count();
+  await page.locator('[data-test=species-search]').fill('nano');
+  await page.locator('.rf-card .rf-card-title', { hasText: /^Nano$/ }).first().waitFor({ timeout: 10000 });
+  const speciesFound = await page.locator('.rf-card').count();
+  await page.locator('[data-test=species-search]').fill('zzzz');
+  await page.locator('[data-test=species-empty]', { hasText: 'Nessuna specie corrisponde alla ricerca.' }).waitFor({ timeout: 10000 });
+  results.push(`INFO species search: total=${speciesTotal} "nano"=${speciesFound}`);
+  if (speciesFound < 1 || speciesFound >= speciesTotal) throw new Error(`species search did not filter: ${speciesFound}/${speciesTotal}`);
+  ok('species search filters by text and explains when nothing matches');
 
   // Account page: profile, Homebrew counts (the UI created one background) and password change
   await page.goto(`${base}/account`);
