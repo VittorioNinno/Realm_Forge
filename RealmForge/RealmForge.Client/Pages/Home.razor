@@ -14,6 +14,14 @@
     <h1 class="rf-page-title mb-2">@UiText.HomeTitle(LanguageState.CurrentLanguage)</h1>
     <p class="text-secondary lead fs-6 mb-4">@UiText.HomeSubtitle(LanguageState.CurrentLanguage)</p>
 
+    @if (loadFailed)
+    {
+        @* Base content always exists: three empty lists mean the API could not be read (asleep, unreachable, misconfigured) *@
+        <div class="alert alert-warning bg-dark border-warning text-warning small mb-4" data-test="dashboard-unavailable">
+            @UiText.DashboardUnavailable(LanguageState.CurrentLanguage)
+        </div>
+    }
+
     @* Compendium modules: what is available for each edition, Base and Homebrew *@
     <div class="row row-cols-1 row-cols-md-3 g-4 mb-4" data-test="dashboard-modules">
         @foreach (var module in Modules)
@@ -41,7 +49,7 @@
                     }
                     else
                     {
-                        <div class="mt-auto small" style="color: var(--rf-text-muted);">@UiText.LoadingArchives(LanguageState.CurrentLanguage)</div>
+                        <div class="mt-auto small" style="color: var(--rf-text-muted);">@(loadFailed ? "—" : UiText.LoadingArchives(LanguageState.CurrentLanguage))</div>
                     }
                 </a>
             </div>
@@ -72,6 +80,7 @@
     private ModuleCounts? species;
     private ModuleCounts? backgrounds;
     private ModuleCounts? feats;
+    private bool loadFailed;
 
     private IEnumerable<Module> Modules
     {
@@ -97,6 +106,13 @@
         species = Count((await speciesTask).Select(s => (s.Ruleset, s.IsOfficialSRD)));
         backgrounds = Count((await backgroundsTask).Select(b => (b.Ruleset, b.IsOfficialSRD)));
         feats = Count((await featsTask).Select(f => (f.Ruleset, f.IsOfficialSRD)));
+
+        //	No Base content at all is never a real state: show a warning instead of misleading zeros
+        loadFailed = new[] { species, backgrounds, feats }.All(c => c is { Edition2024: 0, Edition2014: 0 });
+        if (loadFailed)
+        {
+            species = backgrounds = feats = null;
+        }
     }
 
     private static ModuleCounts Count(IEnumerable<(RulesetVersion Ruleset, bool IsBase)> items)
