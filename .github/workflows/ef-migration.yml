@@ -1,0 +1,59 @@
+name: ef-migration
+
+# Generates an EF Core migration on GitHub's runners and commits it back to the branch.
+# Trigger: push a commit whose message contains  [ef-migration:MigrationName]
+on:
+  push:
+    branches-ignore: [ main ]
+
+permissions:
+  contents: write
+
+jobs:
+  add-migration:
+    if: contains(github.event.head_commit.message, '[ef-migration:')
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ github.ref_name }}
+
+      - uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Extract migration name
+        id: name
+        env:
+          MESSAGE: ${{ github.event.head_commit.message }}
+        run: |
+          name=$(printf '%s' "$MESSAGE" | grep -oP '\[ef-migration:\K[A-Za-z0-9_]+(?=\])' | head -1)
+          test -n "$name"
+          echo "value=$name" >> "$GITHUB_OUTPUT"
+
+      - name: Install dotnet-ef
+        run: dotnet tool install --global dotnet-ef --version 10.0.12
+
+      - name: Restore
+        run: dotnet restore RealmForge/RealmForge.slnx
+
+      - name: Add migration
+        shell: bash
+        run: |
+          set -o pipefail
+          dotnet ef migrations add "${{ steps.name.outputs.value }}" \
+            --project RealmForge/RealmForge.Infrastructure \
+            --startup-project RealmForge/RealmForge.Api --verbose 2>&1 | tee ef.log || {
+              grep -iE "error|exception|unable|could not" ef.log | head -25 | sed 's/^/::error title=ef::/'
+              exit 1
+            }
+
+      - name: Commit migration
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add RealmForge/RealmForge.Infrastructure/Migrations
+          git commit -m "chore(db): add EF migration ${{ steps.name.outputs.value }}"
+          # Commits pushed while the migration was being generated would reject a plain push
+          git pull --rebase origin "${{ github.ref_name }}"
+          git push

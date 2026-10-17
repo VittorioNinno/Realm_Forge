@@ -1,0 +1,38 @@
+﻿@using RealmForge.Client.Localization
+@using RealmForge.Client.Services
+@using RealmForge.Shared.Enums
+@inject LanguageStateService LanguageState
+
+@* Who can see a Homebrew entry: Private (default), Link, Public *@
+<div class="mb-3" data-test="visibility-picker">
+    <label class="rf-form-label rf-label-single-line">@UiText.LabelVisibility(LanguageState.CurrentLanguage)</label>
+    <div class="rf-pill-group">
+        @foreach (var option in Options)
+        {
+            var current = option;
+            <button type="button" class="rf-pill-btn @(Value == current ? "active" : null)" data-visibility="@current"
+                    @onclick="() => SelectAsync(current)">
+                @UiText.FormatVisibility(current, LanguageState.CurrentLanguage)
+            </button>
+        }
+    </div>
+    <div class="small mt-1" style="color: var(--rf-text-muted);">@UiText.VisibilityHint(Value, LanguageState.CurrentLanguage)</div>
+</div>
+
+@code {
+    [Parameter] public ContentVisibility Value { get; set; } = ContentVisibility.Private;
+    [Parameter] public EventCallback<ContentVisibility> ValueChanged { get; set; }
+
+    //	Lineages are shared through their species page, so they offer only Private / Public
+    [Parameter] public bool AllowLink { get; set; } = true;
+
+    private IEnumerable<ContentVisibility> Options =>
+        new[] { ContentVisibility.Private, ContentVisibility.Link, ContentVisibility.Public }
+            .Where(v => AllowLink || v != ContentVisibility.Link);
+
+    private async Task SelectAsync(ContentVisibility value)
+    {
+        Value = value;
+        await ValueChanged.InvokeAsync(value);
+    }
+}

@@ -1,0 +1,754 @@
+﻿:root {
+    --rf-bg-main: #0d0d0d;
+    --rf-bg-surface: #111111;
+    --rf-bg-card: #161616;
+    --rf-border-subtle: #222222;
+    --rf-border-light: #333333;
+    /* Pure Forge Orange */
+    --rf-orange-primary: #ff8c00;
+    --rf-orange-hover: #ffa533;
+    --rf-orange-dark: #2a1c00;
+    --rf-orange-glow: rgba(255, 140, 0, 0.25);
+    --rf-text-primary: #ffffff;
+    --rf-text-secondary: #b0b0b0;
+    --rf-text-muted: #777777;
+    --rf-font-display: 'Cinzel', serif;
+    --rf-font-body: 'Inter', system-ui, -apple-system, sans-serif;
+}
+
+body {
+    background-color: var(--rf-bg-main);
+    color: var(--rf-text-secondary);
+    font-family: var(--rf-font-body);
+    margin: 0;
+}
+
+/* Typography & Headings */
+h1, h2, h3, h4, h5, h6, .rf-page-title, .brand-title {
+    font-family: var(--rf-font-display);
+    color: var(--rf-orange-primary) !important;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    font-weight: 900;
+}
+
+    /* Navigation focus outline reset */
+    h1:focus, h2:focus, [tabindex="-1"]:focus {
+        outline: none !important;
+        box-shadow: none !important;
+    }
+
+/* Matching dark sidebar */
+.sidebar {
+    background-color: var(--rf-bg-surface) !important;
+    background-image: none !important;
+    border-right: 1px solid var(--rf-border-subtle) !important;
+}
+
+/* Top bar */
+.top-row {
+    background-color: var(--rf-bg-surface) !important;
+    border-bottom: 1px solid var(--rf-border-subtle) !important;
+    color: var(--rf-text-muted) !important;
+}
+
+    .top-row a {
+        color: var(--rf-text-muted) !important;
+        text-transform: uppercase;
+        font-size: 0.85em;
+        letter-spacing: 1px;
+        font-weight: 700;
+    }
+
+        .top-row a:hover {
+            color: var(--rf-orange-primary) !important;
+        }
+
+/* Feature-Item styled cards */
+.rf-card {
+    background-color: var(--rf-bg-card);
+    border: 1px solid var(--rf-border-subtle);
+    border-left: 4px solid var(--rf-orange-primary);
+    border-radius: 8px;
+    padding: 16px;
+    transition: all 0.2s ease;
+}
+
+    .rf-card:hover {
+        background-color: #1a1500;
+        border-color: var(--rf-orange-primary);
+        border-left-color: var(--rf-orange-hover);
+        box-shadow: 0 4px 20px var(--rf-orange-glow);
+        transform: translateY(-2px);
+    }
+
+.rf-card-title {
+    color: #ffffff !important;
+    font-size: 1.1em;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 6px;
+}
+
+/* Metadata grid */
+.rf-meta-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+    gap: 8px;
+    background: #111111;
+    padding: 10px;
+    border-radius: 6px;
+    font-size: 0.85em;
+    border: 1px solid var(--rf-border-subtle);
+    margin: 10px 0;
+}
+
+    .rf-meta-row strong {
+        color: var(--rf-orange-primary);
+        text-transform: uppercase;
+        font-size: 0.75em;
+        letter-spacing: 1px;
+        display: block;
+        margin-bottom: 2px;
+    }
+
+/* --- BADGES (Uniform Dimensions, High Contrast) --- */
+.badge-edition-2024,
+.badge-edition-2014,
+.badge-srd,
+.badge-homebrew,
+.badge-visibility {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.72rem !important;
+    font-weight: 800 !important;
+    letter-spacing: 0.8px !important;
+    text-transform: uppercase;
+    padding: 3px 8px !important;
+    border-radius: 4px !important;
+    line-height: 1.2 !important;
+    box-sizing: border-box;
+}
+
+/* Edition: 5.5e (2024) - Forge Amber */
+.badge-edition-2024 {
+    background: rgba(255, 140, 0, 0.16) !important;
+    color: #ff9d26 !important;
+    border: 1px solid rgba(255, 140, 0, 0.6) !important;
+}
+
+/* Edition: 5e (2014) - Iron Steel */
+.badge-edition-2014 {
+    background: rgba(140, 140, 140, 0.12) !important;
+    color: #cfd4dc !important;
+    border: 1px solid rgba(140, 140, 140, 0.45) !important;
+}
+
+/* Origin: SRD - Runecraft Emerald */
+.badge-srd {
+    background: rgba(46, 204, 113, 0.14) !important;
+    color: #2ecc71 !important;
+    border: 1px solid rgba(46, 204, 113, 0.5) !important;
+}
+
+/* Origin: Homebrew - Arcane Amethyst */
+.badge-homebrew {
+    background: rgba(171, 71, 188, 0.15) !important;
+    color: #ce93d8 !important;
+    border: 1px solid rgba(171, 71, 188, 0.55) !important;
+}
+
+/* Homebrew visibility (Private / With link) - Slate Blue */
+.badge-visibility {
+    background: rgba(79, 195, 247, 0.12) !important;
+    color: #81d4fa !important;
+    border: 1px solid rgba(79, 195, 247, 0.5) !important;
+}
+
+/* D&D Wizard styled buttons */
+.btn-rf-orange {
+    background: var(--rf-orange-primary) !important;
+    color: #000000 !important;
+    border: none !important;
+    font-weight: 900 !important;
+    cursor: pointer;
+    border-radius: 6px !important;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    font-size: 0.85em;
+    padding: 10px 18px;
+    transition: background 0.2s ease, transform 0.1s ease;
+}
+
+    .btn-rf-orange:hover {
+        background: var(--rf-orange-hover) !important;
+        box-shadow: 0 0 10px var(--rf-orange-primary);
+    }
+
+    .btn-rf-orange:active {
+        transform: scale(0.98);
+    }
+
+.btn-rf-outline {
+    background: #161616 !important;
+    color: var(--rf-text-muted) !important;
+    border: 1px solid var(--rf-border-light) !important;
+    font-weight: 800 !important;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    font-size: 0.85em;
+    padding: 10px 18px;
+    border-radius: 6px !important;
+    transition: all 0.2s ease;
+}
+
+    .btn-rf-outline:hover {
+        background: #222222 !important;
+        color: #ffffff !important;
+        border-color: #555555 !important;
+    }
+
+/* Dark fantasy modal */
+.rf-modal-backdrop {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background-color: rgba(0, 0, 0, 0.85);
+    backdrop-filter: blur(4px);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1050;
+    animation: fadeIn 0.2s ease-in-out;
+}
+
+.rf-modal-dialog {
+    background-color: var(--rf-bg-surface);
+    border: 1px solid var(--rf-orange-primary);
+    border-radius: 10px;
+    width: 90%;
+    max-width: 680px;
+    box-shadow: 0 0 30px var(--rf-orange-glow);
+    padding: 24px;
+    color: var(--rf-text-primary);
+    max-height: 90vh;
+    overflow-y: auto;
+}
+
+.rf-form-label {
+    font-size: 0.75em;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--rf-orange-primary);
+    margin-bottom: 6px;
+    display: block;
+}
+
+/* Labels inside multi-column rows must never wrap, otherwise the controls below them misalign */
+.rf-label-single-line {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* Suggested characteristics tables (d6 / d8 / d10) */
+.rf-dice-table {
+    width: 100%;
+    font-size: 0.85rem;
+    border-collapse: collapse;
+}
+
+    .rf-dice-table th {
+        color: var(--rf-orange-primary);
+        font-size: 0.75em;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        text-align: left;
+        padding: 0.35rem 0.5rem;
+        border-bottom: 1px solid var(--rf-border-light);
+    }
+
+    .rf-dice-table td {
+        padding: 0.35rem 0.5rem;
+        vertical-align: top;
+        color: var(--rf-text-secondary);
+        border-bottom: 1px solid var(--rf-border-subtle);
+    }
+
+        .rf-dice-table td:first-child {
+            width: 2.5rem;
+            color: var(--rf-text-primary);
+            font-weight: 700;
+            text-align: center;
+        }
+
+/* Background equipment: option A (items) and option B (gold), stacked */
+.rf-equipment-option + .rf-equipment-option {
+    margin-top: 0.75rem;
+    padding-top: 0.75rem;
+    border-top: 1px solid var(--rf-border-subtle);
+}
+
+.rf-equipment-option-title {
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    color: var(--rf-text-primary);
+    margin-bottom: 0.35rem;
+}
+
+.rf-equipment-list {
+    margin: 0;
+    padding-left: 1.1rem;
+    font-size: 0.875rem;
+    color: var(--rf-text-primary);
+}
+
+    .rf-equipment-list li + li {
+        margin-top: 0.15rem;
+    }
+
+/* Pills that cannot be selected because the maximum was reached */
+.rf-pill-btn:disabled {
+    opacity: 0.35;
+    cursor: not-allowed;
+}
+
+.rf-form-control:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+}
+
+/* --- STANDARD FORM CONTROLS (Input / Textarea) --- */
+.rf-form-control {
+    width: 100%;
+    background-color: var(--rf-bg-surface);
+    color: var(--rf-text-primary);
+    border: 1px solid var(--rf-border-light);
+    border-radius: 4px;
+    padding: 0.6rem 1rem;
+    font-size: 0.9rem;
+    letter-spacing: 0.5px;
+    box-sizing: border-box;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+    .rf-form-control:focus {
+        border-color: var(--rf-orange-primary);
+        box-shadow: 0 0 8px var(--rf-orange-glow);
+        outline: none;
+    }
+
+/* --- RF CUSTOM SELECT (dark / orange, replaces the browser's native select) --- */
+.rf-custom-select-wrapper {
+    position: relative;
+    width: 100%;
+    user-select: none;
+}
+
+.rf-custom-select-trigger {
+    width: 100%;
+    background-color: var(--rf-bg-surface);
+    border: 1px solid var(--rf-border-light);
+    border-radius: 4px;
+    padding: 0.6rem 1rem;
+    color: var(--rf-text-primary);
+    font-size: 0.9rem;
+    letter-spacing: 0.5px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    cursor: pointer;
+    box-sizing: border-box;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+    .rf-custom-select-trigger:hover,
+    .rf-custom-select-trigger.active {
+        border-color: var(--rf-orange-primary);
+        box-shadow: 0 0 8px var(--rf-orange-glow);
+    }
+
+.rf-select-arrow {
+    color: var(--rf-orange-primary);
+    font-size: 0.7rem;
+    transition: transform 0.2s ease;
+}
+
+    .rf-select-arrow.open {
+        transform: rotate(180deg);
+    }
+
+.rf-custom-select-menu {
+    position: absolute;
+    top: calc(100% + 4px);
+    left: 0;
+    width: 100%;
+    background-color: var(--rf-bg-main);
+    border: 1px solid var(--rf-orange-primary);
+    border-radius: 4px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.95);
+    z-index: 1050;
+    max-height: 260px;
+    overflow-y: auto;
+    box-sizing: border-box;
+}
+
+.rf-custom-select-option {
+    padding: 0.65rem 1rem;
+    color: var(--rf-text-secondary);
+    font-size: 0.88rem;
+    cursor: pointer;
+    background-color: var(--rf-bg-main);
+    transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+    .rf-custom-select-option:hover {
+        background-color: rgba(255, 140, 0, 0.18);
+        color: var(--rf-orange-primary);
+    }
+
+    .rf-custom-select-option.selected {
+        background-color: var(--rf-orange-primary);
+        color: #000000;
+        font-weight: 800;
+    }
+
+/* Fallback for the remaining native select elements */
+select.rf-form-control {
+    appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='%23ff8c00' d='M1.41 0L6 4.58L10.59 0L12 1.41l-6 6l-6-6z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 1rem center;
+    background-size: 12px 8px;
+    padding-right: 2.5rem;
+}
+
+.rf-checkbox-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+    user-select: none;
+}
+
+.rf-checkbox {
+    accent-color: var(--rf-orange-primary);
+    width: 18px;
+    height: 18px;
+    cursor: pointer;
+}
+
+/* --- Interactive Sheet Selector Pills --- */
+.rf-pill-group {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.rf-pill-btn {
+    background-color: var(--rf-bg-card);
+    border: 1px solid var(--rf-border-light);
+    color: var(--rf-text-secondary);
+    font-size: 0.8rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    padding: 6px 14px;
+    border-radius: 20px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+    .rf-pill-btn:hover {
+        color: #ffffff;
+        border-color: var(--rf-orange-primary);
+    }
+
+    .rf-pill-btn.active {
+        background-color: rgba(255, 140, 0, 0.16);
+        border-color: var(--rf-orange-primary);
+        color: var(--rf-orange-primary);
+        box-shadow: 0 0 10px var(--rf-orange-glow);
+    }
+
+/* Modal fade animation */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+}
+
+/* --- MARKDOWN STYLES (Markdig) --- */
+.rf-markdown-container {
+    color: var(--rf-text-secondary);
+    line-height: 1.6;
+    font-size: 0.875rem;
+    text-align: left;
+}
+
+    /* Headings inside Markdown */
+    .rf-markdown-container h1,
+    .rf-markdown-container h2,
+    .rf-markdown-container h3,
+    .rf-markdown-container h4,
+    .rf-markdown-container h5,
+    .rf-markdown-container h6 {
+        font-family: var(--rf-font-display);
+        color: var(--rf-orange-primary);
+        text-transform: uppercase;
+        letter-spacing: 1.5px;
+        font-weight: 800;
+        margin-top: 1.5rem;
+        margin-bottom: 1rem;
+    }
+
+    /* Smaller sizes, so titles do not grow too large */
+    .rf-markdown-container h1 {
+        font-size: 1.4rem;
+    }
+
+    .rf-markdown-container h2 {
+        font-size: 1.2rem;
+    }
+
+    .rf-markdown-container h3 {
+        font-size: 1.05rem;
+    }
+    /* Questo controlla i ### */
+    .rf-markdown-container h4,
+    .rf-markdown-container h5,
+    .rf-markdown-container h6 {
+        font-size: 0.9rem;
+    }
+
+    /* Backward compatibility for '\n' in legacy strings */
+    .rf-markdown-container p {
+        margin-bottom: 1rem;
+        white-space: pre-line;
+    }
+
+    /* Transform Markdown lists into Forge Cards */
+    .rf-markdown-container ul {
+        list-style-type: none;
+        padding-left: 0;
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+        margin-top: 1.5rem;
+        margin-bottom: 1.5rem;
+    }
+
+        .rf-markdown-container ul li {
+            background-color: var(--rf-bg-card);
+            border-left: 3px solid var(--rf-orange-primary);
+            padding: 1rem;
+            border-radius: 0.25rem;
+        }
+
+    /* Markdown Tables (Dark Forge Aesthetic) */
+    .rf-markdown-container table {
+        width: 100%;
+        margin-top: 1.5rem;
+        margin-bottom: 1.5rem;
+        border-collapse: separate;
+        border-spacing: 0;
+        border-radius: 8px;
+        overflow: hidden;
+        border: 1px solid var(--rf-border-light);
+        background-color: var(--rf-bg-surface);
+    }
+
+    .rf-markdown-container th {
+        background-color: var(--rf-bg-main);
+        color: var(--rf-orange-primary);
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        font-size: 0.7rem;
+        padding: 12px 16px;
+        border-bottom: 1px solid var(--rf-border-light);
+    }
+
+    .rf-markdown-container td {
+        padding: 14px 18px;
+        border-bottom: 1px solid var(--rf-border-subtle);
+        color: var(--rf-text-secondary);
+    }
+
+    .rf-markdown-container tr:hover td {
+        background-color: var(--rf-bg-card);
+    }
+
+    .rf-markdown-container tr:last-child td {
+        border-bottom: none;
+    }
+/* --- ACCOUNT PAGE --- */
+.min-w-0 {
+    min-width: 0;
+}
+
+.rf-account-card {
+    padding: 1.25rem;
+    border-radius: 6px;
+    background-color: var(--rf-bg-surface);
+    border: 1px solid var(--rf-border-light);
+}
+
+.rf-account-card-title {
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: var(--rf-orange-primary);
+    margin-bottom: 1rem;
+}
+
+.rf-account-card-avatar {
+    flex: 0 0 3rem;
+    width: 3rem;
+    height: 3rem;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background-color: var(--rf-orange-primary);
+    color: #111;
+    font-weight: 700;
+    font-size: 1.3rem;
+}
+
+/* Label / value pairs: two columns on wide screens, stacked on phones */
+.rf-account-facts {
+    display: grid;
+    grid-template-columns: max-content 1fr;
+    gap: 0.4rem 1.5rem;
+    font-size: 0.875rem;
+}
+
+    .rf-account-facts dt {
+        font-weight: 600;
+        color: var(--rf-text-muted);
+    }
+
+    .rf-account-facts dd {
+        margin: 0;
+        color: var(--rf-text-primary);
+    }
+
+.rf-account-stats {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 0.75rem;
+}
+
+.rf-account-stat {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 0.85rem 0.5rem;
+    border-radius: 4px;
+    background-color: var(--rf-bg-main);
+    border: 1px solid var(--rf-border-subtle);
+    text-decoration: none;
+}
+
+    .rf-account-stat:hover {
+        border-color: var(--rf-orange-primary);
+    }
+
+.rf-account-stat-value {
+    font-family: var(--rf-font-display);
+    font-size: 1.6rem;
+    font-weight: 700;
+    color: var(--rf-text-primary);
+    line-height: 1.1;
+}
+
+.rf-account-stat-label {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--rf-text-secondary);
+}
+
+@media (max-width: 575.98px) {
+    .rf-account-facts {
+        grid-template-columns: 1fr;
+        gap: 0.1rem;
+    }
+
+        .rf-account-facts dd {
+            margin-bottom: 0.5rem;
+        }
+
+    .rf-account-stats {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+/* Dashboard: one card per compendium module with its counts */
+.rf-dashboard-card {
+    color: inherit;
+}
+
+.rf-dashboard-stats {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.5rem;
+}
+
+    .rf-dashboard-stats .rf-account-stat {
+        padding: 0.6rem 0.25rem;
+    }
+
+/* Unconfirmed e-mail notice in the account page */
+.rf-account-verify {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    padding: 0.75rem 1rem;
+    border-radius: 4px;
+    border: 1px solid var(--rf-orange-primary);
+    background-color: rgba(255, 140, 0, 0.08);
+    color: var(--rf-text-primary);
+}
+
+/* Share box in Homebrew details */
+.rf-share {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem 0.75rem;
+    margin-bottom: 1rem;
+    padding: 0.6rem 0.9rem;
+    border-radius: 4px;
+    border: 1px dashed rgba(79, 195, 247, 0.5);
+    color: var(--rf-text-secondary);
+}
+
+/* Browser "show password" eye (Edge / Chromium on Windows): light on the dark fields */
+input[type="password"]::-ms-reveal {
+    filter: invert(1) brightness(1.4);
+    opacity: 0.85;
+}
+
+input[type="password"]::-ms-reveal:hover {
+    opacity: 1;
+}
+

@@ -1,0 +1,450 @@
+name: build
+
+on:
+  push:
+    branches: [ main, develop, release, 'fix/**', 'feat/**', 'refactor/**' ]
+  pull_request:
+    branches: [ main, develop ]
+
+# Runners pinned to Ubuntu 24.04: ubuntu-latest moves to Ubuntu 26 from 19 October 2026 (actions/runner-images#14748);
+# move to the new image deliberately, in its own PR, once the jobs pass on it.
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Restore
+        run: dotnet restore RealmForge/RealmForge.slnx
+
+      - name: Build
+        shell: bash
+        run: |
+          set -o pipefail
+          dotnet build RealmForge/RealmForge.slnx --no-restore --configuration Release | tee build.log
+          echo "::notice title=build::$(grep -oE 'warning [A-Z]+[0-9]+' build.log | sort | uniq -c | sort -rn | tr '\n' ';')"
+          echo "::notice title=build::$(grep -oE 'different versions of "[^"]+"' build.log | sort | uniq -c | tr '\n' ';')"
+          echo "::notice title=build::$(grep -oE 'warning CS[0-9]+: [^[]{0,120}' build.log | sort -u | head -20 | tr '\n' ';')"
+          # NuGet audit: vulnerable packages (package, version, advisory link)
+          if grep -qE 'warning NU190[1-4]' build.log; then
+            grep -oE "warning NU190[1-4]: [^[]{0,220}" build.log | sort -u | head -10 | sed 's/^/::warning title=nuget-audit::/'
+          fi
+
+      - name: Test
+        shell: bash
+        run: |
+          set -o pipefail
+          dotnet test RealmForge/RealmForge.slnx --no-build --configuration Release | tee test.log
+          grep -E "Passed!|Failed!|error" test.log | sed 's/^/::notice title=tests::/' || true
+
+  database:
+    runs-on: ubuntu-24.04
+    needs: build
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          # Throwaway CI database: no password at all (trust auth), so nothing secret is stored here
+          POSTGRES_HOST_AUTH_METHOD: trust
+          POSTGRES_DB: realm_forge_ci
+        ports: [ "5432:5432" ]
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      CONN: Host=localhost;Port=5432;Database=realm_forge_ci;Username=postgres
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Restore and install dotnet-ef
+        run: |
+          dotnet restore RealmForge/RealmForge.slnx
+          dotnet tool install --global dotnet-ef --version 10.0.12
+
+      - name: Apply migrations up to AddFeatsTable and insert a legacy Homebrew feat
+        shell: bash
+        run: |
+          set -e
+          dotnet ef database update AddFeatsTable --project RealmForge/RealmForge.Infrastructure --startup-project RealmForge/RealmForge.Api --connection "$CONN"
+          psql -h localhost -U postgres -d realm_forge_ci -v ON_ERROR_STOP=1 -c "
+            INSERT INTO \"Feats\" (\"Id\",\"Category\",\"Prerequisite\",\"Ruleset\",\"IsOfficialSRD\",\"AuthorId\")
+            VALUES ('aaaaaaaa-0000-0000-0000-000000000001', 2, 'Elf or Half-Elf', 2, false, NULL);
+            INSERT INTO \"FeatTranslations\" (\"Id\",\"FeatId\",\"Language\",\"Name\",\"Description\")
+            VALUES ('aaaaaaaa-0000-0000-0000-000000000002','aaaaaaaa-0000-0000-0000-000000000001',1,'Legacy','x'),
+                   ('aaaaaaaa-0000-0000-0000-000000000003','aaaaaaaa-0000-0000-0000-000000000001',2,'Legacy IT','x');"
+
+      - name: Apply remaining migrations and check the legacy prerequisite survived
+        shell: bash
+        run: |
+          set -e
+          dotnet ef database update --project RealmForge/RealmForge.Infrastructure --startup-project RealmForge/RealmForge.Api --connection "$CONN"
+          notes=$(psql -h localhost -U postgres -d realm_forge_ci -tAc "SELECT count(*) FROM \"FeatTranslations\" WHERE \"PrerequisiteNote\" = 'Elf or Half-Elf'")
+          echo "::notice title=database::legacy homebrew notes preserved: $notes/2"
+          test "$notes" = "2"
+
+      - name: Start the API and check seeding
+        shell: bash
+        env:
+          ConnectionStrings__DefaultConnection: ${{ env.CONN }}
+          ASPNETCORE_ENVIRONMENT: Development
+          ASPNETCORE_URLS: http://localhost:5080
+        run: |
+          set -e
+          dotnet run --project RealmForge/RealmForge.Api --no-launch-profile > api.log 2>&1 &
+          for i in $(seq 1 60); do curl -sf http://localhost:5080/api/feats >/dev/null && break; sleep 2; done
+          feats=$(curl -sf "http://localhost:5080/api/feats?isOfficial=true" | jq length)
+          species=$(curl -sf "http://localhost:5080/api/species" | jq 'map(select(.isOfficialSRD)) | length')
+          keen=$(curl -sf "http://localhost:5080/api/feats/11111111-2222-3333-4444-555555555571?lang=2" | jq -r .prerequisite)
+          status=$(curl -s -o /dev/null -w '%{http_code}' -X DELETE "http://localhost:5080/api/feats/11111111-2222-3333-4444-555555555571")
+          echo "::notice title=database::SRD feats=$feats species=$species | Keen Mind (IT) prerequisite='$keen' | anonymous DELETE SRD -> $status"
+          grep -iE "fail|error" api.log | head -10 | sed 's/^/::warning title=api-log::/' || true
+          test "$feats" = "117"
+          test "$species" = "19"
+          test "$keen" = "Livello 4+, Intelligenza 13+"
+          test "$status" = "401"
+
+      - name: Restart the API and check that existing SRD rows are re-synchronized
+        shell: bash
+        env:
+          ConnectionStrings__DefaultConnection: ${{ env.CONN }}
+          ASPNETCORE_ENVIRONMENT: Development
+          ASPNETCORE_URLS: http://localhost:5080
+        run: |
+          set -e
+          pkill -f RealmForge.Api || true
+          sleep 3
+          # Simulate a database seeded by the old seeders: no structured prerequisites, outdated name
+          psql -h localhost -U postgres -d realm_forge_ci -v ON_ERROR_STOP=1 -c "
+            UPDATE \"Feats\" SET \"PrerequisiteMinimumLevel\" = NULL, \"PrerequisiteAbilities\" = '{}', \"PrerequisiteMinimumScore\" = NULL
+            WHERE \"Id\" = '11111111-2222-3333-4444-555555555571';
+            UPDATE \"FeatTranslations\" SET \"Name\" = 'Outdated' WHERE \"FeatId\" = '11111111-2222-3333-4444-555555555571';"
+          dotnet run --project RealmForge/RealmForge.Api --no-launch-profile > api2.log 2>&1 &
+          for i in $(seq 1 60); do curl -sf http://localhost:5080/api/feats >/dev/null && break; sleep 2; done
+          detail=$(curl -sf "http://localhost:5080/api/feats/11111111-2222-3333-4444-555555555571?lang=1")
+          name=$(echo "$detail" | jq -r .name); pre=$(echo "$detail" | jq -r .prerequisite)
+          echo "::notice title=database::after resync: name='$name' prerequisite='$pre'"
+          test "$name" = "Keen Mind"
+          test "$pre" = "Level 4+, Intelligence 13+"
+
+      - name: Check species re-sync on a database seeded by the old seeders
+        shell: bash
+        env:
+          ConnectionStrings__DefaultConnection: ${{ env.CONN }}
+          ASPNETCORE_ENVIRONMENT: Development
+          ASPNETCORE_URLS: http://localhost:5080
+        run: |
+          set -e
+          q() { psql -h localhost -U postgres -d realm_forge_ci -tAc "$1"; }
+          restart() {
+            pkill -f RealmForge.Api || true; sleep 3
+            dotnet run --project RealmForge/RealmForge.Api --no-launch-profile > "$1" 2>&1 &
+            for i in $(seq 1 60); do curl -sf http://localhost:5080/api/feats >/dev/null && break; sleep 2; done
+          }
+          elf=20000000-0000-0000-0000-000000000005
+          expected=$(q "SELECT count(*) FROM \"Traits\" WHERE \"IsOfficialSRD\"")
+          # Old-style data: a stale SRD trait with a random id, an outdated trait name, a Homebrew lineage on an SRD species
+          q "INSERT INTO \"Traits\" (\"Id\",\"RequiredLevel\",\"SpeciesId\",\"Ruleset\",\"IsOfficialSRD\") VALUES ('bbbbbbbb-0000-0000-0000-000000000001',1,'$elf',2,true);
+             INSERT INTO \"TraitTranslations\" (\"Id\",\"TraitId\",\"Language\",\"Name\",\"Description\") VALUES ('bbbbbbbb-0000-0000-0000-000000000002','bbbbbbbb-0000-0000-0000-000000000001',1,'Stale trait','x');
+             UPDATE \"TraitTranslations\" SET \"Name\" = 'Outdated' WHERE \"Name\" = 'Darkvision';
+             INSERT INTO \"Subspecies\" (\"Id\",\"SpeciesId\",\"Ruleset\",\"IsOfficialSRD\") VALUES ('cccccccc-0000-0000-0000-000000000001','$elf',2,false);
+             INSERT INTO \"SubspeciesTranslations\" (\"Id\",\"SubspeciesId\",\"Language\",\"Name\",\"Description\") VALUES ('cccccccc-0000-0000-0000-000000000002','cccccccc-0000-0000-0000-000000000001',1,'Homebrew Elf','x');
+             DELETE FROM \"Traits\" WHERE \"SpeciesId\" = '$elf' AND \"IsOfficialSRD\" AND \"Id\" <> 'bbbbbbbb-0000-0000-0000-000000000001';
+             DELETE FROM \"SpeciesTranslations\" WHERE \"SpeciesId\" = '$elf' AND \"Language\" = 2;
+             DELETE FROM \"Subspecies\" WHERE \"Id\" = '20000000-0000-0000-0005-000000000001';" >/dev/null
+          # The rows deleted above (Elf base traits, Italian Elf name, Drow lineage) must be re-created by the sync
+          restart api4.log
+          stale=$(q "SELECT count(*) FROM \"Traits\" WHERE \"Id\" = 'bbbbbbbb-0000-0000-0000-000000000001'")
+          outdated=$(q "SELECT count(*) FROM \"TraitTranslations\" WHERE \"Name\" = 'Outdated'")
+          homebrew=$(q "SELECT count(*) FROM \"Subspecies\" WHERE \"Id\" = 'cccccccc-0000-0000-0000-000000000001'")
+          after=$(q "SELECT count(*) FROM \"Traits\" WHERE \"IsOfficialSRD\"")
+          ids1=$(q "SELECT md5(string_agg(\"Id\"::text, ',' ORDER BY \"Id\")) FROM \"Traits\"")
+          restart api5.log
+          ids2=$(q "SELECT md5(string_agg(\"Id\"::text, ',' ORDER BY \"Id\")) FROM \"Traits\"")
+          elf_it=$(q "SELECT count(*) FROM \"SpeciesTranslations\" WHERE \"SpeciesId\" = '$elf' AND \"Language\" = 2")
+          drow=$(q "SELECT count(*) FROM \"Subspecies\" WHERE \"Id\" = '20000000-0000-0000-0005-000000000001'")
+          v5=$(q "SELECT count(*) FROM \"Traits\" WHERE \"IsOfficialSRD\" AND substring(\"Id\"::text,15,1)='5'")
+          echo "::notice title=database::species resync (re-created rows): Elf IT name=$elf_it, Drow lineage=$drow, deterministic SRD trait ids=$v5"
+          test "$elf_it" = "1"
+          test "$drow" = "1"
+          test "$v5" = "$expected"
+          echo "::notice title=database::species resync: stale SRD trait left=$stale, outdated names left=$outdated, homebrew lineage kept=$homebrew, SRD traits=$after/$expected, ids stable across restarts=$([ "$ids1" = "$ids2" ] && echo yes || echo no)"
+          test "$stale" = "0"
+          test "$outdated" = "0"
+          test "$homebrew" = "1"
+          test "$after" = "$expected"
+          test "$ids1" = "$ids2"
+
+      - name: Check authentication and Homebrew ownership
+        shell: bash
+        env:
+          ConnectionStrings__DefaultConnection: ${{ env.CONN }}
+          ASPNETCORE_ENVIRONMENT: Development
+          ASPNETCORE_URLS: http://localhost:5080
+        run: |
+          set -e
+          api=http://localhost:5080
+          if ! curl -sf $api/api/feats >/dev/null; then
+            dotnet run --project RealmForge/RealmForge.Api --no-launch-profile > api3.log 2>&1 &
+            for i in $(seq 1 60); do curl -sf $api/api/feats >/dev/null && break; sleep 2; done
+          fi
+          code() { curl -s -o /dev/null -w '%{http_code}' "$@"; }
+          json='-H Content-Type:application/json'
+
+          # Random throwaway password generated per run (meets Identity's default rules)
+          PW="Rf-$(openssl rand -hex 12)A!"
+          cred() { jq -nc --arg e "$1" --arg p "$PW" '{email:$e,password:$p}'; }
+          test "$(code -X POST $api/api/auth/register $json -d "$(cred alice@example.com)")" = "200"
+          test "$(code -X POST $api/api/auth/register $json -d "$(cred bob@example.com)")" = "200"
+          A=$(curl -sf -X POST $api/api/auth/login $json -d "$(cred alice@example.com)" | jq -r .accessToken)
+          B=$(curl -sf -X POST $api/api/auth/login $json -d "$(cred bob@example.com)" | jq -r .accessToken)
+
+
+          feat='{"category":2,"ruleset":2,"prerequisites":{"minimumLevel":4,"abilities":[1],"minimumScore":13},"translations":[{"language":1,"name":"Forge Test","description":"x","prerequisiteNote":"Dwarf"},{"language":2,"name":"Prova Forgia","description":"x","prerequisiteNote":"Nano"}]}'
+
+          # E-mail confirmation: without SMTP the API logs the confirmation link; creating content needs a confirmed address
+          feat_unconfirmed=$(curl -s -o /dev/null -D - -X POST $api/api/feats $json -H "Authorization: Bearer $A" -d "$feat" \
+            | tr -d '\r' | awk 'NR==1{print $2} tolower($1)=="x-realmforge-error:"{print $2}' | paste -sd' ')
+          confirm() {
+            link=$(grep -rhoE "for $1: [^ ]+" --include='*.log' . | tail -1 | sed 's/^.*: //')
+            test -n "$link"
+            code "$api/api/auth/confirmEmail?${link#*\?}"
+          }
+          confirm_bad=$(code "$api/api/auth/confirmEmail?userId=00000000-0000-0000-0000-000000000000&code=bad")
+          confirm_a=$(confirm alice@example.com); confirm_b=$(confirm bob@example.com)
+          confirmed=$(curl -sf $api/api/auth/manage/info -H "Authorization: Bearer $A" | jq .isEmailConfirmed)
+          echo "::notice title=database::e-mail: unconfirmed create=$feat_unconfirmed | bad link=$confirm_bad | confirm alice=$confirm_a bob=$confirm_b | alice confirmed=$confirmed"
+          if [ "$confirm_a" != "200" ]; then
+            grep -rh -A12 -E "fail: |Exception" --include='*.log' . | grep -v '^--$' | head -40 | sed 's/^/::error title=api-log::/'
+          fi
+          test "$feat_unconfirmed" = "403 EmailNotConfirmed" && test "$confirm_bad" = "401" && test "$confirm_a" = "200" && test "$confirm_b" = "200" && test "$confirmed" = "true"
+
+          # Password recovery (separate account, so alice's and bob's sessions stay valid): the logged link opens the
+          # client page /reset-password with email and code; the code works once and the new password signs in
+          test "$(code -X POST $api/api/auth/register $json -d "$(cred carol@example.com)")" = "200"
+          test "$(confirm carol@example.com)" = "200"
+          forgot_unknown=$(code -X POST $api/api/auth/forgotPassword $json -d '{"email":"nobody@example.com"}')
+          forgot=$(code -X POST $api/api/auth/forgotPassword $json -d '{"email":"carol@example.com"}')
+          sleep 1
+          reset_link=$(grep -rhoE "Reset your password for carol@example.com: [^ ]+" --include='*.log' . | tail -1 | sed 's/^.*: //')
+          reset_code=$(echo "$reset_link" | grep -oE '[?&]code=[^&]+' | cut -d= -f2-)
+          NEWPW="Rf-$(openssl rand -hex 12)B!"
+          reset_body=$(jq -nc --arg c "$reset_code" --arg p "$NEWPW" '{email:"carol@example.com",resetCode:$c,newPassword:$p}')
+          reset=$(code -X POST $api/api/auth/resetPassword $json -d "$reset_body")
+          reset_again=$(curl -s -X POST $api/api/auth/resetPassword $json -d "$reset_body" | jq -r '.errors | keys | join(",")')
+          login_old=$(code -X POST $api/api/auth/login $json -d "$(cred carol@example.com)")
+          login_new=$(code -X POST $api/api/auth/login $json -d "$(jq -nc --arg p "$NEWPW" '{email:"carol@example.com",password:$p}')")
+          echo "::notice title=database::password reset: unknown address=$forgot_unknown | forgot=$forgot | link page=$(echo "$reset_link" | grep -oE '/reset-password\?email=[^&]+' ) | reset=$reset | code reused=$reset_again | old password=$login_old | new password=$login_new"
+          test "$forgot_unknown" = "200" && test "$forgot" = "200" && test -n "$reset_code" && test "$reset" = "200" && test "$reset_again" = "InvalidToken" && test "$login_old" = "401" && test "$login_new" = "200"
+
+          anon_create=$(code -X POST $api/api/feats $json -d "$feat")
+          created=$(curl -sf -X POST "$api/api/feats?lang=2" $json -H "Authorization: Bearer $A" -d "$feat")
+          id=$(echo "$created" | jq -r .id); pre=$(echo "$created" | jq -r .prerequisite); can=$(echo "$created" | jq -r .canEdit)
+          # Visibility: new Homebrew is private; "link" makes it readable but not listed; "public" lists it
+          listed() { curl -sf "$api/api/feats" "$@" | jq --arg id "$id" '[.[] | select(.id == $id)] | length'; }
+          vis_default=$(echo "$created" | jq .visibility)
+          b_private=$(code "$api/api/feats/$id" -H "Authorization: Bearer $B"); anon_private=$(code "$api/api/feats/$id")
+          list_private="anon=$(listed) bob=$(listed -H "Authorization: Bearer $B") alice=$(listed -H "Authorization: Bearer $A")"
+          update=$(echo "$feat" | jq --arg id "$id" '. + {id: $id, visibility: 1}')
+          link_update=$(code -X PUT $api/api/feats/$id $json -H "Authorization: Bearer $A" -d "$update")
+          anon_link=$(code "$api/api/feats/$id"); list_link=$(listed)
+          update=$(echo "$feat" | jq --arg id "$id" '. + {id: $id, visibility: 0}')
+          own_update=$(code -X PUT $api/api/feats/$id $json -H "Authorization: Bearer $A" -d "$update")
+          list_public=$(listed)
+          echo "::notice title=database::visibility: default=$vis_default | private detail bob=$b_private anon=$anon_private | private listed $list_private | link PUT=$link_update detail anon=$anon_link listed=$list_link | public listed=$list_public"
+          test "$vis_default" = "2" && test "$b_private" = "404" && test "$anon_private" = "404" && test "$list_private" = "anon=0 bob=0 alice=1"
+          test "$link_update" = "204" && test "$anon_link" = "200" && test "$list_link" = "0" && test "$list_public" = "1"
+          other_update=$(code -X PUT $api/api/feats/$id $json -H "Authorization: Bearer $B" -d "$update")
+          other_delete=$(code -X DELETE $api/api/feats/$id -H "Authorization: Bearer $B")
+          srd_delete=$(code -X DELETE $api/api/feats/11111111-2222-3333-4444-555555555571 -H "Authorization: Bearer $A")
+          b_can=$(curl -sf "$api/api/feats/$id" -H "Authorization: Bearer $B" | jq -r .canEdit)
+          own_delete=$(code -X DELETE $api/api/feats/$id -H "Authorization: Bearer $A")
+
+          echo "::notice title=database::auth: anonymous create=$anon_create | created prerequisite='$pre' canEdit=$can | own PUT=$own_update | other PUT=$other_update DELETE=$other_delete canEdit=$b_can | SRD DELETE=$srd_delete | own DELETE=$own_delete"
+          test "$anon_create" = "401"
+          test "$pre" = "Livello 4+, Forza 13+, Nano"
+          test "$can" = "true"
+          test "$own_update" = "204"
+          test "$other_update" = "403"
+          test "$other_delete" = "403"
+          test "$b_can" = "false"
+          test "$srd_delete" = "403"
+          test "$own_delete" = "204"
+
+          # Backgrounds: homebrew creation with an origin feat, localized feat name, ownership and validation
+          alert=11111111-2222-3333-4444-555555555544
+          bg=$(jq -nc --arg f "$alert" '{ruleset:2, abilityOptions:[4,5,6], skillProficiencies:[7,15], originFeatId:$f, equipmentGoldAlternative:50, visibility:1,
+            translations:[{language:1,name:"Test Acolyte",description:"x",originFeatNote:"Cleric list"},{language:2,name:"Accolito di prova",description:"x",originFeatNote:"lista del Chierico"}]}')
+          bg_anon=$(code -X POST $api/api/backgrounds $json -d "$bg")
+          bg_created=$(curl -sf -X POST "$api/api/backgrounds?lang=2" $json -H "Authorization: Bearer $A" -d "$bg")
+          bg_id=$(echo "$bg_created" | jq -r .id); bg_feat=$(echo "$bg_created" | jq -r .originFeatName); bg_skills=$(echo "$bg_created" | jq -c .skillProficiencies); bg_gold=$(echo "$bg_created" | jq .equipmentGoldAlternative)
+          bg_bad_gold=$(code -X POST $api/api/backgrounds $json -H "Authorization: Bearer $A" -d "$(echo "$bg" | jq '.equipmentGoldAlternative = -1')")
+          bg_bad=$(code -X POST $api/api/backgrounds $json -H "Authorization: Bearer $A" -d "$(echo "$bg" | jq '.originFeatId = "00000000-0000-0000-0000-000000000001"')")
+          bg_other=$(code -X PUT $api/api/backgrounds/$bg_id $json -H "Authorization: Bearer $B" -d "$(echo "$bg" | jq --arg id "$bg_id" '. + {id:$id}')")
+          bg_en=$(curl -sf "$api/api/backgrounds/$bg_id?lang=1" | jq -r '.originFeatName + " / " + .originFeatNote')
+          # Account summary: own data and Homebrew counts while alice's background exists
+          acc_anon=$(code $api/api/account/summary)
+          acc=$(curl -sf $api/api/account/summary -H "Authorization: Bearer $A" | jq -c '{email, isAdmin, registered: (.registeredAt != null), backgrounds: .homebrew.backgrounds}')
+          acc_bob=$(curl -sf $api/api/account/summary -H "Authorization: Bearer $B" | jq -c '.homebrew.backgrounds')
+          echo "::notice title=database::account: anonymous=$acc_anon | alice=$acc | bob backgrounds=$acc_bob"
+          test "$acc_anon" = "401" && test "$acc" = '{"email":"alice@example.com","isAdmin":false,"registered":true,"backgrounds":1}' && test "$acc_bob" = "0"
+          bg_delete=$(code -X DELETE $api/api/backgrounds/$bg_id -H "Authorization: Bearer $A")
+          echo "::notice title=database::backgrounds: anonymous create=$bg_anon | created feat(IT)='$bg_feat' skills=$bg_skills gold=$bg_gold (negative=$bg_bad_gold) | EN='$bg_en' | unknown feat=$bg_bad | other PUT=$bg_other | own DELETE=$bg_delete"
+          test "$bg_gold" = "50" && test "$bg_bad_gold" = "400"
+          bg_srd=$(curl -sf "$api/api/backgrounds?isOfficial=true&ruleset=1&lang=2" | jq -c '[.[] | {name, skills: .skillProficiencies, source}] | sort_by(.name)')
+          echo "::notice title=database::base backgrounds: $bg_srd"
+          test "$bg_srd" = '[{"name":"Accolito","skills":[7,15],"source":2},{"name":"Artigiano di Gilda","skills":[7,14],"source":1},{"name":"Ciarlatano","skills":[5,16],"source":1},{"name":"Criminale","skills":[5,17],"source":1},{"name":"Eremita","skills":[10,15],"source":1},{"name":"Eroe Popolare","skills":[2,18],"source":1},{"name":"Forestiero","skills":[4,18],"source":1},{"name":"Intrattenitore","skills":[1,13],"source":1},{"name":"Marinaio","skills":[4,12],"source":1},{"name":"Monello","skills":[16,17],"source":1},{"name":"Nobile","skills":[6,14],"source":1},{"name":"Sapiente","skills":[3,6],"source":1},{"name":"Soldato","skills":[4,8],"source":1}]'
+          bg_2024=$(curl -sf "$api/api/backgrounds?isOfficial=true&ruleset=2&lang=2" | jq -c '[.[] | {name, abilities: .abilityOptions, skills: .skillProficiencies, feat: .originFeatName, source}] | sort_by(.name)')
+          echo "::notice title=database::base backgrounds 2024: $bg_2024"
+          test "$bg_2024" = '[{"name":"Accolito","abilities":[4,5,6],"skills":[7,15],"feat":"Iniziato alla Magia","source":3},{"name":"Artigiano","abilities":[1,2,4],"skills":[9,14],"feat":"Lavoro Manuale","source":1},{"name":"Ciarlatano","abilities":[2,3,6],"skills":[5,16],"feat":"Abile","source":1},{"name":"Contadino","abilities":[1,3,5],"skills":[2,11],"feat":"Robusto","source":1},{"name":"Criminale","abilities":[2,3,4],"skills":[16,17],"feat":"Allerta","source":3},{"name":"Eremita","abilities":[3,5,6],"skills":[10,15],"feat":"Guaritore","source":1},{"name":"Guardia","abilities":[1,4,5],"skills":[4,12],"feat":"Allerta","source":1},{"name":"Guida","abilities":[2,3,5],"skills":[17,18],"feat":"Iniziato alla Magia","source":1},{"name":"Intrattenitore","abilities":[1,2,6],"skills":[1,13],"feat":"Musicista","source":1},{"name":"Marinaio","abilities":[1,2,5],"skills":[1,12],"feat":"Lottatore da Taverna","source":1},{"name":"Mercante","abilities":[3,4,6],"skills":[2,14],"feat":"Fortunato","source":1},{"name":"Nobile","abilities":[1,4,6],"skills":[6,14],"feat":"Abile","source":1},{"name":"Sapiente","abilities":[3,4,5],"skills":[3,6],"feat":"Iniziato alla Magia","source":3},{"name":"Scriba","abilities":[2,4,5],"skills":[9,12],"feat":"Abile","source":1},{"name":"Soldato","abilities":[1,2,3],"skills":[4,8],"feat":"Aggressore Selvaggio","source":3},{"name":"Viandante","abilities":[2,5,6],"skills":[7,17],"feat":"Fortunato","source":1}]'
+          sources=$(curl -sf "$api/api/feats?isOfficial=true" | jq -c '[.[].source] | unique')
+          acolyte_source=$(curl -sf "$api/api/backgrounds?isOfficial=true&ruleset=1&lang=1" | jq -r '.[] | select(.name == "Acolyte") | .source')
+          homebrew_source=$(echo "$created" | jq -r .source)
+          echo "::notice title=database::sources: base feats=$sources | Acolyte=$acolyte_source | homebrew=$homebrew_source"
+          test "$sources" = "[1,2,3]"
+          test "$acolyte_source" = "2"
+          test "$homebrew_source" = "null"
+          test "$bg_anon" = "401"
+          test "$bg_feat" = "Allerta"
+          test "$bg_skills" = "[7,15]"
+          test "$bg_en" = "Alert / Cleric list"
+          test "$bg_bad" = "400"
+          test "$bg_other" = "403"
+          test "$bg_delete" = "204"
+
+  ui:
+    runs-on: ubuntu-24.04
+    needs: build
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          # Throwaway CI database: no password at all (trust auth), so nothing secret is stored here
+          POSTGRES_HOST_AUTH_METHOD: trust
+          POSTGRES_DB: realm_forge_ci
+        ports: [ "5432:5432" ]
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: '10.0.x'
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+
+      - name: Build once
+        # Building API and client with two concurrent "dotnet run" makes them race on the shared projects (flaky starts)
+        run: dotnet build RealmForge/RealmForge.slnx --configuration Debug
+
+      - name: Start API and client
+        shell: bash
+        env:
+          ConnectionStrings__DefaultConnection: Host=localhost;Port=5432;Database=realm_forge_ci;Username=postgres
+          ASPNETCORE_ENVIRONMENT: Development
+        run: |
+          # Point the client at the CI API (plain http)
+          echo '{ "ApiBaseUrl": "http://localhost:5080/" }' > RealmForge/RealmForge.Client/wwwroot/appsettings.Development.json
+          ASPNETCORE_URLS=http://localhost:5080 nohup dotnet run --no-build --project RealmForge/RealmForge.Api --no-launch-profile > api.log 2>&1 &
+          nohup dotnet run --no-build --project RealmForge/RealmForge.Client --launch-profile http > client.log 2>&1 &
+          for i in $(seq 1 60); do
+            curl -sf http://localhost:5080/api/feats >/dev/null && curl -sf http://localhost:5227 >/dev/null && exit 0
+            sleep 3
+          done
+          # Startup failed: show why
+          curl -sf http://localhost:5080/api/feats >/dev/null && echo "::error title=ui::API is up" || echo "::error title=ui::API did not start"
+          curl -sf http://localhost:5227 >/dev/null && echo "::error title=ui::client is up" || echo "::error title=ui::client did not start"
+          tail -n 15 api.log | sed 's/^/::error title=api-log::/'
+          tail -n 15 client.log | sed 's/^/::error title=client-log::/'
+          exit 1
+
+      - name: Run UI smoke test
+        working-directory: .github/ui-smoke
+        run: |
+          npm init -y >/dev/null
+          npm install playwright@1 >/dev/null
+          npx playwright install --with-deps chromium >/dev/null
+          node smoke.mjs
+
+  # The API image as Render builds it: Production environment, PORT from the platform, a postgresql:// URL as on Neon,
+  # migrations at startup, health check, data protection keys stored in the database, and a client publish
+  container:
+    runs-on: ubuntu-24.04
+    needs: build
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_HOST_AUTH_METHOD: trust
+          POSTGRES_DB: realm_forge_prod
+        ports: [ "5432:5432" ]
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Build the API image
+        run: docker build -f RealmForge/RealmForge.Api/Dockerfile -t realmforge-api .
+
+      - name: Run it as on Render and check it
+        shell: bash
+        run: |
+          set -e
+          start() {
+            docker run -d --name api --network host \
+              -e PORT=10000 \
+              -e ConnectionStrings__DefaultConnection="postgresql://postgres@localhost:5432/realm_forge_prod?sslmode=disable" \
+              -e Database__MigrateOnStartup=true \
+              -e Cors__AllowedOrigins__0=https://realmforge.example \
+              realmforge-api > /dev/null
+            for i in $(seq 1 60); do
+              if curl -sf http://localhost:10000/health > /dev/null; then return 0; fi
+              sleep 2
+            done
+            docker logs api | tail -30 | sed 's/^/::error title=container::/'
+            exit 1
+          }
+          start
+          health=$(curl -s http://localhost:10000/health)
+          feats=$(curl -sf "http://localhost:10000/api/feats?isOfficial=true" | jq length)
+          scheme=$(curl -s -o /dev/null -w '%{http_code}' -H 'X-Forwarded-Proto: https' http://localhost:10000/api/feats)
+          cors=$(curl -s -D - -o /dev/null -H 'Origin: https://realmforge.example' http://localhost:10000/api/feats | tr -d '\r' | awk 'tolower($1)=="access-control-allow-origin:"{print $2}')
+          keys=$(psql -h localhost -U postgres -d realm_forge_prod -tAc 'SELECT count(*) FROM "DataProtectionKeys"')
+
+          # A token issued before a restart must still work after it (keys survive in the database)
+          PW="Rf-$(openssl rand -hex 12)A!"
+          body=$(jq -nc --arg p "$PW" '{email:"prod@example.com",password:$p}')
+          curl -sf -X POST http://localhost:10000/api/auth/register -H Content-Type:application/json -d "$body" > /dev/null
+          token=$(curl -sf -X POST http://localhost:10000/api/auth/login -H Content-Type:application/json -d "$body" | jq -r .accessToken)
+          docker rm -f api > /dev/null
+          start
+          after_restart=$(curl -s -o /dev/null -w '%{http_code}' http://localhost:10000/api/auth/manage/info -H "Authorization: Bearer $token")
+          scalar=$(curl -s -o /dev/null -w '%{http_code}' http://localhost:10000/scalar)
+
+          echo "::notice title=container::health=$health | base feats=$feats | forwarded https=$scheme | cors=$cors | data protection keys=$keys | token after restart=$after_restart | API reference in production=$scalar"
+          test "$health" = "Healthy" && test "$feats" = "117" && test "$scheme" = "200" && test "$cors" = "https://realmforge.example" \
+            && test "$keys" -ge 1 && test "$after_restart" = "200" && test "$scalar" = "404"
+
+      - uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Publish the client as deploy-client does
+        run: |
+          dotnet publish RealmForge/RealmForge.Client/RealmForge.Client.csproj --configuration Release --output publish
+          files=$(find publish/wwwroot -type f | wc -l)
+          largest=$(find publish/wwwroot -type f -printf '%s\n' | sort -n | tail -1)
+          echo "::notice title=container::client publish: $files files, largest $((largest / 1024)) KiB (Cloudflare Pages: max 20000 files, 25 MiB each)"
+          test -f publish/wwwroot/index.html && test "$files" -lt 20000 && test "$largest" -lt 26214400

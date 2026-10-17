@@ -1,0 +1,36 @@
+# Sample requests for the RealmForge API (Visual Studio / Rider / VS Code REST Client).
+# lang: 1 = English, 2 = Italian · ruleset: 1 = 2014, 2 = 2024
+@host = https://localhost:7086
+
+### Base content: feats of the 2024 Origin category, in Italian
+GET {{host}}/api/feats?lang=2&category=1&ruleset=2&isOfficial=true
+Accept: application/json
+
+### Species list, in English
+GET {{host}}/api/species?lang=1
+Accept: application/json
+
+### 2024 backgrounds, in Italian
+GET {{host}}/api/backgrounds?lang=2&ruleset=2
+Accept: application/json
+
+### Sign in (the response contains accessToken and refreshToken)
+POST {{host}}/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "you@example.com",
+  "password": "<password>"
+}
+
+### Account summary (paste the accessToken)
+GET {{host}}/api/account/summary
+Authorization: Bearer <accessToken>
+
+### Password recovery: without SMTP the reset link is written to the API console
+POST {{host}}/api/auth/forgotPassword
+Content-Type: application/json
+
+{
+  "email": "you@example.com"
+}

@@ -1,0 +1,349 @@
+﻿@page "/account"
+@using RealmForge.Client.Localization
+@using RealmForge.Client.Services
+@using RealmForge.Shared.DTOs
+@using RealmForge.Shared.Enums
+@implements IDisposable
+@inject AuthService Auth
+@inject LanguageStateService LanguageState
+@inject CrossTabService CrossTab
+@inject NavigationManager Navigation
+@inject TokenAuthenticationStateProvider AuthStateProvider
+
+<PageTitle>RealmForge - @UiText.AccountTitle(LanguageState.CurrentLanguage)</PageTitle>
+
+<AuthorizeView>
+    <Authorized>
+        <div class="container-fluid px-0 py-4" style="max-width: 760px;" data-test="account-summary">
+            <h1 class="h3 fw-bold mb-4 pb-3 rf-page-title" style="border-bottom: 2px solid var(--rf-orange-primary);">
+                @UiText.AccountProfileTitle(LanguageState.CurrentLanguage)
+            </h1>
+
+            @* Profile *@
+            <div class="rf-account-card mb-3">
+                <div class="d-flex align-items-center gap-3 mb-3">
+                    <span class="rf-account-card-avatar">@Initial(summary?.Email ?? context.User.Identity?.Name)</span>
+                    <div class="min-w-0">
+                        <div class="fw-bold text-light text-truncate">@(summary?.Email ?? context.User.Identity?.Name)</div>
+                        @if (summary != null)
+                        {
+                            <span class="badge @(summary.IsAdmin ? "badge-edition-2024" : "badge-edition-2014") mt-1" data-test="account-role">
+                                @UiText.AccountRole(summary.IsAdmin, LanguageState.CurrentLanguage)
+                            </span>
+                        }
+                    </div>
+                </div>
+
+                @if (summary != null)
+                {
+                    <p class="small mb-3" style="color: var(--rf-text-secondary);">@UiText.AccountRoleHint(summary.IsAdmin, LanguageState.CurrentLanguage)</p>
+                    <dl class="rf-account-facts mb-0">
+                        <dt>@UiText.LabelMemberSince(LanguageState.CurrentLanguage)</dt>
+                        <dd>@(summary.RegisteredAt is DateTimeOffset at ? UiText.FormatDate(at.ToLocalTime(), LanguageState.CurrentLanguage) : UiText.LabelNotAvailable(LanguageState.CurrentLanguage))</dd>
+                        <dt>@UiText.LabelEmailStatus(LanguageState.CurrentLanguage)</dt>
+                        <dd data-test="account-email-status">@UiText.EmailStatus(summary.EmailConfirmed, LanguageState.CurrentLanguage)</dd>
+                        <dt>@UiText.LabelInterfaceLanguage(LanguageState.CurrentLanguage)</dt>
+                        <dd>@UiText.LanguageName(LanguageState.CurrentLanguage)</dd>
+                    </dl>
+
+                    @if (!summary.EmailConfirmed)
+                    {
+                        @* Unconfirmed address: creation is blocked until the link in the e-mail is opened *@
+                        <div class="rf-account-verify mt-3" data-test="account-verify">
+                            <span class="small">@UiText.HintVerifyToForge(LanguageState.CurrentLanguage)</span>
+                            <button class="btn btn-sm btn-rf-orange" disabled="@isResending" @onclick="ResendConfirmationAsync">
+                                @(isResending ? "..." : UiText.BtnResendConfirmation(LanguageState.CurrentLanguage))
+                            </button>
+                        </div>
+                        @if (resendMessage != null)
+                        {
+                            <div class="small mt-2" style="color: var(--rf-text-secondary);" data-test="account-verify-sent">@resendMessage</div>
+                        }
+                    }
+                }
+            </div>
+
+            @* Homebrew content created by the user *@
+            @if (summary != null)
+            {
+                <div class="rf-account-card mb-3" data-test="account-homebrew">
+                    <div class="rf-account-card-title">@UiText.AccountHomebrewTitle(LanguageState.CurrentLanguage)</div>
+                    <div class="rf-account-stats">
+                        @foreach (var (label, count, href) in HomebrewTiles(summary.Homebrew))
+                        {
+                            <a class="rf-account-stat" href="@href">
+                                <span class="rf-account-stat-value">@count</span>
+                                <span class="rf-account-stat-label">@label</span>
+                            </a>
+                        }
+                    </div>
+                    @if (summary.Homebrew.Total == 0)
+                    {
+                        <p class="small mt-3 mb-0" style="color: var(--rf-text-muted);">@UiText.AccountHomebrewEmpty(LanguageState.CurrentLanguage)</p>
+                    }
+                </div>
+            }
+
+            @* Password change *@
+            <div class="rf-account-card mb-3" data-test="account-password">
+                <div class="rf-account-card-title">@UiText.AccountSecurityTitle(LanguageState.CurrentLanguage)</div>
+
+                @if (passwordErrors.Count > 0)
+                {
+                    <div class="alert alert-warning bg-dark border-warning text-warning p-2 small mb-3">
+                        @foreach (var error in passwordErrors)
+                        {
+                            <div>@UiText.AuthError(error, LanguageState.CurrentLanguage)</div>
+                        }
+                    </div>
+                }
+                @if (passwordChanged)
+                {
+                    <div class="alert bg-dark border-success text-success p-2 small mb-3">@UiText.PasswordChanged(LanguageState.CurrentLanguage)</div>
+                }
+
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <label class="rf-form-label rf-label-single-line">@UiText.LabelCurrentPassword(LanguageState.CurrentLanguage)</label>
+                        <input type="password" class="rf-form-control" autocomplete="current-password" data-test="pwd-current" @bind="currentPassword" />
+                    </div>
+                    <div class="col-md-4">
+                        <label class="rf-form-label rf-label-single-line">@UiText.LabelNewPassword(LanguageState.CurrentLanguage)</label>
+                        <input type="password" class="rf-form-control" autocomplete="new-password" data-test="pwd-new" @bind="newPassword" />
+                    </div>
+                    <div class="col-md-4">
+                        <label class="rf-form-label rf-label-single-line">@UiText.LabelRepeatPassword(LanguageState.CurrentLanguage)</label>
+                        <input type="password" class="rf-form-control" autocomplete="new-password" data-test="pwd-repeat" @bind="repeatPassword" />
+                    </div>
+                </div>
+                <div class="d-flex justify-content-between align-items-center gap-3 mt-3">
+                    <span class="small" style="color: var(--rf-text-muted);">@UiText.PasswordHint(LanguageState.CurrentLanguage)</span>
+                    <button class="btn btn-sm btn-rf-orange flex-shrink-0 text-nowrap px-3" @onclick="ChangePasswordAsync" disabled="@isBusy">
+                        @(isBusy ? "..." : UiText.BtnChangePassword(LanguageState.CurrentLanguage))
+                    </button>
+                </div>
+            </div>
+
+            <div class="d-flex justify-content-end">
+                <button class="btn btn-rf-outline" @onclick="LogoutAsync">@UiText.BtnLogout(LanguageState.CurrentLanguage)</button>
+            </div>
+        </div>
+    </Authorized>
+    <NotAuthorized>
+        <div class="container-fluid px-0 py-4" style="max-width: 460px;">
+            <h1 class="h3 fw-bold mb-4 pb-3 rf-page-title" style="border-bottom: 2px solid var(--rf-orange-primary);">
+                @(isRegisterMode ? UiText.AccountRegisterTitle(LanguageState.CurrentLanguage) : UiText.AccountLoginTitle(LanguageState.CurrentLanguage))
+            </h1>
+
+            @if (errors.Count > 0)
+            {
+                <div class="alert alert-warning bg-dark border-warning text-warning p-2 small mb-3">
+                    @foreach (var error in errors)
+                    {
+                        <div>@UiText.AuthError(error, LanguageState.CurrentLanguage)</div>
+                    }
+                </div>
+            }
+
+            <div class="mb-3">
+                <label class="rf-form-label">Email</label>
+                <input type="email" class="rf-form-control" autocomplete="username" @bind="email" />
+            </div>
+            <div class="mb-4">
+                <label class="rf-form-label">@UiText.LabelPassword(LanguageState.CurrentLanguage)</label>
+                <input type="password" class="rf-form-control"
+                       autocomplete="@(isRegisterMode ? "new-password" : "current-password")"
+                       @bind="password" />
+                @if (isRegisterMode)
+                {
+                    <div class="small mt-1" style="color: var(--rf-text-muted);">@UiText.PasswordHint(LanguageState.CurrentLanguage)</div>
+                }
+                else
+                {
+                    <div class="text-end mt-1">
+                        <a href="forgot-password" class="small" data-test="forgot-password-link">@UiText.LinkForgotPassword(LanguageState.CurrentLanguage)</a>
+                    </div>
+                }
+            </div>
+
+            <div class="d-flex justify-content-between align-items-center">
+                <button type="button" class="btn btn-link p-0 small" @onclick="ToggleMode">
+                    @(isRegisterMode ? UiText.AccountSwitchToLogin(LanguageState.CurrentLanguage) : UiText.AccountSwitchToRegister(LanguageState.CurrentLanguage))
+                </button>
+                <button class="btn btn-rf-orange" @onclick="SubmitAsync" disabled="@isBusy">
+                    @(isBusy ? "..." : isRegisterMode ? UiText.BtnRegister(LanguageState.CurrentLanguage) : UiText.BtnLogin(LanguageState.CurrentLanguage))
+                </button>
+            </div>
+        </div>
+    </NotAuthorized>
+</AuthorizeView>
+
+@code {
+    private bool isRegisterMode;
+    private bool isBusy;
+    private string email = "";
+    private string password = "";
+    private List<string> errors = new();
+
+    [CascadingParameter] private Task<AuthenticationState>? AuthState { get; set; }
+
+    private AccountSummaryDto? summary;
+    private string currentPassword = "";
+    private string newPassword = "";
+    private string repeatPassword = "";
+    private List<string> passwordErrors = new();
+    private bool passwordChanged;
+    private bool? wasAuthenticated;
+
+    protected override void OnInitialized()
+    {
+        LanguageState.OnLanguageChanged += StateHasChanged;
+        CrossTab.OnEmailConfirmed += HandleEmailConfirmed;
+        CrossTab.OnTabVisible += HandleTabVisible;
+    }
+
+    //	Back to this tab while the e-mail is still unconfirmed: re-check (it may have been confirmed in another window)
+    private void HandleTabVisible()
+    {
+        if (summary is { EmailConfirmed: false })
+        {
+            HandleEmailConfirmed();
+        }
+    }
+
+    //	The e-mail was confirmed in another tab: refresh the status shown here
+    private async void HandleEmailConfirmed()
+    {
+        if (wasAuthenticated == true)
+        {
+            summary = await Auth.GetAccountSummaryAsync();
+            resendMessage = null;
+            if (summary?.EmailConfirmed == true)
+            {
+                //	Keeps the cached authentication state (used by the create buttons) in step
+                AuthStateProvider.Refresh();
+            }
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
+    //	The summary is (re)loaded whenever the authentication state changes (sign-in on this page, sign-out elsewhere)
+    protected override async Task OnParametersSetAsync()
+    {
+        var authenticated = AuthState != null && (await AuthState).User.Identity?.IsAuthenticated == true;
+
+        if (authenticated != wasAuthenticated)
+        {
+            wasAuthenticated = authenticated;
+            summary = authenticated ? await Auth.GetAccountSummaryAsync() : null;
+        }
+    }
+
+    private IEnumerable<(string Label, int Count, string Href)> HomebrewTiles(HomebrewCountsDto h)
+    {
+        var lang = LanguageState.CurrentLanguage;
+        yield return (UiText.FeatsTitle(lang), h.Feats, "feats");
+        yield return (UiText.NavSpecies(lang), h.Species, "species");
+        yield return (UiText.LabelSubspeciesShort(lang), h.Subspecies, "species");
+        yield return (UiText.BackgroundsTitle(lang), h.Backgrounds, "backgrounds");
+    }
+
+    private static string Initial(string? name) =>
+        string.IsNullOrWhiteSpace(name) ? "?" : name.Trim()[0].ToString().ToUpperInvariant();
+
+    private bool isResending;
+    private string? resendMessage;
+
+    private async Task ResendConfirmationAsync()
+    {
+        if (summary is null)
+        {
+            return;
+        }
+
+        isResending = true;
+        var result = await Auth.ResendConfirmationAsync(summary.Email);
+        isResending = false;
+
+        resendMessage = result.Success
+            ? UiText.ConfirmationSent(summary.Email, LanguageState.CurrentLanguage)
+            : UiText.AuthError(result.Errors.FirstOrDefault() ?? "Unknown", LanguageState.CurrentLanguage);
+    }
+
+    private async Task ChangePasswordAsync()
+    {
+        passwordErrors.Clear();
+        passwordChanged = false;
+
+        if (string.IsNullOrWhiteSpace(currentPassword) || string.IsNullOrWhiteSpace(newPassword))
+        {
+            passwordErrors.Add("MissingPasswords");
+            return;
+        }
+
+        if (newPassword != repeatPassword)
+        {
+            passwordErrors.Add("PasswordsDiffer");
+            return;
+        }
+
+        isBusy = true;
+        var result = await Auth.ChangePasswordAsync(currentPassword, newPassword);
+        isBusy = false;
+
+        if (result.Success)
+        {
+            passwordChanged = true;
+            currentPassword = newPassword = repeatPassword = "";
+        }
+        else
+        {
+            passwordErrors = result.Errors.ToList();
+        }
+    }
+
+    private void ToggleMode()
+    {
+        isRegisterMode = !isRegisterMode;
+        errors.Clear();
+    }
+
+    private async Task SubmitAsync()
+    {
+        errors.Clear();
+
+        if (string.IsNullOrWhiteSpace(email) || string.IsNullOrWhiteSpace(password))
+        {
+            errors.Add("MissingFields");
+            return;
+        }
+
+        isBusy = true;
+        var result = isRegisterMode
+            ? await Auth.RegisterAsync(email.Trim(), password)
+            : await Auth.LoginAsync(email.Trim(), password);
+        isBusy = false;
+
+        if (result.Success)
+        {
+            password = "";
+            Navigation.NavigateTo("");
+        }
+        else
+        {
+            errors = result.Errors.ToList();
+        }
+    }
+
+    private async Task LogoutAsync()
+    {
+        await Auth.LogoutAsync();
+    }
+
+    public void Dispose()
+    {
+        LanguageState.OnLanguageChanged -= StateHasChanged;
+        CrossTab.OnEmailConfirmed -= HandleEmailConfirmed;
+        CrossTab.OnTabVisible -= HandleTabVisible;
+    }
+}

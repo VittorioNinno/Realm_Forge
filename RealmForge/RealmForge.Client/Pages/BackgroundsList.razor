@@ -1,0 +1,740 @@
+﻿@page "/backgrounds"
+@using RealmForge.Client.Components
+@using RealmForge.Client.Localization
+@using RealmForge.Client.Services
+@using RealmForge.Shared.DTOs
+@using RealmForge.Shared.Enums
+@using RealmForge.Shared.Localization
+@implements IDisposable
+@inject BackgroundDataService BackgroundService
+@inject FeatDataService FeatService
+@inject LanguageStateService LanguageState
+@inject ApiErrorState ApiErrors
+
+<PageTitle>RealmForge - @UiText.BackgroundsTitle(LanguageState.CurrentLanguage)</PageTitle>
+
+<div class="container-fluid px-0 py-4">
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4 pb-3" style="border-bottom: 2px solid var(--rf-orange-primary);">
+        <div>
+            <h1 class="h3 fw-bold mb-1 rf-page-title">@UiText.BackgroundsTitle(LanguageState.CurrentLanguage)</h1>
+            <p class="mb-0 small" style="color: var(--rf-text-muted); letter-spacing: 1px; text-transform: uppercase;">
+                @UiText.BackgroundsSubtitle(LanguageState.CurrentLanguage)
+            </p>
+        </div>
+
+        <div>
+            <ForgeAction>
+                <button class="btn btn-rf-orange" @onclick="OpenCreateModalAsync">
+                    @UiText.BtnAddBackground(LanguageState.CurrentLanguage)
+                </button>
+            </ForgeAction>
+        </div>
+    </div>
+
+    <div class="row g-3 mb-4 p-3 rounded" style="background-color: var(--rf-bg-surface); border: 1px solid var(--rf-border-light);">
+        <div class="col-md-4 col-sm-12">
+            <label class="rf-form-label small text-uppercase" style="letter-spacing: 0.5px;">
+                @UiText.LabelSearchBackground(LanguageState.CurrentLanguage)
+            </label>
+            <input type="text"
+                   class="rf-form-control"
+                   placeholder="@UiText.PlaceholderSearchBackgrounds(LanguageState.CurrentLanguage)"
+                   @bind="SearchTerm"
+                   @bind:event="oninput" />
+        </div>
+
+        <div class="col-md-4 col-sm-6">
+            <label class="rf-form-label small text-uppercase" style="letter-spacing: 0.5px;">
+                @UiText.LabelRuleset(LanguageState.CurrentLanguage)
+            </label>
+            <RfSelect TValue="RulesetVersion?"
+                      @bind-Value="SelectedRuleset"
+                      OnChange="LoadBackgroundsAsync"
+                      Options="@RulesetFilterOptions" />
+        </div>
+
+        <div class="col-md-4 col-sm-6">
+            <label class="rf-form-label small text-uppercase" style="letter-spacing: 0.5px;">
+                @UiText.LabelOrigin(LanguageState.CurrentLanguage)
+            </label>
+            <RfSelect TValue="string"
+                      @bind-Value="OriginFilter"
+                      Options="@(new List<RfSelect<string>.OptionItem>
+                      {
+                          new("", UiText.FilterOriginAll(LanguageState.CurrentLanguage)),
+                          new("srd", UiText.FilterOnlyBase(LanguageState.CurrentLanguage)),
+                          new("homebrew", UiText.FilterOnlyHomebrew(LanguageState.CurrentLanguage))
+                      })" />
+        </div>
+    </div>
+
+    @if (IsLoading)
+    {
+        <div class="text-center my-5 py-5">
+            <div class="spinner-border" style="color: var(--rf-orange-primary);" role="status"></div>
+            <p class="mt-3" style="color: var(--rf-text-muted); text-transform: uppercase; letter-spacing: 1px;">
+                @UiText.LoadingBackgrounds(LanguageState.CurrentLanguage)
+            </p>
+        </div>
+    }
+    else if (!FilteredBackgrounds.Any())
+    {
+        <div class="p-4 rounded text-center" style="background-color: var(--rf-bg-surface); border: 1px solid var(--rf-border-light);">
+            <p class="mb-0" style="color: var(--rf-text-muted);">
+                @UiText.NoBackgroundsFound(LanguageState.CurrentLanguage)
+            </p>
+        </div>
+    }
+    else
+    {
+        <div class="row row-cols-1 row-cols-md-2 row-cols-xl-3 g-4">
+            @foreach (var bg in FilteredBackgrounds)
+            {
+                <div class="col">
+                    <div class="rf-card h-100 d-flex flex-column justify-content-between"
+                         style="cursor: pointer;"
+                         @onclick="() => OpenDetailAsync(bg.Id)">
+                        <div>
+                            <div class="d-flex justify-content-between align-items-start mb-3 gap-2">
+                                <span class="rf-card-title mb-0">@bg.Name</span>
+                                <div class="d-flex gap-1 flex-shrink-0 align-items-center">
+                                    <span class="badge @(bg.Ruleset == RulesetVersion.Dnd5e_2024 ? "badge-edition-2024" : "badge-edition-2014")">
+                                        @UiText.FormatRuleset(bg.Ruleset, LanguageState.CurrentLanguage)
+                                    </span>
+                                    <RealmForge.Client.Components.ContentBadge IsBase="bg.IsOfficialSRD" Source="bg.Source" Visibility="bg.Visibility" />
+                                </div>
+                            </div>
+
+                            <div class="rf-meta-row">
+                                @if (bg.SkillProficiencies.Count > 0)
+                                {
+                                    <div>
+                                        <strong>@UiText.LabelSkillsShort(LanguageState.CurrentLanguage)</strong>
+                                        <span style="color: #ffffff;">@SkillList(bg.SkillProficiencies)</span>
+                                    </div>
+                                }
+                                @if (!string.IsNullOrWhiteSpace(bg.OriginFeatName))
+                                {
+                                    <div>
+                                        <strong>@UiText.LabelOriginFeatShort(LanguageState.CurrentLanguage)</strong>
+                                        <span style="color: #ffffff;">@bg.OriginFeatName</span>
+                                    </div>
+                                }
+                            </div>
+
+                            <p class="small lh-base mb-3" style="color: var(--rf-text-secondary); text-align: left;">
+                                @(string.IsNullOrWhiteSpace(bg.ShortDescription) ? UiText.NoDescription(LanguageState.CurrentLanguage) : bg.ShortDescription)
+                            </p>
+                        </div>
+
+                        <div class="pt-3 d-flex justify-content-end align-items-center" style="border-top: 1px solid var(--rf-border-subtle);">
+                            <button class="btn btn-sm btn-rf-outline text-uppercase flex-shrink-0" style="letter-spacing: 1px;" @onclick:stopPropagation="true" @onclick="() => OpenDetailAsync(bg.Id)">
+                                @UiText.BtnViewDetails(LanguageState.CurrentLanguage)
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+</div>
+
+@* --- DETAIL MODAL --- *@
+@if (SelectedBackground != null)
+{
+    <div class="rf-modal-backdrop" @onclick="CloseDetail">
+        <div class="rf-modal-dialog" style="max-width: 760px;" @onclick:stopPropagation="true">
+            <div class="d-flex justify-content-between align-items-start mb-3 pb-2" style="border-bottom: 2px solid var(--rf-orange-primary);">
+                <div>
+                    <h2 class="h3 mb-1" style="color: var(--rf-orange-primary); font-family: var(--rf-font-display);">
+                        @SelectedBackground.Name
+                    </h2>
+                    <div class="d-flex gap-2 mt-1">
+                        <span class="badge @(SelectedBackground.Ruleset == RulesetVersion.Dnd5e_2024 ? "badge-edition-2024" : "badge-edition-2014")">
+                            @UiText.FormatRuleset(SelectedBackground.Ruleset, LanguageState.CurrentLanguage)
+                        </span>
+                        <RealmForge.Client.Components.ContentBadge IsBase="SelectedBackground.IsOfficialSRD" Source="SelectedBackground.Source" Visibility="SelectedBackground.Visibility" ShowSource="true" />
+                    </div>
+                </div>
+                <button class="btn btn-sm btn-rf-outline" @onclick="CloseDetail">✕</button>
+            </div>
+
+            @if (!SelectedBackground.IsOfficialSRD)
+            {
+                <ShareLink Visibility="SelectedBackground.Visibility" CanEdit="SelectedBackground.CanEdit" Path="@($"backgrounds?id={SelectedBackground.Id}")" />
+            }
+
+            <div class="p-3 mb-3 rounded rf-meta-row" style="background-color: var(--rf-bg-main); border-left: 3px solid #ffb74d;">
+                @if (SelectedBackground.AbilityOptions.Count > 0)
+                {
+                    <div><strong>@UiText.LabelAbilityOptionsShort(LanguageState.CurrentLanguage)</strong> <span class="text-light">@AbilityList(SelectedBackground.AbilityOptions)</span></div>
+                }
+                @if (SelectedBackground.SkillProficiencies.Count > 0)
+                {
+                    <div><strong>@UiText.LabelSkillsShort(LanguageState.CurrentLanguage)</strong> <span class="text-light">@SkillList(SelectedBackground.SkillProficiencies)</span></div>
+                }
+                @if (SelectedBackground.OriginFeatId is Guid featId)
+                {
+                    <div>
+                        <strong>@UiText.LabelOriginFeatShort(LanguageState.CurrentLanguage)</strong>
+                        <span class="text-light">
+                            @SelectedBackground.OriginFeatName
+                            @if (!string.IsNullOrWhiteSpace(SelectedBackground.OriginFeatNote))
+                            {
+                                <span style="color: var(--rf-text-secondary);"> (@SelectedBackground.OriginFeatNote)</span>
+                            }
+                        </span>
+                        <a class="ms-2 small" href="@($"feats?id={featId}")">@UiText.BtnOpenFeat(LanguageState.CurrentLanguage)</a>
+                    </div>
+                }
+                @if (!string.IsNullOrWhiteSpace(SelectedBackground.ToolProficiencies))
+                {
+                    <div><strong>@UiText.LabelToolProficiencies(LanguageState.CurrentLanguage):</strong> <span class="text-light">@SelectedBackground.ToolProficiencies</span></div>
+                }
+                @if (!string.IsNullOrWhiteSpace(SelectedBackground.Languages))
+                {
+                    <div><strong>@UiText.LabelLanguages(LanguageState.CurrentLanguage):</strong> <span class="text-light">@SelectedBackground.Languages</span></div>
+                }
+            </div>
+
+            @if (!string.IsNullOrWhiteSpace(SelectedBackground.Equipment) || SelectedBackground.EquipmentGoldAlternative is not null)
+            {
+                <div class="p-3 mb-3 rounded" style="background-color: var(--rf-bg-main); border-left: 3px solid #ffb74d;" data-test="bg-equipment">
+                    <strong class="small d-block mb-2 text-uppercase" style="color: var(--rf-orange-primary); letter-spacing: 0.5px;">
+                        @UiText.LabelEquipment(LanguageState.CurrentLanguage)
+                        @if (SelectedBackground.EquipmentGoldAlternative is not null)
+                        {
+                            <span class="fw-normal" style="color: var(--rf-text-muted);"> · @UiText.LabelEquipmentChoice(LanguageState.CurrentLanguage)</span>
+                        }
+                    </strong>
+
+                    @if (SelectedBackground.EquipmentGoldAlternative is int gold)
+                    {
+                        <div class="rf-equipment-option" data-test="bg-equipment-a">
+                            <div class="rf-equipment-option-title">@UiText.LabelEquipmentOptionA(LanguageState.CurrentLanguage)</div>
+                            <ul class="rf-equipment-list">
+                                @foreach (var item in EquipmentItems(SelectedBackground.Equipment))
+                                {
+                                    <li>@item</li>
+                                }
+                            </ul>
+                        </div>
+                        <div class="rf-equipment-option" data-test="bg-equipment-b">
+                            <div class="rf-equipment-option-title">@UiText.LabelEquipmentOptionB(LanguageState.CurrentLanguage)</div>
+                            <div class="text-light small">@UiText.FormatGold(gold, LanguageState.CurrentLanguage)</div>
+                        </div>
+                    }
+                    else
+                    {
+                        <ul class="rf-equipment-list mb-0">
+                            @foreach (var item in EquipmentItems(SelectedBackground.Equipment))
+                            {
+                                <li>@item</li>
+                            }
+                        </ul>
+                    }
+                </div>
+            }
+
+            @if (!string.IsNullOrWhiteSpace(SelectedBackground.FeatureName))
+            {
+                <div class="p-3 mb-3 rounded" style="background-color: var(--rf-bg-main); border-left: 3px solid var(--rf-orange-primary);">
+                    <strong class="small d-block mb-1 text-uppercase" style="color: var(--rf-orange-primary); letter-spacing: 0.5px;">
+                        @UiText.LabelFeatureName(LanguageState.CurrentLanguage): @SelectedBackground.FeatureName
+                    </strong>
+                    <div class="rf-markdown-container small">
+                        @((MarkupString)MarkdownText.ToHtml(SelectedBackground.FeatureDescription))
+                    </div>
+                </div>
+            }
+
+            <div class="mb-3 p-3 rounded" style="background-color: var(--rf-bg-main); border-left: 3px solid var(--rf-border-light);">
+                <div class="rf-markdown-container">
+                    @((MarkupString)MarkdownText.ToHtml(SelectedBackground.Description))
+                </div>
+            </div>
+
+            @if (HasCharacteristics(SelectedBackground))
+            {
+                <div class="mb-4 p-3 rounded" style="background-color: var(--rf-bg-main); border-left: 3px solid var(--rf-border-light);" data-test="bg-characteristics">
+                    <strong class="small d-block mb-2 text-uppercase" style="color: var(--rf-orange-primary); letter-spacing: 0.5px;">
+                        @UiText.LabelSuggestedCharacteristics(LanguageState.CurrentLanguage)
+                    </strong>
+                    @if (!string.IsNullOrWhiteSpace(SelectedBackground.CharacteristicsIntro))
+                    {
+                        <p class="small mb-3" style="color: var(--rf-text-secondary); text-align: left;">@SelectedBackground.CharacteristicsIntro</p>
+                    }
+                    <div class="d-flex flex-column gap-3">
+                        @foreach (var (title, items) in CharacteristicTables(SelectedBackground))
+                        {
+                            <div>
+                                <table class="rf-dice-table">
+                                    <thead><tr><th>@DieLabel(items.Count)</th><th>@title</th></tr></thead>
+                                    <tbody>
+                                        @for (var i = 0; i < items.Count; i++)
+                                        {
+                                            <tr><td>@(i + 1)</td><td>@items[i]</td></tr>
+                                        }
+                                    </tbody>
+                                </table>
+                            </div>
+                        }
+                    </div>
+                </div>
+            }
+
+            <div class="d-flex justify-content-between align-items-center pt-3 mt-4" style="border-top: 1px solid var(--rf-border-light);">
+                @if (SelectedBackground.CanEdit)
+                {
+                    <div class="d-flex gap-3">
+                        <button class="btn btn-sm btn-rf-outline text-uppercase"
+                                style="letter-spacing: 1px;"
+                                @onclick="async () => { var id = SelectedBackground.Id; CloseDetail(); await OpenEditModalAsync(id); }">
+                            @UiText.Edit(LanguageState.CurrentLanguage)
+                        </button>
+                        <button class="btn btn-sm btn-rf-outline text-uppercase px-3"
+                                style="border-color: #dc3545; color: #dc3545;"
+                                @onclick="() => { var id = SelectedBackground.Id; var name = SelectedBackground.Name; CloseDetail(); OpenDeleteModal(id, name); }">
+                            @UiText.Delete(LanguageState.CurrentLanguage)
+                        </button>
+                    </div>
+                }
+                else
+                {
+                    <div></div>
+                }
+                <button class="btn btn-rf-outline text-uppercase" style="letter-spacing: 1px;" @onclick="CloseDetail">
+                    @UiText.BtnClose(LanguageState.CurrentLanguage)
+                </button>
+            </div>
+        </div>
+    </div>
+}
+
+@* --- FORGE (CREATE / EDIT) MODAL --- *@
+@if (isModalOpen)
+{
+    <div class="rf-modal-backdrop" @onclick="CloseFormModal">
+        <div class="rf-modal-dialog" style="max-width: 820px;" @onclick:stopPropagation="true">
+            <h2 class="h4 mb-3 pb-2" style="border-bottom: 1px solid var(--rf-border-light); font-family: var(--rf-font-display);">
+                @(isEditMode ? UiText.Edit(LanguageState.CurrentLanguage) : UiText.ModalTitleAddBackground(LanguageState.CurrentLanguage))
+            </h2>
+
+            @if (isModalLoading)
+            {
+                <div class="text-center py-4">
+                    <div class="spinner-border text-warning" role="status"></div>
+                </div>
+            }
+            else
+            {
+                @if (!string.IsNullOrEmpty(formValidationMessage))
+                {
+                    <div class="alert alert-warning bg-dark border-warning text-warning p-2 small mb-3">
+                        @formValidationMessage
+                    </div>
+                }
+
+                @* Row 1: ruleset + origin feat (2024 only) *@
+                <div class="row g-3 mb-3 align-items-end">
+                    <div class="col-md-5" data-test="bg-ruleset">
+                        <label class="rf-form-label rf-label-single-line">@UiText.LabelRuleset(LanguageState.CurrentLanguage)</label>
+                        <RfSelect TValue="RulesetVersion"
+                                  @bind-Value="form.Ruleset"
+                                  OnChange="LoadOriginFeatsAsync"
+                                  Options="@RulesetOptions" />
+                    </div>
+                    <div class="col-md-7" data-test="bg-origin-feat">
+                        @if (form.Ruleset == RulesetVersion.Dnd5e_2024)
+                        {
+                            <label class="rf-form-label rf-label-single-line">@UiText.LabelOriginFeat(LanguageState.CurrentLanguage)</label>
+                            <RfSelect TValue="Guid?"
+                                      @bind-Value="form.OriginFeatId"
+                                      Options="@OriginFeatOptions" />
+                        }
+                    </div>
+                </div>
+
+                <VisibilityPicker @bind-Value="form.Visibility" />
+
+                @* Mechanics: abilities and skills *@
+                <div class="p-3 mb-3 rounded" style="background-color: var(--rf-bg-card); border-left: 3px solid var(--rf-border-light);">
+                    <div class="fw-bold mb-2 small text-uppercase" style="letter-spacing: 0.5px;">
+                        @UiText.LabelMechanics(LanguageState.CurrentLanguage)
+                    </div>
+
+                    @if (form.Ruleset == RulesetVersion.Dnd5e_2024)
+                    {
+                        <label class="rf-form-label rf-label-single-line">@UiText.LabelAbilityOptions(LanguageState.CurrentLanguage)</label>
+                        <div class="rf-pill-group mb-3">
+                            @foreach (var ability in Enum.GetValues<AbilityScore>())
+                            {
+                                var current = ability;
+                                var selected = form.AbilityOptions.Contains(current);
+                                <button type="button"
+                                        class="rf-pill-btn @(selected ? "active" : "")"
+                                        disabled="@(!selected && form.AbilityOptions.Count >= 3)"
+                                        @onclick="() => Toggle(form.AbilityOptions, current, 3)">
+                                    @FeatPrerequisiteFormatter.AbilityName(current, LanguageState.CurrentLanguage)
+                                </button>
+                            }
+                        </div>
+                    }
+
+                    <label class="rf-form-label rf-label-single-line">@UiText.LabelSkillProficiencies(LanguageState.CurrentLanguage)</label>
+                    <div class="rf-pill-group">
+                        @foreach (var skill in Enum.GetValues<Skill>().OrderBy(s => GameTerms.SkillName(s, LanguageState.CurrentLanguage)))
+                        {
+                            var current = skill;
+                            var selected = form.SkillProficiencies.Contains(current);
+                            <button type="button"
+                                    class="rf-pill-btn @(selected ? "active" : "")"
+                                    disabled="@(!selected && form.SkillProficiencies.Count >= 4)"
+                                    @onclick="() => Toggle(form.SkillProficiencies, current, 4)">
+                                @GameTerms.SkillName(current, LanguageState.CurrentLanguage)
+                            </button>
+                        }
+                    </div>
+
+                    <div class="row g-2 mt-2 align-items-end" data-test="bg-gold">
+                        <div class="col-sm-4">
+                            <label class="rf-form-label rf-label-single-line">@UiText.LabelGoldAlternative(LanguageState.CurrentLanguage)</label>
+                            <input type="number" min="0" max="10000" class="rf-form-control" @bind="form.EquipmentGoldAlternative" />
+                        </div>
+                        <div class="col-sm-8 small pb-2" style="color: var(--rf-text-muted);">@UiText.HintGoldAlternative(LanguageState.CurrentLanguage)</div>
+                    </div>
+                </div>
+
+                <BackgroundTranslationFields Model="formIt" Title="@UiText.TabItalian(LanguageState.CurrentLanguage)" Ruleset="form.Ruleset" IsPrimary="true" />
+                <BackgroundTranslationFields Model="formEn" Title="@UiText.TabEnglish(LanguageState.CurrentLanguage)" Ruleset="form.Ruleset" />
+
+                <div class="d-flex justify-content-end gap-2 pt-2" style="border-top: 1px solid var(--rf-border-light);">
+                    <button class="btn btn-rf-outline" @onclick="CloseFormModal">
+                        @UiText.BtnCancel(LanguageState.CurrentLanguage)
+                    </button>
+                    <button class="btn btn-rf-orange" @onclick="HandleSaveAsync" disabled="@isSaving">
+                        @(isSaving ? "..." : UiText.BtnSaveBackground(LanguageState.CurrentLanguage))
+                    </button>
+                </div>
+            }
+        </div>
+    </div>
+}
+
+@* --- DELETE CONFIRMATION --- *@
+@if (isDeleteModalOpen)
+{
+    <div class="rf-modal-backdrop" @onclick="CloseDeleteModal">
+        <div class="rf-modal-dialog" @onclick:stopPropagation="true" style="max-width: 450px; text-align: center;">
+            <h2 class="h4 mb-3" style="color: var(--rf-orange-primary);">@UiText.ConfirmDeletion(LanguageState.CurrentLanguage)</h2>
+
+            <div class="p-3 mb-4 rounded" style="background-color: var(--rf-bg-main); border: 1px solid var(--rf-border-subtle); color: var(--rf-text-secondary); line-height: 1.5;">
+                @UiText.DeleteBackgroundWarning(LanguageState.CurrentLanguage, deleteName)
+            </div>
+
+            @if (!string.IsNullOrEmpty(deleteError))
+            {
+                <div class="small text-warning mb-3">@deleteError</div>
+            }
+
+            <div class="d-flex justify-content-center gap-3">
+                <button class="btn btn-rf-outline" @onclick="CloseDeleteModal">@UiText.BtnCancel(LanguageState.CurrentLanguage)</button>
+                <button class="btn btn-rf-orange" style="background-color: #dc3545; border-color: #dc3545;" @onclick="HandleDeleteAsync">
+                    @UiText.Delete(LanguageState.CurrentLanguage)
+                </button>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    [SupplyParameterFromQuery(Name = "id")]
+    public Guid? QueryBackgroundId { get; set; }
+
+    private List<BackgroundResponseDto> AllBackgrounds = new();
+    private BackgroundDetailResponseDto? SelectedBackground;
+    private RulesetVersion? SelectedRuleset;
+    private string SearchTerm = string.Empty;
+    private bool IsLoading = true;
+
+    //	Forge modal state
+    private bool isModalOpen;
+    private bool isModalLoading;
+    private bool isSaving;
+    private bool isEditMode;
+    private string? formValidationMessage;
+    private SaveBackgroundDto form = new();
+    private BackgroundTranslationDto formIt = new() { Language = LanguageCode.It };
+    private BackgroundTranslationDto formEn = new() { Language = LanguageCode.En };
+    private List<FeatResponseDto> originFeats = new();
+
+    //	Delete modal state
+    private bool isDeleteModalOpen;
+    private Guid deleteId;
+    private string deleteName = string.Empty;
+    private string? deleteError;
+
+    //	Origin filter ("" = all, "srd" = Base, "homebrew"): applied to the loaded list together with the text search
+    private string OriginFilter = string.Empty;
+
+    private IEnumerable<BackgroundResponseDto> FilteredBackgrounds =>
+        AllBackgrounds
+            .Where(b => OriginFilter switch { "srd" => b.IsOfficialSRD, "homebrew" => !b.IsOfficialSRD, _ => true })
+            .Where(b => string.IsNullOrWhiteSpace(SearchTerm)
+                        || b.Name.Contains(SearchTerm.Trim(), StringComparison.OrdinalIgnoreCase)
+                        || b.ShortDescription.Contains(SearchTerm.Trim(), StringComparison.OrdinalIgnoreCase));
+
+    private List<RfSelect<RulesetVersion?>.OptionItem> RulesetFilterOptions => new()
+    {
+        new(null, UiText.FilterRulesetAll(LanguageState.CurrentLanguage)),
+        new(RulesetVersion.Dnd5e_2024, UiText.FormatRuleset(RulesetVersion.Dnd5e_2024, LanguageState.CurrentLanguage)),
+        new(RulesetVersion.Dnd5e_2014, UiText.FormatRuleset(RulesetVersion.Dnd5e_2014, LanguageState.CurrentLanguage))
+    };
+
+    private List<RfSelect<RulesetVersion>.OptionItem> RulesetOptions =>
+        Enum.GetValues<RulesetVersion>()
+            .Select(r => new RfSelect<RulesetVersion>.OptionItem(r, UiText.FormatRuleset(r, LanguageState.CurrentLanguage)))
+            .ToList();
+
+    private List<RfSelect<Guid?>.OptionItem> OriginFeatOptions =>
+        new List<RfSelect<Guid?>.OptionItem> { new(null, UiText.NoOriginFeat(LanguageState.CurrentLanguage)) }
+            .Concat(originFeats.Select(f => new RfSelect<Guid?>.OptionItem(f.Id, f.Name)))
+            .ToList();
+
+    protected override async Task OnInitializedAsync()
+    {
+        LanguageState.OnLanguageChanged += HandleLanguageChanged;
+        await LoadBackgroundsAsync();
+
+        if (QueryBackgroundId.HasValue)
+        {
+            await OpenDetailAsync(QueryBackgroundId.Value);
+
+            //	Shared link to a private or deleted entry
+            if (SelectedBackground == null)
+            {
+                ApiErrors.Report(ApiErrorKind.NotAvailable);
+            }
+        }
+    }
+
+    private async void HandleLanguageChanged()
+    {
+        if (SelectedBackground != null)
+        {
+            SelectedBackground = await BackgroundService.GetBackgroundAsync(SelectedBackground.Id, LanguageState.CurrentLanguage);
+        }
+
+        await LoadBackgroundsAsync();
+        StateHasChanged();
+    }
+
+    private async Task LoadBackgroundsAsync()
+    {
+        IsLoading = true;
+        AllBackgrounds = await BackgroundService.GetBackgroundsAsync(LanguageState.CurrentLanguage, SelectedRuleset);
+        IsLoading = false;
+    }
+
+    private async Task OpenDetailAsync(Guid id)
+    {
+        SelectedBackground = await BackgroundService.GetBackgroundAsync(id, LanguageState.CurrentLanguage);
+    }
+
+    private void CloseDetail() => SelectedBackground = null;
+
+    #region Forge modal
+
+    private async Task OpenCreateModalAsync()
+    {
+        isEditMode = false;
+        formValidationMessage = null;
+        form = new SaveBackgroundDto { Ruleset = RulesetVersion.Dnd5e_2024 };
+        formIt = new BackgroundTranslationDto { Language = LanguageCode.It };
+        formEn = new BackgroundTranslationDto { Language = LanguageCode.En };
+        isModalOpen = true;
+        await LoadOriginFeatsAsync();
+    }
+
+    private async Task OpenEditModalAsync(Guid id)
+    {
+        isEditMode = true;
+        formValidationMessage = null;
+        isModalOpen = true;
+        isModalLoading = true;
+
+        var itTask = BackgroundService.GetBackgroundAsync(id, LanguageCode.It);
+        var enTask = BackgroundService.GetBackgroundAsync(id, LanguageCode.En);
+        await Task.WhenAll(itTask, enTask);
+        var it = itTask.Result;
+        var en = enTask.Result;
+
+        if (it != null && en != null)
+        {
+            form = new SaveBackgroundDto
+            {
+                Id = id,
+                Ruleset = it.Ruleset,
+                AbilityOptions = it.AbilityOptions.ToList(),
+                SkillProficiencies = it.SkillProficiencies.ToList(),
+                OriginFeatId = it.OriginFeatId,
+                EquipmentGoldAlternative = it.EquipmentGoldAlternative,
+                Visibility = it.Visibility
+            };
+            formIt = ToForm(it, LanguageCode.It);
+            formEn = ToForm(en, LanguageCode.En);
+            await LoadOriginFeatsAsync();
+        }
+
+        isModalLoading = false;
+    }
+
+    //	Equipment is stored one item per line; older single-line texts are shown as a single entry
+    private static IEnumerable<string> EquipmentItems(string? equipment) =>
+        (equipment ?? string.Empty).Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+
+    private static BackgroundTranslationDto ToForm(BackgroundDetailResponseDto d, LanguageCode lang) => new()
+    {
+        Language = lang,
+        Name = d.Name,
+        Description = d.Description,
+        ToolProficiencies = d.ToolProficiencies,
+        Languages = d.Languages,
+        Equipment = d.Equipment,
+        OriginFeatNote = d.OriginFeatNote,
+        FeatureName = d.FeatureName,
+        FeatureDescription = d.FeatureDescription,
+        CharacteristicsIntro = d.CharacteristicsIntro,
+        PersonalityTraits = d.PersonalityTraits.ToList(),
+        Ideals = d.Ideals.ToList(),
+        Bonds = d.Bonds.ToList(),
+        Flaws = d.Flaws.ToList()
+    };
+
+    private async Task LoadOriginFeatsAsync()
+    {
+        if (form.Ruleset != RulesetVersion.Dnd5e_2024)
+        {
+            originFeats = new();
+            return;
+        }
+
+        originFeats = await FeatService.GetFeatsAsync(LanguageState.CurrentLanguage, FeatCategory.Origin, RulesetVersion.Dnd5e_2024);
+    }
+
+    private static void Toggle<T>(List<T> list, T value, int max)
+    {
+        if (!list.Remove(value) && list.Count < max)
+        {
+            list.Add(value);
+        }
+    }
+
+    private void CloseFormModal() => isModalOpen = false;
+
+    private async Task HandleSaveAsync()
+    {
+        if (string.IsNullOrWhiteSpace(formIt.Name) || string.IsNullOrWhiteSpace(formEn.Name))
+        {
+            formValidationMessage = UiText.ErrFillNames(LanguageState.CurrentLanguage);
+            return;
+        }
+
+        //	Rules that depend on the edition: only 2024 has ability options and an origin feat, only 2014 a feature
+        var is2024 = form.Ruleset == RulesetVersion.Dnd5e_2024;
+        if (!is2024)
+        {
+            form.AbilityOptions.Clear();
+            form.OriginFeatId = null;
+        }
+
+        foreach (var tr in new[] { formIt, formEn })
+        {
+            if (is2024) { tr.FeatureName = null; tr.FeatureDescription = null; }
+            else { tr.OriginFeatNote = null; }
+        }
+
+        form.Translations = new List<BackgroundTranslationDto> { formIt, formEn };
+
+        isSaving = true;
+        formValidationMessage = null;
+        var success = isEditMode
+            ? await BackgroundService.UpdateAsync(form.Id, form)
+            : await BackgroundService.CreateAsync(form);
+        isSaving = false;
+
+        if (success)
+        {
+            isModalOpen = false;
+            await LoadBackgroundsAsync();
+        }
+        else
+        {
+            formValidationMessage = UiText.ErrApiSave(LanguageState.CurrentLanguage);
+        }
+    }
+
+    #endregion
+
+    #region Delete
+
+    private void OpenDeleteModal(Guid id, string name)
+    {
+        deleteId = id;
+        deleteName = name;
+        deleteError = null;
+        isDeleteModalOpen = true;
+    }
+
+    private void CloseDeleteModal() => isDeleteModalOpen = false;
+
+    private async Task HandleDeleteAsync()
+    {
+        if (await BackgroundService.DeleteAsync(deleteId))
+        {
+            isDeleteModalOpen = false;
+            await LoadBackgroundsAsync();
+        }
+        else
+        {
+            deleteError = UiText.ErrDeleteBackground(LanguageState.CurrentLanguage);
+        }
+    }
+
+    #endregion
+
+    #region Formatting
+
+    private static bool HasCharacteristics(BackgroundDetailResponseDto b) =>
+        !string.IsNullOrWhiteSpace(b.CharacteristicsIntro) || b.PersonalityTraits.Count + b.Ideals.Count + b.Bonds.Count + b.Flaws.Count > 0;
+
+    private IEnumerable<(string Title, List<string> Items)> CharacteristicTables(BackgroundDetailResponseDto b) =>
+        new (string, List<string>)[]
+        {
+            (UiText.LabelPersonalityTraits(LanguageState.CurrentLanguage), b.PersonalityTraits),
+            (UiText.LabelIdeals(LanguageState.CurrentLanguage), b.Ideals),
+            (UiText.LabelBonds(LanguageState.CurrentLanguage), b.Bonds),
+            (UiText.LabelFlaws(LanguageState.CurrentLanguage), b.Flaws)
+        }.Where(t => t.Item2.Count > 0);
+
+    //	Smallest standard die that covers the table (d4, d6, d8, d10, d12, d20)
+    private static string DieLabel(int entries)
+    {
+        var die = new[] { 4, 6, 8, 10, 12, 20 }.FirstOrDefault(d => d >= entries);
+        return $"d{(die > 0 ? die : entries)}";
+    }
+
+    private string SkillList(IEnumerable<Skill> skills) =>
+        string.Join(", ", skills.Select(s => GameTerms.SkillName(s, LanguageState.CurrentLanguage)));
+
+    private string AbilityList(IEnumerable<AbilityScore> abilities) =>
+        string.Join(", ", abilities.Select(a => FeatPrerequisiteFormatter.AbilityName(a, LanguageState.CurrentLanguage)));
+
+
+    #endregion
+
+    public void Dispose()
+    {
+        LanguageState.OnLanguageChanged -= HandleLanguageChanged;
+    }
+}

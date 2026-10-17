@@ -1,0 +1,855 @@
+﻿@page "/species"
+@using RealmForge.Client.Components
+@using RealmForge.Client.Localization
+@using RealmForge.Client.Services
+@using RealmForge.Shared.DTOs
+@using RealmForge.Shared.Enums
+@using RealmForge.Shared.Text
+@implements IDisposable
+@inject SpeciesDataService SpeciesService
+@inject LanguageStateService LanguageState
+@inject ApiErrorState ApiErrors
+@inject NavigationManager NavManager
+
+<PageTitle>RealmForge - @UiText.SpeciesTitle(LanguageState.CurrentLanguage)</PageTitle>
+
+<div class="container-fluid px-0 py-4">
+    @* Page Header *@
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4 pb-3" style="border-bottom: 2px solid var(--rf-orange-primary);">
+        <div>
+            <h1 class="h3 fw-bold mb-1 rf-page-title">@UiText.SpeciesTitle(LanguageState.CurrentLanguage)</h1>
+            <p class="mb-0 small" style="color: var(--rf-text-muted); letter-spacing: 1px; text-transform: uppercase;">
+                @UiText.SpeciesSubtitle(LanguageState.CurrentLanguage)
+            </p>
+        </div>
+
+        <div>
+            <ForgeAction>
+                <button class="btn btn-rf-orange" @onclick="OpenCreateModal">
+                    @UiText.BtnAddSpecies(LanguageState.CurrentLanguage)
+                </button>
+            </ForgeAction>
+        </div>
+    </div>
+
+    @* Error Alert *@
+    @if (!string.IsNullOrEmpty(errorMessage))
+    {
+        <div class="alert alert-danger bg-dark border-danger text-light mb-4">
+            @errorMessage
+        </div>
+    }
+
+    @* --- FILTER BAR --- *@
+    <div class="row g-3 mb-4 p-3 rounded" style="background-color: var(--rf-bg-surface); border: 1px solid var(--rf-border-light);">
+        <div class="col-md-4 col-sm-12">
+            <label class="rf-form-label small text-uppercase" style="letter-spacing: 0.5px;">
+                @UiText.LabelSearchSpecies(LanguageState.CurrentLanguage)
+            </label>
+            <input type="text"
+                   class="rf-form-control"
+                   data-test="species-search"
+                   placeholder="@UiText.PlaceholderSearchSpecies(LanguageState.CurrentLanguage)"
+                   @bind="searchTerm"
+                   @bind:event="oninput" />
+        </div>
+
+        <div class="col-md-4 col-sm-6">
+            <label class="rf-form-label small text-uppercase" style="letter-spacing: 0.5px;">
+                @UiText.LabelRuleset(LanguageState.CurrentLanguage)
+            </label>
+            <RfSelect TValue="string"
+                      @bind-Value="SelectedRulesetFilterString"
+                      OnChange="LoadData"
+                      Options="@(new List<RfSelect<string>.OptionItem>
+                      {
+                          new("", UiText.FilterRulesetAll(LanguageState.CurrentLanguage)),
+                          new(((int)RulesetVersion.Dnd5e_2024).ToString(), UiText.FormatRuleset(RulesetVersion.Dnd5e_2024, LanguageState.CurrentLanguage)),
+                          new(((int)RulesetVersion.Dnd5e_2014).ToString(), UiText.FormatRuleset(RulesetVersion.Dnd5e_2014, LanguageState.CurrentLanguage))
+                      })" />
+        </div>
+
+        <div class="col-md-4 col-sm-6">
+            <label class="rf-form-label small text-uppercase" style="letter-spacing: 0.5px;">
+                @UiText.LabelOrigin(LanguageState.CurrentLanguage)
+            </label>
+            <RfSelect TValue="string"
+                      @bind-Value="SelectedOriginFilterString"
+                      OnChange="LoadData"
+                      Options="@(new List<RfSelect<string>.OptionItem>
+                      {
+                          new("", UiText.FilterOriginAll(LanguageState.CurrentLanguage)),
+                          new("srd", UiText.FilterOnlyBase(LanguageState.CurrentLanguage)),
+                          new("homebrew", UiText.FilterOnlyHomebrew(LanguageState.CurrentLanguage))
+                      })" />
+        </div>
+    </div>
+
+    @* --- SPECIES GRID --- *@
+    @if (isLoading)
+    {
+        <div class="text-center my-5 py-5">
+            <div class="spinner-border" style="color: var(--rf-orange-primary);" role="status"></div>
+            <p class="mt-3" style="color: var(--rf-text-muted); text-transform: uppercase; letter-spacing: 1px;">
+                @UiText.LoadingArchives(LanguageState.CurrentLanguage)
+            </p>
+        </div>
+    }
+    else if (!FilteredSpecies.Any())
+    {
+        <div class="p-4 rounded text-center" style="background-color: var(--rf-bg-surface); border: 1px solid var(--rf-border-light);" data-test="species-empty">
+            <p class="mb-0" style="color: var(--rf-text-muted);">
+                @(speciesList.Any() ? UiText.NoSpeciesMatch(LanguageState.CurrentLanguage) : UiText.NoSpeciesFound(LanguageState.CurrentLanguage))
+            </p>
+        </div>
+    }
+    else
+    {
+        <div class="row row-cols-1 row-cols-md-2 row-cols-xl-3 g-4">
+            @foreach (var sp in FilteredSpecies)
+            {
+                <div class="col">
+                    <div class="rf-card h-100 d-flex flex-column justify-content-between"
+                         style="cursor: pointer;"
+                         @onclick="() => OpenDetailModal(sp.Id)">
+                        <div>
+                            @* CARD HEADER *@
+                            <div class="d-flex justify-content-between align-items-start mb-3 gap-2">
+                                <span class="rf-card-title mb-0">@sp.Name</span>
+                                <div class="d-flex gap-1 flex-shrink-0 align-items-center">
+                                    <span class="badge @(sp.Ruleset == RulesetVersion.Dnd5e_2024 ? "badge-edition-2024" : "badge-edition-2014")">
+                                        @UiText.FormatRuleset(sp.Ruleset, LanguageState.CurrentLanguage)
+                                    </span>
+                                    <RealmForge.Client.Components.ContentBadge IsBase="sp.IsOfficialSRD" Source="sp.Source" Visibility="sp.Visibility" />
+                                </div>
+                            </div>
+
+                            @* CARD METADATA *@
+                            <div class="rf-meta-row">
+                                <div>
+                                    <strong>@UiText.LabelCreatureType(LanguageState.CurrentLanguage)</strong>
+                                    <span style="color: #ffffff;">@UiText.FormatCreatureType(sp.CreatureType, LanguageState.CurrentLanguage)</span>
+                                </div>
+                                <div>
+                                    <strong>@UiText.MetaSize(LanguageState.CurrentLanguage)</strong>
+                                    <span style="color: #ffffff;">@UiText.FormatSizes(sp.AllowedSizes, LanguageState.CurrentLanguage)</span>
+                                </div>
+                                <div>
+                                    <strong>@UiText.MetaSpeed(LanguageState.CurrentLanguage)</strong>
+                                    <span style="color: #ffffff;">@UiText.FormatSpeed(sp.BaseSpeedInFeet, LanguageState.CurrentLanguage)</span>
+                                </div>
+                            </div>
+
+                            @* CARD DESCRIPTION *@
+                            <p class="small lh-base mb-3" style="color: var(--rf-text-secondary); text-align: left;">
+                                @(string.IsNullOrWhiteSpace(sp.Description) ? UiText.NoDescription(LanguageState.CurrentLanguage) : MarkdownPreview.ToPlainText(sp.Description, 220))
+                            </p>
+                        </div>
+
+                        @* CARD FOOTER: Trait / Subspecies counts & Action Button *@
+                        <div class="pt-3 d-flex justify-content-between align-items-center" style="border-top: 1px solid var(--rf-border-subtle);">
+                            <div class="d-flex gap-2 flex-wrap">
+                                @if (sp.TraitCount > 0)
+                                {
+                                    <span class="badge bg-dark border border-secondary text-light small py-1 px-2">
+                                        @UiText.BadgeTraitsCount(sp.TraitCount, LanguageState.CurrentLanguage)
+                                    </span>
+                                }
+                                @if (sp.SubspeciesCount > 0)
+                                {
+                                    <span class="badge bg-dark border border-warning text-warning small py-1 px-2">
+                                        @UiText.BadgeSubspeciesCount(sp.SubspeciesCount, LanguageState.CurrentLanguage)
+                                    </span>
+                                }
+                            </div>
+
+                            <button class="btn btn-sm btn-rf-outline text-uppercase flex-shrink-0"
+                                    style="letter-spacing: 1px;"
+                                    @onclick:stopPropagation="true"
+                                    @onclick="() => OpenDetailModal(sp.Id)">
+                                @UiText.BtnViewDetails(LanguageState.CurrentLanguage)
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+</div>
+
+@* --- INTERACTIVE CHARACTER-SHEET DETAIL MODAL --- *@
+@if (isDetailModalOpen)
+{
+    <div class="rf-modal-backdrop" @onclick="CloseDetailModal">
+        <div class="rf-modal-dialog" style="max-width: 820px;" @onclick:stopPropagation="true">
+            @if (isDetailLoading || selectedDetail == null)
+            {
+                <div class="text-center py-5">
+                    <div class="spinner-border" style="color: var(--rf-orange-primary);" role="status"></div>
+                </div>
+            }
+            else
+            {
+                @* MODAL HEADER *@
+                <div class="d-flex justify-content-between align-items-start mb-3 pb-2" style="border-bottom: 2px solid var(--rf-orange-primary);">
+                    <div>
+                        <div class="d-flex align-items-center gap-2 mb-1">
+                            <h2 class="h3 mb-0" style="color: var(--rf-orange-primary); font-family: var(--rf-font-display);">
+                                @selectedDetail.Name
+                            </h2>
+                            @if (ActiveSubspecies != null)
+                            {
+                                <span class="h5 mb-0 text-white fw-light">/ @ActiveSubspecies.Name</span>
+                            }
+                        </div>
+                        <div class="d-flex gap-2 mt-1">
+                            <span class="badge @(selectedDetail.Ruleset == RulesetVersion.Dnd5e_2024 ? "badge-edition-2024" : "badge-edition-2014")">
+                                @UiText.FormatRuleset(selectedDetail.Ruleset, LanguageState.CurrentLanguage)
+                            </span>
+                            <RealmForge.Client.Components.ContentBadge IsBase="selectedDetail.IsOfficialSRD" Source="selectedDetail.Source" Visibility="selectedDetail.Visibility" ShowSource="true" />
+                        </div>
+                    </div>
+
+                    @* Navigazione Sottospecie (Top Right) *@
+                    <button class="btn btn-sm btn-rf-outline text-uppercase mt-1"
+                            style="letter-spacing: 1px; color: var(--rf-orange-primary); border-color: var(--rf-orange-primary);"
+                            @onclick="() => NavigateToSubspecies(selectedDetail.Id)">
+                        @UiText.BtnManageSubspecies(LanguageState.CurrentLanguage)
+                    </button>
+                </div>
+
+                @* INTERACTIVE SUBSPECIES SELECTOR PILLS *@
+                @if (selectedDetail.Subspecies.Any())
+                {
+                    <div class="mb-4 p-3 rounded" style="background-color: var(--rf-bg-main); border: 1px solid var(--rf-border-subtle);">
+                        <label class="rf-form-label mb-2 small text-uppercase">
+                            @UiText.LabelSelectSubspecies(LanguageState.CurrentLanguage)
+                        </label>
+                        <div class="rf-pill-group">
+                            <button type="button"
+                                    class="rf-pill-btn @(selectedSubspeciesId == null ? "active" : "")"
+                                    @onclick="() => selectedSubspeciesId = null">
+                                @UiText.OptionBaseSpeciesOnly(LanguageState.CurrentLanguage)
+                            </button>
+
+                            @foreach (var sub in selectedDetail.Subspecies)
+                            {
+                                <button type="button"
+                                        class="rf-pill-btn @(selectedSubspeciesId == sub.Id ? "active" : "")"
+                                        @onclick="() => selectedSubspeciesId = sub.Id">
+                                    @sub.Name
+                                </button>
+                            }
+                        </div>
+                    </div>
+                }
+
+                @* DYNAMIC METADATA ROW (Recalculates speed live) *@
+                <div class="rf-meta-row mb-3">
+                    <div>
+                        <strong>@UiText.LabelCreatureType(LanguageState.CurrentLanguage)</strong>
+                        <span style="color: #ffffff;">@UiText.FormatCreatureType(selectedDetail.CreatureType, LanguageState.CurrentLanguage)</span>
+                    </div>
+                    <div>
+                        <strong>@UiText.MetaSize(LanguageState.CurrentLanguage)</strong>
+                        <span style="color: #ffffff;">@UiText.FormatSizes(selectedDetail.AllowedSizes, LanguageState.CurrentLanguage)</span>
+                    </div>
+                    <div>
+                        <strong>@UiText.MetaSpeed(LanguageState.CurrentLanguage)</strong>
+                        <span style="color: #ffffff;" class="@(ActiveSubspecies?.BaseSpeedOverrideInFeet.HasValue == true ? "fw-bold text-warning" : "")">
+                            @UiText.FormatSpeed(ActiveSpeed, LanguageState.CurrentLanguage)
+                        </span>
+                    </div>
+                </div>
+
+                @if (!selectedDetail.IsOfficialSRD)
+                {
+                    <ShareLink Visibility="selectedDetail.Visibility" CanEdit="selectedDetail.CanEdit" Path="@($"species?speciesId={selectedDetail.Id}")" />
+                }
+
+                @* DESCRIPTIONS *@
+                <div class="mb-4">
+                    <div class="rf-markdown-container small mb-2">
+                        @((MarkupString)MarkdownText.ToHtml(selectedDetail.Description))
+                    </div>
+
+                    @* Active Subspecies Lore Callout *@
+                    @if (ActiveSubspecies != null && !string.IsNullOrWhiteSpace(ActiveSubspecies.Description))
+                    {
+                        <div class="p-3 mt-2 rounded" style="background-color: var(--rf-bg-main); border-left: 3px solid #ffb74d;">
+                            <strong class="text-warning small d-block mb-1 text-uppercase" style="letter-spacing: 0.5px;">
+                                @ActiveSubspecies.Name
+                            </strong>
+                            <div class="rf-markdown-container small text-light">
+                                @((MarkupString)MarkdownText.ToHtml(ActiveSubspecies.Description))
+                            </div>
+                        </div>
+                    }
+                </div>
+
+                @* DYNAMIC COMBINED TRAITS LIST *@
+                <h5 class="h6 text-uppercase fw-bold mb-3" style="color: var(--rf-orange-primary); letter-spacing: 1px;">
+                    @UiText.SectionBaseTraits(LanguageState.CurrentLanguage)
+                    <span class="text-secondary small fw-normal">(@ActiveTraits.Count)</span>
+                </h5>
+
+                <div class="d-flex flex-column gap-2 mb-4">
+                    @foreach (var item in ActiveTraits)
+                    {
+                        var isHighlighted = !string.IsNullOrWhiteSpace(DeepLinkTraitName) &&
+                                            item.Trait.Name.Contains(DeepLinkTraitName, StringComparison.OrdinalIgnoreCase);
+
+                        <div class="p-3 rounded"
+                             style="background-color: var(--rf-bg-card);
+                            border-left: 3px solid @(isHighlighted ? "#4fc3f7" : (item.IsSubspeciesTrait ? "#ffb74d" : "var(--rf-orange-primary)"));
+                            @(isHighlighted ? "box-shadow: 0 0 10px rgba(79, 195, 247, 0.3);" : "")">
+                            <div class="d-flex justify-content-between align-items-center mb-1">
+                                <div class="d-flex align-items-center gap-2">
+                                    <strong class="text-light">@item.Trait.Name</strong>
+                                    <span class="badge @(item.IsSubspeciesTrait ? "bg-dark border border-warning text-warning" : "bg-dark border border-secondary text-secondary")" style="font-size: 0.65rem;">
+                                        @(item.IsSubspeciesTrait ? (ActiveSubspecies?.Name ?? UiText.BadgeSourceSubspecies(LanguageState.CurrentLanguage)) : UiText.BadgeSourceBase(LanguageState.CurrentLanguage))
+                                    </span>
+                                </div>
+                                <div class="d-flex align-items-center gap-2">
+                                    @if (item.Trait.RequiredLevel > 1)
+                                    {
+                                        <span class="badge bg-secondary small" style="font-size: 0.65rem;">
+                                            @UiText.LabelRequiredLevel(item.Trait.RequiredLevel, LanguageState.CurrentLanguage)
+                                        </span>
+                                    }
+
+                                    @* Interactive link to Origin Feats *@
+                                    @if (IsFeatGrantingTrait(item.Trait))
+                                    {
+                                        <a href="/feats?category=1" class="btn btn-sm btn-rf-outline py-0 px-2" style="font-size: 0.7rem; border-color: var(--rf-orange-primary); color: var(--rf-orange-primary);">
+                                            @(LanguageState.CurrentLanguage == LanguageCode.It ? "Sfoglia Talenti di Origine →" : "Browse Origin Feats →")
+                                        </a>
+                                    }
+                                </div>
+                            </div>
+                            <div class="rf-markdown-container small">
+                                @((MarkupString)MarkdownText.ToHtml(item.Trait.Description))
+                            </div>
+                        </div>
+                    }
+                </div>
+
+                @* MODAL ACTIONS *@
+                <div class="d-flex justify-content-between align-items-center pt-3 mt-4" style="border-top: 1px solid var(--rf-border-light);">
+
+                    @* Azioni CRUD (Sinistra) *@
+                    @if (selectedDetail.CanEdit)
+                    {
+                    <div class="d-flex gap-3">
+                        <button class="btn btn-sm btn-rf-outline text-uppercase"
+                                style="letter-spacing: 1px;"
+                                @onclick="async () => { var id = selectedDetail.Id; CloseDetailModal(); await OpenEditModal(id); }">
+                            @UiText.Edit(LanguageState.CurrentLanguage)
+                        </button>
+                        <button class="btn btn-sm btn-rf-outline text-uppercase px-3"
+                                style="border-color: #dc3545; color: #dc3545;"
+                                title="@UiText.Delete(LanguageState.CurrentLanguage)"
+                                @onclick="() => { var id = selectedDetail.Id; var name = selectedDetail.Name; CloseDetailModal(); OpenDeleteModal(id, name); }">
+                            @UiText.Delete(LanguageState.CurrentLanguage)
+                        </button>
+                    </div>
+                    }
+                    else
+                    {
+                        <div></div>
+                    }
+
+                    @* Chiusura Modale (Destra) *@
+                    <button class="btn btn-rf-outline text-uppercase" 
+                            style="letter-spacing: 1px;" 
+                            @onclick="CloseDetailModal">
+                        @UiText.BtnClose(LanguageState.CurrentLanguage)
+                    </button>
+                </div>
+            }
+        </div>
+    </div>
+}
+
+@* --- CREATE / EDIT SPECIES MODAL --- *@
+@if (isModalOpen)
+{
+    <div class="rf-modal-backdrop" @onclick="CloseCreateModal">
+        <div class="rf-modal-dialog" @onclick:stopPropagation="true">
+            <h2 class="h4 mb-3 pb-2" style="border-bottom: 1px solid var(--rf-border-light); font-family: var(--rf-font-display);">
+                @(isEditMode ? UiText.Edit(LanguageState.CurrentLanguage) : UiText.ModalTitleAddSpecies(LanguageState.CurrentLanguage))
+            </h2>
+
+            @if (isModalLoading)
+            {
+                <div class="text-center py-4">
+                    <div class="spinner-border text-warning" role="status"></div>
+                </div>
+            }
+            else
+            {
+                @if (!string.IsNullOrEmpty(formValidationMessage))
+                {
+                    <div class="alert alert-warning bg-dark border-warning text-warning p-2 small mb-3">
+                        @formValidationMessage
+                    </div>
+                }
+
+                <div class="row g-3 mb-3">
+                    <div class="col-md-6">
+                        <label class="rf-form-label">@UiText.LabelRuleset(LanguageState.CurrentLanguage)</label>
+                        <RfSelect TValue="RulesetVersion"
+                                  @bind-Value="newRuleset"
+                                  Options="@(Enum.GetValues<RulesetVersion>().Select(r => new RfSelect<RulesetVersion>.OptionItem(r, UiText.FormatRuleset(r, LanguageState.CurrentLanguage))).ToList())" />
+                    </div>
+                    <div class="col-md-6">
+                        <label class="rf-form-label">@UiText.LabelCreatureType(LanguageState.CurrentLanguage)</label>
+                        <RfSelect TValue="CreatureType"
+                                  @bind-Value="newCreatureType"
+                                  Options="@(Enum.GetValues<CreatureType>().Select(t => new RfSelect<CreatureType>.OptionItem(t, UiText.FormatCreatureType(t, LanguageState.CurrentLanguage))).ToList())" />
+                    </div>
+                </div>
+
+                <div class="row g-3 mb-3">
+                    <div class="col-md-6">
+                        <label class="rf-form-label">
+                            @UiText.LabelSpeed(LanguageState.CurrentLanguage)
+                            <span class="text-secondary ms-1">(@UiText.FormatSpeed(newSpeed, LanguageState.CurrentLanguage))</span>
+                        </label>
+                        <input type="number" class="rf-form-control" @bind="newSpeed" min="5" step="5" />
+                    </div>
+                    <div class="col-md-6 d-flex align-items-end">
+                    </div>
+                </div>
+
+                <div class="mb-4">
+                    <label class="rf-form-label">@UiText.LabelSizes(LanguageState.CurrentLanguage)</label>
+                    <div class="d-flex flex-wrap gap-3 p-2 rounded" style="background: var(--rf-bg-card); border: 1px solid var(--rf-border-light);">
+                        @foreach (var size in Enum.GetValues<CreatureSize>())
+                        {
+                            <label class="rf-checkbox-wrapper mb-0">
+                                <input type="checkbox"
+                                       class="rf-checkbox"
+                                       checked="@selectedSizes.Contains(size)"
+                                       @onchange="(e) => ToggleSize(size, e.Value)" />
+                                <span class="small" style="color: #ffffff;">@UiText.FormatSizeSingle(size, LanguageState.CurrentLanguage)</span>
+                            </label>
+                        }
+                    </div>
+                </div>
+
+                <VisibilityPicker @bind-Value="newVisibility" />
+
+                <div class="p-3 mb-3 rounded" style="background-color: var(--rf-bg-card); border-left: 3px solid var(--rf-orange-primary);">
+                    <div class="fw-bold mb-2 small" style="color: var(--rf-orange-primary);">@UiText.TabItalian(LanguageState.CurrentLanguage)</div>
+                    <div class="mb-2">
+                        <label class="rf-form-label">@UiText.LabelName(LanguageState.CurrentLanguage)</label>
+                        <input type="text" class="rf-form-control" placeholder="@UiText.PlaceholderNameIt(LanguageState.CurrentLanguage)" @bind="nameIt" />
+                    </div>
+                    <div>
+                        <label class="rf-form-label">@UiText.LabelDescription(LanguageState.CurrentLanguage)</label>
+                        <textarea class="rf-form-control" rows="2" @bind="descIt"></textarea>
+                    </div>
+                </div>
+
+                <div class="p-3 mb-4 rounded" style="background-color: var(--rf-bg-card); border-left: 3px solid #666;">
+                    <div class="fw-bold mb-2 small text-secondary">@UiText.TabEnglish(LanguageState.CurrentLanguage)</div>
+                    <div class="mb-2">
+                        <label class="rf-form-label" style="color: var(--rf-text-secondary);">@UiText.LabelName(LanguageState.CurrentLanguage)</label>
+                        <input type="text" class="rf-form-control" placeholder="@UiText.PlaceholderNameEn(LanguageState.CurrentLanguage)" @bind="nameEn" />
+                    </div>
+                    <div>
+                        <label class="rf-form-label" style="color: var(--rf-text-secondary);">@UiText.LabelDescription(LanguageState.CurrentLanguage)</label>
+                        <textarea class="rf-form-control" rows="2" @bind="descEn"></textarea>
+                    </div>
+                </div>
+
+                <div class="d-flex justify-content-end gap-2 pt-2" style="border-top: 1px solid var(--rf-border-light);">
+                    <button class="btn btn-rf-outline" @onclick="CloseCreateModal">
+                        @UiText.BtnCancel(LanguageState.CurrentLanguage)
+                    </button>
+                    <button class="btn btn-rf-orange" @onclick="HandleSaveSpecies" disabled="@isSaving">
+                        @(isSaving ? "..." : UiText.BtnSave(LanguageState.CurrentLanguage))
+                    </button>
+                </div>
+            }
+        </div>
+    </div>
+}
+
+@* --- DELETE CONFIRMATION MODAL --- *@
+@if (isDeleteModalOpen)
+{
+    <div class="rf-modal-backdrop" @onclick="CloseDeleteModal">
+        <div class="rf-modal-dialog" @onclick:stopPropagation="true" style="max-width: 450px; text-align: center;">
+            <h2 class="h4 mb-3" style="color: var(--rf-orange-primary);">@UiText.ConfirmDeletion(LanguageState.CurrentLanguage)</h2>
+
+            <div class="p-3 mb-4 rounded" style="background-color: var(--rf-bg-main); border: 1px solid var(--rf-border-subtle); color: var(--rf-text-secondary); line-height: 1.5;">
+                @UiText.DeleteSpeciesWarning(LanguageState.CurrentLanguage, speciesToDeleteName)
+            </div>
+
+            <div class="d-flex justify-content-center gap-3">
+                <button class="btn btn-rf-outline" @onclick="CloseDeleteModal">@UiText.BtnCancel(LanguageState.CurrentLanguage)</button>
+                <button class="btn btn-rf-orange" style="background-color: #dc3545; border-color: #dc3545;" @onclick="HandleDeleteSpecies">
+                    @UiText.Delete(LanguageState.CurrentLanguage)
+                </button>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    // Deep-linking query string parameters
+    [SupplyParameterFromQuery(Name = "speciesId")]
+    public Guid? DeepLinkSpeciesId { get; set; }
+
+    [SupplyParameterFromQuery(Name = "highlightTrait")]
+    public string? DeepLinkTraitName { get; set; }
+
+    private List<SpeciesResponseDto> speciesList = new();
+
+    //	Text search runs on the loaded list (name and description), like the feat and background pages
+    private string searchTerm = string.Empty;
+
+    private IEnumerable<SpeciesResponseDto> FilteredSpecies =>
+        string.IsNullOrWhiteSpace(searchTerm)
+            ? speciesList
+            : speciesList.Where(s => s.Name.Contains(searchTerm.Trim(), StringComparison.OrdinalIgnoreCase)
+                                     || s.Description.Contains(searchTerm.Trim(), StringComparison.OrdinalIgnoreCase));
+    private bool isLoading = true;
+    private string? errorMessage;
+
+    // Filters state
+    private RulesetVersion? selectedRulesetFilter = null;
+    private bool? selectedOriginFilter = null;
+
+    // Filter binding properties with getters and setters
+    private string SelectedRulesetFilterString
+    {
+        get => selectedRulesetFilter.HasValue ? ((int)selectedRulesetFilter.Value).ToString() : "";
+        set
+        {
+            if (int.TryParse(value, out var intVal) && Enum.IsDefined(typeof(RulesetVersion), intVal))
+            {
+                selectedRulesetFilter = (RulesetVersion)intVal;
+            }
+            else
+            {
+                selectedRulesetFilter = null;
+            }
+        }
+    }
+
+    private string SelectedOriginFilterString
+    {
+        get => selectedOriginFilter.HasValue ? (selectedOriginFilter.Value ? "srd" : "homebrew") : "";
+        set
+        {
+            selectedOriginFilter = value switch
+            {
+                "srd" => true,
+                "homebrew" => false,
+                _ => null
+            };
+        }
+    }
+
+    // Consultation / Detail modal state
+    private bool isDetailModalOpen = false;
+    private bool isDetailLoading = false;
+    private SpeciesDetailResponseDto? selectedDetail = null;
+    private Guid? selectedSubspeciesId = null;
+
+    // Interactive helper properties
+    private SubspeciesResponseDto? ActiveSubspecies =>
+        selectedDetail?.Subspecies.FirstOrDefault(s => s.Id == selectedSubspeciesId);
+
+    private int ActiveSpeed =>
+        ActiveSubspecies?.BaseSpeedOverrideInFeet ?? selectedDetail?.BaseSpeedInFeet ?? 30;
+
+    private record DisplayTraitItem(TraitResponseDto Trait, bool IsSubspeciesTrait);
+
+    private List<DisplayTraitItem> ActiveTraits
+    {
+        get
+        {
+            var list = new List<DisplayTraitItem>();
+            if (selectedDetail == null) return list;
+
+            list.AddRange(selectedDetail.BaseTraits.Select(t => new DisplayTraitItem(t, false)));
+
+            if (ActiveSubspecies != null)
+            {
+                list.AddRange(ActiveSubspecies.Traits.Select(t => new DisplayTraitItem(t, true)));
+            }
+
+            return list;
+        }
+    }
+
+    // Form Modal state (Create / Edit)
+    private bool isModalOpen = false;
+    private bool isModalLoading = false;
+    private bool isSaving = false;
+    private bool isEditMode = false;
+    private Guid editingId;
+    private string? formValidationMessage;
+
+    // Form fields
+    private int newSpeed = 30;
+    private RulesetVersion newRuleset = RulesetVersion.Dnd5e_2024;
+    private ContentVisibility newVisibility = ContentVisibility.Private;
+    private CreatureType newCreatureType = CreatureType.Humanoid;
+    private HashSet<CreatureSize> selectedSizes = new() { CreatureSize.Medium };
+    private string nameIt = "";
+    private string descIt = "";
+    private string nameEn = "";
+    private string descEn = "";
+
+    // Delete Modal state
+    private bool isDeleteModalOpen = false;
+    private Guid speciesToDeleteId;
+    private string speciesToDeleteName = string.Empty;
+
+    protected override async Task OnInitializedAsync()
+    {
+        LanguageState.OnLanguageChanged += HandleLanguageChanged;
+        await LoadData();
+
+        if (DeepLinkSpeciesId.HasValue)
+        {
+            await OpenDetailModal(DeepLinkSpeciesId.Value);
+
+            //	Shared link to a private or deleted entry
+            if (selectedDetail == null)
+            {
+                CloseDetailModal();
+                ApiErrors.Report(ApiErrorKind.NotAvailable);
+            }
+        }
+    }
+
+    private async void HandleLanguageChanged()
+    {
+        if (isDetailModalOpen && selectedDetail != null)
+        {
+            selectedDetail = await SpeciesService.GetSpeciesDetailAsync(selectedDetail.Id, LanguageState.CurrentLanguage);
+        }
+
+        await LoadData();
+        StateHasChanged();
+    }
+
+    private async Task LoadData()
+    {
+        isLoading = true;
+        errorMessage = null;
+        speciesList = await SpeciesService.GetSpeciesAsync(LanguageState.CurrentLanguage, selectedRulesetFilter, selectedOriginFilter);
+        isLoading = false;
+    }
+
+    private async Task OpenDetailModal(Guid id)
+    {
+        isDetailModalOpen = true;
+        isDetailLoading = true;
+        selectedSubspeciesId = null;
+        selectedDetail = await SpeciesService.GetSpeciesDetailAsync(id, LanguageState.CurrentLanguage);
+        isDetailLoading = false;
+    }
+
+    private void CloseDetailModal()
+    {
+        isDetailModalOpen = false;
+        selectedDetail = null;
+        selectedSubspeciesId = null;
+    }
+
+    // CREATE Action
+    private void OpenCreateModal()
+    {
+        isEditMode = false;
+        formValidationMessage = null;
+        newSpeed = 30;
+        newRuleset = RulesetVersion.Dnd5e_2024;
+        newVisibility = ContentVisibility.Private;
+        newCreatureType = CreatureType.Humanoid;
+        selectedSizes = new HashSet<CreatureSize> { CreatureSize.Medium };
+        nameIt = "";
+        descIt = "";
+        nameEn = "";
+        descEn = "";
+        isModalOpen = true;
+    }
+
+    // EDIT Action
+    private async Task OpenEditModal(Guid id)
+    {
+        isEditMode = true;
+        editingId = id;
+        formValidationMessage = null;
+        isModalOpen = true;
+        isModalLoading = true;
+
+        try
+        {
+            // Fetching both languages to populate the full Edit Form
+            var detailItTask = SpeciesService.GetSpeciesDetailAsync(id, LanguageCode.It);
+            var detailEnTask = SpeciesService.GetSpeciesDetailAsync(id, LanguageCode.En);
+
+            await Task.WhenAll(detailItTask, detailEnTask);
+
+            var detailIt = detailItTask.Result;
+            var detailEn = detailEnTask.Result;
+
+            if (detailIt != null && detailEn != null)
+            {
+                newSpeed = detailIt.BaseSpeedInFeet;
+                newRuleset = detailIt.Ruleset;
+                newVisibility = detailIt.Visibility;
+                newCreatureType = detailIt.CreatureType;
+                selectedSizes = new HashSet<CreatureSize>(detailIt.AllowedSizes);
+
+                nameIt = detailIt.Name;
+                descIt = detailIt.Description;
+                nameEn = detailEn.Name;
+                descEn = detailEn.Description;
+            }
+        }
+        catch (Exception ex)
+        {
+            formValidationMessage = $"Error loading data: {ex.Message}";
+        }
+        finally
+        {
+            isModalLoading = false;
+        }
+    }
+
+    private void CloseCreateModal()
+    {
+        isModalOpen = false;
+    }
+
+    private void ToggleSize(CreatureSize size, object? isChecked)
+    {
+        if (isChecked is bool checkedValue)
+        {
+            if (checkedValue) selectedSizes.Add(size);
+            else selectedSizes.Remove(size);
+        }
+    }
+
+    private async Task HandleSaveSpecies()
+    {
+        if (string.IsNullOrWhiteSpace(nameIt) || string.IsNullOrWhiteSpace(nameEn))
+        {
+            formValidationMessage = UiText.ErrFillNames(LanguageState.CurrentLanguage);
+            return;
+        }
+
+        if (!selectedSizes.Any())
+        {
+            formValidationMessage = LanguageState.CurrentLanguage == LanguageCode.It
+                ? "Seleziona almeno una taglia per la specie!"
+                : "Select at least one size for the species!";
+            return;
+        }
+
+        isSaving = true;
+        formValidationMessage = null;
+
+        var translations = new List<SpeciesTranslationDto>
+        {
+            new SpeciesTranslationDto(LanguageCode.It, nameIt.Trim(), descIt?.Trim() ?? string.Empty),
+            new SpeciesTranslationDto(LanguageCode.En, nameEn.Trim(), descEn?.Trim() ?? string.Empty)
+        };
+
+        bool success;
+
+        if (isEditMode)
+        {
+            // Assuming Update DTO uses the same structure. Adjust if UpdateSpeciesDto differs slightly.
+            var updateDto = new UpdateSpeciesDto(
+                editingId,
+                newSpeed,
+                selectedSizes.ToList(),
+                newCreatureType,
+                newRuleset,
+                translations,
+                Visibility: newVisibility
+            );
+            success = await SpeciesService.UpdateSpeciesAsync(editingId, updateDto);
+        }
+        else
+        {
+            var createDto = new CreateSpeciesDto(
+                newSpeed,
+                selectedSizes.ToList(),
+                newCreatureType,
+                newRuleset,
+                translations,
+                Visibility: newVisibility
+            );
+            success = await SpeciesService.CreateSpeciesAsync(createDto);
+        }
+
+        isSaving = false;
+
+        if (success)
+        {
+            isModalOpen = false;
+            await LoadData();
+        }
+        else
+        {
+            formValidationMessage = UiText.ErrApiSave(LanguageState.CurrentLanguage);
+        }
+    }
+
+    // DELETE Action
+    private void OpenDeleteModal(Guid id, string name)
+    {
+        speciesToDeleteId = id;
+        speciesToDeleteName = name;
+        isDeleteModalOpen = true;
+    }
+
+    private void CloseDeleteModal()
+    {
+        isDeleteModalOpen = false;
+    }
+
+    private async Task HandleDeleteSpecies()
+    {
+        var success = await SpeciesService.DeleteSpeciesAsync(speciesToDeleteId);
+
+        if (success)
+        {
+            isDeleteModalOpen = false;
+            await LoadData();
+        }
+        else
+        {
+            errorMessage = LanguageState.CurrentLanguage == LanguageCode.It
+                ? "Errore durante l'eliminazione della specie."
+                : "Failed to delete species.";
+        }
+    }
+
+    private bool IsFeatGrantingTrait(TraitResponseDto trait)
+    {
+        return trait.Name.Contains("Versatile", StringComparison.OrdinalIgnoreCase) ||
+               trait.Description.Contains("talento delle origini", StringComparison.OrdinalIgnoreCase) ||
+               trait.Description.Contains("Origin feat", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private void NavigateToSubspecies(Guid speciesId)
+    {
+        NavManager.NavigateTo($"/species/{speciesId}/subspecies");
+    }
+
+    public void Dispose()
+    {
+        LanguageState.OnLanguageChanged -= HandleLanguageChanged;
+    }
+}

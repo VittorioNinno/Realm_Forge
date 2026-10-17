@@ -1,0 +1,330 @@
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using RealmForge.Shared.DTOs;
+using RealmForge.Domain.Entities;
+using RealmForge.Shared.Enums;
+using RealmForge.Api.Localization;
+using RealmForge.Api.Security;
+using RealmForge.Infrastructure.Persistence;
+
+namespace RealmForge.Api.Controllers
+{
+	///	<summary>
+	///	API Controller managing subspecies operations and data retrieval.
+	///	</summary>
+	[ApiController]
+	[Route("api/[controller]")]
+	public class SubspeciesController : ControllerBase
+	{
+		private readonly RealmForgeDbContext _context;
+		private readonly ContentAccess _access;
+
+		///	<summary>
+		///	Initializes a new instance of the SubspeciesController.
+		///	</summary>
+		public SubspeciesController(RealmForgeDbContext context, ContentAccess access)
+		{
+			_context = context;
+			_access = access;
+		}
+
+		///	<summary>
+		///	Retrieves a filtered list of all subspecies.
+		///	</summary>
+		[HttpGet]
+		public async Task<ActionResult<IEnumerable<SubspeciesResponseDto>>> GetAll(
+			[FromQuery] LanguageCode lang = LanguageCode.It,
+			[FromQuery] RulesetVersion? ruleset = null,
+			[FromQuery] bool? isOfficial = null)
+		{
+			var query = _context.Subspecies
+				.Include(s => s.Translations)
+				.Include(s => s.Traits)
+					.ThenInclude(t => t.Translations)
+				.AsSplitQuery()
+				.AsNoTracking()
+				.AsQueryable();
+
+			if (ruleset.HasValue)
+			{
+				query = query.Where(s => s.Ruleset == ruleset.Value);
+			}
+
+			if (isOfficial.HasValue)
+			{
+				query = query.Where(s => s.IsOfficialSRD == isOfficial.Value);
+			}
+
+			//	Private Homebrew of other users and link-only entries are not listed
+			query = ContentAccess.ListedFor(query, User);
+
+			var subspeciesList = await query.ToListAsync();
+
+			var result = subspeciesList.Select(sub =>
+			{
+				var translation = sub.Translations.Localize(lang);
+
+				var exclusiveTraits = sub.Traits
+					.OrderBy(t => t.RequiredLevel)
+					.Select(t =>
+					{
+						var traitTranslation = t.Translations.Localize(lang);
+
+						return new TraitResponseDto(
+							t.Id,
+							traitTranslation?.Name ?? "Unnamed Trait",
+							traitTranslation?.Description ?? string.Empty,
+							t.RequiredLevel,
+							t.Ruleset,
+							t.IsOfficialSRD
+						);
+					})
+					.ToList();
+
+				return new SubspeciesResponseDto(
+					sub.Id,
+					translation?.Name ?? "Unnamed Subspecies",
+					translation?.Description ?? string.Empty,
+					sub.BaseSpeedOverrideInFeet,
+					sub.Ruleset,
+					sub.IsOfficialSRD,
+					exclusiveTraits,
+					CanEdit: _access.CanModify(sub, User),
+					Source: sub.Source,
+					Visibility: sub.Visibility
+				);
+			});
+
+			return Ok(result);
+		}
+
+		///	<summary>
+		///	Retrieves a specific subspecies by its unique identifier.
+		///	</summary>
+		[HttpGet("{id:guid}")]
+		public async Task<ActionResult<SubspeciesResponseDto>> GetById(
+			Guid id,
+			[FromQuery] LanguageCode lang = LanguageCode.It)
+		{
+			var sub = await _context.Subspecies
+				.Include(s => s.Translations)
+				.Include(s => s.Traits)
+					.ThenInclude(t => t.Translations)
+				.AsSplitQuery()
+				.AsNoTracking()
+				.FirstOrDefaultAsync(s => s.Id == id);
+
+			//	Private entries of other users answer 404, as if they did not exist
+			if (sub == null || !_access.CanView(sub, User))
+			{
+				return NotFound();
+			}
+
+			var translation = sub.Translations.Localize(lang);
+
+			var exclusiveTraits = sub.Traits
+				.OrderBy(t => t.RequiredLevel)
+				.Select(t =>
+				{
+					var traitTranslation = t.Translations.Localize(lang);
+
+					return new TraitResponseDto(
+						t.Id,
+						traitTranslation?.Name ?? "Unnamed Trait",
+						traitTranslation?.Description ?? string.Empty,
+						t.RequiredLevel,
+						t.Ruleset,
+						t.IsOfficialSRD
+					);
+				})
+				.ToList();
+
+			var response = new SubspeciesResponseDto(
+				sub.Id,
+				translation?.Name ?? "Unnamed Subspecies",
+				translation?.Description ?? string.Empty,
+				sub.BaseSpeedOverrideInFeet,
+				sub.Ruleset,
+				sub.IsOfficialSRD,
+				exclusiveTraits,
+				CanEdit: _access.CanModify(sub, User),
+				Source: sub.Source,
+				Visibility: sub.Visibility
+			);
+
+			return Ok(response);
+		}
+
+		///	<summary>
+		///	Creates a new subspecies linked to a specific parent species.
+		///	</summary>
+		[HttpPost("~/api/species/{speciesId:guid}/subspecies")]
+		[RequireConfirmedEmail]
+		[Authorize]
+		public async Task<ActionResult<SubspeciesResponseDto>> Create(Guid speciesId, [FromBody] CreateSubspeciesDto dto)
+		{
+			if (dto.Translations == null || !dto.Translations.Any())
+			{
+				return BadRequest("At least one translation must be provided.");
+			}
+
+			var parent = await _context.Species.FindAsync(speciesId);
+			if (parent == null)
+			{
+				return NotFound("Parent species not found.");
+			}
+
+			//	Lineages can extend SRD species or the user's own Homebrew species, not other users' content
+			if (!parent.IsOfficialSRD && !_access.CanModify(parent, User))
+			{
+				return Problem(statusCode: StatusCodes.Status403Forbidden, title: "You can only add lineages to SRD species or to your own Homebrew species.");
+			}
+
+			var subspecies = new Subspecies
+			{
+				SpeciesId = speciesId,
+				BaseSpeedOverrideInFeet = dto.BaseSpeedOverrideInFeet,
+				Ruleset = dto.Ruleset,
+				IsOfficialSRD = false,
+				AuthorId = ContentAccess.GetUserId(User),
+				Visibility = dto.Visibility,
+				Translations = dto.Translations.Select(t => new SubspeciesTranslation
+				{
+					Language = t.Language,
+					Name = t.Name,
+					Description = t.Description
+				}).ToList(),
+				Traits = dto.Traits?.Select(tr => new Trait
+				{
+					RequiredLevel = tr.RequiredLevel,
+					Ruleset = tr.Ruleset,
+					IsOfficialSRD = false,
+					AuthorId = ContentAccess.GetUserId(User),
+					Visibility = dto.Visibility,
+					Translations = tr.Translations.Select(trt => new TraitTranslation
+					{
+						Language = trt.Language,
+						Name = trt.Name,
+						Description = trt.Description
+					}).ToList()
+				}).ToList() ?? new List<Trait>()
+			};
+
+			_context.Subspecies.Add(subspecies);
+			await _context.SaveChangesAsync();
+
+			var firstTranslation = subspecies.Translations.FirstOrDefault();
+
+			var response = new SubspeciesResponseDto(
+				subspecies.Id,
+				firstTranslation?.Name ?? "Unnamed Subspecies",
+				firstTranslation?.Description ?? string.Empty,
+				subspecies.BaseSpeedOverrideInFeet,
+				subspecies.Ruleset,
+				subspecies.IsOfficialSRD,
+				new List<TraitResponseDto>(),
+				CanEdit: _access.CanModify(subspecies, User),
+				Source: subspecies.Source,
+				Visibility: subspecies.Visibility
+			);
+
+			return CreatedAtAction(nameof(GetById), new { id = subspecies.Id }, response);
+		}
+
+		///	<summary>
+		///	Updates an existing subspecies mechanical data and translations.
+		///	</summary>
+		[HttpPut("{id:guid}")]
+		[RequireConfirmedEmail]
+		[Authorize]
+		public async Task<IActionResult> UpdateSubspecies(Guid id, [FromBody] UpdateSubspeciesDto dto)
+		{
+			if (id != dto.Id)
+			{
+				return BadRequest("ID mismatch between route and payload.");
+			}
+
+			var subspecies = await _context.Subspecies
+				.Include(s => s.Translations)
+				.FirstOrDefaultAsync(s => s.Id == id);
+
+			if (subspecies == null)
+			{
+				return NotFound();
+			}
+
+			var denied = this.EnsureCanModify(_access, subspecies);
+			if (denied != null)
+			{
+				return denied;
+			}
+
+			subspecies.BaseSpeedOverrideInFeet = dto.BaseSpeedOverrideInFeet;
+			subspecies.Ruleset = dto.Ruleset;
+			subspecies.Visibility = dto.Visibility;
+
+			foreach (var tDto in dto.Translations)
+			{
+				var existingTranslation = subspecies.Translations.FirstOrDefault(t => t.Language == tDto.Language);
+
+				if (existingTranslation != null)
+				{
+					existingTranslation.Name = tDto.Name;
+					existingTranslation.Description = tDto.Description;
+				}
+				else
+				{
+					//	Added through the context so EF inserts it (a preset Guid key would otherwise be treated as an existing row)
+					_context.SubspeciesTranslations.Add(new SubspeciesTranslation
+					{
+						SubspeciesId = subspecies.Id,
+						Language = tDto.Language,
+						Name = tDto.Name,
+						Description = tDto.Description
+					});
+				}
+			}
+
+			var dtoLanguages = dto.Translations.Select(t => t.Language).ToList();
+			var translationsToRemove = subspecies.Translations
+				.Where(t => !dtoLanguages.Contains(t.Language))
+				.ToList();
+
+			if (translationsToRemove.Any())
+			{
+				_context.SubspeciesTranslations.RemoveRange(translationsToRemove);
+			}
+
+			await _context.SaveChangesAsync();
+
+			return NoContent();
+		}
+
+		///	<summary>
+		///	Deletes a subspecies by its unique identifier.
+		///	</summary>
+		[HttpDelete("{id:guid}")]
+		[Authorize]
+		public async Task<IActionResult> DeleteSubspecies(Guid id)
+		{
+			var subspecies = await _context.Subspecies.FindAsync(id);
+
+			if (subspecies == null)
+			{
+				return NotFound();
+			}
+
+			var denied = this.EnsureCanModify(_access, subspecies);
+			if (denied != null)
+			{
+				return denied;
+			}
+
+			_context.Subspecies.Remove(subspecies);
+			await _context.SaveChangesAsync();
+
+			return NoContent();
+		}
+	}
+}

@@ -1,0 +1,54 @@
+﻿@using RealmForge.Client.Localization
+@using RealmForge.Client.Services
+@using RealmForge.Shared.Enums
+@inject LanguageStateService LanguageState
+@inject NavigationManager Navigation
+@inject IJSRuntime JS
+
+@* Share box of a Homebrew detail: copy the link (link / public entries) or explain how to share a private one *@
+@if (Visibility != ContentVisibility.Private)
+{
+    <div class="rf-share" data-test="share-link">
+        <span class="small">@UiText.ShareHint(Visibility, LanguageState.CurrentLanguage)</span>
+        <button type="button" class="btn btn-sm btn-rf-outline" @onclick="CopyAsync">
+            @(copied ? UiText.LinkCopied(LanguageState.CurrentLanguage) : UiText.BtnCopyLink(LanguageState.CurrentLanguage))
+        </button>
+        @if (copyFailed)
+        {
+            @* Clipboard not available (e.g. plain http on another host): the address can be copied by hand *@
+            <input class="rf-form-control mt-2" readonly value="@AbsoluteUrl" data-test="share-url" />
+        }
+    </div>
+}
+else if (CanEdit)
+{
+    <div class="rf-share" data-test="share-private">
+        <span class="small">@UiText.SharePrivateHint(LanguageState.CurrentLanguage)</span>
+    </div>
+}
+
+@code {
+    [Parameter] public ContentVisibility Visibility { get; set; }
+    [Parameter] public bool CanEdit { get; set; }
+
+    //	Client route relative to the base address, e.g. "feats?id=..."
+    [Parameter, EditorRequired] public string Path { get; set; } = string.Empty;
+
+    private bool copied;
+    private bool copyFailed;
+
+    private string AbsoluteUrl => Navigation.ToAbsoluteUri(Path).ToString();
+
+    private async Task CopyAsync()
+    {
+        try
+        {
+            await JS.InvokeVoidAsync("navigator.clipboard.writeText", AbsoluteUrl);
+            copied = true;
+        }
+        catch (JSException)
+        {
+            copyFailed = true;
+        }
+    }
+}

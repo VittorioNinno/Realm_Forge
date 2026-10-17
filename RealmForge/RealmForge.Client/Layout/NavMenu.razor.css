@@ -1,0 +1,169 @@
+﻿.navbar-toggler {
+    background-color: rgba(255, 255, 255, 0.1);
+}
+
+.top-row {
+    min-height: 3.5rem;
+    background-color: rgba(0,0,0,0.4);
+}
+
+.navbar-brand {
+    font-size: 1.1rem;
+}
+
+/* Inline SVG icons (NavIcon): fixed box so every label starts at the same x */
+::deep .rf-nav-icon {
+    flex: 0 0 1.1rem;
+    width: 1.1rem;
+    height: 1.1rem;
+    margin-right: 0.75rem;
+}
+
+.nav-item {
+    font-size: 0.9rem;
+    padding-bottom: 0.5rem;
+}
+
+    .nav-item:first-of-type {
+        padding-top: 1rem;
+    }
+
+    .nav-item:last-of-type {
+        padding-bottom: 1rem;
+    }
+
+    .nav-item ::deep a {
+        /* Explicit padding: Bootstrap's .nav-link reads it from variables defined only inside .nav */
+        padding: 0 1rem;
+        color: #d7d7d7;
+        border-radius: 4px;
+        height: 3rem;
+        display: flex;
+        align-items: center;
+        line-height: 3rem;
+    }
+
+.nav-item ::deep a.active {
+    background-color: rgba(255,255,255,0.37);
+    color: white;
+}
+
+.nav-item ::deep a:hover {
+    background-color: rgba(255,255,255,0.1);
+    color: white;
+}
+
+@media (min-width: 641px) {
+    .navbar-toggler {
+        display: none;
+    }
+
+    .collapse {
+        /* Never collapse the sidebar for wide screens */
+        display: block;
+    }
+
+    .nav-scrollable {
+        /* Allow sidebar to scroll for tall menus */
+        height: calc(100vh - 3.5rem);
+        overflow-y: auto;
+    }
+}
+
+/* Collapsible "Compendium" section */
+.rf-nav-group {
+    font-size: 0.9rem;
+    margin-top: 0.5rem;
+    padding-top: 0.75rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.rf-nav-group-toggle {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    height: 2.5rem;
+    padding: 0 1rem;
+    border: 0;
+    border-radius: 4px;
+    background: transparent;
+    color: #9a9a9a;
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+}
+
+    .rf-nav-group-toggle:hover {
+        background-color: rgba(255,255,255,0.06);
+        color: #d7d7d7;
+    }
+
+.rf-nav-chevron {
+    display: inline-flex;
+    transition: transform 0.15s ease;
+}
+
+    .rf-nav-chevron ::deep .rf-nav-icon {
+        margin-right: 0;
+        width: 0.8rem;
+        height: 0.8rem;
+    }
+
+    .rf-nav-chevron.open {
+        transform: rotate(180deg);
+    }
+
+.rf-nav-group-items {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    padding: 0.25rem 0 1rem 0;
+}
+
+    .rf-nav-group-items ::deep a {
+        padding: 0 1rem;
+        color: #d7d7d7;
+        border-radius: 4px;
+        height: 2.5rem;
+        display: flex;
+        align-items: center;
+    }
+
+        .rf-nav-group-items ::deep a.active {
+            background-color: rgba(255,255,255,0.37);
+            color: white;
+        }
+
+        .rf-nav-group-items ::deep a:hover {
+            background-color: rgba(255,255,255,0.1);
+            color: white;
+        }
+
+/* Sidebar body: navigation on top, account area pushed to the bottom.
+   Mobile: Bootstrap hides it while collapsed; desktop: always shown as a flex column */
+.rf-sidebar-body {
+    flex-direction: column;
+}
+
+    .rf-sidebar-body:not(.collapse) {
+        display: flex;
+    }
+
+.rf-nav {
+    flex: 1 0 auto;
+}
+
+@media (min-width: 641px) {
+    .rf-sidebar-body.collapse {
+        display: flex;
+    }
+}
+
+/* Anvil emblem next to the brand name */
+.rf-brand-icon {
+    width: 30px;
+    height: 30px;
+    border-radius: 6px;
+    box-shadow: 0 0 0 1px rgba(255, 140, 0, 0.35), 0 0 10px rgba(255, 140, 0, 0.25);
+}

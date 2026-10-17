@@ -1,0 +1,114 @@
+﻿@using RealmForge.Client.Localization
+@using RealmForge.Client.Services
+@using RealmForge.Shared.DTOs
+@using RealmForge.Shared.Enums
+@inject LanguageStateService LanguageState
+
+@* Editor for one language of a background (used twice by the "Forge Background" modal) *@
+<div class="p-3 mb-3 rounded" style="background-color: var(--rf-bg-card); border-left: 3px solid @(IsPrimary ? "var(--rf-orange-primary)" : "#666");">
+    <div class="fw-bold mb-2 small" style="color: @(IsPrimary ? "var(--rf-orange-primary)" : "var(--rf-text-secondary)");">@Title</div>
+
+    <div class="row g-3 mb-2">
+        <div class="col-md-6">
+            <label class="rf-form-label rf-label-single-line">@UiText.LabelName(Lang)</label>
+            <input type="text" class="rf-form-control" @bind="Model.Name" data-test="bg-name-@Model.Language" />
+        </div>
+        <div class="col-md-6">
+            <label class="rf-form-label rf-label-single-line">@UiText.LabelToolProficiencies(Lang)</label>
+            <input type="text" class="rf-form-control" @bind="Model.ToolProficiencies" />
+        </div>
+    </div>
+
+    <div class="row g-3 mb-2">
+        <div class="col-md-6">
+            <label class="rf-form-label rf-label-single-line">@UiText.LabelLanguages(Lang)</label>
+            <input type="text" class="rf-form-control" @bind="Model.Languages" />
+        </div>
+        <div class="col-md-6">
+            @if (Ruleset == RulesetVersion.Dnd5e_2024)
+            {
+                <label class="rf-form-label rf-label-single-line">@UiText.LabelOriginFeatNote(Lang)</label>
+                <input type="text" class="rf-form-control" @bind="Model.OriginFeatNote"
+                       placeholder="@(Model.Language == LanguageCode.It ? UiText.PlaceholderOriginFeatNoteIt(Lang) : UiText.PlaceholderOriginFeatNoteEn(Lang))" />
+            }
+            else
+            {
+                <label class="rf-form-label rf-label-single-line">@UiText.LabelFeatureName(Lang)</label>
+                <input type="text" class="rf-form-control" @bind="Model.FeatureName" />
+            }
+        </div>
+    </div>
+
+    @if (Ruleset == RulesetVersion.Dnd5e_2014)
+    {
+        <div class="mb-2">
+            <label class="rf-form-label rf-label-single-line">@UiText.LabelFeatureDescription(Lang)</label>
+            <textarea class="rf-form-control" rows="2" @bind="Model.FeatureDescription"></textarea>
+        </div>
+    }
+
+    <div class="mb-2">
+        <label class="rf-form-label rf-label-single-line">@UiText.LabelEquipment(Lang) <span class="fw-normal text-lowercase" style="color: var(--rf-text-muted);">(@UiText.LabelEquipmentHint(Lang))</span></label>
+        <textarea class="rf-form-control" rows="4" @bind="Model.Equipment"></textarea>
+    </div>
+
+    <div class="mb-2">
+        <label class="rf-form-label rf-label-single-line">@UiText.LabelDescription(Lang)</label>
+        <textarea class="rf-form-control" rows="3" @bind="Model.Description"></textarea>
+    </div>
+
+    <button type="button" class="btn btn-link p-0 small text-decoration-none" style="color: var(--rf-orange-primary);"
+            @onclick="() => showCharacteristics = !showCharacteristics" data-test="bg-toggle-characteristics-@Model.Language">
+        @(showCharacteristics ? UiText.BtnHideCharacteristics(Lang) : UiText.BtnShowCharacteristics(Lang))
+    </button>
+
+    @if (showCharacteristics)
+    {
+        <div class="mt-2">
+            <div class="mb-2">
+                <label class="rf-form-label rf-label-single-line">@UiText.LabelCharacteristicsIntro(Lang)</label>
+                <textarea class="rf-form-control" rows="2" @bind="Model.CharacteristicsIntro"></textarea>
+            </div>
+            <div class="small mb-2" style="color: var(--rf-text-muted);">@UiText.HintOnePerLine(Lang)</div>
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <label class="rf-form-label rf-label-single-line">@UiText.LabelPersonalityTraits(Lang)</label>
+                    <textarea class="rf-form-control" rows="4" @bind="Traits"></textarea>
+                </div>
+                <div class="col-md-6">
+                    <label class="rf-form-label rf-label-single-line">@UiText.LabelIdeals(Lang)</label>
+                    <textarea class="rf-form-control" rows="4" @bind="Ideals"></textarea>
+                </div>
+                <div class="col-md-6">
+                    <label class="rf-form-label rf-label-single-line">@UiText.LabelBonds(Lang)</label>
+                    <textarea class="rf-form-control" rows="4" @bind="Bonds"></textarea>
+                </div>
+                <div class="col-md-6">
+                    <label class="rf-form-label rf-label-single-line">@UiText.LabelFlaws(Lang)</label>
+                    <textarea class="rf-form-control" rows="4" @bind="Flaws"></textarea>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter, EditorRequired] public BackgroundTranslationDto Model { get; set; } = new();
+    [Parameter, EditorRequired] public string Title { get; set; } = string.Empty;
+    [Parameter] public RulesetVersion Ruleset { get; set; } = RulesetVersion.Dnd5e_2024;
+    [Parameter] public bool IsPrimary { get; set; }
+
+    private LanguageCode Lang => LanguageState.CurrentLanguage;
+    private bool showCharacteristics;
+
+    //	Tables are edited as one entry per line
+    private string Traits { get => Join(Model.PersonalityTraits); set => Model.PersonalityTraits = Split(value); }
+    private string Ideals { get => Join(Model.Ideals); set => Model.Ideals = Split(value); }
+    private string Bonds { get => Join(Model.Bonds); set => Model.Bonds = Split(value); }
+    private string Flaws { get => Join(Model.Flaws); set => Model.Flaws = Split(value); }
+
+    private static string Join(List<string> items) => string.Join("\n", items);
+
+    private static List<string> Split(string? text) =>
+        (text ?? string.Empty).Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).ToList();
+}

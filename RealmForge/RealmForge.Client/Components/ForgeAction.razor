@@ -1,0 +1,81 @@
+﻿@using RealmForge.Client.Localization
+@using RealmForge.Client.Services
+@implements IDisposable
+@inject TokenAuthenticationStateProvider AuthStateProvider
+@inject LanguageStateService LanguageState
+@inject CrossTabService CrossTab
+
+@* Create button of the compendium pages: sign in first, then confirm the e-mail, then forge *@
+@if (!isAuthenticated)
+{
+    <a href="account" class="btn btn-rf-outline">@UiText.BtnLoginToForge(LanguageState.CurrentLanguage)</a>
+}
+else if (emailConfirmed == false)
+{
+    <a href="account" class="btn btn-rf-outline" data-test="verify-to-forge" title="@UiText.HintVerifyToForge(LanguageState.CurrentLanguage)">
+        @UiText.BtnVerifyToForge(LanguageState.CurrentLanguage)
+    </a>
+}
+else if (emailConfirmed == true)
+{
+    @ChildContent
+}
+
+@code {
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+    [CascadingParameter] private Task<AuthenticationState>? AuthState { get; set; }
+
+    private bool isAuthenticated;
+    private bool? emailConfirmed;
+
+    protected override void OnInitialized()
+    {
+        LanguageState.OnLanguageChanged += StateHasChanged;
+        CrossTab.OnEmailConfirmed += HandleEmailConfirmed;
+        CrossTab.OnTabVisible += HandleTabVisible;
+    }
+
+    //	Back to this tab while still unconfirmed: the confirmation may have happened elsewhere
+    private void HandleTabVisible()
+    {
+        if (emailConfirmed == false)
+        {
+            AuthStateProvider.Refresh();
+        }
+    }
+
+    //	The e-mail was confirmed in another tab (link in the e-mail): reload the user so the create button appears
+    private void HandleEmailConfirmed()
+    {
+        if (isAuthenticated)
+        {
+            AuthStateProvider.Refresh();
+        }
+    }
+
+    //	Read from the cached authentication state: no API call when the parent page re-renders (e.g. while typing a search)
+    protected override async Task OnParametersSetAsync()
+    {
+        var user = AuthState != null ? (await AuthState).User : null;
+        isAuthenticated = user?.Identity?.IsAuthenticated == true;
+        emailConfirmed = isAuthenticated
+            ? user!.FindFirst(TokenAuthenticationStateProvider.EmailConfirmedClaim)?.Value == "true"
+            : null;
+
+        //	Still unconfirmed in the cached state: check once per page, the address may have been confirmed meanwhile
+        if (emailConfirmed == false && !rechecked)
+        {
+            rechecked = true;
+            AuthStateProvider.Refresh();
+        }
+    }
+
+    private bool rechecked;
+
+    public void Dispose()
+    {
+        LanguageState.OnLanguageChanged -= StateHasChanged;
+        CrossTab.OnEmailConfirmed -= HandleEmailConfirmed;
+        CrossTab.OnTabVisible -= HandleTabVisible;
+    }
+}

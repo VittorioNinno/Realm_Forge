@@ -1,0 +1,45 @@
+﻿using RealmForge.Domain.Entities;
+using RealmForge.Shared.Enums;
+
+namespace RealmForge.Infrastructure.Persistence.Seeding.FeatsData;
+
+///	<summary>
+///	Provides deterministic database seeding for the Keen Mind feat (2014 ruleset).
+///	</summary>
+public static class KeenMind2014Seeder
+{
+	public static readonly Guid FeatId = Guid.Parse("11111111-2222-3333-4444-555555555518");
+	public static readonly Guid TranslationEnId = Guid.Parse("11111111-2222-3333-4444-555555555681");
+	public static readonly Guid TranslationItId = Guid.Parse("11111111-2222-3333-4444-555555555682");
+
+	///	<summary>
+	///	Builds the canonical SRD definition of this feat. Persistence is handled by FeatSeeder.
+	///	</summary>
+	public static Feat Build()
+	{
+		return new Feat
+		{
+			Id = FeatId,
+			Ruleset = RulesetVersion.Dnd5e_2014,
+			IsOfficialSRD = true,
+			Category = FeatCategory.General,
+			Translations = new List<FeatTranslation>
+			{
+				new FeatTranslation
+				{
+					Id = TranslationEnId,
+					Language = LanguageCode.En,
+					Name = "Keen Mind",
+					Description = "Your memory and sense of orientation are flawless.\n- Increase your Intelligence score by 1, to a maximum of 20.\n- You always know which direction is north.\n- You always know how many hours remain until the next sunrise or sunset.\n- You can accurately remember anything you saw or heard during the past month."
+				},
+				new FeatTranslation
+				{
+					Id = TranslationItId,
+					Language = LanguageCode.It,
+					Name = "Mente Acuta",
+					Description = "La memoria e il senso dell'orientamento del personaggio sono impeccabili.\n- Il punteggio di Intelligenza aumenta di 1, fino a un massimo di 20.\n- Sa sempre in che direzione si trova il nord.\n- Sa sempre quante ore mancano alla prossima alba o al prossimo tramonto.\n- Ricorda con precisione tutto ciò che ha visto o sentito nell'ultimo mese."
+				}
+			}
+		};
+	}
+}

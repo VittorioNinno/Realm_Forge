@@ -1,0 +1,46 @@
+﻿using RealmForge.Domain.Entities;
+using RealmForge.Shared.Enums;
+
+namespace RealmForge.Infrastructure.Persistence.Seeding.FeatsData;
+
+///	<summary>
+///	Provides deterministic database seeding for the Lightly Armored feat (2024 ruleset).
+///	</summary>
+public static class LightlyArmored2024Seeder
+{
+	public static readonly Guid FeatId = Guid.Parse("11111111-2222-3333-4444-555555555572");
+	public static readonly Guid TranslationEnId = Guid.Parse("11111111-2222-3333-4444-555555551221");
+	public static readonly Guid TranslationItId = Guid.Parse("11111111-2222-3333-4444-555555551222");
+
+	///	<summary>
+	///	Builds the canonical SRD definition of this feat. Persistence is handled by FeatSeeder.
+	///	</summary>
+	public static Feat Build()
+	{
+		return new Feat
+		{
+			Id = FeatId,
+			Ruleset = RulesetVersion.Dnd5e_2024,
+			IsOfficialSRD = true,
+			Category = FeatCategory.General,
+			PrerequisiteMinimumLevel = 4,
+			Translations = new List<FeatTranslation>
+			{
+				new FeatTranslation
+				{
+					Id = TranslationEnId,
+					Language = LanguageCode.En,
+					Name = "Lightly Armored",
+					Description = "You have learned to fight protected by light armor and a shield.\n- **Ability Score Increase.** Increase your Strength or Dexterity score by 1, to a maximum of 20.\n- **Armor Training.** You gain training with Light armor and Shields."
+				},
+				new FeatTranslation
+				{
+					Id = TranslationItId,
+					Language = LanguageCode.It,
+					Name = "Corazze Leggere",
+					Description = "Il personaggio ha imparato a combattere protetto da un'armatura leggera e da uno scudo.\n- **Incremento dei Punteggi di Caratteristica.** Il punteggio di Forza o Destrezza aumenta di 1, fino a un massimo di 20.\n- **Competenza nelle Armature.** Ottiene l'addestramento nelle armature leggere e negli scudi."
+				}
+			}
+		};
+	}
+}

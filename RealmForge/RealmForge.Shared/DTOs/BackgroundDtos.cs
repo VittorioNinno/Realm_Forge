@@ -1,0 +1,90 @@
+﻿using RealmForge.Shared.Enums;
+
+namespace RealmForge.Shared.DTOs
+{
+	///	<summary>
+	///	Background in the localized list (cards).
+	///	</summary>
+	public record BackgroundResponseDto(
+		Guid Id,
+		string Name,
+		RulesetVersion Ruleset,
+		bool IsOfficialSRD,
+		string ShortDescription,
+		List<AbilityScore> AbilityOptions,
+		List<Skill> SkillProficiencies,
+		Guid? OriginFeatId,
+		string? OriginFeatName,
+		bool CanEdit = false,
+		ContentSource? Source = null,
+		ContentVisibility Visibility = ContentVisibility.Public
+	);
+
+	///	<summary>
+	///	Background detail in one language, with the origin feat, the 2014 feature and the characteristic tables.
+	///	</summary>
+	public record BackgroundDetailResponseDto(
+		Guid Id,
+		string Name,
+		RulesetVersion Ruleset,
+		bool IsOfficialSRD,
+		string Description,
+		List<AbilityScore> AbilityOptions,
+		List<Skill> SkillProficiencies,
+		Guid? OriginFeatId,
+		string? OriginFeatName,
+		string? OriginFeatNote,
+		string? ToolProficiencies,
+		string? Languages,
+		string? Equipment,
+		int? EquipmentGoldAlternative,
+		string? FeatureName,
+		string? FeatureDescription,
+		string? CharacteristicsIntro,
+		List<string> PersonalityTraits,
+		List<string> Ideals,
+		List<string> Bonds,
+		List<string> Flaws,
+		bool CanEdit = false,
+		ContentSource? Source = null,
+		ContentVisibility Visibility = ContentVisibility.Public
+	);
+
+	///	<summary>
+	///	Homebrew background sent on create or update, with one translation per language.
+	///	</summary>
+	public class SaveBackgroundDto
+	{
+		//	Ignored on create; must match the route on update
+		public Guid Id { get; set; }
+		public RulesetVersion Ruleset { get; set; }
+		public List<AbilityScore> AbilityOptions { get; set; } = new();
+		public List<Skill> SkillProficiencies { get; set; } = new();
+		public Guid? OriginFeatId { get; set; }
+		public int? EquipmentGoldAlternative { get; set; }
+		public ContentVisibility Visibility { get; set; } = ContentVisibility.Private;
+		public List<BackgroundTranslationDto> Translations { get; set; } = new();
+	}
+
+	///	<summary>
+	///	Texts of a Homebrew background in one language.
+	///	</summary>
+	public class BackgroundTranslationDto
+	{
+		public LanguageCode Language { get; set; }
+		public string Name { get; set; } = string.Empty;
+		public string Description { get; set; } = string.Empty;
+		public string? ToolProficiencies { get; set; }
+		public string? Languages { get; set; }
+		//	One item per line; the detail view renders it as a list
+		public string? Equipment { get; set; }
+		public string? OriginFeatNote { get; set; }
+		public string? FeatureName { get; set; }
+		public string? FeatureDescription { get; set; }
+		public string? CharacteristicsIntro { get; set; }
+		public List<string> PersonalityTraits { get; set; } = new();
+		public List<string> Ideals { get; set; } = new();
+		public List<string> Bonds { get; set; } = new();
+		public List<string> Flaws { get; set; } = new();
+	}
+}
