@@ -179,7 +179,7 @@ try {
   // Origin filter (client-side, as on the species page): "Solo Homebrew" leaves only the background created above
   await page.locator('.rf-custom-select-trigger', { hasText: 'Tutte le Origini' }).click();
   await page.locator('.rf-custom-select-option', { hasText: 'Solo Homebrew' }).click();
-  const homebrewTitles = await page.locator('.rf-card .rf-card-title').allInnerTexts();
+  const homebrewTitles = (await page.locator('.rf-card .rf-card-title').allTextContents()).map((t) => t.trim()); // textContent: titles are uppercased by CSS
   results.push(`INFO backgrounds with "Solo Homebrew": ${homebrewTitles.join(', ')}`);
   if (homebrewTitles.join(',') !== 'Accolito UI') throw new Error(`origin filter: unexpected cards ${homebrewTitles.join(', ')}`);
   await page.locator('.rf-custom-select-trigger', { hasText: 'Solo Homebrew' }).click();
