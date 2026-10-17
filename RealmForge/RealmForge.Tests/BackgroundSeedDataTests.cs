@@ -149,6 +149,22 @@ public class BackgroundSeedDataTests
 	}
 
 	[Fact]
+	public void Sage_has_its_proficiencies_and_tables()
+	{
+		var sage = Assert.Single(Backgrounds, b => b.Id == Sage2014Seeder.BackgroundId);
+		Assert.Equal(new[] { Skill.Arcana, Skill.History }, sage.SkillProficiencies);
+		Assert.Equal(ContentSource.RealmForge, sage.Source);
+
+		foreach (var tr in sage.Translations)
+		{
+			Assert.Equal((8, 6, 6, 6), (tr.PersonalityTraits.Count, tr.Ideals.Count, tr.Bonds.Count, tr.Flaws.Count));
+			Assert.Contains("| 8 |", tr.Description);
+			Assert.Null(tr.ToolProficiencies);
+			Assert.Equal(6, tr.Equipment!.Split('\n').Length);
+		}
+	}
+
+	[Fact]
 	public void Ids_are_unique_and_identical_on_every_build()
 	{
 		BackgroundSeeder.EnsureUniqueIds(Backgrounds);
