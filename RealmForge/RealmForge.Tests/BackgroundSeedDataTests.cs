@@ -464,6 +464,31 @@ public class BackgroundSeedDataTests
 	}
 
 	[Fact]
+	public void Wayfarer_2024_has_lucky_and_its_proficiencies()
+	{
+		var wayfarer = Assert.Single(Backgrounds, b => b.Id == Wayfarer2024Seeder.BackgroundId);
+		Assert.Equal(ContentSource.RealmForge, wayfarer.Source);
+		Assert.Equal(new[] { AbilityScore.Dexterity, AbilityScore.Wisdom, AbilityScore.Charisma }, wayfarer.AbilityOptions);
+		Assert.Equal(new[] { Skill.Insight, Skill.Stealth }, wayfarer.SkillProficiencies);
+		Assert.Equal(Lucky2024Seeder.FeatId, wayfarer.OriginFeatId);
+		Assert.Equal(50, wayfarer.EquipmentGoldAlternative);
+
+		foreach (var tr in wayfarer.Translations)
+		{
+			Assert.Equal(7, tr.Equipment!.Split('\n').Length);
+		}
+	}
+
+	[Fact]
+	public void All_sixteen_2024_base_backgrounds_are_seeded_and_four_come_from_SRD_5_2()
+	{
+		var base2024 = Backgrounds.Where(b => b.Ruleset == RulesetVersion.Dnd5e_2024 && b.IsOfficialSRD).ToList();
+		Assert.Equal(16, base2024.Count);
+		Assert.Equal(4, base2024.Count(b => b.Source == ContentSource.Srd52));
+		Assert.All(base2024, b => Assert.Equal(50, b.EquipmentGoldAlternative));
+	}
+
+	[Fact]
 	public void Ids_are_unique_and_identical_on_every_build()
 	{
 		BackgroundSeeder.EnsureUniqueIds(Backgrounds);
