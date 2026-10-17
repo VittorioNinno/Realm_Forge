@@ -20,10 +20,12 @@ namespace RealmForge.Api.Email
 		private readonly IHttpContextAccessor _http;
 		private readonly string[] _allowedOrigins;
 		private readonly ILogger<IdentityEmailSender> _logger;
+		private readonly BrevoEmailClient _brevo;
 
-		public IdentityEmailSender(IOptions<EmailOptions> options, IHttpContextAccessor http, IConfiguration configuration, ILogger<IdentityEmailSender> logger)
+		public IdentityEmailSender(IOptions<EmailOptions> options, IHttpContextAccessor http, IConfiguration configuration, ILogger<IdentityEmailSender> logger, BrevoEmailClient brevo)
 		{
 			_options = options.Value;
+			_brevo = brevo;
 			_http = http;
 			_allowedOrigins = (configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() ?? Array.Empty<string>())
 				.Where(o => !string.IsNullOrWhiteSpace(o))
@@ -104,6 +106,22 @@ namespace RealmForge.Api.Email
 			{
 				//	Development / CI: no SMTP server, the link is written to the log so the flow can still be completed
 				_logger.LogWarning("E-mail not sent (SMTP not configured). {Subject} for {Email}: {Link}", subject, to, logValue);
+				return;
+			}
+
+			if (_options.UsesBrevo)
+			{
+				try
+				{
+					await _brevo.SendAsync(to, subject, html, text);
+					_logger.LogInformation("E-mail sent to {Email} through Brevo: {Subject}", to, subject);
+				}
+				catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException)
+				{
+					//	Registration must not fail because of the mail service: the user can ask for a new e-mail from the account page
+					_logger.LogError(ex, "Could not send e-mail to {Email} through Brevo. Check Email:BrevoApiKey and that {Sender} is a verified sender in Brevo.",
+						to, _options.SenderAddress);
+				}
 				return;
 			}
 

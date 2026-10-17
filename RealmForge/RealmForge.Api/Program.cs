@@ -62,6 +62,7 @@ namespace RealmForge.Api
 			//	E-mails for account confirmation and password reset (SMTP settings in the "Email" section / user-secrets)
 			builder.Services.Configure<EmailOptions>(builder.Configuration.GetSection("Email"));
 			builder.Services.AddHttpContextAccessor();
+			builder.Services.AddHttpClient<BrevoEmailClient>(client => client.Timeout = TimeSpan.FromSeconds(30));
 			builder.Services.AddTransient<IEmailSender<ApplicationUser>, IdentityEmailSender>();
 
 			//	Creating or editing content requires a confirmed e-mail address
@@ -101,15 +102,20 @@ namespace RealmForge.Api
 			//	One line at startup tells which mail settings are in use (never the password)
 			var email = app.Services.GetRequiredService<Microsoft.Extensions.Options.IOptions<EmailOptions>>().Value;
 			var startupLogger = app.Services.GetRequiredService<ILogger<Program>>();
-			if (email.IsConfigured)
+			if (email.UsesBrevo)
+			{
+				startupLogger.LogInformation("E-mail: Brevo API as sender {From}, key set", email.SenderAddress ?? "MISSING (set Email:FromAddress)");
+			}
+			else if (email.UsesSmtp)
 			{
 				startupLogger.LogInformation("E-mail: SMTP {Host}:{Port} as {Username}, sender {From}, password {PasswordState}",
-					email.Host, email.Port, email.Username, email.FromAddress ?? email.Username, string.IsNullOrWhiteSpace(email.Password) ? "MISSING" : "set");
+					email.Host, email.Port, email.Username, email.SenderAddress, string.IsNullOrWhiteSpace(email.Password) ? "MISSING" : "set");
 			}
 			else
 			{
-				startupLogger.LogWarning("E-mail: SMTP not configured, confirmation links are written to this log");
+				startupLogger.LogWarning("E-mail: not configured (neither Brevo nor SMTP), confirmation links are written to this log");
 			}
+
 
 			//	Checked after Build() so that design-time tools (dotnet ef migrations add) keep working without a database
 			if (string.IsNullOrWhiteSpace(connectionString))
