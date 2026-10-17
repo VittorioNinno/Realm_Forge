@@ -367,6 +367,22 @@ public class BackgroundSeedDataTests
 	}
 
 	[Fact]
+	public void Merchant_2024_has_lucky_and_its_proficiencies()
+	{
+		var merchant = Assert.Single(Backgrounds, b => b.Id == Merchant2024Seeder.BackgroundId);
+		Assert.Equal(ContentSource.RealmForge, merchant.Source);
+		Assert.Equal(new[] { AbilityScore.Constitution, AbilityScore.Intelligence, AbilityScore.Charisma }, merchant.AbilityOptions);
+		Assert.Equal(new[] { Skill.AnimalHandling, Skill.Persuasion }, merchant.SkillProficiencies);
+		Assert.Equal(Lucky2024Seeder.FeatId, merchant.OriginFeatId);
+		Assert.Equal(50, merchant.EquipmentGoldAlternative);
+
+		foreach (var tr in merchant.Translations)
+		{
+			Assert.Equal(4, tr.Equipment!.Split('\n').Length);
+		}
+	}
+
+	[Fact]
 	public void Ids_are_unique_and_identical_on_every_build()
 	{
 		BackgroundSeeder.EnsureUniqueIds(Backgrounds);
