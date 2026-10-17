@@ -181,6 +181,22 @@ public class BackgroundSeedDataTests
 	}
 
 	[Fact]
+	public void Soldier_has_its_proficiencies_and_tables()
+	{
+		var soldier = Assert.Single(Backgrounds, b => b.Id == Soldier2014Seeder.BackgroundId);
+		Assert.Equal(new[] { Skill.Athletics, Skill.Intimidation }, soldier.SkillProficiencies);
+		Assert.Equal(ContentSource.RealmForge, soldier.Source);
+
+		foreach (var tr in soldier.Translations)
+		{
+			Assert.Equal((8, 6, 6, 6), (tr.PersonalityTraits.Count, tr.Ideals.Count, tr.Bonds.Count, tr.Flaws.Count));
+			Assert.Contains("| 8 |", tr.Description);
+			Assert.Null(tr.Languages);
+			Assert.Equal(5, tr.Equipment!.Split('\n').Length);
+		}
+	}
+
+	[Fact]
 	public void Ids_are_unique_and_identical_on_every_build()
 	{
 		BackgroundSeeder.EnsureUniqueIds(Backgrounds);
