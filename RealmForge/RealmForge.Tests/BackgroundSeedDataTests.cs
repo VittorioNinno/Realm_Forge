@@ -1,6 +1,7 @@
 ﻿using RealmForge.Domain.Entities;
 using RealmForge.Infrastructure.Persistence.Seeding;
 using RealmForge.Infrastructure.Persistence.Seeding.BackgroundsData;
+using RealmForge.Infrastructure.Persistence.Seeding.FeatsData;
 using RealmForge.Shared.Enums;
 
 namespace RealmForge.Tests;
@@ -215,6 +216,24 @@ public class BackgroundSeedDataTests
 	public void All_thirteen_2014_base_backgrounds_are_seeded()
 	{
 		Assert.Equal(13, Backgrounds.Count(b => b.Ruleset == RulesetVersion.Dnd5e_2014 && b.IsOfficialSRD));
+	}
+
+	[Fact]
+	public void Acolyte_2024_comes_from_SRD_5_2_with_magic_initiate()
+	{
+		var acolyte = Assert.Single(Backgrounds, b => b.Id == Acolyte2024Seeder.BackgroundId);
+		Assert.Equal(ContentSource.Srd52, acolyte.Source);
+		Assert.Equal(new[] { AbilityScore.Intelligence, AbilityScore.Wisdom, AbilityScore.Charisma }, acolyte.AbilityOptions);
+		Assert.Equal(new[] { Skill.Insight, Skill.Religion }, acolyte.SkillProficiencies);
+		Assert.Equal(MagicInitiate2024Seeder.FeatId, acolyte.OriginFeatId);
+		Assert.Equal(50, acolyte.EquipmentGoldAlternative);
+
+		foreach (var tr in acolyte.Translations)
+		{
+			Assert.False(string.IsNullOrWhiteSpace(tr.OriginFeatNote));
+			Assert.Null(tr.FeatureName);
+			Assert.Equal(6, tr.Equipment!.Split('\n').Length);
+		}
 	}
 
 	[Fact]

@@ -177,7 +177,11 @@ try {
   ok('private Homebrew detail explains how to share it');
 
   // Exact title match: substring filters are case-insensitive ("Intuizione" contains "ui")
-  await page.locator('.rf-card').filter({ has: page.locator('.rf-card-title', { hasText: /^Accolito$/ }) }).click();
+  // Two base backgrounds are called "Accolito" (2014 and 2024): pick each one by its edition badge
+  const acolyteCard = (edition) => page.locator('.rf-card')
+    .filter({ has: page.locator('.rf-card-title', { hasText: /^Accolito$/ }) })
+    .filter({ has: page.locator(`.badge-edition-${edition}`) });
+  await acolyteCard('2014').click();
   await page.locator('[data-test=bg-characteristics]').waitFor({ timeout: 15000 });
   const tables = await page.locator('[data-test=bg-characteristics] .rf-dice-table').evaluateAll((ts) =>
     ts.map((t) => `${t.querySelector('th').textContent.trim()}x${t.querySelectorAll('tbody tr').length}`));
@@ -196,6 +200,18 @@ try {
   if (badge !== 'Base' || source !== 'Fonte: SRD 5.1') throw new Error(`unexpected badge/source: ${badge} / ${source}`);
   await page.getByRole('button', { name: 'CHIUDI' }).click();
   ok('SRD Acolyte: four stacked characteristic tables (d8, d6, d6, d6), equipment list, badge "Base", source SRD 5.1');
+
+  await acolyteCard('2024').click();
+  await page.locator('[data-test=bg-equipment-b]').waitFor({ timeout: 15000 });
+  const meta2024 = (await page.locator('.rf-modal-dialog .rf-meta-row').innerText()).replace(/\s+/g, ' ');
+  const items2024 = await page.locator('[data-test=bg-equipment-a] li').count();
+  const gold2024 = (await page.locator('[data-test=bg-equipment-b]').innerText()).replace(/\s+/g, ' ');
+  const source2024 = (await page.locator('[data-test=content-source]').first().innerText()).trim();
+  results.push(`INFO Acolyte 2024: items=${items2024} gold='${gold2024}' source='${source2024}'`);
+  if (!meta2024.includes('Iniziato alla Magia') || !meta2024.includes('(Chierico)')) throw new Error(`Acolyte 2024 misses its origin feat: ${meta2024}`);
+  if (items2024 !== 6 || !gold2024.includes('50') || source2024 !== 'Fonte: SRD 5.2') throw new Error(`unexpected Acolyte 2024 equipment/source: ${items2024} / ${gold2024} / ${source2024}`);
+  await page.getByRole('button', { name: 'CHIUDI' }).click();
+  ok('SRD 5.2 Acolyte: Magic Initiate (Cleric), equipment options A (6 items) and B (50 gp), source SRD 5.2');
 
   await page.locator('.rf-card').filter({ has: page.locator('.rf-card-title', { hasText: /^Ciarlatano$/ }) }).click();
   await page.locator('[data-test=bg-characteristics]').waitFor({ timeout: 15000 });
