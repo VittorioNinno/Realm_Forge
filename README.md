@@ -160,8 +160,19 @@ git switch develop
 4. **GitHub** → Settings → Secrets and variables → Actions · *aggiungi*:
    secrets `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID`; variables `API_BASE_URL` (Render address), `CLOUDFLARE_PAGES_PROJECT`.
 
-The free API sleeps after 15 minutes without requests: the first page after a pause waits about a minute. Tokens and e-mail links survive restarts (data protection keys are stored in the database).
-*L'API gratuita si sospende dopo 15 minuti senza richieste: la prima pagina dopo una pausa attende circa un minuto. Token e link nelle email sopravvivono ai riavvii.*
+The free API sleeps after 15 minutes without requests, so the `keep-alive` workflow calls `/health` every 10 minutes (it does not touch the database, Neon still suspends when idle). Tokens and e-mail links survive restarts (data protection keys are stored in the database).
+*L'API gratuita si sospende dopo 15 minuti senza richieste: il workflow `keep-alive` chiama `/health` ogni 10 minuti (senza toccare il database). Token e link nelle email sopravvivono ai riavvii.*
+
+Scheduled workflows run from `release` and GitHub disables them after 60 days without commits: re-enable them from the Actions tab if that happens.
+*I workflow programmati partono da `release` e GitHub li disattiva dopo 60 giorni senza commit: in quel caso riattivali dalla scheda Actions.*
+
+**Backups / Backup**: `backup-db` dumps the Neon database every Sunday, encrypts it and keeps it 90 days as a workflow artifact. Secrets: `BACKUP_DATABASE_URL` (Neon connection string) and `BACKUP_PASSPHRASE` (long random passphrase, keep a copy in a password manager: without it the backups cannot be opened). The repository is public, so artifacts are never stored unencrypted.
+*`backup-db` salva ogni domenica il database cifrato come artifact per 90 giorni. Secret: `BACKUP_DATABASE_URL` e `BACKUP_PASSPHRASE` (conservane una copia: senza non si aprono i backup).*
+
+```bash
+gpg -d realmforge-20261018-032300.dump.gpg > realmforge.dump
+pg_restore --clean --if-exists --no-owner --no-privileges -d "postgresql://…" realmforge.dump   # pg_restore 17+
+```
 
 ---
 
@@ -224,7 +235,7 @@ Every push and pull request runs four jobs · *Ogni push e pull request esegue q
 |---|---|
 | `build` | Build without warnings + unit tests · *Compilazione senza warning + test* |
 | `database` | Migrations on PostgreSQL 17, data preservation, base content seeding and re-sync, auth and ownership rules (401/403/204), e-mail confirmation, password reset, visibility · *Migrazioni, conservazione dei dati, seeding, regole di accesso, conferma email, reset password, visibilità* |
-| `container` | API image run as on Render (Production, PORT, Neon-style URL, migrations, /health, keys kept across restarts, e-mail through a mock Brevo API) and client publish · *Immagine dell'API eseguita come su Render e pubblicazione del client* |
+| `container` | API image run as on Render (Production, PORT, Neon-style URL, migrations, /health, keys kept across restarts, e-mail through a mock Brevo API, encrypted backup and restore) and client publish · *Immagine dell'API eseguita come su Render e pubblicazione del client* |
 | `ui` | Headless browser: dashboard, registration and e-mail confirmation across tabs, password change and recovery, search and filters, modal layout, Base content rendering, language switch · *Browser headless: dashboard, registrazione e conferma email tra schede, cambio e recupero password, ricerca e filtri, layout dei modali, contenuti Base, cambio lingua* |
 
 ```bash

@@ -1,0 +1,43 @@
+name: keep-alive
+
+# Render's free plan suspends the API after 15 minutes without requests, and the first visitor
+# after a pause waits about a minute. A request to /health every 10 minutes keeps it awake.
+# /health does not touch the database, so Neon can still suspend its compute when idle.
+# Scheduled workflows run from the default branch (release) and GitHub may delay them a few minutes.
+# Repository variable: API_BASE_URL (same as deploy-client).
+on:
+  schedule:
+    - cron: '*/10 * * * *'
+  workflow_dispatch:
+
+permissions: {}
+
+concurrency:
+  group: keep-alive
+  cancel-in-progress: false
+
+jobs:
+  ping:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Ping the API
+        env:
+          API: ${{ vars.API_BASE_URL }}
+        run: |
+          if [ -z "$API" ]; then
+            echo "::error title=keep-alive::Missing repository variable API_BASE_URL"
+            exit 1
+          fi
+          url="${API%/}/health"
+          status=""
+          # A sleeping instance needs up to a minute to start: retry instead of failing at once
+          for i in 1 2 3 4; do
+            status=$(curl -s -o /dev/null -w '%{http_code}' --max-time 60 "$url" || true)
+            if [ "$status" = "200" ]; then
+              echo "::notice title=keep-alive::$url answered 200 (attempt $i)"
+              exit 0
+            fi
+            sleep 10
+          done
+          echo "::warning title=keep-alive::$url answered '$status' after 4 attempts"
