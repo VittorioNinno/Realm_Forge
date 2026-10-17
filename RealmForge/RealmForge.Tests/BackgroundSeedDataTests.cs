@@ -416,6 +416,22 @@ public class BackgroundSeedDataTests
 	}
 
 	[Fact]
+	public void Sailor_2024_has_tavern_brawler_and_its_proficiencies()
+	{
+		var sailor = Assert.Single(Backgrounds, b => b.Id == Sailor2024Seeder.BackgroundId);
+		Assert.Equal(ContentSource.RealmForge, sailor.Source);
+		Assert.Equal(new[] { AbilityScore.Strength, AbilityScore.Dexterity, AbilityScore.Wisdom }, sailor.AbilityOptions);
+		Assert.Equal(new[] { Skill.Acrobatics, Skill.Perception }, sailor.SkillProficiencies);
+		Assert.Equal(TavernBrawler2024Seeder.FeatId, sailor.OriginFeatId);
+		Assert.Equal(50, sailor.EquipmentGoldAlternative);
+
+		foreach (var tr in sailor.Translations)
+		{
+			Assert.Equal(5, tr.Equipment!.Split('\n').Length);
+		}
+	}
+
+	[Fact]
 	public void Ids_are_unique_and_identical_on_every_build()
 	{
 		BackgroundSeeder.EnsureUniqueIds(Backgrounds);
