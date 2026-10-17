@@ -16,6 +16,37 @@
     --rf-font-body: 'Inter', system-ui, -apple-system, sans-serif;
 }
 
+/* Links in the forge orange (Bootstrap reads these for <a> and .btn-link) */
+:root {
+    --bs-link-color: var(--rf-orange-primary);
+    --bs-link-color-rgb: 255, 140, 0;
+    --bs-link-hover-color: var(--rf-orange-hover);
+    --bs-link-hover-color-rgb: 255, 165, 51;
+}
+
+a, .btn-link {
+    color: var(--rf-orange-primary);
+    text-decoration-color: rgba(255, 140, 0, 0.45);
+    text-underline-offset: 3px;
+}
+
+    a:hover, .btn-link:hover {
+        color: var(--rf-orange-hover);
+        text-decoration-color: var(--rf-orange-hover);
+    }
+
+    a:focus-visible, .btn-link:focus-visible {
+        outline: 2px solid var(--rf-orange-primary);
+        outline-offset: 2px;
+        border-radius: 2px;
+    }
+
+.btn-link {
+    --bs-btn-color: var(--rf-orange-primary);
+    --bs-btn-hover-color: var(--rf-orange-hover);
+    --bs-btn-active-color: var(--rf-orange-hover);
+}
+
 body {
     background-color: var(--rf-bg-main);
     color: var(--rf-text-secondary);
