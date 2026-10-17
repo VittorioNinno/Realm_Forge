@@ -448,6 +448,22 @@ public class BackgroundSeedDataTests
 	}
 
 	[Fact]
+	public void Soldier_2024_comes_from_SRD_5_2_with_savage_attacker()
+	{
+		var soldier = Assert.Single(Backgrounds, b => b.Id == Soldier2024Seeder.BackgroundId);
+		Assert.Equal(ContentSource.Srd52, soldier.Source);
+		Assert.Equal(new[] { AbilityScore.Strength, AbilityScore.Dexterity, AbilityScore.Constitution }, soldier.AbilityOptions);
+		Assert.Equal(new[] { Skill.Athletics, Skill.Intimidation }, soldier.SkillProficiencies);
+		Assert.Equal(SavageAttacker2024Seeder.FeatId, soldier.OriginFeatId);
+		Assert.Equal(50, soldier.EquipmentGoldAlternative);
+
+		foreach (var tr in soldier.Translations)
+		{
+			Assert.Equal(8, tr.Equipment!.Split('\n').Length);
+		}
+	}
+
+	[Fact]
 	public void Ids_are_unique_and_identical_on_every_build()
 	{
 		BackgroundSeeder.EnsureUniqueIds(Backgrounds);
