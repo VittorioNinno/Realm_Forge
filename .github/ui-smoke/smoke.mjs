@@ -285,6 +285,8 @@ try {
   await page.locator('[data-test=account-area]').getByRole('button', { name: 'Esci' }).click();
   await page.locator('[data-test=account-area]', { hasText: 'Accedi' }).waitFor({ timeout: 15000 });
   ok('password recovery: link on the sign-in form, e-mail link to /reset-password, mismatch rejected, new password signs in');
+  await page.goto(`${base}/backgrounds`);
+  await page.getByText('Accedi per forgiare').first().waitFor({ timeout: 30000 });
 
   await page.locator('[data-test=lang-select] button').click();
   const languages = (await page.locator('[data-test=lang-select] [role=option]').allInnerTexts()).map((t) => t.trim());
