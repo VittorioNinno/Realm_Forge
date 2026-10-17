@@ -318,6 +318,22 @@ public class BackgroundSeedDataTests
 	}
 
 	[Fact]
+	public void Guard_2024_has_alert_and_its_proficiencies()
+	{
+		var guard = Assert.Single(Backgrounds, b => b.Id == Guard2024Seeder.BackgroundId);
+		Assert.Equal(ContentSource.RealmForge, guard.Source);
+		Assert.Equal(new[] { AbilityScore.Strength, AbilityScore.Intelligence, AbilityScore.Wisdom }, guard.AbilityOptions);
+		Assert.Equal(new[] { Skill.Athletics, Skill.Perception }, guard.SkillProficiencies);
+		Assert.Equal(Alert2024Seeder.FeatId, guard.OriginFeatId);
+		Assert.Equal(50, guard.EquipmentGoldAlternative);
+
+		foreach (var tr in guard.Translations)
+		{
+			Assert.Equal(9, tr.Equipment!.Split('\n').Length);
+		}
+	}
+
+	[Fact]
 	public void Ids_are_unique_and_identical_on_every_build()
 	{
 		BackgroundSeeder.EnsureUniqueIds(Backgrounds);
