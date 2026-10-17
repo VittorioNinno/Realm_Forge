@@ -458,6 +458,10 @@ jobs:
           brevo=$(jq -r --arg k "$BREVO_KEY" '[.path == "/v3/smtp/email", .apiKey == $k, .body.to[0].email == "prod@example.com",
             .body.sender.email == "noreply@realmforge.example", (.body.htmlContent | contains("https://realmforge.example/confirm-email?")),
             (.body.textContent | length > 0)] | all' /tmp/brevo-request.json 2>/dev/null || echo false)
+          if [ "$brevo" != "true" ]; then
+            echo "::warning title=brevo::request=$(jq -c '.body.htmlContent |= .[0:0] | .apiKey |= (. != null)' /tmp/brevo-request.json 2>&1 | head -c 600)"
+            echo "::warning title=brevo::api log=$(docker logs api 2>&1 | grep -iE 'e-mail|brevo' | tr '\n' ' ' | head -c 900)"
+          fi
           token=$(curl -sf -X POST http://localhost:10000/api/auth/login -H Content-Type:application/json -d "$body" | jq -r .accessToken)
           docker rm -f api > /dev/null
           start
