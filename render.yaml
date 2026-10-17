@@ -1,4 +1,5 @@
 # Render Blueprint for the RealmForge API (Dashboard → New → Blueprint → this repository).
+# Deploys the "release" branch: one commit per published version, created from main (see README, Deployment).
 # Free plan: the service sleeps after 15 minutes without requests and wakes up in about a minute.
 # Values marked "sync: false" are asked for when the Blueprint is created and never stored in the repository.
 services:
@@ -7,7 +8,7 @@ services:
     runtime: docker
     plan: free
     region: frankfurt
-    branch: main
+    branch: release
     dockerContext: .
     dockerfilePath: ./RealmForge/RealmForge.Api/Dockerfile
     healthCheckPath: /health
