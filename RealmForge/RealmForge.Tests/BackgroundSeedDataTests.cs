@@ -432,6 +432,22 @@ public class BackgroundSeedDataTests
 	}
 
 	[Fact]
+	public void Scribe_2024_has_skilled_and_its_proficiencies()
+	{
+		var scribe = Assert.Single(Backgrounds, b => b.Id == Scribe2024Seeder.BackgroundId);
+		Assert.Equal(ContentSource.RealmForge, scribe.Source);
+		Assert.Equal(new[] { AbilityScore.Dexterity, AbilityScore.Intelligence, AbilityScore.Wisdom }, scribe.AbilityOptions);
+		Assert.Equal(new[] { Skill.Investigation, Skill.Perception }, scribe.SkillProficiencies);
+		Assert.Equal(Skilled2024Seeder.FeatId, scribe.OriginFeatId);
+		Assert.Equal(50, scribe.EquipmentGoldAlternative);
+
+		foreach (var tr in scribe.Translations)
+		{
+			Assert.Equal(6, tr.Equipment!.Split('\n').Length);
+		}
+	}
+
+	[Fact]
 	public void Ids_are_unique_and_identical_on_every_build()
 	{
 		BackgroundSeeder.EnsureUniqueIds(Backgrounds);
