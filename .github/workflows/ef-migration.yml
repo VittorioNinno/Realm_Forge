@@ -4,7 +4,8 @@ name: ef-migration
 # Trigger: push a commit whose message contains  [ef-migration:MigrationName]
 on:
   push:
-    branches-ignore: [ main ]
+    # Never on the published branch: release only receives finished versions
+    branches-ignore: [ release ]
 
 permissions:
   contents: write

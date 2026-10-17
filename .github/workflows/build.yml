@@ -2,9 +2,9 @@ name: build
 
 on:
   push:
-    branches: [ main, develop, release, 'fix/**', 'feat/**', 'refactor/**' ]
+    branches: [ develop, release, 'fix/**', 'feat/**', 'refactor/**' ]
   pull_request:
-    branches: [ main, develop ]
+    branches: [ develop ]
 
 # Runners pinned to Ubuntu 24.04: ubuntu-latest moves to Ubuntu 26 from 19 October 2026 (actions/runner-images#14748);
 # move to the new image deliberately, in its own PR, once the jobs pass on it.
