@@ -1,0 +1,65 @@
+name: deploy-client
+
+# Publishes the Blazor client to Cloudflare Pages on every push to main (and on demand).
+# Repository settings → Secrets and variables → Actions:
+#   secrets   CLOUDFLARE_API_TOKEN   (permission: Cloudflare Pages · Edit)
+#             CLOUDFLARE_ACCOUNT_ID
+#   variables API_BASE_URL           (address of the API on Render, e.g. https://realmforge-api.onrender.com/)
+#             CLOUDFLARE_PAGES_PROJECT (name of the Pages project, e.g. realmforge)
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-client
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Check configuration
+        env:
+          TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          ACCOUNT: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          API: ${{ vars.API_BASE_URL }}
+          PROJECT: ${{ vars.CLOUDFLARE_PAGES_PROJECT }}
+        run: |
+          missing=""
+          [ -n "$TOKEN" ] || missing="$missing CLOUDFLARE_API_TOKEN"
+          [ -n "$ACCOUNT" ] || missing="$missing CLOUDFLARE_ACCOUNT_ID"
+          [ -n "$API" ] || missing="$missing API_BASE_URL"
+          [ -n "$PROJECT" ] || missing="$missing CLOUDFLARE_PAGES_PROJECT"
+          if [ -n "$missing" ]; then
+            echo "::error title=deploy-client::Missing repository settings:$missing (see the comment at the top of deploy-client.yml)"
+            exit 1
+          fi
+
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Publish client
+        run: dotnet publish RealmForge/RealmForge.Client/RealmForge.Client.csproj --configuration Release --output publish
+
+      - name: Production settings and routing
+        env:
+          API: ${{ vars.API_BASE_URL }}
+        run: |
+          cd publish/wwwroot
+          # The client reads the API address from appsettings.json (a trailing slash is required by HttpClient.BaseAddress)
+          jq -n --arg url "${API%/}/" '{ApiBaseUrl: $url}' > appsettings.json
+          rm -f appsettings.Development.json
+          # Every route (/reset-password, /confirm-email, ...) is served by index.html, as in the development server
+          echo '/* /index.html 200' > _redirects
+          echo "::notice title=deploy-client::$(find . -type f | wc -l) files, API $(jq -r .ApiBaseUrl appsettings.json)"
+
+      - name: Deploy to Cloudflare Pages
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: pages deploy publish/wwwroot --project-name=${{ vars.CLOUDFLARE_PAGES_PROJECT }} --branch=main --commit-dirty=true

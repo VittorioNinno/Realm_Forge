@@ -1,0 +1,8 @@
+# Only the API projects are copied into the image (see RealmForge/RealmForge.Api/Dockerfile)
+.git
+.github
+**/bin
+**/obj
+**/*.user
+RealmForge/RealmForge.Client
+RealmForge/RealmForge.Tests
