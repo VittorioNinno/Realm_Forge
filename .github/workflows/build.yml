@@ -34,6 +34,14 @@ jobs:
             grep -oE "warning NU190[1-4]: [^[]{0,220}" build.log | sort -u | head -10 | sed 's/^/::warning title=nuget-audit::/'
           fi
 
+      # Informational: newer stable versions of the NuGet packages (never fails the build)
+      - name: Outdated packages
+        shell: bash
+        run: |
+          dotnet list RealmForge/RealmForge.slnx package --outdated --format json > outdated.json 2> /dev/null || true
+          updates=$(jq -r '[.projects[].frameworks[]?.topLevelPackages[]? | "\(.id) \(.resolvedVersion) -> \(.latestVersion)"] | unique | join("; ")' outdated.json 2> /dev/null || true)
+          echo "::notice title=outdated-packages::${updates:-all packages are up to date}"
+
       - name: Test
         shell: bash
         run: |
