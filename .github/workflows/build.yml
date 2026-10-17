@@ -472,6 +472,28 @@ jobs:
           test "$health" = "Healthy" && test "$feats" = "117" && test "$scheme" = "200" && test "$cors" = "https://realmforge.example" \
             && test "$keys" -ge 1 && test "$after_restart" = "200" && test "$scalar" = "404" && test "$brevo" = "true"
 
+      - name: Back up the database as backup-db does and restore it
+        shell: bash
+        run: |
+          set -e
+          PASS="$(openssl rand -hex 24)"
+          DATABASE_URL="postgresql://postgres@localhost:5432/realm_forge_prod?sslmode=disable" BACKUP_PASSPHRASE="$PASS" \
+            .github/scripts/backup-db.sh /tmp/backup
+          file=$(ls /tmp/backup/*.dump.gpg)
+          # Without the passphrase the file cannot be read
+          wrong=$(printf 'wrong' | gpg --batch --quiet --pinentry-mode loopback --passphrase-fd 0 -d "$file" > /dev/null 2>&1 && echo opened || echo refused)
+          printf '%s' "$PASS" | gpg --batch --quiet --pinentry-mode loopback --passphrase-fd 0 -d "$file" > /tmp/restore.dump
+          psql -h localhost -U postgres -c 'CREATE DATABASE restore_check' > /dev/null
+          docker run --rm -i --network host postgres:18 \
+            pg_restore --no-owner --no-privileges -d "postgresql://postgres@localhost:5432/restore_check" < /tmp/restore.dump
+          count() { psql -h localhost -U postgres -d "$1" -tAc "$2"; }
+          q_users='SELECT count(*) FROM "AspNetUsers"'
+          q_feats='SELECT count(*) FROM "Feats"'
+          users=$(count restore_check "$q_users"); feats=$(count restore_check "$q_feats")
+          echo "::notice title=backup::wrong passphrase=$wrong | restored users=$users (source $(count realm_forge_prod "$q_users")) | feats=$feats (source $(count realm_forge_prod "$q_feats"))"
+          test "$wrong" = "refused" && test "$users" = "$(count realm_forge_prod "$q_users")" && test "$users" -ge 1 \
+            && test "$feats" = "$(count realm_forge_prod "$q_feats")"
+
       - uses: actions/setup-dotnet@v5
         with:
           dotnet-version: '10.0.x'
