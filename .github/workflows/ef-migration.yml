@@ -33,7 +33,7 @@ jobs:
           echo "value=$name" >> "$GITHUB_OUTPUT"
 
       - name: Install dotnet-ef
-        run: dotnet tool install --global dotnet-ef --version 10.0.12
+        run: dotnet tool install --global dotnet-ef --version 10.0.13
 
       - name: Restore
         run: dotnet restore RealmForge/RealmForge.slnx
