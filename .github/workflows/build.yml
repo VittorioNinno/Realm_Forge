@@ -2,7 +2,7 @@ name: build
 
 on:
   push:
-    branches: [ develop, release, 'fix/**', 'feat/**', 'refactor/**' ]
+    branches: [ develop, release, 'fix/**', 'feat/**', 'refactor/**', 'chore/**' ]
   pull_request:
     branches: [ develop ]
 
@@ -33,6 +33,14 @@ jobs:
           if grep -qE 'warning NU190[1-4]' build.log; then
             grep -oE "warning NU190[1-4]: [^[]{0,220}" build.log | sort -u | head -10 | sed 's/^/::warning title=nuget-audit::/'
           fi
+
+      # Informational: newer stable versions of the NuGet packages (never fails the build)
+      - name: Outdated packages
+        shell: bash
+        run: |
+          dotnet list RealmForge/RealmForge.slnx package --outdated --format json > outdated.json 2> /dev/null || true
+          updates=$(jq -r '[.projects[].frameworks[]?.topLevelPackages[]? | "\(.id) \(.resolvedVersion) -> \(.latestVersion)"] | unique | join("; ")' outdated.json 2> /dev/null || true)
+          echo "::notice title=outdated-packages::${updates:-all packages are up to date}"
 
       - name: Test
         shell: bash
@@ -67,7 +75,7 @@ jobs:
       - name: Restore and install dotnet-ef
         run: |
           dotnet restore RealmForge/RealmForge.slnx
-          dotnet tool install --global dotnet-ef --version 10.0.12
+          dotnet tool install --global dotnet-ef --version 10.0.13
 
       - name: Apply migrations up to AddFeatsTable and insert a legacy Homebrew feat
         shell: bash
@@ -403,9 +411,26 @@ jobs:
         shell: bash
         run: |
           set -e
+          # Stand-in for the Brevo API: stores the request and answers 201 like the real service
+          cat > /tmp/brevo.py <<'PY'
+          import http.server, json
+          class H(http.server.BaseHTTPRequestHandler):
+              def do_POST(self):
+                  body = self.rfile.read(int(self.headers['Content-Length']))
+                  with open('/tmp/brevo-request.json', 'w') as f:
+                      json.dump({'path': self.path, 'apiKey': self.headers.get('api-key'), 'body': json.loads(body)}, f)
+                  self.send_response(201); self.send_header('Content-Type', 'application/json'); self.end_headers()
+                  self.wfile.write(b'{"messageId":"<ci@realmforge.example>"}')
+          http.server.HTTPServer(('127.0.0.1', 18080), H).serve_forever()
+          PY
+          python3 /tmp/brevo.py &
+          BREVO_KEY="xkeysib-$(openssl rand -hex 16)"
           start() {
             docker run -d --name api --network host \
               -e PORT=10000 \
+              -e Email__BrevoApiKey="$BREVO_KEY" \
+              -e Email__BrevoApiUrl=http://127.0.0.1:18080/v3/smtp/email \
+              -e Email__FromAddress=noreply@realmforge.example \
               -e ConnectionStrings__DefaultConnection="postgresql://postgres@localhost:5432/realm_forge_prod?sslmode=disable" \
               -e Database__MigrateOnStartup=true \
               -e Cors__AllowedOrigins__0=https://realmforge.example/ \
@@ -428,15 +453,24 @@ jobs:
           PW="Rf-$(openssl rand -hex 12)A!"
           body=$(jq -nc --arg p "$PW" '{email:"prod@example.com",password:$p}')
           curl -sf -X POST http://localhost:10000/api/auth/register -H Content-Type:application/json -d "$body" > /dev/null
+          # The confirmation e-mail went out through the (mock) Brevo API with the key, the recipient and the client link
+          for i in $(seq 1 15); do [ -f /tmp/brevo-request.json ] && break; sleep 1; done
+          brevo=$(jq -r --arg k "$BREVO_KEY" '[.path == "/v3/smtp/email", .apiKey == $k, .body.to[0].email == "prod@example.com",
+            .body.sender.email == "noreply@realmforge.example", (.body.htmlContent | contains("https://realmforge.example/confirm-email?")),
+            (.body.textContent | length > 0)] | all' /tmp/brevo-request.json 2>/dev/null || echo false)
+          if [ "$brevo" != "true" ]; then
+            echo "::warning title=brevo::request=$(jq -c '.body.htmlContent |= .[0:0] | .apiKey |= (. != null)' /tmp/brevo-request.json 2>&1 | head -c 600)"
+            echo "::warning title=brevo::api log=$(docker logs api 2>&1 | grep -iE 'e-mail|brevo' | tr '\n' ' ' | head -c 900)"
+          fi
           token=$(curl -sf -X POST http://localhost:10000/api/auth/login -H Content-Type:application/json -d "$body" | jq -r .accessToken)
           docker rm -f api > /dev/null
           start
           after_restart=$(curl -s -o /dev/null -w '%{http_code}' http://localhost:10000/api/auth/manage/info -H "Authorization: Bearer $token")
           scalar=$(curl -s -o /dev/null -w '%{http_code}' http://localhost:10000/scalar)
 
-          echo "::notice title=container::health=$health | base feats=$feats | forwarded https=$scheme | cors=$cors | data protection keys=$keys | token after restart=$after_restart | API reference in production=$scalar"
+          echo "::notice title=container::health=$health | base feats=$feats | forwarded https=$scheme | cors=$cors | data protection keys=$keys | token after restart=$after_restart | API reference in production=$scalar | e-mail via Brevo=$brevo"
           test "$health" = "Healthy" && test "$feats" = "117" && test "$scheme" = "200" && test "$cors" = "https://realmforge.example" \
-            && test "$keys" -ge 1 && test "$after_restart" = "200" && test "$scalar" = "404"
+            && test "$keys" -ge 1 && test "$after_restart" = "200" && test "$scalar" = "404" && test "$brevo" = "true"
 
       - uses: actions/setup-dotnet@v5
         with:
