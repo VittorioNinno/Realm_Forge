@@ -444,7 +444,8 @@ jobs:
 
       - name: Publish the client as deploy-client does
         run: |
-          dotnet publish RealmForge/RealmForge.Client/RealmForge.Client.csproj --configuration Release --output publish
+          .github/scripts/publish-client.sh https://realmforge-api.example publish
+          test "$(jq -r .ApiBaseUrl publish/wwwroot/appsettings.json)" = "https://realmforge-api.example/"
           files=$(find publish/wwwroot -type f | wc -l)
           largest=$(find publish/wwwroot -type f -printf '%s\n' | sort -n | tail -1)
           echo "::notice title=container::client publish: $files files, largest $((largest / 1024)) KiB (Cloudflare Pages: max 20000 files, 25 MiB each)"
