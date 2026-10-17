@@ -79,7 +79,11 @@ namespace RealmForge.Api
 			const string CorsPolicyName = "AllowBlazorClient";
 
 			//	Only the configured client origins may call the API (see "Cors:AllowedOrigins" in appsettings)
-			var allowedOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() ?? Array.Empty<string>();
+			//	A browser sends the origin without a trailing slash: "https://site.dev/" in the settings would never match
+			var allowedOrigins = (builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() ?? Array.Empty<string>())
+				.Where(o => !string.IsNullOrWhiteSpace(o))
+				.Select(o => o.Trim().TrimEnd('/'))
+				.ToArray();
 
 			builder.Services.AddCors(options =>
 			{
