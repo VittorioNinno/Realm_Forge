@@ -351,6 +351,22 @@ public class BackgroundSeedDataTests
 	}
 
 	[Fact]
+	public void Hermit_2024_has_healer_and_its_proficiencies()
+	{
+		var hermit = Assert.Single(Backgrounds, b => b.Id == Hermit2024Seeder.BackgroundId);
+		Assert.Equal(ContentSource.RealmForge, hermit.Source);
+		Assert.Equal(new[] { AbilityScore.Constitution, AbilityScore.Wisdom, AbilityScore.Charisma }, hermit.AbilityOptions);
+		Assert.Equal(new[] { Skill.Medicine, Skill.Religion }, hermit.SkillProficiencies);
+		Assert.Equal(Healer2024Seeder.FeatId, hermit.OriginFeatId);
+		Assert.Equal(50, hermit.EquipmentGoldAlternative);
+
+		foreach (var tr in hermit.Translations)
+		{
+			Assert.Equal(8, tr.Equipment!.Split('\n').Length);
+		}
+	}
+
+	[Fact]
 	public void Ids_are_unique_and_identical_on_every_build()
 	{
 		BackgroundSeeder.EnsureUniqueIds(Backgrounds);
