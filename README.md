@@ -1,4 +1,4 @@
-# RealmForge
+﻿# RealmForge
 
 [![build](https://github.com/VittorioNinno/realm-forge/actions/workflows/build.yml/badge.svg?branch=develop)](https://github.com/VittorioNinno/realm-forge/actions/workflows/build.yml)
 
@@ -115,6 +115,9 @@ dotnet user-secrets set "Email:FromAddress" "<you>@gmail.com"
 Without these settings no e-mail is sent: the confirmation and password reset links are written to the API console, so you can open them from there.
 *Senza queste impostazioni nessuna email viene inviata: i link di conferma e di reimpostazione della password compaiono nella console dell'API e puoi aprirli da lì.*
 
+Instead of SMTP you can use the [Brevo](https://www.brevo.com) transactional API (free: 300 e-mails a day), which works over HTTPS where SMTP ports are blocked, as on Render's free plan. Verify the sender address in Brevo (Senders, Domains & Dedicated IPs → Senders), create an API key (SMTP & API → API Keys) and set `Email:BrevoApiKey` plus `Email:FromAddress`. When the key is set it takes precedence over the SMTP settings.
+*Al posto dell'SMTP puoi usare l'API transazionale di [Brevo](https://www.brevo.com) (gratis: 300 email al giorno), che passa da HTTPS dove le porte SMTP sono bloccate, come sul piano gratuito di Render. Verifica il mittente su Brevo, crea una chiave API e imposta `Email:BrevoApiKey` e `Email:FromAddress`. Se la chiave è presente ha la precedenza sull'SMTP.*
+
 ### 4. Run / Avvio
 
 ```bash
@@ -152,7 +155,7 @@ git switch develop
 *`release` non ha storia in comune con `develop`: non va mai unito né usato come destinazione di pull request, si aggiorna solo con questi comandi. Le pull request puntano a `develop`.*
 
 1. **Neon**: create a project and copy the connection string (`postgresql://…?sslmode=require`) · *crea un progetto e copia la connection string*.
-2. **Render**: New → Blueprint → this repository. Fill in the values the Blueprint asks for (connection string, client address, e-mail) · *compila i valori richiesti*.
+2. **Render**: New → Blueprint → this repository. Fill in the values the Blueprint asks for (connection string, client address, e-mail: `Email__BrevoApiKey` and `Email__FromAddress`, since the free plan blocks SMTP) · *compila i valori richiesti (per le email la chiave Brevo e il mittente, perché il piano gratuito blocca l'SMTP)*.
 3. **Cloudflare Pages**: create a project (Direct Upload) and an API token with *Cloudflare Pages · Edit* · *crea un progetto e un token API*.
 4. **GitHub** → Settings → Secrets and variables → Actions · *aggiungi*:
    secrets `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID`; variables `API_BASE_URL` (Render address), `CLOUDFLARE_PAGES_PROJECT`.
@@ -221,7 +224,7 @@ Every push and pull request runs four jobs · *Ogni push e pull request esegue q
 |---|---|
 | `build` | Build without warnings + unit tests · *Compilazione senza warning + test* |
 | `database` | Migrations on PostgreSQL 17, data preservation, base content seeding and re-sync, auth and ownership rules (401/403/204), e-mail confirmation, password reset, visibility · *Migrazioni, conservazione dei dati, seeding, regole di accesso, conferma email, reset password, visibilità* |
-| `container` | API image run as on Render (Production, PORT, Neon-style URL, migrations, /health, keys kept across restarts) and client publish · *Immagine dell'API eseguita come su Render e pubblicazione del client* |
+| `container` | API image run as on Render (Production, PORT, Neon-style URL, migrations, /health, keys kept across restarts, e-mail through a mock Brevo API) and client publish · *Immagine dell'API eseguita come su Render e pubblicazione del client* |
 | `ui` | Headless browser: dashboard, registration and e-mail confirmation across tabs, password change and recovery, search and filters, modal layout, Base content rendering, language switch · *Browser headless: dashboard, registrazione e conferma email tra schede, cambio e recupero password, ricerca e filtri, layout dei modali, contenuti Base, cambio lingua* |
 
 ```bash
