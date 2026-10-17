@@ -399,6 +399,23 @@ public class BackgroundSeedDataTests
 	}
 
 	[Fact]
+	public void Sage_2024_comes_from_SRD_5_2_with_magic_initiate_wizard()
+	{
+		var sage = Assert.Single(Backgrounds, b => b.Id == Sage2024Seeder.BackgroundId);
+		Assert.Equal(ContentSource.Srd52, sage.Source);
+		Assert.Equal(new[] { AbilityScore.Constitution, AbilityScore.Intelligence, AbilityScore.Wisdom }, sage.AbilityOptions);
+		Assert.Equal(new[] { Skill.Arcana, Skill.History }, sage.SkillProficiencies);
+		Assert.Equal(MagicInitiate2024Seeder.FeatId, sage.OriginFeatId);
+		Assert.Equal(50, sage.EquipmentGoldAlternative);
+		Assert.Equal(new[] { "Wizard", "Mago" }, sage.Translations.OrderBy(t => t.Language).Select(t => t.OriginFeatNote));
+
+		foreach (var tr in sage.Translations)
+		{
+			Assert.Equal(6, tr.Equipment!.Split('\n').Length);
+		}
+	}
+
+	[Fact]
 	public void Ids_are_unique_and_identical_on_every_build()
 	{
 		BackgroundSeeder.EnsureUniqueIds(Backgrounds);
