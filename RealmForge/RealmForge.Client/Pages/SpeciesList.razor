@@ -42,6 +42,18 @@
 
     @* --- FILTER BAR --- *@
     <div class="row g-3 mb-4 p-3 rounded" style="background-color: var(--rf-bg-surface); border: 1px solid var(--rf-border-light);">
+        <div class="col-md-4 col-sm-12">
+            <label class="rf-form-label small text-uppercase" style="letter-spacing: 0.5px;">
+                @UiText.LabelSearchSpecies(LanguageState.CurrentLanguage)
+            </label>
+            <input type="text"
+                   class="rf-form-control"
+                   data-test="species-search"
+                   placeholder="@UiText.PlaceholderSearchSpecies(LanguageState.CurrentLanguage)"
+                   @bind="searchTerm"
+                   @bind:event="oninput" />
+        </div>
+
         <div class="col-md-4 col-sm-6">
             <label class="rf-form-label small text-uppercase" style="letter-spacing: 0.5px;">
                 @UiText.LabelRuleset(LanguageState.CurrentLanguage)
@@ -83,18 +95,18 @@
             </p>
         </div>
     }
-    else if (!speciesList.Any())
+    else if (!FilteredSpecies.Any())
     {
-        <div class="p-4 rounded text-center" style="background-color: var(--rf-bg-surface); border: 1px solid var(--rf-border-light);">
+        <div class="p-4 rounded text-center" style="background-color: var(--rf-bg-surface); border: 1px solid var(--rf-border-light);" data-test="species-empty">
             <p class="mb-0" style="color: var(--rf-text-muted);">
-                @UiText.NoSpeciesFound(LanguageState.CurrentLanguage)
+                @(speciesList.Any() ? UiText.NoSpeciesMatch(LanguageState.CurrentLanguage) : UiText.NoSpeciesFound(LanguageState.CurrentLanguage))
             </p>
         </div>
     }
     else
     {
         <div class="row row-cols-1 row-cols-md-2 row-cols-xl-3 g-4">
-            @foreach (var sp in speciesList)
+            @foreach (var sp in FilteredSpecies)
             {
                 <div class="col">
                     <div class="rf-card h-100 d-flex flex-column justify-content-between"
@@ -495,6 +507,15 @@
     public string? DeepLinkTraitName { get; set; }
 
     private List<SpeciesResponseDto> speciesList = new();
+
+    //	Text search runs on the loaded list (name and description), like the feat and background pages
+    private string searchTerm = string.Empty;
+
+    private IEnumerable<SpeciesResponseDto> FilteredSpecies =>
+        string.IsNullOrWhiteSpace(searchTerm)
+            ? speciesList
+            : speciesList.Where(s => s.Name.Contains(searchTerm.Trim(), StringComparison.OrdinalIgnoreCase)
+                                     || s.Description.Contains(searchTerm.Trim(), StringComparison.OrdinalIgnoreCase));
     private bool isLoading = true;
     private string? errorMessage;
 
