@@ -24,6 +24,10 @@ services:
         sync: false
       - key: Email__ClientBaseUrl
         sync: false
+      # Brevo API key (xkeysib-...): Render's free plan blocks SMTP, so e-mails go through Brevo over HTTPS.
+      # When it is set the SMTP values below are ignored; Email__FromAddress must be a sender verified in Brevo.
+      - key: Email__BrevoApiKey
+        sync: false
       - key: Email__Host
         value: smtp.gmail.com
       - key: Email__Port
