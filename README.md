@@ -133,8 +133,18 @@ In development the API applies pending migrations and synchronizes the base cont
 
 ## ☁️ Deployment / Pubblicazione
 
-Free setup: API on [Render](https://render.com) (Docker, `render.yaml`), database on [Neon](https://neon.com), client on [Cloudflare Pages](https://pages.cloudflare.com). Every push to `main` redeploys API and client.
-*Configurazione gratuita: API su Render, database su Neon, client su Cloudflare Pages. Ogni push su `main` ripubblica API e client.*
+Free setup: API on [Render](https://render.com) (Docker, `render.yaml`), database on [Neon](https://neon.com), client on [Cloudflare Pages](https://pages.cloudflare.com). Every push to `release` redeploys API and client.
+*Configurazione gratuita: API su Render, database su Neon, client su Cloudflare Pages. Ogni push su `release` ripubblica API e client.*
+
+Branches · *Rami*: `develop` (work, PRs) → `main` (merged versions) → `release` (published: one commit per version, without the development history). To publish what is on `main` · *Per pubblicare ciò che è su `main`*:
+
+```bash
+git fetch origin
+git switch release
+git read-tree -u --reset origin/main      # files exactly as on main, deletions included · file identici a main, eliminazioni comprese
+git commit -m "release: v0.2.0"
+git push
+```
 
 1. **Neon**: create a project and copy the connection string (`postgresql://…?sslmode=require`) · *crea un progetto e copia la connection string*.
 2. **Render**: New → Blueprint → this repository. Fill in the values the Blueprint asks for (connection string, client address, e-mail) · *compila i valori richiesti*.
