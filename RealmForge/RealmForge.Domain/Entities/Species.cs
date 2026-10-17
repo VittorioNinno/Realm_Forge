@@ -3,6 +3,9 @@ using RealmForge.Shared.Enums;
 
 namespace RealmForge.Domain.Entities
 {
+	///	<summary>
+	///	Species (2014 race or 2024 species) with speed, size and creature type, its base traits and its subspecies.
+	///	</summary>
 	public class Species : GameEntity
 	{
 		//	Language-invariant numerical and mechanical data
@@ -18,6 +21,9 @@ namespace RealmForge.Domain.Entities
 		public ICollection<Subspecies> Subspecies { get; set; } = new List<Subspecies>();
 	}
 
+	///	<summary>
+	///	Texts of a species in one language (unique per species and language).
+	///	</summary>
 	public class SpeciesTranslation : ITranslation
 	{
 		public Guid Id { get; set; } = Guid.NewGuid();

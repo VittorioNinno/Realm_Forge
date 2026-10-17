@@ -1,5 +1,8 @@
 ﻿namespace RealmForge.Client.Services
 {
+	///	<summary>
+	///	Kind of API failure shown by the layout banner.
+	///	</summary>
 	public enum ApiErrorKind
 	{
 		Unreachable = 1,

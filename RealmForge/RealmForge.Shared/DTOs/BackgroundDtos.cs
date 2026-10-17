@@ -2,6 +2,9 @@
 
 namespace RealmForge.Shared.DTOs
 {
+	///	<summary>
+	///	Background in the localized list (cards).
+	///	</summary>
 	public record BackgroundResponseDto(
 		Guid Id,
 		string Name,
@@ -17,6 +20,9 @@ namespace RealmForge.Shared.DTOs
 		ContentVisibility Visibility = ContentVisibility.Public
 	);
 
+	///	<summary>
+	///	Background detail in one language, with the origin feat, the 2014 feature and the characteristic tables.
+	///	</summary>
 	public record BackgroundDetailResponseDto(
 		Guid Id,
 		string Name,
@@ -44,6 +50,9 @@ namespace RealmForge.Shared.DTOs
 		ContentVisibility Visibility = ContentVisibility.Public
 	);
 
+	///	<summary>
+	///	Homebrew background sent on create or update, with one translation per language.
+	///	</summary>
 	public class SaveBackgroundDto
 	{
 		//	Ignored on create; must match the route on update
@@ -57,6 +66,9 @@ namespace RealmForge.Shared.DTOs
 		public List<BackgroundTranslationDto> Translations { get; set; } = new();
 	}
 
+	///	<summary>
+	///	Texts of a Homebrew background in one language.
+	///	</summary>
 	public class BackgroundTranslationDto
 	{
 		public LanguageCode Language { get; set; }

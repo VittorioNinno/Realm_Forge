@@ -5,6 +5,9 @@ using RealmForge.Shared.Enums;
 
 namespace RealmForge.Client.Services
 {
+	///	<summary>
+	///	Client for /api/backgrounds: list, detail and Homebrew create/update/delete.
+	///	</summary>
 	public class BackgroundDataService
 	{
 		private readonly HttpClient _http;

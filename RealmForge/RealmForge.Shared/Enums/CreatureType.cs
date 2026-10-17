@@ -1,5 +1,8 @@
 ﻿namespace RealmForge.Shared.Enums
 {
+	///	<summary>
+	///	Creature type of a species (e.g. Humanoid).
+	///	</summary>
 	public enum CreatureType
 	{
 		Humanoid = 1,

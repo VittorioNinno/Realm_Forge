@@ -5,6 +5,9 @@ using RealmForge.Infrastructure.Identity;
 
 namespace RealmForge.Infrastructure.Persistence
 {
+	///	<summary>
+	///	EF Core context (PostgreSQL): Identity tables plus the game content and its translation tables.
+	///	</summary>
 	public class RealmForgeDbContext : IdentityDbContext<ApplicationUser>
 	{
 		public RealmForgeDbContext(DbContextOptions<RealmForgeDbContext> options)

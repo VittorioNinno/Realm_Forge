@@ -345,7 +345,7 @@ h1, h2, h3, h4, h5, h6, .rf-page-title, .brand-title {
         outline: none;
     }
 
-/* --- RF CUSTOM SELECT (Nero & Arancione - Sostituisce il select nativo del browser) --- */
+/* --- RF CUSTOM SELECT (dark / orange, replaces the browser's native select) --- */
 .rf-custom-select-wrapper {
     position: relative;
     width: 100%;
@@ -420,7 +420,7 @@ h1, h2, h3, h4, h5, h6, .rf-page-title, .brand-title {
         font-weight: 800;
     }
 
-/* Fallback per tag select nativi residui */
+/* Fallback for the remaining native select elements */
 select.rf-form-control {
     appearance: none;
     -webkit-appearance: none;
@@ -515,7 +515,7 @@ select.rf-form-control {
         margin-bottom: 1rem;
     }
 
-    /* Forziamo dimensioni più contenute per evitare titoli giganti */
+    /* Smaller sizes, so titles do not grow too large */
     .rf-markdown-container h1 {
         font-size: 1.4rem;
     }
