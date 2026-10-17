@@ -2,7 +2,7 @@ name: build
 
 on:
   push:
-    branches: [ develop, release, 'fix/**', 'feat/**', 'refactor/**' ]
+    branches: [ develop, release, 'fix/**', 'feat/**', 'refactor/**', 'chore/**' ]
   pull_request:
     branches: [ develop ]
 
@@ -33,6 +33,14 @@ jobs:
           if grep -qE 'warning NU190[1-4]' build.log; then
             grep -oE "warning NU190[1-4]: [^[]{0,220}" build.log | sort -u | head -10 | sed 's/^/::warning title=nuget-audit::/'
           fi
+
+      # Informational: newer stable versions of the NuGet packages (never fails the build)
+      - name: Outdated packages
+        shell: bash
+        run: |
+          dotnet list RealmForge/RealmForge.slnx package --outdated --format json > outdated.json 2> /dev/null || true
+          updates=$(jq -r '[.projects[].frameworks[]?.topLevelPackages[]? | "\(.id) \(.resolvedVersion) -> \(.latestVersion)"] | unique | join("; ")' outdated.json 2> /dev/null || true)
+          echo "::notice title=outdated-packages::${updates:-all packages are up to date}"
 
       - name: Test
         shell: bash
@@ -67,7 +75,7 @@ jobs:
       - name: Restore and install dotnet-ef
         run: |
           dotnet restore RealmForge/RealmForge.slnx
-          dotnet tool install --global dotnet-ef --version 10.0.12
+          dotnet tool install --global dotnet-ef --version 10.0.13
 
       - name: Apply migrations up to AddFeatsTable and insert a legacy Homebrew feat
         shell: bash
