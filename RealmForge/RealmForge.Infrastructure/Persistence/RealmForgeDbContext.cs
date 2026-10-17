@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
+﻿using Microsoft.AspNetCore.DataProtection.EntityFrameworkCore;
+using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using RealmForge.Domain.Entities;
 using RealmForge.Infrastructure.Identity;
@@ -6,16 +7,20 @@ using RealmForge.Infrastructure.Identity;
 namespace RealmForge.Infrastructure.Persistence
 {
 	///	<summary>
-	///	EF Core context (PostgreSQL): Identity tables plus the game content and its translation tables.
+	///	EF Core context (PostgreSQL): Identity tables, the ASP.NET Core data protection keys and the game content
+	///	with its translation tables.
 	///	</summary>
-	public class RealmForgeDbContext : IdentityDbContext<ApplicationUser>
+	public class RealmForgeDbContext : IdentityDbContext<ApplicationUser>, IDataProtectionKeyContext
 	{
 		public RealmForgeDbContext(DbContextOptions<RealmForgeDbContext> options)
 			: base(options)
 		{
 		}
 
-		// Species aggregate
+		//	Keys that sign bearer tokens and e-mail links: stored here so they survive restarts of the API container
+		public DbSet<DataProtectionKey> DataProtectionKeys => Set<DataProtectionKey>();
+
+		//	Species aggregate
 		public DbSet<Species> Species => Set<Species>();
 		public DbSet<SpeciesTranslation> SpeciesTranslations => Set<SpeciesTranslation>();
 
