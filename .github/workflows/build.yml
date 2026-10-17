@@ -280,7 +280,7 @@ jobs:
           test "$bg_gold" = "50" && test "$bg_bad_gold" = "400"
           bg_srd=$(curl -sf "$api/api/backgrounds?isOfficial=true&lang=2" | jq -c '[.[] | {name, skills: .skillProficiencies, source}] | sort_by(.name)')
           echo "::notice title=database::base backgrounds: $bg_srd"
-          test "$bg_srd" = '[{"name":"Accolito","skills":[7,15],"source":2},{"name":"Artigiano di Gilda","skills":[7,14],"source":1},{"name":"Ciarlatano","skills":[5,16],"source":1},{"name":"Criminale","skills":[5,17],"source":1},{"name":"Eremita","skills":[10,15],"source":1},{"name":"Eroe Popolare","skills":[2,18],"source":1},{"name":"Forestiero","skills":[4,18],"source":1},{"name":"Intrattenitore","skills":[1,13],"source":1},{"name":"Marinaio","skills":[4,12],"source":1},{"name":"Nobile","skills":[6,14],"source":1},{"name":"Sapiente","skills":[3,6],"source":1}]'
+          test "$bg_srd" = '[{"name":"Accolito","skills":[7,15],"source":2},{"name":"Artigiano di Gilda","skills":[7,14],"source":1},{"name":"Ciarlatano","skills":[5,16],"source":1},{"name":"Criminale","skills":[5,17],"source":1},{"name":"Eremita","skills":[10,15],"source":1},{"name":"Eroe Popolare","skills":[2,18],"source":1},{"name":"Forestiero","skills":[4,18],"source":1},{"name":"Intrattenitore","skills":[1,13],"source":1},{"name":"Marinaio","skills":[4,12],"source":1},{"name":"Nobile","skills":[6,14],"source":1},{"name":"Sapiente","skills":[3,6],"source":1},{"name":"Soldato","skills":[4,8],"source":1}]'
           sources=$(curl -sf "$api/api/feats?isOfficial=true" | jq -c '[.[].source] | unique')
           acolyte_source=$(curl -sf "$api/api/backgrounds?isOfficial=true&lang=1" | jq -r '.[] | select(.name == "Acolyte") | .source')
           homebrew_source=$(echo "$created" | jq -r .source)
