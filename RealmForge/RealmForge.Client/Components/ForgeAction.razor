@@ -1,7 +1,7 @@
 ﻿@using RealmForge.Client.Localization
 @using RealmForge.Client.Services
 @implements IDisposable
-@inject AuthService Auth
+@inject TokenAuthenticationStateProvider AuthStateProvider
 @inject LanguageStateService LanguageState
 @inject CrossTabService CrossTab
 
@@ -40,26 +40,37 @@ else if (emailConfirmed == true)
     {
         if (emailConfirmed == false)
         {
-            HandleEmailConfirmed();
+            AuthStateProvider.Refresh();
         }
     }
 
-    //	The e-mail was confirmed in another tab (link in the e-mail): show the create button right away
-    private async void HandleEmailConfirmed()
+    //	The e-mail was confirmed in another tab (link in the e-mail): reload the user so the create button appears
+    private void HandleEmailConfirmed()
     {
         if (isAuthenticated)
         {
-            emailConfirmed = await Auth.IsEmailConfirmedAsync();
-            await InvokeAsync(StateHasChanged);
+            AuthStateProvider.Refresh();
         }
     }
 
-    //	Re-evaluated on every authentication change (sign-in, sign-out, token refresh)
+    //	Read from the cached authentication state: no API call when the parent page re-renders (e.g. while typing a search)
     protected override async Task OnParametersSetAsync()
     {
-        isAuthenticated = AuthState != null && (await AuthState).User.Identity?.IsAuthenticated == true;
-        emailConfirmed = isAuthenticated ? await Auth.IsEmailConfirmedAsync() : null;
+        var user = AuthState != null ? (await AuthState).User : null;
+        isAuthenticated = user?.Identity?.IsAuthenticated == true;
+        emailConfirmed = isAuthenticated
+            ? user!.FindFirst(TokenAuthenticationStateProvider.EmailConfirmedClaim)?.Value == "true"
+            : null;
+
+        //	Still unconfirmed in the cached state: check once per page, the address may have been confirmed meanwhile
+        if (emailConfirmed == false && !rechecked)
+        {
+            rechecked = true;
+            AuthStateProvider.Refresh();
+        }
     }
+
+    private bool rechecked;
 
     public void Dispose()
     {

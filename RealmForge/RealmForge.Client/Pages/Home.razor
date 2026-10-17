@@ -1,20 +1,111 @@
-﻿@page "/"
+﻿﻿@page "/"
 @using RealmForge.Client.Localization
 @using RealmForge.Client.Services
+@using RealmForge.Shared.Enums
 @implements IDisposable
 @inject LanguageStateService LanguageState
+@inject SpeciesDataService SpeciesService
+@inject BackgroundDataService BackgroundService
+@inject FeatDataService FeatService
 
-<PageTitle>RealmForge - Dashboard</PageTitle>
+<PageTitle>RealmForge - @UiText.NavDashboard(LanguageState.CurrentLanguage)</PageTitle>
 
 <div class="py-4">
     <h1 class="rf-page-title mb-2">@UiText.HomeTitle(LanguageState.CurrentLanguage)</h1>
-    <p class="text-secondary lead fs-6">@UiText.HomeSubtitle(LanguageState.CurrentLanguage)</p>
+    <p class="text-secondary lead fs-6 mb-4">@UiText.HomeSubtitle(LanguageState.CurrentLanguage)</p>
+
+    @* Compendium modules: what is available for each edition, Base and Homebrew *@
+    <div class="row row-cols-1 row-cols-md-3 g-4 mb-4" data-test="dashboard-modules">
+        @foreach (var module in Modules)
+        {
+            <div class="col">
+                <a href="@module.Href" class="rf-card rf-dashboard-card h-100 d-flex flex-column text-decoration-none" data-test="dashboard-@module.Href">
+                    <span class="rf-card-title mb-2">@module.Title</span>
+                    <p class="small mb-3" style="color: var(--rf-text-secondary);">@module.Subtitle</p>
+                    @if (module.Counts is { } counts)
+                    {
+                        <div class="rf-dashboard-stats mt-auto">
+                            <span class="rf-account-stat">
+                                <span class="rf-account-stat-value">@counts.Edition2024</span>
+                                <span class="rf-account-stat-label">Base 2024</span>
+                            </span>
+                            <span class="rf-account-stat">
+                                <span class="rf-account-stat-value">@counts.Edition2014</span>
+                                <span class="rf-account-stat-label">Base 2014</span>
+                            </span>
+                            <span class="rf-account-stat">
+                                <span class="rf-account-stat-value">@counts.Homebrew</span>
+                                <span class="rf-account-stat-label">Homebrew</span>
+                            </span>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="mt-auto small" style="color: var(--rf-text-muted);">@UiText.LoadingArchives(LanguageState.CurrentLanguage)</div>
+                    }
+                </a>
+            </div>
+        }
+    </div>
+
+    @* Next step for the visitor: sign in to forge, or go to the account *@
+    <div class="rf-account-card d-flex flex-wrap justify-content-between align-items-center gap-3">
+        <AuthorizeView>
+            <Authorized>
+                <span class="small" style="color: var(--rf-text-secondary);">@UiText.DashboardSignedInHint(LanguageState.CurrentLanguage)</span>
+                <a href="account" class="btn btn-sm btn-rf-outline">@UiText.BtnGoToAccount(LanguageState.CurrentLanguage)</a>
+            </Authorized>
+            <NotAuthorized>
+                <span class="small" style="color: var(--rf-text-secondary);">@UiText.DashboardAnonymousHint(LanguageState.CurrentLanguage)</span>
+                <a href="account" class="btn btn-sm btn-rf-orange">@UiText.BtnLoginToForge(LanguageState.CurrentLanguage)</a>
+            </NotAuthorized>
+        </AuthorizeView>
+    </div>
 </div>
 
 @code {
-    protected override void OnInitialized()
+    //	Base content per edition, plus the Homebrew the current user can see (public and their own)
+    private record ModuleCounts(int Edition2024, int Edition2014, int Homebrew);
+
+    private record Module(string Href, string Title, string Subtitle, ModuleCounts? Counts);
+
+    private ModuleCounts? species;
+    private ModuleCounts? backgrounds;
+    private ModuleCounts? feats;
+
+    private IEnumerable<Module> Modules
+    {
+        get
+        {
+            var lang = LanguageState.CurrentLanguage;
+            yield return new Module("species", UiText.NavSpecies(lang), UiText.SpeciesSubtitle(lang), species);
+            yield return new Module("backgrounds", UiText.BackgroundsTitle(lang), UiText.BackgroundsSubtitle(lang), backgrounds);
+            yield return new Module("feats", UiText.FeatsTitle(lang), UiText.FeatsSubtitle(lang), feats);
+        }
+    }
+
+    protected override async Task OnInitializedAsync()
     {
         LanguageState.OnLanguageChanged += StateHasChanged;
+
+        var lang = LanguageState.CurrentLanguage;
+        var speciesTask = SpeciesService.GetSpeciesAsync(lang);
+        var backgroundsTask = BackgroundService.GetBackgroundsAsync(lang);
+        var featsTask = FeatService.GetFeatsAsync(lang);
+        await Task.WhenAll(speciesTask, backgroundsTask, featsTask);
+
+        species = Count((await speciesTask).Select(s => (s.Ruleset, s.IsOfficialSRD)));
+        backgrounds = Count((await backgroundsTask).Select(b => (b.Ruleset, b.IsOfficialSRD)));
+        feats = Count((await featsTask).Select(f => (f.Ruleset, f.IsOfficialSRD)));
+    }
+
+    private static ModuleCounts Count(IEnumerable<(RulesetVersion Ruleset, bool IsBase)> items)
+    {
+        var list = items.ToList();
+        return new ModuleCounts(
+            list.Count(i => i.IsBase && i.Ruleset == RulesetVersion.Dnd5e_2024),
+            list.Count(i => i.IsBase && i.Ruleset == RulesetVersion.Dnd5e_2014),
+            list.Count(i => !i.IsBase));
     }
 
     public void Dispose()
