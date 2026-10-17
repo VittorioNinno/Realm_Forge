@@ -27,6 +27,13 @@ namespace RealmForge.Client.Localization
 			lang == LanguageCode.It
 				? "Gestisci le tue campagne, compendi e regole per i tuoi giochi di ruolo da tavolo."
 				: "Manage your campaigns, compendiums, and rulebooks for tabletop roleplaying games.";
+
+		public static string DashboardAnonymousHint(LanguageCode lang) => lang == LanguageCode.It
+			? "Tutti possono consultare il compendio. Accedi per forgiare i tuoi contenuti Homebrew e condividerli."
+			: "Anyone can browse the compendium. Sign in to forge your own Homebrew content and share it.";
+		public static string DashboardSignedInHint(LanguageCode lang) => lang == LanguageCode.It
+			? "I tuoi contenuti Homebrew, la verifica dell'email e la password sono nella pagina del tuo account."
+			: "Your Homebrew content, e-mail verification and password are on your account page.";
 		#endregion
 
 		#region Common UI Elements & Actions
