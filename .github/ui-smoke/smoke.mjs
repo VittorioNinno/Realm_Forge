@@ -295,6 +295,9 @@ try {
   await page.goto(`${base}/reset-password`);
   await page.locator('[data-test=reset-password-invalid]').waitFor({ timeout: 30000 });
   await page.goto(`${base}/account`);
+  const linkColor = await page.locator('[data-test=forgot-password-link]').evaluate(el => getComputedStyle(el).color);
+  if (linkColor !== 'rgb(255, 140, 0)') throw new Error(`links should use the forge orange, "Password dimenticata?" is ${linkColor}`);
+  ok('links use the forge orange instead of the Bootstrap blue');
   await page.locator('[data-test=forgot-password-link]').click();
   await page.locator('[data-test=forgot-email]').fill(email);
   await page.locator('[data-test=forgot-submit]').click();
