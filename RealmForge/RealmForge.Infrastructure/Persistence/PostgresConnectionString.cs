@@ -4,7 +4,7 @@ namespace RealmForge.Infrastructure.Persistence;
 
 ///	<summary>
 ///	Accepts both connection string formats: the Npgsql one ("Host=...;Database=...") and the URL that hosted
-///	PostgreSQL services such as Neon show ("postgresql://("postgresql://user:password@host/db?sslmode=require")lt;user("postgresql://user:password@host/db?sslmode=require")gt;:("postgresql://user:password@host/db?sslmode=require")lt;password("postgresql://user:password@host/db?sslmode=require")gt;@("postgresql://user:password@host/db?sslmode=require")lt;host("postgresql://user:password@host/db?sslmode=require")gt;/("postgresql://user:password@host/db?sslmode=require")lt;database("postgresql://user:password@host/db?sslmode=require")gt;?sslmode=require").
+///	PostgreSQL services such as Neon show ("postgresql://&lt;user&gt;:&lt;password&gt;@&lt;host&gt;/&lt;database&gt;?sslmode=require").
 ///	</summary>
 public static class PostgresConnectionString
 {
