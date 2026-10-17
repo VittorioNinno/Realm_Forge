@@ -237,6 +237,23 @@ public class BackgroundSeedDataTests
 	}
 
 	[Fact]
+	public void Artisan_2024_has_crafter_and_its_proficiencies()
+	{
+		var artisan = Assert.Single(Backgrounds, b => b.Id == Artisan2024Seeder.BackgroundId);
+		Assert.Equal(ContentSource.RealmForge, artisan.Source);
+		Assert.Equal(new[] { AbilityScore.Strength, AbilityScore.Dexterity, AbilityScore.Intelligence }, artisan.AbilityOptions);
+		Assert.Equal(new[] { Skill.Investigation, Skill.Persuasion }, artisan.SkillProficiencies);
+		Assert.Equal(Crafter2024Seeder.FeatId, artisan.OriginFeatId);
+		Assert.Equal(50, artisan.EquipmentGoldAlternative);
+
+		foreach (var tr in artisan.Translations)
+		{
+			Assert.Null(tr.OriginFeatNote);
+			Assert.Equal(4, tr.Equipment!.Split('\n').Length);
+		}
+	}
+
+	[Fact]
 	public void Ids_are_unique_and_identical_on_every_build()
 	{
 		BackgroundSeeder.EnsureUniqueIds(Backgrounds);
