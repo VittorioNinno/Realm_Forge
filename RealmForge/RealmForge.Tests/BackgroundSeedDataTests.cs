@@ -286,6 +286,22 @@ public class BackgroundSeedDataTests
 	}
 
 	[Fact]
+	public void Entertainer_2024_has_musician_and_its_proficiencies()
+	{
+		var entertainer = Assert.Single(Backgrounds, b => b.Id == Entertainer2024Seeder.BackgroundId);
+		Assert.Equal(ContentSource.RealmForge, entertainer.Source);
+		Assert.Equal(new[] { AbilityScore.Strength, AbilityScore.Dexterity, AbilityScore.Charisma }, entertainer.AbilityOptions);
+		Assert.Equal(new[] { Skill.Acrobatics, Skill.Performance }, entertainer.SkillProficiencies);
+		Assert.Equal(Musician2024Seeder.FeatId, entertainer.OriginFeatId);
+		Assert.Equal(50, entertainer.EquipmentGoldAlternative);
+
+		foreach (var tr in entertainer.Translations)
+		{
+			Assert.Equal(6, tr.Equipment!.Split('\n').Length);
+		}
+	}
+
+	[Fact]
 	public void Ids_are_unique_and_identical_on_every_build()
 	{
 		BackgroundSeeder.EnsureUniqueIds(Backgrounds);
