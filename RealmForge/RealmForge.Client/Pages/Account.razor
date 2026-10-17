@@ -8,6 +8,7 @@
 @inject LanguageStateService LanguageState
 @inject CrossTabService CrossTab
 @inject NavigationManager Navigation
+@inject TokenAuthenticationStateProvider AuthStateProvider
 
 <PageTitle>RealmForge - @UiText.AccountTitle(LanguageState.CurrentLanguage)</PageTitle>
 
@@ -217,6 +218,11 @@
         {
             summary = await Auth.GetAccountSummaryAsync();
             resendMessage = null;
+            if (summary?.EmailConfirmed == true)
+            {
+                //	Keeps the cached authentication state (used by the create buttons) in step
+                AuthStateProvider.Refresh();
+            }
             await InvokeAsync(StateHasChanged);
         }
     }

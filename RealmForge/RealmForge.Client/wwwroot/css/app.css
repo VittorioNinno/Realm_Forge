@@ -699,6 +699,21 @@ select.rf-form-control {
     }
 }
 
+/* Dashboard: one card per compendium module with its counts */
+.rf-dashboard-card {
+    color: inherit;
+}
+
+.rf-dashboard-stats {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.5rem;
+}
+
+    .rf-dashboard-stats .rf-account-stat {
+        padding: 0.6rem 0.25rem;
+    }
+
 /* Unconfirmed e-mail notice in the account page */
 .rf-account-verify {
     display: flex;

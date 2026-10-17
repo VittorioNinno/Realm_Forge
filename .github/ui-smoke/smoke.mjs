@@ -49,6 +49,15 @@ try {
   if (!brand.loaded || brand.favicon !== 'img/favicon-32.png' || brand.status !== 200 || brand.heroLogos !== 0) throw new Error('unexpected brand icons');
   ok('emblem in the sidebar only, RealmForge favicon served');
 
+  // Dashboard: one card per compendium module with Base counts per edition and the visible Homebrew
+  await page.locator('[data-test=dashboard-feats] .rf-account-stat-value').first().waitFor({ timeout: 30000 });
+  const dashboard = await page.evaluate(() => Object.fromEntries(['species', 'backgrounds', 'feats'].map((m) =>
+    [m, [...document.querySelectorAll(`[data-test=dashboard-${m}] .rf-account-stat-value`)].map((v) => v.textContent.trim()).join('/')])));
+  results.push(`INFO dashboard (Base 2024/Base 2014/Homebrew): ${JSON.stringify(dashboard)}`);
+  if (dashboard.species !== '10/9/0' || dashboard.backgrounds !== '16/13/0' || dashboard.feats !== '75/42/0') throw new Error('unexpected dashboard counts');
+  if (await page.locator('main a[href=account]', { hasText: 'Accedi per forgiare' }).count() !== 1) throw new Error('dashboard misses the sign-in call to action');
+  ok('dashboard: module cards with Base counts per edition (species 10+9, backgrounds 16+13, feats 75+42) and the sign-in call to action');
+
   await page.goto(`${base}/account`);
   await page.getByText('Non hai un account? Registrati').waitFor({ timeout: 30000 });
   const collapsedLinks = await page.locator('[data-test=nav-compendium] a').count();
@@ -237,13 +246,18 @@ try {
   await page.goto(`${base}/species`);
   await page.locator('.rf-card').first().waitFor({ timeout: 30000 });
   const speciesTotal = await page.locator('.rf-card').count();
+  await page.waitForTimeout(1000);
+  const infoCallsBefore = authCalls.filter((c) => c.includes('/manage/info')).length;
   await page.locator('[data-test=species-search]').fill('nano');
   await page.locator('.rf-card .rf-card-title', { hasText: /^Nano$/ }).first().waitFor({ timeout: 10000 });
   const speciesFound = await page.locator('.rf-card').count();
   await page.locator('[data-test=species-search]').fill('zzzz');
   await page.locator('[data-test=species-empty]', { hasText: 'Nessuna specie corrisponde alla ricerca.' }).waitFor({ timeout: 10000 });
-  results.push(`INFO species search: total=${speciesTotal} "nano"=${speciesFound}`);
+  const infoCallsWhileTyping = authCalls.filter((c) => c.includes('/manage/info')).length - infoCallsBefore;
+  results.push(`INFO species search: total=${speciesTotal} "nano"=${speciesFound} account calls while typing=${infoCallsWhileTyping}`);
   if (speciesFound < 1 || speciesFound >= speciesTotal) throw new Error(`species search did not filter: ${speciesFound}/${speciesTotal}`);
+  // The create button reads the cached sign-in state: typing in the search must not call the account API
+  if (infoCallsWhileTyping !== 0) throw new Error(`${infoCallsWhileTyping} account API calls while typing in the search`);
   ok('species search filters by text and explains when nothing matches');
 
   // Account page: profile, Homebrew counts (the UI created one background) and password change
