@@ -25,7 +25,10 @@ namespace RealmForge.Api.Email
 		{
 			_options = options.Value;
 			_http = http;
-			_allowedOrigins = configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() ?? Array.Empty<string>();
+			_allowedOrigins = (configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() ?? Array.Empty<string>())
+				.Where(o => !string.IsNullOrWhiteSpace(o))
+				.Select(o => o.Trim().TrimEnd('/'))
+				.ToArray();
 			_logger = logger;
 		}
 
