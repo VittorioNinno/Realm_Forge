@@ -1,4 +1,5 @@
-﻿using System.Net.Http.Json;
+﻿using System.Text;
+using System.Text.Json;
 using System.Text.Json.Serialization;
 using Microsoft.Extensions.Options;
 
@@ -34,7 +35,8 @@ namespace RealmForge.Api.Email
 		{
 			using var request = new HttpRequestMessage(HttpMethod.Post, _options.BrevoApiUrl)
 			{
-				Content = JsonContent.Create(BuildMessage(_options, to, subject, html, text))
+				//	Buffered body with Content-Length (no chunked transfer)
+				Content = new StringContent(JsonSerializer.Serialize(BuildMessage(_options, to, subject, html, text)), Encoding.UTF8, "application/json")
 			};
 			request.Headers.Add("api-key", _options.BrevoApiKey);
 			request.Headers.Accept.ParseAdd("application/json");
