@@ -165,6 +165,22 @@ public class BackgroundSeedDataTests
 	}
 
 	[Fact]
+	public void Sailor_has_its_proficiencies_and_variants()
+	{
+		var sailor = Assert.Single(Backgrounds, b => b.Id == Sailor2014Seeder.BackgroundId);
+		Assert.Equal(new[] { Skill.Athletics, Skill.Perception }, sailor.SkillProficiencies);
+		Assert.Equal(ContentSource.RealmForge, sailor.Source);
+
+		foreach (var tr in sailor.Translations)
+		{
+			Assert.Equal((8, 6, 6, 6), (tr.PersonalityTraits.Count, tr.Ideals.Count, tr.Bonds.Count, tr.Flaws.Count));
+			Assert.Equal(3, tr.Description.Split("\n### ").Length - 1);
+			Assert.Null(tr.Languages);
+			Assert.Equal(5, tr.Equipment!.Split('\n').Length);
+		}
+	}
+
+	[Fact]
 	public void Ids_are_unique_and_identical_on_every_build()
 	{
 		BackgroundSeeder.EnsureUniqueIds(Backgrounds);
