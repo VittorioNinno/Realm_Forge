@@ -1,0 +1,38 @@
+# Render Blueprint for the RealmForge API (Dashboard → New → Blueprint → this repository).
+# Free plan: the service sleeps after 15 minutes without requests and wakes up in about a minute.
+# Values marked "sync: false" are asked for when the Blueprint is created and never stored in the repository.
+services:
+  - type: web
+    name: realmforge-api
+    runtime: docker
+    plan: free
+    region: frankfurt
+    branch: main
+    dockerContext: .
+    dockerfilePath: ./RealmForge/RealmForge.Api/Dockerfile
+    healthCheckPath: /health
+    envVars:
+      # Neon connection string, as shown by Neon (postgresql://<user>:<password>@<host>/<database>?sslmode=require)
+      - key: ConnectionStrings__DefaultConnection
+        sync: false
+      # Creates and updates the database tables at startup
+      - key: Database__MigrateOnStartup
+        value: "true"
+      # Address of the client on Cloudflare Pages, e.g. https://realmforge.pages.dev (no trailing slash)
+      - key: Cors__AllowedOrigins__0
+        sync: false
+      - key: Email__ClientBaseUrl
+        sync: false
+      - key: Email__Host
+        value: smtp.gmail.com
+      - key: Email__Port
+        value: "587"
+      - key: Email__Username
+        sync: false
+      - key: Email__Password
+        sync: false
+      - key: Email__FromAddress
+        sync: false
+      # Optional: e-mail of the administrator account
+      - key: Auth__AdminEmails__0
+        sync: false
