@@ -131,6 +131,30 @@ dotnet run --project RealmForge/RealmForge.Client --launch-profile https
 In development the API applies pending migrations and synchronizes the base content at startup.
 *In sviluppo l'API applica le migrazioni in sospeso e sincronizza i contenuti Base all'avvio.*
 
+## ☁️ Deployment / Pubblicazione
+
+Free setup: API on [Render](https://render.com) (Docker, `render.yaml`), database on [Neon](https://neon.com), client on [Cloudflare Pages](https://pages.cloudflare.com). Every push to `release` redeploys API and client.
+*Configurazione gratuita: API su Render, database su Neon, client su Cloudflare Pages. Ogni push su `release` ripubblica API e client.*
+
+Branches · *Rami*: `develop` (work, PRs) → `main` (merged versions) → `release` (published: one commit per version, without the development history). To publish what is on `main` · *Per pubblicare ciò che è su `main`*:
+
+```bash
+git fetch origin
+git switch release
+git read-tree -u --reset origin/main      # files exactly as on main, deletions included · file identici a main, eliminazioni comprese
+git commit -m "release: v0.2.0"
+git push
+```
+
+1. **Neon**: create a project and copy the connection string (`postgresql://…?sslmode=require`) · *crea un progetto e copia la connection string*.
+2. **Render**: New → Blueprint → this repository. Fill in the values the Blueprint asks for (connection string, client address, e-mail) · *compila i valori richiesti*.
+3. **Cloudflare Pages**: create a project (Direct Upload) and an API token with *Cloudflare Pages · Edit* · *crea un progetto e un token API*.
+4. **GitHub** → Settings → Secrets and variables → Actions · *aggiungi*:
+   secrets `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID`; variables `API_BASE_URL` (Render address), `CLOUDFLARE_PAGES_PROJECT`.
+
+The free API sleeps after 15 minutes without requests: the first page after a pause waits about a minute. Tokens and e-mail links survive restarts (data protection keys are stored in the database).
+*L'API gratuita si sospende dopo 15 minuti senza richieste: la prima pagina dopo una pausa attende circa un minuto. Token e link nelle email sopravvivono ai riavvii.*
+
 ---
 
 ## 📜 Content Rules / Regole sui contenuti
@@ -186,12 +210,13 @@ No local SDK tools? Push a commit whose message contains `[ef-migration:<Name>]`
 
 ## 🧪 Tests & CI / Test e CI
 
-Every push and pull request runs three jobs · *Ogni push e pull request esegue tre job*:
+Every push and pull request runs four jobs · *Ogni push e pull request esegue quattro job*:
 
 | Job | Checks · *Verifica* |
 |---|---|
 | `build` | Build without warnings + unit tests · *Compilazione senza warning + test* |
 | `database` | Migrations on PostgreSQL 17, data preservation, base content seeding and re-sync, auth and ownership rules (401/403/204), e-mail confirmation, password reset, visibility · *Migrazioni, conservazione dei dati, seeding, regole di accesso, conferma email, reset password, visibilità* |
+| `container` | API image run as on Render (Production, PORT, Neon-style URL, migrations, /health, keys kept across restarts) and client publish · *Immagine dell'API eseguita come su Render e pubblicazione del client* |
 | `ui` | Headless browser: dashboard, registration and e-mail confirmation across tabs, password change and recovery, search and filters, modal layout, Base content rendering, language switch · *Browser headless: dashboard, registrazione e conferma email tra schede, cambio e recupero password, ricerca e filtri, layout dei modali, contenuti Base, cambio lingua* |
 
 ```bash

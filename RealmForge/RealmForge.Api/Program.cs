@@ -6,6 +6,8 @@ using RealmForge.Infrastructure.Persistence.Seeding;
 using Scalar.AspNetCore;
 using Microsoft.AspNetCore.Identity;
 using RealmForge.Api.Email;
+using Microsoft.AspNetCore.DataProtection;
+using Microsoft.AspNetCore.HttpOverrides;
 
 namespace RealmForge.Api
 {
@@ -22,7 +24,10 @@ namespace RealmForge.Api
 			//	Configure connection string and register DbContext (PostgreSQL)
 			//	The connection string is never committed: it comes from user-secrets (development)
 			//	or from the ConnectionStrings__DefaultConnection environment variable (CI / production)
-			var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
+			//	Hosted databases (e.g. Neon) give a postgresql:// URL: it is converted to the Npgsql format
+			var connectionString = builder.Configuration.GetConnectionString("DefaultConnection") is { Length: > 0 } configured
+				? PostgresConnectionString.Normalize(configured)
+				: null;
 			builder.Services.AddDbContext<RealmForgeDbContext>(options =>
 				options.UseNpgsql(connectionString ?? string.Empty));
 
@@ -33,6 +38,23 @@ namespace RealmForge.Api
 					options.User.RequireUniqueEmail = true;
 				})
 				.AddEntityFrameworkStores<RealmForgeDbContext>();
+
+			//	Keys for bearer tokens and e-mail links live in the database: a restarted or redeployed container
+			//	(e.g. on a free hosting plan) keeps users signed in and the links already sent still work
+			builder.Services.AddDataProtection()
+				.SetApplicationName("RealmForge")
+				.PersistKeysToDbContext<RealmForgeDbContext>();
+
+			//	Behind a hosting proxy (Render, a reverse proxy) the original scheme and client IP come from X-Forwarded-* headers
+			builder.Services.Configure<ForwardedHeadersOptions>(options =>
+			{
+				options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
+				options.KnownIPNetworks.Clear();
+				options.KnownProxies.Clear();
+			});
+
+			//	Liveness probe for the hosting platform (/health)
+			builder.Services.AddHealthChecks();
 
 			//	Ownership rules for SRD and Homebrew content
 			builder.Services.AddSingleton<ContentAccess>();
@@ -94,6 +116,7 @@ namespace RealmForge.Api
 			}
 
 			//	Configure the HTTP request pipeline
+			app.UseForwardedHeaders();
 			app.UseExceptionHandler();
 			app.UseStatusCodePages();
 
@@ -112,14 +135,16 @@ namespace RealmForge.Api
 
 			app.MapGroup("/api/auth").WithTags("Auth").MapIdentityApi<ApplicationUser>();
 			app.MapControllers();
+			app.MapHealthChecks("/health");
 
-			//	Apply pending migrations (development only) and synchronize the SRD data
+			//	Apply pending migrations (in development, or when Database:MigrateOnStartup is true, as on the hosted API)
+			//	and synchronize the Base content
 			using (var scope = app.Services.CreateScope())
 			{
 				var dbContext = scope.ServiceProvider.GetRequiredService<RealmForgeDbContext>();
 				var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
 
-				if (app.Environment.IsDevelopment())
+				if (app.Environment.IsDevelopment() || app.Configuration.GetValue<bool>("Database:MigrateOnStartup"))
 				{
 					await dbContext.Database.MigrateAsync();
 				}
