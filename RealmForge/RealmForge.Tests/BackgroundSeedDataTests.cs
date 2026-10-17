@@ -133,6 +133,22 @@ public class BackgroundSeedDataTests
 	}
 
 	[Fact]
+	public void Outlander_has_its_proficiencies_and_tables()
+	{
+		var outlander = Assert.Single(Backgrounds, b => b.Id == Outlander2014Seeder.BackgroundId);
+		Assert.Equal(new[] { Skill.Athletics, Skill.Survival }, outlander.SkillProficiencies);
+		Assert.Equal(ContentSource.RealmForge, outlander.Source);
+
+		foreach (var tr in outlander.Translations)
+		{
+			Assert.Equal((8, 6, 6, 6), (tr.PersonalityTraits.Count, tr.Ideals.Count, tr.Bonds.Count, tr.Flaws.Count));
+			Assert.Contains("| 10 |", tr.Description);
+			Assert.False(string.IsNullOrWhiteSpace(tr.Languages));
+			Assert.Equal(5, tr.Equipment!.Split('\n').Length);
+		}
+	}
+
+	[Fact]
 	public void Ids_are_unique_and_identical_on_every_build()
 	{
 		BackgroundSeeder.EnsureUniqueIds(Backgrounds);
