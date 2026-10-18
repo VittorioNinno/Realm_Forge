@@ -314,12 +314,26 @@ try {
   const equipment = await page.locator('[data-test=bg-equipment] li').count();
   results.push(`INFO Acolyte equipment items=${equipment}`);
   if (equipment !== 6) throw new Error(`expected 6 equipment items, got ${equipment}`);
+  // Equipment tiles: a grid of bordered items with a marker; the coin pouch gets the gold style
+  const tiles = await page.evaluate(() => {
+    const list = document.querySelector('[data-test=bg-equipment] .rf-equipment-list');
+    const items = [...list.querySelectorAll('li')];
+    return {
+      display: getComputedStyle(list).display,
+      bullets: getComputedStyle(items[0]).listStyleType,
+      marker: getComputedStyle(items[0], '::before').content,
+      bordered: items.every((li) => getComputedStyle(li).borderTopStyle === 'solid'),
+      coins: items.filter((li) => li.classList.contains('rf-equipment-coins')).map((li) => li.textContent.trim()),
+    };
+  });
+  results.push(`INFO equipment tiles: ${JSON.stringify(tiles)}`);
+  if (tiles.display !== 'grid' || tiles.bullets !== 'none' || tiles.marker === 'none' || !tiles.bordered || tiles.coins.length !== 1 || !tiles.coins[0].includes('15 mo')) throw new Error('unexpected equipment tiles');
   const source = (await page.locator('[data-test=content-source]').first().innerText()).trim();
   const badge = (await page.locator('.rf-modal-dialog [data-test=content-badge]').first().textContent()).trim(); // textContent: the badge CSS uppercases the rendered text
   results.push(`INFO Acolyte badge='${badge}' source='${source}'`);
   if (badge !== 'Base' || source !== 'Fonte: SRD 5.1') throw new Error(`unexpected badge/source: ${badge} / ${source}`);
   await page.getByRole('button', { name: 'CHIUDI' }).click();
-  ok('SRD Acolyte: four stacked characteristic tables (d8, d6, d6, d6), equipment list, badge "Base", source SRD 5.1');
+  ok('SRD Acolyte: four stacked characteristic tables (d8, d6, d6, d6), equipment as a grid of tiles with the coin pouch in gold, badge "Base", source SRD 5.1');
 
   await acolyteCard('2024').click();
   await page.locator('[data-test=bg-equipment-b]').waitFor({ timeout: 15000 });
