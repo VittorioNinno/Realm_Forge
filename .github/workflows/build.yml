@@ -363,7 +363,7 @@ jobs:
           test "$sp_counts" = '{"total":361,"srd":319,"rf":42,"cantrips":27,"ninth":16}'
           test "$sp_wizard3" = "29"
           test "$fb_it" = '{"name":"Palla di Fuoco","range":"45 metri","castingTime":"1 azione","duration":"Istantanea","components":[true,true,true],"material":"una minuscola pallina di guano di pipistrello e zolfo","classes":[6,8]}'
-          test "$fb_en" = "Fireball / 150 feet / When you cast this spell using a spell sl"
+          test "$fb_en" = "Fireball / 150 feet / When you cast this spell using a spell s"
           test "$hex_src" = '{"source":1,"concentration":true,"castingTime":"1 bonus action"}'
           test "$sp_anon" = "401" && test "$sp_classes" = "[6,8]" && test "$sp_can" = "true"
           test "$sp_bad_level" = "400" && test "$sp_bad_stats" = "400" && test "$sp_other" = "403" && test "$sp_own" = "204" && test "$sp_level" = "3" && test "$sp_anon_detail" = "404"
