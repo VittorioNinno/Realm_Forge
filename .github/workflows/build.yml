@@ -351,21 +351,22 @@ jobs:
           sp_bad_stats=$(code -X POST $api/api/spells $json -H "Authorization: Bearer $A" -d "$(echo "$sp" | jq '.translations[0].range = ""')")
           sp_other=$(code -X PUT $api/api/spells/$sp_id $json -H "Authorization: Bearer $B" -d "$(echo "$sp" | jq --arg id "$sp_id" '. + {id:$id}')")
           sp_own=$(code -X PUT $api/api/spells/$sp_id $json -H "Authorization: Bearer $A" -d "$(echo "$sp" | jq --arg id "$sp_id" '. + {id:$id, level:3}')")
-          sp_level=$(get "$api/api/spells/$sp_id?lang=1" | jq .level)
+          sp_level=$(get "$api/api/spells/$sp_id?lang=1" -H "Authorization: Bearer $A" | jq .level)
+          sp_anon_detail=$(code "$api/api/spells/$sp_id?lang=1")
           sp_listed=$(get "$api/api/spells?lang=2&isOfficial=false" -H "Authorization: Bearer $A" | jq length)
           sp_anon_listed=$(get "$api/api/spells?lang=2&isOfficial=false" | jq length)
           sp_acc=$(get $api/api/account/summary -H "Authorization: Bearer $A" | jq .homebrew.spells)
           sp_srd_delete=$(code -X DELETE $api/api/spells/$fireball -H "Authorization: Bearer $A")
           sp_delete=$(code -X DELETE $api/api/spells/$sp_id -H "Authorization: Bearer $A")
           echo "::notice title=database::spells: $sp_counts | wizard 3rd=$sp_wizard3 | evocation 3rd=$sp_school | fireball IT=$fb_it | EN='$fb_en' | Hex=$hex_src"
-          echo "::notice title=database::spell homebrew: anonymous=$sp_anon | classes=$sp_classes canEdit=$sp_can | level 10=$sp_bad_level | empty range=$sp_bad_stats | other PUT=$sp_other | own PUT=$sp_own (level $sp_level) | private listed author=$sp_listed anon=$sp_anon_listed | account spells=$sp_acc | SRD DELETE=$sp_srd_delete | own DELETE=$sp_delete"
+          echo "::notice title=database::spell homebrew: anonymous=$sp_anon | classes=$sp_classes canEdit=$sp_can | level 10=$sp_bad_level | empty range=$sp_bad_stats | other PUT=$sp_other | own PUT=$sp_own (level $sp_level) | private detail anon=$sp_anon_detail | private listed author=$sp_listed anon=$sp_anon_listed | account spells=$sp_acc | SRD DELETE=$sp_srd_delete | own DELETE=$sp_delete"
           test "$sp_counts" = '{"total":361,"srd":319,"rf":42,"cantrips":27,"ninth":16}'
           test "$sp_wizard3" = "29"
           test "$fb_it" = '{"name":"Palla di Fuoco","range":"45 metri","castingTime":"1 azione","duration":"Istantanea","components":[true,true,true],"material":"una minuscola pallina di guano di pipistrello e zolfo","classes":[6,8]}'
           test "$fb_en" = "Fireball / 150 feet / When you cast this spell using a spell sl"
           test "$hex_src" = '{"source":1,"concentration":true,"castingTime":"1 bonus action"}'
           test "$sp_anon" = "401" && test "$sp_classes" = "[6,8]" && test "$sp_can" = "true"
-          test "$sp_bad_level" = "400" && test "$sp_bad_stats" = "400" && test "$sp_other" = "403" && test "$sp_own" = "204" && test "$sp_level" = "3"
+          test "$sp_bad_level" = "400" && test "$sp_bad_stats" = "400" && test "$sp_other" = "403" && test "$sp_own" = "204" && test "$sp_level" = "3" && test "$sp_anon_detail" = "404"
           test "$sp_listed" = "1" && test "$sp_anon_listed" = "0" && test "$sp_acc" = "1" && test "$sp_srd_delete" = "403" && test "$sp_delete" = "204"
 
   ui:
