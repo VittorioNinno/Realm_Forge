@@ -70,48 +70,79 @@ try {
   const dashboard = await page.evaluate(() => Object.fromEntries(['species', 'backgrounds', 'feats', 'spells'].map((m) =>
     [m, [...document.querySelectorAll(`[data-test=dashboard-${m}] .rf-account-stat-value`)].map((v) => v.textContent.trim()).join('/')])));
   results.push(`INFO dashboard (Base 2024/Base 2014/Homebrew): ${JSON.stringify(dashboard)}`);
-  if (dashboard.species !== '10/9/0' || dashboard.backgrounds !== '16/13/0' || dashboard.feats !== '75/42/0' || dashboard.spells !== '0/361/0') throw new Error('unexpected dashboard counts');
+  if (dashboard.species !== '10/9/0' || dashboard.backgrounds !== '16/13/0' || dashboard.feats !== '75/42/0' || dashboard.spells !== '391/361/0') throw new Error('unexpected dashboard counts');
   if (await page.locator('main a[href=account]', { hasText: 'Accedi per forgiare' }).count() !== 1) throw new Error('dashboard misses the sign-in call to action');
-  ok('dashboard: module cards with Base counts per edition (species 10+9, backgrounds 16+13, feats 75+42, spells 0+361) and the sign-in call to action');
+  ok('dashboard: module cards with Base counts per edition (species 10+9, backgrounds 16+13, feats 75+42, spells 391+361) and the sign-in call to action');
 
-  // Spells: 361 base spells grouped by level, client-side filters, detail with the stat block, language switch
+  // Spells: 752 base spells (361 of 2014, 391 of 2024) grouped by level, edition and client-side filters, detail with the stat block
   await page.goto(`${base}/spells`);
   await page.locator('[data-test=spell-card]').first().waitFor({ timeout: 60000 });
   const spellCount = async () => (await page.locator('[data-test=spell-count]').innerText()).trim();
-  const allSpells = await spellCount();
-  const levelGroups = await page.locator('[data-test=spell-level-group]').count();
+  const waitCount = async (expected) => {
+    for (let i = 0; i < 100 && (await spellCount()) !== expected; i++) await page.waitForTimeout(100);
+    return spellCount();
+  };
+  const allSpells = await waitCount('752 incantesimi');
   const pickOption = async (filter, label) => {
     await page.locator(`[data-test=${filter}] .rf-custom-select-trigger`).click();
     await page.locator(`[data-test=${filter}] .rf-custom-select-option`, { hasText: label }).first().click();
   };
-  await pickOption('spell-class', 'Mago');
-  await pickOption('spell-level', '3° livello');
-  const wizard3 = await spellCount();
-  await page.locator('[data-test=spell-filter-concentration]').click();
-  const wizard3Concentration = await spellCount();
-  await page.locator('[data-test=spell-filter-concentration]').click();
-  await pickOption('spell-class', 'Tutte le classi');
-  await pickOption('spell-level', 'Tutti i livelli');
-  await page.locator('[data-test=spell-filter-ritual]').click();
-  const rituals = await spellCount();
-  await page.locator('[data-test=spell-filter-ritual]').click();
-  await page.locator('[data-test=spell-search]').fill('palla di fuoco');
-  await page.locator('[data-test=spell-card]', { hasText: 'Palla di Fuoco Ritardata' }).waitFor({ timeout: 5000 });
-  await page.locator('[data-test=spell-card]').filter({ has: page.locator('.rf-card-title', { hasText: /^Palla di Fuoco$/ }) }).click();
-  await page.locator('[data-test=spell-detail]').waitFor({ timeout: 15000 });
-  const fireball = await page.evaluate(() => ({
-    subtitle: document.querySelector('[data-test=spell-subtitle]').textContent.trim(),
-    stats: [...document.querySelectorAll('[data-test=spell-stats] dd')].map((d) => d.textContent.trim()),
-    higher: !!document.querySelector('[data-test=spell-higher-levels]'),
-    classes: document.querySelector('[data-test=spell-classes]').textContent.replace(/\s+/g, ' ').trim(),
-    source: document.querySelector('[data-test=spell-detail]').textContent.includes('SRD 5.1'),
-  }));
-  results.push(`INFO spells: ${allSpells}, ${levelGroups} level groups | wizard 3rd: ${wizard3} (concentration ${wizard3Concentration}) | rituals: ${rituals} | fireball ${JSON.stringify(fireball)}`);
-  if (allSpells !== '361 incantesimi' || levelGroups !== 10 || wizard3 !== '29 incantesimi' || wizard3Concentration !== '13 incantesimi' || rituals !== '31 incantesimi') throw new Error('unexpected spell counts');
+  // Counts of one edition: all, wizard 3rd level (and with concentration), rituals
+  const editionCounts = async () => {
+    const all = await spellCount();
+    const groups = await page.locator('[data-test=spell-level-group]').count();
+    await pickOption('spell-class', 'Mago');
+    await pickOption('spell-level', '3° livello');
+    const wizard3 = await spellCount();
+    await page.locator('[data-test=spell-filter-concentration]').click();
+    const wizard3Concentration = await spellCount();
+    await page.locator('[data-test=spell-filter-concentration]').click();
+    await pickOption('spell-class', 'Tutte le classi');
+    await pickOption('spell-level', 'Tutti i livelli');
+    await page.locator('[data-test=spell-filter-ritual]').click();
+    const rituals = await spellCount();
+    await page.locator('[data-test=spell-filter-ritual]').click();
+    return { all, groups, wizard3, wizard3Concentration, rituals };
+  };
+  // Opens Fireball of the selected edition and reads its stat block
+  const fireballDetail = async () => {
+    await page.locator('[data-test=spell-search]').fill('palla di fuoco');
+    await page.locator('[data-test=spell-card]', { hasText: 'Palla di Fuoco Ritardata' }).waitFor({ timeout: 5000 });
+    await page.locator('[data-test=spell-card]').filter({ has: page.locator('.rf-card-title', { hasText: /^Palla di Fuoco$/ }) }).click();
+    await page.locator('[data-test=spell-detail]').waitFor({ timeout: 15000 });
+    const detail = await page.evaluate(() => ({
+      subtitle: document.querySelector('[data-test=spell-subtitle]').textContent.trim(),
+      stats: [...document.querySelectorAll('[data-test=spell-stats] dd')].map((d) => d.textContent.trim()),
+      higher: document.querySelector('[data-test=spell-higher-levels] strong')?.textContent.trim() ?? '',
+      classes: document.querySelector('[data-test=spell-classes]').textContent.replace(/\s+/g, ' ').trim(),
+      source: (document.querySelector('[data-test=spell-detail]').textContent.match(/SRD 5\.\d/) ?? [''])[0],
+    }));
+    await page.locator('[data-test=spell-detail] button', { hasText: 'CHIUDI' }).click();
+    await page.locator('[data-test=spell-search]').fill('');
+    return detail;
+  };
+
+  await pickOption('spell-ruleset', '5e (2014)');
+  await waitCount('361 incantesimi');
+  const counts2014 = await editionCounts();
+  const fireball = await fireballDetail();
+  results.push(`INFO spells: all editions=${allSpells} | 2014 ${JSON.stringify(counts2014)} | fireball ${JSON.stringify(fireball)}`);
+  if (allSpells !== '752 incantesimi' || JSON.stringify(counts2014) !== JSON.stringify({ all: '361 incantesimi', groups: 10, wizard3: '29 incantesimi', wizard3Concentration: '13 incantesimi', rituals: '31 incantesimi' })) throw new Error('unexpected 2014 spell counts');
   if (fireball.subtitle !== 'Invocazione di 3° livello' || fireball.stats.join(' | ') !== '1 azione | 45 metri | V, S, M (una minuscola pallina di guano di pipistrello e zolfo) | Istantanea'
-    || !fireball.higher || !fireball.classes.endsWith('Mago, Stregone') || !fireball.source) throw new Error('unexpected Fireball detail');
-  await page.locator('[data-test=spell-detail] button', { hasText: 'CHIUDI' }).click();
-  ok('spells: 361 cards in 10 level groups, class/level/concentration/ritual filters, search, Fireball stat block in Italian with SRD 5.1 source');
+    || fireball.higher.toLowerCase() !== 'ai livelli superiori' || !fireball.classes.endsWith('Mago, Stregone') || fireball.source !== 'SRD 5.1') throw new Error('unexpected Fireball detail');
+  ok('spells 2014: 361 cards in 10 level groups, class/level/concentration/ritual filters, search, Fireball stat block in Italian with SRD 5.1 source');
+
+  await pickOption('spell-ruleset', '5.5e (2024)');
+  await waitCount('391 incantesimi');
+  const counts2024 = await editionCounts();
+  const fireball24 = await fireballDetail();
+  results.push(`INFO spells 2024: ${JSON.stringify(counts2024)} | fireball ${JSON.stringify(fireball24)}`);
+  if (JSON.stringify(counts2024) !== JSON.stringify({ all: '391 incantesimi', groups: 10, wizard3: '32 incantesimi', wizard3Concentration: '15 incantesimi', rituals: '31 incantesimi' })) throw new Error('unexpected 2024 spell counts');
+  if (fireball24.subtitle !== 'Invocazione di 3° livello' || fireball24.stats.join(' | ') !== 'Azione | 45 metri | V, S, M (una pallina di guano di pipistrello e zolfo) | Istantanea'
+    || fireball24.higher.toLowerCase() !== 'utilizzo di uno slot di livello superiore' || !fireball24.classes.endsWith('Mago, Stregone') || fireball24.source !== 'SRD 5.2') throw new Error('unexpected 2024 Fireball detail');
+  await pickOption('spell-ruleset', 'Tutte le Edizioni');
+  await waitCount('752 incantesimi');
+  ok('spells 2024: 391 cards, edition filter, Fireball 2024 stat block in Italian with SRD 5.2 source and the 2024 "higher-level slot" heading');
 
 
   await page.goto(`${base}/account`);
