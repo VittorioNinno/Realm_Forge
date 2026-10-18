@@ -45,6 +45,9 @@
                     <NavLink class="nav-link" href="feats">
                         <NavIcon Name="feats" /> @UiText.FeatsTitle(LanguageState.CurrentLanguage)
                     </NavLink>
+                    <NavLink class="nav-link" href="spells">
+                        <NavIcon Name="spells" /> @UiText.SpellsTitle(LanguageState.CurrentLanguage)
+                    </NavLink>
                 </div>
             }
         </div>
@@ -55,7 +58,7 @@
 </div>
 
 @code {
-    private static readonly string[] CompendiumRoutes = ["species", "subspecies", "backgrounds", "feats"];
+    private static readonly string[] CompendiumRoutes = ["species", "subspecies", "backgrounds", "feats", "spells"];
 
     private bool collapseNavMenu = true;
     private bool compendiumOpen;

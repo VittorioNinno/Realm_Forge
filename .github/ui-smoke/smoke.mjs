@@ -34,7 +34,7 @@ try {
 
   // Navigation: reference pages live in the collapsible "Compendio" group, opened on compendium routes
   const compendiumLinks = (await page.locator('[data-test=nav-compendium] a').allInnerTexts()).map((t) => t.trim());
-  if (compendiumLinks.join(',') !== 'Specie,Background,Talenti') throw new Error(`unexpected compendium links: ${compendiumLinks.join(',')}`);
+  if (compendiumLinks.join(',') !== 'Specie,Background,Talenti,Incantesimi') throw new Error(`unexpected compendium links: ${compendiumLinks.join(',')}`);
 
   // Brand: emblem next to the title in the sidebar, RealmForge favicon instead of the Blazor one
   await page.goto(`${base}/`);
@@ -51,12 +51,52 @@ try {
 
   // Dashboard: one card per compendium module with Base counts per edition and the visible Homebrew
   await page.locator('[data-test=dashboard-feats] .rf-account-stat-value').first().waitFor({ timeout: 30000 });
-  const dashboard = await page.evaluate(() => Object.fromEntries(['species', 'backgrounds', 'feats'].map((m) =>
+  const dashboard = await page.evaluate(() => Object.fromEntries(['species', 'backgrounds', 'feats', 'spells'].map((m) =>
     [m, [...document.querySelectorAll(`[data-test=dashboard-${m}] .rf-account-stat-value`)].map((v) => v.textContent.trim()).join('/')])));
   results.push(`INFO dashboard (Base 2024/Base 2014/Homebrew): ${JSON.stringify(dashboard)}`);
-  if (dashboard.species !== '10/9/0' || dashboard.backgrounds !== '16/13/0' || dashboard.feats !== '75/42/0') throw new Error('unexpected dashboard counts');
+  if (dashboard.species !== '10/9/0' || dashboard.backgrounds !== '16/13/0' || dashboard.feats !== '75/42/0' || dashboard.spells !== '0/361/0') throw new Error('unexpected dashboard counts');
   if (await page.locator('main a[href=account]', { hasText: 'Accedi per forgiare' }).count() !== 1) throw new Error('dashboard misses the sign-in call to action');
-  ok('dashboard: module cards with Base counts per edition (species 10+9, backgrounds 16+13, feats 75+42) and the sign-in call to action');
+  ok('dashboard: module cards with Base counts per edition (species 10+9, backgrounds 16+13, feats 75+42, spells 0+361) and the sign-in call to action');
+
+  // Spells: 361 base spells grouped by level, client-side filters, detail with the stat block, language switch
+  await page.goto(`${base}/spells`);
+  await page.locator('[data-test=spell-card]').first().waitFor({ timeout: 60000 });
+  const spellCount = async () => (await page.locator('[data-test=spell-count]').innerText()).trim();
+  const allSpells = await spellCount();
+  const levelGroups = await page.locator('[data-test=spell-level-group]').count();
+  const pickOption = async (filter, label) => {
+    await page.locator(`[data-test=${filter}] .rf-custom-select-trigger`).click();
+    await page.locator(`[data-test=${filter}] .rf-custom-select-option`, { hasText: label }).first().click();
+  };
+  await pickOption('spell-class', 'Mago');
+  await pickOption('spell-level', '3° livello');
+  const wizard3 = await spellCount();
+  await page.locator('[data-test=spell-filter-concentration]').click();
+  const wizard3Concentration = await spellCount();
+  await page.locator('[data-test=spell-filter-concentration]').click();
+  await pickOption('spell-class', 'Tutte le classi');
+  await pickOption('spell-level', 'Tutti i livelli');
+  await page.locator('[data-test=spell-filter-ritual]').click();
+  const rituals = await spellCount();
+  await page.locator('[data-test=spell-filter-ritual]').click();
+  await page.locator('[data-test=spell-search]').fill('palla di fuoco');
+  await page.locator('[data-test=spell-card]', { hasText: 'Palla di Fuoco Ritardata' }).waitFor({ timeout: 5000 });
+  await page.locator('[data-test=spell-card]').filter({ has: page.locator('.rf-card-title', { hasText: /^Palla di Fuoco$/ }) }).click();
+  await page.locator('[data-test=spell-detail]').waitFor({ timeout: 15000 });
+  const fireball = await page.evaluate(() => ({
+    subtitle: document.querySelector('[data-test=spell-subtitle]').textContent.trim(),
+    stats: [...document.querySelectorAll('[data-test=spell-stats] dd')].map((d) => d.textContent.trim()),
+    higher: !!document.querySelector('[data-test=spell-higher-levels]'),
+    classes: document.querySelector('[data-test=spell-classes]').textContent.replace(/\s+/g, ' ').trim(),
+    source: document.querySelector('[data-test=spell-detail]').textContent.includes('SRD 5.1'),
+  }));
+  results.push(`INFO spells: ${allSpells}, ${levelGroups} level groups | wizard 3rd: ${wizard3} (concentration ${wizard3Concentration}) | rituals: ${rituals} | fireball ${JSON.stringify(fireball)}`);
+  if (allSpells !== '361 incantesimi' || levelGroups !== 10 || wizard3 !== '29 incantesimi' || wizard3Concentration !== '13 incantesimi' || rituals !== '31 incantesimi') throw new Error('unexpected spell counts');
+  if (fireball.subtitle !== 'Invocazione di 3° livello' || fireball.stats.join(' | ') !== '1 azione | 45 metri | V, S, M (una minuscola pallina di guano di pipistrello e zolfo) | Istantanea'
+    || !fireball.higher || !fireball.classes.endsWith('Mago, Stregone') || !fireball.source) throw new Error('unexpected Fireball detail');
+  await page.locator('[data-test=spell-detail] button', { hasText: 'CHIUDI' }).click();
+  ok('spells: 361 cards in 10 level groups, class/level/concentration/ritual filters, search, Fireball stat block in Italian with SRD 5.1 source');
+
 
   await page.goto(`${base}/account`);
   await page.getByText('Non hai un account? Registrati').waitFor({ timeout: 30000 });
@@ -74,9 +114,9 @@ try {
     return { label: el.textContent.trim(), inset: Math.round(icon.left - el.getBoundingClientRect().left), left: Math.round(icon.left) };
   }));
   results.push(`INFO menu icons: ${iconGaps.map((g) => `${g.label}@${g.left}(+${g.inset})`).join(', ')}`);
-  if (iconGaps.length !== 5 || iconGaps.some((g) => g.inset < 8) || new Set(iconGaps.map((g) => g.left)).size !== 1) throw new Error('menu icons are not padded or not aligned');
+  if (iconGaps.length !== 6 || iconGaps.some((g) => g.inset < 8) || new Set(iconGaps.map((g) => g.left)).size !== 1) throw new Error('menu icons are not padded or not aligned');
   await page.locator('[data-test=nav-compendium] button').click();
-  ok('"Compendio" menu group: Specie, Background, Talenti; collapsed elsewhere and toggles on click; icons padded and aligned');
+  ok('"Compendio" menu group: Specie, Background, Talenti, Incantesimi; collapsed elsewhere and toggles on click; icons padded and aligned');
   await page.getByText('Non hai un account? Registrati').click();
   await page.locator('input[type=email]').fill(email);
   // Own show / hide button: visible before the field is touched, not only while typing as the browser's eye

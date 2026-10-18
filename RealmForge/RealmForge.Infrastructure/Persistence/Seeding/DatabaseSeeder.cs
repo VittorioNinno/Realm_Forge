@@ -15,6 +15,7 @@ public static class DatabaseSeeder
 
 		//	After feats: backgrounds reference their Origin feat
 		await RunAsync("backgrounds", () => BackgroundSeeder.SeedAsync(context, cancellationToken), context, logger);
+		await RunAsync("spells", () => SpellSeeder.SeedAsync(context, cancellationToken), context, logger);
 	}
 
 	private static async Task RunAsync(string module, Func<Task> seed, RealmForgeDbContext context, ILogger logger)
