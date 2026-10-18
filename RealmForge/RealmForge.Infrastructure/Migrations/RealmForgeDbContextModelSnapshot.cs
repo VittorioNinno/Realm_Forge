@@ -18,7 +18,7 @@ namespace RealmForge.Infrastructure.Migrations
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "10.0.12")
+                .HasAnnotation("ProductVersion", "10.0.13")
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
@@ -428,6 +428,113 @@ namespace RealmForge.Infrastructure.Migrations
                     b.ToTable("SpeciesTranslations");
                 });
 
+            modelBuilder.Entity("RealmForge.Domain.Entities.Spell", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("AuthorId")
+                        .HasColumnType("text");
+
+                    b.PrimitiveCollection<int[]>("Classes")
+                        .IsRequired()
+                        .HasColumnType("integer[]");
+
+                    b.Property<bool>("Concentration")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsOfficialSRD")
+                        .HasColumnType("boolean");
+
+                    b.Property<int>("Level")
+                        .HasColumnType("integer");
+
+                    b.Property<bool>("Material")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("Ritual")
+                        .HasColumnType("boolean");
+
+                    b.Property<int>("Ruleset")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("School")
+                        .HasColumnType("integer");
+
+                    b.Property<bool>("Somatic")
+                        .HasColumnType("boolean");
+
+                    b.Property<int?>("Source")
+                        .HasColumnType("integer");
+
+                    b.Property<bool>("Verbal")
+                        .HasColumnType("boolean");
+
+                    b.Property<int>("Visibility")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Ruleset", "Level");
+
+                    b.ToTable("Spells", t =>
+                        {
+                            t.HasCheckConstraint("CK_Spells_Level", "\"Level\" BETWEEN 0 AND 9");
+                        });
+                });
+
+            modelBuilder.Entity("RealmForge.Domain.Entities.SpellTranslation", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("CastingTime")
+                        .IsRequired()
+                        .HasMaxLength(300)
+                        .HasColumnType("character varying(300)");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Duration")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("character varying(150)");
+
+                    b.Property<string>("HigherLevels")
+                        .HasColumnType("text");
+
+                    b.Property<int>("Language")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("MaterialComponent")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("character varying(150)");
+
+                    b.Property<string>("Range")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("character varying(150)");
+
+                    b.Property<Guid>("SpellId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("SpellId", "Language")
+                        .IsUnique();
+
+                    b.ToTable("SpellTranslations");
+                });
+
             modelBuilder.Entity("RealmForge.Domain.Entities.Subspecies", b =>
                 {
                     b.Property<Guid>("Id")
@@ -724,6 +831,17 @@ namespace RealmForge.Infrastructure.Migrations
                     b.Navigation("Species");
                 });
 
+            modelBuilder.Entity("RealmForge.Domain.Entities.SpellTranslation", b =>
+                {
+                    b.HasOne("RealmForge.Domain.Entities.Spell", "Spell")
+                        .WithMany("Translations")
+                        .HasForeignKey("SpellId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Spell");
+                });
+
             modelBuilder.Entity("RealmForge.Domain.Entities.Subspecies", b =>
                 {
                     b.HasOne("RealmForge.Domain.Entities.Species", "Species")
@@ -790,6 +908,11 @@ namespace RealmForge.Infrastructure.Migrations
 
                     b.Navigation("Traits");
 
+                    b.Navigation("Translations");
+                });
+
+            modelBuilder.Entity("RealmForge.Domain.Entities.Spell", b =>
+                {
                     b.Navigation("Translations");
                 });
 
