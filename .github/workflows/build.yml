@@ -331,16 +331,25 @@ jobs:
           get() { local out status; out=$(curl -s -w '\n%{http_code}' "$@"); status=${out##*$'\n'}; out=${out%$'\n'*}
             if [ "${status:0:1}" != "2" ]; then echo "::error title=spells::HTTP $status for $*: $(printf '%s' "$out" | tr '\n' ' ' | head -c 400)" >&2; grep -E "fail|Exception" api.log 2>/dev/null | tail -5 | sed 's/^/::error title=api-log::/' >&2; return 22; fi
             printf '%s' "$out"; }
-          # Spells: 361 base spells of the 2014 rules (319 SRD 5.1 + 42 RealmForge texts), server-side filters,
-          # localized stat block and Homebrew rules (ownership, validation)
+          # Spells: 361 base spells of the 2014 rules (319 SRD 5.1 + 42 RealmForge texts) and 391 of the 2024 rules
+          # (339 SRD 5.2 + 52 RealmForge texts), server-side filters, localized stat block and Homebrew rules (ownership, validation)
           sp_all=$(get "$api/api/spells?isOfficial=true&ruleset=1&lang=2")
           sp_counts=$(echo "$sp_all" | jq -c '{total: length, srd: map(select(.source == 2)) | length, rf: map(select(.source == 1)) | length, cantrips: map(select(.level == 0)) | length, ninth: map(select(.level == 9)) | length}')
-          sp_wizard3=$(get "$api/api/spells?isOfficial=true&lang=2&level=3&spellClass=8" | jq length)
-          sp_school=$(get "$api/api/spells?isOfficial=true&lang=2&school=5&level=3" | jq -c '[.[].name] | sort | .[0:3]')
+          sp_wizard3=$(get "$api/api/spells?isOfficial=true&ruleset=1&lang=2&level=3&spellClass=8" | jq length)
+          sp_school=$(get "$api/api/spells?isOfficial=true&ruleset=1&lang=2&school=5&level=3" | jq -c '[.[].name] | sort | .[0:3]')
           fireball=$(echo "$sp_all" | jq -r '.[] | select(.name == "Palla di Fuoco") | .id')
           fb_it=$(get "$api/api/spells/$fireball?lang=2" | jq -c '{name, range, castingTime, duration, components: [.verbal, .somatic, .material], material: .materialComponent, classes}')
           fb_en=$(get "$api/api/spells/$fireball?lang=1" | jq -r '.name + " / " + .range + " / " + .higherLevels[0:40]')
-          hex_src=$(get "$api/api/spells?isOfficial=true&lang=1" | jq -c '.[] | select(.name == "Hex") | {source, concentration, castingTime}')
+          hex_src=$(get "$api/api/spells?isOfficial=true&ruleset=1&lang=1" | jq -c '.[] | select(.name == "Hex") | {source, concentration, castingTime}')
+          sp24_all=$(get "$api/api/spells?isOfficial=true&ruleset=2&lang=2")
+          sp24_counts=$(echo "$sp24_all" | jq -c '{total: length, srd: map(select(.source == 3)) | length, rf: map(select(.source == 1)) | length, cantrips: map(select(.level == 0)) | length, ninth: map(select(.level == 9)) | length, rituals: map(select(.ritual)) | length}')
+          sp24_wizard3=$(get "$api/api/spells?isOfficial=true&ruleset=2&lang=2&level=3&spellClass=8" | jq length)
+          sp_both=$(get "$api/api/spells?isOfficial=true&lang=2" | jq length)
+          fireball24=$(echo "$sp24_all" | jq -r '.[] | select(.name == "Palla di Fuoco") | .id')
+          fb24_it=$(get "$api/api/spells/$fireball24?lang=2" | jq -c '{name, range, castingTime, duration, material: .materialComponent, ruleset}')
+          fb24_en=$(get "$api/api/spells/$fireball24?lang=1" | jq -r '.name + " / " + .castingTime + " / " + .higherLevels[0:40]')
+          hex24_src=$(get "$api/api/spells?isOfficial=true&ruleset=2&lang=1" | jq -c '.[] | select(.name == "Hex") | {source, castingTime}')
+          fey24=$(echo "$sp24_all" | jq -c '.[] | select(.name == "Richiama Folletto") | {source, level}')
           sp=$(jq -nc '{ruleset:1, level:2, school:5, classes:[8,6], concentration:true, verbal:true, somatic:true, material:false, visibility:2,
             translations:[{language:1,name:"Test Bolt",description:"x",castingTime:"1 action",range:"60 feet",duration:"Concentration, up to 1 minute"},
                           {language:2,name:"Dardo di prova",description:"x",castingTime:"1 azione",range:"18 metri",duration:"Concentrazione, fino a 1 minuto"}]}')
@@ -359,12 +368,19 @@ jobs:
           sp_srd_delete=$(code -X DELETE $api/api/spells/$fireball -H "Authorization: Bearer $A")
           sp_delete=$(code -X DELETE $api/api/spells/$sp_id -H "Authorization: Bearer $A")
           echo "::notice title=database::spells: $sp_counts | wizard 3rd=$sp_wizard3 | evocation 3rd=$sp_school | fireball IT=$fb_it | EN='$fb_en' | Hex=$hex_src"
+          echo "::notice title=database::spells 2024: $sp24_counts | wizard 3rd=$sp24_wizard3 | both editions=$sp_both | fireball IT=$fb24_it | EN='$fb24_en' | Hex=$hex24_src | Summon Fey=$fey24"
           echo "::notice title=database::spell homebrew: anonymous=$sp_anon | classes=$sp_classes canEdit=$sp_can | level 10=$sp_bad_level | empty range=$sp_bad_stats | other PUT=$sp_other | own PUT=$sp_own (level $sp_level) | private detail anon=$sp_anon_detail | private listed author=$sp_listed anon=$sp_anon_listed | account spells=$sp_acc | SRD DELETE=$sp_srd_delete | own DELETE=$sp_delete"
           test "$sp_counts" = '{"total":361,"srd":319,"rf":42,"cantrips":27,"ninth":16}'
           test "$sp_wizard3" = "29"
           test "$fb_it" = '{"name":"Palla di Fuoco","range":"45 metri","castingTime":"1 azione","duration":"Istantanea","components":[true,true,true],"material":"una minuscola pallina di guano di pipistrello e zolfo","classes":[6,8]}'
           test "$fb_en" = "Fireball / 150 feet / When you cast this spell using a spell s"
           test "$hex_src" = '{"source":1,"concentration":true,"castingTime":"1 bonus action"}'
+          test "$sp24_counts" = '{"total":391,"srd":339,"rf":52,"cantrips":34,"ninth":16,"rituals":31}'
+          test "$sp24_wizard3" = "32" && test "$sp_both" = "752"
+          test "$fb24_it" = '{"name":"Palla di Fuoco","range":"45 metri","castingTime":"Azione","duration":"Istantanea","material":"una pallina di guano di pipistrello e zolfo","ruleset":2}'
+          test "$fb24_en" = "Fireball / Action / The damage increases by 1d6 for each spe"
+          test "$hex24_src" = '{"source":3,"castingTime":"Bonus Action"}'
+          test "$fey24" = '{"source":1,"level":3}'
           test "$sp_anon" = "401" && test "$sp_classes" = "[6,8]" && test "$sp_can" = "true"
           test "$sp_bad_level" = "400" && test "$sp_bad_stats" = "400" && test "$sp_other" = "403" && test "$sp_own" = "204" && test "$sp_level" = "3" && test "$sp_anon_detail" = "404"
           test "$sp_listed" = "1" && test "$sp_anon_listed" = "0" && test "$sp_acc" = "1" && test "$sp_srd_delete" = "403" && test "$sp_delete" = "204"
