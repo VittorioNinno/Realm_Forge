@@ -327,6 +327,43 @@ jobs:
           test "$bg_other" = "403"
           test "$bg_delete" = "204"
 
+          # Spells: 361 base spells of the 2014 rules (319 SRD 5.1 + 42 RealmForge texts), server-side filters,
+          # localized stat block and Homebrew rules (ownership, validation)
+          sp_all=$(curl -sf "$api/api/spells?isOfficial=true&ruleset=1&lang=2")
+          sp_counts=$(echo "$sp_all" | jq -c '{total: length, srd: map(select(.source == 2)) | length, rf: map(select(.source == 1)) | length, cantrips: map(select(.level == 0)) | length, ninth: map(select(.level == 9)) | length}')
+          sp_wizard3=$(curl -sf "$api/api/spells?isOfficial=true&lang=2&level=3&spellClass=8" | jq length)
+          sp_school=$(curl -sf "$api/api/spells?isOfficial=true&lang=2&school=5&level=3" | jq -c '[.[].name] | sort | .[0:3]')
+          fireball=$(echo "$sp_all" | jq -r '.[] | select(.name == "Palla di Fuoco") | .id')
+          fb_it=$(curl -sf "$api/api/spells/$fireball?lang=2" | jq -c '{name, range, castingTime, duration, components: [.verbal, .somatic, .material], material: .materialComponent, classes}')
+          fb_en=$(curl -sf "$api/api/spells/$fireball?lang=1" | jq -r '.name + " / " + .range + " / " + .higherLevels[0:40]')
+          hex_src=$(curl -sf "$api/api/spells?isOfficial=true&lang=1" | jq -c '.[] | select(.name == "Hex") | {source, concentration, castingTime}')
+          sp=$(jq -nc '{ruleset:1, level:2, school:5, classes:[8,6], concentration:true, verbal:true, somatic:true, material:false, visibility:2,
+            translations:[{language:1,name:"Test Bolt",description:"x",castingTime:"1 action",range:"60 feet",duration:"Concentration, up to 1 minute"},
+                          {language:2,name:"Dardo di prova",description:"x",castingTime:"1 azione",range:"18 metri",duration:"Concentrazione, fino a 1 minuto"}]}')
+          sp_anon=$(code -X POST $api/api/spells $json -d "$sp")
+          sp_created=$(curl -sf -X POST "$api/api/spells?lang=2" $json -H "Authorization: Bearer $A" -d "$sp")
+          sp_id=$(echo "$sp_created" | jq -r .id); sp_classes=$(echo "$sp_created" | jq -c .classes); sp_can=$(echo "$sp_created" | jq -r .canEdit)
+          sp_bad_level=$(code -X POST $api/api/spells $json -H "Authorization: Bearer $A" -d "$(echo "$sp" | jq '.level = 10')")
+          sp_bad_stats=$(code -X POST $api/api/spells $json -H "Authorization: Bearer $A" -d "$(echo "$sp" | jq '.translations[0].range = ""')")
+          sp_other=$(code -X PUT $api/api/spells/$sp_id $json -H "Authorization: Bearer $B" -d "$(echo "$sp" | jq --arg id "$sp_id" '. + {id:$id}')")
+          sp_own=$(code -X PUT $api/api/spells/$sp_id $json -H "Authorization: Bearer $A" -d "$(echo "$sp" | jq --arg id "$sp_id" '. + {id:$id, level:3}')")
+          sp_level=$(curl -sf "$api/api/spells/$sp_id?lang=1" | jq .level)
+          sp_listed=$(curl -sf "$api/api/spells?lang=2&isOfficial=false" -H "Authorization: Bearer $A" | jq length)
+          sp_anon_listed=$(curl -sf "$api/api/spells?lang=2&isOfficial=false" | jq length)
+          sp_acc=$(curl -sf $api/api/account/summary -H "Authorization: Bearer $A" | jq .homebrew.spells)
+          sp_srd_delete=$(code -X DELETE $api/api/spells/$fireball -H "Authorization: Bearer $A")
+          sp_delete=$(code -X DELETE $api/api/spells/$sp_id -H "Authorization: Bearer $A")
+          echo "::notice title=database::spells: $sp_counts | wizard 3rd=$sp_wizard3 | evocation 3rd=$sp_school | fireball IT=$fb_it | EN='$fb_en' | Hex=$hex_src"
+          echo "::notice title=database::spell homebrew: anonymous=$sp_anon | classes=$sp_classes canEdit=$sp_can | level 10=$sp_bad_level | empty range=$sp_bad_stats | other PUT=$sp_other | own PUT=$sp_own (level $sp_level) | private listed author=$sp_listed anon=$sp_anon_listed | account spells=$sp_acc | SRD DELETE=$sp_srd_delete | own DELETE=$sp_delete"
+          test "$sp_counts" = '{"total":361,"srd":319,"rf":42,"cantrips":27,"ninth":16}'
+          test "$sp_wizard3" = "29"
+          test "$fb_it" = '{"name":"Palla di Fuoco","range":"45 metri","castingTime":"1 azione","duration":"Istantanea","components":[true,true,true],"material":"una minuscola pallina di guano di pipistrello e zolfo","classes":[6,8]}'
+          test "$fb_en" = "Fireball / 150 feet / When you cast this spell using a spell sl"
+          test "$hex_src" = '{"source":1,"concentration":true,"castingTime":"1 bonus action"}'
+          test "$sp_anon" = "401" && test "$sp_classes" = "[6,8]" && test "$sp_can" = "true"
+          test "$sp_bad_level" = "400" && test "$sp_bad_stats" = "400" && test "$sp_other" = "403" && test "$sp_own" = "204" && test "$sp_level" = "3"
+          test "$sp_listed" = "1" && test "$sp_anon_listed" = "0" && test "$sp_acc" = "1" && test "$sp_srd_delete" = "403" && test "$sp_delete" = "204"
+
   ui:
     runs-on: ubuntu-24.04
     needs: build
