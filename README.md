@@ -40,7 +40,7 @@ A modular, bilingual web platform for managing tabletop RPG campaigns, sessions 
 | Feats · *Talenti* | ✅ | 117 base feats (42 × 2014, 75 × 2024), structured bilingual prerequisites, "Forge Feat" editor · *prerequisiti strutturati bilingue, editor "Forgia Talento"* |
 | Accounts & ownership · *Account e proprietà* | ✅ | ASP.NET Core Identity, bearer tokens, e-mail confirmation, password recovery, per-author Homebrew with private / link / public visibility · *conferma email, recupero password, Homebrew per autore con visibilità privata / link / pubblica* |
 | Backgrounds · *Background* | ✅ | 13 base 2014 backgrounds with feature and characteristic tables; 16 base 2024 backgrounds with ability scores, Origin feat and equipment options A/B (Acolyte, Criminal, Sage and Soldier from SRD 5.2) · *13 background base 2014 con privilegio e tabelle delle caratteristiche; 16 background base 2024 con caratteristiche, Talento di Origine e opzioni di equipaggiamento A/B (Accolito, Criminale, Sapiente e Soldato dall'SRD 5.2)* |
-| Spells · *Incantesimi* | 📋 | Planned · *Pianificato* |
+| Spells · *Incantesimi* | 🟡 | 361 base 2014 spells (319 from SRD 5.1, 42 with RealmForge text), class lists, filters by level, school, class, ritual and concentration, Homebrew editor; 2024 spells to come · *361 incantesimi base 2014 (319 dall'SRD 5.1, 42 con testo RealmForge), liste per classe, filtri per livello, scuola, classe, rituale e concentrazione, editor Homebrew; incantesimi 2024 in arrivo* |
 | Classes · *Classi* | 📋 | Planned · *Pianificato* |
 | Character sheet · *Scheda personaggio* | 📋 | Planned · *Pianificato* |
 
@@ -189,6 +189,8 @@ pg_restore --clean --if-exists --no-owner --no-privileges -d "postgresql://…" 
   *I contenuti creati via API sono **sempre** Homebrew; il flag `IsOfficialSRD` non è impostabile dal client.*
 - Responses include `CanEdit`, computed by the server for the current user; the UI shows Edit/Delete only when it is `true`.
   *Le risposte includono `CanEdit`, calcolato dal server; l'interfaccia mostra Modifica/Elimina solo se è `true`.*
+- SRD texts are used in English as published; the Italian versions are RealmForge translations that follow the official Italian game terms and use metric units (1,5 m per 5 feet). Content outside the SRD keeps only names and mechanics, with descriptions written for RealmForge.
+  *I testi SRD sono usati in inglese come pubblicati; le versioni italiane sono traduzioni RealmForge che seguono la terminologia italiana ufficiale e usano il sistema metrico (1,5 m ogni 5 piedi). Per i contenuti fuori dall'SRD si mantengono solo nomi e meccaniche, con descrizioni scritte per RealmForge.*
 
 ## 🌍 Localization / Localizzazione
 
@@ -250,7 +252,8 @@ dotnet test RealmForge/RealmForge.slnx
 - [x] Species seeders with deterministic ids and re-sync, as for feats · *Seeder delle specie con id deterministici e risincronizzazione*
 - [x] Remember the selected language across reloads · *Ricordare la lingua scelta tra un ricaricamento e l'altro*
 - [x] E-mail confirmation, Homebrew visibility and password recovery · *Conferma email, visibilità degli Homebrew e recupero password*
-- [ ] Spells · *Incantesimi*
+- [x] Spells 2014 · *Incantesimi 2014*
+- [ ] Spells 2024 · *Incantesimi 2024*
 - [ ] Classes · *Classi*
 - [ ] Character sheet · *Scheda personaggio*
 - [ ] Campaigns and sessions · *Campagne e sessioni*
