@@ -7,6 +7,7 @@
 @inject SpeciesDataService SpeciesService
 @inject BackgroundDataService BackgroundService
 @inject FeatDataService FeatService
+@inject SpellDataService SpellService
 
 <PageTitle>RealmForge - @UiText.NavDashboard(LanguageState.CurrentLanguage)</PageTitle>
 
@@ -23,7 +24,7 @@
     }
 
     @* Compendium modules: what is available for each edition, Base and Homebrew *@
-    <div class="row row-cols-1 row-cols-md-3 g-4 mb-4" data-test="dashboard-modules">
+    <div class="row row-cols-1 row-cols-md-2 row-cols-xl-4 g-4 mb-4" data-test="dashboard-modules">
         @foreach (var module in Modules)
         {
             <div class="col">
@@ -80,6 +81,7 @@
     private ModuleCounts? species;
     private ModuleCounts? backgrounds;
     private ModuleCounts? feats;
+    private ModuleCounts? spells;
     private bool loadFailed;
 
     private IEnumerable<Module> Modules
@@ -90,6 +92,7 @@
             yield return new Module("species", UiText.NavSpecies(lang), UiText.SpeciesSubtitle(lang), species);
             yield return new Module("backgrounds", UiText.BackgroundsTitle(lang), UiText.BackgroundsSubtitle(lang), backgrounds);
             yield return new Module("feats", UiText.FeatsTitle(lang), UiText.FeatsSubtitle(lang), feats);
+            yield return new Module("spells", UiText.SpellsTitle(lang), UiText.SpellsSubtitle(lang), spells);
         }
     }
 
@@ -101,17 +104,19 @@
         var speciesTask = SpeciesService.GetSpeciesAsync(lang);
         var backgroundsTask = BackgroundService.GetBackgroundsAsync(lang);
         var featsTask = FeatService.GetFeatsAsync(lang);
-        await Task.WhenAll(speciesTask, backgroundsTask, featsTask);
+        var spellsTask = SpellService.GetSpellsAsync(lang);
+        await Task.WhenAll(speciesTask, backgroundsTask, featsTask, spellsTask);
 
         species = Count((await speciesTask).Select(s => (s.Ruleset, s.IsOfficialSRD)));
         backgrounds = Count((await backgroundsTask).Select(b => (b.Ruleset, b.IsOfficialSRD)));
         feats = Count((await featsTask).Select(f => (f.Ruleset, f.IsOfficialSRD)));
+        spells = Count((await spellsTask).Select(s => (s.Ruleset, s.IsOfficialSRD)));
 
         //	No Base content at all is never a real state: show a warning instead of misleading zeros
-        loadFailed = new[] { species, backgrounds, feats }.All(c => c is { Edition2024: 0, Edition2014: 0 });
+        loadFailed = new[] { species, backgrounds, feats, spells }.All(c => c is { Edition2024: 0, Edition2014: 0 });
         if (loadFailed)
         {
-            species = backgrounds = feats = null;
+            species = backgrounds = feats = spells = null;
         }
     }
 
