@@ -79,7 +79,20 @@ try {
   ok('"Compendio" menu group: Specie, Background, Talenti; collapsed elsewhere and toggles on click; icons padded and aligned');
   await page.getByText('Non hai un account? Registrati').click();
   await page.locator('input[type=email]').fill(email);
+  // Own show / hide button: visible before the field is touched, not only while typing as the browser's eye
+  const pwdToggle = page.locator('[data-test=auth-password-toggle]');
+  if (!(await pwdToggle.isVisible())) throw new Error('the show password button is not visible on the sign-in form');
   await page.locator('input[type=password]').fill(throwawayCredential);
+  await page.locator('[data-test=account-area]').click();
+  const toggleAfterBlur = await pwdToggle.isVisible();
+  await pwdToggle.click();
+  const shown = await page.locator('[data-test=auth-password]').evaluate((el) => ({ type: el.type, value: el.value }));
+  const pressed = await pwdToggle.getAttribute('aria-pressed');
+  await pwdToggle.click();
+  const hiddenType = await page.locator('[data-test=auth-password]').getAttribute('type');
+  results.push(`INFO password toggle: visible after leaving the field=${toggleAfterBlur} shown=${shown.type} pressed=${pressed} hidden again=${hiddenType}`);
+  if (!toggleAfterBlur || shown.type !== 'text' || shown.value !== throwawayCredential || pressed !== 'true' || hiddenType !== 'password') throw new Error('the show / hide password button does not work');
+  ok('password field: own show / hide button, visible before and after typing, toggles plain text and back');
   await page.getByRole('button', { name: 'Registrati' }).click();
   await page.locator('[data-test=account-area]', { hasText: email }).waitFor({ timeout: 30000 });
   const headerText = await page.locator('main .top-row').innerText();
@@ -272,7 +285,20 @@ try {
   const newCredential = ['Rf', crypto.randomUUID(), 'B!'].join('-');
   await page.locator('[data-test=pwd-current]').fill('wrong-password-1A!');
   await page.locator('[data-test=pwd-new]').fill(newCredential);
+  // Live check of the repetition: silent while it is still a beginning of the new password, a warning on a typo, a confirmation when equal
+  const matchHint = async () => (await page.locator('[data-test=pwd-match]').innerText()).trim();
+  await page.locator('[data-test=pwd-repeat]').fill(newCredential.slice(0, 6));
+  const whileTyping = await matchHint();
+  await page.locator('[data-test=pwd-repeat]').fill(`${newCredential.slice(0, 6)}#`);
+  await page.locator('[data-test=pwd-match]', { hasText: 'diversa' }).waitFor({ timeout: 5000 });
+  const typo = await matchHint();
+  const typoInvalid = await page.locator('[data-test=pwd-repeat]').getAttribute('aria-invalid');
   await page.locator('[data-test=pwd-repeat]').fill(newCredential);
+  await page.locator('[data-test=pwd-match]', { hasText: 'coincidono' }).waitFor({ timeout: 5000 });
+  const typoCleared = await page.locator('[data-test=pwd-repeat]').getAttribute('aria-invalid');
+  results.push(`INFO repeat check: typing='${whileTyping}' typo='${typo}' (aria-invalid=${typoInvalid}) equal='${await matchHint()}'`);
+  if (whileTyping !== '' || typoInvalid !== 'true' || typoCleared !== null) throw new Error('the repeated password check does not react as expected');
+  ok('change password: the repeated password is checked while typing (silent, warning on a typo, confirmation when equal)');
   await page.getByRole('button', { name: 'Aggiorna password' }).click();
   await page.getByText('La password attuale non è corretta.').waitFor({ timeout: 15000 });
   await page.locator('[data-test=pwd-current]').fill(throwawayCredential);
