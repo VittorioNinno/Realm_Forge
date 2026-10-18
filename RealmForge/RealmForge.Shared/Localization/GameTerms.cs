@@ -104,10 +104,10 @@ namespace RealmForge.Shared.Localization
 		}
 
 		///	<summary>
-		///	Stat block subtitle as in the manuals: "Invocazione di 3° livello (rituale)", "3rd-level evocation (ritual)",
-		///	"Trucchetto di invocazione", "Evocation cantrip".
+		///	Stat block subtitle as in the manuals: "Invocazione di 3° livello (rituale)", "Trucchetto di invocazione";
+		///	in English "3rd-level evocation (ritual)" / "Evocation cantrip" for 2014 and "Level 3 Evocation" / "Evocation Cantrip" for 2024.
 		///	</summary>
-		public static string SpellSubtitle(int level, SpellSchool school, bool ritual, LanguageCode lang)
+		public static string SpellSubtitle(int level, SpellSchool school, bool ritual, LanguageCode lang, RulesetVersion ruleset = RulesetVersion.Dnd5e_2014)
 		{
 			var schoolName = SchoolName(school, lang);
 			string text;
@@ -118,8 +118,36 @@ namespace RealmForge.Shared.Localization
 				return ritual ? $"{text} (rituale)" : text;
 			}
 
+			if (ruleset == RulesetVersion.Dnd5e_2024)
+			{
+				text = level == 0 ? $"{schoolName} Cantrip" : $"Level {level} {schoolName}";
+				return ritual ? $"{text} (Ritual)" : text;
+			}
+
 			text = level == 0 ? $"{schoolName} cantrip" : $"{SpellLevel(level, lang).Replace(" level", "-level")} {schoolName.ToLowerInvariant()}";
 			return ritual ? $"{text} (ritual)" : text;
+		}
+
+		///	<summary>
+		///	Heading of the "higher levels" part of a spell: 2014 "Ai livelli superiori" / "At Higher Levels";
+		///	2024 "Utilizzo di uno slot incantesimo di livello superiore" / "Using a Higher-Level Spell Slot",
+		///	and "Trucchetto potenziato" / "Cantrip Upgrade" for 2024 cantrips.
+		///	</summary>
+		public static string SpellHigherLevelsHeading(int level, LanguageCode lang, RulesetVersion ruleset)
+		{
+			var it = lang == LanguageCode.It;
+
+			if (ruleset != RulesetVersion.Dnd5e_2024)
+			{
+				return it ? "Ai livelli superiori" : "At higher levels";
+			}
+
+			if (level == 0)
+			{
+				return it ? "Trucchetto potenziato" : "Cantrip upgrade";
+			}
+
+			return it ? "Utilizzo di uno slot di livello superiore" : "Using a higher-level spell slot";
 		}
 	}
 }
