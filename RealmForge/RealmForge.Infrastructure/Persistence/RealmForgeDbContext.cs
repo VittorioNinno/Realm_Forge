@@ -39,6 +39,10 @@ namespace RealmForge.Infrastructure.Persistence
 		public DbSet<Background> Backgrounds => Set<Background>();
 		public DbSet<BackgroundTranslation> BackgroundTranslations => Set<BackgroundTranslation>();
 
+		//	Spells aggregate
+		public DbSet<Spell> Spells => Set<Spell>();
+		public DbSet<SpellTranslation> SpellTranslations => Set<SpellTranslation>();
+
 		protected override void OnModelCreating(ModelBuilder modelBuilder)
 		{
 			base.OnModelCreating(modelBuilder);
@@ -206,6 +210,41 @@ namespace RealmForge.Infrastructure.Persistence
 
 				//	Unique index: a background cannot have two translations for the same language
 				entity.HasIndex(t => new { t.BackgroundId, t.Language }).IsUnique();
+			});
+
+			//	Spells configuration
+			modelBuilder.Entity<Spell>(entity =>
+			{
+				entity.HasKey(s => s.Id);
+				entity.Property(s => s.Ruleset).IsRequired();
+				entity.Property(s => s.IsOfficialSRD).IsRequired();
+				entity.Property(s => s.Level).IsRequired();
+				entity.Property(s => s.School).IsRequired();
+				entity.Property(s => s.Classes).IsRequired();
+				entity.ToTable(t => t.HasCheckConstraint("CK_Spells_Level", "\"Level\" BETWEEN 0 AND 9"));
+
+				//	The list filters by ruleset and level
+				entity.HasIndex(s => new { s.Ruleset, s.Level });
+
+				entity.HasMany(s => s.Translations)
+						.WithOne(t => t.Spell)
+						.HasForeignKey(t => t.SpellId)
+						.OnDelete(DeleteBehavior.Cascade);
+			});
+
+			//	Spell translations configuration
+			modelBuilder.Entity<SpellTranslation>(entity =>
+			{
+				entity.HasKey(t => t.Id);
+				entity.Property(t => t.Name).IsRequired().HasMaxLength(150);
+				entity.Property(t => t.Description).IsRequired();
+				entity.Property(t => t.CastingTime).IsRequired().HasMaxLength(300);
+				entity.Property(t => t.Range).IsRequired().HasMaxLength(150);
+				entity.Property(t => t.Duration).IsRequired().HasMaxLength(150);
+				entity.Property(t => t.MaterialComponent).HasMaxLength(500);
+
+				//	Unique index: a spell cannot have two translations for the same language
+				entity.HasIndex(t => new { t.SpellId, t.Language }).IsUnique();
 			});
 		}
 	}

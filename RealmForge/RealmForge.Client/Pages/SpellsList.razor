@@ -1,0 +1,640 @@
+﻿@page "/spells"
+@using RealmForge.Client.Components
+@using RealmForge.Client.Localization
+@using RealmForge.Client.Services
+@using RealmForge.Shared.DTOs
+@using RealmForge.Shared.Enums
+@using RealmForge.Shared.Localization
+@implements IDisposable
+@inject SpellDataService SpellService
+@inject LanguageStateService LanguageState
+@inject ApiErrorState ApiErrors
+
+<PageTitle>RealmForge - @UiText.SpellsTitle(Lang)</PageTitle>
+
+<div class="container-fluid px-0 py-4">
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4 pb-3" style="border-bottom: 2px solid var(--rf-orange-primary);">
+        <div>
+            <h1 class="h3 fw-bold mb-1 rf-page-title">@UiText.SpellsTitle(Lang)</h1>
+            <p class="mb-0 small" style="color: var(--rf-text-muted); letter-spacing: 1px; text-transform: uppercase;">
+                @UiText.SpellsSubtitle(Lang)
+            </p>
+        </div>
+
+        <div>
+            <ForgeAction>
+                <button class="btn btn-rf-orange" @onclick="OpenCreateModal" data-test="spell-add">
+                    @UiText.BtnAddSpell(Lang)
+                </button>
+            </ForgeAction>
+        </div>
+    </div>
+
+    @* Filters: edition reloads from the API, everything else filters the loaded list *@
+    <div class="row g-3 mb-4 p-3 rounded" style="background-color: var(--rf-bg-surface); border: 1px solid var(--rf-border-light);" data-test="spell-filters">
+        <div class="col-lg-4 col-md-6">
+            <label class="rf-form-label small text-uppercase" style="letter-spacing: 0.5px;">@UiText.LabelSearchSpell(Lang)</label>
+            <input type="text" class="rf-form-control" placeholder="@UiText.PlaceholderSearchSpells(Lang)"
+                   @bind="SearchTerm" @bind:event="oninput" data-test="spell-search" />
+        </div>
+        <div class="col-lg-4 col-md-6" data-test="spell-ruleset">
+            <label class="rf-form-label small text-uppercase" style="letter-spacing: 0.5px;">@UiText.LabelRuleset(Lang)</label>
+            <RfSelect TValue="string" @bind-Value="SelectedRulesetFilter" OnChange="LoadSpellsAsync"
+                      Options="@(new List<RfSelect<string>.OptionItem>
+                      {
+                          new("", UiText.FilterRulesetAll(Lang)),
+                          new(((int)RulesetVersion.Dnd5e_2024).ToString(), UiText.FormatRuleset(RulesetVersion.Dnd5e_2024, Lang)),
+                          new(((int)RulesetVersion.Dnd5e_2014).ToString(), UiText.FormatRuleset(RulesetVersion.Dnd5e_2014, Lang))
+                      })" />
+        </div>
+        <div class="col-lg-4 col-md-6" data-test="spell-origin">
+            <label class="rf-form-label small text-uppercase" style="letter-spacing: 0.5px;">@UiText.LabelOrigin(Lang)</label>
+            <RfSelect TValue="string" @bind-Value="OriginFilter"
+                      Options="@(new List<RfSelect<string>.OptionItem>
+                      {
+                          new("", UiText.FilterOriginAll(Lang)),
+                          new("srd", UiText.FilterOnlyBase(Lang)),
+                          new("homebrew", UiText.FilterOnlyHomebrew(Lang))
+                      })" />
+        </div>
+        <div class="col-lg-4 col-md-6" data-test="spell-level">
+            <label class="rf-form-label small text-uppercase" style="letter-spacing: 0.5px;">@UiText.LabelSpellLevel(Lang)</label>
+            <RfSelect TValue="int?" @bind-Value="LevelFilter" Options="LevelOptions" />
+        </div>
+        <div class="col-lg-4 col-md-6" data-test="spell-school">
+            <label class="rf-form-label small text-uppercase" style="letter-spacing: 0.5px;">@UiText.LabelSpellSchool(Lang)</label>
+            <RfSelect TValue="SpellSchool?" @bind-Value="SchoolFilter" Options="SchoolOptions" />
+        </div>
+        <div class="col-lg-4 col-md-6" data-test="spell-class">
+            <label class="rf-form-label small text-uppercase" style="letter-spacing: 0.5px;">@UiText.LabelSpellClass(Lang)</label>
+            <RfSelect TValue="SpellcastingClass?" @bind-Value="ClassFilter" Options="ClassOptions" />
+        </div>
+        <div class="col-12 d-flex flex-wrap align-items-center gap-2">
+            <div class="rf-pill-group">
+                <button type="button" class="rf-pill-btn @(RitualOnly ? "active" : "")" aria-pressed="@(RitualOnly ? "true" : "false")"
+                        @onclick="() => RitualOnly = !RitualOnly" data-test="spell-filter-ritual">
+                    @UiText.LabelRitual(Lang)
+                </button>
+                <button type="button" class="rf-pill-btn @(ConcentrationOnly ? "active" : "")" aria-pressed="@(ConcentrationOnly ? "true" : "false")"
+                        @onclick="() => ConcentrationOnly = !ConcentrationOnly" data-test="spell-filter-concentration">
+                    @UiText.LabelConcentration(Lang)
+                </button>
+            </div>
+            <span class="ms-auto small" style="color: var(--rf-text-muted);" data-test="spell-count">@UiText.SpellCount(FilteredSpells.Count, Lang)</span>
+        </div>
+    </div>
+
+    @if (IsLoading)
+    {
+        <div class="text-center my-5 py-5">
+            <div class="spinner-border" style="color: var(--rf-orange-primary);" role="status"></div>
+            <p class="mt-3" style="color: var(--rf-text-muted); text-transform: uppercase; letter-spacing: 1px;">@UiText.LoadingSpells(Lang)</p>
+        </div>
+    }
+    else if (FilteredSpells.Count == 0)
+    {
+        <div class="p-4 rounded text-center" style="background-color: var(--rf-bg-surface); border: 1px solid var(--rf-border-light);" data-test="spell-empty">
+            <p class="mb-0" style="color: var(--rf-text-muted);">@UiText.NoSpellsFound(Lang)</p>
+        </div>
+    }
+    else
+    {
+        @* One section per level, cantrips first *@
+        @foreach (var group in FilteredSpells.GroupBy(s => s.Level).OrderBy(g => g.Key))
+        {
+            <h2 class="h5 mt-4 mb-3 rf-spell-level-title" data-test="spell-level-group">
+                @GameTerms.SpellLevel(group.Key, Lang) <span class="small" style="color: var(--rf-text-muted);">(@group.Count())</span>
+            </h2>
+            <div class="row row-cols-1 row-cols-md-2 row-cols-xl-3 g-3">
+                @foreach (var spell in group)
+                {
+                    <div class="col">
+                        <div class="rf-card rf-spell-card h-100 d-flex flex-column" style="cursor: pointer;" data-test="spell-card"
+                             @onclick="() => OpenDetailAsync(spell.Id)">
+                            <div class="d-flex justify-content-between align-items-start mb-1 gap-2">
+                                <span class="rf-card-title mb-0">@spell.Name</span>
+                                <div class="d-flex gap-1 flex-shrink-0 align-items-center">
+                                    <span class="badge @(spell.Ruleset == RulesetVersion.Dnd5e_2024 ? "badge-edition-2024" : "badge-edition-2014")">
+                                        @UiText.FormatRuleset(spell.Ruleset, Lang)
+                                    </span>
+                                    <ContentBadge IsBase="spell.IsOfficialSRD" Source="spell.Source" Visibility="spell.Visibility" />
+                                </div>
+                            </div>
+                            <div class="small fst-italic mb-2" style="color: var(--rf-text-secondary);">
+                                @GameTerms.SpellSubtitle(spell.Level, spell.School, spell.Ritual, Lang)
+                            </div>
+                            <div class="rf-meta-row">
+                                <div><strong>@UiText.LabelCastingTime(Lang)</strong> <span style="color: #ffffff;">@spell.CastingTime</span></div>
+                                <div><strong>@UiText.LabelRange(Lang)</strong> <span style="color: #ffffff;">@spell.Range</span></div>
+                            </div>
+                            <p class="small lh-base mb-3 flex-grow-1" style="color: var(--rf-text-secondary);">@spell.ShortDescription</p>
+                            <div class="d-flex flex-wrap gap-1 pt-2" style="border-top: 1px solid var(--rf-border-subtle);">
+                                @if (spell.Concentration)
+                                {
+                                    <span class="rf-spell-flag" title="@UiText.LabelConcentration(Lang)">@UiText.LabelConcentration(Lang)</span>
+                                }
+                                @if (spell.Ritual)
+                                {
+                                    <span class="rf-spell-flag" title="@UiText.LabelRitual(Lang)">@UiText.LabelRitual(Lang)</span>
+                                }
+                                <span class="small ms-auto" style="color: var(--rf-text-muted);">@ClassList(spell.Classes)</span>
+                            </div>
+                        </div>
+                    </div>
+                }
+            </div>
+        }
+    }
+</div>
+
+@if (SelectedSpell is { } spellDetail)
+{
+    <div class="rf-modal-backdrop" @onclick="CloseDetail">
+        <div class="rf-modal-dialog" style="max-width: 760px;" @onclick:stopPropagation="true" data-test="spell-detail">
+            <div class="d-flex justify-content-between align-items-start mb-3 pb-2" style="border-bottom: 2px solid var(--rf-orange-primary);">
+                <div>
+                    <h2 class="h3 mb-1" style="color: var(--rf-orange-primary); font-family: var(--rf-font-display);">@spellDetail.Name</h2>
+                    <div class="fst-italic small mb-2" style="color: var(--rf-text-secondary);" data-test="spell-subtitle">
+                        @GameTerms.SpellSubtitle(spellDetail.Level, spellDetail.School, spellDetail.Ritual, Lang)
+                    </div>
+                    <div class="d-flex flex-wrap gap-2">
+                        <span class="badge @(spellDetail.Ruleset == RulesetVersion.Dnd5e_2024 ? "badge-edition-2024" : "badge-edition-2014")">
+                            @UiText.FormatRuleset(spellDetail.Ruleset, Lang)
+                        </span>
+                        <ContentBadge IsBase="spellDetail.IsOfficialSRD" Source="spellDetail.Source" Visibility="spellDetail.Visibility" ShowSource="true" />
+                    </div>
+                </div>
+                <button class="btn btn-sm btn-rf-outline" @onclick="CloseDetail">✕</button>
+            </div>
+
+            @if (!spellDetail.IsOfficialSRD)
+            {
+                <ShareLink Visibility="spellDetail.Visibility" CanEdit="spellDetail.CanEdit" Path="@($"spells?id={spellDetail.Id}")" />
+            }
+
+            @* Stat block *@
+            <dl class="rf-spell-stats mb-3" data-test="spell-stats">
+                <div><dt>@UiText.LabelCastingTime(Lang)</dt><dd>@spellDetail.CastingTime</dd></div>
+                <div><dt>@UiText.LabelRange(Lang)</dt><dd>@spellDetail.Range</dd></div>
+                <div><dt>@UiText.LabelComponents(Lang)</dt><dd data-test="spell-components">@Components(spellDetail)</dd></div>
+                <div><dt>@UiText.LabelDuration(Lang)</dt><dd>@spellDetail.Duration</dd></div>
+            </dl>
+
+            <div class="mb-3 p-3 rounded" style="background-color: var(--rf-bg-main); border-left: 3px solid var(--rf-border-light);">
+                <div class="rf-markdown-container" data-test="spell-description">
+                    @((MarkupString)MarkdownText.ToHtml(spellDetail.Description))
+                </div>
+            </div>
+
+            @if (!string.IsNullOrWhiteSpace(spellDetail.HigherLevels))
+            {
+                <div class="mb-3 p-3 rounded" style="background-color: var(--rf-bg-main); border-left: 3px solid var(--rf-orange-primary);" data-test="spell-higher-levels">
+                    <strong class="small d-block mb-1 text-uppercase" style="color: var(--rf-orange-primary); letter-spacing: 0.5px;">@UiText.LabelHigherLevels(Lang)</strong>
+                    <div class="rf-markdown-container">@((MarkupString)MarkdownText.ToHtml(spellDetail.HigherLevels))</div>
+                </div>
+            }
+
+            @if (spellDetail.Classes.Count > 0)
+            {
+                <div class="small mb-2" data-test="spell-classes">
+                    <strong class="text-uppercase" style="color: var(--rf-text-muted); letter-spacing: 0.5px;">@UiText.LabelSpellLists(Lang):</strong>
+                    <span style="color: #ffffff;">@ClassList(spellDetail.Classes)</span>
+                </div>
+            }
+
+            <div class="d-flex justify-content-between align-items-center pt-3 mt-3" style="border-top: 1px solid var(--rf-border-light);">
+                @if (spellDetail.CanEdit)
+                {
+                    <div class="d-flex gap-3">
+                        <button class="btn btn-sm btn-rf-outline text-uppercase" style="letter-spacing: 1px;"
+                                @onclick="async () => { var id = spellDetail.Id; CloseDetail(); await OpenEditModalAsync(id); }">
+                            @UiText.Edit(Lang)
+                        </button>
+                        <button class="btn btn-sm btn-rf-outline text-uppercase px-3" style="border-color: #dc3545; color: #dc3545;"
+                                @onclick="() => { var id = spellDetail.Id; var name = spellDetail.Name; CloseDetail(); OpenDeleteModal(id, name); }">
+                            @UiText.Delete(Lang)
+                        </button>
+                    </div>
+                }
+                else
+                {
+                    <div></div>
+                }
+                <button class="btn btn-rf-outline text-uppercase" style="letter-spacing: 1px;" @onclick="CloseDetail">@UiText.BtnClose(Lang)</button>
+            </div>
+        </div>
+    </div>
+}
+
+@if (isModalOpen)
+{
+    <div class="rf-modal-backdrop" @onclick="CloseCreateModal">
+        <div class="rf-modal-dialog" style="max-width: 760px;" @onclick:stopPropagation="true" data-test="spell-form">
+            <h2 class="h4 mb-3 pb-2" style="border-bottom: 1px solid var(--rf-border-light); font-family: var(--rf-font-display);">
+                @(isEditMode ? UiText.Edit(Lang) : UiText.ModalTitleAddSpell(Lang))
+            </h2>
+
+            @if (isModalLoading)
+            {
+                <div class="text-center py-4"><div class="spinner-border text-warning" role="status"></div></div>
+            }
+            else
+            {
+                @if (!string.IsNullOrEmpty(formValidationMessage))
+                {
+                    <div class="alert alert-warning bg-dark border-warning text-warning p-2 small mb-3" data-test="spell-form-error">@formValidationMessage</div>
+                }
+
+                <div class="row g-3 mb-3">
+                    <div class="col-md-4" data-test="spell-form-level">
+                        <label class="rf-form-label">@UiText.LabelSpellLevel(Lang)</label>
+                        <RfSelect TValue="int" @bind-Value="form.Level"
+                                  Options="@(Enumerable.Range(0, 10).Select(l => new RfSelect<int>.OptionItem(l, GameTerms.SpellLevel(l, Lang))).ToList())" />
+                    </div>
+                    <div class="col-md-4" data-test="spell-form-school">
+                        <label class="rf-form-label">@UiText.LabelSpellSchool(Lang)</label>
+                        <RfSelect TValue="SpellSchool" @bind-Value="form.School"
+                                  Options="@(Enum.GetValues<SpellSchool>().Select(s => new RfSelect<SpellSchool>.OptionItem(s, GameTerms.SchoolName(s, Lang))).OrderBy(o => o.Label).ToList())" />
+                    </div>
+                    <div class="col-md-4" data-test="spell-form-ruleset">
+                        <label class="rf-form-label">@UiText.LabelRuleset(Lang)</label>
+                        <RfSelect TValue="RulesetVersion" @bind-Value="form.Ruleset"
+                                  Options="@(Enum.GetValues<RulesetVersion>().Select(r => new RfSelect<RulesetVersion>.OptionItem(r, UiText.FormatRuleset(r, Lang))).ToList())" />
+                    </div>
+                </div>
+
+                <VisibilityPicker @bind-Value="form.Visibility" />
+
+                <div class="p-3 mb-3 rounded" style="background-color: var(--rf-bg-card); border-left: 3px solid var(--rf-border-light);">
+                    <label class="rf-form-label">@UiText.LabelSpellLists(Lang)</label>
+                    <div class="rf-pill-group mb-3" data-test="spell-form-classes">
+                        @foreach (var spellClass in Enum.GetValues<SpellcastingClass>())
+                        {
+                            var current = spellClass;
+                            <button type="button" class="rf-pill-btn @(form.Classes.Contains(current) ? "active" : "")" @onclick="() => Toggle(form.Classes, current)">
+                                @GameTerms.ClassName(current, Lang)
+                            </button>
+                        }
+                    </div>
+                    <label class="rf-form-label">@UiText.LabelComponents(Lang)</label>
+                    <div class="rf-pill-group" data-test="spell-form-flags">
+                        <button type="button" class="rf-pill-btn @(form.Verbal ? "active" : "")" @onclick="() => form.Verbal = !form.Verbal">V</button>
+                        <button type="button" class="rf-pill-btn @(form.Somatic ? "active" : "")" @onclick="() => form.Somatic = !form.Somatic">S</button>
+                        <button type="button" class="rf-pill-btn @(form.Material ? "active" : "")" @onclick="() => form.Material = !form.Material">M</button>
+                        <button type="button" class="rf-pill-btn @(form.Concentration ? "active" : "")" @onclick="() => form.Concentration = !form.Concentration">@UiText.LabelConcentration(Lang)</button>
+                        <button type="button" class="rf-pill-btn @(form.Ritual ? "active" : "")" @onclick="() => form.Ritual = !form.Ritual">@UiText.LabelRitual(Lang)</button>
+                    </div>
+                </div>
+
+                @foreach (var tr in new[] { itTexts, enTexts })
+                {
+                    var isIt = tr.Language == LanguageCode.It;
+                    <div class="p-3 mb-3 rounded" style="background-color: var(--rf-bg-card); border-left: 3px solid @(isIt ? "var(--rf-orange-primary)" : "#666");"
+                         data-test="@(isIt ? "spell-form-it" : "spell-form-en")">
+                        <div class="fw-bold mb-2 small" style="color: @(isIt ? "var(--rf-orange-primary)" : "var(--rf-text-secondary)");">
+                            @(isIt ? UiText.TabItalian(Lang) : UiText.TabEnglish(Lang))
+                        </div>
+                        <div class="mb-2">
+                            <label class="rf-form-label">@UiText.LabelName(Lang)</label>
+                            <input type="text" class="rf-form-control" @bind="tr.Name" data-test="spell-form-name"
+                                   placeholder="@(isIt ? UiText.PlaceholderSpellNameIt(Lang) : UiText.PlaceholderSpellNameEn(Lang))" />
+                        </div>
+                        <div class="row g-2 mb-2">
+                            <div class="col-md-4">
+                                <label class="rf-form-label rf-label-single-line">@UiText.LabelCastingTime(Lang)</label>
+                                <input type="text" class="rf-form-control" @bind="tr.CastingTime" placeholder="@UiText.PlaceholderCastingTime(Lang, tr.Language)" data-test="spell-form-casting" />
+                            </div>
+                            <div class="col-md-4">
+                                <label class="rf-form-label rf-label-single-line">@UiText.LabelRange(Lang)</label>
+                                <input type="text" class="rf-form-control" @bind="tr.Range" placeholder="@UiText.PlaceholderRange(Lang, tr.Language)" data-test="spell-form-range" />
+                            </div>
+                            <div class="col-md-4">
+                                <label class="rf-form-label rf-label-single-line">@UiText.LabelDuration(Lang)</label>
+                                <input type="text" class="rf-form-control" @bind="tr.Duration" placeholder="@UiText.PlaceholderDuration(Lang, tr.Language)" data-test="spell-form-duration" />
+                            </div>
+                        </div>
+                        @if (form.Material)
+                        {
+                            <div class="mb-2">
+                                <label class="rf-form-label">@UiText.LabelMaterialComponent(Lang)</label>
+                                <input type="text" class="rf-form-control" @bind="tr.MaterialComponent" />
+                            </div>
+                        }
+                        <div class="mb-2">
+                            <label class="rf-form-label">@UiText.LabelDescription(Lang)</label>
+                            <textarea class="rf-form-control" rows="4" @bind="tr.Description" data-test="spell-form-description"></textarea>
+                        </div>
+                        <div>
+                            <label class="rf-form-label">@UiText.LabelHigherLevels(Lang)</label>
+                            <textarea class="rf-form-control" rows="2" @bind="tr.HigherLevels"></textarea>
+                        </div>
+                    </div>
+                }
+
+                <div class="d-flex justify-content-end gap-2 pt-2" style="border-top: 1px solid var(--rf-border-light);">
+                    <button class="btn btn-rf-outline" @onclick="CloseCreateModal">@UiText.BtnCancel(Lang)</button>
+                    <button class="btn btn-rf-orange" @onclick="HandleSaveAsync" disabled="@isSaving" data-test="spell-form-save">
+                        @(isSaving ? "..." : UiText.BtnSaveSpell(Lang))
+                    </button>
+                </div>
+            }
+        </div>
+    </div>
+}
+
+@if (isDeleteModalOpen)
+{
+    <div class="rf-modal-backdrop" @onclick="() => isDeleteModalOpen = false">
+        <div class="rf-modal-dialog" @onclick:stopPropagation="true" style="max-width: 450px; text-align: center;">
+            <h2 class="h4 mb-3" style="color: var(--rf-orange-primary);">@UiText.ConfirmDeletion(Lang)</h2>
+            <div class="p-3 mb-4 rounded" style="background-color: var(--rf-bg-main); border: 1px solid var(--rf-border-subtle); color: var(--rf-text-secondary); line-height: 1.5;">
+                @UiText.DeleteSpellWarning(Lang, spellToDeleteName)
+            </div>
+            @if (!string.IsNullOrEmpty(deleteError))
+            {
+                <div class="alert alert-warning bg-dark border-warning text-warning p-2 small mb-3">@deleteError</div>
+            }
+            <div class="d-flex justify-content-center gap-3">
+                <button class="btn btn-rf-outline" @onclick="() => isDeleteModalOpen = false">@UiText.BtnCancel(Lang)</button>
+                <button class="btn btn-rf-orange" style="background-color: #dc3545; border-color: #dc3545;" @onclick="HandleDeleteAsync">@UiText.Delete(Lang)</button>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    [SupplyParameterFromQuery(Name = "id")]
+    public Guid? QuerySpellId { get; set; }
+
+    private LanguageCode Lang => LanguageState.CurrentLanguage;
+
+    private List<SpellResponseDto> AllSpells { get; set; } = new();
+    private SpellDetailResponseDto? SelectedSpell { get; set; }
+    private bool IsLoading { get; set; } = true;
+
+    //	Filters
+    private RulesetVersion? SelectedRuleset { get; set; }
+    private string SearchTerm { get; set; } = string.Empty;
+    private string OriginFilter { get; set; } = string.Empty;
+    private int? LevelFilter { get; set; }
+    private SpellSchool? SchoolFilter { get; set; }
+    private SpellcastingClass? ClassFilter { get; set; }
+    private bool RitualOnly { get; set; }
+    private bool ConcentrationOnly { get; set; }
+
+    private string SelectedRulesetFilter
+    {
+        get => SelectedRuleset.HasValue ? ((int)SelectedRuleset.Value).ToString() : "";
+        set => SelectedRuleset = int.TryParse(value, out var v) && Enum.IsDefined(typeof(RulesetVersion), v) ? (RulesetVersion)v : null;
+    }
+
+    private List<SpellResponseDto> FilteredSpells =>
+        AllSpells
+            .Where(s => OriginFilter switch { "srd" => s.IsOfficialSRD, "homebrew" => !s.IsOfficialSRD, _ => true })
+            .Where(s => LevelFilter is null || s.Level == LevelFilter)
+            .Where(s => SchoolFilter is null || s.School == SchoolFilter)
+            .Where(s => ClassFilter is null || s.Classes.Contains(ClassFilter.Value))
+            .Where(s => !RitualOnly || s.Ritual)
+            .Where(s => !ConcentrationOnly || s.Concentration)
+            .Where(s => string.IsNullOrWhiteSpace(SearchTerm)
+                        || s.Name.Contains(SearchTerm.Trim(), StringComparison.OrdinalIgnoreCase)
+                        || s.ShortDescription.Contains(SearchTerm.Trim(), StringComparison.OrdinalIgnoreCase))
+            .ToList();
+
+    private List<RfSelect<int?>.OptionItem> LevelOptions =>
+        new List<RfSelect<int?>.OptionItem> { new(null, UiText.FilterAllLevels(Lang)) }
+            .Concat(Enumerable.Range(0, 10).Select(l => new RfSelect<int?>.OptionItem(l, GameTerms.SpellLevel(l, Lang))))
+            .ToList();
+
+    private List<RfSelect<SpellSchool?>.OptionItem> SchoolOptions =>
+        new List<RfSelect<SpellSchool?>.OptionItem> { new(null, UiText.FilterAllSchools(Lang)) }
+            .Concat(Enum.GetValues<SpellSchool>().Select(s => new RfSelect<SpellSchool?>.OptionItem(s, GameTerms.SchoolName(s, Lang))).OrderBy(o => o.Label))
+            .ToList();
+
+    private List<RfSelect<SpellcastingClass?>.OptionItem> ClassOptions =>
+        new List<RfSelect<SpellcastingClass?>.OptionItem> { new(null, UiText.FilterAllClasses(Lang)) }
+            .Concat(Enum.GetValues<SpellcastingClass>().Select(c => new RfSelect<SpellcastingClass?>.OptionItem(c, GameTerms.ClassName(c, Lang))).OrderBy(o => o.Label))
+            .ToList();
+
+    private string ClassList(IEnumerable<SpellcastingClass> classes) =>
+        string.Join(", ", classes.Select(c => GameTerms.ClassName(c, Lang)).OrderBy(n => n));
+
+    //	"V, S, M (a tiny ball of bat guano and sulfur)"
+    private static string Components(SpellDetailResponseDto spell)
+    {
+        var parts = new List<string>();
+        if (spell.Verbal) parts.Add("V");
+        if (spell.Somatic) parts.Add("S");
+        if (spell.Material) parts.Add(string.IsNullOrWhiteSpace(spell.MaterialComponent) ? "M" : $"M ({spell.MaterialComponent})");
+        return parts.Count == 0 ? "—" : string.Join(", ", parts);
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        LanguageState.OnLanguageChanged += HandleLanguageChanged;
+        await LoadSpellsAsync();
+
+        if (QuerySpellId.HasValue)
+        {
+            await OpenDetailAsync(QuerySpellId.Value);
+
+            //	Shared link to a private or deleted entry
+            if (SelectedSpell == null)
+            {
+                ApiErrors.Report(ApiErrorKind.NotAvailable);
+            }
+        }
+    }
+
+    private async void HandleLanguageChanged()
+    {
+        if (SelectedSpell != null)
+        {
+            SelectedSpell = await SpellService.GetSpellDetailAsync(SelectedSpell.Id, Lang);
+        }
+
+        await LoadSpellsAsync();
+        StateHasChanged();
+    }
+
+    private async Task LoadSpellsAsync()
+    {
+        IsLoading = true;
+        AllSpells = await SpellService.GetSpellsAsync(Lang, SelectedRuleset);
+        IsLoading = false;
+    }
+
+    private async Task OpenDetailAsync(Guid id) => SelectedSpell = await SpellService.GetSpellDetailAsync(id, Lang);
+
+    private void CloseDetail() => SelectedSpell = null;
+
+    #region Homebrew form
+
+    private sealed class SpellForm
+    {
+        public int Level { get; set; } = 1;
+        public SpellSchool School { get; set; } = SpellSchool.Evocation;
+        public RulesetVersion Ruleset { get; set; } = RulesetVersion.Dnd5e_2014;
+        public ContentVisibility Visibility { get; set; } = ContentVisibility.Private;
+        public List<SpellcastingClass> Classes { get; set; } = new();
+        public bool Verbal { get; set; } = true;
+        public bool Somatic { get; set; } = true;
+        public bool Material { get; set; }
+        public bool Concentration { get; set; }
+        public bool Ritual { get; set; }
+    }
+
+    private bool isModalOpen;
+    private bool isModalLoading;
+    private bool isSaving;
+    private bool isEditMode;
+    private Guid editingId;
+    private string? formValidationMessage;
+    private SpellForm form = new();
+    private SpellTranslationDto itTexts = new() { Language = LanguageCode.It };
+    private SpellTranslationDto enTexts = new() { Language = LanguageCode.En };
+
+    private bool isDeleteModalOpen;
+    private Guid spellToDeleteId;
+    private string spellToDeleteName = string.Empty;
+    private string? deleteError;
+
+    private static void Toggle<T>(List<T> list, T value)
+    {
+        if (!list.Remove(value))
+        {
+            list.Add(value);
+        }
+    }
+
+    private void OpenCreateModal()
+    {
+        isEditMode = false;
+        formValidationMessage = null;
+        form = new SpellForm();
+        itTexts = new SpellTranslationDto { Language = LanguageCode.It };
+        enTexts = new SpellTranslationDto { Language = LanguageCode.En };
+        isModalOpen = true;
+    }
+
+    private async Task OpenEditModalAsync(Guid id)
+    {
+        isEditMode = true;
+        editingId = id;
+        formValidationMessage = null;
+        isModalOpen = true;
+        isModalLoading = true;
+
+        var itTask = SpellService.GetSpellDetailAsync(id, LanguageCode.It);
+        var enTask = SpellService.GetSpellDetailAsync(id, LanguageCode.En);
+        await Task.WhenAll(itTask, enTask);
+
+        if (itTask.Result is { } it && enTask.Result is { } en)
+        {
+            form = new SpellForm
+            {
+                Level = it.Level, School = it.School, Ruleset = it.Ruleset, Visibility = it.Visibility, Classes = it.Classes.ToList(),
+                Verbal = it.Verbal, Somatic = it.Somatic, Material = it.Material, Concentration = it.Concentration, Ritual = it.Ritual
+            };
+            itTexts = ToTexts(it, LanguageCode.It);
+            enTexts = ToTexts(en, LanguageCode.En);
+        }
+        else
+        {
+            formValidationMessage = UiText.ErrApiSave(Lang);
+        }
+
+        isModalLoading = false;
+    }
+
+    private static SpellTranslationDto ToTexts(SpellDetailResponseDto d, LanguageCode lang) => new()
+    {
+        Language = lang, Name = d.Name, Description = d.Description, HigherLevels = d.HigherLevels,
+        CastingTime = d.CastingTime, Range = d.Range, Duration = d.Duration, MaterialComponent = d.MaterialComponent
+    };
+
+    private void CloseCreateModal() => isModalOpen = false;
+
+    private async Task HandleSaveAsync()
+    {
+        if (string.IsNullOrWhiteSpace(itTexts.Name) || string.IsNullOrWhiteSpace(enTexts.Name))
+        {
+            formValidationMessage = UiText.ErrFillNames(Lang);
+            return;
+        }
+
+        if (new[] { itTexts, enTexts }.Any(t => string.IsNullOrWhiteSpace(t.CastingTime) || string.IsNullOrWhiteSpace(t.Range) || string.IsNullOrWhiteSpace(t.Duration)))
+        {
+            formValidationMessage = UiText.ErrSpellStats(Lang);
+            return;
+        }
+
+        isSaving = true;
+        formValidationMessage = null;
+
+        var dto = new SaveSpellDto
+        {
+            Id = editingId,
+            Ruleset = form.Ruleset,
+            Level = form.Level,
+            School = form.School,
+            Classes = form.Classes.ToList(),
+            Ritual = form.Ritual,
+            Concentration = form.Concentration,
+            Verbal = form.Verbal,
+            Somatic = form.Somatic,
+            Material = form.Material,
+            Visibility = form.Visibility,
+            Translations = new[] { itTexts, enTexts }.Select(t => new SpellTranslationDto
+            {
+                Language = t.Language,
+                Name = t.Name.Trim(),
+                Description = t.Description?.Trim() ?? string.Empty,
+                HigherLevels = t.HigherLevels,
+                CastingTime = t.CastingTime.Trim(),
+                Range = t.Range.Trim(),
+                Duration = t.Duration.Trim(),
+                MaterialComponent = form.Material ? t.MaterialComponent : null
+            }).ToList()
+        };
+
+        var success = isEditMode ? await SpellService.UpdateSpellAsync(editingId, dto) : await SpellService.CreateSpellAsync(dto);
+        isSaving = false;
+
+        if (success)
+        {
+            isModalOpen = false;
+            await LoadSpellsAsync();
+        }
+        else
+        {
+            formValidationMessage = UiText.ErrApiSave(Lang);
+        }
+    }
+
+    private void OpenDeleteModal(Guid id, string name)
+    {
+        spellToDeleteId = id;
+        spellToDeleteName = name;
+        deleteError = null;
+        isDeleteModalOpen = true;
+    }
+
+    private async Task HandleDeleteAsync()
+    {
+        if (await SpellService.DeleteSpellAsync(spellToDeleteId))
+        {
+            isDeleteModalOpen = false;
+            SelectedSpell = null;
+            await LoadSpellsAsync();
+        }
+        else
+        {
+            deleteError = UiText.ErrDeleteSpell(Lang);
+        }
+    }
+
+    #endregion
+
+    public void Dispose() => LanguageState.OnLanguageChanged -= HandleLanguageChanged;
+}

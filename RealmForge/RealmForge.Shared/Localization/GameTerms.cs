@@ -56,5 +56,70 @@ namespace RealmForge.Shared.Localization
 			(Skill.Survival, false) => "Survival",
 			_ => skill.ToString()
 		};
+
+		public static string SchoolName(SpellSchool school, LanguageCode lang) => (school, lang == LanguageCode.It) switch
+		{
+			//	Italian manuals: "Evocazione" is conjuration, "Invocazione" is evocation
+			(SpellSchool.Abjuration, true) => "Abiurazione",
+			(SpellSchool.Conjuration, true) => "Evocazione",
+			(SpellSchool.Divination, true) => "Divinazione",
+			(SpellSchool.Enchantment, true) => "Ammaliamento",
+			(SpellSchool.Evocation, true) => "Invocazione",
+			(SpellSchool.Illusion, true) => "Illusione",
+			(SpellSchool.Necromancy, true) => "Necromanzia",
+			(SpellSchool.Transmutation, true) => "Trasmutazione",
+			_ => school.ToString()
+		};
+
+		public static string ClassName(SpellcastingClass spellClass, LanguageCode lang) => (spellClass, lang == LanguageCode.It) switch
+		{
+			(SpellcastingClass.Bard, true) => "Bardo",
+			(SpellcastingClass.Cleric, true) => "Chierico",
+			(SpellcastingClass.Druid, true) => "Druido",
+			(SpellcastingClass.Paladin, true) => "Paladino",
+			(SpellcastingClass.Ranger, true) => "Ranger",
+			(SpellcastingClass.Sorcerer, true) => "Stregone",
+			(SpellcastingClass.Warlock, true) => "Warlock",
+			(SpellcastingClass.Wizard, true) => "Mago",
+			_ => spellClass.ToString()
+		};
+
+		///	<summary>
+		///	Short level label for filters and badges: "Trucchetto" / "Cantrip", "1° livello" / "1st level".
+		///	</summary>
+		public static string SpellLevel(int level, LanguageCode lang)
+		{
+			if (level == 0)
+			{
+				return lang == LanguageCode.It ? "Trucchetto" : "Cantrip";
+			}
+
+			if (lang == LanguageCode.It)
+			{
+				return $"{level}° livello";
+			}
+
+			var suffix = level switch { 1 => "st", 2 => "nd", 3 => "rd", _ => "th" };
+			return $"{level}{suffix} level";
+		}
+
+		///	<summary>
+		///	Stat block subtitle as in the manuals: "Invocazione di 3° livello (rituale)", "3rd-level evocation (ritual)",
+		///	"Trucchetto di invocazione", "Evocation cantrip".
+		///	</summary>
+		public static string SpellSubtitle(int level, SpellSchool school, bool ritual, LanguageCode lang)
+		{
+			var schoolName = SchoolName(school, lang);
+			string text;
+
+			if (lang == LanguageCode.It)
+			{
+				text = level == 0 ? $"Trucchetto di {schoolName.ToLowerInvariant()}" : $"{schoolName} di {level}° livello";
+				return ritual ? $"{text} (rituale)" : text;
+			}
+
+			text = level == 0 ? $"{schoolName} cantrip" : $"{SpellLevel(level, lang).Replace(" level", "-level")} {schoolName.ToLowerInvariant()}";
+			return ritual ? $"{text} (ritual)" : text;
+		}
 	}
 }
