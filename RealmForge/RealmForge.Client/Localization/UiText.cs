@@ -124,6 +124,12 @@ namespace RealmForge.Client.Localization
 		public static string PasswordHint(LanguageCode lang) => lang == LanguageCode.It
 			? "Almeno 6 caratteri, con una maiuscola, una minuscola, un numero e un simbolo."
 			: "At least 6 characters, with an uppercase, a lowercase letter, a digit and a symbol.";
+		public static string ShowPassword(LanguageCode lang) => lang == LanguageCode.It ? "Mostra password" : "Show password";
+		public static string HidePassword(LanguageCode lang) => lang == LanguageCode.It ? "Nascondi password" : "Hide password";
+		public static string PasswordRepeatDiffers(LanguageCode lang) => lang == LanguageCode.It
+			? "Attenzione: la password ripetuta è diversa dalla nuova."
+			: "Careful: the repeated password differs from the new one.";
+		public static string PasswordsMatch(LanguageCode lang) => lang == LanguageCode.It ? "Le password coincidono." : "The passwords match.";
 		public static string BtnLogin(LanguageCode lang) => lang == LanguageCode.It ? "Accedi" : "Sign in";
 		public static string BtnRegister(LanguageCode lang) => lang == LanguageCode.It ? "Registrati" : "Register";
 		public static string BtnVerifyToForge(LanguageCode lang) => lang == LanguageCode.It ? "Verifica l'email per forgiare" : "Verify your e-mail to forge";
@@ -434,6 +440,58 @@ namespace RealmForge.Client.Localization
 			(FeatCategory.EpicBoon, _) => "Epic Boon",
 			_ => cat.ToString()
 		};
+		#endregion
+
+		#region Spells Compendium
+		public static string SpellsTitle(LanguageCode lang) => lang == LanguageCode.It ? "Incantesimi" : "Spells";
+
+		public static string SpellsSubtitle(LanguageCode lang) =>
+			lang == LanguageCode.It
+				? "Trucchetti e incantesimi dal 1° al 9° livello, con liste per classe."
+				: "Cantrips and spells of 1st to 9th level, with class spell lists.";
+
+		public static string LoadingSpells(LanguageCode lang) =>
+			lang == LanguageCode.It ? "Consultazione dei grimori..." : "Consulting the spellbooks...";
+
+		public static string NoSpellsFound(LanguageCode lang) =>
+			lang == LanguageCode.It ? "Nessun incantesimo corrisponde ai filtri." : "No spells match the filters.";
+
+		public static string LabelSearchSpell(LanguageCode lang) => lang == LanguageCode.It ? "Cerca incantesimo" : "Search spell";
+		public static string PlaceholderSearchSpells(LanguageCode lang) => lang == LanguageCode.It ? "Es. Palla di Fuoco, guarigione..." : "e.g. Fireball, healing...";
+		public static string LabelSpellLevel(LanguageCode lang) => lang == LanguageCode.It ? "Livello" : "Level";
+		public static string LabelSpellSchool(LanguageCode lang) => lang == LanguageCode.It ? "Scuola" : "School";
+		public static string LabelSpellClass(LanguageCode lang) => lang == LanguageCode.It ? "Classe" : "Class";
+		public static string FilterAllLevels(LanguageCode lang) => lang == LanguageCode.It ? "Tutti i livelli" : "All levels";
+		public static string FilterAllSchools(LanguageCode lang) => lang == LanguageCode.It ? "Tutte le scuole" : "All schools";
+		public static string FilterAllClasses(LanguageCode lang) => lang == LanguageCode.It ? "Tutte le classi" : "All classes";
+		public static string LabelRitual(LanguageCode lang) => lang == LanguageCode.It ? "Rituale" : "Ritual";
+		public static string LabelConcentration(LanguageCode lang) => lang == LanguageCode.It ? "Concentrazione" : "Concentration";
+		public static string LabelCastingTime(LanguageCode lang) => lang == LanguageCode.It ? "Tempo di lancio" : "Casting time";
+		public static string LabelRange(LanguageCode lang) => lang == LanguageCode.It ? "Gittata" : "Range";
+		public static string LabelComponents(LanguageCode lang) => lang == LanguageCode.It ? "Componenti" : "Components";
+		public static string LabelDuration(LanguageCode lang) => lang == LanguageCode.It ? "Durata" : "Duration";
+		public static string LabelMaterialComponent(LanguageCode lang) => lang == LanguageCode.It ? "Componente materiale" : "Material component";
+		public static string LabelHigherLevels(LanguageCode lang) => lang == LanguageCode.It ? "Ai livelli superiori" : "At higher levels";
+		public static string LabelSpellLists(LanguageCode lang) => lang == LanguageCode.It ? "Liste degli incantesimi" : "Spell lists";
+		public static string SpellCount(int count, LanguageCode lang) => lang == LanguageCode.It
+			? (count == 1 ? "1 incantesimo" : $"{count} incantesimi")
+			: (count == 1 ? "1 spell" : $"{count} spells");
+		public static string BtnAddSpell(LanguageCode lang) => lang == LanguageCode.It ? "+ NUOVO INCANTESIMO" : "+ ADD SPELL";
+		public static string BtnSaveSpell(LanguageCode lang) => lang == LanguageCode.It ? "SALVA INCANTESIMO" : "SAVE SPELL";
+		public static string ModalTitleAddSpell(LanguageCode lang) => lang == LanguageCode.It ? "AGGIUNGI NUOVO INCANTESIMO" : "ADD NEW SPELL";
+		public static string PlaceholderSpellNameIt(LanguageCode lang) => lang == LanguageCode.It ? "Es. Dardo di Brina" : "e.g. Dardo di Brina";
+		public static string PlaceholderSpellNameEn(LanguageCode lang) => lang == LanguageCode.It ? "Es. Frost Dart" : "e.g. Frost Dart";
+		public static string PlaceholderCastingTime(LanguageCode lang, LanguageCode field) => field == LanguageCode.It ? "1 azione" : "1 action";
+		public static string PlaceholderRange(LanguageCode lang, LanguageCode field) => field == LanguageCode.It ? "18 metri" : "60 feet";
+		public static string PlaceholderDuration(LanguageCode lang, LanguageCode field) => field == LanguageCode.It ? "Concentrazione, fino a 1 minuto" : "Concentration, up to 1 minute";
+		public static string ErrSpellStats(LanguageCode lang) => lang == LanguageCode.It
+			? "Compila tempo di lancio, gittata e durata in entrambe le lingue."
+			: "Fill in casting time, range and duration in both languages.";
+		public static string DeleteSpellWarning(LanguageCode lang, string spellName) =>
+			lang == LanguageCode.It
+				? $"Vuoi eliminare definitivamente l'incantesimo \"{spellName}\"? L'operazione non può essere annullata."
+				: $"Do you want to permanently delete the spell \"{spellName}\"? This cannot be undone.";
+		public static string ErrDeleteSpell(LanguageCode lang) => lang == LanguageCode.It ? "Errore durante l'eliminazione dell'incantesimo." : "Failed to delete spell.";
 		#endregion
 
 		#region Species Compendium

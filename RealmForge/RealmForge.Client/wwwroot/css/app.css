@@ -681,7 +681,7 @@ select.rf-form-control {
 
 .rf-account-stats {
     display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-template-columns: repeat(5, minmax(0, 1fr));
     gap: 0.75rem;
 }
 
@@ -773,13 +773,101 @@ select.rf-form-control {
     color: var(--rf-text-secondary);
 }
 
-/* Browser "show password" eye (Edge / Chromium on Windows): light on the dark fields */
-input[type="password"]::-ms-reveal {
-    filter: invert(1) brightness(1.4);
-    opacity: 0.85;
+/* Password field with the show / hide button (PasswordInput). The browser's own eye (Edge) is hidden:
+   it appears only while typing and vanishes after leaving the field or after autofill */
+input::-ms-reveal,
+input::-ms-clear {
+    display: none;
 }
 
-input[type="password"]::-ms-reveal:hover {
-    opacity: 1;
+.rf-password {
+    position: relative;
 }
 
+    .rf-password .rf-form-control {
+        padding-right: 2.75rem;
+    }
+
+.rf-password-toggle {
+    position: absolute;
+    top: 0;
+    right: 0;
+    height: 100%;
+    width: 2.6rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    background: none;
+    border: 0;
+    border-radius: 0 4px 4px 0;
+    color: var(--rf-text-muted);
+    cursor: pointer;
+    transition: color 0.2s ease;
+}
+
+    .rf-password-toggle:hover,
+    .rf-password-toggle[aria-pressed="true"] {
+        color: var(--rf-orange-primary);
+    }
+
+    .rf-password-toggle:focus-visible {
+        outline: 2px solid var(--rf-orange-primary);
+        outline-offset: -2px;
+    }
+
+.rf-password-invalid .rf-form-control,
+.rf-password-invalid .rf-form-control:focus {
+    border-color: #ffc107;
+    box-shadow: 0 0 8px rgba(255, 193, 7, 0.25);
+}
+
+.rf-password-match:empty {
+    display: none;
+}
+
+
+/* --- SPELLS --- */
+.rf-spell-level-title {
+    font-size: 1rem;
+    border-bottom: 1px solid var(--rf-border-light);
+    padding-bottom: 0.4rem;
+}
+
+.rf-spell-flag {
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    padding: 0.1rem 0.45rem;
+    border-radius: 3px;
+    border: 1px solid var(--rf-orange-primary);
+    color: var(--rf-orange-primary);
+}
+
+/* Stat block of the detail: label above value, two columns on wide screens */
+.rf-spell-stats {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.6rem 1.5rem;
+    margin: 0;
+}
+
+    .rf-spell-stats dt {
+        font-size: 0.72rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        color: var(--rf-text-muted);
+        font-weight: 600;
+    }
+
+    .rf-spell-stats dd {
+        margin: 0;
+        color: var(--rf-text-primary);
+        font-size: 0.9rem;
+    }
+
+@media (max-width: 576px) {
+    .rf-spell-stats {
+        grid-template-columns: 1fr;
+    }
+}
