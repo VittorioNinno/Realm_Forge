@@ -40,7 +40,7 @@ A modular, bilingual web platform for managing tabletop RPG campaigns, sessions 
 | Feats · *Talenti* | ✅ | 117 base feats (42 × 2014, 75 × 2024), structured bilingual prerequisites, "Forge Feat" editor · *prerequisiti strutturati bilingue, editor "Forgia Talento"* |
 | Accounts & ownership · *Account e proprietà* | ✅ | ASP.NET Core Identity, bearer tokens, e-mail confirmation, password recovery, per-author Homebrew with private / link / public visibility · *conferma email, recupero password, Homebrew per autore con visibilità privata / link / pubblica* |
 | Backgrounds · *Background* | ✅ | 13 base 2014 backgrounds with feature and characteristic tables; 16 base 2024 backgrounds with ability scores, Origin feat and equipment options A/B (Acolyte, Criminal, Sage and Soldier from SRD 5.2) · *13 background base 2014 con privilegio e tabelle delle caratteristiche; 16 background base 2024 con caratteristiche, Talento di Origine e opzioni di equipaggiamento A/B (Accolito, Criminale, Sapiente e Soldato dall'SRD 5.2)* |
-| Spells · *Incantesimi* | 🟡 | 361 base 2014 spells (319 from SRD 5.1, 42 with RealmForge text), class lists, filters by level, school, class, ritual and concentration, Homebrew editor; 2024 spells to come · *361 incantesimi base 2014 (319 dall'SRD 5.1, 42 con testo RealmForge), liste per classe, filtri per livello, scuola, classe, rituale e concentrazione, editor Homebrew; incantesimi 2024 in arrivo* |
+| Spells · *Incantesimi* | ✅ | 361 base 2014 spells (319 from SRD 5.1, 42 with RealmForge text) and 391 base 2024 spells (339 from SRD 5.2, 52 with RealmForge text, summoning stat blocks included), class lists, filters by edition, level, school, class, ritual and concentration, Homebrew editor · *361 incantesimi base 2014 (319 dall'SRD 5.1, 42 con testo RealmForge) e 391 incantesimi base 2024 (339 dall'SRD 5.2, 52 con testo RealmForge, schede delle evocazioni incluse), liste per classe, filtri per edizione, livello, scuola, classe, rituale e concentrazione, editor Homebrew* |
 | Classes · *Classi* | 📋 | Planned · *Pianificato* |
 | Character sheet · *Scheda personaggio* | 📋 | Planned · *Pianificato* |
 
@@ -253,7 +253,7 @@ dotnet test RealmForge/RealmForge.slnx
 - [x] Remember the selected language across reloads · *Ricordare la lingua scelta tra un ricaricamento e l'altro*
 - [x] E-mail confirmation, Homebrew visibility and password recovery · *Conferma email, visibilità degli Homebrew e recupero password*
 - [x] Spells 2014 · *Incantesimi 2014*
-- [ ] Spells 2024 · *Incantesimi 2024*
+- [x] Spells 2024 · *Incantesimi 2024*
 - [ ] Classes · *Classi*
 - [ ] Character sheet · *Scheda personaggio*
 - [ ] Campaigns and sessions · *Campagne e sessioni*

@@ -871,3 +871,81 @@ input::-ms-clear {
         grid-template-columns: 1fr;
     }
 }
+
+/* ---------------------------------------------------------------
+   Blazor boot UI (index.html): loading ring and error bar.
+   Without these rules the ring is drawn as a black disc and the
+   error bar is always visible, even when nothing went wrong.
+   --------------------------------------------------------------- */
+.loading-progress {
+    position: absolute;
+    display: block;
+    width: 8rem;
+    height: 8rem;
+    inset: 20vh 0 auto 0;
+    margin: 0 auto;
+}
+
+    .loading-progress circle {
+        fill: none;
+        stroke: var(--rf-border-light);
+        stroke-width: 0.6rem;
+        transform-origin: 50% 50%;
+        transform: rotate(-90deg);
+    }
+
+        .loading-progress circle:last-child {
+            stroke: var(--rf-orange-primary);
+            stroke-dasharray: calc(3.141 * var(--blazor-load-percentage, 0%) * 0.8), 500%;
+            transition: stroke-dasharray 0.05s ease-in-out;
+        }
+
+.loading-progress-text {
+    position: absolute;
+    text-align: center;
+    font-family: var(--rf-font-body);
+    font-weight: 600;
+    color: var(--rf-text-secondary);
+    inset: calc(20vh + 3.25rem) 0 auto 0.2rem;
+}
+
+    .loading-progress-text:after {
+        content: var(--blazor-load-percentage-text, "");
+    }
+
+/* Shown by Blazor only when an unhandled exception occurs */
+#blazor-error-ui {
+    display: none;
+    position: fixed;
+    left: 0;
+    bottom: 0;
+    width: 100%;
+    z-index: 1000;
+    box-sizing: border-box;
+    padding: 0.6rem 2.75rem 0.7rem 1.25rem;
+    background: var(--rf-bg-card);
+    color: var(--rf-text-primary);
+    border-top: 2px solid var(--rf-orange-primary);
+    box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.5);
+}
+
+    #blazor-error-ui .dismiss {
+        cursor: pointer;
+        position: absolute;
+        right: 0.9rem;
+        top: 0.55rem;
+        color: var(--rf-text-secondary);
+    }
+
+/* Fallback content of an <ErrorBoundary> */
+.blazor-error-boundary {
+    padding: 1rem 1.25rem;
+    border: 1px solid #b32121;
+    border-radius: 0.5rem;
+    background: rgba(179, 33, 33, 0.15);
+    color: var(--rf-text-primary);
+}
+
+    .blazor-error-boundary::after {
+        content: "Si è verificato un errore. / An error has occurred.";
+    }
