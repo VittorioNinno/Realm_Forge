@@ -26,6 +26,22 @@ try {
   await page.getByText('Allerta').first().waitFor({ timeout: 30000 });
   ok('feats list loaded from the API');
 
+  // Blazor boot UI: the error bar stays hidden when nothing failed, the loading ring is a styled ring (not a black disc)
+  const bootUi = await page.evaluate(() => {
+    const bar = getComputedStyle(document.getElementById('blazor-error-ui')).display;
+    const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    svg.setAttribute('class', 'loading-progress');
+    const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+    svg.appendChild(circle);
+    document.body.appendChild(svg);
+    const fill = getComputedStyle(circle).fill;
+    svg.remove();
+    return { bar, fill };
+  });
+  if (bootUi.bar !== 'none') throw new Error(`blazor-error-ui visible without an error (display: ${bootUi.bar})`);
+  if (bootUi.fill !== 'none') throw new Error(`loading ring filled (fill: ${bootUi.fill})`);
+  ok('boot UI: error bar hidden, loading ring unfilled');
+
   // Card previews are plain text: no Markdown marks, list dashes or table pipes
   const cardTexts = await page.locator('.rf-card').allInnerTexts();
   const marked = cardTexts.filter((t) => /\*\*|(^|\n)- |\|/.test(t));
