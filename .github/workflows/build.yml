@@ -441,6 +441,52 @@ jobs:
           test "$sub_other_class" = "403" && test "$sub_own_class" = "201" && test "$sub_listed" = "9" && test "$sub_anon_listed" = "8" && test "$sub_other_put" = "403"
           test "$cl_acc" = "[1,2]" && test "$cl_srd_delete" = "403" && test "$sub_delete" = "204" && test "$cl_delete" = "204"
 
+          # Equipment: 242 base items of 2014 (SRD 5.1) and 208 of 2024 (SRD 5.2), Longsword 2024 in Italian and English,
+          # Homebrew rules (validation of weapons and armor, ownership, account summary)
+          eq14=$(get "$api/api/equipment?isOfficial=true&ruleset=1&lang=2" | jq -c '{total: length, srd: map(select(.source == 2)) | length, weapons: map(select(.stats.category == 1)) | length}')
+          eq24_all=$(get "$api/api/equipment?isOfficial=true&ruleset=2&lang=2")
+          eq24=$(echo "$eq24_all" | jq -c '{total: length, srd: map(select(.source == 3)) | length, weapons: map(select(.stats.category == 1)) | length, mastery: map(select(.stats.mastery != null)) | length}')
+          longsword=$(echo "$eq24_all" | jq -r '.[] | select(.name == "Spada lunga") | .id')
+          ls_it=$(get "$api/api/equipment/$longsword?lang=2" | jq -c '{name, cost: .stats.costInCopper, weight: .stats.weightInPounds, dice: .stats.damageDice, type: .stats.damageType, versatile: .stats.versatileDamageDice, mastery: .stats.mastery}')
+          ls_en=$(get "$api/api/equipment/$longsword?lang=1" | jq -r .name)
+          eq_weapons=$(get "$api/api/equipment?ruleset=2&category=1&lang=1" | jq length)
+          eq=$(jq -nc '{ruleset:2, visibility:2, stats:{category:1, costInCopper:2500, weightInPounds:3, quantity:1, weaponCategory:2, weaponRange:1, damageDice:"1d8", damageType:12, weaponProperties:[2]},
+            translations:[{language:1,name:"Test Blade",description:"x"},{language:2,name:"Lama di prova",description:"x"}]}')
+          eq_anon=$(code -X POST $api/api/equipment $json -d "$eq")
+          eq_id=$(get -X POST $api/api/equipment $json -H "Authorization: Bearer $A" -d "$eq" | jq -r .id)
+          eq_bad_dice=$(code -X POST $api/api/equipment $json -H "Authorization: Bearer $A" -d "$(echo "$eq" | jq '.stats.damageDice = "x8"')")
+          eq_bad_thrown=$(code -X POST $api/api/equipment $json -H "Authorization: Bearer $A" -d "$(echo "$eq" | jq '.stats.weaponProperties = [9]')")
+          eq_bad_armor=$(code -X POST $api/api/equipment $json -H "Authorization: Bearer $A" -d "$(echo "$eq" | jq '.stats.category = 2 | .stats.armorClass = 40 | .stats.armorCategory = 1')")
+          eq_other=$(code -X PUT $api/api/equipment/$eq_id $json -H "Authorization: Bearer $B" -d "$(echo "$eq" | jq --arg id "$eq_id" '. + {id:$id}')")
+          eq_own=$(code -X PUT $api/api/equipment/$eq_id $json -H "Authorization: Bearer $A" -d "$(echo "$eq" | jq --arg id "$eq_id" '. + {id:$id} | .stats.weightInPounds = 2')")
+          eq_detail=$(get "$api/api/equipment/$eq_id?lang=2" -H "Authorization: Bearer $A" | jq -c '{name, weight: .stats.weightInPounds, canEdit}')
+          eq_anon_detail=$(code "$api/api/equipment/$eq_id?lang=1")
+          eq_acc=$(get $api/api/account/summary -H "Authorization: Bearer $A" | jq -c .homebrew.equipment)
+          eq_srd_delete=$(code -X DELETE $api/api/equipment/$longsword -H "Authorization: Bearer $A")
+          eq_delete=$(code -X DELETE $api/api/equipment/$eq_id -H "Authorization: Bearer $A")
+          echo "::notice title=database::equipment 2014: $eq14 | 2024: $eq24 | longsword IT=$ls_it EN='$ls_en' | 2024 weapons=$eq_weapons"
+          echo "::notice title=database::equipment homebrew: anonymous=$eq_anon | bad dice=$eq_bad_dice | thrown without range=$eq_bad_thrown | AC 40=$eq_bad_armor | other PUT=$eq_other | own PUT=$eq_own ($eq_detail) | private detail anon=$eq_anon_detail | account=$eq_acc | SRD DELETE=$eq_srd_delete | DELETE=$eq_delete"
+          # Each check names itself on failure (the notices above are capped per step)
+          eqfail=0
+          check() { if [ "$2" != "$3" ]; then echo "::error title=equipment::$1: got '$2', expected '$3'"; eqfail=1; fi; }
+          check "2014 counts" "$eq14" '{"total":242,"srd":242,"weapons":37}'
+          check "2024 counts" "$eq24" '{"total":208,"srd":208,"weapons":38,"mastery":38}'
+          check "longsword IT" "$ls_it" '{"name":"Spada lunga","cost":1500,"weight":3,"dice":"1d8","type":12,"versatile":"1d10","mastery":5}'
+          check "longsword EN" "$ls_en" "Longsword"
+          check "2024 weapons" "$eq_weapons" "38"
+          check "anonymous create" "$eq_anon" "401"
+          check "bad dice" "$eq_bad_dice" "400"
+          check "thrown without range" "$eq_bad_thrown" "400"
+          check "AC 40" "$eq_bad_armor" "400"
+          check "other PUT" "$eq_other" "403"
+          check "own PUT" "$eq_own" "204"
+          check "detail" "$eq_detail" '{"name":"Lama di prova","weight":2,"canEdit":true}'
+          check "private detail anonymous" "$eq_anon_detail" "404"
+          check "account" "$eq_acc" "1"
+          check "SRD DELETE" "$eq_srd_delete" "403"
+          check "DELETE" "$eq_delete" "204"
+          test "$eqfail" = "0"
+
   ui:
     runs-on: ubuntu-24.04
     needs: build

@@ -9,6 +9,7 @@
 @inject FeatDataService FeatService
 @inject SpellDataService SpellService
 @inject ClassDataService ClassService
+@inject EquipmentDataService EquipmentService
 
 <PageTitle>RealmForge - @UiText.NavDashboard(LanguageState.CurrentLanguage)</PageTitle>
 
@@ -84,6 +85,7 @@
     private ModuleCounts? feats;
     private ModuleCounts? spells;
     private ModuleCounts? classes;
+    private ModuleCounts? equipment;
     private bool loadFailed;
 
     private IEnumerable<Module> Modules
@@ -96,6 +98,7 @@
             yield return new Module("feats", UiText.FeatsTitle(lang), UiText.FeatsSubtitle(lang), feats);
             yield return new Module("spells", UiText.SpellsTitle(lang), UiText.SpellsSubtitle(lang), spells);
             yield return new Module("classes", UiText.ClassesTitle(lang), UiText.ClassesSubtitle(lang), classes);
+            yield return new Module("equipment", UiText.EquipmentTitle(lang), UiText.EquipmentSubtitle(lang), equipment);
         }
     }
 
@@ -109,19 +112,21 @@
         var featsTask = FeatService.GetFeatsAsync(lang);
         var spellsTask = SpellService.GetSpellsAsync(lang);
         var classesTask = ClassService.GetClassesAsync(lang);
-        await Task.WhenAll(speciesTask, backgroundsTask, featsTask, spellsTask, classesTask);
+        var equipmentTask = EquipmentService.GetEquipmentAsync(lang);
+        await Task.WhenAll(speciesTask, backgroundsTask, featsTask, spellsTask, classesTask, equipmentTask);
 
         species = Count((await speciesTask).Select(s => (s.Ruleset, s.IsOfficialSRD)));
         backgrounds = Count((await backgroundsTask).Select(b => (b.Ruleset, b.IsOfficialSRD)));
         feats = Count((await featsTask).Select(f => (f.Ruleset, f.IsOfficialSRD)));
         spells = Count((await spellsTask).Select(s => (s.Ruleset, s.IsOfficialSRD)));
         classes = Count((await classesTask).Select(c => (c.Ruleset, c.IsOfficialSRD)));
+        equipment = Count((await equipmentTask).Select(e => (e.Ruleset, e.IsOfficialSRD)));
 
         //	No Base content at all is never a real state: show a warning instead of misleading zeros
-        loadFailed = new[] { species, backgrounds, feats, spells, classes }.All(c => c is { Edition2024: 0, Edition2014: 0 });
+        loadFailed = new[] { species, backgrounds, feats, spells, classes, equipment }.All(c => c is { Edition2024: 0, Edition2014: 0 });
         if (loadFailed)
         {
-            species = backgrounds = feats = spells = classes = null;
+            species = backgrounds = feats = spells = classes = equipment = null;
         }
     }
 

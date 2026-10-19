@@ -17,6 +17,7 @@ public static class DatabaseSeeder
 		await RunAsync("backgrounds", () => BackgroundSeeder.SeedAsync(context, cancellationToken), context, logger);
 		await RunAsync("spells", () => SpellSeeder.SeedAsync(context, cancellationToken), context, logger);
 		await RunAsync("classes", () => ClassSeeder.SeedAsync(context, cancellationToken), context, logger);
+		await RunAsync("equipment", () => EquipmentSeeder.SeedAsync(context, cancellationToken), context, logger);
 	}
 
 	private static async Task RunAsync(string module, Func<Task> seed, RealmForgeDbContext context, ILogger logger)
