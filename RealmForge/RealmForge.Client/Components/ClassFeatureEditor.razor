@@ -1,0 +1,83 @@
+﻿@using RealmForge.Client.Localization
+@using RealmForge.Client.Services
+@using RealmForge.Shared.Enums
+@inject LanguageStateService LanguageState
+
+@* Editable list of class or subclass features: level, then name and description in Italian and English *@
+<div class="p-3 mb-3 rounded" style="background-color: var(--rf-bg-card); border-left: 3px solid var(--rf-orange-primary);" data-test="feature-editor">
+    <div class="d-flex justify-content-between align-items-center mb-2">
+        <label class="rf-form-label mb-0">@UiText.LabelClassFeatures(Lang) (@Items.Count)</label>
+        <button type="button" class="btn btn-sm btn-rf-outline" @onclick="Add" data-test="feature-add">@UiText.BtnAddFeature(Lang)</button>
+    </div>
+
+    @if (Items.Count == 0)
+    {
+        <p class="small mb-0" style="color: var(--rf-text-muted);">@UiText.NoFeaturesYet(Lang)</p>
+    }
+
+    @for (var i = 0; i < Items.Count; i++)
+    {
+        var index = i;
+        var item = Items[index];
+        <div class="rf-feature-edit-row" data-test="feature-row">
+            <div class="d-flex flex-wrap align-items-end gap-2 mb-2">
+                <div style="width: 140px;">
+                    <label class="rf-form-label small">@UiText.LabelLevel(Lang)</label>
+                    <RfSelect TValue="int" @bind-Value="item.Level"
+                              Options="@(Enumerable.Range(1, 20).Select(l => new RfSelect<int>.OptionItem(l, UiText.FormatClassLevel(l, Lang))).ToList())" />
+                </div>
+                <div class="ms-auto d-flex gap-1">
+                    <button type="button" class="btn btn-sm btn-rf-outline" title="@UiText.MoveUp(Lang)" disabled="@(index == 0)" @onclick="() => Move(index, -1)">↑</button>
+                    <button type="button" class="btn btn-sm btn-rf-outline" title="@UiText.MoveDown(Lang)" disabled="@(index == Items.Count - 1)" @onclick="() => Move(index, 1)">↓</button>
+                    <button type="button" class="btn btn-sm btn-rf-outline" style="border-color: #dc3545; color: #dc3545;" title="@UiText.Delete(Lang)" @onclick="() => Items.RemoveAt(index)" data-test="feature-remove">✕</button>
+                </div>
+            </div>
+            <div class="row g-2">
+                <div class="col-md-6">
+                    <input type="text" class="rf-form-control mb-1" @bind="item.NameIt" placeholder="@UiText.PlaceholderFeatureNameIt(Lang)" data-test="feature-name-it" />
+                    <textarea class="rf-form-control" rows="3" @bind="item.DescriptionIt" placeholder="@UiText.TabItalian(Lang)"></textarea>
+                </div>
+                <div class="col-md-6">
+                    <input type="text" class="rf-form-control mb-1" @bind="item.NameEn" placeholder="@UiText.PlaceholderFeatureNameEn(Lang)" data-test="feature-name-en" />
+                    <textarea class="rf-form-control" rows="3" @bind="item.DescriptionEn" placeholder="@UiText.TabEnglish(Lang)"></textarea>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    ///	<summary>
+    ///	A feature being edited, with both languages side by side.
+    ///	</summary>
+    public sealed class Item
+    {
+        public int Level { get; set; } = 1;
+        public string NameIt { get; set; } = string.Empty;
+        public string DescriptionIt { get; set; } = string.Empty;
+        public string NameEn { get; set; } = string.Empty;
+        public string DescriptionEn { get; set; } = string.Empty;
+    }
+
+    [Parameter, EditorRequired]
+    public List<Item> Items { get; set; } = new();
+
+    //	Level preset for new features (e.g. the subclass level)
+    [Parameter]
+    public int DefaultLevel { get; set; } = 1;
+
+    private LanguageCode Lang => LanguageState.CurrentLanguage;
+
+    private void Add() => Items.Add(new Item { Level = Items.Count > 0 ? Items[^1].Level : DefaultLevel });
+
+    private void Move(int index, int delta)
+    {
+        var target = index + delta;
+        if (target < 0 || target >= Items.Count)
+        {
+            return;
+        }
+
+        (Items[index], Items[target]) = (Items[target], Items[index]);
+    }
+}

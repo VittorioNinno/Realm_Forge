@@ -50,7 +50,7 @@ try {
 
   // Navigation: reference pages live in the collapsible "Compendio" group, opened on compendium routes
   const compendiumLinks = (await page.locator('[data-test=nav-compendium] a').allInnerTexts()).map((t) => t.trim());
-  if (compendiumLinks.join(',') !== 'Specie,Background,Talenti,Incantesimi') throw new Error(`unexpected compendium links: ${compendiumLinks.join(',')}`);
+  if (compendiumLinks.join(',') !== 'Specie,Background,Talenti,Incantesimi,Classi') throw new Error(`unexpected compendium links: ${compendiumLinks.join(',')}`);
 
   // Brand: emblem next to the title in the sidebar, RealmForge favicon instead of the Blazor one
   await page.goto(`${base}/`);
@@ -67,12 +67,12 @@ try {
 
   // Dashboard: one card per compendium module with Base counts per edition and the visible Homebrew
   await page.locator('[data-test=dashboard-feats] .rf-account-stat-value').first().waitFor({ timeout: 30000 });
-  const dashboard = await page.evaluate(() => Object.fromEntries(['species', 'backgrounds', 'feats', 'spells'].map((m) =>
+  const dashboard = await page.evaluate(() => Object.fromEntries(['species', 'backgrounds', 'feats', 'spells', 'classes'].map((m) =>
     [m, [...document.querySelectorAll(`[data-test=dashboard-${m}] .rf-account-stat-value`)].map((v) => v.textContent.trim()).join('/')])));
   results.push(`INFO dashboard (Base 2024/Base 2014/Homebrew): ${JSON.stringify(dashboard)}`);
-  if (dashboard.species !== '10/9/0' || dashboard.backgrounds !== '16/13/0' || dashboard.feats !== '75/42/0' || dashboard.spells !== '391/361/0') throw new Error('unexpected dashboard counts');
+  if (dashboard.species !== '10/9/0' || dashboard.backgrounds !== '16/13/0' || dashboard.feats !== '75/42/0' || dashboard.spells !== '391/361/0' || dashboard.classes !== '0/12/0') throw new Error('unexpected dashboard counts');
   if (await page.locator('main a[href=account]', { hasText: 'Accedi per forgiare' }).count() !== 1) throw new Error('dashboard misses the sign-in call to action');
-  ok('dashboard: module cards with Base counts per edition (species 10+9, backgrounds 16+13, feats 75+42, spells 391+361) and the sign-in call to action');
+  ok('dashboard: module cards with Base counts per edition (species 10+9, backgrounds 16+13, feats 75+42, spells 391+361, classes 0+12) and the sign-in call to action');
 
   // Spells: 752 base spells (361 of 2014, 391 of 2024) grouped by level, edition and client-side filters, detail with the stat block
   await page.goto(`${base}/spells`);
@@ -144,6 +144,39 @@ try {
   await waitCount('752 incantesimi');
   ok('spells 2024: 391 cards, edition filter, Fireball 2024 stat block in Italian with SRD 5.2 source and the 2024 "higher-level slot" heading');
 
+  // Classes: 12 base classes of 2014 with their full sheet (overview, progression table, features, subclasses)
+  await page.goto(`${base}/classes`);
+  await page.locator('[data-test=class-card]').first().waitFor({ timeout: 60000 });
+  const classCount = async (expected) => {
+    for (let i = 0; i < 100 && (await page.locator('[data-test=class-count]').innerText()).trim() !== expected; i++) await page.waitForTimeout(100);
+    return (await page.locator('[data-test=class-count]').innerText()).trim();
+  };
+  const allClasses = await classCount('12 classi');
+  await page.locator('[data-test=class-caster] .rf-custom-select-trigger').click();
+  await page.locator('[data-test=class-caster] .rf-custom-select-option', { hasText: 'Incantatore completo' }).first().click();
+  const fullCasters = await classCount('5 classi');
+  await page.locator('[data-test=class-caster] .rf-custom-select-trigger').click();
+  await page.locator('[data-test=class-caster] .rf-custom-select-option').first().click();
+  await classCount('12 classi');
+  await page.locator('[data-test=class-search]').fill('mago');
+  await page.locator('[data-test=class-card]', { hasText: 'Mago' }).first().click();
+  await page.locator('[data-test=class-detail]').waitFor({ timeout: 15000 });
+  const wizardSheet = { name: (await page.locator('[data-test=class-name]').textContent()).trim(), skills: (await page.locator('[data-test=class-skills]').textContent()).trim() };
+  await page.locator('[data-test=class-tab-table]').click();
+  wizardSheet.tableRows = await page.locator('[data-test=class-table] tbody tr').count();
+  await page.locator('[data-test=class-tab-features]').click();
+  wizardSheet.features = (await page.locator('[data-test=class-feature-name]').allTextContents()).map((t) => t.trim());
+  await page.locator('[data-test=class-tab-subclasses]').click();
+  wizardSheet.subclasses = await page.locator('[data-test=subclass-pill]').count();
+  await page.locator('[data-test=subclass-pill]', { hasText: 'Necromanzia' }).click();
+  wizardSheet.subclass = (await page.locator('[data-test=subclass-name]').textContent()).trim();
+  wizardSheet.subclassFeatures = await page.locator('[data-test=subclass-detail] [data-test=class-feature]').count();
+  results.push(`INFO classes: ${allClasses} | full casters=${fullCasters} | wizard ${JSON.stringify(wizardSheet)}`);
+  if (allClasses !== '12 classi' || fullCasters !== '5 classi' || wizardSheet.name !== 'Mago' || wizardSheet.tableRows !== 20 || wizardSheet.features[0] !== 'Incantesimi'
+    || wizardSheet.features.length !== 6 || wizardSheet.subclasses !== 8 || wizardSheet.subclass !== 'Scuola di Necromanzia' || wizardSheet.subclassFeatures !== 5) throw new Error('unexpected classes page');
+  await page.locator('[data-test=class-detail] button', { hasText: 'CHIUDI' }).click();
+  ok('classes: 12 base cards, caster filter, Wizard sheet with 20-level table, 6 class features and 8 schools (Necromancy with 5 features)');
+
 
   await page.goto(`${base}/account`);
   await page.getByText('Non hai un account? Registrati').waitFor({ timeout: 30000 });
@@ -161,9 +194,9 @@ try {
     return { label: el.textContent.trim(), inset: Math.round(icon.left - el.getBoundingClientRect().left), left: Math.round(icon.left) };
   }));
   results.push(`INFO menu icons: ${iconGaps.map((g) => `${g.label}@${g.left}(+${g.inset})`).join(', ')}`);
-  if (iconGaps.length !== 6 || iconGaps.some((g) => g.inset < 8) || new Set(iconGaps.map((g) => g.left)).size !== 1) throw new Error('menu icons are not padded or not aligned');
+  if (iconGaps.length !== 7 || iconGaps.some((g) => g.inset < 8) || new Set(iconGaps.map((g) => g.left)).size !== 1) throw new Error('menu icons are not padded or not aligned');
   await page.locator('[data-test=nav-compendium] button').click();
-  ok('"Compendio" menu group: Specie, Background, Talenti, Incantesimi; collapsed elsewhere and toggles on click; icons padded and aligned');
+  ok('"Compendio" menu group: Specie, Background, Talenti, Incantesimi, Classi; collapsed elsewhere and toggles on click; icons padded and aligned');
   await page.getByText('Non hai un account? Registrati').click();
   await page.locator('input[type=email]').fill(email);
   // Own show / hide button: visible before the field is touched, not only while typing as the browser's eye
