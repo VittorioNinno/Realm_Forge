@@ -287,6 +287,192 @@ namespace RealmForge.Infrastructure.Migrations
                     b.ToTable("BackgroundTranslations");
                 });
 
+            modelBuilder.Entity("RealmForge.Domain.Entities.CharacterClass", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("AuthorId")
+                        .HasColumnType("text");
+
+                    b.Property<int>("CasterProgression")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("HitDie")
+                        .HasColumnType("integer");
+
+                    b.Property<bool>("IsOfficialSRD")
+                        .HasColumnType("boolean");
+
+                    b.PrimitiveCollection<int[]>("PrimaryAbilities")
+                        .IsRequired()
+                        .HasColumnType("integer[]");
+
+                    b.Property<int>("Ruleset")
+                        .HasColumnType("integer");
+
+                    b.PrimitiveCollection<int[]>("SavingThrows")
+                        .IsRequired()
+                        .HasColumnType("integer[]");
+
+                    b.Property<int>("SkillChoiceCount")
+                        .HasColumnType("integer");
+
+                    b.PrimitiveCollection<int[]>("SkillOptions")
+                        .IsRequired()
+                        .HasColumnType("integer[]");
+
+                    b.Property<int?>("Source")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("SpellcastingAbility")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("SubclassLevel")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("Visibility")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("Classes", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_Classes_HitDie", "\"HitDie\" IN (6, 8, 10, 12)");
+
+                            t.HasCheckConstraint("CK_Classes_SubclassLevel", "\"SubclassLevel\" BETWEEN 1 AND 20");
+                        });
+                });
+
+            modelBuilder.Entity("RealmForge.Domain.Entities.CharacterClassTranslation", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("ArmorProficiencies")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<Guid>("CharacterClassId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<int>("Language")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("character varying(150)");
+
+                    b.Property<string>("ProgressionTable")
+                        .HasColumnType("text");
+
+                    b.Property<string>("StartingEquipment")
+                        .HasMaxLength(4000)
+                        .HasColumnType("character varying(4000)");
+
+                    b.Property<string>("SubclassTitle")
+                        .HasMaxLength(150)
+                        .HasColumnType("character varying(150)");
+
+                    b.Property<string>("ToolProficiencies")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<string>("WeaponProficiencies")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CharacterClassId", "Language")
+                        .IsUnique();
+
+                    b.ToTable("ClassTranslations", (string)null);
+                });
+
+            modelBuilder.Entity("RealmForge.Domain.Entities.ClassFeature", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("AuthorId")
+                        .HasColumnType("text");
+
+                    b.Property<Guid?>("CharacterClassId")
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("IsOfficialSRD")
+                        .HasColumnType("boolean");
+
+                    b.Property<int>("Level")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("Ruleset")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("Source")
+                        .HasColumnType("integer");
+
+                    b.Property<Guid?>("SubclassId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("Visibility")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CharacterClassId");
+
+                    b.HasIndex("SubclassId");
+
+                    b.ToTable("ClassFeatures", t =>
+                        {
+                            t.HasCheckConstraint("CK_ClassFeatures_Level", "\"Level\" BETWEEN 1 AND 20");
+
+                            t.HasCheckConstraint("CK_ClassFeatures_Owner", "(\"CharacterClassId\" IS NULL) <> (\"SubclassId\" IS NULL)");
+                        });
+                });
+
+            modelBuilder.Entity("RealmForge.Domain.Entities.ClassFeatureTranslation", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("ClassFeatureId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<int>("Language")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("character varying(150)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ClassFeatureId", "Language")
+                        .IsUnique();
+
+                    b.ToTable("ClassFeatureTranslations");
+                });
+
             modelBuilder.Entity("RealmForge.Domain.Entities.Feat", b =>
                 {
                     b.Property<Guid>("Id")
@@ -533,6 +719,72 @@ namespace RealmForge.Infrastructure.Migrations
                         .IsUnique();
 
                     b.ToTable("SpellTranslations");
+                });
+
+            modelBuilder.Entity("RealmForge.Domain.Entities.Subclass", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("AuthorId")
+                        .HasColumnType("text");
+
+                    b.Property<int>("CasterProgression")
+                        .HasColumnType("integer");
+
+                    b.Property<Guid>("CharacterClassId")
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("IsOfficialSRD")
+                        .HasColumnType("boolean");
+
+                    b.Property<int>("Ruleset")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("Source")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("SpellcastingAbility")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("Visibility")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CharacterClassId");
+
+                    b.ToTable("Subclasses");
+                });
+
+            modelBuilder.Entity("RealmForge.Domain.Entities.SubclassTranslation", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<int>("Language")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("character varying(150)");
+
+                    b.Property<Guid>("SubclassId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("SubclassId", "Language")
+                        .IsUnique();
+
+                    b.ToTable("SubclassTranslations");
                 });
 
             modelBuilder.Entity("RealmForge.Domain.Entities.Subspecies", b =>
@@ -809,6 +1061,45 @@ namespace RealmForge.Infrastructure.Migrations
                     b.Navigation("Background");
                 });
 
+            modelBuilder.Entity("RealmForge.Domain.Entities.CharacterClassTranslation", b =>
+                {
+                    b.HasOne("RealmForge.Domain.Entities.CharacterClass", "CharacterClass")
+                        .WithMany("Translations")
+                        .HasForeignKey("CharacterClassId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("CharacterClass");
+                });
+
+            modelBuilder.Entity("RealmForge.Domain.Entities.ClassFeature", b =>
+                {
+                    b.HasOne("RealmForge.Domain.Entities.CharacterClass", "CharacterClass")
+                        .WithMany("Features")
+                        .HasForeignKey("CharacterClassId")
+                        .OnDelete(DeleteBehavior.Cascade);
+
+                    b.HasOne("RealmForge.Domain.Entities.Subclass", "Subclass")
+                        .WithMany("Features")
+                        .HasForeignKey("SubclassId")
+                        .OnDelete(DeleteBehavior.Cascade);
+
+                    b.Navigation("CharacterClass");
+
+                    b.Navigation("Subclass");
+                });
+
+            modelBuilder.Entity("RealmForge.Domain.Entities.ClassFeatureTranslation", b =>
+                {
+                    b.HasOne("RealmForge.Domain.Entities.ClassFeature", "ClassFeature")
+                        .WithMany("Translations")
+                        .HasForeignKey("ClassFeatureId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("ClassFeature");
+                });
+
             modelBuilder.Entity("RealmForge.Domain.Entities.FeatTranslation", b =>
                 {
                     b.HasOne("RealmForge.Domain.Entities.Feat", "Feat")
@@ -840,6 +1131,28 @@ namespace RealmForge.Infrastructure.Migrations
                         .IsRequired();
 
                     b.Navigation("Spell");
+                });
+
+            modelBuilder.Entity("RealmForge.Domain.Entities.Subclass", b =>
+                {
+                    b.HasOne("RealmForge.Domain.Entities.CharacterClass", "CharacterClass")
+                        .WithMany("Subclasses")
+                        .HasForeignKey("CharacterClassId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("CharacterClass");
+                });
+
+            modelBuilder.Entity("RealmForge.Domain.Entities.SubclassTranslation", b =>
+                {
+                    b.HasOne("RealmForge.Domain.Entities.Subclass", "Subclass")
+                        .WithMany("Translations")
+                        .HasForeignKey("SubclassId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Subclass");
                 });
 
             modelBuilder.Entity("RealmForge.Domain.Entities.Subspecies", b =>
@@ -897,6 +1210,20 @@ namespace RealmForge.Infrastructure.Migrations
                     b.Navigation("Translations");
                 });
 
+            modelBuilder.Entity("RealmForge.Domain.Entities.CharacterClass", b =>
+                {
+                    b.Navigation("Features");
+
+                    b.Navigation("Subclasses");
+
+                    b.Navigation("Translations");
+                });
+
+            modelBuilder.Entity("RealmForge.Domain.Entities.ClassFeature", b =>
+                {
+                    b.Navigation("Translations");
+                });
+
             modelBuilder.Entity("RealmForge.Domain.Entities.Feat", b =>
                 {
                     b.Navigation("Translations");
@@ -913,6 +1240,13 @@ namespace RealmForge.Infrastructure.Migrations
 
             modelBuilder.Entity("RealmForge.Domain.Entities.Spell", b =>
                 {
+                    b.Navigation("Translations");
+                });
+
+            modelBuilder.Entity("RealmForge.Domain.Entities.Subclass", b =>
+                {
+                    b.Navigation("Features");
+
                     b.Navigation("Translations");
                 });
 
