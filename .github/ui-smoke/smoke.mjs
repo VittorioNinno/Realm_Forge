@@ -667,7 +667,7 @@ try {
       if ((r.right > width + 1 || r.left < -1) && !scrolls(el)) out.push(`${el.tagName.toLowerCase()}.${[...el.classList].slice(0, 2).join('.')}(${Math.round(r.left)}..${Math.round(r.right)})`);
     }
     const page = document.documentElement.scrollWidth > width + 1 ? `page ${document.documentElement.scrollWidth}px` : '';
-    return [label, page, ...[...new Set(out)].slice(0, 6)].filter(Boolean).join(' ');
+    return page || out.length ? [label, page, ...[...new Set(out)].slice(0, 6)].filter(Boolean).join(' ') : null;
   }, label);
   const audits = [];
   const audit = async (path, ready, open) => {
@@ -694,8 +694,10 @@ try {
   await audit('/equipment', '[data-test=equipment-group]', () => mobile.locator('[data-test=equipment-row]').first().click());
   await audit('/account', 'input[type=email]');
   await phone.close();
-  const wide = audits.filter((a) => a.includes(' '));
-  results.push(`INFO phone layout: ${wide.length ? wide.join(' | ') : 'every page fits 375 px'}`);
+  const wide = audits.filter(Boolean);
+  results.push(`INFO phone layout: ${wide.length ? wide.join(' | ') : 'every page and detail fits 375 px'}`);
+  if (wide.length) throw new Error(`content wider than a 375 px phone: ${wide.join(' | ').slice(0, 300)}`);
+  ok('phone layout: dashboard, glossary, species, backgrounds, feats, spells, classes, equipment and account (with their details) fit a 375 px screen');
 } catch (e) {
   results.push(`FAIL ${e.message.split('\n')[0]}`);
   const stored = await page.evaluate(() => localStorage.getItem('realmforge.auth')).catch(() => 'n/a');

@@ -1609,3 +1609,28 @@ a.rf-term {
         font-weight: 700;
         font-size: 1.05rem;
     }
+
+/* ===== Phones and narrow cards ===== */
+/* Card headers: when the name and the badges do not fit on one line, the badges move below the name */
+.rf-card .d-flex.justify-content-between.align-items-start {
+    flex-wrap: wrap;
+}
+
+.rf-card-title {
+    overflow-wrap: anywhere;
+}
+
+@media (max-width: 576px) {
+    /* Tables in descriptions scroll inside their own box instead of widening the page or the dialog */
+    .rf-markdown-container table {
+        display: block;
+        max-width: 100%;
+        overflow-x: auto;
+    }
+
+    .rf-modal-dialog {
+        width: calc(100% - 16px);
+        max-height: 92vh;
+        padding: 16px;
+    }
+}
