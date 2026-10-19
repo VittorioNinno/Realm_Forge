@@ -8,6 +8,7 @@
 @implements IDisposable
 @inject ClassDataService ClassService
 @inject LanguageStateService LanguageState
+@inject GlossaryService Glossary
 @inject ApiErrorState ApiErrors
 
 <PageTitle>RealmForge - @UiText.ClassesTitle(Lang)</PageTitle>
@@ -151,7 +152,7 @@
             {
                 case "overview":
                     <div data-test="class-overview">
-                        <div class="rf-markdown-container mb-3">@((MarkupString)MarkdownText.ToHtml(cls.Description))</div>
+                        <div class="rf-markdown-container mb-3">@((MarkupString)MarkdownText.ToHtml(cls.Description, Terms(cls.Ruleset)))</div>
 
                         <dl class="rf-class-facts mb-3" data-test="class-facts">
                             <div><dt>@UiText.LabelHitDie(Lang)</dt><dd>@UiText.FormatHitDie(cls.HitDie, Lang)</dd></div>
@@ -260,7 +261,7 @@
                                     }
                                     @if (!string.IsNullOrWhiteSpace(subclass.Description))
                                     {
-                                        <div class="rf-markdown-container mb-3">@((MarkupString)MarkdownText.ToHtml(subclass.Description))</div>
+                                        <div class="rf-markdown-container mb-3">@((MarkupString)MarkdownText.ToHtml(subclass.Description, Terms(SelectedClass?.Ruleset)))</div>
                                     }
                                     @RenderFeatures(subclass.Features)
                                     @if (subclass.CanEdit)
@@ -612,7 +613,7 @@
                     </div>
                     @if (!string.IsNullOrWhiteSpace(feature.Description))
                     {
-                        <div class="rf-markdown-container rf-class-feature-body">@((MarkupString)MarkdownText.ToHtml(feature.Description))</div>
+                        <div class="rf-markdown-container rf-class-feature-body">@((MarkupString)MarkdownText.ToHtml(feature.Description, Terms(SelectedClass?.Ruleset)))</div>
                     }
                 </section>
             }
@@ -622,6 +623,7 @@
     protected override async Task OnInitializedAsync()
     {
         LanguageState.OnLanguageChanged += HandleLanguageChanged;
+        _ = LoadGlossaryAsync();
         await LoadClassesAsync();
 
         if (QueryClassId.HasValue)
@@ -657,6 +659,8 @@
 
     private async void HandleLanguageChanged()
     {
+        await Glossary.EnsureLoadedAsync(LanguageState.CurrentLanguage);
+
         if (SelectedClass != null)
         {
             SelectedClass = await ClassService.GetClassDetailAsync(SelectedClass.Id, Lang);
@@ -999,6 +1003,16 @@
     }
 
     #endregion
+
+    //	Rules terms in the descriptions link to the glossary (with a tooltip) once it is loaded
+    private async Task LoadGlossaryAsync()
+    {
+        await Glossary.EnsureLoadedAsync(LanguageState.CurrentLanguage);
+        StateHasChanged();
+    }
+
+    private RealmForge.Shared.Text.GlossaryLinker? Terms(RulesetVersion? ruleset) =>
+        ruleset is { } edition ? Glossary.Linker(LanguageState.CurrentLanguage, edition) : null;
 
     public void Dispose() => LanguageState.OnLanguageChanged -= HandleLanguageChanged;
 }

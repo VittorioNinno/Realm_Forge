@@ -1,0 +1,228 @@
+﻿@page "/rules"
+@using RealmForge.Client.Components
+@using RealmForge.Client.Localization
+@using RealmForge.Client.Services
+@using RealmForge.Shared.DTOs
+@using RealmForge.Shared.Enums
+@implements IDisposable
+@inject GlossaryService Glossary
+@inject LanguageStateService LanguageState
+@inject ApiErrorState ApiErrors
+@inject NavigationManager Navigation
+
+<PageTitle>RealmForge - @UiText.RulesTitle(Lang)</PageTitle>
+
+<div class="container-fluid px-0 py-4">
+    <div class="mb-4 pb-3" style="border-bottom: 2px solid var(--rf-orange-primary);">
+        <h1 class="h3 fw-bold mb-1 rf-page-title">@UiText.RulesTitle(Lang)</h1>
+        <p class="mb-0 small" style="color: var(--rf-text-muted); letter-spacing: 0.5px;">@UiText.RulesSubtitle(Lang)</p>
+    </div>
+
+    @* Filters: everything filters the glossary already in memory *@
+    <div class="row g-3 mb-4 p-3 rounded" style="background-color: var(--rf-bg-surface); border: 1px solid var(--rf-border-light);" data-test="rules-filters">
+        <div class="col-lg-4 col-md-6">
+            <label class="rf-form-label small text-uppercase" style="letter-spacing: 0.5px;">@UiText.LabelSearchRules(Lang)</label>
+            <input type="text" class="rf-form-control" placeholder="@UiText.PlaceholderSearchRules(Lang)"
+                   @bind="SearchTerm" @bind:event="oninput" data-test="rules-search" />
+        </div>
+        <div class="col-lg-4 col-md-6" data-test="rules-ruleset">
+            <label class="rf-form-label small text-uppercase" style="letter-spacing: 0.5px;">@UiText.LabelRuleset(Lang)</label>
+            <RfSelect TValue="string" @bind-Value="SelectedRulesetFilter"
+                      Options="@(new List<RfSelect<string>.OptionItem>
+                      {
+                          new("", UiText.FilterRulesetAll(Lang)),
+                          new(((int)RulesetVersion.Dnd5e_2024).ToString(), UiText.FormatRuleset(RulesetVersion.Dnd5e_2024, Lang)),
+                          new(((int)RulesetVersion.Dnd5e_2014).ToString(), UiText.FormatRuleset(RulesetVersion.Dnd5e_2014, Lang))
+                      })" />
+        </div>
+        <div class="col-lg-4 col-md-6" data-test="rules-category">
+            <label class="rf-form-label small text-uppercase" style="letter-spacing: 0.5px;">@UiText.LabelRuleCategory(Lang)</label>
+            <RfSelect TValue="RuleCategory?" @bind-Value="CategoryFilter"
+                      Options="@(new List<RfSelect<RuleCategory?>.OptionItem> { new(null, UiText.FilterAllRuleCategories(Lang)) }
+                          .Concat(CategoryOrder.Select(c => new RfSelect<RuleCategory?>.OptionItem(c, UiText.RuleCategoryGroup(c, Lang)))).ToList())" />
+        </div>
+        <div class="col-12 d-flex">
+            <span class="ms-auto small" style="color: var(--rf-text-muted);" data-test="rules-count">@UiText.RulesCount(FilteredEntries.Count, Lang)</span>
+        </div>
+    </div>
+
+    @if (IsLoading)
+    {
+        <div class="text-center my-5 py-5">
+            <div class="spinner-border" style="color: var(--rf-orange-primary);" role="status"></div>
+            <p class="mt-3" style="color: var(--rf-text-muted); text-transform: uppercase; letter-spacing: 1px;">@UiText.LoadingRules(Lang)</p>
+        </div>
+    }
+    else if (FilteredEntries.Count == 0)
+    {
+        <div class="p-4 rounded text-center" style="background-color: var(--rf-bg-surface); border: 1px solid var(--rf-border-light);" data-test="rules-empty">
+            <p class="mb-0" style="color: var(--rf-text-muted);">@UiText.NoRulesFound(Lang)</p>
+        </div>
+    }
+    else
+    {
+        @* One section per family: conditions first, the general rules last *@
+        @foreach (var group in FilteredEntries.GroupBy(e => e.Category).OrderBy(g => Array.IndexOf(CategoryOrder, g.Key)))
+        {
+            <h2 class="h5 mt-4 mb-3 rf-spell-level-title" data-test="rules-group">
+                @UiText.RuleCategoryGroup(group.Key, Lang) <span class="small" style="color: var(--rf-text-muted);">(@group.Count())</span>
+            </h2>
+            <div class="rf-glossary-grid">
+                @foreach (var entry in group)
+                {
+                    <a class="rf-glossary-tile rf-glossary-@(group.Key.ToString().ToLowerInvariant())" href="@($"rules?id={entry.Id}")" data-test="rules-tile">
+                        <span class="d-flex justify-content-between align-items-start gap-2">
+                            <span class="rf-glossary-tile-name">@entry.Name</span>
+                            @if (ShowEditionBadge)
+                            {
+                                <span class="badge @(entry.Ruleset == RulesetVersion.Dnd5e_2024 ? "badge-edition-2024" : "badge-edition-2014")">@(entry.Ruleset == RulesetVersion.Dnd5e_2024 ? "2024" : "2014")</span>
+                            }
+                        </span>
+                        <span class="rf-glossary-tile-summary">@entry.Summary</span>
+                    </a>
+                }
+            </div>
+        }
+    }
+</div>
+
+@if (SelectedEntry is { } detail)
+{
+    <div class="rf-modal-backdrop" @onclick="CloseDetail">
+        <div class="rf-modal-dialog" style="max-width: 720px;" @onclick:stopPropagation="true" data-test="rules-detail">
+            <div class="d-flex justify-content-between align-items-start mb-3 pb-2" style="border-bottom: 2px solid var(--rf-orange-primary);">
+                <div>
+                    <h2 class="h3 mb-1" style="color: var(--rf-orange-primary); font-family: var(--rf-font-display);" data-test="rules-name">@detail.Name</h2>
+                    <div class="fst-italic small mb-2" style="color: var(--rf-text-secondary);" data-test="rules-tag">@UiText.RuleCategoryName(detail.Category, Lang)</div>
+                    <div class="d-flex flex-wrap gap-2">
+                        <span class="badge @(detail.Ruleset == RulesetVersion.Dnd5e_2024 ? "badge-edition-2024" : "badge-edition-2014")">
+                            @UiText.FormatRuleset(detail.Ruleset, Lang)
+                        </span>
+                        <ContentBadge IsBase="true" Source="detail.Source" ShowSource="true" />
+                    </div>
+                </div>
+                <button class="btn btn-sm btn-rf-outline" @onclick="CloseDetail">✕</button>
+            </div>
+
+            <div class="rf-markdown-container mb-3" data-test="rules-description">
+                @((MarkupString)MarkdownText.ToHtml(detail.Description, Glossary.Linker(Lang, detail.Ruleset), detail.Id))
+            </div>
+
+            @if (detail.Related.Count > 0)
+            {
+                <div class="mb-3" data-test="rules-related">
+                    <div class="rf-form-label small text-uppercase mb-2" style="letter-spacing: 0.5px;">@UiText.SectionSeeAlso(Lang)</div>
+                    <div class="d-flex flex-wrap gap-2">
+                        @foreach (var link in detail.Related)
+                        {
+                            <a class="rf-glossary-chip" href="@($"rules?id={link.Id}")">@link.Name</a>
+                        }
+                    </div>
+                </div>
+            }
+
+            <div class="d-flex justify-content-end pt-3" style="border-top: 1px solid var(--rf-border-light);">
+                <button class="btn btn-rf-outline text-uppercase" style="letter-spacing: 1px;" @onclick="CloseDetail">@UiText.BtnClose(Lang)</button>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    //	Opened entry: tiles, "See also" chips and the terms linked in the other modules all navigate to rules?id=...
+    [SupplyParameterFromQuery(Name = "id")]
+    public Guid? QueryEntryId { get; set; }
+
+    private static readonly RuleCategory[] CategoryOrder =
+    {
+        RuleCategory.Condition, RuleCategory.Action, RuleCategory.AreaOfEffect, RuleCategory.Attitude, RuleCategory.Hazard, RuleCategory.Rule
+    };
+
+    private LanguageCode Lang => LanguageState.CurrentLanguage;
+
+    private List<RuleEntryResponseDto> AllEntries { get; set; } = new();
+    private RuleEntryDetailResponseDto? SelectedEntry { get; set; }
+    private bool IsLoading { get; set; } = true;
+
+    //	Filters
+    private RulesetVersion? SelectedRuleset { get; set; }
+    private string SearchTerm { get; set; } = string.Empty;
+    private RuleCategory? CategoryFilter { get; set; }
+
+    //	The edition badge is useful only when both editions are listed
+    private bool ShowEditionBadge => SelectedRuleset is null;
+
+    private string SelectedRulesetFilter
+    {
+        get => SelectedRuleset.HasValue ? ((int)SelectedRuleset.Value).ToString() : "";
+        set => SelectedRuleset = int.TryParse(value, out var v) && Enum.IsDefined(typeof(RulesetVersion), v) ? (RulesetVersion)v : null;
+    }
+
+    private List<RuleEntryResponseDto> FilteredEntries =>
+        AllEntries
+            .Where(e => SelectedRuleset is null || e.Ruleset == SelectedRuleset)
+            .Where(e => CategoryFilter is null || e.Category == CategoryFilter)
+            .Where(e => string.IsNullOrWhiteSpace(SearchTerm) || Matches(e, SearchTerm.Trim()))
+            .ToList();
+
+    private static bool Matches(RuleEntryResponseDto entry, string term) =>
+        entry.Name.Contains(term, StringComparison.OrdinalIgnoreCase)
+        || entry.Summary.Contains(term, StringComparison.OrdinalIgnoreCase)
+        || entry.Aliases.Any(a => a.TrimStart('=').Contains(term, StringComparison.OrdinalIgnoreCase));
+
+    protected override async Task OnInitializedAsync()
+    {
+        LanguageState.OnLanguageChanged += HandleLanguageChanged;
+        await LoadAsync();
+    }
+
+    //	Also runs when only the query string changes (a "See also" chip or a linked term inside an entry)
+    protected override async Task OnParametersSetAsync()
+    {
+        if (QueryEntryId is { } id)
+        {
+            if (SelectedEntry?.Id != id)
+            {
+                SelectedEntry = await Glossary.GetEntryAsync(id, Lang);
+
+                //	Shared link to an entry that does not exist
+                if (SelectedEntry == null)
+                {
+                    ApiErrors.Report(ApiErrorKind.NotAvailable);
+                }
+            }
+        }
+        else
+        {
+            SelectedEntry = null;
+        }
+    }
+
+    private async void HandleLanguageChanged()
+    {
+        if (SelectedEntry != null)
+        {
+            SelectedEntry = await Glossary.GetEntryAsync(SelectedEntry.Id, Lang);
+        }
+
+        await LoadAsync();
+        StateHasChanged();
+    }
+
+    private async Task LoadAsync()
+    {
+        IsLoading = true;
+        AllEntries = await Glossary.GetEntriesAsync(Lang);
+        await Glossary.EnsureLoadedAsync(Lang);
+        IsLoading = false;
+    }
+
+    //	Back to the list (the address loses ?id, so the same entry can be opened again)
+    private void CloseDetail()
+    {
+        SelectedEntry = null;
+        Navigation.NavigateTo("rules");
+    }
+
+    public void Dispose() => LanguageState.OnLanguageChanged -= HandleLanguageChanged;
+}
