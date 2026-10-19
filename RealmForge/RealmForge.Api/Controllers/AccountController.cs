@@ -46,7 +46,9 @@ namespace RealmForge.Api.Controllers
 				await _context.Species.CountAsync(s => s.AuthorId == user.Id),
 				await _context.Subspecies.CountAsync(s => s.AuthorId == user.Id),
 				await _context.Backgrounds.CountAsync(b => b.AuthorId == user.Id),
-				await _context.Spells.CountAsync(s => s.AuthorId == user.Id));
+				await _context.Spells.CountAsync(s => s.AuthorId == user.Id),
+				await _context.Classes.CountAsync(c => c.AuthorId == user.Id),
+				await _context.Subclasses.CountAsync(s => s.AuthorId == user.Id));
 
 			return new AccountSummaryDto(
 				user.Email ?? user.UserName ?? string.Empty,

@@ -84,6 +84,21 @@ namespace RealmForge.Shared.Localization
 			_ => spellClass.ToString()
 		};
 
+		public static string CasterProgressionName(CasterProgression progression, LanguageCode lang) => (progression, lang == LanguageCode.It) switch
+		{
+			(CasterProgression.None, true) => "Nessun incantesimo",
+			(CasterProgression.Full, true) => "Incantatore completo",
+			(CasterProgression.Half, true) => "Mezzo incantatore",
+			(CasterProgression.Third, true) => "Incantatore parziale (1/3)",
+			(CasterProgression.Pact, true) => "Magia del patto",
+			(CasterProgression.None, false) => "No spellcasting",
+			(CasterProgression.Full, false) => "Full caster",
+			(CasterProgression.Half, false) => "Half caster",
+			(CasterProgression.Third, false) => "Third caster",
+			(CasterProgression.Pact, false) => "Pact Magic",
+			_ => progression.ToString()
+		};
+
 		///	<summary>
 		///	Short level label for filters and badges: "Trucchetto" / "Cantrip", "1° livello" / "1st level".
 		///	</summary>
