@@ -487,6 +487,28 @@ jobs:
           check "DELETE" "$eq_delete" "204"
           test "$eqfail" = "0"
 
+          # Rules glossary: 88 entries of 2014 (SRD 5.1) and 155 of 2024 (SRD 5.2.1), Prone 2024 in Italian with the forms
+          # linked in the other modules, the "See also" of Grappling, read only (no POST) and 404 for an unknown entry
+          gl14=$(get "$api/api/rules?ruleset=1&lang=2" | jq -c '{total: length, srd: map(select(.source == 2)) | length, conditions: map(select(.category == 2)) | length, actions: map(select(.category == 3)) | length}')
+          gl24_all=$(get "$api/api/rules?ruleset=2&lang=2")
+          gl24=$(echo "$gl24_all" | jq -c '{total: length, srd: map(select(.source == 3)) | length, conditions: map(select(.category == 2)) | length, actions: map(select(.category == 3)) | length, linked: map(select(.aliases | length > 0)) | length}')
+          prone_it=$(echo "$gl24_all" | jq -c '.[] | select(.key == "prone") | {name, category, aliases}')
+          grappling=$(echo "$gl24_all" | jq -r '.[] | select(.key == "grappling") | .id')
+          grappling_en=$(get "$api/api/rules/$grappling?lang=1" | jq -c '{name, related: [.related[].key]}')
+          gl_post=$(code -X POST $api/api/rules $json -H "Authorization: Bearer $A" -d '{}')
+          gl_missing=$(code "$api/api/rules/00000000-0000-0000-0000-000000000001?lang=1")
+          echo "::notice title=database::glossary 2014: $gl14 | 2024: $gl24 | prone IT=$prone_it | grappling EN=$grappling_en | POST=$gl_post | unknown=$gl_missing"
+
+          glfail=0
+          glcheck() { if [ "$2" != "$3" ]; then echo "::error title=glossary::$1: got '$2', expected '$3'"; glfail=1; fi; }
+          glcheck "2014 counts" "$gl14" '{"total":88,"srd":88,"conditions":15,"actions":10}'
+          glcheck "2024 counts" "$gl24" '{"total":155,"srd":155,"conditions":15,"actions":12,"linked":74}'
+          glcheck "prone IT" "$prone_it" '{"name":"Prono","category":2,"aliases":["prono","prona","proni","prone"]}'
+          glcheck "grappling EN" "$grappling_en" '{"name":"Grappling","related":["unarmed-strike","grappled"]}'
+          glcheck "POST" "$gl_post" "405"
+          glcheck "unknown entry" "$gl_missing" "404"
+          test "$glfail" = "0"
+
   ui:
     runs-on: ubuntu-24.04
     needs: build
