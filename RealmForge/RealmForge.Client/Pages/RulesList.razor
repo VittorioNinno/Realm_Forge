@@ -61,12 +61,24 @@
     }
     else
     {
-        @* One section per family: conditions first, the general rules last *@
+        @* One section per family: conditions first, the general rules last; each one opens and closes *@
+        <div class="d-flex justify-content-end gap-2">
+            <button type="button" class="btn btn-sm btn-rf-outline" @onclick="() => SetAllGroups(true)" data-test="rules-expand-all">@UiText.BtnExpandAll(Lang)</button>
+            <button type="button" class="btn btn-sm btn-rf-outline" @onclick="() => SetAllGroups(false)" data-test="rules-collapse-all">@UiText.BtnCollapseAll(Lang)</button>
+        </div>
         @foreach (var group in FilteredEntries.GroupBy(e => e.Category).OrderBy(g => Array.IndexOf(CategoryOrder, g.Key)))
         {
-            <h2 class="h5 mt-4 mb-3 rf-spell-level-title" data-test="rules-group">
-                @UiText.RuleCategoryGroup(group.Key, Lang) <span class="small" style="color: var(--rf-text-muted);">(@group.Count())</span>
+            var expanded = IsExpanded(group.Key);
+            <h2 class="h5 mt-4 mb-3 rf-spell-level-title">
+                <button type="button" class="rf-group-toggle" aria-expanded="@(expanded ? "true" : "false")" @onclick="() => ToggleGroup(group.Key)" data-test="rules-group">
+                    <span class="rf-group-chevron @(expanded ? "open" : null)"><NavIcon Name="chevron" /></span>
+                    @UiText.RuleCategoryGroup(group.Key, Lang) <span class="small" style="color: var(--rf-text-muted);">(@group.Count())</span>
+                </button>
             </h2>
+            @if (!expanded)
+            {
+                continue;
+            }
             <div class="rf-glossary-grid">
                 @foreach (var entry in group)
                 {
@@ -151,6 +163,33 @@
 
     //	The edition badge is useful only when both editions are listed
     private bool ShowEditionBadge => SelectedRuleset is null;
+
+    //	Open and closed families: closed by default, open with a family filter or a search; toggles win until the filters change
+    private readonly Dictionary<RuleCategory, bool> toggledGroups = new();
+    private string? groupFilters;
+
+    private bool IsExpanded(RuleCategory category)
+    {
+        var filters = $"{CategoryFilter}|{SearchTerm}|{SelectedRuleset}";
+        if (filters != groupFilters)
+        {
+            groupFilters = filters;
+            toggledGroups.Clear();
+        }
+
+        return toggledGroups.TryGetValue(category, out var open) ? open : CategoryFilter is not null || !string.IsNullOrWhiteSpace(SearchTerm);
+    }
+
+    private void ToggleGroup(RuleCategory category) => toggledGroups[category] = !IsExpanded(category);
+
+    private void SetAllGroups(bool open)
+    {
+        IsExpanded(RuleCategory.Rule);
+        foreach (var category in CategoryOrder)
+        {
+            toggledGroups[category] = open;
+        }
+    }
 
     private string SelectedRulesetFilter
     {
