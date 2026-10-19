@@ -1,0 +1,21 @@
+﻿@using RealmForge.Client.Localization
+@using RealmForge.Shared.DTOs
+@using RealmForge.Shared.Enums
+
+@* Compact badges of an equipment row: the edition (when both are listed) and the Homebrew badge; Base items stay unmarked to keep the tables light *@
+<span class="rf-item-badges">
+    @if (ShowEdition)
+    {
+        <span class="badge @(Item.Ruleset == RulesetVersion.Dnd5e_2024 ? "badge-edition-2024" : "badge-edition-2014")">@UiText.FormatRuleset(Item.Ruleset, Lang)</span>
+    }
+    @if (!Item.IsOfficialSRD)
+    {
+        <ContentBadge IsBase="false" Visibility="Item.Visibility" />
+    }
+</span>
+
+@code {
+    [Parameter, EditorRequired] public EquipmentResponseDto Item { get; set; } = null!;
+    [Parameter] public LanguageCode Lang { get; set; }
+    [Parameter] public bool ShowEdition { get; set; }
+}

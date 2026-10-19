@@ -1154,3 +1154,140 @@ input::-ms-clear {
         grid-template-columns: 1fr;
     }
 }
+
+/* Equipment: tables for weapons and armor (as in the equipment chapter), tiles for everything else */
+.rf-equipment-subtitle {
+    font-size: 0.78rem;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    color: var(--rf-text-muted);
+    font-weight: 700;
+    margin: 0.75rem 0 0.4rem;
+}
+
+.rf-equipment-table-wrap {
+    overflow-x: auto;
+    border: 1px solid var(--rf-border-subtle);
+    border-radius: 6px;
+    background-color: var(--rf-bg-surface);
+}
+
+.rf-equipment-table {
+    width: 100%;
+    min-width: 620px;
+    border-collapse: collapse;
+    font-size: 0.86rem;
+}
+
+    .rf-equipment-table th {
+        text-align: left;
+        font-size: 0.7rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        color: var(--rf-text-muted);
+        font-weight: 700;
+        padding: 0.5rem 0.65rem;
+        border-bottom: 1px solid var(--rf-border-light);
+        white-space: nowrap;
+    }
+
+    .rf-equipment-table td {
+        padding: 0.45rem 0.65rem;
+        border-bottom: 1px solid var(--rf-border-subtle);
+        color: var(--rf-text-secondary);
+        white-space: nowrap;
+    }
+
+    .rf-equipment-table tbody tr {
+        cursor: pointer;
+        transition: background-color 0.15s ease;
+    }
+
+        .rf-equipment-table tbody tr:hover {
+            background-color: var(--rf-bg-card);
+        }
+
+        .rf-equipment-table tbody tr:last-child td {
+            border-bottom: none;
+        }
+
+    .rf-equipment-table .rf-col-name {
+        color: var(--rf-text-primary);
+        font-weight: 600;
+    }
+
+    .rf-equipment-table .rf-col-wide {
+        white-space: normal;
+        min-width: 180px;
+    }
+
+.rf-item-badges {
+    display: inline-flex;
+    gap: 0.25rem;
+    margin-left: 0.35rem;
+    vertical-align: middle;
+}
+
+    .rf-item-badges .badge {
+        font-size: 0.62rem;
+    }
+
+.rf-equipment-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+    gap: 0.6rem;
+}
+
+.rf-equipment-tile {
+    padding: 0.65rem 0.8rem;
+    border-radius: 6px;
+    background-color: var(--rf-bg-surface);
+    border: 1px solid var(--rf-border-subtle);
+    border-left: 3px solid var(--rf-border-light);
+    cursor: pointer;
+    transition: border-color 0.15s ease, background-color 0.15s ease;
+}
+
+    .rf-equipment-tile:hover {
+        background-color: var(--rf-bg-card);
+        border-left-color: var(--rf-orange-primary);
+    }
+
+.rf-equipment-tile-name {
+    color: var(--rf-text-primary);
+    font-weight: 600;
+    font-size: 0.92rem;
+}
+
+.rf-equipment-tile-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    margin-top: 0.25rem;
+    font-size: 0.8rem;
+    color: #ffd27a;
+}
+
+.rf-equipment-rules {
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+    margin: 0;
+}
+
+    .rf-equipment-rules dt {
+        color: var(--rf-text-primary);
+        font-weight: 700;
+        font-size: 0.9rem;
+    }
+
+    .rf-equipment-rules dd {
+        margin: 0;
+        color: var(--rf-text-secondary);
+        font-size: 0.86rem;
+        line-height: 1.5;
+    }
+
+.rf-spell-stats .rf-stat-wide {
+    grid-column: 1 / -1;
+}

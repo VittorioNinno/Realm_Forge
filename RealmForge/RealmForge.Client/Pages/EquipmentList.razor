@@ -1,0 +1,954 @@
+﻿@page "/equipment"
+@using RealmForge.Client.Components
+@using RealmForge.Client.Localization
+@using RealmForge.Client.Services
+@using RealmForge.Shared.DTOs
+@using RealmForge.Shared.Enums
+@using RealmForge.Shared.Localization
+@implements IDisposable
+@inject EquipmentDataService EquipmentService
+@inject LanguageStateService LanguageState
+@inject ApiErrorState ApiErrors
+
+<PageTitle>RealmForge - @UiText.EquipmentTitle(Lang)</PageTitle>
+
+<div class="container-fluid px-0 py-4">
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4 pb-3" style="border-bottom: 2px solid var(--rf-orange-primary);">
+        <div>
+            <h1 class="h3 fw-bold mb-1 rf-page-title">@UiText.EquipmentTitle(Lang)</h1>
+            <p class="mb-0 small" style="color: var(--rf-text-muted); letter-spacing: 1px; text-transform: uppercase;">
+                @UiText.EquipmentSubtitle(Lang)
+            </p>
+        </div>
+
+        <div class="d-flex gap-2">
+            <button class="btn btn-rf-outline" @onclick="() => showRules = true" data-test="equipment-rules-open">@UiText.BtnWeaponRules(Lang)</button>
+            <ForgeAction>
+                <button class="btn btn-rf-orange" @onclick="OpenCreateModal" data-test="equipment-add">
+                    @UiText.BtnAddEquipment(Lang)
+                </button>
+            </ForgeAction>
+        </div>
+    </div>
+
+    @* Filters: edition reloads from the API, everything else filters the loaded list *@
+    <div class="row g-3 mb-4 p-3 rounded" style="background-color: var(--rf-bg-surface); border: 1px solid var(--rf-border-light);" data-test="equipment-filters">
+        <div class="col-lg-3 col-md-6">
+            <label class="rf-form-label small text-uppercase" style="letter-spacing: 0.5px;">@UiText.LabelSearchEquipment(Lang)</label>
+            <input type="text" class="rf-form-control" placeholder="@UiText.PlaceholderSearchEquipment(Lang)"
+                   @bind="SearchTerm" @bind:event="oninput" data-test="equipment-search" />
+        </div>
+        <div class="col-lg-3 col-md-6" data-test="equipment-ruleset">
+            <label class="rf-form-label small text-uppercase" style="letter-spacing: 0.5px;">@UiText.LabelRuleset(Lang)</label>
+            <RfSelect TValue="string" @bind-Value="SelectedRulesetFilter" OnChange="LoadEquipmentAsync"
+                      Options="@(new List<RfSelect<string>.OptionItem>
+                      {
+                          new("", UiText.FilterRulesetAll(Lang)),
+                          new(((int)RulesetVersion.Dnd5e_2024).ToString(), UiText.FormatRuleset(RulesetVersion.Dnd5e_2024, Lang)),
+                          new(((int)RulesetVersion.Dnd5e_2014).ToString(), UiText.FormatRuleset(RulesetVersion.Dnd5e_2014, Lang))
+                      })" />
+        </div>
+        <div class="col-lg-3 col-md-6" data-test="equipment-origin">
+            <label class="rf-form-label small text-uppercase" style="letter-spacing: 0.5px;">@UiText.LabelOrigin(Lang)</label>
+            <RfSelect TValue="string" @bind-Value="OriginFilter"
+                      Options="@(new List<RfSelect<string>.OptionItem>
+                      {
+                          new("", UiText.FilterOriginAll(Lang)),
+                          new("srd", UiText.FilterOnlyBase(Lang)),
+                          new("homebrew", UiText.FilterOnlyHomebrew(Lang))
+                      })" />
+        </div>
+        <div class="col-lg-3 col-md-6" data-test="equipment-category">
+            <label class="rf-form-label small text-uppercase" style="letter-spacing: 0.5px;">@UiText.LabelEquipmentCategory(Lang)</label>
+            <RfSelect TValue="EquipmentCategory?" @bind-Value="CategoryFilter" Options="CategoryOptions" />
+        </div>
+
+        @* Filters that depend on the category *@
+        @if (CategoryFilter == EquipmentCategory.Weapon)
+        {
+            <div class="col-lg-3 col-md-6" data-test="equipment-weapon-kind">
+                <label class="rf-form-label small text-uppercase" style="letter-spacing: 0.5px;">@UiText.LabelWeaponKind(Lang)</label>
+                <RfSelect TValue="string" @bind-Value="WeaponKindFilter" Options="WeaponKindOptions" />
+            </div>
+            <div class="col-lg-3 col-md-6" data-test="equipment-mastery">
+                <label class="rf-form-label small text-uppercase" style="letter-spacing: 0.5px;">@UiText.LabelMastery(Lang)</label>
+                <RfSelect TValue="WeaponMastery?" @bind-Value="MasteryFilter" Options="MasteryOptions" />
+            </div>
+        }
+        else if (CategoryFilter == EquipmentCategory.Armor)
+        {
+            <div class="col-lg-3 col-md-6" data-test="equipment-armor-kind">
+                <label class="rf-form-label small text-uppercase" style="letter-spacing: 0.5px;">@UiText.LabelArmorKind(Lang)</label>
+                <RfSelect TValue="ArmorCategory?" @bind-Value="ArmorFilter"
+                          Options="@(new List<RfSelect<ArmorCategory?>.OptionItem> { new(null, UiText.FilterAllArmor(Lang)) }
+                              .Concat(Enum.GetValues<ArmorCategory>().Select(a => new RfSelect<ArmorCategory?>.OptionItem(a, EquipmentTerms.ArmorCategoryName(a, Lang)))).ToList())" />
+            </div>
+        }
+        else if (CategoryFilter == EquipmentCategory.Tool)
+        {
+            <div class="col-lg-3 col-md-6" data-test="equipment-tool-kind">
+                <label class="rf-form-label small text-uppercase" style="letter-spacing: 0.5px;">@UiText.LabelToolKind(Lang)</label>
+                <RfSelect TValue="ToolCategory?" @bind-Value="ToolFilter"
+                          Options="@(new List<RfSelect<ToolCategory?>.OptionItem> { new(null, UiText.FilterAllTools(Lang)) }
+                              .Concat(Enum.GetValues<ToolCategory>().Select(t => new RfSelect<ToolCategory?>.OptionItem(t, EquipmentTerms.ToolCategoryName(t, Lang)))).ToList())" />
+            </div>
+        }
+        <div class="col-12 d-flex">
+            <span class="ms-auto small" style="color: var(--rf-text-muted);" data-test="equipment-count">@UiText.EquipmentCount(FilteredItems.Count, Lang)</span>
+        </div>
+    </div>
+
+    @if (IsLoading)
+    {
+        <div class="text-center my-5 py-5">
+            <div class="spinner-border" style="color: var(--rf-orange-primary);" role="status"></div>
+            <p class="mt-3" style="color: var(--rf-text-muted); text-transform: uppercase; letter-spacing: 1px;">@UiText.LoadingEquipment(Lang)</p>
+        </div>
+    }
+    else if (FilteredItems.Count == 0)
+    {
+        <div class="p-4 rounded text-center" style="background-color: var(--rf-bg-surface); border: 1px solid var(--rf-border-light);" data-test="equipment-empty">
+            <p class="mb-0" style="color: var(--rf-text-muted);">@UiText.NoEquipmentFound(Lang)</p>
+        </div>
+    }
+    else
+    {
+        @* One section per category, in the order of the equipment chapter *@
+        @foreach (var group in FilteredItems.GroupBy(i => i.Stats.Category).OrderBy(g => g.Key))
+        {
+            <h2 class="h5 mt-4 mb-3 rf-spell-level-title" data-test="equipment-group">
+                @EquipmentTerms.CategoryName(group.Key, Lang) <span class="small" style="color: var(--rf-text-muted);">(@group.Count())</span>
+            </h2>
+
+            @switch (group.Key)
+            {
+                case EquipmentCategory.Weapon:
+                    var showMastery = group.Any(i => i.Stats.Mastery.HasValue);
+                    @foreach (var kind in group.GroupBy(i => (i.Stats.WeaponCategory ?? WeaponCategory.Simple, i.Stats.WeaponRange ?? WeaponRange.Melee)).OrderBy(k => k.Key))
+                    {
+                        <h3 class="rf-equipment-subtitle">@EquipmentTerms.WeaponCategoryName(kind.Key.Item1, kind.Key.Item2, Lang)</h3>
+                        <div class="rf-equipment-table-wrap mb-3">
+                            <table class="rf-equipment-table" data-test="equipment-weapon-table">
+                                <thead>
+                                    <tr>
+                                        <th>@UiText.ColName(Lang)</th>
+                                        <th>@UiText.ColDamage(Lang)</th>
+                                        <th class="rf-col-wide">@UiText.ColProperties(Lang)</th>
+                                        @if (showMastery) { <th>@UiText.LabelMastery(Lang)</th> }
+                                        <th>@UiText.ColWeight(Lang)</th>
+                                        <th>@UiText.ColCost(Lang)</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var item in kind)
+                                    {
+                                        var s = item.Stats;
+                                        <tr @onclick="() => OpenDetailAsync(item.Id)" data-test="equipment-row">
+                                            <td class="rf-col-name">@item.Name <ItemBadges Item="item" Lang="Lang" ShowEdition="ShowEditionBadge" /></td>
+                                            <td>@EquipmentTerms.FormatDamage(s.DamageDice, s.DamageType, Lang)</td>
+                                            <td class="rf-col-wide">@EquipmentTerms.FormatProperties(s.WeaponProperties, s.NormalRange, s.LongRange, s.VersatileDamageDice, Lang)</td>
+                                            @if (showMastery) { <td>@(s.Mastery is { } m ? EquipmentTerms.MasteryName(m, Lang) : "—")</td> }
+                                            <td>@EquipmentTerms.FormatWeight(s.WeightInPounds, Lang)</td>
+                                            <td>@EquipmentTerms.FormatCost(s.CostInCopper, Lang)</td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    }
+                    break;
+
+                case EquipmentCategory.Armor:
+                    @foreach (var kind in group.GroupBy(i => i.Stats.ArmorCategory ?? ArmorCategory.Light).OrderBy(k => k.Key))
+                    {
+                        <h3 class="rf-equipment-subtitle">@EquipmentTerms.ArmorCategoryName(kind.Key, Lang)</h3>
+                        <div class="rf-equipment-table-wrap mb-3">
+                            <table class="rf-equipment-table" data-test="equipment-armor-table">
+                                <thead>
+                                    <tr>
+                                        <th>@UiText.ColName(Lang)</th>
+                                        <th class="rf-col-wide">@UiText.ColArmorClass(Lang)</th>
+                                        <th>@UiText.ColStrength(Lang)</th>
+                                        <th>@UiText.ColStealth(Lang)</th>
+                                        <th>@UiText.ColWeight(Lang)</th>
+                                        <th>@UiText.ColCost(Lang)</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var item in kind)
+                                    {
+                                        var s = item.Stats;
+                                        <tr @onclick="() => OpenDetailAsync(item.Id)" data-test="equipment-row">
+                                            <td class="rf-col-name">@item.Name <ItemBadges Item="item" Lang="Lang" ShowEdition="ShowEditionBadge" /></td>
+                                            <td class="rf-col-wide">@EquipmentTerms.FormatArmorClass(s.ArmorCategory, s.ArmorClass, s.ArmorAddsDexterity, s.ArmorMaxDexterityBonus, Lang)</td>
+                                            <td>@(s.StrengthRequirement is { } str ? UiText.StrengthRequirement(str, Lang) : "—")</td>
+                                            <td>@(s.StealthDisadvantage ? UiText.StealthDisadvantage(Lang) : "—")</td>
+                                            <td>@EquipmentTerms.FormatWeight(s.WeightInPounds, Lang)</td>
+                                            <td>@EquipmentTerms.FormatCost(s.CostInCopper, Lang)</td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    }
+                    break;
+
+                default:
+                    <div class="rf-equipment-grid">
+                        @foreach (var item in group)
+                        {
+                            var s = item.Stats;
+                            <div class="rf-equipment-tile" @onclick="() => OpenDetailAsync(item.Id)" data-test="equipment-tile">
+                                <div class="d-flex justify-content-between align-items-start gap-2">
+                                    <span class="rf-equipment-tile-name">@item.Name</span>
+                                    <ItemBadges Item="item" Lang="Lang" ShowEdition="ShowEditionBadge" />
+                                </div>
+                                @if (Kind(s) is { Length: > 0 } kind)
+                                {
+                                    <div class="small fst-italic" style="color: var(--rf-text-secondary);">@kind</div>
+                                }
+                                <div class="rf-equipment-tile-meta">
+                                    <span>@EquipmentTerms.FormatCost(s.CostInCopper, Lang)</span>
+                                    @if (s.WeightInPounds is > 0)
+                                    {
+                                        <span>@EquipmentTerms.FormatWeight(s.WeightInPounds, Lang)</span>
+                                    }
+                                    @if (s.Quantity > 1)
+                                    {
+                                        <span>×@s.Quantity</span>
+                                    }
+                                </div>
+                                @if (!string.IsNullOrWhiteSpace(item.ShortDescription))
+                                {
+                                    <p class="small mb-0 mt-1" style="color: var(--rf-text-muted);">@item.ShortDescription</p>
+                                }
+                            </div>
+                        }
+                    </div>
+                    break;
+            }
+        }
+    }
+</div>
+
+@if (showRules)
+{
+    <div class="rf-modal-backdrop" @onclick="() => showRules = false">
+        <div class="rf-modal-dialog" style="max-width: 760px;" @onclick:stopPropagation="true" data-test="equipment-rules">
+            <div class="d-flex justify-content-between align-items-start mb-3 pb-2" style="border-bottom: 2px solid var(--rf-orange-primary);">
+                <h2 class="h4 mb-0" style="color: var(--rf-orange-primary); font-family: var(--rf-font-display);">@UiText.WeaponRulesTitle(Lang)</h2>
+                <button class="btn btn-sm btn-rf-outline" @onclick="() => showRules = false">✕</button>
+            </div>
+            <dl class="rf-equipment-rules mb-4">
+                @foreach (var property in Enum.GetValues<WeaponProperty>())
+                {
+                    <div><dt>@EquipmentTerms.PropertyName(property, Lang)</dt><dd>@EquipmentTerms.PropertyRule(property, SelectedRuleset ?? RulesetVersion.Dnd5e_2024, Lang)</dd></div>
+                }
+            </dl>
+            <h3 class="h5" style="color: var(--rf-orange-primary);">@UiText.MasteryRulesTitle(Lang)</h3>
+            <p class="small" style="color: var(--rf-text-muted);">@UiText.MasteryRulesIntro(Lang)</p>
+            <dl class="rf-equipment-rules mb-3" data-test="equipment-mastery-rules">
+                @foreach (var mastery in Enum.GetValues<WeaponMastery>())
+                {
+                    <div><dt>@EquipmentTerms.MasteryName(mastery, Lang)</dt><dd>@EquipmentTerms.MasteryRule(mastery, Lang)</dd></div>
+                }
+            </dl>
+            <div class="d-flex justify-content-end pt-3" style="border-top: 1px solid var(--rf-border-light);">
+                <button class="btn btn-rf-outline text-uppercase" style="letter-spacing: 1px;" @onclick="() => showRules = false">@UiText.BtnClose(Lang)</button>
+            </div>
+        </div>
+    </div>
+}
+
+@if (SelectedItem is { } detail)
+{
+    var s = detail.Stats;
+    <div class="rf-modal-backdrop" @onclick="CloseDetail">
+        <div class="rf-modal-dialog" style="max-width: 680px;" @onclick:stopPropagation="true" data-test="equipment-detail">
+            <div class="d-flex justify-content-between align-items-start mb-3 pb-2" style="border-bottom: 2px solid var(--rf-orange-primary);">
+                <div>
+                    <h2 class="h3 mb-1" style="color: var(--rf-orange-primary); font-family: var(--rf-font-display);" data-test="equipment-name">@detail.Name</h2>
+                    <div class="fst-italic small mb-2" style="color: var(--rf-text-secondary);" data-test="equipment-subtitle">@Subtitle(s)</div>
+                    <div class="d-flex flex-wrap gap-2">
+                        <span class="badge @(detail.Ruleset == RulesetVersion.Dnd5e_2024 ? "badge-edition-2024" : "badge-edition-2014")">
+                            @UiText.FormatRuleset(detail.Ruleset, Lang)
+                        </span>
+                        <ContentBadge IsBase="detail.IsOfficialSRD" Source="detail.Source" Visibility="detail.Visibility" ShowSource="true" />
+                    </div>
+                </div>
+                <button class="btn btn-sm btn-rf-outline" @onclick="CloseDetail">✕</button>
+            </div>
+
+            @if (!detail.IsOfficialSRD)
+            {
+                <ShareLink Visibility="detail.Visibility" CanEdit="detail.CanEdit" Path="@($"equipment?id={detail.Id}")" />
+            }
+
+            <dl class="rf-spell-stats mb-3" data-test="equipment-stats">
+                <div><dt>@UiText.ColCost(Lang)</dt><dd>@EquipmentTerms.FormatCost(s.CostInCopper, Lang)</dd></div>
+                <div><dt>@UiText.ColWeight(Lang)</dt><dd>@EquipmentTerms.FormatWeight(s.WeightInPounds, Lang)</dd></div>
+                @if (s.Quantity > 1)
+                {
+                    <div><dt>@UiText.ColQuantity(Lang)</dt><dd>@s.Quantity</dd></div>
+                }
+                @if (s.Category == EquipmentCategory.Weapon)
+                {
+                    <div><dt>@UiText.ColDamage(Lang)</dt><dd>@EquipmentTerms.FormatDamage(s.DamageDice, s.DamageType, Lang)</dd></div>
+                    <div class="rf-stat-wide"><dt>@UiText.ColProperties(Lang)</dt><dd data-test="equipment-properties">@EquipmentTerms.FormatProperties(s.WeaponProperties, s.NormalRange, s.LongRange, s.VersatileDamageDice, Lang)</dd></div>
+                    @if (s.Mastery is { } mastery)
+                    {
+                        <div class="rf-stat-wide"><dt>@UiText.LabelMastery(Lang)</dt><dd data-test="equipment-mastery-value"><strong>@EquipmentTerms.MasteryName(mastery, Lang).</strong> @EquipmentTerms.MasteryRule(mastery, Lang)</dd></div>
+                    }
+                }
+                @if (s.Category == EquipmentCategory.Armor)
+                {
+                    <div><dt>@UiText.ColArmorClass(Lang)</dt><dd data-test="equipment-ac">@EquipmentTerms.FormatArmorClass(s.ArmorCategory, s.ArmorClass, s.ArmorAddsDexterity, s.ArmorMaxDexterityBonus, Lang)</dd></div>
+                    <div><dt>@UiText.ColStrength(Lang)</dt><dd>@(s.StrengthRequirement is { } str ? UiText.StrengthRequirement(str, Lang) : "—")</dd></div>
+                    <div><dt>@UiText.ColStealth(Lang)</dt><dd>@(s.StealthDisadvantage ? UiText.StealthDisadvantage(Lang) : "—")</dd></div>
+                }
+                @if (s.ToolAbility is { } ability)
+                {
+                    <div><dt>@UiText.ColAbility(Lang)</dt><dd>@FeatPrerequisiteFormatter.AbilityName(ability, Lang)</dd></div>
+                }
+                @if (s.SpeedInFeet is { } speed)
+                {
+                    <div><dt>@UiText.ColSpeed(Lang)</dt><dd>@EquipmentTerms.FormatDistance(speed, Lang)</dd></div>
+                }
+                @if (s.SpeedInMilesPerHour is { } mph)
+                {
+                    <div><dt>@UiText.ColSpeed(Lang)</dt><dd>@EquipmentTerms.FormatShipSpeed(mph, Lang)</dd></div>
+                }
+                @if (s.CarryingCapacityInPounds is { } capacity)
+                {
+                    <div><dt>@UiText.ColCapacity(Lang)</dt><dd>@EquipmentTerms.FormatCapacity(capacity, Lang)</dd></div>
+                }
+            </dl>
+
+            @if (!string.IsNullOrWhiteSpace(detail.Description))
+            {
+                <div class="mb-3 p-3 rounded" style="background-color: var(--rf-bg-main); border-left: 3px solid var(--rf-border-light);">
+                    <div class="rf-markdown-container" data-test="equipment-description">
+                        @((MarkupString)MarkdownText.ToHtml(detail.Description))
+                    </div>
+                </div>
+            }
+
+            <div class="d-flex justify-content-between align-items-center pt-3 mt-3" style="border-top: 1px solid var(--rf-border-light);">
+                @if (detail.CanEdit)
+                {
+                    <div class="d-flex gap-3">
+                        <button class="btn btn-sm btn-rf-outline text-uppercase" style="letter-spacing: 1px;"
+                                @onclick="async () => { var id = detail.Id; CloseDetail(); await OpenEditModalAsync(id); }">
+                            @UiText.Edit(Lang)
+                        </button>
+                        <button class="btn btn-sm btn-rf-outline text-uppercase px-3" style="border-color: #dc3545; color: #dc3545;"
+                                @onclick="() => { var id = detail.Id; var name = detail.Name; CloseDetail(); OpenDeleteModal(id, name); }">
+                            @UiText.Delete(Lang)
+                        </button>
+                    </div>
+                }
+                else
+                {
+                    <div></div>
+                }
+                <button class="btn btn-rf-outline text-uppercase" style="letter-spacing: 1px;" @onclick="CloseDetail">@UiText.BtnClose(Lang)</button>
+            </div>
+        </div>
+    </div>
+}
+
+@if (isModalOpen)
+{
+    <div class="rf-modal-backdrop" @onclick="CloseCreateModal">
+        <div class="rf-modal-dialog" style="max-width: 760px;" @onclick:stopPropagation="true" data-test="equipment-form">
+            <h2 class="h4 mb-3 pb-2" style="border-bottom: 1px solid var(--rf-border-light); font-family: var(--rf-font-display);">
+                @(isEditMode ? UiText.Edit(Lang) : UiText.ModalTitleAddEquipment(Lang))
+            </h2>
+
+            @if (isModalLoading)
+            {
+                <div class="text-center py-4"><div class="spinner-border text-warning" role="status"></div></div>
+            }
+            else
+            {
+                @if (!string.IsNullOrEmpty(formValidationMessage))
+                {
+                    <div class="alert alert-warning bg-dark border-warning text-warning p-2 small mb-3" data-test="equipment-form-error">@formValidationMessage</div>
+                }
+
+                <div class="row g-3 mb-3">
+                    <div class="col-md-6" data-test="equipment-form-category">
+                        <label class="rf-form-label">@UiText.LabelEquipmentCategory(Lang)</label>
+                        <RfSelect TValue="EquipmentCategory" @bind-Value="form.Category"
+                                  Options="@(Enum.GetValues<EquipmentCategory>().Select(c => new RfSelect<EquipmentCategory>.OptionItem(c, EquipmentTerms.CategoryName(c, Lang))).ToList())" />
+                    </div>
+                    <div class="col-md-6" data-test="equipment-form-ruleset">
+                        <label class="rf-form-label">@UiText.LabelRuleset(Lang)</label>
+                        <RfSelect TValue="RulesetVersion" @bind-Value="form.Ruleset"
+                                  Options="@(Enum.GetValues<RulesetVersion>().Select(r => new RfSelect<RulesetVersion>.OptionItem(r, UiText.FormatRuleset(r, Lang))).ToList())" />
+                    </div>
+                    <div class="col-md-3">
+                        <label class="rf-form-label">@UiText.LabelCostAmount(Lang)</label>
+                        <input type="number" min="0" class="rf-form-control" @bind="form.CostAmount" data-test="equipment-form-cost" />
+                    </div>
+                    <div class="col-md-3" data-test="equipment-form-coin">
+                        <label class="rf-form-label">@UiText.LabelCoin(Lang)</label>
+                        <RfSelect TValue="int" @bind-Value="form.CoinValue"
+                                  Options="@(new[] { 100, 10, 1 }.Select(c => new RfSelect<int>.OptionItem(c, UiText.CoinName(c, Lang))).ToList())" />
+                    </div>
+                    <div class="col-md-3">
+                        <label class="rf-form-label">@UiText.LabelWeightUnit(Lang)</label>
+                        <input type="number" min="0" step="0.05" class="rf-form-control" @bind="form.Weight" data-test="equipment-form-weight" />
+                    </div>
+                    <div class="col-md-3">
+                        <label class="rf-form-label">@UiText.ColQuantity(Lang)</label>
+                        <input type="number" min="1" class="rf-form-control" @bind="form.Quantity" />
+                    </div>
+                </div>
+
+                @if (form.Category == EquipmentCategory.Weapon)
+                {
+                    <div class="p-3 mb-3 rounded" style="background-color: var(--rf-bg-card); border-left: 3px solid var(--rf-border-light);" data-test="equipment-form-weapon">
+                        <div class="row g-2 mb-2">
+                            <div class="col-md-4">
+                                <label class="rf-form-label">@UiText.LabelWeaponKind(Lang)</label>
+                                <RfSelect TValue="WeaponCategory" @bind-Value="form.WeaponCategory"
+                                          Options="@(Enum.GetValues<WeaponCategory>().Select(c => new RfSelect<WeaponCategory>.OptionItem(c, EquipmentTerms.WeaponCategoryLabel(c, Lang))).ToList())" />
+                            </div>
+                            <div class="col-md-4">
+                                <label class="rf-form-label">&nbsp;</label>
+                                <RfSelect TValue="WeaponRange" @bind-Value="form.WeaponRange"
+                                          Options="@(Enum.GetValues<WeaponRange>().Select(r => new RfSelect<WeaponRange>.OptionItem(r, EquipmentTerms.WeaponRangeLabel(r, Lang))).ToList())" />
+                            </div>
+                            <div class="col-md-4">
+                                <label class="rf-form-label">@UiText.LabelMastery(Lang)</label>
+                                <RfSelect TValue="WeaponMastery?" @bind-Value="form.Mastery"
+                                          Options="@(new List<RfSelect<WeaponMastery?>.OptionItem> { new(null, UiText.LabelNone(Lang)) }
+                                              .Concat(Enum.GetValues<WeaponMastery>().Select(m => new RfSelect<WeaponMastery?>.OptionItem(m, EquipmentTerms.MasteryName(m, Lang)))).ToList())" />
+                            </div>
+                            <div class="col-md-4">
+                                <label class="rf-form-label">@UiText.LabelDamageDice(Lang)</label>
+                                <input type="text" class="rf-form-control" @bind="form.DamageDice" placeholder="1d8" data-test="equipment-form-dice" />
+                            </div>
+                            <div class="col-md-4">
+                                <label class="rf-form-label">@UiText.LabelDamageType(Lang)</label>
+                                <RfSelect TValue="DamageType" @bind-Value="form.DamageType"
+                                          Options="@(Enum.GetValues<DamageType>().Select(d => new RfSelect<DamageType>.OptionItem(d, Lang == LanguageCode.It ? EquipmentTerms.DamageTypeName(d, Lang, plural: false) : d.ToString())).ToList())" />
+                            </div>
+                            @if (form.Properties.Contains(WeaponProperty.Versatile))
+                            {
+                                <div class="col-md-4">
+                                    <label class="rf-form-label">@UiText.LabelVersatileDice(Lang)</label>
+                                    <input type="text" class="rf-form-control" @bind="form.VersatileDice" placeholder="1d10" />
+                                </div>
+                            }
+                        </div>
+                        <label class="rf-form-label">@UiText.ColProperties(Lang)</label>
+                        <div class="rf-pill-group mb-2" data-test="equipment-form-properties">
+                            @foreach (var property in Enum.GetValues<WeaponProperty>())
+                            {
+                                var current = property;
+                                <button type="button" class="rf-pill-btn @(form.Properties.Contains(current) ? "active" : "")" @onclick="() => Toggle(form.Properties, current)">
+                                    @EquipmentTerms.PropertyName(current, Lang)
+                                </button>
+                            }
+                        </div>
+                        @if (form.WeaponRange == WeaponRange.Ranged || form.Properties.Contains(WeaponProperty.Thrown))
+                        {
+                            <div class="row g-2">
+                                <div class="col-md-6">
+                                    <label class="rf-form-label">@UiText.LabelNormalRange(Lang)</label>
+                                    <input type="number" min="1" step="any" class="rf-form-control" @bind="form.NormalRange" />
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="rf-form-label">@UiText.LabelLongRange(Lang)</label>
+                                    <input type="number" min="1" step="any" class="rf-form-control" @bind="form.LongRange" />
+                                </div>
+                            </div>
+                        }
+                    </div>
+                }
+                else if (form.Category == EquipmentCategory.Armor)
+                {
+                    <div class="p-3 mb-3 rounded" style="background-color: var(--rf-bg-card); border-left: 3px solid var(--rf-border-light);" data-test="equipment-form-armor">
+                        <div class="row g-2 align-items-end">
+                            <div class="col-md-4">
+                                <label class="rf-form-label">@UiText.LabelArmorKind(Lang)</label>
+                                <RfSelect TValue="ArmorCategory" @bind-Value="form.ArmorCategory"
+                                          Options="@(Enum.GetValues<ArmorCategory>().Select(a => new RfSelect<ArmorCategory>.OptionItem(a, EquipmentTerms.ArmorCategoryName(a, Lang))).ToList())" />
+                            </div>
+                            <div class="col-md-4">
+                                <label class="rf-form-label">@UiText.LabelBaseArmorClass(Lang)</label>
+                                <input type="number" min="0" max="30" class="rf-form-control" @bind="form.ArmorClass" data-test="equipment-form-ac" />
+                            </div>
+                            <div class="col-md-4">
+                                <label class="rf-form-label">@UiText.LabelStrengthRequirement(Lang)</label>
+                                <input type="number" min="1" max="30" class="rf-form-control" @bind="form.StrengthRequirement" />
+                            </div>
+                            <div class="col-md-4">
+                                <label class="rf-form-label">@UiText.LabelMaxDexterity(Lang)</label>
+                                <input type="number" min="0" class="rf-form-control" @bind="form.MaxDexterity" disabled="@(!form.AddsDexterity)" />
+                            </div>
+                            <div class="col-md-8">
+                                <div class="rf-pill-group">
+                                    <button type="button" class="rf-pill-btn @(form.AddsDexterity ? "active" : "")" @onclick="() => form.AddsDexterity = !form.AddsDexterity">@UiText.LabelAddsDexterity(Lang)</button>
+                                    <button type="button" class="rf-pill-btn @(form.StealthDisadvantage ? "active" : "")" @onclick="() => form.StealthDisadvantage = !form.StealthDisadvantage">@UiText.ColStealth(Lang): @UiText.StealthDisadvantage(Lang)</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                }
+                else if (form.Category == EquipmentCategory.Tool)
+                {
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label class="rf-form-label">@UiText.LabelToolKind(Lang)</label>
+                            <RfSelect TValue="ToolCategory" @bind-Value="form.ToolCategory"
+                                      Options="@(Enum.GetValues<ToolCategory>().Select(t => new RfSelect<ToolCategory>.OptionItem(t, EquipmentTerms.ToolCategoryName(t, Lang))).ToList())" />
+                        </div>
+                        <div class="col-md-6">
+                            <label class="rf-form-label">@UiText.ColAbility(Lang)</label>
+                            <RfSelect TValue="AbilityScore?" @bind-Value="form.ToolAbility"
+                                      Options="@(new List<RfSelect<AbilityScore?>.OptionItem> { new(null, UiText.LabelNone(Lang)) }
+                                          .Concat(Enum.GetValues<AbilityScore>().Select(a => new RfSelect<AbilityScore?>.OptionItem(a, FeatPrerequisiteFormatter.AbilityName(a, Lang)))).ToList())" />
+                        </div>
+                    </div>
+                }
+                else if (form.Category == EquipmentCategory.SpellcastingFocus)
+                {
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label class="rf-form-label">@UiText.ColKind(Lang)</label>
+                            <RfSelect TValue="FocusType" @bind-Value="form.FocusType"
+                                      Options="@(Enum.GetValues<FocusType>().Select(f => new RfSelect<FocusType>.OptionItem(f, EquipmentTerms.FocusTypeName(f, Lang))).ToList())" />
+                        </div>
+                    </div>
+                }
+                else if (form.Category == EquipmentCategory.Mount)
+                {
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label class="rf-form-label">@UiText.LabelSpeedFeet(Lang)</label>
+                            <input type="number" min="0" step="any" class="rf-form-control" @bind="form.Speed" />
+                        </div>
+                        <div class="col-md-6">
+                            <label class="rf-form-label">@UiText.LabelCapacityUnit(Lang)</label>
+                            <input type="number" min="0" step="any" class="rf-form-control" @bind="form.Capacity" />
+                        </div>
+                    </div>
+                }
+                else if (form.Category == EquipmentCategory.Ship)
+                {
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label class="rf-form-label">@UiText.LabelShipSpeed(Lang)</label>
+                            <input type="number" min="0" step="any" class="rf-form-control" @bind="form.ShipSpeed" />
+                        </div>
+                    </div>
+                }
+
+                <VisibilityPicker @bind-Value="form.Visibility" />
+
+                @foreach (var tr in new[] { itTexts, enTexts })
+                {
+                    var isIt = tr.Language == LanguageCode.It;
+                    <div class="p-3 mb-3 rounded" style="background-color: var(--rf-bg-card); border-left: 3px solid @(isIt ? "var(--rf-orange-primary)" : "#666");"
+                         data-test="@(isIt ? "equipment-form-it" : "equipment-form-en")">
+                        <div class="fw-bold mb-2 small" style="color: @(isIt ? "var(--rf-orange-primary)" : "var(--rf-text-secondary)");">
+                            @(isIt ? UiText.TabItalian(Lang) : UiText.TabEnglish(Lang))
+                        </div>
+                        <div class="mb-2">
+                            <label class="rf-form-label">@UiText.LabelName(Lang)</label>
+                            <input type="text" class="rf-form-control" @bind="tr.Name" data-test="equipment-form-name"
+                                   placeholder="@(isIt ? UiText.PlaceholderEquipmentNameIt(Lang) : UiText.PlaceholderEquipmentNameEn(Lang))" />
+                        </div>
+                        <div>
+                            <label class="rf-form-label">@UiText.LabelDescription(Lang)</label>
+                            <textarea class="rf-form-control" rows="4" @bind="tr.Description" data-test="equipment-form-description"></textarea>
+                        </div>
+                    </div>
+                }
+
+                <div class="d-flex justify-content-end gap-2 pt-2" style="border-top: 1px solid var(--rf-border-light);">
+                    <button class="btn btn-rf-outline" @onclick="CloseCreateModal">@UiText.BtnCancel(Lang)</button>
+                    <button class="btn btn-rf-orange" @onclick="HandleSaveAsync" disabled="@isSaving" data-test="equipment-form-save">
+                        @(isSaving ? "..." : UiText.BtnSaveEquipment(Lang))
+                    </button>
+                </div>
+            }
+        </div>
+    </div>
+}
+
+@if (isDeleteModalOpen)
+{
+    <div class="rf-modal-backdrop" @onclick="() => isDeleteModalOpen = false">
+        <div class="rf-modal-dialog" @onclick:stopPropagation="true" style="max-width: 450px; text-align: center;">
+            <h2 class="h4 mb-3" style="color: var(--rf-orange-primary);">@UiText.ConfirmDeletion(Lang)</h2>
+            <div class="p-3 mb-4 rounded" style="background-color: var(--rf-bg-main); border: 1px solid var(--rf-border-subtle); color: var(--rf-text-secondary); line-height: 1.5;">
+                @UiText.DeleteEquipmentWarning(Lang, itemToDeleteName)
+            </div>
+            @if (!string.IsNullOrEmpty(deleteError))
+            {
+                <div class="alert alert-warning bg-dark border-warning text-warning p-2 small mb-3">@deleteError</div>
+            }
+            <div class="d-flex justify-content-center gap-3">
+                <button class="btn btn-rf-outline" @onclick="() => isDeleteModalOpen = false">@UiText.BtnCancel(Lang)</button>
+                <button class="btn btn-rf-orange" style="background-color: #dc3545; border-color: #dc3545;" @onclick="HandleDeleteAsync">@UiText.Delete(Lang)</button>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    [SupplyParameterFromQuery(Name = "id")]
+    public Guid? QueryItemId { get; set; }
+
+    private LanguageCode Lang => LanguageState.CurrentLanguage;
+
+    private List<EquipmentResponseDto> AllItems { get; set; } = new();
+    private EquipmentDetailResponseDto? SelectedItem { get; set; }
+    private bool IsLoading { get; set; } = true;
+    private bool showRules;
+
+    //	Filters
+    private RulesetVersion? SelectedRuleset { get; set; }
+    private string SearchTerm { get; set; } = string.Empty;
+    private string OriginFilter { get; set; } = string.Empty;
+    private EquipmentCategory? CategoryFilter { get; set; }
+    private string WeaponKindFilter { get; set; } = string.Empty;
+    private WeaponMastery? MasteryFilter { get; set; }
+    private ArmorCategory? ArmorFilter { get; set; }
+    private ToolCategory? ToolFilter { get; set; }
+
+    //	The edition badge is useful only when both editions are listed
+    private bool ShowEditionBadge => SelectedRuleset is null;
+
+    private string SelectedRulesetFilter
+    {
+        get => SelectedRuleset.HasValue ? ((int)SelectedRuleset.Value).ToString() : "";
+        set => SelectedRuleset = int.TryParse(value, out var v) && Enum.IsDefined(typeof(RulesetVersion), v) ? (RulesetVersion)v : null;
+    }
+
+    private List<EquipmentResponseDto> FilteredItems =>
+        AllItems
+            .Where(i => OriginFilter switch { "srd" => i.IsOfficialSRD, "homebrew" => !i.IsOfficialSRD, _ => true })
+            .Where(i => CategoryFilter is null || i.Stats.Category == CategoryFilter)
+            .Where(i => CategoryFilter != EquipmentCategory.Weapon || WeaponKindFilter switch
+            {
+                "simple" => i.Stats.WeaponCategory == WeaponCategory.Simple,
+                "martial" => i.Stats.WeaponCategory == WeaponCategory.Martial,
+                "melee" => i.Stats.WeaponRange == WeaponRange.Melee,
+                "ranged" => i.Stats.WeaponRange == WeaponRange.Ranged,
+                _ => true
+            })
+            .Where(i => CategoryFilter != EquipmentCategory.Weapon || MasteryFilter is null || i.Stats.Mastery == MasteryFilter)
+            .Where(i => CategoryFilter != EquipmentCategory.Armor || ArmorFilter is null || i.Stats.ArmorCategory == ArmorFilter)
+            .Where(i => CategoryFilter != EquipmentCategory.Tool || ToolFilter is null || i.Stats.ToolCategory == ToolFilter)
+            .Where(i => string.IsNullOrWhiteSpace(SearchTerm)
+                        || i.Name.Contains(SearchTerm.Trim(), StringComparison.OrdinalIgnoreCase)
+                        || i.ShortDescription.Contains(SearchTerm.Trim(), StringComparison.OrdinalIgnoreCase))
+            .ToList();
+
+    private List<RfSelect<EquipmentCategory?>.OptionItem> CategoryOptions =>
+        new List<RfSelect<EquipmentCategory?>.OptionItem> { new(null, UiText.FilterAllCategories(Lang)) }
+            .Concat(Enum.GetValues<EquipmentCategory>().Select(c => new RfSelect<EquipmentCategory?>.OptionItem(c, EquipmentTerms.CategoryName(c, Lang))))
+            .ToList();
+
+    private List<RfSelect<string>.OptionItem> WeaponKindOptions => new()
+    {
+        new("", UiText.FilterAllWeapons(Lang)),
+        new("simple", EquipmentTerms.WeaponCategoryLabel(WeaponCategory.Simple, Lang)),
+        new("martial", EquipmentTerms.WeaponCategoryLabel(WeaponCategory.Martial, Lang)),
+        new("melee", EquipmentTerms.WeaponRangeLabel(WeaponRange.Melee, Lang)),
+        new("ranged", EquipmentTerms.WeaponRangeLabel(WeaponRange.Ranged, Lang))
+    };
+
+    private List<RfSelect<WeaponMastery?>.OptionItem> MasteryOptions =>
+        new List<RfSelect<WeaponMastery?>.OptionItem> { new(null, UiText.FilterAnyMastery(Lang)) }
+            .Concat(Enum.GetValues<WeaponMastery>().Select(m => new RfSelect<WeaponMastery?>.OptionItem(m, EquipmentTerms.MasteryName(m, Lang))).OrderBy(o => o.Label))
+            .ToList();
+
+    //	Second line of a tile and of the detail: the kind of tool or focus, or the category
+    private string Kind(EquipmentStatsDto s) => s switch
+    {
+        { ToolCategory: { } tool } => EquipmentTerms.ToolCategoryName(tool, Lang),
+        { FocusType: { } focus } => EquipmentTerms.FocusTypeName(focus, Lang),
+        _ => string.Empty
+    };
+
+    private string Subtitle(EquipmentStatsDto s) => s.Category switch
+    {
+        EquipmentCategory.Weapon when s.WeaponCategory is { } c && s.WeaponRange is { } r => EquipmentTerms.WeaponCategoryName(c, r, Lang),
+        EquipmentCategory.Armor when s.ArmorCategory is { } a => EquipmentTerms.ArmorCategoryName(a, Lang),
+        _ => Kind(s) is { Length: > 0 } kind ? kind : EquipmentTerms.CategoryName(s.Category, Lang)
+    };
+
+    protected override async Task OnInitializedAsync()
+    {
+        LanguageState.OnLanguageChanged += HandleLanguageChanged;
+        await LoadEquipmentAsync();
+
+        if (QueryItemId.HasValue)
+        {
+            await OpenDetailAsync(QueryItemId.Value);
+
+            //	Shared link to a private or deleted entry
+            if (SelectedItem == null)
+            {
+                ApiErrors.Report(ApiErrorKind.NotAvailable);
+            }
+        }
+    }
+
+    private async void HandleLanguageChanged()
+    {
+        if (SelectedItem != null)
+        {
+            SelectedItem = await EquipmentService.GetItemAsync(SelectedItem.Id, Lang);
+        }
+
+        await LoadEquipmentAsync();
+        StateHasChanged();
+    }
+
+    private async Task LoadEquipmentAsync()
+    {
+        IsLoading = true;
+        AllItems = await EquipmentService.GetEquipmentAsync(Lang, SelectedRuleset);
+        IsLoading = false;
+    }
+
+    private async Task OpenDetailAsync(Guid id) => SelectedItem = await EquipmentService.GetItemAsync(id, Lang);
+
+    private void CloseDetail() => SelectedItem = null;
+
+    #region Homebrew form
+
+    //	Quantities are edited in the unit of the interface language (kg, metres and km/h in Italian) and stored in pounds, feet and mph
+    private sealed class EquipmentForm
+    {
+        public EquipmentCategory Category { get; set; } = EquipmentCategory.AdventuringGear;
+        public RulesetVersion Ruleset { get; set; } = RulesetVersion.Dnd5e_2024;
+        public ContentVisibility Visibility { get; set; } = ContentVisibility.Private;
+        public int? CostAmount { get; set; }
+        public int CoinValue { get; set; } = 100;
+        public decimal? Weight { get; set; }
+        public int Quantity { get; set; } = 1;
+        public WeaponCategory WeaponCategory { get; set; } = WeaponCategory.Simple;
+        public WeaponRange WeaponRange { get; set; } = WeaponRange.Melee;
+        public string? DamageDice { get; set; }
+        public DamageType DamageType { get; set; } = DamageType.Slashing;
+        public string? VersatileDice { get; set; }
+        public List<WeaponProperty> Properties { get; set; } = new();
+        public decimal? NormalRange { get; set; }
+        public decimal? LongRange { get; set; }
+        public WeaponMastery? Mastery { get; set; }
+        public ArmorCategory ArmorCategory { get; set; } = ArmorCategory.Light;
+        public int? ArmorClass { get; set; }
+        public bool AddsDexterity { get; set; } = true;
+        public int? MaxDexterity { get; set; }
+        public int? StrengthRequirement { get; set; }
+        public bool StealthDisadvantage { get; set; }
+        public ToolCategory ToolCategory { get; set; } = ToolCategory.ArtisansTools;
+        public AbilityScore? ToolAbility { get; set; }
+        public FocusType FocusType { get; set; } = FocusType.Arcane;
+        public decimal? Speed { get; set; }
+        public decimal? Capacity { get; set; }
+        public decimal? ShipSpeed { get; set; }
+    }
+
+    private bool isModalOpen;
+    private bool isModalLoading;
+    private bool isSaving;
+    private bool isEditMode;
+    private Guid editingId;
+    private string? formValidationMessage;
+    private EquipmentForm form = new();
+    private EquipmentTranslationDto itTexts = new() { Language = LanguageCode.It };
+    private EquipmentTranslationDto enTexts = new() { Language = LanguageCode.En };
+
+    private bool isDeleteModalOpen;
+    private Guid itemToDeleteId;
+    private string itemToDeleteName = string.Empty;
+    private string? deleteError;
+
+    private bool Metric => Lang == LanguageCode.It;
+
+    private static void Toggle<T>(List<T> list, T value)
+    {
+        if (!list.Remove(value))
+        {
+            list.Add(value);
+        }
+    }
+
+    private void OpenCreateModal()
+    {
+        isEditMode = false;
+        formValidationMessage = null;
+        form = new EquipmentForm { Ruleset = SelectedRuleset ?? RulesetVersion.Dnd5e_2024, Category = CategoryFilter ?? EquipmentCategory.AdventuringGear };
+        itTexts = new EquipmentTranslationDto { Language = LanguageCode.It };
+        enTexts = new EquipmentTranslationDto { Language = LanguageCode.En };
+        isModalOpen = true;
+    }
+
+    private async Task OpenEditModalAsync(Guid id)
+    {
+        isEditMode = true;
+        editingId = id;
+        formValidationMessage = null;
+        isModalOpen = true;
+        isModalLoading = true;
+
+        var itTask = EquipmentService.GetItemAsync(id, LanguageCode.It);
+        var enTask = EquipmentService.GetItemAsync(id, LanguageCode.En);
+        await Task.WhenAll(itTask, enTask);
+
+        if (itTask.Result is { } it && enTask.Result is { } en)
+        {
+            var s = it.Stats;
+            var coin = s.CostInCopper is { } c ? (c % 100 == 0 ? 100 : c % 10 == 0 ? 10 : 1) : 100;
+            form = new EquipmentForm
+            {
+                Category = s.Category, Ruleset = it.Ruleset, Visibility = it.Visibility,
+                CostAmount = s.CostInCopper / coin, CoinValue = coin,
+                Weight = s.WeightInPounds is { } w ? (Metric ? w / 2 : w) : null,
+                Quantity = s.Quantity,
+                WeaponCategory = s.WeaponCategory ?? WeaponCategory.Simple, WeaponRange = s.WeaponRange ?? WeaponRange.Melee,
+                DamageDice = s.DamageDice, DamageType = s.DamageType ?? DamageType.Slashing, VersatileDice = s.VersatileDamageDice,
+                Properties = s.WeaponProperties.ToList(), Mastery = s.Mastery,
+                NormalRange = s.NormalRange is { } n ? (Metric ? n * 0.3m : n) : null,
+                LongRange = s.LongRange is { } l ? (Metric ? l * 0.3m : l) : null,
+                ArmorCategory = s.ArmorCategory ?? ArmorCategory.Light, ArmorClass = s.ArmorClass, AddsDexterity = s.ArmorAddsDexterity,
+                MaxDexterity = s.ArmorMaxDexterityBonus, StrengthRequirement = s.StrengthRequirement, StealthDisadvantage = s.StealthDisadvantage,
+                ToolCategory = s.ToolCategory ?? ToolCategory.ArtisansTools, ToolAbility = s.ToolAbility, FocusType = s.FocusType ?? FocusType.Arcane,
+                Speed = s.SpeedInFeet is { } f ? (Metric ? f * 0.3m : f) : null,
+                Capacity = s.CarryingCapacityInPounds is { } cap ? (Metric ? cap / 2m : cap) : null,
+                ShipSpeed = s.SpeedInMilesPerHour is { } mph ? (Metric ? mph * 1.5m : mph) : null
+            };
+            itTexts = new EquipmentTranslationDto { Language = LanguageCode.It, Name = it.Name, Description = it.Description };
+            enTexts = new EquipmentTranslationDto { Language = LanguageCode.En, Name = en.Name, Description = en.Description };
+        }
+        else
+        {
+            formValidationMessage = UiText.ErrApiSave(Lang);
+        }
+
+        isModalLoading = false;
+    }
+
+    private void CloseCreateModal() => isModalOpen = false;
+
+    private int? Feet(decimal? value) => value is { } v ? (int)Math.Round(Metric ? v / 0.3m : v) : null;
+
+    private EquipmentStatsDto BuildStats() => new()
+    {
+        Category = form.Category,
+        CostInCopper = form.CostAmount is { } amount ? amount * form.CoinValue : null,
+        WeightInPounds = form.Weight is { } w and > 0 ? (Metric ? w * 2 : w) : null,
+        Quantity = Math.Max(1, form.Quantity),
+        WeaponCategory = form.WeaponCategory,
+        WeaponRange = form.WeaponRange,
+        DamageDice = form.DamageDice,
+        DamageType = string.IsNullOrWhiteSpace(form.DamageDice) ? null : form.DamageType,
+        VersatileDamageDice = form.VersatileDice,
+        WeaponProperties = form.Properties.ToList(),
+        NormalRange = Feet(form.NormalRange),
+        LongRange = Feet(form.LongRange),
+        Mastery = form.Mastery,
+        ArmorCategory = form.ArmorCategory,
+        ArmorClass = form.ArmorClass,
+        ArmorAddsDexterity = form.AddsDexterity,
+        ArmorMaxDexterityBonus = form.MaxDexterity,
+        StrengthRequirement = form.StrengthRequirement,
+        StealthDisadvantage = form.StealthDisadvantage,
+        ToolCategory = form.ToolCategory,
+        ToolAbility = form.ToolAbility,
+        FocusType = form.FocusType,
+        SpeedInFeet = Feet(form.Speed),
+        CarryingCapacityInPounds = form.Capacity is { } cap ? (int)Math.Round(Metric ? cap * 2 : cap) : null,
+        SpeedInMilesPerHour = form.ShipSpeed is { } mph ? Math.Round(Metric ? mph / 1.5m : mph, 2) : null
+    };
+
+    private bool StatsLookValid(EquipmentStatsDto s) => s.Category switch
+    {
+        EquipmentCategory.Weapon => !string.IsNullOrWhiteSpace(s.DamageDice)
+                                    && (!s.WeaponProperties.Contains(WeaponProperty.Versatile) || !string.IsNullOrWhiteSpace(s.VersatileDamageDice))
+                                    && (s.WeaponRange != WeaponRange.Ranged && !s.WeaponProperties.Contains(WeaponProperty.Thrown) || (s.NormalRange > 0 && s.LongRange >= s.NormalRange)),
+        EquipmentCategory.Armor => s.ArmorClass is >= 0 and <= 30,
+        _ => true
+    };
+
+    private async Task HandleSaveAsync()
+    {
+        if (string.IsNullOrWhiteSpace(itTexts.Name) || string.IsNullOrWhiteSpace(enTexts.Name))
+        {
+            formValidationMessage = UiText.ErrFillNames(Lang);
+            return;
+        }
+
+        var stats = BuildStats();
+        if (!StatsLookValid(stats))
+        {
+            formValidationMessage = UiText.ErrEquipmentStats(Lang);
+            return;
+        }
+
+        isSaving = true;
+        formValidationMessage = null;
+
+        var dto = new SaveEquipmentDto
+        {
+            Id = editingId,
+            Ruleset = form.Ruleset,
+            Stats = stats,
+            Visibility = form.Visibility,
+            Translations = new[] { itTexts, enTexts }.Select(t => new EquipmentTranslationDto
+            {
+                Language = t.Language,
+                Name = t.Name.Trim(),
+                Description = t.Description?.Trim() ?? string.Empty
+            }).ToList()
+        };
+
+        var success = isEditMode ? await EquipmentService.UpdateItemAsync(editingId, dto) : await EquipmentService.CreateItemAsync(dto);
+        isSaving = false;
+
+        if (success)
+        {
+            isModalOpen = false;
+            await LoadEquipmentAsync();
+        }
+        else
+        {
+            formValidationMessage = UiText.ErrApiSave(Lang);
+        }
+    }
+
+    private void OpenDeleteModal(Guid id, string name)
+    {
+        itemToDeleteId = id;
+        itemToDeleteName = name;
+        deleteError = null;
+        isDeleteModalOpen = true;
+    }
+
+    private async Task HandleDeleteAsync()
+    {
+        if (await EquipmentService.DeleteItemAsync(itemToDeleteId))
+        {
+            isDeleteModalOpen = false;
+            SelectedItem = null;
+            await LoadEquipmentAsync();
+        }
+        else
+        {
+            deleteError = UiText.ErrDeleteEquipment(Lang);
+        }
+    }
+
+    #endregion
+
+    public void Dispose() => LanguageState.OnLanguageChanged -= HandleLanguageChanged;
+}
