@@ -57,7 +57,7 @@ public class ClassSeedDataTests
 				Assert.False(string.IsNullOrWhiteSpace(tr.StartingEquipment), label);
 				Assert.DoesNotContain("TODO", tr.Description, StringComparison.Ordinal);
 				//	Progression table: one header, one separator and 20 level rows
-				var rows = tr.ProgressionTable.Split('\n').Count(l => l.StartsWith('|'));
+				var rows = (tr.ProgressionTable ?? string.Empty).Split('\n').Count(l => l.StartsWith('|'));
 				Assert.True(rows == 22, $"{label}: {rows} table rows");
 			}
 

@@ -161,15 +161,15 @@ try {
   await page.locator('[data-test=class-search]').fill('mago');
   await page.locator('[data-test=class-card]', { hasText: 'Mago' }).first().click();
   await page.locator('[data-test=class-detail]').waitFor({ timeout: 15000 });
-  const wizardSheet = { name: (await page.locator('[data-test=class-name]').innerText()).trim(), skills: (await page.locator('[data-test=class-skills]').innerText()).trim() };
+  const wizardSheet = { name: (await page.locator('[data-test=class-name]').textContent()).trim(), skills: (await page.locator('[data-test=class-skills]').textContent()).trim() };
   await page.locator('[data-test=class-tab-table]').click();
   wizardSheet.tableRows = await page.locator('[data-test=class-table] tbody tr').count();
   await page.locator('[data-test=class-tab-features]').click();
-  wizardSheet.features = await page.locator('[data-test=class-feature-name]').allInnerTexts();
+  wizardSheet.features = (await page.locator('[data-test=class-feature-name]').allTextContents()).map((t) => t.trim());
   await page.locator('[data-test=class-tab-subclasses]').click();
   wizardSheet.subclasses = await page.locator('[data-test=subclass-pill]').count();
   await page.locator('[data-test=subclass-pill]', { hasText: 'Necromanzia' }).click();
-  wizardSheet.subclass = (await page.locator('[data-test=subclass-name]').innerText()).trim();
+  wizardSheet.subclass = (await page.locator('[data-test=subclass-name]').textContent()).trim();
   wizardSheet.subclassFeatures = await page.locator('[data-test=subclass-detail] [data-test=class-feature]').count();
   results.push(`INFO classes: ${allClasses} | full casters=${fullCasters} | wizard ${JSON.stringify(wizardSheet)}`);
   if (allClasses !== '12 classi' || fullCasters !== '5 classi' || wizardSheet.name !== 'Mago' || wizardSheet.tableRows !== 20 || wizardSheet.features[0] !== 'Incantesimi'
