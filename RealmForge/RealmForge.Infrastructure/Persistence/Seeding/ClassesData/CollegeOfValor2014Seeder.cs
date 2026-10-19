@@ -73,7 +73,7 @@ public static class CollegeOfValor2014Seeder
 					Translations = new List<ClassFeatureTranslation>
 					{
 						new ClassFeatureTranslation { Id = DeterministicGuid.ForSrd(RulesetVersion.Dnd5e_2014, "class-feature", "college-of-valor/battle-magic", "en"), Language = LanguageCode.En, Name = "Battle Magic", Description = "At 14th level, you weave spells and steel together. Whenever you use your action to cast a bard spell, you can make one weapon attack as a bonus action on that same turn." },
-						new ClassFeatureTranslation { Id = DeterministicGuid.ForSrd(RulesetVersion.Dnd5e_2014, "class-feature", "college-of-valor/battle-magic", "it"), Language = LanguageCode.It, Name = "Magia da Battaglia", Description = "Al 14° livello il bardo intreccia incantesimi e acciaio. Ogni volta che usa la sua azione per lanciare un incantesimo da bardo, può effettuare un attacco con un'arma come azione bonus nello stesso turno." }
+						new ClassFeatureTranslation { Id = DeterministicGuid.ForSrd(RulesetVersion.Dnd5e_2014, "class-feature", "college-of-valor/battle-magic", "it"), Language = LanguageCode.It, Name = "Magia da Battaglia", Description = "Al 14° livello il bardo fonde incantesimi e acciaio. Nei turni in cui spende la sua azione nel lancio di un incantesimo da bardo, gli è concesso anche un attacco con un'arma, che effettua come azione bonus." }
 					}
 				}
 			}
