@@ -23,7 +23,7 @@ public static class Ranger2024Seeder
 			PrimaryAbilities = new List<AbilityScore> { AbilityScore.Dexterity, AbilityScore.Wisdom },
 			SavingThrows = new List<AbilityScore> { AbilityScore.Strength, AbilityScore.Dexterity },
 			SkillChoiceCount = 3,
-			SkillOptions = new List<Skill> { Skill.Animal Handling, Skill.Athletics, Skill.Insight, Skill.Investigation, Skill.Nature, Skill.Perception, Skill.Stealth, Skill.Survival },
+			SkillOptions = new List<Skill> { Skill.AnimalHandling, Skill.Athletics, Skill.Insight, Skill.Investigation, Skill.Nature, Skill.Perception, Skill.Stealth, Skill.Survival },
 			CasterProgression = CasterProgression.Half,
 			SpellcastingAbility = AbilityScore.Wisdom,
 			SubclassLevel = 3,
