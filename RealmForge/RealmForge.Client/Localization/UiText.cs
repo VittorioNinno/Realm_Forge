@@ -29,8 +29,60 @@ namespace RealmForge.Client.Localization
 
 		public static string HomeSubtitle(LanguageCode lang) =>
 			lang == LanguageCode.It
-				? "Gestisci le tue campagne, compendi e regole per i tuoi giochi di ruolo da tavolo."
-				: "Manage your campaigns, compendiums, and rulebooks for tabletop roleplaying games.";
+				? "RealmForge è un compendio digitale e bilingue per i giochi di ruolo ispirati alle regole moderne di D&D: specie, background, talenti, incantesimi, classi, equipaggiamento e regole, per entrambe le edizioni, in un unico posto."
+				: "RealmForge is a digital, bilingual compendium for roleplaying games inspired by the modern D&D rules: species, backgrounds, feats, spells, classes, equipment and rules, for both editions, in one place.";
+
+		public static string HomeRulesModule(LanguageCode lang) => lang == LanguageCode.It
+			? "Condizioni, azioni, aree di effetto e termini di gioco delle due edizioni."
+			: "Conditions, actions, areas of effect and game terms of both editions.";
+
+		public static string HomeWhatTitle(LanguageCode lang) => lang == LanguageCode.It ? "Cosa trovi" : "What you will find";
+		public static string HomeHowTitle(LanguageCode lang) => lang == LanguageCode.It ? "Come funziona" : "How it works";
+		public static string HomeRulesTitle(LanguageCode lang) => lang == LanguageCode.It ? "Regole della forgia" : "House rules";
+
+		public static string HomeRulesIntro(LanguageCode lang) => lang == LanguageCode.It
+			? "Il compendio è aperto a tutti; per usare la forgia e condividere i propri contenuti valgono poche regole."
+			: "The compendium is open to everyone; a few rules apply to using the forge and sharing your own content.";
+
+		//	Short explanations of the app: (title, text)
+		public static IReadOnlyList<(string Title, string Text)> HomeHowItWorks(LanguageCode lang) => lang == LanguageCode.It
+			? new[]
+			{
+				("Due edizioni", "Ogni voce è segnata come 5e (2014) o 5.5e (2024): i filtri di ogni pagina mostrano una sola edizione o entrambe."),
+				("Testi collegati", "I termini di regola sottolineati mostrano la loro definizione al passaggio del mouse; i nomi di incantesimi, classi e oggetti aprono la loro scheda."),
+				("Base e Homebrew", "I contenuti Base vengono dagli SRD (CC BY 4.0) o sono testi scritti per RealmForge e non si modificano. Con un account crei i tuoi contenuti Homebrew."),
+				("Due lingue", "Italiano e inglese si scelgono dal selettore in alto; la scelta viene ricordata alla visita successiva.")
+			}
+			: new[]
+			{
+				("Two editions", "Every entry is marked 5e (2014) or 5.5e (2024): the filters of each page show one edition or both."),
+				("Linked texts", "Underlined rules terms show their definition on hover; the names of spells, classes and items open their entry."),
+				("Base and Homebrew", "Base content comes from the SRDs (CC BY 4.0) or is text written for RealmForge and cannot be changed. With an account you create your own Homebrew content."),
+				("Two languages", "Italian and English are chosen from the selector at the top; the choice is remembered on your next visit.")
+			};
+
+		public static IReadOnlyList<(string Title, string Text)> HomeHouseRules(LanguageCode lang) => lang == LanguageCode.It
+			? new[]
+			{
+				("Rispetto", "Niente contenuti offensivi, discriminatori, sessualmente espliciti o illegali, soprattutto in quelli pubblici."),
+				("Solo testi tuoi", "Non pubblicare testi copiati da manuali o da altre opere protette, anche di D&D se non fanno parte dell'SRD: scrivi con parole tue o crea contenuti originali."),
+				("Visibilità consapevole", "Un contenuto Pubblico lo vedono tutti, uno Con link solo chi riceve il link, uno Privato soltanto tu: scegli prima di condividere."),
+				("Account personale", "Le credenziali sono personali: non condividerle e usa una password robusta."),
+				("Moderazione", "Gli amministratori possono modificare o rimuovere i contenuti che non rispettano queste regole."),
+				("Progetto non ufficiale", "RealmForge è un progetto amatoriale, non affiliato a Wizards of the Coast. Dungeons & Dragons è un marchio di Wizards of the Coast.")
+			}
+			: new[]
+			{
+				("Respect", "No offensive, discriminatory, sexually explicit or illegal content, especially in public content."),
+				("Only your own texts", "Do not publish text copied from rulebooks or other protected works, D&D included when it is not part of the SRD: write in your own words or create original content."),
+				("Mindful sharing", "Public content is visible to everyone, Link content only to whoever has the link, Private content only to you: choose before you share."),
+				("Personal account", "Credentials are personal: do not share them and use a strong password."),
+				("Moderation", "Administrators may edit or remove content that breaks these rules."),
+				("Unofficial project", "RealmForge is a fan project, not affiliated with Wizards of the Coast. Dungeons & Dragons is a trademark of Wizards of the Coast.")
+			};
+
+		public static string AccountCompendiumTitle(LanguageCode lang) => lang == LanguageCode.It ? "Contenuti del compendio" : "Compendium content";
+		public static string AccountCompendiumModule(LanguageCode lang) => lang == LanguageCode.It ? "Sezione" : "Section";
 
 		public static string DashboardUnavailable(LanguageCode lang) => lang == LanguageCode.It
 			? "Impossibile leggere il compendio dal server. Se il sito è rimasto inattivo, il server si sta riavviando: riprova tra un minuto."

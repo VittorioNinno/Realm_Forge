@@ -88,3 +88,14 @@ main {
     .rf-github-link:hover {
         color: var(--rf-text-primary);
     }
+
+/* Phones: the version notice would overlap the language selector, so the top row keeps only the controls */
+@media (max-width: 640.98px) {
+    .rf-version-notice {
+        display: none;
+    }
+
+    .top-row {
+        justify-content: flex-end !important;
+    }
+}
