@@ -67,12 +67,12 @@ try {
 
   // Dashboard: one card per compendium module with Base counts per edition and the visible Homebrew
   await page.locator('[data-test=dashboard-feats] .rf-account-stat-value').first().waitFor({ timeout: 30000 });
-  const dashboard = await page.evaluate(() => Object.fromEntries(['species', 'backgrounds', 'feats', 'spells', 'classes'].map((m) =>
+  const dashboard = await page.evaluate(() => Object.fromEntries(['species', 'backgrounds', 'feats', 'spells', 'classes', 'equipment'].map((m) =>
     [m, [...document.querySelectorAll(`[data-test=dashboard-${m}] .rf-account-stat-value`)].map((v) => v.textContent.trim()).join('/')])));
   results.push(`INFO dashboard (Base 2024/Base 2014/Homebrew): ${JSON.stringify(dashboard)}`);
-  if (dashboard.species !== '10/9/0' || dashboard.backgrounds !== '16/13/0' || dashboard.feats !== '75/42/0' || dashboard.spells !== '391/361/0' || dashboard.classes !== '12/12/0') throw new Error('unexpected dashboard counts');
+  if (dashboard.species !== '10/9/0' || dashboard.backgrounds !== '16/13/0' || dashboard.feats !== '75/42/0' || dashboard.spells !== '391/361/0' || dashboard.classes !== '12/12/0' || dashboard.equipment !== '208/242/0') throw new Error('unexpected dashboard counts');
   if (await page.locator('main a[href=account]', { hasText: 'Accedi per forgiare' }).count() !== 1) throw new Error('dashboard misses the sign-in call to action');
-  ok('dashboard: module cards with Base counts per edition (species 10+9, backgrounds 16+13, feats 75+42, spells 391+361, classes 12+12) and the sign-in call to action');
+  ok('dashboard: module cards with Base counts per edition (species 10+9, backgrounds 16+13, feats 75+42, spells 391+361, classes 12+12, equipment 208+242) and the sign-in call to action');
 
   // Spells: 752 base spells (361 of 2014, 391 of 2024) grouped by level, edition and client-side filters, detail with the stat block
   await page.goto(`${base}/spells`);
@@ -202,6 +202,42 @@ try {
   await page.locator('[data-test=class-detail] button', { hasText: 'CHIUDI' }).click();
   ok('classes 2024: 12 cards, Wizard sheet with 20-level table, 10 class features and 4 subclasses (Evoker with 5 features)');
 
+  // Equipment: 450 Base items, weapon and armor tables, Longsword 2024 detail in Italian (metric weight, mastery), weapon rules
+  await page.goto(`${base}/equipment`);
+  await page.locator('[data-test=equipment-row]').first().waitFor({ timeout: 60000 });
+  const equipmentCount = async (expected) => {
+    for (let i = 0; i < 100 && (await page.locator('[data-test=equipment-count]').innerText()).trim() !== expected; i++) await page.waitForTimeout(100);
+    return (await page.locator('[data-test=equipment-count]').innerText()).trim();
+  };
+  const allEquipment = await equipmentCount('450 oggetti');
+  await pickOption('equipment-ruleset', '5.5e (2024)');
+  const equipment2024 = await equipmentCount('208 oggetti');
+  await pickOption('equipment-category', 'Armi');
+  const weapons2024 = await equipmentCount('38 oggetti');
+  await pickOption('equipment-mastery', 'Prosciugamento');
+  const sapWeapons = await equipmentCount('6 oggetti');
+  await page.locator('[data-test=equipment-row]', { hasText: 'Spada lunga' }).first().click();
+  await page.locator('[data-test=equipment-detail]').waitFor({ timeout: 15000 });
+  const longsword = await page.evaluate(() => ({
+    name: document.querySelector('[data-test=equipment-name]').textContent.trim(),
+    subtitle: document.querySelector('[data-test=equipment-subtitle]').textContent.trim(),
+    stats: [...document.querySelectorAll('[data-test=equipment-stats] dd')].map((d) => d.textContent.replace(/\s+/g, ' ').trim()),
+  }));
+  await page.locator('[data-test=equipment-detail] button', { hasText: 'CHIUDI' }).click();
+  await pickOption('equipment-category', 'Armature e scudi');
+  await page.locator('[data-test=equipment-row]', { hasText: 'Cotta di maglia' }).first().click();
+  await page.locator('[data-test=equipment-detail]').waitFor({ timeout: 15000 });
+  const chainMail = [...(await page.locator('[data-test=equipment-stats] dd').allInnerTexts())].map((t) => t.trim());
+  await page.locator('[data-test=equipment-detail] button', { hasText: 'CHIUDI' }).click();
+  await page.locator('[data-test=equipment-rules-open]').click();
+  const masteryRules = await page.locator('[data-test=equipment-mastery-rules] dt').count();
+  await page.locator('[data-test=equipment-rules] button', { hasText: 'CHIUDI' }).click();
+  results.push(`INFO equipment: ${allEquipment} | 2024=${equipment2024} weapons=${weapons2024} sap=${sapWeapons} | ${JSON.stringify(longsword)} | chain mail=${JSON.stringify(chainMail)} | mastery rules=${masteryRules}`);
+  if (allEquipment !== '450 oggetti' || equipment2024 !== '208 oggetti' || weapons2024 !== '38 oggetti' || sapWeapons !== '6 oggetti' || longsword.name !== 'Spada lunga'
+    || longsword.subtitle !== 'Arma da guerra da mischia' || longsword.stats.slice(0, 4).join(' | ') !== '15 mo | 1,5 kg | 1d8 taglienti | Versatile (1d10)' || !longsword.stats[4]?.startsWith('Prosciugamento. ')
+    || chainMail.slice(0, 5).join(' | ') !== '75 mo | 27,5 kg | 16 | For 13 | Svantaggio' || masteryRules !== 8) throw new Error('unexpected equipment page');
+  ok('equipment: 450 Base items (208 of 2024), category and mastery filters, Longsword 2024 (15 mo, 1,5 kg, 1d8 taglienti, Versatile, Prosciugamento), Chain Mail (CA 16, For 13) and the weapon rules');
+
 
   await page.goto(`${base}/account`);
   await page.getByText('Non hai un account? Registrati').waitFor({ timeout: 30000 });
@@ -219,9 +255,9 @@ try {
     return { label: el.textContent.trim(), inset: Math.round(icon.left - el.getBoundingClientRect().left), left: Math.round(icon.left) };
   }));
   results.push(`INFO menu icons: ${iconGaps.map((g) => `${g.label}@${g.left}(+${g.inset})`).join(', ')}`);
-  if (iconGaps.length !== 7 || iconGaps.some((g) => g.inset < 8) || new Set(iconGaps.map((g) => g.left)).size !== 1) throw new Error('menu icons are not padded or not aligned');
+  if (iconGaps.length !== 8 || iconGaps.some((g) => g.inset < 8) || new Set(iconGaps.map((g) => g.left)).size !== 1) throw new Error('menu icons are not padded or not aligned');
   await page.locator('[data-test=nav-compendium] button').click();
-  ok('"Compendio" menu group: Specie, Background, Talenti, Incantesimi, Classi; collapsed elsewhere and toggles on click; icons padded and aligned');
+  ok('"Compendio" menu group: Specie, Background, Talenti, Incantesimi, Classi, Equipaggiamento; collapsed elsewhere and toggles on click; icons padded and aligned');
   await page.getByText('Non hai un account? Registrati').click();
   await page.locator('input[type=email]').fill(email);
   // Own show / hide button: visible before the field is touched, not only while typing as the browser's eye
