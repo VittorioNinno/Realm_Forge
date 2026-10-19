@@ -1,0 +1,101 @@
+﻿@page "/characters"
+@using RealmForge.Client.Localization
+@using RealmForge.Client.Services
+@using RealmForge.Shared.DTOs
+@using RealmForge.Shared.Enums
+@implements IDisposable
+@inject CharacterDataService CharacterService
+@inject LanguageStateService LanguageState
+
+<PageTitle>RealmForge - @UiText.CharactersTitle(Lang)</PageTitle>
+
+<div class="container-fluid px-0 py-4">
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4 pb-3" style="border-bottom: 2px solid var(--rf-orange-primary);">
+        <div>
+            <h1 class="h3 fw-bold mb-1 rf-page-title">@UiText.CharactersTitle(Lang)</h1>
+            <p class="mb-0 small" style="color: var(--rf-text-muted); letter-spacing: 1px; text-transform: uppercase;">@UiText.CharactersSubtitle(Lang)</p>
+        </div>
+        <AuthorizeView>
+            <Authorized>
+                <a href="characters/new" class="btn btn-rf-orange" data-test="new-character">@UiText.BtnNewCharacter(Lang)</a>
+            </Authorized>
+        </AuthorizeView>
+    </div>
+
+    <AuthorizeView>
+        <Authorized>
+            @if (characters is null)
+            {
+                <div class="small" style="color: var(--rf-text-muted);">@UiText.LoadingCharacters(Lang)</div>
+            }
+            else if (characters.Count == 0)
+            {
+                <div class="rf-account-card text-center" data-test="characters-empty">
+                    <p class="mb-3" style="color: var(--rf-text-secondary);">@UiText.CharactersEmpty(Lang)</p>
+                    <a href="characters/new" class="btn btn-rf-orange">@UiText.BtnNewCharacter(Lang)</a>
+                </div>
+            }
+            else
+            {
+                <div class="rf-character-grid" data-test="characters-grid">
+                    @foreach (var character in characters)
+                    {
+                        <a href="@($"characters/{character.Id}")" class="rf-character-card" data-test="character-card">
+                            <div class="d-flex justify-content-between align-items-start gap-2 flex-wrap">
+                                <div class="rf-character-card-name">@character.Name</div>
+                                <span class="badge @(character.Ruleset == RulesetVersion.Dnd5e_2024 ? "badge-edition-2024" : "badge-edition-2014")">@UiText.FormatRuleset(character.Ruleset, Lang)</span>
+                            </div>
+                            <div class="small mt-1" style="color: var(--rf-text-secondary);">
+                                @character.SpeciesName · @(character.ClassName)@(character.SubclassName is null ? null : $" ({character.SubclassName})") · @UiText.CharacterLevel(character.Level, Lang)
+                            </div>
+                            <div class="small" style="color: var(--rf-text-muted);">@character.BackgroundName</div>
+                            <div class="d-flex gap-3 mt-2 small">
+                                <span><strong style="color: var(--rf-orange-primary);">@UiText.SheetArmorClass(Lang)</strong> @character.ArmorClass</span>
+                                <span><strong style="color: var(--rf-orange-primary);">@UiText.SheetHitPoints(Lang)</strong> @character.MaxHitPoints</span>
+                            </div>
+                        </a>
+                    }
+                </div>
+            }
+        </Authorized>
+        <NotAuthorized>
+            <div class="rf-account-card text-center">
+                <p class="mb-3" style="color: var(--rf-text-secondary);">@UiText.CharactersSignIn(Lang)</p>
+                <a href="account" class="btn btn-rf-orange">@UiText.BtnLoginToForge(Lang)</a>
+            </div>
+        </NotAuthorized>
+    </AuthorizeView>
+</div>
+
+@code {
+    [CascadingParameter] private Task<AuthenticationState>? AuthState { get; set; }
+
+    private List<CharacterSummaryDto>? characters;
+
+    private LanguageCode Lang => LanguageState.CurrentLanguage;
+
+    protected override async Task OnInitializedAsync()
+    {
+        LanguageState.OnLanguageChanged += OnLanguageChanged;
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        var state = AuthState is null ? null : await AuthState;
+        if (state?.User.Identity?.IsAuthenticated != true)
+        {
+            return;
+        }
+
+        characters = await CharacterService.GetCharactersAsync(Lang) ?? new List<CharacterSummaryDto>();
+    }
+
+    private void OnLanguageChanged() => _ = InvokeAsync(async () =>
+    {
+        await LoadAsync();
+        StateHasChanged();
+    });
+
+    public void Dispose() => LanguageState.OnLanguageChanged -= OnLanguageChanged;
+}

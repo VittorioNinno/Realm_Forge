@@ -1,0 +1,55 @@
+﻿@typeparam TValue
+
+@* Arrow selector of the character wizard: ‹ value ›. The arrows cycle through the options, the value opens the full list. *@
+<div class="rf-forge-selector" data-test="@DataTest" @onclick:stopPropagation="true">
+    <button type="button" class="rf-forge-selector-btn" aria-label="‹" disabled="@(Options.Count < 2)" @onclick="() => Step(-1)" data-test="selector-prev">
+        <svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6" /></svg>
+    </button>
+    <button type="button" class="rf-forge-selector-display" @onclick="() => open = !open" data-test="selector-value">@CurrentLabel</button>
+    <button type="button" class="rf-forge-selector-btn" aria-label="›" disabled="@(Options.Count < 2)" @onclick="() => Step(1)" data-test="selector-next">
+        <svg viewBox="0 0 24 24"><path d="M9 18l6-6-6-6" /></svg>
+    </button>
+
+    @if (open && Options.Count > 0)
+    {
+        <div class="rf-forge-selector-menu" role="listbox">
+            @foreach (var option in Options)
+            {
+                var selected = EqualityComparer<TValue>.Default.Equals(option.Value, Value);
+                <button type="button" role="option" class="rf-forge-selector-option @(selected ? "selected" : null)" @onclick="() => SelectAsync(option.Value)">@option.Label</button>
+            }
+        </div>
+    }
+</div>
+
+@code {
+    public record Option(TValue Value, string Label);
+
+    [Parameter] public TValue? Value { get; set; }
+    [Parameter] public EventCallback<TValue> ValueChanged { get; set; }
+    [Parameter] public List<Option> Options { get; set; } = new();
+    [Parameter] public string? DataTest { get; set; }
+
+    private bool open;
+
+    private string CurrentLabel => Options.FirstOrDefault(o => EqualityComparer<TValue>.Default.Equals(o.Value, Value))?.Label ?? "—";
+
+    private async Task Step(int delta)
+    {
+        if (Options.Count == 0)
+        {
+            return;
+        }
+
+        var index = Options.FindIndex(o => EqualityComparer<TValue>.Default.Equals(o.Value, Value));
+        index = index < 0 ? 0 : (index + delta + Options.Count) % Options.Count;
+        await SelectAsync(Options[index].Value);
+    }
+
+    private async Task SelectAsync(TValue value)
+    {
+        open = false;
+        Value = value;
+        await ValueChanged.InvokeAsync(value);
+    }
+}

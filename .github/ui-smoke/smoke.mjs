@@ -7,7 +7,21 @@ const email = `ui${Date.now()}@example.com`;
 // Throwaway credential generated per run: upper + lower + digit + symbol, as Identity requires
 const throwawayCredential = ['Rf', crypto.randomUUID(), 'A!'].join('-');
 const results = [];
+// Elements wider than the window (phone audits): wide tables may scroll inside their own box
+const overflowOf = async (target, label) => target.evaluate((label) => {
+  const width = document.documentElement.clientWidth;
+  const scrolls = (el) => { for (let p = el.parentElement; p; p = p.parentElement) { const o = getComputedStyle(p).overflowX; if (o === 'auto' || o === 'scroll' || o === 'hidden') return true; } return false; };
+  const out = [];
+  for (const el of document.querySelectorAll('body *')) {
+    const r = el.getBoundingClientRect();
+    if (r.width === 0 || r.height === 0 || getComputedStyle(el).position === 'fixed') continue;
+    if ((r.right > width + 1 || r.left < -1) && !scrolls(el)) out.push(`${el.tagName.toLowerCase()}.${[...el.classList].slice(0, 2).join('.')}(${Math.round(r.left)}..${Math.round(r.right)})`);
+  }
+  const page = document.documentElement.scrollWidth > width + 1 ? `page ${document.documentElement.scrollWidth}px` : '';
+  return page || out.length ? [label, page, ...[...new Set(out)].slice(0, 6)].filter(Boolean).join(' ') : null;
+}, label);
 const ok = (name) => { results.push(`OK ${name}`); };
+const characterAudits = [];
 
 const browser = await chromium.launch();
 // Explicit context: the e-mail confirmation test opens a second tab in the same browser session
@@ -599,6 +613,86 @@ try {
   await page.getByRole('button', { name: 'Aggiorna password' }).click();
   await page.getByText('Password aggiornata.').waitFor({ timeout: 15000 });
   ok('account page: role "Utente", Homebrew counts (0 feats, 1 background), password change rejects a wrong current password and succeeds with the right one');
+
+  // Character creation at phone width (375 px): every step of the wizard is checked for overflow, then the sheet and the list
+  await page.setViewportSize({ width: 375, height: 812 });
+  await page.goto(`${base}/characters`);
+  await page.locator('[data-test=characters-empty]').waitFor({ timeout: 30000 });
+  characterAudits.push(await overflowOf(page, '/characters'));
+  await page.locator('[data-test=characters-empty] a').click();
+  await page.locator('[data-test=wizard-name]').waitFor({ timeout: 30000 });
+  const wizardStep = async (n) => {
+    await page.locator(`[data-test=wizard-step-${n}]`).waitFor({ timeout: 15000 });
+    await page.waitForTimeout(400);
+    characterAudits.push(await overflowOf(page, `wizard step ${n}`));
+  };
+  const next = () => page.locator('[data-test=wizard-next]').click();
+  await wizardStep(1);
+  await next();
+  await page.locator('[data-test=wizard-error]').waitFor({ timeout: 5000 });
+  await page.locator('[data-test=wizard-name]').fill('Eroe di prova');
+  await next();
+  await page.locator('[data-test=wizard-species-panel]').waitFor({ timeout: 15000 });
+  await wizardStep(2);
+  await next();
+  await wizardStep(3);
+  await page.locator('[data-test=wizard-class] [data-test=selector-value]').click();
+  await page.locator('[data-test=wizard-class] [role=option]', { hasText: /^Mago$/ }).click();
+  await page.locator('[data-test=wizard-class-panel]', { hasText: 'Mago' }).waitFor({ timeout: 15000 });
+  await next();
+  await page.locator('[data-test=wizard-error]').waitFor({ timeout: 5000 });
+  for (let k = 0; k < 2; k++) await page.locator('[data-test=wizard-skill]:not(.selected):not([disabled])').first().click();
+  await next();
+  await wizardStep(4);
+  // 4d6 rolls: three attempts, a second roll asks for confirmation, then the six results are assigned
+  await page.locator('[data-test=wizard-method] [data-test=selector-value]').click();
+  await page.locator('[data-test=wizard-method] [role=option]', { hasText: '4d6' }).click();
+  await page.locator('[data-test=wizard-roll]').click();
+  await page.locator('[data-test=wizard-pool-die]').nth(5).waitFor({ timeout: 10000 });
+  await page.locator('[data-test=wizard-roll]').click();
+  await page.locator('[data-test=reroll-confirm]').waitFor({ timeout: 5000 });
+  await page.locator('[data-test=reroll-yes]').click();
+  await page.waitForTimeout(1500);
+  await page.locator('[data-test=wizard-roll]', { hasText: '[1/3]' }).waitFor({ timeout: 10000 });
+  await page.locator('[data-test=wizard-pool-die]').nth(5).waitFor({ timeout: 10000 });
+  const rolled = (await page.locator('[data-test=wizard-pool-die]').allInnerTexts()).map(Number);
+  for (let i = 0; i < 6; i++) {
+    await page.locator('[data-test=wizard-pool-die]').first().click();
+    await page.locator(`[data-test=wizard-stat-${i}] [data-test=wizard-assign]`).click();
+  }
+  characterAudits.push(await overflowOf(page, 'wizard dice'));
+  if (rolled.length !== 6 || rolled.some((v) => v < 3 || v > 18) || await page.locator('[data-test=wizard-pool-die]').count() !== 0) throw new Error(`unexpected dice results: ${rolled.join(',')}`);
+  await next();
+  await wizardStep(5);
+  await page.locator('[data-test=wizard-final-scores]').waitFor({ timeout: 5000 });
+  await next();
+  await wizardStep(6);
+  const previewAc = (await page.locator('[data-test=wizard-preview-ac]').innerText()).trim();
+  await next();
+  await wizardStep(7);
+  const target = async (counter) => Number((await page.locator(`[data-test=${counter}]`).innerText()).split('/').pop().trim());
+  const cantripTarget = await target('wizard-cantrip-count');
+  const spellTarget = await target('wizard-spell-count');
+  await next();
+  await page.locator('[data-test=wizard-error]').waitFor({ timeout: 5000 });
+  for (let k = 0; k < cantripTarget; k++) await page.locator('[data-test=wizard-cantrip]:not(.selected)').first().click();
+  for (let k = 0; k < spellTarget; k++) await page.locator('[data-test=wizard-spell]:not(.selected)').first().click();
+  await next();
+  await wizardStep(8);
+  const summaryAc = (await page.locator('[data-test=summary-ac]').innerText()).trim();
+  await page.locator('[data-test=wizard-forge]').click();
+  await page.locator('[data-test=character-sheet]').waitFor({ timeout: 30000 });
+  await page.waitForTimeout(400);
+  characterAudits.push(await overflowOf(page, 'character sheet'));
+  const sheetAc = (await page.locator('[data-test=sheet-ac]').innerText()).trim();
+  const sheetSpells = await page.locator('[data-test=sheet-spells] a').count();
+  const sheetName = (await page.locator('[data-test=sheet-name]').innerText()).trim();
+  results.push(`INFO character: dice=${rolled.join(',')} cantrips=${cantripTarget} spells=${spellTarget} AC preview=${previewAc} summary=${summaryAc} sheet=${sheetAc} sheet spells=${sheetSpells}`);
+  if (sheetName !== 'Eroe di prova' || sheetAc !== summaryAc || sheetSpells !== cantripTarget + spellTarget || cantripTarget < 1 || spellTarget < 1) throw new Error('the saved character does not match the wizard');
+  await page.goto(`${base}/characters`);
+  await page.locator('[data-test=character-card]', { hasText: 'Eroe di prova' }).waitFor({ timeout: 30000 });
+  await page.setViewportSize({ width: 1280, height: 720 });
+  ok('character wizard: name required, wizard class, 2 skills, 4d6 with confirmed reroll, spells within the allowance, saved sheet matches the summary');
   await page.goto(`${base}/backgrounds`);
   await page.getByText('Accolito').first().waitFor({ timeout: 30000 });
 
@@ -663,18 +757,7 @@ try {
   // anything else that sticks out of the window is reported with its class
   const phone = await browser.newContext({ viewport: { width: 375, height: 812 }, isMobile: true, hasTouch: true });
   const mobile = await phone.newPage();
-  const overflow = async (label) => mobile.evaluate((label) => {
-    const width = document.documentElement.clientWidth;
-    const scrolls = (el) => { for (let p = el.parentElement; p; p = p.parentElement) { const o = getComputedStyle(p).overflowX; if (o === 'auto' || o === 'scroll' || o === 'hidden') return true; } return false; };
-    const out = [];
-    for (const el of document.querySelectorAll('body *')) {
-      const r = el.getBoundingClientRect();
-      if (r.width === 0 || r.height === 0 || getComputedStyle(el).position === 'fixed') continue;
-      if ((r.right > width + 1 || r.left < -1) && !scrolls(el)) out.push(`${el.tagName.toLowerCase()}.${[...el.classList].slice(0, 2).join('.')}(${Math.round(r.left)}..${Math.round(r.right)})`);
-    }
-    const page = document.documentElement.scrollWidth > width + 1 ? `page ${document.documentElement.scrollWidth}px` : '';
-    return page || out.length ? [label, page, ...[...new Set(out)].slice(0, 6)].filter(Boolean).join(' ') : null;
-  }, label);
+  const overflow = (label) => overflowOf(mobile, label);
   const audits = [];
   const audit = async (path, ready, open) => {
     await mobile.goto(`${base}${path}`);
@@ -700,10 +783,10 @@ try {
   await audit('/equipment', '[data-test=equipment-group]', () => mobile.locator('[data-test=equipment-row]').first().click());
   await audit('/account', 'input[type=email]');
   await phone.close();
-  const wide = audits.filter(Boolean);
+  const wide = [...characterAudits, ...audits].filter(Boolean);
   results.push(`INFO phone layout: ${wide.length ? wide.join(' | ') : 'every page and detail fits 375 px'}`);
   if (wide.length) throw new Error(`content wider than a 375 px phone: ${wide.join(' | ').slice(0, 300)}`);
-  ok('phone layout: dashboard, glossary, species, backgrounds, feats, spells, classes, equipment and account (with their details) fit a 375 px screen');
+  ok('phone layout: dashboard, characters (list, every wizard step, sheet), glossary, species, backgrounds, feats, spells, classes, equipment and account (with their details) fit a 375 px screen');
 } catch (e) {
   results.push(`FAIL ${e.message.split('\n')[0]}`);
   const stored = await page.evaluate(() => localStorage.getItem('realmforge.auth')).catch(() => 'n/a');

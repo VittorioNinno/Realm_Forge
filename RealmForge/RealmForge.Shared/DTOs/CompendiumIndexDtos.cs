@@ -8,9 +8,9 @@ namespace RealmForge.Shared.DTOs
 	public record CompendiumIndexEntryDto(Guid Id, string Name, RulesetVersion Ruleset);
 
 	///	<summary>
-	///	A Base class with the spell list it uses (null for classes without spells).
+	///	A Base class with the spell list it uses (null for classes without spells) and its key ("barbarian", "wizard"…).
 	///	</summary>
-	public record CompendiumClassDto(Guid Id, string Name, RulesetVersion Ruleset, SpellcastingClass? SpellList);
+	public record CompendiumClassDto(Guid Id, string Name, RulesetVersion Ruleset, SpellcastingClass? SpellList, string? Key = null);
 
 	///	<summary>
 	///	Names of the Base spells, equipment and classes of both editions in one language.
