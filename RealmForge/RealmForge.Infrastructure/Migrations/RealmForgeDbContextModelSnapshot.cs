@@ -473,6 +473,148 @@ namespace RealmForge.Infrastructure.Migrations
                     b.ToTable("ClassFeatureTranslations");
                 });
 
+            modelBuilder.Entity("RealmForge.Domain.Entities.Equipment", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("ArmorAddsDexterity")
+                        .HasColumnType("boolean");
+
+                    b.Property<int?>("ArmorCategory")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("ArmorClass")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("ArmorMaxDexterityBonus")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("AuthorId")
+                        .HasColumnType("text");
+
+                    b.Property<int?>("CarryingCapacityInPounds")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("Category")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("CostInCopper")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("DamageDice")
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<int?>("DamageType")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("FocusType")
+                        .HasColumnType("integer");
+
+                    b.Property<bool>("IsOfficialSRD")
+                        .HasColumnType("boolean");
+
+                    b.Property<int?>("LongRange")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("Mastery")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("NormalRange")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("Quantity")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("Ruleset")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("Source")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("SpeedInFeet")
+                        .HasColumnType("integer");
+
+                    b.Property<decimal?>("SpeedInMilesPerHour")
+                        .HasPrecision(6, 2)
+                        .HasColumnType("numeric(6,2)");
+
+                    b.Property<bool>("StealthDisadvantage")
+                        .HasColumnType("boolean");
+
+                    b.Property<int?>("StrengthRequirement")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("ToolAbility")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("ToolCategory")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("VersatileDamageDice")
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<int>("Visibility")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("WeaponCategory")
+                        .HasColumnType("integer");
+
+                    b.PrimitiveCollection<int[]>("WeaponProperties")
+                        .IsRequired()
+                        .HasColumnType("integer[]");
+
+                    b.Property<int?>("WeaponRange")
+                        .HasColumnType("integer");
+
+                    b.Property<decimal?>("WeightInPounds")
+                        .HasPrecision(9, 3)
+                        .HasColumnType("numeric(9,3)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Ruleset", "Category");
+
+                    b.ToTable("Equipment", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_Equipment_Cost", "\"CostInCopper\" IS NULL OR \"CostInCopper\" >= 0");
+
+                            t.HasCheckConstraint("CK_Equipment_Quantity", "\"Quantity\" >= 1");
+                        });
+                });
+
+            modelBuilder.Entity("RealmForge.Domain.Entities.EquipmentTranslation", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<Guid>("EquipmentId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("Language")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("character varying(150)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("EquipmentId", "Language")
+                        .IsUnique();
+
+                    b.ToTable("EquipmentTranslations");
+                });
+
             modelBuilder.Entity("RealmForge.Domain.Entities.Feat", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1100,6 +1242,17 @@ namespace RealmForge.Infrastructure.Migrations
                     b.Navigation("ClassFeature");
                 });
 
+            modelBuilder.Entity("RealmForge.Domain.Entities.EquipmentTranslation", b =>
+                {
+                    b.HasOne("RealmForge.Domain.Entities.Equipment", "Equipment")
+                        .WithMany("Translations")
+                        .HasForeignKey("EquipmentId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Equipment");
+                });
+
             modelBuilder.Entity("RealmForge.Domain.Entities.FeatTranslation", b =>
                 {
                     b.HasOne("RealmForge.Domain.Entities.Feat", "Feat")
@@ -1220,6 +1373,11 @@ namespace RealmForge.Infrastructure.Migrations
                 });
 
             modelBuilder.Entity("RealmForge.Domain.Entities.ClassFeature", b =>
+                {
+                    b.Navigation("Translations");
+                });
+
+            modelBuilder.Entity("RealmForge.Domain.Entities.Equipment", b =>
                 {
                     b.Navigation("Translations");
                 });
