@@ -690,6 +690,80 @@ namespace RealmForge.Infrastructure.Migrations
                     b.ToTable("FeatTranslations");
                 });
 
+            modelBuilder.Entity("RealmForge.Domain.Entities.RuleEntry", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("AuthorId")
+                        .HasColumnType("text");
+
+                    b.Property<int>("Category")
+                        .HasColumnType("integer");
+
+                    b.Property<bool>("IsOfficialSRD")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Key")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.PrimitiveCollection<List<string>>("RelatedKeys")
+                        .IsRequired()
+                        .HasColumnType("text[]");
+
+                    b.Property<int>("Ruleset")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("Source")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("Visibility")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Ruleset", "Key")
+                        .IsUnique();
+
+                    b.ToTable("RuleEntries");
+                });
+
+            modelBuilder.Entity("RealmForge.Domain.Entities.RuleEntryTranslation", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.PrimitiveCollection<List<string>>("Aliases")
+                        .IsRequired()
+                        .HasColumnType("text[]");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<int>("Language")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("character varying(150)");
+
+                    b.Property<Guid>("RuleEntryId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("RuleEntryId", "Language")
+                        .IsUnique();
+
+                    b.ToTable("RuleEntryTranslations");
+                });
+
             modelBuilder.Entity("RealmForge.Domain.Entities.Species", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1264,6 +1338,17 @@ namespace RealmForge.Infrastructure.Migrations
                     b.Navigation("Feat");
                 });
 
+            modelBuilder.Entity("RealmForge.Domain.Entities.RuleEntryTranslation", b =>
+                {
+                    b.HasOne("RealmForge.Domain.Entities.RuleEntry", "RuleEntry")
+                        .WithMany("Translations")
+                        .HasForeignKey("RuleEntryId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("RuleEntry");
+                });
+
             modelBuilder.Entity("RealmForge.Domain.Entities.SpeciesTranslation", b =>
                 {
                     b.HasOne("RealmForge.Domain.Entities.Species", "Species")
@@ -1383,6 +1468,11 @@ namespace RealmForge.Infrastructure.Migrations
                 });
 
             modelBuilder.Entity("RealmForge.Domain.Entities.Feat", b =>
+                {
+                    b.Navigation("Translations");
+                });
+
+            modelBuilder.Entity("RealmForge.Domain.Entities.RuleEntry", b =>
                 {
                     b.Navigation("Translations");
                 });
