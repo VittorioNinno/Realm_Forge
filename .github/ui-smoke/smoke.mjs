@@ -652,6 +652,50 @@ try {
   const htmlLang = await page.evaluate(() => document.documentElement.lang);
   if (htmlLang !== 'en') throw new Error(`html lang is '${htmlLang}' after reload`);
   ok('language drop-down (English, Italiano): EN survives a reload and sets <html lang="en">');
+
+  // Phone layout (375 px): no page or detail may be wider than the screen. Wide tables may scroll inside their own box,
+  // anything else that sticks out of the window is reported with its class
+  const phone = await browser.newContext({ viewport: { width: 375, height: 812 }, isMobile: true, hasTouch: true });
+  const mobile = await phone.newPage();
+  const overflow = async (label) => mobile.evaluate((label) => {
+    const width = document.documentElement.clientWidth;
+    const scrolls = (el) => { for (let p = el.parentElement; p; p = p.parentElement) { const o = getComputedStyle(p).overflowX; if (o === 'auto' || o === 'scroll' || o === 'hidden') return true; } return false; };
+    const out = [];
+    for (const el of document.querySelectorAll('body *')) {
+      const r = el.getBoundingClientRect();
+      if (r.width === 0 || r.height === 0 || getComputedStyle(el).position === 'fixed') continue;
+      if ((r.right > width + 1 || r.left < -1) && !scrolls(el)) out.push(`${el.tagName.toLowerCase()}.${[...el.classList].slice(0, 2).join('.')}(${Math.round(r.left)}..${Math.round(r.right)})`);
+    }
+    const page = document.documentElement.scrollWidth > width + 1 ? `page ${document.documentElement.scrollWidth}px` : '';
+    return [label, page, ...[...new Set(out)].slice(0, 6)].filter(Boolean).join(' ');
+  }, label);
+  const audits = [];
+  const audit = async (path, ready, open) => {
+    await mobile.goto(`${base}${path}`);
+    await mobile.locator(ready).first().waitFor({ timeout: 60000 });
+    await mobile.waitForTimeout(800);
+    const expand = mobile.locator('[data-test$=expand-all]');
+    if (await expand.count()) await expand.first().click();
+    audits.push(await overflow(path));
+    if (open) {
+      await open();
+      await mobile.locator('.rf-modal-dialog').first().waitFor({ timeout: 15000 });
+      await mobile.waitForTimeout(500);
+      audits.push(await overflow(`${path} detail`));
+    }
+  };
+  await audit('/', '[data-test=home-intro]');
+  await audit('/rules', '[data-test=rules-group]', () => mobile.locator('[data-test=rules-tile]').first().click());
+  await audit('/species', '.rf-card', () => mobile.locator('.rf-card').first().click());
+  await audit('/backgrounds', '.rf-card', () => mobile.locator('.rf-card').first().click());
+  await audit('/feats', '.rf-card', () => mobile.locator('.rf-card').first().click());
+  await audit('/spells', '[data-test=spell-level-group]', () => mobile.locator('[data-test=spell-card]').first().click());
+  await audit('/classes', '[data-test=class-card]', () => mobile.locator('[data-test=class-card]').first().click());
+  await audit('/equipment', '[data-test=equipment-group]', () => mobile.locator('[data-test=equipment-row]').first().click());
+  await audit('/account', 'input[type=email]');
+  await phone.close();
+  const wide = audits.filter((a) => a.includes(' '));
+  results.push(`INFO phone layout: ${wide.length ? wide.join(' | ') : 'every page fits 375 px'}`);
 } catch (e) {
   results.push(`FAIL ${e.message.split('\n')[0]}`);
   const stored = await page.evaluate(() => localStorage.getItem('realmforge.auth')).catch(() => 'n/a');

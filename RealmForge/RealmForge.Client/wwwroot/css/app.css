@@ -730,13 +730,16 @@ select.rf-form-control {
     border: 1px solid var(--rf-border-light);
 }
 
+/* Card titles stand out from the field labels: larger, with a thin rule underneath */
 .rf-account-card-title {
-    font-size: 0.75rem;
+    font-size: 0.95rem;
     font-weight: 700;
-    letter-spacing: 1px;
+    letter-spacing: 1.2px;
     text-transform: uppercase;
     color: var(--rf-orange-primary);
     margin-bottom: 1rem;
+    padding-bottom: 0.6rem;
+    border-bottom: 1px solid var(--rf-border-subtle);
 }
 
 .rf-account-card-avatar {
