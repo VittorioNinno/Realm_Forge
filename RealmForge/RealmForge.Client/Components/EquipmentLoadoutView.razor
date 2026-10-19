@@ -1,0 +1,110 @@
+﻿@using RealmForge.Client.Localization
+@using RealmForge.Client.Services
+@using RealmForge.Shared.Enums
+@using RealmForge.Shared.Text
+@inject GlossaryService Glossary
+
+@* Starting equipment of a class or background: whole kits side by side (A/B/C), or a ledger of lines where a choice
+   shows its options separated by "oppure". Items found in the equipment compendium link to their entry. *@
+@if (!Loadout.IsEmpty)
+{
+    <section class="rf-loadout" data-test="@DataTest">
+        <h3 class="rf-loadout-title">
+            @Title
+            @if (Loadout.Kits.Count > 0)
+            {
+                <span class="rf-loadout-hint">· @UiText.LoadoutChooseKit(Loadout.Kits.Select(k => k.Letter ?? "?").ToList(), Lang)</span>
+            }
+        </h3>
+
+        @if (Loadout.Kits.Count > 0)
+        {
+            <div class="rf-loadout-kits">
+                @foreach (var kit in Loadout.Kits)
+                {
+                    <div class="rf-loadout-kit" data-test="@($"{DataTest}-{kit.Letter?.ToLowerInvariant()}")">
+                        <div class="rf-loadout-kit-head">@UiText.LoadoutKit(Lang) <span class="rf-loadout-letter">@kit.Letter</span></div>
+                        <ul class="rf-loadout-list">
+                            @foreach (var item in kit.Items)
+                            {
+                                <li class="@(item.Coins is null ? null : "rf-loadout-coins")">
+                                    <span class="rf-loadout-name">@ItemName(item)</span>
+                                    @if (item.Coins is { } coins)
+                                    {
+                                        <span class="rf-loadout-value">@coins</span>
+                                    }
+                                    else if (item.Quantity is { } quantity)
+                                    {
+                                        <span class="rf-loadout-value">×@quantity</span>
+                                    }
+                                </li>
+                            }
+                        </ul>
+                    </div>
+                }
+            </div>
+        }
+        else
+        {
+            <ul class="rf-loadout-list">
+                @foreach (var row in Loadout.Rows)
+                {
+                    var single = row.Options.Count == 1 ? row.Options[0].Items : null;
+                    var coins = single is { Count: 1 } && single[0].Coins is not null ? single[0] : null;
+                    <li class="@(coins is null ? null : "rf-loadout-coins")">
+                        @if (coins is not null)
+                        {
+                            <span class="rf-loadout-name">@ItemName(coins)</span>
+                            <span class="rf-loadout-value">@coins.Coins</span>
+                        }
+                        else
+                        {
+                            <span class="rf-loadout-name">
+                                @for (var o = 0; o < row.Options.Count; o++)
+                                {
+                                    if (o > 0)
+                                    {
+                                        <span class="rf-loadout-or">@UiText.LoadoutOr(Lang)</span>
+                                    }
+                                    var items = row.Options[o].Items;
+                                    for (var i = 0; i < items.Count; i++)
+                                    {
+                                        var separator = i == 0 ? string.Empty : i == items.Count - 1 ? UiText.LoadoutAnd(Lang) : ", ";
+                                        <text>@(separator)@ItemName(items[i], capitalize: o == 0 && i == 0)</text>
+                                    }
+                                }
+                            </span>
+                        }
+                    </li>
+                }
+            </ul>
+        }
+    </section>
+}
+
+@code {
+    [Parameter, EditorRequired] public EquipmentLoadout Loadout { get; set; } = null!;
+    [Parameter, EditorRequired] public RulesetVersion Ruleset { get; set; }
+    [Parameter, EditorRequired] public LanguageCode Lang { get; set; }
+    [Parameter, EditorRequired] public string Title { get; set; } = string.Empty;
+    [Parameter] public string DataTest { get; set; } = "loadout";
+
+    //	The name, linked to the equipment entry when the compendium has it; coins alone read "Monete"
+    private RenderFragment ItemName(LoadoutItem item, bool capitalize = true) => __builder =>
+    {
+        var text = item.Text.Length == 0 && item.Coins is not null ? UiText.LoadoutCoins(Lang) : item.Text;
+        if (capitalize && text.Length > 0)
+        {
+            text = char.ToUpperInvariant(text[0]) + text[1..];
+        }
+
+        if (item.Coins is null && Glossary.FindEquipment(Lang, Ruleset, item.Text) is { } id)
+        {
+            <a class="rf-loadout-link" href="@($"equipment?id={id}")">@text</a>
+        }
+        else
+        {
+            @text
+        }
+    };
+}

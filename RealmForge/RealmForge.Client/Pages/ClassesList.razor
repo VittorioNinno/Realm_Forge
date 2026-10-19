@@ -4,6 +4,7 @@
 @using RealmForge.Client.Services
 @using RealmForge.Shared.DTOs
 @using RealmForge.Shared.Enums
+@using RealmForge.Shared.Text
 @using RealmForge.Shared.Localization
 @implements IDisposable
 @inject ClassDataService ClassService
@@ -176,7 +177,13 @@
                             {
                                 <div>
                                     <dt>@UiText.LabelSpellcasting(Lang)</dt>
-                                    <dd>@GameTerms.CasterProgressionName(cls.CasterProgression, Lang)@(cls.SpellcastingAbility is { } sa ? $" · {FeatPrerequisiteFormatter.AbilityName(sa, Lang)}" : "")</dd>
+                                    <dd>
+                                        @GameTerms.CasterProgressionName(cls.CasterProgression, Lang)@(cls.SpellcastingAbility is { } sa ? $" · {FeatPrerequisiteFormatter.AbilityName(sa, Lang)}" : "")
+                                        @if (Glossary.SpellListOfClass(Lang, cls.Id) is { } spellList)
+                                        {
+                                            <a class="d-block small mt-1" href="@($"spells?class={(int)spellList}&ruleset={(int)cls.Ruleset}")" data-test="class-spell-list">@UiText.LinkClassSpellList(Lang)</a>
+                                        }
+                                    </dd>
                                 </div>
                             }
                             @if (!string.IsNullOrWhiteSpace(cls.SubclassTitle))
@@ -187,10 +194,8 @@
 
                         @if (!string.IsNullOrWhiteSpace(cls.StartingEquipment))
                         {
-                            <div class="p-3 mb-3 rounded" style="background-color: var(--rf-bg-main); border-left: 3px solid #ffb74d;" data-test="class-equipment">
-                                <strong class="small d-block mb-2 text-uppercase" style="color: var(--rf-orange-primary); letter-spacing: 0.5px;">@UiText.LabelStartingEquipment(Lang)</strong>
-                                <div class="rf-markdown-container small">@((MarkupString)MarkdownText.ToHtml(cls.StartingEquipment))</div>
-                            </div>
+                            <EquipmentLoadoutView Loadout="@EquipmentLoadout.FromClassText(cls.StartingEquipment)" Ruleset="cls.Ruleset" Lang="Lang"
+                                                  Title="@UiText.LabelStartingEquipment(Lang)" DataTest="class-equipment" />
                         }
                     </div>
                     break;

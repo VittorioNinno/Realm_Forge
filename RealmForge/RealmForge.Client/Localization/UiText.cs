@@ -94,6 +94,18 @@ namespace RealmForge.Client.Localization
 		public static string LabelGoldAlternative(LanguageCode lang) => lang == LanguageCode.It ? "Opzione B (mo)" : "Option B (gp)";
 		public static string HintGoldAlternative(LanguageCode lang) => lang == LanguageCode.It ? "Monete d'oro al posto dell'equipaggiamento; vuoto se il background offre solo l'equipaggiamento" : "Gold pieces instead of the equipment; leave empty if the background offers only its equipment";
 		public static string FormatGold(int gp, LanguageCode lang) => lang == LanguageCode.It ? $"{gp} mo" : $"{gp} gp";
+
+		//	Starting equipment (classes and backgrounds)
+		public static string LinkClassSpellList(LanguageCode lang) => lang == LanguageCode.It ? "Vai alla lista degli incantesimi →" : "Open the spell list →";
+		public static string LoadoutKit(LanguageCode lang) => lang == LanguageCode.It ? "Opzione" : "Option";
+		public static string LoadoutOr(LanguageCode lang) => lang == LanguageCode.It ? "oppure" : "or";
+		public static string LoadoutAnd(LanguageCode lang) => lang == LanguageCode.It ? " e " : " and ";
+		public static string LoadoutCoins(LanguageCode lang) => lang == LanguageCode.It ? "Monete" : "Coins";
+		public static string LoadoutChooseKit(IReadOnlyList<string> letters, LanguageCode lang)
+		{
+			var list = letters.Count <= 1 ? string.Join("", letters) : $"{string.Join(", ", letters.Take(letters.Count - 1))} {(lang == LanguageCode.It ? "o" : "or")} {letters[^1]}";
+			return lang == LanguageCode.It ? $"scegli {list}" : $"choose {list}";
+		}
 		public static string LabelFeatureName(LanguageCode lang) => lang == LanguageCode.It ? "Privilegio" : "Feature";
 		public static string LabelFeatureDescription(LanguageCode lang) => lang == LanguageCode.It ? "Descrizione del privilegio" : "Feature description";
 		public static string LabelSuggestedCharacteristics(LanguageCode lang) => lang == LanguageCode.It ? "Caratteristiche suggerite" : "Suggested characteristics";
@@ -508,6 +520,8 @@ namespace RealmForge.Client.Localization
 		public static string NoEquipmentFound(LanguageCode lang) =>
 			lang == LanguageCode.It ? "Nessun oggetto corrisponde ai filtri." : "No items match the filters.";
 
+		public static string BtnExpandAll(LanguageCode lang) => lang == LanguageCode.It ? "Espandi tutto" : "Expand all";
+		public static string BtnCollapseAll(LanguageCode lang) => lang == LanguageCode.It ? "Riduci tutto" : "Collapse all";
 		public static string LabelSearchEquipment(LanguageCode lang) => lang == LanguageCode.It ? "Cerca oggetto" : "Search item";
 		public static string PlaceholderSearchEquipment(LanguageCode lang) => lang == LanguageCode.It ? "Es. spada lunga, corda, liuto..." : "e.g. longsword, rope, lute...";
 		public static string LabelEquipmentCategory(LanguageCode lang) => lang == LanguageCode.It ? "Categoria" : "Category";
