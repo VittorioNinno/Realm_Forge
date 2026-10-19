@@ -216,7 +216,7 @@ namespace RealmForge.Api.Controllers
 		{
 			Category = e.Category,
 			CostInCopper = e.CostInCopper,
-			WeightInPounds = e.WeightInPounds,
+			WeightInPounds = Trim(e.WeightInPounds),
 			Quantity = e.Quantity,
 			WeaponCategory = e.WeaponCategory,
 			WeaponRange = e.WeaponRange,
@@ -237,9 +237,12 @@ namespace RealmForge.Api.Controllers
 			ToolAbility = e.ToolAbility,
 			FocusType = e.FocusType,
 			SpeedInFeet = e.SpeedInFeet,
-			SpeedInMilesPerHour = e.SpeedInMilesPerHour,
+			SpeedInMilesPerHour = Trim(e.SpeedInMilesPerHour),
 			CarryingCapacityInPounds = e.CarryingCapacityInPounds
 		};
+
+		//	numeric(9,3) columns come back as 3.000: drop the trailing zeros so the JSON reads 3
+		private static decimal? Trim(decimal? value) => value / 1.000000000000000000000000000000000m;
 
 		private static EquipmentDetailResponseDto ToDetailDto(Equipment e, LanguageCode lang, bool canEdit)
 		{

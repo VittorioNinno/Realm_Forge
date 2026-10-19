@@ -466,13 +466,26 @@ jobs:
           eq_delete=$(code -X DELETE $api/api/equipment/$eq_id -H "Authorization: Bearer $A")
           echo "::notice title=database::equipment 2014: $eq14 | 2024: $eq24 | longsword IT=$ls_it EN='$ls_en' | 2024 weapons=$eq_weapons"
           echo "::notice title=database::equipment homebrew: anonymous=$eq_anon | bad dice=$eq_bad_dice | thrown without range=$eq_bad_thrown | AC 40=$eq_bad_armor | other PUT=$eq_other | own PUT=$eq_own ($eq_detail) | private detail anon=$eq_anon_detail | account=$eq_acc | SRD DELETE=$eq_srd_delete | DELETE=$eq_delete"
-          test "$eq14" = '{"total":242,"srd":242,"weapons":37}'
-          test "$eq24" = '{"total":208,"srd":208,"weapons":38,"mastery":38}'
-          test "$ls_it" = '{"name":"Spada lunga","cost":1500,"weight":3,"dice":"1d8","type":12,"versatile":"1d10","mastery":5}'
-          test "$ls_en" = "Longsword" && test "$eq_weapons" = "38"
-          test "$eq_anon" = "401" && test "$eq_bad_dice" = "400" && test "$eq_bad_thrown" = "400" && test "$eq_bad_armor" = "400"
-          test "$eq_other" = "403" && test "$eq_own" = "204" && test "$eq_detail" = '{"name":"Lama di prova","weight":2,"canEdit":true}' && test "$eq_anon_detail" = "404"
-          test "$eq_acc" = "1" && test "$eq_srd_delete" = "403" && test "$eq_delete" = "204"
+          # Each check names itself on failure (the notices above are capped per step)
+          eqfail=0
+          check() { if [ "$2" != "$3" ]; then echo "::error title=equipment::$1: got '$2', expected '$3'"; eqfail=1; fi; }
+          check "2014 counts" "$eq14" '{"total":242,"srd":242,"weapons":37}'
+          check "2024 counts" "$eq24" '{"total":208,"srd":208,"weapons":38,"mastery":38}'
+          check "longsword IT" "$ls_it" '{"name":"Spada lunga","cost":1500,"weight":3,"dice":"1d8","type":12,"versatile":"1d10","mastery":5}'
+          check "longsword EN" "$ls_en" "Longsword"
+          check "2024 weapons" "$eq_weapons" "38"
+          check "anonymous create" "$eq_anon" "401"
+          check "bad dice" "$eq_bad_dice" "400"
+          check "thrown without range" "$eq_bad_thrown" "400"
+          check "AC 40" "$eq_bad_armor" "400"
+          check "other PUT" "$eq_other" "403"
+          check "own PUT" "$eq_own" "204"
+          check "detail" "$eq_detail" '{"name":"Lama di prova","weight":2,"canEdit":true}'
+          check "private detail anonymous" "$eq_anon_detail" "404"
+          check "account" "$eq_acc" "1"
+          check "SRD DELETE" "$eq_srd_delete" "403"
+          check "DELETE" "$eq_delete" "204"
+          test "$eqfail" = "0"
 
   ui:
     runs-on: ubuntu-24.04

@@ -50,7 +50,7 @@ try {
 
   // Navigation: reference pages live in the collapsible "Compendio" group, opened on compendium routes
   const compendiumLinks = (await page.locator('[data-test=nav-compendium] a').allInnerTexts()).map((t) => t.trim());
-  if (compendiumLinks.join(',') !== 'Specie,Background,Talenti,Incantesimi,Classi') throw new Error(`unexpected compendium links: ${compendiumLinks.join(',')}`);
+  if (compendiumLinks.join(',') !== 'Specie,Background,Talenti,Incantesimi,Classi,Equipaggiamento') throw new Error(`unexpected compendium links: ${compendiumLinks.join(',')}`);
 
   // Brand: emblem next to the title in the sidebar, RealmForge favicon instead of the Blazor one
   await page.goto(`${base}/`);
