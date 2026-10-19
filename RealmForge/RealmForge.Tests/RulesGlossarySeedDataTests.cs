@@ -102,7 +102,7 @@ public class RulesGlossarySeedDataTests
 
 		var html = linker.Link("<h3>Prono</h3><p>Il bersaglio cade prono e non può effettuare un'azione bonus. Resta prono.</p><p><a href=\"x\">prona</a></p>");
 
-		Assert.Equal(1, Regex.Matches(html, $"rules\\?id={prone}").Count);
+		Assert.Single(Regex.Matches(html, $"rules\\?id={prone}"));
 		Assert.Contains($"href=\"rules?id={bonusAction}\"", html);
 		Assert.Contains("<h3>Prono</h3>", html);
 		Assert.Contains(">azione bonus</a>", html);

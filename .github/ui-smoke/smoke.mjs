@@ -250,7 +250,7 @@ try {
   const rules2024 = await rulesCount('155 termini');
   await pickOption('rules-category', 'Condizioni');
   const conditions2024 = await rulesCount('15 termini');
-  await page.locator('[data-test=rules-tile]', { hasText: 'Prono' }).first().click();
+  await page.locator('[data-test=rules-tile]').filter({ has: page.locator('.rf-glossary-tile-name', { hasText: /^Prono$/ }) }).first().click();
   await page.locator('[data-test=rules-detail]').waitFor({ timeout: 15000 });
   const prone = await page.evaluate(() => ({
     name: document.querySelector('[data-test=rules-name]').textContent.trim(),
