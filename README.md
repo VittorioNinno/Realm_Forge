@@ -41,7 +41,7 @@ A modular, bilingual web platform for managing tabletop RPG campaigns, sessions 
 | Accounts & ownership · *Account e proprietà* | ✅ | ASP.NET Core Identity, bearer tokens, e-mail confirmation, password recovery, per-author Homebrew with private / link / public visibility · *conferma email, recupero password, Homebrew per autore con visibilità privata / link / pubblica* |
 | Backgrounds · *Background* | ✅ | 13 base 2014 backgrounds with feature and characteristic tables; 16 base 2024 backgrounds with ability scores, Origin feat and equipment options A/B (Acolyte, Criminal, Sage and Soldier from SRD 5.2) · *13 background base 2014 con privilegio e tabelle delle caratteristiche; 16 background base 2024 con caratteristiche, Talento di Origine e opzioni di equipaggiamento A/B (Accolito, Criminale, Sapiente e Soldato dall'SRD 5.2)* |
 | Spells · *Incantesimi* | ✅ | 361 base 2014 spells (319 from SRD 5.1, 42 with RealmForge text) and 391 base 2024 spells (339 from SRD 5.2, 52 with RealmForge text, summoning stat blocks included), class lists, filters by edition, level, school, class, ritual and concentration, Homebrew editor · *361 incantesimi base 2014 (319 dall'SRD 5.1, 42 con testo RealmForge) e 391 incantesimi base 2024 (339 dall'SRD 5.2, 52 con testo RealmForge, schede delle evocazioni incluse), liste per classe, filtri per edizione, livello, scuola, classe, rituale e concentrazione, editor Homebrew* |
-| Classes · *Classi* | 📋 | Planned · *Pianificato* |
+| Classes · *Classi* | ✅ | 12 base 2014 classes from SRD 5.1 with 40 subclasses (12 from SRD 5.1, 28 with RealmForge text) and 12 base 2024 classes from SRD 5.2 with 48 subclasses (12 from SRD 5.2, 36 with RealmForge text): full sheet with overview, 20-level progression table, features level by level (Metamagic, Eldritch Invocations, Battle Master maneuvers included) and subclasses; simplified Homebrew editor for classes and subclasses · *12 classi base 2014 dall'SRD 5.1 con 40 sottoclassi (12 dall'SRD 5.1, 28 con testo RealmForge) e 12 classi base 2024 dall'SRD 5.2 con 48 sottoclassi (12 dall'SRD 5.2, 36 con testo RealmForge): scheda completa con panoramica, tabella di progressione su 20 livelli, privilegi livello per livello (Metamagia, Suppliche occulte e manovre del Maestro di Battaglia incluse) e sottoclassi; editor Homebrew semplificato per classi e sottoclassi* |
 | Character sheet · *Scheda personaggio* | 📋 | Planned · *Pianificato* |
 
 ---
@@ -254,7 +254,8 @@ dotnet test RealmForge/RealmForge.slnx
 - [x] E-mail confirmation, Homebrew visibility and password recovery · *Conferma email, visibilità degli Homebrew e recupero password*
 - [x] Spells 2014 · *Incantesimi 2014*
 - [x] Spells 2024 · *Incantesimi 2024*
-- [ ] Classes · *Classi*
+- [x] Classes 2014 · *Classi 2014*
+- [x] Classes 2024 · *Classi 2024*
 - [ ] Character sheet · *Scheda personaggio*
 - [ ] Campaigns and sessions · *Campagne e sessioni*
 
