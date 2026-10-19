@@ -23,7 +23,7 @@ public static class Rogue2024Seeder
 			PrimaryAbilities = new List<AbilityScore> { AbilityScore.Dexterity },
 			SavingThrows = new List<AbilityScore> { AbilityScore.Dexterity, AbilityScore.Intelligence },
 			SkillChoiceCount = 4,
-			SkillOptions = new List<Skill> { Skill.Acrobatics, Skill.Athletics, Skill.Deception, Skill.Insight, Skill.Intimidation, Skill.Investigation, Skill.Perception, Skill.Persuasion, Skill.Sleight of Hand, Skill.Stealth },
+			SkillOptions = new List<Skill> { Skill.Acrobatics, Skill.Athletics, Skill.Deception, Skill.Insight, Skill.Intimidation, Skill.Investigation, Skill.Perception, Skill.Persuasion, Skill.SleightOfHand, Skill.Stealth },
 			CasterProgression = CasterProgression.None,
 			SpellcastingAbility = null,
 			SubclassLevel = 3,

@@ -23,7 +23,7 @@ public static class Druid2024Seeder
 			PrimaryAbilities = new List<AbilityScore> { AbilityScore.Wisdom },
 			SavingThrows = new List<AbilityScore> { AbilityScore.Intelligence, AbilityScore.Wisdom },
 			SkillChoiceCount = 2,
-			SkillOptions = new List<Skill> { Skill.Animal Handling, Skill.Arcana, Skill.Insight, Skill.Medicine, Skill.Nature, Skill.Perception, Skill.Religion, Skill.Survival },
+			SkillOptions = new List<Skill> { Skill.AnimalHandling, Skill.Arcana, Skill.Insight, Skill.Medicine, Skill.Nature, Skill.Perception, Skill.Religion, Skill.Survival },
 			CasterProgression = CasterProgression.Full,
 			SpellcastingAbility = AbilityScore.Wisdom,
 			SubclassLevel = 3,

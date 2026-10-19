@@ -23,7 +23,7 @@ public static class Fighter2024Seeder
 			PrimaryAbilities = new List<AbilityScore> { AbilityScore.Strength, AbilityScore.Dexterity },
 			SavingThrows = new List<AbilityScore> { AbilityScore.Strength, AbilityScore.Constitution },
 			SkillChoiceCount = 2,
-			SkillOptions = new List<Skill> { Skill.Acrobatics, Skill.Animal Handling, Skill.Athletics, Skill.History, Skill.Insight, Skill.Intimidation, Skill.Persuasion, Skill.Perception, Skill.Survival },
+			SkillOptions = new List<Skill> { Skill.Acrobatics, Skill.AnimalHandling, Skill.Athletics, Skill.History, Skill.Insight, Skill.Intimidation, Skill.Persuasion, Skill.Perception, Skill.Survival },
 			CasterProgression = CasterProgression.None,
 			SpellcastingAbility = null,
 			SubclassLevel = 3,
