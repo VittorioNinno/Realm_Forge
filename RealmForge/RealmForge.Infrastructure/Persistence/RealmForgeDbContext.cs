@@ -43,6 +43,10 @@ namespace RealmForge.Infrastructure.Persistence
 		public DbSet<Spell> Spells => Set<Spell>();
 		public DbSet<SpellTranslation> SpellTranslations => Set<SpellTranslation>();
 
+		//	Equipment aggregate
+		public DbSet<Equipment> Equipment => Set<Equipment>();
+		public DbSet<EquipmentTranslation> EquipmentTranslations => Set<EquipmentTranslation>();
+
 		//	Classes aggregate: classes, subclasses and the features of both
 		public DbSet<CharacterClass> Classes => Set<CharacterClass>();
 		public DbSet<CharacterClassTranslation> ClassTranslations => Set<CharacterClassTranslation>();
@@ -253,6 +257,44 @@ namespace RealmForge.Infrastructure.Persistence
 
 				//	Unique index: a spell cannot have two translations for the same language
 				entity.HasIndex(t => new { t.SpellId, t.Language }).IsUnique();
+			});
+
+			//	Equipment configuration
+			modelBuilder.Entity<Equipment>(entity =>
+			{
+				entity.ToTable("Equipment", t =>
+				{
+					t.HasCheckConstraint("CK_Equipment_Cost", "\"CostInCopper\" IS NULL OR \"CostInCopper\" >= 0");
+					t.HasCheckConstraint("CK_Equipment_Quantity", "\"Quantity\" >= 1");
+				});
+				entity.HasKey(e => e.Id);
+				entity.Property(e => e.Ruleset).IsRequired();
+				entity.Property(e => e.IsOfficialSRD).IsRequired();
+				entity.Property(e => e.Category).IsRequired();
+				entity.Property(e => e.WeightInPounds).HasPrecision(9, 3);
+				entity.Property(e => e.SpeedInMilesPerHour).HasPrecision(6, 2);
+				entity.Property(e => e.DamageDice).HasMaxLength(20);
+				entity.Property(e => e.VersatileDamageDice).HasMaxLength(20);
+				entity.Property(e => e.WeaponProperties).IsRequired();
+
+				//	The list filters by ruleset and category
+				entity.HasIndex(e => new { e.Ruleset, e.Category });
+
+				entity.HasMany(e => e.Translations)
+						.WithOne(t => t.Equipment)
+						.HasForeignKey(t => t.EquipmentId)
+						.OnDelete(DeleteBehavior.Cascade);
+			});
+
+			//	Equipment translations configuration
+			modelBuilder.Entity<EquipmentTranslation>(entity =>
+			{
+				entity.HasKey(t => t.Id);
+				entity.Property(t => t.Name).IsRequired().HasMaxLength(150);
+				entity.Property(t => t.Description).IsRequired();
+
+				//	Unique index: an item cannot have two translations for the same language
+				entity.HasIndex(t => new { t.EquipmentId, t.Language }).IsUnique();
 			});
 
 			//	Classes configuration

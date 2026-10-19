@@ -52,6 +52,7 @@ namespace RealmForge.Client
 			builder.Services.AddScoped<BackgroundDataService>();
 			builder.Services.AddScoped<SpellDataService>();
 			builder.Services.AddScoped<ClassDataService>();
+			builder.Services.AddScoped<EquipmentDataService>();
 
 			//	UI language state management service
 			builder.Services.AddSingleton<LanguageStateService>();

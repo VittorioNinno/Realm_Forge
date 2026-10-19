@@ -494,6 +494,96 @@ namespace RealmForge.Client.Localization
 		public static string ErrDeleteSpell(LanguageCode lang) => lang == LanguageCode.It ? "Errore durante l'eliminazione dell'incantesimo." : "Failed to delete spell.";
 		#endregion
 
+		#region Equipment Compendium
+		public static string EquipmentTitle(LanguageCode lang) => lang == LanguageCode.It ? "Equipaggiamento" : "Equipment";
+
+		public static string EquipmentSubtitle(LanguageCode lang) =>
+			lang == LanguageCode.It
+				? "Armi, armature, strumenti, equipaggiamento d'avventura, cavalcature e veicoli."
+				: "Weapons, armor, tools, adventuring gear, mounts and vehicles.";
+
+		public static string LoadingEquipment(LanguageCode lang) =>
+			lang == LanguageCode.It ? "Inventario dell'armeria..." : "Taking stock of the armory...";
+
+		public static string NoEquipmentFound(LanguageCode lang) =>
+			lang == LanguageCode.It ? "Nessun oggetto corrisponde ai filtri." : "No items match the filters.";
+
+		public static string LabelSearchEquipment(LanguageCode lang) => lang == LanguageCode.It ? "Cerca oggetto" : "Search item";
+		public static string PlaceholderSearchEquipment(LanguageCode lang) => lang == LanguageCode.It ? "Es. spada lunga, corda, liuto..." : "e.g. longsword, rope, lute...";
+		public static string LabelEquipmentCategory(LanguageCode lang) => lang == LanguageCode.It ? "Categoria" : "Category";
+		public static string FilterAllCategories(LanguageCode lang) => lang == LanguageCode.It ? "Tutte le categorie" : "All categories";
+		public static string LabelWeaponKind(LanguageCode lang) => lang == LanguageCode.It ? "Tipo di arma" : "Weapon kind";
+		public static string FilterAllWeapons(LanguageCode lang) => lang == LanguageCode.It ? "Tutte le armi" : "All weapons";
+		public static string LabelArmorKind(LanguageCode lang) => lang == LanguageCode.It ? "Tipo di armatura" : "Armor kind";
+		public static string FilterAllArmor(LanguageCode lang) => lang == LanguageCode.It ? "Tutte le armature" : "All armor";
+		public static string LabelToolKind(LanguageCode lang) => lang == LanguageCode.It ? "Tipo di strumento" : "Tool kind";
+		public static string FilterAllTools(LanguageCode lang) => lang == LanguageCode.It ? "Tutti gli strumenti" : "All tools";
+		public static string LabelMastery(LanguageCode lang) => lang == LanguageCode.It ? "Padronanza" : "Mastery";
+		public static string FilterAnyMastery(LanguageCode lang) => lang == LanguageCode.It ? "Qualsiasi padronanza" : "Any mastery";
+		public static string EquipmentCount(int count, LanguageCode lang) => lang == LanguageCode.It
+			? (count == 1 ? "1 oggetto" : $"{count} oggetti")
+			: (count == 1 ? "1 item" : $"{count} items");
+		public static string ColName(LanguageCode lang) => lang == LanguageCode.It ? "Nome" : "Name";
+		public static string ColDamage(LanguageCode lang) => lang == LanguageCode.It ? "Danni" : "Damage";
+		public static string ColProperties(LanguageCode lang) => lang == LanguageCode.It ? "Proprietà" : "Properties";
+		public static string ColWeight(LanguageCode lang) => lang == LanguageCode.It ? "Peso" : "Weight";
+		public static string ColCost(LanguageCode lang) => lang == LanguageCode.It ? "Costo" : "Cost";
+		public static string ColArmorClass(LanguageCode lang) => lang == LanguageCode.It ? "Classe Armatura (CA)" : "Armor Class (AC)";
+		public static string ColStrength(LanguageCode lang) => lang == LanguageCode.It ? "Forza" : "Strength";
+		public static string ColStealth(LanguageCode lang) => lang == LanguageCode.It ? "Furtività" : "Stealth";
+		public static string StealthDisadvantage(LanguageCode lang) => lang == LanguageCode.It ? "Svantaggio" : "Disadvantage";
+		public static string StrengthRequirement(int score, LanguageCode lang) => lang == LanguageCode.It ? $"For {score}" : $"Str {score}";
+		public static string ColAbility(LanguageCode lang) => lang == LanguageCode.It ? "Caratteristica" : "Ability";
+		public static string ColQuantity(LanguageCode lang) => lang == LanguageCode.It ? "Quantità" : "Amount";
+		public static string ColSpeed(LanguageCode lang) => lang == LanguageCode.It ? "Velocità" : "Speed";
+		public static string ColCapacity(LanguageCode lang) => lang == LanguageCode.It ? "Capacità di trasporto" : "Carrying capacity";
+		public static string ColKind(LanguageCode lang) => lang == LanguageCode.It ? "Tipo" : "Kind";
+		public static string BtnWeaponRules(LanguageCode lang) => lang == LanguageCode.It ? "Proprietà delle armi" : "Weapon properties";
+		public static string WeaponRulesTitle(LanguageCode lang) => lang == LanguageCode.It ? "Proprietà delle armi" : "Weapon properties";
+		public static string MasteryRulesTitle(LanguageCode lang) => lang == LanguageCode.It ? "Proprietà di padronanza (2024)" : "Mastery properties (2024)";
+		public static string MasteryRulesIntro(LanguageCode lang) => lang == LanguageCode.It
+			? "Si usano solo con il privilegio Padronanza nelle armi (o un talento) che sblocca quell'arma."
+			: "They work only with the Weapon Mastery feature (or a feat) that unlocks that weapon.";
+		public static string BtnAddEquipment(LanguageCode lang) => lang == LanguageCode.It ? "+ NUOVO OGGETTO" : "+ ADD ITEM";
+		public static string BtnSaveEquipment(LanguageCode lang) => lang == LanguageCode.It ? "SALVA OGGETTO" : "SAVE ITEM";
+		public static string ModalTitleAddEquipment(LanguageCode lang) => lang == LanguageCode.It ? "AGGIUNGI NUOVO OGGETTO" : "ADD NEW ITEM";
+		public static string PlaceholderEquipmentNameIt(LanguageCode lang) => lang == LanguageCode.It ? "Es. Lama del Tramonto" : "e.g. Lama del Tramonto";
+		public static string PlaceholderEquipmentNameEn(LanguageCode lang) => lang == LanguageCode.It ? "Es. Dusk Blade" : "e.g. Dusk Blade";
+		public static string LabelCostAmount(LanguageCode lang) => lang == LanguageCode.It ? "Costo" : "Cost";
+		public static string LabelCoin(LanguageCode lang) => lang == LanguageCode.It ? "Moneta" : "Coin";
+		public static string CoinName(int copperValue, LanguageCode lang) => (copperValue, lang == LanguageCode.It) switch
+		{
+			(100, true) => "mo (oro)",
+			(10, true) => "ma (argento)",
+			(1, true) => "mr (rame)",
+			(100, false) => "GP (gold)",
+			(10, false) => "SP (silver)",
+			_ => "CP (copper)"
+		};
+		public static string LabelWeightUnit(LanguageCode lang) => lang == LanguageCode.It ? "Peso (kg)" : "Weight (lb.)";
+		public static string LabelDamageDice(LanguageCode lang) => lang == LanguageCode.It ? "Dadi di danno" : "Damage dice";
+		public static string LabelDamageType(LanguageCode lang) => lang == LanguageCode.It ? "Tipo di danno" : "Damage type";
+		public static string LabelVersatileDice(LanguageCode lang) => lang == LanguageCode.It ? "Danni a due mani" : "Two-handed damage";
+		public static string LabelNormalRange(LanguageCode lang) => lang == LanguageCode.It ? "Gittata normale (m)" : "Normal range (ft.)";
+		public static string LabelLongRange(LanguageCode lang) => lang == LanguageCode.It ? "Gittata lunga (m)" : "Long range (ft.)";
+		public static string LabelBaseArmorClass(LanguageCode lang) => lang == LanguageCode.It ? "CA base (o bonus dello scudo)" : "Base AC (or shield bonus)";
+		public static string LabelAddsDexterity(LanguageCode lang) => lang == LanguageCode.It ? "Somma la Destrezza" : "Adds Dexterity";
+		public static string LabelMaxDexterity(LanguageCode lang) => lang == LanguageCode.It ? "Massimo di Destrezza" : "Dexterity cap";
+		public static string LabelStrengthRequirement(LanguageCode lang) => lang == LanguageCode.It ? "Forza richiesta" : "Strength requirement";
+		public static string LabelSpeedFeet(LanguageCode lang) => lang == LanguageCode.It ? "Velocità (m)" : "Speed (ft.)";
+		public static string LabelCapacityUnit(LanguageCode lang) => lang == LanguageCode.It ? "Capacità di trasporto (kg)" : "Carrying capacity (lb.)";
+		public static string LabelShipSpeed(LanguageCode lang) => lang == LanguageCode.It ? "Velocità (km/h)" : "Speed (mph)";
+		public static string LabelNone(LanguageCode lang) => lang == LanguageCode.It ? "Nessuna" : "None";
+		public static string ErrEquipmentStats(LanguageCode lang) => lang == LanguageCode.It
+			? "Controlla le statistiche: un'arma ha bisogno di dadi di danno (es. 1d8) e tipo di danno, le armi a distanza o da lancio di una gittata, un'armatura della sua CA."
+			: "Check the statistics: a weapon needs damage dice (e.g. 1d8) and a damage type, ranged or thrown weapons a range, armor its AC.";
+		public static string DeleteEquipmentWarning(LanguageCode lang, string name) =>
+			lang == LanguageCode.It
+				? $"Vuoi eliminare definitivamente l'oggetto \"{name}\"? L'operazione non può essere annullata."
+				: $"Do you want to permanently delete the item \"{name}\"? This cannot be undone.";
+		public static string ErrDeleteEquipment(LanguageCode lang) => lang == LanguageCode.It ? "Errore durante l'eliminazione dell'oggetto." : "Failed to delete item.";
+		#endregion
+
 		#region Classes Compendium
 		public static string ClassesTitle(LanguageCode lang) => lang == LanguageCode.It ? "Classi" : "Classes";
 
