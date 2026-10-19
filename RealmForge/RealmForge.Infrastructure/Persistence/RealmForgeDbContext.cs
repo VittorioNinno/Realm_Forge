@@ -43,6 +43,14 @@ namespace RealmForge.Infrastructure.Persistence
 		public DbSet<Spell> Spells => Set<Spell>();
 		public DbSet<SpellTranslation> SpellTranslations => Set<SpellTranslation>();
 
+		//	Classes aggregate: classes, subclasses and the features of both
+		public DbSet<CharacterClass> Classes => Set<CharacterClass>();
+		public DbSet<CharacterClassTranslation> ClassTranslations => Set<CharacterClassTranslation>();
+		public DbSet<Subclass> Subclasses => Set<Subclass>();
+		public DbSet<SubclassTranslation> SubclassTranslations => Set<SubclassTranslation>();
+		public DbSet<ClassFeature> ClassFeatures => Set<ClassFeature>();
+		public DbSet<ClassFeatureTranslation> ClassFeatureTranslations => Set<ClassFeatureTranslation>();
+
 		protected override void OnModelCreating(ModelBuilder modelBuilder)
 		{
 			base.OnModelCreating(modelBuilder);
@@ -245,6 +253,109 @@ namespace RealmForge.Infrastructure.Persistence
 
 				//	Unique index: a spell cannot have two translations for the same language
 				entity.HasIndex(t => new { t.SpellId, t.Language }).IsUnique();
+			});
+
+			//	Classes configuration
+			modelBuilder.Entity<CharacterClass>(entity =>
+			{
+				entity.ToTable("Classes", t =>
+				{
+					t.HasCheckConstraint("CK_Classes_HitDie", "\"HitDie\" IN (6, 8, 10, 12)");
+					t.HasCheckConstraint("CK_Classes_SubclassLevel", "\"SubclassLevel\" BETWEEN 1 AND 20");
+				});
+				entity.HasKey(c => c.Id);
+				entity.Property(c => c.Ruleset).IsRequired();
+				entity.Property(c => c.IsOfficialSRD).IsRequired();
+				entity.Property(c => c.PrimaryAbilities).IsRequired();
+				entity.Property(c => c.SavingThrows).IsRequired();
+				entity.Property(c => c.SkillOptions).IsRequired();
+
+				entity.HasMany(c => c.Translations)
+						.WithOne(t => t.CharacterClass)
+						.HasForeignKey(t => t.CharacterClassId)
+						.OnDelete(DeleteBehavior.Cascade);
+
+				entity.HasMany(c => c.Features)
+						.WithOne(f => f.CharacterClass)
+						.HasForeignKey(f => f.CharacterClassId)
+						.OnDelete(DeleteBehavior.Cascade);
+
+				entity.HasMany(c => c.Subclasses)
+						.WithOne(s => s.CharacterClass)
+						.HasForeignKey(s => s.CharacterClassId)
+						.OnDelete(DeleteBehavior.Cascade);
+			});
+
+			modelBuilder.Entity<CharacterClassTranslation>(entity =>
+			{
+				entity.ToTable("ClassTranslations");
+				entity.HasKey(t => t.Id);
+				entity.Property(t => t.Name).IsRequired().HasMaxLength(150);
+				entity.Property(t => t.Description).IsRequired();
+				entity.Property(t => t.SubclassTitle).HasMaxLength(150);
+				entity.Property(t => t.ArmorProficiencies).HasMaxLength(500);
+				entity.Property(t => t.WeaponProficiencies).HasMaxLength(500);
+				entity.Property(t => t.ToolProficiencies).HasMaxLength(500);
+				entity.Property(t => t.StartingEquipment).HasMaxLength(4000);
+
+				//	Unique index: a class cannot have two translations for the same language
+				entity.HasIndex(t => new { t.CharacterClassId, t.Language }).IsUnique();
+			});
+
+			//	Subclasses configuration
+			modelBuilder.Entity<Subclass>(entity =>
+			{
+				entity.HasKey(s => s.Id);
+				entity.Property(s => s.Ruleset).IsRequired();
+				entity.Property(s => s.IsOfficialSRD).IsRequired();
+
+				entity.HasMany(s => s.Translations)
+						.WithOne(t => t.Subclass)
+						.HasForeignKey(t => t.SubclassId)
+						.OnDelete(DeleteBehavior.Cascade);
+
+				entity.HasMany(s => s.Features)
+						.WithOne(f => f.Subclass)
+						.HasForeignKey(f => f.SubclassId)
+						.OnDelete(DeleteBehavior.Cascade);
+			});
+
+			modelBuilder.Entity<SubclassTranslation>(entity =>
+			{
+				entity.HasKey(t => t.Id);
+				entity.Property(t => t.Name).IsRequired().HasMaxLength(150);
+				entity.Property(t => t.Description).IsRequired();
+
+				//	Unique index: a subclass cannot have two translations for the same language
+				entity.HasIndex(t => new { t.SubclassId, t.Language }).IsUnique();
+			});
+
+			//	Class features configuration: each feature belongs to exactly one class or one subclass
+			modelBuilder.Entity<ClassFeature>(entity =>
+			{
+				entity.ToTable(t =>
+				{
+					t.HasCheckConstraint("CK_ClassFeatures_Level", "\"Level\" BETWEEN 1 AND 20");
+					t.HasCheckConstraint("CK_ClassFeatures_Owner", "(\"CharacterClassId\" IS NULL) <> (\"SubclassId\" IS NULL)");
+				});
+				entity.HasKey(f => f.Id);
+				entity.Property(f => f.Ruleset).IsRequired();
+				entity.Property(f => f.IsOfficialSRD).IsRequired();
+
+				entity.HasMany(f => f.Translations)
+						.WithOne(t => t.ClassFeature)
+						.HasForeignKey(t => t.ClassFeatureId)
+						.OnDelete(DeleteBehavior.Cascade);
+			});
+
+			modelBuilder.Entity<ClassFeatureTranslation>(entity =>
+			{
+				entity.HasKey(t => t.Id);
+				entity.Property(t => t.Name).IsRequired().HasMaxLength(150);
+				entity.Property(t => t.Description).IsRequired();
+
+				//	Unique index: a feature cannot have two translations for the same language
+				entity.HasIndex(t => new { t.ClassFeatureId, t.Language }).IsUnique();
 			});
 		}
 	}

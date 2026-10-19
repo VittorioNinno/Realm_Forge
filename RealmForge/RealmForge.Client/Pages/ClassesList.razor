@@ -1,0 +1,1004 @@
+﻿@page "/classes"
+@using RealmForge.Client.Components
+@using RealmForge.Client.Localization
+@using RealmForge.Client.Services
+@using RealmForge.Shared.DTOs
+@using RealmForge.Shared.Enums
+@using RealmForge.Shared.Localization
+@implements IDisposable
+@inject ClassDataService ClassService
+@inject LanguageStateService LanguageState
+@inject ApiErrorState ApiErrors
+
+<PageTitle>RealmForge - @UiText.ClassesTitle(Lang)</PageTitle>
+
+<div class="container-fluid px-0 py-4">
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4 pb-3" style="border-bottom: 2px solid var(--rf-orange-primary);">
+        <div>
+            <h1 class="h3 fw-bold mb-1 rf-page-title">@UiText.ClassesTitle(Lang)</h1>
+            <p class="mb-0 small" style="color: var(--rf-text-muted); letter-spacing: 1px; text-transform: uppercase;">
+                @UiText.ClassesSubtitle(Lang)
+            </p>
+        </div>
+
+        <div>
+            <ForgeAction>
+                <button class="btn btn-rf-orange" @onclick="OpenCreateClassModal" data-test="class-add">
+                    @UiText.BtnAddClass(Lang)
+                </button>
+            </ForgeAction>
+        </div>
+    </div>
+
+    @* Filters: edition reloads from the API, everything else filters the loaded list *@
+    <div class="row g-3 mb-4 p-3 rounded" style="background-color: var(--rf-bg-surface); border: 1px solid var(--rf-border-light);" data-test="class-filters">
+        <div class="col-lg-3 col-md-6">
+            <label class="rf-form-label small text-uppercase" style="letter-spacing: 0.5px;">@UiText.LabelSearchClass(Lang)</label>
+            <input type="text" class="rf-form-control" placeholder="@UiText.PlaceholderSearchClasses(Lang)"
+                   @bind="SearchTerm" @bind:event="oninput" data-test="class-search" />
+        </div>
+        <div class="col-lg-3 col-md-6" data-test="class-ruleset">
+            <label class="rf-form-label small text-uppercase" style="letter-spacing: 0.5px;">@UiText.LabelRuleset(Lang)</label>
+            <RfSelect TValue="string" @bind-Value="SelectedRulesetFilter" OnChange="LoadClassesAsync"
+                      Options="@(new List<RfSelect<string>.OptionItem>
+                      {
+                          new("", UiText.FilterRulesetAll(Lang)),
+                          new(((int)RulesetVersion.Dnd5e_2024).ToString(), UiText.FormatRuleset(RulesetVersion.Dnd5e_2024, Lang)),
+                          new(((int)RulesetVersion.Dnd5e_2014).ToString(), UiText.FormatRuleset(RulesetVersion.Dnd5e_2014, Lang))
+                      })" />
+        </div>
+        <div class="col-lg-3 col-md-6" data-test="class-origin">
+            <label class="rf-form-label small text-uppercase" style="letter-spacing: 0.5px;">@UiText.LabelOrigin(Lang)</label>
+            <RfSelect TValue="string" @bind-Value="OriginFilter"
+                      Options="@(new List<RfSelect<string>.OptionItem>
+                      {
+                          new("", UiText.FilterOriginAll(Lang)),
+                          new("srd", UiText.FilterOnlyBase(Lang)),
+                          new("homebrew", UiText.FilterOnlyHomebrew(Lang))
+                      })" />
+        </div>
+        <div class="col-lg-3 col-md-6" data-test="class-caster">
+            <label class="rf-form-label small text-uppercase" style="letter-spacing: 0.5px;">@UiText.LabelSpellcasting(Lang)</label>
+            <RfSelect TValue="CasterProgression?" @bind-Value="CasterFilter" Options="CasterOptions" />
+        </div>
+        <div class="col-12 d-flex">
+            <span class="ms-auto small" style="color: var(--rf-text-muted);" data-test="class-count">@UiText.ClassCount(FilteredClasses.Count, Lang)</span>
+        </div>
+    </div>
+
+    @if (IsLoading)
+    {
+        <div class="text-center my-5 py-5">
+            <div class="spinner-border" style="color: var(--rf-orange-primary);" role="status"></div>
+            <p class="mt-3" style="color: var(--rf-text-muted); text-transform: uppercase; letter-spacing: 1px;">@UiText.LoadingClasses(Lang)</p>
+        </div>
+    }
+    else if (FilteredClasses.Count == 0)
+    {
+        <div class="p-4 rounded text-center" style="background-color: var(--rf-bg-surface); border: 1px solid var(--rf-border-light);" data-test="class-empty">
+            <p class="mb-0" style="color: var(--rf-text-muted);">@UiText.NoClassesFound(Lang)</p>
+        </div>
+    }
+    else
+    {
+        <div class="row row-cols-1 row-cols-md-2 row-cols-xl-3 g-3">
+            @foreach (var c in FilteredClasses)
+            {
+                <div class="col">
+                    <div class="rf-card rf-class-card h-100 d-flex flex-column" style="cursor: pointer;" data-test="class-card" @onclick="() => OpenDetailAsync(c.Id)">
+                        <div class="d-flex justify-content-between align-items-start mb-2 gap-2">
+                            <span class="rf-card-title mb-0">@c.Name</span>
+                            <div class="d-flex gap-1 flex-shrink-0 align-items-center">
+                                <span class="badge @(c.Ruleset == RulesetVersion.Dnd5e_2024 ? "badge-edition-2024" : "badge-edition-2014")">@UiText.FormatRuleset(c.Ruleset, Lang)</span>
+                                <ContentBadge IsBase="c.IsOfficialSRD" Source="c.Source" Visibility="c.Visibility" />
+                            </div>
+                        </div>
+                        <div class="rf-class-quick mb-2">
+                            <span class="rf-class-hitdie" title="@UiText.LabelHitDie(Lang)">d@(c.HitDie)</span>
+                            <span><strong>@UiText.LabelPrimaryAbility(Lang)</strong> @Abilities(c.PrimaryAbilities)</span>
+                            <span><strong>@UiText.LabelSaves(Lang)</strong> @Abilities(c.SavingThrows)</span>
+                        </div>
+                        <p class="small lh-base mb-3 flex-grow-1" style="color: var(--rf-text-secondary);">@c.ShortDescription</p>
+                        <div class="d-flex flex-wrap gap-1 pt-2 align-items-center" style="border-top: 1px solid var(--rf-border-subtle);">
+                            @if (c.CasterProgression != CasterProgression.None)
+                            {
+                                <span class="rf-spell-flag">@GameTerms.CasterProgressionName(c.CasterProgression, Lang)</span>
+                            }
+                            <span class="small ms-auto" style="color: var(--rf-text-muted);" data-test="class-subclass-count">
+                                @UiText.SubclassCount(c.SubclassNames.Count, Lang)
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+</div>
+
+@if (SelectedClass is { } cls)
+{
+    <div class="rf-modal-backdrop" @onclick="CloseDetail">
+        <div class="rf-modal-dialog rf-class-dialog" @onclick:stopPropagation="true" data-test="class-detail">
+            <div class="d-flex justify-content-between align-items-start mb-3 pb-2" style="border-bottom: 2px solid var(--rf-orange-primary);">
+                <div>
+                    <h2 class="h3 mb-1" style="color: var(--rf-orange-primary); font-family: var(--rf-font-display);" data-test="class-name">@cls.Name</h2>
+                    <div class="d-flex flex-wrap gap-2">
+                        <span class="badge @(cls.Ruleset == RulesetVersion.Dnd5e_2024 ? "badge-edition-2024" : "badge-edition-2014")">@UiText.FormatRuleset(cls.Ruleset, Lang)</span>
+                        <ContentBadge IsBase="cls.IsOfficialSRD" Source="cls.Source" Visibility="cls.Visibility" ShowSource="true" />
+                    </div>
+                </div>
+                <button class="btn btn-sm btn-rf-outline" @onclick="CloseDetail">✕</button>
+            </div>
+
+            @if (!cls.IsOfficialSRD)
+            {
+                <ShareLink Visibility="cls.Visibility" CanEdit="cls.CanEdit" Path="@($"classes?id={cls.Id}")" />
+            }
+
+            @* Tabs: overview, class table, features, subclasses *@
+            <div class="rf-pill-group mb-3" role="tablist" data-test="class-tabs">
+                @foreach (var tab in Tabs)
+                {
+                    var current = tab;
+                    <button type="button" role="tab" class="rf-pill-btn @(DetailTab == current ? "active" : "")" aria-selected="@(DetailTab == current ? "true" : "false")"
+                            @onclick="() => DetailTab = current" data-test="class-tab-@current">
+                        @TabLabel(current)
+                    </button>
+                }
+            </div>
+
+            @switch (DetailTab)
+            {
+                case "overview":
+                    <div data-test="class-overview">
+                        <div class="rf-markdown-container mb-3">@((MarkupString)MarkdownText.ToHtml(cls.Description))</div>
+
+                        <dl class="rf-class-facts mb-3" data-test="class-facts">
+                            <div><dt>@UiText.LabelHitDie(Lang)</dt><dd>@UiText.FormatHitDie(cls.HitDie, Lang)</dd></div>
+                            <div><dt>@UiText.LabelHitPoints(Lang)</dt><dd>@UiText.FormatHitPoints(cls.HitDie, Lang)</dd></div>
+                            <div><dt>@UiText.LabelPrimaryAbility(Lang)</dt><dd>@Abilities(cls.PrimaryAbilities)</dd></div>
+                            <div><dt>@UiText.LabelSaves(Lang)</dt><dd>@Abilities(cls.SavingThrows)</dd></div>
+                            <div><dt>@UiText.LabelSkills(Lang)</dt><dd data-test="class-skills">@SkillText(cls)</dd></div>
+                            @if (!string.IsNullOrWhiteSpace(cls.ArmorProficiencies))
+                            {
+                                <div><dt>@UiText.LabelArmor(Lang)</dt><dd>@cls.ArmorProficiencies</dd></div>
+                            }
+                            @if (!string.IsNullOrWhiteSpace(cls.WeaponProficiencies))
+                            {
+                                <div><dt>@UiText.LabelWeapons(Lang)</dt><dd>@cls.WeaponProficiencies</dd></div>
+                            }
+                            @if (!string.IsNullOrWhiteSpace(cls.ToolProficiencies))
+                            {
+                                <div><dt>@UiText.LabelTools(Lang)</dt><dd>@cls.ToolProficiencies</dd></div>
+                            }
+                            @if (cls.CasterProgression != CasterProgression.None)
+                            {
+                                <div>
+                                    <dt>@UiText.LabelSpellcasting(Lang)</dt>
+                                    <dd>@GameTerms.CasterProgressionName(cls.CasterProgression, Lang)@(cls.SpellcastingAbility is { } sa ? $" · {FeatPrerequisiteFormatter.AbilityName(sa, Lang)}" : "")</dd>
+                                </div>
+                            }
+                            @if (!string.IsNullOrWhiteSpace(cls.SubclassTitle))
+                            {
+                                <div><dt>@UiText.LabelSubclass(Lang)</dt><dd>@cls.SubclassTitle (@UiText.FormatClassLevel(cls.SubclassLevel, Lang))</dd></div>
+                            }
+                        </dl>
+
+                        @if (!string.IsNullOrWhiteSpace(cls.StartingEquipment))
+                        {
+                            <div class="p-3 mb-3 rounded" style="background-color: var(--rf-bg-main); border-left: 3px solid #ffb74d;" data-test="class-equipment">
+                                <strong class="small d-block mb-2 text-uppercase" style="color: var(--rf-orange-primary); letter-spacing: 0.5px;">@UiText.LabelStartingEquipment(Lang)</strong>
+                                <div class="rf-markdown-container small">@((MarkupString)MarkdownText.ToHtml(cls.StartingEquipment))</div>
+                            </div>
+                        }
+                    </div>
+                    break;
+
+                case "table":
+                    <div class="rf-class-table-wrap rf-markdown-container" data-test="class-table">
+                        @if (string.IsNullOrWhiteSpace(cls.ProgressionTable))
+                        {
+                            <p class="small mb-0" style="color: var(--rf-text-muted);">@UiText.NoProgressionTable(Lang)</p>
+                        }
+                        else
+                        {
+                            @((MarkupString)MarkdownText.ToHtml(cls.ProgressionTable))
+                        }
+                    </div>
+                    break;
+
+                case "features":
+                    <div data-test="class-features">
+                        @RenderFeatures(cls.Features)
+                    </div>
+                    break;
+
+                case "subclasses":
+                    <div data-test="class-subclasses">
+                        <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+                            <span class="small" style="color: var(--rf-text-secondary);">
+                                @(cls.SubclassTitle ?? UiText.LabelSubclass(Lang)) · @UiText.FormatClassLevel(cls.SubclassLevel, Lang)
+                            </span>
+                            @if (cls.IsOfficialSRD || cls.CanEdit)
+                            {
+                                <ForgeAction>
+                                    <button class="btn btn-sm btn-rf-orange" @onclick="() => OpenCreateSubclassModal(cls)" data-test="subclass-add">@UiText.BtnAddSubclass(Lang)</button>
+                                </ForgeAction>
+                            }
+                        </div>
+
+                        @if (cls.Subclasses.Count == 0)
+                        {
+                            <p class="small" style="color: var(--rf-text-muted);">@UiText.NoSubclasses(Lang)</p>
+                        }
+                        else
+                        {
+                            <div class="rf-pill-group mb-3" data-test="subclass-list">
+                                @foreach (var sub in cls.Subclasses)
+                                {
+                                    var current = sub;
+                                    <button type="button" class="rf-pill-btn @(SelectedSubclassId == current.Id ? "active" : "")" @onclick="() => SelectedSubclassId = current.Id" data-test="subclass-pill">
+                                        @current.Name
+                                        @if (!current.IsOfficialSRD)
+                                        {
+                                            <span class="ms-1 small" style="opacity: 0.7;">· Homebrew</span>
+                                        }
+                                    </button>
+                                }
+                            </div>
+
+                            @if (cls.Subclasses.FirstOrDefault(s => s.Id == SelectedSubclassId) is { } subclass)
+                            {
+                                <div class="p-3 rounded" style="background-color: var(--rf-bg-main); border-left: 3px solid var(--rf-orange-primary);" data-test="subclass-detail">
+                                    <div class="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-2">
+                                        <h3 class="h5 mb-0" style="color: var(--rf-orange-primary); font-family: var(--rf-font-display);" data-test="subclass-name">@subclass.Name</h3>
+                                        <ContentBadge IsBase="subclass.IsOfficialSRD" Source="subclass.Source" Visibility="subclass.Visibility" ShowSource="true" />
+                                    </div>
+                                    @if (!subclass.IsOfficialSRD)
+                                    {
+                                        <ShareLink Visibility="subclass.Visibility" CanEdit="subclass.CanEdit" Path="@($"classes?id={cls.Id}&subclass={subclass.Id}")" />
+                                    }
+                                    @if (!string.IsNullOrWhiteSpace(subclass.Description))
+                                    {
+                                        <div class="rf-markdown-container mb-3">@((MarkupString)MarkdownText.ToHtml(subclass.Description))</div>
+                                    }
+                                    @RenderFeatures(subclass.Features)
+                                    @if (subclass.CanEdit)
+                                    {
+                                        <div class="d-flex gap-3 pt-3 mt-2" style="border-top: 1px solid var(--rf-border-subtle);">
+                                            <button class="btn btn-sm btn-rf-outline text-uppercase" @onclick="() => OpenEditSubclassModalAsync(cls, subclass.Id)" data-test="subclass-edit">@UiText.Edit(Lang)</button>
+                                            <button class="btn btn-sm btn-rf-outline text-uppercase px-3" style="border-color: #dc3545; color: #dc3545;"
+                                                    @onclick="() => OpenDeleteModal(subclass.Id, subclass.Name, isSubclass: true)" data-test="subclass-delete">@UiText.Delete(Lang)</button>
+                                        </div>
+                                    }
+                                </div>
+                            }
+                        }
+                    </div>
+                    break;
+            }
+
+            <div class="d-flex justify-content-between align-items-center pt-3 mt-3" style="border-top: 1px solid var(--rf-border-light);">
+                @if (cls.CanEdit)
+                {
+                    <div class="d-flex gap-3">
+                        <button class="btn btn-sm btn-rf-outline text-uppercase" style="letter-spacing: 1px;"
+                                @onclick="async () => { var id = cls.Id; CloseDetail(); await OpenEditClassModalAsync(id); }" data-test="class-edit">
+                            @UiText.Edit(Lang)
+                        </button>
+                        <button class="btn btn-sm btn-rf-outline text-uppercase px-3" style="border-color: #dc3545; color: #dc3545;"
+                                @onclick="() => OpenDeleteModal(cls.Id, cls.Name, isSubclass: false)" data-test="class-delete">
+                            @UiText.Delete(Lang)
+                        </button>
+                    </div>
+                }
+                else
+                {
+                    <div></div>
+                }
+                <button class="btn btn-rf-outline text-uppercase" style="letter-spacing: 1px;" @onclick="CloseDetail">@UiText.BtnClose(Lang)</button>
+            </div>
+        </div>
+    </div>
+}
+
+@if (isClassModalOpen)
+{
+    <div class="rf-modal-backdrop" @onclick="() => isClassModalOpen = false">
+        <div class="rf-modal-dialog rf-class-dialog" @onclick:stopPropagation="true" data-test="class-form">
+            <h2 class="h4 mb-3 pb-2" style="border-bottom: 1px solid var(--rf-border-light); font-family: var(--rf-font-display);">
+                @(editingClassId is null ? UiText.ModalTitleAddClass(Lang) : UiText.Edit(Lang))
+            </h2>
+
+            @if (isFormLoading)
+            {
+                <div class="text-center py-4"><div class="spinner-border text-warning" role="status"></div></div>
+            }
+            else
+            {
+                @if (!string.IsNullOrEmpty(formError))
+                {
+                    <div class="alert alert-warning bg-dark border-warning text-warning p-2 small mb-3" data-test="class-form-error">@formError</div>
+                }
+
+                <div class="row g-3 mb-3">
+                    <div class="col-md-3" data-test="class-form-ruleset">
+                        <label class="rf-form-label">@UiText.LabelRuleset(Lang)</label>
+                        <RfSelect TValue="RulesetVersion" @bind-Value="classForm.Ruleset"
+                                  Options="@(Enum.GetValues<RulesetVersion>().Select(r => new RfSelect<RulesetVersion>.OptionItem(r, UiText.FormatRuleset(r, Lang))).ToList())" />
+                    </div>
+                    <div class="col-md-3" data-test="class-form-hitdie">
+                        <label class="rf-form-label">@UiText.LabelHitDie(Lang)</label>
+                        <RfSelect TValue="int" @bind-Value="classForm.HitDie"
+                                  Options="@(new[] { 6, 8, 10, 12 }.Select(d => new RfSelect<int>.OptionItem(d, $"d{d}")).ToList())" />
+                    </div>
+                    <div class="col-md-3" data-test="class-form-subclass-level">
+                        <label class="rf-form-label">@UiText.LabelSubclassLevel(Lang)</label>
+                        <RfSelect TValue="int" @bind-Value="classForm.SubclassLevel"
+                                  Options="@(Enumerable.Range(1, 20).Select(l => new RfSelect<int>.OptionItem(l, UiText.FormatClassLevel(l, Lang))).ToList())" />
+                    </div>
+                    <div class="col-md-3" data-test="class-form-skill-count">
+                        <label class="rf-form-label">@UiText.LabelSkillCount(Lang)</label>
+                        <RfSelect TValue="int" @bind-Value="classForm.SkillChoiceCount"
+                                  Options="@(Enumerable.Range(0, 7).Select(n => new RfSelect<int>.OptionItem(n, n.ToString())).ToList())" />
+                    </div>
+                </div>
+
+                <VisibilityPicker @bind-Value="classForm.Visibility" />
+
+                <div class="p-3 mb-3 rounded" style="background-color: var(--rf-bg-card); border-left: 3px solid var(--rf-border-light);">
+                    <label class="rf-form-label">@UiText.LabelPrimaryAbility(Lang)</label>
+                    <div class="rf-pill-group mb-3" data-test="class-form-primary">
+                        @foreach (var ability in Enum.GetValues<AbilityScore>())
+                        {
+                            var current = ability;
+                            <button type="button" class="rf-pill-btn @(classForm.PrimaryAbilities.Contains(current) ? "active" : "")" @onclick="() => Toggle(classForm.PrimaryAbilities, current)">
+                                @FeatPrerequisiteFormatter.AbilityName(current, Lang)
+                            </button>
+                        }
+                    </div>
+                    <label class="rf-form-label">@UiText.LabelSaves(Lang)</label>
+                    <div class="rf-pill-group mb-3" data-test="class-form-saves">
+                        @foreach (var ability in Enum.GetValues<AbilityScore>())
+                        {
+                            var current = ability;
+                            <button type="button" class="rf-pill-btn @(classForm.SavingThrows.Contains(current) ? "active" : "")" @onclick="() => Toggle(classForm.SavingThrows, current)">
+                                @FeatPrerequisiteFormatter.AbilityName(current, Lang)
+                            </button>
+                        }
+                    </div>
+                    <label class="rf-form-label">@UiText.LabelSkillOptions(Lang)</label>
+                    <div class="rf-pill-group mb-3" data-test="class-form-skills">
+                        @foreach (var skill in Enum.GetValues<Skill>().OrderBy(s => GameTerms.SkillName(s, Lang)))
+                        {
+                            var current = skill;
+                            <button type="button" class="rf-pill-btn @(classForm.SkillOptions.Contains(current) ? "active" : "")" @onclick="() => Toggle(classForm.SkillOptions, current)">
+                                @GameTerms.SkillName(current, Lang)
+                            </button>
+                        }
+                    </div>
+                    <div class="row g-3">
+                        <div class="col-md-6" data-test="class-form-caster">
+                            <label class="rf-form-label">@UiText.LabelSpellcasting(Lang)</label>
+                            <RfSelect TValue="CasterProgression" @bind-Value="classForm.CasterProgression"
+                                      Options="@(Enum.GetValues<CasterProgression>().Select(p => new RfSelect<CasterProgression>.OptionItem(p, GameTerms.CasterProgressionName(p, Lang))).ToList())" />
+                        </div>
+                        @if (classForm.CasterProgression != CasterProgression.None)
+                        {
+                            <div class="col-md-6" data-test="class-form-casting-ability">
+                                <label class="rf-form-label">@UiText.LabelSpellcastingAbility(Lang)</label>
+                                <RfSelect TValue="AbilityScore" @bind-Value="classForm.SpellcastingAbility"
+                                          Options="@(Enum.GetValues<AbilityScore>().Select(a => new RfSelect<AbilityScore>.OptionItem(a, FeatPrerequisiteFormatter.AbilityName(a, Lang))).ToList())" />
+                            </div>
+                        }
+                    </div>
+                </div>
+
+                @foreach (var tr in new[] { classIt, classEn })
+                {
+                    var isIt = tr.Language == LanguageCode.It;
+                    <div class="p-3 mb-3 rounded" style="background-color: var(--rf-bg-card); border-left: 3px solid @(isIt ? "var(--rf-orange-primary)" : "#666");" data-test="@(isIt ? "class-form-it" : "class-form-en")">
+                        <div class="fw-bold mb-2 small" style="color: @(isIt ? "var(--rf-orange-primary)" : "var(--rf-text-secondary)");">@(isIt ? UiText.TabItalian(Lang) : UiText.TabEnglish(Lang))</div>
+                        <div class="row g-2 mb-2">
+                            <div class="col-md-6">
+                                <label class="rf-form-label">@UiText.LabelName(Lang)</label>
+                                <input type="text" class="rf-form-control" @bind="tr.Name" data-test="class-form-name" />
+                            </div>
+                            <div class="col-md-6">
+                                <label class="rf-form-label">@UiText.LabelSubclassTitle(Lang)</label>
+                                <input type="text" class="rf-form-control" @bind="tr.SubclassTitle" placeholder="@(isIt ? "Es. Cammino Primordiale" : "e.g. Primal Path")" />
+                            </div>
+                        </div>
+                        <div class="mb-2">
+                            <label class="rf-form-label">@UiText.LabelDescription(Lang)</label>
+                            <textarea class="rf-form-control" rows="3" @bind="tr.Description" data-test="class-form-description"></textarea>
+                        </div>
+                        <div class="row g-2 mb-2">
+                            <div class="col-md-4"><label class="rf-form-label">@UiText.LabelArmor(Lang)</label><input type="text" class="rf-form-control" @bind="tr.ArmorProficiencies" /></div>
+                            <div class="col-md-4"><label class="rf-form-label">@UiText.LabelWeapons(Lang)</label><input type="text" class="rf-form-control" @bind="tr.WeaponProficiencies" /></div>
+                            <div class="col-md-4"><label class="rf-form-label">@UiText.LabelTools(Lang)</label><input type="text" class="rf-form-control" @bind="tr.ToolProficiencies" /></div>
+                        </div>
+                        <div class="mb-2">
+                            <label class="rf-form-label">@UiText.LabelStartingEquipment(Lang)</label>
+                            <textarea class="rf-form-control" rows="2" @bind="tr.StartingEquipment"></textarea>
+                        </div>
+                        <div>
+                            <label class="rf-form-label">@UiText.LabelProgressionTable(Lang)</label>
+                            <textarea class="rf-form-control font-monospace small" rows="3" @bind="tr.ProgressionTable" placeholder="| Livello | Bonus di competenza | Privilegi |&#10;|---|---|---|&#10;| 1° | +2 | ... |"></textarea>
+                        </div>
+                    </div>
+                }
+
+                <ClassFeatureEditor Items="classFeatures" />
+
+                <div class="d-flex justify-content-end gap-2 pt-2" style="border-top: 1px solid var(--rf-border-light);">
+                    <button class="btn btn-rf-outline" @onclick="() => isClassModalOpen = false">@UiText.BtnCancel(Lang)</button>
+                    <button class="btn btn-rf-orange" @onclick="SaveClassAsync" disabled="@isSaving" data-test="class-form-save">@(isSaving ? "..." : UiText.BtnSaveClass(Lang))</button>
+                </div>
+            }
+        </div>
+    </div>
+}
+
+@if (isSubclassModalOpen)
+{
+    <div class="rf-modal-backdrop" @onclick="() => isSubclassModalOpen = false">
+        <div class="rf-modal-dialog rf-class-dialog" @onclick:stopPropagation="true" data-test="subclass-form">
+            <h2 class="h4 mb-1 pb-2" style="font-family: var(--rf-font-display);">
+                @(editingSubclassId is null ? UiText.ModalTitleAddSubclass(Lang) : UiText.Edit(Lang))
+            </h2>
+            <p class="small mb-3 pb-2" style="border-bottom: 1px solid var(--rf-border-light); color: var(--rf-text-secondary);">@UiText.LabelParentClass(Lang): <strong>@subclassParentName</strong></p>
+
+            @if (isFormLoading)
+            {
+                <div class="text-center py-4"><div class="spinner-border text-warning" role="status"></div></div>
+            }
+            else
+            {
+                @if (!string.IsNullOrEmpty(formError))
+                {
+                    <div class="alert alert-warning bg-dark border-warning text-warning p-2 small mb-3" data-test="subclass-form-error">@formError</div>
+                }
+
+                <VisibilityPicker @bind-Value="subclassForm.Visibility" />
+
+                <div class="row g-3 mb-3">
+                    <div class="col-md-6">
+                        <label class="rf-form-label">@UiText.LabelSpellcasting(Lang)</label>
+                        <RfSelect TValue="CasterProgression" @bind-Value="subclassForm.CasterProgression"
+                                  Options="@(Enum.GetValues<CasterProgression>().Select(p => new RfSelect<CasterProgression>.OptionItem(p, GameTerms.CasterProgressionName(p, Lang))).ToList())" />
+                    </div>
+                    @if (subclassForm.CasterProgression != CasterProgression.None)
+                    {
+                        <div class="col-md-6">
+                            <label class="rf-form-label">@UiText.LabelSpellcastingAbility(Lang)</label>
+                            <RfSelect TValue="AbilityScore" @bind-Value="subclassForm.SpellcastingAbility"
+                                      Options="@(Enum.GetValues<AbilityScore>().Select(a => new RfSelect<AbilityScore>.OptionItem(a, FeatPrerequisiteFormatter.AbilityName(a, Lang))).ToList())" />
+                        </div>
+                    }
+                </div>
+
+                @foreach (var tr in new[] { subclassIt, subclassEn })
+                {
+                    var isIt = tr.Language == LanguageCode.It;
+                    <div class="p-3 mb-3 rounded" style="background-color: var(--rf-bg-card); border-left: 3px solid @(isIt ? "var(--rf-orange-primary)" : "#666");" data-test="@(isIt ? "subclass-form-it" : "subclass-form-en")">
+                        <div class="fw-bold mb-2 small" style="color: @(isIt ? "var(--rf-orange-primary)" : "var(--rf-text-secondary)");">@(isIt ? UiText.TabItalian(Lang) : UiText.TabEnglish(Lang))</div>
+                        <div class="mb-2">
+                            <label class="rf-form-label">@UiText.LabelName(Lang)</label>
+                            <input type="text" class="rf-form-control" @bind="tr.Name" data-test="subclass-form-name" />
+                        </div>
+                        <div>
+                            <label class="rf-form-label">@UiText.LabelDescription(Lang)</label>
+                            <textarea class="rf-form-control" rows="3" @bind="tr.Description"></textarea>
+                        </div>
+                    </div>
+                }
+
+                <ClassFeatureEditor Items="subclassFeatures" DefaultLevel="subclassDefaultLevel" />
+
+                <div class="d-flex justify-content-end gap-2 pt-2" style="border-top: 1px solid var(--rf-border-light);">
+                    <button class="btn btn-rf-outline" @onclick="() => isSubclassModalOpen = false">@UiText.BtnCancel(Lang)</button>
+                    <button class="btn btn-rf-orange" @onclick="SaveSubclassAsync" disabled="@isSaving" data-test="subclass-form-save">@(isSaving ? "..." : UiText.BtnSaveSubclass(Lang))</button>
+                </div>
+            }
+        </div>
+    </div>
+}
+
+@if (isDeleteModalOpen)
+{
+    <div class="rf-modal-backdrop" @onclick="() => isDeleteModalOpen = false">
+        <div class="rf-modal-dialog" @onclick:stopPropagation="true" style="max-width: 450px; text-align: center;">
+            <h2 class="h4 mb-3" style="color: var(--rf-orange-primary);">@UiText.ConfirmDeletion(Lang)</h2>
+            <div class="p-3 mb-4 rounded" style="background-color: var(--rf-bg-main); border: 1px solid var(--rf-border-subtle); color: var(--rf-text-secondary); line-height: 1.5;">
+                @UiText.DeleteClassWarning(Lang, deleteName, deleteIsSubclass)
+            </div>
+            @if (!string.IsNullOrEmpty(deleteError))
+            {
+                <div class="alert alert-warning bg-dark border-warning text-warning p-2 small mb-3">@deleteError</div>
+            }
+            <div class="d-flex justify-content-center gap-3">
+                <button class="btn btn-rf-outline" @onclick="() => isDeleteModalOpen = false">@UiText.BtnCancel(Lang)</button>
+                <button class="btn btn-rf-orange" style="background-color: #dc3545; border-color: #dc3545;" @onclick="HandleDeleteAsync" data-test="confirm-delete">@UiText.Delete(Lang)</button>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    [SupplyParameterFromQuery(Name = "id")]
+    public Guid? QueryClassId { get; set; }
+
+    [SupplyParameterFromQuery(Name = "subclass")]
+    public Guid? QuerySubclassId { get; set; }
+
+    private static readonly string[] Tabs = ["overview", "table", "features", "subclasses"];
+
+    private LanguageCode Lang => LanguageState.CurrentLanguage;
+
+    private List<ClassResponseDto> AllClasses { get; set; } = new();
+    private ClassDetailResponseDto? SelectedClass { get; set; }
+    private bool IsLoading { get; set; } = true;
+    private string DetailTab { get; set; } = "overview";
+    private Guid? SelectedSubclassId { get; set; }
+
+    //	Filters
+    private RulesetVersion? SelectedRuleset { get; set; }
+    private string SearchTerm { get; set; } = string.Empty;
+    private string OriginFilter { get; set; } = string.Empty;
+    private CasterProgression? CasterFilter { get; set; }
+
+    private string SelectedRulesetFilter
+    {
+        get => SelectedRuleset.HasValue ? ((int)SelectedRuleset.Value).ToString() : "";
+        set => SelectedRuleset = int.TryParse(value, out var v) && Enum.IsDefined(typeof(RulesetVersion), v) ? (RulesetVersion)v : null;
+    }
+
+    private List<ClassResponseDto> FilteredClasses =>
+        AllClasses
+            .Where(c => OriginFilter switch { "srd" => c.IsOfficialSRD, "homebrew" => !c.IsOfficialSRD, _ => true })
+            .Where(c => CasterFilter is null || c.CasterProgression == CasterFilter)
+            .Where(c => string.IsNullOrWhiteSpace(SearchTerm)
+                        || c.Name.Contains(SearchTerm.Trim(), StringComparison.OrdinalIgnoreCase)
+                        || c.SubclassNames.Any(s => s.Contains(SearchTerm.Trim(), StringComparison.OrdinalIgnoreCase))
+                        || c.ShortDescription.Contains(SearchTerm.Trim(), StringComparison.OrdinalIgnoreCase))
+            .OrderBy(c => c.Name, StringComparer.CurrentCultureIgnoreCase)
+            .ThenBy(c => c.Ruleset)
+            .ToList();
+
+    private List<RfSelect<CasterProgression?>.OptionItem> CasterOptions =>
+        new List<RfSelect<CasterProgression?>.OptionItem> { new(null, UiText.FilterAllCasters(Lang)) }
+            .Concat(Enum.GetValues<CasterProgression>().Select(p => new RfSelect<CasterProgression?>.OptionItem(p, GameTerms.CasterProgressionName(p, Lang))))
+            .ToList();
+
+    private string TabLabel(string tab) => tab switch
+    {
+        "overview" => UiText.TabClassOverview(Lang),
+        "table" => UiText.TabClassTable(Lang),
+        "features" => UiText.TabClassFeatures(Lang),
+        _ => SelectedClass?.SubclassTitle ?? UiText.LabelSubclasses(Lang)
+    };
+
+    private string Abilities(IEnumerable<AbilityScore> abilities)
+    {
+        var names = abilities.Select(a => FeatPrerequisiteFormatter.AbilityName(a, Lang)).ToList();
+        return names.Count == 0 ? "—" : string.Join(", ", names);
+    }
+
+    private string SkillText(ClassDetailResponseDto c)
+    {
+        var options = c.SkillOptions.Count == 0
+            ? UiText.AnySkills(Lang)
+            : string.Join(", ", c.SkillOptions.Select(s => GameTerms.SkillName(s, Lang)).OrderBy(n => n));
+        return UiText.FormatSkillChoice(c.SkillChoiceCount, options, Lang);
+    }
+
+    //	Features grouped by level, each with its level badge
+    private RenderFragment RenderFeatures(List<ClassFeatureDto> features) => __builder =>
+    {
+        if (features.Count == 0)
+        {
+            <p class="small mb-0" style="color: var(--rf-text-muted);">@UiText.NoFeaturesYet(Lang)</p>
+            return;
+        }
+
+        <div class="rf-class-feature-list">
+            @foreach (var feature in features)
+            {
+                <section class="rf-class-feature" data-test="class-feature">
+                    <div class="rf-class-feature-head">
+                        <span class="rf-class-feature-level">@UiText.FormatClassLevelShort(feature.Level, Lang)</span>
+                        <h4 class="rf-class-feature-name" data-test="class-feature-name">@feature.Name</h4>
+                    </div>
+                    @if (!string.IsNullOrWhiteSpace(feature.Description))
+                    {
+                        <div class="rf-markdown-container rf-class-feature-body">@((MarkupString)MarkdownText.ToHtml(feature.Description))</div>
+                    }
+                </section>
+            }
+        </div>
+    };
+
+    protected override async Task OnInitializedAsync()
+    {
+        LanguageState.OnLanguageChanged += HandleLanguageChanged;
+        await LoadClassesAsync();
+
+        if (QueryClassId.HasValue)
+        {
+            await OpenDetailAsync(QueryClassId.Value);
+
+            if (SelectedClass == null)
+            {
+                ApiErrors.Report(ApiErrorKind.NotAvailable);
+            }
+            else if (QuerySubclassId is { } subId)
+            {
+                //	Shared link to a subclass: a private or deleted one is reported like any other unavailable entry
+                if (SelectedClass.Subclasses.Any(s => s.Id == subId))
+                {
+                    DetailTab = "subclasses";
+                    SelectedSubclassId = subId;
+                }
+                else if (await ClassService.GetSubclassAsync(subId, Lang) is { } linked && linked.ClassId == SelectedClass.Id)
+                {
+                    //	Link-only subclasses are not listed in the class: add the linked one to the view
+                    SelectedClass = SelectedClass with { Subclasses = SelectedClass.Subclasses.Append(linked).ToList() };
+                    DetailTab = "subclasses";
+                    SelectedSubclassId = subId;
+                }
+                else
+                {
+                    ApiErrors.Report(ApiErrorKind.NotAvailable);
+                }
+            }
+        }
+    }
+
+    private async void HandleLanguageChanged()
+    {
+        if (SelectedClass != null)
+        {
+            SelectedClass = await ClassService.GetClassDetailAsync(SelectedClass.Id, Lang);
+        }
+
+        await LoadClassesAsync();
+        StateHasChanged();
+    }
+
+    private async Task LoadClassesAsync()
+    {
+        IsLoading = true;
+        AllClasses = await ClassService.GetClassesAsync(Lang, SelectedRuleset);
+        IsLoading = false;
+    }
+
+    private async Task OpenDetailAsync(Guid id)
+    {
+        SelectedClass = await ClassService.GetClassDetailAsync(id, Lang);
+        DetailTab = "overview";
+        SelectedSubclassId = SelectedClass?.Subclasses.FirstOrDefault()?.Id;
+    }
+
+    private async Task ReloadDetailAsync(Guid classId, string tab, Guid? subclassId)
+    {
+        SelectedClass = await ClassService.GetClassDetailAsync(classId, Lang);
+        DetailTab = tab;
+        SelectedSubclassId = subclassId is { } id && SelectedClass?.Subclasses.Any(s => s.Id == id) == true ? id : SelectedClass?.Subclasses.FirstOrDefault()?.Id;
+    }
+
+    private void CloseDetail() => SelectedClass = null;
+
+    private static void Toggle<T>(List<T> list, T value)
+    {
+        if (!list.Remove(value))
+        {
+            list.Add(value);
+        }
+    }
+
+    #region Homebrew forms
+
+    private sealed class ClassForm
+    {
+        public RulesetVersion Ruleset { get; set; } = RulesetVersion.Dnd5e_2014;
+        public int HitDie { get; set; } = 8;
+        public int SubclassLevel { get; set; } = 3;
+        public int SkillChoiceCount { get; set; } = 2;
+        public ContentVisibility Visibility { get; set; } = ContentVisibility.Private;
+        public List<AbilityScore> PrimaryAbilities { get; set; } = new();
+        public List<AbilityScore> SavingThrows { get; set; } = new();
+        public List<Skill> SkillOptions { get; set; } = new();
+        public CasterProgression CasterProgression { get; set; }
+        public AbilityScore SpellcastingAbility { get; set; } = AbilityScore.Intelligence;
+    }
+
+    private sealed class SubclassForm
+    {
+        public ContentVisibility Visibility { get; set; } = ContentVisibility.Private;
+        public CasterProgression CasterProgression { get; set; }
+        public AbilityScore SpellcastingAbility { get; set; } = AbilityScore.Intelligence;
+    }
+
+    private bool isClassModalOpen;
+    private bool isSubclassModalOpen;
+    private bool isFormLoading;
+    private bool isSaving;
+    private string? formError;
+
+    private Guid? editingClassId;
+    private ClassForm classForm = new();
+    private ClassTranslationDto classIt = new() { Language = LanguageCode.It };
+    private ClassTranslationDto classEn = new() { Language = LanguageCode.En };
+    private List<ClassFeatureEditor.Item> classFeatures = new();
+
+    private Guid? editingSubclassId;
+    private Guid subclassParentId;
+    private string subclassParentName = string.Empty;
+    private int subclassDefaultLevel = 3;
+    private SubclassForm subclassForm = new();
+    private FeatureTextDto subclassIt = new() { Language = LanguageCode.It };
+    private FeatureTextDto subclassEn = new() { Language = LanguageCode.En };
+    private List<ClassFeatureEditor.Item> subclassFeatures = new();
+
+    private bool isDeleteModalOpen;
+    private bool deleteIsSubclass;
+    private Guid deleteId;
+    private string deleteName = string.Empty;
+    private string? deleteError;
+
+    private void OpenCreateClassModal()
+    {
+        editingClassId = null;
+        formError = null;
+        classForm = new ClassForm();
+        classIt = new ClassTranslationDto { Language = LanguageCode.It };
+        classEn = new ClassTranslationDto { Language = LanguageCode.En };
+        classFeatures = new List<ClassFeatureEditor.Item>();
+        isClassModalOpen = true;
+    }
+
+    private async Task OpenEditClassModalAsync(Guid id)
+    {
+        editingClassId = id;
+        formError = null;
+        isClassModalOpen = true;
+        isFormLoading = true;
+
+        var itTask = ClassService.GetClassDetailAsync(id, LanguageCode.It);
+        var enTask = ClassService.GetClassDetailAsync(id, LanguageCode.En);
+        await Task.WhenAll(itTask, enTask);
+
+        if (itTask.Result is { } it && enTask.Result is { } en)
+        {
+            classForm = new ClassForm
+            {
+                Ruleset = it.Ruleset, HitDie = it.HitDie, SubclassLevel = it.SubclassLevel, SkillChoiceCount = it.SkillChoiceCount, Visibility = it.Visibility,
+                PrimaryAbilities = it.PrimaryAbilities.ToList(), SavingThrows = it.SavingThrows.ToList(), SkillOptions = it.SkillOptions.ToList(),
+                CasterProgression = it.CasterProgression, SpellcastingAbility = it.SpellcastingAbility ?? AbilityScore.Intelligence
+            };
+            classIt = ToClassTexts(it, LanguageCode.It);
+            classEn = ToClassTexts(en, LanguageCode.En);
+            classFeatures = MergeFeatures(it.Features, en.Features);
+        }
+        else
+        {
+            formError = UiText.ErrApiSave(Lang);
+        }
+
+        isFormLoading = false;
+    }
+
+    private static ClassTranslationDto ToClassTexts(ClassDetailResponseDto d, LanguageCode lang) => new()
+    {
+        Language = lang, Name = d.Name, Description = d.Description, SubclassTitle = d.SubclassTitle,
+        ArmorProficiencies = d.ArmorProficiencies, WeaponProficiencies = d.WeaponProficiencies, ToolProficiencies = d.ToolProficiencies,
+        StartingEquipment = d.StartingEquipment, ProgressionTable = d.ProgressionTable
+    };
+
+    //	The same feature has the same id in both languages
+    private static List<ClassFeatureEditor.Item> MergeFeatures(List<ClassFeatureDto> it, List<ClassFeatureDto> en) =>
+        it.Select(f =>
+        {
+            var english = en.FirstOrDefault(e => e.Id == f.Id);
+            return new ClassFeatureEditor.Item
+            {
+                Level = f.Level, NameIt = f.Name, DescriptionIt = f.Description,
+                NameEn = english?.Name ?? f.Name, DescriptionEn = english?.Description ?? f.Description
+            };
+        }).ToList();
+
+    private static List<SaveClassFeatureDto> ToFeatureDtos(List<ClassFeatureEditor.Item> items) =>
+        items.Select(f => new SaveClassFeatureDto
+        {
+            Level = f.Level,
+            Translations = new List<FeatureTextDto>
+            {
+                new() { Language = LanguageCode.It, Name = f.NameIt.Trim(), Description = f.DescriptionIt.Trim() },
+                new() { Language = LanguageCode.En, Name = f.NameEn.Trim(), Description = f.DescriptionEn.Trim() }
+            }
+        }).ToList();
+
+    private bool FeaturesHaveNames(List<ClassFeatureEditor.Item> items) =>
+        items.All(f => !string.IsNullOrWhiteSpace(f.NameIt) && !string.IsNullOrWhiteSpace(f.NameEn));
+
+    private async Task SaveClassAsync()
+    {
+        if (string.IsNullOrWhiteSpace(classIt.Name) || string.IsNullOrWhiteSpace(classEn.Name))
+        {
+            formError = UiText.ErrFillNames(Lang);
+            return;
+        }
+
+        if (!FeaturesHaveNames(classFeatures))
+        {
+            formError = UiText.ErrFeatureNames(Lang);
+            return;
+        }
+
+        isSaving = true;
+        formError = null;
+
+        var dto = new SaveClassDto
+        {
+            Id = editingClassId ?? Guid.Empty,
+            Ruleset = classForm.Ruleset,
+            HitDie = classForm.HitDie,
+            PrimaryAbilities = classForm.PrimaryAbilities.ToList(),
+            SavingThrows = classForm.SavingThrows.ToList(),
+            SkillChoiceCount = classForm.SkillChoiceCount,
+            SkillOptions = classForm.SkillOptions.ToList(),
+            CasterProgression = classForm.CasterProgression,
+            SpellcastingAbility = classForm.CasterProgression == CasterProgression.None ? null : classForm.SpellcastingAbility,
+            SubclassLevel = classForm.SubclassLevel,
+            Visibility = classForm.Visibility,
+            Translations = new List<ClassTranslationDto> { classIt, classEn },
+            Features = ToFeatureDtos(classFeatures)
+        };
+
+        var success = editingClassId is { } id ? await ClassService.UpdateClassAsync(id, dto) : await ClassService.CreateClassAsync(dto);
+        isSaving = false;
+
+        if (success)
+        {
+            isClassModalOpen = false;
+            await LoadClassesAsync();
+        }
+        else
+        {
+            formError = UiText.ErrApiSave(Lang);
+        }
+    }
+
+    private void OpenCreateSubclassModal(ClassDetailResponseDto parent)
+    {
+        editingSubclassId = null;
+        formError = null;
+        subclassParentId = parent.Id;
+        subclassParentName = parent.Name;
+        subclassDefaultLevel = parent.SubclassLevel;
+        subclassForm = new SubclassForm();
+        subclassIt = new FeatureTextDto { Language = LanguageCode.It };
+        subclassEn = new FeatureTextDto { Language = LanguageCode.En };
+        subclassFeatures = new List<ClassFeatureEditor.Item>();
+        isSubclassModalOpen = true;
+    }
+
+    private async Task OpenEditSubclassModalAsync(ClassDetailResponseDto parent, Guid id)
+    {
+        editingSubclassId = id;
+        formError = null;
+        subclassParentId = parent.Id;
+        subclassParentName = parent.Name;
+        subclassDefaultLevel = parent.SubclassLevel;
+        isSubclassModalOpen = true;
+        isFormLoading = true;
+
+        var itTask = ClassService.GetSubclassAsync(id, LanguageCode.It);
+        var enTask = ClassService.GetSubclassAsync(id, LanguageCode.En);
+        await Task.WhenAll(itTask, enTask);
+
+        if (itTask.Result is { } it && enTask.Result is { } en)
+        {
+            subclassForm = new SubclassForm
+            {
+                Visibility = it.Visibility, CasterProgression = it.CasterProgression, SpellcastingAbility = it.SpellcastingAbility ?? AbilityScore.Intelligence
+            };
+            subclassIt = new FeatureTextDto { Language = LanguageCode.It, Name = it.Name, Description = it.Description };
+            subclassEn = new FeatureTextDto { Language = LanguageCode.En, Name = en.Name, Description = en.Description };
+            subclassFeatures = MergeFeatures(it.Features, en.Features);
+        }
+        else
+        {
+            formError = UiText.ErrApiSave(Lang);
+        }
+
+        isFormLoading = false;
+    }
+
+    private async Task SaveSubclassAsync()
+    {
+        if (string.IsNullOrWhiteSpace(subclassIt.Name) || string.IsNullOrWhiteSpace(subclassEn.Name))
+        {
+            formError = UiText.ErrFillNames(Lang);
+            return;
+        }
+
+        if (!FeaturesHaveNames(subclassFeatures))
+        {
+            formError = UiText.ErrFeatureNames(Lang);
+            return;
+        }
+
+        isSaving = true;
+        formError = null;
+
+        var dto = new SaveSubclassDto
+        {
+            Id = editingSubclassId ?? Guid.Empty,
+            ClassId = subclassParentId,
+            CasterProgression = subclassForm.CasterProgression,
+            SpellcastingAbility = subclassForm.CasterProgression == CasterProgression.None ? null : subclassForm.SpellcastingAbility,
+            Visibility = subclassForm.Visibility,
+            Translations = new List<FeatureTextDto> { subclassIt, subclassEn },
+            Features = ToFeatureDtos(subclassFeatures)
+        };
+
+        var success = editingSubclassId is { } id ? await ClassService.UpdateSubclassAsync(id, dto) : await ClassService.CreateSubclassAsync(dto);
+        isSaving = false;
+
+        if (success)
+        {
+            isSubclassModalOpen = false;
+            await ReloadDetailAsync(subclassParentId, "subclasses", editingSubclassId);
+            if (editingSubclassId is null && SelectedClass is { } reloaded)
+            {
+                //	Show the new subclass: the last Homebrew one of the class with that name
+                SelectedSubclassId = reloaded.Subclasses.LastOrDefault(s => !s.IsOfficialSRD && s.Name == subclassIt.Name.Trim())?.Id ?? SelectedSubclassId;
+            }
+
+            await LoadClassesAsync();
+        }
+        else
+        {
+            formError = UiText.ErrApiSave(Lang);
+        }
+    }
+
+    private void OpenDeleteModal(Guid id, string name, bool isSubclass)
+    {
+        deleteId = id;
+        deleteName = name;
+        deleteIsSubclass = isSubclass;
+        deleteError = null;
+        isDeleteModalOpen = true;
+    }
+
+    private async Task HandleDeleteAsync()
+    {
+        var success = deleteIsSubclass ? await ClassService.DeleteSubclassAsync(deleteId) : await ClassService.DeleteClassAsync(deleteId);
+
+        if (!success)
+        {
+            deleteError = UiText.ErrDeleteClass(Lang);
+            return;
+        }
+
+        isDeleteModalOpen = false;
+
+        if (deleteIsSubclass && SelectedClass is { } parent)
+        {
+            await ReloadDetailAsync(parent.Id, "subclasses", null);
+        }
+        else
+        {
+            SelectedClass = null;
+        }
+
+        await LoadClassesAsync();
+    }
+
+    #endregion
+
+    public void Dispose() => LanguageState.OnLanguageChanged -= HandleLanguageChanged;
+}

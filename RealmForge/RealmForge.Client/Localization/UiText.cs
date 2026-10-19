@@ -494,6 +494,98 @@ namespace RealmForge.Client.Localization
 		public static string ErrDeleteSpell(LanguageCode lang) => lang == LanguageCode.It ? "Errore durante l'eliminazione dell'incantesimo." : "Failed to delete spell.";
 		#endregion
 
+		#region Classes Compendium
+		public static string ClassesTitle(LanguageCode lang) => lang == LanguageCode.It ? "Classi" : "Classes";
+
+		public static string ClassesSubtitle(LanguageCode lang) =>
+			lang == LanguageCode.It
+				? "Le classi con i privilegi livello per livello, la tabella di progressione e le sottoclassi."
+				: "Classes with their level-by-level features, progression table and subclasses.";
+
+		public static string LoadingClasses(LanguageCode lang) =>
+			lang == LanguageCode.It ? "Radunando gli avventurieri..." : "Gathering the adventurers...";
+
+		public static string NoClassesFound(LanguageCode lang) =>
+			lang == LanguageCode.It ? "Nessuna classe corrisponde ai filtri." : "No classes match the filters.";
+
+		public static string LabelSearchClass(LanguageCode lang) => lang == LanguageCode.It ? "Cerca classe" : "Search class";
+		public static string PlaceholderSearchClasses(LanguageCode lang) => lang == LanguageCode.It ? "Es. Mago, Berserker..." : "e.g. Wizard, Berserker...";
+		public static string LabelSpellcasting(LanguageCode lang) => lang == LanguageCode.It ? "Incantesimi" : "Spellcasting";
+		public static string LabelSpellcastingAbility(LanguageCode lang) => lang == LanguageCode.It ? "Caratteristica da incantatore" : "Spellcasting ability";
+		public static string FilterAllCasters(LanguageCode lang) => lang == LanguageCode.It ? "Tutte" : "All";
+		public static string ClassCount(int count, LanguageCode lang) => lang == LanguageCode.It
+			? (count == 1 ? "1 classe" : $"{count} classi")
+			: (count == 1 ? "1 class" : $"{count} classes");
+		public static string SubclassCount(int count, LanguageCode lang) => lang == LanguageCode.It
+			? (count == 1 ? "1 sottoclasse" : $"{count} sottoclassi")
+			: (count == 1 ? "1 subclass" : $"{count} subclasses");
+
+		public static string LabelHitDie(LanguageCode lang) => lang == LanguageCode.It ? "Dado Vita" : "Hit Die";
+		public static string FormatHitDie(int hitDie, LanguageCode lang) => lang == LanguageCode.It ? $"d{hitDie} per livello" : $"d{hitDie} per level";
+		public static string LabelHitPoints(LanguageCode lang) => lang == LanguageCode.It ? "Punti ferita" : "Hit points";
+
+		//	1st level: max die + Con; later levels: average (rounded up) or a roll
+		public static string FormatHitPoints(int hitDie, LanguageCode lang) => lang == LanguageCode.It
+			? $"{hitDie} + mod. Costituzione al 1° livello; poi 1d{hitDie} (o {hitDie / 2 + 1}) + mod. Costituzione per livello"
+			: $"{hitDie} + Con modifier at 1st level; then 1d{hitDie} (or {hitDie / 2 + 1}) + Con modifier per level";
+
+		public static string LabelPrimaryAbility(LanguageCode lang) => lang == LanguageCode.It ? "Caratteristica primaria" : "Primary ability";
+		public static string LabelSaves(LanguageCode lang) => lang == LanguageCode.It ? "Tiri salvezza" : "Saving throws";
+		public static string LabelSkills(LanguageCode lang) => lang == LanguageCode.It ? "Abilità" : "Skills";
+		public static string AnySkills(LanguageCode lang) => lang == LanguageCode.It ? "qualsiasi abilità" : "any skills";
+		public static string FormatSkillChoice(int count, string options, LanguageCode lang) => lang == LanguageCode.It
+			? $"{count} a scelta tra {options}"
+			: $"Choose {count} from {options}";
+		public static string LabelArmor(LanguageCode lang) => lang == LanguageCode.It ? "Armature" : "Armor";
+		public static string LabelWeapons(LanguageCode lang) => lang == LanguageCode.It ? "Armi" : "Weapons";
+		public static string LabelTools(LanguageCode lang) => lang == LanguageCode.It ? "Strumenti" : "Tools";
+		public static string LabelStartingEquipment(LanguageCode lang) => lang == LanguageCode.It ? "Equipaggiamento iniziale" : "Starting equipment";
+		public static string LabelSubclass(LanguageCode lang) => lang == LanguageCode.It ? "Sottoclasse" : "Subclass";
+		public static string LabelSubclasses(LanguageCode lang) => lang == LanguageCode.It ? "Sottoclassi" : "Subclasses";
+		public static string LabelSubclassesShort(LanguageCode lang) => lang == LanguageCode.It ? "Sottoclassi" : "Subclasses";
+		public static string LabelSubclassTitle(LanguageCode lang) => lang == LanguageCode.It ? "Nome delle sottoclassi" : "Subclass family name";
+		public static string LabelSubclassLevel(LanguageCode lang) => lang == LanguageCode.It ? "Sottoclasse al" : "Subclass at";
+		public static string LabelSkillCount(LanguageCode lang) => lang == LanguageCode.It ? "Abilità a scelta" : "Skills to choose";
+		public static string LabelSkillOptions(LanguageCode lang) => lang == LanguageCode.It ? "Abilità tra cui scegliere (nessuna = tutte)" : "Skill options (none = any)";
+		public static string LabelProgressionTable(LanguageCode lang) => lang == LanguageCode.It ? "Tabella di progressione (Markdown)" : "Progression table (Markdown)";
+		public static string LabelParentClass(LanguageCode lang) => lang == LanguageCode.It ? "Classe" : "Class";
+		public static string LabelLevel(LanguageCode lang) => lang == LanguageCode.It ? "Livello" : "Level";
+		public static string FormatClassLevel(int level, LanguageCode lang) => lang == LanguageCode.It ? $"{level}° livello" : $"Level {level}";
+		public static string FormatClassLevelShort(int level, LanguageCode lang) => lang == LanguageCode.It ? $"{level}°" : $"Lv {level}";
+
+		public static string TabClassOverview(LanguageCode lang) => lang == LanguageCode.It ? "Panoramica" : "Overview";
+		public static string TabClassTable(LanguageCode lang) => lang == LanguageCode.It ? "Tabella" : "Table";
+		public static string TabClassFeatures(LanguageCode lang) => lang == LanguageCode.It ? "Privilegi" : "Features";
+		public static string NoProgressionTable(LanguageCode lang) => lang == LanguageCode.It ? "Nessuna tabella di progressione." : "No progression table.";
+		public static string NoSubclasses(LanguageCode lang) => lang == LanguageCode.It ? "Nessuna sottoclasse disponibile." : "No subclasses available.";
+
+		public static string LabelClassFeatures(LanguageCode lang) => lang == LanguageCode.It ? "Privilegi" : "Features";
+		public static string BtnAddFeature(LanguageCode lang) => lang == LanguageCode.It ? "+ Privilegio" : "+ Feature";
+		public static string NoFeaturesYet(LanguageCode lang) => lang == LanguageCode.It ? "Nessun privilegio." : "No features.";
+		public static string MoveUp(LanguageCode lang) => lang == LanguageCode.It ? "Sposta su" : "Move up";
+		public static string MoveDown(LanguageCode lang) => lang == LanguageCode.It ? "Sposta giù" : "Move down";
+		public static string PlaceholderFeatureNameIt(LanguageCode lang) => lang == LanguageCode.It ? "Nome (italiano)" : "Name (Italian)";
+		public static string PlaceholderFeatureNameEn(LanguageCode lang) => lang == LanguageCode.It ? "Nome (inglese)" : "Name (English)";
+
+		public static string BtnAddClass(LanguageCode lang) => lang == LanguageCode.It ? "+ NUOVA CLASSE" : "+ ADD CLASS";
+		public static string BtnAddSubclass(LanguageCode lang) => lang == LanguageCode.It ? "+ NUOVA SOTTOCLASSE" : "+ ADD SUBCLASS";
+		public static string BtnSaveClass(LanguageCode lang) => lang == LanguageCode.It ? "SALVA CLASSE" : "SAVE CLASS";
+		public static string BtnSaveSubclass(LanguageCode lang) => lang == LanguageCode.It ? "SALVA SOTTOCLASSE" : "SAVE SUBCLASS";
+		public static string ModalTitleAddClass(LanguageCode lang) => lang == LanguageCode.It ? "FORGIA NUOVA CLASSE" : "FORGE NEW CLASS";
+		public static string ModalTitleAddSubclass(LanguageCode lang) => lang == LanguageCode.It ? "FORGIA NUOVA SOTTOCLASSE" : "FORGE NEW SUBCLASS";
+		public static string ErrFeatureNames(LanguageCode lang) => lang == LanguageCode.It
+			? "Ogni privilegio deve avere un nome in italiano e in inglese."
+			: "Every feature needs a name in Italian and in English.";
+		public static string ErrDeleteClass(LanguageCode lang) => lang == LanguageCode.It ? "Errore durante l'eliminazione." : "Failed to delete.";
+		public static string DeleteClassWarning(LanguageCode lang, string name, bool isSubclass) => (lang == LanguageCode.It, isSubclass) switch
+		{
+			(true, true) => $"Vuoi eliminare definitivamente la sottoclasse \"{name}\" e i suoi privilegi? L'operazione non può essere annullata.",
+			(true, false) => $"Vuoi eliminare definitivamente la classe \"{name}\", con i suoi privilegi e le sue sottoclassi? L'operazione non può essere annullata.",
+			(false, true) => $"Do you want to permanently delete the subclass \"{name}\" and its features? This cannot be undone.",
+			_ => $"Do you want to permanently delete the class \"{name}\", with its features and subclasses? This cannot be undone."
+		};
+		#endregion
+
 		#region Species Compendium
 		public static string SpeciesTitle(LanguageCode lang) => lang == LanguageCode.It ? "Specie" : "Species";
 
