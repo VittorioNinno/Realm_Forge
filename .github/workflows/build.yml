@@ -395,6 +395,12 @@ jobs:
           rogue=$(echo "$cl_all" | jq -r '.[] | select(.name == "Ladro") | .id')
           trickster=$(get "$api/api/classes/$rogue?lang=2" | jq -r '.subclasses[] | select(.name == "Mistificatore Arcano") | .id')
           at_it=$(get "$api/api/subclasses/$trickster?lang=2" | jq -c '{className, casterProgression, spellcastingAbility, source, features: (.features | map(.level))}')
+          # 2024 rules (SRD 5.2): 12 classes with 48 subclasses (12 SRD + 36 RealmForge texts), subclass at level 3
+          cl24=$(get "$api/api/classes?isOfficial=true&ruleset=2&lang=2")
+          cl24_counts=$(echo "$cl24" | jq -c '{total: length, srd: map(select(.source == 3)) | length, subclasses: map(.subclassNames | length) | add, casters: map(select(.casterProgression != 0)) | length}')
+          wizard24=$(echo "$cl24" | jq -r '.[] | select(.name == "Mago") | .id')
+          wz24_it=$(get "$api/api/classes/$wizard24?lang=2" | jq -c '{name, hitDie, subclassLevel, subclassTitle, features: (.features | length), subclasses: (.subclasses | length), rf: (.subclasses | map(select(.source == 1)) | length), first: .features[0].name}')
+          wz24_en=$(get "$api/api/classes/$wizard24?lang=1" | jq -r '.name + " / " + .subclassTitle + " / " + (.subclasses | map(select(.source == 3)) | .[0].name)')
           cl=$(jq -nc '{ruleset:1, hitDie:10, primaryAbilities:[1], savingThrows:[1,3], skillChoiceCount:2, skillOptions:[], casterProgression:0, subclassLevel:3, visibility:2,
             translations:[{language:1,name:"Test Knight",description:"x"},{language:2,name:"Cavaliere di prova",description:"x"}],
             features:[{level:1,translations:[{language:1,name:"Oath",description:"x"},{language:2,name:"Giuramento",description:"x"}]}]}')
@@ -421,10 +427,14 @@ jobs:
           sub_delete=$(code -X DELETE $api/api/subclasses/$sub_base -H "Authorization: Bearer $A")
           cl_delete=$(code -X DELETE $api/api/classes/$cl_id -H "Authorization: Bearer $A")
           echo "::notice title=database::classes: $cl_counts | wizard IT=$wz_it | EN='$wz_en' | Arcane Trickster=$at_it"
+          echo "::notice title=database::classes 2024: $cl24_counts | wizard IT=$wz24_it | EN='$wz24_en'"
           echo "::notice title=database::class homebrew: anonymous=$cl_anon | d7=$cl_bad_die | level 21=$cl_bad_level | caster without ability=$cl_bad_caster | other PUT=$cl_other | own PUT=$cl_own ($cl_detail) | private detail anon=$cl_anon_detail | subclass on other's class=$sub_other_class on own=$sub_own_class | wizard subclasses author=$sub_listed anon=$sub_anon_listed | other subclass PUT=$sub_other_put | account=$cl_acc | SRD DELETE=$cl_srd_delete | DELETE subclass=$sub_delete class=$cl_delete"
           test "$cl_counts" = '{"total":12,"srd":12,"subclasses":40,"casters":8}'
           test "$wz_it" = '{"name":"Mago","hitDie":6,"subclassLevel":2,"subclassTitle":"Tradizione Arcana","features":6,"subclasses":8,"rf":7,"first":"Incantesimi"}'
           test "$wz_en" = "Wizard / Arcane Tradition / School of Evocation"
+          test "$cl24_counts" = '{"total":12,"srd":12,"subclasses":48,"casters":8}'
+          test "$wz24_it" = '{"name":"Mago","hitDie":6,"subclassLevel":3,"subclassTitle":"Sottoclasse del mago","features":10,"subclasses":4,"rf":3,"first":"Incantesimi"}'
+          test "$wz24_en" = "Wizard / Wizard Subclass / Evoker"
           test "$at_it" = '{"className":"Ladro","casterProgression":3,"spellcastingAbility":4,"source":1,"features":[3,3,9,13,17]}'
           test "$cl_anon" = "401" && test "$cl_bad_die" = "400" && test "$cl_bad_level" = "400" && test "$cl_bad_caster" = "400"
           test "$cl_other" = "403" && test "$cl_own" = "204" && test "$cl_detail" = '{"hitDie":12,"features":1,"canEdit":true}' && test "$cl_anon_detail" = "404"

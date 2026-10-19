@@ -37,6 +37,47 @@ public class ClassSeedDataTests
 	}
 
 	[Fact]
+	public void All_2024_classes_and_subclasses_are_seeded_with_the_SRD_ones_labelled()
+	{
+		//	Player's Handbook 2024: 12 classes (all in SRD 5.2) and 48 subclasses, one per class in SRD 5.2
+		var classes2024 = Classes.Where(c => c.Ruleset == RulesetVersion.Dnd5e_2024).ToList();
+		var subclasses2024 = Subclasses.Where(s => s.Ruleset == RulesetVersion.Dnd5e_2024).ToList();
+		Assert.Equal(12, classes2024.Count);
+		Assert.All(classes2024, c => Assert.Equal(ContentSource.Srd52, c.Source));
+		Assert.All(classes2024, c => Assert.Equal(3, c.SubclassLevel));
+		Assert.Equal(48, subclasses2024.Count);
+		Assert.Equal(12, subclasses2024.Count(s => s.Source == ContentSource.Srd52));
+		Assert.Equal(36, subclasses2024.Count(s => s.Source == ContentSource.RealmForge));
+
+		foreach (var cls in classes2024)
+		{
+			Assert.Equal(4, subclasses2024.Count(s => s.CharacterClassId == cls.Id));
+			Assert.Single(subclasses2024, s => s.CharacterClassId == cls.Id && s.Source == ContentSource.Srd52);
+			//	Every 2024 class reaches an Epic Boon at level 19
+			Assert.Contains(cls.Features, f => f.Level == 19 && f.Translations.Any(t => t.Name == "Epic Boon"));
+		}
+	}
+
+	[Fact]
+	public void Spellcasting_2024_matches_the_rules()
+	{
+		static CharacterClass Cls(Guid id) => Assert.Single(Classes, c => c.Id == id);
+
+		Assert.Equal((CasterProgression.Full, AbilityScore.Intelligence, 6), (Cls(Wizard2024Seeder.ClassId).CasterProgression, Cls(Wizard2024Seeder.ClassId).SpellcastingAbility, Cls(Wizard2024Seeder.ClassId).HitDie));
+		Assert.Equal((CasterProgression.Pact, AbilityScore.Charisma), (Cls(Warlock2024Seeder.ClassId).CasterProgression, Cls(Warlock2024Seeder.ClassId).SpellcastingAbility));
+		Assert.Equal((CasterProgression.Half, AbilityScore.Wisdom), (Cls(Ranger2024Seeder.ClassId).CasterProgression, Cls(Ranger2024Seeder.ClassId).SpellcastingAbility));
+		Assert.Equal((CasterProgression.None, 12), (Cls(Barbarian2024Seeder.ClassId).CasterProgression, Cls(Barbarian2024Seeder.ClassId).HitDie));
+		Assert.Equal(new[] { AbilityScore.Strength, AbilityScore.Dexterity }, Cls(Fighter2024Seeder.ClassId).PrimaryAbilities);
+
+		var trickster = ArcaneTrickster2024Seeder.Build();
+		Assert.Equal((CasterProgression.Third, AbilityScore.Intelligence, ContentSource.RealmForge), (trickster.CasterProgression, trickster.SpellcastingAbility, trickster.Source));
+		Assert.Equal(Rogue2024Seeder.ClassId, trickster.CharacterClassId);
+		Assert.Equal(CasterProgression.Third, EldritchKnight2024Seeder.Build().CasterProgression);
+		Assert.Equal("Furfante", Thief2024Seeder.Build().Translations.Single(t => t.Language == LanguageCode.It).Name);
+		Assert.Equal(DeterministicGuid.ForSrd(RulesetVersion.Dnd5e_2024, "class", "wizard"), Wizard2024Seeder.ClassId);
+	}
+
+	[Fact]
 	public void Every_class_has_both_languages_and_a_complete_sheet()
 	{
 		foreach (var cls in Classes)
