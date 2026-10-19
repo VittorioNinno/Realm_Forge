@@ -61,7 +61,7 @@ public static class PathOfTheBerserker2024Seeder
 					Translations = new List<ClassFeatureTranslation>
 					{
 						new ClassFeatureTranslation { Id = DeterministicGuid.ForSrd(RulesetVersion.Dnd5e_2024, "class-feature", "path-of-the-berserker/retaliation", "en"), Language = LanguageCode.En, Name = "Retaliation", Description = "When you take damage from a creature that is within 5 feet of you, you can take a Reaction to make one melee attack against that creature, using a weapon or an Unarmed Strike." },
-						new ClassFeatureTranslation { Id = DeterministicGuid.ForSrd(RulesetVersion.Dnd5e_2024, "class-feature", "path-of-the-berserker/retaliation", "it"), Language = LanguageCode.It, Name = "Ritorsione", Description = "Quando subisce danni da una creatura che si trova entro 1,5 metri da lui, il barbaro può usare una reazione per effettuare un attacco in mischia contro quella creatura, con un'arma o con un colpo senz'armi." }
+						new ClassFeatureTranslation { Id = DeterministicGuid.ForSrd(RulesetVersion.Dnd5e_2024, "class-feature", "path-of-the-berserker/retaliation", "it"), Language = LanguageCode.It, Name = "Ritorsione", Description = "Se una creatura situata entro 1,5 metri lo danneggia, il barbaro può reagire immediatamente: usando la sua reazione, sferra contro di lei un attacco in mischia con un'arma o con un colpo senz'armi." }
 					}
 				},
 				new ClassFeature

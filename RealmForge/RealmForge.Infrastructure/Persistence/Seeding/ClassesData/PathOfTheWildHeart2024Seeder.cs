@@ -36,7 +36,7 @@ public static class PathOfTheWildHeart2024Seeder
 					SortOrder = 0,
 					Translations = new List<ClassFeatureTranslation>
 					{
-						new ClassFeatureTranslation { Id = DeterministicGuid.ForSrd(RulesetVersion.Dnd5e_2024, "class-feature", "path-of-the-wild-heart/animal-speaker", "en"), Language = LanguageCode.En, Name = "Animal Speaker", Description = "You can cast *Beast Sense* and *Speak with Animals*, though only as Rituals. Wisdom is your spellcasting ability for both." },
+						new ClassFeatureTranslation { Id = DeterministicGuid.ForSrd(RulesetVersion.Dnd5e_2024, "class-feature", "path-of-the-wild-heart/animal-speaker", "en"), Language = LanguageCode.En, Name = "Animal Speaker", Description = "You know how to cast *Beast Sense* and *Speak with Animals* in their Ritual form only, using Wisdom as your spellcasting ability." },
 						new ClassFeatureTranslation { Id = DeterministicGuid.ForSrd(RulesetVersion.Dnd5e_2024, "class-feature", "path-of-the-wild-heart/animal-speaker", "it"), Language = LanguageCode.It, Name = "Portavoce degli Animali", Description = "Il barbaro può lanciare gli incantesimi *percezione delle bestie* e *parlare con gli animali*, ma solo come rituali. La sua caratteristica da incantatore per questi incantesimi è la Saggezza." }
 					}
 				},
@@ -72,7 +72,7 @@ public static class PathOfTheWildHeart2024Seeder
 					SortOrder = 3,
 					Translations = new List<ClassFeatureTranslation>
 					{
-						new ClassFeatureTranslation { Id = DeterministicGuid.ForSrd(RulesetVersion.Dnd5e_2024, "class-feature", "path-of-the-wild-heart/nature-speaker", "en"), Language = LanguageCode.En, Name = "Nature Speaker", Description = "You can cast *Commune with Nature*, though only as a Ritual. Wisdom is your spellcasting ability for it." },
+						new ClassFeatureTranslation { Id = DeterministicGuid.ForSrd(RulesetVersion.Dnd5e_2024, "class-feature", "path-of-the-wild-heart/nature-speaker", "en"), Language = LanguageCode.En, Name = "Nature Speaker", Description = "*Commune with Nature* joins your magic: you can cast it, but only in its Ritual form, using Wisdom as your spellcasting ability." },
 						new ClassFeatureTranslation { Id = DeterministicGuid.ForSrd(RulesetVersion.Dnd5e_2024, "class-feature", "path-of-the-wild-heart/nature-speaker", "it"), Language = LanguageCode.It, Name = "Portavoce della Natura", Description = "Il barbaro può lanciare l'incantesimo *comunione con la natura*, ma solo come rituale. La sua caratteristica da incantatore per questo incantesimo è la Saggezza." }
 					}
 				},
