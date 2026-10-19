@@ -1291,3 +1291,121 @@ input::-ms-clear {
 .rf-spell-stats .rf-stat-wide {
     grid-column: 1 / -1;
 }
+
+/* ===== Rules glossary ===== */
+.rf-glossary-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 0.6rem;
+}
+
+.rf-glossary-tile {
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+    padding: 0.65rem 0.8rem;
+    border-radius: 6px;
+    background-color: var(--rf-bg-surface);
+    border: 1px solid var(--rf-border-subtle);
+    border-left: 3px solid var(--rf-border-light);
+    color: inherit;
+    text-decoration: none;
+    transition: border-color 0.15s ease, background-color 0.15s ease;
+}
+
+    .rf-glossary-tile:hover, .rf-glossary-tile:focus-visible {
+        background-color: var(--rf-bg-card);
+        border-left-color: var(--rf-orange-primary);
+        color: inherit;
+    }
+
+/* Families: a hint of colour on the edge of the tile */
+.rf-glossary-condition { border-left-color: rgba(255, 140, 0, 0.55); }
+.rf-glossary-action { border-left-color: rgba(110, 168, 254, 0.55); }
+.rf-glossary-areaofeffect { border-left-color: rgba(171, 130, 255, 0.55); }
+.rf-glossary-attitude { border-left-color: rgba(102, 204, 153, 0.55); }
+.rf-glossary-hazard { border-left-color: rgba(230, 90, 90, 0.55); }
+
+.rf-glossary-tile-name {
+    color: var(--rf-text-primary);
+    font-weight: 600;
+    font-size: 0.92rem;
+}
+
+.rf-glossary-tile-summary {
+    font-size: 0.8rem;
+    color: var(--rf-text-muted);
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.rf-glossary-chip {
+    display: inline-block;
+    padding: 0.2rem 0.65rem;
+    border-radius: 999px;
+    border: 1px solid var(--rf-border-light);
+    background-color: var(--rf-bg-card);
+    font-size: 0.82rem;
+    text-decoration: none;
+}
+
+    .rf-glossary-chip:hover {
+        border-color: var(--rf-orange-primary);
+    }
+
+/* Rules terms linked in the descriptions (GlossaryLinker) and their tooltip (index.html) */
+a.rf-term {
+    color: inherit;
+    text-decoration: underline dotted;
+    text-decoration-color: rgba(255, 140, 0, 0.75);
+    text-underline-offset: 3px;
+    cursor: help;
+}
+
+    a.rf-term:hover, a.rf-term:focus-visible {
+        color: var(--rf-orange-hover);
+    }
+
+.rf-term-tip {
+    position: fixed;
+    z-index: 2000;
+    max-width: min(22rem, calc(100vw - 16px));
+    padding: 0.55rem 0.7rem;
+    border-radius: 6px;
+    background-color: var(--rf-bg-card);
+    border: 1px solid var(--rf-orange-primary);
+    color: var(--rf-text-secondary);
+    font-size: 0.8rem;
+    line-height: 1.4;
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.45);
+    pointer-events: none;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.12s ease;
+}
+
+    .rf-term-tip.visible {
+        opacity: 1;
+        visibility: visible;
+    }
+
+.rf-term-tip-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 0.75rem;
+    margin-bottom: 0.25rem;
+}
+
+    .rf-term-tip-head strong {
+        color: var(--rf-orange-primary);
+    }
+
+.rf-term-tip-label {
+    font-style: italic;
+    font-size: 0.75rem;
+    color: var(--rf-text-muted);
+}

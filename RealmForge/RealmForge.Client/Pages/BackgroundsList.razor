@@ -9,6 +9,7 @@
 @inject BackgroundDataService BackgroundService
 @inject FeatDataService FeatService
 @inject LanguageStateService LanguageState
+@inject GlossaryService Glossary
 @inject ApiErrorState ApiErrors
 
 <PageTitle>RealmForge - @UiText.BackgroundsTitle(LanguageState.CurrentLanguage)</PageTitle>
@@ -243,14 +244,14 @@
                         @UiText.LabelFeatureName(LanguageState.CurrentLanguage): @SelectedBackground.FeatureName
                     </strong>
                     <div class="rf-markdown-container small">
-                        @((MarkupString)MarkdownText.ToHtml(SelectedBackground.FeatureDescription))
+                        @((MarkupString)MarkdownText.ToHtml(SelectedBackground.FeatureDescription, Terms(SelectedBackground.Ruleset)))
                     </div>
                 </div>
             }
 
             <div class="mb-3 p-3 rounded" style="background-color: var(--rf-bg-main); border-left: 3px solid var(--rf-border-light);">
                 <div class="rf-markdown-container">
-                    @((MarkupString)MarkdownText.ToHtml(SelectedBackground.Description))
+                    @((MarkupString)MarkdownText.ToHtml(SelectedBackground.Description, Terms(SelectedBackground.Ruleset)))
                 </div>
             </div>
 
@@ -504,6 +505,7 @@
     protected override async Task OnInitializedAsync()
     {
         LanguageState.OnLanguageChanged += HandleLanguageChanged;
+        _ = LoadGlossaryAsync();
         await LoadBackgroundsAsync();
 
         if (QueryBackgroundId.HasValue)
@@ -520,6 +522,8 @@
 
     private async void HandleLanguageChanged()
     {
+        await Glossary.EnsureLoadedAsync(LanguageState.CurrentLanguage);
+
         if (SelectedBackground != null)
         {
             SelectedBackground = await BackgroundService.GetBackgroundAsync(SelectedBackground.Id, LanguageState.CurrentLanguage);
@@ -736,6 +740,16 @@
 
 
     #endregion
+
+    //	Rules terms in the descriptions link to the glossary (with a tooltip) once it is loaded
+    private async Task LoadGlossaryAsync()
+    {
+        await Glossary.EnsureLoadedAsync(LanguageState.CurrentLanguage);
+        StateHasChanged();
+    }
+
+    private RealmForge.Shared.Text.GlossaryLinker? Terms(RulesetVersion? ruleset) =>
+        ruleset is { } edition ? Glossary.Linker(LanguageState.CurrentLanguage, edition) : null;
 
     public void Dispose()
     {
