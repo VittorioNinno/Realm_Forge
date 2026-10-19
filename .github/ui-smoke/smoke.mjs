@@ -706,6 +706,7 @@ try {
   // GitHub shows at most 10 annotations per step: one line per result in the log, one summary annotation
   for (const r of results) console.log(r);
   console.log(`::notice title=ui::${results.filter((r) => r.startsWith('OK')).length} checks passed — ${results.join(' · ')}`);
+  for (const r of results.filter((r) => r.startsWith('INFO phone'))) console.log(`::notice title=phone::${r.slice(0, 4000)}`);
   for (const c of consoleErrors.slice(0, 5)) console.log(`::warning title=ui-console::${c.slice(0, 200)}`);
   await browser.close();
   if (results.some((r) => r.startsWith('FAIL'))) process.exit(1);
