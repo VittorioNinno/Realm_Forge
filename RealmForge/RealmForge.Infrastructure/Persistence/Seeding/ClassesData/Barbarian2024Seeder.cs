@@ -163,7 +163,7 @@ public static class Barbarian2024Seeder
 					Translations = new List<ClassFeatureTranslation>
 					{
 						new ClassFeatureTranslation { Id = DeterministicGuid.ForSrd(RulesetVersion.Dnd5e_2024, "class-feature", "barbarian/extra-attack", "en"), Language = LanguageCode.En, Name = "Extra Attack", Description = "You can attack twice instead of once whenever you take the Attack action on your turn." },
-						new ClassFeatureTranslation { Id = DeterministicGuid.ForSrd(RulesetVersion.Dnd5e_2024, "class-feature", "barbarian/extra-attack", "it"), Language = LanguageCode.It, Name = "Attacco Extra", Description = "Quando effettua l'azione di Attacco nel suo turno, il barbaro può attaccare due volte anziché una." }
+						new ClassFeatureTranslation { Id = DeterministicGuid.ForSrd(RulesetVersion.Dnd5e_2024, "class-feature", "barbarian/extra-attack", "it"), Language = LanguageCode.It, Name = "Attacco Extra", Description = "Ogni volta che sceglie l'azione di Attacco nel proprio turno, il barbaro effettua due attacchi invece di uno." }
 					}
 				},
 				new ClassFeature
@@ -271,7 +271,7 @@ public static class Barbarian2024Seeder
 					Translations = new List<ClassFeatureTranslation>
 					{
 						new ClassFeatureTranslation { Id = DeterministicGuid.ForSrd(RulesetVersion.Dnd5e_2024, "class-feature", "barbarian/indomitable-might", "en"), Language = LanguageCode.En, Name = "Indomitable Might", Description = "If your total for a Strength check or Strength saving throw is less than your Strength score, you can use that score in place of the total." },
-						new ClassFeatureTranslation { Id = DeterministicGuid.ForSrd(RulesetVersion.Dnd5e_2024, "class-feature", "barbarian/indomitable-might", "it"), Language = LanguageCode.It, Name = "Potenza Indomabile", Description = "Se il totale di una prova di Forza o di un tiro salvezza su Forza del barbaro è inferiore al suo punteggio di Forza, il barbaro può usare quel punteggio al posto del totale." }
+						new ClassFeatureTranslation { Id = DeterministicGuid.ForSrd(RulesetVersion.Dnd5e_2024, "class-feature", "barbarian/indomitable-might", "it"), Language = LanguageCode.It, Name = "Potenza Indomabile", Description = "Quando il barbaro effettua una prova di Forza o un tiro salvezza su Forza e ottiene un totale più basso del suo punteggio di Forza, può sostituire il totale con quel punteggio." }
 					}
 				},
 				new ClassFeature
