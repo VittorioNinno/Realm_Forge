@@ -1,0 +1,106 @@
+﻿@using RealmForge.Client.Localization
+@using RealmForge.Client.Services
+@using RealmForge.Shared.Enums
+@implements IDisposable
+@inject LanguageStateService LanguageState
+@inject SpeciesDataService SpeciesService
+@inject BackgroundDataService BackgroundService
+@inject FeatDataService FeatService
+@inject SpellDataService SpellService
+@inject ClassDataService ClassService
+@inject EquipmentDataService EquipmentService
+@inject GlossaryService Glossary
+
+@* Base content of each section per edition (Homebrew is counted in the card below it) *@
+<div class="rf-account-card mb-3" data-test="account-compendium">
+    <div class="rf-account-card-title">@UiText.AccountCompendiumTitle(Lang)</div>
+
+    @if (rows is null)
+    {
+        <div class="small" style="color: var(--rf-text-muted);">@UiText.LoadingArchives(Lang)</div>
+    }
+    else if (loadFailed)
+    {
+        <div class="small text-warning">@UiText.DashboardUnavailable(Lang)</div>
+    }
+    else
+    {
+        <table class="rf-account-table">
+            <thead>
+                <tr>
+                    <th class="text-start">@UiText.AccountCompendiumModule(Lang)</th>
+                    <th class="rf-num">5.5e (2024)</th>
+                    <th class="rf-num">5e (2014)</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var row in rows)
+                {
+                    <tr data-test="account-compendium-@row.Href">
+                        <td><a href="@row.Href" class="text-reset text-decoration-none">@Title(row.Href)</a></td>
+                        <td class="rf-num">@row.Edition2024</td>
+                        <td class="rf-num">@row.Edition2014</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+</div>
+
+@code {
+    private record Row(string Href, int Edition2024, int Edition2014);
+
+    private List<Row>? rows;
+    private bool loadFailed;
+
+    private LanguageCode Lang => LanguageState.CurrentLanguage;
+
+    private string Title(string href) => href switch
+    {
+        "rules" => UiText.RulesTitle(Lang),
+        "species" => UiText.NavSpecies(Lang),
+        "backgrounds" => UiText.BackgroundsTitle(Lang),
+        "feats" => UiText.FeatsTitle(Lang),
+        "spells" => UiText.SpellsTitle(Lang),
+        "classes" => UiText.ClassesTitle(Lang),
+        _ => UiText.EquipmentTitle(Lang)
+    };
+
+    protected override async Task OnInitializedAsync()
+    {
+        LanguageState.OnLanguageChanged += StateHasChanged;
+
+        var lang = Lang;
+        var species = SpeciesService.GetSpeciesAsync(lang);
+        var backgrounds = BackgroundService.GetBackgroundsAsync(lang);
+        var feats = FeatService.GetFeatsAsync(lang);
+        var spells = SpellService.GetSpellsAsync(lang);
+        var classes = ClassService.GetClassesAsync(lang);
+        var equipment = EquipmentService.GetEquipmentAsync(lang);
+        var rules = Glossary.GetEntriesAsync(lang);
+        await Task.WhenAll(species, backgrounds, feats, spells, classes, equipment, rules);
+
+        rows = new List<Row>
+        {
+            Count("rules", (await rules).Select(r => (r.Ruleset, true))),
+            Count("species", (await species).Select(s => (s.Ruleset, s.IsOfficialSRD))),
+            Count("backgrounds", (await backgrounds).Select(b => (b.Ruleset, b.IsOfficialSRD))),
+            Count("feats", (await feats).Select(f => (f.Ruleset, f.IsOfficialSRD))),
+            Count("spells", (await spells).Select(s => (s.Ruleset, s.IsOfficialSRD))),
+            Count("classes", (await classes).Select(c => (c.Ruleset, c.IsOfficialSRD))),
+            Count("equipment", (await equipment).Select(e => (e.Ruleset, e.IsOfficialSRD)))
+        };
+
+        //	No Base content at all is never a real state: the API could not be read
+        loadFailed = rows.All(r => r.Edition2024 == 0 && r.Edition2014 == 0);
+    }
+
+    //	Only Base content: Homebrew is personal and is counted in "I tuoi contenuti Homebrew"
+    private static Row Count(string href, IEnumerable<(RulesetVersion Ruleset, bool IsBase)> items)
+    {
+        var list = items.Where(i => i.IsBase).ToList();
+        return new Row(href, list.Count(i => i.Ruleset == RulesetVersion.Dnd5e_2024), list.Count(i => i.Ruleset == RulesetVersion.Dnd5e_2014));
+    }
+
+    public void Dispose() => LanguageState.OnLanguageChanged -= StateHasChanged;
+}

@@ -69,17 +69,29 @@ try {
   ok('emblem in the sidebar only, RealmForge favicon served');
 
   // Dashboard: one card per compendium module with Base counts per edition and the visible Homebrew
-  await page.locator('[data-test=dashboard-feats] .rf-account-stat-value').first().waitFor({ timeout: 30000 });
-  const dashboard = await page.evaluate(() => Object.fromEntries(['species', 'backgrounds', 'feats', 'spells', 'classes', 'equipment', 'rules'].map((m) =>
-    [m, [...document.querySelectorAll(`[data-test=dashboard-${m}] .rf-account-stat-value`)].map((v) => v.textContent.trim()).join('/')])));
-  results.push(`INFO dashboard (Base 2024/Base 2014/Homebrew): ${JSON.stringify(dashboard)}`);
-  if (dashboard.species !== '10/9/0' || dashboard.backgrounds !== '16/13/0' || dashboard.feats !== '75/42/0' || dashboard.spells !== '391/361/0' || dashboard.classes !== '12/12/0' || dashboard.equipment !== '208/242/0' || dashboard.rules !== '155/88/0') throw new Error('unexpected dashboard counts');
+  // Dashboard: welcome, one link per section (glossary first, no figures), how it works and the house rules
+  await page.locator('[data-test=home-intro]').waitFor({ timeout: 30000 });
+  const home = await page.evaluate(() => ({
+    links: [...document.querySelectorAll('[data-test=dashboard-modules] a')].map((a) => a.getAttribute('href')),
+    figures: document.querySelectorAll('[data-test=dashboard-modules] .rf-account-stat').length,
+    how: document.querySelectorAll('[data-test=home-how] dt').length,
+    rules: document.querySelectorAll('[data-test=home-rules] dt').length,
+  }));
+  results.push(`INFO dashboard: ${JSON.stringify(home)}`);
+  if (home.links.join(',') !== 'rules,species,backgrounds,feats,spells,classes,equipment' || home.figures !== 0 || home.how !== 4 || home.rules !== 6) throw new Error('unexpected dashboard');
   if (await page.locator('main a[href=account]', { hasText: 'Accedi per forgiare' }).count() !== 1) throw new Error('dashboard misses the sign-in call to action');
-  ok('dashboard: module cards with Base counts per edition (species 10+9, backgrounds 16+13, feats 75+42, spells 391+361, classes 12+12, equipment 208+242, glossary 155+88) and the sign-in call to action');
+  ok('dashboard: welcome, links to the 7 sections without figures, how it works (4 points), house rules (6) and the sign-in call to action');
 
   // Spells: 752 base spells (361 of 2014, 391 of 2024) grouped by level, edition and client-side filters, detail with the stat block
   await page.goto(`${base}/spells`);
-  await page.locator('[data-test=spell-card]').first().waitFor({ timeout: 60000 });
+  await page.locator('[data-test=spell-level-group]').first().waitFor({ timeout: 60000 });
+  // Levels start closed and open with a filter or a search; expand/collapse all
+  const closedSpells = await page.locator('[data-test=spell-card]').count();
+  await page.locator('[data-test=spell-expand-all]').click();
+  const openSpells = await page.locator('[data-test=spell-card]').count();
+  await page.locator('[data-test=spell-collapse-all]').click();
+  if (closedSpells !== 0 || openSpells !== 752) throw new Error(`spell levels do not open and close: closed=${closedSpells} open=${openSpells}`);
+  ok('spells: 10 levels closed by default, expand all shows the 752 cards, collapse all closes them');
   const spellCount = async () => (await page.locator('[data-test=spell-count]').innerText()).trim();
   const waitCount = async (expected) => {
     for (let i = 0; i < 100 && (await spellCount()) !== expected; i++) await page.waitForTimeout(100);
@@ -265,7 +277,12 @@ try {
 
   // Rules glossary: 243 Base entries (155 of 2024, 88 of 2014), family filter, Prone 2024 with its own terms linked and "See also"
   await page.goto(`${base}/rules`);
-  await page.locator('[data-test=rules-tile]').first().waitFor({ timeout: 60000 });
+  await page.locator('[data-test=rules-group]').first().waitFor({ timeout: 60000 });
+  const closedRules = await page.locator('[data-test=rules-tile]').count();
+  await page.locator('[data-test=rules-expand-all]').click();
+  const openRules = await page.locator('[data-test=rules-tile]').count();
+  await page.locator('[data-test=rules-collapse-all]').click();
+  if (closedRules !== 0 || openRules !== 243) throw new Error(`glossary families do not open and close: closed=${closedRules} open=${openRules}`);
   const rulesCount = async (expected) => {
     for (let i = 0; i < 100 && (await page.locator('[data-test=rules-count]').innerText()).trim() !== expected; i++) await page.waitForTimeout(100);
     return (await page.locator('[data-test=rules-count]').innerText()).trim();
@@ -292,7 +309,7 @@ try {
 
   // Rules terms in the other modules: Command 2024 links "prono" and "azione bonus", with a tooltip and a link to the glossary
   await page.goto(`${base}/spells`);
-  await page.locator('[data-test=spell-card]').first().waitFor({ timeout: 60000 });
+  await page.locator('[data-test=spell-level-group]').first().waitFor({ timeout: 60000 });
   await pickOption('spell-ruleset', '5.5e (2024)');
   await page.locator('[data-test=spell-search]').fill('comando');
   await page.locator('[data-test=spell-card]').filter({ has: page.locator('.rf-card-title', { hasText: /^Comando$/ }) }).first().click();
@@ -546,6 +563,13 @@ try {
   const stats = (await page.locator('[data-test=account-homebrew] .rf-account-stat').allInnerTexts()).map((t) => t.replace(/\s+/g, ' ').trim());
   results.push(`INFO account role='${role}' homebrew=[${stats.join(' | ')}]`);
   if (!/^utente$/i.test(role) || !stats.some((t) => /^0 talenti$/i.test(t)) || !stats.some((t) => /^1 background$/i.test(t))) throw new Error('unexpected account summary');
+  // Base content per section and edition, moved here from the dashboard (Homebrew is not counted)
+  await page.locator('[data-test=account-compendium-equipment]').waitFor({ timeout: 30000 });
+  const compendium = await page.evaluate(() => Object.fromEntries([...document.querySelectorAll('[data-test=account-compendium] tbody tr')]
+    .map((tr) => [tr.getAttribute('data-test').replace('account-compendium-', ''), [...tr.querySelectorAll('td.rf-num')].map((td) => td.textContent.trim()).join('/')])));
+  results.push(`INFO account compendium (2024/2014): ${JSON.stringify(compendium)}`);
+  if (JSON.stringify(compendium) !== JSON.stringify({ rules: '155/88', species: '10/9', backgrounds: '16/13', feats: '75/42', spells: '391/361', classes: '12/12', equipment: '208/242' })) throw new Error('unexpected compendium counts in the account');
+  ok('account: Base content per section and edition (glossary 155+88, species 10+9, backgrounds 16+13, feats 75+42, spells 391+361, classes 12+12, equipment 208+242)');
   const newCredential = ['Rf', crypto.randomUUID(), 'B!'].join('-');
   await page.locator('[data-test=pwd-current]').fill('wrong-password-1A!');
   await page.locator('[data-test=pwd-new]').fill(newCredential);

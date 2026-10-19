@@ -100,12 +100,24 @@
     }
     else
     {
-        @* One section per level, cantrips first *@
+        @* One section per level, cantrips first; each one opens and closes *@
+        <div class="d-flex justify-content-end gap-2">
+            <button type="button" class="btn btn-sm btn-rf-outline" @onclick="() => SetAllGroups(true)" data-test="spell-expand-all">@UiText.BtnExpandAll(Lang)</button>
+            <button type="button" class="btn btn-sm btn-rf-outline" @onclick="() => SetAllGroups(false)" data-test="spell-collapse-all">@UiText.BtnCollapseAll(Lang)</button>
+        </div>
         @foreach (var group in FilteredSpells.GroupBy(s => s.Level).OrderBy(g => g.Key))
         {
-            <h2 class="h5 mt-4 mb-3 rf-spell-level-title" data-test="spell-level-group">
-                @GameTerms.SpellLevel(group.Key, Lang) <span class="small" style="color: var(--rf-text-muted);">(@group.Count())</span>
+            var expanded = IsExpanded(group.Key);
+            <h2 class="h5 mt-4 mb-3 rf-spell-level-title">
+                <button type="button" class="rf-group-toggle" aria-expanded="@(expanded ? "true" : "false")" @onclick="() => ToggleGroup(group.Key)" data-test="spell-level-group">
+                    <span class="rf-group-chevron @(expanded ? "open" : null)"><NavIcon Name="chevron" /></span>
+                    @GameTerms.SpellLevel(group.Key, Lang) <span class="small" style="color: var(--rf-text-muted);">(@group.Count())</span>
+                </button>
             </h2>
+            @if (!expanded)
+            {
+                continue;
+            }
             <div class="row row-cols-1 row-cols-md-2 row-cols-xl-3 g-3">
                 @foreach (var spell in group)
                 {
@@ -407,6 +419,37 @@
     private SpellcastingClass? ClassFilter { get; set; }
     private bool RitualOnly { get; set; }
     private bool ConcentrationOnly { get; set; }
+
+    //	Open and closed levels: closed by default (the page reads as an index), open as soon as a filter or a search
+    //	narrows the list; the user's toggles win until the filters change again
+    private readonly Dictionary<int, bool> toggledGroups = new();
+    private string? groupFilters;
+
+    private bool IsFiltered => LevelFilter is not null || SchoolFilter is not null || ClassFilter is not null || RitualOnly || ConcentrationOnly
+        || !string.IsNullOrWhiteSpace(SearchTerm) || OriginFilter.Length > 0;
+
+    private bool IsExpanded(int level)
+    {
+        var filters = $"{LevelFilter}|{SchoolFilter}|{ClassFilter}|{RitualOnly}|{ConcentrationOnly}|{SearchTerm}|{OriginFilter}|{SelectedRuleset}";
+        if (filters != groupFilters)
+        {
+            groupFilters = filters;
+            toggledGroups.Clear();
+        }
+
+        return toggledGroups.TryGetValue(level, out var open) ? open : IsFiltered;
+    }
+
+    private void ToggleGroup(int level) => toggledGroups[level] = !IsExpanded(level);
+
+    private void SetAllGroups(bool open)
+    {
+        IsExpanded(0);
+        for (var level = 0; level <= 9; level++)
+        {
+            toggledGroups[level] = open;
+        }
+    }
 
     private string SelectedRulesetFilter
     {
