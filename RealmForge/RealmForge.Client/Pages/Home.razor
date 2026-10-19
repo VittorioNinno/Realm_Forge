@@ -1,153 +1,97 @@
 ﻿@page "/"
 @using RealmForge.Client.Localization
+@using RealmForge.Client.Components
 @using RealmForge.Client.Services
 @using RealmForge.Shared.Enums
 @implements IDisposable
 @inject LanguageStateService LanguageState
-@inject SpeciesDataService SpeciesService
-@inject BackgroundDataService BackgroundService
-@inject FeatDataService FeatService
-@inject SpellDataService SpellService
-@inject ClassDataService ClassService
-@inject EquipmentDataService EquipmentService
-@inject GlossaryService Glossary
 
-<PageTitle>RealmForge - @UiText.NavDashboard(LanguageState.CurrentLanguage)</PageTitle>
+<PageTitle>RealmForge - @UiText.NavDashboard(Lang)</PageTitle>
 
-<div class="py-4">
-    <h1 class="rf-page-title mb-2">@UiText.HomeTitle(LanguageState.CurrentLanguage)</h1>
-    <p class="text-secondary lead fs-6 mb-4">@UiText.HomeSubtitle(LanguageState.CurrentLanguage)</p>
+<div class="py-4 rf-home">
+    @* Welcome and a short introduction to the app *@
+    <h1 class="rf-page-title mb-2">@UiText.HomeTitle(Lang)</h1>
+    <p class="rf-home-intro mb-4" data-test="home-intro">@UiText.HomeSubtitle(Lang)</p>
 
-    @if (loadFailed)
-    {
-        @* Base content always exists: three empty lists mean the API could not be read (asleep, unreachable, misconfigured) *@
-        <div class="alert alert-warning bg-dark border-warning text-warning small mb-4" data-test="dashboard-unavailable">
-            @UiText.DashboardUnavailable(LanguageState.CurrentLanguage)
-        </div>
-    }
-
-    @* Compendium modules: what is available for each edition, Base and Homebrew *@
-    <div class="row row-cols-1 row-cols-md-2 row-cols-xl-3 g-4 mb-4" data-test="dashboard-modules">
+    @* What is in the app: one quiet link per section, no figures (the counts are in the account page) *@
+    <h2 class="rf-home-section-title">@UiText.HomeWhatTitle(Lang)</h2>
+    <div class="rf-home-modules mb-4" data-test="dashboard-modules">
         @foreach (var module in Modules)
         {
-            <div class="col">
-                <a href="@module.Href" class="rf-card rf-dashboard-card h-100 d-flex flex-column text-decoration-none" data-test="dashboard-@module.Href">
-                    <span class="rf-card-title mb-2">@module.Title</span>
-                    <p class="small mb-3" style="color: var(--rf-text-secondary);">@module.Subtitle</p>
-                    @if (module.Counts is { } counts)
-                    {
-                        <div class="rf-dashboard-stats mt-auto">
-                            <span class="rf-account-stat">
-                                <span class="rf-account-stat-value">@counts.Edition2024</span>
-                                <span class="rf-account-stat-label">Base 2024</span>
-                            </span>
-                            <span class="rf-account-stat">
-                                <span class="rf-account-stat-value">@counts.Edition2014</span>
-                                <span class="rf-account-stat-label">Base 2014</span>
-                            </span>
-                            <span class="rf-account-stat">
-                                <span class="rf-account-stat-value">@counts.Homebrew</span>
-                                <span class="rf-account-stat-label">Homebrew</span>
-                            </span>
-                        </div>
-                    }
-                    else
-                    {
-                        <div class="mt-auto small" style="color: var(--rf-text-muted);">@(loadFailed ? "—" : UiText.LoadingArchives(LanguageState.CurrentLanguage))</div>
-                    }
-                </a>
-            </div>
+            <a href="@module.Href" class="rf-home-module" data-test="dashboard-@module.Href">
+                <span class="rf-home-module-icon"><NavIcon Name="@module.Icon" /></span>
+                <span class="min-w-0">
+                    <span class="rf-home-module-title">@module.Title</span>
+                    <span class="rf-home-module-text">@module.Subtitle</span>
+                </span>
+            </a>
         }
+    </div>
+
+    <div class="row g-4 mb-4">
+        @* How the app works *@
+        <div class="col-lg-6">
+            <section class="rf-account-card h-100" data-test="home-how">
+                <div class="rf-account-card-title">@UiText.HomeHowTitle(Lang)</div>
+                <dl class="rf-home-points mb-0">
+                    @foreach (var (title, text) in UiText.HomeHowItWorks(Lang))
+                    {
+                        <div><dt>@title</dt><dd>@text</dd></div>
+                    }
+                </dl>
+            </section>
+        </div>
+
+        @* Rules of behaviour and use *@
+        <div class="col-lg-6">
+            <section class="rf-account-card h-100" data-test="home-rules">
+                <div class="rf-account-card-title">@UiText.HomeRulesTitle(Lang)</div>
+                <p class="small mb-3" style="color: var(--rf-text-secondary);">@UiText.HomeRulesIntro(Lang)</p>
+                <dl class="rf-home-points mb-0">
+                    @foreach (var (title, text) in UiText.HomeHouseRules(Lang))
+                    {
+                        <div><dt>@title</dt><dd>@text</dd></div>
+                    }
+                </dl>
+            </section>
+        </div>
     </div>
 
     @* Next step for the visitor: sign in to forge, or go to the account *@
     <div class="rf-account-card d-flex flex-wrap justify-content-between align-items-center gap-3">
         <AuthorizeView>
             <Authorized>
-                <span class="small" style="color: var(--rf-text-secondary);">@UiText.DashboardSignedInHint(LanguageState.CurrentLanguage)</span>
-                <a href="account" class="btn btn-sm btn-rf-outline">@UiText.BtnGoToAccount(LanguageState.CurrentLanguage)</a>
+                <span class="small" style="color: var(--rf-text-secondary);">@UiText.DashboardSignedInHint(Lang)</span>
+                <a href="account" class="btn btn-sm btn-rf-outline">@UiText.BtnGoToAccount(Lang)</a>
             </Authorized>
             <NotAuthorized>
-                <span class="small" style="color: var(--rf-text-secondary);">@UiText.DashboardAnonymousHint(LanguageState.CurrentLanguage)</span>
-                <a href="account" class="btn btn-sm btn-rf-orange">@UiText.BtnLoginToForge(LanguageState.CurrentLanguage)</a>
+                <span class="small" style="color: var(--rf-text-secondary);">@UiText.DashboardAnonymousHint(Lang)</span>
+                <a href="account" class="btn btn-sm btn-rf-orange">@UiText.BtnLoginToForge(Lang)</a>
             </NotAuthorized>
         </AuthorizeView>
     </div>
 </div>
 
 @code {
-    //	Base content per edition, plus the Homebrew the current user can see (public and their own)
-    private record ModuleCounts(int Edition2024, int Edition2014, int Homebrew);
+    private record Module(string Href, string Icon, string Title, string Subtitle);
 
-    private record Module(string Href, string Title, string Subtitle, ModuleCounts? Counts);
-
-    private ModuleCounts? species;
-    private ModuleCounts? backgrounds;
-    private ModuleCounts? feats;
-    private ModuleCounts? spells;
-    private ModuleCounts? classes;
-    private ModuleCounts? equipment;
-    private ModuleCounts? rules;
-    private bool loadFailed;
+    private LanguageCode Lang => LanguageState.CurrentLanguage;
 
     private IEnumerable<Module> Modules
     {
         get
         {
-            var lang = LanguageState.CurrentLanguage;
-            yield return new Module("species", UiText.NavSpecies(lang), UiText.SpeciesSubtitle(lang), species);
-            yield return new Module("backgrounds", UiText.BackgroundsTitle(lang), UiText.BackgroundsSubtitle(lang), backgrounds);
-            yield return new Module("feats", UiText.FeatsTitle(lang), UiText.FeatsSubtitle(lang), feats);
-            yield return new Module("spells", UiText.SpellsTitle(lang), UiText.SpellsSubtitle(lang), spells);
-            yield return new Module("classes", UiText.ClassesTitle(lang), UiText.ClassesSubtitle(lang), classes);
-            yield return new Module("equipment", UiText.EquipmentTitle(lang), UiText.EquipmentSubtitle(lang), equipment);
-            yield return new Module("rules", UiText.RulesTitle(lang), UiText.RulesSubtitle(lang), rules);
+            yield return new Module("rules", "rules", UiText.RulesTitle(Lang), UiText.HomeRulesModule(Lang));
+            yield return new Module("species", "species", UiText.NavSpecies(Lang), UiText.SpeciesSubtitle(Lang));
+            yield return new Module("backgrounds", "backgrounds", UiText.BackgroundsTitle(Lang), UiText.BackgroundsSubtitle(Lang));
+            yield return new Module("feats", "feats", UiText.FeatsTitle(Lang), UiText.FeatsSubtitle(Lang));
+            yield return new Module("spells", "spells", UiText.SpellsTitle(Lang), UiText.SpellsSubtitle(Lang));
+            yield return new Module("classes", "classes", UiText.ClassesTitle(Lang), UiText.ClassesSubtitle(Lang));
+            yield return new Module("equipment", "equipment", UiText.EquipmentTitle(Lang), UiText.EquipmentSubtitle(Lang));
         }
     }
 
-    protected override async Task OnInitializedAsync()
-    {
-        LanguageState.OnLanguageChanged += StateHasChanged;
+    protected override void OnInitialized() => LanguageState.OnLanguageChanged += StateHasChanged;
 
-        var lang = LanguageState.CurrentLanguage;
-        var speciesTask = SpeciesService.GetSpeciesAsync(lang);
-        var backgroundsTask = BackgroundService.GetBackgroundsAsync(lang);
-        var featsTask = FeatService.GetFeatsAsync(lang);
-        var spellsTask = SpellService.GetSpellsAsync(lang);
-        var classesTask = ClassService.GetClassesAsync(lang);
-        var equipmentTask = EquipmentService.GetEquipmentAsync(lang);
-        var rulesTask = Glossary.GetEntriesAsync(lang);
-        await Task.WhenAll(speciesTask, backgroundsTask, featsTask, spellsTask, classesTask, equipmentTask, rulesTask);
-
-        species = Count((await speciesTask).Select(s => (s.Ruleset, s.IsOfficialSRD)));
-        backgrounds = Count((await backgroundsTask).Select(b => (b.Ruleset, b.IsOfficialSRD)));
-        feats = Count((await featsTask).Select(f => (f.Ruleset, f.IsOfficialSRD)));
-        spells = Count((await spellsTask).Select(s => (s.Ruleset, s.IsOfficialSRD)));
-        classes = Count((await classesTask).Select(c => (c.Ruleset, c.IsOfficialSRD)));
-        equipment = Count((await equipmentTask).Select(e => (e.Ruleset, e.IsOfficialSRD)));
-
-        //	The glossary has no Homebrew: every entry is Base
-        rules = Count((await rulesTask).Select(r => (r.Ruleset, true)));
-
-        //	No Base content at all is never a real state: show a warning instead of misleading zeros
-        loadFailed = new[] { species, backgrounds, feats, spells, classes, equipment, rules }.All(c => c is { Edition2024: 0, Edition2014: 0 });
-        if (loadFailed)
-        {
-            species = backgrounds = feats = spells = classes = equipment = rules = null;
-        }
-    }
-
-    private static ModuleCounts Count(IEnumerable<(RulesetVersion Ruleset, bool IsBase)> items)
-    {
-        var list = items.ToList();
-        return new ModuleCounts(
-            list.Count(i => i.IsBase && i.Ruleset == RulesetVersion.Dnd5e_2024),
-            list.Count(i => i.IsBase && i.Ruleset == RulesetVersion.Dnd5e_2014),
-            list.Count(i => !i.IsBase));
-    }
-
-    public void Dispose()
-    {
-        LanguageState.OnLanguageChanged -= StateHasChanged;
-    }
+    public void Dispose() => LanguageState.OnLanguageChanged -= StateHasChanged;
 }

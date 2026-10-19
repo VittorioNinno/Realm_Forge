@@ -1489,3 +1489,120 @@ a.rf-term {
         width: 0.8rem;
         height: 0.8rem;
     }
+
+/* ===== Dashboard: welcome, sections of the app, how it works and house rules ===== */
+.rf-home-intro {
+    max-width: 62rem;
+    font-size: 1rem;
+    line-height: 1.6;
+    color: var(--rf-text-secondary);
+}
+
+.rf-home-section-title {
+    font-size: 1rem;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    margin-bottom: 0.9rem;
+}
+
+.rf-home-modules {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr));
+    gap: 0.75rem;
+}
+
+.rf-home-module {
+    display: flex;
+    gap: 0.85rem;
+    align-items: flex-start;
+    padding: 0.9rem 1rem;
+    border-radius: 6px;
+    background-color: var(--rf-bg-surface);
+    border: 1px solid var(--rf-border-subtle);
+    border-left: 3px solid var(--rf-border-light);
+    color: inherit;
+    text-decoration: none;
+    transition: border-color 0.15s ease, background-color 0.15s ease;
+}
+
+    .rf-home-module:hover, .rf-home-module:focus-visible {
+        background-color: var(--rf-bg-card);
+        border-left-color: var(--rf-orange-primary);
+        color: inherit;
+    }
+
+.rf-home-module-icon {
+    flex-shrink: 0;
+    display: inline-flex;
+    padding-top: 0.15rem;
+    color: var(--rf-orange-primary);
+}
+
+.rf-home-module-title {
+    display: block;
+    font-weight: 700;
+    font-size: 0.85rem;
+    letter-spacing: 0.8px;
+    text-transform: uppercase;
+    color: var(--rf-text-primary);
+}
+
+.rf-home-module-text {
+    display: block;
+    margin-top: 0.2rem;
+    font-size: 0.82rem;
+    line-height: 1.45;
+    color: var(--rf-text-secondary);
+}
+
+.rf-home-points {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    font-size: 0.875rem;
+}
+
+    .rf-home-points dt {
+        font-weight: 600;
+        color: var(--rf-text-primary);
+    }
+
+    .rf-home-points dd {
+        margin: 0.1rem 0 0;
+        line-height: 1.5;
+        color: var(--rf-text-secondary);
+    }
+
+/* Account: Base content per section and edition */
+.rf-account-table {
+    width: 100%;
+    font-size: 0.875rem;
+    border-collapse: collapse;
+}
+
+    .rf-account-table th {
+        padding: 0 0 0.4rem;
+        font-size: 0.72rem;
+        font-weight: 600;
+        letter-spacing: 0.5px;
+        text-transform: uppercase;
+        color: var(--rf-text-muted);
+    }
+
+    .rf-account-table td {
+        padding: 0.45rem 0;
+        border-top: 1px solid var(--rf-border-subtle);
+        color: var(--rf-text-primary);
+    }
+
+    .rf-account-table .rf-num {
+        width: 5.5rem;
+        text-align: right;
+        font-variant-numeric: tabular-nums;
+    }
+
+    .rf-account-table td.rf-num {
+        font-family: var(--rf-font-display);
+        font-weight: 700;
+        font-size: 1.05rem;
+    }
