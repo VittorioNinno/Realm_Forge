@@ -8,6 +8,7 @@
 @implements IDisposable
 @inject SpeciesDataService SpeciesService
 @inject LanguageStateService LanguageState
+@inject GlossaryService Glossary
 @inject ApiErrorState ApiErrors
 @inject NavigationManager NavManager
 
@@ -270,7 +271,7 @@
                 @* DESCRIPTIONS *@
                 <div class="mb-4">
                     <div class="rf-markdown-container small mb-2">
-                        @((MarkupString)MarkdownText.ToHtml(selectedDetail.Description))
+                        @((MarkupString)MarkdownText.ToHtml(selectedDetail.Description, Terms(selectedDetail.Ruleset)))
                     </div>
 
                     @* Active Subspecies Lore Callout *@
@@ -281,7 +282,7 @@
                                 @ActiveSubspecies.Name
                             </strong>
                             <div class="rf-markdown-container small text-light">
-                                @((MarkupString)MarkdownText.ToHtml(ActiveSubspecies.Description))
+                                @((MarkupString)MarkdownText.ToHtml(ActiveSubspecies.Description, Terms(ActiveSubspecies.Ruleset)))
                             </div>
                         </div>
                     }
@@ -328,7 +329,7 @@
                                 </div>
                             </div>
                             <div class="rf-markdown-container small">
-                                @((MarkupString)MarkdownText.ToHtml(item.Trait.Description))
+                                @((MarkupString)MarkdownText.ToHtml(item.Trait.Description, Terms(selectedDetail.Ruleset)))
                             </div>
                         </div>
                     }
@@ -614,6 +615,7 @@
     protected override async Task OnInitializedAsync()
     {
         LanguageState.OnLanguageChanged += HandleLanguageChanged;
+        _ = LoadGlossaryAsync();
         await LoadData();
 
         if (DeepLinkSpeciesId.HasValue)
@@ -631,6 +633,8 @@
 
     private async void HandleLanguageChanged()
     {
+        await Glossary.EnsureLoadedAsync(LanguageState.CurrentLanguage);
+
         if (isDetailModalOpen && selectedDetail != null)
         {
             selectedDetail = await SpeciesService.GetSpeciesDetailAsync(selectedDetail.Id, LanguageState.CurrentLanguage);
@@ -847,6 +851,16 @@
     {
         NavManager.NavigateTo($"/species/{speciesId}/subspecies");
     }
+
+    //	Rules terms in the descriptions link to the glossary (with a tooltip) once it is loaded
+    private async Task LoadGlossaryAsync()
+    {
+        await Glossary.EnsureLoadedAsync(LanguageState.CurrentLanguage);
+        StateHasChanged();
+    }
+
+    private RealmForge.Shared.Text.GlossaryLinker? Terms(RulesetVersion? ruleset) =>
+        ruleset is { } edition ? Glossary.Linker(LanguageState.CurrentLanguage, edition) : null;
 
     public void Dispose()
     {

@@ -676,6 +676,60 @@ namespace RealmForge.Client.Localization
 		};
 		#endregion
 
+		#region Rules Glossary
+		public static string RulesTitle(LanguageCode lang) => lang == LanguageCode.It ? "Glossario delle regole" : "Rules Glossary";
+		public static string NavRules(LanguageCode lang) => lang == LanguageCode.It ? "Glossario" : "Glossary";
+
+		public static string RulesSubtitle(LanguageCode lang) =>
+			lang == LanguageCode.It
+				? "Condizioni, azioni, aree di effetto e termini di gioco. Nei testi del compendio i termini sottolineati rimandano qui."
+				: "Conditions, actions, areas of effect and game terms. Underlined terms in the compendium texts lead here.";
+
+		public static string LoadingRules(LanguageCode lang) => lang == LanguageCode.It ? "Consultazione del glossario..." : "Opening the glossary...";
+
+		public static string NoRulesFound(LanguageCode lang) =>
+			lang == LanguageCode.It ? "Nessun termine corrisponde ai filtri." : "No terms match the filters.";
+
+		public static string LabelSearchRules(LanguageCode lang) => lang == LanguageCode.It ? "Cerca un termine" : "Search a term";
+		public static string PlaceholderSearchRules(LanguageCode lang) => lang == LanguageCode.It ? "Es. prono, azione bonus, copertura..." : "e.g. prone, bonus action, cover...";
+		public static string LabelRuleCategory(LanguageCode lang) => lang == LanguageCode.It ? "Tipo di termine" : "Kind of term";
+		public static string FilterAllRuleCategories(LanguageCode lang) => lang == LanguageCode.It ? "Tutti i termini" : "All terms";
+		public static string SectionSeeAlso(LanguageCode lang) => lang == LanguageCode.It ? "Vedi anche" : "See also";
+		public static string RulesCount(int count, LanguageCode lang) => lang == LanguageCode.It
+			? (count == 1 ? "1 termine" : $"{count} termini")
+			: (count == 1 ? "1 term" : $"{count} terms");
+
+		//	Tag of an entry, as in "Prono [Condizione]"
+		public static string RuleCategoryName(RuleCategory category, LanguageCode lang) => (category, lang) switch
+		{
+			(RuleCategory.Condition, LanguageCode.It) => "Condizione",
+			(RuleCategory.Action, LanguageCode.It) => "Azione",
+			(RuleCategory.AreaOfEffect, LanguageCode.It) => "Area di effetto",
+			(RuleCategory.Attitude, LanguageCode.It) => "Atteggiamento",
+			(RuleCategory.Hazard, LanguageCode.It) => "Pericolo",
+			(RuleCategory.Rule, LanguageCode.It) => "Regola",
+			(RuleCategory.AreaOfEffect, _) => "Area of Effect",
+			_ => category.ToString()
+		};
+
+		//	Heading of a group of entries
+		public static string RuleCategoryGroup(RuleCategory category, LanguageCode lang) => (category, lang) switch
+		{
+			(RuleCategory.Condition, LanguageCode.It) => "Condizioni",
+			(RuleCategory.Action, LanguageCode.It) => "Azioni",
+			(RuleCategory.AreaOfEffect, LanguageCode.It) => "Aree di effetto",
+			(RuleCategory.Attitude, LanguageCode.It) => "Atteggiamenti",
+			(RuleCategory.Hazard, LanguageCode.It) => "Pericoli",
+			(RuleCategory.Rule, LanguageCode.It) => "Regole e termini di gioco",
+			(RuleCategory.Condition, _) => "Conditions",
+			(RuleCategory.Action, _) => "Actions",
+			(RuleCategory.AreaOfEffect, _) => "Areas of Effect",
+			(RuleCategory.Attitude, _) => "Attitudes",
+			(RuleCategory.Hazard, _) => "Hazards",
+			_ => "Rules and Game Terms"
+		};
+		#endregion
+
 		#region Species Compendium
 		public static string SpeciesTitle(LanguageCode lang) => lang == LanguageCode.It ? "Specie" : "Species";
 

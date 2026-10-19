@@ -1,9 +1,11 @@
-using Markdig;
+﻿using Markdig;
+using RealmForge.Shared.Text;
 
 namespace RealmForge.Client.Services
 {
 	///	<summary>
-	///	Shared Markdown rendering for detail views (feats, backgrounds, species and traits).
+	///	Shared Markdown rendering for detail views (feats, backgrounds, species and traits, spells, classes, equipment, glossary).
+	///	With a <see cref="GlossaryLinker"/>, the rules terms of the text link to the glossary with a tooltip.
 	///	</summary>
 	public static class MarkdownText
 	{
@@ -12,7 +14,7 @@ namespace RealmForge.Client.Services
 			.UseAdvancedExtensions()
 			.Build();
 
-		public static string ToHtml(string? text)
+		public static string ToHtml(string? text, GlossaryLinker? glossary = null, Guid? exclude = null)
 		{
 			if (string.IsNullOrWhiteSpace(text))
 			{
@@ -22,7 +24,9 @@ namespace RealmForge.Client.Services
 			//	Seed texts start lists right after a paragraph ("text\n- item") and some use "•" bullets:
 			//	both are normalized so Markdown parses them as proper lists
 			var normalized = text.Replace("\r", string.Empty).Replace("\n• ", "\n- ").Replace("\n- ", "\n\n- ");
-			return Markdown.ToHtml(normalized, Pipeline);
+			var html = Markdown.ToHtml(normalized, Pipeline);
+
+			return glossary is null ? html : glossary.Link(html, exclude);
 		}
 	}
 }

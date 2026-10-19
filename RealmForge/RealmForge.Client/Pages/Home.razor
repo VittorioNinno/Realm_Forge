@@ -10,6 +10,7 @@
 @inject SpellDataService SpellService
 @inject ClassDataService ClassService
 @inject EquipmentDataService EquipmentService
+@inject GlossaryService Glossary
 
 <PageTitle>RealmForge - @UiText.NavDashboard(LanguageState.CurrentLanguage)</PageTitle>
 
@@ -86,6 +87,7 @@
     private ModuleCounts? spells;
     private ModuleCounts? classes;
     private ModuleCounts? equipment;
+    private ModuleCounts? rules;
     private bool loadFailed;
 
     private IEnumerable<Module> Modules
@@ -99,6 +101,7 @@
             yield return new Module("spells", UiText.SpellsTitle(lang), UiText.SpellsSubtitle(lang), spells);
             yield return new Module("classes", UiText.ClassesTitle(lang), UiText.ClassesSubtitle(lang), classes);
             yield return new Module("equipment", UiText.EquipmentTitle(lang), UiText.EquipmentSubtitle(lang), equipment);
+            yield return new Module("rules", UiText.RulesTitle(lang), UiText.RulesSubtitle(lang), rules);
         }
     }
 
@@ -113,7 +116,8 @@
         var spellsTask = SpellService.GetSpellsAsync(lang);
         var classesTask = ClassService.GetClassesAsync(lang);
         var equipmentTask = EquipmentService.GetEquipmentAsync(lang);
-        await Task.WhenAll(speciesTask, backgroundsTask, featsTask, spellsTask, classesTask, equipmentTask);
+        var rulesTask = Glossary.GetEntriesAsync(lang);
+        await Task.WhenAll(speciesTask, backgroundsTask, featsTask, spellsTask, classesTask, equipmentTask, rulesTask);
 
         species = Count((await speciesTask).Select(s => (s.Ruleset, s.IsOfficialSRD)));
         backgrounds = Count((await backgroundsTask).Select(b => (b.Ruleset, b.IsOfficialSRD)));
@@ -122,11 +126,14 @@
         classes = Count((await classesTask).Select(c => (c.Ruleset, c.IsOfficialSRD)));
         equipment = Count((await equipmentTask).Select(e => (e.Ruleset, e.IsOfficialSRD)));
 
+        //	The glossary has no Homebrew: every entry is Base
+        rules = Count((await rulesTask).Select(r => (r.Ruleset, true)));
+
         //	No Base content at all is never a real state: show a warning instead of misleading zeros
-        loadFailed = new[] { species, backgrounds, feats, spells, classes, equipment }.All(c => c is { Edition2024: 0, Edition2014: 0 });
+        loadFailed = new[] { species, backgrounds, feats, spells, classes, equipment, rules }.All(c => c is { Edition2024: 0, Edition2014: 0 });
         if (loadFailed)
         {
-            species = backgrounds = feats = spells = classes = equipment = null;
+            species = backgrounds = feats = spells = classes = equipment = rules = null;
         }
     }
 

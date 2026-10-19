@@ -8,6 +8,7 @@
 @implements IDisposable
 @inject SpellDataService SpellService
 @inject LanguageStateService LanguageState
+@inject GlossaryService Glossary
 @inject ApiErrorState ApiErrors
 
 <PageTitle>RealmForge - @UiText.SpellsTitle(Lang)</PageTitle>
@@ -182,7 +183,7 @@
 
             <div class="mb-3 p-3 rounded" style="background-color: var(--rf-bg-main); border-left: 3px solid var(--rf-border-light);">
                 <div class="rf-markdown-container" data-test="spell-description">
-                    @((MarkupString)MarkdownText.ToHtml(spellDetail.Description))
+                    @((MarkupString)MarkdownText.ToHtml(spellDetail.Description, Terms(spellDetail.Ruleset)))
                 </div>
             </div>
 
@@ -190,7 +191,7 @@
             {
                 <div class="mb-3 p-3 rounded" style="background-color: var(--rf-bg-main); border-left: 3px solid var(--rf-orange-primary);" data-test="spell-higher-levels">
                     <strong class="small d-block mb-1 text-uppercase" style="color: var(--rf-orange-primary); letter-spacing: 0.5px;">@GameTerms.SpellHigherLevelsHeading(spellDetail.Level, Lang, spellDetail.Ruleset)</strong>
-                    <div class="rf-markdown-container">@((MarkupString)MarkdownText.ToHtml(spellDetail.HigherLevels))</div>
+                    <div class="rf-markdown-container">@((MarkupString)MarkdownText.ToHtml(spellDetail.HigherLevels, Terms(spellDetail.Ruleset)))</div>
                 </div>
             }
 
@@ -432,6 +433,7 @@
     protected override async Task OnInitializedAsync()
     {
         LanguageState.OnLanguageChanged += HandleLanguageChanged;
+        _ = LoadGlossaryAsync();
         await LoadSpellsAsync();
 
         if (QuerySpellId.HasValue)
@@ -448,6 +450,8 @@
 
     private async void HandleLanguageChanged()
     {
+        await Glossary.EnsureLoadedAsync(LanguageState.CurrentLanguage);
+
         if (SelectedSpell != null)
         {
             SelectedSpell = await SpellService.GetSpellDetailAsync(SelectedSpell.Id, Lang);
@@ -635,6 +639,16 @@
     }
 
     #endregion
+
+    //	Rules terms in the descriptions link to the glossary (with a tooltip) once it is loaded
+    private async Task LoadGlossaryAsync()
+    {
+        await Glossary.EnsureLoadedAsync(LanguageState.CurrentLanguage);
+        StateHasChanged();
+    }
+
+    private RealmForge.Shared.Text.GlossaryLinker? Terms(RulesetVersion? ruleset) =>
+        ruleset is { } edition ? Glossary.Linker(LanguageState.CurrentLanguage, edition) : null;
 
     public void Dispose() => LanguageState.OnLanguageChanged -= HandleLanguageChanged;
 }
