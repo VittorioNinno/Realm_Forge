@@ -50,7 +50,10 @@ try {
 
   // Navigation: reference pages live in the collapsible "Compendio" group, opened on compendium routes
   const compendiumLinks = (await page.locator('[data-test=nav-compendium] a').allInnerTexts()).map((t) => t.trim());
-  if (compendiumLinks.join(',') !== 'Specie,Background,Talenti,Incantesimi,Classi,Equipaggiamento,Glossario') throw new Error(`unexpected compendium links: ${compendiumLinks.join(',')}`);
+  if (compendiumLinks.join(',') !== 'Specie,Background,Talenti,Incantesimi,Classi,Equipaggiamento') throw new Error(`unexpected compendium links: ${compendiumLinks.join(',')}`);
+  // The rules glossary is a menu entry of its own, next to the compendium group
+  const rulesLink = (await page.locator('[data-test=nav-rules] a').innerText()).trim();
+  if (rulesLink !== 'Glossario') throw new Error(`unexpected glossary menu entry: ${rulesLink}`);
 
   // Brand: emblem next to the title in the sidebar, RealmForge favicon instead of the Blazor one
   await page.goto(`${base}/`);
@@ -164,6 +167,9 @@ try {
   await page.locator('[data-test=class-card]', { hasText: 'Mago' }).first().click();
   await page.locator('[data-test=class-detail]').waitFor({ timeout: 15000 });
   const wizardSheet = { name: (await page.locator('[data-test=class-name]').textContent()).trim(), skills: (await page.locator('[data-test=class-skills]').textContent()).trim() };
+  // 2014 starting equipment: one line per choice, options separated by "oppure"
+  wizardSheet.equipment = [await page.locator('[data-test=class-equipment] li').count(), await page.locator('[data-test=class-equipment] .rf-loadout-or').count()];
+  if (wizardSheet.equipment.join('/') !== '4/3') throw new Error(`unexpected wizard 2014 equipment: ${wizardSheet.equipment.join('/')}`);
   await page.locator('[data-test=class-tab-table]').click();
   wizardSheet.tableRows = await page.locator('[data-test=class-table] tbody tr').count();
   await page.locator('[data-test=class-tab-features]').click();
@@ -187,6 +193,12 @@ try {
   await page.locator('[data-test=class-card]', { hasText: 'Mago' }).first().click();
   await page.locator('[data-test=class-detail]').waitFor({ timeout: 15000 });
   const wizard24 = { name: (await page.locator('[data-test=class-name]').textContent()).trim() };
+  // Starting equipment as two kits (A: 6 items, B: 55 mo), items linked to the equipment, link to the wizard spell list
+  await page.locator('[data-test=class-spell-list]').waitFor({ timeout: 30000 });
+  wizard24.kits = [await page.locator('[data-test=class-equipment-a] li').count(), (await page.locator('[data-test=class-equipment-b]').innerText()).replace(/\s+/g, ' ').trim()];
+  wizard24.itemLinks = await page.locator('[data-test=class-equipment-a] a.rf-loadout-link').count();
+  wizard24.spellList = await page.locator('[data-test=class-spell-list]').getAttribute('href');
+  if (wizard24.kits[0] !== 6 || !wizard24.kits[1].endsWith('55 mo') || wizard24.itemLinks < 3 || wizard24.spellList !== 'spells?class=8&ruleset=2') throw new Error(`unexpected wizard 2024 equipment/spell list: ${JSON.stringify(wizard24)}`);
   await page.locator('[data-test=class-tab-table]').click();
   wizard24.tableRows = await page.locator('[data-test=class-table] tbody tr').count();
   await page.locator('[data-test=class-tab-features]').click();
@@ -200,11 +212,24 @@ try {
   if (classes2024 !== '12 classi' || wizard24.name !== 'Mago' || wizard24.tableRows !== 20 || wizard24.features[0] !== 'Incantesimi' || wizard24.features.length !== 10
     || wizard24.subclasses !== 4 || wizard24.subclass !== 'Invocatore' || wizard24.subclassFeatures !== 5) throw new Error('unexpected 2024 classes page');
   await page.locator('[data-test=class-detail] button', { hasText: 'CHIUDI' }).click();
-  ok('classes 2024: 12 cards, Wizard sheet with 20-level table, 10 class features and 4 subclasses (Evoker with 5 features)');
+  ok('classes 2024: 12 cards, Wizard sheet with equipment kits A/B linked to the equipment, spell list link, 20-level table, 10 class features and 4 subclasses (Evoker with 5 features)');
 
   // Equipment: 450 Base items, weapon and armor tables, Longsword 2024 detail in Italian (metric weight, mastery), weapon rules
   await page.goto(`${base}/equipment`);
-  await page.locator('[data-test=equipment-row]').first().waitFor({ timeout: 60000 });
+  await page.locator('[data-test=equipment-group]').first().waitFor({ timeout: 60000 });
+  // Sections start closed (an index of the chapter): no rows until one is opened; "Espandi tutto" opens them all
+  const closedRows = await page.locator('[data-test=equipment-row], [data-test=equipment-tile]').count();
+  const groups = await page.locator('[data-test=equipment-group]').count();
+  await page.locator('[data-test=equipment-group]', { hasText: 'Armi' }).first().click();
+  await page.locator('[data-test=equipment-row]').first().waitFor({ timeout: 5000 });
+  await page.locator('[data-test=equipment-group]', { hasText: 'Armi' }).first().click();
+  await page.locator('[data-test=equipment-row]').first().waitFor({ state: 'detached', timeout: 5000 });
+  await page.locator('[data-test=equipment-expand-all]').click();
+  const openTiles = await page.locator('[data-test=equipment-tile]').count();
+  await page.locator('[data-test=equipment-collapse-all]').click();
+  results.push(`INFO equipment sections: ${groups} closed (rows=${closedRows}), expand all shows ${openTiles} tiles`);
+  if (closedRows !== 0 || groups !== 11 || openTiles < 100) throw new Error('equipment sections do not open and close');
+  ok('equipment: 11 sections closed by default, each opens and closes, expand/collapse all');
   const equipmentCount = async (expected) => {
     for (let i = 0; i < 100 && (await page.locator('[data-test=equipment-count]').innerText()).trim() !== expected; i++) await page.waitForTimeout(100);
     return (await page.locator('[data-test=equipment-count]').innerText()).trim();
@@ -303,7 +328,7 @@ try {
   results.push(`INFO menu icons: ${iconGaps.map((g) => `${g.label}@${g.left}(+${g.inset})`).join(', ')}`);
   if (iconGaps.length !== 9 || iconGaps.some((g) => g.inset < 8) || new Set(iconGaps.map((g) => g.left)).size !== 1) throw new Error('menu icons are not padded or not aligned');
   await page.locator('[data-test=nav-compendium] button').click();
-  ok('"Compendio" menu group: Specie, Background, Talenti, Incantesimi, Classi, Equipaggiamento, Glossario; collapsed elsewhere and toggles on click; icons padded and aligned');
+  ok('"Compendio" menu group: Specie, Background, Talenti, Incantesimi, Classi, Equipaggiamento, and Glossario next to it; collapsed elsewhere and toggles on click; icons padded and aligned');
   await page.getByText('Non hai un account? Registrati').click();
   await page.locator('input[type=email]').fill(email);
   // Own show / hide button: visible before the field is touched, not only while typing as the browser's eye
@@ -454,26 +479,24 @@ try {
   const equipment = await page.locator('[data-test=bg-equipment] li').count();
   results.push(`INFO Acolyte equipment items=${equipment}`);
   if (equipment !== 6) throw new Error(`expected 6 equipment items, got ${equipment}`);
-  // Equipment tiles: a grid of bordered items with a marker; the coin pouch gets the gold style
-  const tiles = await page.evaluate(() => {
-    const list = document.querySelector('[data-test=bg-equipment] .rf-equipment-list');
-    const items = [...list.querySelectorAll('li')];
+  // Equipment ledger: plain lines without markers, the coin pouch with its value in gold on the right
+  const ledger = await page.evaluate(() => {
+    const items = [...document.querySelectorAll('[data-test=bg-equipment] li')];
     return {
-      display: getComputedStyle(list).display,
       bullets: getComputedStyle(items[0]).listStyleType,
       marker: getComputedStyle(items[0], '::before').content,
-      bordered: items.every((li) => getComputedStyle(li).borderTopStyle === 'solid'),
-      coins: items.filter((li) => li.classList.contains('rf-equipment-coins')).map((li) => li.textContent.trim()),
+      coins: items.filter((li) => li.classList.contains('rf-loadout-coins')).map((li) => li.textContent.replace(/\s+/g, ' ').trim()),
+      title: getComputedStyle(document.querySelector('[data-test=bg-equipment] .rf-loadout-title')).color,
     };
   });
-  results.push(`INFO equipment tiles: ${JSON.stringify(tiles)}`);
-  if (tiles.display !== 'grid' || tiles.bullets !== 'none' || tiles.marker === 'none' || !tiles.bordered || tiles.coins.length !== 1 || !tiles.coins[0].includes('15 mo')) throw new Error('unexpected equipment tiles');
+  results.push(`INFO equipment ledger: ${JSON.stringify(ledger)}`);
+  if (ledger.bullets !== 'none' || (ledger.marker !== 'none' && ledger.marker !== 'normal') || ledger.coins.length !== 1 || !ledger.coins[0].endsWith('15 mo')) throw new Error('unexpected equipment ledger');
   const source = (await page.locator('[data-test=content-source]').first().innerText()).trim();
   const badge = (await page.locator('.rf-modal-dialog [data-test=content-badge]').first().textContent()).trim(); // textContent: the badge CSS uppercases the rendered text
   results.push(`INFO Acolyte badge='${badge}' source='${source}'`);
   if (badge !== 'Base' || source !== 'Fonte: SRD 5.1') throw new Error(`unexpected badge/source: ${badge} / ${source}`);
   await page.getByRole('button', { name: 'CHIUDI' }).click();
-  ok('SRD Acolyte: four stacked characteristic tables (d8, d6, d6, d6), equipment as a grid of tiles with the coin pouch in gold, badge "Base", source SRD 5.1');
+  ok('SRD Acolyte: four stacked characteristic tables (d8, d6, d6, d6), equipment as a ledger with the coin pouch value in gold, badge "Base", source SRD 5.1');
 
   await acolyteCard('2024').click();
   await page.locator('[data-test=bg-equipment-b]').waitFor({ timeout: 15000 });

@@ -12,7 +12,7 @@ namespace RealmForge.Shared.Text
 
 	///	<summary>
 	///	Links the rules terms of one edition and language in rendered HTML: the first occurrence of each term becomes
-	///	a link to its glossary entry, with the data of the tooltip. Text inside links, code, headings and italics (spell names) is left alone.
+	///	a link to its glossary entry, with the data of the tooltip. Text inside links, code, headings and italics is left alone, except an italic spell name, which links to the spell.
 	///	</summary>
 	public sealed class GlossaryLinker
 	{
@@ -32,8 +32,19 @@ namespace RealmForge.Shared.Text
 		private readonly int[] _groupNumbers = Array.Empty<int>();
 		private readonly Dictionary<string, string> _cache = new();
 
-		public GlossaryLinker(IEnumerable<GlossaryTerm> terms)
+		//	Spell names (case-insensitive): an italic text that is exactly a spell name links to the spell
+		private readonly Dictionary<string, Guid> _spells = new(StringComparer.OrdinalIgnoreCase);
+
+		public GlossaryLinker(IEnumerable<GlossaryTerm> terms, IEnumerable<(string Name, Guid Id)>? spells = null)
 		{
+			foreach (var (name, id) in spells ?? Enumerable.Empty<(string, Guid)>())
+			{
+				if (!string.IsNullOrWhiteSpace(name))
+				{
+					_spells.TryAdd(SpellKey(name), id);
+				}
+			}
+
 			//	Longer forms first, so "azione bonus" wins over a shorter form that starts at the same point
 			var forms = terms
 				.SelectMany(t => t.Aliases.Where(a => !string.IsNullOrWhiteSpace(a)).Select(a => (Term: t, Alias: a.Trim())))
@@ -55,14 +66,18 @@ namespace RealmForge.Shared.Text
 			_groupNumbers = Enumerable.Range(0, forms.Count).Select(i => _terms.GroupNumberFromName($"t{i}")).ToArray();
 		}
 
-		public bool HasTerms => _terms is not null;
+		public bool HasTerms => _terms is not null || _spells.Count > 0;
+
+		public const string SpellCssClass = "rf-spell-link";
+
+		private static string SpellKey(string name) => Apostrophes.Replace(name.Trim(), "'");
 
 		///	<summary>
 		///	Returns the HTML with the terms linked; the entry <paramref name="exclude"/> (the one being shown) is never linked.
 		///	</summary>
 		public string Link(string html, Guid? exclude = null)
 		{
-			if (_terms is null || string.IsNullOrEmpty(html))
+			if (!HasTerms || string.IsNullOrEmpty(html))
 			{
 				return html;
 			}
@@ -82,10 +97,18 @@ namespace RealmForge.Shared.Text
 			var result = new StringBuilder(html.Length + 256);
 			var skipDepth = 0;
 
-			foreach (var part in HtmlParts.Split(html))
+			var parts = HtmlParts.Split(html).Where(p => p.Length > 0).ToArray();
+			for (var i = 0; i < parts.Length; i++)
 			{
-				if (part.Length == 0)
+				var part = parts[i];
+
+				//	<em>Spell Name</em> → the spell, once per text
+				if (skipDepth == 0 && _spells.Count > 0 && part.Equals("<em>", StringComparison.OrdinalIgnoreCase) && i + 2 < parts.Length
+					&& parts[i + 2].Equals("</em>", StringComparison.OrdinalIgnoreCase) && parts[i + 1][0] != '<'
+					&& _spells.TryGetValue(SpellKey(WebUtility.HtmlDecode(parts[i + 1])), out var spellId) && linked.Add(spellId))
 				{
+					result.Append($"<em><a class=\"{SpellCssClass}\" href=\"spells?id={spellId}\">{parts[i + 1]}</a></em>");
+					i += 2;
 					continue;
 				}
 
@@ -101,7 +124,7 @@ namespace RealmForge.Shared.Text
 					continue;
 				}
 
-				result.Append(skipDepth > 0 ? part : _terms.Replace(part, match => Replace(match, linked)));
+				result.Append(skipDepth > 0 || _terms is null ? part : _terms.Replace(part, match => Replace(match, linked)));
 			}
 
 			if (_cache.Count >= CacheLimit)
