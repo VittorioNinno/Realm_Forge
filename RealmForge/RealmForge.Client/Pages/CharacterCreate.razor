@@ -1,0 +1,661 @@
+﻿@page "/characters/new"
+@using RealmForge.Client.Components
+@using RealmForge.Client.Localization
+@using RealmForge.Client.Services
+@using RealmForge.Shared.DTOs
+@using RealmForge.Shared.Enums
+@using RealmForge.Shared.Localization
+@using RealmForge.Shared.Rules
+
+<PageTitle>RealmForge - @UiText.WizardTitle(Lang)</PageTitle>
+
+<AuthorizeView>
+    <Authorized>
+        <div class="py-4">
+            <a href="characters" class="small text-decoration-none d-inline-block mb-3" style="color: var(--rf-text-muted);">@UiText.BtnBackToCharacters(Lang)</a>
+
+            <div class="rf-wizard" data-test="character-wizard">
+                <h1 class="rf-wizard-header rf-page-title">@UiText.WizardTitle(Lang)</h1>
+
+                <div class="rf-wizard-steps">
+                    @for (var i = 1; i <= StepCount; i++)
+                    {
+                        var number = i;
+                        <button type="button" class="rf-wizard-dot @(number == step ? "active" : number < step || number <= furthestStep ? "done" : null)"
+                                aria-label="@UiText.WizardStep(number, Lang)" title="@UiText.WizardStep(number, Lang)"
+                                @onclick="() => GoTo(number)" data-test="wizard-dot-@number"></button>
+                    }
+                </div>
+                <div class="rf-wizard-step-title" data-test="wizard-step-title">@UiText.WizardStepOf(step, StepCount, Lang)</div>
+
+                @if (loading)
+                {
+                    <div class="text-center small" style="color: var(--rf-text-muted);">@UiText.WizardLoading(Lang)</div>
+                }
+                else
+                {
+                    <div class="rf-wizard-section" @key="step" data-test="wizard-step-@step">
+                        @switch (step)
+                        {
+                            case 1:
+                                @IdentityStep
+                                break;
+                            case 2:
+                                @OriginsStep
+                                break;
+                            case 3:
+                                @ClassStep
+                                break;
+                            case 4:
+                                @ScoresStep
+                                break;
+                            case 5:
+                                @IncreasesStep
+                                break;
+                            case 6:
+                                @EquipmentStep
+                                break;
+                            case 7:
+                                @SpellsStep
+                                break;
+                            default:
+                                @SummaryStep
+                                break;
+                        }
+                    </div>
+                }
+
+                @if (stepError is not null)
+                {
+                    <div class="rf-wizard-error" data-test="wizard-error">@stepError</div>
+                }
+                @if (saveError is not null)
+                {
+                    <div class="rf-wizard-error" data-test="wizard-save-error">@UiText.ErrSave(Lang) @saveError</div>
+                }
+
+                <div class="rf-wizard-footer">
+                    <button type="button" class="rf-wizard-btn secondary" disabled="@(step == 1 || saving)" @onclick="Back" data-test="wizard-back">@UiText.BtnWizardBack(Lang)</button>
+                    @if (step < StepCount)
+                    {
+                        <button type="button" class="rf-wizard-btn" disabled="@(loading || rolling)" @onclick="Next" data-test="wizard-next">@UiText.BtnWizardNext(Lang)</button>
+                    }
+                    else
+                    {
+                        <button type="button" class="rf-wizard-btn" disabled="@saving" @onclick="SaveAsync" data-test="wizard-forge">
+                            @(saving ? UiText.WizardSaving(Lang) : UiText.BtnWizardForge(Lang))
+                        </button>
+                    }
+                </div>
+            </div>
+        </div>
+
+        @if (rerollConfirmOpen)
+        {
+            <div class="rf-modal-backdrop" @onclick="() => rerollConfirmOpen = false">
+                <div class="rf-modal-dialog" style="max-width: 420px; text-align: center;" @onclick:stopPropagation="true" data-test="reroll-confirm">
+                    <h2 class="h5 mb-3" style="color: var(--rf-orange-primary);">@UiText.RerollTitle(Lang)</h2>
+                    <p style="color: var(--rf-text-secondary);">@UiText.RerollText(rollsLeft, Lang)</p>
+                    <div class="d-flex justify-content-center gap-3">
+                        <button class="btn btn-rf-outline" @onclick="() => rerollConfirmOpen = false">@UiText.BtnCancel(Lang)</button>
+                        <button class="btn btn-rf-orange" @onclick="ConfirmReroll" data-test="reroll-yes">@UiText.BtnReroll(Lang)</button>
+                    </div>
+                </div>
+            </div>
+        }
+    </Authorized>
+    <NotAuthorized>
+        <div class="py-4">
+            <div class="rf-wizard text-center">
+                <h1 class="rf-wizard-header rf-page-title">@UiText.WizardTitle(Lang)</h1>
+                <p style="color: var(--rf-text-secondary);">@UiText.CharactersSignIn(Lang)</p>
+                <a href="account" class="btn btn-rf-orange">@UiText.BtnLoginToForge(Lang)</a>
+            </div>
+        </div>
+    </NotAuthorized>
+</AuthorizeView>
+
+@code {
+    // ===== 1. Identity =====
+    private RenderFragment IdentityStep => @<text>
+        <div class="rf-wizard-row">
+            <div class="rf-wizard-label">@UiText.LabelEdition(Lang)</div>
+            <div class="rf-wizard-field">
+                <ForgeSelector TValue="RulesetVersion" Value="ruleset" ValueChanged="OnRulesetChanged" Options="EditionOptions" DataTest="wizard-edition" />
+            </div>
+        </div>
+        <div class="rf-wizard-row">
+            <div class="rf-wizard-label">@UiText.LabelCharacterName(Lang)</div>
+            <div class="rf-wizard-field">
+                <input class="rf-wizard-input" maxlength="100" placeholder="@UiText.PlaceholderCharacterName(Lang)" @bind="name" @bind:event="oninput" data-test="wizard-name" />
+            </div>
+        </div>
+        <div class="rf-wizard-row">
+            <div class="rf-wizard-label">@UiText.LabelLevel(Lang)</div>
+            <div class="rf-wizard-field">
+                <div class="rf-wizard-level">
+                    <input type="range" class="rf-wizard-range" min="1" max="20" value="@level" @oninput="OnLevelChanged" data-test="wizard-level" aria-label="@UiText.LabelLevel(Lang)" />
+                    <span class="rf-wizard-level-value" data-test="wizard-level-value">@level</span>
+                </div>
+            </div>
+        </div>
+        <div class="rf-wizard-row">
+            <div class="rf-wizard-label">@UiText.LabelAlignment(Lang)</div>
+            <div class="rf-wizard-field">
+                <ForgeSelector TValue="Alignment" @bind-Value="alignment" Options="AlignmentOptions" DataTest="wizard-alignment" />
+            </div>
+        </div>
+        <div class="rf-wizard-panel">
+            <div class="rf-wizard-block-title">@UiText.AlignmentName(alignment, Lang)</div>
+            <div class="rf-wizard-text">@UiText.AlignmentDescription(alignment, Lang)</div>
+            <div class="rf-wizard-block-title">@UiText.LabelSuggestedTraits(Lang)</div>
+            <div class="rf-wizard-pills mb-0">
+                @foreach (var trait in UiText.AlignmentTraits(alignment, Lang))
+                {
+                    <span class="rf-wizard-pill">@trait</span>
+                }
+            </div>
+        </div>
+    </text>;
+
+    // ===== 2. Origins =====
+    private RenderFragment OriginsStep => @<text>
+        <div class="rf-wizard-row">
+            <div class="rf-wizard-label">@UiText.LabelSpecies(Lang)</div>
+            <div class="rf-wizard-field">
+                <ForgeSelector TValue="Guid" Value="speciesId" ValueChanged="OnSpeciesChanged" Options="SpeciesOptions" DataTest="wizard-species" />
+            </div>
+        </div>
+        @if (SubspeciesOptions.Count > 0)
+        {
+            <div class="rf-wizard-row">
+                <div class="rf-wizard-label">@UiText.LabelSubspecies(Lang)</div>
+                <div class="rf-wizard-field">
+                    <ForgeSelector TValue="Guid?" @bind-Value="subspeciesId" Options="SubspeciesOptions" DataTest="wizard-subspecies" />
+                </div>
+            </div>
+        }
+        <div class="rf-wizard-row">
+            <div class="rf-wizard-label">@UiText.LabelSize(Lang)</div>
+            <div class="rf-wizard-field">
+                <ForgeSelector TValue="CreatureSize" @bind-Value="size" Options="SizeOptions" DataTest="wizard-size" />
+            </div>
+        </div>
+
+        @if (species is not null)
+        {
+            <div class="rf-wizard-panel mb-3" data-test="wizard-species-panel">
+                <div class="rf-wizard-block-title">@species.Name</div>
+                <div class="rf-wizard-meta">
+                    <div><strong>@UiText.SheetSpeed(Lang)</strong>@UiText.FormatSpeed(Speed, Lang)</div>
+                    <div><strong>@UiText.LabelSize(Lang)</strong>@UiText.FormatSizeSingle(size, Lang)</div>
+                </div>
+                <div class="rf-wizard-block-title">@UiText.LabelSpeciesTraits(Lang)</div>
+                @foreach (var trait in species.BaseTraits.Concat(ActiveSubspecies?.Traits ?? new List<TraitResponseDto>()).Where(t => t.RequiredLevel <= level))
+                {
+                    <div class="rf-wizard-feature">
+                        <div class="rf-wizard-feature-title">@trait.Name</div>
+                        <div class="rf-wizard-feature-desc rf-markdown-container">@((MarkupString)MarkdownText.ToHtml(trait.Description, Terms))</div>
+                    </div>
+                }
+            </div>
+        }
+
+        <div class="rf-wizard-row">
+            <div class="rf-wizard-label">@UiText.LabelBackground(Lang)</div>
+            <div class="rf-wizard-field">
+                <ForgeSelector TValue="Guid" Value="backgroundId" ValueChanged="OnBackgroundChanged" Options="BackgroundOptions" DataTest="wizard-background" />
+            </div>
+        </div>
+
+        @if (background is not null)
+        {
+            <div class="rf-wizard-panel mb-3" data-test="wizard-background-panel">
+                <div class="rf-wizard-block-title">@background.Name</div>
+                <div class="rf-wizard-text rf-markdown-container">@((MarkupString)MarkdownText.ToHtml(background.Description, Terms))</div>
+                <div class="rf-wizard-meta">
+                    @if (background.AbilityOptions.Count > 0)
+                    {
+                        <div><strong>@UiText.LabelAbilityOptionsShort(Lang)</strong>@string.Join(", ", background.AbilityOptions.Select(a => FeatPrerequisiteFormatter.AbilityName(a, Lang)))</div>
+                    }
+                    <div><strong>@UiText.LabelSkillsShort(Lang)</strong>@string.Join(", ", background.SkillProficiencies.Select(s => GameTerms.SkillName(s, Lang)))</div>
+                    @if (!string.IsNullOrWhiteSpace(background.ToolProficiencies))
+                    {
+                        <div><strong>@UiText.LabelTools(Lang)</strong>@background.ToolProficiencies</div>
+                    }
+                    @if (background.OriginFeatName is not null)
+                    {
+                        <div><strong>@UiText.LabelOriginFeatShort(Lang)</strong>@background.OriginFeatName</div>
+                    }
+                    @if (!string.IsNullOrWhiteSpace(background.FeatureName))
+                    {
+                        <div><strong>@UiText.LabelFeatureName(Lang)</strong>@background.FeatureName</div>
+                    }
+                </div>
+            </div>
+        }
+
+        <div class="rf-wizard-row">
+            <div class="rf-wizard-label">@UiText.SheetLanguages(Lang)</div>
+            <div class="rf-wizard-field">
+                <div class="rf-wizard-pills mb-2">
+                    <span class="rf-wizard-pill locked">@UiText.CommonLanguage(Lang)</span>
+                </div>
+                <div class="d-flex flex-column gap-2">
+                    <ForgeSelector TValue="string" @bind-Value="languageOne" Options="LanguageOptions(languageTwo)" DataTest="wizard-language-1" />
+                    <ForgeSelector TValue="string" @bind-Value="languageTwo" Options="LanguageOptions(languageOne)" DataTest="wizard-language-2" />
+                </div>
+            </div>
+        </div>
+    </text>;
+
+    // ===== 3. Class =====
+    private RenderFragment ClassStep => @<text>
+        <div class="rf-wizard-row">
+            <div class="rf-wizard-label">@UiText.LabelClass(Lang)</div>
+            <div class="rf-wizard-field">
+                <ForgeSelector TValue="Guid" Value="classId" ValueChanged="OnClassChanged" Options="ClassOptions" DataTest="wizard-class" />
+            </div>
+        </div>
+        @if (cls is not null)
+        {
+            <div class="rf-wizard-row">
+                <div class="rf-wizard-label">@(cls.SubclassTitle ?? UiText.LabelSubclassChoice(Lang))</div>
+                <div class="rf-wizard-field">
+                    @if (level >= cls.SubclassLevel && SubclassOptions.Count > 0)
+                    {
+                        <ForgeSelector TValue="Guid?" @bind-Value="subclassId" Options="SubclassOptions" DataTest="wizard-subclass" />
+                    }
+                    else
+                    {
+                        <div class="rf-forge-selector-display" style="min-height: 48px; color: var(--rf-text-muted);">@UiText.NoSubclassYet(cls.SubclassLevel, Lang)</div>
+                    }
+                </div>
+            </div>
+
+            <div class="rf-wizard-panel" data-test="wizard-class-panel">
+                <div class="rf-wizard-block-title">@cls.Name</div>
+                <div class="rf-wizard-meta">
+                    <div><strong>@UiText.LabelHitDie(Lang)</strong>d@(cls.HitDie)</div>
+                    <div><strong>@UiText.LabelPrimaryAbility(Lang)</strong>@string.Join(", ", cls.PrimaryAbilities.Select(a => FeatPrerequisiteFormatter.AbilityName(a, Lang)))</div>
+                    <div><strong>@UiText.LabelSaves(Lang)</strong>@string.Join(", ", cls.SavingThrows.Select(a => FeatPrerequisiteFormatter.AbilityName(a, Lang)))</div>
+                    @if (!string.IsNullOrWhiteSpace(cls.ArmorProficiencies))
+                    {
+                        <div><strong>@UiText.LabelArmor(Lang)</strong>@cls.ArmorProficiencies</div>
+                    }
+                    @if (!string.IsNullOrWhiteSpace(cls.WeaponProficiencies))
+                    {
+                        <div><strong>@UiText.LabelWeapons(Lang)</strong>@cls.WeaponProficiencies</div>
+                    }
+                </div>
+
+                <div class="rf-wizard-block-title">@UiText.LabelClassSkills(cls.SkillChoiceCount, Lang)</div>
+                <div class="rf-wizard-counter" data-test="wizard-skill-count">@classSkills.Count / @cls.SkillChoiceCount</div>
+                <div class="rf-wizard-pills">
+                    @foreach (var skill in cls.SkillOptions.OrderBy(s => GameTerms.SkillName(s, Lang)))
+                    {
+                        var fromBackground = background?.SkillProficiencies.Contains(skill) == true;
+                        var selected = classSkills.Contains(skill);
+                        if (fromBackground)
+                        {
+                            <span class="rf-wizard-pill locked">@GameTerms.SkillName(skill, Lang)</span>
+                        }
+                        else
+                        {
+                            <button type="button" class="rf-wizard-pill @(selected ? "selected" : null)" disabled="@(!selected && classSkills.Count >= cls.SkillChoiceCount)"
+                                    @onclick="() => ToggleSkill(skill)" data-test="wizard-skill">@GameTerms.SkillName(skill, Lang)</button>
+                        }
+                    }
+                </div>
+                @if (cls.SkillOptions.Any(s => background?.SkillProficiencies.Contains(s) == true))
+                {
+                    <div class="small mb-3" style="color: var(--rf-text-muted);">@UiText.HintBackgroundSkills(Lang)</div>
+                }
+
+                <div class="rf-wizard-block-title">@UiText.LabelFeaturesUpToLevel(level, Lang)</div>
+                @foreach (var feature in cls.Features.Concat(Subclass?.Features ?? new List<ClassFeatureDto>()).Where(f => f.Level <= level).OrderBy(f => f.Level).ThenBy(f => f.SortOrder))
+                {
+                    <div class="rf-wizard-feature">
+                        <div class="rf-wizard-feature-title">@feature.Name <span class="rf-wizard-feature-level">@UiText.CharacterLevel(feature.Level, Lang)</span></div>
+                    </div>
+                }
+            </div>
+        }
+    </text>;
+
+    // ===== 4. Ability scores =====
+    private RenderFragment ScoresStep => @<text>
+        <div class="rf-wizard-row">
+            <div class="rf-wizard-label">@UiText.LabelMethod(Lang)</div>
+            <div class="rf-wizard-field">
+                <ForgeSelector TValue="AbilityMethod" Value="method" ValueChanged="OnMethodChanged" Options="MethodOptions" DataTest="wizard-method" />
+            </div>
+        </div>
+        <div class="rf-wizard-text">@UiText.AbilityMethodHint(method, Lang)</div>
+
+        @if (method == AbilityMethod.StandardArray)
+        {
+            <div class="d-flex flex-wrap align-items-center justify-content-center gap-3 mb-3">
+                <button type="button" class="rf-stat-card-btn" style="width: auto; padding: 8px 16px;" @onclick="ApplySuggestedArray" data-test="wizard-suggested">@UiText.BtnSuggestedArray(Lang)</button>
+            </div>
+            @PoolView
+        }
+        else if (method == AbilityMethod.PointBuy)
+        {
+            <div class="rf-pb-points" data-test="wizard-points">@UiText.PointsLeft(PointsLeft, Lang)</div>
+        }
+        else
+        {
+            <div class="rf-roll-box">
+                <button type="button" class="rf-wizard-btn" style="flex: none; width: 100%;" disabled="@(rolling || rollsLeft == 0)" @onclick="RequestRoll" data-test="wizard-roll">
+                    @(rollsLeft == 0 ? UiText.NoRollsLeft(Lang) : UiText.BtnRollDice(rollsLeft, Lang))
+                </button>
+                @if (diceRows.Count > 0)
+                {
+                    <div class="rf-roll-arena" data-test="wizard-roll-arena">
+                        @foreach (var row in diceRows)
+                        {
+                            <div class="rf-roll-row">
+                                @for (var d = 0; d < 4; d++)
+                                {
+                                    var die = d;
+                                    <span class="rf-die @(rolling ? "rolling" : die == row.Dropped ? "dropped" : "kept")">@row.Dice[die]</span>
+                                }
+                                <span class="rf-roll-sum">@(rolling ? "…" : row.Total.ToString())</span>
+                            </div>
+                        }
+                    </div>
+                }
+                @if (!rolling)
+                {
+                    @PoolView
+                }
+            </div>
+        }
+
+        <div class="rf-stat-grid" data-test="wizard-stats">
+            @for (var i = 0; i < 6; i++)
+            {
+                var index = i;
+                var ability = CharacterMath.Abilities[index];
+                var value = BaseScore(index);
+                <div class="rf-stat-card" data-test="wizard-stat-@index">
+                    <div class="rf-stat-card-label">@FeatPrerequisiteFormatter.AbilityName(ability, Lang)</div>
+                    @if (method == AbilityMethod.PointBuy)
+                    {
+                        <div class="rf-stat-card-value">@value</div>
+                        <div class="rf-stat-card-mod">@CharacterMath.FormatModifier(CharacterMath.Modifier(value ?? 8))</div>
+                        <div class="rf-pb-controls">
+                            <button type="button" class="rf-pb-btn" disabled="@(pointBuy[index] <= 8)" @onclick="() => Lower(index)" aria-label="−" data-test="wizard-pb-minus">−</button>
+                            <button type="button" class="rf-pb-btn" disabled="@(!CanRaise(index))" @onclick="() => Raise(index)" aria-label="+" data-test="wizard-pb-plus">+</button>
+                        </div>
+                    }
+                    else
+                    {
+                        <button type="button" class="rf-stat-card-value" @onclick="() => AssignTo(index)" title="@UiText.BtnAssign(Lang)">@(value?.ToString() ?? "—")</button>
+                        <div class="rf-stat-card-mod">@(value is { } v ? CharacterMath.FormatModifier(CharacterMath.Modifier(v)) : " ")</div>
+                        <button type="button" class="rf-stat-card-btn" disabled="@(selectedPool is null)" @onclick="() => AssignTo(index)" data-test="wizard-assign">@UiText.BtnAssign(Lang)</button>
+                    }
+                </div>
+            }
+        </div>
+    </text>;
+
+    private RenderFragment PoolView => @<text>
+        @if (CurrentPool.Count > 0)
+        {
+            <div class="rf-dice-pool mb-3" data-test="wizard-pool">
+                @for (var p = 0; p < CurrentPool.Count; p++)
+                {
+                    var poolIndex = p;
+                    <button type="button" class="rf-pool-die @(selectedPool == poolIndex ? "selected" : null)" @onclick="() => SelectPool(poolIndex)" data-test="wizard-pool-die">@CurrentPool[poolIndex]</button>
+                }
+            </div>
+        }
+    </text>;
+
+    // ===== 5. Increases and feat =====
+    private RenderFragment IncreasesStep => @<text>
+        <div class="rf-wizard-block-title">@UiText.LabelAbilityIncreases(Lang)</div>
+        <div class="rf-wizard-text">@(Is2024 ? UiText.HintIncreases2024(Lang) : UiText.HintIncreases2014(Lang))</div>
+
+        @if (!Is2024 && IncreaseTrait is { } trait)
+        {
+            <div class="rf-wizard-feature" data-test="wizard-increase-trait">
+                <div class="rf-wizard-feature-title">@trait.Name</div>
+                <div class="rf-wizard-feature-desc rf-markdown-container">@((MarkupString)MarkdownText.ToHtml(trait.Description, Terms))</div>
+            </div>
+        }
+
+        <div class="rf-wizard-row">
+            <div class="rf-wizard-label">@UiText.LabelBonusMode(Lang)</div>
+            <div class="rf-wizard-field">
+                <ForgeSelector TValue="AbilityBonusMode" Value="bonusMode" ValueChanged="OnBonusModeChanged" Options="BonusModeOptions" DataTest="wizard-bonus-mode" />
+            </div>
+        </div>
+        @for (var i = 0; i < PickCount; i++)
+        {
+            var pick = i;
+            <div class="rf-wizard-row">
+                <div class="rf-wizard-label">@(bonusMode == AbilityBonusMode.TwoAndOne && pick == 0 ? UiText.LabelPlusTwo(Lang) : UiText.LabelPlusOne(Lang))</div>
+                <div class="rf-wizard-field">
+                    <ForgeSelector TValue="AbilityScore" Value="picks[pick]" ValueChanged="v => SetPick(pick, v)" Options="PickOptions(pick)" DataTest="@($"wizard-pick-{pick}")" />
+                </div>
+            </div>
+        }
+
+        <div class="rf-wizard-block-title">@UiText.LabelFinalScores(Lang)</div>
+        <div class="rf-stat-grid mb-3" data-test="wizard-final-scores">
+            @for (var i = 0; i < 6; i++)
+            {
+                var ability = CharacterMath.Abilities[i];
+                var bonus = Bonuses[i];
+                <div class="rf-stat-card">
+                    <div class="rf-stat-card-label">@FeatPrerequisiteFormatter.AbilityName(ability, Lang)</div>
+                    <div class="rf-stat-card-value">@FinalScores[i]</div>
+                    <div class="rf-stat-card-mod mb-0">
+                        @CharacterMath.FormatModifier(CharacterMath.Modifier(FinalScores[i]))
+                        @if (bonus > 0)
+                        {
+                            <span style="color: var(--rf-orange-primary);"> · +@bonus</span>
+                        }
+                    </div>
+                </div>
+            }
+        </div>
+
+        @if (Is2024 && background?.OriginFeatId is { } featId)
+        {
+            <div class="rf-wizard-block-title">@UiText.LabelOriginFeatTitle(Lang)</div>
+            <div class="rf-wizard-feature" data-test="wizard-origin-feat">
+                <div class="rf-wizard-feature-title"><a href="@($"feats?id={featId}")" target="_blank" class="text-reset">@background.OriginFeatName</a></div>
+                @if (!string.IsNullOrWhiteSpace(background.OriginFeatNote))
+                {
+                    <div class="rf-wizard-feature-desc">@background.OriginFeatNote</div>
+                }
+            </div>
+        }
+    </text>;
+
+    // ===== 6. Equipment =====
+    private RenderFragment EquipmentStep => @<text>
+        @{
+            var bg = BackgroundLoadout;
+            var kit = ClassLoadout;
+        }
+        @if (bg.Kits.Count > 0)
+        {
+            <div class="rf-wizard-row">
+                <div class="rf-wizard-label">@UiText.LabelBackgroundEquipment(Lang)</div>
+                <div class="rf-wizard-field">
+                    <ForgeSelector TValue="string" Value="@(backgroundChoice ?? string.Empty)" ValueChanged="v => backgroundChoice = v" Options="LetterOptions(bg.Kits)" DataTest="wizard-background-equipment" />
+                    <div class="small mt-2" style="color: var(--rf-text-secondary);">@OptionSummary(bg.Kits.FirstOrDefault(k => k.Letter == backgroundChoice) ?? bg.Kits[0])</div>
+                </div>
+            </div>
+        }
+        @if (kit.Kits.Count > 0)
+        {
+            <div class="rf-wizard-row">
+                <div class="rf-wizard-label">@UiText.LabelClassEquipment(Lang)</div>
+                <div class="rf-wizard-field">
+                    <ForgeSelector TValue="string" Value="@(classChoice.FirstOrDefault() ?? string.Empty)" ValueChanged="v => SetClassChoice(0, v)" Options="LetterOptions(kit.Kits)" DataTest="wizard-class-equipment" />
+                    <div class="small mt-2" style="color: var(--rf-text-secondary);">@OptionSummary(kit.Kits.FirstOrDefault(k => k.Letter == classChoice.FirstOrDefault()) ?? kit.Kits[0])</div>
+                </div>
+            </div>
+        }
+        else
+        {
+            @for (var r = 0; r < kit.Rows.Count; r++)
+            {
+                var rowIndex = r;
+                var row = kit.Rows[rowIndex];
+                if (row.Options.Count < 2)
+                {
+                    continue;
+                }
+                <div class="rf-wizard-row">
+                    <div class="rf-wizard-label">@UiText.LabelClassEquipment(Lang) · @UiText.LabelEquipmentLine(rowIndex + 1, Lang)</div>
+                    <div class="rf-wizard-field">
+                        <ForgeSelector TValue="string" Value="@(rowIndex < classChoice.Count ? classChoice[rowIndex] : string.Empty)" ValueChanged="v => SetClassChoice(rowIndex, v)"
+                                       Options="@(row.Options.Select(o => new ForgeSelector<string>.Option(o.Letter ?? string.Empty, $"({o.Letter}) {OptionSummary(o)}")).ToList())"
+                                       DataTest="@($"wizard-class-row-{rowIndex}")" />
+                    </div>
+                </div>
+            }
+        }
+
+        <div class="rf-wizard-panel" data-test="wizard-equipment">
+            <div class="rf-wizard-block-title">@UiText.LabelYourEquipment(Lang)</div>
+            <ul class="rf-sheet-list">
+                @foreach (var item in ChosenItems())
+                {
+                    var line = ItemLine(item);
+                    if (line.Length == 0)
+                    {
+                        continue;
+                    }
+                    <li>
+                        @if (ItemId(item) is { } itemId)
+                        {
+                            <a href="@($"equipment?id={itemId}")" target="_blank" class="rf-loadout-link">@line</a>
+                        }
+                        else
+                        {
+                            @line
+                        }
+                    </li>
+                }
+            </ul>
+            <div class="rf-wizard-meta mt-3 mb-0">
+                <div><strong>@UiText.SheetArmorClass(Lang)</strong><span data-test="wizard-preview-ac">@ArmorClass</span></div>
+                <div><strong>@UiText.SheetHitPoints(Lang)</strong>@MaxHitPoints</div>
+            </div>
+        </div>
+    </text>;
+
+    // ===== 7. Spells =====
+    private RenderFragment SpellsStep => @<text>
+        @if (Allowance.IsNone || (AvailableCantrips.Count == 0 && AvailableSpells.Count == 0))
+        {
+            <div class="rf-wizard-panel text-center" data-test="wizard-no-spells">@UiText.NoSpellsForClass(Lang)</div>
+        }
+        else
+        {
+            @if (SpellcastingAbility is { } spellAbility)
+            {
+                <div class="rf-wizard-meta">
+                    <div><strong>@UiText.LabelSpellcastingAbility(Lang)</strong>@FeatPrerequisiteFormatter.AbilityName(spellAbility, Lang)</div>
+                    <div><strong>CD / DC</strong>@(8 + ProficiencyBonus + Mod(spellAbility))</div>
+                    <div><strong>@UiText.LabelCantrips(Lang)</strong>@Allowance.Cantrips</div>
+                    <div><strong>@UiText.SheetSpells(Lang)</strong>@Allowance.Spells</div>
+                </div>
+            }
+            <input class="rf-wizard-input mb-3" placeholder="@UiText.PlaceholderSearchSpell(Lang)" @bind="spellSearch" @bind:event="oninput" data-test="wizard-spell-search" />
+
+            @if (AvailableCantrips.Count > 0)
+            {
+                <div class="rf-wizard-block-title">@UiText.LabelCantrips(Lang)</div>
+                <div class="rf-wizard-counter" data-test="wizard-cantrip-count">@UiText.SpellsSelected(SelectedCantrips, CantripTarget, Lang)</div>
+                <div class="rf-wizard-spell-grid mb-3">
+                    @foreach (var spell in AvailableCantrips.Where(MatchesSearch))
+                    {
+                        @SpellButton(spell, "wizard-cantrip")
+                    }
+                </div>
+            }
+            @if (AvailableSpells.Count > 0)
+            {
+                <div class="rf-wizard-block-title">@UiText.LabelLeveledSpells(Allowance.MaxSpellLevel, Lang)</div>
+                <div class="rf-wizard-counter" data-test="wizard-spell-count">@UiText.SpellsSelected(SelectedSpells, SpellTarget, Lang)</div>
+                <div class="rf-wizard-spell-grid">
+                    @foreach (var spell in AvailableSpells.Where(MatchesSearch))
+                    {
+                        @SpellButton(spell, "wizard-spell")
+                    }
+                </div>
+            }
+        }
+    </text>;
+
+    private RenderFragment SpellButton(SpellResponseDto spell, string dataTest) => @<button type="button" class="rf-wizard-feature mb-0 @(spellIds.Contains(spell.Id) ? "selected" : null)" @onclick="() => ToggleSpell(spell)" data-test="@dataTest">
+        <div class="rf-wizard-feature-title">@spell.Name</div>
+        <div class="rf-wizard-feature-desc">@GameTerms.SpellSubtitle(spell.Level, spell.School, spell.Ritual, Lang, spell.Ruleset)</div>
+    </button>;
+
+    // ===== 8. Summary =====
+    private RenderFragment SummaryStep => @<text>
+        <div class="rf-sheet-head" data-test="wizard-summary">
+            <div class="rf-sheet-name">@name</div>
+            <div class="rf-sheet-sub">
+                @(ActiveSubspecies?.Name ?? species?.Name) · @(cls?.Name) @(Subclass is null ? null : $"({Subclass.Name})") · @UiText.CharacterLevel(level, Lang)
+            </div>
+            <div class="rf-sheet-sub small">@(background?.Name) · @UiText.AlignmentName(alignment, Lang)</div>
+        </div>
+
+        <div class="rf-sheet-vitals">
+            <div class="rf-sheet-vital"><div class="rf-sheet-vital-value" data-test="summary-ac">@ArmorClass</div><div class="rf-sheet-vital-label">@UiText.SheetArmorClass(Lang)</div></div>
+            <div class="rf-sheet-vital"><div class="rf-sheet-vital-value" data-test="summary-hp">@MaxHitPoints</div><div class="rf-sheet-vital-label">@UiText.SheetHitPoints(Lang)</div></div>
+            <div class="rf-sheet-vital"><div class="rf-sheet-vital-value">@CharacterMath.FormatModifier(Mod(AbilityScore.Dexterity))</div><div class="rf-sheet-vital-label">@UiText.SheetInitiative(Lang)</div></div>
+            <div class="rf-sheet-vital"><div class="rf-sheet-vital-value">@UiText.FormatSpeed(Speed, Lang)</div><div class="rf-sheet-vital-label">@UiText.SheetSpeed(Lang)</div></div>
+            <div class="rf-sheet-vital"><div class="rf-sheet-vital-value">@CharacterMath.FormatModifier(ProficiencyBonus)</div><div class="rf-sheet-vital-label">@UiText.SheetProficiency(Lang)</div></div>
+            <div class="rf-sheet-vital"><div class="rf-sheet-vital-value">@PassivePerception</div><div class="rf-sheet-vital-label">@UiText.SheetPassivePerception(Lang)</div></div>
+        </div>
+
+        <div class="rf-stat-grid mb-3">
+            @for (var i = 0; i < 6; i++)
+            {
+                <div class="rf-stat-card">
+                    <div class="rf-stat-card-label">@FeatPrerequisiteFormatter.AbilityName(CharacterMath.Abilities[i], Lang)</div>
+                    <div class="rf-stat-card-value">@FinalScores[i]</div>
+                    <div class="rf-stat-card-mod mb-0">@CharacterMath.FormatModifier(CharacterMath.Modifier(FinalScores[i]))</div>
+                </div>
+            }
+        </div>
+
+        <div class="rf-wizard-panel">
+            <div class="rf-wizard-block-title">@UiText.SheetSaves(Lang)</div>
+            <div class="rf-wizard-pills">
+                @foreach (var save in cls?.SavingThrows ?? new List<AbilityScore>())
+                {
+                    <span class="rf-wizard-pill">@FeatPrerequisiteFormatter.AbilityName(save, Lang) @CharacterMath.FormatModifier(Mod(save) + ProficiencyBonus)</span>
+                }
+            </div>
+            <div class="rf-wizard-block-title">@UiText.SheetSkills(Lang)</div>
+            <div class="rf-wizard-pills">
+                @foreach (var skill in AllSkills.OrderBy(s => GameTerms.SkillName(s, Lang)))
+                {
+                    <span class="rf-wizard-pill">@GameTerms.SkillName(skill, Lang) @CharacterMath.FormatModifier(Mod(GameTerms.SkillAbility(skill)) + ProficiencyBonus)</span>
+                }
+            </div>
+            <div class="rf-wizard-block-title">@UiText.SheetLanguages(Lang)</div>
+            <div class="rf-wizard-text">@string.Join(", ", Languages)</div>
+            <div class="rf-wizard-block-title">@UiText.SheetEquipment(Lang)</div>
+            <div class="rf-wizard-text">@string.Join(", ", ChosenItems().Select(ItemLine).Where(l => l.Length > 0))</div>
+            @if (spellIds.Count > 0)
+            {
+                <div class="rf-wizard-block-title">@UiText.SheetSpells(Lang)</div>
+                <div class="rf-wizard-text mb-0">@string.Join(", ", spellList.Where(s => spellIds.Contains(s.Id)).Select(s => s.Name))</div>
+            }
+        </div>
+    </text>;
+}

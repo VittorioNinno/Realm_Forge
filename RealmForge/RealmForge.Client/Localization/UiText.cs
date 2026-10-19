@@ -6,7 +6,7 @@ namespace RealmForge.Client.Localization
 	///	All the texts of the user interface, in Italian and English, grouped by page or component.
 	///	Data texts (names, descriptions) come translated from the API instead.
 	///	</summary>
-	public static class UiText
+	public static partial class UiText
 	{
 		#region Navigation & Layout
 		public static string NavDashboard(LanguageCode lang) =>

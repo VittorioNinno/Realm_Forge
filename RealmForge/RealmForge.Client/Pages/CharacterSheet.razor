@@ -1,0 +1,211 @@
+﻿@page "/characters/{Id:guid}"
+@using RealmForge.Client.Localization
+@using RealmForge.Client.Services
+@using RealmForge.Shared.DTOs
+@using RealmForge.Shared.Enums
+@using RealmForge.Shared.Localization
+@using RealmForge.Shared.Rules
+@implements IDisposable
+@inject CharacterDataService CharacterService
+@inject LanguageStateService LanguageState
+@inject GlossaryService Glossary
+@inject NavigationManager Navigation
+
+<PageTitle>RealmForge - @(character?.Name ?? UiText.NavCharacters(Lang))</PageTitle>
+
+<div class="py-4">
+    <a href="characters" class="small text-decoration-none d-inline-block mb-3" style="color: var(--rf-text-muted);">@UiText.BtnBackToCharacters(Lang)</a>
+
+    @if (loading)
+    {
+        <div class="small" style="color: var(--rf-text-muted);">@UiText.LoadingCharacters(Lang)</div>
+    }
+    else if (character is null)
+    {
+        <div class="rf-account-card text-center" data-test="character-missing">@UiText.CharacterNotFound(Lang)</div>
+    }
+    else
+    {
+        var c = character;
+        <div class="rf-wizard" data-test="character-sheet">
+            <div class="rf-sheet-head">
+                <div class="rf-sheet-name" data-test="sheet-name">@c.Name</div>
+                <div class="rf-sheet-sub">
+                    @(c.Subspecies?.Name ?? c.Species.Name) ·
+                    <a href="@($"classes?id={c.Class.Id}")" class="text-reset">@c.Class.Name</a>@(c.Subclass is null ? null : $" ({c.Subclass.Name})") ·
+                    @UiText.CharacterLevel(c.Level, Lang)
+                </div>
+                <div class="rf-sheet-sub small">
+                    <a href="@($"backgrounds?id={c.Background.Id}")" class="text-reset">@c.Background.Name</a> ·
+                    @UiText.AlignmentName(c.Alignment, Lang) · @UiText.FormatSizeSingle(c.Size, Lang) ·
+                    <span class="badge @(c.Ruleset == RulesetVersion.Dnd5e_2024 ? "badge-edition-2024" : "badge-edition-2014")">@UiText.FormatRuleset(c.Ruleset, Lang)</span>
+                </div>
+            </div>
+
+            <div class="rf-sheet-vitals">
+                <div class="rf-sheet-vital"><div class="rf-sheet-vital-value" data-test="sheet-ac">@c.ArmorClass</div><div class="rf-sheet-vital-label">@UiText.SheetArmorClass(Lang)</div></div>
+                <div class="rf-sheet-vital"><div class="rf-sheet-vital-value" data-test="sheet-hp">@c.MaxHitPoints</div><div class="rf-sheet-vital-label">@UiText.SheetHitPoints(Lang)</div></div>
+                <div class="rf-sheet-vital"><div class="rf-sheet-vital-value">@CharacterMath.FormatModifier(Mod(AbilityScore.Dexterity))</div><div class="rf-sheet-vital-label">@UiText.SheetInitiative(Lang)</div></div>
+                <div class="rf-sheet-vital"><div class="rf-sheet-vital-value">@UiText.FormatSpeed(c.SpeedInFeet, Lang)</div><div class="rf-sheet-vital-label">@UiText.SheetSpeed(Lang)</div></div>
+                <div class="rf-sheet-vital"><div class="rf-sheet-vital-value">@CharacterMath.FormatModifier(c.ProficiencyBonus)</div><div class="rf-sheet-vital-label">@UiText.SheetProficiency(Lang)</div></div>
+                <div class="rf-sheet-vital"><div class="rf-sheet-vital-value">@PassivePerception</div><div class="rf-sheet-vital-label">@UiText.SheetPassivePerception(Lang)</div></div>
+            </div>
+
+            <div class="rf-stat-grid mb-3" data-test="sheet-scores">
+                @for (var i = 0; i < 6; i++)
+                {
+                    var ability = CharacterMath.Abilities[i];
+                    var score = i < c.FinalScores.Count ? c.FinalScores[i] : 10;
+                    <div class="rf-stat-card">
+                        <div class="rf-stat-card-label">@FeatPrerequisiteFormatter.AbilityName(ability, Lang)</div>
+                        <div class="rf-stat-card-value">@score</div>
+                        <div class="rf-stat-card-mod mb-0">@CharacterMath.FormatModifier(CharacterMath.Modifier(score))</div>
+                    </div>
+                }
+            </div>
+
+            <div class="rf-wizard-panel">
+                <div class="rf-wizard-block-title">@UiText.SheetSaves(Lang)</div>
+                <div class="rf-wizard-pills">
+                    @foreach (var ability in CharacterMath.Abilities)
+                    {
+                        var proficient = c.SavingThrows.Contains(ability);
+                        <span class="rf-wizard-pill @(proficient ? null : "locked")">@UiText.AbilityShort(ability, Lang) @CharacterMath.FormatModifier(Mod(ability) + (proficient ? c.ProficiencyBonus : 0))</span>
+                    }
+                </div>
+
+                <div class="rf-wizard-block-title">@UiText.SheetSkills(Lang)</div>
+                <ul class="rf-sheet-list rf-sheet-skills mb-3" data-test="sheet-skills">
+                    @foreach (var skill in Enum.GetValues<Skill>().OrderBy(s => GameTerms.SkillName(s, Lang)))
+                    {
+                        var proficient = c.Skills.Contains(skill);
+                        <li class="d-flex justify-content-between gap-2 @(proficient ? "rf-sheet-proficient" : null)">
+                            <span>@GameTerms.SkillName(skill, Lang) <span class="small" style="color: var(--rf-text-muted);">(@UiText.AbilityShort(GameTerms.SkillAbility(skill), Lang))</span></span>
+                            <span>@CharacterMath.FormatModifier(Mod(GameTerms.SkillAbility(skill)) + (proficient ? c.ProficiencyBonus : 0))</span>
+                        </li>
+                    }
+                </ul>
+
+                <div class="rf-wizard-block-title">@UiText.SheetOrigin(Lang)</div>
+                <div class="rf-wizard-text">
+                    @UiText.SheetLanguages(Lang): @string.Join(", ", c.Languages)
+                    @if (c.OriginFeat is { } feat)
+                    {
+                        <br />
+                        @UiText.LabelOriginFeatTitle(Lang)@(": ")<a href="@($"feats?id={feat.Id}")" class="rf-loadout-link">@feat.Name</a>
+                    }
+                </div>
+
+                <div class="rf-wizard-block-title">@UiText.SheetEquipment(Lang)</div>
+                <ul class="rf-sheet-list mb-3" data-test="sheet-equipment">
+                    @foreach (var line in c.Equipment)
+                    {
+                        <li>
+                            @if (Glossary.FindEquipment(Lang, c.Ruleset, line) is { } itemId)
+                            {
+                                <a href="@($"equipment?id={itemId}")" class="rf-loadout-link">@line</a>
+                            }
+                            else
+                            {
+                                @line
+                            }
+                        </li>
+                    }
+                </ul>
+
+                @if (c.Spells.Count > 0)
+                {
+                    <div class="rf-wizard-block-title">@UiText.SheetSpells(Lang)</div>
+                    @if (c.SpellcastingAbility is { } spellAbility)
+                    {
+                        <div class="rf-wizard-text small">@UiText.SheetSpellcasting(spellAbility, 8 + c.ProficiencyBonus + Mod(spellAbility), c.ProficiencyBonus + Mod(spellAbility), Lang)</div>
+                    }
+                    @foreach (var group in c.Spells.GroupBy(s => s.Level).OrderBy(g => g.Key))
+                    {
+                        <div class="small fw-bold mb-1" style="color: var(--rf-orange-primary);">@(group.Key == 0 ? UiText.LabelCantrips(Lang) : GameTerms.SpellLevel(group.Key, Lang))</div>
+                        <div class="rf-wizard-pills" data-test="sheet-spells">
+                            @foreach (var spell in group.OrderBy(s => s.Name))
+                            {
+                                <a href="@($"spells?id={spell.Id}")" class="rf-wizard-pill text-decoration-none">@spell.Name</a>
+                            }
+                        </div>
+                    }
+                }
+            </div>
+
+            <div class="rf-wizard-footer">
+                <button type="button" class="rf-wizard-btn secondary" @onclick="() => deleteOpen = true" data-test="sheet-delete">@UiText.Delete(Lang)</button>
+            </div>
+        </div>
+    }
+</div>
+
+@if (deleteOpen && character is not null)
+{
+    <div class="rf-modal-backdrop" @onclick="() => deleteOpen = false">
+        <div class="rf-modal-dialog" @onclick:stopPropagation="true" style="max-width: 450px; text-align: center;">
+            <h2 class="h4 mb-3" style="color: var(--rf-orange-primary);">@UiText.ConfirmDeletion(Lang)</h2>
+            <div class="p-3 mb-4 rounded" style="background-color: var(--rf-bg-main); border: 1px solid var(--rf-border-subtle); color: var(--rf-text-secondary); line-height: 1.5;">
+                @UiText.DeleteCharacterWarning(character.Name, Lang)
+            </div>
+            <div class="d-flex justify-content-center gap-3">
+                <button class="btn btn-rf-outline" @onclick="() => deleteOpen = false">@UiText.BtnCancel(Lang)</button>
+                <button class="btn btn-rf-orange" style="background-color: #dc3545; border-color: #dc3545;" @onclick="DeleteAsync" data-test="sheet-delete-confirm">@UiText.Delete(Lang)</button>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter] public Guid Id { get; set; }
+
+    private CharacterDetailDto? character;
+    private bool loading = true;
+    private bool deleteOpen;
+
+    private LanguageCode Lang => LanguageState.CurrentLanguage;
+
+    private int Mod(AbilityScore ability) =>
+        character is null ? 0 : CharacterMath.Modifier(CharacterMath.Score(character.FinalScores, ability));
+
+    private int PassivePerception => 10 + Mod(AbilityScore.Wisdom) + (character?.Skills.Contains(Skill.Perception) == true ? character.ProficiencyBonus : 0);
+
+    protected override async Task OnInitializedAsync()
+    {
+        LanguageState.OnLanguageChanged += OnLanguageChanged;
+        await LoadAsync();
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (character is not null && character.Id != Id)
+        {
+            await LoadAsync();
+        }
+    }
+
+    private async Task LoadAsync()
+    {
+        loading = true;
+        await Glossary.EnsureLoadedAsync(Lang);
+        character = await CharacterService.GetCharacterAsync(Id, Lang);
+        loading = false;
+    }
+
+    private void OnLanguageChanged() => _ = InvokeAsync(async () =>
+    {
+        await LoadAsync();
+        StateHasChanged();
+    });
+
+    private async Task DeleteAsync()
+    {
+        if (await CharacterService.DeleteCharacterAsync(Id))
+        {
+            Navigation.NavigateTo("characters");
+        }
+        deleteOpen = false;
+    }
+
+    public void Dispose() => LanguageState.OnLanguageChanged -= OnLanguageChanged;
+}

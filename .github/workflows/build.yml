@@ -509,6 +509,57 @@ jobs:
           glcheck "unknown entry" "$gl_missing" "404"
           test "$glfail" = "0"
 
+          # Characters: a 2024 sage wizard of level 1 built from the base content (standard array, +2 Int +1 Con,
+          # kit A, 3 cantrips and 4 spells), derived values computed by the API, private to the owner, rules enforced
+          wizard=$(get "$api/api/classes?ruleset=2&lang=1" | jq -r '.[] | select(.name == "Wizard" and .isOfficialSRD) | .id')
+          wizard_detail=$(get "$api/api/classes/$wizard?lang=1")
+          sage=$(get "$api/api/backgrounds?ruleset=2&isOfficial=true&lang=1" | jq -r '.[] | select(.name == "Sage") | .id')
+          sage_skills=$(get "$api/api/backgrounds/$sage?lang=1" | jq -c .skillProficiencies)
+          human=$(get "$api/api/species?ruleset=2&isOfficial=true&lang=1" | jq -r '.[] | select(.name == "Human") | .id')
+          skills=$(echo "$wizard_detail" | jq -c --argjson taken "$sage_skills" '[.skillOptions[] | select(. as $s | $taken | index($s) | not)] | .[0:2]')
+          wiz_spells=$(get "$api/api/spells?isOfficial=true&ruleset=2&lang=1&spellClass=8")
+          cantrips=$(echo "$wiz_spells" | jq -c '[.[] | select(.level == 0) | .id] | .[0:3]')
+          firsts=$(echo "$wiz_spells" | jq -c '[.[] | select(.level == 1) | .id] | .[0:4]')
+          hero=$(jq -nc --arg w "$wizard" --arg s "$sage" --arg h "$human" --argjson sk "$skills" --argjson c "$cantrips" --argjson f "$firsts" \
+            '{name:"Elminster di prova", ruleset:2, level:1, alignment:2, speciesId:$h, size:3, backgroundId:$s, languages:["Common","Draconic","Elvish"],
+              classId:$w, classSkills:$sk, abilityMethod:1, baseScores:[8,14,13,15,12,10], bonusMode:1, abilityBonuses:[0,0,1,2,0,0],
+              backgroundEquipment:"A", classEquipment:["A"], spellIds:($c + $f)}')
+          ch_anon=$(code "$api/api/characters")
+          ch_created=$(curl -s -X POST $api/api/characters $json -H "Authorization: Bearer $A" -d "$hero")
+          ch_id=$(echo "$ch_created" | jq -r .id)
+          ch_vitals=$(echo "$ch_created" | jq -c '{hp: .maxHitPoints, ac: .armorClass}')
+          ch_detail=$(get "$api/api/characters/$ch_id?lang=2" -H "Authorization: Bearer $A" | jq -c '{scores: .finalScores, spells: (.spells | length), feat: (.originFeat != null), prof: .proficiencyBonus, saves: .savingThrows, skills: (.skills | length), equipment: (.equipment | length > 3), ability: .spellcastingAbility}')
+          ch_list=$(get "$api/api/characters" -H "Authorization: Bearer $A" | jq length)
+          ch_bob_list=$(get "$api/api/characters" -H "Authorization: Bearer $B" | jq length)
+          ch_bob=$(code "$api/api/characters/$ch_id" -H "Authorization: Bearer $B")
+          ch_bad_scores=$(code -X POST $api/api/characters $json -H "Authorization: Bearer $A" -d "$(echo "$hero" | jq '.baseScores = [15,15,13,12,10,8]')")
+          ch_bad_bonus=$(code -X POST $api/api/characters $json -H "Authorization: Bearer $A" -d "$(echo "$hero" | jq '.bonusMode = 3 | .abilityBonuses = [1,1,1,1,1,1]')")
+          ch_bad_spells=$(code -X POST $api/api/characters $json -H "Authorization: Bearer $A" -d "$(echo "$hero" | jq --argjson x "$(echo "$wiz_spells" | jq -c '[.[] | select(.level == 0) | .id] | .[3:4]')" '.spellIds += $x')")
+          ch_bad_level2=$(code -X POST $api/api/characters $json -H "Authorization: Bearer $A" -d "$(echo "$hero" | jq --argjson x "$(echo "$wiz_spells" | jq -c '[.[] | select(.level == 2) | .id] | .[0:1]')" '.spellIds = (.spellIds[0:6] + $x)')")
+          ch_bad_skills=$(code -X POST $api/api/characters $json -H "Authorization: Bearer $A" -d "$(echo "$hero" | jq '.classSkills = [3,3]')")
+          ch_bad_kit=$(code -X POST $api/api/characters $json -H "Authorization: Bearer $A" -d "$(echo "$hero" | jq '.classEquipment = ["C"]')")
+          ch_bob_delete=$(code -X DELETE "$api/api/characters/$ch_id" -H "Authorization: Bearer $B")
+          ch_delete=$(code -X DELETE "$api/api/characters/$ch_id" -H "Authorization: Bearer $A")
+          echo "::notice title=characters::anonymous=$ch_anon | created=$ch_vitals | detail=$ch_detail | lists alice=$ch_list bob=$ch_bob_list | bob GET=$ch_bob DELETE=$ch_bob_delete | bad scores=$ch_bad_scores bonus=$ch_bad_bonus spells=$ch_bad_spells level 2 spell=$ch_bad_level2 skills=$ch_bad_skills kit=$ch_bad_kit | DELETE=$ch_delete"
+
+          chfail=0
+          chcheck() { if [ "$2" != "$3" ]; then echo "::error title=characters::$1: got '$2', expected '$3'"; chfail=1; fi; }
+          chcheck "anonymous list" "$ch_anon" "401"
+          chcheck "derived values" "$ch_vitals" '{"hp":8,"ac":12}'
+          chcheck "detail" "$ch_detail" '{"scores":[8,14,14,17,12,10],"spells":7,"feat":true,"prof":2,"saves":[4,5],"skills":4,"equipment":true,"ability":4}'
+          chcheck "owner list" "$ch_list" "1"
+          chcheck "other list" "$ch_bob_list" "0"
+          chcheck "other GET" "$ch_bob" "404"
+          chcheck "scores not of the array" "$ch_bad_scores" "400"
+          chcheck "+1 to all in 2024" "$ch_bad_bonus" "400"
+          chcheck "one cantrip too many" "$ch_bad_spells" "400"
+          chcheck "level 2 spell at level 1" "$ch_bad_level2" "400"
+          chcheck "repeated skill" "$ch_bad_skills" "400"
+          chcheck "unknown kit" "$ch_bad_kit" "400"
+          chcheck "other DELETE" "$ch_bob_delete" "404"
+          chcheck "DELETE" "$ch_delete" "204"
+          test "$chfail" = "0"
+
   ui:
     runs-on: ubuntu-24.04
     needs: build
