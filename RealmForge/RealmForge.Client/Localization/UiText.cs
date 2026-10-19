@@ -27,10 +27,22 @@ namespace RealmForge.Client.Localization
 		public static string HomeTitle(LanguageCode lang) =>
 			lang == LanguageCode.It ? "BENVENUTO NELLA FORGIA" : "WELCOME TO THE FORGE";
 
-		public static string HomeSubtitle(LanguageCode lang) =>
-			lang == LanguageCode.It
-				? "RealmForge è un compendio digitale e bilingue per i giochi di ruolo ispirati alle regole moderne di D&D: specie, background, talenti, incantesimi, classi, equipaggiamento e regole, per entrambe le edizioni, in un unico posto."
-				: "RealmForge is a digital, bilingual compendium for roleplaying games inspired by the modern D&D rules: species, backgrounds, feats, spells, classes, equipment and rules, for both editions, in one place.";
+		//	Presentation of the project on the dashboard, one paragraph per item
+		public static IReadOnlyList<string> HomeIntro(LanguageCode lang) => lang == LanguageCode.It
+			? new[]
+			{
+				"RealmForge è una piattaforma web per chi gioca di ruolo da tavolo: un luogo in cui consultare le regole, preparare le sessioni e dare forma ai propri mondi. Nasce dal desiderio di avere tutto ciò che serve al tavolo, ai giocatori come al Dungeon Master, raccolto in un'unica forgia ordinata e sempre a portata di mano, dal computer come dal telefono.",
+				"Si ispira alle regole moderne di D&D, sia alla quinta edizione del 2014 sia alla sua revisione del 2024. Le due versioni convivono fianco a fianco: ogni voce dichiara a quale appartiene e puoi consultarle insieme o una alla volta. Il bilinguismo è nativo: italiano e inglese ovunque, con i nomi ufficiali dei manuali italiani, e si passa da una lingua all'altra in un istante.",
+				"I contenuti Base provengono dai System Reference Document pubblicati con licenza aperta, verificati sui manuali, e da testi scritti appositamente per RealmForge. Accanto a questi c'è la tua forgia personale: con un account crei i tuoi contenuti Homebrew, li tieni per te o li condividi con il tuo gruppo, e dai vita ai tuoi personaggi.",
+				"RealmForge è un progetto in crescita: dopo il compendio e la creazione dei personaggi arriveranno le campagne e le sessioni di gioco."
+			}
+			: new[]
+			{
+				"RealmForge is a web platform for tabletop roleplayers: a place to look up the rules, prepare your sessions and shape your own worlds. It comes from the wish to have everything the table needs, for players and Dungeon Masters alike, gathered in one tidy forge that is always at hand, on a computer or on a phone.",
+				"It is inspired by the modern D&D rules, both the fifth edition of 2014 and its 2024 revision. The two versions live side by side: every entry states which one it belongs to, and you can browse them together or one at a time. It is bilingual by design: Italian and English everywhere, with the official names of the Italian books, and switching language takes an instant.",
+				"Base content comes from the System Reference Documents released under an open license, checked against the books, and from texts written for RealmForge. Next to it is your own forge: with an account you create your Homebrew content, keep it to yourself or share it with your group, and bring your characters to life.",
+				"RealmForge keeps growing: after the compendium and character creation come campaigns and game sessions."
+			};
 
 		public static string HomeRulesModule(LanguageCode lang) => lang == LanguageCode.It
 			? "Condizioni, azioni, aree di effetto e termini di gioco delle due edizioni."
