@@ -1,0 +1,118 @@
+﻿@* Starting equipment: background option A/B (2024) or its list (2014), the class kit (2024) or one choice per line
+   (2014), and the specific item for the generic lines ("any martial weapon"). Letters and items come from the English
+   structure, so the choice means the same in both languages; labels are in the reader's language. *@
+@{
+    var background = W.Background;
+    var cls = W.StartingClass;
+    var bg = background?.Equipment ?? ContextLoadout.Empty;
+    var loadout = cls?.Equipment ?? ContextLoadout.Empty;
+}
+
+@if (!bg.IsEmpty)
+{
+    <div class="rf-wizard-block-title">@UiText.LabelBackgroundEquipment(Lang) · @background?.Name</div>
+    @if (bg.Kits.Count > 0)
+    {
+        <div class="rf-wizard-row">
+            <div class="rf-wizard-label">@UiText.LabelOption(Lang)</div>
+            <div class="rf-wizard-field">
+                <ForgeSelector TValue="string" Value="@(Build.BackgroundEquipment ?? string.Empty)" ValueChanged="SetBackgroundOption"
+                               Options="KitOptions(bg.Kits)" DataTest="wizard-background-equipment" />
+            </div>
+        </div>
+    }
+    <EquipmentChoiceList W="W" Prefix="background" Loadout="bg" Choice="BackgroundChoice" />
+}
+
+@if (!loadout.IsEmpty)
+{
+    <div class="rf-wizard-block-title">@UiText.LabelClassEquipment(Lang) · @cls?.Name</div>
+    @if (loadout.Kits.Count > 0)
+    {
+        <div class="rf-wizard-row">
+            <div class="rf-wizard-label">@UiText.LabelOption(Lang)</div>
+            <div class="rf-wizard-field">
+                <ForgeSelector TValue="string" Value="@(Build.ClassEquipment.FirstOrDefault() ?? string.Empty)" ValueChanged="v => SetClassChoice(0, v)"
+                               Options="KitOptions(loadout.Kits)" DataTest="wizard-class-equipment" />
+            </div>
+        </div>
+    }
+    else
+    {
+        @for (var r = 0; r < loadout.Rows.Count; r++)
+        {
+            var rowIndex = r;
+            var row = loadout.Rows[rowIndex];
+            if (row.Options.Count < 2)
+            {
+                continue;
+            }
+            <div class="rf-wizard-row">
+                <div class="rf-wizard-label">@UiText.LabelEquipmentLine(rowIndex + 1, Lang)</div>
+                <div class="rf-wizard-field">
+                    <ForgeSelector TValue="string" Value="@(rowIndex < Build.ClassEquipment.Count ? Build.ClassEquipment[rowIndex] : string.Empty)" ValueChanged="v => SetClassChoice(rowIndex, v)"
+                                   Options="@(row.Options.Select(o => new ForgeSelector<string>.Option(o.Letter, $"({o.Letter}) {Summary(o)}")).ToList())"
+                                   DataTest="@($"wizard-class-row-{rowIndex}")" />
+                </div>
+            </div>
+        }
+    }
+    <EquipmentChoiceList W="W" Prefix="class" Loadout="loadout" Choice="Build.ClassEquipment" />
+}
+
+<div class="rf-wizard-panel" data-test="wizard-equipment">
+    <div class="rf-wizard-block-title">@UiText.LabelYourEquipment(Lang)</div>
+    <ul class="rf-sheet-list">
+        @foreach (var item in W.PreviewInventory)
+        {
+            <li class="d-flex justify-content-between gap-2">
+                <span>@W.ItemName(item)@(item.Quantity > 1 ? $" ×{item.Quantity}" : null)</span>
+                @if (item.Equipped)
+                {
+                    <span class="small" style="color: var(--rf-orange-primary);">@UiText.SheetEquipped(Lang)</span>
+                }
+            </li>
+        }
+        @if (W.PreviewCoins is { } coins && CoinsText(coins) is { Length: > 0 } text)
+        {
+            <li class="rf-loadout-coins"><span>@UiText.LabelCoins(Lang)</span> <span class="rf-loadout-value">@text</span></li>
+        }
+    </ul>
+    <div class="rf-wizard-meta mt-3 mb-0">
+        <div><strong>@UiText.SheetArmorClassLong(Lang)</strong><span data-test="wizard-preview-ac">@Computed.ArmorClass</span></div>
+        <div><strong>@UiText.SheetHitPoints(Lang)</strong>@Computed.MaxHitPoints</div>
+        <div><strong>@UiText.SheetArmorTraining(Lang)</strong>@UiText.ArmorTrainingText(Computed.ArmorTraining, Lang)</div>
+    </div>
+</div>
+
+@code {
+    private List<string> BackgroundChoice => Build.BackgroundEquipment is null ? new List<string>() : new List<string> { Build.BackgroundEquipment };
+
+    private static string Summary(ContextLoadoutOption option) =>
+        string.Join(", ", option.Items.Select(i => i.Quantity > 1 && i.Pick is null && i.CoinAmount is null ? $"{i.Label} ×{i.Quantity}" : i.Label));
+
+    private List<ForgeSelector<string>.Option> KitOptions(IEnumerable<ContextLoadoutOption> kits) =>
+        kits.Select(k => new ForgeSelector<string>.Option(k.Letter, $"{UiText.OptionLetter(k.Letter, Lang)}: {Summary(k)}")).ToList();
+
+    private string CoinsText(CoinPurse coins) => string.Join(" ", new[]
+    {
+        (coins.Pp, CoinType.Pp), (coins.Gp, CoinType.Gp), (coins.Ep, CoinType.Ep), (coins.Sp, CoinType.Sp), (coins.Cp, CoinType.Cp)
+    }.Where(c => c.Item1 > 0).Select(c => $"{c.Item1} {UiText.CoinName(c.Item2, Lang)}"));
+
+    private void SetBackgroundOption(string letter)
+    {
+        Build.BackgroundEquipment = letter;
+        Build.EquipmentPicks.RemoveAll(p => p.Slot.StartsWith("background/"));
+        W.Update();
+    }
+
+    private void SetClassChoice(int index, string letter)
+    {
+        if (index < Build.ClassEquipment.Count)
+        {
+            Build.ClassEquipment[index] = letter;
+            Build.EquipmentPicks.RemoveAll(p => p.Slot.StartsWith($"class/{(W.StartingClass?.Equipment.Kits.Count > 0 ? 0 : index)}/"));
+            W.Update();
+        }
+    }
+}

@@ -24,6 +24,13 @@
             </NavLink>
         </div>
 
+        @* The characters of the signed-in user *@
+        <div class="nav-item px-3" data-test="nav-characters">
+            <NavLink class="nav-link" href="characters">
+                <NavIcon Name="characters" /> @UiText.NavCharacters(LanguageState.CurrentLanguage)
+            </NavLink>
+        </div>
+
         @* Rules glossary: a reference of its own, before the compendium *@
         <div class="nav-item px-3 rf-nav-reference" data-test="nav-rules">
             <NavLink class="nav-link" href="rules">

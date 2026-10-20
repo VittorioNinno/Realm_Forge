@@ -7,7 +7,21 @@ const email = `ui${Date.now()}@example.com`;
 // Throwaway credential generated per run: upper + lower + digit + symbol, as Identity requires
 const throwawayCredential = ['Rf', crypto.randomUUID(), 'A!'].join('-');
 const results = [];
+// Elements wider than the window (phone audits): wide tables may scroll inside their own box
+const overflowOf = async (target, label) => target.evaluate((label) => {
+  const width = document.documentElement.clientWidth;
+  const scrolls = (el) => { for (let p = el.parentElement; p; p = p.parentElement) { const o = getComputedStyle(p).overflowX; if (o === 'auto' || o === 'scroll' || o === 'hidden') return true; } return false; };
+  const out = [];
+  for (const el of document.querySelectorAll('body *')) {
+    const r = el.getBoundingClientRect();
+    if (r.width === 0 || r.height === 0 || getComputedStyle(el).position === 'fixed') continue;
+    if ((r.right > width + 1 || r.left < -1) && !scrolls(el)) out.push(`${el.tagName.toLowerCase()}.${[...el.classList].slice(0, 2).join('.')}(${Math.round(r.left)}..${Math.round(r.right)})`);
+  }
+  const page = document.documentElement.scrollWidth > width + 1 ? `page ${document.documentElement.scrollWidth}px` : '';
+  return page || out.length ? [label, page, ...[...new Set(out)].slice(0, 6)].filter(Boolean).join(' ') : null;
+}, label);
 const ok = (name) => { results.push(`OK ${name}`); };
+const characterAudits = [];
 
 const browser = await chromium.launch();
 // Explicit context: the e-mail confirmation test opens a second tab in the same browser session
@@ -349,7 +363,7 @@ try {
     return { label: el.textContent.trim(), inset: Math.round(icon.left - el.getBoundingClientRect().left), left: Math.round(icon.left) };
   }));
   results.push(`INFO menu icons: ${iconGaps.map((g) => `${g.label}@${g.left}(+${g.inset})`).join(', ')}`);
-  if (iconGaps.length !== 9 || iconGaps.some((g) => g.inset < 8) || new Set(iconGaps.map((g) => g.left)).size !== 1) throw new Error('menu icons are not padded or not aligned');
+  if (iconGaps.length !== 10 || iconGaps.some((g) => g.inset < 8) || new Set(iconGaps.map((g) => g.left)).size !== 1) throw new Error('menu icons are not padded or not aligned');
   await page.locator('[data-test=nav-compendium] button').click();
   ok('"Compendio" menu group: Specie, Background, Talenti, Incantesimi, Classi, Equipaggiamento, and Glossario next to it; collapsed elsewhere and toggles on click; icons padded and aligned');
   await page.getByText('Non hai un account? Registrati').click();
@@ -599,6 +613,156 @@ try {
   await page.getByRole('button', { name: 'Aggiorna password' }).click();
   await page.getByText('Password aggiornata.').waitFor({ timeout: 15000 });
   ok('account page: role "Utente", Homebrew counts (0 feats, 1 background), password change rejects a wrong current password and succeeds with the right one');
+
+  // Character creation at phone width (375 px): edition order, every step of the 2024 wizard (overflow checked),
+  // the interactive sheet (damage saved on its own, rests, tabs, PDF), a level up into a second class and the list
+  await page.setViewportSize({ width: 375, height: 812 });
+  await page.goto(`${base}/characters`);
+  await page.locator('[data-test=characters-empty]').waitFor({ timeout: 30000 });
+  characterAudits.push(await overflowOf(page, '/characters'));
+  await page.locator('[data-test=characters-empty] a').click();
+  await page.locator('[data-test=wizard-name]').waitFor({ timeout: 60000 });
+  const wizardStep = async (name) => {
+    await page.locator(`[data-test=wizard-step-${name}]`).waitFor({ timeout: 20000 });
+    await page.waitForTimeout(300);
+    characterAudits.push(await overflowOf(page, `wizard ${name}`));
+  };
+  const next = async () => { await page.locator('[data-test=wizard-next]').click(); await page.waitForTimeout(150); };
+  const choose = async (test, text) => {
+    await page.locator(`[data-test=${test}] [data-test=selector-value]`).first().click();
+    await page.locator(`[data-test=${test}] [role=option]`, { hasText: text }).first().click();
+  };
+  const nextOption = (test) => page.locator(`[data-test=${test}] [data-test=selector-next]`).first().click();
+  const pickFree = async (selector, count) => { for (let k = 0; k < count; k++) await page.locator(`${selector}:not(.selected):not([disabled])`).first().click(); };
+  const counter = async (locator) => (await locator.innerText()).match(/(\d+)\s*\/\s*(\d+)/).slice(1).map(Number);
+
+  await wizardStep('identity');
+  await next();
+  await page.locator('[data-test=wizard-error]').waitFor({ timeout: 5000 });
+  await page.locator('[data-test=wizard-name]').fill('Eroe di prova');
+  // 2014: the race comes right after the identity, with the 2014 terms
+  await choose('wizard-edition', '2014');
+  await page.locator('[data-test=character-wizard][data-ruleset="1"]').waitFor({ timeout: 30000 });
+  await next();
+  await wizardStep('species');
+  const step2014 = (await page.locator('[data-test=wizard-step-title]').innerText()).trim();
+  await page.locator('[data-test=wizard-racial-increases]').waitFor({ timeout: 10000 });
+  await page.locator('[data-test=wizard-back]').click();
+  await choose('wizard-edition', '2024');
+  await page.locator('[data-test=character-wizard][data-ruleset="2"]').waitFor({ timeout: 30000 });
+  await next();
+
+  await wizardStep('class');
+  const step2024 = (await page.locator('[data-test=wizard-step-title]').innerText()).trim();
+  await choose('wizard-class', /^Mago$/);
+  await page.locator('[data-test=wizard-class-panel]', { hasText: 'Mago' }).waitFor({ timeout: 15000 });
+  await next();
+  await page.locator('[data-test=wizard-error]').waitFor({ timeout: 5000 });
+  await pickFree('[data-test=wizard-skill-option]', 2);
+  await next();
+
+  await wizardStep('background');
+  await choose('wizard-background', /^Accolito$/);
+  await page.locator('[data-test=wizard-feat-list]').waitFor({ timeout: 15000 });
+  await nextOption('wizard-feat-list');
+  await nextOption('wizard-feat-ability');
+  await next();
+
+  await wizardStep('species');
+  await choose('wizard-species', /^Nano$/);
+  await page.locator('[data-test=wizard-species-panel]').waitFor({ timeout: 15000 });
+  await next();
+
+  await wizardStep('abilities');
+  await page.locator('[data-test=wizard-suggested]').click();
+  await next();
+
+  await wizardStep('progression');
+  await next();
+
+  await wizardStep('languages');
+  const [, languageChoices] = await counter(page.locator('[data-test=wizard-language-count]'));
+  await pickFree('[data-test=wizard-language]', languageChoices);
+  await next();
+
+  await wizardStep('equipment');
+  const previewAc = (await page.locator('[data-test=wizard-preview-ac]').innerText()).trim();
+  await next();
+
+  await wizardStep('spells');
+  await next();
+  await page.locator('[data-test=wizard-error]').waitFor({ timeout: 5000 });
+  let chosenSpells = 0;
+  for (const picker of await page.locator('[data-test=spell-picker]').all()) {
+    const [have, want] = await counter(picker.locator('.rf-wizard-counter'));
+    for (let k = have; k < want; k++) await picker.locator('button:not(.selected):not([disabled])').first().click();
+    chosenSpells += want;
+  }
+  await next();
+
+  await wizardStep('details');
+  await next();
+  await wizardStep('summary');
+  const summaryAc = (await page.locator('[data-test=summary-ac]').innerText()).trim();
+  const summaryHp = (await page.locator('[data-test=summary-hp]').innerText()).trim();
+  await page.locator('[data-test=wizard-forge]').click();
+
+  // The sheet: computed like the summary, the hit points change and are saved without a save button
+  await page.locator('[data-test=character-sheet]').waitFor({ timeout: 30000 });
+  await page.waitForTimeout(500);
+  characterAudits.push(await overflowOf(page, 'sheet'));
+  const sheetName = (await page.locator('[data-test=sheet-name]').innerText()).trim();
+  const sheetAc = (await page.locator('[data-test=sheet-ac]').innerText()).trim();
+  const sheetHp = (await page.locator('[data-test=sheet-hp]').innerText()).trim();
+  await page.locator('[data-test=sheet-hp-amount]').fill('3');
+  await page.locator('[data-test=sheet-hp-amount]').press('Tab');
+  await page.locator('[data-test=sheet-damage]').click();
+  await page.locator('[data-test=sheet-save-status]', { hasText: 'Salvato' }).waitFor({ timeout: 15000 });
+  await page.reload();
+  await page.locator('[data-test=character-sheet]').waitFor({ timeout: 60000 });
+  const afterReload = (await page.locator('[data-test=sheet-hp-current]').innerText()).trim();
+  await page.locator('[data-test=sheet-long-rest]').click();
+  await page.locator('[data-test=sheet-long-rest-done]').click();
+  const afterRest = (await page.locator('[data-test=sheet-hp-current]').innerText()).trim();
+
+  const tabs = {};
+  for (const tab of ['spells', 'inventory', 'features', 'notes', 'overview']) {
+    await page.locator(`[data-test=sheet-tab-${tab}]`).click();
+    await page.waitForTimeout(300);
+    characterAudits.push(await overflowOf(page, `sheet ${tab}`));
+    if (tab === 'spells') tabs.spells = await page.locator('[data-test=sheet-spells] a').count();
+    if (tab === 'inventory') tabs.items = await page.locator('[data-test=sheet-item]').count();
+  }
+  const [download] = await Promise.all([page.waitForEvent('download', { timeout: 20000 }), page.locator('[data-test=sheet-pdf]').click()]);
+  const pdfPath = await download.path();
+  const pdfHead = readFileSync(pdfPath).subarray(0, 8).toString('latin1');
+  const pdfSize = readFileSync(pdfPath).length;
+
+  // Level up into fighter (multiclass): Fighting Style feat and three Weapon Masteries
+  await page.locator('[data-test=sheet-levelup]').click();
+  await wizardStep('progression');
+  await choose('wizard-level-class', /^Guerriero/);
+  await page.locator('[data-test=wizard-fighting-style]').waitFor({ timeout: 15000 });
+  await nextOption('wizard-fighting-style');
+  await pickFree('[data-test=wizard-mastery]', 3);
+  for (let guard = 0; guard < 6 && await page.locator('[data-test=wizard-forge]').count() === 0; guard++) await next();
+  await page.locator('[data-test=wizard-forge]').click();
+  await page.locator('[data-test=character-sheet]').waitFor({ timeout: 30000 });
+  const classes = (await page.locator('[data-test=sheet-classes]').innerText()).trim();
+  const levelUpHp = (await page.locator('[data-test=sheet-hp]').innerText()).trim();
+  await page.goto(`${base}/characters`);
+  const characterCard = (await page.locator('[data-test=character-card]', { hasText: 'Eroe di prova' }).innerText({ timeout: 30000 })).replace(/\s+/g, ' ');
+  await page.setViewportSize({ width: 1280, height: 720 });
+
+  results.push(`INFO character: steps 2014="${step2014}" 2024="${step2024}" | spells=${chosenSpells} | AC preview=${previewAc} summary=${summaryAc} sheet=${sheetAc} | HP summary=${summaryHp} sheet=${sheetHp} after 3 damage and reload=${afterReload} after long rest=${afterRest} | tabs=${JSON.stringify(tabs)} | pdf=${pdfHead.trim()} ${pdfSize} bytes | level up: ${classes} HP=${levelUpHp} | card: ${characterCard}`);
+  if (!/razza/i.test(step2014) || !/classe/i.test(step2024)) throw new Error('the wizard steps do not follow the edition');
+  if (sheetName !== 'Eroe di prova' || sheetAc !== summaryAc || sheetHp !== summaryHp || previewAc !== summaryAc) throw new Error('the saved character does not match the wizard');
+  if (Number(afterReload) !== Number(sheetHp) - 3 || afterRest !== sheetHp) throw new Error('damage or rest not applied and saved');
+  if (tabs.spells !== chosenSpells || tabs.items < 4) throw new Error('spells or inventory missing on the sheet');
+  if (!pdfHead.startsWith('%PDF') || pdfSize < 2000) throw new Error('the PDF download is not a PDF');
+  if (!/Mago 1/.test(classes) || !/Guerriero 1/.test(classes) || Number(levelUpHp) <= Number(sheetHp)) throw new Error('the level up into fighter was not saved');
+  if (!/Mago 1 \/ Guerriero 1/.test(characterCard)) throw new Error(`the list does not show the classes: ${characterCard}`);
+  ok('characters: edition-specific steps, 2024 wizard to the end, sheet matches the summary, damage autosaved, long rest, tabs, PDF download, level up into a second class');
   await page.goto(`${base}/backgrounds`);
   await page.getByText('Accolito').first().waitFor({ timeout: 30000 });
 
@@ -663,18 +827,7 @@ try {
   // anything else that sticks out of the window is reported with its class
   const phone = await browser.newContext({ viewport: { width: 375, height: 812 }, isMobile: true, hasTouch: true });
   const mobile = await phone.newPage();
-  const overflow = async (label) => mobile.evaluate((label) => {
-    const width = document.documentElement.clientWidth;
-    const scrolls = (el) => { for (let p = el.parentElement; p; p = p.parentElement) { const o = getComputedStyle(p).overflowX; if (o === 'auto' || o === 'scroll' || o === 'hidden') return true; } return false; };
-    const out = [];
-    for (const el of document.querySelectorAll('body *')) {
-      const r = el.getBoundingClientRect();
-      if (r.width === 0 || r.height === 0 || getComputedStyle(el).position === 'fixed') continue;
-      if ((r.right > width + 1 || r.left < -1) && !scrolls(el)) out.push(`${el.tagName.toLowerCase()}.${[...el.classList].slice(0, 2).join('.')}(${Math.round(r.left)}..${Math.round(r.right)})`);
-    }
-    const page = document.documentElement.scrollWidth > width + 1 ? `page ${document.documentElement.scrollWidth}px` : '';
-    return page || out.length ? [label, page, ...[...new Set(out)].slice(0, 6)].filter(Boolean).join(' ') : null;
-  }, label);
+  const overflow = (label) => overflowOf(mobile, label);
   const audits = [];
   const audit = async (path, ready, open) => {
     await mobile.goto(`${base}${path}`);
@@ -700,10 +853,10 @@ try {
   await audit('/equipment', '[data-test=equipment-group]', () => mobile.locator('[data-test=equipment-row]').first().click());
   await audit('/account', 'input[type=email]');
   await phone.close();
-  const wide = audits.filter(Boolean);
+  const wide = [...characterAudits, ...audits].filter(Boolean);
   results.push(`INFO phone layout: ${wide.length ? wide.join(' | ') : 'every page and detail fits 375 px'}`);
   if (wide.length) throw new Error(`content wider than a 375 px phone: ${wide.join(' | ').slice(0, 300)}`);
-  ok('phone layout: dashboard, glossary, species, backgrounds, feats, spells, classes, equipment and account (with their details) fit a 375 px screen');
+  ok('phone layout: dashboard, characters (list, every wizard step, sheet), glossary, species, backgrounds, feats, spells, classes, equipment and account (with their details) fit a 375 px screen');
 } catch (e) {
   results.push(`FAIL ${e.message.split('\n')[0]}`);
   const stored = await page.evaluate(() => localStorage.getItem('realmforge.auth')).catch(() => 'n/a');
@@ -715,6 +868,8 @@ try {
   for (const r of results) console.log(r);
   console.log(`::notice title=ui::${results.filter((r) => r.startsWith('OK')).length} checks passed — ${results.join(' · ')}`);
   for (const r of results.filter((r) => r.startsWith('INFO phone'))) console.log(`::notice title=phone::${r.slice(0, 4000)}`);
+  for (const r of results.filter((r) => r.startsWith('INFO character'))) console.log(`::notice title=character::${r.slice(0, 2000)}`);
+  for (const r of results.filter((r) => r.startsWith('FAIL') || r.startsWith('DEBUG'))) console.log(`::error title=ui-fail::${r.slice(0, 2000)}`);
   for (const c of consoleErrors.slice(0, 5)) console.log(`::warning title=ui-console::${c.slice(0, 200)}`);
   await browser.close();
   if (results.some((r) => r.startsWith('FAIL'))) process.exit(1);
