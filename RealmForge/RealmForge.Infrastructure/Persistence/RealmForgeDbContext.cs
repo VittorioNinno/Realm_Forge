@@ -47,6 +47,13 @@ namespace RealmForge.Infrastructure.Persistence
 		public DbSet<Equipment> Equipment => Set<Equipment>();
 		public DbSet<EquipmentTranslation> EquipmentTranslations => Set<EquipmentTranslation>();
 
+		//	Player characters
+		public DbSet<Character> Characters => Set<Character>();
+
+		//	Rules glossary
+		public DbSet<RuleEntry> RuleEntries => Set<RuleEntry>();
+		public DbSet<RuleEntryTranslation> RuleEntryTranslations => Set<RuleEntryTranslation>();
+
 		//	Classes aggregate: classes, subclasses and the features of both
 		public DbSet<CharacterClass> Classes => Set<CharacterClass>();
 		public DbSet<CharacterClassTranslation> ClassTranslations => Set<CharacterClassTranslation>();
@@ -295,6 +302,58 @@ namespace RealmForge.Infrastructure.Persistence
 
 				//	Unique index: an item cannot have two translations for the same language
 				entity.HasIndex(t => new { t.EquipmentId, t.Language }).IsUnique();
+			});
+
+			//	Characters configuration: private to their owner; the compendium entries they use cannot be deleted under them
+			modelBuilder.Entity<Character>(entity =>
+			{
+				entity.ToTable("Characters", t =>
+				{
+					t.HasCheckConstraint("CK_Characters_Level", "\"Level\" BETWEEN 1 AND 20");
+				});
+				entity.HasKey(c => c.Id);
+				entity.Property(c => c.OwnerId).IsRequired().HasMaxLength(450);
+				entity.Property(c => c.Name).IsRequired().HasMaxLength(100);
+				entity.Property(c => c.Build).IsRequired().HasColumnType("jsonb");
+				entity.Property(c => c.Sheet).IsRequired().HasColumnType("jsonb");
+
+				entity.HasIndex(c => c.OwnerId);
+
+				entity.HasOne(c => c.Species).WithMany().HasForeignKey(c => c.SpeciesId).OnDelete(DeleteBehavior.Restrict);
+				entity.HasOne(c => c.Subspecies).WithMany().HasForeignKey(c => c.SubspeciesId).OnDelete(DeleteBehavior.Restrict);
+				entity.HasOne(c => c.Background).WithMany().HasForeignKey(c => c.BackgroundId).OnDelete(DeleteBehavior.Restrict);
+				entity.HasOne(c => c.Class).WithMany().HasForeignKey(c => c.ClassId).OnDelete(DeleteBehavior.Restrict);
+			});
+
+			//	Rules glossary configuration
+			modelBuilder.Entity<RuleEntry>(entity =>
+			{
+				entity.HasKey(e => e.Id);
+				entity.Property(e => e.Ruleset).IsRequired();
+				entity.Property(e => e.IsOfficialSRD).IsRequired();
+				entity.Property(e => e.Category).IsRequired();
+				entity.Property(e => e.Key).IsRequired().HasMaxLength(100);
+				entity.Property(e => e.RelatedKeys).IsRequired();
+
+				//	A key identifies an entry within its edition
+				entity.HasIndex(e => new { e.Ruleset, e.Key }).IsUnique();
+
+				entity.HasMany(e => e.Translations)
+						.WithOne(t => t.RuleEntry)
+						.HasForeignKey(t => t.RuleEntryId)
+						.OnDelete(DeleteBehavior.Cascade);
+			});
+
+			//	Rules glossary translations configuration
+			modelBuilder.Entity<RuleEntryTranslation>(entity =>
+			{
+				entity.HasKey(t => t.Id);
+				entity.Property(t => t.Name).IsRequired().HasMaxLength(150);
+				entity.Property(t => t.Description).IsRequired();
+				entity.Property(t => t.Aliases).IsRequired();
+
+				//	Unique index: an entry cannot have two translations for the same language
+				entity.HasIndex(t => new { t.RuleEntryId, t.Language }).IsUnique();
 			});
 
 			//	Classes configuration

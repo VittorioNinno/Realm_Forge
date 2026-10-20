@@ -8,6 +8,7 @@
 @implements IDisposable
 @inject FeatDataService FeatService
 @inject LanguageStateService LanguageState
+@inject GlossaryService Glossary
 @inject ApiErrorState ApiErrors
 @inject NavigationManager Navigation
 
@@ -218,7 +219,7 @@
 
             <div class="mb-4 p-3 rounded" style="background-color: var(--rf-bg-main); border-left: 3px solid var(--rf-border-light);">
                 <div class="rf-markdown-container">
-                    @((MarkupString)MarkdownText.ToHtml(SelectedFeat.Description))
+                    @((MarkupString)MarkdownText.ToHtml(SelectedFeat.Description, Terms(SelectedFeat.Ruleset)))
                 </div>
             </div>
 
@@ -528,6 +529,7 @@
     protected override async Task OnInitializedAsync()
     {
         LanguageState.OnLanguageChanged += HandleLanguageChanged;
+        _ = LoadGlossaryAsync();
 
         if (QueryCategoryInt.HasValue && Enum.IsDefined(typeof(FeatCategory), QueryCategoryInt.Value))
         {
@@ -550,6 +552,8 @@
 
     private async void HandleLanguageChanged()
     {
+        await Glossary.EnsureLoadedAsync(LanguageState.CurrentLanguage);
+
         if (SelectedFeat != null)
         {
             SelectedFeat = await FeatService.GetFeatDetailAsync(SelectedFeat.Id, LanguageState.CurrentLanguage);
@@ -735,6 +739,16 @@
             formValidationMessage = UiText.ErrDeleteFeat(LanguageState.CurrentLanguage);
         }
     }
+
+    //	Rules terms in the descriptions link to the glossary (with a tooltip) once it is loaded
+    private async Task LoadGlossaryAsync()
+    {
+        await Glossary.EnsureLoadedAsync(LanguageState.CurrentLanguage);
+        StateHasChanged();
+    }
+
+    private RealmForge.Shared.Text.GlossaryLinker? Terms(RulesetVersion? ruleset) =>
+        ruleset is { } edition ? Glossary.Linker(LanguageState.CurrentLanguage, edition) : null;
 
     public void Dispose()
     {

@@ -6,7 +6,7 @@ namespace RealmForge.Client.Localization
 	///	All the texts of the user interface, in Italian and English, grouped by page or component.
 	///	Data texts (names, descriptions) come translated from the API instead.
 	///	</summary>
-	public static class UiText
+	public static partial class UiText
 	{
 		#region Navigation & Layout
 		public static string NavDashboard(LanguageCode lang) =>
@@ -27,10 +27,74 @@ namespace RealmForge.Client.Localization
 		public static string HomeTitle(LanguageCode lang) =>
 			lang == LanguageCode.It ? "BENVENUTO NELLA FORGIA" : "WELCOME TO THE FORGE";
 
-		public static string HomeSubtitle(LanguageCode lang) =>
-			lang == LanguageCode.It
-				? "Gestisci le tue campagne, compendi e regole per i tuoi giochi di ruolo da tavolo."
-				: "Manage your campaigns, compendiums, and rulebooks for tabletop roleplaying games.";
+		//	Presentation of the project on the dashboard, one paragraph per item
+		public static IReadOnlyList<string> HomeIntro(LanguageCode lang) => lang == LanguageCode.It
+			? new[]
+			{
+				"RealmForge è una piattaforma web per chi gioca di ruolo da tavolo: un luogo in cui consultare le regole, preparare le sessioni e dare forma ai propri mondi. Nasce dal desiderio di avere tutto ciò che serve al tavolo, ai giocatori come al Dungeon Master, raccolto in un'unica forgia ordinata e sempre a portata di mano, dal computer come dal telefono.",
+				"Si ispira alle regole moderne di D&D, sia alla quinta edizione del 2014 sia alla sua revisione del 2024. Le due versioni convivono fianco a fianco: ogni voce dichiara a quale appartiene e puoi consultarle insieme o una alla volta. Il bilinguismo è nativo: italiano e inglese ovunque, con i nomi ufficiali dei manuali italiani, e si passa da una lingua all'altra in un istante.",
+				"I contenuti Base provengono dai System Reference Document pubblicati con licenza aperta, verificati sui manuali, e da testi scritti appositamente per RealmForge. Accanto a questi c'è la tua forgia personale: con un account crei i tuoi contenuti Homebrew, li tieni per te o li condividi con il tuo gruppo, e dai vita ai tuoi personaggi.",
+				"RealmForge è un progetto in crescita: dopo il compendio e la creazione dei personaggi arriveranno le campagne e le sessioni di gioco."
+			}
+			: new[]
+			{
+				"RealmForge is a web platform for tabletop roleplayers: a place to look up the rules, prepare your sessions and shape your own worlds. It comes from the wish to have everything the table needs, for players and Dungeon Masters alike, gathered in one tidy forge that is always at hand, on a computer or on a phone.",
+				"It is inspired by the modern D&D rules, both the fifth edition of 2014 and its 2024 revision. The two versions live side by side: every entry states which one it belongs to, and you can browse them together or one at a time. It is bilingual by design: Italian and English everywhere, with the official names of the Italian books, and switching language takes an instant.",
+				"Base content comes from the System Reference Documents released under an open license, checked against the books, and from texts written for RealmForge. Next to it is your own forge: with an account you create your Homebrew content, keep it to yourself or share it with your group, and bring your characters to life.",
+				"RealmForge keeps growing: after the compendium and character creation come campaigns and game sessions."
+			};
+
+		public static string HomeRulesModule(LanguageCode lang) => lang == LanguageCode.It
+			? "Condizioni, azioni, aree di effetto e termini di gioco delle due edizioni."
+			: "Conditions, actions, areas of effect and game terms of both editions.";
+
+		public static string HomeWhatTitle(LanguageCode lang) => lang == LanguageCode.It ? "Cosa trovi" : "What you will find";
+		public static string HomeHowTitle(LanguageCode lang) => lang == LanguageCode.It ? "Come funziona" : "How it works";
+		public static string HomeRulesTitle(LanguageCode lang) => lang == LanguageCode.It ? "Regole della forgia" : "House rules";
+
+		public static string HomeRulesIntro(LanguageCode lang) => lang == LanguageCode.It
+			? "Il compendio è aperto a tutti; per usare la forgia e condividere i propri contenuti valgono poche regole."
+			: "The compendium is open to everyone; a few rules apply to using the forge and sharing your own content.";
+
+		//	Short explanations of the app: (title, text)
+		public static IReadOnlyList<(string Title, string Text)> HomeHowItWorks(LanguageCode lang) => lang == LanguageCode.It
+			? new[]
+			{
+				("Due edizioni", "Ogni voce è segnata come 5e (2014) o 5.5e (2024): i filtri di ogni pagina mostrano una sola edizione o entrambe."),
+				("Testi collegati", "I termini di regola sottolineati mostrano la loro definizione al passaggio del mouse; i nomi di incantesimi, classi e oggetti aprono la loro scheda."),
+				("Base e Homebrew", "I contenuti Base vengono dagli SRD (CC BY 4.0) o sono testi scritti per RealmForge e non si modificano. Con un account crei i tuoi contenuti Homebrew."),
+				("Due lingue", "Italiano e inglese si scelgono dal selettore in alto; la scelta viene ricordata alla visita successiva.")
+			}
+			: new[]
+			{
+				("Two editions", "Every entry is marked 5e (2014) or 5.5e (2024): the filters of each page show one edition or both."),
+				("Linked texts", "Underlined rules terms show their definition on hover; the names of spells, classes and items open their entry."),
+				("Base and Homebrew", "Base content comes from the SRDs (CC BY 4.0) or is text written for RealmForge and cannot be changed. With an account you create your own Homebrew content."),
+				("Two languages", "Italian and English are chosen from the selector at the top; the choice is remembered on your next visit.")
+			};
+
+		public static IReadOnlyList<(string Title, string Text)> HomeHouseRules(LanguageCode lang) => lang == LanguageCode.It
+			? new[]
+			{
+				("Rispetto", "Niente contenuti offensivi, discriminatori, sessualmente espliciti o illegali, soprattutto in quelli pubblici."),
+				("Solo testi tuoi", "Non pubblicare testi copiati da manuali o da altre opere protette, anche di D&D se non fanno parte dell'SRD: scrivi con parole tue o crea contenuti originali."),
+				("Visibilità consapevole", "Un contenuto Pubblico lo vedono tutti, uno Con link solo chi riceve il link, uno Privato soltanto tu: scegli prima di condividere."),
+				("Account personale", "Le credenziali sono personali: non condividerle e usa una password robusta."),
+				("Moderazione", "Gli amministratori possono modificare o rimuovere i contenuti che non rispettano queste regole."),
+				("Progetto non ufficiale", "RealmForge è un progetto amatoriale, non affiliato a Wizards of the Coast. Dungeons & Dragons è un marchio di Wizards of the Coast.")
+			}
+			: new[]
+			{
+				("Respect", "No offensive, discriminatory, sexually explicit or illegal content, especially in public content."),
+				("Only your own texts", "Do not publish text copied from rulebooks or other protected works, D&D included when it is not part of the SRD: write in your own words or create original content."),
+				("Mindful sharing", "Public content is visible to everyone, Link content only to whoever has the link, Private content only to you: choose before you share."),
+				("Personal account", "Credentials are personal: do not share them and use a strong password."),
+				("Moderation", "Administrators may edit or remove content that breaks these rules."),
+				("Unofficial project", "RealmForge is a fan project, not affiliated with Wizards of the Coast. Dungeons & Dragons is a trademark of Wizards of the Coast.")
+			};
+
+		public static string AccountCompendiumTitle(LanguageCode lang) => lang == LanguageCode.It ? "Contenuti del compendio" : "Compendium content";
+		public static string AccountCompendiumModule(LanguageCode lang) => lang == LanguageCode.It ? "Sezione" : "Section";
 
 		public static string DashboardUnavailable(LanguageCode lang) => lang == LanguageCode.It
 			? "Impossibile leggere il compendio dal server. Se il sito è rimasto inattivo, il server si sta riavviando: riprova tra un minuto."
@@ -94,6 +158,18 @@ namespace RealmForge.Client.Localization
 		public static string LabelGoldAlternative(LanguageCode lang) => lang == LanguageCode.It ? "Opzione B (mo)" : "Option B (gp)";
 		public static string HintGoldAlternative(LanguageCode lang) => lang == LanguageCode.It ? "Monete d'oro al posto dell'equipaggiamento; vuoto se il background offre solo l'equipaggiamento" : "Gold pieces instead of the equipment; leave empty if the background offers only its equipment";
 		public static string FormatGold(int gp, LanguageCode lang) => lang == LanguageCode.It ? $"{gp} mo" : $"{gp} gp";
+
+		//	Starting equipment (classes and backgrounds)
+		public static string LinkClassSpellList(LanguageCode lang) => lang == LanguageCode.It ? "Vai alla lista degli incantesimi →" : "Open the spell list →";
+		public static string LoadoutKit(LanguageCode lang) => lang == LanguageCode.It ? "Opzione" : "Option";
+		public static string LoadoutOr(LanguageCode lang) => lang == LanguageCode.It ? "oppure" : "or";
+		public static string LoadoutAnd(LanguageCode lang) => lang == LanguageCode.It ? " e " : " and ";
+		public static string LoadoutCoins(LanguageCode lang) => lang == LanguageCode.It ? "Monete" : "Coins";
+		public static string LoadoutChooseKit(IReadOnlyList<string> letters, LanguageCode lang)
+		{
+			var list = letters.Count <= 1 ? string.Join("", letters) : $"{string.Join(", ", letters.Take(letters.Count - 1))} {(lang == LanguageCode.It ? "o" : "or")} {letters[^1]}";
+			return lang == LanguageCode.It ? $"scegli {list}" : $"choose {list}";
+		}
 		public static string LabelFeatureName(LanguageCode lang) => lang == LanguageCode.It ? "Privilegio" : "Feature";
 		public static string LabelFeatureDescription(LanguageCode lang) => lang == LanguageCode.It ? "Descrizione del privilegio" : "Feature description";
 		public static string LabelSuggestedCharacteristics(LanguageCode lang) => lang == LanguageCode.It ? "Caratteristiche suggerite" : "Suggested characteristics";
@@ -508,6 +584,8 @@ namespace RealmForge.Client.Localization
 		public static string NoEquipmentFound(LanguageCode lang) =>
 			lang == LanguageCode.It ? "Nessun oggetto corrisponde ai filtri." : "No items match the filters.";
 
+		public static string BtnExpandAll(LanguageCode lang) => lang == LanguageCode.It ? "Espandi tutto" : "Expand all";
+		public static string BtnCollapseAll(LanguageCode lang) => lang == LanguageCode.It ? "Riduci tutto" : "Collapse all";
 		public static string LabelSearchEquipment(LanguageCode lang) => lang == LanguageCode.It ? "Cerca oggetto" : "Search item";
 		public static string PlaceholderSearchEquipment(LanguageCode lang) => lang == LanguageCode.It ? "Es. spada lunga, corda, liuto..." : "e.g. longsword, rope, lute...";
 		public static string LabelEquipmentCategory(LanguageCode lang) => lang == LanguageCode.It ? "Categoria" : "Category";
@@ -673,6 +751,60 @@ namespace RealmForge.Client.Localization
 			(true, false) => $"Vuoi eliminare definitivamente la classe \"{name}\", con i suoi privilegi e le sue sottoclassi? L'operazione non può essere annullata.",
 			(false, true) => $"Do you want to permanently delete the subclass \"{name}\" and its features? This cannot be undone.",
 			_ => $"Do you want to permanently delete the class \"{name}\", with its features and subclasses? This cannot be undone."
+		};
+		#endregion
+
+		#region Rules Glossary
+		public static string RulesTitle(LanguageCode lang) => lang == LanguageCode.It ? "Glossario delle regole" : "Rules Glossary";
+		public static string NavRules(LanguageCode lang) => lang == LanguageCode.It ? "Glossario" : "Glossary";
+
+		public static string RulesSubtitle(LanguageCode lang) =>
+			lang == LanguageCode.It
+				? "Condizioni, azioni, aree di effetto e termini di gioco. Nei testi del compendio i termini sottolineati rimandano qui."
+				: "Conditions, actions, areas of effect and game terms. Underlined terms in the compendium texts lead here.";
+
+		public static string LoadingRules(LanguageCode lang) => lang == LanguageCode.It ? "Consultazione del glossario..." : "Opening the glossary...";
+
+		public static string NoRulesFound(LanguageCode lang) =>
+			lang == LanguageCode.It ? "Nessun termine corrisponde ai filtri." : "No terms match the filters.";
+
+		public static string LabelSearchRules(LanguageCode lang) => lang == LanguageCode.It ? "Cerca un termine" : "Search a term";
+		public static string PlaceholderSearchRules(LanguageCode lang) => lang == LanguageCode.It ? "Es. prono, azione bonus, copertura..." : "e.g. prone, bonus action, cover...";
+		public static string LabelRuleCategory(LanguageCode lang) => lang == LanguageCode.It ? "Tipo di termine" : "Kind of term";
+		public static string FilterAllRuleCategories(LanguageCode lang) => lang == LanguageCode.It ? "Tutti i termini" : "All terms";
+		public static string SectionSeeAlso(LanguageCode lang) => lang == LanguageCode.It ? "Vedi anche" : "See also";
+		public static string RulesCount(int count, LanguageCode lang) => lang == LanguageCode.It
+			? (count == 1 ? "1 termine" : $"{count} termini")
+			: (count == 1 ? "1 term" : $"{count} terms");
+
+		//	Tag of an entry, as in "Prono [Condizione]"
+		public static string RuleCategoryName(RuleCategory category, LanguageCode lang) => (category, lang) switch
+		{
+			(RuleCategory.Condition, LanguageCode.It) => "Condizione",
+			(RuleCategory.Action, LanguageCode.It) => "Azione",
+			(RuleCategory.AreaOfEffect, LanguageCode.It) => "Area di effetto",
+			(RuleCategory.Attitude, LanguageCode.It) => "Atteggiamento",
+			(RuleCategory.Hazard, LanguageCode.It) => "Pericolo",
+			(RuleCategory.Rule, LanguageCode.It) => "Regola",
+			(RuleCategory.AreaOfEffect, _) => "Area of Effect",
+			_ => category.ToString()
+		};
+
+		//	Heading of a group of entries
+		public static string RuleCategoryGroup(RuleCategory category, LanguageCode lang) => (category, lang) switch
+		{
+			(RuleCategory.Condition, LanguageCode.It) => "Condizioni",
+			(RuleCategory.Action, LanguageCode.It) => "Azioni",
+			(RuleCategory.AreaOfEffect, LanguageCode.It) => "Aree di effetto",
+			(RuleCategory.Attitude, LanguageCode.It) => "Atteggiamenti",
+			(RuleCategory.Hazard, LanguageCode.It) => "Pericoli",
+			(RuleCategory.Rule, LanguageCode.It) => "Regole e termini di gioco",
+			(RuleCategory.Condition, _) => "Conditions",
+			(RuleCategory.Action, _) => "Actions",
+			(RuleCategory.AreaOfEffect, _) => "Areas of Effect",
+			(RuleCategory.Attitude, _) => "Attitudes",
+			(RuleCategory.Hazard, _) => "Hazards",
+			_ => "Rules and Game Terms"
 		};
 		#endregion
 

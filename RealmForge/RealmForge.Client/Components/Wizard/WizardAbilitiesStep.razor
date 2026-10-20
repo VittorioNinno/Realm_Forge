@@ -1,0 +1,308 @@
+﻿@* Ability scores: standard array, point buy or 4d6 (three attempts, a reroll asks first); the cards show the base
+   score, the origin and level increases and the final value *@
+@{
+    var state = W.Abilities;
+}
+
+<div class="rf-wizard-row">
+    <div class="rf-wizard-label">@UiText.LabelMethod(Lang)</div>
+    <div class="rf-wizard-field">
+        <ForgeSelector TValue="AbilityMethod" Value="state.Method" ValueChanged="SetMethod" Options="MethodOptions" DataTest="wizard-method" />
+    </div>
+</div>
+<div class="rf-wizard-text">@UiText.AbilityMethodHint(state.Method, Lang)</div>
+
+@if (state.Method == AbilityMethod.StandardArray)
+{
+    <div class="d-flex flex-wrap align-items-center justify-content-center gap-3 mb-3">
+        <button type="button" class="rf-stat-card-btn" style="width: auto; padding: 8px 16px;" @onclick="ApplySuggested" data-test="wizard-suggested">@UiText.BtnSuggestedArray(Lang)</button>
+    </div>
+    @PoolView
+}
+else if (state.Method == AbilityMethod.PointBuy)
+{
+    <div class="rf-pb-points" data-test="wizard-points">@UiText.PointsLeft(PointsLeft, Lang)</div>
+}
+else
+{
+    <div class="rf-roll-box">
+        <button type="button" class="rf-wizard-btn" style="flex: none; width: 100%;" disabled="@(state.Rolling || state.RollsLeft == 0)" @onclick="RequestRoll" data-test="wizard-roll">
+            @(state.RollsLeft == 0 ? UiText.NoRollsLeft(Lang) : UiText.BtnRollDice(state.RollsLeft, Lang))
+        </button>
+        @if (state.DiceRows.Count > 0)
+        {
+            <div class="rf-roll-arena" data-test="wizard-roll-arena">
+                @foreach (var row in state.DiceRows)
+                {
+                    <div class="rf-roll-row">
+                        @for (var d = 0; d < 4; d++)
+                        {
+                            var die = d;
+                            <span class="rf-die @(state.Rolling ? "rolling" : die == row.Dropped ? "dropped" : "kept")">@row.Dice[die]</span>
+                        }
+                        <span class="rf-roll-sum">@(state.Rolling ? "…" : row.Total.ToString())</span>
+                    </div>
+                }
+            </div>
+        }
+        @if (!state.Rolling)
+        {
+            @PoolView
+        }
+    </div>
+}
+
+<div class="rf-stat-grid" data-test="wizard-stats">
+    @for (var i = 0; i < 6; i++)
+    {
+        var index = i;
+        var ability = CharacterMath.Abilities[index];
+        var value = state.Base(index);
+        var bonus = Computed.OriginBonuses[index] + Computed.LevelBonuses[index];
+        <div class="rf-stat-card" data-test="wizard-stat-@index">
+            <div class="rf-stat-card-label">@FeatPrerequisiteFormatter.AbilityName(ability, Lang)</div>
+            @if (state.Method == AbilityMethod.PointBuy)
+            {
+                <div class="rf-stat-card-value">@value</div>
+            }
+            else
+            {
+                <button type="button" class="rf-stat-card-value" @onclick="() => AssignTo(index)" title="@UiText.BtnAssign(Lang)">@(value?.ToString() ?? "—")</button>
+            }
+            <div class="rf-stat-card-mod">
+                @if (value is not null)
+                {
+                    @(bonus > 0 ? $"{value} + {bonus} = {Computed.FinalScores[index]}" : $"{value}") @(" · ")@CharacterMath.FormatModifier(CharacterMath.Modifier(Computed.FinalScores[index]))
+                }
+                else
+                {
+                    @(" ")
+                }
+            </div>
+            @if (state.Method == AbilityMethod.PointBuy)
+            {
+                <div class="rf-pb-controls">
+                    <button type="button" class="rf-pb-btn" disabled="@(state.PointBuy[index] <= 8)" @onclick="() => Lower(index)" aria-label="−" data-test="wizard-pb-minus">−</button>
+                    <button type="button" class="rf-pb-btn" disabled="@(!CanRaise(index))" @onclick="() => Raise(index)" aria-label="+" data-test="wizard-pb-plus">+</button>
+                </div>
+            }
+            else
+            {
+                <button type="button" class="rf-stat-card-btn" disabled="@(state.SelectedPool is null)" @onclick="() => AssignTo(index)" data-test="wizard-assign">@UiText.BtnAssign(Lang)</button>
+            }
+        </div>
+    }
+</div>
+<div class="small mt-2" style="color: var(--rf-text-muted);">@UiText.HintScoreBreakdown(Ruleset, Lang)</div>
+
+@if (rerollConfirmOpen)
+{
+    <div class="rf-modal-backdrop" @onclick="() => rerollConfirmOpen = false">
+        <div class="rf-modal-dialog" style="max-width: 420px; text-align: center;" @onclick:stopPropagation="true" data-test="reroll-confirm">
+            <h2 class="h5 mb-3" style="color: var(--rf-orange-primary);">@UiText.RerollTitle(Lang)</h2>
+            <p style="color: var(--rf-text-secondary);">@UiText.RerollText(state.RollsLeft, Lang)</p>
+            <div class="d-flex justify-content-center gap-3">
+                <button class="btn btn-rf-outline" @onclick="() => rerollConfirmOpen = false">@UiText.BtnCancel(Lang)</button>
+                <button class="btn btn-rf-orange" @onclick="ConfirmReroll" data-test="reroll-yes">@UiText.BtnReroll(Lang)</button>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private bool rerollConfirmOpen;
+
+    private RenderFragment PoolView => @<text>
+        @if (CurrentPool.Count > 0)
+        {
+            <div class="rf-dice-pool mb-3" data-test="wizard-pool">
+                @for (var p = 0; p < CurrentPool.Count; p++)
+                {
+                    var poolIndex = p;
+                    <button type="button" class="rf-pool-die @(W.Abilities.SelectedPool == poolIndex ? "selected" : null)" @onclick="() => SelectPool(poolIndex)" data-test="wizard-pool-die">@CurrentPool[poolIndex]</button>
+                }
+            </div>
+        }
+    </text>;
+
+    private List<ForgeSelector<AbilityMethod>.Option> MethodOptions =>
+        Enum.GetValues<AbilityMethod>().Select(m => new ForgeSelector<AbilityMethod>.Option(m, UiText.AbilityMethodName(m, Lang))).ToList();
+
+    private void Commit()
+    {
+        W.Abilities.WriteTo(Build);
+        W.Update();
+    }
+
+    private void SetMethod(AbilityMethod method)
+    {
+        var state = W.Abilities;
+        state.Method = method;
+        state.SelectedPool = null;
+        if (method == AbilityMethod.StandardArray && state.Assigned.All(v => v is null))
+        {
+            state.Pool = CharacterMath.StandardArray.ToList();
+        }
+        Commit();
+    }
+
+    private List<int> CurrentPool
+    {
+        get
+        {
+            var state = W.Abilities;
+            if (state.Method == AbilityMethod.StandardArray)
+            {
+                return state.Pool;
+            }
+
+            //	Rolled results not assigned yet (each assigned value removes one occurrence)
+            var left = state.Rolled.ToList();
+            foreach (var value in state.RolledAssigned.Where(v => v is not null))
+            {
+                left.Remove(value!.Value);
+            }
+            return left;
+        }
+    }
+
+    private void SelectPool(int index) => W.Abilities.SelectedPool = W.Abilities.SelectedPool == index ? null : index;
+
+    private void AssignTo(int abilityIndex)
+    {
+        var state = W.Abilities;
+        var target = state.Method == AbilityMethod.Roll ? state.RolledAssigned : state.Assigned;
+        var available = CurrentPool;
+
+        if (state.SelectedPool is { } poolIndex && poolIndex < available.Count)
+        {
+            var value = available[poolIndex];
+            if (state.Method == AbilityMethod.StandardArray)
+            {
+                state.Pool.RemoveAt(poolIndex);
+                if (target[abilityIndex] is { } previous)
+                {
+                    state.Pool.Add(previous);
+                }
+                state.Pool = state.Pool.OrderByDescending(v => v).ToList();
+            }
+
+            target[abilityIndex] = value;
+            state.SelectedPool = null;
+        }
+        else if (target[abilityIndex] is { } current)
+        {
+            //	No value selected: give the assigned one back to the pool
+            if (state.Method == AbilityMethod.StandardArray)
+            {
+                state.Pool.Add(current);
+                state.Pool = state.Pool.OrderByDescending(v => v).ToList();
+            }
+            target[abilityIndex] = null;
+        }
+
+        Commit();
+    }
+
+    //	Highest values to the primary abilities of the starting class, then Constitution and Dexterity
+    private void ApplySuggested()
+    {
+        var state = W.Abilities;
+        var order = (W.StartingClass?.PrimaryAbilities ?? new List<AbilityScore>())
+            .Concat(new[] { AbilityScore.Constitution, AbilityScore.Dexterity })
+            .Concat(CharacterMath.Abilities)
+            .Distinct()
+            .ToList();
+        var values = CharacterMath.StandardArray.OrderByDescending(v => v).ToList();
+        for (var i = 0; i < order.Count; i++)
+        {
+            state.Assigned[(int)order[i] - 1] = values[i];
+        }
+        state.Pool.Clear();
+        state.SelectedPool = null;
+        Commit();
+    }
+
+    private int PointsLeft => CharacterMath.PointBuyBudget - W.Abilities.PointBuy.Sum(s => CharacterMath.PointBuyCost(s) ?? 0);
+
+    private bool CanRaise(int index)
+    {
+        var current = W.Abilities.PointBuy[index];
+        return current < 15 && (CharacterMath.PointBuyCost(current + 1) ?? 99) - (CharacterMath.PointBuyCost(current) ?? 0) <= PointsLeft;
+    }
+
+    private void Raise(int index)
+    {
+        if (CanRaise(index))
+        {
+            W.Abilities.PointBuy[index]++;
+            Commit();
+        }
+    }
+
+    private void Lower(int index)
+    {
+        if (W.Abilities.PointBuy[index] > 8)
+        {
+            W.Abilities.PointBuy[index]--;
+            Commit();
+        }
+    }
+
+    private void RequestRoll()
+    {
+        var state = W.Abilities;
+        if (state.Rolling || state.RollsLeft == 0)
+        {
+            return;
+        }
+        if (state.Rolled.Count > 0)
+        {
+            rerollConfirmOpen = true;
+            return;
+        }
+
+        _ = RollAsync();
+    }
+
+    private void ConfirmReroll()
+    {
+        rerollConfirmOpen = false;
+        _ = RollAsync();
+    }
+
+    //	Six rows of 4d6: the dice tumble for a moment, then the lowest one of each row is dropped
+    private async Task RollAsync()
+    {
+        var state = W.Abilities;
+        state.Rolling = true;
+        state.RollsLeft--;
+        state.Rolled.Clear();
+        Array.Clear(state.RolledAssigned);
+        state.SelectedPool = null;
+        state.DiceRows = Enumerable.Range(0, 6).Select(_ => new WizardAbilityState.DiceRow()).ToList();
+        Commit();
+
+        for (var frame = 0; frame < 10; frame++)
+        {
+            foreach (var row in state.DiceRows)
+            {
+                for (var d = 0; d < 4; d++)
+                {
+                    row.Dice[d] = Random.Shared.Next(1, 7);
+                }
+            }
+            StateHasChanged();
+            await Task.Delay(70);
+        }
+
+        foreach (var row in state.DiceRows)
+        {
+            row.Dropped = Array.IndexOf(row.Dice, row.Dice.Min());
+        }
+
+        state.Rolled = state.DiceRows.Select(r => r.Total).OrderByDescending(v => v).ToList();
+        state.Rolling = false;
+        Commit();
+    }
+}

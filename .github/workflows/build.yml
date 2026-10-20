@@ -487,6 +487,113 @@ jobs:
           check "DELETE" "$eq_delete" "204"
           test "$eqfail" = "0"
 
+          # Rules glossary: 88 entries of 2014 (SRD 5.1) and 155 of 2024 (SRD 5.2.1), Prone 2024 in Italian with the forms
+          # linked in the other modules, the "See also" of Grappling, read only (no POST) and 404 for an unknown entry
+          gl14=$(get "$api/api/rules?ruleset=1&lang=2" | jq -c '{total: length, srd: map(select(.source == 2)) | length, conditions: map(select(.category == 2)) | length, actions: map(select(.category == 3)) | length}')
+          gl24_all=$(get "$api/api/rules?ruleset=2&lang=2")
+          gl24=$(echo "$gl24_all" | jq -c '{total: length, srd: map(select(.source == 3)) | length, conditions: map(select(.category == 2)) | length, actions: map(select(.category == 3)) | length, linked: map(select(.aliases | length > 0)) | length}')
+          prone_it=$(echo "$gl24_all" | jq -c '.[] | select(.key == "prone") | {name, category, aliases}')
+          grappling=$(echo "$gl24_all" | jq -r '.[] | select(.key == "grappling") | .id')
+          grappling_en=$(get "$api/api/rules/$grappling?lang=1" | jq -c '{name, related: [.related[].key]}')
+          gl_post=$(code -X POST $api/api/rules $json -H "Authorization: Bearer $A" -d '{}')
+          gl_missing=$(code "$api/api/rules/00000000-0000-0000-0000-000000000001?lang=1")
+          echo "::notice title=database::glossary 2014: $gl14 | 2024: $gl24 | prone IT=$prone_it | grappling EN=$grappling_en | POST=$gl_post | unknown=$gl_missing"
+
+          glfail=0
+          glcheck() { if [ "$2" != "$3" ]; then echo "::error title=glossary::$1: got '$2', expected '$3'"; glfail=1; fi; }
+          glcheck "2014 counts" "$gl14" '{"total":88,"srd":88,"conditions":15,"actions":10}'
+          glcheck "2024 counts" "$gl24" '{"total":155,"srd":155,"conditions":15,"actions":12,"linked":74}'
+          glcheck "prone IT" "$prone_it" '{"name":"Prono","category":2,"aliases":["prono","prona","proni","prone"]}'
+          glcheck "grappling EN" "$grappling_en" '{"name":"Grappling","related":["unarmed-strike","grappled"]}'
+          glcheck "POST" "$gl_post" "405"
+          glcheck "unknown entry" "$gl_missing" "404"
+          test "$glfail" = "0"
+
+          # Characters: a 2024 dwarf sage wizard of level 1 from the base content (standard array, +2 Int +1 Con from the
+          # background, Magic Initiate of the wizard list, kit A), checked by the shared rules engine and computed by the API;
+          # then a level in fighter (multiclass), the sheet state, owner-only access and the refused choices
+          ctx=$(get "$api/api/characters/context?ruleset=2&lang=1")
+          ctx_counts=$(echo "$ctx" | jq -c '{classes: (.classes | length), species: (.species | length), backgrounds: (.backgrounds | length), feats: (.feats | length), spells: (.spells | length), items: (.items | length), wizardKits: ([.classes[] | select(.key == "wizard") | .equipment.kits[].letter] | join(",")), sageKeys: ([.backgrounds[] | select(.key == "sage") | .originFeatId != null] | .[0])}')
+          ctx_it=$(get "$api/api/characters/context?ruleset=1&lang=2" | jq -r '[.classes[] | select(.key == "fighter") | .equipment.rows[] | [.options[].letter] | join("")] | join(" ")')
+          wizard=$(echo "$ctx" | jq -r '.classes[] | select(.key == "wizard") | .id')
+          fighter=$(echo "$ctx" | jq -r '.classes[] | select(.key == "fighter") | .id')
+          barbarian=$(echo "$ctx" | jq -r '.classes[] | select(.key == "barbarian") | .id')
+          sage=$(echo "$ctx" | jq -r '.backgrounds[] | select(.key == "sage") | .id')
+          dwarf=$(echo "$ctx" | jq -r '.species[] | select(.key == "dwarf") | .id')
+          skills=$(echo "$ctx" | jq -c --arg s "$sage" --arg w "$wizard" '([.backgrounds[] | select(.id == $s) | .skills[]]) as $taken | [.classes[] | select(.id == $w) | .skillOptions[] | select(. as $x | $taken | index($x) | not)] | .[0:2]')
+          cantrips=$(echo "$ctx" | jq -c '[.spells[] | select(.level == 0 and (.classes | index(8))) | .id]')
+          firsts=$(echo "$ctx" | jq -c '[.spells[] | select(.level == 1 and (.classes | index(8))) | .id]')
+          seconds=$(echo "$ctx" | jq -c '[.spells[] | select(.level == 2 and (.classes | index(8))) | .id]')
+          style=$(echo "$ctx" | jq -r '[.feats[] | select(.category == 3)][0].id')
+          masteries=$(echo "$ctx" | jq -c '[.items[] | select(.mastery != null and .weaponCategory == 2)] | .[0:3] | map(.id)')
+          hero=$(jq -nc --arg w "$wizard" --arg s "$sage" --arg d "$dwarf" --argjson sk "$skills" --argjson c "$cantrips" --argjson f "$firsts" \
+            '{name:"Elminster di prova", ruleset:2, speciesId:$d, backgroundId:$s, language:2,
+              build:{alignment:2, size:3, abilityMethod:1, baseScores:[8,14,13,15,12,10], bonusMode:1, bonusChoices:[4,3],
+                originFeat:{spellList:8, spellcastingAbility:4, cantrips:$c[3:5], spells:$f[4:5]},
+                languages:["draconic","elvish"],
+                classes:[{classId:$w, skills:$sk, cantrips:$c[0:3], spells:$f[0:4]}],
+                levels:[{classId:$w}],
+                backgroundEquipment:"A", classEquipment:["A"]}}')
+          post() { curl -s -o /dev/null -w '%{http_code}' -X POST $api/api/characters $json -H "Authorization: Bearer $A" -d "$1"; }
+          ch_anon=$(code "$api/api/characters")
+          ch_created=$(curl -s -X POST $api/api/characters $json -H "Authorization: Bearer $A" -d "$hero")
+          ch_id=$(echo "$ch_created" | jq -r .id)
+          if [ "$ch_id" = "null" ] || [ -z "$ch_id" ]; then echo "::error title=characters::create refused: $(echo "$ch_created" | head -c 600)"; fi
+          ch_vitals=$(echo "$ch_created" | jq -c '{hp: .maxHitPoints, ac: .armorClass, items: (.sheet.inventory | length > 3), gold: .sheet.coins.gp, worn: ([.sheet.inventory[] | select(.equipped)] | length)}')
+          ch_list=$(get "$api/api/characters?lang=2" -H "Authorization: Bearer $A" | jq -c '[.[] | {level, classLine, hp: .currentHitPoints}]')
+          ch_bob_list=$(get "$api/api/characters" -H "Authorization: Bearer $B" | jq length)
+          ch_bob=$(code "$api/api/characters/$ch_id" -H "Authorization: Bearer $B")
+          ch_bad_scores=$(post "$(echo "$hero" | jq '.build.baseScores = [15,15,13,12,10,8]')")
+          ch_bad_bonus=$(post "$(echo "$hero" | jq '.build.bonusMode = 3 | .build.bonusChoices = []')")
+          ch_bad_cantrips=$(post "$(echo "$hero" | jq --argjson c "$cantrips" '.build.classes[0].cantrips = $c[0:4]')")
+          ch_bad_level2=$(post "$(echo "$hero" | jq --argjson x "$seconds" '.build.classes[0].spells = (.build.classes[0].spells[0:3] + $x[0:1])')")
+          ch_bad_skills=$(post "$(echo "$hero" | jq '.build.classes[0].skills = [3,3]')")
+          ch_bad_kit=$(post "$(echo "$hero" | jq '.build.classEquipment = ["C"]')")
+          ch_bad_language=$(post "$(echo "$hero" | jq '.build.languages = ["druidic","elvish","giant"]')")
+          ch_bad_multiclass=$(post "$(echo "$hero" | jq --arg b "$barbarian" '.build.levels += [{classId:$b}]')")
+          # Level up into fighter: Dexterity 14 and Intelligence 17 meet both prerequisites; Fighting Style feat and 3 masteries
+          levelup=$(echo "$hero" | jq --arg f "$fighter" --arg st "$style" --argjson m "$masteries" \
+            '.build.levels += [{classId:$f, hitPointRoll:7}] | .build.classes += [{classId:$f, fightingStyleFeatId:$st, weaponMasteries:$m}]')
+          ch_levelup=$(curl -s -X PUT "$api/api/characters/$ch_id" $json -H "Authorization: Bearer $A" -d "$levelup")
+          ch_level2=$(echo "$ch_levelup" | jq -c '{hp: .maxHitPoints, levels: (.build.levels | length), items: (.sheet.inventory | length > 3)}')
+          if [ "$ch_level2" = '{"hp":null,"levels":null,"items":false}' ]; then echo "::error title=characters::level up refused: $(echo "$ch_levelup" | head -c 600)"; fi
+          sheet=$(echo "$ch_levelup" | jq -c '.sheet | .currentHitPoints = 5 | .conditions = ["prone"] | .coins.gp = 99 | .spentSlots = [1] | .notes = "Test"')
+          ch_sheet=$(curl -s -X PUT "$api/api/characters/$ch_id/sheet" $json -H "Authorization: Bearer $A" -d "$sheet" | jq -c '{hp: .maxHitPoints, ac: .armorClass}')
+          ch_saved=$(get "$api/api/characters/$ch_id" -H "Authorization: Bearer $A" | jq -c '{hp: .sheet.currentHitPoints, conditions: .sheet.conditions, gp: .sheet.coins.gp, notes: .sheet.notes}')
+          ch_bob_sheet=$(code -X PUT "$api/api/characters/$ch_id/sheet" $json -H "Authorization: Bearer $B" -d "$sheet")
+          ch_edition=$(code -X PUT "$api/api/characters/$ch_id" $json -H "Authorization: Bearer $A" -d "$(echo "$levelup" | jq '.ruleset = 1')")
+          ch_list2=$(get "$api/api/characters?lang=2" -H "Authorization: Bearer $A" | jq -c '[.[] | {level, classLine, hp: .currentHitPoints}]')
+          ch_bob_delete=$(code -X DELETE "$api/api/characters/$ch_id" -H "Authorization: Bearer $B")
+          ch_delete=$(code -X DELETE "$api/api/characters/$ch_id" -H "Authorization: Bearer $A")
+          echo "::notice title=characters::context=$ctx_counts | 2014 fighter rows IT=$ctx_it | anonymous=$ch_anon | created=$ch_vitals | list=$ch_list | bob list=$ch_bob_list GET=$ch_bob sheet=$ch_bob_sheet DELETE=$ch_bob_delete"
+          echo "::notice title=characters::refused: scores=$ch_bad_scores bonus=$ch_bad_bonus cantrips=$ch_bad_cantrips level-2 spell=$ch_bad_level2 skills=$ch_bad_skills kit=$ch_bad_kit language=$ch_bad_language multiclass=$ch_bad_multiclass edition=$ch_edition | level up=$ch_level2 | sheet=$ch_sheet saved=$ch_saved | list=$ch_list2 | DELETE=$ch_delete"
+
+          chfail=0
+          chcheck() { if [ "$2" != "$3" ]; then echo "::error title=characters::$1: got '$2', expected '$3'"; chfail=1; fi; }
+          chcheck "2014 fighter rows (letters from the English text)" "$ctx_it" "ab ab ab ab"
+          chcheck "anonymous list" "$ch_anon" "401"
+          chcheck "derived values" "$ch_vitals" '{"hp":9,"ac":12,"items":true,"gold":13,"worn":2}'
+          chcheck "owner list" "$ch_list" '[{"level":1,"classLine":"Mago 1","hp":9}]'
+          chcheck "other list" "$ch_bob_list" "0"
+          chcheck "other GET" "$ch_bob" "404"
+          chcheck "scores not of the array" "$ch_bad_scores" "400"
+          chcheck "+1 to all in 2024" "$ch_bad_bonus" "400"
+          chcheck "one cantrip too many" "$ch_bad_cantrips" "400"
+          chcheck "level 2 spell at level 1" "$ch_bad_level2" "400"
+          chcheck "repeated skill" "$ch_bad_skills" "400"
+          chcheck "unknown kit" "$ch_bad_kit" "400"
+          chcheck "secret language" "$ch_bad_language" "400"
+          chcheck "multiclass without Strength 13" "$ch_bad_multiclass" "400"
+          chcheck "level up into fighter" "$ch_level2" '{"hp":19,"levels":2,"items":true}'
+          chcheck "sheet saved" "$ch_sheet" '{"hp":19,"ac":12}'
+          chcheck "sheet read back" "$ch_saved" '{"hp":5,"conditions":["prone"],"gp":99,"notes":"Test"}'
+          chcheck "other sheet PUT" "$ch_bob_sheet" "404"
+          chcheck "edition change" "$ch_edition" "400"
+          chcheck "list after level up" "$ch_list2" '[{"level":2,"classLine":"Mago 1 / Guerriero 1","hp":5}]'
+          chcheck "other DELETE" "$ch_bob_delete" "404"
+          chcheck "DELETE" "$ch_delete" "204"
+          test "$chfail" = "0"
+
   ui:
     runs-on: ubuntu-24.04
     needs: build

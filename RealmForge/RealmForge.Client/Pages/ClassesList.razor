@@ -4,10 +4,12 @@
 @using RealmForge.Client.Services
 @using RealmForge.Shared.DTOs
 @using RealmForge.Shared.Enums
+@using RealmForge.Shared.Text
 @using RealmForge.Shared.Localization
 @implements IDisposable
 @inject ClassDataService ClassService
 @inject LanguageStateService LanguageState
+@inject GlossaryService Glossary
 @inject ApiErrorState ApiErrors
 
 <PageTitle>RealmForge - @UiText.ClassesTitle(Lang)</PageTitle>
@@ -151,7 +153,7 @@
             {
                 case "overview":
                     <div data-test="class-overview">
-                        <div class="rf-markdown-container mb-3">@((MarkupString)MarkdownText.ToHtml(cls.Description))</div>
+                        <div class="rf-markdown-container mb-3">@((MarkupString)MarkdownText.ToHtml(cls.Description, Terms(cls.Ruleset)))</div>
 
                         <dl class="rf-class-facts mb-3" data-test="class-facts">
                             <div><dt>@UiText.LabelHitDie(Lang)</dt><dd>@UiText.FormatHitDie(cls.HitDie, Lang)</dd></div>
@@ -175,7 +177,13 @@
                             {
                                 <div>
                                     <dt>@UiText.LabelSpellcasting(Lang)</dt>
-                                    <dd>@GameTerms.CasterProgressionName(cls.CasterProgression, Lang)@(cls.SpellcastingAbility is { } sa ? $" · {FeatPrerequisiteFormatter.AbilityName(sa, Lang)}" : "")</dd>
+                                    <dd>
+                                        @GameTerms.CasterProgressionName(cls.CasterProgression, Lang)@(cls.SpellcastingAbility is { } sa ? $" · {FeatPrerequisiteFormatter.AbilityName(sa, Lang)}" : "")
+                                        @if (Glossary.SpellListOfClass(Lang, cls.Id) is { } spellList)
+                                        {
+                                            <a class="d-block small mt-1" href="@($"spells?class={(int)spellList}&ruleset={(int)cls.Ruleset}")" data-test="class-spell-list">@UiText.LinkClassSpellList(Lang)</a>
+                                        }
+                                    </dd>
                                 </div>
                             }
                             @if (!string.IsNullOrWhiteSpace(cls.SubclassTitle))
@@ -186,10 +194,8 @@
 
                         @if (!string.IsNullOrWhiteSpace(cls.StartingEquipment))
                         {
-                            <div class="p-3 mb-3 rounded" style="background-color: var(--rf-bg-main); border-left: 3px solid #ffb74d;" data-test="class-equipment">
-                                <strong class="small d-block mb-2 text-uppercase" style="color: var(--rf-orange-primary); letter-spacing: 0.5px;">@UiText.LabelStartingEquipment(Lang)</strong>
-                                <div class="rf-markdown-container small">@((MarkupString)MarkdownText.ToHtml(cls.StartingEquipment))</div>
-                            </div>
+                            <EquipmentLoadoutView Loadout="@EquipmentLoadout.FromClassText(cls.StartingEquipment)" Ruleset="cls.Ruleset" Lang="Lang"
+                                                  Title="@UiText.LabelStartingEquipment(Lang)" DataTest="class-equipment" />
                         }
                     </div>
                     break;
@@ -260,7 +266,7 @@
                                     }
                                     @if (!string.IsNullOrWhiteSpace(subclass.Description))
                                     {
-                                        <div class="rf-markdown-container mb-3">@((MarkupString)MarkdownText.ToHtml(subclass.Description))</div>
+                                        <div class="rf-markdown-container mb-3">@((MarkupString)MarkdownText.ToHtml(subclass.Description, Terms(SelectedClass?.Ruleset)))</div>
                                     }
                                     @RenderFeatures(subclass.Features)
                                     @if (subclass.CanEdit)
@@ -612,7 +618,7 @@
                     </div>
                     @if (!string.IsNullOrWhiteSpace(feature.Description))
                     {
-                        <div class="rf-markdown-container rf-class-feature-body">@((MarkupString)MarkdownText.ToHtml(feature.Description))</div>
+                        <div class="rf-markdown-container rf-class-feature-body">@((MarkupString)MarkdownText.ToHtml(feature.Description, Terms(SelectedClass?.Ruleset)))</div>
                     }
                 </section>
             }
@@ -622,6 +628,7 @@
     protected override async Task OnInitializedAsync()
     {
         LanguageState.OnLanguageChanged += HandleLanguageChanged;
+        _ = LoadGlossaryAsync();
         await LoadClassesAsync();
 
         if (QueryClassId.HasValue)
@@ -657,6 +664,8 @@
 
     private async void HandleLanguageChanged()
     {
+        await Glossary.EnsureLoadedAsync(LanguageState.CurrentLanguage);
+
         if (SelectedClass != null)
         {
             SelectedClass = await ClassService.GetClassDetailAsync(SelectedClass.Id, Lang);
@@ -999,6 +1008,16 @@
     }
 
     #endregion
+
+    //	Rules terms in the descriptions link to the glossary (with a tooltip) once it is loaded
+    private async Task LoadGlossaryAsync()
+    {
+        await Glossary.EnsureLoadedAsync(LanguageState.CurrentLanguage);
+        StateHasChanged();
+    }
+
+    private RealmForge.Shared.Text.GlossaryLinker? Terms(RulesetVersion? ruleset) =>
+        ruleset is { } edition ? Glossary.Linker(LanguageState.CurrentLanguage, edition) : null;
 
     public void Dispose() => LanguageState.OnLanguageChanged -= HandleLanguageChanged;
 }

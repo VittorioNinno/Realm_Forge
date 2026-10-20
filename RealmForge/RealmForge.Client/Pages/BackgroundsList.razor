@@ -4,11 +4,13 @@
 @using RealmForge.Client.Services
 @using RealmForge.Shared.DTOs
 @using RealmForge.Shared.Enums
+@using RealmForge.Shared.Text
 @using RealmForge.Shared.Localization
 @implements IDisposable
 @inject BackgroundDataService BackgroundService
 @inject FeatDataService FeatService
 @inject LanguageStateService LanguageState
+@inject GlossaryService Glossary
 @inject ApiErrorState ApiErrors
 
 <PageTitle>RealmForge - @UiText.BackgroundsTitle(LanguageState.CurrentLanguage)</PageTitle>
@@ -199,41 +201,9 @@
 
             @if (!string.IsNullOrWhiteSpace(SelectedBackground.Equipment) || SelectedBackground.EquipmentGoldAlternative is not null)
             {
-                <div class="p-3 mb-3 rounded" style="background-color: var(--rf-bg-main); border-left: 3px solid #ffb74d;" data-test="bg-equipment">
-                    <strong class="small d-block mb-2 text-uppercase" style="color: var(--rf-orange-primary); letter-spacing: 0.5px;">
-                        @UiText.LabelEquipment(LanguageState.CurrentLanguage)
-                        @if (SelectedBackground.EquipmentGoldAlternative is not null)
-                        {
-                            <span class="fw-normal" style="color: var(--rf-text-muted);"> · @UiText.LabelEquipmentChoice(LanguageState.CurrentLanguage)</span>
-                        }
-                    </strong>
-
-                    @if (SelectedBackground.EquipmentGoldAlternative is int gold)
-                    {
-                        <div class="rf-equipment-option" data-test="bg-equipment-a">
-                            <div class="rf-equipment-option-title">@UiText.LabelEquipmentOptionA(LanguageState.CurrentLanguage)</div>
-                            <ul class="rf-equipment-list">
-                                @foreach (var item in EquipmentItems(SelectedBackground.Equipment))
-                                {
-                                    <li class="@(IsCoinItem(item) ? "rf-equipment-coins" : null)">@item</li>
-                                }
-                            </ul>
-                        </div>
-                        <div class="rf-equipment-option" data-test="bg-equipment-b">
-                            <div class="rf-equipment-option-title">@UiText.LabelEquipmentOptionB(LanguageState.CurrentLanguage)</div>
-                            <ul class="rf-equipment-list"><li class="rf-equipment-coins">@UiText.FormatGold(gold, LanguageState.CurrentLanguage)</li></ul>
-                        </div>
-                    }
-                    else
-                    {
-                        <ul class="rf-equipment-list mb-0">
-                            @foreach (var item in EquipmentItems(SelectedBackground.Equipment))
-                            {
-                                <li class="@(IsCoinItem(item) ? "rf-equipment-coins" : null)">@item</li>
-                            }
-                        </ul>
-                    }
-                </div>
+                <EquipmentLoadoutView Loadout="@EquipmentLoadout.FromBackground(SelectedBackground.Equipment, SelectedBackground.EquipmentGoldAlternative is int gold ? UiText.FormatGold(gold, LanguageState.CurrentLanguage) : null)"
+                                      Ruleset="SelectedBackground.Ruleset" Lang="LanguageState.CurrentLanguage"
+                                      Title="@UiText.LabelEquipment(LanguageState.CurrentLanguage)" DataTest="bg-equipment" />
             }
 
             @if (!string.IsNullOrWhiteSpace(SelectedBackground.FeatureName))
@@ -243,14 +213,14 @@
                         @UiText.LabelFeatureName(LanguageState.CurrentLanguage): @SelectedBackground.FeatureName
                     </strong>
                     <div class="rf-markdown-container small">
-                        @((MarkupString)MarkdownText.ToHtml(SelectedBackground.FeatureDescription))
+                        @((MarkupString)MarkdownText.ToHtml(SelectedBackground.FeatureDescription, Terms(SelectedBackground.Ruleset)))
                     </div>
                 </div>
             }
 
             <div class="mb-3 p-3 rounded" style="background-color: var(--rf-bg-main); border-left: 3px solid var(--rf-border-light);">
                 <div class="rf-markdown-container">
-                    @((MarkupString)MarkdownText.ToHtml(SelectedBackground.Description))
+                    @((MarkupString)MarkdownText.ToHtml(SelectedBackground.Description, Terms(SelectedBackground.Ruleset)))
                 </div>
             </div>
 
@@ -504,6 +474,7 @@
     protected override async Task OnInitializedAsync()
     {
         LanguageState.OnLanguageChanged += HandleLanguageChanged;
+        _ = LoadGlossaryAsync();
         await LoadBackgroundsAsync();
 
         if (QueryBackgroundId.HasValue)
@@ -520,6 +491,8 @@
 
     private async void HandleLanguageChanged()
     {
+        await Glossary.EnsureLoadedAsync(LanguageState.CurrentLanguage);
+
         if (SelectedBackground != null)
         {
             SelectedBackground = await BackgroundService.GetBackgroundAsync(SelectedBackground.Id, LanguageState.CurrentLanguage);
@@ -588,14 +561,6 @@
 
         isModalLoading = false;
     }
-
-    //	Equipment is stored one item per line; older single-line texts are shown as a single entry
-    private static IEnumerable<string> EquipmentItems(string? equipment) =>
-        (equipment ?? string.Empty).Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
-
-    //	Items that are (or contain) a sum of coins, e.g. "Una borsa con 15 mo" / "A pouch containing 15 gp", get the coin style
-    private static bool IsCoinItem(string item) =>
-        System.Text.RegularExpressions.Regex.IsMatch(item, @"\b\d+\s*(mo|ma|mr|me|mp|gp|sp|cp|ep|pp)\b", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
 
     private static BackgroundTranslationDto ToForm(BackgroundDetailResponseDto d, LanguageCode lang) => new()
     {
@@ -736,6 +701,16 @@
 
 
     #endregion
+
+    //	Rules terms in the descriptions link to the glossary (with a tooltip) once it is loaded
+    private async Task LoadGlossaryAsync()
+    {
+        await Glossary.EnsureLoadedAsync(LanguageState.CurrentLanguage);
+        StateHasChanged();
+    }
+
+    private RealmForge.Shared.Text.GlossaryLinker? Terms(RulesetVersion? ruleset) =>
+        ruleset is { } edition ? Glossary.Linker(LanguageState.CurrentLanguage, edition) : null;
 
     public void Dispose()
     {

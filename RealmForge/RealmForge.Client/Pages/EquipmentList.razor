@@ -8,6 +8,7 @@
 @implements IDisposable
 @inject EquipmentDataService EquipmentService
 @inject LanguageStateService LanguageState
+@inject GlossaryService Glossary
 @inject ApiErrorState ApiErrors
 
 <PageTitle>RealmForge - @UiText.EquipmentTitle(Lang)</PageTitle>
@@ -113,12 +114,25 @@
     }
     else
     {
-        @* One section per category, in the order of the equipment chapter *@
+        @* One section per category, in the order of the equipment chapter; each one opens and closes *@
+        <div class="d-flex justify-content-end gap-2">
+            <button type="button" class="btn btn-sm btn-rf-outline" @onclick="() => SetAllGroups(true)" data-test="equipment-expand-all">@UiText.BtnExpandAll(Lang)</button>
+            <button type="button" class="btn btn-sm btn-rf-outline" @onclick="() => SetAllGroups(false)" data-test="equipment-collapse-all">@UiText.BtnCollapseAll(Lang)</button>
+        </div>
         @foreach (var group in FilteredItems.GroupBy(i => i.Stats.Category).OrderBy(g => g.Key))
         {
-            <h2 class="h5 mt-4 mb-3 rf-spell-level-title" data-test="equipment-group">
-                @EquipmentTerms.CategoryName(group.Key, Lang) <span class="small" style="color: var(--rf-text-muted);">(@group.Count())</span>
+            var expanded = IsExpanded(group.Key);
+            <h2 class="h5 mt-4 mb-3 rf-spell-level-title">
+                <button type="button" class="rf-group-toggle" aria-expanded="@(expanded ? "true" : "false")" @onclick="() => ToggleGroup(group.Key)" data-test="equipment-group">
+                    <span class="rf-group-chevron @(expanded ? "open" : null)"><NavIcon Name="chevron" /></span>
+                    @EquipmentTerms.CategoryName(group.Key, Lang) <span class="small" style="color: var(--rf-text-muted);">(@group.Count())</span>
+                </button>
             </h2>
+
+            @if (!expanded)
+            {
+                continue;
+            }
 
             @switch (group.Key)
             {
@@ -328,7 +342,7 @@
             {
                 <div class="mb-3 p-3 rounded" style="background-color: var(--rf-bg-main); border-left: 3px solid var(--rf-border-light);">
                     <div class="rf-markdown-container" data-test="equipment-description">
-                        @((MarkupString)MarkdownText.ToHtml(detail.Description))
+                        @((MarkupString)MarkdownText.ToHtml(detail.Description, Terms(detail.Ruleset)))
                     </div>
                 </div>
             }
@@ -613,9 +627,36 @@
 
     //	Filters
     private RulesetVersion? SelectedRuleset { get; set; }
-    private string SearchTerm { get; set; } = string.Empty;
+    private string SearchTerm
+    {
+        get => searchTerm;
+        set { searchTerm = value; toggledGroups.Clear(); }
+    }
+    private string searchTerm = string.Empty;
     private string OriginFilter { get; set; } = string.Empty;
-    private EquipmentCategory? CategoryFilter { get; set; }
+    private EquipmentCategory? CategoryFilter
+    {
+        get => categoryFilter;
+        set { categoryFilter = value; toggledGroups.Clear(); }
+    }
+    private EquipmentCategory? categoryFilter;
+
+    //	Open and closed sections: closed by default (the list reads as an index of the chapter),
+    //	open when a category is chosen or a search is typed; the user's toggles win until the filters change
+    private readonly Dictionary<EquipmentCategory, bool> toggledGroups = new();
+
+    private bool IsExpanded(EquipmentCategory category) =>
+        toggledGroups.TryGetValue(category, out var open) ? open : CategoryFilter is not null || !string.IsNullOrWhiteSpace(SearchTerm);
+
+    private void ToggleGroup(EquipmentCategory category) => toggledGroups[category] = !IsExpanded(category);
+
+    private void SetAllGroups(bool open)
+    {
+        foreach (var category in Enum.GetValues<EquipmentCategory>())
+        {
+            toggledGroups[category] = open;
+        }
+    }
     private string WeaponKindFilter { get; set; } = string.Empty;
     private WeaponMastery? MasteryFilter { get; set; }
     private ArmorCategory? ArmorFilter { get; set; }
@@ -687,6 +728,7 @@
     protected override async Task OnInitializedAsync()
     {
         LanguageState.OnLanguageChanged += HandleLanguageChanged;
+        _ = LoadGlossaryAsync();
         await LoadEquipmentAsync();
 
         if (QueryItemId.HasValue)
@@ -703,6 +745,8 @@
 
     private async void HandleLanguageChanged()
     {
+        await Glossary.EnsureLoadedAsync(LanguageState.CurrentLanguage);
+
         if (SelectedItem != null)
         {
             SelectedItem = await EquipmentService.GetItemAsync(SelectedItem.Id, Lang);
@@ -949,6 +993,16 @@
     }
 
     #endregion
+
+    //	Rules terms in the descriptions link to the glossary (with a tooltip) once it is loaded
+    private async Task LoadGlossaryAsync()
+    {
+        await Glossary.EnsureLoadedAsync(LanguageState.CurrentLanguage);
+        StateHasChanged();
+    }
+
+    private RealmForge.Shared.Text.GlossaryLinker? Terms(RulesetVersion? ruleset) =>
+        ruleset is { } edition ? Glossary.Linker(LanguageState.CurrentLanguage, edition) : null;
 
     public void Dispose() => LanguageState.OnLanguageChanged -= HandleLanguageChanged;
 }

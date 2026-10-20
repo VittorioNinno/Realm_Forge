@@ -24,6 +24,20 @@
             </NavLink>
         </div>
 
+        @* The characters of the signed-in user *@
+        <div class="nav-item px-3" data-test="nav-characters">
+            <NavLink class="nav-link" href="characters">
+                <NavIcon Name="characters" /> @UiText.NavCharacters(LanguageState.CurrentLanguage)
+            </NavLink>
+        </div>
+
+        @* Rules glossary: a reference of its own, before the compendium *@
+        <div class="nav-item px-3 rf-nav-reference" data-test="nav-rules">
+            <NavLink class="nav-link" href="rules">
+                <NavIcon Name="rules" /> @UiText.NavRules(LanguageState.CurrentLanguage)
+            </NavLink>
+        </div>
+
         @* Reference data: always reachable, but kept out of the way in a collapsible section at the bottom *@
         <div class="rf-nav-group px-3" data-test="nav-compendium">
             <button type="button" class="rf-nav-group-toggle" aria-expanded="@compendiumOpen"
@@ -57,6 +71,7 @@
                 </div>
             }
         </div>
+
     </nav>
 
     @* Account (sign in / signed-in user and sign out) pinned at the bottom of the sidebar *@

@@ -7,7 +7,21 @@ const email = `ui${Date.now()}@example.com`;
 // Throwaway credential generated per run: upper + lower + digit + symbol, as Identity requires
 const throwawayCredential = ['Rf', crypto.randomUUID(), 'A!'].join('-');
 const results = [];
+// Elements wider than the window (phone audits): wide tables may scroll inside their own box
+const overflowOf = async (target, label) => target.evaluate((label) => {
+  const width = document.documentElement.clientWidth;
+  const scrolls = (el) => { for (let p = el.parentElement; p; p = p.parentElement) { const o = getComputedStyle(p).overflowX; if (o === 'auto' || o === 'scroll' || o === 'hidden') return true; } return false; };
+  const out = [];
+  for (const el of document.querySelectorAll('body *')) {
+    const r = el.getBoundingClientRect();
+    if (r.width === 0 || r.height === 0 || getComputedStyle(el).position === 'fixed') continue;
+    if ((r.right > width + 1 || r.left < -1) && !scrolls(el)) out.push(`${el.tagName.toLowerCase()}.${[...el.classList].slice(0, 2).join('.')}(${Math.round(r.left)}..${Math.round(r.right)})`);
+  }
+  const page = document.documentElement.scrollWidth > width + 1 ? `page ${document.documentElement.scrollWidth}px` : '';
+  return page || out.length ? [label, page, ...[...new Set(out)].slice(0, 6)].filter(Boolean).join(' ') : null;
+}, label);
 const ok = (name) => { results.push(`OK ${name}`); };
+const characterAudits = [];
 
 const browser = await chromium.launch();
 // Explicit context: the e-mail confirmation test opens a second tab in the same browser session
@@ -51,6 +65,9 @@ try {
   // Navigation: reference pages live in the collapsible "Compendio" group, opened on compendium routes
   const compendiumLinks = (await page.locator('[data-test=nav-compendium] a').allInnerTexts()).map((t) => t.trim());
   if (compendiumLinks.join(',') !== 'Specie,Background,Talenti,Incantesimi,Classi,Equipaggiamento') throw new Error(`unexpected compendium links: ${compendiumLinks.join(',')}`);
+  // The rules glossary is a menu entry of its own, next to the compendium group
+  const rulesLink = (await page.locator('[data-test=nav-rules] a').innerText()).trim();
+  if (rulesLink !== 'Glossario') throw new Error(`unexpected glossary menu entry: ${rulesLink}`);
 
   // Brand: emblem next to the title in the sidebar, RealmForge favicon instead of the Blazor one
   await page.goto(`${base}/`);
@@ -66,17 +83,29 @@ try {
   ok('emblem in the sidebar only, RealmForge favicon served');
 
   // Dashboard: one card per compendium module with Base counts per edition and the visible Homebrew
-  await page.locator('[data-test=dashboard-feats] .rf-account-stat-value').first().waitFor({ timeout: 30000 });
-  const dashboard = await page.evaluate(() => Object.fromEntries(['species', 'backgrounds', 'feats', 'spells', 'classes', 'equipment'].map((m) =>
-    [m, [...document.querySelectorAll(`[data-test=dashboard-${m}] .rf-account-stat-value`)].map((v) => v.textContent.trim()).join('/')])));
-  results.push(`INFO dashboard (Base 2024/Base 2014/Homebrew): ${JSON.stringify(dashboard)}`);
-  if (dashboard.species !== '10/9/0' || dashboard.backgrounds !== '16/13/0' || dashboard.feats !== '75/42/0' || dashboard.spells !== '391/361/0' || dashboard.classes !== '12/12/0' || dashboard.equipment !== '208/242/0') throw new Error('unexpected dashboard counts');
+  // Dashboard: welcome, one link per section (glossary first, no figures), how it works and the house rules
+  await page.locator('[data-test=home-intro]').waitFor({ timeout: 30000 });
+  const home = await page.evaluate(() => ({
+    links: [...document.querySelectorAll('[data-test=dashboard-modules] a')].map((a) => a.getAttribute('href')),
+    figures: document.querySelectorAll('[data-test=dashboard-modules] .rf-account-stat').length,
+    how: document.querySelectorAll('[data-test=home-how] dt').length,
+    rules: document.querySelectorAll('[data-test=home-rules] dt').length,
+  }));
+  results.push(`INFO dashboard: ${JSON.stringify(home)}`);
+  if (home.links.join(',') !== 'rules,species,backgrounds,feats,spells,classes,equipment' || home.figures !== 0 || home.how !== 4 || home.rules !== 6) throw new Error('unexpected dashboard');
   if (await page.locator('main a[href=account]', { hasText: 'Accedi per forgiare' }).count() !== 1) throw new Error('dashboard misses the sign-in call to action');
-  ok('dashboard: module cards with Base counts per edition (species 10+9, backgrounds 16+13, feats 75+42, spells 391+361, classes 12+12, equipment 208+242) and the sign-in call to action');
+  ok('dashboard: welcome, links to the 7 sections without figures, how it works (4 points), house rules (6) and the sign-in call to action');
 
   // Spells: 752 base spells (361 of 2014, 391 of 2024) grouped by level, edition and client-side filters, detail with the stat block
   await page.goto(`${base}/spells`);
-  await page.locator('[data-test=spell-card]').first().waitFor({ timeout: 60000 });
+  await page.locator('[data-test=spell-level-group]').first().waitFor({ timeout: 60000 });
+  // Levels start closed and open with a filter or a search; expand/collapse all
+  const closedSpells = await page.locator('[data-test=spell-card]').count();
+  await page.locator('[data-test=spell-expand-all]').click();
+  const openSpells = await page.locator('[data-test=spell-card]').count();
+  await page.locator('[data-test=spell-collapse-all]').click();
+  if (closedSpells !== 0 || openSpells !== 752) throw new Error(`spell levels do not open and close: closed=${closedSpells} open=${openSpells}`);
+  ok('spells: 10 levels closed by default, expand all shows the 752 cards, collapse all closes them');
   const spellCount = async () => (await page.locator('[data-test=spell-count]').innerText()).trim();
   const waitCount = async (expected) => {
     for (let i = 0; i < 100 && (await spellCount()) !== expected; i++) await page.waitForTimeout(100);
@@ -164,6 +193,9 @@ try {
   await page.locator('[data-test=class-card]', { hasText: 'Mago' }).first().click();
   await page.locator('[data-test=class-detail]').waitFor({ timeout: 15000 });
   const wizardSheet = { name: (await page.locator('[data-test=class-name]').textContent()).trim(), skills: (await page.locator('[data-test=class-skills]').textContent()).trim() };
+  // 2014 starting equipment: one line per choice, options separated by "oppure"
+  wizardSheet.equipment = [await page.locator('[data-test=class-equipment] li').count(), await page.locator('[data-test=class-equipment] .rf-loadout-or').count()];
+  if (wizardSheet.equipment.join('/') !== '4/3') throw new Error(`unexpected wizard 2014 equipment: ${wizardSheet.equipment.join('/')}`);
   await page.locator('[data-test=class-tab-table]').click();
   wizardSheet.tableRows = await page.locator('[data-test=class-table] tbody tr').count();
   await page.locator('[data-test=class-tab-features]').click();
@@ -187,6 +219,12 @@ try {
   await page.locator('[data-test=class-card]', { hasText: 'Mago' }).first().click();
   await page.locator('[data-test=class-detail]').waitFor({ timeout: 15000 });
   const wizard24 = { name: (await page.locator('[data-test=class-name]').textContent()).trim() };
+  // Starting equipment as two kits (A: 6 items, B: 55 mo), items linked to the equipment, link to the wizard spell list
+  await page.locator('[data-test=class-spell-list]').waitFor({ timeout: 30000 });
+  wizard24.kits = [await page.locator('[data-test=class-equipment-a] li').count(), (await page.locator('[data-test=class-equipment-b]').innerText()).replace(/\s+/g, ' ').trim()];
+  wizard24.itemLinks = await page.locator('[data-test=class-equipment-a] a.rf-loadout-link').count();
+  wizard24.spellList = await page.locator('[data-test=class-spell-list]').getAttribute('href');
+  if (wizard24.kits[0] !== 6 || !wizard24.kits[1].endsWith('55 mo') || wizard24.itemLinks < 3 || wizard24.spellList !== 'spells?class=8&ruleset=2') throw new Error(`unexpected wizard 2024 equipment/spell list: ${JSON.stringify(wizard24)}`);
   await page.locator('[data-test=class-tab-table]').click();
   wizard24.tableRows = await page.locator('[data-test=class-table] tbody tr').count();
   await page.locator('[data-test=class-tab-features]').click();
@@ -200,11 +238,24 @@ try {
   if (classes2024 !== '12 classi' || wizard24.name !== 'Mago' || wizard24.tableRows !== 20 || wizard24.features[0] !== 'Incantesimi' || wizard24.features.length !== 10
     || wizard24.subclasses !== 4 || wizard24.subclass !== 'Invocatore' || wizard24.subclassFeatures !== 5) throw new Error('unexpected 2024 classes page');
   await page.locator('[data-test=class-detail] button', { hasText: 'CHIUDI' }).click();
-  ok('classes 2024: 12 cards, Wizard sheet with 20-level table, 10 class features and 4 subclasses (Evoker with 5 features)');
+  ok('classes 2024: 12 cards, Wizard sheet with equipment kits A/B linked to the equipment, spell list link, 20-level table, 10 class features and 4 subclasses (Evoker with 5 features)');
 
   // Equipment: 450 Base items, weapon and armor tables, Longsword 2024 detail in Italian (metric weight, mastery), weapon rules
   await page.goto(`${base}/equipment`);
-  await page.locator('[data-test=equipment-row]').first().waitFor({ timeout: 60000 });
+  await page.locator('[data-test=equipment-group]').first().waitFor({ timeout: 60000 });
+  // Sections start closed (an index of the chapter): no rows until one is opened; "Espandi tutto" opens them all
+  const closedRows = await page.locator('[data-test=equipment-row], [data-test=equipment-tile]').count();
+  const groups = await page.locator('[data-test=equipment-group]').count();
+  await page.locator('[data-test=equipment-group]', { hasText: 'Armi' }).first().click();
+  await page.locator('[data-test=equipment-row]').first().waitFor({ timeout: 5000 });
+  await page.locator('[data-test=equipment-group]', { hasText: 'Armi' }).first().click();
+  await page.locator('[data-test=equipment-row]').first().waitFor({ state: 'detached', timeout: 5000 });
+  await page.locator('[data-test=equipment-expand-all]').click();
+  const openTiles = await page.locator('[data-test=equipment-tile]').count();
+  await page.locator('[data-test=equipment-collapse-all]').click();
+  results.push(`INFO equipment sections: ${groups} closed (rows=${closedRows}), expand all shows ${openTiles} tiles`);
+  if (closedRows !== 0 || groups !== 11 || openTiles < 100) throw new Error('equipment sections do not open and close');
+  ok('equipment: 11 sections closed by default, each opens and closes, expand/collapse all');
   const equipmentCount = async (expected) => {
     for (let i = 0; i < 100 && (await page.locator('[data-test=equipment-count]').innerText()).trim() !== expected; i++) await page.waitForTimeout(100);
     return (await page.locator('[data-test=equipment-count]').innerText()).trim();
@@ -238,6 +289,57 @@ try {
     || chainMail.slice(0, 5).join(' | ') !== '75 mo | 27,5 kg | 16 | For 13 | Svantaggio' || masteryRules !== 8) throw new Error('unexpected equipment page');
   ok('equipment: 450 Base items (208 of 2024), category and mastery filters, Longsword 2024 (15 mo, 1,5 kg, 1d8 taglienti, Versatile, Prosciugamento), Chain Mail (CA 16, For 13) and the weapon rules');
 
+  // Rules glossary: 243 Base entries (155 of 2024, 88 of 2014), family filter, Prone 2024 with its own terms linked and "See also"
+  await page.goto(`${base}/rules`);
+  await page.locator('[data-test=rules-group]').first().waitFor({ timeout: 60000 });
+  const closedRules = await page.locator('[data-test=rules-tile]').count();
+  await page.locator('[data-test=rules-expand-all]').click();
+  const openRules = await page.locator('[data-test=rules-tile]').count();
+  await page.locator('[data-test=rules-collapse-all]').click();
+  if (closedRules !== 0 || openRules !== 243) throw new Error(`glossary families do not open and close: closed=${closedRules} open=${openRules}`);
+  const rulesCount = async (expected) => {
+    for (let i = 0; i < 100 && (await page.locator('[data-test=rules-count]').innerText()).trim() !== expected; i++) await page.waitForTimeout(100);
+    return (await page.locator('[data-test=rules-count]').innerText()).trim();
+  };
+  const allRules = await rulesCount('243 termini');
+  await pickOption('rules-ruleset', '5.5e (2024)');
+  const rules2024 = await rulesCount('155 termini');
+  await pickOption('rules-category', 'Condizioni');
+  const conditions2024 = await rulesCount('15 termini');
+  await page.locator('[data-test=rules-tile]').filter({ has: page.locator('.rf-glossary-tile-name', { hasText: /^Prono$/ }) }).first().click();
+  await page.locator('[data-test=rules-detail]').waitFor({ timeout: 15000 });
+  const prone = await page.evaluate(() => ({
+    name: document.querySelector('[data-test=rules-name]').textContent.trim(),
+    tag: document.querySelector('[data-test=rules-tag]').textContent.trim(),
+    terms: [...document.querySelectorAll('[data-test=rules-description] a.rf-term')].map((a) => a.textContent.trim()),
+    url: location.pathname + location.search.replace(/=.*/, '='),
+  }));
+  await page.locator('[data-test=rules-detail] button', { hasText: 'CHIUDI' }).click();
+  await page.locator('[data-test=rules-detail]').waitFor({ state: 'detached', timeout: 5000 });
+  results.push(`INFO glossary: ${allRules} | 2024=${rules2024} conditions=${conditions2024} | prone ${JSON.stringify(prone)}`);
+  if (allRules !== '243 termini' || rules2024 !== '155 termini' || conditions2024 !== '15 termini' || prone.name !== 'Prono' || prone.tag !== 'Condizione'
+    || prone.terms.join(',') !== 'svantaggio,vantaggio' || prone.url !== '/rules?id=') throw new Error('unexpected glossary page');
+  ok('glossary: 243 Base entries (155 of 2024), edition and family filters, Prone 2024 (Condizione) with its rules terms linked, opened at rules?id=');
+
+  // Rules terms in the other modules: Command 2024 links "prono" and "azione bonus", with a tooltip and a link to the glossary
+  await page.goto(`${base}/spells`);
+  await page.locator('[data-test=spell-level-group]').first().waitFor({ timeout: 60000 });
+  await pickOption('spell-ruleset', '5.5e (2024)');
+  await page.locator('[data-test=spell-search]').fill('comando');
+  await page.locator('[data-test=spell-card]').filter({ has: page.locator('.rf-card-title', { hasText: /^Comando$/ }) }).first().click();
+  await page.locator('[data-test=spell-detail]').waitFor({ timeout: 15000 });
+  await page.locator('[data-test=spell-detail] a.rf-term').first().waitFor({ timeout: 30000 });
+  const commandTerms = (await page.locator('[data-test=spell-detail] a.rf-term').allInnerTexts()).map((t) => t.trim());
+  await page.locator('[data-test=spell-detail] a.rf-term', { hasText: 'prono' }).hover();
+  await page.locator('.rf-term-tip.visible').waitFor({ timeout: 5000 });
+  const tooltip = (await page.locator('.rf-term-tip').innerText()).replace(/\s+/g, ' ').trim();
+  await page.locator('[data-test=spell-detail] a.rf-term', { hasText: 'prono' }).click();
+  await page.locator('[data-test=rules-detail]').waitFor({ timeout: 15000 });
+  const linkedEntry = (await page.locator('[data-test=rules-name]').textContent()).trim();
+  results.push(`INFO glossary terms in Command 2024: ${JSON.stringify(commandTerms)} | tooltip="${tooltip.slice(0, 90)}" | link opens ${linkedEntry}`);
+  if (commandTerms.join(',') !== 'prono,azione bonus' || !tooltip.startsWith('Prono Condizione Mentre ha la condizione di prono') || linkedEntry !== 'Prono') throw new Error('unexpected glossary links in spell texts');
+  ok('glossary links: Command 2024 links "prono" and "azione bonus"; hover shows the Prone tooltip, click opens the glossary entry');
+
 
   await page.goto(`${base}/account`);
   await page.getByText('Non hai un account? Registrati').waitFor({ timeout: 30000 });
@@ -246,18 +348,24 @@ try {
   await page.locator('[data-test=nav-compendium] button').click();
   await page.locator('[data-test=nav-compendium] a').first().waitFor({ timeout: 5000 });
   await page.locator('[data-test=nav-compendium] button').click();
+  // The "Compendio" icon does not move when the group opens (the sidebar keeps room for its scrollbar)
+  const compendiumIcon = () => page.locator('[data-test=nav-compendium] button svg').first().evaluate((el) => { const r = el.getBoundingClientRect(); return `${Math.round(r.left)},${Math.round(r.top)}`; });
+  const iconClosed = await compendiumIcon();
   // Every menu icon sits inside its entry (not on the hover edge) and in the same column as the "Compendio" icon
   // (measured on the account page, where the group starts closed: open it, measure, close it again)
   await page.locator('[data-test=nav-compendium] button').click();
+  await page.locator('[data-test=nav-compendium] a').first().waitFor({ timeout: 5000 });
+  const iconOpen = await compendiumIcon();
+  if (iconClosed !== iconOpen) throw new Error(`the compendium icon moves when the group opens: ${iconClosed} -> ${iconOpen}`);
   await page.locator('[data-test=nav-compendium] a').first().waitFor({ timeout: 5000 });
   const iconGaps = await page.evaluate(() => [...document.querySelectorAll('.sidebar .nav-link, .sidebar .rf-nav-group-toggle')].map((el) => {
     const icon = el.querySelector('svg').getBoundingClientRect();
     return { label: el.textContent.trim(), inset: Math.round(icon.left - el.getBoundingClientRect().left), left: Math.round(icon.left) };
   }));
   results.push(`INFO menu icons: ${iconGaps.map((g) => `${g.label}@${g.left}(+${g.inset})`).join(', ')}`);
-  if (iconGaps.length !== 8 || iconGaps.some((g) => g.inset < 8) || new Set(iconGaps.map((g) => g.left)).size !== 1) throw new Error('menu icons are not padded or not aligned');
+  if (iconGaps.length !== 10 || iconGaps.some((g) => g.inset < 8) || new Set(iconGaps.map((g) => g.left)).size !== 1) throw new Error('menu icons are not padded or not aligned');
   await page.locator('[data-test=nav-compendium] button').click();
-  ok('"Compendio" menu group: Specie, Background, Talenti, Incantesimi, Classi, Equipaggiamento; collapsed elsewhere and toggles on click; icons padded and aligned');
+  ok('"Compendio" menu group: Specie, Background, Talenti, Incantesimi, Classi, Equipaggiamento, and Glossario next to it; collapsed elsewhere and toggles on click; icons padded and aligned');
   await page.getByText('Non hai un account? Registrati').click();
   await page.locator('input[type=email]').fill(email);
   // Own show / hide button: visible before the field is touched, not only while typing as the browser's eye
@@ -408,26 +516,24 @@ try {
   const equipment = await page.locator('[data-test=bg-equipment] li').count();
   results.push(`INFO Acolyte equipment items=${equipment}`);
   if (equipment !== 6) throw new Error(`expected 6 equipment items, got ${equipment}`);
-  // Equipment tiles: a grid of bordered items with a marker; the coin pouch gets the gold style
-  const tiles = await page.evaluate(() => {
-    const list = document.querySelector('[data-test=bg-equipment] .rf-equipment-list');
-    const items = [...list.querySelectorAll('li')];
+  // Equipment ledger: plain lines without markers, the coin pouch with its value in gold on the right
+  const ledger = await page.evaluate(() => {
+    const items = [...document.querySelectorAll('[data-test=bg-equipment] li')];
     return {
-      display: getComputedStyle(list).display,
       bullets: getComputedStyle(items[0]).listStyleType,
       marker: getComputedStyle(items[0], '::before').content,
-      bordered: items.every((li) => getComputedStyle(li).borderTopStyle === 'solid'),
-      coins: items.filter((li) => li.classList.contains('rf-equipment-coins')).map((li) => li.textContent.trim()),
+      coins: items.filter((li) => li.classList.contains('rf-loadout-coins')).map((li) => li.textContent.replace(/\s+/g, ' ').trim()),
+      title: getComputedStyle(document.querySelector('[data-test=bg-equipment] .rf-loadout-title')).color,
     };
   });
-  results.push(`INFO equipment tiles: ${JSON.stringify(tiles)}`);
-  if (tiles.display !== 'grid' || tiles.bullets !== 'none' || tiles.marker === 'none' || !tiles.bordered || tiles.coins.length !== 1 || !tiles.coins[0].includes('15 mo')) throw new Error('unexpected equipment tiles');
+  results.push(`INFO equipment ledger: ${JSON.stringify(ledger)}`);
+  if (ledger.bullets !== 'none' || (ledger.marker !== 'none' && ledger.marker !== 'normal') || ledger.coins.length !== 1 || !ledger.coins[0].endsWith('15 mo')) throw new Error('unexpected equipment ledger');
   const source = (await page.locator('[data-test=content-source]').first().innerText()).trim();
   const badge = (await page.locator('.rf-modal-dialog [data-test=content-badge]').first().textContent()).trim(); // textContent: the badge CSS uppercases the rendered text
   results.push(`INFO Acolyte badge='${badge}' source='${source}'`);
   if (badge !== 'Base' || source !== 'Fonte: SRD 5.1') throw new Error(`unexpected badge/source: ${badge} / ${source}`);
   await page.getByRole('button', { name: 'CHIUDI' }).click();
-  ok('SRD Acolyte: four stacked characteristic tables (d8, d6, d6, d6), equipment as a grid of tiles with the coin pouch in gold, badge "Base", source SRD 5.1');
+  ok('SRD Acolyte: four stacked characteristic tables (d8, d6, d6, d6), equipment as a ledger with the coin pouch value in gold, badge "Base", source SRD 5.1');
 
   await acolyteCard('2024').click();
   await page.locator('[data-test=bg-equipment-b]').waitFor({ timeout: 15000 });
@@ -477,6 +583,13 @@ try {
   const stats = (await page.locator('[data-test=account-homebrew] .rf-account-stat').allInnerTexts()).map((t) => t.replace(/\s+/g, ' ').trim());
   results.push(`INFO account role='${role}' homebrew=[${stats.join(' | ')}]`);
   if (!/^utente$/i.test(role) || !stats.some((t) => /^0 talenti$/i.test(t)) || !stats.some((t) => /^1 background$/i.test(t))) throw new Error('unexpected account summary');
+  // Base content per section and edition, moved here from the dashboard (Homebrew is not counted)
+  await page.locator('[data-test=account-compendium-equipment]').waitFor({ timeout: 30000 });
+  const compendium = await page.evaluate(() => Object.fromEntries([...document.querySelectorAll('[data-test=account-compendium] tbody tr')]
+    .map((tr) => [tr.getAttribute('data-test').replace('account-compendium-', ''), [...tr.querySelectorAll('td.rf-num')].map((td) => td.textContent.trim()).join('/')])));
+  results.push(`INFO account compendium (2024/2014): ${JSON.stringify(compendium)}`);
+  if (JSON.stringify(compendium) !== JSON.stringify({ rules: '155/88', species: '10/9', backgrounds: '16/13', feats: '75/42', spells: '391/361', classes: '12/12', equipment: '208/242' })) throw new Error('unexpected compendium counts in the account');
+  ok('account: Base content per section and edition (glossary 155+88, species 10+9, backgrounds 16+13, feats 75+42, spells 391+361, classes 12+12, equipment 208+242)');
   const newCredential = ['Rf', crypto.randomUUID(), 'B!'].join('-');
   await page.locator('[data-test=pwd-current]').fill('wrong-password-1A!');
   await page.locator('[data-test=pwd-new]').fill(newCredential);
@@ -500,6 +613,156 @@ try {
   await page.getByRole('button', { name: 'Aggiorna password' }).click();
   await page.getByText('Password aggiornata.').waitFor({ timeout: 15000 });
   ok('account page: role "Utente", Homebrew counts (0 feats, 1 background), password change rejects a wrong current password and succeeds with the right one');
+
+  // Character creation at phone width (375 px): edition order, every step of the 2024 wizard (overflow checked),
+  // the interactive sheet (damage saved on its own, rests, tabs, PDF), a level up into a second class and the list
+  await page.setViewportSize({ width: 375, height: 812 });
+  await page.goto(`${base}/characters`);
+  await page.locator('[data-test=characters-empty]').waitFor({ timeout: 30000 });
+  characterAudits.push(await overflowOf(page, '/characters'));
+  await page.locator('[data-test=characters-empty] a').click();
+  await page.locator('[data-test=wizard-name]').waitFor({ timeout: 60000 });
+  const wizardStep = async (name) => {
+    await page.locator(`[data-test=wizard-step-${name}]`).waitFor({ timeout: 20000 });
+    await page.waitForTimeout(300);
+    characterAudits.push(await overflowOf(page, `wizard ${name}`));
+  };
+  const next = async () => { await page.locator('[data-test=wizard-next]').click(); await page.waitForTimeout(150); };
+  const choose = async (test, text) => {
+    await page.locator(`[data-test=${test}] [data-test=selector-value]`).first().click();
+    await page.locator(`[data-test=${test}] [role=option]`, { hasText: text }).first().click();
+  };
+  const nextOption = (test) => page.locator(`[data-test=${test}] [data-test=selector-next]`).first().click();
+  const pickFree = async (selector, count) => { for (let k = 0; k < count; k++) await page.locator(`${selector}:not(.selected):not([disabled])`).first().click(); };
+  const counter = async (locator) => (await locator.innerText()).match(/(\d+)\s*\/\s*(\d+)/).slice(1).map(Number);
+
+  await wizardStep('identity');
+  await next();
+  await page.locator('[data-test=wizard-error]').waitFor({ timeout: 5000 });
+  await page.locator('[data-test=wizard-name]').fill('Eroe di prova');
+  // 2014: the race comes right after the identity, with the 2014 terms
+  await choose('wizard-edition', '2014');
+  await page.locator('[data-test=character-wizard][data-ruleset="1"]').waitFor({ timeout: 30000 });
+  await next();
+  await wizardStep('species');
+  const step2014 = (await page.locator('[data-test=wizard-step-title]').innerText()).trim();
+  await page.locator('[data-test=wizard-racial-increases]').waitFor({ timeout: 10000 });
+  await page.locator('[data-test=wizard-back]').click();
+  await choose('wizard-edition', '2024');
+  await page.locator('[data-test=character-wizard][data-ruleset="2"]').waitFor({ timeout: 30000 });
+  await next();
+
+  await wizardStep('class');
+  const step2024 = (await page.locator('[data-test=wizard-step-title]').innerText()).trim();
+  await choose('wizard-class', /^Mago$/);
+  await page.locator('[data-test=wizard-class-panel]', { hasText: 'Mago' }).waitFor({ timeout: 15000 });
+  await next();
+  await page.locator('[data-test=wizard-error]').waitFor({ timeout: 5000 });
+  await pickFree('[data-test=wizard-skill-option]', 2);
+  await next();
+
+  await wizardStep('background');
+  await choose('wizard-background', /^Accolito$/);
+  await page.locator('[data-test=wizard-feat-list]').waitFor({ timeout: 15000 });
+  await nextOption('wizard-feat-list');
+  await nextOption('wizard-feat-ability');
+  await next();
+
+  await wizardStep('species');
+  await choose('wizard-species', /^Nano$/);
+  await page.locator('[data-test=wizard-species-panel]').waitFor({ timeout: 15000 });
+  await next();
+
+  await wizardStep('abilities');
+  await page.locator('[data-test=wizard-suggested]').click();
+  await next();
+
+  await wizardStep('progression');
+  await next();
+
+  await wizardStep('languages');
+  const [, languageChoices] = await counter(page.locator('[data-test=wizard-language-count]'));
+  await pickFree('[data-test=wizard-language]', languageChoices);
+  await next();
+
+  await wizardStep('equipment');
+  const previewAc = (await page.locator('[data-test=wizard-preview-ac]').innerText()).trim();
+  await next();
+
+  await wizardStep('spells');
+  await next();
+  await page.locator('[data-test=wizard-error]').waitFor({ timeout: 5000 });
+  let chosenSpells = 0;
+  for (const picker of await page.locator('[data-test=spell-picker]').all()) {
+    const [have, want] = await counter(picker.locator('.rf-wizard-counter'));
+    for (let k = have; k < want; k++) await picker.locator('button:not(.selected):not([disabled])').first().click();
+    chosenSpells += want;
+  }
+  await next();
+
+  await wizardStep('details');
+  await next();
+  await wizardStep('summary');
+  const summaryAc = (await page.locator('[data-test=summary-ac]').innerText()).trim();
+  const summaryHp = (await page.locator('[data-test=summary-hp]').innerText()).trim();
+  await page.locator('[data-test=wizard-forge]').click();
+
+  // The sheet: computed like the summary, the hit points change and are saved without a save button
+  await page.locator('[data-test=character-sheet]').waitFor({ timeout: 30000 });
+  await page.waitForTimeout(500);
+  characterAudits.push(await overflowOf(page, 'sheet'));
+  const sheetName = (await page.locator('[data-test=sheet-name]').innerText()).trim();
+  const sheetAc = (await page.locator('[data-test=sheet-ac]').innerText()).trim();
+  const sheetHp = (await page.locator('[data-test=sheet-hp]').innerText()).trim();
+  await page.locator('[data-test=sheet-hp-amount]').fill('3');
+  await page.locator('[data-test=sheet-hp-amount]').press('Tab');
+  await page.locator('[data-test=sheet-damage]').click();
+  await page.locator('[data-test=sheet-save-status]', { hasText: 'Salvato' }).waitFor({ timeout: 15000 });
+  await page.reload();
+  await page.locator('[data-test=character-sheet]').waitFor({ timeout: 60000 });
+  const afterReload = (await page.locator('[data-test=sheet-hp-current]').innerText()).trim();
+  await page.locator('[data-test=sheet-long-rest]').click();
+  await page.locator('[data-test=sheet-long-rest-done]').click();
+  const afterRest = (await page.locator('[data-test=sheet-hp-current]').innerText()).trim();
+
+  const tabs = {};
+  for (const tab of ['spells', 'inventory', 'features', 'notes', 'overview']) {
+    await page.locator(`[data-test=sheet-tab-${tab}]`).click();
+    await page.waitForTimeout(300);
+    characterAudits.push(await overflowOf(page, `sheet ${tab}`));
+    if (tab === 'spells') tabs.spells = await page.locator('[data-test=sheet-spells] a').count();
+    if (tab === 'inventory') tabs.items = await page.locator('[data-test=sheet-item]').count();
+  }
+  const [download] = await Promise.all([page.waitForEvent('download', { timeout: 20000 }), page.locator('[data-test=sheet-pdf]').click()]);
+  const pdfPath = await download.path();
+  const pdfHead = readFileSync(pdfPath).subarray(0, 8).toString('latin1');
+  const pdfSize = readFileSync(pdfPath).length;
+
+  // Level up into fighter (multiclass): Fighting Style feat and three Weapon Masteries
+  await page.locator('[data-test=sheet-levelup]').click();
+  await wizardStep('progression');
+  await choose('wizard-level-class', /^Guerriero/);
+  await page.locator('[data-test=wizard-fighting-style]').waitFor({ timeout: 15000 });
+  await nextOption('wizard-fighting-style');
+  await pickFree('[data-test=wizard-mastery]', 3);
+  for (let guard = 0; guard < 6 && await page.locator('[data-test=wizard-forge]').count() === 0; guard++) await next();
+  await page.locator('[data-test=wizard-forge]').click();
+  await page.locator('[data-test=character-sheet]').waitFor({ timeout: 30000 });
+  const classes = (await page.locator('[data-test=sheet-classes]').innerText()).trim();
+  const levelUpHp = (await page.locator('[data-test=sheet-hp]').innerText()).trim();
+  await page.goto(`${base}/characters`);
+  const characterCard = (await page.locator('[data-test=character-card]', { hasText: 'Eroe di prova' }).innerText({ timeout: 30000 })).replace(/\s+/g, ' ');
+  await page.setViewportSize({ width: 1280, height: 720 });
+
+  results.push(`INFO character: steps 2014="${step2014}" 2024="${step2024}" | spells=${chosenSpells} | AC preview=${previewAc} summary=${summaryAc} sheet=${sheetAc} | HP summary=${summaryHp} sheet=${sheetHp} after 3 damage and reload=${afterReload} after long rest=${afterRest} | tabs=${JSON.stringify(tabs)} | pdf=${pdfHead.trim()} ${pdfSize} bytes | level up: ${classes} HP=${levelUpHp} | card: ${characterCard}`);
+  if (!/razza/i.test(step2014) || !/classe/i.test(step2024)) throw new Error('the wizard steps do not follow the edition');
+  if (sheetName !== 'Eroe di prova' || sheetAc !== summaryAc || sheetHp !== summaryHp || previewAc !== summaryAc) throw new Error('the saved character does not match the wizard');
+  if (Number(afterReload) !== Number(sheetHp) - 3 || afterRest !== sheetHp) throw new Error('damage or rest not applied and saved');
+  if (tabs.spells !== chosenSpells || tabs.items < 4) throw new Error('spells or inventory missing on the sheet');
+  if (!pdfHead.startsWith('%PDF') || pdfSize < 2000) throw new Error('the PDF download is not a PDF');
+  if (!/Mago 1/.test(classes) || !/Guerriero 1/.test(classes) || Number(levelUpHp) <= Number(sheetHp)) throw new Error('the level up into fighter was not saved');
+  if (!/Mago 1 \/ Guerriero 1/.test(characterCard)) throw new Error(`the list does not show the classes: ${characterCard}`);
+  ok('characters: edition-specific steps, 2024 wizard to the end, sheet matches the summary, damage autosaved, long rest, tabs, PDF download, level up into a second class');
   await page.goto(`${base}/backgrounds`);
   await page.getByText('Accolito').first().waitFor({ timeout: 30000 });
 
@@ -559,6 +822,41 @@ try {
   const htmlLang = await page.evaluate(() => document.documentElement.lang);
   if (htmlLang !== 'en') throw new Error(`html lang is '${htmlLang}' after reload`);
   ok('language drop-down (English, Italiano): EN survives a reload and sets <html lang="en">');
+
+  // Phone layout (375 px): no page or detail may be wider than the screen. Wide tables may scroll inside their own box,
+  // anything else that sticks out of the window is reported with its class
+  const phone = await browser.newContext({ viewport: { width: 375, height: 812 }, isMobile: true, hasTouch: true });
+  const mobile = await phone.newPage();
+  const overflow = (label) => overflowOf(mobile, label);
+  const audits = [];
+  const audit = async (path, ready, open) => {
+    await mobile.goto(`${base}${path}`);
+    await mobile.locator(ready).first().waitFor({ timeout: 60000 });
+    await mobile.waitForTimeout(800);
+    const expand = mobile.locator('[data-test$=expand-all]');
+    if (await expand.count()) await expand.first().click();
+    audits.push(await overflow(path));
+    if (open) {
+      await open();
+      await mobile.locator('.rf-modal-dialog').first().waitFor({ timeout: 15000 });
+      await mobile.waitForTimeout(500);
+      audits.push(await overflow(`${path} detail`));
+    }
+  };
+  await audit('/', '[data-test=home-intro]');
+  await audit('/rules', '[data-test=rules-group]', () => mobile.locator('[data-test=rules-tile]').first().click());
+  await audit('/species', '.rf-card', () => mobile.locator('.rf-card').first().click());
+  await audit('/backgrounds', '.rf-card', () => mobile.locator('.rf-card').first().click());
+  await audit('/feats', '.rf-card', () => mobile.locator('.rf-card').first().click());
+  await audit('/spells', '[data-test=spell-level-group]', () => mobile.locator('[data-test=spell-card]').first().click());
+  await audit('/classes', '[data-test=class-card]', () => mobile.locator('[data-test=class-card]').first().click());
+  await audit('/equipment', '[data-test=equipment-group]', () => mobile.locator('[data-test=equipment-row]').first().click());
+  await audit('/account', 'input[type=email]');
+  await phone.close();
+  const wide = [...characterAudits, ...audits].filter(Boolean);
+  results.push(`INFO phone layout: ${wide.length ? wide.join(' | ') : 'every page and detail fits 375 px'}`);
+  if (wide.length) throw new Error(`content wider than a 375 px phone: ${wide.join(' | ').slice(0, 300)}`);
+  ok('phone layout: dashboard, characters (list, every wizard step, sheet), glossary, species, backgrounds, feats, spells, classes, equipment and account (with their details) fit a 375 px screen');
 } catch (e) {
   results.push(`FAIL ${e.message.split('\n')[0]}`);
   const stored = await page.evaluate(() => localStorage.getItem('realmforge.auth')).catch(() => 'n/a');
@@ -569,6 +867,9 @@ try {
   // GitHub shows at most 10 annotations per step: one line per result in the log, one summary annotation
   for (const r of results) console.log(r);
   console.log(`::notice title=ui::${results.filter((r) => r.startsWith('OK')).length} checks passed — ${results.join(' · ')}`);
+  for (const r of results.filter((r) => r.startsWith('INFO phone'))) console.log(`::notice title=phone::${r.slice(0, 4000)}`);
+  for (const r of results.filter((r) => r.startsWith('INFO character'))) console.log(`::notice title=character::${r.slice(0, 2000)}`);
+  for (const r of results.filter((r) => r.startsWith('FAIL') || r.startsWith('DEBUG'))) console.log(`::error title=ui-fail::${r.slice(0, 2000)}`);
   for (const c of consoleErrors.slice(0, 5)) console.log(`::warning title=ui-console::${c.slice(0, 200)}`);
   await browser.close();
   if (results.some((r) => r.startsWith('FAIL'))) process.exit(1);

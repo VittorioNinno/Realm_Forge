@@ -67,15 +67,21 @@
         /* Allow sidebar to scroll for tall menus */
         height: calc(100vh - 3.5rem);
         overflow-y: auto;
+        /* Room for the scrollbar is always kept, so opening the compendium does not shift the menu */
+        scrollbar-gutter: stable;
     }
 }
 
 /* Collapsible "Compendium" section */
-.rf-nav-group {
-    font-size: 0.9rem;
+/* Reference section (glossary and compendium) under a thin separator */
+.rf-nav-reference {
     margin-top: 0.5rem;
     padding-top: 0.75rem;
     border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.rf-nav-group {
+    font-size: 0.9rem;
 }
 
 .rf-nav-group-toggle {

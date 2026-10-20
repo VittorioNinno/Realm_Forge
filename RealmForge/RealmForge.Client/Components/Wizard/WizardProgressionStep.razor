@@ -1,0 +1,234 @@
+﻿@* Levels one by one: the class of each level (multiclassing), its hit points, the Ability Score Improvement or feat
+   (2014) / feat or Epic Boon (2024) and the subclass; then the choices of each class (multiclass skill, Expertise,
+   Fighting Style, Divine/Primal Order, Weapon Mastery) *@
+<div class="rf-wizard-text">@UiText.HintProgression(Ruleset, Lang)</div>
+
+<div class="rf-level-list" data-test="wizard-levels">
+    @for (var i = 0; i < Build.Levels.Count; i++)
+    {
+        var index = i;
+        var level = Build.Levels[index];
+        var plan = index < Computed.Plan.Count ? Computed.Plan[index] : null;
+        var cls = W.Class(level.ClassId);
+        <div class="rf-level-row" data-test="wizard-level-row">
+            <div class="rf-level-head">
+                <span class="rf-level-number">@UiText.LabelLevelRow(index + 1, Lang)</span>
+                @if (index == 0)
+                {
+                    <span class="rf-level-class">@cls?.Name 1</span>
+                }
+                else
+                {
+                    <div class="rf-level-class-select">
+                        <ForgeSelector TValue="Guid" Value="level.ClassId" ValueChanged="v => W.SetLevelClassAsync(index, v)" Options="ClassOptions" DataTest="wizard-level-class" />
+                    </div>
+                    @if (plan is not null)
+                    {
+                        <span class="rf-level-class">@plan.Class.Name @plan.ClassLevel</span>
+                    }
+                }
+            </div>
+
+            @if (cls is not null)
+            {
+                <div class="rf-level-body">
+                    <div class="rf-level-hp">
+                        <span class="rf-wizard-label p-0">@UiText.LabelHitPointsGain(Lang)</span>
+                        @if (index == 0)
+                        {
+                            <span class="rf-wizard-pill locked">@UiText.HitPointsMaximum(cls.HitDie, Lang)</span>
+                        }
+                        else
+                        {
+                            <button type="button" class="rf-wizard-pill @(level.HitPointRoll is null ? "selected" : null)" @onclick="() => SetRoll(index, null)" data-test="wizard-hp-fixed">@UiText.HitPointsFixed(cls.HitDie / 2 + 1, Lang)</button>
+                            <button type="button" class="rf-wizard-pill @(level.HitPointRoll is not null ? "selected" : null)" @onclick="() => SetRoll(index, Random.Shared.Next(1, cls.HitDie + 1))" data-test="wizard-hp-roll">
+                                @(level.HitPointRoll is { } roll ? UiText.HitPointsRolled(roll, Lang) : UiText.BtnRollHitDie(cls.HitDie, Lang))
+                            </button>
+                        }
+                    </div>
+
+                    @if (plan is not null && (plan.Improvement || plan.EpicBoon))
+                    {
+                        <div class="rf-level-improvement" data-test="wizard-improvement">
+                            <div class="rf-wizard-counter mb-2">@(plan.EpicBoon ? UiText.LabelEpicBoon(Lang) : UiText.LabelImprovement(Ruleset, Lang))</div>
+                            @if (!Is2024)
+                            {
+                                <div class="rf-wizard-pills">
+                                    <button type="button" class="rf-wizard-pill @(level.FeatId is null && !featMode.Contains(index) ? "selected" : null)" @onclick="() => SetPlainImprovement(index)" data-test="wizard-asi-plain">@UiText.OptionPlainImprovement(Lang)</button>
+                                    <button type="button" class="rf-wizard-pill @(level.FeatId is not null || featMode.Contains(index) ? "selected" : null)" @onclick="() => SetFeatMode(index)" data-test="wizard-asi-feat">@UiText.OptionTakeFeat(Lang)</button>
+                                </div>
+                            }
+                            @if (!Is2024 && level.FeatId is null && !featMode.Contains(index))
+                            {
+                                <div class="rf-wizard-small mb-2">@UiText.LabelAsiIncrease(Lang)</div>
+                                @for (var k = 0; k < 2; k++)
+                                {
+                                    var pick = k;
+                                    <div class="rf-wizard-row">
+                                        <div class="rf-wizard-label">@UiText.LabelPlusOne(Lang)</div>
+                                        <div class="rf-wizard-field">
+                                            <ForgeSelector TValue="AbilityScore?" Value="@(pick < level.Increases.Count ? level.Increases[pick] : null)" ValueChanged="v => SetIncrease(index, pick, v)"
+                                                           Options="AbilityOptions" DataTest="@($"wizard-asi-{pick}")" />
+                                        </div>
+                                    </div>
+                                }
+                            }
+                            else
+                            {
+                                <div class="rf-wizard-row">
+                                    <div class="rf-wizard-label">@UiText.LabelFeat(Lang)</div>
+                                    <div class="rf-wizard-field">
+                                        <ForgeSelector TValue="Guid?" Value="level.FeatId" ValueChanged="v => SetFeat(index, v)" Options="FeatOptions(plan)" DataTest="wizard-level-feat" />
+                                    </div>
+                                </div>
+                                @if (W.Feat(level.FeatId) is { } feat)
+                                {
+                                    <FeatChoiceEditor W="W" Feat="feat" Choice="level.Feat" />
+                                }
+                            }
+                        </div>
+                    }
+
+                    @if (plan is not null && plan.SubclassChoice)
+                    {
+                        <SubclassRow W="W" Class="plan.Class" Entry="W.ClassBuild(plan.Class.Id)" ClassLevel="W.ClassLevelOf(plan.Class.Id)" />
+                    }
+                </div>
+            }
+        </div>
+    }
+</div>
+
+<div class="d-flex flex-wrap gap-2 align-items-stretch mt-3">
+    @if (Build.Levels.Count < 20)
+    {
+        <div class="flex-grow-1" style="min-width: 200px;">
+            <ForgeSelector TValue="Guid" Value="NextClassId" ValueChanged="v => nextClassId = v" Options="ClassOptions" DataTest="wizard-next-class" />
+        </div>
+        <button type="button" class="rf-wizard-btn" style="flex: none; padding: 0 1.2rem;" @onclick="() => W.AddLevel(NextClassId)" data-test="wizard-add-level">@UiText.BtnAddLevel(Lang)</button>
+    }
+    @if (Build.Levels.Count > MinimumLevels)
+    {
+        <button type="button" class="rf-wizard-btn secondary" style="flex: none; padding: 0 1.2rem;" @onclick="W.RemoveLastLevel" data-test="wizard-remove-level">@UiText.BtnRemoveLevel(Lang)</button>
+    }
+</div>
+@if (NextClass is { } next && !CharacterRules.MeetsMulticlassPrerequisite(next, Computed.FinalScores) && Build.Levels.All(l => l.ClassId != next.Id))
+{
+    <div class="small mt-2" style="color: #ffaa00;">@UiText.MulticlassNeeds(PrerequisiteText(next), Lang)</div>
+}
+@if (Computed.Classes.Count > 1)
+{
+    <div class="small mt-2" style="color: var(--rf-text-muted);">@UiText.MulticlassProficiencies(Lang)</div>
+}
+
+@foreach (var info in Computed.Classes)
+{
+    <ClassChoices W="W" Info="info" />
+}
+
+@code {
+    private Guid? nextClassId;
+    private readonly HashSet<int> featMode = new();
+
+    //	Level up: the levels already saved stay
+    private int MinimumLevels => W.Mode == WizardMode.LevelUp ? W.SavedLevels + 1 : 1;
+
+    private Guid NextClassId => nextClassId ?? Build.Levels[^1].ClassId;
+
+    private ContextClass? NextClass => W.Class(NextClassId);
+
+    private List<ForgeSelector<Guid>.Option> ClassOptions => Context.Classes.Select(c =>
+    {
+        var taken = Build.Levels.Any(l => l.ClassId == c.Id);
+        var label = taken || CharacterRules.MeetsMulticlassPrerequisite(c, Computed.FinalScores) ? c.Name : $"{c.Name} ({UiText.MulticlassNeeds(PrerequisiteText(c), Lang)})";
+        return new ForgeSelector<Guid>.Option(c.Id, label);
+    }).ToList();
+
+    private string PrerequisiteText(ContextClass cls)
+    {
+        var (abilities, any) = CharacterRules.MulticlassPrerequisite(cls);
+        return string.Join(any ? UiText.WordOr(Lang) : UiText.WordAnd(Lang), abilities.Select(a => FeatPrerequisiteFormatter.AbilityName(a, Lang)));
+    }
+
+    private List<ForgeSelector<AbilityScore?>.Option> AbilityOptions
+    {
+        get
+        {
+            var options = CharacterMath.Abilities.Select(a => new ForgeSelector<AbilityScore?>.Option(a, FeatPrerequisiteFormatter.AbilityName(a, Lang))).ToList();
+            options.Insert(0, new ForgeSelector<AbilityScore?>.Option(null, "—"));
+            return options;
+        }
+    }
+
+    //	2024: general feats (the Ability Score Improvement among them) and the others you qualify for; at 19 the Epic Boons
+    private List<ForgeSelector<Guid?>.Option> FeatOptions(LevelPlanEntry plan)
+    {
+        var feats = Context.Feats.Where(f => Is2024
+            ? (plan.EpicBoon ? f.Category is FeatCategory.EpicBoon or FeatCategory.General : f.Category is FeatCategory.General or FeatCategory.Origin)
+                && (f.MinimumLevel is null || f.MinimumLevel <= plan.Level)
+            : true);
+        var options = feats
+            .OrderBy(f => f.Category == FeatCategory.EpicBoon ? 0 : f.Key == "ability-score-improvement" ? 1 : 2)
+            .ThenBy(f => f.Name)
+            .Select(f => new ForgeSelector<Guid?>.Option(f.Id, f.Name))
+            .ToList();
+        options.Insert(0, new ForgeSelector<Guid?>.Option(null, UiText.NoFeatChosen(Lang)));
+        return options;
+    }
+
+    private void SetRoll(int index, int? roll)
+    {
+        Build.Levels[index].HitPointRoll = roll;
+        W.Update();
+    }
+
+    private void SetPlainImprovement(int index)
+    {
+        featMode.Remove(index);
+        var level = Build.Levels[index];
+        level.FeatId = null;
+        level.Feat = new FeatChoice();
+        W.Update();
+    }
+
+    private void SetFeatMode(int index)
+    {
+        featMode.Add(index);
+        Build.Levels[index].Increases.Clear();
+        W.Update();
+    }
+
+    private void SetIncrease(int index, int pick, AbilityScore? value)
+    {
+        var list = Build.Levels[index].Increases;
+        if (value is null)
+        {
+            if (pick < list.Count)
+            {
+                list.RemoveAt(pick);
+            }
+        }
+        else if (pick < list.Count)
+        {
+            list[pick] = value.Value;
+        }
+        else
+        {
+            list.Add(value.Value);
+        }
+        W.Update();
+    }
+
+    private void SetFeat(int index, Guid? id)
+    {
+        var level = Build.Levels[index];
+        level.FeatId = id;
+        level.Feat = new FeatChoice();
+        level.Increases.Clear();
+        if (id is not null)
+        {
+            featMode.Add(index);
+        }
+        W.Update();
+    }
+}

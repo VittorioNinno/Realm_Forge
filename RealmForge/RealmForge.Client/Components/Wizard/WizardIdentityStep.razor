@@ -1,0 +1,60 @@
+﻿@* Edition (only for a new character), name and starting level *@
+<div class="rf-wizard-row">
+    <div class="rf-wizard-label">@UiText.LabelEdition(Lang)</div>
+    <div class="rf-wizard-field">
+        @if (W.Mode == WizardMode.Create)
+        {
+            <ForgeSelector TValue="RulesetVersion" Value="Ruleset" ValueChanged="W.ChangeRulesetAsync" Options="EditionOptions" DataTest="wizard-edition" />
+        }
+        else
+        {
+            <div class="rf-forge-selector-display" style="min-height: 48px;">@UiText.FormatRuleset(Ruleset, Lang)</div>
+        }
+    </div>
+</div>
+<div class="rf-wizard-text">@UiText.EditionIntro(Ruleset, Lang)</div>
+
+<div class="rf-wizard-row">
+    <div class="rf-wizard-label">@UiText.LabelCharacterName(Lang)</div>
+    <div class="rf-wizard-field">
+        <input class="rf-wizard-input" maxlength="100" placeholder="@UiText.PlaceholderCharacterName(Lang)"
+               value="@W.Input.Name" @oninput="OnName" data-test="wizard-name" />
+    </div>
+</div>
+
+@if (W.Mode == WizardMode.Create)
+{
+    <div class="rf-wizard-row">
+        <div class="rf-wizard-label">@UiText.LabelStartingLevel(Lang)</div>
+        <div class="rf-wizard-field">
+            <div class="rf-wizard-level">
+                <input type="range" class="rf-wizard-range" min="1" max="20" value="@Build.Levels.Count" @oninput="OnLevel"
+                       data-test="wizard-level" aria-label="@UiText.LabelStartingLevel(Lang)" />
+                <span class="rf-wizard-level-value" data-test="wizard-level-value">@Build.Levels.Count</span>
+            </div>
+            <div class="small mt-1" style="color: var(--rf-text-muted);">@UiText.HintStartingLevel(Lang)</div>
+        </div>
+    </div>
+}
+
+@code {
+    private static readonly List<ForgeSelector<RulesetVersion>.Option> EditionOptions = new()
+    {
+        new(RulesetVersion.Dnd5e_2024, "D&D 5.5e (2024)"),
+        new(RulesetVersion.Dnd5e_2014, "D&D 5e (2014)")
+    };
+
+    private void OnName(ChangeEventArgs e)
+    {
+        W.Input.Name = e.Value?.ToString() ?? string.Empty;
+        W.Update();
+    }
+
+    private void OnLevel(ChangeEventArgs e)
+    {
+        if (int.TryParse(e.Value?.ToString(), out var value))
+        {
+            W.SetLevelCount(value);
+        }
+    }
+}

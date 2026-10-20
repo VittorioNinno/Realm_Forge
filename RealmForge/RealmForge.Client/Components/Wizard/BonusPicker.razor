@@ -1,0 +1,67 @@
+﻿@* Origin increases chosen freely: +2/+1 or +1 to three (2024 background, 2014 Homebrew race), +1 to all (2014) *@
+<div class="rf-wizard-row">
+    <div class="rf-wizard-label">@UiText.LabelBonusMode(Lang)</div>
+    <div class="rf-wizard-field">
+        <ForgeSelector TValue="AbilityBonusMode" Value="Build.BonusMode" ValueChanged="SetMode" Options="ModeOptions" DataTest="wizard-bonus-mode" />
+    </div>
+</div>
+@for (var i = 0; i < PickCount; i++)
+{
+    var pick = i;
+    <div class="rf-wizard-row">
+        <div class="rf-wizard-label">@(Build.BonusMode == AbilityBonusMode.TwoAndOne && pick == 0 ? UiText.LabelPlusTwo(Lang) : UiText.LabelPlusOne(Lang))</div>
+        <div class="rf-wizard-field">
+            <ForgeSelector TValue="AbilityScore" Value="@(pick < Build.BonusChoices.Count ? Build.BonusChoices[pick] : default)" ValueChanged="v => SetPick(pick, v)"
+                           Options="PickOptions(pick)" DataTest="@($"wizard-pick-{pick}")" />
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter] public IReadOnlyList<AbilityScore> Allowed { get; set; } = CharacterMath.Abilities;
+
+    private int PickCount => Build.BonusMode switch
+    {
+        AbilityBonusMode.TwoAndOne => 2,
+        AbilityBonusMode.ThreeOnes => 3,
+        _ => 0
+    };
+
+    private List<ForgeSelector<AbilityBonusMode>.Option> ModeOptions =>
+        (Is2024 ? new[] { AbilityBonusMode.TwoAndOne, AbilityBonusMode.ThreeOnes } : new[] { AbilityBonusMode.TwoAndOne, AbilityBonusMode.ThreeOnes, AbilityBonusMode.AllOnes })
+            .Select(m => new ForgeSelector<AbilityBonusMode>.Option(m, UiText.BonusModeName(m, Lang))).ToList();
+
+    protected override void OnParametersSet()
+    {
+        //	Always a complete set of distinct picks, so the increases are never left half chosen
+        if (Build.BonusChoices.Count != PickCount || Build.BonusChoices.Distinct().Count() != Build.BonusChoices.Count || Build.BonusChoices.Any(c => !Allowed.Contains(c)))
+        {
+            Build.BonusChoices = Allowed.Take(PickCount).ToList();
+            W.Update();
+        }
+    }
+
+    private void SetMode(AbilityBonusMode mode)
+    {
+        Build.BonusMode = mode;
+        Build.BonusChoices = Allowed.Take(PickCount).ToList();
+        W.Update();
+    }
+
+    private List<ForgeSelector<AbilityScore>.Option> PickOptions(int index)
+    {
+        var taken = Build.BonusChoices.Where((_, i) => i != index).ToHashSet();
+        return Allowed.Where(a => !taken.Contains(a))
+            .Select(a => new ForgeSelector<AbilityScore>.Option(a, FeatPrerequisiteFormatter.AbilityName(a, Lang)))
+            .ToList();
+    }
+
+    private void SetPick(int index, AbilityScore value)
+    {
+        if (index < Build.BonusChoices.Count)
+        {
+            Build.BonusChoices[index] = value;
+            W.Update();
+        }
+    }
+}

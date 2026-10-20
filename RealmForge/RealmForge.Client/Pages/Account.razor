@@ -63,6 +63,12 @@
                 }
             </div>
 
+            @* Base content of the compendium per section and edition (moved here from the dashboard) *@
+            @if (summary != null)
+            {
+                <CompendiumCounts />
+            }
+
             @* Homebrew content created by the user *@
             @if (summary != null)
             {

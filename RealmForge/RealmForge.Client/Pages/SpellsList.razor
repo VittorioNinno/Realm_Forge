@@ -8,6 +8,7 @@
 @implements IDisposable
 @inject SpellDataService SpellService
 @inject LanguageStateService LanguageState
+@inject GlossaryService Glossary
 @inject ApiErrorState ApiErrors
 
 <PageTitle>RealmForge - @UiText.SpellsTitle(Lang)</PageTitle>
@@ -99,12 +100,24 @@
     }
     else
     {
-        @* One section per level, cantrips first *@
+        @* One section per level, cantrips first; each one opens and closes *@
+        <div class="d-flex justify-content-end gap-2">
+            <button type="button" class="btn btn-sm btn-rf-outline" @onclick="() => SetAllGroups(true)" data-test="spell-expand-all">@UiText.BtnExpandAll(Lang)</button>
+            <button type="button" class="btn btn-sm btn-rf-outline" @onclick="() => SetAllGroups(false)" data-test="spell-collapse-all">@UiText.BtnCollapseAll(Lang)</button>
+        </div>
         @foreach (var group in FilteredSpells.GroupBy(s => s.Level).OrderBy(g => g.Key))
         {
-            <h2 class="h5 mt-4 mb-3 rf-spell-level-title" data-test="spell-level-group">
-                @GameTerms.SpellLevel(group.Key, Lang) <span class="small" style="color: var(--rf-text-muted);">(@group.Count())</span>
+            var expanded = IsExpanded(group.Key);
+            <h2 class="h5 mt-4 mb-3 rf-spell-level-title">
+                <button type="button" class="rf-group-toggle" aria-expanded="@(expanded ? "true" : "false")" @onclick="() => ToggleGroup(group.Key)" data-test="spell-level-group">
+                    <span class="rf-group-chevron @(expanded ? "open" : null)"><NavIcon Name="chevron" /></span>
+                    @GameTerms.SpellLevel(group.Key, Lang) <span class="small" style="color: var(--rf-text-muted);">(@group.Count())</span>
+                </button>
             </h2>
+            @if (!expanded)
+            {
+                continue;
+            }
             <div class="row row-cols-1 row-cols-md-2 row-cols-xl-3 g-3">
                 @foreach (var spell in group)
                 {
@@ -182,7 +195,7 @@
 
             <div class="mb-3 p-3 rounded" style="background-color: var(--rf-bg-main); border-left: 3px solid var(--rf-border-light);">
                 <div class="rf-markdown-container" data-test="spell-description">
-                    @((MarkupString)MarkdownText.ToHtml(spellDetail.Description))
+                    @((MarkupString)MarkdownText.ToHtml(spellDetail.Description, Terms(spellDetail.Ruleset)))
                 </div>
             </div>
 
@@ -190,7 +203,7 @@
             {
                 <div class="mb-3 p-3 rounded" style="background-color: var(--rf-bg-main); border-left: 3px solid var(--rf-orange-primary);" data-test="spell-higher-levels">
                     <strong class="small d-block mb-1 text-uppercase" style="color: var(--rf-orange-primary); letter-spacing: 0.5px;">@GameTerms.SpellHigherLevelsHeading(spellDetail.Level, Lang, spellDetail.Ruleset)</strong>
-                    <div class="rf-markdown-container">@((MarkupString)MarkdownText.ToHtml(spellDetail.HigherLevels))</div>
+                    <div class="rf-markdown-container">@((MarkupString)MarkdownText.ToHtml(spellDetail.HigherLevels, Terms(spellDetail.Ruleset)))</div>
                 </div>
             }
 
@@ -198,7 +211,25 @@
             {
                 <div class="small mb-2" data-test="spell-classes">
                     <strong class="text-uppercase" style="color: var(--rf-text-muted); letter-spacing: 0.5px;">@UiText.LabelSpellLists(Lang):</strong>
-                    <span style="color: #ffffff;">@ClassList(spellDetail.Classes)</span>
+                    <span style="color: #ffffff;">
+                        @{ var classLinks = spellDetail.Classes.Select(c => (Name: GameTerms.ClassName(c, Lang), Id: Glossary.ClassOfSpellList(Lang, spellDetail.Ruleset, c))).OrderBy(c => c.Name).ToList(); }
+                        @for (var i = 0; i < classLinks.Count; i++)
+                        {
+                            var link = classLinks[i];
+                            if (i > 0)
+                            {
+                                <text>, </text>
+                            }
+                            if (link.Id is { } classId)
+                            {
+                                <a href="@($"classes?id={classId}")" data-test="spell-class-link">@link.Name</a>
+                            }
+                            else
+                            {
+                                <text>@link.Name</text>
+                            }
+                        }
+                    </span>
                 </div>
             }
 
@@ -366,6 +397,13 @@
     [SupplyParameterFromQuery(Name = "id")]
     public Guid? QuerySpellId { get; set; }
 
+    //	Spell list of a class (link from the class sheet): spells?class=8&ruleset=2
+    [SupplyParameterFromQuery(Name = "class")]
+    public int? QueryClass { get; set; }
+
+    [SupplyParameterFromQuery(Name = "ruleset")]
+    public int? QueryRuleset { get; set; }
+
     private LanguageCode Lang => LanguageState.CurrentLanguage;
 
     private List<SpellResponseDto> AllSpells { get; set; } = new();
@@ -381,6 +419,37 @@
     private SpellcastingClass? ClassFilter { get; set; }
     private bool RitualOnly { get; set; }
     private bool ConcentrationOnly { get; set; }
+
+    //	Open and closed levels: closed by default (the page reads as an index), open as soon as a filter or a search
+    //	narrows the list; the user's toggles win until the filters change again
+    private readonly Dictionary<int, bool> toggledGroups = new();
+    private string? groupFilters;
+
+    private bool IsFiltered => LevelFilter is not null || SchoolFilter is not null || ClassFilter is not null || RitualOnly || ConcentrationOnly
+        || !string.IsNullOrWhiteSpace(SearchTerm) || OriginFilter.Length > 0;
+
+    private bool IsExpanded(int level)
+    {
+        var filters = $"{LevelFilter}|{SchoolFilter}|{ClassFilter}|{RitualOnly}|{ConcentrationOnly}|{SearchTerm}|{OriginFilter}|{SelectedRuleset}";
+        if (filters != groupFilters)
+        {
+            groupFilters = filters;
+            toggledGroups.Clear();
+        }
+
+        return toggledGroups.TryGetValue(level, out var open) ? open : IsFiltered;
+    }
+
+    private void ToggleGroup(int level) => toggledGroups[level] = !IsExpanded(level);
+
+    private void SetAllGroups(bool open)
+    {
+        IsExpanded(0);
+        for (var level = 0; level <= 9; level++)
+        {
+            toggledGroups[level] = open;
+        }
+    }
 
     private string SelectedRulesetFilter
     {
@@ -432,8 +501,20 @@
     protected override async Task OnInitializedAsync()
     {
         LanguageState.OnLanguageChanged += HandleLanguageChanged;
+        _ = LoadGlossaryAsync();
+
+        if (QueryClass is { } list && Enum.IsDefined(typeof(SpellcastingClass), list))
+        {
+            ClassFilter = (SpellcastingClass)list;
+        }
+        if (QueryRuleset is { } edition && Enum.IsDefined(typeof(RulesetVersion), edition))
+        {
+            SelectedRuleset = (RulesetVersion)edition;
+        }
+
         await LoadSpellsAsync();
 
+        openedQuerySpellId = QuerySpellId;
         if (QuerySpellId.HasValue)
         {
             await OpenDetailAsync(QuerySpellId.Value);
@@ -446,8 +527,25 @@
         }
     }
 
+    //	A spell named in another spell's text links to spells?id=…: same page, only the query changes
+    private Guid? openedQuerySpellId;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (QuerySpellId != openedQuerySpellId)
+        {
+            openedQuerySpellId = QuerySpellId;
+            if (QuerySpellId is { } id)
+            {
+                await OpenDetailAsync(id);
+            }
+        }
+    }
+
     private async void HandleLanguageChanged()
     {
+        await Glossary.EnsureLoadedAsync(LanguageState.CurrentLanguage);
+
         if (SelectedSpell != null)
         {
             SelectedSpell = await SpellService.GetSpellDetailAsync(SelectedSpell.Id, Lang);
@@ -635,6 +733,16 @@
     }
 
     #endregion
+
+    //	Rules terms in the descriptions link to the glossary (with a tooltip) once it is loaded
+    private async Task LoadGlossaryAsync()
+    {
+        await Glossary.EnsureLoadedAsync(LanguageState.CurrentLanguage);
+        StateHasChanged();
+    }
+
+    private RealmForge.Shared.Text.GlossaryLinker? Terms(RulesetVersion? ruleset) =>
+        ruleset is { } edition ? Glossary.Linker(LanguageState.CurrentLanguage, edition) : null;
 
     public void Dispose() => LanguageState.OnLanguageChanged -= HandleLanguageChanged;
 }
