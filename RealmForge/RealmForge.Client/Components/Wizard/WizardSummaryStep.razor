@@ -1,0 +1,89 @@
+﻿@* Summary: the computed character and the choices still open (the character can be saved and completed later) *@
+@{
+    var c = Computed;
+    var todo = c.Issues.Where(i => !i.Blocking).ToList();
+    var errors = c.Issues.Where(i => i.Blocking).ToList();
+}
+
+<div class="rf-sheet-head" data-test="wizard-summary">
+    <div class="rf-sheet-name">@W.Input.Name</div>
+    <div class="rf-sheet-sub">@(c.Subspecies?.Name ?? c.Species?.Name) · @W.ClassLine</div>
+    <div class="rf-sheet-sub small">@(c.Background?.Name) · @UiText.AlignmentName(Build.Alignment, Lang) · @UiText.FormatRuleset(Ruleset, Lang)</div>
+</div>
+
+<div class="rf-sheet-vitals">
+    <div class="rf-sheet-vital"><div class="rf-sheet-vital-value" data-test="summary-ac">@c.ArmorClass</div><div class="rf-sheet-vital-label">@UiText.SheetArmorClass(Lang)</div></div>
+    <div class="rf-sheet-vital"><div class="rf-sheet-vital-value" data-test="summary-hp">@c.MaxHitPoints</div><div class="rf-sheet-vital-label">@UiText.SheetHitPoints(Lang)</div></div>
+    <div class="rf-sheet-vital"><div class="rf-sheet-vital-value">@CharacterMath.FormatModifier(c.Initiative)</div><div class="rf-sheet-vital-label">@UiText.SheetInitiative(Lang)</div></div>
+    <div class="rf-sheet-vital"><div class="rf-sheet-vital-value">@UiText.FormatSpeed(c.Speed, Lang)</div><div class="rf-sheet-vital-label">@UiText.SheetSpeed(Lang)</div></div>
+    <div class="rf-sheet-vital"><div class="rf-sheet-vital-value">@CharacterMath.FormatModifier(c.ProficiencyBonus)</div><div class="rf-sheet-vital-label">@UiText.SheetProficiency(Lang)</div></div>
+    <div class="rf-sheet-vital"><div class="rf-sheet-vital-value">@c.PassivePerception</div><div class="rf-sheet-vital-label">@UiText.SheetPassivePerception(Lang)</div></div>
+</div>
+
+<div class="rf-stat-grid mb-3">
+    @for (var i = 0; i < 6; i++)
+    {
+        var ability = CharacterMath.Abilities[i];
+        <div class="rf-stat-card">
+            <div class="rf-stat-card-label">@FeatPrerequisiteFormatter.AbilityName(ability, Lang)</div>
+            <div class="rf-stat-card-value">@c.FinalScores[i]</div>
+            <div class="rf-stat-card-mod mb-0">@CharacterMath.FormatModifier(c.Modifier(ability)) · @UiText.SheetSaveShort(Lang) @CharacterMath.FormatModifier(c.SaveBonus(ability))@(c.SaveProficiencies.Contains(ability) ? " •" : null)</div>
+        </div>
+    }
+</div>
+
+<div class="rf-wizard-panel">
+    <div class="rf-wizard-block-title">@UiText.SheetSkills(Lang)</div>
+    <div class="rf-wizard-pills">
+        @foreach (var skill in c.SkillProficiencies.OrderBy(s => GameTerms.SkillName(s, Lang)))
+        {
+            <span class="rf-wizard-pill @(c.Expertise.Contains(skill) ? "selected" : null)">@GameTerms.SkillName(skill, Lang) @CharacterMath.FormatModifier(c.SkillBonus(skill))</span>
+        }
+    </div>
+    @if (c.Feats.Count > 0)
+    {
+        <div class="rf-wizard-block-title">@UiText.SheetFeats(Lang)</div>
+        <div class="rf-wizard-text">@string.Join(", ", c.Feats.Select(f => f.Feat.Name))</div>
+    }
+    <div class="rf-wizard-block-title">@UiText.LabelLanguages(Ruleset, Lang)</div>
+    <div class="rf-wizard-text">@string.Join(", ", c.Languages.Select(l => CharacterLanguages.Name(Ruleset, l, Lang)))</div>
+    @if (c.Spellcasting.Count > 0)
+    {
+        <div class="rf-wizard-block-title">@UiText.SheetSpells(Lang)</div>
+        <div class="rf-wizard-text">
+            @string.Join(", ", c.Spellcasting.SelectMany(s => s.ChosenCantrips.Concat(s.ChosenSpells)).Distinct().Select(id => W.Spell(id)?.Name).Where(n => n is not null))
+        </div>
+    }
+</div>
+
+@if (errors.Count > 0)
+{
+    <div class="rf-wizard-error mt-3" data-test="wizard-summary-errors">
+        <ul class="mb-0 ps-3">
+            @foreach (var issue in errors.Select(i => UiText.Issue(i, Ruleset, Lang)).Distinct())
+            {
+                <li>@issue</li>
+            }
+        </ul>
+    </div>
+}
+<div class="rf-wizard-panel mt-3" data-test="wizard-todo">
+    <div class="rf-wizard-block-title">@UiText.LabelToComplete(Lang)</div>
+    @if (todo.Count == 0)
+    {
+        <div class="small mb-0" style="color: var(--rf-text-secondary);">@UiText.AllChoicesDone(Lang)</div>
+    }
+    else
+    {
+        <div class="small mb-2" style="color: var(--rf-text-muted);">@UiText.HintSaveIncomplete(Lang)</div>
+        <ul class="rf-sheet-list">
+            @foreach (var issue in todo.GroupBy(i => UiText.Issue(i, Ruleset, Lang)).Select(g => g.First()))
+            {
+                <li class="d-flex justify-content-between gap-2">
+                    <span>@UiText.Issue(issue, Ruleset, Lang)</span>
+                    <button type="button" class="btn btn-link p-0 small" @onclick="() => W.JumpToArea(issue.Area)">@W.AreaName(issue.Area)</button>
+                </li>
+            }
+        </ul>
+    }
+</div>

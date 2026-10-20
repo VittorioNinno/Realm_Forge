@@ -1,0 +1,41 @@
+﻿@using RealmForge.Client.Localization
+@using RealmForge.Client.Services
+@using RealmForge.Shared.Enums
+@inject GlossaryService Glossary
+@inject LanguageStateService LanguageState
+
+@* A feature, trait or feat: title, optional level and the description, collapsed until opened *@
+<div class="rf-wizard-feature">
+    <button type="button" class="rf-feature-toggle" @onclick="() => open = !open" aria-expanded="@open">
+        <span class="rf-wizard-feature-title">@Title</span>
+        @if (Level is { } level)
+        {
+            <span class="rf-wizard-feature-level">@UiText.CharacterLevel(level, LanguageState.CurrentLanguage)</span>
+        }
+        @if (Badge is not null)
+        {
+            <span class="rf-wizard-feature-level">@Badge</span>
+        }
+        @if (!string.IsNullOrWhiteSpace(Text))
+        {
+            <span class="rf-feature-chevron @(open ? "open" : null)">›</span>
+        }
+    </button>
+    @if (open && !string.IsNullOrWhiteSpace(Text))
+    {
+        <div class="rf-wizard-feature-desc rf-markdown-container mt-2">@((MarkupString)MarkdownText.ToHtml(Text, Glossary.Linker(LanguageState.CurrentLanguage, Ruleset)))</div>
+    }
+</div>
+
+@code {
+    [Parameter] public string Title { get; set; } = string.Empty;
+    [Parameter] public string? Text { get; set; }
+    [Parameter] public int? Level { get; set; }
+    [Parameter] public string? Badge { get; set; }
+    [Parameter] public RulesetVersion Ruleset { get; set; }
+    [Parameter] public bool Open { get; set; }
+
+    private bool open;
+
+    protected override void OnInitialized() => open = Open;
+}

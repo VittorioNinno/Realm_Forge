@@ -37,14 +37,9 @@ namespace RealmForge.Api.Controllers
 			return Ok(new CompendiumIndexDto(
 				spells.Select(s => new CompendiumIndexEntryDto(s.Id, s.Translations.Localize(lang)?.Name ?? string.Empty, s.Ruleset)).ToList(),
 				equipment.Select(e => new CompendiumIndexEntryDto(e.Id, e.Translations.Localize(lang)?.Name ?? string.Empty, e.Ruleset)).ToList(),
-				classes.Select(c => new CompendiumClassDto(c.Id, c.Translations.Localize(lang)?.Name ?? string.Empty, c.Ruleset, SpellListOf(c.Id, c.Ruleset))).ToList()));
+				classes.Select(c => new CompendiumClassDto(c.Id, c.Translations.Localize(lang)?.Name ?? string.Empty, c.Ruleset,
+					BaseClassKeys.SpellList(BaseClassKeys.Of(c.Id, c.Ruleset)), BaseClassKeys.Of(c.Id, c.Ruleset))).ToList()));
 		}
 
-		//	Base classes have deterministic ids (ForSrd(ruleset, "class", "wizard")): the spell list is the one with the same name
-		private static SpellcastingClass? SpellListOf(Guid classId, RulesetVersion ruleset) =>
-			Enum.GetValues<SpellcastingClass>()
-				.Where(list => DeterministicGuid.ForSrd(ruleset, "class", list.ToString().ToLowerInvariant()) == classId)
-				.Select(list => (SpellcastingClass?)list)
-				.FirstOrDefault();
 	}
 }

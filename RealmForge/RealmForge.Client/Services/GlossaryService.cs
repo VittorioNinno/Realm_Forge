@@ -107,6 +107,14 @@ namespace RealmForge.Client.Services
 				? index.Classes.FirstOrDefault(c => c.Id == classId)?.SpellList
 				: null;
 
+		///	<summary>
+		///	Rules key of a Base class ("wizard", "monk"…), used by the character rules (Unarmored Defense, half casters).
+		///	</summary>
+		public string? ClassKey(LanguageCode language, Guid classId) =>
+			_indexes.TryGetValue(language, out var load) && load.IsCompletedSuccessfully && load.Result is { } index
+				? index.Classes.FirstOrDefault(c => c.Id == classId)?.Key
+				: null;
+
 		private async Task<CompendiumIndexDto?> GetIndexAsync(LanguageCode language)
 		{
 			if (!_indexes.TryGetValue(language, out var load))

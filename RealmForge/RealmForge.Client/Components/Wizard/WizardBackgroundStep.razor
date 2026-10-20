@@ -1,0 +1,58 @@
+﻿@* Background: description and proficiencies; 2024: the ability increases and the Origin feat with its choices;
+   2014: the feature and the languages of choice *@
+@{
+    var background = W.Background;
+    var detail = background is null ? null : W.BackgroundDetails.GetValueOrDefault(background.Id);
+}
+
+<div class="rf-wizard-row">
+    <div class="rf-wizard-label">@UiText.LabelBackground(Lang)</div>
+    <div class="rf-wizard-field">
+        <ForgeSelector TValue="Guid" Value="W.Input.BackgroundId" ValueChanged="W.SetBackgroundAsync" Options="BackgroundOptions" DataTest="wizard-background" />
+    </div>
+</div>
+
+@if (detail is not null && background is not null)
+{
+    <div class="rf-wizard-panel mb-3" data-test="wizard-background-panel">
+        <div class="rf-wizard-block-title">@detail.Name</div>
+        <div class="rf-wizard-text rf-markdown-container">@((MarkupString)MarkdownText.ToHtml(detail.Description, W.Terms))</div>
+        <div class="rf-wizard-meta">
+            @if (Is2024 && detail.AbilityOptions.Count > 0)
+            {
+                <div><strong>@UiText.LabelAbilityOptionsShort(Lang)</strong>@string.Join(", ", detail.AbilityOptions.Select(a => FeatPrerequisiteFormatter.AbilityName(a, Lang)))</div>
+            }
+            <div><strong>@UiText.LabelSkillsShort(Lang)</strong>@string.Join(", ", detail.SkillProficiencies.Select(s => GameTerms.SkillName(s, Lang)))</div>
+            @if (!string.IsNullOrWhiteSpace(detail.ToolProficiencies))
+            {
+                <div><strong>@UiText.LabelTools(Lang)</strong>@detail.ToolProficiencies</div>
+            }
+            @if (!Is2024 && !string.IsNullOrWhiteSpace(detail.Languages))
+            {
+                <div><strong>@UiText.LabelLanguages(Ruleset, Lang)</strong>@detail.Languages</div>
+            }
+        </div>
+        @if (!Is2024 && !string.IsNullOrWhiteSpace(detail.FeatureName))
+        {
+            <FeatureBlock Title="@($"{UiText.LabelBackgroundFeature(Lang)}: {detail.FeatureName}")" Text="@detail.FeatureDescription" Ruleset="Ruleset" />
+        }
+    </div>
+}
+
+@if (Is2024 && background is not null)
+{
+    <div class="rf-wizard-block-title">@UiText.LabelAbilityIncreases(Lang)</div>
+    <div class="rf-wizard-text">@UiText.HintIncreases2024(Lang)</div>
+    <BonusPicker W="W" Allowed="@(background.AbilityOptions.Count > 0 ? background.AbilityOptions : CharacterMath.Abilities)" />
+
+    @if (W.Feat(background.OriginFeatId) is { } feat)
+    {
+        <div class="rf-wizard-block-title">@UiText.LabelOriginFeatTitle(Lang): @feat.Name</div>
+        <FeatChoiceEditor W="W" Feat="feat" Choice="Build.OriginFeat" />
+    }
+}
+
+@code {
+    private List<ForgeSelector<Guid>.Option> BackgroundOptions =>
+        Context.Backgrounds.Select(b => new ForgeSelector<Guid>.Option(b.Id, b.Name)).ToList();
+}

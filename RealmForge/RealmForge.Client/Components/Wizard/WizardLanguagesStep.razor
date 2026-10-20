@@ -1,0 +1,57 @@
+﻿@* Languages (2014: Linguaggi) from the tables of the Player's Handbook: those given by race / species and class,
+   then the ones of choice (race, 2014 background, ranger, Linguist) *@
+<div class="rf-wizard-text">@UiText.HintLanguages(Ruleset, Lang)</div>
+
+<div class="rf-wizard-block-title">@UiText.LabelKnownLanguages(Ruleset, Lang)</div>
+<div class="rf-wizard-pills" data-test="wizard-fixed-languages">
+    @foreach (var key in Computed.FixedLanguages)
+    {
+        <span class="rf-wizard-pill locked">@CharacterLanguages.Name(Ruleset, key, Lang)</span>
+    }
+</div>
+
+@if (Computed.LanguageChoices > 0)
+{
+    <div class="rf-wizard-block-title">@UiText.LabelChooseLanguages(Computed.LanguageChoices, Ruleset, Lang)</div>
+    <div class="rf-wizard-counter" data-test="wizard-language-count">@Chosen.Count / @Computed.LanguageChoices</div>
+    @foreach (var group in CharacterLanguages.Choosable(Ruleset).GroupBy(l => l.Group))
+    {
+        <div class="small fw-bold text-uppercase mb-2" style="color: var(--rf-text-muted); letter-spacing: 1px;">@UiText.LanguageGroupName(group.Key, Ruleset, Lang)</div>
+        <div class="rf-wizard-pills">
+            @foreach (var language in group)
+            {
+                var known = Computed.FixedLanguages.Contains(language.Key);
+                var selected = Chosen.Contains(language.Key);
+                if (known)
+                {
+                    <span class="rf-wizard-pill locked" title="@(Lang == LanguageCode.It ? language.OriginIt : language.OriginEn)">@(Lang == LanguageCode.It ? language.NameIt : language.NameEn)</span>
+                }
+                else
+                {
+                    <button type="button" class="rf-wizard-pill @(selected ? "selected" : null)" disabled="@(!selected && Chosen.Count >= Computed.LanguageChoices)"
+                            title="@(Lang == LanguageCode.It ? language.OriginIt : language.OriginEn)"
+                            @onclick="() => Toggle(language.Key)" data-test="wizard-language">@(Lang == LanguageCode.It ? language.NameIt : language.NameEn)</button>
+                }
+            }
+        </div>
+    }
+}
+else
+{
+    <div class="small" style="color: var(--rf-text-muted);">@UiText.NoLanguagesToChoose(Lang)</div>
+}
+
+@code {
+    //	The chosen languages, without those the character already knows
+    private List<string> Chosen => Build.Languages.Where(l => !Computed.FixedLanguages.Contains(l)).ToList();
+
+    private void Toggle(string key)
+    {
+        Build.Languages.RemoveAll(l => Computed.FixedLanguages.Contains(l));
+        if (!Build.Languages.Remove(key) && Build.Languages.Count < Computed.LanguageChoices)
+        {
+            Build.Languages.Add(key);
+        }
+        W.Update();
+    }
+}
