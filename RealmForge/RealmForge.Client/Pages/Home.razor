@@ -11,7 +11,12 @@
 <div class="py-4 rf-home">
     @* Welcome and a short introduction to the app *@
     <h1 class="rf-page-title mb-2">@UiText.HomeTitle(Lang)</h1>
-    <p class="rf-home-intro mb-4" data-test="home-intro">@UiText.HomeSubtitle(Lang)</p>
+    <div class="rf-home-intro mb-4" data-test="home-intro">
+        @foreach (var paragraph in UiText.HomeIntro(Lang))
+        {
+            <p>@paragraph</p>
+        }
+    </div>
 
     @* What is in the app: one quiet link per section, no figures (the counts are in the account page) *@
     <h2 class="rf-home-section-title">@UiText.HomeWhatTitle(Lang)</h2>
@@ -28,34 +33,27 @@
         }
     </div>
 
-    <div class="row g-4 mb-4">
-        @* How the app works *@
-        <div class="col-lg-6">
-            <section class="rf-account-card h-100" data-test="home-how">
-                <div class="rf-account-card-title">@UiText.HomeHowTitle(Lang)</div>
-                <dl class="rf-home-points mb-0">
-                    @foreach (var (title, text) in UiText.HomeHowItWorks(Lang))
-                    {
-                        <div><dt>@title</dt><dd>@text</dd></div>
-                    }
-                </dl>
-            </section>
-        </div>
+    @* How the app works and the house rules, one after the other like a document *@
+    <section class="rf-account-card mb-4" data-test="home-how">
+        <div class="rf-account-card-title">@UiText.HomeHowTitle(Lang)</div>
+        <dl class="rf-home-points mb-0">
+            @foreach (var (title, text) in UiText.HomeHowItWorks(Lang))
+            {
+                <div><dt>@title</dt><dd>@text</dd></div>
+            }
+        </dl>
+    </section>
 
-        @* Rules of behaviour and use *@
-        <div class="col-lg-6">
-            <section class="rf-account-card h-100" data-test="home-rules">
-                <div class="rf-account-card-title">@UiText.HomeRulesTitle(Lang)</div>
-                <p class="small mb-3" style="color: var(--rf-text-secondary);">@UiText.HomeRulesIntro(Lang)</p>
-                <dl class="rf-home-points mb-0">
-                    @foreach (var (title, text) in UiText.HomeHouseRules(Lang))
-                    {
-                        <div><dt>@title</dt><dd>@text</dd></div>
-                    }
-                </dl>
-            </section>
-        </div>
-    </div>
+    <section class="rf-account-card mb-4" data-test="home-rules">
+        <div class="rf-account-card-title">@UiText.HomeRulesTitle(Lang)</div>
+        <p class="small mb-3" style="color: var(--rf-text-secondary);">@UiText.HomeRulesIntro(Lang)</p>
+        <dl class="rf-home-points mb-0">
+            @foreach (var (title, text) in UiText.HomeHouseRules(Lang))
+            {
+                <div><dt>@title</dt><dd>@text</dd></div>
+            }
+        </dl>
+    </section>
 
     @* Next step for the visitor: sign in to forge, or go to the account *@
     <div class="rf-account-card d-flex flex-wrap justify-content-between align-items-center gap-3">
