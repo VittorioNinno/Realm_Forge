@@ -1,0 +1,155 @@
+﻿@* Species (2024) or race (2014): lineage, size, the 2014 racial increases, trait skills, the feat of the human and the traits *@
+@{
+    var species = W.Species;
+    var subspecies = W.Subspecies;
+    var detail = species is null ? null : W.SpeciesDetails.GetValueOrDefault(species.Id);
+}
+
+<div class="rf-wizard-row">
+    <div class="rf-wizard-label">@UiText.LabelSpecies(Ruleset, Lang)</div>
+    <div class="rf-wizard-field">
+        <ForgeSelector TValue="Guid" Value="W.Input.SpeciesId" ValueChanged="W.SetSpeciesAsync" Options="SpeciesOptions" DataTest="wizard-species" />
+    </div>
+</div>
+
+@if (species is not null && species.Subspecies.Count > 0)
+{
+    <div class="rf-wizard-row">
+        <div class="rf-wizard-label">@UiText.LabelSubspecies(Ruleset, Lang)</div>
+        <div class="rf-wizard-field">
+            <ForgeSelector TValue="Guid?" Value="W.Input.SubspeciesId" ValueChanged="W.SetSubspecies" Options="SubspeciesOptions(species)" DataTest="wizard-subspecies" />
+        </div>
+    </div>
+}
+
+@if (species is not null && species.Sizes.Count > 1)
+{
+    <div class="rf-wizard-row">
+        <div class="rf-wizard-label">@UiText.LabelSize(Lang)</div>
+        <div class="rf-wizard-field">
+            <ForgeSelector TValue="CreatureSize" Value="Build.Size" ValueChanged="v => { Build.Size = v; W.Update(); }"
+                           Options="@(species.Sizes.Select(s => new ForgeSelector<CreatureSize>.Option(s, UiText.FormatSizeSingle(s, Lang))).ToList())" DataTest="wizard-size" />
+        </div>
+    </div>
+}
+
+@if (!Is2024)
+{
+    @* 2014: racial increases, fixed by the race; the half-elf and the variant human choose two +1 *@
+    <div class="rf-wizard-block-title">@UiText.LabelRacialIncreases(Lang)</div>
+    @if (CharacterRules.IsBaseRace2014(species))
+    {
+        var (fixedBonus, choices) = CharacterRules.RacialIncreases2014(species, subspecies);
+        <div class="rf-wizard-pills" data-test="wizard-racial-increases">
+            @for (var i = 0; i < 6; i++)
+            {
+                if (fixedBonus[i] > 0)
+                {
+                    <span class="rf-wizard-pill locked">@UiText.AbilityShort(CharacterMath.Abilities[i], Lang) +@fixedBonus[i]</span>
+                }
+            }
+        </div>
+        @if (choices > 0)
+        {
+            <div class="rf-wizard-counter">@UiText.LabelChooseIncreases(choices, Lang) · @Build.BonusChoices.Count / @choices</div>
+            <div class="rf-wizard-pills">
+                @foreach (var ability in CharacterMath.Abilities)
+                {
+                    var blocked = species?.Key == "half-elf" && ability == AbilityScore.Charisma;
+                    var selected = Build.BonusChoices.Contains(ability);
+                    <button type="button" class="rf-wizard-pill @(selected ? "selected" : null)" disabled="@(blocked || (!selected && Build.BonusChoices.Count >= choices))"
+                            @onclick="() => W.Toggle(Build.BonusChoices, ability, choices)" data-test="wizard-racial-choice">@FeatPrerequisiteFormatter.AbilityName(ability, Lang)</button>
+                }
+            </div>
+        }
+    }
+    else
+    {
+        <div class="rf-wizard-text">@UiText.HintIncreasesHomebrew2014(Lang)</div>
+        <BonusPicker W="W" Allowed="CharacterMath.Abilities" />
+    }
+}
+
+@{
+    var (fixedSkills, skillChoices, skillOptions) = CharacterRules.SpeciesSkills(Ruleset, species, subspecies);
+}
+@if (fixedSkills.Count > 0)
+{
+    <div class="rf-wizard-block-title">@UiText.LabelFixedSkills(Lang)</div>
+    <div class="rf-wizard-pills">
+        @foreach (var skill in fixedSkills)
+        {
+            <span class="rf-wizard-pill locked">@GameTerms.SkillName(skill, Lang)</span>
+        }
+    </div>
+}
+@if (skillChoices > 0)
+{
+    <div class="rf-wizard-block-title">@UiText.LabelSpeciesSkills(skillChoices, Lang)</div>
+    <SkillPicker W="W" Chosen="Build.SpeciesSkills" Count="skillChoices" Options="skillOptions" DataTest="wizard-species-skill" />
+}
+
+@if (CharacterRules.SpeciesGrantsFeat(Ruleset, species, subspecies))
+{
+    <div class="rf-wizard-block-title">@UiText.LabelSpeciesFeat(Ruleset, Lang)</div>
+    <div class="rf-wizard-row">
+        <div class="rf-wizard-label">@UiText.LabelFeat(Lang)</div>
+        <div class="rf-wizard-field">
+            <ForgeSelector TValue="Guid?" Value="Build.SpeciesFeatId" ValueChanged="SetSpeciesFeat" Options="SpeciesFeatOptions" DataTest="wizard-species-feat" />
+        </div>
+    </div>
+    @if (W.Feat(Build.SpeciesFeatId) is { } feat)
+    {
+        <FeatChoiceEditor W="W" Feat="feat" Choice="Build.SpeciesFeat" />
+    }
+}
+
+@if (detail is not null)
+{
+    <div class="rf-wizard-panel" data-test="wizard-species-panel">
+        <div class="rf-wizard-block-title">@(subspecies?.Name ?? detail.Name)</div>
+        <div class="rf-wizard-meta">
+            <div><strong>@UiText.SheetSpeed(Lang)</strong>@UiText.FormatSpeed(subspecies?.Speed ?? species!.Speed, Lang)</div>
+            <div><strong>@UiText.LabelSize(Lang)</strong>@UiText.FormatSizeSingle(Build.Size, Lang)</div>
+        </div>
+        <div class="rf-wizard-block-title">@UiText.LabelSpeciesTraits(Ruleset, Lang)</div>
+        @foreach (var trait in detail.BaseTraits.Concat(detail.Subspecies.FirstOrDefault(s => s.Id == subspecies?.Id)?.Traits ?? new List<TraitResponseDto>()))
+        {
+            <FeatureBlock Title="@trait.Name" Text="@trait.Description" Ruleset="Ruleset" Level="@(trait.RequiredLevel > 1 ? trait.RequiredLevel : null)" />
+        }
+    </div>
+}
+
+@code {
+    private List<ForgeSelector<Guid>.Option> SpeciesOptions =>
+        Context.Species.Select(s => new ForgeSelector<Guid>.Option(s.Id, s.Name)).ToList();
+
+    private List<ForgeSelector<Guid?>.Option> SubspeciesOptions(ContextSpecies species)
+    {
+        var options = species.Subspecies.Select(s => new ForgeSelector<Guid?>.Option(s.Id, s.Name)).ToList();
+        if (species.Key is null)
+        {
+            options.Insert(0, new ForgeSelector<Guid?>.Option(null, "—"));
+        }
+        return options;
+    }
+
+    //	2024 Versatile: an Origin feat; 2014 variant human: any feat
+    private List<ForgeSelector<Guid?>.Option> SpeciesFeatOptions
+    {
+        get
+        {
+            var feats = Context.Feats.Where(f => !Is2024 || f.Category == FeatCategory.Origin);
+            var options = feats.Select(f => new ForgeSelector<Guid?>.Option(f.Id, f.Name)).ToList();
+            options.Insert(0, new ForgeSelector<Guid?>.Option(null, UiText.NoFeatChosen(Lang)));
+            return options;
+        }
+    }
+
+    private void SetSpeciesFeat(Guid? id)
+    {
+        Build.SpeciesFeatId = id;
+        Build.SpeciesFeat = new FeatChoice();
+        W.Update();
+    }
+}

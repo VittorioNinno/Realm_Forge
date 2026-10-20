@@ -1,0 +1,123 @@
+﻿@* Choices of one class at its current level: multiclass skill, Expertise, Fighting Style (2014 option, 2024 feat or
+   the paladin / ranger alternative), Divine / Primal Order and Weapon Mastery *@
+@{
+    var cls = Info.Class;
+    var entry = Info.Build;
+    var (multiSkills, anySkill) = Info.Starting ? (0, false) : CharacterRules.MulticlassSkills(cls);
+    var grants = CharacterRules.Expertise(cls, Ruleset).Where(g => g.Level <= Info.Level).ToList();
+    var expertise = grants.Sum(g => g.Count);
+    var restricted = grants.Count > 0 && grants.All(g => g.Allowed is not null) ? grants.SelectMany(g => g.Allowed!).ToList() : null;
+    var styleLevel = CharacterRules.FightingStyleLevel(cls);
+    var hasStyle = styleLevel is { } sl && Info.Level >= sl;
+    var orders = Is2024 ? CharacterRules.Orders2024(cls) : Array.Empty<RuleOption>();
+    var masteries = CharacterRules.WeaponMasteries(cls, Ruleset, Info.Level);
+}
+
+@if (multiSkills > 0 || expertise > 0 || hasStyle || orders.Count > 0 || masteries > 0)
+{
+    <div class="rf-wizard-panel mt-3" data-test="wizard-class-choices">
+        <div class="rf-wizard-block-title">@UiText.LabelClassChoices(cls.Name, Info.Level, Lang)</div>
+
+        @if (multiSkills > 0)
+        {
+            <div class="rf-wizard-counter">@UiText.LabelMulticlassSkill(Lang)</div>
+            <SkillPicker W="W" Chosen="entry.Skills" Count="multiSkills" Options="@(anySkill ? null : cls.SkillOptions)" DataTest="wizard-multiclass-skill" />
+        }
+
+        @if (expertise > 0)
+        {
+            <div class="rf-wizard-counter">@UiText.LabelExpertise(expertise, Lang)</div>
+            <SkillPicker W="W" Chosen="entry.Expertise" Count="expertise" Options="restricted" Expertise="true" DataTest="wizard-expertise" />
+        }
+
+        @if (hasStyle)
+        {
+            <div class="rf-wizard-row">
+                <div class="rf-wizard-label">@UiText.LabelFightingStyle(Lang)</div>
+                <div class="rf-wizard-field">
+                    <ForgeSelector TValue="string" Value="StyleValue" ValueChanged="SetStyle" Options="StyleOptions" DataTest="wizard-fighting-style" />
+                </div>
+            </div>
+            @if (CharacterRules.StyleAlternativeList(entry.FightingStyle) is not null)
+            {
+                <div class="small mb-2" style="color: var(--rf-text-muted);">@UiText.HintStyleCantrips(Lang)</div>
+            }
+        }
+
+        @if (orders.Count > 0)
+        {
+            <div class="rf-wizard-row">
+                <div class="rf-wizard-label">@UiText.LabelOrder(cls.Key, Lang)</div>
+                <div class="rf-wizard-field">
+                    <ForgeSelector TValue="string" Value="@(entry.Order ?? string.Empty)" ValueChanged="SetOrder"
+                                   Options="@(new[] { new ForgeSelector<string>.Option(string.Empty, "—") }.Concat(orders.Select(o => new ForgeSelector<string>.Option(o.Key, UiText.OptionName(o, Lang)))).ToList())"
+                                   DataTest="wizard-order" />
+                </div>
+            </div>
+        }
+
+        @if (masteries > 0)
+        {
+            <div class="rf-wizard-counter">@UiText.LabelWeaponMastery(masteries, Lang) · @entry.WeaponMasteries.Count / @masteries</div>
+            <div class="rf-wizard-pills" data-test="wizard-masteries">
+                @foreach (var weapon in MasteryWeapons(cls))
+                {
+                    var selected = entry.WeaponMasteries.Contains(weapon.Id);
+                    <button type="button" class="rf-wizard-pill @(selected ? "selected" : null)" disabled="@(!selected && entry.WeaponMasteries.Count >= masteries)"
+                            title="@(weapon.Mastery is { } m ? EquipmentTerms.MasteryName(m, Lang) : null)"
+                            @onclick="() => W.Toggle(entry.WeaponMasteries, weapon.Id, masteries)" data-test="wizard-mastery">@weapon.Name</button>
+                }
+            </div>
+        }
+    </div>
+}
+
+@code {
+    [Parameter, EditorRequired] public ClassLevelInfo Info { get; set; } = default!;
+
+    //	"style:<key>" (2014 option or 2024 alternative) or "feat:<id>" (2024 Fighting Style feat)
+    private string StyleValue => Info.Build.FightingStyleFeatId is { } id ? $"feat:{id}" : Info.Build.FightingStyle is { } key ? $"style:{key}" : string.Empty;
+
+    private List<ForgeSelector<string>.Option> StyleOptions
+    {
+        get
+        {
+            var options = new List<ForgeSelector<string>.Option> { new(string.Empty, "—") };
+            if (Is2024)
+            {
+                options.AddRange(Context.Feats.Where(f => f.Category == FeatCategory.FightingStyle).Select(f => new ForgeSelector<string>.Option($"feat:{f.Id}", f.Name)));
+                if (CharacterRules.StyleAlternative2024(Info.Class) is { } alternative)
+                {
+                    options.Add(new($"style:{alternative.Key}", UiText.OptionName(alternative, Lang)));
+                }
+            }
+            else
+            {
+                options.AddRange(CharacterRules.FightingStyles2014(Info.Class).Select(o => new ForgeSelector<string>.Option($"style:{o.Key}", UiText.OptionName(o, Lang))));
+            }
+            return options;
+        }
+    }
+
+    private void SetStyle(string value)
+    {
+        var entry = Info.Build;
+        entry.FightingStyle = value.StartsWith("style:") ? value["style:".Length..] : null;
+        entry.FightingStyleFeatId = value.StartsWith("feat:") && Guid.TryParse(value["feat:".Length..], out var id) ? id : null;
+        entry.StyleCantrips.Clear();
+        W.Update();
+    }
+
+    private void SetOrder(string value)
+    {
+        Info.Build.Order = string.IsNullOrEmpty(value) ? null : value;
+        W.Update();
+    }
+
+    //	Barbarian: melee weapons; the others: weapons they are proficient with
+    private IEnumerable<ContextItem> MasteryWeapons(ContextClass cls) => Context.Items
+        .Where(i => i.Category == EquipmentCategory.Weapon && i.Mastery is not null)
+        .Where(i => !CharacterRules.MasteryMeleeOnly(cls) || i.WeaponRange == WeaponRange.Melee)
+        .Where(i => CharacterCalculator.IsProficient(i, Computed))
+        .OrderBy(i => i.WeaponCategory).ThenBy(i => i.Name);
+}

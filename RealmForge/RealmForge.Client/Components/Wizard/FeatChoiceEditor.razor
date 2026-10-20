@@ -1,0 +1,133 @@
+﻿@* Choices of a feat: its ability increase (two for the 2024 Ability Score Improvement), skills, Expertise and the
+   spell list of Magic Initiate (its spells are chosen in the Spells step) *@
+<div class="rf-wizard-panel mt-2 mb-3" data-test="wizard-feat-choices">
+    @if (IsAsi)
+    {
+        <div class="rf-wizard-counter">@UiText.LabelAsiIncrease(Lang)</div>
+        @for (var i = 0; i < 2; i++)
+        {
+            var index = i;
+            <div class="rf-wizard-row">
+                <div class="rf-wizard-label">@UiText.LabelPlusOne(Lang)</div>
+                <div class="rf-wizard-field">
+                    <ForgeSelector TValue="AbilityScore?" Value="@(index < Choice.Increases.Count ? Choice.Increases[index] : null)" ValueChanged="v => SetIncrease(index, v)"
+                                   Options="AbilityOptions(CharacterMath.Abilities)" DataTest="@($"wizard-feat-increase-{index}")" />
+                </div>
+            </div>
+        }
+    }
+    else if (Feat.Increases.Count > 0)
+    {
+        <div class="rf-wizard-row">
+            <div class="rf-wizard-label">@UiText.LabelFeatIncrease(Lang) (+1)</div>
+            <div class="rf-wizard-field">
+                <ForgeSelector TValue="AbilityScore?" Value="@(Choice.Increases.Count > 0 ? Choice.Increases[0] : null)" ValueChanged="v => SetIncrease(0, v)"
+                               Options="AbilityOptions(Feat.Increases)" DataTest="wizard-feat-increase-0" />
+            </div>
+        </div>
+    }
+
+    @if (CharacterRules.FeatSkillChoices(Feat, Ruleset) is var skills and > 0)
+    {
+        <div class="rf-wizard-block-title">@UiText.LabelFeatSkills(skills, Lang)</div>
+        <SkillPicker W="W" Chosen="Choice.Skills" Count="skills" Options="CharacterRules.FeatSkillOptions(Feat, Ruleset)"
+                     AllowKnown="@(Feat.Key is "keen-mind" or "observant")" DataTest="wizard-feat-skill" />
+    }
+    @if (CharacterRules.FeatExpertise(Feat) is var expertise and > 0)
+    {
+        <div class="rf-wizard-block-title">@UiText.LabelFeatExpertise(Lang)</div>
+        <SkillPicker W="W" Chosen="Choice.Expertise" Count="expertise" Expertise="true" DataTest="wizard-feat-expertise" />
+    }
+
+    @if (CharacterRules.IsMagicInitiate(Feat))
+    {
+        <div class="rf-wizard-row">
+            <div class="rf-wizard-label">@UiText.LabelSpellList(Lang)</div>
+            <div class="rf-wizard-field">
+                <ForgeSelector TValue="SpellcastingClass?" Value="Choice.SpellList" ValueChanged="SetList" Options="ListOptions" DataTest="wizard-feat-list" />
+            </div>
+        </div>
+        @if (Is2024)
+        {
+            <div class="rf-wizard-row">
+                <div class="rf-wizard-label">@UiText.LabelSpellcastingAbility(Lang)</div>
+                <div class="rf-wizard-field">
+                    <ForgeSelector TValue="AbilityScore?" Value="Choice.SpellcastingAbility" ValueChanged="v => { Choice.SpellcastingAbility = v; W.Update(); }"
+                                   Options="AbilityOptions(new[] { AbilityScore.Intelligence, AbilityScore.Wisdom, AbilityScore.Charisma })" DataTest="wizard-feat-ability" />
+                </div>
+            </div>
+        }
+        <div class="small" style="color: var(--rf-text-muted);">@UiText.HintFeatSpells(Lang)</div>
+    }
+
+    @if (!HasChoices)
+    {
+        <div class="small mb-0" style="color: var(--rf-text-muted);">@UiText.FeatNoChoices(Lang)</div>
+    }
+</div>
+
+@code {
+    [Parameter, EditorRequired] public ContextFeat Feat { get; set; } = default!;
+    [Parameter, EditorRequired] public FeatChoice Choice { get; set; } = default!;
+
+    private bool IsAsi => Feat.Key == "ability-score-improvement";
+
+    private bool HasChoices => IsAsi || Feat.Increases.Count > 0 || CharacterRules.FeatSkillChoices(Feat, Ruleset) > 0
+        || CharacterRules.FeatExpertise(Feat) > 0 || CharacterRules.IsMagicInitiate(Feat);
+
+    protected override void OnParametersSet()
+    {
+        //	A feat that raises a single ability needs no choice
+        if (!IsAsi && Feat.Increases.Count == 1 && (Choice.Increases.Count != 1 || Choice.Increases[0] != Feat.Increases[0]))
+        {
+            Choice.Increases = new List<AbilityScore> { Feat.Increases[0] };
+            W.Update();
+        }
+    }
+
+    private List<ForgeSelector<AbilityScore?>.Option> AbilityOptions(IEnumerable<AbilityScore> abilities)
+    {
+        var options = abilities.Select(a => new ForgeSelector<AbilityScore?>.Option(a, FeatPrerequisiteFormatter.AbilityName(a, Lang))).ToList();
+        options.Insert(0, new ForgeSelector<AbilityScore?>.Option(null, "—"));
+        return options;
+    }
+
+    private List<ForgeSelector<SpellcastingClass?>.Option> ListOptions
+    {
+        get
+        {
+            var options = CharacterRules.MagicInitiateLists(Ruleset).Select(l => new ForgeSelector<SpellcastingClass?>.Option(l, GameTerms.ClassName(l, Lang))).ToList();
+            options.Insert(0, new ForgeSelector<SpellcastingClass?>.Option(null, "—"));
+            return options;
+        }
+    }
+
+    private void SetIncrease(int index, AbilityScore? value)
+    {
+        var list = Choice.Increases;
+        if (value is null)
+        {
+            if (index < list.Count)
+            {
+                list.RemoveAt(index);
+            }
+        }
+        else if (index < list.Count)
+        {
+            list[index] = value.Value;
+        }
+        else
+        {
+            list.Add(value.Value);
+        }
+        W.Update();
+    }
+
+    private void SetList(SpellcastingClass? list)
+    {
+        Choice.SpellList = list;
+        Choice.Cantrips.Clear();
+        Choice.Spells.Clear();
+        W.Update();
+    }
+}

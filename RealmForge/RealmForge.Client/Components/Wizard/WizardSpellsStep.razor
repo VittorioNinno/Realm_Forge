@@ -1,0 +1,77 @@
+﻿@* Spells of every source: each class with its own list, number and highest level (multiclass included), Magic
+   Initiate, the 2014 high elf cantrip and the cantrips of the 2024 Blessed / Druidic Warrior *@
+@{
+    var any = false;
+}
+<input class="rf-wizard-input mb-3" placeholder="@UiText.PlaceholderSearchSpell(Lang)" value="@search" @oninput="e => search = e.Value?.ToString()" data-test="wizard-spell-search" />
+
+@if (Computed.SpellSlots.Any(s => s > 0) || Computed.PactSlots > 0)
+{
+    <div class="rf-wizard-meta">
+        @for (var i = 0; i < 9; i++)
+        {
+            if (Computed.SpellSlots[i] > 0)
+            {
+                <div><strong>@UiText.SlotLevel(i + 1, Lang)</strong>@Computed.SpellSlots[i]</div>
+            }
+        }
+        @if (Computed.PactSlots > 0)
+        {
+            <div><strong>@UiText.SheetPactSlots(Computed.PactSlotLevel, Lang)</strong>@Computed.PactSlots</div>
+        }
+    </div>
+}
+
+@foreach (var info in Computed.Spellcasting)
+{
+    var lists = Lists(info);
+    if (lists is null)
+    {
+        continue;
+    }
+    any = true;
+    <div class="rf-wizard-panel mb-3" data-test="wizard-spellcasting">
+        <div class="rf-wizard-block-title">@SourceName(info)</div>
+        <div class="small mb-2" style="color: var(--rf-text-secondary);">@UiText.SheetSpellcasting(info.Ability, info.SaveDc, info.AttackBonus, Lang)</div>
+        <SpellPicker W="W" Title="@UiText.LabelCantrips(Lang)" Chosen="lists.Value.Cantrips" List="info.SpellList" Max="info.Cantrips" MinLevel="0" MaxLevel="0" Search="@search" DataTest="wizard-cantrip" />
+        <SpellPicker W="W" Title="@UiText.LabelLeveledSpells(info.MaxSpellLevel, Lang)" Chosen="lists.Value.Spells" List="info.SpellList" Max="info.Spells" MinLevel="1" MaxLevel="info.MaxSpellLevel" Search="@search" DataTest="wizard-spell" />
+    </div>
+}
+
+@foreach (var info in Computed.Classes.Where(c => Is2024 && CharacterRules.StyleAlternativeList(c.Build.FightingStyle) is not null))
+{
+    any = true;
+    <div class="rf-wizard-panel mb-3">
+        <div class="rf-wizard-block-title">@info.Class.Name · @UiText.LabelStyleCantrips(Lang)</div>
+        <SpellPicker W="W" Title="@UiText.LabelCantrips(Lang)" Chosen="info.Build.StyleCantrips" List="CharacterRules.StyleAlternativeList(info.Build.FightingStyle)" Max="2" MinLevel="0" MaxLevel="0" Search="@search" DataTest="wizard-style-cantrip" />
+    </div>
+}
+
+@if (!any)
+{
+    <div class="rf-wizard-panel text-center" data-test="wizard-no-spells">@UiText.NoSpellsForClass(Lang)</div>
+}
+
+@code {
+    private string? search;
+
+    //	The lists the choices of a source are saved in
+    private (List<Guid> Cantrips, List<Guid> Spells)? Lists(SpellcastingInfo info)
+    {
+        if (info.Class is { } cls)
+        {
+            return (cls.Build.Cantrips, cls.Build.Spells);
+        }
+        if (info.Source == "species")
+        {
+            return (Build.SpeciesCantrips, new List<Guid>());
+        }
+
+        var feat = Computed.Feats.FirstOrDefault(f => CharacterRules.IsMagicInitiate(f.Feat) && f.Feat.Name == info.Source);
+        return feat is null ? null : (feat.Choice.Cantrips, feat.Choice.Spells);
+    }
+
+    private string SourceName(SpellcastingInfo info) => info.Class is { } cls
+        ? cls.Subclass is { } sub && cls.Class.CasterProgression == CasterProgression.None ? $"{cls.Class.Name} · {sub.Name}" : cls.Class.Name
+        : info.Source == "species" ? UiText.SpellSourceSpecies(Ruleset, Lang) : info.Source;
+}

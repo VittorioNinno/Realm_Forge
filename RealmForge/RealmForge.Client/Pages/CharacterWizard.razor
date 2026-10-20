@@ -1,0 +1,132 @@
+﻿@page "/characters/new"
+@page "/characters/{Id:guid}/edit"
+@using RealmForge.Client.Components
+@using RealmForge.Client.Components.Wizard
+@using RealmForge.Client.Localization
+@using RealmForge.Shared.Characters
+@using RealmForge.Shared.Enums
+
+<PageTitle>RealmForge - @Title</PageTitle>
+
+<AuthorizeView>
+    <Authorized>
+        <div class="py-4">
+            @if (Id is { } backId)
+            {
+                <a href="@($"characters/{backId}")" class="small text-decoration-none d-inline-block mb-3" style="color: var(--rf-text-muted);">@UiText.BtnBackToSheet(Lang)</a>
+            }
+            else
+            {
+                <a href="characters" class="small text-decoration-none d-inline-block mb-3" style="color: var(--rf-text-muted);">@UiText.BtnBackToCharacters(Lang)</a>
+            }
+
+            <div class="rf-wizard" data-test="character-wizard" data-ruleset="@((int)Ruleset)">
+                <h1 class="rf-wizard-header rf-page-title">@Title</h1>
+
+                @if (loadFailed)
+                {
+                    <div class="rf-wizard-error" data-test="wizard-load-failed">@(Id is null ? UiText.RulesUnavailable(Lang) : UiText.CharacterNotFound(Lang))</div>
+                }
+                else if (loading || Context is null)
+                {
+                    <div class="text-center small" style="color: var(--rf-text-muted);">@UiText.WizardLoading(Lang)</div>
+                }
+                else
+                {
+                    <div class="rf-wizard-steps">
+                        @for (var i = 0; i < Steps.Count; i++)
+                        {
+                            var index = i;
+                            var step = Steps[index];
+                            <button type="button" class="rf-wizard-dot @(index == stepIndex ? "active" : index <= furthestIndex ? "done" : null)"
+                                    aria-label="@UiText.WizardStepName(step, Ruleset, Lang)" title="@UiText.WizardStepName(step, Ruleset, Lang)"
+                                    @onclick="() => GoTo(index)" data-test="wizard-dot-@step.ToString().ToLowerInvariant()"></button>
+                        }
+                    </div>
+                    <div class="rf-wizard-step-title" data-test="wizard-step-title">
+                        @UiText.WizardStepOf(stepIndex + 1, Steps.Count, Lang)@UiText.WizardStepName(CurrentStep, Ruleset, Lang)
+                    </div>
+
+                    <div class="rf-wizard-section" @key="CurrentStep" data-test="wizard-step-@CurrentStep.ToString().ToLowerInvariant()">
+                        @switch (CurrentStep)
+                        {
+                            case WizardStep.Identity:
+                                <WizardIdentityStep W="this" />
+                                break;
+                            case WizardStep.Species:
+                                <WizardSpeciesStep W="this" />
+                                break;
+                            case WizardStep.Class:
+                                <WizardClassStep W="this" />
+                                break;
+                            case WizardStep.Background:
+                                <WizardBackgroundStep W="this" />
+                                break;
+                            case WizardStep.Abilities:
+                                <WizardAbilitiesStep W="this" />
+                                break;
+                            case WizardStep.Progression:
+                                <WizardProgressionStep W="this" />
+                                break;
+                            case WizardStep.Languages:
+                                <WizardLanguagesStep W="this" />
+                                break;
+                            case WizardStep.Equipment:
+                                <WizardEquipmentStep W="this" />
+                                break;
+                            case WizardStep.Spells:
+                                <WizardSpellsStep W="this" />
+                                break;
+                            case WizardStep.Details:
+                                <WizardDetailsStep W="this" />
+                                break;
+                            default:
+                                <WizardSummaryStep W="this" />
+                                break;
+                        }
+                    </div>
+
+                    @if (stepProblems.Count > 0)
+                    {
+                        <div class="rf-wizard-error" data-test="wizard-error">
+                            <div class="fw-bold mb-1">@UiText.WizardStepIncomplete(Lang)</div>
+                            <ul class="mb-0 ps-3">
+                                @foreach (var problem in stepProblems)
+                                {
+                                    <li>@problem</li>
+                                }
+                            </ul>
+                        </div>
+                    }
+                    @if (saveError is not null)
+                    {
+                        <div class="rf-wizard-error" data-test="wizard-save-error">@UiText.ErrSave(Lang) @saveError</div>
+                    }
+
+                    <div class="rf-wizard-footer">
+                        <button type="button" class="rf-wizard-btn secondary" disabled="@(stepIndex == 0 || saving)" @onclick="Back" data-test="wizard-back">@UiText.BtnWizardBack(Lang)</button>
+                        @if (stepIndex < Steps.Count - 1)
+                        {
+                            <button type="button" class="rf-wizard-btn" disabled="@Abilities.Rolling" @onclick="NextAsync" data-test="wizard-next">@UiText.BtnWizardNext(Lang)</button>
+                        }
+                        else
+                        {
+                            <button type="button" class="rf-wizard-btn" disabled="@(saving || !Computed.CanSave)" @onclick="SaveAsync" data-test="wizard-forge">
+                                @(saving ? UiText.WizardSaving(Lang) : Mode == WizardMode.Create ? UiText.BtnWizardForge(Lang) : UiText.BtnWizardSave(Lang))
+                            </button>
+                        }
+                    </div>
+                }
+            </div>
+        </div>
+    </Authorized>
+    <NotAuthorized>
+        <div class="py-4">
+            <div class="rf-wizard text-center">
+                <h1 class="rf-wizard-header rf-page-title">@UiText.WizardTitle(Lang)</h1>
+                <p style="color: var(--rf-text-secondary);">@UiText.CharactersSignIn(Lang)</p>
+                <a href="account" class="btn btn-rf-orange">@UiText.BtnLoginToForge(Lang)</a>
+            </div>
+        </div>
+    </NotAuthorized>
+</AuthorizeView>

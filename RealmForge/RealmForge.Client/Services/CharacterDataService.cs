@@ -1,22 +1,54 @@
 ﻿using System.Net.Http.Json;
 using Microsoft.Extensions.Logging;
+using RealmForge.Shared.Characters;
 using RealmForge.Shared.DTOs;
 using RealmForge.Shared.Enums;
 
 namespace RealmForge.Client.Services
 {
 	///	<summary>
-	///	Client for /api/characters: the characters of the signed-in user (list, sheet, creation and deletion).
+	///	Client for /api/characters: the rules context of an edition (kept for a few minutes), the characters of the
+	///	signed-in user, creation, rules updates (edit, level up), sheet state and deletion.
 	///	</summary>
 	public class CharacterDataService
 	{
+		private static readonly TimeSpan ContextLifetime = TimeSpan.FromMinutes(5);
+
 		private readonly HttpClient _http;
 		private readonly ILogger<CharacterDataService> _logger;
+		private readonly Dictionary<(RulesetVersion, LanguageCode), (DateTime Loaded, Task<CharacterContextDto?> Load)> _contexts = new();
 
 		public CharacterDataService(HttpClient http, ILogger<CharacterDataService> logger)
 		{
 			_http = http;
 			_logger = logger;
+		}
+
+		public Task<CharacterContextDto?> GetContextAsync(RulesetVersion ruleset, LanguageCode language, bool refresh = false)
+		{
+			var key = (ruleset, language);
+			if (!refresh && _contexts.TryGetValue(key, out var cached) && DateTime.UtcNow - cached.Loaded < ContextLifetime
+				&& (!cached.Load.IsCompleted || cached.Load.Result is not null))
+			{
+				return cached.Load;
+			}
+
+			var load = FetchContextAsync(ruleset, language);
+			_contexts[key] = (DateTime.UtcNow, load);
+			return load;
+		}
+
+		private async Task<CharacterContextDto?> FetchContextAsync(RulesetVersion ruleset, LanguageCode language)
+		{
+			try
+			{
+				return await _http.GetFromJsonAsync<CharacterContextDto>($"api/characters/context?ruleset={(int)ruleset}&lang={(int)language}");
+			}
+			catch (Exception ex)
+			{
+				_logger.LogError(ex, "Failed to load the character rules for {Ruleset}", ruleset);
+				return null;
+			}
 		}
 
 		public async Task<List<CharacterSummaryDto>?> GetCharactersAsync(LanguageCode language)
@@ -32,11 +64,11 @@ namespace RealmForge.Client.Services
 			}
 		}
 
-		public async Task<CharacterDetailDto?> GetCharacterAsync(Guid id, LanguageCode language)
+		public async Task<CharacterDto?> GetCharacterAsync(Guid id)
 		{
 			try
 			{
-				return await _http.GetFromJsonAsync<CharacterDetailDto>($"api/characters/{id}?lang={(int)language}");
+				return await _http.GetFromJsonAsync<CharacterDto>($"api/characters/{id}");
 			}
 			catch (Exception ex)
 			{
@@ -46,26 +78,40 @@ namespace RealmForge.Client.Services
 		}
 
 		///	<summary>
-		///	Saves a new character. Returns its id, or the API message explaining why the choices were refused.
+		///	Creates (id null) or updates a character. Returns it, or the API message explaining why it was refused.
 		///	</summary>
-		public async Task<(Guid? Id, string? Error)> CreateCharacterAsync(SaveCharacterDto dto)
+		public async Task<(CharacterDto? Character, string? Error)> SaveCharacterAsync(Guid? id, SaveCharacterDto dto)
 		{
 			try
 			{
-				var response = await _http.PostAsJsonAsync("api/characters", dto);
+				var response = id is { } existing
+					? await _http.PutAsJsonAsync($"api/characters/{existing}", dto)
+					: await _http.PostAsJsonAsync("api/characters", dto);
 				if (response.IsSuccessStatusCode)
 				{
-					var created = await response.Content.ReadFromJsonAsync<CharacterSummaryDto>();
-					return (created?.Id, null);
+					return (await response.Content.ReadFromJsonAsync<CharacterDto>(), null);
 				}
 
-				var problem = await ReadProblemTitleAsync(response);
-				return (null, problem ?? response.ReasonPhrase ?? response.StatusCode.ToString());
+				return (null, await ReadProblemTitleAsync(response) ?? response.ReasonPhrase ?? response.StatusCode.ToString());
 			}
 			catch (Exception ex)
 			{
-				_logger.LogError(ex, "Error creating character");
+				_logger.LogError(ex, "Error saving character");
 				return (null, ex.Message);
+			}
+		}
+
+		public async Task<CharacterSavedDto?> SaveSheetAsync(Guid id, CharacterSheetState sheet)
+		{
+			try
+			{
+				var response = await _http.PutAsJsonAsync($"api/characters/{id}/sheet", sheet);
+				return response.IsSuccessStatusCode ? await response.Content.ReadFromJsonAsync<CharacterSavedDto>() : null;
+			}
+			catch (Exception ex)
+			{
+				_logger.LogError(ex, "Failed to save the sheet of character {CharacterId}", id);
+				return null;
 			}
 		}
 

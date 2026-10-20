@@ -1,21 +1,22 @@
-﻿using Microsoft.AspNetCore.Authorization;
+﻿using System.Text.Json;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using RealmForge.Api.Characters;
 using RealmForge.Api.Localization;
 using RealmForge.Api.Security;
 using RealmForge.Domain.Entities;
 using RealmForge.Infrastructure.Persistence;
-using RealmForge.Infrastructure.Persistence.Seeding;
+using RealmForge.Shared.Characters;
 using RealmForge.Shared.DTOs;
 using RealmForge.Shared.Enums;
-using RealmForge.Shared.Rules;
-using RealmForge.Shared.Text;
 
 namespace RealmForge.Api.Controllers
 {
 	///	<summary>
-	///	Player characters of the signed-in user: list, sheet, creation (with every choice checked against the rules
-	///	and the compendium) and deletion. Characters are private: only their owner reads them.
+	///	Player characters of the signed-in user. Every save is checked by <see cref="CharacterCalculator"/> against the
+	///	compendium of the edition (the same rules the wizard runs); the play state of the sheet is saved on its own.
+	///	Characters are private: only their owner reads and changes them.
 	///	</summary>
 	[ApiController]
 	[Route("api/[controller]")]
@@ -24,109 +25,187 @@ namespace RealmForge.Api.Controllers
 	{
 		public const int MaxCharactersPerUser = 50;
 
-		private readonly RealmForgeDbContext _context;
-		private readonly ContentAccess _access;
+		public static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web);
 
-		public CharactersController(RealmForgeDbContext context, ContentAccess access)
+		private readonly RealmForgeDbContext _context;
+		private readonly CharacterContextBuilder _builder;
+
+		public CharactersController(RealmForgeDbContext context, CharacterContextBuilder builder)
 		{
 			_context = context;
-			_access = access;
+			_builder = builder;
 		}
 
 		private string UserId => ContentAccess.GetUserId(User) ?? string.Empty;
+
+		//	GET: api/characters/context?ruleset=2&lang=2 — the rules data of an edition (also for visitors)
+		[HttpGet("context")]
+		[AllowAnonymous]
+		public async Task<ActionResult<CharacterContextDto>> GetContext([FromQuery] RulesetVersion ruleset = RulesetVersion.Dnd5e_2024, [FromQuery] LanguageCode lang = LanguageCode.It)
+		{
+			if (!Enum.IsDefined(ruleset))
+			{
+				return BadRequest();
+			}
+
+			return Ok(await _builder.BuildAsync(ruleset, lang, User));
+		}
 
 		//	GET: api/characters?lang=2
 		[HttpGet]
 		public async Task<ActionResult<List<CharacterSummaryDto>>> GetCharacters([FromQuery] LanguageCode lang = LanguageCode.It)
 		{
-			var characters = await WithReferences(_context.Characters.AsNoTracking())
+			var characters = await _context.Characters.AsNoTracking()
+				.Include(c => c.Species).ThenInclude(s => s.Translations)
+				.Include(c => c.Background).ThenInclude(b => b.Translations)
 				.Where(c => c.OwnerId == UserId)
 				.OrderByDescending(c => c.UpdatedAt)
 				.ToListAsync();
 
-			return Ok(characters.Select(c => new CharacterSummaryDto(
-				c.Id, c.Name, c.Ruleset, c.Level,
-				c.Species.Translations.Localize(lang)?.Name ?? string.Empty,
-				c.Class.Translations.Localize(lang)?.Name ?? string.Empty,
-				c.Subclass?.Translations.Localize(lang)?.Name,
-				c.Background.Translations.Localize(lang)?.Name ?? string.Empty,
-				c.MaxHitPoints, c.ArmorClass, c.UpdatedAt)).ToList());
+			var builds = characters.ToDictionary(c => c.Id, c => ReadBuild(c.Build));
+			var classIds = builds.Values.SelectMany(b => b.Levels.Select(l => l.ClassId)).Distinct().ToList();
+			var classNames = await _context.ClassTranslations.AsNoTracking()
+				.Where(t => classIds.Contains(t.CharacterClassId))
+				.ToListAsync();
+
+			string ClassLine(CharacterBuild build) => string.Join(" / ", build.Levels
+				.GroupBy(l => l.ClassId)
+				.Select(g => $"{classNames.Where(t => t.CharacterClassId == g.Key).Localize(lang)?.Name} {g.Count()}"));
+
+			return Ok(characters.Select(c =>
+			{
+				var sheet = ReadSheet(c.Sheet);
+				return new CharacterSummaryDto(
+					c.Id, c.Name, c.Ruleset, c.Level,
+					c.Species.Translations.Localize(lang)?.Name ?? string.Empty,
+					ClassLine(builds[c.Id]),
+					c.Background.Translations.Localize(lang)?.Name ?? string.Empty,
+					c.MaxHitPoints, Math.Clamp(sheet.CurrentHitPoints ?? c.MaxHitPoints, 0, c.MaxHitPoints), c.ArmorClass, c.UpdatedAt);
+			}).ToList());
 		}
 
-		//	GET: api/characters/{id}?lang=2
+		//	GET: api/characters/{id}
 		[HttpGet("{id:guid}")]
-		public async Task<ActionResult<CharacterDetailDto>> GetCharacter(Guid id, [FromQuery] LanguageCode lang = LanguageCode.It)
+		public async Task<ActionResult<CharacterDto>> GetCharacter(Guid id)
 		{
-			var character = await WithReferences(_context.Characters.AsNoTracking()).FirstOrDefaultAsync(c => c.Id == id);
-			if (character is null || (character.OwnerId != UserId && !_access.IsAdmin(User)))
-			{
-				return NotFound();
-			}
-
-			var spells = await _context.Spells.AsNoTracking().Include(s => s.Translations)
-				.Where(s => character.SpellIds.Contains(s.Id)).ToListAsync();
-			var feat = character.Background.OriginFeatId is { } featId
-				? await _context.Feats.AsNoTracking().Include(f => f.Translations).FirstOrDefaultAsync(f => f.Id == featId)
-				: null;
-
-			var final = CharacterMath.FinalScores(character.BaseScores, character.AbilityBonuses);
-			var background = character.Background.Translations.Localize(lang);
-			var cls = character.Class.Translations.Localize(lang);
-
-			return Ok(new CharacterDetailDto(
-				character.Id, character.Name, character.Ruleset, character.Level, character.Alignment,
-				Ref(character.Species.Id, character.Species.Translations.Localize(lang)?.Name),
-				character.Subspecies is { } sub ? Ref(sub.Id, sub.Translations.Localize(lang)?.Name) : null,
-				character.Size,
-				character.Subspecies?.BaseSpeedOverrideInFeet ?? character.Species.BaseSpeedInFeet,
-				Ref(character.Background.Id, background?.Name),
-				feat is null ? null : Ref(feat.Id, feat.Translations.Localize(lang)?.Name),
-				Ref(character.Class.Id, cls?.Name),
-				character.Subclass is { } subclass ? Ref(subclass.Id, subclass.Translations.Localize(lang)?.Name) : null,
-				character.Class.HitDie,
-				character.Languages,
-				character.AbilityMethod, character.BaseScores, character.BonusMode, character.AbilityBonuses, final.ToList(),
-				character.Class.SavingThrows,
-				character.Background.SkillProficiencies.Concat(character.ClassSkills).Distinct().OrderBy(s => s).ToList(),
-				CharacterMath.ProficiencyBonus(character.Level),
-				character.MaxHitPoints, character.ArmorClass,
-				EquipmentLines(character, background?.Equipment, cls?.StartingEquipment, lang),
-				spells.Select(s => new CharacterSpellDto(s.Id, s.Translations.Localize(lang)?.Name ?? string.Empty, s.Level))
-					.OrderBy(s => s.Level).ThenBy(s => s.Name, StringComparer.CurrentCultureIgnoreCase).ToList(),
-				character.Subclass?.SpellcastingAbility ?? character.Class.SpellcastingAbility,
-				character.CreatedAt, character.UpdatedAt));
+			var character = await _context.Characters.AsNoTracking().FirstOrDefaultAsync(c => c.Id == id && c.OwnerId == UserId);
+			return character is null ? NotFound() : Ok(ToDto(character));
 		}
 
 		//	POST: api/characters
 		[HttpPost]
-		public async Task<ActionResult<CharacterSummaryDto>> CreateCharacter([FromBody] SaveCharacterDto dto)
+		public async Task<ActionResult<CharacterDto>> CreateCharacter([FromBody] SaveCharacterDto dto)
 		{
+			dto.Build ??= new CharacterBuild();
 			if (await _context.Characters.CountAsync(c => c.OwnerId == UserId) >= MaxCharactersPerUser)
 			{
 				return Problem(statusCode: StatusCodes.Status400BadRequest, title: $"At most {MaxCharactersPerUser} characters per account.");
 			}
 
-			var character = new Character { OwnerId = UserId };
-			var error = await ApplyAsync(character, dto);
-			if (error is not null)
+			var context = await _builder.BuildAsync(dto.Ruleset, Enum.IsDefined(dto.Language) ? dto.Language : LanguageCode.En, User);
+			var sheet = Sanitize(dto.Sheet ?? new CharacterSheetState());
+			sheet.CurrentHitPoints = null;
+			(sheet.Inventory, sheet.Coins) = StartingEquipment.Build(dto.Build ?? new CharacterBuild(), context, dto.BackgroundId);
+
+			var input = Input(dto, sheet);
+			var computed = CharacterCalculator.Compute(input, context, checkEquipment: true);
+			if (!computed.CanSave)
 			{
-				return Problem(statusCode: StatusCodes.Status400BadRequest, title: error);
+				return Problem(statusCode: StatusCodes.Status400BadRequest, title: Describe(computed));
 			}
 
+			var character = new Character { OwnerId = UserId };
+			Apply(character, dto, sheet, computed);
 			_context.Characters.Add(character);
 			await _context.SaveChangesAsync();
 
-			return CreatedAtAction(nameof(GetCharacter), new { id = character.Id }, new CharacterSummaryDto(
-				character.Id, character.Name, character.Ruleset, character.Level, string.Empty, string.Empty, null, string.Empty,
-				character.MaxHitPoints, character.ArmorClass, character.UpdatedAt));
+			return CreatedAtAction(nameof(GetCharacter), new { id = character.Id }, ToDto(character));
+		}
+
+		//	PUT: api/characters/{id} — new rules choices (edit, level up); the inventory and the play state stay
+		[HttpPut("{id:guid}")]
+		public async Task<ActionResult<CharacterDto>> UpdateCharacter(Guid id, [FromBody] SaveCharacterDto dto)
+		{
+			dto.Build ??= new CharacterBuild();
+			var character = await _context.Characters.FirstOrDefaultAsync(c => c.Id == id && c.OwnerId == UserId);
+			if (character is null)
+			{
+				return NotFound();
+			}
+			if (dto.Ruleset != character.Ruleset)
+			{
+				return Problem(statusCode: StatusCodes.Status400BadRequest, title: "The edition of a character cannot change.");
+			}
+
+			//	The starting equipment was turned into the inventory when the character was created
+			var previous = ReadBuild(character.Build);
+			dto.Build.BackgroundEquipment = previous.BackgroundEquipment;
+			dto.Build.ClassEquipment = previous.ClassEquipment;
+			dto.Build.EquipmentPicks = previous.EquipmentPicks;
+
+			var sheet = ReadSheet(character.Sheet);
+			var context = await _builder.BuildAsync(dto.Ruleset, LanguageCode.En, User);
+			var computed = CharacterCalculator.Compute(Input(dto, sheet), context);
+			if (!computed.CanSave)
+			{
+				return Problem(statusCode: StatusCodes.Status400BadRequest, title: Describe(computed));
+			}
+
+			if (sheet.CurrentHitPoints is { } current)
+			{
+				//	Gaining levels raises the current hit points as much as the maximum
+				sheet.CurrentHitPoints = Math.Clamp(current + computed.MaxHitPoints - character.MaxHitPoints, 0, computed.MaxHitPoints);
+			}
+
+			Apply(character, dto, sheet, computed);
+			await _context.SaveChangesAsync();
+			return Ok(ToDto(character));
+		}
+
+		//	PUT: api/characters/{id}/sheet — the play state (hit points, resources, inventory, notes)
+		[HttpPut("{id:guid}/sheet")]
+		public async Task<ActionResult<CharacterSavedDto>> UpdateSheet(Guid id, [FromBody] CharacterSheetState sheet)
+		{
+			var character = await _context.Characters.FirstOrDefaultAsync(c => c.Id == id && c.OwnerId == UserId);
+			if (character is null)
+			{
+				return NotFound();
+			}
+
+			sheet = Sanitize(sheet);
+			var build = ReadBuild(character.Build);
+			var context = await _builder.BuildAsync(character.Ruleset, LanguageCode.En, User);
+			var input = new CharacterInput
+			{
+				Name = character.Name,
+				Ruleset = character.Ruleset,
+				SpeciesId = character.SpeciesId,
+				SubspeciesId = character.SubspeciesId,
+				BackgroundId = character.BackgroundId,
+				Build = build,
+				Sheet = sheet
+			};
+			var computed = CharacterCalculator.Compute(input, context);
+			if (sheet.CurrentHitPoints is { } current)
+			{
+				sheet.CurrentHitPoints = Math.Clamp(current, 0, computed.MaxHitPoints);
+			}
+
+			character.Sheet = JsonSerializer.Serialize(sheet, Json);
+			character.MaxHitPoints = computed.MaxHitPoints;
+			character.ArmorClass = computed.ArmorClass;
+			character.UpdatedAt = DateTimeOffset.UtcNow;
+			await _context.SaveChangesAsync();
+
+			return Ok(new CharacterSavedDto(character.Id, character.MaxHitPoints, character.ArmorClass, character.UpdatedAt));
 		}
 
 		//	DELETE: api/characters/{id}
 		[HttpDelete("{id:guid}")]
 		public async Task<IActionResult> DeleteCharacter(Guid id)
 		{
-			var character = await _context.Characters.FirstOrDefaultAsync(c => c.Id == id);
-			if (character is null || character.OwnerId != UserId)
+			var character = await _context.Characters.FirstOrDefaultAsync(c => c.Id == id && c.OwnerId == UserId);
+			if (character is null)
 			{
 				return NotFound();
 			}
@@ -136,220 +215,122 @@ namespace RealmForge.Api.Controllers
 			return NoContent();
 		}
 
-		private static IQueryable<Character> WithReferences(IQueryable<Character> query) => query
-			.Include(c => c.Species).ThenInclude(s => s.Translations)
-			.Include(c => c.Subspecies).ThenInclude(s => s!.Translations)
-			.Include(c => c.Background).ThenInclude(b => b.Translations)
-			.Include(c => c.Class).ThenInclude(c => c.Translations)
-			.Include(c => c.Subclass).ThenInclude(s => s!.Translations)
-			.AsSplitQuery();
+		// ===== Helpers =====
 
-		private static CharacterRefDto Ref(Guid id, string? name) => new(id, name ?? string.Empty);
-
-		///	<summary>
-		///	Checks every choice against the rules and the compendium and copies it to the character, with the derived values.
-		///	Returns the reason of the first problem, or null.
-		///	</summary>
-		private async Task<string?> ApplyAsync(Character character, SaveCharacterDto dto)
+		private static CharacterInput Input(SaveCharacterDto dto, CharacterSheetState sheet) => new()
 		{
-			var name = dto.Name?.Trim() ?? string.Empty;
-			if (name.Length is 0 or > 100)
-			{
-				return "The name is required (at most 100 characters).";
-			}
-			if (dto.Level is < 1 or > 20)
-			{
-				return "The level must be between 1 and 20.";
-			}
-			if (!Enum.IsDefined(dto.Alignment) || !Enum.IsDefined(dto.Size) || !Enum.IsDefined(dto.AbilityMethod) || !Enum.IsDefined(dto.BonusMode))
-			{
-				return "Unknown alignment, size or ability method.";
-			}
+			Name = dto.Name?.Trim() ?? string.Empty,
+			Ruleset = dto.Ruleset,
+			SpeciesId = dto.SpeciesId,
+			SubspeciesId = dto.SubspeciesId,
+			BackgroundId = dto.BackgroundId,
+			Build = dto.Build ?? new CharacterBuild(),
+			Sheet = sheet
+		};
 
-			var species = await _context.Species.Include(s => s.Subspecies).FirstOrDefaultAsync(s => s.Id == dto.SpeciesId);
-			if (species is null || species.Ruleset != dto.Ruleset || !_access.CanView(species, User))
-			{
-				return "Unknown species for this edition.";
-			}
-			if (!species.AllowedSizes.Contains(dto.Size))
-			{
-				return "The species does not allow this size.";
-			}
-
-			Subspecies? subspecies = null;
-			if (dto.SubspeciesId is { } subId)
-			{
-				subspecies = species.Subspecies.FirstOrDefault(s => s.Id == subId);
-				if (subspecies is null || !_access.CanView(subspecies, User))
-				{
-					return "The subspecies does not belong to the species.";
-				}
-			}
-
-			var background = await _context.Backgrounds.Include(b => b.Translations).FirstOrDefaultAsync(b => b.Id == dto.BackgroundId);
-			if (background is null || background.Ruleset != dto.Ruleset || !_access.CanView(background, User))
-			{
-				return "Unknown background for this edition.";
-			}
-
-			var cls = await _context.Classes.Include(c => c.Translations).Include(c => c.Subclasses).FirstOrDefaultAsync(c => c.Id == dto.ClassId);
-			if (cls is null || cls.Ruleset != dto.Ruleset || !_access.CanView(cls, User))
-			{
-				return "Unknown class for this edition.";
-			}
-
-			Subclass? subclass = null;
-			if (dto.SubclassId is { } subclassId)
-			{
-				subclass = cls.Subclasses.FirstOrDefault(s => s.Id == subclassId);
-				if (subclass is null || !_access.CanView(subclass, User) || dto.Level < cls.SubclassLevel)
-				{
-					return "The subclass does not belong to the class or the level is too low.";
-				}
-			}
-
-			var languages = dto.Languages.Select(l => l?.Trim() ?? string.Empty).Where(l => l.Length > 0).Distinct().ToList();
-			if (languages.Count > 6 || languages.Any(l => l.Length > 50))
-			{
-				return "Too many languages.";
-			}
-
-			var skills = dto.ClassSkills.Distinct().ToList();
-			if (skills.Count != dto.ClassSkills.Count || skills.Count > cls.SkillChoiceCount || skills.Any(s => !cls.SkillOptions.Contains(s)))
-			{
-				return "The class skills are not among the options of the class.";
-			}
-
-			if (!CharacterMath.AreValidBaseScores(dto.AbilityMethod, dto.BaseScores))
-			{
-				return "The ability scores do not match the chosen method.";
-			}
-
-			var allowed = dto.Ruleset == RulesetVersion.Dnd5e_2024 ? background.AbilityOptions : new List<AbilityScore>();
-			if ((dto.BonusMode == AbilityBonusMode.AllOnes && dto.Ruleset == RulesetVersion.Dnd5e_2024) || !CharacterMath.AreValidBonuses(dto.BonusMode, dto.AbilityBonuses, allowed))
-			{
-				return "The ability score increases do not match the rules of the origin.";
-			}
-
-			var final = CharacterMath.FinalScores(dto.BaseScores, dto.AbilityBonuses);
-
-			//	Equipment: option A/B of the background, one choice per line (or kit) of the class
-			var hasGold = background.EquipmentGoldAlternative is not null;
-			if (hasGold ? dto.BackgroundEquipment is not ("A" or "B") : dto.BackgroundEquipment is not null)
-			{
-				return "Invalid background equipment option.";
-			}
-
-			var classText = cls.Translations.Localize(LanguageCode.En)?.StartingEquipment;
-			var loadout = EquipmentLoadout.FromClassText(classText);
-			if (!IsValidClassChoice(loadout, dto.ClassEquipment))
-			{
-				return "Invalid class equipment choices.";
-			}
-
-			//	Spells: from the class list, within the allowance of the level
-			var key = BaseClassKeys.Of(cls.Id, cls.Ruleset);
-			var abilityModifier = (subclass?.SpellcastingAbility ?? cls.SpellcastingAbility) is { } spellAbility
-				? CharacterMath.Modifier(CharacterMath.Score(final, spellAbility))
-				: 0;
-			var allowance = CharacterMath.Spells(cls.Translations.Localize(LanguageCode.En)?.ProgressionTable, dto.Level, abilityModifier, key == "paladin");
-			var spellIds = dto.SpellIds.Distinct().ToList();
-			var spells = await _context.Spells.Where(s => spellIds.Contains(s.Id)).ToListAsync();
-			var list = BaseClassKeys.SpellList(key);
-			if (spells.Count != spellIds.Count || spells.Any(s => s.Ruleset != dto.Ruleset || !_access.CanView(s, User))
-				|| (list is { } spellList && spells.Any(s => !s.Classes.Contains(spellList)))
-				|| spells.Count(s => s.Level == 0) > allowance.Cantrips
-				|| spells.Count(s => s.Level > 0) > allowance.Spells
-				|| spells.Any(s => s.Level > allowance.MaxSpellLevel && s.Level > 0))
-			{
-				return "The spells are not available to this class at this level.";
-			}
-
-			character.Name = name;
+		private static void Apply(Character character, SaveCharacterDto dto, CharacterSheetState sheet, ComputedCharacter computed)
+		{
+			character.Name = dto.Name.Trim();
 			character.Ruleset = dto.Ruleset;
-			character.Level = dto.Level;
-			character.Alignment = dto.Alignment;
-			character.SpeciesId = species.Id;
-			character.SubspeciesId = subspecies?.Id;
-			character.Size = dto.Size;
-			character.BackgroundId = background.Id;
-			character.Languages = languages;
-			character.ClassId = cls.Id;
-			character.SubclassId = subclass?.Id;
-			character.ClassSkills = skills;
-			character.AbilityMethod = dto.AbilityMethod;
-			character.BaseScores = dto.BaseScores.ToList();
-			character.BonusMode = dto.BonusMode;
-			character.AbilityBonuses = dto.AbilityBonuses.ToList();
-			character.BackgroundEquipment = dto.BackgroundEquipment;
-			character.ClassEquipment = dto.ClassEquipment.ToList();
-			character.SpellIds = spellIds;
-			character.MaxHitPoints = CharacterMath.MaxHitPoints(cls.HitDie, dto.Level, CharacterMath.Modifier(CharacterMath.Score(final, AbilityScore.Constitution)));
-			character.ArmorClass = await ArmorClassAsync(character, final, key, background.Translations.Localize(LanguageCode.En)?.Equipment, classText);
+			character.Level = computed.Level;
+			character.SpeciesId = dto.SpeciesId;
+			character.SubspeciesId = dto.SubspeciesId;
+			character.BackgroundId = dto.BackgroundId;
+			character.ClassId = dto.Build.Levels[0].ClassId;
+			character.Build = JsonSerializer.Serialize(dto.Build, Json);
+			character.Sheet = JsonSerializer.Serialize(sheet, Json);
+			character.MaxHitPoints = computed.MaxHitPoints;
+			character.ArmorClass = computed.ArmorClass;
 			character.UpdatedAt = DateTimeOffset.UtcNow;
-			return null;
 		}
 
-		private static bool IsValidClassChoice(EquipmentLoadout loadout, IReadOnlyList<string> choice)
+		private static string Describe(ComputedCharacter computed) =>
+			"The character does not follow the rules: " + string.Join("; ", computed.Issues.Where(i => i.Blocking).Select(i => i.ToString()).Distinct().Take(5));
+
+		public static CharacterBuild ReadBuild(string json)
 		{
-			if (loadout.IsEmpty)
+			try
 			{
-				return choice.Count == 0;
+				return JsonSerializer.Deserialize<CharacterBuild>(json, Json) ?? new CharacterBuild();
 			}
-			if (loadout.Kits.Count > 0)
+			catch (JsonException)
 			{
-				return choice.Count == 1 && loadout.Kits.Any(k => k.Letter == choice[0]);
+				return new CharacterBuild();
 			}
-
-			return choice.Count == loadout.Rows.Count && loadout.Rows.Select((row, i) =>
-				row.Options.Count == 1 ? choice[i] == string.Empty : row.Options.Any(o => o.Letter == choice[i])).All(ok => ok);
 		}
+
+		public static CharacterSheetState ReadSheet(string json)
+		{
+			try
+			{
+				return JsonSerializer.Deserialize<CharacterSheetState>(json, Json) ?? new CharacterSheetState();
+			}
+			catch (JsonException)
+			{
+				return new CharacterSheetState();
+			}
+		}
+
+		private static CharacterDto ToDto(Character c) => new(
+			c.Id, c.Name, c.Ruleset, c.SpeciesId, c.SubspeciesId, c.BackgroundId, ReadBuild(c.Build), ReadSheet(c.Sheet),
+			c.MaxHitPoints, c.ArmorClass, c.CreatedAt, c.UpdatedAt);
 
 		///	<summary>
-		///	Items the character starts with: the chosen background option and class kit or lines.
+		///	Bounds for everything the client can write in the sheet.
 		///	</summary>
-		private static IEnumerable<LoadoutItem> ChosenItems(string? backgroundText, int? gold, string? backgroundChoice, string? classText, IReadOnlyList<string> classChoice, LanguageCode lang = LanguageCode.En)
+		private static CharacterSheetState Sanitize(CharacterSheetState sheet)
 		{
-			var background = EquipmentLoadout.FromBackground(backgroundText, gold is null ? null : lang == LanguageCode.It ? $"{gold} mo" : $"{gold} GP");
-			var backgroundItems = background.Kits.Count > 0
-				? background.Kits.FirstOrDefault(k => k.Letter == backgroundChoice)?.Items ?? Array.Empty<LoadoutItem>()
-				: background.Rows.SelectMany(r => r.Options[0].Items);
+			static string? Text(string? value, int max = 8000) => value is null ? null : value.Length > max ? value[..max] : value;
+			static int Clamp(int value, int min, int max) => Math.Clamp(value, min, max);
 
-			var cls = EquipmentLoadout.FromClassText(classText);
-			var classItems = cls.Kits.Count > 0
-				? cls.Kits.FirstOrDefault(k => classChoice.Count > 0 && k.Letter == classChoice[0])?.Items ?? Array.Empty<LoadoutItem>()
-				: cls.Rows.SelectMany((row, i) => row.Options.Count == 1
-					? row.Options[0].Items
-					: row.Options.FirstOrDefault(o => i < classChoice.Count && o.Letter == classChoice[i])?.Items ?? Array.Empty<LoadoutItem>());
-
-			return backgroundItems.Concat(classItems);
-		}
-
-		private List<string> EquipmentLines(Character character, string? backgroundText, string? classText, LanguageCode lang) =>
-			ChosenItems(backgroundText, character.Background.EquipmentGoldAlternative is int gold ? gold : null, character.BackgroundEquipment, classText, character.ClassEquipment, lang)
-				.Select(i => string.Join(" ", new[] { i.Quantity is > 1 ? $"{i.Quantity}" : null, i.Text, i.Coins }.Where(p => !string.IsNullOrWhiteSpace(p))))
-				.Where(l => l.Length > 0)
-				.ToList();
-
-		//	Armor and shields among the starting items (English names matched against the Base equipment of the edition)
-		private async Task<int> ArmorClassAsync(Character character, int[] final, string? classKey, string? backgroundText, string? classText)
-		{
-			var armor = await _context.Equipment.AsNoTracking().Include(e => e.Translations)
-				.Where(e => e.Ruleset == character.Ruleset && e.IsOfficialSRD && e.Category == EquipmentCategory.Armor)
-				.ToListAsync();
-			var matcher = new EquipmentNameMatcher(armor.Select(a => (a.Translations.Localize(LanguageCode.En)?.Name ?? string.Empty, a.Id)));
-			var gold = await _context.Backgrounds.Where(b => b.Id == character.BackgroundId).Select(b => b.EquipmentGoldAlternative).FirstOrDefaultAsync();
-
-			var worn = ChosenItems(backgroundText, gold, character.BackgroundEquipment, classText, character.ClassEquipment)
-				.Select(i => matcher.Find(i.Text))
-				.Where(id => id is not null)
-				.Select(id => armor.First(a => a.Id == id))
-				.Where(a => a.ArmorCategory is not null && a.ArmorClass is not null)
-				.Select(a => new WornArmor(a.ArmorCategory!.Value, a.ArmorClass!.Value, a.ArmorAddsDexterity, a.ArmorMaxDexterityBonus));
-
-			return CharacterMath.ArmorClass(worn,
-				CharacterMath.Score(final, AbilityScore.Dexterity), CharacterMath.Score(final, AbilityScore.Constitution),
-				CharacterMath.Score(final, AbilityScore.Wisdom), classKey);
+			sheet.CurrentHitPoints = sheet.CurrentHitPoints is { } hp ? Clamp(hp, 0, 9999) : null;
+			sheet.TemporaryHitPoints = Clamp(sheet.TemporaryHitPoints, 0, 9999);
+			sheet.MaxHitPointsAdjustment = Clamp(sheet.MaxHitPointsAdjustment, -999, 999);
+			sheet.ArmorClassAdjustment = Clamp(sheet.ArmorClassAdjustment, -20, 20);
+			sheet.SpeedAdjustment = Clamp(sheet.SpeedAdjustment, -100, 200);
+			sheet.InitiativeAdjustment = Clamp(sheet.InitiativeAdjustment, -20, 20);
+			sheet.HitDiceSpent = (sheet.HitDiceSpent ?? new()).Where(p => p.Key is 6 or 8 or 10 or 12).ToDictionary(p => p.Key, p => Clamp(p.Value, 0, 20));
+			sheet.DeathSaveSuccesses = Clamp(sheet.DeathSaveSuccesses, 0, 3);
+			sheet.DeathSaveFailures = Clamp(sheet.DeathSaveFailures, 0, 3);
+			sheet.Conditions = (sheet.Conditions ?? new()).Where(c => !string.IsNullOrWhiteSpace(c)).Select(c => c.Length > 60 ? c[..60] : c).Distinct().Take(30).ToList();
+			sheet.Exhaustion = Clamp(sheet.Exhaustion, 0, 10);
+			sheet.SpentSlots = (sheet.SpentSlots ?? new()).Take(9).Select(s => Clamp(s, 0, 9)).ToList();
+			sheet.SpentPactSlots = Clamp(sheet.SpentPactSlots, 0, 9);
+			sheet.Inventory = (sheet.Inventory ?? new()).Take(300).Select(i =>
+			{
+				i.Name = Text(i.Name, 150);
+				i.Notes = Text(i.Notes, 500);
+				i.Quantity = Clamp(i.Quantity, 0, 99999);
+				return i;
+			}).Where(i => i.EquipmentId is not null || !string.IsNullOrWhiteSpace(i.Name)).ToList();
+			sheet.Coins ??= new CoinPurse();
+			sheet.Coins.Cp = Clamp(sheet.Coins.Cp, 0, 9_999_999);
+			sheet.Coins.Sp = Clamp(sheet.Coins.Sp, 0, 9_999_999);
+			sheet.Coins.Ep = Clamp(sheet.Coins.Ep, 0, 9_999_999);
+			sheet.Coins.Gp = Clamp(sheet.Coins.Gp, 0, 9_999_999);
+			sheet.Coins.Pp = Clamp(sheet.Coins.Pp, 0, 9_999_999);
+			sheet.Resources = (sheet.Resources ?? new()).Take(40).Select(r =>
+			{
+				r.Name = Text(r.Name, 80) ?? string.Empty;
+				r.Maximum = Clamp(r.Maximum, 0, 999);
+				r.Used = Clamp(r.Used, 0, r.Maximum);
+				return r;
+			}).ToList();
+			sheet.Experience = Clamp(sheet.Experience, 0, 10_000_000);
+			sheet.Traits = Text(sheet.Traits);
+			sheet.Ideals = Text(sheet.Ideals);
+			sheet.Bonds = Text(sheet.Bonds);
+			sheet.Flaws = Text(sheet.Flaws);
+			sheet.Appearance = Text(sheet.Appearance);
+			sheet.Backstory = Text(sheet.Backstory, 20000);
+			sheet.Allies = Text(sheet.Allies);
+			sheet.Notes = Text(sheet.Notes, 20000);
+			sheet.OtherProficiencies = Text(sheet.OtherProficiencies, 2000);
+			sheet.FeatureNotes = Text(sheet.FeatureNotes);
+			sheet.ExtraSkills = (sheet.ExtraSkills ?? new()).Where(s => Enum.IsDefined(s)).Distinct().ToList();
+			sheet.ExtraExpertise = (sheet.ExtraExpertise ?? new()).Where(s => Enum.IsDefined(s)).Distinct().ToList();
+			sheet.ExtraSaves = (sheet.ExtraSaves ?? new()).Where(a => Enum.IsDefined(a)).Distinct().ToList();
+			return sheet;
 		}
 	}
 }

@@ -1,0 +1,45 @@
+﻿@* The subclass of a class, from the level that grants it *@
+@if (Class.Subclasses.Count > 0)
+{
+    <div class="rf-wizard-row">
+        <div class="rf-wizard-label">@UiText.LabelSubclassChoice(Lang)</div>
+        <div class="rf-wizard-field">
+            @if (ClassLevel >= Class.SubclassLevel)
+            {
+                <ForgeSelector TValue="Guid?" Value="Entry.SubclassId" ValueChanged="SetSubclass" Options="Options" DataTest="@($"wizard-subclass-{Class.Key ?? "homebrew"}")" />
+            }
+            else
+            {
+                <div class="rf-forge-selector-display" style="min-height: 48px; color: var(--rf-text-muted);">@UiText.NoSubclassYet(Class.SubclassLevel, Lang)</div>
+            }
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter, EditorRequired] public ContextClass Class { get; set; } = default!;
+    [Parameter, EditorRequired] public CharacterClassBuild Entry { get; set; } = default!;
+    [Parameter] public int ClassLevel { get; set; }
+
+    private List<ForgeSelector<Guid?>.Option> Options
+    {
+        get
+        {
+            var options = Class.Subclasses.Select(s => new ForgeSelector<Guid?>.Option(s.Id, s.Name)).ToList();
+            options.Insert(0, new ForgeSelector<Guid?>.Option(null, "—"));
+            return options;
+        }
+    }
+
+    private async Task SetSubclass(Guid? id)
+    {
+        Entry.SubclassId = id;
+        if (Class.CasterProgression == CasterProgression.None)
+        {
+            //	Eldritch Knight / Arcane Trickster: the spells belong to the subclass
+            Entry.Cantrips.Clear();
+            Entry.Spells.Clear();
+        }
+        await W.UpdateAsync();
+    }
+}
