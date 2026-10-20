@@ -1,0 +1,39 @@
+﻿@* Cards to choose cantrips or spells of a list, up to a number and a spell level *@
+@{
+    var available = Available;
+    var target = Math.Min(Max, available.Count);
+    var shown = available.Where(s => string.IsNullOrWhiteSpace(Search) || s.Name.Contains(Search.Trim(), StringComparison.OrdinalIgnoreCase)).ToList();
+}
+@if (Max > 0 && available.Count > 0)
+{
+    <div data-test="spell-picker">
+    <div class="rf-wizard-block-title">@Title</div>
+    <div class="rf-wizard-counter" data-test="@($"{DataTest}-count")">@UiText.SpellsSelected(Chosen.Count(id => available.Any(s => s.Id == id)), target, Lang)</div>
+    <div class="rf-wizard-spell-grid mb-3">
+        @foreach (var spell in shown)
+        {
+            var selected = Chosen.Contains(spell.Id);
+            <button type="button" class="rf-wizard-feature mb-0 @(selected ? "selected" : null)" disabled="@(!selected && Chosen.Count >= Max)"
+                    @onclick="() => W.Toggle(Chosen, spell.Id, Max)" data-test="@DataTest">
+                <div class="rf-wizard-feature-title">@spell.Name</div>
+                <div class="rf-wizard-feature-desc">@GameTerms.SpellSubtitle(spell.Level, spell.School, spell.Ritual, Lang, Ruleset)@(spell.Concentration ? $" · {UiText.ConcentrationShort(Lang)}" : null)</div>
+            </button>
+        }
+    </div>
+    </div>
+}
+
+@code {
+    [Parameter, EditorRequired] public string Title { get; set; } = string.Empty;
+    [Parameter, EditorRequired] public List<Guid> Chosen { get; set; } = new();
+    [Parameter] public SpellcastingClass? List { get; set; }
+    [Parameter] public int Max { get; set; }
+    [Parameter] public int MinLevel { get; set; }
+    [Parameter] public int MaxLevel { get; set; }
+    [Parameter] public string? Search { get; set; }
+    [Parameter] public string DataTest { get; set; } = "wizard-spell";
+
+    private List<ContextSpell> Available => Context.Spells
+        .Where(s => s.Level >= MinLevel && s.Level <= MaxLevel && (List is null || s.Classes.Contains(List.Value)))
+        .ToList();
+}

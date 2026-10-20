@@ -314,13 +314,8 @@ namespace RealmForge.Infrastructure.Persistence
 				entity.HasKey(c => c.Id);
 				entity.Property(c => c.OwnerId).IsRequired().HasMaxLength(450);
 				entity.Property(c => c.Name).IsRequired().HasMaxLength(100);
-				entity.Property(c => c.BackgroundEquipment).HasMaxLength(10);
-				entity.Property(c => c.Languages).IsRequired();
-				entity.Property(c => c.ClassSkills).IsRequired();
-				entity.Property(c => c.BaseScores).IsRequired();
-				entity.Property(c => c.AbilityBonuses).IsRequired();
-				entity.Property(c => c.ClassEquipment).IsRequired();
-				entity.Property(c => c.SpellIds).IsRequired();
+				entity.Property(c => c.Build).IsRequired().HasColumnType("jsonb");
+				entity.Property(c => c.Sheet).IsRequired().HasColumnType("jsonb");
 
 				entity.HasIndex(c => c.OwnerId);
 
@@ -328,7 +323,6 @@ namespace RealmForge.Infrastructure.Persistence
 				entity.HasOne(c => c.Subspecies).WithMany().HasForeignKey(c => c.SubspeciesId).OnDelete(DeleteBehavior.Restrict);
 				entity.HasOne(c => c.Background).WithMany().HasForeignKey(c => c.BackgroundId).OnDelete(DeleteBehavior.Restrict);
 				entity.HasOne(c => c.Class).WithMany().HasForeignKey(c => c.ClassId).OnDelete(DeleteBehavior.Restrict);
-				entity.HasOne(c => c.Subclass).WithMany().HasForeignKey(c => c.SubclassId).OnDelete(DeleteBehavior.Restrict);
 			});
 
 			//	Rules glossary configuration

@@ -1,0 +1,33 @@
+﻿@* Pills to choose skills: those already known elsewhere are dashed (unless the choice may repeat them) *@
+<div class="rf-wizard-counter">@Chosen.Count / @Count</div>
+<div class="rf-wizard-pills" data-test="@DataTest">
+    @foreach (var skill in (Options ?? Enum.GetValues<Skill>()).OrderBy(s => GameTerms.SkillName(s, Lang)))
+    {
+        var selected = Chosen.Contains(skill);
+        var known = !selected && Known.Contains(skill);
+        if (known && !AllowKnown)
+        {
+            <span class="rf-wizard-pill locked">@GameTerms.SkillName(skill, Lang)</span>
+        }
+        else
+        {
+            <button type="button" class="rf-wizard-pill @(selected ? "selected" : null)" disabled="@(!selected && Chosen.Count >= Count)"
+                    @onclick="() => W.Toggle(Chosen, skill, Count)" data-test="@($"{DataTest}-option")">@GameTerms.SkillName(skill, Lang)</button>
+        }
+    }
+</div>
+
+@code {
+    [Parameter, EditorRequired] public List<Skill> Chosen { get; set; } = new();
+    [Parameter] public int Count { get; set; }
+    [Parameter] public IReadOnlyList<Skill>? Options { get; set; }
+    [Parameter] public bool AllowKnown { get; set; }
+
+    //	Expertise: only proficient skills, not already with Expertise
+    [Parameter] public bool Expertise { get; set; }
+    [Parameter] public string DataTest { get; set; } = "wizard-skill";
+
+    private IReadOnlyCollection<Skill> Known => Expertise
+        ? Enum.GetValues<Skill>().Where(s => !Computed.SkillProficiencies.Contains(s) || Computed.Expertise.Contains(s)).ToList()
+        : Computed.SkillProficiencies;
+}

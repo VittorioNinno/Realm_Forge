@@ -1,0 +1,52 @@
+﻿@* Alignment and personality: the 2014 backgrounds have tables to roll on; everything can be written freely *@
+@{
+    var detail = W.Background is { } background ? W.BackgroundDetails.GetValueOrDefault(background.Id) : null;
+    var sheet = W.Input.Sheet;
+}
+
+<div class="rf-wizard-row">
+    <div class="rf-wizard-label">@UiText.LabelAlignment(Lang)</div>
+    <div class="rf-wizard-field">
+        <ForgeSelector TValue="Alignment" Value="Build.Alignment" ValueChanged="v => { Build.Alignment = v; W.Update(); }" Options="AlignmentOptions" DataTest="wizard-alignment" />
+    </div>
+</div>
+<div class="rf-wizard-panel mb-3">
+    <div class="rf-wizard-block-title">@UiText.AlignmentName(Build.Alignment, Lang)</div>
+    <div class="rf-wizard-text">@UiText.AlignmentDescription(Build.Alignment, Lang)</div>
+    <div class="rf-wizard-pills mb-0">
+        @foreach (var trait in UiText.AlignmentTraits(Build.Alignment, Lang))
+        {
+            <span class="rf-wizard-pill">@trait</span>
+        }
+    </div>
+</div>
+
+@if (!Is2024 && detail is not null && detail.PersonalityTraits.Count > 0)
+{
+    <div class="small mb-2" style="color: var(--rf-text-muted);">@UiText.HintPersonality2014(Lang)</div>
+}
+
+@DetailField(UiText.LabelPersonalityTraits(Lang), sheet.Traits, v => sheet.Traits = v, detail?.PersonalityTraits, "traits")
+@DetailField(UiText.LabelIdeals(Lang), sheet.Ideals, v => sheet.Ideals = v, detail?.Ideals, "ideals")
+@DetailField(UiText.LabelBonds(Lang), sheet.Bonds, v => sheet.Bonds = v, detail?.Bonds, "bonds")
+@DetailField(UiText.LabelFlaws(Lang), sheet.Flaws, v => sheet.Flaws = v, detail?.Flaws, "flaws")
+@DetailField(UiText.LabelAppearance(Lang), sheet.Appearance, v => sheet.Appearance = v, null, "appearance")
+@DetailField(UiText.LabelBackstory(Lang), sheet.Backstory, v => sheet.Backstory = v, null, "backstory")
+
+@code {
+    private List<ForgeSelector<Alignment>.Option> AlignmentOptions =>
+        Enum.GetValues<Alignment>().Select(a => new ForgeSelector<Alignment>.Option(a, UiText.AlignmentName(a, Lang))).ToList();
+
+    private RenderFragment DetailField(string label, string? value, Action<string?> set, List<string>? table, string key) => @<div class="rf-wizard-row">
+        <div class="rf-wizard-label">@label</div>
+        <div class="rf-wizard-field">
+            <textarea class="rf-wizard-input rf-wizard-textarea" rows="2" maxlength="8000" value="@value"
+                      @onchange="e => set(e.Value?.ToString())" data-test="@($"wizard-detail-{key}")"></textarea>
+            @if (!Is2024 && table is { Count: > 0 })
+            {
+                <button type="button" class="rf-stat-card-btn mt-1" style="width: auto; padding: 4px 12px;"
+                        @onclick="() => { set(table[Random.Shared.Next(table.Count)]); W.Update(); }" data-test="@($"wizard-roll-{key}")">@UiText.BtnRollTable(Lang)</button>
+            }
+        </div>
+    </div>;
+}

@@ -1,0 +1,71 @@
+﻿@* The items of the chosen options; a generic line ("any simple weapon", "a musical instrument") asks for the item *@
+<ul class="rf-loadout-list mb-3">
+    @foreach (var (slot, item) in CharacterCalculator.ChosenOptions(Prefix, Loadout, Choice))
+    {
+        <li class="@(item.CoinAmount is not null && item.EquipmentId is null && item.Pick is null ? "rf-loadout-coins" : null)">
+            @if (item.Pick is { } pick)
+            {
+                <div class="w-100">
+                    <div class="rf-loadout-name mb-1">@UiText.PickLabel(pick.Kind, pick.MeleeOnly, Lang)@(pick.Count > 1 ? $" ×{pick.Count}" : null)</div>
+                    @for (var n = 0; n < pick.Count; n++)
+                    {
+                        var number = n;
+                        <div class="mb-1">
+                            <ForgeSelector TValue="Guid?" Value="Picked(slot, number)" ValueChanged="v => SetPick(slot, number, pick.Count, v)"
+                                           Options="PickOptions(pick)" DataTest="wizard-equipment-pick" />
+                        </div>
+                    }
+                </div>
+            }
+            else
+            {
+                <span class="rf-loadout-name">@item.Label</span>
+                @if (item.Quantity > 1 && item.CoinAmount is null)
+                {
+                    <span class="rf-loadout-value">×@item.Quantity</span>
+                }
+            }
+        </li>
+    }
+</ul>
+
+@code {
+    [Parameter, EditorRequired] public string Prefix { get; set; } = string.Empty;
+    [Parameter, EditorRequired] public ContextLoadout Loadout { get; set; } = ContextLoadout.Empty;
+    [Parameter, EditorRequired] public IReadOnlyList<string> Choice { get; set; } = Array.Empty<string>();
+
+    private Guid? Picked(string slot, int number)
+    {
+        var pick = Build.EquipmentPicks.FirstOrDefault(p => p.Slot == slot);
+        return pick is not null && number < pick.Items.Count && pick.Items[number] != Guid.Empty ? pick.Items[number] : null;
+    }
+
+    private List<ForgeSelector<Guid?>.Option> PickOptions(LoadoutPick pick)
+    {
+        var options = Context.Items.Where(i => CharacterCalculator.Matches(pick, i))
+            .Select(i => new ForgeSelector<Guid?>.Option(i.Id, i.Name))
+            .ToList();
+        options.Insert(0, new ForgeSelector<Guid?>.Option(null, "—"));
+        return options;
+    }
+
+    private void SetPick(string slot, int number, int count, Guid? id)
+    {
+        var pick = Build.EquipmentPicks.FirstOrDefault(p => p.Slot == slot);
+        if (pick is null)
+        {
+            pick = new EquipmentPick { Slot = slot };
+            Build.EquipmentPicks.Add(pick);
+        }
+
+        //	The list keeps one entry per item to pick; it is complete when none is missing
+        var items = Enumerable.Range(0, count).Select(i => i < pick.Items.Count ? pick.Items[i] : Guid.Empty).ToList();
+        items[number] = id ?? Guid.Empty;
+        pick.Items = items;
+        if (pick.Items.All(i => i == Guid.Empty))
+        {
+            Build.EquipmentPicks.Remove(pick);
+        }
+        W.Update();
+    }
+}

@@ -3,8 +3,10 @@
 namespace RealmForge.Domain.Entities
 {
 	///	<summary>
-	///	A player character: the choices made in the creation wizard (references to the compendium, scores, equipment
-	///	and spells) plus the derived values computed when it is saved. Always private to its owner.
+	///	A player character. The columns hold what lists and links need (owner, name, edition, level, origin, starting
+	///	class and the derived values shown in the list); every rules choice is in <see cref="Build"/> and the play state
+	///	(hit points, resources, inventory, notes) in <see cref="Sheet"/>, both JSON documents
+	///	(RealmForge.Shared.Characters). Always private to its owner.
 	///	</summary>
 	public class Character
 	{
@@ -16,35 +18,21 @@ namespace RealmForge.Domain.Entities
 		public string Name { get; set; } = string.Empty;
 		public RulesetVersion Ruleset { get; set; } = RulesetVersion.Dnd5e_2024;
 		public int Level { get; set; } = 1;
-		public Alignment Alignment { get; set; } = Alignment.Neutral;
 
-		//	Origin
 		public Guid SpeciesId { get; set; }
 		public Species Species { get; set; } = null!;
 		public Guid? SubspeciesId { get; set; }
 		public Subspecies? Subspecies { get; set; }
-		public CreatureSize Size { get; set; } = CreatureSize.Medium;
 		public Guid BackgroundId { get; set; }
 		public Background Background { get; set; } = null!;
-		public List<string> Languages { get; set; } = new();
 
-		//	Class
+		//	Starting class (level 1)
 		public Guid ClassId { get; set; }
 		public CharacterClass Class { get; set; } = null!;
-		public Guid? SubclassId { get; set; }
-		public Subclass? Subclass { get; set; }
-		public List<Skill> ClassSkills { get; set; } = new();
 
-		//	Ability scores (Str, Dex, Con, Int, Wis, Cha)
-		public AbilityMethod AbilityMethod { get; set; } = AbilityMethod.StandardArray;
-		public List<int> BaseScores { get; set; } = new();
-		public AbilityBonusMode BonusMode { get; set; } = AbilityBonusMode.TwoAndOne;
-		public List<int> AbilityBonuses { get; set; } = new();
-
-		//	Equipment choices (see SaveCharacterDto) and spells
-		public string? BackgroundEquipment { get; set; }
-		public List<string> ClassEquipment { get; set; } = new();
-		public List<Guid> SpellIds { get; set; } = new();
+		//	CharacterBuild and CharacterSheetState as JSON (jsonb)
+		public string Build { get; set; } = "{}";
+		public string Sheet { get; set; } = "{}";
 
 		//	Derived values, computed by the API when the character is saved
 		public int MaxHitPoints { get; set; }

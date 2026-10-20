@@ -46,12 +46,12 @@
                                 <span class="badge @(character.Ruleset == RulesetVersion.Dnd5e_2024 ? "badge-edition-2024" : "badge-edition-2014")">@UiText.FormatRuleset(character.Ruleset, Lang)</span>
                             </div>
                             <div class="small mt-1" style="color: var(--rf-text-secondary);">
-                                @character.SpeciesName · @(character.ClassName)@(character.SubclassName is null ? null : $" ({character.SubclassName})") · @UiText.CharacterLevel(character.Level, Lang)
+                                @character.SpeciesName · @character.ClassLine · @UiText.CharacterLevel(character.Level, Lang)
                             </div>
                             <div class="small" style="color: var(--rf-text-muted);">@character.BackgroundName</div>
                             <div class="d-flex gap-3 mt-2 small">
                                 <span><strong style="color: var(--rf-orange-primary);">@UiText.SheetArmorClass(Lang)</strong> @character.ArmorClass</span>
-                                <span><strong style="color: var(--rf-orange-primary);">@UiText.SheetHitPoints(Lang)</strong> @character.MaxHitPoints</span>
+                                <span><strong style="color: var(--rf-orange-primary);">@UiText.SheetHitPoints(Lang)</strong> @character.CurrentHitPoints / @character.MaxHitPoints</span>
                             </div>
                         </a>
                     }
