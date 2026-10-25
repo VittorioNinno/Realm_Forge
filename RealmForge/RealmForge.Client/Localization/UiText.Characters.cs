@@ -658,5 +658,19 @@ namespace RealmForge.Client.Localization
 		public static string SheetBackpack(LanguageCode lang) => T(lang, "Zaino", "Backpack");
 		public static string BtnEquip(LanguageCode lang) => T(lang, "Equipaggia", "Equip");
 		public static string BtnUnequip(LanguageCode lang) => T(lang, "Togli", "Unequip");
+			// ===== Advancement type =====
+
+		public static string LabelAdvancement(LanguageCode lang) => T(lang, "Tipo di avanzamento", "Advancement type");
+		public static string AdvancementName(AdvancementType type, LanguageCode lang) => type == AdvancementType.Milestone
+			? T(lang, "Progressione narrativa", "Story-based progression")
+			: T(lang, "Progressione a punti esperienza", "XP-based progression");
+		public static string AdvancementHint(AdvancementType type, LanguageCode lang) => type == AdvancementType.Milestone
+			? T(lang, "Si sale di livello quando il master lo decide, al raggiungimento di tappe della storia: la scheda non tiene il conto dei PE.",
+				"You level up when the game master decides, at milestones of the story: the sheet does not track XP.")
+			: T(lang, "Si sale di livello accumulando punti esperienza: la scheda mostra i PE e avvisa quando bastano per il livello successivo.",
+				"You level up by earning experience points: the sheet tracks XP and tells you when you have enough for the next level.");
+		public static string MilestoneSheetText(LanguageCode lang) => T(lang,
+			"Progressione narrativa: sali di livello quando il master annuncia una tappa della storia.",
+			"Story-based progression: level up when the game master announces a story milestone.");
 	}
 }

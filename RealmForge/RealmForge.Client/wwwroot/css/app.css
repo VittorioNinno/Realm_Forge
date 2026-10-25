@@ -3961,3 +3961,16 @@ button.rf-stat-card {
         align-items: flex-start;
     }
 }
+
+.rf-advancement {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 8px;
+}
+
+    .rf-advancement .rf-wizard-pill {
+        margin: 0;
+        font-size: .78rem;
+    }
