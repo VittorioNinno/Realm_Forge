@@ -104,6 +104,10 @@
     }
 }
 
+@if (detail is null && species is not null)
+{
+    <div class="rf-wizard-panel small" style="color: var(--rf-text-muted);">@UiText.LoadingTraits(Lang)</div>
+}
 @if (detail is not null)
 {
     <div class="rf-wizard-panel" data-test="wizard-species-panel">
@@ -141,7 +145,6 @@
         {
             var feats = Context.Feats.Where(f => !Is2024 || f.Category == FeatCategory.Origin);
             var options = feats.Select(f => new ForgeSelector<Guid?>.Option(f.Id, f.Name)).ToList();
-            options.Insert(0, new ForgeSelector<Guid?>.Option(null, UiText.NoFeatChosen(Lang)));
             return options;
         }
     }

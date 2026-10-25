@@ -19,18 +19,42 @@
 
     <div class="rf-wizard-panel" data-test="wizard-class-panel">
         <div class="rf-wizard-block-title">@cls.Name</div>
-        <div class="rf-wizard-meta">
-            <div><strong>@UiText.LabelHitDie(Lang)</strong>d@(cls.HitDie)</div>
-            <div><strong>@UiText.LabelPrimaryAbility(Lang)</strong>@string.Join(", ", cls.PrimaryAbilities.Select(a => FeatPrerequisiteFormatter.AbilityName(a, Lang)))</div>
-            <div><strong>@UiText.LabelSaves(Lang)</strong>@string.Join(", ", cls.SavingThrows.Select(a => FeatPrerequisiteFormatter.AbilityName(a, Lang)))</div>
-            <div><strong>@UiText.SheetArmorTraining(Lang)</strong>@UiText.ArmorTrainingText(CharacterRules.Armor(cls, Ruleset, true), Lang)</div>
-            @if (!string.IsNullOrWhiteSpace(detail?.WeaponProficiencies))
+        <div class="rf-class-summary">
+            <div class="rf-class-summary-head">
+                <span class="rf-class-summary-die" title="@UiText.LabelHitDie(Lang)">d@(cls.HitDie)</span>
+                <div>
+                    <div class="rf-class-summary-label">@UiText.LabelPrimaryAbility(Lang)</div>
+                    <div class="rf-class-summary-value">@string.Join(", ", cls.PrimaryAbilities.Select(a => FeatPrerequisiteFormatter.AbilityName(a, Lang)))</div>
+                </div>
+                <div>
+                    <div class="rf-class-summary-label">@UiText.SheetHitPoints(Lang)</div>
+                    <div class="rf-class-summary-value">@UiText.HitPointsSummary(cls.HitDie, Lang)</div>
+                </div>
+            </div>
+            <dl class="rf-def-list">
+                <dt>@UiText.LabelSaves(Lang)</dt>
+                <dd>@string.Join(", ", cls.SavingThrows.Select(a => FeatPrerequisiteFormatter.AbilityName(a, Lang)))</dd>
+                <dt>@UiText.SheetArmorTraining(Lang)</dt>
+                <dd>@UiText.ArmorTrainingText(CharacterRules.Armor(cls, Ruleset, true), Lang)</dd>
+                @if (!string.IsNullOrWhiteSpace(detail?.WeaponProficiencies))
+                {
+                    <dt>@UiText.LabelWeapons(Lang)</dt>
+                    <dd>@detail.WeaponProficiencies</dd>
+                }
+                @if (!string.IsNullOrWhiteSpace(detail?.ToolProficiencies))
+                {
+                    <dt>@UiText.LabelTools(Lang)</dt>
+                    <dd>@detail.ToolProficiencies</dd>
+                }
+                @if (cls.SpellcastingAbility is { } spellAbility)
+                {
+                    <dt>@UiText.LabelSpellcastingAbility(Lang)</dt>
+                    <dd>@FeatPrerequisiteFormatter.AbilityName(spellAbility, Lang)@(cls.SpellList is { } list ? $" · {UiText.SpellListOf(GameTerms.ClassName(list, Lang), Lang)}" : null)</dd>
+                }
+            </dl>
+            @if (!string.IsNullOrWhiteSpace(detail?.Description))
             {
-                <div><strong>@UiText.LabelWeapons(Lang)</strong>@detail.WeaponProficiencies</div>
-            }
-            @if (!string.IsNullOrWhiteSpace(detail?.ToolProficiencies))
-            {
-                <div><strong>@UiText.LabelTools(Lang)</strong>@detail.ToolProficiencies</div>
+                <FeatureBlock Title="@UiText.LabelClassDescription(Lang)" Text="@detail.Description" Ruleset="Ruleset" />
             }
         </div>
 
@@ -38,7 +62,7 @@
         <SkillPicker W="W" Chosen="entry.Skills" Count="cls.SkillChoiceCount" Options="cls.SkillOptions" DataTest="wizard-skill" />
         @if (cls.SkillOptions.Any(s => W.Computed.SkillProficiencies.Contains(s) && !entry.Skills.Contains(s)))
         {
-            <div class="small mb-3" style="color: var(--rf-text-muted);">@UiText.HintBackgroundSkills(Lang)</div>
+            <div class="small mb-3" style="color: var(--rf-text-muted);">@UiText.HintKnownSkills(Lang)</div>
         }
 
         @if (detail is not null)
