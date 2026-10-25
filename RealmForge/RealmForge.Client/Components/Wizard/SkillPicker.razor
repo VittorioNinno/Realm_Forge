@@ -1,4 +1,5 @@
-﻿@* Pills to choose skills: those already known elsewhere are dashed (unless the choice may repeat them) *@
+﻿@* Pills to choose skills: those the character already has from somewhere else are marked with their source and cannot
+   be taken twice (unless the choice may repeat them) *@
 <div class="rf-wizard-counter">@Chosen.Count / @Count</div>
 <div class="rf-wizard-pills" data-test="@DataTest">
     @foreach (var skill in (Options ?? Enum.GetValues<Skill>()).OrderBy(s => GameTerms.SkillName(s, Lang)))
@@ -7,7 +8,10 @@
         var known = !selected && Known.Contains(skill);
         if (known && !AllowKnown)
         {
-            <span class="rf-wizard-pill locked">@GameTerms.SkillName(skill, Lang)</span>
+            var source = Expertise ? W.ExpertiseBlock(skill) : W.SkillSource(skill);
+            <span class="rf-wizard-pill known" title="@UiText.SkillAlreadyKnown(source, Lang)">
+                @(Expertise ? null : "✓ ")@GameTerms.SkillName(skill, Lang) <small>· @source</small>
+            </span>
         }
         else
         {

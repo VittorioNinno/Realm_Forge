@@ -50,7 +50,7 @@
                 <div class="rf-wizard-label">@UiText.LabelOrder(cls.Key, Lang)</div>
                 <div class="rf-wizard-field">
                     <ForgeSelector TValue="string" Value="@(entry.Order ?? string.Empty)" ValueChanged="SetOrder"
-                                   Options="@(new[] { new ForgeSelector<string>.Option(string.Empty, "—") }.Concat(orders.Select(o => new ForgeSelector<string>.Option(o.Key, UiText.OptionName(o, Lang)))).ToList())"
+                                   Options="@(orders.Select(o => new ForgeSelector<string>.Option(o.Key, UiText.OptionName(o, Lang))).ToList())"
                                    DataTest="wizard-order" />
                 </div>
             </div>
@@ -82,7 +82,7 @@
     {
         get
         {
-            var options = new List<ForgeSelector<string>.Option> { new(string.Empty, "—") };
+            var options = new List<ForgeSelector<string>.Option>();
             if (Is2024)
             {
                 options.AddRange(Context.Feats.Where(f => f.Category == FeatCategory.FightingStyle).Select(f => new ForgeSelector<string>.Option($"feat:{f.Id}", f.Name)));

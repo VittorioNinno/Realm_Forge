@@ -26,27 +26,63 @@
     <div class="small mb-2" style="color: var(--rf-text-muted);">@UiText.HintPersonality2014(Lang)</div>
 }
 
-@DetailField(UiText.LabelPersonalityTraits(Lang), sheet.Traits, v => sheet.Traits = v, detail?.PersonalityTraits, "traits")
-@DetailField(UiText.LabelIdeals(Lang), sheet.Ideals, v => sheet.Ideals = v, detail?.Ideals, "ideals")
-@DetailField(UiText.LabelBonds(Lang), sheet.Bonds, v => sheet.Bonds = v, detail?.Bonds, "bonds")
-@DetailField(UiText.LabelFlaws(Lang), sheet.Flaws, v => sheet.Flaws = v, detail?.Flaws, "flaws")
-@DetailField(UiText.LabelAppearance(Lang), sheet.Appearance, v => sheet.Appearance = v, null, "appearance")
-@DetailField(UiText.LabelBackstory(Lang), sheet.Backstory, v => sheet.Backstory = v, null, "backstory")
+<div class="rf-wizard-suggest-bar">
+    <span class="small" style="color: var(--rf-text-muted);">@UiText.HintSuggest(Lang)</span>
+    <button type="button" class="btn btn-rf-orange btn-sm" @onclick="SuggestAll" data-test="wizard-suggest-all">@UiText.BtnSuggestAll(Lang)</button>
+</div>
+
+@DetailField(UiText.LabelPersonalityTraits(Lang), sheet.Traits, v => sheet.Traits = v, detail?.PersonalityTraits, "traits", StoryField.Traits)
+@DetailField(UiText.LabelIdeals(Lang), sheet.Ideals, v => sheet.Ideals = v, detail?.Ideals, "ideals", StoryField.Ideals)
+@DetailField(UiText.LabelBonds(Lang), sheet.Bonds, v => sheet.Bonds = v, detail?.Bonds, "bonds", StoryField.Bonds)
+@DetailField(UiText.LabelFlaws(Lang), sheet.Flaws, v => sheet.Flaws = v, detail?.Flaws, "flaws", StoryField.Flaws)
+@DetailField(UiText.LabelAppearance(Lang), sheet.Appearance, v => sheet.Appearance = v, null, "appearance", StoryField.Appearance)
+@DetailField(UiText.LabelBackstory(Lang), sheet.Backstory, v => sheet.Backstory = v, null, "backstory", StoryField.Backstory)
 
 @code {
     private List<ForgeSelector<Alignment>.Option> AlignmentOptions =>
         Enum.GetValues<Alignment>().Select(a => new ForgeSelector<Alignment>.Option(a, UiText.AlignmentName(a, Lang))).ToList();
 
-    private RenderFragment DetailField(string label, string? value, Action<string?> set, List<string>? table, string key) => @<div class="rf-wizard-row">
+    private StorySeed Seed => new(
+        W.Input.Name,
+        Build.Alignment,
+        W.StartingClass?.Key,
+        W.StartingClass?.Name ?? string.Empty,
+        W.Subspecies?.Name ?? W.Species?.Name ?? string.Empty,
+        W.Background?.Name ?? string.Empty,
+        Lang);
+
+    private void Suggest(StoryField field, Action<string?> set)
+    {
+        set(CharacterStoryGenerator.Suggest(field, Seed));
+        W.Update();
+    }
+
+    //	Fills the empty fields only: what the player wrote stays
+    private void SuggestAll()
+    {
+        var sheet = W.Input.Sheet;
+        if (string.IsNullOrWhiteSpace(sheet.Traits)) sheet.Traits = CharacterStoryGenerator.Suggest(StoryField.Traits, Seed);
+        if (string.IsNullOrWhiteSpace(sheet.Ideals)) sheet.Ideals = CharacterStoryGenerator.Suggest(StoryField.Ideals, Seed);
+        if (string.IsNullOrWhiteSpace(sheet.Bonds)) sheet.Bonds = CharacterStoryGenerator.Suggest(StoryField.Bonds, Seed);
+        if (string.IsNullOrWhiteSpace(sheet.Flaws)) sheet.Flaws = CharacterStoryGenerator.Suggest(StoryField.Flaws, Seed);
+        if (string.IsNullOrWhiteSpace(sheet.Appearance)) sheet.Appearance = CharacterStoryGenerator.Suggest(StoryField.Appearance, Seed);
+        if (string.IsNullOrWhiteSpace(sheet.Backstory)) sheet.Backstory = CharacterStoryGenerator.Suggest(StoryField.Backstory, Seed);
+        W.Update();
+    }
+
+    private RenderFragment DetailField(string label, string? value, Action<string?> set, List<string>? table, string key, StoryField field) => @<div class="rf-wizard-row">
         <div class="rf-wizard-label">@label</div>
         <div class="rf-wizard-field">
-            <textarea class="rf-wizard-input rf-wizard-textarea" rows="2" maxlength="8000" value="@value"
-                      @onchange="e => set(e.Value?.ToString())" data-test="@($"wizard-detail-{key}")"></textarea>
+            <textarea class="rf-wizard-input rf-wizard-textarea" rows="@(field == StoryField.Backstory ? 5 : 2)" maxlength="8000" value="@value"
+                      @onchange="e => { set(e.Value?.ToString()); W.Update(); }" data-test="@($"wizard-detail-{key}")"></textarea>
+            <div class="d-flex flex-wrap gap-2 mt-1">
+            <button type="button" class="rf-stat-card-btn" style="width: auto; padding: 4px 12px;" @onclick="() => Suggest(field, set)" data-test="@($"wizard-suggest-{key}")">@UiText.BtnSuggest(Lang)</button>
             @if (!Is2024 && table is { Count: > 0 })
             {
-                <button type="button" class="rf-stat-card-btn mt-1" style="width: auto; padding: 4px 12px;"
+                <button type="button" class="rf-stat-card-btn" style="width: auto; padding: 4px 12px;"
                         @onclick="() => { set(table[Random.Shared.Next(table.Count)]); W.Update(); }" data-test="@($"wizard-roll-{key}")">@UiText.BtnRollTable(Lang)</button>
             }
+            </div>
         </div>
     </div>;
 }

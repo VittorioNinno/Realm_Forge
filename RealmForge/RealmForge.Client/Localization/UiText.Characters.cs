@@ -567,5 +567,96 @@ namespace RealmForge.Client.Localization
 		public static string FormatWeight(decimal pounds, LanguageCode lang) => lang == LanguageCode.It
 			? $"{pounds / 2m:0.#} kg"
 			: $"{pounds:0.#} lb.";
+			// ===== Wizard: clearer choices =====
+
+		public static string SelectorPlaceholder(LanguageCode lang) => T(lang, "Scegli…", "Choose…");
+		public static string SkillAlreadyKnown(string source, LanguageCode lang) => T(lang, $"Già nota grazie a: {source}", $"Already known from: {source}");
+		public static string SourceSheet(LanguageCode lang) => T(lang, "scheda", "sheet");
+		public static string AlreadyExpertise(LanguageCode lang) => T(lang, "già con maestria", "already expertise");
+		public static string NotProficient(LanguageCode lang) => T(lang, "serve la competenza", "needs proficiency");
+		public static string HintKnownSkills(LanguageCode lang) => T(lang,
+			"Le abilità con ✓ sono già note (dal background, dalla specie o da un'altra classe): non si possono scegliere due volte, quindi non contano tra quelle da scegliere.",
+			"Skills marked ✓ are already known (from the background, species or another class): they cannot be picked twice, so they do not count toward your picks.");
+		public static string HitPointsSummary(int die, LanguageCode lang) => T(lang,
+			$"PF al 1° livello: {die} + mod. Cos · poi {die / 2 + 1} + mod. Cos per livello",
+			$"HP at level 1: {die} + Con mod · then {die / 2 + 1} + Con mod per level");
+		public static string SpellListOf(string className, LanguageCode lang) => T(lang, $"lista del {className}", $"{className} list");
+		public static string LabelDescription(LanguageCode lang) => T(lang, "Descrizione", "Description");
+		public static string LabelFinalShort(LanguageCode lang) => T(lang, "Finale", "Final");
+		public static string LabelModifierShort(LanguageCode lang) => T(lang, "mod.", "mod");
+		public static string LabelNotAssigned(LanguageCode lang) => T(lang, "Da assegnare", "Not assigned");
+		public static string DraftRestored(LanguageCode lang) => T(lang, "Abbiamo ripreso la creazione da dove l'avevi lasciata.", "We picked up the creation where you left it.");
+		public static string BtnStartOver(LanguageCode lang) => T(lang, "Ricomincia da capo", "Start over");
+		public static string BtnSpellDetails(LanguageCode lang) => T(lang, "Dettagli dell'incantesimo", "Spell details");
+		public static string OpenInCompendium(LanguageCode lang) => T(lang, "Apri nel compendio ↗", "Open in the compendium ↗");
+		public static string LoadingTraits(LanguageCode lang) => T(lang, "Caricamento dei tratti…", "Loading traits…");
+		public static string HintSuggest(LanguageCode lang) => T(lang,
+			"Serve un'idea? I suggerimenti partono da classe, origine e allineamento: modificali come preferisci.",
+			"Need an idea? Suggestions start from class, origin and alignment: change them as you like.");
+		public static string BtnSuggestAll(LanguageCode lang) => T(lang, "Suggerisci i campi vuoti", "Suggest empty fields");
+		public static string BtnSuggest(LanguageCode lang) => T(lang, "Suggerisci", "Suggest");
+
+		// ===== Sheet: play helpers =====
+
+		public static string TabCombat(LanguageCode lang) => T(lang, "Combattimento", "Combat");
+		public static string PortraitTooLarge(LanguageCode lang) => T(lang, "Immagine non valida o troppo grande.", "The image is not valid or too large.");
+		public static string BtnPortrait(LanguageCode lang) => T(lang, "Ritratto", "Portrait");
+		public static string LabelAge(LanguageCode lang) => T(lang, "Età", "Age");
+		public static string LabelGender(LanguageCode lang) => T(lang, "Genere", "Gender");
+		public static string LabelFaith(LanguageCode lang) => T(lang, "Fede", "Faith");
+		public static string LabelHeight(LanguageCode lang) => T(lang, "Altezza", "Height");
+		public static string SheetSensesAndTraits(LanguageCode lang) => T(lang, "Sensi e tratti", "Senses and traits");
+		public static string PassiveShort(string skill, LanguageCode lang) => T(lang, $"{skill} pass.", $"Passive {skill}");
+		public static string SheetTempShort(LanguageCode lang) => T(lang, "temp.", "temp");
+		public static string BtnAddExperience(LanguageCode lang) => T(lang, "Aggiungi PE", "Add XP");
+		public static string ReadyToLevelUp(LanguageCode lang) => T(lang, "Hai abbastanza esperienza per salire di livello!", "You have enough experience to level up!");
+		public static string SheetConditionsTitle(LanguageCode lang) => T(lang, "Condizioni ed effetti", "Conditions and effects");
+		public static string LevelShort(LanguageCode lang) => T(lang, "liv.", "lvl");
+		public static string BtnReset(LanguageCode lang) => T(lang, "Azzera", "Reset");
+		public static string ConditionEffect(LanguageCode lang) => T(lang, "(effetto)", "(effect)");
+		public static string ConditionCause(LanguageCode lang) => T(lang, "(causa)", "(cause)");
+
+		//	Exhaustion summary in our own words: 2024 is a flat penalty per level, 2014 a cumulative table
+		public static string ExhaustionEffect(RulesetVersion ruleset, int level, LanguageCode lang)
+		{
+			if (level >= 6)
+			{
+				return T(lang, "il personaggio muore.", "the character dies.");
+			}
+			if (!Is2014(ruleset))
+			{
+				return T(lang,
+					$"−{level * 2} alle prove con il d20 e velocità ridotta di {UiText.FormatSpeed(level * 5, lang)}. Un riposo lungo toglie un livello.",
+					$"−{level * 2} to d20 tests and speed reduced by {UiText.FormatSpeed(level * 5, lang)}. A long rest removes one level.");
+			}
+			var effects = new List<string>();
+			if (level >= 1) effects.Add(T(lang, "svantaggio alle prove di caratteristica", "disadvantage on ability checks"));
+			if (level >= 2) effects.Add(T(lang, "velocità dimezzata", "speed halved"));
+			if (level >= 3) effects.Add(T(lang, "svantaggio a tiri per colpire e tiri salvezza", "disadvantage on attack rolls and saving throws"));
+			if (level >= 4) effects.Add(T(lang, "punti ferita massimi dimezzati", "hit point maximum halved"));
+			if (level >= 5) effects.Add(T(lang, "velocità 0", "speed 0"));
+			return string.Join("; ", effects) + ".";
+		}
+
+		public static string BtnUse(LanguageCode lang) => T(lang, "Usa", "Use");
+		public static string SheetSpellsPrepared(LanguageCode lang) => T(lang, "Incantesimi", "Spells");
+		public static string RitualShort(LanguageCode lang) => T(lang, "rituale", "ritual");
+		public static string CoinLongName(CoinType type, LanguageCode lang) => (type, lang == LanguageCode.It) switch
+		{
+			(CoinType.Cp, true) => "Rame",
+			(CoinType.Sp, true) => "Argento",
+			(CoinType.Ep, true) => "Electrum",
+			(CoinType.Gp, true) => "Oro",
+			(CoinType.Pp, true) => "Platino",
+			(CoinType.Cp, false) => "Copper",
+			(CoinType.Sp, false) => "Silver",
+			(CoinType.Ep, false) => "Electrum",
+			(CoinType.Gp, false) => "Gold",
+			_ => "Platinum"
+		};
+		public static string SheetEquippedGroup(LanguageCode lang) => T(lang, "Equipaggiato", "Equipped");
+		public static string SheetBackpack(LanguageCode lang) => T(lang, "Zaino", "Backpack");
+		public static string BtnEquip(LanguageCode lang) => T(lang, "Equipaggia", "Equip");
+		public static string BtnUnequip(LanguageCode lang) => T(lang, "Togli", "Unequip");
 	}
 }

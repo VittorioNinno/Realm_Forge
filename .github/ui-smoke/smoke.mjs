@@ -687,6 +687,15 @@ try {
 
   await wizardStep('equipment');
   const previewAc = (await page.locator('[data-test=wizard-preview-ac]').innerText()).trim();
+  // Leaving the wizard (a link to the compendium) and coming back restores the draft at the same step
+  await page.goto(`${base}/backgrounds`);
+  await page.getByText('Accolito').first().waitFor({ timeout: 30000 });
+  await page.goto(`${base}/characters/new`);
+  await page.locator('[data-test=wizard-draft]').waitFor({ timeout: 60000 });
+  await wizardStep('equipment');
+  const draftAc = (await page.locator('[data-test=wizard-preview-ac]').innerText()).trim();
+  if (draftAc !== previewAc) throw new Error(`the wizard draft was not restored: AC ${draftAc} vs ${previewAc}`);
+  ok('wizard draft: leaving for the compendium and coming back keeps the choices and the step');
   await next();
 
   await wizardStep('spells');
@@ -695,12 +704,17 @@ try {
   let chosenSpells = 0;
   for (const picker of await page.locator('[data-test=spell-picker]').all()) {
     const [have, want] = await counter(picker.locator('.rf-wizard-counter'));
-    for (let k = have; k < want; k++) await picker.locator('button:not(.selected):not([disabled])').first().click();
+    for (let k = have; k < want; k++) await picker.locator('button:not(.rf-spell-info):not(.selected):not([disabled])').first().click();
     chosenSpells += want;
   }
   await next();
 
   await wizardStep('details');
+  await page.locator('[data-test=wizard-suggest-all]').click();
+  const suggestedTraits = (await page.locator('[data-test=wizard-detail-traits]').inputValue()).trim();
+  const suggestedStory = (await page.locator('[data-test=wizard-detail-backstory]').inputValue()).trim();
+  if (suggestedTraits.length < 10 || !suggestedStory.includes('Eroe di prova')) throw new Error(`the suggestions did not fill the details: ${suggestedTraits} | ${suggestedStory}`);
+  ok('wizard details: "suggest" fills traits and a backstory that names the character');
   await next();
   await wizardStep('summary');
   const summaryAc = (await page.locator('[data-test=summary-ac]').innerText()).trim();
@@ -730,7 +744,15 @@ try {
     await page.locator(`[data-test=sheet-tab-${tab}]`).click();
     await page.waitForTimeout(300);
     characterAudits.push(await overflowOf(page, `sheet ${tab}`));
-    if (tab === 'spells') tabs.spells = await page.locator('[data-test=sheet-spells] a').count();
+    if (tab === 'spells') {
+      tabs.spells = await page.locator('[data-test=sheet-spells] a').count();
+      const fullBefore = await page.locator('[data-test=sheet-slots] .rf-slot-dot.full').count();
+      await page.locator('[data-test=sheet-slot-use]').first().click();
+      tabs.slots = `${fullBefore}->${await page.locator('[data-test=sheet-slots] .rf-slot-dot.full').count()}`;
+      await page.locator('[data-test=sheet-spells] a').first().click();
+      await page.locator('[data-test=spell-detail-modal]').waitFor({ timeout: 15000 });
+      await page.locator('[data-test=spell-detail-close]').click();
+    }
     if (tab === 'inventory') tabs.items = await page.locator('[data-test=sheet-item]').count();
   }
   const [download] = await Promise.all([page.waitForEvent('download', { timeout: 20000 }), page.locator('[data-test=sheet-pdf]').click()]);
@@ -759,6 +781,7 @@ try {
   if (sheetName !== 'Eroe di prova' || sheetAc !== summaryAc || sheetHp !== summaryHp || previewAc !== summaryAc) throw new Error('the saved character does not match the wizard');
   if (Number(afterReload) !== Number(sheetHp) - 3 || afterRest !== sheetHp) throw new Error('damage or rest not applied and saved');
   if (tabs.spells !== chosenSpells || tabs.items < 4) throw new Error('spells or inventory missing on the sheet');
+  if (tabs.slots !== '2->1') throw new Error(`"use" did not spend a spell slot: ${tabs.slots}`);
   if (!pdfHead.startsWith('%PDF') || pdfSize < 2000) throw new Error('the PDF download is not a PDF');
   if (!/Mago 1/.test(classes) || !/Guerriero 1/.test(classes) || Number(levelUpHp) <= Number(sheetHp)) throw new Error('the level up into fighter was not saved');
   if (!/Mago 1 \/ Guerriero 1/.test(characterCard)) throw new Error(`the list does not show the classes: ${characterCard}`);

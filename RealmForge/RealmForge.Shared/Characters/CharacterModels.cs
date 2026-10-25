@@ -142,6 +142,14 @@ public sealed class CharacterSheetState
 
 	public int Experience { get; set; }
 
+	//	Identity card of the sheet: portrait (a small data URL made in the browser) and personal details
+	public string? Portrait { get; set; }
+	public string? Age { get; set; }
+	public string? Gender { get; set; }
+	public string? Faith { get; set; }
+	public string? Height { get; set; }
+	public string? Weight { get; set; }
+
 	public string? Traits { get; set; }
 	public string? Ideals { get; set; }
 	public string? Bonds { get; set; }
