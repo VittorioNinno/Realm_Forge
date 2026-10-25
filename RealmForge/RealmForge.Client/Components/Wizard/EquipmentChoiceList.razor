@@ -45,7 +45,6 @@
         var options = Context.Items.Where(i => CharacterCalculator.Matches(pick, i))
             .Select(i => new ForgeSelector<Guid?>.Option(i.Id, i.Name))
             .ToList();
-        options.Insert(0, new ForgeSelector<Guid?>.Option(null, "—"));
         return options;
     }
 

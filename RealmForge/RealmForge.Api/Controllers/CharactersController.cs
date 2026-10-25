@@ -25,6 +25,9 @@ namespace RealmForge.Api.Controllers
 	{
 		public const int MaxCharactersPerUser = 50;
 
+		//	Portrait: a small JPEG resized in the browser (about 60 KB), stored as a data URL
+		public const int MaxPortraitLength = 400_000;
+
 		public static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web);
 
 		private readonly RealmForgeDbContext _context;
@@ -317,6 +320,12 @@ namespace RealmForge.Api.Controllers
 				return r;
 			}).ToList();
 			sheet.Experience = Clamp(sheet.Experience, 0, 10_000_000);
+			sheet.Portrait = sheet.Portrait is { Length: <= MaxPortraitLength } portrait && portrait.StartsWith("data:image/", StringComparison.Ordinal) ? portrait : null;
+			sheet.Age = Text(sheet.Age, 40);
+			sheet.Gender = Text(sheet.Gender, 40);
+			sheet.Faith = Text(sheet.Faith, 80);
+			sheet.Height = Text(sheet.Height, 40);
+			sheet.Weight = Text(sheet.Weight, 40);
 			sheet.Traits = Text(sheet.Traits);
 			sheet.Ideals = Text(sheet.Ideals);
 			sheet.Bonds = Text(sheet.Bonds);

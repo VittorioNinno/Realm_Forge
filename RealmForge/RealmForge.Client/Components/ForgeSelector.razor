@@ -1,12 +1,15 @@
 ﻿@typeparam TValue
+@using RealmForge.Client.Localization
+@using RealmForge.Client.Services
+@inject LanguageStateService LanguageState
 
 @* Arrow selector of the character wizard: ‹ value ›. The arrows cycle through the options, the value opens the full list. *@
 <div class="rf-forge-selector" data-test="@DataTest" @onclick:stopPropagation="true">
-    <button type="button" class="rf-forge-selector-btn" aria-label="‹" disabled="@(Options.Count < 2)" @onclick="() => Step(-1)" data-test="selector-prev">
+    <button type="button" class="rf-forge-selector-btn" aria-label="‹" disabled="@ArrowsDisabled" @onclick="() => Step(-1)" data-test="selector-prev">
         <svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6" /></svg>
     </button>
-    <button type="button" class="rf-forge-selector-display" @onclick="() => open = !open" data-test="selector-value">@CurrentLabel</button>
-    <button type="button" class="rf-forge-selector-btn" aria-label="›" disabled="@(Options.Count < 2)" @onclick="() => Step(1)" data-test="selector-next">
+    <button type="button" class="rf-forge-selector-display @(HasValue ? null : "placeholder")" @onclick="() => open = !open" data-test="selector-value">@(HasValue ? CurrentLabel : Placeholder ?? UiText.SelectorPlaceholder(LanguageState.CurrentLanguage))</button>
+    <button type="button" class="rf-forge-selector-btn" aria-label="›" disabled="@ArrowsDisabled" @onclick="() => Step(1)" data-test="selector-next">
         <svg viewBox="0 0 24 24"><path d="M9 18l6-6-6-6" /></svg>
     </button>
 
@@ -30,7 +33,14 @@
     [Parameter] public List<Option> Options { get; set; } = new();
     [Parameter] public string? DataTest { get; set; }
 
+    //	Shown while nothing is chosen yet: a required choice does not offer an empty option
+    [Parameter] public string? Placeholder { get; set; }
+
     private bool open;
+
+    private bool HasValue => Options.Any(o => EqualityComparer<TValue>.Default.Equals(o.Value, Value));
+
+    private bool ArrowsDisabled => Options.Count == 0 || (Options.Count == 1 && HasValue);
 
     private string CurrentLabel => Options.FirstOrDefault(o => EqualityComparer<TValue>.Default.Equals(o.Value, Value))?.Label ?? "—";
 

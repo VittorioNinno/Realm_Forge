@@ -26,7 +26,6 @@
         get
         {
             var options = Class.Subclasses.Select(s => new ForgeSelector<Guid?>.Option(s.Id, s.Name)).ToList();
-            options.Insert(0, new ForgeSelector<Guid?>.Option(null, "—"));
             return options;
         }
     }

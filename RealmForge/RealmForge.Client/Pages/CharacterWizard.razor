@@ -33,6 +33,13 @@
                 }
                 else
                 {
+                    @if (DraftRestored)
+                    {
+                        <div class="rf-wizard-draft" data-test="wizard-draft">
+                            <span>@UiText.DraftRestored(Lang)</span>
+                            <button type="button" class="btn btn-rf-outline btn-sm" @onclick="DiscardDraftAsync" data-test="wizard-draft-discard">@UiText.BtnStartOver(Lang)</button>
+                        </div>
+                    }
                     <div class="rf-wizard-steps">
                         @for (var i = 0; i < Steps.Count; i++)
                         {

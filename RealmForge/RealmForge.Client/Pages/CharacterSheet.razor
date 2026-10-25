@@ -27,27 +27,98 @@
     else
     {
         var c = computed;
-        <div class="rf-wizard rf-sheet" data-test="character-sheet">
-            <div class="rf-sheet-head">
-                <div class="rf-sheet-name" data-test="sheet-name">@character.Name</div>
-                <div class="rf-sheet-sub">@(c.Subspecies?.Name ?? c.Species?.Name) · <span data-test="sheet-classes">@ClassLine</span></div>
-                <div class="rf-sheet-sub small">
-                    <a href="@($"backgrounds?id={character.BackgroundId}")" class="text-reset">@c.Background?.Name</a> ·
-                    @UiText.AlignmentName(character.Build.Alignment, Lang) · @UiText.FormatSizeSingle(character.Build.Size, Lang) ·
-                    <span class="badge @(Ruleset == RulesetVersion.Dnd5e_2024 ? "badge-edition-2024" : "badge-edition-2014")">@UiText.FormatRuleset(Ruleset, Lang)</span>
-                </div>
-            </div>
+        <div class="rf-sheet2" data-test="character-sheet">
 
-            <div class="rf-sheet-actions">
-                @if (c.Level < 20)
+            @* ===== Identity card: portrait, name, origin, inspiration, speed, personal details, traits ===== *@
+            <section class="rf-card2 rf-hero">
+                <div class="rf-hero-top">
+                    <div class="rf-hero-portrait @(Sheet.Portrait is null ? "empty" : null)" style="@(Sheet.Portrait is { } src ? $"background-image: url('{src}');" : null)">
+                        <label class="rf-hero-portrait-upload" title="@UiText.BtnPortrait(Lang)">
+                            <InputFile OnChange="UploadPortraitAsync" accept="image/*" class="d-none" />
+                            @(Sheet.Portrait is null ? UiText.BtnPortrait(Lang) : "✎")
+                        </label>
+                        @if (Sheet.Portrait is not null)
+                        {
+                            <button type="button" class="rf-hero-portrait-remove" @onclick="RemovePortrait" aria-label="@UiText.BtnRemove(Lang)">✕</button>
+                        }
+                    </div>
+                    <div class="rf-hero-info">
+                        <div class="rf-hero-header">
+                            <div class="rf-hero-title">
+                                <div class="rf-sheet-name" data-test="sheet-name">@character.Name</div>
+                                <div class="rf-hero-origin">
+                                    @(c.Subspecies is { } sub ? $"{sub.Name} ({c.Species?.Name})" : c.Species?.Name)
+                                    <span class="rf-hero-sep">|</span>
+                                    <a href="@($"backgrounds?id={character.BackgroundId}")" class="text-reset">@c.Background?.Name</a>
+                                </div>
+                                <div class="rf-hero-classes" data-test="sheet-classes">@ClassLine</div>
+                            </div>
+                            <div class="rf-hero-controls">
+                                <button type="button" class="rf-hero-inspiration @(Sheet.Inspiration ? "on" : null)" @onclick="ToggleInspiration"
+                                        title="@UiText.SheetInspiration(Ruleset, Lang)" aria-pressed="@Sheet.Inspiration" data-test="sheet-inspiration">
+                                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2l2.9 6.9L22 10l-5.5 4.8L18.2 22 12 18.3 5.8 22l1.7-7.2L2 10l7.1-1.1z" /></svg>
+                                </button>
+                                <div class="text-end">
+                                    <div class="rf-mini-label">@UiText.SheetSpeed(Lang)</div>
+                                    <div class="rf-hero-speed">@UiText.FormatSpeed(c.Speed, Lang)</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="rf-hero-bio">
+                            @BioField(UiText.LabelAge(Lang), Sheet.Age, v => Sheet.Age = v, "age")
+                            @BioField(UiText.LabelGender(Lang), Sheet.Gender, v => Sheet.Gender = v, "gender")
+                            <div><div class="rf-mini-label">@UiText.LabelAlignment(Lang)</div><div class="rf-hero-bio-value">@UiText.AlignmentName(character.Build.Alignment, Lang)</div></div>
+                            @BioField(UiText.LabelFaith(Lang), Sheet.Faith, v => Sheet.Faith = v, "faith")
+                            <div><div class="rf-mini-label">@UiText.LabelSize(Lang)</div><div class="rf-hero-bio-value">@UiText.FormatSizeSingle(character.Build.Size, Lang)</div></div>
+                            <div><div class="rf-mini-label">@UiText.LabelEdition(Lang)</div><div class="rf-hero-bio-value">@UiText.FormatRuleset(Ruleset, Lang)</div></div>
+                        </div>
+                    </div>
+                </div>
+                @if (portraitError is not null)
                 {
-                    <a class="btn btn-rf-orange btn-sm" href="@($"characters/{character.Id}/edit?levelup=true")" data-test="sheet-levelup">@UiText.BtnLevelUp(Lang)</a>
+                    <div class="small text-warning mt-2">@portraitError</div>
                 }
-                <a class="btn btn-rf-outline btn-sm" href="@($"characters/{character.Id}/edit")" data-test="sheet-edit">@UiText.BtnEditCharacter(Lang)</a>
-                <button type="button" class="btn btn-rf-outline btn-sm" @onclick="DownloadPdfAsync" data-test="sheet-pdf">@UiText.BtnDownloadPdf(Lang)</button>
-                <button type="button" class="btn btn-rf-outline btn-sm" @onclick="() => deleteOpen = true" data-test="sheet-delete">@UiText.Delete(Lang)</button>
-                <span class="rf-sheet-save small @(saveStatus == SaveStatus.Failed ? "text-warning" : null)" data-test="sheet-save-status">@SaveText</span>
-            </div>
+
+                @if (SpeciesTraits.Any())
+                {
+                    <div class="rf-mini-title mt-3">@UiText.SheetSensesAndTraits(Lang)</div>
+                    <div class="rf-chip-list">
+                        @foreach (var trait in SpeciesTraits)
+                        {
+                            var t = trait;
+                            <button type="button" class="rf-chip @(openTrait == t.Name ? "open" : null)" @onclick="() => ToggleTrait(t.Name)" data-test="sheet-trait">@t.Name</button>
+                        }
+                    </div>
+                    @if (SpeciesTraits.FirstOrDefault(t => t.Name == openTrait) is { } shown)
+                    {
+                        <div class="rf-chip-detail rf-markdown-container">@((MarkupString)MarkdownText.ToHtml(shown.Description, Glossary.Linker(Lang, Ruleset)))</div>
+                    }
+                }
+
+                <div class="rf-hero-footer">
+                    <div><span class="rf-mini-label">@UiText.LabelLanguages(Ruleset, Lang):</span> @string.Join(", ", c.Languages.Select(l => CharacterLanguages.Name(Ruleset, l, Lang)))</div>
+                    @if (c.Feats.Count > 0)
+                    {
+                        <div><span class="rf-mini-label">@UiText.SheetFeats(Lang):</span> @string.Join(", ", c.Feats.Select(f => f.Feat.Name))</div>
+                    }
+                    <div><span class="rf-mini-label">@UiText.SheetArmorTraining(Lang):</span> @UiText.ArmorTrainingText(c.ArmorTraining, Lang)</div>
+                    @if (!string.IsNullOrWhiteSpace(backgroundDetail?.ToolProficiencies))
+                    {
+                        <div><span class="rf-mini-label">@UiText.LabelTools(Lang):</span> @backgroundDetail.ToolProficiencies</div>
+                    }
+                </div>
+
+                <div class="rf-sheet-actions">
+                    @if (c.Level < 20)
+                    {
+                        <a class="btn btn-sm @(ReadyToLevelUp ? "btn-rf-orange rf-pulse" : "btn-rf-outline")" href="@($"characters/{character.Id}/edit?levelup=true")" data-test="sheet-levelup">@UiText.BtnLevelUp(Lang)</a>
+                    }
+                    <a class="btn btn-rf-outline btn-sm" href="@($"characters/{character.Id}/edit")" data-test="sheet-edit">@UiText.BtnEditCharacter(Lang)</a>
+                    <button type="button" class="btn btn-rf-outline btn-sm" @onclick="DownloadPdfAsync" data-test="sheet-pdf">@UiText.BtnDownloadPdf(Lang)</button>
+                    <button type="button" class="btn btn-rf-outline btn-sm" @onclick="() => deleteOpen = true" data-test="sheet-delete">@UiText.Delete(Lang)</button>
+                    <span class="rf-sheet-save small @(saveStatus == SaveStatus.Failed ? "text-warning" : null)" data-test="sheet-save-status">@SaveText</span>
+                </div>
+            </section>
 
             @if (c.Issues.Count > 0)
             {
@@ -58,54 +129,65 @@
                 </div>
             }
 
-            @* Vitals *@
-            <div class="rf-sheet-vitals">
-                <div class="rf-sheet-vital"><div class="rf-sheet-vital-value" data-test="sheet-ac">@c.ArmorClass</div><div class="rf-sheet-vital-label">@UiText.SheetArmorClass(Lang)</div></div>
-                <button type="button" class="rf-sheet-vital rf-sheet-vital-roll" @onclick="() => Roll(UiText.SheetInitiative(Lang), c.Initiative)" data-test="sheet-initiative">
-                    <div class="rf-sheet-vital-value">@CharacterMath.FormatModifier(c.Initiative)</div><div class="rf-sheet-vital-label">@UiText.SheetInitiative(Lang)</div>
-                </button>
-                <div class="rf-sheet-vital"><div class="rf-sheet-vital-value">@UiText.FormatSpeed(c.Speed, Lang)</div><div class="rf-sheet-vital-label">@UiText.SheetSpeed(Lang)</div></div>
-                <div class="rf-sheet-vital"><div class="rf-sheet-vital-value">@CharacterMath.FormatModifier(c.ProficiencyBonus)</div><div class="rf-sheet-vital-label">@UiText.SheetProficiency(Lang)</div></div>
-                <div class="rf-sheet-vital"><div class="rf-sheet-vital-value">@c.PassivePerception</div><div class="rf-sheet-vital-label">@UiText.SheetPassivePerception(Lang)</div></div>
-                <button type="button" class="rf-sheet-vital rf-sheet-vital-roll @(Sheet.Inspiration ? "active" : null)" @onclick="ToggleInspiration" data-test="sheet-inspiration">
-                    <div class="rf-sheet-vital-value">@(Sheet.Inspiration ? "★" : "☆")</div><div class="rf-sheet-vital-label">@UiText.SheetInspiration(Ruleset, Lang)</div>
-                </button>
-            </div>
-
-            @* Hit points *@
-            <div class="rf-sheet-hp" data-test="sheet-hp-box">
-                <div class="rf-sheet-hp-values">
-                    <div>
-                        <span class="rf-sheet-hp-current @(CurrentHp == 0 ? "down" : null)" data-test="sheet-hp-current">@CurrentHp</span>
-                        <span class="rf-sheet-hp-max">/ <span data-test="sheet-hp">@MaxHp</span></span>
-                        @if (Sheet.TemporaryHitPoints > 0)
+            @* ===== Hit dice and rests | defenses ===== *@
+            <div class="rf-sheet-row">
+                <section class="rf-card2 rf-hitdice">
+                    <div class="rf-hitdice-box">
+                        <div class="rf-mini-label">@UiText.SheetHitDice(Lang)</div>
+                        @foreach (var (die, count) in c.HitDice)
                         {
-                            <span class="rf-sheet-hp-temp" data-test="sheet-hp-temp">+@Sheet.TemporaryHitPoints</span>
+                            <div class="rf-hitdice-value" data-test="sheet-hit-dice">@(count - HitDiceSpent(die))<span>/@(count)</span> <small>d@(die)</small></div>
                         }
                     </div>
-                    <div class="rf-sheet-vital-label">@UiText.SheetHitPoints(Lang)</div>
-                    <div class="rf-sheet-hp-bar"><div style="width: @(MaxHp == 0 ? 0 : CurrentHp * 100 / MaxHp)%;"></div></div>
+                    <div class="rf-hitdice-rests">
+                        <button type="button" class="rf-rest-btn short" @onclick="() => shortRestOpen = true" data-test="sheet-short-rest">@UiText.BtnShortRest(Lang)</button>
+                        <button type="button" class="rf-rest-btn long" @onclick="() => longRestOpen = true" data-test="sheet-long-rest">@UiText.BtnLongRest(Lang)</button>
+                    </div>
+                </section>
+                <section class="rf-card2 rf-defenses">
+                    <div class="rf-defense"><div class="rf-mini-label">@UiText.SheetArmorClass(Lang)</div><div class="rf-defense-value" data-test="sheet-ac">@c.ArmorClass</div></div>
+                    <button type="button" class="rf-defense rf-rollable" @onclick="() => Roll(UiText.SheetInitiative(Lang), c.Initiative)" data-test="sheet-initiative">
+                        <div class="rf-mini-label">@UiText.SheetInitiative(Lang)</div><div class="rf-defense-value">@CharacterMath.FormatModifier(c.Initiative)</div>
+                    </button>
+                    <div class="rf-defense"><div class="rf-mini-label">@UiText.SheetProficiency(Lang)</div><div class="rf-defense-value">@CharacterMath.FormatModifier(c.ProficiencyBonus)</div></div>
+                    <div class="rf-defense"><div class="rf-mini-label">@UiText.PassiveShort(GameTerms.SkillName(Skill.Perception, Lang), Lang)</div><div class="rf-defense-value">@c.PassivePerception</div></div>
+                    <div class="rf-defense"><div class="rf-mini-label">@UiText.PassiveShort(GameTerms.SkillName(Skill.Investigation, Lang), Lang)</div><div class="rf-defense-value">@Passive(Skill.Investigation)</div></div>
+                    <div class="rf-defense"><div class="rf-mini-label">@UiText.PassiveShort(GameTerms.SkillName(Skill.Insight, Lang), Lang)</div><div class="rf-defense-value">@Passive(Skill.Insight)</div></div>
+                </section>
+            </div>
+
+            @* ===== Hit points and experience ===== *@
+            <section class="rf-card2" data-test="sheet-hp-box">
+                <div class="rf-card2-head">
+                    <span>@ClassLine</span>
+                    <span class="rf-card2-head-accent">@UiText.CharacterLevel(c.Level, Lang) · @UiText.SheetProficiency(Lang) @CharacterMath.FormatModifier(c.ProficiencyBonus)</span>
                 </div>
-                <div class="rf-sheet-hp-controls">
-                    <input type="number" min="0" max="9999" class="rf-wizard-input" value="@amount" @onchange="e => amount = int.TryParse(e.Value?.ToString(), out var v) ? Math.Max(0, v) : 0"
-                           aria-label="@UiText.PlaceholderAmount(Lang)" data-test="sheet-hp-amount" />
-                    <button type="button" class="rf-wizard-btn secondary" @onclick="Damage" data-test="sheet-damage">@UiText.BtnDamage(Lang)</button>
-                    <button type="button" class="rf-wizard-btn" @onclick="Heal" data-test="sheet-heal">@UiText.BtnHeal(Lang)</button>
-                    <button type="button" class="rf-wizard-btn secondary" @onclick="SetTemp" data-test="sheet-temp">@UiText.BtnTempHp(Lang)</button>
+
+                <div class="rf-bar-row">
+                    <div class="rf-bar-label">
+                        <span>@UiText.SheetHitPoints(Lang)</span>
+                        <span>
+                            <span class="rf-sheet-hp-current @(CurrentHp == 0 ? "down" : null)" data-test="sheet-hp-current">@CurrentHp</span> / <span data-test="sheet-hp">@MaxHp</span>
+                            @if (Sheet.TemporaryHitPoints > 0)
+                            {
+                                <span class="rf-sheet-hp-temp" data-test="sheet-hp-temp">+@Sheet.TemporaryHitPoints @UiText.SheetTempShort(Lang)</span>
+                            }
+                        </span>
+                    </div>
+                    <div class="rf-bar"><div class="rf-bar-fill hp" style="width: @(MaxHp == 0 ? 0 : CurrentHp * 100 / MaxHp)%;"></div></div>
+                    <div class="rf-bar-controls">
+                        <input type="number" min="0" max="9999" class="rf-wizard-input" value="@amount" @onchange="e => amount = int.TryParse(e.Value?.ToString(), out var v) ? Math.Max(0, v) : 0"
+                               aria-label="@UiText.PlaceholderAmount(Lang)" data-test="sheet-hp-amount" />
+                        <button type="button" class="rf-wizard-btn rf-btn-damage" @onclick="Damage" data-test="sheet-damage">@UiText.BtnDamage(Lang)</button>
+                        <button type="button" class="rf-wizard-btn rf-btn-heal" @onclick="Heal" data-test="sheet-heal">@UiText.BtnHeal(Lang)</button>
+                        <button type="button" class="rf-wizard-btn secondary" @onclick="SetTemp" data-test="sheet-temp">@UiText.BtnTempHp(Lang)</button>
+                    </div>
                 </div>
-                <div class="rf-sheet-hp-dice">
-                    <span class="rf-sheet-vital-label">@UiText.SheetHitDice(Lang)</span>
-                    @foreach (var (die, count) in c.HitDice)
-                    {
-                        <span class="rf-wizard-pill" data-test="sheet-hit-dice">@(count - HitDiceSpent(die))/@count d@die</span>
-                    }
-                    <button type="button" class="btn btn-rf-outline btn-sm" @onclick="() => shortRestOpen = true" data-test="sheet-short-rest">@UiText.BtnShortRest(Lang)</button>
-                    <button type="button" class="btn btn-rf-outline btn-sm" @onclick="() => longRestOpen = true" data-test="sheet-long-rest">@UiText.BtnLongRest(Lang)</button>
-                </div>
+
                 @if (CurrentHp == 0)
                 {
                     <div class="rf-sheet-death" data-test="sheet-death-saves">
-                        <span class="rf-sheet-vital-label">@UiText.SheetDeathSaves(Lang)</span>
+                        <span class="rf-mini-label">@UiText.SheetDeathSaves(Lang)</span>
                         <span class="small">@UiText.SheetSuccesses(Lang)</span>
                         @for (var i = 1; i <= 3; i++)
                         {
@@ -121,27 +203,83 @@
                         <button type="button" class="btn btn-rf-outline btn-sm ms-2" @onclick="() => Roll(UiText.SheetDeathSaves(Lang), 0)">d20</button>
                     </div>
                 }
+
+                <div class="rf-bar-row mb-0">
+                    <div class="rf-bar-label">
+                        <span>@UiText.SheetExperience(Lang)</span>
+                        <span data-test="sheet-xp-value">@Sheet.Experience / @NextLevelExperience</span>
+                    </div>
+                    <div class="rf-bar"><div class="rf-bar-fill xp" style="width: @(ExperiencePercent)%;"></div></div>
+                    <div class="rf-bar-controls">
+                        <input type="number" class="rf-wizard-input" value="@xpAmount" @onchange="e => xpAmount = int.TryParse(e.Value?.ToString(), out var v) ? v : 0"
+                               aria-label="@UiText.SheetExperience(Lang)" data-test="sheet-xp-amount" />
+                        <button type="button" class="rf-wizard-btn" @onclick="AddExperience" data-test="sheet-xp-add">@UiText.BtnAddExperience(Lang)</button>
+                    </div>
+                    @if (ReadyToLevelUp)
+                    {
+                        <div class="small mt-2" style="color: var(--rf-orange-primary);">@UiText.ReadyToLevelUp(Lang)</div>
+                    }
+                </div>
+            </section>
+
+            @* ===== Ability scores ===== *@
+            <div class="rf-ability-grid" data-test="sheet-scores">
+                @foreach (var ability in CharacterMath.Abilities)
+                {
+                    var a = ability;
+                    var proficient = c.SaveProficiencies.Contains(a);
+                    var saveLabel = UiText.SheetSaveShort(Lang) + " " + FeatPrerequisiteFormatter.AbilityName(a, Lang);
+                    <div class="rf-ability-card">
+                        <button type="button" class="rf-ability-main rf-rollable" @onclick="() => Roll(FeatPrerequisiteFormatter.AbilityName(a, Lang), c.Modifier(a))">
+                            <div class="rf-mini-label">@FeatPrerequisiteFormatter.AbilityName(a, Lang)</div>
+                            <div class="rf-ability-mod">@CharacterMath.FormatModifier(c.Modifier(a))</div>
+                            <div class="rf-ability-score">@c.Score(a)</div>
+                        </button>
+                        <button type="button" class="rf-ability-save rf-rollable @(proficient ? "proficient" : null)" @onclick="() => Roll(saveLabel, c.SaveBonus(a))" title="@UiText.SheetSaves(Lang)">
+                            @UiText.SheetSaveShort(Lang) @CharacterMath.FormatModifier(c.SaveBonus(a))
+                        </button>
+                    </div>
+                }
             </div>
 
-            @* Conditions and exhaustion *@
-            <div class="rf-sheet-conditions" data-test="sheet-conditions">
-                <span class="rf-sheet-vital-label me-1">@UiText.SheetConditions(Lang)</span>
-                @foreach (var condition in conditions)
+            @* ===== Conditions and exhaustion ===== *@
+            <section class="rf-card2" data-test="sheet-conditions">
+                <div class="rf-card2-head"><span>@UiText.SheetConditionsTitle(Lang)</span></div>
+                <div class="rf-exhaustion @(Sheet.Exhaustion > 0 ? "active" : null)">
+                    <span>@UiText.SheetExhaustion(Lang) (@UiText.LevelShort(Lang) @Sheet.Exhaustion)</span>
+                    <div class="d-flex gap-2">
+                        <button type="button" class="rf-mini-btn" @onclick="() => ChangeExhaustion(-1)" data-test="sheet-exhaustion-minus">−</button>
+                        <button type="button" class="rf-mini-btn" @onclick="() => ChangeExhaustion(1)" data-test="sheet-exhaustion-plus">+</button>
+                        <button type="button" class="rf-mini-btn" @onclick="() => ChangeExhaustion(-ExhaustionMax)">@UiText.BtnReset(Lang)</button>
+                    </div>
+                </div>
+                <div class="rf-condition-grid">
+                    @foreach (var condition in conditions)
+                    {
+                        var cond = condition;
+                        var active = Sheet.Conditions.Contains(cond.Key);
+                        var implied = IsImplied(cond.Key);
+                        <button type="button" class="rf-condition @(active ? "active" : implied ? "implied" : null)" title="@cond.Summary"
+                                @onclick="() => ClickCondition(cond.Key)" data-test="sheet-condition">@cond.Name</button>
+                    }
+                </div>
+                @if (Sheet.Exhaustion > 0 || Sheet.Conditions.Count > 0)
                 {
-                    var on = Sheet.Conditions.Contains(condition.Key);
-                    <button type="button" class="rf-wizard-pill @(on ? "selected" : null)" title="@condition.Summary" @onclick="() => ToggleCondition(condition.Key)" data-test="sheet-condition">@condition.Name</button>
+                    <div class="rf-condition-notes">
+                        @if (Sheet.Exhaustion > 0)
+                        {
+                            <div><strong class="text-danger">@UiText.SheetExhaustion(Lang) [@Sheet.Exhaustion]:</strong> @UiText.ExhaustionEffect(Ruleset, Sheet.Exhaustion, Lang)</div>
+                        }
+                        @foreach (var condition in conditions.Where(x => Sheet.Conditions.Contains(x.Key) || IsImplied(x.Key)))
+                        {
+                            <div><strong>@condition.Name.ToUpperInvariant() @(IsImplied(condition.Key) ? UiText.ConditionEffect(Lang) : UiText.ConditionCause(Lang)):</strong> @condition.Summary</div>
+                        }
+                    </div>
                 }
-                <span class="rf-sheet-vital-label ms-2 me-1">@UiText.SheetExhaustion(Lang)</span>
-                @for (var i = 1; i <= ExhaustionMax; i++)
-                {
-                    var value = i;
-                    <button type="button" class="rf-sheet-box @(Sheet.Exhaustion >= value ? "on" : null)" @onclick="() => SetExhaustion(value)" aria-label="@UiText.SheetExhaustion(Lang) @value" data-test="sheet-exhaustion"></button>
-                }
-            </div>
+            </section>
 
-            @* Dice *@
+            @* ===== Dice result ===== *@
             <div class="rf-sheet-roller">
-                <span class="small" style="color: var(--rf-text-muted);">@UiText.HintClickToRoll(Lang)</span>
                 <div class="rf-sheet-rollmode">
                     @foreach (var mode in Enum.GetValues<RollMode>())
                     {
@@ -149,11 +287,12 @@
                         <button type="button" class="rf-wizard-pill @(rollMode == m ? "selected" : null)" @onclick="() => rollMode = m">@RollModeName(m)</button>
                     }
                 </div>
-                @if (lastRoll is not null)
-                {
-                    <div class="rf-sheet-lastroll" data-test="sheet-last-roll">@lastRoll</div>
-                }
+                <span class="small" style="color: var(--rf-text-muted);">@UiText.HintClickToRoll(Lang)</span>
             </div>
+            @if (lastRoll is not null)
+            {
+                <div class="rf-roll-toast" data-test="sheet-last-roll" @onclick="() => lastRoll = null">@lastRoll</div>
+            }
 
             <div class="rf-sheet-tabs" role="tablist">
                 @foreach (var t in Enum.GetValues<SheetTab>())
@@ -187,6 +326,8 @@
     }
 </div>
 
+<SpellDetailModal SpellId="spellDetailId" OnClose="() => spellDetailId = null" />
+
 @if (shortRestOpen && computed is not null)
 {
     <div class="rf-modal-backdrop" @onclick="() => shortRestOpen = false">
@@ -198,7 +339,7 @@
                 {
                     var d = die;
                     var total = count;
-                    <button type="button" class="btn btn-rf-outline btn-sm" disabled="@(HitDiceSpent(d) >= total)" @onclick="() => SpendHitDie(d, total)" data-test="sheet-spend-hit-die">
+                    <button type="button" class="btn btn-rf-outline btn-sm" disabled="@(HitDiceSpent(d) >= total || CurrentHp >= MaxHp)" @onclick="() => SpendHitDie(d, total)" data-test="sheet-spend-hit-die">
                         @UiText.BtnSpendHitDie(d, Lang) (@(total - HitDiceSpent(d)))
                     </button>
                 }
@@ -249,7 +390,7 @@
 @code {
     private string TabName(SheetTab t) => t switch
     {
-        SheetTab.Overview => UiText.TabOverview(Lang),
+        SheetTab.Overview => UiText.TabCombat(Lang),
         SheetTab.Spells => UiText.TabSpells(Lang),
         SheetTab.Inventory => UiText.TabInventory(Lang),
         SheetTab.Features => UiText.TabFeatures(Lang),
@@ -263,37 +404,30 @@
         _ => UiText.RollNormal(Lang)
     };
 
-    // ===== Overview: abilities, saves, skills, attacks, proficiencies =====
-    private RenderFragment OverviewTab(ComputedCharacter c) => @<div>
-        <div class="rf-stat-grid mb-3" data-test="sheet-scores">
-            @foreach (var ability in CharacterMath.Abilities)
-            {
-                var a = ability;
-                <button type="button" class="rf-stat-card rf-sheet-vital-roll" @onclick="() => Roll(FeatPrerequisiteFormatter.AbilityName(a, Lang), c.Modifier(a))">
-                    <div class="rf-stat-card-label">@FeatPrerequisiteFormatter.AbilityName(a, Lang)</div>
-                    <div class="rf-stat-card-value">@CharacterMath.FormatModifier(c.Modifier(a))</div>
-                    <div class="rf-stat-card-mod mb-0">@c.Score(a)</div>
-                </button>
-            }
-        </div>
+    private RenderFragment BioField(string label, string? value, Action<string?> set, string key) => @<div>
+        <div class="rf-mini-label">@label</div>
+        <input class="rf-hero-bio-input" value="@value" maxlength="40" placeholder="—" @onchange="e => SetBio(set, e)" aria-label="@label" data-test="@($"sheet-bio-{key}")" />
+    </div>;
 
-        <div class="rf-sheet-columns">
-            <div>
-                <div class="rf-wizard-block-title">@UiText.SheetSaves(Lang)</div>
-                <ul class="rf-sheet-list rf-sheet-rolls">
-                    @foreach (var ability in CharacterMath.Abilities)
-                    {
-                        var a = ability;
-                        var proficient = c.SaveProficiencies.Contains(a);
-                        var saveLabel = UiText.SheetSaveShort(Lang) + " " + FeatPrerequisiteFormatter.AbilityName(a, Lang);
-                        <li class="@(proficient ? "rf-sheet-proficient" : null)" @onclick="() => Roll(saveLabel, c.SaveBonus(a))">
-                            <span>@FeatPrerequisiteFormatter.AbilityName(a, Lang)</span>
-                            <span>@CharacterMath.FormatModifier(c.SaveBonus(a))</span>
-                        </li>
-                    }
-                </ul>
-
-                <div class="rf-wizard-block-title">@UiText.SheetAttacks(Lang)</div>
+    // ===== Combat: skills, attacks, proficiencies =====
+    private RenderFragment OverviewTab(ComputedCharacter c) => @<div class="rf-sheet-columns">
+        <section class="rf-card2">
+            <div class="rf-card2-head"><span>@UiText.SheetSkills(Lang)</span></div>
+            <ul class="rf-sheet-list rf-sheet-rolls" data-test="sheet-skills">
+                @foreach (var skill in Enum.GetValues<Skill>().OrderBy(s => GameTerms.SkillName(s, Lang)))
+                {
+                    var s = skill;
+                    var proficient = c.SkillProficiencies.Contains(s);
+                    <li class="@(proficient ? "rf-sheet-proficient" : null) @(c.Expertise.Contains(s) ? "rf-sheet-expert" : null)" @onclick="() => Roll(GameTerms.SkillName(s, Lang), c.SkillBonus(s))">
+                        <span>@GameTerms.SkillName(s, Lang) <span class="small" style="color: var(--rf-text-muted);">(@UiText.AbilityShort(GameTerms.SkillAbility(s), Lang))</span></span>
+                        <span>@CharacterMath.FormatModifier(c.SkillBonus(s))</span>
+                    </li>
+                }
+            </ul>
+        </section>
+        <div>
+            <section class="rf-card2">
+                <div class="rf-card2-head"><span>@UiText.SheetAttacks(Lang)</span></div>
                 @if (c.Attacks.Count == 0)
                 {
                     <div class="small" style="color: var(--rf-text-muted);">@UiText.NoAttacks(Lang)</div>
@@ -318,9 +452,9 @@
                         }
                     </ul>
                 }
-
-                <div class="rf-wizard-block-title">@UiText.SheetProficiencies(Lang)</div>
-                <div class="rf-wizard-text small mb-1"><strong>@UiText.SheetArmorTraining(Lang):</strong> @UiText.ArmorTrainingText(c.ArmorTraining, Lang)</div>
+            </section>
+            <section class="rf-card2">
+                <div class="rf-card2-head"><span>@UiText.SheetProficiencies(Lang)</span></div>
                 @foreach (var info in c.Classes.Where(i => i.Starting))
                 {
                     if (classDetails.GetValueOrDefault(info.Class.Id) is { } detail)
@@ -335,39 +469,21 @@
                         }
                     }
                 }
-                @if (!string.IsNullOrWhiteSpace(backgroundDetail?.ToolProficiencies))
-                {
-                    <div class="rf-wizard-text small mb-1"><strong>@UiText.LabelTools(Lang) (@backgroundDetail.Name):</strong> @backgroundDetail.ToolProficiencies</div>
-                }
-                <div class="rf-wizard-text small mb-1"><strong>@UiText.LabelLanguages(Ruleset, Lang):</strong> @string.Join(", ", c.Languages.Select(l => CharacterLanguages.Name(Ruleset, l, Lang)))</div>
+                <div class="rf-wizard-text small mb-1"><strong>@UiText.SheetArmorTraining(Lang):</strong> @UiText.ArmorTrainingText(c.ArmorTraining, Lang)</div>
                 @if (!string.IsNullOrWhiteSpace(Sheet.OtherProficiencies))
                 {
                     <div class="rf-wizard-text small mb-1">@Sheet.OtherProficiencies</div>
                 }
-            </div>
-            <div>
-                <div class="rf-wizard-block-title">@UiText.SheetSkills(Lang)</div>
-                <ul class="rf-sheet-list rf-sheet-rolls" data-test="sheet-skills">
-                    @foreach (var skill in Enum.GetValues<Skill>().OrderBy(s => GameTerms.SkillName(s, Lang)))
-                    {
-                        var s = skill;
-                        var proficient = c.SkillProficiencies.Contains(s);
-                        <li class="@(proficient ? "rf-sheet-proficient" : null) @(c.Expertise.Contains(s) ? "rf-sheet-expert" : null)" @onclick="() => Roll(GameTerms.SkillName(s, Lang), c.SkillBonus(s))">
-                            <span>@GameTerms.SkillName(s, Lang) <span class="small" style="color: var(--rf-text-muted);">(@UiText.AbilityShort(GameTerms.SkillAbility(s), Lang))</span></span>
-                            <span>@CharacterMath.FormatModifier(c.SkillBonus(s))</span>
-                        </li>
-                    }
-                </ul>
-            </div>
+            </section>
         </div>
     </div>;
 
-    // ===== Spells: slots and the spells of every source =====
+    // ===== Spells: slots used with a button, spells with their details =====
     private RenderFragment SpellsTab(ComputedCharacter c) => @<div>
         @if (c.SpellSlots.Any(s => s > 0) || c.PactSlots > 0)
         {
-            <div class="rf-wizard-block-title">@UiText.SheetSpellSlots(Lang)</div>
-            <div class="rf-sheet-slots" data-test="sheet-slots">
+            <section class="rf-card2" data-test="sheet-slots">
+                <div class="rf-card2-head"><span>@UiText.SheetSpellSlots(Lang)</span></div>
                 @for (var l = 1; l <= 9; l++)
                 {
                     var level = l;
@@ -376,27 +492,35 @@
                     {
                         continue;
                     }
-                    <div class="rf-sheet-slot-row">
-                        <span class="rf-sheet-slot-level">@UiText.SlotLevel(level, Lang)</span>
-                        @for (var i = 0; i < total; i++)
-                        {
-                            var index = i;
-                            <button type="button" class="rf-sheet-box @(index < SpentSlots(level) ? "on" : null)" @onclick="() => ToggleSlot(level, index)" aria-label="@UiText.SlotLevel(level, Lang) @(index + 1)" data-test="sheet-slot"></button>
-                        }
+                    var left = total - SpentSlots(level);
+                    <div class="rf-slot-row">
+                        <span class="rf-slot-level">@UiText.SlotLevel(level, Lang)</span>
+                        <div class="rf-slot-dots">
+                            @for (var i = 0; i < total; i++)
+                            {
+                                var index = i;
+                                <button type="button" class="rf-slot-dot @(index < left ? "full" : null)" @onclick="() => ToggleSlot(level, total - 1 - index)" aria-label="@UiText.SlotLevel(level, Lang) @(index + 1)" data-test="sheet-slot"></button>
+                            }
+                        </div>
+                        <button type="button" class="rf-slot-use" disabled="@(left == 0)" @onclick="() => UseSlot(level, total)" data-test="sheet-slot-use">@UiText.BtnUse(Lang)</button>
                     </div>
                 }
                 @if (c.PactSlots > 0)
                 {
-                    <div class="rf-sheet-slot-row">
-                        <span class="rf-sheet-slot-level">@UiText.SheetPactSlots(c.PactSlotLevel, Lang)</span>
-                        @for (var i = 0; i < c.PactSlots; i++)
-                        {
-                            var index = i;
-                            <button type="button" class="rf-sheet-box @(index < Sheet.SpentPactSlots ? "on" : null)" @onclick="() => TogglePactSlot(index)" data-test="sheet-pact-slot"></button>
-                        }
+                    var pactLeft = c.PactSlots - Sheet.SpentPactSlots;
+                    <div class="rf-slot-row">
+                        <span class="rf-slot-level">@UiText.SheetPactSlots(c.PactSlotLevel, Lang)</span>
+                        <div class="rf-slot-dots">
+                            @for (var i = 0; i < c.PactSlots; i++)
+                            {
+                                var index = i;
+                                <button type="button" class="rf-slot-dot @(index < pactLeft ? "full" : null)" @onclick="() => TogglePactSlot(c.PactSlots - 1 - index)" data-test="sheet-pact-slot"></button>
+                            }
+                        </div>
+                        <button type="button" class="rf-slot-use" disabled="@(pactLeft == 0)" @onclick="() => UsePactSlot(c.PactSlots)">@UiText.BtnUse(Lang)</button>
                     </div>
                 }
-            </div>
+            </section>
         }
 
         @if (c.Spellcasting.Count == 0)
@@ -408,29 +532,65 @@
             var name = source.Class is { } cls ? (cls.Subclass is { } sub && cls.Class.CasterProgression == CasterProgression.None ? $"{cls.Class.Name} · {sub.Name}" : cls.Class.Name)
                 : source.Source == "species" ? UiText.SpellSourceSpecies(Ruleset, Lang) : source.Source;
             var spells = source.ChosenCantrips.Concat(source.ChosenSpells).Select(id => context!.Spells.FirstOrDefault(s => s.Id == id)).Where(s => s is not null).Select(s => s!).ToList();
-            <div class="rf-wizard-panel mb-3" data-test="sheet-spellcasting">
-                <div class="rf-wizard-block-title">@name</div>
-                <div class="small mb-2" style="color: var(--rf-text-secondary);">@UiText.SheetSpellcasting(source.Ability, source.SaveDc, source.AttackBonus, Lang)</div>
-                <button type="button" class="rf-wizard-pill mb-2" @onclick="() => Roll(UiText.SheetSpellAttack(Lang), source.AttackBonus)">@UiText.SheetSpellAttack(Lang) @CharacterMath.FormatModifier(source.AttackBonus)</button>
+            var attackLabel = UiText.SheetSpellAttack(Lang);
+            <section class="rf-card2" data-test="sheet-spellcasting">
+                <div class="rf-card2-head">
+                    <span>@name</span>
+                    <span class="rf-card2-head-accent">@UiText.SheetSpellcasting(source.Ability, source.SaveDc, source.AttackBonus, Lang)</span>
+                </div>
+                <div class="rf-spell-counts">
+                    <div><div class="rf-mini-label">@UiText.LabelCantrips(Lang)</div><div class="rf-defense-value">@source.ChosenCantrips.Count / @source.Cantrips</div></div>
+                    <div><div class="rf-mini-label">@UiText.SheetSpellsPrepared(Lang)</div><div class="rf-defense-value">@source.ChosenSpells.Count / @source.Spells</div></div>
+                    <button type="button" class="rf-defense rf-rollable" @onclick="() => Roll(attackLabel, source.AttackBonus)">
+                        <div class="rf-mini-label">@attackLabel</div><div class="rf-defense-value">@CharacterMath.FormatModifier(source.AttackBonus)</div>
+                    </button>
+                </div>
                 @foreach (var group in spells.GroupBy(s => s.Level).OrderBy(g => g.Key))
                 {
-                    <div class="small fw-bold mb-1" style="color: var(--rf-orange-primary);">@(group.Key == 0 ? UiText.LabelCantrips(Lang) : GameTerms.SpellLevel(group.Key, Lang))</div>
-                    <div class="rf-wizard-pills" data-test="sheet-spells">
+                    <div class="rf-mini-title">@(group.Key == 0 ? UiText.LabelCantrips(Lang) : GameTerms.SpellLevel(group.Key, Lang))</div>
+                    <div class="rf-spell-rows" data-test="sheet-spells">
                         @foreach (var spell in group.OrderBy(s => s.Name))
                         {
-                            <a href="@($"spells?id={spell.Id}")" class="rf-wizard-pill text-decoration-none" title="@GameTerms.SpellSubtitle(spell.Level, spell.School, spell.Ritual, Lang, Ruleset)">
-                                @spell.Name@(spell.Concentration ? " ©" : null)@(spell.Ritual ? " ®" : null)
+                            var sp = spell;
+                            <a href="@($"spells?id={sp.Id}")" class="rf-spell-row" @onclick="() => spellDetailId = sp.Id" @onclick:preventDefault="true">
+                                <span class="rf-spell-row-name">@sp.Name</span>
+                                <span class="rf-spell-row-tags">
+                                    @if (sp.Concentration)
+                                    {
+                                        <span title="@UiText.ConcentrationShort(Lang)">C</span>
+                                    }
+                                    @if (sp.Ritual)
+                                    {
+                                        <span title="@UiText.RitualShort(Lang)">R</span>
+                                    }
+                                    <span class="rf-spell-row-school">@GameTerms.SchoolName(sp.School, Lang)</span>
+                                </span>
                             </a>
                         }
                     </div>
                 }
-            </div>
+            </section>
         }
     </div>;
 
-    // ===== Inventory and coins =====
-    private RenderFragment InventoryTab(ComputedCharacter c) => @<div>
-        <div class="position-relative mb-3">
+    // ===== Inventory: coins, worn items, backpack =====
+    private RenderFragment InventoryTab(ComputedCharacter c) => @<section class="rf-card2">
+        <div class="rf-coin-grid" data-test="sheet-coins">
+            @foreach (var coin in new[] { CoinType.Cp, CoinType.Sp, CoinType.Ep, CoinType.Gp, CoinType.Pp })
+            {
+                var type = coin;
+                <div class="rf-coin">
+                    <div class="rf-mini-label">@UiText.CoinLongName(type, Lang)</div>
+                    <input type="number" min="0" class="rf-coin-input" value="@Coin(type)" @onchange="e => SetCoin(type, e.Value?.ToString())" aria-label="@UiText.CoinLongName(type, Lang)" data-test="sheet-coin-@type.ToString().ToLowerInvariant()" />
+                    <div class="d-flex gap-1 justify-content-center">
+                        <button type="button" class="rf-mini-btn" @onclick="() => AddCoin(type, -1)" aria-label="−1">−</button>
+                        <button type="button" class="rf-mini-btn" @onclick="() => AddCoin(type, 1)" aria-label="+1">+</button>
+                    </div>
+                </div>
+            }
+        </div>
+
+        <div class="position-relative my-3">
             <input class="rf-wizard-input" placeholder="@UiText.PlaceholderSearchItem(Lang)" value="@itemSearch" @oninput="e => itemSearch = e.Value?.ToString() ?? string.Empty" data-test="sheet-item-search" />
             @if (!string.IsNullOrWhiteSpace(itemSearch))
             {
@@ -445,52 +605,51 @@
             }
         </div>
 
-        <div class="rf-sheet-inventory" data-test="sheet-inventory">
-            @foreach (var entry in Sheet.Inventory.ToList())
+        <div data-test="sheet-inventory">
+            @foreach (var group in new[] { true, false })
             {
-                var item = entry;
-                var info = ItemOf(item);
-                var wearable = info is not null && (info.ArmorCategory is not null || info.Category == EquipmentCategory.Weapon);
-                <div class="rf-sheet-item" data-test="sheet-item">
-                    <div class="rf-sheet-item-name">
-                        @if (info is not null)
-                        {
-                            <a href="@($"equipment?id={info.Id}")" class="text-reset">@info.Name</a>
-                            <span class="small" style="color: var(--rf-text-muted);">@ItemDetail(info)</span>
-                        }
-                        else
-                        {
-                            <span>@item.Name</span>
-                        }
+                var equipped = group;
+                var items = Sheet.Inventory.Where(i => i.Equipped == equipped).ToList();
+                if (items.Count == 0 && equipped)
+                {
+                    continue;
+                }
+                <div class="rf-mini-title">@(equipped ? UiText.SheetEquippedGroup(Lang) : UiText.SheetBackpack(Lang))</div>
+                @foreach (var entry in items)
+                {
+                    var item = entry;
+                    var info = ItemOf(item);
+                    <div class="rf-item-row" data-test="sheet-item">
+                        <div class="rf-item-name">
+                            @if (info is not null)
+                            {
+                                <a href="@($"equipment?id={info.Id}")" target="_blank" rel="noopener" class="text-reset">@info.Name</a>
+                                <span class="small" style="color: var(--rf-text-muted);">@ItemDetail(info)</span>
+                            }
+                            else
+                            {
+                                <span>@item.Name</span>
+                            }
+                        </div>
+                        <div class="rf-item-controls">
+                            <button type="button" class="rf-mini-btn" @onclick="() => ChangeQuantity(item, -1)" aria-label="−1">−</button>
+                            <span class="rf-item-qty">×@item.Quantity</span>
+                            <button type="button" class="rf-mini-btn" @onclick="() => ChangeQuantity(item, 1)" aria-label="+1">+</button>
+                            @if (IsWearable(item))
+                            {
+                                <button type="button" class="rf-item-equip @(item.Equipped ? "on" : null)" @onclick="() => Equip(item)" data-test="sheet-item-equip">@(item.Equipped ? UiText.BtnUnequip(Lang) : UiText.BtnEquip(Lang))</button>
+                            }
+                            <button type="button" class="rf-mini-btn @(item.Attuned ? "on" : null)" title="@UiText.SheetAttuned(Lang)" @onclick="() => ToggleAttuned(item)">✦</button>
+                            <button type="button" class="rf-mini-btn" @onclick="() => RemoveItem(item)" aria-label="@UiText.BtnRemove(Lang)" data-test="sheet-item-remove">✕</button>
+                        </div>
                     </div>
-                    <div class="rf-sheet-item-controls">
-                        @if (wearable)
-                        {
-                            <button type="button" class="rf-wizard-pill @(item.Equipped ? "selected" : null)" @onclick="() => ToggleEquipped(item)" data-test="sheet-item-equip">@UiText.SheetEquipped(Lang)</button>
-                        }
-                        <button type="button" class="rf-wizard-pill @(item.Attuned ? "selected" : null)" @onclick="() => ToggleAttuned(item)">@UiText.SheetAttuned(Lang)</button>
-                        <input type="number" min="0" class="rf-wizard-input rf-sheet-qty" value="@item.Quantity" @onchange="e => SetQuantity(item, e.Value?.ToString())" aria-label="@UiText.SheetQuantity(Lang)" />
-                        <button type="button" class="rf-wizard-pill" @onclick="() => RemoveItem(item)" aria-label="@UiText.BtnRemove(Lang)" data-test="sheet-item-remove">✕</button>
-                    </div>
-                </div>
-            }
-        </div>
-
-        <div class="rf-wizard-block-title mt-3">@UiText.LabelCoins(Lang)</div>
-        <div class="rf-sheet-coins" data-test="sheet-coins">
-            @foreach (var coin in new[] { CoinType.Pp, CoinType.Gp, CoinType.Ep, CoinType.Sp, CoinType.Cp })
-            {
-                var type = coin;
-                <label class="rf-sheet-coin">
-                    <span>@UiText.CoinName(type, Lang)</span>
-                    <input type="number" min="0" class="rf-wizard-input" value="@Coin(type)" @onchange="e => SetCoin(type, e.Value?.ToString())" data-test="sheet-coin-@type.ToString().ToLowerInvariant()" />
-                </label>
+                }
             }
         </div>
         <div class="small mt-2 @(CarriedWeight > CarryingCapacity ? "text-warning" : null)" style="color: var(--rf-text-muted);">
             @UiText.SheetCarrying(UiText.FormatWeight(CarriedWeight, Lang), UiText.FormatWeight(CarryingCapacity, Lang), Lang)
         </div>
-    </div>;
+    </section>;
 
     private string ItemDetail(ContextItem info)
     {
@@ -510,129 +669,134 @@
         return parts.Count == 0 ? string.Empty : "· " + string.Join(" · ", parts);
     }
 
-    // ===== Features: resources, feats, class, species and background features =====
+    // ===== Features: resources, class, species and background features =====
     private RenderFragment FeaturesTab(ComputedCharacter c) => @<div>
-        <div class="rf-wizard-block-title">@UiText.SheetResources(Lang)</div>
-        @foreach (var counter in Sheet.Resources.ToList())
-        {
-            var resource = counter;
-            <div class="rf-sheet-slot-row" data-test="sheet-resource">
-                <span class="rf-sheet-slot-level">@resource.Name@(resource.ShortRest ? " ↺" : null)</span>
-                @for (var i = 0; i < resource.Maximum; i++)
-                {
-                    var index = i;
-                    <button type="button" class="rf-sheet-box @(index < resource.Used ? "on" : null)" @onclick="() => UseResource(resource, index)"></button>
-                }
-                <button type="button" class="rf-wizard-pill ms-auto" @onclick="() => RemoveResource(resource)" aria-label="@UiText.BtnRemove(Lang)">✕</button>
+        <section class="rf-card2">
+            <div class="rf-card2-head"><span>@UiText.SheetResources(Lang)</span></div>
+            @foreach (var counter in Sheet.Resources.ToList())
+            {
+                var resource = counter;
+                <div class="rf-slot-row" data-test="sheet-resource">
+                    <span class="rf-slot-level">@resource.Name@(resource.ShortRest ? " ↺" : null)</span>
+                    <div class="rf-slot-dots">
+                        @for (var i = 0; i < resource.Maximum; i++)
+                        {
+                            var index = i;
+                            <button type="button" class="rf-slot-dot @(index < resource.Maximum - resource.Used ? "full" : null)" @onclick="() => UseResource(resource, resource.Maximum - 1 - index)"></button>
+                        }
+                    </div>
+                    <button type="button" class="rf-mini-btn" @onclick="() => RemoveResource(resource)" aria-label="@UiText.BtnRemove(Lang)">✕</button>
+                </div>
+            }
+            <div class="d-flex flex-wrap gap-2 align-items-center mt-2">
+                <input class="rf-wizard-input flex-grow-1" style="min-width: 180px; width: auto;" placeholder="@UiText.PlaceholderResource(Lang)" value="@newResource" @oninput="e => newResource = e.Value?.ToString() ?? string.Empty" data-test="sheet-resource-name" />
+                <input type="number" min="1" max="99" class="rf-wizard-input rf-sheet-qty" value="@newResourceMax" @onchange="e => newResourceMax = int.TryParse(e.Value?.ToString(), out var v) ? v : 1" />
+                <label class="small d-flex align-items-center gap-1"><input type="checkbox" checked="@newResourceShort" @onchange="e => newResourceShort = e.Value is true" /> @UiText.LabelShortRestReset(Lang)</label>
+                <button type="button" class="btn btn-rf-outline btn-sm" @onclick="AddResource" data-test="sheet-resource-add">@UiText.BtnAdd(Lang)</button>
             </div>
-        }
-        <div class="d-flex flex-wrap gap-2 align-items-center mb-3">
-            <input class="rf-wizard-input flex-grow-1" style="min-width: 180px; width: auto;" placeholder="@UiText.PlaceholderResource(Lang)" value="@newResource" @oninput="e => newResource = e.Value?.ToString() ?? string.Empty" data-test="sheet-resource-name" />
-            <input type="number" min="1" max="99" class="rf-wizard-input rf-sheet-qty" value="@newResourceMax" @onchange="e => newResourceMax = int.TryParse(e.Value?.ToString(), out var v) ? v : 1" />
-            <label class="small d-flex align-items-center gap-1"><input type="checkbox" checked="@newResourceShort" @onchange="e => newResourceShort = e.Value is true" /> @UiText.LabelShortRestReset(Lang)</label>
-            <button type="button" class="btn btn-rf-outline btn-sm" @onclick="AddResource" data-test="sheet-resource-add">@UiText.BtnAdd(Lang)</button>
-        </div>
+        </section>
 
         @if (c.Feats.Count > 0)
         {
-            <div class="rf-wizard-block-title">@UiText.SheetFeats(Lang)</div>
-            <div class="rf-wizard-pills">
-                @foreach (var feat in c.Feats)
-                {
-                    <a href="@($"feats?id={feat.Feat.Id}")" class="rf-wizard-pill text-decoration-none">@feat.Feat.Name</a>
-                }
-            </div>
+            <section class="rf-card2">
+                <div class="rf-card2-head"><span>@UiText.SheetFeats(Lang)</span></div>
+                <div class="rf-chip-list">
+                    @foreach (var feat in c.Feats)
+                    {
+                        <a href="@($"feats?id={feat.Feat.Id}")" target="_blank" rel="noopener" class="rf-chip text-decoration-none">@feat.Feat.Name</a>
+                    }
+                </div>
+            </section>
         }
 
         @foreach (var info in c.Classes)
         {
             if (classDetails.GetValueOrDefault(info.Class.Id) is { } detail)
             {
-                <div class="rf-wizard-block-title">@UiText.SheetFeaturesOf(info.Class.Name, info.Level, Lang)</div>
-                @foreach (var feature in detail.Features.Where(f => f.Level <= info.Level).OrderBy(f => f.Level).ThenBy(f => f.SortOrder))
-                {
-                    <FeatureBlock Title="@feature.Name" Text="@feature.Description" Level="feature.Level" Ruleset="Ruleset" />
-                }
-                @if (detail.Subclasses.FirstOrDefault(s => s.Id == info.Subclass?.Id) is { } subclass)
-                {
-                    @foreach (var feature in subclass.Features.Where(f => f.Level <= info.Level).OrderBy(f => f.Level).ThenBy(f => f.SortOrder))
+                <section class="rf-card2">
+                    <div class="rf-card2-head"><span>@UiText.SheetFeaturesOf(info.Class.Name, info.Level, Lang)</span></div>
+                    @foreach (var feature in detail.Features.Where(f => f.Level <= info.Level).OrderBy(f => f.Level).ThenBy(f => f.SortOrder))
                     {
-                        <FeatureBlock Title="@feature.Name" Text="@feature.Description" Level="feature.Level" Badge="@subclass.Name" Ruleset="Ruleset" />
+                        <FeatureBlock Title="@feature.Name" Text="@feature.Description" Level="feature.Level" Ruleset="Ruleset" />
                     }
-                }
+                    @if (detail.Subclasses.FirstOrDefault(s => s.Id == info.Subclass?.Id) is { } subclass)
+                    {
+                        @foreach (var feature in subclass.Features.Where(f => f.Level <= info.Level).OrderBy(f => f.Level).ThenBy(f => f.SortOrder))
+                        {
+                            <FeatureBlock Title="@feature.Name" Text="@feature.Description" Level="feature.Level" Badge="@subclass.Name" Ruleset="Ruleset" />
+                        }
+                    }
+                </section>
             }
         }
 
-        @if (speciesDetail is not null)
-        {
-            <div class="rf-wizard-block-title">@UiText.LabelSpeciesTraits(Ruleset, Lang)</div>
-            @foreach (var trait in speciesDetail.BaseTraits.Concat(speciesDetail.Subspecies.FirstOrDefault(s => s.Id == character!.SubspeciesId)?.Traits ?? new List<TraitResponseDto>()).Where(t => t.RequiredLevel <= c.Level))
-            {
-                <FeatureBlock Title="@trait.Name" Text="@trait.Description" Ruleset="Ruleset" />
-            }
-        }
         @if (backgroundDetail is not null && !string.IsNullOrWhiteSpace(backgroundDetail.FeatureName))
         {
-            <div class="rf-wizard-block-title">@UiText.LabelBackgroundFeature(Lang)</div>
-            <FeatureBlock Title="@backgroundDetail.FeatureName" Text="@backgroundDetail.FeatureDescription" Ruleset="Ruleset" />
+            <section class="rf-card2">
+                <div class="rf-card2-head"><span>@UiText.LabelBackgroundFeature(Lang)</span></div>
+                <FeatureBlock Title="@backgroundDetail.FeatureName" Text="@backgroundDetail.FeatureDescription" Ruleset="Ruleset" />
+            </section>
         }
 
-        <div class="rf-wizard-block-title">@UiText.LabelFeatureNotes(Lang)</div>
-        <textarea class="rf-wizard-input rf-wizard-textarea" rows="4" value="@Sheet.FeatureNotes" @onchange="e => SetText(v => Sheet.FeatureNotes = v, e)" data-test="sheet-feature-notes"></textarea>
+        <section class="rf-card2">
+            <div class="rf-card2-head"><span>@UiText.LabelFeatureNotes(Lang)</span></div>
+            <textarea class="rf-wizard-input rf-wizard-textarea" rows="4" value="@Sheet.FeatureNotes" @onchange="e => SetText(v => Sheet.FeatureNotes = v, e)" data-test="sheet-feature-notes"></textarea>
+        </section>
     </div>;
 
-    // ===== Notes: personality, story, experience, manual adjustments =====
+    // ===== Notes: personality, story, physical details, manual adjustments =====
     private RenderFragment NotesTab(ComputedCharacter c) => @<div>
-        @NoteField(UiText.LabelPersonalityTraits(Lang), Sheet.Traits, v => Sheet.Traits = v, 2)
-        @NoteField(UiText.LabelIdeals(Lang), Sheet.Ideals, v => Sheet.Ideals = v, 2)
-        @NoteField(UiText.LabelBonds(Lang), Sheet.Bonds, v => Sheet.Bonds = v, 2)
-        @NoteField(UiText.LabelFlaws(Lang), Sheet.Flaws, v => Sheet.Flaws = v, 2)
-        @NoteField(UiText.LabelAppearance(Lang), Sheet.Appearance, v => Sheet.Appearance = v, 2)
-        @NoteField(UiText.LabelBackstory(Lang), Sheet.Backstory, v => Sheet.Backstory = v, 5)
-        @NoteField(UiText.LabelAllies(Lang), Sheet.Allies, v => Sheet.Allies = v, 2)
-        @NoteField(UiText.LabelNotes(Lang), Sheet.Notes, v => Sheet.Notes = v, 6)
-
-        <div class="rf-wizard-row">
-            <div class="rf-wizard-label">@UiText.SheetExperience(Lang)</div>
-            <div class="rf-wizard-field">
-                <input type="number" min="0" class="rf-wizard-input" value="@Sheet.Experience" @onchange="e => SetNumber(v => Sheet.Experience = Math.Max(0, v), e)" data-test="sheet-xp" />
+        <section class="rf-card2">
+            @NoteField(UiText.LabelPersonalityTraits(Lang), Sheet.Traits, v => Sheet.Traits = v, 2)
+            @NoteField(UiText.LabelIdeals(Lang), Sheet.Ideals, v => Sheet.Ideals = v, 2)
+            @NoteField(UiText.LabelBonds(Lang), Sheet.Bonds, v => Sheet.Bonds = v, 2)
+            @NoteField(UiText.LabelFlaws(Lang), Sheet.Flaws, v => Sheet.Flaws = v, 2)
+            @NoteField(UiText.LabelAppearance(Lang), Sheet.Appearance, v => Sheet.Appearance = v, 2)
+            <div class="rf-sheet-coins mb-3">
+                <label class="rf-sheet-coin"><span>@UiText.LabelHeight(Lang)</span><input class="rf-wizard-input" value="@Sheet.Height" maxlength="40" @onchange="e => SetText(v => Sheet.Height = v, e)" /></label>
+                <label class="rf-sheet-coin"><span>@UiText.SheetWeight(Lang)</span><input class="rf-wizard-input" value="@Sheet.Weight" maxlength="40" @onchange="e => SetText(v => Sheet.Weight = v, e)" /></label>
             </div>
-        </div>
+            @NoteField(UiText.LabelBackstory(Lang), Sheet.Backstory, v => Sheet.Backstory = v, 5)
+            @NoteField(UiText.LabelAllies(Lang), Sheet.Allies, v => Sheet.Allies = v, 2)
+            @NoteField(UiText.LabelNotes(Lang), Sheet.Notes, v => Sheet.Notes = v, 6)
+        </section>
 
-        <div class="rf-wizard-block-title">@UiText.SheetAdjustments(Lang)</div>
-        <div class="small mb-2" style="color: var(--rf-text-muted);">@UiText.HintAdjustments(Lang)</div>
-        <div class="rf-sheet-coins mb-3">
-            <label class="rf-sheet-coin"><span>@UiText.LabelMaxHpAdjustment(Lang)</span><input type="number" class="rf-wizard-input" value="@Sheet.MaxHitPointsAdjustment" @onchange="e => SetNumber(v => Sheet.MaxHitPointsAdjustment = v, e)" /></label>
-            <label class="rf-sheet-coin"><span>@UiText.SheetArmorClass(Lang)</span><input type="number" class="rf-wizard-input" value="@Sheet.ArmorClassAdjustment" @onchange="e => SetNumber(v => Sheet.ArmorClassAdjustment = v, e)" data-test="sheet-ac-adjustment" /></label>
-            <label class="rf-sheet-coin"><span>@UiText.SheetSpeed(Lang)</span><input type="number" class="rf-wizard-input" value="@Sheet.SpeedAdjustment" @onchange="e => SetNumber(v => Sheet.SpeedAdjustment = v, e)" /></label>
-            <label class="rf-sheet-coin"><span>@UiText.SheetInitiative(Lang)</span><input type="number" class="rf-wizard-input" value="@Sheet.InitiativeAdjustment" @onchange="e => SetNumber(v => Sheet.InitiativeAdjustment = v, e)" /></label>
-        </div>
+        <section class="rf-card2">
+            <div class="rf-card2-head"><span>@UiText.SheetAdjustments(Lang)</span></div>
+            <div class="small mb-2" style="color: var(--rf-text-muted);">@UiText.HintAdjustments(Lang)</div>
+            <div class="rf-sheet-coins mb-3">
+                <label class="rf-sheet-coin"><span>@UiText.LabelMaxHpAdjustment(Lang)</span><input type="number" class="rf-wizard-input" value="@Sheet.MaxHitPointsAdjustment" @onchange="e => SetNumber(v => Sheet.MaxHitPointsAdjustment = v, e)" /></label>
+                <label class="rf-sheet-coin"><span>@UiText.SheetArmorClass(Lang)</span><input type="number" class="rf-wizard-input" value="@Sheet.ArmorClassAdjustment" @onchange="e => SetNumber(v => Sheet.ArmorClassAdjustment = v, e)" data-test="sheet-ac-adjustment" /></label>
+                <label class="rf-sheet-coin"><span>@UiText.SheetSpeed(Lang)</span><input type="number" class="rf-wizard-input" value="@Sheet.SpeedAdjustment" @onchange="e => SetNumber(v => Sheet.SpeedAdjustment = v, e)" /></label>
+                <label class="rf-sheet-coin"><span>@UiText.SheetInitiative(Lang)</span><input type="number" class="rf-wizard-input" value="@Sheet.InitiativeAdjustment" @onchange="e => SetNumber(v => Sheet.InitiativeAdjustment = v, e)" /></label>
+            </div>
 
-        <div class="rf-wizard-counter">@UiText.LabelExtraSkills(Lang)</div>
-        <div class="rf-wizard-pills">
-            @foreach (var skill in Enum.GetValues<Skill>().OrderBy(s => GameTerms.SkillName(s, Lang)))
-            {
-                var s = skill;
-                <button type="button" class="rf-wizard-pill @(Sheet.ExtraSkills.Contains(s) ? "selected" : null)" @onclick="() => ToggleExtra(Sheet.ExtraSkills, s)">@GameTerms.SkillName(s, Lang)</button>
-            }
-        </div>
-        <div class="rf-wizard-counter">@UiText.LabelExtraExpertise(Lang)</div>
-        <div class="rf-wizard-pills">
-            @foreach (var skill in c.SkillProficiencies.OrderBy(s => GameTerms.SkillName(s, Lang)))
-            {
-                var s = skill;
-                <button type="button" class="rf-wizard-pill @(Sheet.ExtraExpertise.Contains(s) ? "selected" : null)" @onclick="() => ToggleExtra(Sheet.ExtraExpertise, s)">@GameTerms.SkillName(s, Lang)</button>
-            }
-        </div>
-        <div class="rf-wizard-counter">@UiText.LabelExtraSaves(Lang)</div>
-        <div class="rf-wizard-pills">
-            @foreach (var ability in CharacterMath.Abilities)
-            {
-                var a = ability;
-                <button type="button" class="rf-wizard-pill @(Sheet.ExtraSaves.Contains(a) ? "selected" : null)" @onclick="() => ToggleExtra(Sheet.ExtraSaves, a)">@FeatPrerequisiteFormatter.AbilityName(a, Lang)</button>
-            }
-        </div>
-        @NoteField(UiText.LabelOtherProficiencies(Lang), Sheet.OtherProficiencies, v => Sheet.OtherProficiencies = v, 2)
+            <div class="rf-wizard-counter">@UiText.LabelExtraSkills(Lang)</div>
+            <div class="rf-wizard-pills">
+                @foreach (var skill in Enum.GetValues<Skill>().OrderBy(s => GameTerms.SkillName(s, Lang)))
+                {
+                    var s = skill;
+                    <button type="button" class="rf-wizard-pill @(Sheet.ExtraSkills.Contains(s) ? "selected" : null)" @onclick="() => ToggleExtra(Sheet.ExtraSkills, s)">@GameTerms.SkillName(s, Lang)</button>
+                }
+            </div>
+            <div class="rf-wizard-counter">@UiText.LabelExtraExpertise(Lang)</div>
+            <div class="rf-wizard-pills">
+                @foreach (var skill in c.SkillProficiencies.OrderBy(s => GameTerms.SkillName(s, Lang)))
+                {
+                    var s = skill;
+                    <button type="button" class="rf-wizard-pill @(Sheet.ExtraExpertise.Contains(s) ? "selected" : null)" @onclick="() => ToggleExtra(Sheet.ExtraExpertise, s)">@GameTerms.SkillName(s, Lang)</button>
+                }
+            </div>
+            <div class="rf-wizard-counter">@UiText.LabelExtraSaves(Lang)</div>
+            <div class="rf-wizard-pills">
+                @foreach (var ability in CharacterMath.Abilities)
+                {
+                    var a = ability;
+                    <button type="button" class="rf-wizard-pill @(Sheet.ExtraSaves.Contains(a) ? "selected" : null)" @onclick="() => ToggleExtra(Sheet.ExtraSaves, a)">@FeatPrerequisiteFormatter.AbilityName(a, Lang)</button>
+                }
+            </div>
+            @NoteField(UiText.LabelOtherProficiencies(Lang), Sheet.OtherProficiencies, v => Sheet.OtherProficiencies = v, 2)
+        </section>
     </div>;
 
     private RenderFragment NoteField(string label, string? value, Action<string?> set, int rows) => @<div class="rf-wizard-row">
