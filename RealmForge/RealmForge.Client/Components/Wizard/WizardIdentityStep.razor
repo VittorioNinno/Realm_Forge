@@ -37,7 +37,24 @@
     </div>
 }
 
+<div class="rf-wizard-row">
+    <div class="rf-wizard-label">@UiText.LabelAdvancement(Lang)</div>
+    <div class="rf-wizard-field">
+        <ForgeSelector TValue="AdvancementType" Value="W.Input.Sheet.Advancement" ValueChanged="SetAdvancement" Options="AdvancementOptions" DataTest="wizard-advancement" />
+        <div class="small mt-1" style="color: var(--rf-text-muted);" data-test="wizard-advancement-hint">@UiText.AdvancementHint(W.Input.Sheet.Advancement, Lang)</div>
+    </div>
+</div>
+
 @code {
+    private List<ForgeSelector<AdvancementType>.Option> AdvancementOptions =>
+        new[] { AdvancementType.Experience, AdvancementType.Milestone }.Select(a => new ForgeSelector<AdvancementType>.Option(a, UiText.AdvancementName(a, Lang))).ToList();
+
+    private void SetAdvancement(AdvancementType value)
+    {
+        W.Input.Sheet.Advancement = value;
+        W.Update();
+    }
+
     private static readonly List<ForgeSelector<RulesetVersion>.Option> EditionOptions = new()
     {
         new(RulesetVersion.Dnd5e_2024, "D&D 5.5e (2024)"),

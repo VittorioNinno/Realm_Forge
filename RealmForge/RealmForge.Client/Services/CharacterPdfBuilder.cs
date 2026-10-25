@@ -188,7 +188,8 @@ namespace RealmForge.Client.Services
 			Note(UiText.LabelBackstory(lang), sheet.Backstory);
 			Note(UiText.LabelAllies(lang), sheet.Allies);
 			Note(UiText.LabelNotes(lang), sheet.Notes);
-			if (sheet.Experience > 0)
+			notes.Add(new PdfRow(UiText.LabelAdvancement(lang), UiText.AdvancementName(sheet.Advancement, lang)));
+			if (sheet.Advancement == AdvancementType.Experience && sheet.Experience > 0)
 			{
 				notes.Add(new PdfRow(UiText.SheetExperience(lang), $"{sheet.Experience}"));
 			}
