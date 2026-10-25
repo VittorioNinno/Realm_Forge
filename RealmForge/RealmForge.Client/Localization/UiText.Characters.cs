@@ -581,7 +581,6 @@ namespace RealmForge.Client.Localization
 			$"PF al 1° livello: {die} + mod. Cos · poi {die / 2 + 1} + mod. Cos per livello",
 			$"HP at level 1: {die} + Con mod · then {die / 2 + 1} + Con mod per level");
 		public static string SpellListOf(string className, LanguageCode lang) => T(lang, $"lista del {className}", $"{className} list");
-		public static string LabelDescription(LanguageCode lang) => T(lang, "Descrizione", "Description");
 		public static string LabelFinalShort(LanguageCode lang) => T(lang, "Finale", "Final");
 		public static string LabelModifierShort(LanguageCode lang) => T(lang, "mod.", "mod");
 		public static string LabelNotAssigned(LanguageCode lang) => T(lang, "Da assegnare", "Not assigned");
