@@ -640,6 +640,8 @@ try {
   await next();
   await page.locator('[data-test=wizard-error]').waitFor({ timeout: 5000 });
   await page.locator('[data-test=wizard-name]').fill('Eroe di prova');
+  await choose('wizard-advancement', 'narrativa');
+  await page.locator('[data-test=wizard-advancement-hint]', { hasText: 'master' }).waitFor({ timeout: 5000 });
   // 2014: the race comes right after the identity, with the 2014 terms
   await choose('wizard-edition', '2014');
   await page.locator('[data-test=character-wizard][data-ruleset="1"]').waitFor({ timeout: 30000 });
@@ -728,6 +730,17 @@ try {
   const sheetName = (await page.locator('[data-test=sheet-name]').innerText()).trim();
   const sheetAc = (await page.locator('[data-test=sheet-ac]').innerText()).trim();
   const sheetHp = (await page.locator('[data-test=sheet-hp]').innerText()).trim();
+  // Advancement type: story-based from the wizard, switched to XP on the sheet, 300 XP make level 2 ready
+  await page.locator('[data-test=sheet-milestone]').waitFor({ timeout: 10000 });
+  const milestoneXpBar = await page.locator('[data-test=sheet-xp-value]').count();
+  await page.locator('[data-test=sheet-advancement-experience]').click();
+  await page.locator('[data-test=sheet-xp-amount]').fill('300');
+  await page.locator('[data-test=sheet-xp-amount]').press('Tab');
+  await page.locator('[data-test=sheet-xp-add]').click();
+  const xpValue = (await page.locator('[data-test=sheet-xp-value]').innerText()).trim();
+  const levelUpReady = await page.locator('[data-test=sheet-levelup].rf-pulse').count();
+  if (milestoneXpBar !== 0 || xpValue !== '300 / 300' || levelUpReady !== 1) throw new Error(`advancement type not applied: xp bar with milestones=${milestoneXpBar} xp=${xpValue} ready=${levelUpReady}`);
+  ok('advancement type: story-based chosen in the wizard hides XP on the sheet, XP-based shows the bar and highlights the level up at 300 XP');
   await page.locator('[data-test=sheet-hp-amount]').fill('3');
   await page.locator('[data-test=sheet-hp-amount]').press('Tab');
   await page.locator('[data-test=sheet-damage]').click();
@@ -735,6 +748,8 @@ try {
   await page.reload();
   await page.locator('[data-test=character-sheet]').waitFor({ timeout: 60000 });
   const afterReload = (await page.locator('[data-test=sheet-hp-current]').innerText()).trim();
+  const xpAfterReload = (await page.locator('[data-test=sheet-xp-value]').innerText()).trim();
+  if (xpAfterReload !== '300 / 300') throw new Error(`the advancement type or the XP were not saved: ${xpAfterReload}`);
   await page.locator('[data-test=sheet-long-rest]').click();
   await page.locator('[data-test=sheet-long-rest-done]').click();
   const afterRest = (await page.locator('[data-test=sheet-hp-current]').innerText()).trim();

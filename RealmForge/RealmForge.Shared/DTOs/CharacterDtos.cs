@@ -19,6 +19,9 @@ namespace RealmForge.Shared.DTOs
 		public LanguageCode Language { get; set; } = LanguageCode.It;
 		public CharacterBuild Build { get; set; } = new();
 		public CharacterSheetState? Sheet { get; set; }
+
+		//	Advancement type chosen in the wizard: applied to the sheet when creating and when editing
+		public AdvancementType? Advancement { get; set; }
 	}
 
 	///	<summary>

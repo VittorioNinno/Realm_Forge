@@ -206,19 +206,35 @@
                 }
 
                 <div class="rf-bar-row mb-0">
-                    <div class="rf-bar-label">
-                        <span>@UiText.SheetExperience(Lang)</span>
-                        <span data-test="sheet-xp-value">@Sheet.Experience / @NextLevelExperience</span>
+                    <div class="rf-advancement" role="group" aria-label="@UiText.LabelAdvancement(Lang)">
+                        <span class="rf-mini-label">@UiText.LabelAdvancement(Lang)</span>
+                        @foreach (var type in new[] { AdvancementType.Experience, AdvancementType.Milestone })
+                        {
+                            var t = type;
+                            <button type="button" class="rf-wizard-pill @(Sheet.Advancement == t ? "selected" : null)" @onclick="() => SetAdvancement(t)"
+                                    aria-pressed="@(Sheet.Advancement == t)" data-test="@($"sheet-advancement-{t.ToString().ToLowerInvariant()}")">@UiText.AdvancementName(t, Lang)</button>
+                        }
                     </div>
-                    <div class="rf-bar"><div class="rf-bar-fill xp" style="width: @(ExperiencePercent)%;"></div></div>
-                    <div class="rf-bar-controls">
-                        <input type="number" class="rf-wizard-input" value="@xpAmount" @onchange="e => xpAmount = int.TryParse(e.Value?.ToString(), out var v) ? v : 0"
-                               aria-label="@UiText.SheetExperience(Lang)" data-test="sheet-xp-amount" />
-                        <button type="button" class="rf-wizard-btn" @onclick="AddExperience" data-test="sheet-xp-add">@UiText.BtnAddExperience(Lang)</button>
-                    </div>
-                    @if (ReadyToLevelUp)
+                    @if (Sheet.Advancement == AdvancementType.Milestone)
                     {
-                        <div class="small mt-2" style="color: var(--rf-orange-primary);">@UiText.ReadyToLevelUp(Lang)</div>
+                        <div class="small" style="color: var(--rf-text-secondary);" data-test="sheet-milestone">@UiText.MilestoneSheetText(Lang)</div>
+                    }
+                    else
+                    {
+                        <div class="rf-bar-label">
+                            <span>@UiText.SheetExperience(Lang)</span>
+                            <span data-test="sheet-xp-value">@Sheet.Experience / @NextLevelExperience</span>
+                        </div>
+                        <div class="rf-bar"><div class="rf-bar-fill xp" style="width: @(ExperiencePercent)%;"></div></div>
+                        <div class="rf-bar-controls">
+                            <input type="number" class="rf-wizard-input" value="@xpAmount" @onchange="e => xpAmount = int.TryParse(e.Value?.ToString(), out var v) ? v : 0"
+                                   aria-label="@UiText.SheetExperience(Lang)" data-test="sheet-xp-amount" />
+                            <button type="button" class="rf-wizard-btn" @onclick="AddExperience" data-test="sheet-xp-add">@UiText.BtnAddExperience(Lang)</button>
+                        </div>
+                        @if (ReadyToLevelUp)
+                        {
+                            <div class="small mt-2" style="color: var(--rf-orange-primary);">@UiText.ReadyToLevelUp(Lang)</div>
+                        }
                     }
                 </div>
             </section>

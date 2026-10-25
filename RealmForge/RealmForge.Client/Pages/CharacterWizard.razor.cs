@@ -192,7 +192,9 @@ namespace RealmForge.Client.Pages
 			}
 
 			var name = Input.Name;
+			var advancement = Input.Sheet.Advancement;
 			Input = new CharacterInput { Name = name, Ruleset = ruleset };
+			Input.Sheet.Advancement = advancement;
 			Abilities.Reset();
 			loading = true;
 			StateHasChanged();
@@ -642,7 +644,8 @@ namespace RealmForge.Client.Pages
 				BackgroundId = Input.BackgroundId,
 				Language = Lang,
 				Build = Build,
-				Sheet = Mode == WizardMode.Create ? Input.Sheet : null
+				Sheet = Mode == WizardMode.Create ? Input.Sheet : null,
+				Advancement = Input.Sheet.Advancement
 			};
 
 			var (saved, error) = await Characters.SaveCharacterAsync(Mode == WizardMode.Create ? null : Id, dto);

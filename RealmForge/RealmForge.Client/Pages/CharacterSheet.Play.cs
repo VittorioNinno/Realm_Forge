@@ -53,7 +53,13 @@ namespace RealmForge.Client.Pages
 			}
 		}
 
-		private bool ReadyToLevelUp => Level < 20 && Sheet.Experience >= NextLevelExperience;
+		private bool ReadyToLevelUp => Sheet.Advancement == AdvancementType.Experience && Level < 20 && Sheet.Experience >= NextLevelExperience;
+
+		private void SetAdvancement(AdvancementType type)
+		{
+			Sheet.Advancement = type;
+			Changed();
+		}
 
 		private void AddExperience()
 		{
