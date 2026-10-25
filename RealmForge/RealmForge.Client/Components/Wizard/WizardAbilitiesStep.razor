@@ -69,14 +69,26 @@ else
             {
                 <button type="button" class="rf-stat-card-value" @onclick="() => AssignTo(index)" title="@UiText.BtnAssign(Lang)">@(value?.ToString() ?? "—")</button>
             }
-            <div class="rf-stat-card-mod">
+            <div class="rf-stat-card-caption">@UiText.LabelBaseScore(Lang)</div>
+            <div class="rf-stat-card-breakdown" data-test="wizard-stat-final-@index">
                 @if (value is not null)
                 {
-                    @(bonus > 0 ? $"{value} + {bonus} = {Computed.FinalScores[index]}" : $"{value}") @(" · ")@CharacterMath.FormatModifier(CharacterMath.Modifier(Computed.FinalScores[index]))
+                    @if (Computed.OriginBonuses[index] > 0)
+                    {
+                        <div class="rf-stat-card-bonus">+@Computed.OriginBonuses[index] @OriginSource</div>
+                    }
+                    @if (Computed.LevelBonuses[index] > 0)
+                    {
+                        <div class="rf-stat-card-bonus">+@Computed.LevelBonuses[index] @UiText.LabelLevelBonus(Lang)</div>
+                    }
+                    <div class="rf-stat-card-final">
+                        @UiText.LabelFinalShort(Lang) <strong>@Computed.FinalScores[index]</strong>
+                        <span class="rf-stat-card-modifier">@UiText.LabelModifierShort(Lang) @CharacterMath.FormatModifier(CharacterMath.Modifier(Computed.FinalScores[index]))</span>
+                    </div>
                 }
                 else
                 {
-                    @(" ")
+                    <div class="rf-stat-card-final">@UiText.LabelNotAssigned(Lang)</div>
                 }
             </div>
             @if (state.Method == AbilityMethod.PointBuy)
@@ -111,6 +123,9 @@ else
 
 @code {
     private bool rerollConfirmOpen;
+
+    //	Where the origin increases come from: the 2024 background or the 2014 race
+    private string OriginSource => Is2024 ? W.Background?.Name ?? string.Empty : W.Subspecies?.Name ?? W.Species?.Name ?? string.Empty;
 
     private RenderFragment PoolView => @<text>
         @if (CurrentPool.Count > 0)

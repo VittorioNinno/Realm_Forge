@@ -155,7 +155,6 @@
         get
         {
             var options = CharacterMath.Abilities.Select(a => new ForgeSelector<AbilityScore?>.Option(a, FeatPrerequisiteFormatter.AbilityName(a, Lang))).ToList();
-            options.Insert(0, new ForgeSelector<AbilityScore?>.Option(null, "—"));
             return options;
         }
     }
@@ -172,7 +171,6 @@
             .ThenBy(f => f.Name)
             .Select(f => new ForgeSelector<Guid?>.Option(f.Id, f.Name))
             .ToList();
-        options.Insert(0, new ForgeSelector<Guid?>.Option(null, UiText.NoFeatChosen(Lang)));
         return options;
     }
 

@@ -13,17 +13,25 @@
         @foreach (var spell in shown)
         {
             var selected = Chosen.Contains(spell.Id);
-            <button type="button" class="rf-wizard-feature mb-0 @(selected ? "selected" : null)" disabled="@(!selected && Chosen.Count >= Max)"
-                    @onclick="() => W.Toggle(Chosen, spell.Id, Max)" data-test="@DataTest">
-                <div class="rf-wizard-feature-title">@spell.Name</div>
-                <div class="rf-wizard-feature-desc">@GameTerms.SpellSubtitle(spell.Level, spell.School, spell.Ritual, Lang, Ruleset)@(spell.Concentration ? $" · {UiText.ConcentrationShort(Lang)}" : null)</div>
-            </button>
+            <div class="rf-spell-card-wrap">
+                <button type="button" class="rf-wizard-feature mb-0 w-100 h-100 @(selected ? "selected" : null)" disabled="@(!selected && Chosen.Count >= Max)"
+                        @onclick="() => W.Toggle(Chosen, spell.Id, Max)" data-test="@DataTest">
+                    <div class="rf-wizard-feature-title pe-4">@spell.Name</div>
+                    <div class="rf-wizard-feature-desc">@GameTerms.SpellSubtitle(spell.Level, spell.School, spell.Ritual, Lang, Ruleset)@(spell.Concentration ? $" · {UiText.ConcentrationShort(Lang)}" : null)</div>
+                </button>
+                <button type="button" class="rf-spell-info" title="@UiText.BtnSpellDetails(Lang)" aria-label="@UiText.BtnSpellDetails(Lang)"
+                        @onclick="() => detailId = spell.Id" data-test="spell-info">i</button>
+            </div>
         }
     </div>
     </div>
 }
 
+<SpellDetailModal SpellId="detailId" OnClose="() => detailId = null" />
+
 @code {
+    private Guid? detailId;
+
     [Parameter, EditorRequired] public string Title { get; set; } = string.Empty;
     [Parameter, EditorRequired] public List<Guid> Chosen { get; set; } = new();
     [Parameter] public SpellcastingClass? List { get; set; }
