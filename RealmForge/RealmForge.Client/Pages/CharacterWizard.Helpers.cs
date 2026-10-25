@@ -1,5 +1,6 @@
 ﻿using RealmForge.Client.Localization;
 using RealmForge.Shared.Characters;
+using RealmForge.Shared.Enums;
 using RealmForge.Shared.Text;
 
 namespace RealmForge.Client.Pages
@@ -35,6 +36,36 @@ namespace RealmForge.Client.Pages
 		public string ClassLine => string.Join(" / ", Build.Levels
 			.GroupBy(l => l.ClassId)
 			.Select(g => $"{Class(g.Key)?.Name} {g.Count()}"));
+
+		///	<summary>
+		///	Where a skill the character already has comes from (background, species, a class, a feat).
+		///	</summary>
+		public string SkillSource(Skill skill)
+		{
+			if (Background?.Skills.Contains(skill) == true)
+			{
+				return Background.Name;
+			}
+			var (fixedSkills, _, _) = CharacterRules.SpeciesSkills(Ruleset, Species, Subspecies);
+			if (fixedSkills.Contains(skill) || Build.SpeciesSkills.Contains(skill))
+			{
+				return Subspecies?.Name ?? Species?.Name ?? string.Empty;
+			}
+			foreach (var entry in Build.Classes.Where(c => c.Skills.Contains(skill)))
+			{
+				return Class(entry.ClassId)?.Name ?? string.Empty;
+			}
+			foreach (var feat in Computed.Feats.Where(f => f.Choice.Skills.Contains(skill)))
+			{
+				return feat.Feat.Name;
+			}
+			return UiText.SourceSheet(Lang);
+		}
+
+		//	Why a skill cannot take Expertise: not proficient, or Expertise already
+		public string ExpertiseBlock(Skill skill) => Computed.SkillProficiencies.Contains(skill)
+			? UiText.AlreadyExpertise(Lang)
+			: UiText.NotProficient(Lang);
 
 		public string ItemName(InventoryItem item) =>
 			item.EquipmentId is { } id && Context?.Items.FirstOrDefault(i => i.Id == id) is { } entry ? entry.Name : item.Name ?? string.Empty;

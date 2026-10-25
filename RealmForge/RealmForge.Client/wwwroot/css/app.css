@@ -2954,3 +2954,1010 @@ button.rf-stat-card {
         min-width: 100%;
     }
 }
+
+.rf-forge-selector-display.placeholder {
+    color: var(--rf-text-muted);
+    font-weight: 600;
+    text-transform: none;
+    letter-spacing: 0;
+}
+
+/* A skill the character already has from another source: shown with the source, not selectable */
+.rf-wizard-pill.known {
+    border-style: dashed;
+    border-color: #3d5a3d;
+    background: rgba(76, 175, 80, 0.06);
+    color: #a5d6a7;
+    cursor: help;
+}
+
+    .rf-wizard-pill.known small {
+        color: var(--rf-text-muted);
+        font-weight: 500;
+    }
+
+/* Class summary in the wizard: hit die badge, primary ability and hit points, then a list of proficiencies */
+.rf-class-summary {
+    margin-bottom: 1rem;
+    padding: 1rem;
+    border-radius: 8px;
+    background: var(--rf-bg-card);
+    border: 1px solid #222;
+}
+
+.rf-class-summary-head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.8rem 1.6rem;
+    margin-bottom: 0.8rem;
+    padding-bottom: 0.8rem;
+    border-bottom: 1px solid var(--rf-border-subtle);
+}
+
+.rf-class-summary-die {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 54px;
+    height: 54px;
+    border-radius: 10px;
+    border: 2px solid var(--rf-orange-primary);
+    background: #1a1100;
+    font-family: var(--rf-font-display);
+    font-size: 1.3rem;
+    font-weight: 900;
+    color: var(--rf-orange-primary);
+}
+
+.rf-class-summary-label {
+    font-size: 0.68rem;
+    font-weight: 800;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: var(--rf-orange-primary);
+}
+
+.rf-class-summary-value {
+    font-weight: 700;
+    color: #fff;
+}
+
+.rf-def-list {
+    display: grid;
+    grid-template-columns: minmax(120px, max-content) 1fr;
+    gap: 0.45rem 1.2rem;
+    margin: 0 0 0.6rem;
+    font-size: 0.88rem;
+}
+
+    .rf-def-list dt {
+        font-size: 0.7rem;
+        font-weight: 800;
+        letter-spacing: 1px;
+        text-transform: uppercase;
+        color: #8a8a8a;
+        padding-top: 0.15rem;
+    }
+
+    .rf-def-list dd {
+        margin: 0;
+        color: #fff;
+    }
+
+@media (max-width: 650px) {
+    .rf-def-list {
+        grid-template-columns: 1fr;
+        gap: 0.1rem;
+    }
+
+        .rf-def-list dd {
+            margin-bottom: 0.4rem;
+        }
+}
+
+.rf-feature-toggle:focus {
+    outline: none;
+}
+
+.rf-feature-toggle:focus-visible {
+    outline: 1px solid var(--rf-orange-primary);
+    outline-offset: 3px;
+    border-radius: 4px;
+}
+
+/* Ability cards of the wizard: the base score (assigned), then the increases and the final score with its modifier */
+.rf-stat-card-caption {
+    margin: -4px 0 6px;
+    font-size: 0.62rem;
+    font-weight: 700;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: var(--rf-text-muted);
+}
+
+.rf-stat-card-breakdown {
+    width: 90%;
+    min-height: 44px;
+    margin-bottom: 10px;
+    padding-top: 6px;
+    border-top: 1px solid var(--rf-border-subtle);
+    text-align: center;
+    font-size: 0.78rem;
+    color: var(--rf-text-secondary);
+}
+
+.rf-stat-card-bonus {
+    color: var(--rf-orange-primary);
+    font-weight: 700;
+    overflow-wrap: anywhere;
+}
+
+.rf-stat-card-final strong {
+    font-size: 1rem;
+    color: #fff;
+}
+
+.rf-stat-card-modifier {
+    display: inline-block;
+    margin-left: 4px;
+    padding: 0 6px;
+    border-radius: 4px;
+    background: #222;
+    color: #fff;
+    font-weight: 700;
+}
+
+.rf-wizard-draft {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    margin-bottom: 1rem;
+    padding: 0.5rem 0.8rem;
+    border-radius: 6px;
+    border: 1px dashed var(--rf-orange-primary);
+    background: rgba(255, 140, 0, 0.06);
+    font-size: 0.85rem;
+    color: var(--rf-text-secondary);
+}
+
+/* Spell cards: the card selects the spell, the "i" button opens its details */
+.rf-spell-card-wrap {
+    position: relative;
+}
+
+.rf-spell-info {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    width: 24px;
+    height: 24px;
+    padding: 0;
+    border-radius: 50%;
+    border: 1px solid var(--rf-orange-primary);
+    background: #1a1100;
+    color: var(--rf-orange-primary);
+    font-family: Georgia, serif;
+    font-size: 0.8rem;
+    font-style: italic;
+    font-weight: 700;
+    line-height: 1;
+}
+
+    .rf-spell-info:hover {
+        background: var(--rf-orange-primary);
+        color: #000;
+    }
+
+.rf-wizard-suggest-bar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    margin-bottom: 1rem;
+}
+
+/* ===== Character sheet: card layout ===== */
+.rf-sheet2 {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    max-width: 1000px;
+    margin: 0 auto;
+}
+
+.rf-card2 {
+    background-color: var(--rf-bg-card);
+    border: 1px solid var(--rf-border-subtle);
+    border-radius: 12px;
+    padding: 16px;
+    margin-bottom: 14px;
+}
+
+.rf-sheet2 > .rf-card2,
+.rf-sheet-row .rf-card2 {
+    margin-bottom: 0;
+}
+
+.rf-card2-head {
+    display: flex;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 6px;
+    font-family: var(--rf-font-display);
+    color: var(--rf-text-primary);
+    font-weight: 600;
+    margin-bottom: 12px;
+}
+
+.rf-card2-head-accent {
+    color: var(--rf-orange-primary);
+    font-size: .9rem;
+}
+
+.rf-mini-label {
+    font-size: .68rem;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+    color: var(--rf-text-muted);
+}
+
+.rf-mini-title {
+    font-size: .72rem;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    color: var(--rf-orange-primary);
+    margin: 12px 0 6px;
+}
+
+.rf-mini-btn {
+    min-width: 30px;
+    height: 30px;
+    padding: 0 8px;
+    border-radius: 8px;
+    border: 1px solid var(--rf-border-light);
+    background-color: var(--rf-bg-surface);
+    color: var(--rf-text-primary);
+    font-size: .85rem;
+    line-height: 1;
+}
+
+    .rf-mini-btn:hover,
+    .rf-mini-btn.on {
+        border-color: var(--rf-orange-primary);
+        color: var(--rf-orange-primary);
+    }
+
+.rf-rollable {
+    cursor: pointer;
+    background: none;
+    border: none;
+    color: inherit;
+    padding: 0;
+    text-align: inherit;
+}
+
+    .rf-rollable:hover {
+        color: var(--rf-orange-primary);
+    }
+
+/* Hero */
+.rf-hero-top {
+    display: flex;
+    gap: 16px;
+}
+
+.rf-hero-portrait {
+    position: relative;
+    flex: 0 0 120px;
+    height: 150px;
+    border-radius: 10px;
+    border: 1px solid var(--rf-border-light);
+    background-color: var(--rf-bg-main);
+    background-size: cover;
+    background-position: center top;
+}
+
+.rf-hero-portrait-upload {
+    position: absolute;
+    inset: auto 6px 6px 6px;
+    text-align: center;
+    font-size: .75rem;
+    padding: 4px;
+    border-radius: 6px;
+    background-color: rgba(0, 0, 0, .55);
+    color: #fff;
+    cursor: pointer;
+}
+
+.rf-hero-portrait.empty .rf-hero-portrait-upload {
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: none;
+    color: var(--rf-text-muted);
+    border: 1px dashed var(--rf-border-light);
+    border-radius: 10px;
+}
+
+.rf-hero-portrait-remove {
+    position: absolute;
+    top: 4px;
+    right: 4px;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    border: none;
+    background-color: rgba(0, 0, 0, .55);
+    color: #fff;
+    font-size: .7rem;
+}
+
+.rf-hero-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.rf-hero-header {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.rf-hero-title .rf-sheet-name {
+    font-family: var(--rf-font-display);
+    font-size: 1.6rem;
+    color: var(--rf-orange-primary);
+    line-height: 1.15;
+}
+
+.rf-hero-origin {
+    color: var(--rf-text-secondary);
+    font-size: .92rem;
+}
+
+.rf-hero-sep {
+    color: var(--rf-text-muted);
+    margin: 0 6px;
+}
+
+.rf-hero-classes {
+    color: var(--rf-text-primary);
+    font-weight: 600;
+    font-size: .92rem;
+}
+
+.rf-hero-controls {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+}
+
+.rf-hero-inspiration {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    border: 1px solid var(--rf-border-light);
+    background-color: var(--rf-bg-surface);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+    .rf-hero-inspiration svg {
+        width: 20px;
+        height: 20px;
+        fill: none;
+        stroke: var(--rf-text-muted);
+        stroke-width: 1.6;
+    }
+
+    .rf-hero-inspiration.on {
+        border-color: var(--rf-orange-primary);
+        box-shadow: 0 0 10px var(--rf-orange-glow);
+    }
+
+        .rf-hero-inspiration.on svg {
+            fill: var(--rf-orange-primary);
+            stroke: var(--rf-orange-primary);
+        }
+
+.rf-hero-speed {
+    font-weight: 700;
+    color: var(--rf-text-primary);
+    white-space: nowrap;
+}
+
+.rf-hero-bio {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px 14px;
+    margin-top: 12px;
+}
+
+.rf-hero-bio-value,
+.rf-hero-bio-input {
+    font-size: .9rem;
+    color: var(--rf-text-primary);
+}
+
+.rf-hero-bio-input {
+    width: 100%;
+    background: none;
+    border: none;
+    border-bottom: 1px dashed var(--rf-border-light);
+    padding: 1px 0;
+}
+
+    .rf-hero-bio-input:focus {
+        outline: none;
+        border-bottom-color: var(--rf-orange-primary);
+    }
+
+.rf-chip-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.rf-chip {
+    padding: 4px 10px;
+    border-radius: 999px;
+    border: 1px solid var(--rf-border-light);
+    background-color: var(--rf-bg-surface);
+    color: var(--rf-text-primary);
+    font-size: .8rem;
+}
+
+    .rf-chip:hover,
+    .rf-chip.open {
+        border-color: var(--rf-orange-primary);
+        color: var(--rf-orange-primary);
+    }
+
+.rf-chip-detail {
+    margin-top: 8px;
+    padding: 10px 12px;
+    border-left: 3px solid var(--rf-orange-primary);
+    background-color: var(--rf-bg-main);
+    border-radius: 6px;
+    font-size: .88rem;
+}
+
+.rf-hero-footer {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    margin-top: 12px;
+    padding-top: 10px;
+    border-top: 1px solid var(--rf-border-subtle);
+    font-size: .85rem;
+    color: var(--rf-text-secondary);
+}
+
+.rf-sheet-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    margin-top: 12px;
+}
+
+.rf-sheet-save {
+    margin-left: auto;
+    color: var(--rf-text-muted);
+}
+
+.rf-pulse {
+    animation: rf-pulse 1.6s ease-in-out infinite;
+}
+
+@keyframes rf-pulse {
+    50% {
+        box-shadow: 0 0 14px var(--rf-orange-glow);
+    }
+}
+
+/* Hit dice and defenses */
+.rf-sheet-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 2fr);
+    gap: 14px;
+}
+
+.rf-hitdice {
+    display: flex;
+    gap: 12px;
+    align-items: stretch;
+}
+
+.rf-hitdice-box {
+    flex: 1;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
+.rf-hitdice-value {
+    font-size: 1.6rem;
+    font-weight: 700;
+    color: var(--rf-text-primary);
+}
+
+    .rf-hitdice-value span {
+        font-size: 1rem;
+        color: var(--rf-text-muted);
+    }
+
+    .rf-hitdice-value small {
+        font-size: .85rem;
+        color: var(--rf-orange-primary);
+    }
+
+.rf-hitdice-rests {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    justify-content: center;
+}
+
+.rf-rest-btn {
+    padding: 8px 12px;
+    border-radius: 8px;
+    border: 1px solid var(--rf-border-light);
+    background-color: var(--rf-bg-surface);
+    color: var(--rf-text-primary);
+    font-size: .85rem;
+}
+
+    .rf-rest-btn.long {
+        border-color: var(--rf-orange-primary);
+        color: var(--rf-orange-primary);
+    }
+
+.rf-defenses {
+    display: grid;
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    gap: 8px;
+}
+
+.rf-defense {
+    text-align: center;
+    padding: 6px 4px;
+    border-radius: 8px;
+    background-color: var(--rf-bg-main);
+}
+
+    .rf-defense.rf-rollable {
+        background-color: var(--rf-bg-main);
+        text-align: center;
+    }
+
+.rf-defense-value {
+    font-size: 1.35rem;
+    font-weight: 700;
+    color: var(--rf-text-primary);
+}
+
+/* HP and XP bars */
+.rf-bar-row {
+    margin-bottom: 14px;
+}
+
+.rf-bar-label {
+    display: flex;
+    justify-content: space-between;
+    font-weight: 600;
+    margin-bottom: 4px;
+    color: var(--rf-text-primary);
+}
+
+.rf-bar {
+    height: 12px;
+    border-radius: 999px;
+    background-color: var(--rf-bg-main);
+    border: 1px solid var(--rf-border-subtle);
+    overflow: hidden;
+}
+
+.rf-bar-fill {
+    height: 100%;
+    transition: width .3s ease;
+}
+
+    .rf-bar-fill.hp {
+        background: linear-gradient(90deg, #8f1d1d, #d23b3b);
+    }
+
+    .rf-bar-fill.xp {
+        background: linear-gradient(90deg, var(--rf-orange-dark), var(--rf-orange-primary));
+    }
+
+.rf-bar-controls {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 8px;
+}
+
+    .rf-bar-controls .rf-wizard-input {
+        width: 90px;
+        flex: none;
+    }
+
+    .rf-bar-controls .rf-wizard-btn {
+        flex: none;
+        padding: 6px 14px;
+    }
+
+.rf-btn-damage {
+    background-color: #a52a2a;
+    border-color: #a52a2a;
+}
+
+.rf-btn-heal {
+    background-color: #2e7d4f;
+    border-color: #2e7d4f;
+}
+
+.rf-sheet-hp-temp {
+    margin-left: 6px;
+    color: #4aa3df;
+    font-size: .85rem;
+}
+
+/* Abilities */
+.rf-ability-grid {
+    display: grid;
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    gap: 10px;
+}
+
+.rf-ability-card {
+    background-color: var(--rf-bg-card);
+    border: 1px solid var(--rf-border-subtle);
+    border-radius: 12px;
+    padding: 10px 6px;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.rf-ability-main {
+    text-align: center;
+    width: 100%;
+}
+
+.rf-ability-mod {
+    font-size: 1.7rem;
+    font-weight: 700;
+    color: var(--rf-text-primary);
+    line-height: 1.1;
+}
+
+.rf-ability-score {
+    display: inline-block;
+    min-width: 34px;
+    padding: 1px 6px;
+    border-radius: 999px;
+    border: 1px solid var(--rf-border-light);
+    font-size: .8rem;
+    color: var(--rf-text-secondary);
+}
+
+.rf-ability-save {
+    font-size: .75rem;
+    color: var(--rf-text-muted);
+    border-top: 1px solid var(--rf-border-subtle) !important;
+    padding-top: 4px;
+    text-align: center;
+}
+
+    .rf-ability-save.proficient {
+        color: var(--rf-orange-primary);
+        font-weight: 600;
+    }
+
+/* Conditions */
+.rf-exhaustion {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 8px 12px;
+    border-radius: 8px;
+    border: 1px solid var(--rf-border-subtle);
+    background-color: var(--rf-bg-main);
+    margin-bottom: 10px;
+    font-weight: 600;
+}
+
+    .rf-exhaustion.active {
+        border-color: #c0392b;
+        color: #e05a4a;
+    }
+
+.rf-condition-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+    gap: 6px;
+}
+
+.rf-condition {
+    padding: 6px 8px;
+    border-radius: 8px;
+    border: 1px solid var(--rf-border-subtle);
+    background-color: var(--rf-bg-main);
+    color: var(--rf-text-secondary);
+    font-size: .82rem;
+}
+
+    .rf-condition.active {
+        border-color: #c0392b;
+        background-color: rgba(192, 57, 43, .18);
+        color: var(--rf-text-primary);
+    }
+
+    .rf-condition.implied {
+        border-style: dashed;
+        border-color: #c0392b;
+        color: #e05a4a;
+        cursor: default;
+    }
+
+.rf-condition-notes {
+    margin-top: 10px;
+    padding: 10px 12px;
+    border-radius: 8px;
+    background-color: var(--rf-bg-main);
+    font-size: .85rem;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    color: var(--rf-text-secondary);
+}
+
+.rf-roll-toast {
+    position: fixed;
+    right: 16px;
+    bottom: 16px;
+    z-index: 1050;
+    max-width: calc(100vw - 32px);
+    padding: 10px 14px;
+    border-radius: 10px;
+    border: 1px solid var(--rf-orange-primary);
+    background-color: var(--rf-bg-card);
+    color: var(--rf-text-primary);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, .35);
+    cursor: pointer;
+}
+
+.rf-sheet-columns {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 14px;
+}
+
+/* Slots and spells */
+.rf-slot-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 6px 0;
+    border-bottom: 1px solid var(--rf-border-subtle);
+}
+
+    .rf-slot-row:last-child {
+        border-bottom: none;
+    }
+
+.rf-slot-level {
+    flex: 0 0 auto;
+    min-width: 90px;
+    font-size: .85rem;
+    color: var(--rf-text-secondary);
+}
+
+.rf-slot-dots {
+    flex: 1;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.rf-slot-dot {
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    border: 2px solid var(--rf-orange-primary);
+    background: none;
+    padding: 0;
+}
+
+    .rf-slot-dot.full {
+        background-color: var(--rf-orange-primary);
+    }
+
+.rf-slot-use {
+    padding: 4px 12px;
+    border-radius: 8px;
+    border: 1px solid var(--rf-orange-primary);
+    background: none;
+    color: var(--rf-orange-primary);
+    font-size: .78rem;
+    text-transform: uppercase;
+    letter-spacing: .05em;
+}
+
+    .rf-slot-use:disabled {
+        opacity: .4;
+    }
+
+.rf-spell-counts {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
+    text-align: center;
+}
+
+    .rf-spell-counts > div {
+        padding: 6px;
+        border-radius: 8px;
+        background-color: var(--rf-bg-main);
+    }
+
+.rf-spell-rows {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 6px;
+}
+
+.rf-spell-row {
+    display: flex;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 6px 10px;
+    border-radius: 8px;
+    border: 1px solid var(--rf-border-subtle);
+    background-color: var(--rf-bg-main);
+    color: var(--rf-text-primary);
+    text-decoration: none;
+    font-size: .88rem;
+}
+
+    .rf-spell-row:hover {
+        border-color: var(--rf-orange-primary);
+        color: var(--rf-orange-primary);
+    }
+
+.rf-spell-row-tags {
+    display: flex;
+    gap: 6px;
+    color: var(--rf-text-muted);
+    font-size: .75rem;
+    align-items: center;
+}
+
+/* Inventory */
+.rf-coin-grid {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 8px;
+}
+
+.rf-coin {
+    text-align: center;
+    padding: 8px 4px;
+    border-radius: 8px;
+    background-color: var(--rf-bg-main);
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.rf-coin-input {
+    width: 100%;
+    text-align: center;
+    font-weight: 700;
+    font-size: 1.1rem;
+    background: none;
+    border: none;
+    color: var(--rf-text-primary);
+}
+
+    .rf-coin-input:focus {
+        outline: 1px solid var(--rf-orange-primary);
+        border-radius: 4px;
+    }
+
+.rf-item-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 0;
+    border-bottom: 1px solid var(--rf-border-subtle);
+}
+
+.rf-item-name {
+    min-width: 0;
+    font-size: .9rem;
+}
+
+.rf-item-controls {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    flex: none;
+}
+
+.rf-item-qty {
+    min-width: 34px;
+    text-align: center;
+    font-size: .85rem;
+}
+
+.rf-item-equip {
+    padding: 4px 10px;
+    border-radius: 8px;
+    border: 1px solid var(--rf-orange-primary);
+    background: none;
+    color: var(--rf-orange-primary);
+    font-size: .75rem;
+    text-transform: uppercase;
+}
+
+    .rf-item-equip.on {
+        border-color: var(--rf-border-light);
+        color: var(--rf-text-secondary);
+    }
+
+@media (max-width: 768px) {
+    .rf-sheet-row,
+    .rf-sheet-columns {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .rf-defenses {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    .rf-ability-grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 480px) {
+    .rf-hero-top {
+        flex-direction: column;
+    }
+
+    .rf-hero-portrait {
+        flex-basis: auto;
+        width: 120px;
+    }
+
+    .rf-hero-header {
+        flex-direction: column;
+    }
+
+    .rf-hero-bio {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .rf-coin-grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    .rf-item-row {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+}

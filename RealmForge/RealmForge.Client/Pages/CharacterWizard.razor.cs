@@ -90,9 +90,10 @@ namespace RealmForge.Client.Pages
 
 		public void Dispose() => LanguageState.OnLanguageChanged -= OnLanguageChanged;
 
-		private async Task LoadAsync()
+		private async Task LoadAsync(bool useDraft = true)
 		{
 			loading = true;
+			draftReady = false;
 			await Glossary.EnsureLoadedAsync(Lang);
 
 			if (Id is { } id)
@@ -128,7 +129,22 @@ namespace RealmForge.Client.Pages
 				return;
 			}
 
-			if (Mode == WizardMode.Create)
+			var restored = useDraft && await TryRestoreDraftAsync();
+			if (restored)
+			{
+				//	The draft may be of the other edition
+				if (Context.Ruleset != Ruleset)
+				{
+					Context = await Characters.GetContextAsync(Ruleset, Lang);
+					if (Context is null)
+					{
+						loadFailed = true;
+						loading = false;
+						return;
+					}
+				}
+			}
+			else if (Mode == WizardMode.Create)
 			{
 				ApplyDefaults();
 			}
@@ -142,6 +158,7 @@ namespace RealmForge.Client.Pages
 				furthestIndex = Steps.Count - 1;
 			}
 
+			draftReady = true;
 			Update();
 			await LoadDetailsAsync();
 			loading = false;
@@ -209,6 +226,7 @@ namespace RealmForge.Client.Pages
 			Normalize();
 			RefreshPreview();
 			Computed = CharacterCalculator.Compute(Input, Context, checkEquipment: Mode == WizardMode.Create);
+			ScheduleDraftSave();
 			stepProblems = stepProblems.Count > 0 ? ProblemsOf(CurrentStep) : stepProblems;
 			StateHasChanged();
 		}
@@ -631,6 +649,7 @@ namespace RealmForge.Client.Pages
 			saving = false;
 			if (saved is not null)
 			{
+				await ClearDraftAsync();
 				Navigation.NavigateTo($"characters/{saved.Id}");
 				return;
 			}
@@ -707,6 +726,43 @@ namespace RealmForge.Client.Pages
 				RollsLeft = 0;
 			}
 			Pool = Method == AbilityMethod.StandardArray ? new List<int>() : CharacterMath.StandardArray.ToList();
+		}
+
+		public sealed class Snapshot
+		{
+			public AbilityMethod Method { get; set; } = AbilityMethod.StandardArray;
+			public List<int?> Assigned { get; set; } = new();
+			public List<int> PointBuy { get; set; } = new();
+			public List<int> Pool { get; set; } = new();
+			public List<int> Rolled { get; set; } = new();
+			public List<int?> RolledAssigned { get; set; } = new();
+			public int RollsLeft { get; set; } = 3;
+		}
+
+		public Snapshot ToSnapshot() => new()
+		{
+			Method = Method,
+			Assigned = Assigned.ToList(),
+			PointBuy = PointBuy.ToList(),
+			Pool = Pool.ToList(),
+			Rolled = Rolled.ToList(),
+			RolledAssigned = RolledAssigned.ToList(),
+			RollsLeft = RollsLeft
+		};
+
+		public void Restore(Snapshot snapshot)
+		{
+			Reset();
+			Method = snapshot.Method;
+			for (var i = 0; i < 6; i++)
+			{
+				Assigned[i] = i < snapshot.Assigned.Count ? snapshot.Assigned[i] : null;
+				PointBuy[i] = i < snapshot.PointBuy.Count ? Math.Clamp(snapshot.PointBuy[i], 8, 15) : 8;
+				RolledAssigned[i] = i < snapshot.RolledAssigned.Count ? snapshot.RolledAssigned[i] : null;
+			}
+			Pool = snapshot.Pool.ToList();
+			Rolled = snapshot.Rolled.ToList();
+			RollsLeft = Math.Clamp(snapshot.RollsLeft, 0, 3);
 		}
 
 		public int? Base(int index) => Method switch

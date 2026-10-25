@@ -1,0 +1,83 @@
+﻿@using RealmForge.Client.Localization
+@using RealmForge.Client.Services
+@using RealmForge.Shared.DTOs
+@using RealmForge.Shared.Enums
+@using RealmForge.Shared.Localization
+@inject SpellDataService SpellService
+@inject GlossaryService Glossary
+@inject LanguageStateService LanguageState
+
+@* Details of a spell over the current page (wizard, sheet): stat block, description and higher levels *@
+@if (SpellId is not null)
+{
+    <div class="rf-modal-backdrop" @onclick="CloseAsync">
+        <div class="rf-modal-dialog" style="max-width: 640px;" @onclick:stopPropagation="true" data-test="spell-detail-modal">
+            @if (spell is null)
+            {
+                <div class="small" style="color: var(--rf-text-muted);">@UiText.LoadingArchives(Lang)</div>
+            }
+            else
+            {
+                <div class="d-flex justify-content-between align-items-start gap-2 mb-3 pb-2" style="border-bottom: 2px solid var(--rf-orange-primary);">
+                    <div>
+                        <h2 class="h4 mb-1" style="color: var(--rf-orange-primary); font-family: var(--rf-font-display);">@spell.Name</h2>
+                        <div class="fst-italic small" style="color: var(--rf-text-secondary);">@GameTerms.SpellSubtitle(spell.Level, spell.School, spell.Ritual, Lang, spell.Ruleset)</div>
+                    </div>
+                    <button class="btn btn-sm btn-rf-outline" @onclick="CloseAsync" aria-label="@UiText.BtnClose(Lang)" data-test="spell-detail-close">✕</button>
+                </div>
+                <dl class="rf-spell-stats mb-3">
+                    <div><dt>@UiText.LabelCastingTime(Lang)</dt><dd>@spell.CastingTime</dd></div>
+                    <div><dt>@UiText.LabelRange(Lang)</dt><dd>@spell.Range</dd></div>
+                    <div><dt>@UiText.LabelComponents(Lang)</dt><dd>@Components(spell)</dd></div>
+                    <div><dt>@UiText.LabelDuration(Lang)</dt><dd>@(spell.Concentration ? $"{UiText.ConcentrationShort(Lang)}, " : null)@spell.Duration</dd></div>
+                </dl>
+                <div class="rf-markdown-container mb-3">@((MarkupString)MarkdownText.ToHtml(spell.Description, Glossary.Linker(Lang, spell.Ruleset)))</div>
+                @if (!string.IsNullOrWhiteSpace(spell.HigherLevels))
+                {
+                    <div class="p-2 rounded mb-2" style="border-left: 3px solid var(--rf-orange-primary); background: var(--rf-bg-main);">
+                        <strong class="small d-block mb-1 text-uppercase" style="color: var(--rf-orange-primary);">@GameTerms.SpellHigherLevelsHeading(spell.Level, Lang, spell.Ruleset)</strong>
+                        <div class="rf-markdown-container">@((MarkupString)MarkdownText.ToHtml(spell.HigherLevels, Glossary.Linker(Lang, spell.Ruleset)))</div>
+                    </div>
+                }
+                <a href="@($"spells?id={spell.Id}")" target="_blank" rel="noopener" class="small">@UiText.OpenInCompendium(Lang)</a>
+            }
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter] public Guid? SpellId { get; set; }
+    [Parameter] public EventCallback OnClose { get; set; }
+
+    private SpellDetailResponseDto? spell;
+    private Guid? loaded;
+
+    private LanguageCode Lang => LanguageState.CurrentLanguage;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (SpellId is { } id && loaded != id)
+        {
+            loaded = id;
+            spell = null;
+            await Glossary.EnsureLoadedAsync(Lang);
+            spell = await SpellService.GetSpellDetailAsync(id, Lang);
+        }
+        else if (SpellId is null)
+        {
+            loaded = null;
+            spell = null;
+        }
+    }
+
+    private Task CloseAsync() => OnClose.InvokeAsync();
+
+    private static string Components(SpellDetailResponseDto s)
+    {
+        var parts = new List<string>();
+        if (s.Verbal) parts.Add("V");
+        if (s.Somatic) parts.Add("S");
+        if (s.Material) parts.Add(string.IsNullOrWhiteSpace(s.MaterialComponent) ? "M" : $"M ({s.MaterialComponent})");
+        return parts.Count == 0 ? "—" : string.Join(", ", parts);
+    }
+}
