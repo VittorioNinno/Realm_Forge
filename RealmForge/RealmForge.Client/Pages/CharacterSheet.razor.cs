@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Components;
 using Microsoft.JSInterop;
+using RealmForge.Client.Components;
 using RealmForge.Client.Localization;
 using RealmForge.Client.Services;
 using RealmForge.Shared.Characters;
@@ -119,11 +120,14 @@ namespace RealmForge.Client.Pages
 			var lang = Lang;
 			await Glossary.EnsureLoadedAsync(lang);
 			context = await Characters.GetContextAsync(character!.Ruleset, lang);
-			conditions = (await Glossary.GetEntriesAsync(lang))
+			var entries = await Glossary.GetEntriesAsync(lang);
+			conditions = entries
 				.Where(e => e.Ruleset == character.Ruleset && e.Category == RuleCategory.Condition && e.Key != "exhaustion")
 				.OrderBy(e => e.Name)
 				.ToList();
+			ruleEntries = entries.Where(e => e.Ruleset == character.Ruleset).ToList();
 			Recompute();
+			_ = LoadCastingTimesAsync(lang);
 
 			classDetails.Clear();
 			var loads = character.Build.Classes.Select(c => c.ClassId).Distinct().Select(async id =>
@@ -210,6 +214,11 @@ namespace RealmForge.Client.Pages
 			var fromTemp = Math.Min(Sheet.TemporaryHitPoints, value);
 			Sheet.TemporaryHitPoints -= fromTemp;
 			Sheet.CurrentHitPoints = Math.Max(0, CurrentHp - (value - fromTemp));
+			if (Sheet.CurrentHitPoints == 0)
+			{
+				//	Falling unconscious ends concentration
+				Sheet.Concentration = null;
+			}
 			Changed();
 		}
 
@@ -302,6 +311,7 @@ namespace RealmForge.Client.Pages
 			Sheet.HitDiceSpent[die] = HitDiceSpent(die) + 1;
 			Sheet.CurrentHitPoints = Math.Min(MaxHp, CurrentHp + healed);
 			lastRoll = $"d{die}: {roll} {CharacterMath.FormatModifier(computed.Modifier(AbilityScore.Constitution))} = +{healed} {UiText.SheetHitPointsShort(Lang)}";
+			_ = diceTray?.ShowAsync(new DiceRollResult(UiText.BtnSpendHitDie(die, Lang), new List<DieFace> { new(die, roll) }, computed.Modifier(AbilityScore.Constitution), healed));
 			Changed();
 		}
 
@@ -358,17 +368,22 @@ namespace RealmForge.Client.Pages
 
 		private void Roll(string label, int modifier)
 		{
+			var (die, dice) = RollD20();
+			var note = die == 20 ? UiText.RollCritical(Lang) : die == 1 ? UiText.RollFumble(Lang) : null;
+			ShowRoll(new DiceRollResult(label, dice, modifier, die + modifier, note));
+		}
+
+		//	A d20 with the roll mode: two dice for advantage or disadvantage, the other one dropped
+		private (int Die, List<DieFace> Dice) RollD20()
+		{
 			var first = Random.Shared.Next(1, 21);
-			var second = Random.Shared.Next(1, 21);
-			var die = rollMode switch
+			if (rollMode == RollMode.Normal)
 			{
-				RollMode.Advantage => Math.Max(first, second),
-				RollMode.Disadvantage => Math.Min(first, second),
-				_ => first
-			};
-			var dice = rollMode == RollMode.Normal ? $"{first}" : $"{first} / {second} → {die}";
-			var note = die == 20 ? " · 20!" : die == 1 ? " · 1!" : string.Empty;
-			lastRoll = $"{label}: d20 ({dice}) {CharacterMath.FormatModifier(modifier)} = {die + modifier}{note}";
+				return (first, new List<DieFace> { new(20, first) });
+			}
+			var second = Random.Shared.Next(1, 21);
+			var keepFirst = rollMode == RollMode.Advantage ? first >= second : first <= second;
+			return (keepFirst ? first : second, new List<DieFace> { new(20, first, !keepFirst), new(20, second, keepFirst) });
 		}
 
 		private void RollDamage(string label, string dice)
@@ -383,8 +398,8 @@ namespace RealmForge.Client.Pages
 			var count = int.Parse(match.Groups[1].Value);
 			var size = int.Parse(match.Groups[2].Value);
 			var bonus = match.Groups[3].Success ? int.Parse(match.Groups[3].Value.Replace(" ", string.Empty)) : 0;
-			var rolls = Enumerable.Range(0, count).Select(_ => Random.Shared.Next(1, size + 1)).ToList();
-			lastRoll = $"{label}: {count}d{size} ({string.Join(" + ", rolls)}) {(bonus == 0 ? string.Empty : CharacterMath.FormatModifier(bonus))} = {Math.Max(0, rolls.Sum() + bonus)}";
+			var rolls = Enumerable.Range(0, Math.Min(count, 20)).Select(_ => Random.Shared.Next(1, size + 1)).ToList();
+			ShowRoll(new DiceRollResult($"{label} · {dice}", rolls.Select(r => new DieFace(size, r)).ToList(), bonus, Math.Max(0, rolls.Sum() + bonus)));
 		}
 
 		// ===== Inventory =====
