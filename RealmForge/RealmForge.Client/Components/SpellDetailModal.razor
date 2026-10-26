@@ -25,6 +25,7 @@
                     </div>
                     <button class="btn btn-sm btn-rf-outline" @onclick="CloseAsync" aria-label="@UiText.BtnClose(Lang)" data-test="spell-detail-close">✕</button>
                 </div>
+                @Actions
                 <dl class="rf-spell-stats mb-3">
                     <div><dt>@UiText.LabelCastingTime(Lang)</dt><dd>@spell.CastingTime</dd></div>
                     <div><dt>@UiText.LabelRange(Lang)</dt><dd>@spell.Range</dd></div>
@@ -48,6 +49,9 @@
 @code {
     [Parameter] public Guid? SpellId { get; set; }
     [Parameter] public EventCallback OnClose { get; set; }
+
+    //	Optional panel under the title (the sheet uses it to cast the spell)
+    [Parameter] public RenderFragment? Actions { get; set; }
 
     private SpellDetailResponseDto? spell;
     private Guid? loaded;

@@ -657,7 +657,7 @@ namespace RealmForge.Client.Localization
 		public static string SheetEquippedGroup(LanguageCode lang) => T(lang, "Equipaggiato", "Equipped");
 		public static string SheetBackpack(LanguageCode lang) => T(lang, "Zaino", "Backpack");
 		public static string BtnEquip(LanguageCode lang) => T(lang, "Equipaggia", "Equip");
-		public static string BtnUnequip(LanguageCode lang) => T(lang, "Togli", "Unequip");
+		public static string BtnUnequip(LanguageCode lang) => T(lang, "Rimuovi", "Unequip");
 			// ===== Advancement type =====
 
 		public static string LabelAdvancement(LanguageCode lang) => T(lang, "Tipo di avanzamento", "Advancement type");
@@ -687,5 +687,44 @@ namespace RealmForge.Client.Localization
 		public static string ClassSkillReplaceText(LanguageCode lang) => T(lang,
 			"Un'abilità che avevi scelto per la classe ora te la dà già questa scelta: non serve averla due volte, quindi scegline un'altra tra quelle della classe.",
 			"A skill you picked for your class is now granted by this choice: there is no point having it twice, so pick another one from the class list.");
+			// ===== Sheet: play (dice, death saves, turn, casting) =====
+
+		public static string BtnEditShort(LanguageCode lang) => T(lang, "Modifica", "Edit");
+		public static string BtnDeleteItem(LanguageCode lang) => T(lang, "Elimina dall'inventario", "Delete from the inventory");
+		public static string LabelUses(LanguageCode lang) => T(lang, "Usi", "Uses");
+		public static string RollCritical(LanguageCode lang) => T(lang, "20 naturale!", "Natural 20!");
+		public static string RollFumble(LanguageCode lang) => T(lang, "1 naturale", "Natural 1");
+		public static string BtnRollDeathSave(LanguageCode lang) => T(lang, "Tira il d20", "Roll the d20");
+		public static string DeathSaveSuccess(LanguageCode lang) => T(lang, "Successo", "Success");
+		public static string DeathSaveFailure(LanguageCode lang) => T(lang, "Fallimento", "Failure");
+		public static string DeathSaveOne(LanguageCode lang) => T(lang, "1 naturale: due fallimenti", "Natural 1: two failures");
+		public static string DeathSaveTwenty(LanguageCode lang) => T(lang, "20 naturale: torni in piedi con 1 punto ferita", "Natural 20: you regain 1 hit point");
+		public static string DeathSaveStable(LanguageCode lang) => T(lang, "Stabile", "Stable");
+		public static string DeathSaveDead(LanguageCode lang) => T(lang, "Morto", "Dead");
+		public static string TurnTitle(LanguageCode lang) => T(lang, "Nel tuo turno", "On your turn");
+		public static string TurnMovement(string speed, LanguageCode lang) => T(lang, $"Movimento {speed}", $"Movement {speed}");
+		public static string TurnAction(LanguageCode lang) => T(lang, "Azione", "Action");
+		public static string TurnBonusAction(LanguageCode lang) => T(lang, "Azione bonus", "Bonus action");
+		public static string TurnReaction(LanguageCode lang) => T(lang, "Reazione", "Reaction");
+		public static string TurnRule(LanguageCode lang) => T(lang, "regola ↗", "rule ↗");
+		public static string LastCast(LanguageCode lang) => T(lang, "Ultimo incantesimo:", "Last spell:");
+		public static string ConcentratingOn(LanguageCode lang) => T(lang, "Concentrazione su", "Concentrating on");
+		public static string BtnEndConcentration(LanguageCode lang) => T(lang, "Termina", "End");
+		public static string HintCastFromSpell(LanguageCode lang) => T(lang,
+			"Tocca un incantesimo per leggerlo e lanciarlo: scegli lo slot, l'uso gratuito o il rituale e la scheda aggiorna slot e concentrazione.",
+			"Tap a spell to read and cast it: pick the slot, the free use or the ritual and the sheet updates slots and concentration.");
+		public static string BtnCast(LanguageCode lang) => T(lang, "Lancia", "Cast");
+		public static string CastWith(LanguageCode lang) => T(lang, "Lancia con", "Cast with");
+		public static string CastBlocked(LanguageCode lang) => T(lang, "Ora non puoi lanciare incantesimi: sei incapacitato o a 0 punti ferita.", "You cannot cast spells now: you are incapacitated or at 0 hit points.");
+		public static string CastEndsConcentration(string spell, LanguageCode lang) => T(lang, $"Lanciarlo termina la concentrazione su {spell}.", $"Casting it ends your concentration on {spell}.");
+		public static string CastFree(LanguageCode lang) => T(lang, "Uso gratuito", "Free use");
+		public static string CastFreeHint(LanguageCode lang) => T(lang, "senza slot, 1 per riposo lungo", "no slot, once per long rest");
+		public static string CastFreeUsed(LanguageCode lang) => T(lang, "già usato: torna col riposo lungo", "already used: back after a long rest");
+		public static string CastRitual(LanguageCode lang) => T(lang, "Come rituale", "As a ritual");
+		public static string CastRitualHint(LanguageCode lang) => T(lang, "nessuno slot, +10 minuti", "no slot, +10 minutes");
+		public static string CastUpcast(LanguageCode lang) => T(lang, "potenziato", "upcast");
+		public static string SlotsLeft(int left, int total, LanguageCode lang) => T(lang, $"{left} su {total} liberi", $"{left} of {total} left");
+		public static string CastSlot(int level, LanguageCode lang) => T(lang, $"slot di {level}° livello", $"level {level} slot");
+		public static string CastPact(int level, LanguageCode lang) => T(lang, $"Slot del patto ({level}°)", $"Pact slot (level {level})");
 	}
 }

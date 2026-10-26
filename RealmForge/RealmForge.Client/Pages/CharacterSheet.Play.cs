@@ -68,25 +68,6 @@ namespace RealmForge.Client.Pages
 			Changed();
 		}
 
-		// ===== Spell slots: "use" spends one, a dot gives it back =====
-
-		private void UseSlot(int level, int total)
-		{
-			if (SpentSlots(level) < total)
-			{
-				ToggleSlot(level, SpentSlots(level));
-			}
-		}
-
-		private void UsePactSlot(int total)
-		{
-			if (Sheet.SpentPactSlots < total)
-			{
-				Sheet.SpentPactSlots++;
-				Changed();
-			}
-		}
-
 		// ===== Conditions =====
 
 		private IEnumerable<string> ImpliedBy(string key) =>
