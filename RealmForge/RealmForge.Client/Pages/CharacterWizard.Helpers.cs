@@ -40,14 +40,112 @@ namespace RealmForge.Client.Pages
 		///	<summary>
 		///	Where a skill the character already has comes from (background, species, a class, a feat).
 		///	</summary>
+		//	A step the player has already reached: what it grants counts as known (a default background preselected
+		//	at the start does not hide class skills before the player even sees it)
+		public bool Reached(WizardStep step)
+		{
+			var index = Steps.IndexOf(step);
+			return index < 0 || index <= furthestIndex;
+		}
+
+		private IReadOnlyList<Skill> SpeciesFixedSkills => CharacterRules.SpeciesSkills(Ruleset, Species, Subspecies).Fixed;
+
+		///	<summary>
+		///	Skills the character already has from the steps reached so far: they cannot be picked twice.
+		///	</summary>
+		public IReadOnlyCollection<Skill> KnownSkills => KnownSkillsExcept(null);
+
+		private HashSet<Skill> KnownSkillsExcept(CharacterClassBuild? skip)
+		{
+			{
+				var known = new HashSet<Skill>();
+				if (Reached(WizardStep.Background) && Background is not null)
+				{
+					known.UnionWith(Background.Skills);
+				}
+				if (Reached(WizardStep.Species))
+				{
+					known.UnionWith(SpeciesFixedSkills);
+					known.UnionWith(Build.SpeciesSkills);
+				}
+				foreach (var entry in Build.Classes.Where(e => e != skip))
+				{
+					known.UnionWith(entry.Skills);
+				}
+				foreach (var feat in Computed.Feats)
+				{
+					known.UnionWith(feat.Choice.Skills);
+				}
+				known.UnionWith(Input.Sheet.ExtraSkills);
+				if (skip is null && Reached(WizardStep.Background) && Reached(WizardStep.Species))
+				{
+					known.UnionWith(Computed.SkillProficiencies);
+				}
+				return known;
+			}
+		}
+
+		///	<summary>
+		///	The rules engine sees the preselected background and species even before their steps: a class skill they
+		///	grant is not a mistake yet (it is given back when that step is reached), so the class step accepts it.
+		///	</summary>
+		private bool StartingClassSkillsFine()
+		{
+			if (StartingClass is not { } cls || StartingClassBuild is not { } entry)
+			{
+				return false;
+			}
+			var chosen = entry.Skills;
+			var others = KnownSkillsExcept(entry);
+			return chosen.Count <= cls.SkillChoiceCount && chosen.Distinct().Count() == chosen.Count
+				&& chosen.All(cls.SkillOptions.Contains) && !chosen.Any(others.Contains);
+		}
+
+		///	<summary>
+		///	A background or species reached after the class may grant a skill already picked for a class: the pick is
+		///	given back so the player chooses another one (the step shows where).
+		///	</summary>
+		private void ResolveSkillOverlaps()
+		{
+			//	Saved characters keep their choices: only a character being created is adjusted
+			if (Mode != WizardMode.Create)
+			{
+				return;
+			}
+			var granted = new HashSet<Skill>();
+			if (Reached(WizardStep.Background) && Background is not null)
+			{
+				granted.UnionWith(Background.Skills);
+			}
+			if (Reached(WizardStep.Species))
+			{
+				granted.UnionWith(SpeciesFixedSkills);
+			}
+			if (granted.Count == 0)
+			{
+				return;
+			}
+			foreach (var entry in Build.Classes)
+			{
+				entry.Skills.RemoveAll(granted.Contains);
+			}
+			if (Reached(WizardStep.Background) && Background is not null)
+			{
+				Build.SpeciesSkills.RemoveAll(s => Background.Skills.Contains(s));
+			}
+		}
+
+		//	The starting class lost a skill to a later step: shown again in that step
+		public bool ClassSkillsShort => StartingClass is { } cls && StartingClassBuild is { } entry
+			&& entry.Skills.Count < cls.SkillChoiceCount && Steps.IndexOf(WizardStep.Class) < stepIndex;
+
 		public string SkillSource(Skill skill)
 		{
-			if (Background?.Skills.Contains(skill) == true)
+			if (Reached(WizardStep.Background) && Background?.Skills.Contains(skill) == true)
 			{
 				return Background.Name;
 			}
-			var (fixedSkills, _, _) = CharacterRules.SpeciesSkills(Ruleset, Species, Subspecies);
-			if (fixedSkills.Contains(skill) || Build.SpeciesSkills.Contains(skill))
+			if (SpeciesFixedSkills.Contains(skill) || Build.SpeciesSkills.Contains(skill))
 			{
 				return Subspecies?.Name ?? Species?.Name ?? string.Empty;
 			}

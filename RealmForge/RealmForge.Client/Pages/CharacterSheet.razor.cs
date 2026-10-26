@@ -308,6 +308,10 @@ namespace RealmForge.Client.Pages
 		private void FinishShortRest()
 		{
 			Sheet.SpentPactSlots = 0;
+			foreach (var resource in ClassResources)
+			{
+				Sheet.ResourceUses[resource.Key] = CharacterResources.SpentAfterRest(resource, ResourceSpent(resource), longRest: false);
+			}
 			foreach (var resource in Sheet.Resources.Where(r => r.ShortRest))
 			{
 				resource.Used = 0;
@@ -325,6 +329,7 @@ namespace RealmForge.Client.Pages
 			Sheet.DeathSaveFailures = 0;
 			Sheet.SpentSlots.Clear();
 			Sheet.SpentPactSlots = 0;
+			Sheet.ResourceUses.Clear();
 			foreach (var resource in Sheet.Resources)
 			{
 				resource.Used = 0;

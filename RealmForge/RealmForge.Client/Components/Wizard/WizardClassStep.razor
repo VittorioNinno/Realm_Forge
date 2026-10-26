@@ -60,7 +60,7 @@
 
         <div class="rf-wizard-block-title">@UiText.LabelClassSkills(cls.SkillChoiceCount, Lang)</div>
         <SkillPicker W="W" Chosen="entry.Skills" Count="cls.SkillChoiceCount" Options="cls.SkillOptions" DataTest="wizard-skill" />
-        @if (cls.SkillOptions.Any(s => W.Computed.SkillProficiencies.Contains(s) && !entry.Skills.Contains(s)))
+        @if (cls.SkillOptions.Any(s => W.KnownSkills.Contains(s) && !entry.Skills.Contains(s)))
         {
             <div class="small mb-3" style="color: var(--rf-text-muted);">@UiText.HintKnownSkills(Lang)</div>
         }

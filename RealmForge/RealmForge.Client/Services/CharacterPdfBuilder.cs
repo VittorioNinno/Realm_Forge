@@ -160,6 +160,11 @@ namespace RealmForge.Client.Services
 					features.Add(new PdfRow($"{subclass.Name}: {string.Join(", ", subNames)}", Paragraph: true));
 				}
 			}
+			foreach (var resource in CharacterResources.For(c, lang))
+			{
+				var left = resource.Maximum - Math.Clamp(sheet.ResourceUses.GetValueOrDefault(resource.Key), 0, resource.Maximum);
+				features.Add(new PdfRow(resource.Name, $"{left}/{resource.Maximum}"));
+			}
 			foreach (var resource in sheet.Resources)
 			{
 				features.Add(new PdfRow(resource.Name, $"{resource.Maximum - resource.Used}/{resource.Maximum}"));
