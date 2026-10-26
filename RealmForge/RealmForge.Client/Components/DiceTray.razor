@@ -1,0 +1,115 @@
+﻿@using RealmForge.Client.Localization
+@using RealmForge.Client.Services
+@using RealmForge.Shared.Rules
+@* Dice tray: the dice tumble for a moment, then land with the total, the single dice and the modifier; the last rolls
+   stay listed underneath *@
+@implements IDisposable
+
+@if (current is not null)
+{
+    <div class="rf-dice-tray @(rolling ? "rolling" : "landed") @Outcome" role="status" aria-live="polite" data-test="sheet-last-roll">
+        <div class="rf-dice-tray-head">
+            <span class="rf-dice-tray-label">@current.Label</span>
+            <button type="button" class="rf-dice-tray-close" @onclick="Close" aria-label="@UiText.BtnClose(LanguageState.CurrentLanguage)">✕</button>
+        </div>
+        <div class="rf-dice-tray-body">
+            <div class="rf-dice-row">
+                @for (var i = 0; i < current.Dice.Count; i++)
+                {
+                    var die = current.Dice[i];
+                    var face = rolling ? faces[i] : die.Value;
+                    <div class="rf-die3d @(die.Dropped && !rolling ? "dropped" : null) @(!rolling && die.Sides == 20 && die.Value == 20 ? "crit" : null) @(!rolling && die.Sides == 20 && die.Value == 1 ? "fumble" : null)"
+                         style="animation-delay: @(i * 60)ms;">
+                        <svg viewBox="0 0 60 60" aria-hidden="true">@Shape(die.Sides)</svg>
+                        <span class="rf-die3d-value">@face</span>
+                        <span class="rf-die3d-type">d@(die.Sides)</span>
+                    </div>
+                }
+                @if (current.Modifier != 0)
+                {
+                    <div class="rf-dice-modifier">@CharacterMath.FormatModifier(current.Modifier)</div>
+                }
+            </div>
+            <div class="rf-dice-total" data-test="dice-total">@(rolling ? "…" : current.Total.ToString())</div>
+        </div>
+        @if (!rolling && !string.IsNullOrEmpty(current.Note))
+        {
+            <div class="rf-dice-note">@current.Note</div>
+        }
+        @if (history.Count > 1)
+        {
+            <ul class="rf-dice-history">
+                @foreach (var past in history.Skip(1))
+                {
+                    <li><span>@past.Label</span><strong>@past.Total</strong></li>
+                }
+            </ul>
+        }
+    </div>
+}
+
+@code {
+    [Inject] private LanguageStateService LanguageState { get; set; } = default!;
+
+    private DiceRollResult? current;
+    private readonly List<DiceRollResult> history = new();
+    private int[] faces = Array.Empty<int>();
+    private bool rolling;
+    private CancellationTokenSource? animation;
+
+    private string? Outcome => rolling || current is null ? null
+        : current.Dice.Any(d => d.Sides == 20 && !d.Dropped && d.Value == 20) ? "crit"
+        : current.Dice.Any(d => d.Sides == 20 && !d.Dropped && d.Value == 1) ? "fumble" : null;
+
+    ///	<summary>
+    ///	Shows a roll already decided: the animation only shows random faces before the real ones.
+    ///	</summary>
+    public async Task ShowAsync(DiceRollResult roll)
+    {
+        animation?.Cancel();
+        var cts = animation = new CancellationTokenSource();
+        current = roll;
+        history.Insert(0, roll);
+        if (history.Count > 6)
+        {
+            history.RemoveAt(history.Count - 1);
+        }
+        faces = roll.Dice.Select(d => Random.Shared.Next(1, d.Sides + 1)).ToArray();
+        rolling = true;
+        StateHasChanged();
+        try
+        {
+            for (var frame = 0; frame < 10; frame++)
+            {
+                await Task.Delay(65, cts.Token);
+                faces = roll.Dice.Select(d => Random.Shared.Next(1, d.Sides + 1)).ToArray();
+                StateHasChanged();
+            }
+        }
+        catch (TaskCanceledException)
+        {
+            return;
+        }
+        rolling = false;
+        StateHasChanged();
+    }
+
+    private void Close()
+    {
+        animation?.Cancel();
+        current = null;
+        rolling = false;
+    }
+
+    public void Dispose() => animation?.Cancel();
+
+    private static RenderFragment Shape(int sides) => sides switch
+    {
+        4 => @<g><polygon points="30,5 56,52 4,52" /><line x1="30" y1="5" x2="30" y2="52" /></g>,
+        6 => @<g><rect x="7" y="7" width="46" height="46" rx="8" /></g>,
+        8 => @<g><polygon points="30,3 56,30 30,57 4,30" /><line x1="4" y1="30" x2="56" y2="30" /></g>,
+        10 => @<g><polygon points="30,3 56,25 30,57 4,25" /><polyline points="4,25 30,35 56,25" /><line x1="30" y1="35" x2="30" y2="57" /></g>,
+        12 => @<g><polygon points="30,3 57,23 47,55 13,55 3,23" /><polygon points="30,15 44,26 39,43 21,43 16,26" /></g>,
+        _ => @<g><polygon points="30,3 55,17 55,43 30,57 5,43 5,17" /><polygon points="30,14 47,42 13,42" /></g>
+    };
+}
