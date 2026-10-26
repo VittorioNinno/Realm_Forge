@@ -571,6 +571,11 @@ namespace RealmForge.Client.Pages
 			//	Scores are needed by the later steps: the ability step must have all six
 			var issues = Computed.Issues.Where(i => i.Area == area).ToList();
 
+			if (step == WizardStep.Class && (!Reached(WizardStep.Background) || !Reached(WizardStep.Species)) && StartingClassSkillsFine())
+			{
+				issues.RemoveAll(i => i.Code == IssueCodes.Skills);
+			}
+
 			//	A class skill given back by this step is picked again here
 			if ((step == WizardStep.Background || step == WizardStep.Species) && step == CurrentStep && ClassSkillsShort)
 			{
