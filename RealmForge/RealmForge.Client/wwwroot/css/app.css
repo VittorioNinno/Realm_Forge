@@ -4896,7 +4896,7 @@ button.rf-stat-card {
     position: fixed;
     right: 16px;
     bottom: 16px;
-    z-index: 2000;
+    z-index: 1040;
     width: 300px;
     max-width: calc(100vw - 32px);
     padding: 12px 14px;

@@ -978,7 +978,7 @@ try {
   if (wide.length) throw new Error(`content wider than a 375 px phone: ${wide.join(' | ').slice(0, 300)}`);
   ok('phone layout: dashboard, characters (list, every wizard step, sheet), glossary, species, backgrounds, feats, spells, classes, equipment and account (with their details) fit a 375 px screen');
 } catch (e) {
-  results.push(`FAIL ${e.message.split('\n').filter(Boolean).slice(0, 3).join(' | ')}`);
+  results.push(`FAIL ${e.message.split('\n').filter(Boolean).slice(0, 8).join(' | ').slice(0, 1500)}`);
   const lastOk = results.filter((r) => r.startsWith('OK')).at(-1) ?? '';
   const where = await page.evaluate(() => `${location.pathname}${location.search} step="${document.querySelector('[data-test=wizard-step-title]')?.textContent?.trim() ?? ''}" problems="${document.querySelector('[data-test=wizard-error]')?.textContent?.replace(/\s+/g, ' ').trim() ?? ''}"`).catch(() => 'n/a');
   results.push(`DEBUG after "${lastOk.slice(3, 120)}" at ${where}`);
