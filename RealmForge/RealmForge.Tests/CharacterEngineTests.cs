@@ -329,4 +329,80 @@ public class CharacterEngineTests
 		Assert.Contains("Brünhilde l'Intrepida", text);
 		Assert.Contains("/WinAnsiEncoding", text);
 	}
+	// ===== Magic items =====
+
+	private static InventoryItem Magic(bool attunement, bool attuned, params MagicEffect[] effects) => new()
+	{
+		Name = "Item",
+		Equipped = true,
+		Attuned = attuned,
+		Magic = new MagicItemProperties { RequiresAttunement = attunement, Effects = effects.ToList() }
+	};
+
+	[Fact]
+	public void Magic_items_work_only_when_worn_and_attuned()
+	{
+		var fighter = Class("fighter", 10, primary: new[] { AbilityScore.Strength });
+		var context = Context(RulesetVersion.Dnd5e_2024, new[] { fighter });
+		var plain = CharacterCalculator.Compute(Input(RulesetVersion.Dnd5e_2024, context, (fighter, 1)), context);
+
+		var ring = Magic(true, true, new MagicEffect { Kind = MagicEffectKind.ArmorClass, Value = 1 }, new MagicEffect { Kind = MagicEffectKind.SavingThrows, Value = 1 });
+		var gauntlets = Magic(true, true, new MagicEffect { Kind = MagicEffectKind.SetAbilityScore, Value = 19, Ability = AbilityScore.Strength });
+		var input = Input(RulesetVersion.Dnd5e_2024, context, (fighter, 1));
+		input.Sheet.Inventory.AddRange(new[] { ring, gauntlets });
+		var magic = CharacterCalculator.Compute(input, context);
+
+		Assert.Equal(plain.ArmorClass + 1, magic.ArmorClass);
+		Assert.Equal(plain.SaveBonus(AbilityScore.Wisdom) + 1, magic.SaveBonus(AbilityScore.Wisdom));
+		Assert.Equal(19, magic.Score(AbilityScore.Strength));
+
+		//	Not attuned or not worn: nothing
+		ring.Attuned = false;
+		gauntlets.Equipped = false;
+		var off = CharacterCalculator.Compute(input, context);
+		Assert.Equal(plain.ArmorClass, off.ArmorClass);
+		Assert.Equal(plain.Score(AbilityScore.Strength), off.Score(AbilityScore.Strength));
+	}
+
+	// ===== Spellbook and spell changes =====
+
+	[Fact]
+	public void The_wizard_prepares_spells_from_a_spellbook_of_six_free_spells_plus_the_copied_ones()
+	{
+		var wizard = Class("wizard", 6, CasterProgression.Full, AbilityScore.Intelligence, SpellcastingClass.Wizard, primary: new[] { AbilityScore.Intelligence });
+		var spells = Enumerable.Range(1, 9)
+			.Select(i => new ContextSpell(Guid.NewGuid(), $"Spell {i}", 1, SpellSchool.Evocation, new List<SpellcastingClass> { SpellcastingClass.Wizard }, false, false))
+			.ToList();
+		var context = Context(RulesetVersion.Dnd5e_2024, new[] { wizard }) with { Spells = spells };
+		CharacterInput Wizard(IEnumerable<ContextSpell> book, IEnumerable<ContextSpell> prepared, IEnumerable<ContextSpell>? copied = null)
+		{
+			var input = Input(RulesetVersion.Dnd5e_2024, context, (wizard, 1));
+			input.Build.Classes[0].Spellbook = book.Select(s => s.Id).ToList();
+			input.Build.Classes[0].Spells = prepared.Select(s => s.Id).ToList();
+			input.Build.Classes[0].SpellbookCopied = (copied ?? Array.Empty<ContextSpell>()).Select(s => s.Id).ToList();
+			return input;
+		}
+		bool SpellError(CharacterInput input) => CharacterCalculator.Compute(input, context).Issues.Any(i => i.Code == IssueCodes.Spells);
+
+		Assert.False(SpellError(Wizard(spells.Take(6), spells.Take(2))));
+		Assert.True(SpellError(Wizard(spells.Take(6), new[] { spells[7] })));
+		Assert.True(SpellError(Wizard(spells.Take(7), spells.Take(2))));
+		Assert.False(SpellError(Wizard(spells.Take(8), spells.Take(2), spells.Skip(6).Take(2))));
+	}
+
+	[Theory]
+	[InlineData(RulesetVersion.Dnd5e_2014, "cleric", SpellChangeKind.All, false, false)]
+	[InlineData(RulesetVersion.Dnd5e_2014, "sorcerer", null, true, false)]
+	[InlineData(RulesetVersion.Dnd5e_2024, "paladin", SpellChangeKind.Spell, false, false)]
+	[InlineData(RulesetVersion.Dnd5e_2024, "bard", null, true, true)]
+	[InlineData(RulesetVersion.Dnd5e_2024, "druid", SpellChangeKind.All, false, true)]
+	public void Classes_change_their_spells_as_the_rules_say(RulesetVersion ruleset, string key, SpellChangeKind? longRest, bool levelSpell, bool levelCantrip)
+	{
+		var rule = SpellChangeRules.For(ruleset, key, false);
+		Assert.Equal(longRest, rule.LongRest);
+		Assert.Equal(levelSpell, rule.LevelUpSpell);
+		Assert.Equal(levelCantrip, rule.LevelUpCantrip);
+		Assert.True(SpellChangeRules.For(RulesetVersion.Dnd5e_2024, "wizard", false) is { Spellbook: true, LongRestCantrip: true });
+		Assert.Equal(12, SpellChangeRules.FreeSpellbookSpells(4));
+	}
 }

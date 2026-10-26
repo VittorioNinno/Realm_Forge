@@ -96,7 +96,10 @@ namespace RealmForge.Client.Pages
 
 		// ===== Inventory =====
 
-		private bool IsWearable(InventoryItem item) => ItemOf(item) is { } info && (info.ArmorCategory is not null || info.Category == EquipmentCategory.Weapon);
+		//	Weapons and armor are wielded or worn; so are magic items that are not consumed (rings, cloaks, wands)
+		private bool IsWearable(InventoryItem item) =>
+			(ItemOf(item) is { } info && (info.ArmorCategory is not null || info.Category == EquipmentCategory.Weapon))
+			|| (item.Magic is { } magic && magic.HealDice is null);
 
 		//	Worn: one body armor, one shield; a two-handed weapon and a shield do not go together
 		private void Equip(InventoryItem item)
