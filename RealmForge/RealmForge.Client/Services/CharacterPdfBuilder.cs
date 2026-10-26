@@ -160,6 +160,11 @@ namespace RealmForge.Client.Services
 					features.Add(new PdfRow($"{subclass.Name}: {string.Join(", ", subNames)}", Paragraph: true));
 				}
 			}
+			foreach (var resource in CharacterResources.For(c, lang))
+			{
+				var left = resource.Maximum - Math.Clamp(sheet.ResourceUses.GetValueOrDefault(resource.Key), 0, resource.Maximum);
+				features.Add(new PdfRow(resource.Name, $"{left}/{resource.Maximum}"));
+			}
 			foreach (var resource in sheet.Resources)
 			{
 				features.Add(new PdfRow(resource.Name, $"{resource.Maximum - resource.Used}/{resource.Maximum}"));
@@ -188,7 +193,8 @@ namespace RealmForge.Client.Services
 			Note(UiText.LabelBackstory(lang), sheet.Backstory);
 			Note(UiText.LabelAllies(lang), sheet.Allies);
 			Note(UiText.LabelNotes(lang), sheet.Notes);
-			if (sheet.Experience > 0)
+			notes.Add(new PdfRow(UiText.LabelAdvancement(lang), UiText.AdvancementName(sheet.Advancement, lang)));
+			if (sheet.Advancement == AdvancementType.Experience && sheet.Experience > 0)
 			{
 				notes.Add(new PdfRow(UiText.SheetExperience(lang), $"{sheet.Experience}"));
 			}

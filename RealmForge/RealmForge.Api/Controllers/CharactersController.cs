@@ -108,6 +108,7 @@ namespace RealmForge.Api.Controllers
 			var context = await _builder.BuildAsync(dto.Ruleset, Enum.IsDefined(dto.Language) ? dto.Language : LanguageCode.En, User);
 			var sheet = Sanitize(dto.Sheet ?? new CharacterSheetState());
 			sheet.CurrentHitPoints = null;
+			ApplyAdvancement(sheet, dto.Advancement);
 			(sheet.Inventory, sheet.Coins) = StartingEquipment.Build(dto.Build ?? new CharacterBuild(), context, dto.BackgroundId);
 
 			var input = Input(dto, sheet);
@@ -147,6 +148,7 @@ namespace RealmForge.Api.Controllers
 			dto.Build.EquipmentPicks = previous.EquipmentPicks;
 
 			var sheet = ReadSheet(character.Sheet);
+			ApplyAdvancement(sheet, dto.Advancement);
 			var context = await _builder.BuildAsync(dto.Ruleset, LanguageCode.En, User);
 			var computed = CharacterCalculator.Compute(Input(dto, sheet), context);
 			if (!computed.CanSave)
@@ -281,8 +283,20 @@ namespace RealmForge.Api.Controllers
 		///	<summary>
 		///	Bounds for everything the client can write in the sheet.
 		///	</summary>
+		private static void ApplyAdvancement(CharacterSheetState sheet, AdvancementType? advancement)
+		{
+			if (advancement is { } value && Enum.IsDefined(value))
+			{
+				sheet.Advancement = value;
+			}
+		}
+
 		private static CharacterSheetState Sanitize(CharacterSheetState sheet)
 		{
+			if (!Enum.IsDefined(sheet.Advancement))
+			{
+				sheet.Advancement = AdvancementType.Experience;
+			}
 			static string? Text(string? value, int max = 8000) => value is null ? null : value.Length > max ? value[..max] : value;
 			static int Clamp(int value, int min, int max) => Math.Clamp(value, min, max);
 
@@ -319,6 +333,10 @@ namespace RealmForge.Api.Controllers
 				r.Used = Clamp(r.Used, 0, r.Maximum);
 				return r;
 			}).ToList();
+			sheet.ResourceUses = (sheet.ResourceUses ?? new())
+				.Where(u => !string.IsNullOrWhiteSpace(u.Key) && u.Key.Length <= 40)
+				.Take(40)
+				.ToDictionary(u => u.Key, u => Clamp(u.Value, 0, 999));
 			sheet.Experience = Clamp(sheet.Experience, 0, 10_000_000);
 			sheet.Portrait = sheet.Portrait is { Length: <= MaxPortraitLength } portrait && portrait.StartsWith("data:image/", StringComparison.Ordinal) ? portrait : null;
 			sheet.Age = Text(sheet.Age, 40);

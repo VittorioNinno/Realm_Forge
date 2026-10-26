@@ -140,7 +140,13 @@ public sealed class CharacterSheetState
 	public CoinPurse Coins { get; set; } = new();
 	public List<ResourceCounter> Resources { get; set; } = new();
 
+	//	Uses spent of the class resources the sheet computes on its own (key of CharacterResources → spent)
+	public Dictionary<string, int> ResourceUses { get; set; } = new();
+
 	public int Experience { get; set; }
+
+	//	How the character gains levels: experience points or story milestones decided by the game master
+	public AdvancementType Advancement { get; set; } = AdvancementType.Experience;
 
 	//	Identity card of the sheet: portrait (a small data URL made in the browser) and personal details
 	public string? Portrait { get; set; }
@@ -199,6 +205,12 @@ public sealed class ResourceCounter
 	public int Maximum { get; set; } = 1;
 	public int Used { get; set; }
 	public bool ShortRest { get; set; }
+}
+
+public enum AdvancementType
+{
+	Experience = 0,
+	Milestone = 1
 }
 
 public enum CoinType

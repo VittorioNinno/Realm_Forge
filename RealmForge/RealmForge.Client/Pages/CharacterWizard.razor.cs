@@ -192,7 +192,9 @@ namespace RealmForge.Client.Pages
 			}
 
 			var name = Input.Name;
+			var advancement = Input.Sheet.Advancement;
 			Input = new CharacterInput { Name = name, Ruleset = ruleset };
+			Input.Sheet.Advancement = advancement;
 			Abilities.Reset();
 			loading = true;
 			StateHasChanged();
@@ -224,6 +226,7 @@ namespace RealmForge.Client.Pages
 			}
 
 			Normalize();
+			ResolveSkillOverlaps();
 			RefreshPreview();
 			Computed = CharacterCalculator.Compute(Input, Context, checkEquipment: Mode == WizardMode.Create);
 			ScheduleDraftSave();
@@ -567,6 +570,17 @@ namespace RealmForge.Client.Pages
 
 			//	Scores are needed by the later steps: the ability step must have all six
 			var issues = Computed.Issues.Where(i => i.Area == area).ToList();
+
+			if (step == WizardStep.Class && (!Reached(WizardStep.Background) || !Reached(WizardStep.Species)) && StartingClassSkillsFine())
+			{
+				issues.RemoveAll(i => i.Code == IssueCodes.Skills);
+			}
+
+			//	A class skill given back by this step is picked again here
+			if ((step == WizardStep.Background || step == WizardStep.Species) && step == CurrentStep && ClassSkillsShort)
+			{
+				issues.AddRange(Computed.Issues.Where(i => i.Area == AreaOf(WizardStep.Class) && i.Code == IssueCodes.SkillsMissing));
+			}
 			if (step == WizardStep.Abilities && Build.BaseScores.Count != 6 && issues.All(i => i.Code != IssueCodes.BaseScores))
 			{
 				issues.Add(new CharacterIssue(IssueCodes.BaseScores, true, IssueAreas.Abilities, Array.Empty<string>()));
@@ -585,6 +599,7 @@ namespace RealmForge.Client.Pages
 
 			stepIndex++;
 			furthestIndex = Math.Max(furthestIndex, stepIndex);
+			Update();
 			await LoadDetailsAsync();
 		}
 
@@ -642,7 +657,8 @@ namespace RealmForge.Client.Pages
 				BackgroundId = Input.BackgroundId,
 				Language = Lang,
 				Build = Build,
-				Sheet = Mode == WizardMode.Create ? Input.Sheet : null
+				Sheet = Mode == WizardMode.Create ? Input.Sheet : null,
+				Advancement = Input.Sheet.Advancement
 			};
 
 			var (saved, error) = await Characters.SaveCharacterAsync(Mode == WizardMode.Create ? null : Id, dto);

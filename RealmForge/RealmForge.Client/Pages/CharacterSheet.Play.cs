@@ -53,7 +53,13 @@ namespace RealmForge.Client.Pages
 			}
 		}
 
-		private bool ReadyToLevelUp => Level < 20 && Sheet.Experience >= NextLevelExperience;
+		private bool ReadyToLevelUp => Sheet.Advancement == AdvancementType.Experience && Level < 20 && Sheet.Experience >= NextLevelExperience;
+
+		private void SetAdvancement(AdvancementType type)
+		{
+			Sheet.Advancement = type;
+			Changed();
+		}
 
 		private void AddExperience()
 		{
@@ -175,6 +181,56 @@ namespace RealmForge.Client.Pages
 		}
 
 		private void SetBio(Action<string?> set, ChangeEventArgs e) => SetText(set, e);
+
+		// ===== Hit points bar =====
+
+		private int HpPercent => MaxHp == 0 ? 0 : CurrentHp * 100 / MaxHp;
+
+		//	With temporary hit points the bar spans maximum + temporary, so the extra segment is always visible
+		private int BarTotal => Math.Max(1, MaxHp + Sheet.TemporaryHitPoints);
+
+		private int FillPercent => CurrentHp * 100 / BarTotal;
+
+		private int TempPercent => Sheet.TemporaryHitPoints * 100 / BarTotal;
+
+		private string HpState => CurrentHp == 0 ? "down" : HpPercent <= 25 ? "low" : HpPercent <= 50 ? "hurt" : "ok";
+
+		// ===== Class resources (computed from the classes and levels) =====
+
+		private List<ClassResource> ClassResources => computed is null ? new() : CharacterResources.For(computed, Lang);
+
+		private int ResourceSpent(ClassResource resource) => Math.Clamp(Sheet.ResourceUses.GetValueOrDefault(resource.Key), 0, resource.Maximum);
+
+		private int ResourceLeft(ClassResource resource) => resource.Maximum - ResourceSpent(resource);
+
+		private void SetResourceLeft(ClassResource resource, int left)
+		{
+			Sheet.ResourceUses[resource.Key] = resource.Maximum - Math.Clamp(left, 0, resource.Maximum);
+			Changed();
+		}
+
+		//	A dot: spending one more, or giving back from that one on (same as the spell slots)
+		private void ToggleResource(ClassResource resource, int index)
+		{
+			var spent = ResourceSpent(resource);
+			Sheet.ResourceUses[resource.Key] = index < spent ? index : index + 1;
+			Changed();
+		}
+
+		private void SetResourceInput(ClassResource resource, ChangeEventArgs e)
+		{
+			if (int.TryParse(e.Value?.ToString(), out var left))
+			{
+				SetResourceLeft(resource, left);
+			}
+		}
+
+		private string ResetName(ResourceReset reset) => reset switch
+		{
+			ResourceReset.ShortRest => UiText.ResetShortRest(Lang),
+			ResourceReset.OneOnShortRest => UiText.ResetOneOnShortRest(Lang),
+			_ => UiText.ResetLongRest(Lang)
+		};
 
 		// ===== Species traits and senses =====
 
