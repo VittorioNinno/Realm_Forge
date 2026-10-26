@@ -209,6 +209,17 @@
                                 </div>
                                 <button type="button" class="rf-death-roll" disabled="@(Stable || Dead || deathRolling)" @onclick="RollDeathSaveAsync" data-test="sheet-death-roll">@UiText.BtnRollDeathSave(Lang)</button>
                             </div>
+                            @if (!Dead)
+                            {
+                                <button type="button" class="rf-toggle mt-2 @(criticalHit ? "on" : null)" aria-pressed="@criticalHit" @onclick="() => criticalHit = !criticalHit" data-test="sheet-critical">
+                                    <span class="rf-toggle-track"><span class="rf-toggle-thumb"></span></span>
+                                    <span>@UiText.CriticalHitToggle(Lang)</span>
+                                </button>
+                            }
+                            @if (deathNote is not null)
+                            {
+                                <div class="rf-death-note" data-test="sheet-death-note">@deathNote</div>
+                            }
                         </div>
                     }
 
@@ -364,6 +375,12 @@
 
 <SpellDetailModal SpellId="spellDetailId" OnClose="CloseSpell" Actions="CastPanel()" />
 <DiceTray @ref="diceTray" />
+@BookEditor()
+@if (magicEditorOpen)
+{
+    <MagicItemEditor IsNew="magicTarget is null" ItemName="@(magicTarget is null ? null : ItemName(magicTarget))" Kind="MagicKindOf(magicTarget)"
+                     Initial="magicTarget?.Magic" OnSave="SaveMagic" OnCancel="() => magicEditorOpen = false" />
+}
 
 @if (shortRestOpen && computed is not null)
 {
@@ -574,6 +591,14 @@
                     <span>@name</span>
                     <span class="rf-card2-head-accent">@UiText.SheetSpellcasting(source.Ability, source.SaveDc, source.AttackBonus, Lang)</span>
                 </div>
+                @if (source.Class is not null)
+                {
+                    var src = source;
+                    <div class="rf-book-bar">
+                        <span class="small" data-test="sheet-book-changes">@ChangesText(src)</span>
+                        <button type="button" class="rf-tool-btn" @onclick="() => OpenBook(src)" data-test="sheet-book-open">✎ @UiText.BtnManageSpells(IsWizardBook(src), Lang)</button>
+                    </div>
+                }
                 <div class="rf-spell-counts">
                     <div><div class="rf-mini-label">@UiText.LabelCantrips(Lang)</div><div class="rf-defense-value">@source.ChosenCantrips.Count / @source.Cantrips</div></div>
                     <div><div class="rf-mini-label">@UiText.SheetSpellsPrepared(Lang)</div><div class="rf-defense-value">@source.ChosenSpells.Count / @source.Spells</div></div>
@@ -644,6 +669,17 @@
             }
         </div>
 
+        <div class="rf-magic-bar">
+            <span class="rf-attune-count @(MagicItemRules.AttunedCount(Sheet) >= MagicItemRules.MaxAttuned ? "full" : null)" data-test="sheet-attunement">
+                ✦ @UiText.AttunementCount(MagicItemRules.AttunedCount(Sheet), MagicItemRules.MaxAttuned, Lang)
+            </span>
+            <button type="button" class="rf-tool-btn" @onclick="OpenNewMagic" data-test="sheet-magic-add">✦ @UiText.BtnAddMagicItem(Lang)</button>
+        </div>
+        @if (attuneError is not null)
+        {
+            <div class="rf-cast-warning soft mb-2" data-test="sheet-attune-error">@attuneError</div>
+        }
+
         <div data-test="sheet-inventory">
             @foreach (var group in new[] { true, false })
             {
@@ -658,27 +694,71 @@
                 {
                     var item = entry;
                     var info = ItemOf(item);
-                    <div class="rf-item-row" data-test="sheet-item">
+                    <div class="rf-item-row @(item.Magic is not null ? "magic" : null)" data-test="sheet-item">
                         <div class="rf-item-name">
-                            @if (info is not null)
+                            <div>
+                                @if (info is not null)
+                                {
+                                    <a href="@($"equipment?id={info.Id}")" target="_blank" rel="noopener" class="text-reset">@info.Name</a>
+                                    <span class="small" style="color: var(--rf-text-muted);">@ItemDetail(info)</span>
+                                }
+                                else
+                                {
+                                    <span>@item.Name</span>
+                                }
+                            </div>
+                            @if (item.Magic is { } magic)
                             {
-                                <a href="@($"equipment?id={info.Id}")" target="_blank" rel="noopener" class="text-reset">@info.Name</a>
-                                <span class="small" style="color: var(--rf-text-muted);">@ItemDetail(info)</span>
-                            }
-                            else
-                            {
-                                <span>@item.Name</span>
+                                <div class="rf-item-magic" data-test="sheet-item-magic-line">
+                                    <span class="rf-rarity @($"rf-rarity-{magic.Rarity.ToString().ToLowerInvariant()}")">✦ @UiText.RarityName(magic.Rarity, Lang)</span>
+                                    @if (MagicLine(magic) is { Length: > 0 } line)
+                                    {
+                                        <span>@line</span>
+                                    }
+                                    @if (magic.RequiresAttunement && !item.Attuned)
+                                    {
+                                        <span class="rf-item-warning">@UiText.NeedsAttunement(Lang)</span>
+                                    }
+                                    else if (magic.Effects.Count > 0 && !item.Equipped)
+                                    {
+                                        <span class="rf-item-warning">@UiText.NeedsEquip(Lang)</span>
+                                    }
+                                </div>
+                                @if (magic.Charges > 0)
+                                {
+                                    var left = magic.Charges - magic.ChargesUsed;
+                                    <div class="rf-item-charges">
+                                        <span class="rf-mini-label">@UiText.MagicCharges(Lang)</span>
+                                        <div class="rf-slot-dots">
+                                            @for (var i = 0; i < magic.Charges; i++)
+                                            {
+                                                var index = i;
+                                                <button type="button" class="rf-slot-dot @(index < left ? "full" : null)" @onclick="() => ToggleCharge(item, magic.Charges - 1 - index)" aria-label="@UiText.MagicCharges(Lang) @(index + 1)"></button>
+                                            }
+                                        </div>
+                                        <button type="button" class="rf-slot-use" disabled="@(left == 0)" @onclick="() => UseCharge(item)" data-test="sheet-item-charge-use">@UiText.BtnUse(Lang)</button>
+                                    </div>
+                                }
                             }
                         </div>
                         <div class="rf-item-controls">
                             <button type="button" class="rf-mini-btn" @onclick="() => ChangeQuantity(item, -1)" aria-label="−1">−</button>
                             <span class="rf-item-qty">×@item.Quantity</span>
                             <button type="button" class="rf-mini-btn" @onclick="() => ChangeQuantity(item, 1)" aria-label="+1">+</button>
-                            @if (IsWearable(item))
+                            @if (item.Magic?.HealDice is not null)
+                            {
+                                <button type="button" class="rf-item-equip drink" @onclick="() => Drink(item)" data-test="sheet-item-drink">@UiText.BtnDrink(Lang)</button>
+                            }
+                            else if (IsWearable(item))
                             {
                                 <button type="button" class="rf-item-equip @(item.Equipped ? "on" : null)" @onclick="() => Equip(item)" data-test="sheet-item-equip">@(item.Equipped ? UiText.BtnUnequip(Lang) : UiText.BtnEquip(Lang))</button>
                             }
-                            <button type="button" class="rf-mini-btn @(item.Attuned ? "on" : null)" title="@UiText.SheetAttuned(Lang)" @onclick="() => ToggleAttuned(item)">✦</button>
+                            @if (item.Magic?.RequiresAttunement == true)
+                            {
+                                <button type="button" class="rf-mini-btn @(item.Attuned ? "on" : null)" title="@(item.Attuned ? UiText.BtnEndAttunement(Lang) : UiText.BtnAttune(Lang))"
+                                        aria-pressed="@item.Attuned" @onclick="() => ToggleAttuned(item)" data-test="sheet-item-attune">◈</button>
+                            }
+                            <button type="button" class="rf-mini-btn @(item.Magic is not null ? "on" : null)" title="@UiText.BtnMagicProperties(Lang)" aria-label="@UiText.BtnMagicProperties(Lang)" @onclick="() => OpenMagic(item)" data-test="sheet-item-magic">✦</button>
                             <button type="button" class="rf-mini-btn" @onclick="() => RemoveItem(item)" title="@UiText.BtnDeleteItem(Lang)" aria-label="@UiText.BtnDeleteItem(Lang)" data-test="sheet-item-remove">✕</button>
                         </div>
                     </div>
@@ -901,6 +981,10 @@
             <div class="rf-concentration" data-test="sheet-concentration">
                 <span class="rf-concentration-dot"></span>
                 <span>@UiText.ConcentratingOn(Lang) <strong>@focus.Name</strong></span>
+                @if (concentrationDc is { } dc)
+                {
+                    <button type="button" class="rf-concentration-save" @onclick="RollConcentrationAsync" data-test="sheet-concentration-save">@UiText.ConcentrationSave(dc, Lang)</button>
+                }
                 <button type="button" class="rf-tool-btn" @onclick="EndConcentration" data-test="sheet-concentration-end">@UiText.BtnEndConcentration(Lang)</button>
             </div>
         }
@@ -1192,6 +1276,110 @@
                         </div>
                     }
                 }
+            </div>
+        }
+    </text>;
+
+    // ===== Spells changed as the rules allow (long rest, level up), wizard spellbook =====
+    private RenderFragment BookEditor() => @<text>
+        @if (bookSource is { } src && computed is not null)
+        {
+            var wizard = IsWizardBook(src);
+            <div class="rf-modal-backdrop" @onclick="CloseBook">
+                <div class="rf-modal-dialog rf-book" @onclick:stopPropagation="true" data-test="spell-book">
+                    <h2 class="h5 mb-1" style="color: var(--rf-orange-primary); font-family: var(--rf-font-display);">@UiText.BookTitle(src.Class?.Class.Name ?? string.Empty, wizard, Lang)</h2>
+                    <div class="small mb-2" style="color: var(--rf-text-secondary);">@UiText.SpellChangeRuleText(SpellChangeRules.For(Ruleset, src.Class!), Lang)</div>
+                    <div class="rf-book-status">
+                        <span>@UiText.BookNow(Lang) <strong>@ChangesText(src)</strong></span>
+                        <button type="button" class="rf-toggle @(bookFree ? "on" : null)" aria-pressed="@bookFree" @onclick="() => bookFree = !bookFree" data-test="spell-book-free">
+                            <span class="rf-toggle-track"><span class="rf-toggle-thumb"></span></span>
+                            <span>@UiText.BookFreeCorrection(Lang)</span>
+                        </button>
+                    </div>
+
+                    @if (wizard)
+                    {
+                        <div class="rf-book-tabs">
+                            <button type="button" class="rf-sheet-tab @(!bookOnSpellbook ? "active" : null)" @onclick="() => bookOnSpellbook = false">@UiText.BookPrepared(Lang)</button>
+                            <button type="button" class="rf-sheet-tab @(bookOnSpellbook ? "active" : null)" @onclick="() => bookOnSpellbook = true" data-test="spell-book-tab-book">@UiText.BookSpellbook(Lang)</button>
+                        </div>
+                    }
+
+                    <input class="rf-wizard-input mb-2" placeholder="@UiText.PlaceholderSearchSpell(Lang)" value="@bookSearch" @oninput="e => bookSearch = e.Value?.ToString() ?? string.Empty" />
+
+                    @if (wizard && bookOnSpellbook)
+                    {
+                        <div class="rf-book-counter">
+                            @UiText.BookFreeLeft(Math.Max(0, LearnedLeft), Lang)
+                            @if (CopyCost > 0)
+                            {
+                                <span> · @UiText.BookCopyCost(CopyCost, Lang)</span>
+                            }
+                        </div>
+                        <div class="rf-book-list">
+                            @foreach (var spell in BookOptions(1, src.MaxSpellLevel))
+                            {
+                                var sp = spell;
+                                var inBook = draftBook.Contains(sp.Id);
+                                var copied = draftCopied.Contains(sp.Id);
+                                <div class="rf-book-row @(inBook ? "on" : null)">
+                                    <span class="rf-book-name">@sp.Name <small>@GameTerms.SpellLevel(sp.Level, Lang)</small></span>
+                                    @if (inBook)
+                                    {
+                                        <span class="rf-book-tag">@(copied ? UiText.BookCopied(Lang) : UiText.BookLearned(Lang))</span>
+                                        @if (!originalBook.Contains(sp.Id) || bookFree)
+                                        {
+                                            <button type="button" class="rf-mini-btn" @onclick="() => RemoveFromBook(sp.Id)" aria-label="@UiText.BtnRemove(Lang)">✕</button>
+                                        }
+                                    }
+                                    else
+                                    {
+                                        <button type="button" class="rf-book-add" @onclick="() => AddToBook(sp.Id)" data-test="spell-book-add">
+                                            @(LearnedLeft > 0 ? UiText.BookWrite(Lang) : UiText.BookCopy(SpellChangeRules.CopyCostGold(sp.Level), Lang))
+                                        </button>
+                                    }
+                                </div>
+                            }
+                        </div>
+                    }
+                    else
+                    {
+                        @if (src.Cantrips > 0)
+                        {
+                            <div class="rf-book-counter">@UiText.LabelCantrips(Lang) @draftCantrips.Count / @src.Cantrips</div>
+                            <div class="rf-book-list">
+                                @foreach (var spell in BookOptions(0, 0))
+                                {
+                                    var sp = spell;
+                                    var chosen = draftCantrips.Contains(sp.Id);
+                                    <button type="button" class="rf-book-pick @(chosen ? "on" : null)" disabled="@((chosen && !CanRemoveCantrip(sp.Id)) || (!chosen && draftCantrips.Count >= src.Cantrips))"
+                                            @onclick="() => ToggleDraftCantrip(sp.Id)" data-test="spell-book-cantrip">@sp.Name</button>
+                                }
+                            </div>
+                        }
+                        <div class="rf-book-counter">@UiText.SheetSpellsPrepared(Lang) @draftSpells.Count / @src.Spells</div>
+                        <div class="rf-book-list">
+                            @foreach (var spell in (wizard ? BookOptions(1, src.MaxSpellLevel).Where(s => draftBook.Contains(s.Id)) : BookOptions(1, src.MaxSpellLevel)))
+                            {
+                                var sp = spell;
+                                var chosen = draftSpells.Contains(sp.Id);
+                                <button type="button" class="rf-book-pick @(chosen ? "on" : null)" disabled="@((chosen && !CanRemoveSpell(sp.Id)) || (!chosen && draftSpells.Count >= src.Spells))"
+                                        @onclick="() => ToggleDraftSpell(sp.Id)" data-test="spell-book-spell">
+                                    @sp.Name <small>@sp.Level°</small>
+                                </button>
+                            }
+                        </div>
+                    }
+
+                    @if (bookError is not null)
+                    {
+                        <div class="rf-cast-warning mt-2" data-test="spell-book-error">@bookError</div>
+                    }
+                    <div class="d-flex justify-content-end gap-2 mt-3">
+                        <button type="button" class="btn btn-rf-outline" @onclick="CloseBook">@UiText.BtnCancel(Lang)</button>
+                        <button type="button" class="btn btn-rf-orange" disabled="@bookSaving" @onclick="SaveBookAsync" data-test="spell-book-save">@UiText.BtnConfirm(Lang)</button>
+                    </div>
+                </div>
             </div>
         }
     </text>;

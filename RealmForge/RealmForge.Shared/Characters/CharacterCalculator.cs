@@ -202,6 +202,7 @@ public static class CharacterCalculator
 		}
 
 		result.LevelBonuses = levelBonuses;
+		MagicItemRules.ApplyToScores(input.Sheet, running);
 		result.FinalScores = running;
 		result.Feats.AddRange(takenFeats);
 
@@ -686,6 +687,14 @@ public static class CharacterCalculator
 
 		result.JackOfAllTrades = result.ClassLevel("bard") >= 2;
 
+		//	Magic items: bonuses to every save and every ability check (Ring of Protection, Stone of Good Luck)
+		result.SaveBonusAll += MagicItemRules.Sum(input.Sheet, MagicEffectKind.SavingThrows);
+		result.CheckBonusAll = MagicItemRules.Sum(input.Sheet, MagicEffectKind.AbilityChecks);
+		result.Resistances.AddRange(MagicItemRules.ActiveEffects(input.Sheet)
+			.Where(e => e.Kind == MagicEffectKind.Resistance && e.DamageType is not null)
+			.Select(e => e.DamageType!.Value)
+			.Distinct());
+
 		//	Armor and weapon training
 		var training = ArmorTraining.None;
 		foreach (var info in result.Classes)
@@ -727,7 +736,7 @@ public static class CharacterCalculator
 			}
 		}
 
-		result.MaxHitPoints = Math.Max(1, total + input.Sheet.MaxHitPointsAdjustment);
+		result.MaxHitPoints = Math.Max(1, total + MagicItemRules.Sum(input.Sheet, MagicEffectKind.MaxHitPoints) + input.Sheet.MaxHitPointsAdjustment);
 
 		foreach (var group in result.Plan.GroupBy(p => p.HitDie).OrderByDescending(g => g.Key))
 		{
@@ -778,6 +787,10 @@ public static class CharacterCalculator
 
 	private static void ComputeSpells(CharacterInput input, ComputedCharacter result, CharacterContextDto context, ContextSubspecies? subspecies)
 	{
+		//	Magic items: Wand of the War Mage, Rod of the Pact Keeper…
+		var spellAttack = MagicItemRules.Sum(input.Sheet, MagicEffectKind.SpellAttack);
+		var spellDc = MagicItemRules.Sum(input.Sheet, MagicEffectKind.SpellSaveDc);
+
 		var ruleset = input.Ruleset;
 		var spells = context.Spells.ToDictionary(s => s.Id);
 
@@ -852,8 +865,9 @@ public static class CharacterCalculator
 
 			CheckSpellList(cls.Name, build.Cantrips, build.Spells, cantrips, prepared, maxLevel, list, result, spells);
 			CheckStyleCantrips(info, result, spells);
+			CheckSpellbook(info, list, maxLevel, result, spells);
 
-			result.Spellcasting.Add(new SpellcastingInfo("class", info, ability.Value, 8 + result.ProficiencyBonus + mod, result.ProficiencyBonus + mod,
+			result.Spellcasting.Add(new SpellcastingInfo("class", info, ability.Value, 8 + result.ProficiencyBonus + mod + spellDc, result.ProficiencyBonus + mod + spellAttack,
 				list, cantrips, prepared, maxLevel, build.Cantrips, build.Spells));
 		}
 
@@ -889,7 +903,7 @@ public static class CharacterCalculator
 
 			CheckSpellList(feat.Feat.Name, choice.Cantrips, choice.Spells, 2, 1, 1, list, result, spells);
 			var mod = result.Modifier(ability);
-			result.Spellcasting.Add(new SpellcastingInfo(feat.Feat.Name, null, ability, 8 + result.ProficiencyBonus + mod, result.ProficiencyBonus + mod,
+			result.Spellcasting.Add(new SpellcastingInfo(feat.Feat.Name, null, ability, 8 + result.ProficiencyBonus + mod + spellDc, result.ProficiencyBonus + mod + spellAttack,
 				list, 2, 1, 1, choice.Cantrips, choice.Spells));
 		}
 
@@ -902,9 +916,32 @@ public static class CharacterCalculator
 			if (speciesCantrips > 0)
 			{
 				var mod = result.Modifier(AbilityScore.Intelligence);
-				result.Spellcasting.Add(new SpellcastingInfo("species", null, AbilityScore.Intelligence, 8 + result.ProficiencyBonus + mod,
-					result.ProficiencyBonus + mod, SpellcastingClass.Wizard, speciesCantrips, 0, 0, chosenSpecies, new List<Guid>()));
+				result.Spellcasting.Add(new SpellcastingInfo("species", null, AbilityScore.Intelligence, 8 + result.ProficiencyBonus + mod + spellDc,
+					result.ProficiencyBonus + mod + spellAttack, SpellcastingClass.Wizard, speciesCantrips, 0, 0, chosenSpecies, new List<Guid>()));
 			}
+		}
+	}
+
+	///	<summary>
+	///	Wizard spellbook (when the character has one): spells of the class list of a level it can cast, at most the
+	///	free ones of its levels plus the copied ones, and the prepared spells come from it.
+	///	</summary>
+	private static void CheckSpellbook(ClassLevelInfo info, SpellcastingClass? list, int maxLevel, ComputedCharacter result, Dictionary<Guid, ContextSpell> spells)
+	{
+		var build = info.Build;
+		if (build.Spellbook.Count == 0)
+		{
+			return;
+		}
+		var valid = build.Spellbook.Distinct().Count() == build.Spellbook.Count
+			&& build.Spellbook.All(id => spells.TryGetValue(id, out var spell) && spell.Level >= 1 && spell.Level <= maxLevel
+				&& (list is null || spell.Classes.Contains(list.Value)))
+			&& build.SpellbookCopied.All(build.Spellbook.Contains)
+			&& build.Spellbook.Count(id => !build.SpellbookCopied.Contains(id)) <= SpellChangeRules.FreeSpellbookSpells(info.Level)
+			&& build.Spells.All(build.Spellbook.Contains);
+		if (!valid)
+		{
+			result.Error(IssueCodes.Spells, info.Class.Name);
 		}
 	}
 
@@ -1091,6 +1128,13 @@ public static class CharacterCalculator
 
 		ac += shield?.ArmorClass ?? 0;
 
+		//	Magic items: +N armor and shields, rings and cloaks; Bracers of Defense only without armor and shield
+		ac += MagicItemRules.Sum(input.Sheet, MagicEffectKind.ArmorClass);
+		if (body is null && shield is null)
+		{
+			ac += MagicItemRules.Sum(input.Sheet, MagicEffectKind.UnarmoredArmorClass);
+		}
+
 		//	Defense: +1 while wearing armor (2014 Fighting Style or 2024 feat)
 		var defense = result.Classes.Any(c => c.Build.FightingStyle == "defense") || result.Feats.Any(f => f.Feat.Key == "defense");
 		if (defense && body is not null)
@@ -1117,7 +1161,7 @@ public static class CharacterCalculator
 		{
 			speed -= 10;
 		}
-		result.Speed = speed + input.Sheet.SpeedAdjustment;
+		result.Speed = speed + MagicItemRules.Sum(input.Sheet, MagicEffectKind.Speed) + input.Sheet.SpeedAdjustment;
 
 		//	Initiative: Dexterity, Alert (2014 +5, 2024 Proficiency Bonus), Jack of All Trades
 		var initiative = dex + (result.JackOfAllTrades ? result.ProficiencyBonus / 2 : 0);
@@ -1125,7 +1169,7 @@ public static class CharacterCalculator
 		{
 			initiative += ruleset == RulesetVersion.Dnd5e_2024 ? result.ProficiencyBonus : 5;
 		}
-		result.Initiative = initiative + input.Sheet.InitiativeAdjustment;
+		result.Initiative = initiative + result.CheckBonusAll + MagicItemRules.Sum(input.Sheet, MagicEffectKind.Initiative) + input.Sheet.InitiativeAdjustment;
 
 		var observant = ruleset == RulesetVersion.Dnd5e_2014 && result.Feats.Any(f => f.Feat.Key == "observant") ? 5 : 0;
 		result.PassivePerception = 10 + result.SkillBonus(Skill.Perception) + observant;
@@ -1138,9 +1182,10 @@ public static class CharacterCalculator
 			var ranged = item.WeaponRange == WeaponRange.Ranged;
 			var mod = item.WeaponProperties.Contains(WeaponProperty.Finesse) ? Math.Max(str, dex) : ranged ? dex : str;
 			var proficient = IsProficient(item, result);
-			var bonus = mod + (proficient ? result.ProficiencyBonus : 0) + (archery && ranged ? 2 : 0);
-			var damage = $"{item.DamageDice}{FormatBonus(mod)}";
-			var versatile = item.VersatileDamageDice is { } v ? $"{v}{FormatBonus(mod)}" : null;
+			var magic = MagicItemRules.WeaponBonus(entry);
+			var bonus = mod + magic + (proficient ? result.ProficiencyBonus : 0) + (archery && ranged ? 2 : 0);
+			var damage = $"{item.DamageDice}{FormatBonus(mod + magic)}";
+			var versatile = item.VersatileDamageDice is { } v ? $"{v}{FormatBonus(mod + magic)}" : null;
 			result.Attacks.Add(new AttackInfo(entry.Id, item, bonus, damage, item.DamageType, proficient, versatile));
 		}
 	}

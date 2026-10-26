@@ -37,6 +37,34 @@ namespace RealmForge.Client.Pages
 		private bool Dead => Sheet.DeathSaveFailures >= 3;
 
 		private bool deathRolling;
+		private bool criticalHit;
+		private string? deathNote;
+		private int? concentrationDc;
+
+		//	Constitution saving throw after damage while concentrating: the concentration ends on a failure
+		private async Task RollConcentrationAsync()
+		{
+			if (computed is null || concentrationDc is not { } dc)
+			{
+				return;
+			}
+			var (die, dice) = RollD20();
+			var bonus = computed.SaveBonus(AbilityScore.Constitution);
+			var kept = die + bonus >= dc;
+			var roll = new DiceRollResult(UiText.ConcentrationSave(dc, Lang), dice, bonus, die + bonus,
+				kept ? UiText.ConcentrationKept(Lang) : UiText.ConcentrationLost(Lang));
+			concentrationDc = null;
+			lastRoll = roll.Text;
+			if (diceTray is not null)
+			{
+				await diceTray.ShowAsync(roll);
+			}
+			if (!kept)
+			{
+				Sheet.Concentration = null;
+				Changed();
+			}
+		}
 
 		//	10 or more is a success, 1 counts as two failures, 20 brings the character back with 1 hit point;
 		//	the sheet changes only once the dice have landed, so the tray tells the result first
@@ -274,6 +302,7 @@ namespace RealmForge.Client.Pages
 		private void EndConcentration()
 		{
 			Sheet.Concentration = null;
+			concentrationDc = null;
 			Changed();
 		}
 	}

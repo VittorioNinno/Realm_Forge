@@ -774,21 +774,35 @@ try {
   ok('class resources: Arcane Recovery listed on its own, spent with "use", recovered by a long rest');
   // Turn summary with the edition's actions; death saving throws rolled by the sheet at 0 hit points
   const turn = (await page.locator('[data-test=sheet-turn]').innerText()).replace(/\s+/g, ' ');
-  await page.locator('[data-test=sheet-hp-amount]').fill('99');
-  await page.locator('[data-test=sheet-hp-amount]').press('Tab');
-  await page.locator('[data-test=sheet-damage]').click();
+  const damage = async (value) => {
+    await page.locator('[data-test=sheet-hp-amount]').fill(String(value));
+    await page.locator('[data-test=sheet-hp-amount]').press('Tab');
+    await page.locator('[data-test=sheet-damage]').click();
+  };
+  // Down to exactly 0, then a hit at 0 is a failed death save
+  await damage(Number(sheetHp));
+  await damage(1);
+  const failuresAfterHit = await page.locator('[data-test=sheet-death-saves] .rf-death-box.fail.on').count();
+  const hitNote = (await page.locator('[data-test=sheet-death-note]').innerText()).trim();
   await page.locator('[data-test=sheet-death-roll]').click();
   // The result shows on the sheet only after the dice have landed
   const marksWhileRolling = await page.locator('[data-test=sheet-death-saves] .rf-death-box.on').count();
   await page.locator('[data-test=dice-total]').filter({ hasNotText: '…' }).waitFor({ timeout: 5000 });
   await page.waitForTimeout(300);
-  if (marksWhileRolling !== 0) throw new Error('the death save result appeared before the dice landed');
+  if (marksWhileRolling !== 1) throw new Error(`the death save result appeared before the dice landed (${marksWhileRolling} marks)`);
   const deathMarked = await page.locator('[data-test=sheet-death-saves] .rf-death-box.on').count();
   const revived = await page.locator('[data-test=sheet-death-saves]').count() === 0;
+  // Damage of at least the maximum at 0 hit points: instant death
+  let instantDeath = 'revived';
+  if (!revived) {
+    await damage(Number(sheetHp));
+    instantDeath = (await page.locator('[data-test=sheet-death-note]').innerText()).trim();
+  }
   await page.locator('[data-test=sheet-long-rest]').click();
   await page.locator('[data-test=sheet-long-rest-done]').click();
-  if (!/Attacco/.test(turn) || !/Magia/.test(turn) || !/Colpo senz'armi/.test(turn) || !/Azione bonus/i.test(turn) || (!revived && deathMarked === 0)) throw new Error(`turn summary or death saves: turn="${turn.slice(0, 200)}" marked=${deathMarked} revived=${revived}`);
-  ok('turn summary with the 2024 actions; a death saving throw rolled at 0 hit points marks the result on its own');
+  if (!/Attacco/.test(turn) || !/Magia/.test(turn) || !/Colpo senz'armi/.test(turn) || !/Azione bonus/i.test(turn) || (!revived && deathMarked < 2)) throw new Error(`turn summary or death saves: turn="${turn.slice(0, 200)}" marked=${deathMarked} revived=${revived}`);
+  if (failuresAfterHit !== 1 || !/fallimento/i.test(hitNote) || (!revived && !/Morte istantanea/.test(instantDeath))) throw new Error(`damage at 0 hit points: failures=${failuresAfterHit} note="${hitNote}" death="${instantDeath}"`);
+  ok('turn summary with the 2024 actions; a hit at 0 HP is a failed death save, the roll marks its result after the dice land, massive damage kills');
 
   const tabs = {};
   for (const tab of ['spells', 'inventory', 'features', 'notes', 'overview']) {
@@ -807,8 +821,33 @@ try {
       await page.locator('[data-test=sheet-spells] a').first().click();
       await page.locator('[data-test=spell-cast-cantrip]').waitFor({ timeout: 15000 });
       await page.locator('[data-test=spell-detail-close]').click();
+      // After the long rest the wizard can change the prepared spells; the spellbook gets the free spells of level 1
+      tabs.changes = (await page.locator('[data-test=sheet-book-changes]').first().innerText()).trim();
+      await page.locator('[data-test=sheet-book-open]').first().click();
+      await page.locator('[data-test=spell-book]').waitFor({ timeout: 5000 });
+      await page.locator('[data-test=spell-book-tab-book]').click();
+      const freeBefore = await page.locator('[data-test=spell-book-add]').filter({ hasText: 'Scrivi' }).count();
+      const addButton = page.locator('[data-test=spell-book-add]').first();
+      const addInfo = await addButton.evaluate((el) => `${el.outerHTML.slice(0, 160)} rect=${JSON.stringify(el.getBoundingClientRect())} vh=${innerHeight}`);
+      await addButton.click();
+      await page.waitForTimeout(300);
+      if (await page.locator('[data-test=spell-book]').count() === 0) throw new Error(`the spellbook closed after "write": ${addInfo}`);
+      await page.locator('[data-test=spell-book-save]').click();
+      await page.locator('[data-test=spell-book]').waitFor({ state: 'detached', timeout: 15000 });
+      tabs.spellbook = freeBefore > 0 ? 'written' : 'none';
     }
-    if (tab === 'inventory') tabs.items = await page.locator('[data-test=sheet-item]').count();
+    if (tab === 'inventory') {
+      tabs.items = await page.locator('[data-test=sheet-item]').count();
+      // A Ring of Protection from the rules: worn and attuned it adds 1 to AC
+      await page.locator('[data-test=sheet-magic-add]').click();
+      await page.locator('[data-test=magic-template]').selectOption('ring-of-protection');
+      await page.locator('[data-test=magic-save]').click();
+      const ring = page.locator('[data-test=sheet-item]', { hasText: 'Anello di Protezione' });
+      await ring.locator('[data-test=sheet-item-equip]').click();
+      await page.locator('[data-test=sheet-item]', { hasText: 'Anello di Protezione' }).locator('[data-test=sheet-item-attune]').click();
+      tabs.ringAc = (await page.locator('[data-test=sheet-ac]').innerText()).trim();
+      tabs.attunement = (await page.locator('[data-test=sheet-attunement]').innerText()).trim();
+    }
   }
   const [download] = await Promise.all([page.waitForEvent('download', { timeout: 20000 }), page.locator('[data-test=sheet-pdf]').click()]);
   const pdfPath = await download.path();
@@ -837,6 +876,9 @@ try {
   if (Number(afterReload) !== Number(sheetHp) - 3 || afterRest !== sheetHp) throw new Error('damage or rest not applied and saved');
   if (tabs.spells !== chosenSpells || tabs.items < 4) throw new Error('spells or inventory missing on the sheet');
   if (tabs.slots !== '2->1') throw new Error(`"use" did not spend a spell slot: ${tabs.slots}`);
+  if (!/cambiare tutti/.test(tabs.changes) || tabs.spellbook !== 'written') throw new Error(`spell changes after a long rest: "${tabs.changes}" spellbook=${tabs.spellbook}`);
+  if (Number(tabs.ringAc) !== Number(sheetAc) + 1 || !/1\/3/.test(tabs.attunement)) throw new Error(`Ring of Protection: AC ${tabs.ringAc} (was ${sheetAc}), ${tabs.attunement}`);
+  ok('magic items: a Ring of Protection worn and attuned adds 1 to AC (attunement 1/3); spells: the long rest opens the changes, the spellbook writes a free spell');
   if (!pdfHead.startsWith('%PDF') || pdfSize < 2000) throw new Error('the PDF download is not a PDF');
   if (!/Mago 1/.test(classes) || !/Guerriero 1/.test(classes) || Number(levelUpHp) <= Number(sheetHp)) throw new Error('the level up into fighter was not saved');
   if (!/Mago 1 \/ Guerriero 1/.test(characterCard)) throw new Error(`the list does not show the classes: ${characterCard}`);
@@ -936,10 +978,11 @@ try {
   if (wide.length) throw new Error(`content wider than a 375 px phone: ${wide.join(' | ').slice(0, 300)}`);
   ok('phone layout: dashboard, characters (list, every wizard step, sheet), glossary, species, backgrounds, feats, spells, classes, equipment and account (with their details) fit a 375 px screen');
 } catch (e) {
-  results.push(`FAIL ${e.message.split('\n').filter(Boolean).slice(0, 3).join(' | ')}`);
+  results.push(`FAIL ${e.message.split('\n').filter(Boolean).slice(0, 8).join(' | ').slice(0, 1500)}`);
   const lastOk = results.filter((r) => r.startsWith('OK')).at(-1) ?? '';
   const where = await page.evaluate(() => `${location.pathname}${location.search} step="${document.querySelector('[data-test=wizard-step-title]')?.textContent?.trim() ?? ''}" problems="${document.querySelector('[data-test=wizard-error]')?.textContent?.replace(/\s+/g, ' ').trim() ?? ''}"`).catch(() => 'n/a');
   results.push(`DEBUG after "${lastOk.slice(3, 120)}" at ${where}`);
+  results.push(`DEBUG last console messages: ${consoleErrors.slice(-4).map((c) => c.replace(/\s+/g, ' ').slice(0, 400)).join(' || ')}`);
   const stored = await page.evaluate(() => localStorage.getItem('realmforge.auth')).catch(() => 'n/a');
   results.push(`DEBUG localStorage=${stored ? stored.slice(0, 60) : stored}`);
   results.push(`DEBUG auth calls: ${authCalls.join(' | ')}`);
