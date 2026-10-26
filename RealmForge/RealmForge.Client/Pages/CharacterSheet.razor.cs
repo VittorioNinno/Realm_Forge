@@ -142,6 +142,7 @@ namespace RealmForge.Client.Pages
 			await Task.WhenAll(loads.Append(species).Append(background));
 			speciesDetail = await species;
 			backgroundDetail = await background;
+			TrackLevelUps();
 		}
 
 		private void Recompute()
@@ -208,17 +209,64 @@ namespace RealmForge.Client.Pages
 		private int MaxHp => computed?.MaxHitPoints ?? character?.MaxHitPoints ?? 1;
 		private int CurrentHp => Math.Clamp(Sheet.CurrentHitPoints ?? MaxHp, 0, MaxHp);
 
+		//	Damage: temporary hit points first; at 0 hit points a hit is a failed death save (two on a critical hit) and
+		//	damage of at least the maximum is instant death, as is the damage left over when a hit drops the character to 0
 		private void Damage()
 		{
 			var value = Math.Max(0, amount);
+			if (value == 0)
+			{
+				return;
+			}
+			var wasDown = CurrentHp == 0;
 			var fromTemp = Math.Min(Sheet.TemporaryHitPoints, value);
 			Sheet.TemporaryHitPoints -= fromTemp;
-			Sheet.CurrentHitPoints = Math.Max(0, CurrentHp - (value - fromTemp));
-			if (Sheet.CurrentHitPoints == 0)
+			var rest = value - fromTemp;
+			deathNote = null;
+
+			if (wasDown)
 			{
-				//	Falling unconscious ends concentration
-				Sheet.Concentration = null;
+				if (rest >= MaxHp)
+				{
+					Sheet.DeathSaveFailures = 3;
+					deathNote = UiText.InstantDeath(Lang);
+				}
+				else if (rest > 0)
+				{
+					//	A stable character is no longer stable
+					if (Stable)
+					{
+						Sheet.DeathSaveSuccesses = 0;
+					}
+					Sheet.DeathSaveFailures = Math.Min(3, Sheet.DeathSaveFailures + (criticalHit ? 2 : 1));
+					deathNote = UiText.DamageAtZero(criticalHit, Lang);
+				}
 			}
+			else
+			{
+				var left = CurrentHp - rest;
+				Sheet.CurrentHitPoints = Math.Max(0, left);
+				if (left <= 0)
+				{
+					//	Falling unconscious ends concentration
+					Sheet.Concentration = null;
+					concentrationDc = null;
+					Sheet.DeathSaveSuccesses = 0;
+					Sheet.DeathSaveFailures = 0;
+					if (-left >= MaxHp)
+					{
+						Sheet.DeathSaveFailures = 3;
+						deathNote = UiText.InstantDeath(Lang);
+					}
+				}
+				else if (Sheet.Concentration is not null)
+				{
+					//	Constitution save to keep concentrating: half the damage, at least 10 (2024: at most 30)
+					var dc = Math.Max(10, value / 2);
+					concentrationDc = Ruleset == RulesetVersion.Dnd5e_2024 ? Math.Min(30, dc) : dc;
+				}
+			}
+			criticalHit = false;
 			Changed();
 		}
 
@@ -318,6 +366,7 @@ namespace RealmForge.Client.Pages
 		private void FinishShortRest()
 		{
 			Sheet.SpentPactSlots = 0;
+			RechargeItems(longRest: false);
 			foreach (var resource in ClassResources)
 			{
 				Sheet.ResourceUses[resource.Key] = CharacterResources.SpentAfterRest(resource, ResourceSpent(resource), longRest: false);
@@ -340,6 +389,8 @@ namespace RealmForge.Client.Pages
 			Sheet.SpentSlots.Clear();
 			Sheet.SpentPactSlots = 0;
 			Sheet.ResourceUses.Clear();
+			RechargeItems(longRest: true);
+			GrantLongRestChanges();
 			foreach (var resource in Sheet.Resources)
 			{
 				resource.Used = 0;
@@ -473,8 +524,15 @@ namespace RealmForge.Client.Pages
 			Changed();
 		}
 
+		//	At most three attuned items (both editions)
 		private void ToggleAttuned(InventoryItem item)
 		{
+			attuneError = null;
+			if (!item.Attuned && MagicItemRules.AttunedCount(Sheet) >= MagicItemRules.MaxAttuned)
+			{
+				attuneError = UiText.AttunementLimit(MagicItemRules.MaxAttuned, Lang);
+				return;
+			}
 			item.Attuned = !item.Attuned;
 			Changed();
 		}

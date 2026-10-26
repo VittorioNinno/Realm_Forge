@@ -57,6 +57,11 @@ public sealed class CharacterClassBuild
 	public List<Guid> Cantrips { get; set; } = new();
 	public List<Guid> Spells { get; set; } = new();
 
+	//	Wizard: the spellbook (level 1+ spells known; Spells are the ones prepared from it) and the spells copied
+	//	into it from scrolls or other books, which do not count against the two free spells per level
+	public List<Guid> Spellbook { get; set; } = new();
+	public List<Guid> SpellbookCopied { get; set; } = new();
+
 	//	2014: key of the Fighting Style option; 2024: a Fighting Style feat or the paladin's / ranger's alternative
 	public string? FightingStyle { get; set; }
 	public Guid? FightingStyleFeatId { get; set; }
@@ -146,6 +151,11 @@ public sealed class CharacterSheetState
 	//	Uses spent of the class resources the sheet computes on its own (key of CharacterResources → spent)
 	public Dictionary<string, int> ResourceUses { get; set; } = new();
 
+	//	Changes of spells the rules allow right now (after a long rest, after a level), and the class levels the
+	//	sheet has already seen, to notice a level up
+	public List<SpellChangeGrant> SpellChanges { get; set; } = new();
+	public Dictionary<string, int> ClassLevelsSeen { get; set; } = new();
+
 	public int Experience { get; set; }
 
 	//	How the character gains levels: experience points or story milestones decided by the game master
@@ -187,6 +197,76 @@ public sealed class InventoryItem
 	public bool Equipped { get; set; }
 	public bool Attuned { get; set; }
 	public string? Notes { get; set; }
+
+	//	Magic properties (a +1 sword, a Ring of Protection, a potion…): null for an ordinary item
+	public MagicItemProperties? Magic { get; set; }
+}
+
+public enum ItemRarity
+{
+	Common = 1,
+	Uncommon = 2,
+	Rare = 3,
+	VeryRare = 4,
+	Legendary = 5,
+	Artifact = 6
+}
+
+public enum ItemRecharge
+{
+	None = 0,
+
+	//	"At dawn" in the item texts: the sheet recharges it with the long rest
+	LongRest = 1,
+	ShortRest = 2
+}
+
+public enum MagicEffectKind
+{
+	ArmorClass = 1,
+	UnarmoredArmorClass = 2,
+	AttackAndDamage = 3,
+	SavingThrows = 4,
+	AbilityChecks = 5,
+	SetAbilityScore = 6,
+	AbilityScoreBonus = 7,
+	Speed = 8,
+	SpellAttack = 9,
+	SpellSaveDc = 10,
+	MaxHitPoints = 11,
+	Initiative = 12,
+	Resistance = 13
+}
+
+///	<summary>
+///	One rule effect of a magic item, applied by the calculator while the item works (worn or wielded, and attuned
+///	when it needs attunement).
+///	</summary>
+public sealed class MagicEffect
+{
+	public MagicEffectKind Kind { get; set; }
+	public int Value { get; set; }
+	public AbilityScore? Ability { get; set; }
+	public DamageType? DamageType { get; set; }
+}
+
+public sealed class MagicItemProperties
+{
+	public ItemRarity Rarity { get; set; } = ItemRarity.Uncommon;
+	public bool RequiresAttunement { get; set; }
+	public List<MagicEffect> Effects { get; set; } = new();
+
+	//	Charges (wands, staffs): spent ones and how they come back ("1d6+1" regained, or all when empty)
+	public int Charges { get; set; }
+	public int ChargesUsed { get; set; }
+	public ItemRecharge Recharge { get; set; }
+	public string? RechargeDice { get; set; }
+
+	//	Consumable that restores hit points (potions of healing): "2d4+2"
+	public string? HealDice { get; set; }
+
+	//	Template it was made from (MagicItemCatalog), to show its rules text in our own words
+	public string? Template { get; set; }
 }
 
 public sealed class CoinPurse
@@ -208,6 +288,24 @@ public sealed class ResourceCounter
 	public int Maximum { get; set; } = 1;
 	public int Used { get; set; }
 	public bool ShortRest { get; set; }
+}
+
+public enum SpellChangeKind
+{
+	//	Any prepared spell can change (long rest of clerics, druids, wizards; 2014 paladins)
+	All = 1,
+
+	//	This many spells can be replaced with others
+	Spell = 2,
+	Cantrip = 3
+}
+
+public sealed class SpellChangeGrant
+{
+	public Guid ClassId { get; set; }
+	public SpellChangeKind Kind { get; set; }
+	public int Remaining { get; set; } = 1;
+	public bool FromLongRest { get; set; }
 }
 
 public enum AdvancementType
