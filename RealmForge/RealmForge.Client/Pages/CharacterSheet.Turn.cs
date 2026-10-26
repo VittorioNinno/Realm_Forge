@@ -5,6 +5,7 @@ using RealmForge.Shared.Characters;
 using RealmForge.Shared.DTOs;
 using RealmForge.Shared.Enums;
 using Microsoft.AspNetCore.Components;
+using RealmForge.Shared.Rules;
 
 namespace RealmForge.Client.Pages
 {
@@ -35,46 +36,68 @@ namespace RealmForge.Client.Pages
 
 		private bool Dead => Sheet.DeathSaveFailures >= 3;
 
-		//	10 or more is a success, 1 counts as two failures, 20 brings the character back with 1 hit point
-		private void RollDeathSave()
+		private bool deathRolling;
+
+		//	10 or more is a success, 1 counts as two failures, 20 brings the character back with 1 hit point;
+		//	the sheet changes only once the dice have landed, so the tray tells the result first
+		private async Task RollDeathSaveAsync()
 		{
-			if (Stable || Dead)
+			if (Stable || Dead || deathRolling)
 			{
 				return;
 			}
 			var (die, dice) = RollD20();
+			var successes = Sheet.DeathSaveSuccesses;
+			var failures = Sheet.DeathSaveFailures;
 			string note;
+			if (die == 20)
+			{
+				note = UiText.DeathSaveTwenty(Lang);
+			}
+			else if (die == 1)
+			{
+				failures = Math.Min(3, failures + 2);
+				note = UiText.DeathSaveOne(Lang);
+			}
+			else if (die >= 10)
+			{
+				successes = Math.Min(3, successes + 1);
+				note = UiText.DeathSaveSuccess(Lang);
+			}
+			else
+			{
+				failures = Math.Min(3, failures + 1);
+				note = UiText.DeathSaveFailure(Lang);
+			}
+			if (die != 20 && successes >= 3)
+			{
+				note += " · " + UiText.DeathSaveStable(Lang);
+			}
+			else if (die != 20 && failures >= 3)
+			{
+				note += " · " + UiText.DeathSaveDead(Lang);
+			}
+
+			deathRolling = true;
+			var roll = new DiceRollResult(UiText.SheetDeathSaves(Lang), dice, 0, die, note);
+			lastRoll = roll.Text;
+			if (diceTray is not null)
+			{
+				await diceTray.ShowAsync(roll);
+			}
+			deathRolling = false;
+
 			if (die == 20)
 			{
 				Sheet.CurrentHitPoints = 1;
 				Sheet.DeathSaveSuccesses = 0;
 				Sheet.DeathSaveFailures = 0;
-				note = UiText.DeathSaveTwenty(Lang);
-			}
-			else if (die == 1)
-			{
-				Sheet.DeathSaveFailures = Math.Min(3, Sheet.DeathSaveFailures + 2);
-				note = UiText.DeathSaveOne(Lang);
-			}
-			else if (die >= 10)
-			{
-				Sheet.DeathSaveSuccesses = Math.Min(3, Sheet.DeathSaveSuccesses + 1);
-				note = UiText.DeathSaveSuccess(Lang);
 			}
 			else
 			{
-				Sheet.DeathSaveFailures = Math.Min(3, Sheet.DeathSaveFailures + 1);
-				note = UiText.DeathSaveFailure(Lang);
+				Sheet.DeathSaveSuccesses = successes;
+				Sheet.DeathSaveFailures = failures;
 			}
-			if (Stable)
-			{
-				note += " · " + UiText.DeathSaveStable(Lang);
-			}
-			else if (Dead)
-			{
-				note += " · " + UiText.DeathSaveDead(Lang);
-			}
-			ShowRoll(new DiceRollResult(UiText.SheetDeathSaves(Lang), dice, 0, die, note));
 			Changed();
 		}
 
@@ -121,6 +144,63 @@ namespace RealmForge.Client.Pages
 				castingTimes[detail!.Id] = detail.CastingTime;
 			}
 			await InvokeAsync(StateHasChanged);
+		}
+
+		//	Spells that can be cast right now: cantrips, or a slot / pact slot / free use still available (rituals take
+		//	ten minutes, so they are not a turn option)
+		private bool CanCastNow(ContextSpell spell, SpellcastingInfo source)
+		{
+			if (computed is null || CannotAct)
+			{
+				return false;
+			}
+			if (spell.Level == 0)
+			{
+				return true;
+			}
+			for (var level = spell.Level; level <= 9; level++)
+			{
+				if (computed.SpellSlots[level - 1] - SpentSlots(level) > 0)
+				{
+					return true;
+				}
+			}
+			return (computed.PactSlots > Sheet.SpentPactSlots && computed.PactSlotLevel >= spell.Level)
+				|| (HasFreeUse(source, spell) && FreeUseLeft(spell));
+		}
+
+		//	Uses left of the class resource a feature spends (null: it spends nothing)
+		private int? FeatureUsesLeft(TurnFeature feature) =>
+			feature.ResourceKey is { } key && ClassResources.FirstOrDefault(r => r.Key == key) is { } resource ? ResourceLeft(resource) : null;
+
+		//	Unarmed Strike: Strength (Monk: the better of Strength and Dexterity with the Martial Arts die), always proficient
+		private (int Bonus, string Damage) UnarmedStrike(ComputedCharacter c)
+		{
+			var str = c.Modifier(AbilityScore.Strength);
+			var monk = c.ClassLevel("monk");
+			if (monk > 0)
+			{
+				var mod = Math.Max(str, c.Modifier(AbilityScore.Dexterity));
+				var die = Ruleset == RulesetVersion.Dnd5e_2024
+					? (monk >= 17 ? 12 : monk >= 11 ? 10 : monk >= 5 ? 8 : 6)
+					: (monk >= 17 ? 10 : monk >= 11 ? 8 : monk >= 5 ? 6 : 4);
+				return (mod + c.ProficiencyBonus, $"1d{die}{(mod == 0 ? string.Empty : CharacterMath.FormatModifier(mod))}");
+			}
+			return (str + c.ProficiencyBonus, $"{Math.Max(0, 1 + str)}");
+		}
+
+		//	Two light weapons in hand: one more attack as a bonus action, without the positive ability modifier to damage
+		private List<AttackInfo> OffHandAttacks(ComputedCharacter c)
+		{
+			var light = c.Attacks.Where(a => a.Item.WeaponProperties.Contains(WeaponProperty.Light) && a.Item.WeaponRange != WeaponRange.Ranged).ToList();
+			return light.Count >= 2 ? light : new List<AttackInfo>();
+		}
+
+		private static string OffHandDamage(AttackInfo attack)
+		{
+			var dice = attack.Item.DamageDice ?? attack.Damage;
+			var mod = attack.Damage.Length > dice.Length ? attack.Damage[dice.Length..] : string.Empty;
+			return mod.StartsWith('−') || mod.StartsWith('-') ? dice + mod : dice;
 		}
 
 		// ===== Casting a spell =====
