@@ -14,7 +14,8 @@ namespace RealmForge.Client.Services
 	///	What the character can do in a turn besides the standard actions: features of its classes that use an action,
 	///	a bonus action or a reaction (names as in the Italian and English rules).
 	///	</summary>
-	public sealed record TurnFeature(TurnSlot Slot, string Name, string? Note = null);
+	//	ResourceKey: the class resource it spends (CharacterResources), so the summary shows the uses left
+	public sealed record TurnFeature(TurnSlot Slot, string Name, string? Note = null, string? ResourceKey = null);
 
 	public static class TurnActions
 	{
@@ -41,41 +42,41 @@ namespace RealmForge.Client.Services
 			string T(string itName, string enName) => it ? itName : enName;
 			var is2024 = c.Ruleset == RulesetVersion.Dnd5e_2024;
 			var list = new List<TurnFeature>();
-			void Add(TurnSlot slot, string name, string? note = null) => list.Add(new TurnFeature(slot, name, note));
+			void Add(TurnSlot slot, string name, string? note = null, string? key = null) => list.Add(new TurnFeature(slot, name, note, key));
 
 			int Level(string key) => c.ClassLevel(key);
 
 			//	Actions
 			if (Level("cleric") >= 2 || Level("paladin") >= 3)
 			{
-				Add(TurnSlot.Action, T("Incanalare Divinità", "Channel Divinity"));
+				Add(TurnSlot.Action, T("Incanalare Divinità", "Channel Divinity"), null, Level("cleric") >= 2 ? "cleric-channel" : "paladin-channel");
 			}
 			if (!is2024 && Level("druid") >= 2)
 			{
-				Add(TurnSlot.Action, T("Forma Selvatica", "Wild Shape"));
+				Add(TurnSlot.Action, T("Forma Selvatica", "Wild Shape"), null, "druid-wild-shape");
 			}
 			if (!is2024 && Level("paladin") >= 1)
 			{
-				Add(TurnSlot.Action, T("Imposizione delle Mani", "Lay on Hands"));
-				Add(TurnSlot.Action, T("Percezione del Divino", "Divine Sense"));
+				Add(TurnSlot.Action, T("Imposizione delle Mani", "Lay on Hands"), null, "paladin-lay-on-hands");
+				Add(TurnSlot.Action, T("Percezione del Divino", "Divine Sense"), null, "paladin-divine-sense");
 			}
 			if (Level("fighter") >= 2)
 			{
-				Add(TurnSlot.Action, T("Azione Impetuosa", "Action Surge"), T("un'azione in più", "one more action"));
+				Add(TurnSlot.Action, T("Azione Impetuosa", "Action Surge"), T("un'azione in più", "one more action"), "fighter-action-surge");
 			}
 
 			//	Bonus actions
 			if (Level("barbarian") >= 1)
 			{
-				Add(TurnSlot.BonusAction, T("Ira", "Rage"));
+				Add(TurnSlot.BonusAction, T("Ira", "Rage"), null, "barbarian-rage");
 			}
 			if (Level("bard") >= 1)
 			{
-				Add(TurnSlot.BonusAction, T("Ispirazione Bardica", "Bardic Inspiration"));
+				Add(TurnSlot.BonusAction, T("Ispirazione Bardica", "Bardic Inspiration"), null, "bard-inspiration");
 			}
 			if (Level("fighter") >= 1)
 			{
-				Add(TurnSlot.BonusAction, T("Recuperare Energie", "Second Wind"));
+				Add(TurnSlot.BonusAction, T("Recuperare Energie", "Second Wind"), null, "fighter-second-wind");
 			}
 			if (Level("monk") >= 1)
 			{
@@ -83,7 +84,7 @@ namespace RealmForge.Client.Services
 			}
 			if (Level("monk") >= 2)
 			{
-				Add(TurnSlot.BonusAction, T("Raffica di Colpi", "Flurry of Blows"));
+				Add(TurnSlot.BonusAction, T("Raffica di Colpi", "Flurry of Blows"), null, "monk-points");
 				Add(TurnSlot.BonusAction, T("Difesa Paziente", "Patient Defense"));
 				Add(TurnSlot.BonusAction, T("Passo del Vento", "Step of the Wind"));
 			}
@@ -93,15 +94,15 @@ namespace RealmForge.Client.Services
 			}
 			if (is2024 && Level("druid") >= 2)
 			{
-				Add(TurnSlot.BonusAction, T("Forma Selvatica", "Wild Shape"));
+				Add(TurnSlot.BonusAction, T("Forma Selvatica", "Wild Shape"), null, "druid-wild-shape");
 			}
 			if (is2024 && Level("paladin") >= 1)
 			{
-				Add(TurnSlot.BonusAction, T("Imposizione delle Mani", "Lay on Hands"));
+				Add(TurnSlot.BonusAction, T("Imposizione delle Mani", "Lay on Hands"), null, "paladin-lay-on-hands");
 			}
 			if (is2024 && Level("sorcerer") >= 1)
 			{
-				Add(TurnSlot.BonusAction, T("Stregoneria Innata", "Innate Sorcery"));
+				Add(TurnSlot.BonusAction, T("Stregoneria Innata", "Innate Sorcery"), null, "sorcerer-innate");
 			}
 
 			//	Reactions

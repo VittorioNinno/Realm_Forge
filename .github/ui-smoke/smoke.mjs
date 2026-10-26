@@ -778,12 +778,16 @@ try {
   await page.locator('[data-test=sheet-hp-amount]').press('Tab');
   await page.locator('[data-test=sheet-damage]').click();
   await page.locator('[data-test=sheet-death-roll]').click();
+  // The result shows on the sheet only after the dice have landed
+  const marksWhileRolling = await page.locator('[data-test=sheet-death-saves] .rf-death-box.on').count();
   await page.locator('[data-test=dice-total]').filter({ hasNotText: '…' }).waitFor({ timeout: 5000 });
+  await page.waitForTimeout(300);
+  if (marksWhileRolling !== 0) throw new Error('the death save result appeared before the dice landed');
   const deathMarked = await page.locator('[data-test=sheet-death-saves] .rf-death-box.on').count();
   const revived = await page.locator('[data-test=sheet-death-saves]').count() === 0;
   await page.locator('[data-test=sheet-long-rest]').click();
   await page.locator('[data-test=sheet-long-rest-done]').click();
-  if (!/Attacco/.test(turn) || !/Magia/.test(turn) || !/Azione bonus/i.test(turn) || (!revived && deathMarked === 0)) throw new Error(`turn summary or death saves: turn="${turn.slice(0, 200)}" marked=${deathMarked} revived=${revived}`);
+  if (!/Attacco/.test(turn) || !/Magia/.test(turn) || !/Colpo senz'armi/.test(turn) || !/Azione bonus/i.test(turn) || (!revived && deathMarked === 0)) throw new Error(`turn summary or death saves: turn="${turn.slice(0, 200)}" marked=${deathMarked} revived=${revived}`);
   ok('turn summary with the 2024 actions; a death saving throw rolled at 0 hit points marks the result on its own');
 
   const tabs = {};
