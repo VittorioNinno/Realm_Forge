@@ -41,7 +41,7 @@
         <div class="rf-magic-grid">
             <div class="rf-magic-field">
                 <label class="rf-mini-label" for="magic-rarity">@UiText.MagicRarity(Lang)</label>
-                <select id="magic-rarity" class="rf-wizard-input" value="@((int)draft.Rarity)" @onchange="e => draft.Rarity = (ItemRarity)int.Parse(e.Value?.ToString() ?? "2")">
+                <select id="magic-rarity" class="rf-wizard-input" value="@((int)draft.Rarity)" @onchange="e => draft.Rarity = (ItemRarity)ToInt(e, 2)">
                     @foreach (var rarity in Enum.GetValues<ItemRarity>())
                     {
                         <option value="@((int)rarity)">@UiText.RarityName(rarity, Lang)</option>
@@ -63,7 +63,7 @@
         {
             var e = effect;
             <div class="rf-magic-effect" data-test="magic-effect">
-                <select class="rf-wizard-input" value="@((int)e.Kind)" @onchange="ev => e.Kind = (MagicEffectKind)int.Parse(ev.Value?.ToString() ?? "1")" aria-label="@UiText.MagicEffects(Lang)">
+                <select class="rf-wizard-input" value="@((int)e.Kind)" @onchange="ev => e.Kind = (MagicEffectKind)ToInt(ev, 1)" aria-label="@UiText.MagicEffects(Lang)">
                     @foreach (var kind in Enum.GetValues<MagicEffectKind>())
                     {
                         <option value="@((int)kind)">@UiText.MagicEffectName(kind, Lang)</option>
@@ -71,7 +71,7 @@
                 </select>
                 @if (e.Kind is MagicEffectKind.SetAbilityScore or MagicEffectKind.AbilityScoreBonus)
                 {
-                    <select class="rf-wizard-input" value="@((int)(e.Ability ?? AbilityScore.Strength))" @onchange="ev => e.Ability = (AbilityScore)int.Parse(ev.Value?.ToString() ?? "1")">
+                    <select class="rf-wizard-input" value="@((int)(e.Ability ?? AbilityScore.Strength))" @onchange="ev => e.Ability = (AbilityScore)ToInt(ev, 1)">
                         @foreach (var ability in CharacterMath.Abilities)
                         {
                             <option value="@((int)ability)">@FeatPrerequisiteFormatter.AbilityName(ability, Lang)</option>
@@ -80,7 +80,7 @@
                 }
                 @if (e.Kind == MagicEffectKind.Resistance)
                 {
-                    <select class="rf-wizard-input" value="@((int)(e.DamageType ?? DamageType.Fire))" @onchange="ev => e.DamageType = (DamageType)int.Parse(ev.Value?.ToString() ?? "1")">
+                    <select class="rf-wizard-input" value="@((int)(e.DamageType ?? DamageType.Fire))" @onchange="ev => e.DamageType = (DamageType)ToInt(ev, 1)">
                         @foreach (var type in Enum.GetValues<DamageType>())
                         {
                             <option value="@((int)type)">@EquipmentTerms.DamageTypeName(type, Lang)</option>
@@ -106,7 +106,7 @@
             {
                 <div class="rf-magic-field">
                     <label class="rf-mini-label" for="magic-recharge">@UiText.MagicRecharge(Lang)</label>
-                    <select id="magic-recharge" class="rf-wizard-input" value="@((int)draft.Recharge)" @onchange="e => draft.Recharge = (ItemRecharge)int.Parse(e.Value?.ToString() ?? "0")">
+                    <select id="magic-recharge" class="rf-wizard-input" value="@((int)draft.Recharge)" @onchange="e => draft.Recharge = (ItemRecharge)ToInt(e, 0)">
                         @foreach (var recharge in Enum.GetValues<ItemRecharge>())
                         {
                             <option value="@((int)recharge)">@UiText.RechargeName(recharge, Lang)</option>
@@ -205,4 +205,6 @@
     private Task RemoveMagic() => OnSave.InvokeAsync((null, null));
 
     private Task Cancel() => OnCancel.InvokeAsync();
+
+    private static int ToInt(ChangeEventArgs e, int fallback) => int.TryParse(e.Value?.ToString(), out var value) ? value : fallback;
 }
