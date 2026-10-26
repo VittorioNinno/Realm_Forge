@@ -827,7 +827,11 @@ try {
       await page.locator('[data-test=spell-book]').waitFor({ timeout: 5000 });
       await page.locator('[data-test=spell-book-tab-book]').click();
       const freeBefore = await page.locator('[data-test=spell-book-add]').filter({ hasText: 'Scrivi' }).count();
-      await page.locator('[data-test=spell-book-add]').first().click();
+      const addButton = page.locator('[data-test=spell-book-add]').first();
+      const addInfo = await addButton.evaluate((el) => `${el.outerHTML.slice(0, 160)} rect=${JSON.stringify(el.getBoundingClientRect())} vh=${innerHeight}`);
+      await addButton.click();
+      await page.waitForTimeout(300);
+      if (await page.locator('[data-test=spell-book]').count() === 0) throw new Error(`the spellbook closed after "write": ${addInfo}`);
       await page.locator('[data-test=spell-book-save]').click();
       await page.locator('[data-test=spell-book]').waitFor({ state: 'detached', timeout: 15000 });
       tabs.spellbook = freeBefore > 0 ? 'written' : 'none';
