@@ -333,6 +333,10 @@ namespace RealmForge.Api.Controllers
 				r.Used = Clamp(r.Used, 0, r.Maximum);
 				return r;
 			}).ToList();
+			sheet.ResourceUses = (sheet.ResourceUses ?? new())
+				.Where(u => !string.IsNullOrWhiteSpace(u.Key) && u.Key.Length <= 40)
+				.Take(40)
+				.ToDictionary(u => u.Key, u => Clamp(u.Value, 0, 999));
 			sheet.Experience = Clamp(sheet.Experience, 0, 10_000_000);
 			sheet.Portrait = sheet.Portrait is { Length: <= MaxPortraitLength } portrait && portrait.StartsWith("data:image/", StringComparison.Ordinal) ? portrait : null;
 			sheet.Age = Text(sheet.Age, 40);
