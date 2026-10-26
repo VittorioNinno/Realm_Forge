@@ -779,11 +779,11 @@ try {
   await page.locator('[data-test=sheet-damage]').click();
   await page.locator('[data-test=sheet-death-roll]').click();
   await page.locator('[data-test=dice-total]').filter({ hasNotText: '…' }).waitFor({ timeout: 5000 });
-  const marked = await page.locator('[data-test=sheet-death-saves] .rf-death-box.on').count();
+  const deathMarked = await page.locator('[data-test=sheet-death-saves] .rf-death-box.on').count();
   const revived = await page.locator('[data-test=sheet-death-saves]').count() === 0;
   await page.locator('[data-test=sheet-long-rest]').click();
   await page.locator('[data-test=sheet-long-rest-done]').click();
-  if (!/Attacco/.test(turn) || !/Magia/.test(turn) || !/Azione bonus/i.test(turn) || (!revived && marked === 0)) throw new Error(`turn summary or death saves: turn="${turn.slice(0, 200)}" marked=${marked} revived=${revived}`);
+  if (!/Attacco/.test(turn) || !/Magia/.test(turn) || !/Azione bonus/i.test(turn) || (!revived && deathMarked === 0)) throw new Error(`turn summary or death saves: turn="${turn.slice(0, 200)}" marked=${deathMarked} revived=${revived}`);
   ok('turn summary with the 2024 actions; a death saving throw rolled at 0 hit points marks the result on its own');
 
   const tabs = {};
