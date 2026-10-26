@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Components;
 using Microsoft.JSInterop;
+using RealmForge.Client.Components;
 using RealmForge.Client.Localization;
 using RealmForge.Client.Services;
 using RealmForge.Shared.Characters;
