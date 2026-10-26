@@ -226,6 +226,7 @@ namespace RealmForge.Client.Pages
 			}
 
 			Normalize();
+			ResolveSkillOverlaps();
 			RefreshPreview();
 			Computed = CharacterCalculator.Compute(Input, Context, checkEquipment: Mode == WizardMode.Create);
 			ScheduleDraftSave();
@@ -569,6 +570,12 @@ namespace RealmForge.Client.Pages
 
 			//	Scores are needed by the later steps: the ability step must have all six
 			var issues = Computed.Issues.Where(i => i.Area == area).ToList();
+
+			//	A class skill given back by this step is picked again here
+			if ((step == WizardStep.Background || step == WizardStep.Species) && step == CurrentStep && ClassSkillsShort)
+			{
+				issues.AddRange(Computed.Issues.Where(i => i.Area == AreaOf(WizardStep.Class) && i.Code == IssueCodes.SkillsMissing));
+			}
 			if (step == WizardStep.Abilities && Build.BaseScores.Count != 6 && issues.All(i => i.Code != IssueCodes.BaseScores))
 			{
 				issues.Add(new CharacterIssue(IssueCodes.BaseScores, true, IssueAreas.Abilities, Array.Empty<string>()));
@@ -587,6 +594,7 @@ namespace RealmForge.Client.Pages
 
 			stepIndex++;
 			furthestIndex = Math.Max(furthestIndex, stepIndex);
+			Update();
 			await LoadDetailsAsync();
 		}
 

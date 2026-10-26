@@ -421,8 +421,8 @@ namespace RealmForge.Client.Localization
 		public static string SheetExperience(LanguageCode lang) => T(lang, "Punti esperienza", "Experience points");
 		public static string SheetAdjustments(LanguageCode lang) => T(lang, "Modificatori manuali", "Manual adjustments");
 		public static string HintAdjustments(LanguageCode lang) => T(lang,
-			"Per oggetti magici e privilegi che la scheda non calcola da sola.",
-			"For magic items and features the sheet does not compute by itself.");
+			"La scheda calcola da sola CA, PF, velocità, iniziativa e competenze dalle regole. Usa questa sezione solo per ciò che non può conoscere: un oggetto magico (es. Anello di protezione +1 alla CA), un dono del master, una regola della casa. I valori si sommano a quelli calcolati.",
+			"The sheet works out AC, HP, speed, initiative and proficiencies from the rules on its own. Use this section only for what it cannot know: a magic item (e.g. Ring of Protection +1 AC), a gift from the game master, a house rule. The values add to the computed ones.");
 		public static string LabelMaxHpAdjustment(LanguageCode lang) => T(lang, "PF massimi", "Max HP");
 		public static string LabelExtraSkills(LanguageCode lang) => T(lang, "Altre competenze nelle abilità", "Other skill proficiencies");
 		public static string LabelExtraExpertise(LanguageCode lang) => T(lang, "Altre maestrie", "Other Expertise");
@@ -672,5 +672,20 @@ namespace RealmForge.Client.Localization
 		public static string MilestoneSheetText(LanguageCode lang) => T(lang,
 			"Progressione narrativa: sali di livello quando il master annuncia una tappa della storia.",
 			"Story-based progression: level up when the game master announces a story milestone.");
+			// ===== Class resources and skill overlaps =====
+
+		public static string SheetClassResources(LanguageCode lang) => T(lang, "Risorse di classe", "Class resources");
+		public static string SheetOtherResources(LanguageCode lang) => T(lang, "Altre risorse", "Other resources");
+		public static string HintOtherResources(LanguageCode lang) => T(lang,
+			"Le risorse delle classi (Ira, Incanalare Divinità, Punti ki…) si calcolano da sole e sono nella scheda Combattimento. Qui puoi aggiungere usi limitati che la scheda non conosce: cariche di un oggetto magico, un talento o una regola homebrew.",
+			"Class resources (Rage, Channel Divinity, Ki Points…) are computed on their own and live in the Combat tab. Here you can add limited uses the sheet does not know: charges of a magic item, a feat or a homebrew rule.");
+		public static string LabelAdvanced(LanguageCode lang) => T(lang, "avanzate", "advanced");
+		public static string ResetLongRest(LanguageCode lang) => T(lang, "riposo lungo", "long rest");
+		public static string ResetShortRest(LanguageCode lang) => T(lang, "riposo breve o lungo", "short or long rest");
+		public static string ResetOneOnShortRest(LanguageCode lang) => T(lang, "1 col riposo breve, tutti col lungo", "1 on a short rest, all on a long rest");
+		public static string ClassSkillReplaceTitle(string className, LanguageCode lang) => T(lang, $"Scegli un'altra abilità del {className}", $"Pick another {className} skill");
+		public static string ClassSkillReplaceText(LanguageCode lang) => T(lang,
+			"Un'abilità che avevi scelto per la classe ora te la dà già questa scelta: non serve averla due volte, quindi scegline un'altra tra quelle della classe.",
+			"A skill you picked for your class is now granted by this choice: there is no point having it twice, so pick another one from the class list.");
 	}
 }

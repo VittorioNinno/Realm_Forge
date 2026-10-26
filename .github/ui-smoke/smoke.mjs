@@ -660,11 +660,22 @@ try {
   await page.locator('[data-test=wizard-class-panel]', { hasText: 'Mago' }).waitFor({ timeout: 15000 });
   await next();
   await page.locator('[data-test=wizard-error]').waitFor({ timeout: 5000 });
-  await pickFree('[data-test=wizard-skill-option]', 2);
+  // The preselected background is not "known" before its step: Insight (Acolyte) can be picked for the class
+  const knownBeforeBackground = await page.locator('[data-test=wizard-skill] .rf-wizard-pill.known').count();
+  await page.locator('[data-test=wizard-skill-option]', { hasText: 'Intuizione' }).click();
+  await pickFree('[data-test=wizard-skill-option]', 1);
   await next();
 
   await wizardStep('background');
   await choose('wizard-background', /^Accolito$/);
+  // Acolyte grants Insight: the class pick is given back and chosen again in this step
+  await page.locator('[data-test=wizard-class-skill-fix]').waitFor({ timeout: 10000 });
+  await next();
+  await page.locator('[data-test=wizard-error]').waitFor({ timeout: 5000 });
+  await pickFree('[data-test=wizard-skill-fix-option]', 1);
+  const fixGone = await page.locator('[data-test=wizard-class-skill-fix]').count();
+  if (knownBeforeBackground !== 0 || fixGone !== 0) throw new Error(`skill overlap not handled: known before background=${knownBeforeBackground} fix still shown=${fixGone}`);
+  ok('wizard skills: the preselected background does not lock class skills, an overlap is re-picked in the background step');
   await page.locator('[data-test=wizard-feat-list]').waitFor({ timeout: 15000 });
   await nextOption('wizard-feat-list');
   await nextOption('wizard-feat-ability');
@@ -741,6 +752,11 @@ try {
   const levelUpReady = await page.locator('[data-test=sheet-levelup].rf-pulse').count();
   if (milestoneXpBar !== 0 || xpValue !== '300 / 300' || levelUpReady !== 1) throw new Error(`advancement type not applied: xp bar with milestones=${milestoneXpBar} xp=${xpValue} ready=${levelUpReady}`);
   ok('advancement type: story-based chosen in the wizard hides XP on the sheet, XP-based shows the bar and highlights the level up at 300 XP');
+  // Class resources computed on their own: the wizard's Arcane Recovery, spent with "use" and back after a long rest
+  const classResources = await page.locator('[data-test=sheet-class-resource]').allInnerTexts();
+  await page.locator('[data-test=sheet-class-resource-use]').first().click();
+  const resourceSpent = await page.locator('[data-test=sheet-class-resource-use][disabled]').count();
+  if (!/Recupero Arcano/.test(classResources.join('|')) || resourceSpent !== 1) throw new Error(`class resources: ${JSON.stringify(classResources)} spent=${resourceSpent}`);
   await page.locator('[data-test=sheet-hp-amount]').fill('3');
   await page.locator('[data-test=sheet-hp-amount]').press('Tab');
   await page.locator('[data-test=sheet-damage]').click();
@@ -753,6 +769,9 @@ try {
   await page.locator('[data-test=sheet-long-rest]').click();
   await page.locator('[data-test=sheet-long-rest-done]').click();
   const afterRest = (await page.locator('[data-test=sheet-hp-current]').innerText()).trim();
+  const resourceBack = await page.locator('[data-test=sheet-class-resource-use]:not([disabled])').count();
+  if (resourceBack !== 1) throw new Error('the long rest did not give back the class resource');
+  ok('class resources: Arcane Recovery listed on its own, spent with "use", recovered by a long rest');
 
   const tabs = {};
   for (const tab of ['spells', 'inventory', 'features', 'notes', 'overview']) {

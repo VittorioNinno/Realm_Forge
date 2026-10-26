@@ -33,5 +33,5 @@
 
     private IReadOnlyCollection<Skill> Known => Expertise
         ? Enum.GetValues<Skill>().Where(s => !Computed.SkillProficiencies.Contains(s) || Computed.Expertise.Contains(s)).ToList()
-        : Computed.SkillProficiencies;
+        : W.KnownSkills;
 }
