@@ -772,6 +772,19 @@ try {
   const resourceBack = await page.locator('[data-test=sheet-class-resource-use]:not([disabled])').count();
   if (resourceBack !== 1) throw new Error('the long rest did not give back the class resource');
   ok('class resources: Arcane Recovery listed on its own, spent with "use", recovered by a long rest');
+  // Turn summary with the edition's actions; death saving throws rolled by the sheet at 0 hit points
+  const turn = (await page.locator('[data-test=sheet-turn]').innerText()).replace(/\s+/g, ' ');
+  await page.locator('[data-test=sheet-hp-amount]').fill('99');
+  await page.locator('[data-test=sheet-hp-amount]').press('Tab');
+  await page.locator('[data-test=sheet-damage]').click();
+  await page.locator('[data-test=sheet-death-roll]').click();
+  await page.locator('[data-test=dice-total]').filter({ hasNotText: '…' }).waitFor({ timeout: 5000 });
+  const marked = await page.locator('[data-test=sheet-death-saves] .rf-death-box.on').count();
+  const revived = await page.locator('[data-test=sheet-death-saves]').count() === 0;
+  await page.locator('[data-test=sheet-long-rest]').click();
+  await page.locator('[data-test=sheet-long-rest-done]').click();
+  if (!/Attacco/.test(turn) || !/Magia/.test(turn) || !/Azione bonus/i.test(turn) || (!revived && marked === 0)) throw new Error(`turn summary or death saves: turn="${turn.slice(0, 200)}" marked=${marked} revived=${revived}`);
+  ok('turn summary with the 2024 actions; a death saving throw rolled at 0 hit points marks the result on its own');
 
   const tabs = {};
   for (const tab of ['spells', 'inventory', 'features', 'notes', 'overview']) {
@@ -780,11 +793,15 @@ try {
     characterAudits.push(await overflowOf(page, `sheet ${tab}`));
     if (tab === 'spells') {
       tabs.spells = await page.locator('[data-test=sheet-spells] a').count();
+      // Casting from the spell: its details with the slot choice, the slot is spent and the details close
       const fullBefore = await page.locator('[data-test=sheet-slots] .rf-slot-dot.full').count();
-      await page.locator('[data-test=sheet-slot-use]').first().click();
+      await page.locator('[data-test=sheet-spells][data-level="1"] a').first().click();
+      await page.locator('[data-test=spell-detail-modal]').waitFor({ timeout: 15000 });
+      await page.locator('[data-test=spell-cast-slot-1]').click();
+      await page.locator('[data-test=spell-detail-modal]').waitFor({ state: 'detached', timeout: 5000 });
       tabs.slots = `${fullBefore}->${await page.locator('[data-test=sheet-slots] .rf-slot-dot.full').count()}`;
       await page.locator('[data-test=sheet-spells] a').first().click();
-      await page.locator('[data-test=spell-detail-modal]').waitFor({ timeout: 15000 });
+      await page.locator('[data-test=spell-cast-cantrip]').waitFor({ timeout: 15000 });
       await page.locator('[data-test=spell-detail-close]').click();
     }
     if (tab === 'inventory') tabs.items = await page.locator('[data-test=sheet-item]').count();

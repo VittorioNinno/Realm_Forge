@@ -132,6 +132,9 @@ public sealed class CharacterSheetState
 	public int Exhaustion { get; set; }
 	public bool Inspiration { get; set; }
 
+	//	Spell the character is concentrating on (ends on its own at 0 hit points)
+	public Guid? Concentration { get; set; }
+
 	//	Spent spell slots per spell level (index 0 = level 1) and spent Pact Magic slots
 	public List<int> SpentSlots { get; set; } = new();
 	public int SpentPactSlots { get; set; }
