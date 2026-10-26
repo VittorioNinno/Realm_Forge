@@ -129,7 +129,13 @@ namespace RealmForge.Client.Services
 			var inventory = sheet.Inventory.Select(i =>
 			{
 				var name = i.EquipmentId is { } id && items.TryGetValue(id, out var item) ? item.Name : i.Name ?? string.Empty;
-				var marks = new[] { i.Equipped ? UiText.SheetEquipped(lang) : null, i.Attuned ? UiText.SheetAttuned(lang) : null }.Where(m => m is not null);
+				var marks = new[]
+				{
+					i.Magic is { } magic ? UiText.MagicSummary(magic, lang) : null,
+					i.Equipped ? UiText.SheetEquipped(lang) : null,
+					i.Attuned ? UiText.SheetAttuned(lang) : null,
+					i.Magic is { Charges: > 0 } charged ? UiText.ChargesLeft(charged.Charges - charged.ChargesUsed, charged.Charges, lang) : null
+				}.Where(m => m is not null);
 				return new PdfRow(marks.Any() ? $"{name} ({string.Join(", ", marks)})" : name, i.Quantity > 1 ? $"×{i.Quantity}" : null, i.Equipped);
 			}).ToList();
 			var coins = string.Join("  ", new[] { (sheet.Coins.Pp, CoinType.Pp), (sheet.Coins.Gp, CoinType.Gp), (sheet.Coins.Ep, CoinType.Ep), (sheet.Coins.Sp, CoinType.Sp), (sheet.Coins.Cp, CoinType.Cp) }

@@ -1,5 +1,7 @@
 ﻿using RealmForge.Shared.Characters;
 using RealmForge.Shared.Enums;
+using RealmForge.Shared.Rules;
+using RealmForge.Shared.Localization;
 
 namespace RealmForge.Client.Localization
 {
@@ -742,5 +744,173 @@ namespace RealmForge.Client.Localization
 		public static string TurnInteract(LanguageCode lang) => T(lang, "Interagire con un oggetto", "Interact with an object");
 		public static string TurnTalk(LanguageCode lang) => T(lang, "Parlare brevemente", "Speak briefly");
 		public static string TurnBlocked(LanguageCode lang) => T(lang, "Incapacitato o a 0 punti ferita: nessuna azione né reazione.", "Incapacitated or at 0 hit points: no actions or reactions.");
+			// ===== Death and concentration =====
+
+		public static string InstantDeath(LanguageCode lang) => T(lang,
+			"Morte istantanea: i danni rimasti hanno raggiunto i punti ferita massimi.",
+			"Instant death: the damage left over reached the hit point maximum.");
+		public static string DamageAtZero(bool critical, LanguageCode lang) => critical
+			? T(lang, "Colpito a 0 punti ferita da un critico: due fallimenti.", "Hit at 0 hit points by a critical hit: two failures.")
+			: T(lang, "Colpito a 0 punti ferita: un fallimento.", "Hit at 0 hit points: one failure.");
+		public static string CriticalHitToggle(LanguageCode lang) => T(lang, "Il prossimo danno è un colpo critico", "The next damage is a critical hit");
+		public static string ConcentrationSave(int dc, LanguageCode lang) => T(lang, $"TS Costituzione CD {dc}", $"Constitution save DC {dc}");
+		public static string ConcentrationKept(LanguageCode lang) => T(lang, "Concentrazione mantenuta", "Concentration kept");
+		public static string ConcentrationLost(LanguageCode lang) => T(lang, "Concentrazione persa", "Concentration lost");
+
+		// ===== Magic items =====
+
+		public static string RarityName(ItemRarity rarity, LanguageCode lang) => (rarity, lang == LanguageCode.It) switch
+		{
+			(ItemRarity.Common, true) => "Comune",
+			(ItemRarity.Uncommon, true) => "Non comune",
+			(ItemRarity.Rare, true) => "Raro",
+			(ItemRarity.VeryRare, true) => "Molto raro",
+			(ItemRarity.Legendary, true) => "Leggendario",
+			(ItemRarity.Artifact, true) => "Artefatto",
+			(ItemRarity.Common, false) => "Common",
+			(ItemRarity.Uncommon, false) => "Uncommon",
+			(ItemRarity.Rare, false) => "Rare",
+			(ItemRarity.VeryRare, false) => "Very rare",
+			(ItemRarity.Legendary, false) => "Legendary",
+			_ => "Artifact"
+		};
+
+		public static string RechargeName(ItemRecharge recharge, LanguageCode lang) => recharge switch
+		{
+			ItemRecharge.LongRest => T(lang, "All'alba (riposo lungo)", "At dawn (long rest)"),
+			ItemRecharge.ShortRest => T(lang, "Riposo breve o lungo", "Short or long rest"),
+			_ => T(lang, "Non si ricarica", "Does not recharge")
+		};
+
+		public static string MagicEffectName(MagicEffectKind kind, LanguageCode lang) => kind switch
+		{
+			MagicEffectKind.ArmorClass => T(lang, "Bonus alla CA", "AC bonus"),
+			MagicEffectKind.UnarmoredArmorClass => T(lang, "CA senza armatura né scudo", "AC without armor or shield"),
+			MagicEffectKind.AttackAndDamage => T(lang, "Colpire e danni (quest'arma)", "Attack and damage (this weapon)"),
+			MagicEffectKind.SavingThrows => T(lang, "Tutti i tiri salvezza", "All saving throws"),
+			MagicEffectKind.AbilityChecks => T(lang, "Tutte le prove di caratteristica", "All ability checks"),
+			MagicEffectKind.SetAbilityScore => T(lang, "Imposta un punteggio", "Set an ability score"),
+			MagicEffectKind.AbilityScoreBonus => T(lang, "Aumenta un punteggio", "Raise an ability score"),
+			MagicEffectKind.Speed => T(lang, "Velocità (piedi)", "Speed (feet)"),
+			MagicEffectKind.SpellAttack => T(lang, "Attacco con incantesimi", "Spell attack"),
+			MagicEffectKind.SpellSaveDc => T(lang, "CD degli incantesimi", "Spell save DC"),
+			MagicEffectKind.MaxHitPoints => T(lang, "Punti ferita massimi", "Hit point maximum"),
+			MagicEffectKind.Initiative => T(lang, "Iniziativa", "Initiative"),
+			_ => T(lang, "Resistenza", "Resistance")
+		};
+
+		public static string MagicEffectText(MagicEffect effect, LanguageCode lang)
+		{
+			var v = CharacterMath.FormatModifier(effect.Value);
+			var ability = effect.Ability is { } a ? FeatPrerequisiteFormatter.AbilityName(a, lang) : string.Empty;
+			return effect.Kind switch
+			{
+				MagicEffectKind.ArmorClass => T(lang, $"{v} CA", $"{v} AC"),
+				MagicEffectKind.UnarmoredArmorClass => T(lang, $"{v} CA senza armatura né scudo", $"{v} AC without armor or shield"),
+				MagicEffectKind.AttackAndDamage => T(lang, $"{v} a colpire e ai danni", $"{v} to attack and damage"),
+				MagicEffectKind.SavingThrows => T(lang, $"{v} ai tiri salvezza", $"{v} to saving throws"),
+				MagicEffectKind.AbilityChecks => T(lang, $"{v} alle prove", $"{v} to ability checks"),
+				MagicEffectKind.SetAbilityScore => $"{ability} {effect.Value}",
+				MagicEffectKind.AbilityScoreBonus => $"{v} {ability}",
+				MagicEffectKind.Speed => T(lang, $"+{FormatSpeed(effect.Value, lang)} velocità", $"+{FormatSpeed(effect.Value, lang)} speed"),
+				MagicEffectKind.SpellAttack => T(lang, $"{v} attacco con incantesimi", $"{v} spell attack"),
+				MagicEffectKind.SpellSaveDc => T(lang, $"{v} CD incantesimi", $"{v} spell save DC"),
+				MagicEffectKind.MaxHitPoints => T(lang, $"{v} PF massimi", $"{v} hit point maximum"),
+				MagicEffectKind.Initiative => T(lang, $"{v} iniziativa", $"{v} initiative"),
+				_ => T(lang, $"resistenza: {(effect.DamageType is { } d ? EquipmentTerms.DamageTypeName(d, lang) : "?")}", $"resistance: {(effect.DamageType is { } d2 ? EquipmentTerms.DamageTypeName(d2, lang) : "?")}")
+			};
+		}
+
+		public static string MagicSummary(MagicItemProperties magic, LanguageCode lang) =>
+			string.Join(", ", new[] { "✦ " + RarityName(magic.Rarity, lang) }.Concat(magic.Effects.Select(e => MagicEffectText(e, lang))));
+
+		public static string MagicHeals(string dice, LanguageCode lang) => T(lang, $"cura {dice} PF", $"heals {dice} HP");
+		public static string MagicRecharged(LanguageCode lang) => T(lang, "Ricarica", "Recharge");
+		public static string ChargesLeft(int left, int total, LanguageCode lang) => T(lang, $"cariche {left}/{total}", $"charges {left}/{total}");
+		public static string AttunementLimit(int max, LanguageCode lang) => T(lang,
+			$"Puoi essere in sintonia con al massimo {max} oggetti: termina prima la sintonia con un altro.",
+			$"You can be attuned to at most {max} items: end the attunement to another one first.");
+		public static string AttunementCount(int count, int max, LanguageCode lang) => T(lang, $"Sintonia {count}/{max}", $"Attunement {count}/{max}");
+		public static string BtnAddMagicItem(LanguageCode lang) => T(lang, "Aggiungi oggetto magico", "Add magic item");
+		public static string BtnMagicProperties(LanguageCode lang) => T(lang, "Proprietà magiche", "Magic properties");
+		public static string BtnAttune(LanguageCode lang) => T(lang, "Entra in sintonia (riposo breve)", "Attune (short rest)");
+		public static string BtnEndAttunement(LanguageCode lang) => T(lang, "Termina la sintonia", "End attunement");
+		public static string BtnDrink(LanguageCode lang) => T(lang, "Bevi", "Drink");
+		public static string NeedsAttunement(LanguageCode lang) => T(lang, "serve la sintonia", "needs attunement");
+		public static string NeedsEquip(LanguageCode lang) => T(lang, "funziona se equipaggiato", "works when equipped");
+		public static string MagicNewTitle(LanguageCode lang) => T(lang, "Nuovo oggetto magico", "New magic item");
+		public static string MagicEditTitle(string name, LanguageCode lang) => T(lang, $"Proprietà magiche: {name}", $"Magic properties: {name}");
+		public static string MagicTemplate(LanguageCode lang) => T(lang, "Oggetto del manuale", "Item from the rules");
+		public static string MagicCustom(LanguageCode lang) => T(lang, "Personalizzato", "Custom");
+		public static string MagicName(LanguageCode lang) => T(lang, "Nome", "Name");
+		public static string MagicNameMissing(LanguageCode lang) => T(lang, "Dai un nome all'oggetto.", "Give the item a name.");
+		public static string MagicRarity(LanguageCode lang) => T(lang, "Rarità", "Rarity");
+		public static string MagicRequiresAttunement(LanguageCode lang) => T(lang, "Richiede sintonia", "Requires attunement");
+		public static string MagicEffects(LanguageCode lang) => T(lang, "Effetti applicati dalla scheda", "Effects the sheet applies");
+		public static string MagicValue(LanguageCode lang) => T(lang, "Valore", "Value");
+		public static string MagicAddEffect(LanguageCode lang) => T(lang, "Aggiungi effetto", "Add effect");
+		public static string MagicCharges(LanguageCode lang) => T(lang, "Cariche", "Charges");
+		public static string MagicChargesMax(LanguageCode lang) => T(lang, "Cariche massime", "Maximum charges");
+		public static string MagicRecharge(LanguageCode lang) => T(lang, "Si ricarica", "Recharges");
+		public static string MagicRechargeDice(LanguageCode lang) => T(lang, "Cariche recuperate (vuoto: tutte)", "Charges regained (empty: all)");
+		public static string MagicHealDice(LanguageCode lang) => T(lang, "Consumabile che cura (es. 2d4+2)", "Consumable that heals (e.g. 2d4+2)");
+		public static string MagicRemove(LanguageCode lang) => T(lang, "Togli la magia", "Remove the magic");
+			// ===== Changing spells and the spellbook =====
+
+		public static string BtnManageSpells(bool spellbook, LanguageCode lang) => spellbook
+			? T(lang, "Libro e incantesimi preparati", "Spellbook and prepared spells")
+			: T(lang, "Gestisci incantesimi", "Manage spells");
+		public static string BookTitle(string className, bool spellbook, LanguageCode lang) => spellbook
+			? T(lang, $"Libro degli incantesimi · {className}", $"Spellbook · {className}")
+			: T(lang, $"Incantesimi · {className}", $"Spells · {className}");
+		public static string SpellChangeRuleText(SpellChangeRule rule, LanguageCode lang)
+		{
+			var parts = new List<string>();
+			if (rule.Spellbook)
+			{
+				parts.Add(T(lang, "Prepari gli incantesimi dal libro; a ogni livello ne scrivi 2 gratis, gli altri si copiano (50 mo e 2 ore per livello dell'incantesimo).",
+					"You prepare spells from your book; each level you write 2 for free, others are copied (50 gp and 2 hours per spell level)."));
+			}
+			if (rule.LongRest == SpellChangeKind.All)
+			{
+				parts.Add(T(lang, "Dopo un riposo lungo puoi cambiare tutti gli incantesimi preparati.", "After a long rest you can change all your prepared spells."));
+			}
+			else if (rule.LongRest == SpellChangeKind.Spell)
+			{
+				parts.Add(T(lang, "Dopo un riposo lungo puoi sostituire un incantesimo preparato.", "After a long rest you can replace one prepared spell."));
+			}
+			if (rule.LevelUpSpell)
+			{
+				parts.Add(T(lang, "A ogni livello nella classe puoi sostituire un incantesimo con un altro.", "Each level in the class you can replace one spell with another."));
+			}
+			if (rule.LevelUpCantrip)
+			{
+				parts.Add(T(lang, "A ogni livello puoi sostituire un trucchetto.", "Each level you can replace one cantrip."));
+			}
+			else if (rule.LongRestCantrip)
+			{
+				parts.Add(T(lang, "Dopo un riposo lungo puoi sostituire un trucchetto.", "After a long rest you can replace one cantrip."));
+			}
+			else
+			{
+				parts.Add(T(lang, "I trucchetti non cambiano.", "Cantrips do not change."));
+			}
+			return string.Join(" ", parts);
+		}
+		public static string BookNow(LanguageCode lang) => T(lang, "Ora puoi:", "Right now:");
+		public static string ChangesAll(LanguageCode lang) => T(lang, "cambiare tutti gli incantesimi preparati", "change all prepared spells");
+		public static string ChangesSpells(int count, LanguageCode lang) => T(lang, count == 1 ? "sostituire 1 incantesimo" : $"sostituire {count} incantesimi", count == 1 ? "replace 1 spell" : $"replace {count} spells");
+		public static string ChangesCantrips(int count, LanguageCode lang) => T(lang, count == 1 ? "sostituire 1 trucchetto" : $"sostituire {count} trucchetti", count == 1 ? "replace 1 cantrip" : $"replace {count} cantrips");
+		public static string ChangesNone(LanguageCode lang) => T(lang, "nessun cambio (si aprono con il riposo lungo o il livello)", "no changes (they open with a long rest or a level)");
+		public static string BookFreeCorrection(LanguageCode lang) => T(lang, "Correzione libera (d'accordo col master)", "Free correction (with the game master)");
+		public static string BookPrepared(LanguageCode lang) => T(lang, "Preparati", "Prepared");
+		public static string BookSpellbook(LanguageCode lang) => T(lang, "Libro", "Spellbook");
+		public static string BookFreeLeft(int count, LanguageCode lang) => T(lang, $"Incantesimi gratis da scrivere: {count}", $"Free spells to write: {count}");
+		public static string BookCopyCost(int gold, LanguageCode lang) => T(lang, $"copie: {gold} mo", $"copies: {gold} gp");
+		public static string BookLearned(LanguageCode lang) => T(lang, "nel libro", "in the book");
+		public static string BookCopied(LanguageCode lang) => T(lang, "copiato", "copied");
+		public static string BookWrite(LanguageCode lang) => T(lang, "Scrivi", "Write");
+		public static string BookCopy(int gold, LanguageCode lang) => T(lang, $"Copia ({gold} mo)", $"Copy ({gold} gp)");
+		public static string CopyNotEnoughGold(int gold, LanguageCode lang) => T(lang, $"Servono {gold} mo per copiare questi incantesimi.", $"Copying these spells costs {gold} gp.");
 	}
 }

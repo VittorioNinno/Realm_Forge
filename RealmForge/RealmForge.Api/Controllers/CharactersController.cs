@@ -283,6 +283,31 @@ namespace RealmForge.Api.Controllers
 		///	<summary>
 		///	Bounds for everything the client can write in the sheet.
 		///	</summary>
+		//	Magic properties of an item: known kinds only, small numbers, dice like "1d6+1"
+		private static MagicItemProperties? SanitizeMagic(MagicItemProperties? magic)
+		{
+			if (magic is null)
+			{
+				return null;
+			}
+			static string? Dice(string? value) => value is not null && System.Text.RegularExpressions.Regex.IsMatch(value, @"^\d{1,2}d\d{1,3}([+-]\d{1,3})?$") ? value : null;
+			magic.Rarity = Enum.IsDefined(magic.Rarity) ? magic.Rarity : ItemRarity.Uncommon;
+			magic.Recharge = Enum.IsDefined(magic.Recharge) ? magic.Recharge : ItemRecharge.None;
+			magic.Effects = (magic.Effects ?? new()).Where(e => Enum.IsDefined(e.Kind)).Take(12).Select(e =>
+			{
+				e.Value = Math.Clamp(e.Value, -30, 30);
+				e.Ability = e.Ability is { } a && Enum.IsDefined(a) ? a : null;
+				e.DamageType = e.DamageType is { } d && Enum.IsDefined(d) ? d : null;
+				return e;
+			}).ToList();
+			magic.Charges = Math.Clamp(magic.Charges, 0, 99);
+			magic.ChargesUsed = Math.Clamp(magic.ChargesUsed, 0, magic.Charges);
+			magic.RechargeDice = Dice(magic.RechargeDice);
+			magic.HealDice = Dice(magic.HealDice);
+			magic.Template = magic.Template is { Length: <= 60 } template ? template : null;
+			return magic;
+		}
+
 		private static void ApplyAdvancement(CharacterSheetState sheet, AdvancementType? advancement)
 		{
 			if (advancement is { } value && Enum.IsDefined(value))
@@ -318,6 +343,11 @@ namespace RealmForge.Api.Controllers
 				i.Name = Text(i.Name, 150);
 				i.Notes = Text(i.Notes, 500);
 				i.Quantity = Clamp(i.Quantity, 0, 99999);
+				i.Magic = SanitizeMagic(i.Magic);
+				if (i.Attuned && i.Magic?.RequiresAttunement != true)
+				{
+					i.Attuned = false;
+				}
 				return i;
 			}).Where(i => i.EquipmentId is not null || !string.IsNullOrWhiteSpace(i.Name)).ToList();
 			sheet.Coins ??= new CoinPurse();
@@ -337,6 +367,18 @@ namespace RealmForge.Api.Controllers
 				.Where(u => !string.IsNullOrWhiteSpace(u.Key) && u.Key.Length <= 40)
 				.Take(40)
 				.ToDictionary(u => u.Key, u => Clamp(u.Value, 0, 999));
+			sheet.SpellChanges = (sheet.SpellChanges ?? new())
+				.Where(g => Enum.IsDefined(g.Kind))
+				.Take(40)
+				.Select(g =>
+				{
+					g.Remaining = Clamp(g.Remaining, 0, 20);
+					return g;
+				}).ToList();
+			sheet.ClassLevelsSeen = (sheet.ClassLevelsSeen ?? new())
+				.Where(l => !string.IsNullOrWhiteSpace(l.Key) && l.Key.Length <= 40)
+				.Take(20)
+				.ToDictionary(l => l.Key, l => Clamp(l.Value, 0, 20));
 			sheet.Experience = Clamp(sheet.Experience, 0, 10_000_000);
 			sheet.Portrait = sheet.Portrait is { Length: <= MaxPortraitLength } portrait && portrait.StartsWith("data:image/", StringComparison.Ordinal) ? portrait : null;
 			sheet.Age = Text(sheet.Age, 40);
