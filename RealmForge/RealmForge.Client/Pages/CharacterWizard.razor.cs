@@ -253,6 +253,12 @@ namespace RealmForge.Client.Pages
 				return;
 			}
 
+			//	Wizard with a spellbook: a spell prepared here (level up) is written in the book
+			foreach (var entry in build.Classes.Where(e => e.Spellbook.Count > 0))
+			{
+				entry.Spellbook.AddRange(entry.Spells.Where(id => !entry.Spellbook.Contains(id)).ToList());
+			}
+
 			var startingId = build.Levels[0].ClassId;
 			var withLevels = build.Levels.Select(l => l.ClassId).Distinct().ToHashSet();
 			build.Classes.RemoveAll(c => !withLevels.Contains(c.ClassId));

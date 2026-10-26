@@ -120,7 +120,13 @@ public sealed class ComputedCharacter
 	public int SaveBonus(AbilityScore ability) =>
 		Modifier(ability) + (SaveProficiencies.Contains(ability) ? ProficiencyBonus : 0) + SaveBonusAll;
 
-	public int SkillBonus(Skill skill)
+	//	Bonus to every ability check (magic items) and the damage types resisted thanks to items
+	public int CheckBonusAll { get; set; }
+	public List<DamageType> Resistances { get; } = new();
+
+	public int SkillBonus(Skill skill) => SkillBase(skill) + CheckBonusAll;
+
+	private int SkillBase(Skill skill)
 	{
 		var mod = Modifier(GameTerms.SkillAbility(skill));
 		if (Expertise.Contains(skill))
