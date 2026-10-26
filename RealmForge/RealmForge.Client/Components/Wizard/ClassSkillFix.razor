@@ -1,0 +1,11 @@
+﻿@* A background or species chosen after the class grants a skill picked for the class: the player picks another
+   class skill right here, without going back *@
+
+@if (W.ClassSkillsShort && W.StartingClass is { } cls && W.StartingClassBuild is { } entry)
+{
+    <div class="rf-wizard-panel rf-wizard-notice mb-3" data-test="wizard-class-skill-fix">
+        <div class="rf-wizard-block-title">@UiText.ClassSkillReplaceTitle(cls.Name, Lang)</div>
+        <div class="small mb-2" style="color: var(--rf-text-secondary);">@UiText.ClassSkillReplaceText(Lang)</div>
+        <SkillPicker W="W" Chosen="entry.Skills" Count="cls.SkillChoiceCount" Options="cls.SkillOptions" DataTest="wizard-skill-fix" />
+    </div>
+}

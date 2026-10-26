@@ -164,24 +164,42 @@
                     <span class="rf-card2-head-accent">@UiText.CharacterLevel(c.Level, Lang) · @UiText.SheetProficiency(Lang) @CharacterMath.FormatModifier(c.ProficiencyBonus)</span>
                 </div>
 
-                <div class="rf-bar-row">
-                    <div class="rf-bar-label">
-                        <span>@UiText.SheetHitPoints(Lang)</span>
-                        <span>
-                            <span class="rf-sheet-hp-current @(CurrentHp == 0 ? "down" : null)" data-test="sheet-hp-current">@CurrentHp</span> / <span data-test="sheet-hp">@MaxHp</span>
-                            @if (Sheet.TemporaryHitPoints > 0)
-                            {
-                                <span class="rf-sheet-hp-temp" data-test="sheet-hp-temp">+@Sheet.TemporaryHitPoints @UiText.SheetTempShort(Lang)</span>
-                            }
-                        </span>
+                <div class="rf-hp @HpState" data-test="sheet-hp-panel">
+                    <div class="rf-hp-top">
+                        <div class="rf-hp-heart" aria-hidden="true">
+                            <svg viewBox="0 0 24 24"><path d="M12 21s-7.5-4.6-9.6-9.2C.9 8.4 3 4.5 6.7 4.5c2.1 0 3.6 1.1 5.3 3 1.7-1.9 3.2-3 5.3-3 3.7 0 5.8 3.9 4.3 7.3C19.5 16.4 12 21 12 21z" /></svg>
+                        </div>
+                        <div class="rf-hp-numbers">
+                            <div class="rf-mini-label">@UiText.SheetHitPoints(Lang)</div>
+                            <div class="rf-hp-value">
+                                <span class="rf-hp-current" data-test="sheet-hp-current">@CurrentHp</span>
+                                <span class="rf-hp-max">/ <span data-test="sheet-hp">@MaxHp</span></span>
+                                @if (Sheet.TemporaryHitPoints > 0)
+                                {
+                                    <span class="rf-hp-temp-chip" data-test="sheet-hp-temp">+@Sheet.TemporaryHitPoints @UiText.SheetTempShort(Lang)</span>
+                                }
+                            </div>
+                        </div>
+                        <div class="rf-hp-actions">
+                            <div class="rf-hp-stepper">
+                                <button type="button" class="rf-hp-step" @onclick="() => amount = Math.Max(1, amount - 1)" aria-label="−1">−</button>
+                                <input type="number" min="0" max="9999" class="rf-hp-amount" value="@amount" @onchange="e => amount = int.TryParse(e.Value?.ToString(), out var v) ? Math.Max(0, v) : 0"
+                                       aria-label="@UiText.PlaceholderAmount(Lang)" data-test="sheet-hp-amount" />
+                                <button type="button" class="rf-hp-step" @onclick="() => amount = Math.Min(9999, amount + 1)" aria-label="+1">+</button>
+                            </div>
+                            <div class="rf-hp-buttons">
+                                <button type="button" class="rf-hp-btn damage" @onclick="Damage" data-test="sheet-damage">@UiText.BtnDamage(Lang)</button>
+                                <button type="button" class="rf-hp-btn heal" @onclick="Heal" data-test="sheet-heal">@UiText.BtnHeal(Lang)</button>
+                                <button type="button" class="rf-hp-btn temp" @onclick="SetTemp" data-test="sheet-temp">@UiText.BtnTempHp(Lang)</button>
+                            </div>
+                        </div>
                     </div>
-                    <div class="rf-bar"><div class="rf-bar-fill hp" style="width: @(MaxHp == 0 ? 0 : CurrentHp * 100 / MaxHp)%;"></div></div>
-                    <div class="rf-bar-controls">
-                        <input type="number" min="0" max="9999" class="rf-wizard-input" value="@amount" @onchange="e => amount = int.TryParse(e.Value?.ToString(), out var v) ? Math.Max(0, v) : 0"
-                               aria-label="@UiText.PlaceholderAmount(Lang)" data-test="sheet-hp-amount" />
-                        <button type="button" class="rf-wizard-btn rf-btn-damage" @onclick="Damage" data-test="sheet-damage">@UiText.BtnDamage(Lang)</button>
-                        <button type="button" class="rf-wizard-btn rf-btn-heal" @onclick="Heal" data-test="sheet-heal">@UiText.BtnHeal(Lang)</button>
-                        <button type="button" class="rf-wizard-btn secondary" @onclick="SetTemp" data-test="sheet-temp">@UiText.BtnTempHp(Lang)</button>
+                    <div class="rf-hp-track" role="progressbar" aria-valuemin="0" aria-valuemax="@MaxHp" aria-valuenow="@CurrentHp">
+                        <div class="rf-hp-fill" style="width: @(FillPercent)%;"></div>
+                        @if (Sheet.TemporaryHitPoints > 0)
+                        {
+                            <div class="rf-hp-temp-fill" style="width: @(TempPercent)%;"></div>
+                        }
                     </div>
                 </div>
 
@@ -443,6 +461,16 @@
             </ul>
         </section>
         <div>
+            @if (ClassResources.Count > 0)
+            {
+                <section class="rf-card2" data-test="sheet-class-resources">
+                    <div class="rf-card2-head"><span>@UiText.SheetClassResources(Lang)</span></div>
+                    @foreach (var resource in ClassResources)
+                    {
+                        @ClassResourceRow(resource)
+                    }
+                </section>
+            }
             <section class="rf-card2">
                 <div class="rf-card2-head"><span>@UiText.SheetAttacks(Lang)</span></div>
                 @if (c.Attacks.Count == 0)
@@ -596,11 +624,14 @@
             @foreach (var coin in new[] { CoinType.Cp, CoinType.Sp, CoinType.Ep, CoinType.Gp, CoinType.Pp })
             {
                 var type = coin;
-                <div class="rf-coin">
-                    <div class="rf-mini-label">@UiText.CoinLongName(type, Lang)</div>
-                    <input type="number" min="0" class="rf-coin-input" value="@Coin(type)" @onchange="e => SetCoin(type, e.Value?.ToString())" aria-label="@UiText.CoinLongName(type, Lang)" data-test="sheet-coin-@type.ToString().ToLowerInvariant()" />
-                    <div class="d-flex gap-1 justify-content-center">
+                <div class="rf-coin @($"rf-coin-{type.ToString().ToLowerInvariant()}")">
+                    <div class="rf-coin-head">
+                        <span class="rf-coin-badge">@UiText.CoinName(type, Lang)</span>
+                        <span class="rf-mini-label">@UiText.CoinLongName(type, Lang)</span>
+                    </div>
+                    <div class="rf-coin-stepper">
                         <button type="button" class="rf-mini-btn" @onclick="() => AddCoin(type, -1)" aria-label="−1">−</button>
+                        <input type="number" min="0" class="rf-coin-input" value="@Coin(type)" @onchange="e => SetCoin(type, e.Value?.ToString())" aria-label="@UiText.CoinLongName(type, Lang)" data-test="sheet-coin-@type.ToString().ToLowerInvariant()" />
                         <button type="button" class="rf-mini-btn" @onclick="() => AddCoin(type, 1)" aria-label="+1">+</button>
                     </div>
                 </div>
@@ -689,7 +720,8 @@
     // ===== Features: resources, class, species and background features =====
     private RenderFragment FeaturesTab(ComputedCharacter c) => @<div>
         <section class="rf-card2">
-            <div class="rf-card2-head"><span>@UiText.SheetResources(Lang)</span></div>
+            <div class="rf-card2-head"><span>@UiText.SheetOtherResources(Lang)</span></div>
+            <div class="small mb-2" style="color: var(--rf-text-muted);">@UiText.HintOtherResources(Lang)</div>
             @foreach (var counter in Sheet.Resources.ToList())
             {
                 var resource = counter;
@@ -769,24 +801,20 @@
             @NoteField(UiText.LabelBonds(Lang), Sheet.Bonds, v => Sheet.Bonds = v, 2)
             @NoteField(UiText.LabelFlaws(Lang), Sheet.Flaws, v => Sheet.Flaws = v, 2)
             @NoteField(UiText.LabelAppearance(Lang), Sheet.Appearance, v => Sheet.Appearance = v, 2)
-            <div class="rf-sheet-coins mb-3">
-                <label class="rf-sheet-coin"><span>@UiText.LabelHeight(Lang)</span><input class="rf-wizard-input" value="@Sheet.Height" maxlength="40" @onchange="e => SetText(v => Sheet.Height = v, e)" /></label>
-                <label class="rf-sheet-coin"><span>@UiText.SheetWeight(Lang)</span><input class="rf-wizard-input" value="@Sheet.Weight" maxlength="40" @onchange="e => SetText(v => Sheet.Weight = v, e)" /></label>
-            </div>
+            @TextRow(UiText.LabelHeight(Lang), Sheet.Height, v => Sheet.Height = v, "height")
+            @TextRow(UiText.SheetWeight(Lang), Sheet.Weight, v => Sheet.Weight = v, "weight")
             @NoteField(UiText.LabelBackstory(Lang), Sheet.Backstory, v => Sheet.Backstory = v, 5)
             @NoteField(UiText.LabelAllies(Lang), Sheet.Allies, v => Sheet.Allies = v, 2)
             @NoteField(UiText.LabelNotes(Lang), Sheet.Notes, v => Sheet.Notes = v, 6)
         </section>
 
-        <section class="rf-card2">
-            <div class="rf-card2-head"><span>@UiText.SheetAdjustments(Lang)</span></div>
-            <div class="small mb-2" style="color: var(--rf-text-muted);">@UiText.HintAdjustments(Lang)</div>
-            <div class="rf-sheet-coins mb-3">
-                <label class="rf-sheet-coin"><span>@UiText.LabelMaxHpAdjustment(Lang)</span><input type="number" class="rf-wizard-input" value="@Sheet.MaxHitPointsAdjustment" @onchange="e => SetNumber(v => Sheet.MaxHitPointsAdjustment = v, e)" /></label>
-                <label class="rf-sheet-coin"><span>@UiText.SheetArmorClass(Lang)</span><input type="number" class="rf-wizard-input" value="@Sheet.ArmorClassAdjustment" @onchange="e => SetNumber(v => Sheet.ArmorClassAdjustment = v, e)" data-test="sheet-ac-adjustment" /></label>
-                <label class="rf-sheet-coin"><span>@UiText.SheetSpeed(Lang)</span><input type="number" class="rf-wizard-input" value="@Sheet.SpeedAdjustment" @onchange="e => SetNumber(v => Sheet.SpeedAdjustment = v, e)" /></label>
-                <label class="rf-sheet-coin"><span>@UiText.SheetInitiative(Lang)</span><input type="number" class="rf-wizard-input" value="@Sheet.InitiativeAdjustment" @onchange="e => SetNumber(v => Sheet.InitiativeAdjustment = v, e)" /></label>
-            </div>
+        <details class="rf-card2 rf-collapsible" data-test="sheet-adjustments">
+            <summary class="rf-card2-head"><span>@UiText.SheetAdjustments(Lang)</span><span class="rf-collapsible-hint">@UiText.LabelAdvanced(Lang)</span></summary>
+            <div class="small mb-3" style="color: var(--rf-text-secondary);">@UiText.HintAdjustments(Lang)</div>
+            @NumberRow(UiText.LabelMaxHpAdjustment(Lang), Sheet.MaxHitPointsAdjustment, v => Sheet.MaxHitPointsAdjustment = v, "max-hp")
+            @NumberRow(UiText.SheetArmorClass(Lang), Sheet.ArmorClassAdjustment, v => Sheet.ArmorClassAdjustment = v, "ac")
+            @NumberRow(UiText.SheetSpeed(Lang), Sheet.SpeedAdjustment, v => Sheet.SpeedAdjustment = v, "speed")
+            @NumberRow(UiText.SheetInitiative(Lang), Sheet.InitiativeAdjustment, v => Sheet.InitiativeAdjustment = v, "initiative")
 
             <div class="rf-wizard-counter">@UiText.LabelExtraSkills(Lang)</div>
             <div class="rf-wizard-pills">
@@ -813,7 +841,50 @@
                 }
             </div>
             @NoteField(UiText.LabelOtherProficiencies(Lang), Sheet.OtherProficiencies, v => Sheet.OtherProficiencies = v, 2)
-        </section>
+        </details>
+    </div>;
+
+    private RenderFragment TextRow(string label, string? value, Action<string?> set, string key) => @<div class="rf-wizard-row">
+        <div class="rf-wizard-label">@label</div>
+        <div class="rf-wizard-field">
+            <input class="rf-wizard-input" value="@value" maxlength="40" @onchange="e => SetText(set, e)" data-test="@($"sheet-{key}")" />
+        </div>
+    </div>;
+
+    private RenderFragment NumberRow(string label, int value, Action<int> set, string key) => @<div class="rf-wizard-row">
+        <div class="rf-wizard-label">@label</div>
+        <div class="rf-wizard-field">
+            <input type="number" class="rf-wizard-input rf-number-input" value="@value" @onchange="e => SetNumber(set, e)" data-test="@($"sheet-adjust-{key}")" />
+        </div>
+    </div>;
+
+    //	A class resource: dots with "use" for a few uses, a counter for pools of points (Lay on Hands, Ki…)
+    private RenderFragment ClassResourceRow(ClassResource resource) => @<div class="rf-slot-row" data-test="sheet-class-resource">
+        <div class="rf-resource-name">
+            <span>@resource.Name</span>
+            <small>@ResetName(resource.Reset)</small>
+        </div>
+        @if (resource.Pool || resource.Maximum > 10)
+        {
+            <div class="rf-resource-pool">
+                <button type="button" class="rf-mini-btn" @onclick="() => SetResourceLeft(resource, ResourceLeft(resource) - 1)" aria-label="−1">−</button>
+                <input type="number" min="0" max="@resource.Maximum" class="rf-coin-input" value="@ResourceLeft(resource)" @onchange="e => SetResourceInput(resource, e)" aria-label="@resource.Name" data-test="sheet-class-resource-left" />
+                <span class="rf-resource-max">/ @resource.Maximum</span>
+                <button type="button" class="rf-mini-btn" @onclick="() => SetResourceLeft(resource, ResourceLeft(resource) + 1)" aria-label="+1">+</button>
+            </div>
+        }
+        else
+        {
+            var left = ResourceLeft(resource);
+            <div class="rf-slot-dots">
+                @for (var i = 0; i < resource.Maximum; i++)
+                {
+                    var index = i;
+                    <button type="button" class="rf-slot-dot @(index < left ? "full" : null)" @onclick="() => ToggleResource(resource, resource.Maximum - 1 - index)" aria-label="@resource.Name @(index + 1)"></button>
+                }
+            </div>
+            <button type="button" class="rf-slot-use" disabled="@(left == 0)" @onclick="() => SetResourceLeft(resource, left - 1)" data-test="sheet-class-resource-use">@UiText.BtnUse(Lang)</button>
+        }
     </div>;
 
     private RenderFragment NoteField(string label, string? value, Action<string?> set, int rows) => @<div class="rf-wizard-row">

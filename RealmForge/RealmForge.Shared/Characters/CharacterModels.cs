@@ -140,6 +140,9 @@ public sealed class CharacterSheetState
 	public CoinPurse Coins { get; set; } = new();
 	public List<ResourceCounter> Resources { get; set; } = new();
 
+	//	Uses spent of the class resources the sheet computes on its own (key of CharacterResources → spent)
+	public Dictionary<string, int> ResourceUses { get; set; } = new();
+
 	public int Experience { get; set; }
 
 	//	How the character gains levels: experience points or story milestones decided by the game master
