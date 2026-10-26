@@ -53,9 +53,10 @@ namespace RealmForge.Client.Pages
 		///	<summary>
 		///	Skills the character already has from the steps reached so far: they cannot be picked twice.
 		///	</summary>
-		public IReadOnlyCollection<Skill> KnownSkills
+		public IReadOnlyCollection<Skill> KnownSkills => KnownSkillsExcept(null);
+
+		private HashSet<Skill> KnownSkillsExcept(CharacterClassBuild? skip)
 		{
-			get
 			{
 				var known = new HashSet<Skill>();
 				if (Reached(WizardStep.Background) && Background is not null)
@@ -67,7 +68,7 @@ namespace RealmForge.Client.Pages
 					known.UnionWith(SpeciesFixedSkills);
 					known.UnionWith(Build.SpeciesSkills);
 				}
-				foreach (var entry in Build.Classes)
+				foreach (var entry in Build.Classes.Where(e => e != skip))
 				{
 					known.UnionWith(entry.Skills);
 				}
@@ -76,12 +77,28 @@ namespace RealmForge.Client.Pages
 					known.UnionWith(feat.Choice.Skills);
 				}
 				known.UnionWith(Input.Sheet.ExtraSkills);
-				if (Reached(WizardStep.Background) && Reached(WizardStep.Species))
+				if (skip is null && Reached(WizardStep.Background) && Reached(WizardStep.Species))
 				{
 					known.UnionWith(Computed.SkillProficiencies);
 				}
 				return known;
 			}
+		}
+
+		///	<summary>
+		///	The rules engine sees the preselected background and species even before their steps: a class skill they
+		///	grant is not a mistake yet (it is given back when that step is reached), so the class step accepts it.
+		///	</summary>
+		private bool StartingClassSkillsFine()
+		{
+			if (StartingClass is not { } cls || StartingClassBuild is not { } entry)
+			{
+				return false;
+			}
+			var chosen = entry.Skills;
+			var others = KnownSkillsExcept(entry);
+			return chosen.Count <= cls.SkillChoiceCount && chosen.Distinct().Count() == chosen.Count
+				&& chosen.All(cls.SkillOptions.Contains) && !chosen.Any(others.Contains);
 		}
 
 		///	<summary>
