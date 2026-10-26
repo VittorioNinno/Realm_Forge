@@ -392,6 +392,11 @@ namespace RealmForge.Client.Pages
 			var match = System.Text.RegularExpressions.Regex.Match(dice.Replace('−', '-'), @"^(\d+)d(\d+)\s*([+-]\s*\d+)?");
 			if (!match.Success)
 			{
+				//	Flat damage (an Unarmed Strike: 1 + Strength)
+				if (int.TryParse(dice.Replace('−', '-'), out var flat))
+				{
+					ShowRoll(new DiceRollResult(label, new List<DieFace>(), 0, Math.Max(0, flat)));
+				}
 				return;
 			}
 
