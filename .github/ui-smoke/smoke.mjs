@@ -978,6 +978,7 @@ try {
   const lastOk = results.filter((r) => r.startsWith('OK')).at(-1) ?? '';
   const where = await page.evaluate(() => `${location.pathname}${location.search} step="${document.querySelector('[data-test=wizard-step-title]')?.textContent?.trim() ?? ''}" problems="${document.querySelector('[data-test=wizard-error]')?.textContent?.replace(/\s+/g, ' ').trim() ?? ''}"`).catch(() => 'n/a');
   results.push(`DEBUG after "${lastOk.slice(3, 120)}" at ${where}`);
+  results.push(`DEBUG last console messages: ${consoleErrors.slice(-4).map((c) => c.replace(/\s+/g, ' ').slice(0, 400)).join(' || ')}`);
   const stored = await page.evaluate(() => localStorage.getItem('realmforge.auth')).catch(() => 'n/a');
   results.push(`DEBUG localStorage=${stored ? stored.slice(0, 60) : stored}`);
   results.push(`DEBUG auth calls: ${authCalls.join(' | ')}`);
