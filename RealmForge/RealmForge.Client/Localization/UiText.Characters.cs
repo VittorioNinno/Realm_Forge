@@ -726,5 +726,21 @@ namespace RealmForge.Client.Localization
 		public static string SlotsLeft(int left, int total, LanguageCode lang) => T(lang, $"{left} su {total} liberi", $"{left} of {total} left");
 		public static string CastSlot(int level, LanguageCode lang) => T(lang, $"slot di {level}° livello", $"level {level} slot");
 		public static string CastPact(int level, LanguageCode lang) => T(lang, $"Slot del patto ({level}°)", $"Pact slot (level {level})");
+			// ===== Attacks and the full turn summary =====
+
+		public static string LabelToHit(LanguageCode lang) => T(lang, "Colpire", "To hit");
+		public static string LabelDamage(LanguageCode lang) => T(lang, "Danni", "Damage");
+		public static string LabelTwoHands(LanguageCode lang) => T(lang, "A due mani", "Two hands");
+		public static string UnarmedStrike(LanguageCode lang) => T(lang, "Colpo senz'armi", "Unarmed Strike");
+		public static string UnarmedDetail(LanguageCode lang) => T(lang, "Mischia · sempre competente", "Melee · always proficient");
+		public static string TurnFeatures(LanguageCode lang) => T(lang, "Privilegi", "Features");
+		public static string TurnOtherActions(LanguageCode lang) => T(lang, "Altre azioni", "Other actions");
+		public static string TurnNoSpells(LanguageCode lang) => T(lang, "nessun incantesimo lanciabile ora", "no spell can be cast now");
+		public static string TurnNothing(LanguageCode lang) => T(lang, "nessuna", "none");
+		public static string TurnOffHand(LanguageCode lang) => T(lang, "seconda arma", "off hand");
+		public static string TurnFree(LanguageCode lang) => T(lang, "Senza azione", "Free");
+		public static string TurnInteract(LanguageCode lang) => T(lang, "Interagire con un oggetto", "Interact with an object");
+		public static string TurnTalk(LanguageCode lang) => T(lang, "Parlare brevemente", "Speak briefly");
+		public static string TurnBlocked(LanguageCode lang) => T(lang, "Incapacitato o a 0 punti ferita: nessuna azione né reazione.", "Incapacitated or at 0 hit points: no actions or reactions.");
 	}
 }
