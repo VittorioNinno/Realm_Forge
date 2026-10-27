@@ -32,22 +32,30 @@ namespace RealmForge.Api.Security
 		///	<summary>
 		///	Detail pages and share links: base content, public and link entries, plus the user's own (or any, for admins).
 		///	</summary>
-		public bool CanView(GameEntity entity, ClaimsPrincipal user) =>
-			entity.IsOfficialSRD || entity.Visibility != ContentVisibility.Private || IsAuthorOrAdmin(entity, user);
+		public bool CanView(GameEntity entity, ClaimsPrincipal user, IReadOnlySet<Guid> shared) =>
+			entity.IsOfficialSRD || entity.Visibility != ContentVisibility.Private || shared.Contains(entity.Id) || IsAuthorOrAdmin(entity, user);
 
 		///	<summary>
-		///	Lists show base content, public entries and the user's own; link-only entries are reachable through their link.
+		///	Lists show base content, public entries, the user's own and the ones shared with the user (chosen by the author,
+		///	or link-only entries the user added to the collection); other link-only entries are reachable through their link.
 		///	</summary>
-		public bool IsListed(GameEntity entity, ClaimsPrincipal user) =>
-			entity.IsOfficialSRD || entity.Visibility == ContentVisibility.Public || IsAuthor(entity, user);
+		public bool IsListed(GameEntity entity, ClaimsPrincipal user, IReadOnlySet<Guid> shared) =>
+			entity.IsOfficialSRD || entity.Visibility == ContentVisibility.Public || shared.Contains(entity.Id) || IsAuthor(entity, user);
+
+		///	<summary>
+		///	A subclass or lineage is also listed when its class or species was shared with the user by the same author.
+		///	</summary>
+		public bool IsListed(GameEntity child, ClaimsPrincipal user, IReadOnlySet<Guid> shared, GameEntity parent) =>
+			IsListed(child, user, shared) || (shared.Contains(parent.Id) && child.AuthorId is not null && child.AuthorId == parent.AuthorId);
 
 		///	<summary>
 		///	Same rule as <see cref="IsListed"/>, translated to SQL.
 		///	</summary>
-		public static IQueryable<T> ListedFor<T>(IQueryable<T> query, ClaimsPrincipal user) where T : GameEntity
+		public static IQueryable<T> ListedFor<T>(IQueryable<T> query, ClaimsPrincipal user, IReadOnlySet<Guid> shared) where T : GameEntity
 		{
 			var userId = user.Identity?.IsAuthenticated == true ? GetUserId(user) : null;
-			return query.Where(e => e.IsOfficialSRD || e.Visibility == ContentVisibility.Public || (userId != null && e.AuthorId == userId));
+			var sharedIds = shared.ToList();
+			return query.Where(e => e.IsOfficialSRD || e.Visibility == ContentVisibility.Public || (userId != null && e.AuthorId == userId) || sharedIds.Contains(e.Id));
 		}
 
 		private static bool IsAuthor(GameEntity entity, ClaimsPrincipal user)

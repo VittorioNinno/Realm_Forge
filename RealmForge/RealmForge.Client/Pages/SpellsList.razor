@@ -182,7 +182,7 @@
 
             @if (!spellDetail.IsOfficialSRD)
             {
-                <ShareLink Visibility="spellDetail.Visibility" CanEdit="spellDetail.CanEdit" Path="@($"spells?id={spellDetail.Id}")" />
+                <ShareLink Visibility="spellDetail.Visibility" CanEdit="spellDetail.CanEdit" EntityId="spellDetail.Id" Path="@($"spells?id={spellDetail.Id}")" />
             }
 
             @* Stat block *@

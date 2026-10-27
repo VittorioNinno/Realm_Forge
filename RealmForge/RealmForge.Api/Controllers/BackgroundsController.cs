@@ -26,11 +26,13 @@ namespace RealmForge.Api.Controllers
 
 		private readonly RealmForgeDbContext _context;
 		private readonly ContentAccess _access;
+		private readonly ShareService _shares;
 
-		public BackgroundsController(RealmForgeDbContext context, ContentAccess access)
+		public BackgroundsController(RealmForgeDbContext context, ContentAccess access, ShareService shares)
 		{
 			_context = context;
 			_access = access;
+			_shares = shares;
 		}
 
 		//	GET: api/backgrounds?lang=2&ruleset=2&isOfficial=true
@@ -53,7 +55,7 @@ namespace RealmForge.Api.Controllers
 			}
 
 			//	Private Homebrew of other users and link-only entries are not listed
-			query = ContentAccess.ListedFor(query, User);
+			query = ContentAccess.ListedFor(query, User, await _shares.SharedWithAsync(User));
 
 			var backgrounds = await query.ToListAsync();
 
@@ -88,7 +90,7 @@ namespace RealmForge.Api.Controllers
 			var background = await WithDetails(_context.Backgrounds.AsNoTracking()).FirstOrDefaultAsync(b => b.Id == id);
 
 			//	Private entries of other users answer 404, as if they did not exist
-			if (background == null || !_access.CanView(background, User))
+			if (background == null || !_access.CanView(background, User, await _shares.SharedWithAsync(User)))
 			{
 				return NotFound();
 			}

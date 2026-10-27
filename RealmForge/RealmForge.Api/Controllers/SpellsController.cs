@@ -24,11 +24,13 @@ namespace RealmForge.Api.Controllers
 
 		private readonly RealmForgeDbContext _context;
 		private readonly ContentAccess _access;
+		private readonly ShareService _shares;
 
-		public SpellsController(RealmForgeDbContext context, ContentAccess access)
+		public SpellsController(RealmForgeDbContext context, ContentAccess access, ShareService shares)
 		{
 			_context = context;
 			_access = access;
+			_shares = shares;
 		}
 
 		//	GET: api/spells?lang=2&ruleset=1&isOfficial=true&level=3&school=5&spellClass=8
@@ -69,7 +71,7 @@ namespace RealmForge.Api.Controllers
 				query = query.Where(s => s.Classes.Contains(spellClass.Value));
 			}
 
-			query = ContentAccess.ListedFor(query, User);
+			query = ContentAccess.ListedFor(query, User, await _shares.SharedWithAsync(User));
 
 			var spells = await query.ToListAsync();
 
@@ -107,7 +109,7 @@ namespace RealmForge.Api.Controllers
 			var spell = await _context.Spells.AsNoTracking().Include(s => s.Translations).FirstOrDefaultAsync(s => s.Id == id);
 
 			//	Private entries of other users answer 404, as if they did not exist
-			if (spell == null || !_access.CanView(spell, User))
+			if (spell == null || !_access.CanView(spell, User, await _shares.SharedWithAsync(User)))
 			{
 				return NotFound();
 			}

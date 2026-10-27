@@ -57,6 +57,32 @@
                     }
                 </div>
             }
+
+            @if (shared is { Count: > 0 })
+            {
+                <h2 class="rf-characters-shared-title" data-test="shared-characters-title">@UiText.SharedCharactersTitle(Lang)</h2>
+                <p class="small" style="color: var(--rf-text-muted);">@UiText.SharedCharactersHint(Lang)</p>
+                <div class="rf-character-grid" data-test="shared-characters">
+                    @foreach (var entry in shared)
+                    {
+                        var character = entry.Character;
+                        <a href="@($"characters/{character.Id}")" class="rf-character-card shared" data-test="shared-character-card">
+                            <div class="d-flex justify-content-between align-items-start gap-2 flex-wrap">
+                                <div class="rf-character-card-name">@character.Name</div>
+                                <span class="badge @(character.Ruleset == RulesetVersion.Dnd5e_2024 ? "badge-edition-2024" : "badge-edition-2014")">@UiText.FormatRuleset(character.Ruleset, Lang)</span>
+                            </div>
+                            <div class="small mt-1" style="color: var(--rf-text-secondary);">
+                                @character.SpeciesName · @character.ClassLine · @UiText.CharacterLevel(character.Level, Lang)
+                            </div>
+                            <div class="rf-character-card-owner">@UiText.SharedBy(entry.OwnerName, Lang)</div>
+                            <div class="d-flex gap-3 mt-2 small">
+                                <span><strong style="color: var(--rf-orange-primary);">@UiText.SheetArmorClass(Lang)</strong> @character.ArmorClass</span>
+                                <span><strong style="color: var(--rf-orange-primary);">@UiText.SheetHitPoints(Lang)</strong> @character.CurrentHitPoints / @character.MaxHitPoints</span>
+                            </div>
+                        </a>
+                    }
+                </div>
+            }
         </Authorized>
         <NotAuthorized>
             <div class="rf-account-card text-center">
@@ -71,6 +97,7 @@
     [CascadingParameter] private Task<AuthenticationState>? AuthState { get; set; }
 
     private List<CharacterSummaryDto>? characters;
+    private List<SharedCharacterDto>? shared;
 
     private LanguageCode Lang => LanguageState.CurrentLanguage;
 
@@ -88,7 +115,10 @@
             return;
         }
 
-        characters = await CharacterService.GetCharactersAsync(Lang) ?? new List<CharacterSummaryDto>();
+        var mine = CharacterService.GetCharactersAsync(Lang);
+        var others = CharacterService.GetSharedCharactersAsync(Lang);
+        characters = await mine ?? new List<CharacterSummaryDto>();
+        shared = await others;
     }
 
     private void OnLanguageChanged() => _ = InvokeAsync(async () =>
