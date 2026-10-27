@@ -25,11 +25,13 @@ namespace RealmForge.Api.Controllers
 
 		private readonly RealmForgeDbContext _context;
 		private readonly ContentAccess _access;
+		private readonly ShareService _shares;
 
-		public ClassesController(RealmForgeDbContext context, ContentAccess access)
+		public ClassesController(RealmForgeDbContext context, ContentAccess access, ShareService shares)
 		{
 			_context = context;
 			_access = access;
+			_shares = shares;
 		}
 
 		//	GET: api/classes?lang=2&ruleset=1&isOfficial=true
@@ -56,15 +58,16 @@ namespace RealmForge.Api.Controllers
 				query = query.Where(c => c.IsOfficialSRD == isOfficial.Value);
 			}
 
-			query = ContentAccess.ListedFor(query, User);
+			query = ContentAccess.ListedFor(query, User, await _shares.SharedWithAsync(User));
 
 			var classes = await query.ToListAsync();
+			var shared = await _shares.SharedWithAsync(User);
 
 			var dtos = classes.Select(c =>
 			{
 				var tr = c.Translations.Localize(lang);
 				var subclassNames = c.Subclasses
-					.Where(s => _access.IsListed(s, User))
+					.Where(s => _access.IsListed(s, User, shared, c))
 					.Select(s => s.Translations.Localize(lang)?.Name ?? "Unknown")
 					.OrderBy(n => n, StringComparer.CurrentCultureIgnoreCase)
 					.ToList();
@@ -106,17 +109,18 @@ namespace RealmForge.Api.Controllers
 				.FirstOrDefaultAsync(c => c.Id == id);
 
 			//	Private entries of other users answer 404, as if they did not exist
-			if (characterClass == null || !_access.CanView(characterClass, User))
+			if (characterClass == null || !_access.CanView(characterClass, User, await _shares.SharedWithAsync(User)))
 			{
 				return NotFound();
 			}
 
 			var tr = characterClass.Translations.Localize(lang);
 			var className = tr?.Name ?? "Unknown";
+			var sharedWithUser = await _shares.SharedWithAsync(User);
 
 			//	Subclasses follow the list rule: other users' private or link-only subclasses are left out
 			var subclasses = characterClass.Subclasses
-				.Where(s => _access.IsListed(s, User))
+				.Where(s => _access.IsListed(s, User, sharedWithUser, characterClass))
 				.Select(s => ToSubclassDto(s, className, lang, _access.CanModify(s, User)))
 				.OrderBy(s => s.IsOfficialSRD ? 0 : 1)
 				.ThenBy(s => s.Name, StringComparer.CurrentCultureIgnoreCase)

@@ -24,6 +24,9 @@ namespace RealmForge.Client.Services
 			_logger = logger;
 		}
 
+		//	Something changed what the user can use (an entry shared or collected): the next context is loaded again
+		public void InvalidateContexts() => _contexts.Clear();
+
 		public Task<CharacterContextDto?> GetContextAsync(RulesetVersion ruleset, LanguageCode language, bool refresh = false)
 		{
 			var key = (ruleset, language);
@@ -50,6 +53,39 @@ namespace RealmForge.Client.Services
 				return null;
 			}
 		}
+
+		//	Rules of a character shared with me: the compendium its owner sees (not cached)
+		public async Task<CharacterContextDto?> GetCharacterContextAsync(Guid characterId, RulesetVersion ruleset, LanguageCode language)
+		{
+			try
+			{
+				return await _http.GetFromJsonAsync<CharacterContextDto>($"api/characters/context?ruleset={(int)ruleset}&lang={(int)language}&character={characterId}");
+			}
+			catch (Exception ex)
+			{
+				_logger.LogError(ex, "Failed to load the rules of shared character {CharacterId}", characterId);
+				return null;
+			}
+		}
+
+		public async Task<List<SharedCharacterDto>?> GetSharedCharactersAsync(LanguageCode language)
+		{
+			try
+			{
+				return await _http.GetFromJsonAsync<List<SharedCharacterDto>>($"api/characters/shared?lang={(int)language}") ?? new List<SharedCharacterDto>();
+			}
+			catch (Exception ex)
+			{
+				_logger.LogError(ex, "Failed to load the characters shared with me");
+				return null;
+			}
+		}
+
+		public Task<List<ShareUserDto>?> GetCharacterSharesAsync(Guid id) => ShareRequests.GetUsersAsync(_http, $"api/characters/{id}/shares", _logger);
+
+		public Task<ShareResult> ShareCharacterAsync(Guid id, string email) => ShareRequests.AddAsync(_http, $"api/characters/{id}/shares", email, _logger);
+
+		public Task<bool> UnshareCharacterAsync(Guid id, string userId) => ShareRequests.RemoveAsync(_http, $"api/characters/{id}/shares/{Uri.EscapeDataString(userId)}", _logger);
 
 		public async Task<List<CharacterSummaryDto>?> GetCharactersAsync(LanguageCode language)
 		{

@@ -912,5 +912,57 @@ namespace RealmForge.Client.Localization
 		public static string BookWrite(LanguageCode lang) => T(lang, "Scrivi", "Write");
 		public static string BookCopy(int gold, LanguageCode lang) => T(lang, $"Copia ({gold} mo)", $"Copy ({gold} gp)");
 		public static string CopyNotEnoughGold(int gold, LanguageCode lang) => T(lang, $"Servono {gold} mo per copiare questi incantesimi.", $"Copying these spells costs {gold} gp.");
+			// ===== Sheet: critical hits at 0 HP, roll mode, short rest, custom resources =====
+
+		public static string BtnCriticalDamage(LanguageCode lang) => T(lang, "Critico", "Critical");
+		public static string CriticalHitHint(LanguageCode lang) => T(lang,
+			"Danno da colpo critico: a 0 punti ferita conta come due fallimenti ai tiri contro la morte.",
+			"Damage from a critical hit: at 0 hit points it counts as two failed death saves.");
+		public static string SheetAbilitiesTitle(LanguageCode lang) => T(lang, "Caratteristiche e tiri salvezza", "Abilities and saving throws");
+		public static string RollModeLabel(LanguageCode lang) => T(lang, "Come tirare il d20", "How to roll the d20");
+		public static string ShortRestIntro(LanguageCode lang) => T(lang,
+			"Durante il riposo breve puoi spendere dadi vita: ogni dado che scegli di spendere si tira e cura il risultato più il modificatore di Costituzione. Non se ne spende nessuno da solo.",
+			"During a short rest you can spend hit dice: each die you choose to spend is rolled and heals the result plus your Constitution modifier. None is spent on its own.");
+		public static string ShortRestFull(LanguageCode lang) => T(lang, "Hai già tutti i punti ferita: non serve spendere dadi vita.", "You are at full hit points: no need to spend hit dice.");
+		public static string HitDiceLeft(int die, int left, int total, LanguageCode lang) => T(lang, $"Dadi vita d{die}: {left} su {total}", $"Hit dice d{die}: {left} of {total}");
+		public static string BtnSpendOne(int die, LanguageCode lang) => T(lang, $"Spendi 1d{die}", $"Spend 1d{die}");
+		public static string HitDieSpentLine(int die, int roll, int modifier, int healed, LanguageCode lang) =>
+			T(lang, $"d{die}: {roll} {CharacterMath.FormatModifier(modifier)} → +{healed} PF", $"d{die}: {roll} {CharacterMath.FormatModifier(modifier)} → +{healed} HP");
+		public static string ShortRestRecovers(LanguageCode lang) => T(lang, "Alla fine del riposo tornano:", "At the end of the rest you regain:");
+		public static string NewResource(LanguageCode lang) => T(lang, "Nuova risorsa", "New resource");
+		public static string ResetLongShort(LanguageCode lang) => T(lang, "Riposo lungo", "Long rest");
+		public static string ResetShortShort(LanguageCode lang) => T(lang, "Riposo breve", "Short rest");
+			// ===== Sharing =====
+
+		public static string BtnShare(LanguageCode lang) => T(lang, "Condividi", "Share");
+		public static string BtnShareCharacter(LanguageCode lang) => T(lang, "Condividi il personaggio", "Share the character");
+		public static string ShareCharacterTitle(LanguageCode lang) => T(lang, "Chi può vedere la scheda", "Who can see the sheet");
+		public static string ShareCharacterHint(LanguageCode lang) => T(lang,
+			"Il master (o chi scegli) vede la scheda aggiornata in sola lettura: tira i dadi e la consulta, ma non può modificarla.",
+			"The game master (or whoever you pick) sees the up-to-date sheet read-only: they can roll and look, not change it.");
+		public static string SharePeopleTitle(LanguageCode lang) => T(lang, "Condiviso con", "Shared with");
+		public static string SharePeopleHint(LanguageCode lang) => T(lang,
+			"Le persone scelte lo vedono negli elenchi e lo possono usare nella creazione del personaggio, qualunque sia la visibilità.",
+			"The people you pick see it in the lists and can use it in character creation, whatever the visibility.");
+		public static string PlaceholderShareEmail(LanguageCode lang) => T(lang, "E-mail dell'account", "Account e-mail");
+		public static string LoadingShares(LanguageCode lang) => T(lang, "Caricamento…", "Loading…");
+		public static string BtnStopSharing(LanguageCode lang) => T(lang, "Smetti di condividere", "Stop sharing");
+		public static string ShareNoAccount(LanguageCode lang) => T(lang, "Nessun account RealmForge con questa e-mail.", "No RealmForge account with this e-mail.");
+		public static string ShareInvalid(LanguageCode lang) => T(lang, "Indirizzo non valido, è il tuo o il limite di persone è stato raggiunto.", "Invalid address, your own, or the limit of people was reached.");
+		public static string ShareFailed(LanguageCode lang) => T(lang, "Condivisione non riuscita, riprova.", "Sharing failed, try again.");
+		public static string SharedWithYou(LanguageCode lang) => T(lang, "L'autore lo ha condiviso con te: lo trovi negli elenchi e nella creazione del personaggio.", "The author shared it with you: you find it in the lists and in character creation.");
+		public static string InYourCollection(LanguageCode lang) => T(lang, "È nella tua raccolta: lo trovi negli elenchi e nella creazione del personaggio.", "It is in your collection: you find it in the lists and in character creation.");
+		public static string CollectHint(LanguageCode lang) => T(lang, "Aggiungilo alla tua raccolta per usarlo nella creazione del personaggio.", "Add it to your collection to use it in character creation.");
+		public static string BtnAddToCollection(LanguageCode lang) => T(lang, "Aggiungi alla raccolta", "Add to collection");
+		public static string BtnRemoveFromCollection(LanguageCode lang) => T(lang, "Togli dalla raccolta", "Remove from collection");
+		public static string BtnHideShared(LanguageCode lang) => T(lang, "Non mostrarlo più", "Stop showing it");
+		public static string SharedCharactersTitle(LanguageCode lang) => T(lang, "Condivisi con te", "Shared with you");
+		public static string SharedCharactersHint(LanguageCode lang) => T(lang, "Schede che altri giocatori ti hanno condiviso, in sola lettura.", "Sheets other players shared with you, read-only.");
+		public static string SharedBy(string owner, LanguageCode lang) => T(lang, $"di {owner}", $"by {owner}");
+		public static string ReadOnlySheet(LanguageCode lang) => T(lang,
+			"Scheda condivisa con te in sola lettura: puoi consultarla e tirare i dadi, ma le modifiche non vengono salvate.",
+			"Sheet shared with you, read-only: you can look and roll, changes are not saved.");
+		public static string BtnRefresh(LanguageCode lang) => T(lang, "Aggiorna", "Refresh");
+		public static string BtnStopFollowing(LanguageCode lang) => T(lang, "Non seguire più", "Stop following");
 	}
 }

@@ -37,6 +37,43 @@ namespace RealmForge.Client.Pages
 		private bool Dead => Sheet.DeathSaveFailures >= 3;
 
 		private bool deathRolling;
+		private readonly List<string> shortRestLog = new();
+
+		private void OpenShortRest()
+		{
+			shortRestLog.Clear();
+			shortRestOpen = true;
+		}
+
+		//	What a short rest gives back besides the hit dice spent
+		private IEnumerable<string> ShortRestRecoveries
+		{
+			get
+			{
+				if (computed?.PactSlots > 0)
+				{
+					yield return UiText.SheetPactSlots(computed.PactSlotLevel, Lang);
+				}
+				foreach (var resource in ClassResources.Where(r => r.Reset != ResourceReset.LongRest))
+				{
+					yield return resource.Reset == ResourceReset.OneOnShortRest ? $"{resource.Name} (1)" : resource.Name;
+				}
+				foreach (var resource in Sheet.Resources.Where(r => r.ShortRest))
+				{
+					yield return resource.Name;
+				}
+				foreach (var item in Sheet.Inventory.Where(i => i.Magic is { Charges: > 0, Recharge: ItemRecharge.ShortRest }))
+				{
+					yield return ItemName(item);
+				}
+			}
+		}
+
+		private void DamageCritical()
+		{
+			criticalHit = true;
+			Damage();
+		}
 		private bool criticalHit;
 		private string? deathNote;
 		private int? concentrationDc;

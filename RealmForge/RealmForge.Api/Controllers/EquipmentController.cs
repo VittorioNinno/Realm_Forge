@@ -25,11 +25,13 @@ namespace RealmForge.Api.Controllers
 
 		private readonly RealmForgeDbContext _context;
 		private readonly ContentAccess _access;
+		private readonly ShareService _shares;
 
-		public EquipmentController(RealmForgeDbContext context, ContentAccess access)
+		public EquipmentController(RealmForgeDbContext context, ContentAccess access, ShareService shares)
 		{
 			_context = context;
 			_access = access;
+			_shares = shares;
 		}
 
 		//	GET: api/equipment?lang=2&ruleset=2&isOfficial=true&category=1
@@ -57,7 +59,7 @@ namespace RealmForge.Api.Controllers
 				query = query.Where(e => e.Category == category.Value);
 			}
 
-			query = ContentAccess.ListedFor(query, User);
+			query = ContentAccess.ListedFor(query, User, await _shares.SharedWithAsync(User));
 
 			var items = await query.ToListAsync();
 
@@ -89,7 +91,7 @@ namespace RealmForge.Api.Controllers
 			var item = await _context.Equipment.AsNoTracking().Include(e => e.Translations).FirstOrDefaultAsync(e => e.Id == id);
 
 			//	Private entries of other users answer 404, as if they did not exist
-			if (item == null || !_access.CanView(item, User))
+			if (item == null || !_access.CanView(item, User, await _shares.SharedWithAsync(User)))
 			{
 				return NotFound();
 			}

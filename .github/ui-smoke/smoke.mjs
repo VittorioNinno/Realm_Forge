@@ -849,6 +849,14 @@ try {
       tabs.attunement = (await page.locator('[data-test=sheet-attunement]').innerText()).trim();
     }
   }
+  // Sharing the character: the dialog adds people by e-mail and says when no account has that address
+  await page.locator('[data-test=sheet-share]').click();
+  await page.locator('[data-test=sheet-share-dialog] [data-test=share-email]').fill('nobody@example.com');
+  await page.locator('[data-test=sheet-share-dialog] [data-test=share-add]').click();
+  const shareError = (await page.locator('[data-test=sheet-share-dialog] [data-test=share-error]').innerText({ timeout: 15000 })).trim();
+  await page.locator('[data-test=sheet-share-dialog] button', { hasText: /chiudi/i }).click();
+  if (!/Nessun account/.test(shareError)) throw new Error(`sharing with an unknown address: "${shareError}"`);
+  ok('character sharing: the dialog adds people by e-mail and explains an unknown address');
   const [download] = await Promise.all([page.waitForEvent('download', { timeout: 20000 }), page.locator('[data-test=sheet-pdf]').click()]);
   const pdfPath = await download.path();
   const pdfHead = readFileSync(pdfPath).subarray(0, 8).toString('latin1');

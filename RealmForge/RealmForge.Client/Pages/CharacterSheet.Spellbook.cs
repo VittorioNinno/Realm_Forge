@@ -56,7 +56,7 @@ namespace RealmForge.Client.Pages
 		//	A class level the sheet has not seen yet: the replacements of that level (one spell, one cantrip)
 		private void TrackLevelUps()
 		{
-			if (computed is null || character is null)
+			if (computed is null || character is null || ReadOnly)
 			{
 				return;
 			}
@@ -229,7 +229,7 @@ namespace RealmForge.Client.Pages
 
 		private async Task SaveBookAsync()
 		{
-			if (bookSource?.Class is not { } info || character is null || BuildOf(bookSource) is null)
+			if (bookSource?.Class is not { } info || character is null || ReadOnly || BuildOf(bookSource) is null)
 			{
 				return;
 			}
