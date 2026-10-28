@@ -405,7 +405,7 @@
 @if (magicEditorOpen)
 {
     <MagicItemEditor IsNew="magicTarget is null" ItemName="@(magicTarget is null ? null : ItemName(magicTarget))" Kind="MagicKindOf(magicTarget)"
-                     Initial="magicTarget?.Magic" OnSave="SaveMagic" OnCancel="() => magicEditorOpen = false" />
+                     Initial="magicTarget?.Magic" Ruleset="Ruleset" OnSave="SaveMagic" OnCancel="() => magicEditorOpen = false" />
 }
 
 @if (shortRestOpen && computed is not null)

@@ -502,6 +502,37 @@ jobs:
           check "DELETE" "$eq_delete" "204"
           test "$eqfail" = "0"
 
+          # Magic items: 412 entries of 2014 (276 items and 136 variants; 366 from the SRD 5.1, 46 of the DMG written by
+          # RealmForge), filters by category, the official Italian names, variants with their item and the rules the sheet applies
+          mi_all=$(get "$api/api/magic-items?ruleset=1&lang=2")
+          mi14=$(echo "$mi_all" | jq -c '{total: length, items: map(select(.parentId == null)) | length, srd: map(select(.source == 2)) | length, realmforge: map(select(.source == 1)) | length, rules: map(select(.mechanics != null)) | length}')
+          mi_types=$(echo "$mi_all" | jq -c '[map(select(.parentId == null)) | group_by(.type)[] | {(.[0].type | tostring): length}] | add')
+          mi_rings=$(get "$api/api/magic-items?ruleset=1&type=3&lang=1" | jq length)
+          mi_names=$(echo "$mi_all" | jq -c '[.[] | select(.name == "Anello di protezione" or .name == "Armatura demoniaca" or .name == "Guanti del potere orchesco" or .name == "Lama nera") | .name] | sort')
+          mi_ring=$(echo "$mi_all" | jq -c '.[] | select(.name == "Anello di protezione") | {rarity, attunement: .requiresAttunement, effects: [.mechanics.effects[] | [.kind, .value]]}')
+          superior=$(echo "$mi_all" | jq -r '.[] | select(.name == "Pozione di guarigione superiore") | .id')
+          mi_superior=$(get "$api/api/magic-items/$superior?lang=2" | jq -c '{name, parentName, rarity, heal: .mechanics.healDice, text: (.description | contains("Guarigione suprema"))}')
+          healing=$(echo "$mi_all" | jq -r '.[] | select(.name == "Pozione di guarigione" and .parentId == null) | .id')
+          mi_healing_en=$(get "$api/api/magic-items/$healing?lang=1" | jq -c '{name, variants: [.variants[].name]}')
+          haversack=$(echo "$mi_all" | jq -r '.[] | select(.name == "Zainetto pratico") | .id')
+          mi_alias=$(get "$api/api/magic-items/$haversack?lang=1" | jq -c '{name, alias}')
+          mi_post=$(code -X POST $api/api/magic-items $json -H "Authorization: Bearer $A" -d '{}')
+          mi_missing=$(code "$api/api/magic-items/00000000-0000-0000-0000-000000000001?lang=1")
+          echo "::notice title=database::magic items 2014: $mi14 | types=$mi_types | rings EN=$mi_rings | names=$mi_names | ring=$mi_ring | superior=$mi_superior | healing EN=$mi_healing_en | alias=$mi_alias | POST=$mi_post | unknown=$mi_missing"
+          mifail=0
+          micheck() { if [ "$2" != "$3" ]; then echo "::error title=magic items::$1: got '$2', expected '$3'"; mifail=1; fi; }
+          micheck "2014 counts" "$mi14" '{"total":412,"items":276,"srd":366,"realmforge":46,"rules":145}'
+          micheck "categories" "$mi_types" '{"1":20,"2":25,"3":22,"4":9,"5":2,"6":13,"7":14,"8":38,"9":133}'
+          micheck "rings (filter)" "$mi_rings" "36"
+          micheck "official names" "$mi_names" '["Anello di protezione","Armatura demoniaca","Guanti del potere orchesco","Lama nera"]'
+          micheck "ring of protection" "$mi_ring" '{"rarity":3,"attunement":true,"effects":[[1,1],[4,1]]}'
+          micheck "superior healing" "$mi_superior" '{"name":"Pozione di guarigione superiore","parentName":"Pozione di guarigione","rarity":3,"heal":"8d4+8","text":true}'
+          micheck "healing variants EN" "$mi_healing_en" '{"name":"Potion of Healing","variants":["Potion of Healing","Potion of Greater Healing","Potion of Superior Healing","Potion of Supreme Healing"]}'
+          micheck "DMG alias" "$mi_alias" '{"name":"Handy Haversack","alias":"Heward'"'"'s Handy Haversack"}'
+          micheck "read only" "$mi_post" "405"
+          micheck "unknown" "$mi_missing" "404"
+          test "$mifail" = "0"
+
           # Rules glossary: 88 entries of 2014 (SRD 5.1) and 155 of 2024 (SRD 5.2.1), Prone 2024 in Italian with the forms
           # linked in the other modules, the "See also" of Grappling, read only (no POST) and 404 for an unknown entry
           gl14=$(get "$api/api/rules?ruleset=1&lang=2" | jq -c '{total: length, srd: map(select(.source == 2)) | length, conditions: map(select(.category == 2)) | length, actions: map(select(.category == 3)) | length}')
