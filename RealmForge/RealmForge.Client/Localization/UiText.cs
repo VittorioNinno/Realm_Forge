@@ -398,10 +398,10 @@ namespace RealmForge.Client.Localization
 		};
 		public static string VisibilityHint(ContentVisibility visibility, LanguageCode lang) => (visibility, lang == LanguageCode.It) switch
 		{
-			(ContentVisibility.Private, true) => "Solo tu puoi vederlo.",
-			(ContentVisibility.Private, false) => "Only you can see it.",
-			(ContentVisibility.Link, true) => "Chi ha il link può vederlo; non compare negli elenchi degli altri utenti.",
-			(ContentVisibility.Link, false) => "Anyone with the link can see it; it does not appear in other users' lists.",
+			(ContentVisibility.Private, true) => "Solo tu e le persone con cui lo condividi potete vederlo.",
+			(ContentVisibility.Private, false) => "Only you and the people you share it with can see it.",
+			(ContentVisibility.Link, true) => "Chi ha il link può vederlo e aggiungerlo alla propria raccolta; non compare negli elenchi degli altri utenti.",
+			(ContentVisibility.Link, false) => "Anyone with the link can see it and add it to their collection; it does not appear in other users' lists.",
 			(_, true) => "Visibile a tutti negli elenchi del Compendio.",
 			(_, false) => "Listed for everyone in the Compendium."
 		};

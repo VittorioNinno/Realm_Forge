@@ -50,6 +50,10 @@ namespace RealmForge.Infrastructure.Persistence
 		//	Player characters
 		public DbSet<Character> Characters => Set<Character>();
 
+		//	Sharing: Homebrew entries and characters shared with chosen accounts
+		public DbSet<ContentShare> ContentShares => Set<ContentShare>();
+		public DbSet<CharacterShare> CharacterShares => Set<CharacterShare>();
+
 		//	Rules glossary
 		public DbSet<RuleEntry> RuleEntries => Set<RuleEntry>();
 		public DbSet<RuleEntryTranslation> RuleEntryTranslations => Set<RuleEntryTranslation>();
@@ -323,6 +327,25 @@ namespace RealmForge.Infrastructure.Persistence
 				entity.HasOne(c => c.Subspecies).WithMany().HasForeignKey(c => c.SubspeciesId).OnDelete(DeleteBehavior.Restrict);
 				entity.HasOne(c => c.Background).WithMany().HasForeignKey(c => c.BackgroundId).OnDelete(DeleteBehavior.Restrict);
 				entity.HasOne(c => c.Class).WithMany().HasForeignKey(c => c.ClassId).OnDelete(DeleteBehavior.Restrict);
+			});
+
+			//	Sharing configuration: one row per entry (or character) and account
+			modelBuilder.Entity<ContentShare>(entity =>
+			{
+				entity.HasKey(s => s.Id);
+				entity.Property(s => s.UserId).IsRequired().HasMaxLength(450);
+				entity.Property(s => s.GrantedById).IsRequired().HasMaxLength(450);
+				entity.HasIndex(s => new { s.EntityId, s.UserId }).IsUnique();
+				entity.HasIndex(s => s.UserId);
+			});
+
+			modelBuilder.Entity<CharacterShare>(entity =>
+			{
+				entity.HasKey(s => s.Id);
+				entity.Property(s => s.UserId).IsRequired().HasMaxLength(450);
+				entity.HasIndex(s => new { s.CharacterId, s.UserId }).IsUnique();
+				entity.HasIndex(s => s.UserId);
+				entity.HasOne(s => s.Character).WithMany().HasForeignKey(s => s.CharacterId).OnDelete(DeleteBehavior.Cascade);
 			});
 
 			//	Rules glossary configuration

@@ -265,7 +265,7 @@
 
                 @if (!selectedDetail.IsOfficialSRD)
                 {
-                    <ShareLink Visibility="selectedDetail.Visibility" CanEdit="selectedDetail.CanEdit" Path="@($"species?speciesId={selectedDetail.Id}")" />
+                    <ShareLink Visibility="selectedDetail.Visibility" CanEdit="selectedDetail.CanEdit" EntityId="selectedDetail.Id" Path="@($"species?speciesId={selectedDetail.Id}")" />
                 }
 
                 @* DESCRIPTIONS *@

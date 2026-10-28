@@ -24,11 +24,13 @@ namespace RealmForge.Api.Controllers
 
 		private readonly RealmForgeDbContext _context;
 		private readonly ContentAccess _access;
+		private readonly ShareService _shares;
 
-		public FeatsController(RealmForgeDbContext context, ContentAccess access)
+		public FeatsController(RealmForgeDbContext context, ContentAccess access, ShareService shares)
 		{
 			_context = context;
 			_access = access;
+			_shares = shares;
 		}
 
 		//	GET: api/feats?lang=2&category=1&ruleset=2&isOfficial=true
@@ -60,7 +62,7 @@ namespace RealmForge.Api.Controllers
 			}
 
 			//	Private Homebrew of other users and link-only entries are not listed
-			query = ContentAccess.ListedFor(query, User);
+			query = ContentAccess.ListedFor(query, User, await _shares.SharedWithAsync(User));
 
 			var feats = await query.ToListAsync();
 
@@ -97,7 +99,7 @@ namespace RealmForge.Api.Controllers
 				.FirstOrDefaultAsync(f => f.Id == id);
 
 			//	Private entries of other users answer 404, as if they did not exist
-			if (feat == null || !_access.CanView(feat, User))
+			if (feat == null || !_access.CanView(feat, User, await _shares.SharedWithAsync(User)))
 			{
 				return NotFound();
 			}

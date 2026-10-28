@@ -56,7 +56,10 @@ namespace RealmForge.Shared.DTOs
 		int MaxHitPoints,
 		int ArmorClass,
 		DateTimeOffset CreatedAt,
-		DateTimeOffset UpdatedAt);
+		DateTimeOffset UpdatedAt,
+
+		//	Opened by someone the owner shared it with: the sheet is shown but nothing is saved
+		bool ReadOnly = false);
 
 	public record CharacterSavedDto(Guid Id, int MaxHitPoints, int ArmorClass, DateTimeOffset UpdatedAt);
 }

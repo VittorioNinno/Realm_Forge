@@ -20,11 +20,13 @@ namespace RealmForge.Api.Controllers
 	{
 		private readonly RealmForgeDbContext _context;
 		private readonly ContentAccess _access;
+		private readonly ShareService _shares;
 
-		public SubclassesController(RealmForgeDbContext context, ContentAccess access)
+		public SubclassesController(RealmForgeDbContext context, ContentAccess access, ShareService shares)
 		{
 			_context = context;
 			_access = access;
+			_shares = shares;
 		}
 
 		//	GET: api/subclasses/{id}?lang=2
@@ -39,7 +41,7 @@ namespace RealmForge.Api.Controllers
 				.AsSplitQuery()
 				.FirstOrDefaultAsync(s => s.Id == id);
 
-			if (subclass == null || !_access.CanView(subclass, User))
+			if (subclass == null || !_access.CanView(subclass, User, await _shares.SharedWithAsync(User)))
 			{
 				return NotFound();
 			}

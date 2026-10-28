@@ -163,7 +163,7 @@
 
             @if (!SelectedBackground.IsOfficialSRD)
             {
-                <ShareLink Visibility="SelectedBackground.Visibility" CanEdit="SelectedBackground.CanEdit" Path="@($"backgrounds?id={SelectedBackground.Id}")" />
+                <ShareLink Visibility="SelectedBackground.Visibility" CanEdit="SelectedBackground.CanEdit" EntityId="SelectedBackground.Id" Path="@($"backgrounds?id={SelectedBackground.Id}")" />
             }
 
             <div class="p-3 mb-3 rounded rf-meta-row" style="background-color: var(--rf-bg-main); border-left: 3px solid #ffb74d;">
