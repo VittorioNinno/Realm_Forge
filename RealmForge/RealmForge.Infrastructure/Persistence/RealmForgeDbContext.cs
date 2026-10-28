@@ -47,6 +47,10 @@ namespace RealmForge.Infrastructure.Persistence
 		public DbSet<Equipment> Equipment => Set<Equipment>();
 		public DbSet<EquipmentTranslation> EquipmentTranslations => Set<EquipmentTranslation>();
 
+		//	Magic items aggregate
+		public DbSet<MagicItem> MagicItems => Set<MagicItem>();
+		public DbSet<MagicItemTranslation> MagicItemTranslations => Set<MagicItemTranslation>();
+
 		//	Player characters
 		public DbSet<Character> Characters => Set<Character>();
 
@@ -306,6 +310,43 @@ namespace RealmForge.Infrastructure.Persistence
 
 				//	Unique index: an item cannot have two translations for the same language
 				entity.HasIndex(t => new { t.EquipmentId, t.Language }).IsUnique();
+			});
+
+			//	Magic items configuration: variants belong to their item
+			modelBuilder.Entity<MagicItem>(entity =>
+			{
+				entity.ToTable("MagicItems");
+				entity.HasKey(e => e.Id);
+				entity.Property(e => e.Ruleset).IsRequired();
+				entity.Property(e => e.IsOfficialSRD).IsRequired();
+				entity.Property(e => e.Type).IsRequired();
+				entity.Property(e => e.Mechanics).HasColumnType("jsonb");
+
+				//	The list filters by ruleset and category
+				entity.HasIndex(e => new { e.Ruleset, e.Type });
+
+				entity.HasOne(e => e.Parent)
+						.WithMany(e => e.Variants)
+						.HasForeignKey(e => e.ParentId)
+						.OnDelete(DeleteBehavior.Cascade);
+
+				entity.HasMany(e => e.Translations)
+						.WithOne(t => t.MagicItem)
+						.HasForeignKey(t => t.MagicItemId)
+						.OnDelete(DeleteBehavior.Cascade);
+			});
+
+			//	Magic item translations configuration
+			modelBuilder.Entity<MagicItemTranslation>(entity =>
+			{
+				entity.HasKey(t => t.Id);
+				entity.Property(t => t.Name).IsRequired().HasMaxLength(150);
+				entity.Property(t => t.Subtitle).IsRequired().HasMaxLength(300);
+				entity.Property(t => t.Description).IsRequired();
+				entity.Property(t => t.Alias).HasMaxLength(150);
+
+				//	Unique index: an item cannot have two translations for the same language
+				entity.HasIndex(t => new { t.MagicItemId, t.Language }).IsUnique();
 			});
 
 			//	Characters configuration: private to their owner; the compendium entries they use cannot be deleted under them

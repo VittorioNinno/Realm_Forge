@@ -53,6 +53,7 @@ namespace RealmForge.Client
 			builder.Services.AddScoped<SpellDataService>();
 			builder.Services.AddScoped<ClassDataService>();
 			builder.Services.AddScoped<EquipmentDataService>();
+			builder.Services.AddScoped<MagicItemDataService>();
 			builder.Services.AddScoped<CharacterDataService>();
 			builder.Services.AddScoped<ShareDataService>();
 

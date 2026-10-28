@@ -18,6 +18,7 @@ public static class DatabaseSeeder
 		await RunAsync("spells", () => SpellSeeder.SeedAsync(context, cancellationToken), context, logger);
 		await RunAsync("classes", () => ClassSeeder.SeedAsync(context, cancellationToken), context, logger);
 		await RunAsync("equipment", () => EquipmentSeeder.SeedAsync(context, cancellationToken), context, logger);
+		await RunAsync("magic items", () => MagicItemSeeder.SeedAsync(context, cancellationToken), context, logger);
 		await RunAsync("rules glossary", () => RulesGlossarySeeder.SeedAsync(context, cancellationToken), context, logger);
 	}
 

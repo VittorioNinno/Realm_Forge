@@ -92,9 +92,9 @@ try {
     rules: document.querySelectorAll('[data-test=home-rules] dt').length,
   }));
   results.push(`INFO dashboard: ${JSON.stringify(home)}`);
-  if (home.links.join(',') !== 'rules,species,backgrounds,feats,spells,classes,equipment' || home.figures !== 0 || home.how !== 4 || home.rules !== 6) throw new Error('unexpected dashboard');
+  if (home.links.join(',') !== 'rules,species,backgrounds,feats,spells,classes,equipment,magic-items' || home.figures !== 0 || home.how !== 4 || home.rules !== 6) throw new Error('unexpected dashboard');
   if (await page.locator('main a[href=account]', { hasText: 'Accedi per forgiare' }).count() !== 1) throw new Error('dashboard misses the sign-in call to action');
-  ok('dashboard: welcome, links to the 7 sections without figures, how it works (4 points), house rules (6) and the sign-in call to action');
+  ok('dashboard: welcome, links to the 8 sections without figures, how it works (4 points), house rules (6) and the sign-in call to action');
 
   // Spells: 752 base spells (361 of 2014, 391 of 2024) grouped by level, edition and client-side filters, detail with the stat block
   await page.goto(`${base}/spells`);
@@ -288,6 +288,36 @@ try {
     || longsword.subtitle !== 'Arma da guerra da mischia' || longsword.stats.slice(0, 4).join(' | ') !== '15 mo | 1,5 kg | 1d8 taglienti | Versatile (1d10)' || !longsword.stats[4]?.startsWith('Prosciugamento. ')
     || chainMail.slice(0, 5).join(' | ') !== '75 mo | 27,5 kg | 16 | For 13 | Svantaggio' || masteryRules !== 8) throw new Error('unexpected equipment page');
   ok('equipment: 450 Base items (208 of 2024), category and mastery filters, Longsword 2024 (15 mo, 1,5 kg, 1d8 taglienti, Versatile, Prosciugamento), Chain Mail (CA 16, For 13) and the weapon rules');
+
+  // Magic items: 276 items of 2014 in 9 closed categories, category filter, a search that finds a variant, the item
+  // detail with its variants and a variant with the healing the sheet applies
+  await page.goto(`${base}/magic-items`);
+  await page.locator('[data-test=magic-group]').first().waitFor({ timeout: 60000 });
+  const magicClosed = await page.locator('[data-test=magic-card]').count();
+  const magicGroups = await page.locator('[data-test=magic-group]').count();
+  const magicCount = async (expected) => {
+    for (let i = 0; i < 100 && (await page.locator('[data-test=magic-count]').innerText()).trim() !== expected; i++) await page.waitForTimeout(100);
+    return (await page.locator('[data-test=magic-count]').innerText()).trim();
+  };
+  const allMagic = await magicCount('276 oggetti');
+  await pickOption('magic-type', 'Pozioni');
+  const potions = await magicCount('25 oggetti');
+  await page.locator('[data-test=magic-search]').fill('superiore');
+  await page.locator('[data-test=magic-card]', { hasText: 'Pozione di guarigione' }).first().click();
+  await page.locator('[data-test=magic-detail]').waitFor({ timeout: 15000 });
+  const healingVariants = await page.locator('[data-test=magic-variants] tr').count();
+  await page.locator('[data-test=magic-variant-link]', { hasText: 'Pozione di guarigione superiore' }).click();
+  await page.locator('[data-test=magic-detail-name]', { hasText: 'Pozione di guarigione superiore' }).waitFor({ timeout: 15000 });
+  const superior = {
+    parent: (await page.locator('[data-test=magic-parent]').innerText()).trim(),
+    onSheet: (await page.locator('[data-test=magic-on-sheet]').innerText()).trim(),
+    table: await page.locator('[data-test=magic-description] table').count(),
+  };
+  await page.locator('[data-test=magic-detail] button', { hasText: 'CHIUDI' }).click();
+  results.push(`INFO magic items: closed=${magicClosed} groups=${magicGroups} | ${allMagic} | potions=${potions} | healing variants=${healingVariants} | superior=${JSON.stringify(superior)}`);
+  if (magicClosed !== 0 || magicGroups !== 9 || allMagic !== '276 oggetti' || potions !== '25 oggetti' || healingVariants !== 4
+    || !/Pozione di guarigione/.test(superior.parent) || !/8d4\+8/.test(superior.onSheet) || superior.table !== 1) throw new Error('unexpected magic items page');
+  ok('magic items: 276 items of 2014 in 9 closed categories, 25 potions, a search finds a variant, Potion of Healing with 4 variants, Superior (8d4+8 on the sheet)');
 
   // Rules glossary: 243 Base entries (155 of 2024, 88 of 2014), family filter, Prone 2024 with its own terms linked and "See also"
   await page.goto(`${base}/rules`);
