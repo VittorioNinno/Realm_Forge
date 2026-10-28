@@ -59,7 +59,14 @@ namespace RealmForge.Shared.DTOs
 		DateTimeOffset UpdatedAt,
 
 		//	Opened by someone the owner shared it with: the sheet is shown but nothing is saved
-		bool ReadOnly = false);
+		bool ReadOnly = false,
+
+		//	Opened by a master or co-master of one of its campaigns: the sheet saves, OwnerEmail says whose it is
+		bool IsOwner = true,
+		string? OwnerEmail = null,
+
+		//	E-mail of whoever saved it last, when it is someone else than the reader
+		string? LastEditedBy = null);
 
 	public record CharacterSavedDto(Guid Id, int MaxHitPoints, int ArmorClass, DateTimeOffset UpdatedAt);
 }

@@ -393,7 +393,7 @@ try {
     return { label: el.textContent.trim(), inset: Math.round(icon.left - el.getBoundingClientRect().left), left: Math.round(icon.left) };
   }));
   results.push(`INFO menu icons: ${iconGaps.map((g) => `${g.label}@${g.left}(+${g.inset})`).join(', ')}`);
-  if (iconGaps.length !== 11 || iconGaps.some((g) => g.inset < 8) || new Set(iconGaps.map((g) => g.left)).size !== 1) throw new Error('menu icons are not padded or not aligned');
+  if (iconGaps.length !== 12 || iconGaps.some((g) => g.inset < 8) || new Set(iconGaps.map((g) => g.left)).size !== 1) throw new Error('menu icons are not padded or not aligned');
   await page.locator('[data-test=nav-compendium] button').click();
   ok('"Compendio" menu group: Specie, Background, Talenti, Incantesimi, Classi, Equipaggiamento, and Glossario next to it; collapsed elsewhere and toggles on click; icons padded and aligned');
   await page.getByText('Non hai un account? Registrati').click();
@@ -887,6 +887,33 @@ try {
   await page.locator('[data-test=sheet-share-dialog] button', { hasText: /chiudi/i }).click();
   if (!/Nessun account/.test(shareError)) throw new Error(`sharing with an unknown address: "${shareError}"`);
   ok('character sharing: the dialog adds people by e-mail and explains an unknown address');
+  // Campaigns: a new campaign makes its creator the master, with the invite link; the character joins the table
+  const sheetUrl = page.url();
+  await page.goto(`${base}/campaigns`);
+  await page.locator('[data-test=campaign-new]').click();
+  await page.locator('[data-test=campaign-name]').fill('Tavola di prova');
+  await page.locator('[data-test=campaign-create]').click();
+  await page.locator('[data-test=campaign-title]', { hasText: 'Tavola di prova' }).waitFor({ timeout: 30000 });
+  const campaignUi = {
+    role: (await page.locator('[data-test=campaign-role]').innerText()).trim(),
+    link: (await page.locator('[data-test=campaign-link-url]').inputValue()).includes('/campaigns/join/'),
+  };
+  await page.locator('[data-test=campaign-tab-characters]').click();
+  const heroOption = await page.locator('[data-test=campaign-bring-select] option', { hasText: 'Eroe di prova' }).first().getAttribute('value', { timeout: 15000 });
+  await page.locator('[data-test=campaign-bring-select]').selectOption(heroOption);
+  await page.locator('[data-test=campaign-bring-add]').click();
+  await page.locator('[data-test=campaign-character]', { hasText: 'Eroe di prova' }).waitFor({ timeout: 15000 });
+  await page.locator('[data-test=campaign-tab-content]').click();
+  campaignUi.share = await page.locator('[data-test=campaign-share]').count();
+  await page.locator('[data-test=campaign-tab-overview]').click();
+  await page.locator('[data-test=campaign-delete]').click();
+  await page.locator('[data-test=campaign-confirm-yes]').click();
+  await page.waitForURL(/\/campaigns$/, { timeout: 15000 });
+  results.push(`INFO campaign: ${JSON.stringify(campaignUi)}`);
+  if (campaignUi.role !== 'Master' || !campaignUi.link || campaignUi.share !== 1) throw new Error(`unexpected campaign page: ${JSON.stringify(campaignUi)}`);
+  ok('campaigns: the creator is the master with an invite link, the character joins the table, the campaign is deleted');
+  await page.goto(sheetUrl);
+  await page.locator('[data-test=character-sheet]').waitFor({ timeout: 30000 });
   const [download] = await Promise.all([page.waitForEvent('download', { timeout: 20000 }), page.locator('[data-test=sheet-pdf]').click()]);
   const pdfPath = await download.path();
   const pdfHead = readFileSync(pdfPath).subarray(0, 8).toString('latin1');

@@ -621,6 +621,45 @@ jobs:
           sh_leave=$(code -X DELETE "$api/api/characters/$ch_id/shares/me" -H "Authorization: Bearer $B")
           sh_after=$(code "$api/api/characters/$ch_id" -H "Authorization: Bearer $B")
           echo "::notice title=characters::sharing: add=$sh_add unknown=$sh_unknown | bob GET=$sh_get owner readOnly=$sh_owner_get | bob shared=$sh_list | context=$sh_ctx | bob sheet PUT=$sh_sheet | people=$sh_people | leave=$sh_leave then GET=$sh_after"
+          # Campaigns: bob is the master, alice joins as a player and brings her character; bob edits it (the change is
+          # saved on the character), approves her Homebrew, promotes her to co-master; roles and the last master are enforced
+          cp=$(curl -s -X POST "$api/api/campaigns?lang=2" $json -H "Authorization: Bearer $B" -d '{"name":"Tavola di prova","ruleset":2}')
+          cp_id=$(echo "$cp" | jq -r .id)
+          cp_created=$(echo "$cp" | jq -c '{role: .myRole, members: (.members | length), link: (.inviteCode != null)}')
+          cp_other=$(code "$api/api/campaigns/$cp_id" -H "Authorization: Bearer $A")
+          cp_invite=$(code -X POST "$api/api/campaigns/$cp_id/invites" $json -H "Authorization: Bearer $B" -d '{"email":"alice@example.com","role":3}')
+          cp_inv_id=$(get "$api/api/campaigns/invitations" -H "Authorization: Bearer $A" | jq -r '.[0].id')
+          cp_accept=$(code -X POST "$api/api/campaigns/invitations/$cp_inv_id/accept" -H "Authorization: Bearer $A")
+          cp_player_invite=$(code -X POST "$api/api/campaigns/$cp_id/invites" $json -H "Authorization: Bearer $A" -d '{"email":"carol@example.com","role":2}')
+          cp_bring=$(code -X POST "$api/api/campaigns/$cp_id/characters" $json -H "Authorization: Bearer $A" -d "{\"characterId\":\"$ch_id\"}")
+          cp_master_get=$(get "$api/api/characters/$ch_id" -H "Authorization: Bearer $B" | jq -c '{readOnly, isOwner, ownerEmail}')
+          cp_master_ctx=$(code "$api/api/characters/context?ruleset=2&lang=2&character=$ch_id" -H "Authorization: Bearer $B")
+          cp_master_sheet=$(code -X PUT "$api/api/characters/$ch_id/sheet" $json -H "Authorization: Bearer $B" -d "$(echo "$sheet" | jq '.notes = "Il master"')")
+          cp_owner_view=$(get "$api/api/characters/$ch_id" -H "Authorization: Bearer $A" | jq -c '{notes: .sheet.notes, lastEditedBy}')
+          cp_master_delete=$(code -X DELETE "$api/api/characters/$ch_id" -H "Authorization: Bearer $B")
+          cp_feat=$(curl -sf -X POST "$api/api/feats?lang=2" $json -H "Authorization: Bearer $A" -d "$feat" | jq -r .id)
+          cp_share=$(curl -s -X POST "$api/api/campaigns/$cp_id/contents" $json -H "Authorization: Bearer $A" -d "{\"entityId\":\"$cp_feat\"}")
+          cp_pending=$(get "$api/api/campaigns" -H "Authorization: Bearer $B" | jq -c '[.[] | {role: .myRole, members, characters, pending: .pendingContents}]')
+          cp_review_read=$(code "$api/api/feats/$cp_feat" -H "Authorization: Bearer $B")
+          cp_approve_player=$(code -X POST "$api/api/campaigns/$cp_id/contents/$cp_feat/approve" -H "Authorization: Bearer $A")
+          cp_approve=$(code -X POST "$api/api/campaigns/$cp_id/contents/$cp_feat/approve" -H "Authorization: Bearer $B")
+          cp_promote=$(code -X PUT "$api/api/campaigns/$cp_id/members/$(get "$api/api/campaigns/$cp_id" -H "Authorization: Bearer $B" | jq -r '.members[] | select(.email == "alice@example.com") | .userId')" $json -H "Authorization: Bearer $B" -d '{"role":2}')
+          bob_id=$(get "$api/api/campaigns/$cp_id" -H "Authorization: Bearer $B" | jq -r '.members[] | select(.email == "bob@example.com") | .userId')
+          cp_comaster_promote=$(code -X PUT "$api/api/campaigns/$cp_id/members/$bob_id" $json -H "Authorization: Bearer $A" -d '{"role":3}')
+          cp_last_master=$(code -X DELETE "$api/api/campaigns/$cp_id/members/me" -H "Authorization: Bearer $B")
+          cp_bob_feat=$(curl -sf -X POST "$api/api/feats?lang=2" $json -H "Authorization: Bearer $B" -d "$feat" | jq -r .id)
+          cp_master_share=$(curl -s -X POST "$api/api/campaigns/$cp_id/contents" $json -H "Authorization: Bearer $B" -d "{\"entityId\":\"$cp_bob_feat\"}")
+          cp_comaster_remove_master=$(code -X DELETE "$api/api/campaigns/$cp_id/contents/$cp_bob_feat" -H "Authorization: Bearer $A")
+          cp_contents=$(get "$api/api/campaigns/$cp_id?lang=2" -H "Authorization: Bearer $A" | jq -c '[.contents[] | {kind, status, removable: .canRemove}] | sort_by(.removable)')
+          cp_shared_read=$(code "$api/api/feats/$cp_bob_feat" -H "Authorization: Bearer $A")
+          cp_leave=$(code -X DELETE "$api/api/campaigns/$cp_id/members/me" -H "Authorization: Bearer $A")
+          cp_after_leave=$(code "$api/api/characters/$ch_id" -H "Authorization: Bearer $B")
+          cp_after_read=$(code "$api/api/feats/$cp_bob_feat" -H "Authorization: Bearer $A")
+          cp_delete_other=$(code -X DELETE "$api/api/campaigns/$cp_id" -H "Authorization: Bearer $A")
+          cp_delete=$(code -X DELETE "$api/api/campaigns/$cp_id" -H "Authorization: Bearer $B")
+          code -X DELETE "$api/api/feats/$cp_feat" -H "Authorization: Bearer $A" >/dev/null; code -X DELETE "$api/api/feats/$cp_bob_feat" -H "Authorization: Bearer $B" >/dev/null
+          echo "::notice title=characters::campaigns: created=$cp_created other=$cp_other | invite=$cp_invite accept=$cp_accept player invites co-master=$cp_player_invite | bring=$cp_bring | master GET=$cp_master_get context=$cp_master_ctx sheet=$cp_master_sheet owner sees=$cp_owner_view master DELETE=$cp_master_delete"
+          echo "::notice title=characters::campaign content: share=$cp_share list=$cp_pending master reads pending=$cp_review_read | player approves=$cp_approve_player master=$cp_approve | promote=$cp_promote co-master promotes=$cp_comaster_promote last master leaves=$cp_last_master | master share=$cp_master_share co-master removes it=$cp_comaster_remove_master contents=$cp_contents read=$cp_shared_read | leave=$cp_leave master GET after=$cp_after_leave read after=$cp_after_read | delete other=$cp_delete_other delete=$cp_delete"
           ch_bob_delete=$(code -X DELETE "$api/api/characters/$ch_id" -H "Authorization: Bearer $B")
           ch_delete=$(code -X DELETE "$api/api/characters/$ch_id" -H "Authorization: Bearer $A")
           echo "::notice title=characters::context=$ctx_counts | 2014 fighter rows IT=$ctx_it | anonymous=$ch_anon | created=$ch_vitals | list=$ch_list | bob list=$ch_bob_list GET=$ch_bob sheet=$ch_bob_sheet DELETE=$ch_bob_delete"
@@ -658,6 +697,34 @@ jobs:
           chcheck "shared sheet PUT" "$sh_sheet" "404"
           chcheck "people" "$sh_people" "bob@example.com"
           chcheck "leave" "$sh_leave" "204"
+          chcheck "campaign created" "$cp_created" '{"role":1,"members":1,"link":true}'
+          chcheck "campaign of others" "$cp_other" "404"
+          chcheck "invite" "$cp_invite" "200"
+          chcheck "accept" "$cp_accept" "204"
+          chcheck "player invites a co-master" "$cp_player_invite" "403"
+          chcheck "bring a character" "$cp_bring" "204"
+          chcheck "master opens it" "$cp_master_get" '{"readOnly":false,"isOwner":false,"ownerEmail":"alice@example.com"}'
+          chcheck "master context" "$cp_master_ctx" "200"
+          chcheck "master saves the sheet" "$cp_master_sheet" "200"
+          chcheck "owner sees the change" "$cp_owner_view" '{"notes":"Il master","lastEditedBy":"bob@example.com"}'
+          chcheck "master cannot delete it" "$cp_master_delete" "404"
+          chcheck "player share waits" "$cp_share" "1"
+          chcheck "campaign list" "$cp_pending" '[{"role":1,"members":2,"characters":1,"pending":1}]'
+          chcheck "master reads the pending entry" "$cp_review_read" "200"
+          chcheck "player approves" "$cp_approve_player" "403"
+          chcheck "master approves" "$cp_approve" "204"
+          chcheck "promote to co-master" "$cp_promote" "204"
+          chcheck "co-master promotes" "$cp_comaster_promote" "403"
+          chcheck "last master leaves" "$cp_last_master" "400"
+          chcheck "master share approved" "$cp_master_share" "2"
+          chcheck "co-master removes the master's entry" "$cp_comaster_remove_master" "403"
+          chcheck "contents for the co-master" "$cp_contents" '[{"kind":"feat","status":2,"removable":false},{"kind":"feat","status":2,"removable":true}]'
+          chcheck "member reads shared content" "$cp_shared_read" "200"
+          chcheck "leave the campaign" "$cp_leave" "204"
+          chcheck "character left with its owner" "$cp_after_leave" "404"
+          chcheck "content no longer shared" "$cp_after_read" "404"
+          chcheck "others delete the campaign" "$cp_delete_other" "404"
+          chcheck "master deletes the campaign" "$cp_delete" "204"
           chcheck "GET after leaving" "$sh_after" "404"
           chcheck "DELETE" "$ch_delete" "204"
           test "$chfail" = "0"

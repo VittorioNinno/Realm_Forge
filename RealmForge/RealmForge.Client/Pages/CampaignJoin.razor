@@ -1,0 +1,97 @@
+﻿@page "/campaigns/join/{Code}"
+@using RealmForge.Client.Localization
+@using RealmForge.Client.Services
+@using RealmForge.Shared.DTOs
+@using RealmForge.Shared.Enums
+@implements IDisposable
+@inject CampaignDataService Campaigns
+@inject CharacterDataService Characters
+@inject LanguageStateService LanguageState
+@inject NavigationManager Navigation
+
+<PageTitle>RealmForge - @UiText.CampaignJoinTitle(Lang)</PageTitle>
+
+<div class="container-fluid px-0 py-4">
+    <h1 class="h3 fw-bold mb-3 rf-page-title">@UiText.CampaignJoinTitle(Lang)</h1>
+    <AuthorizeView>
+        <NotAuthorized>
+            <div class="rf-account-card text-center">
+                <p class="mb-3" style="color: var(--rf-text-secondary);">@UiText.CampaignsSignIn(Lang)</p>
+                <a href="account" class="btn btn-rf-orange">@UiText.NavAccount(Lang)</a>
+            </div>
+        </NotAuthorized>
+        <Authorized>
+            @if (loading)
+            {
+                <div class="small" style="color: var(--rf-text-muted);">@UiText.LoadingCampaigns(Lang)</div>
+            }
+            else if (preview is null)
+            {
+                <div class="rf-account-card text-center" data-test="campaign-join-invalid">
+                    <p class="mb-3" style="color: var(--rf-text-secondary);">@UiText.CampaignJoinInvalid(Lang)</p>
+                    <a href="campaigns" class="btn btn-rf-outline">@UiText.CampaignsTitle(Lang)</a>
+                </div>
+            }
+            else
+            {
+                <div class="rf-account-card" data-test="campaign-join-preview">
+                    <div class="rf-character-card-name mb-1">@preview.Name</div>
+                    <div class="small mb-3" style="color: var(--rf-text-secondary);">
+                        @(preview.Ruleset is { } ruleset ? UiText.FormatRuleset(ruleset, Lang) : UiText.CampaignAnyEdition(Lang)) · @UiText.CampaignMembersCount(preview.Members, Lang)
+                    </div>
+                    @if (preview.AlreadyMember)
+                    {
+                        <p class="small" style="color: var(--rf-text-muted);">@UiText.CampaignJoinAlready(Lang)</p>
+                        <a class="btn btn-rf-orange" href="@($"campaigns/{preview.Id}")">@UiText.BtnGoToCampaign(Lang)</a>
+                    }
+                    else
+                    {
+                        <p class="small" style="color: var(--rf-text-muted);">@UiText.CampaignJoinAs(Lang)</p>
+                        <button type="button" class="btn btn-rf-orange" disabled="@joining" @onclick="JoinAsync" data-test="campaign-join-confirm">@UiText.BtnJoin(Lang)</button>
+                        @if (failed)
+                        {
+                            <div class="small mt-2 text-warning">@UiText.CampaignActionFailed(null, Lang)</div>
+                        }
+                    }
+                </div>
+            }
+        </Authorized>
+    </AuthorizeView>
+</div>
+
+@code {
+    [Parameter] public string Code { get; set; } = string.Empty;
+    [CascadingParameter] private Task<AuthenticationState>? AuthState { get; set; }
+
+    private LanguageCode Lang => LanguageState.CurrentLanguage;
+    private CampaignJoinPreviewDto? preview;
+    private bool loading = true;
+    private bool joining;
+    private bool failed;
+
+    protected override async Task OnInitializedAsync()
+    {
+        LanguageState.OnLanguageChanged += StateHasChanged;
+        if (AuthState is not null && (await AuthState).User.Identity?.IsAuthenticated == true)
+        {
+            preview = await Campaigns.GetJoinPreviewAsync(Code);
+        }
+        loading = false;
+    }
+
+    private async Task JoinAsync()
+    {
+        joining = true;
+        var id = await Campaigns.JoinAsync(Code);
+        joining = false;
+        if (id is { } campaignId)
+        {
+            Characters.InvalidateContexts();
+            Navigation.NavigateTo($"campaigns/{campaignId}");
+            return;
+        }
+        failed = true;
+    }
+
+    public void Dispose() => LanguageState.OnLanguageChanged -= StateHasChanged;
+}
