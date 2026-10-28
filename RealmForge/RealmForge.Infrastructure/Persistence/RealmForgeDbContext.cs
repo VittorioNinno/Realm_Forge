@@ -47,8 +47,23 @@ namespace RealmForge.Infrastructure.Persistence
 		public DbSet<Equipment> Equipment => Set<Equipment>();
 		public DbSet<EquipmentTranslation> EquipmentTranslations => Set<EquipmentTranslation>();
 
+		//	Magic items aggregate
+		public DbSet<MagicItem> MagicItems => Set<MagicItem>();
+		public DbSet<MagicItemTranslation> MagicItemTranslations => Set<MagicItemTranslation>();
+
 		//	Player characters
 		public DbSet<Character> Characters => Set<Character>();
+
+		//	Sharing: Homebrew entries and characters shared with chosen accounts
+		public DbSet<ContentShare> ContentShares => Set<ContentShare>();
+		public DbSet<CharacterShare> CharacterShares => Set<CharacterShare>();
+
+		//	Campaigns: members and their roles, invitations, characters and shared Homebrew
+		public DbSet<Campaign> Campaigns => Set<Campaign>();
+		public DbSet<CampaignMember> CampaignMembers => Set<CampaignMember>();
+		public DbSet<CampaignInvite> CampaignInvites => Set<CampaignInvite>();
+		public DbSet<CampaignCharacter> CampaignCharacters => Set<CampaignCharacter>();
+		public DbSet<CampaignContent> CampaignContents => Set<CampaignContent>();
 
 		//	Rules glossary
 		public DbSet<RuleEntry> RuleEntries => Set<RuleEntry>();
@@ -304,6 +319,43 @@ namespace RealmForge.Infrastructure.Persistence
 				entity.HasIndex(t => new { t.EquipmentId, t.Language }).IsUnique();
 			});
 
+			//	Magic items configuration: variants belong to their item
+			modelBuilder.Entity<MagicItem>(entity =>
+			{
+				entity.ToTable("MagicItems");
+				entity.HasKey(e => e.Id);
+				entity.Property(e => e.Ruleset).IsRequired();
+				entity.Property(e => e.IsOfficialSRD).IsRequired();
+				entity.Property(e => e.Type).IsRequired();
+				entity.Property(e => e.Mechanics).HasColumnType("jsonb");
+
+				//	The list filters by ruleset and category
+				entity.HasIndex(e => new { e.Ruleset, e.Type });
+
+				entity.HasOne(e => e.Parent)
+						.WithMany(e => e.Variants)
+						.HasForeignKey(e => e.ParentId)
+						.OnDelete(DeleteBehavior.Cascade);
+
+				entity.HasMany(e => e.Translations)
+						.WithOne(t => t.MagicItem)
+						.HasForeignKey(t => t.MagicItemId)
+						.OnDelete(DeleteBehavior.Cascade);
+			});
+
+			//	Magic item translations configuration
+			modelBuilder.Entity<MagicItemTranslation>(entity =>
+			{
+				entity.HasKey(t => t.Id);
+				entity.Property(t => t.Name).IsRequired().HasMaxLength(150);
+				entity.Property(t => t.Subtitle).IsRequired().HasMaxLength(300);
+				entity.Property(t => t.Description).IsRequired();
+				entity.Property(t => t.Alias).HasMaxLength(150);
+
+				//	Unique index: an item cannot have two translations for the same language
+				entity.HasIndex(t => new { t.MagicItemId, t.Language }).IsUnique();
+			});
+
 			//	Characters configuration: private to their owner; the compendium entries they use cannot be deleted under them
 			modelBuilder.Entity<Character>(entity =>
 			{
@@ -313,6 +365,7 @@ namespace RealmForge.Infrastructure.Persistence
 				});
 				entity.HasKey(c => c.Id);
 				entity.Property(c => c.OwnerId).IsRequired().HasMaxLength(450);
+				entity.Property(c => c.UpdatedById).HasMaxLength(450);
 				entity.Property(c => c.Name).IsRequired().HasMaxLength(100);
 				entity.Property(c => c.Build).IsRequired().HasColumnType("jsonb");
 				entity.Property(c => c.Sheet).IsRequired().HasColumnType("jsonb");
@@ -323,6 +376,75 @@ namespace RealmForge.Infrastructure.Persistence
 				entity.HasOne(c => c.Subspecies).WithMany().HasForeignKey(c => c.SubspeciesId).OnDelete(DeleteBehavior.Restrict);
 				entity.HasOne(c => c.Background).WithMany().HasForeignKey(c => c.BackgroundId).OnDelete(DeleteBehavior.Restrict);
 				entity.HasOne(c => c.Class).WithMany().HasForeignKey(c => c.ClassId).OnDelete(DeleteBehavior.Restrict);
+			});
+
+			//	Sharing configuration: one row per entry (or character) and account
+			modelBuilder.Entity<ContentShare>(entity =>
+			{
+				entity.HasKey(s => s.Id);
+				entity.Property(s => s.UserId).IsRequired().HasMaxLength(450);
+				entity.Property(s => s.GrantedById).IsRequired().HasMaxLength(450);
+				entity.HasIndex(s => new { s.EntityId, s.UserId }).IsUnique();
+				entity.HasIndex(s => s.UserId);
+			});
+
+			modelBuilder.Entity<CharacterShare>(entity =>
+			{
+				entity.HasKey(s => s.Id);
+				entity.Property(s => s.UserId).IsRequired().HasMaxLength(450);
+				entity.HasIndex(s => new { s.CharacterId, s.UserId }).IsUnique();
+				entity.HasIndex(s => s.UserId);
+				entity.HasOne(s => s.Character).WithMany().HasForeignKey(s => s.CharacterId).OnDelete(DeleteBehavior.Cascade);
+			});
+
+			//	Campaigns configuration: everything of a campaign goes with it
+			modelBuilder.Entity<Campaign>(entity =>
+			{
+				entity.HasKey(c => c.Id);
+				entity.Property(c => c.Name).IsRequired().HasMaxLength(100);
+				entity.Property(c => c.Description).IsRequired().HasMaxLength(8000);
+				entity.Property(c => c.InviteCode).HasMaxLength(32);
+				entity.Property(c => c.CreatedById).IsRequired().HasMaxLength(450);
+				entity.HasIndex(c => c.InviteCode).IsUnique();
+			});
+
+			modelBuilder.Entity<CampaignMember>(entity =>
+			{
+				entity.HasKey(m => m.Id);
+				entity.Property(m => m.UserId).IsRequired().HasMaxLength(450);
+				entity.HasIndex(m => new { m.CampaignId, m.UserId }).IsUnique();
+				entity.HasIndex(m => m.UserId);
+				entity.HasOne(m => m.Campaign).WithMany(c => c.Members).HasForeignKey(m => m.CampaignId).OnDelete(DeleteBehavior.Cascade);
+			});
+
+			modelBuilder.Entity<CampaignInvite>(entity =>
+			{
+				entity.HasKey(i => i.Id);
+				entity.Property(i => i.UserId).IsRequired().HasMaxLength(450);
+				entity.Property(i => i.InvitedById).IsRequired().HasMaxLength(450);
+				entity.HasIndex(i => new { i.CampaignId, i.UserId }).IsUnique();
+				entity.HasIndex(i => i.UserId);
+				entity.HasOne(i => i.Campaign).WithMany(c => c.Invites).HasForeignKey(i => i.CampaignId).OnDelete(DeleteBehavior.Cascade);
+			});
+
+			modelBuilder.Entity<CampaignCharacter>(entity =>
+			{
+				entity.HasKey(c => c.Id);
+				entity.Property(c => c.AddedById).IsRequired().HasMaxLength(450);
+				entity.HasIndex(c => new { c.CampaignId, c.CharacterId }).IsUnique();
+				entity.HasIndex(c => c.CharacterId);
+				entity.HasOne(c => c.Campaign).WithMany(c => c.Characters).HasForeignKey(c => c.CampaignId).OnDelete(DeleteBehavior.Cascade);
+				entity.HasOne(c => c.Character).WithMany().HasForeignKey(c => c.CharacterId).OnDelete(DeleteBehavior.Cascade);
+			});
+
+			modelBuilder.Entity<CampaignContent>(entity =>
+			{
+				entity.HasKey(c => c.Id);
+				entity.Property(c => c.SharedById).IsRequired().HasMaxLength(450);
+				entity.Property(c => c.ReviewedById).HasMaxLength(450);
+				entity.HasIndex(c => new { c.CampaignId, c.EntityId }).IsUnique();
+				entity.HasIndex(c => c.EntityId);
+				entity.HasOne(c => c.Campaign).WithMany(c => c.Contents).HasForeignKey(c => c.CampaignId).OnDelete(DeleteBehavior.Cascade);
 			});
 
 			//	Rules glossary configuration

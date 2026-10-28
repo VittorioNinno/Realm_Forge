@@ -119,7 +119,10 @@ namespace RealmForge.Client.Pages
 		{
 			var lang = Lang;
 			await Glossary.EnsureLoadedAsync(lang);
-			context = await Characters.GetContextAsync(character!.Ruleset, lang);
+			//	Someone else's character (shared with me, or of a campaign I run): the compendium its owner sees
+			context = ReadOnly || !character!.IsOwner
+				? await Characters.GetCharacterContextAsync(character!.Id, character.Ruleset, lang)
+				: await Characters.GetContextAsync(character!.Ruleset, lang);
 			var entries = await Glossary.GetEntriesAsync(lang);
 			conditions = entries
 				.Where(e => e.Ruleset == character.Ruleset && e.Category == RuleCategory.Condition && e.Key != "exhaustion")
@@ -172,6 +175,12 @@ namespace RealmForge.Client.Pages
 		private void Changed()
 		{
 			Recompute();
+
+			//	A sheet shared with me: it can be tried out, nothing is saved
+			if (ReadOnly)
+			{
+				return;
+			}
 			saveStatus = SaveStatus.Pending;
 			saveDelay?.Cancel();
 			var delay = saveDelay = new CancellationTokenSource();
@@ -360,6 +369,7 @@ namespace RealmForge.Client.Pages
 			Sheet.CurrentHitPoints = Math.Min(MaxHp, CurrentHp + healed);
 			lastRoll = $"d{die}: {roll} {CharacterMath.FormatModifier(computed.Modifier(AbilityScore.Constitution))} = +{healed} {UiText.SheetHitPointsShort(Lang)}";
 			_ = diceTray?.ShowAsync(new DiceRollResult(UiText.BtnSpendHitDie(die, Lang), new List<DieFace> { new(die, roll) }, computed.Modifier(AbilityScore.Constitution), healed));
+			shortRestLog.Add(UiText.HitDieSpentLine(die, roll, computed.Modifier(AbilityScore.Constitution), healed, Lang));
 			Changed();
 		}
 

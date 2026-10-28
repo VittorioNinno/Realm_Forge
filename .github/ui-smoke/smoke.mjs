@@ -64,7 +64,7 @@ try {
 
   // Navigation: reference pages live in the collapsible "Compendio" group, opened on compendium routes
   const compendiumLinks = (await page.locator('[data-test=nav-compendium] a').allInnerTexts()).map((t) => t.trim());
-  if (compendiumLinks.join(',') !== 'Specie,Background,Talenti,Incantesimi,Classi,Equipaggiamento') throw new Error(`unexpected compendium links: ${compendiumLinks.join(',')}`);
+  if (compendiumLinks.join(',') !== 'Specie,Background,Talenti,Incantesimi,Classi,Equipaggiamento,Oggetti magici') throw new Error(`unexpected compendium links: ${compendiumLinks.join(',')}`);
   // The rules glossary is a menu entry of its own, next to the compendium group
   const rulesLink = (await page.locator('[data-test=nav-rules] a').innerText()).trim();
   if (rulesLink !== 'Glossario') throw new Error(`unexpected glossary menu entry: ${rulesLink}`);
@@ -92,9 +92,9 @@ try {
     rules: document.querySelectorAll('[data-test=home-rules] dt').length,
   }));
   results.push(`INFO dashboard: ${JSON.stringify(home)}`);
-  if (home.links.join(',') !== 'rules,species,backgrounds,feats,spells,classes,equipment' || home.figures !== 0 || home.how !== 4 || home.rules !== 6) throw new Error('unexpected dashboard');
+  if (home.links.join(',') !== 'rules,species,backgrounds,feats,spells,classes,equipment,magic-items' || home.figures !== 0 || home.how !== 4 || home.rules !== 6) throw new Error('unexpected dashboard');
   if (await page.locator('main a[href=account]', { hasText: 'Accedi per forgiare' }).count() !== 1) throw new Error('dashboard misses the sign-in call to action');
-  ok('dashboard: welcome, links to the 7 sections without figures, how it works (4 points), house rules (6) and the sign-in call to action');
+  ok('dashboard: welcome, links to the 8 sections without figures, how it works (4 points), house rules (6) and the sign-in call to action');
 
   // Spells: 752 base spells (361 of 2014, 391 of 2024) grouped by level, edition and client-side filters, detail with the stat block
   await page.goto(`${base}/spells`);
@@ -289,6 +289,36 @@ try {
     || chainMail.slice(0, 5).join(' | ') !== '75 mo | 27,5 kg | 16 | For 13 | Svantaggio' || masteryRules !== 8) throw new Error('unexpected equipment page');
   ok('equipment: 450 Base items (208 of 2024), category and mastery filters, Longsword 2024 (15 mo, 1,5 kg, 1d8 taglienti, Versatile, Prosciugamento), Chain Mail (CA 16, For 13) and the weapon rules');
 
+  // Magic items: 276 items of 2014 in 9 closed categories, category filter, a search that finds a variant, the item
+  // detail with its variants and a variant with the healing the sheet applies
+  await page.goto(`${base}/magic-items`);
+  await page.locator('[data-test=magic-group]').first().waitFor({ timeout: 60000 });
+  const magicClosed = await page.locator('[data-test=magic-card]').count();
+  const magicGroups = await page.locator('[data-test=magic-group]').count();
+  const magicCount = async (expected) => {
+    for (let i = 0; i < 100 && (await page.locator('[data-test=magic-count]').innerText()).trim() !== expected; i++) await page.waitForTimeout(100);
+    return (await page.locator('[data-test=magic-count]').innerText()).trim();
+  };
+  const allMagic = await magicCount('276 oggetti');
+  await pickOption('magic-type', 'Pozioni');
+  const potions = await magicCount('25 oggetti');
+  await page.locator('[data-test=magic-search]').fill('superiore');
+  await page.locator('[data-test=magic-card]', { hasText: 'Pozione di guarigione' }).first().click();
+  await page.locator('[data-test=magic-detail]').waitFor({ timeout: 15000 });
+  const healingVariants = await page.locator('[data-test=magic-variants] tr').count();
+  await page.locator('[data-test=magic-variant-link]', { hasText: 'Pozione di guarigione superiore' }).click();
+  await page.locator('[data-test=magic-detail-name]', { hasText: 'Pozione di guarigione superiore' }).waitFor({ timeout: 15000 });
+  const superior = {
+    parent: (await page.locator('[data-test=magic-parent]').innerText()).trim(),
+    onSheet: (await page.locator('[data-test=magic-on-sheet]').innerText()).trim(),
+    table: await page.locator('[data-test=magic-description] table').count(),
+  };
+  await page.locator('[data-test=magic-detail] button', { hasText: 'CHIUDI' }).click();
+  results.push(`INFO magic items: closed=${magicClosed} groups=${magicGroups} | ${allMagic} | potions=${potions} | healing variants=${healingVariants} | superior=${JSON.stringify(superior)}`);
+  if (magicClosed !== 0 || magicGroups !== 9 || allMagic !== '276 oggetti' || potions !== '25 oggetti' || healingVariants !== 4
+    || !/Pozione di guarigione/.test(superior.parent) || !/8d4\+8/.test(superior.onSheet) || superior.table !== 1) throw new Error('unexpected magic items page');
+  ok('magic items: 276 items of 2014 in 9 closed categories, 25 potions, a search finds a variant, Potion of Healing with 4 variants, Superior (8d4+8 on the sheet)');
+
   // Rules glossary: 243 Base entries (155 of 2024, 88 of 2014), family filter, Prone 2024 with its own terms linked and "See also"
   await page.goto(`${base}/rules`);
   await page.locator('[data-test=rules-group]').first().waitFor({ timeout: 60000 });
@@ -363,7 +393,7 @@ try {
     return { label: el.textContent.trim(), inset: Math.round(icon.left - el.getBoundingClientRect().left), left: Math.round(icon.left) };
   }));
   results.push(`INFO menu icons: ${iconGaps.map((g) => `${g.label}@${g.left}(+${g.inset})`).join(', ')}`);
-  if (iconGaps.length !== 10 || iconGaps.some((g) => g.inset < 8) || new Set(iconGaps.map((g) => g.left)).size !== 1) throw new Error('menu icons are not padded or not aligned');
+  if (iconGaps.length !== 12 || iconGaps.some((g) => g.inset < 8) || new Set(iconGaps.map((g) => g.left)).size !== 1) throw new Error('menu icons are not padded or not aligned');
   await page.locator('[data-test=nav-compendium] button').click();
   ok('"Compendio" menu group: Specie, Background, Talenti, Incantesimi, Classi, Equipaggiamento, and Glossario next to it; collapsed elsewhere and toggles on click; icons padded and aligned');
   await page.getByText('Non hai un account? Registrati').click();
@@ -849,6 +879,41 @@ try {
       tabs.attunement = (await page.locator('[data-test=sheet-attunement]').innerText()).trim();
     }
   }
+  // Sharing the character: the dialog adds people by e-mail and says when no account has that address
+  await page.locator('[data-test=sheet-share]').click();
+  await page.locator('[data-test=sheet-share-dialog] [data-test=share-email]').fill('nobody@example.com');
+  await page.locator('[data-test=sheet-share-dialog] [data-test=share-add]').click();
+  const shareError = (await page.locator('[data-test=sheet-share-dialog] [data-test=share-error]').innerText({ timeout: 15000 })).trim();
+  await page.locator('[data-test=sheet-share-dialog] button', { hasText: /chiudi/i }).click();
+  if (!/Nessun account/.test(shareError)) throw new Error(`sharing with an unknown address: "${shareError}"`);
+  ok('character sharing: the dialog adds people by e-mail and explains an unknown address');
+  // Campaigns: a new campaign makes its creator the master, with the invite link; the character joins the table
+  const sheetUrl = page.url();
+  await page.goto(`${base}/campaigns`);
+  await page.locator('[data-test=campaign-new]').click();
+  await page.locator('[data-test=campaign-name]').fill('Tavola di prova');
+  await page.locator('[data-test=campaign-create]').click();
+  await page.locator('[data-test=campaign-title]', { hasText: 'Tavola di prova' }).waitFor({ timeout: 30000 });
+  const campaignUi = {
+    role: (await page.locator('[data-test=campaign-role]').innerText()).trim(),
+    link: (await page.locator('[data-test=campaign-link-url]').inputValue()).includes('/campaigns/join/'),
+  };
+  await page.locator('[data-test=campaign-tab-characters]').click();
+  const heroOption = await page.locator('[data-test=campaign-bring-select] option', { hasText: 'Eroe di prova' }).first().getAttribute('value', { timeout: 15000 });
+  await page.locator('[data-test=campaign-bring-select]').selectOption(heroOption);
+  await page.locator('[data-test=campaign-bring-add]').click();
+  await page.locator('[data-test=campaign-character]', { hasText: 'Eroe di prova' }).waitFor({ timeout: 15000 });
+  await page.locator('[data-test=campaign-tab-content]').click();
+  campaignUi.share = await page.locator('[data-test=campaign-share]').count();
+  await page.locator('[data-test=campaign-tab-overview]').click();
+  await page.locator('[data-test=campaign-delete]').click();
+  await page.locator('[data-test=campaign-confirm-yes]').click();
+  await page.waitForURL(/\/campaigns$/, { timeout: 15000 });
+  results.push(`INFO campaign: ${JSON.stringify(campaignUi)}`);
+  if (campaignUi.role !== 'Master' || !campaignUi.link || campaignUi.share !== 1) throw new Error(`unexpected campaign page: ${JSON.stringify(campaignUi)}`);
+  ok('campaigns: the creator is the master with an invite link, the character joins the table, the campaign is deleted');
+  await page.goto(sheetUrl);
+  await page.locator('[data-test=character-sheet]').waitFor({ timeout: 30000 });
   const [download] = await Promise.all([page.waitForEvent('download', { timeout: 20000 }), page.locator('[data-test=sheet-pdf]').click()]);
   const pdfPath = await download.path();
   const pdfHead = readFileSync(pdfPath).subarray(0, 8).toString('latin1');

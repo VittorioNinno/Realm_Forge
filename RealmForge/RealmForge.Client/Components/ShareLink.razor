@@ -1,11 +1,15 @@
 ﻿@using RealmForge.Client.Localization
 @using RealmForge.Client.Services
+@using RealmForge.Shared.DTOs
 @using RealmForge.Shared.Enums
 @inject LanguageStateService LanguageState
 @inject NavigationManager Navigation
+@inject ShareDataService Shares
+@inject CharacterDataService Characters
 @inject IJSRuntime JS
 
-@* Share box of a Homebrew detail: copy the link (link / public entries) or explain how to share a private one *@
+@* Share box of a Homebrew detail: copy the link (link / public entries); the author picks the people who can use it
+   (also in character creation, whatever the visibility); a reader of a link-only entry adds it to their collection *@
 @if (Visibility != ContentVisibility.Private)
 {
     <div class="rf-share" data-test="share-link">
@@ -27,9 +31,38 @@ else if (CanEdit)
     </div>
 }
 
+@if (EntityId is { } id)
+{
+    @if (CanEdit)
+    {
+        <SharePeople Title="@UiText.SharePeopleTitle(LanguageState.CurrentLanguage)" Hint="@UiText.SharePeopleHint(LanguageState.CurrentLanguage)"
+                     Load="() => Shares.GetSharesAsync(id)" Add="email => Shares.ShareAsync(id, email)" Remove="userId => Shares.UnshareAsync(id, userId)"
+                     DataTest="share-people" />
+    }
+    else if (mine is not null && mine.FirstOrDefault(m => m.EntityId == id) is { } entry)
+    {
+        <div class="rf-share rf-share-mine" data-test="share-mine">
+            <span class="small">@(entry.Collected ? UiText.InYourCollection(LanguageState.CurrentLanguage) : UiText.SharedWithYou(LanguageState.CurrentLanguage))</span>
+            <button type="button" class="btn btn-sm btn-rf-outline" @onclick="LeaveAsync" data-test="share-leave">
+                @(entry.Collected ? UiText.BtnRemoveFromCollection(LanguageState.CurrentLanguage) : UiText.BtnHideShared(LanguageState.CurrentLanguage))
+            </button>
+        </div>
+    }
+    else if (mine is not null && Visibility == ContentVisibility.Link)
+    {
+        <div class="rf-share rf-share-mine" data-test="share-collect">
+            <span class="small">@UiText.CollectHint(LanguageState.CurrentLanguage)</span>
+            <button type="button" class="btn btn-sm btn-rf-orange" @onclick="CollectAsync" data-test="share-collect-add">@UiText.BtnAddToCollection(LanguageState.CurrentLanguage)</button>
+        </div>
+    }
+}
+
 @code {
     [Parameter] public ContentVisibility Visibility { get; set; }
     [Parameter] public bool CanEdit { get; set; }
+
+    //	The entry, to share it with people or add it to the collection (null: only the link)
+    [Parameter] public Guid? EntityId { get; set; }
 
     //	Client route relative to the base address, e.g. "feats?id=..."
     [Parameter, EditorRequired] public string Path { get; set; } = string.Empty;
@@ -37,7 +70,18 @@ else if (CanEdit)
     private bool copied;
     private bool copyFailed;
 
+    //	Entries shared with me (null: visitor, or not loaded)
+    private List<SharedEntryDto>? mine;
+
     private string AbsoluteUrl => Navigation.ToAbsoluteUri(Path).ToString();
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (EntityId is not null && !CanEdit)
+        {
+            mine = await Shares.GetMineAsync();
+        }
+    }
 
     private async Task CopyAsync()
     {
@@ -49,6 +93,24 @@ else if (CanEdit)
         catch (JSException)
         {
             copyFailed = true;
+        }
+    }
+
+    private async Task CollectAsync()
+    {
+        if (EntityId is { } id && await Shares.CollectAsync(id))
+        {
+            Characters.InvalidateContexts();
+            mine = await Shares.GetMineAsync();
+        }
+    }
+
+    private async Task LeaveAsync()
+    {
+        if (EntityId is { } id && await Shares.LeaveAsync(id))
+        {
+            Characters.InvalidateContexts();
+            mine = await Shares.GetMineAsync();
         }
     }
 }

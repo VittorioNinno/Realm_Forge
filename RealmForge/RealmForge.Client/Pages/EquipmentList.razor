@@ -295,7 +295,7 @@
 
             @if (!detail.IsOfficialSRD)
             {
-                <ShareLink Visibility="detail.Visibility" CanEdit="detail.CanEdit" Path="@($"equipment?id={detail.Id}")" />
+                <ShareLink Visibility="detail.Visibility" CanEdit="detail.CanEdit" EntityId="detail.Id" Path="@($"equipment?id={detail.Id}")" />
             }
 
             <dl class="rf-spell-stats mb-3" data-test="equipment-stats">

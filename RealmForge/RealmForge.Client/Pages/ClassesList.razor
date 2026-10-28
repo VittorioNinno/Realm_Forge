@@ -134,7 +134,7 @@
 
             @if (!cls.IsOfficialSRD)
             {
-                <ShareLink Visibility="cls.Visibility" CanEdit="cls.CanEdit" Path="@($"classes?id={cls.Id}")" />
+                <ShareLink Visibility="cls.Visibility" CanEdit="cls.CanEdit" EntityId="cls.Id" Path="@($"classes?id={cls.Id}")" />
             }
 
             @* Tabs: overview, class table, features, subclasses *@
@@ -262,7 +262,7 @@
                                     </div>
                                     @if (!subclass.IsOfficialSRD)
                                     {
-                                        <ShareLink Visibility="subclass.Visibility" CanEdit="subclass.CanEdit" Path="@($"classes?id={cls.Id}&subclass={subclass.Id}")" />
+                                        <ShareLink Visibility="subclass.Visibility" CanEdit="subclass.CanEdit" EntityId="subclass.Id" Path="@($"classes?id={cls.Id}&subclass={subclass.Id}")" />
                                     }
                                     @if (!string.IsNullOrWhiteSpace(subclass.Description))
                                     {

@@ -5606,3 +5606,429 @@ button.rf-stat-card {
         border-color: var(--rf-orange-primary);
         color: var(--rf-orange-primary);
     }
+
+/* ===== Sheet polish: even heights, roll mode, short rest, custom resources ===== */
+.rf-stepper {
+    height: 48px;
+}
+
+.rf-bar-controls .rf-wizard-btn {
+    min-height: 48px;
+    height: 48px;
+}
+
+.rf-hp-btn.critical {
+    --rf-btn: #ff8a3d;
+}
+
+.rf-ability-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: -4px;
+}
+
+.rf-ability-head-title {
+    font-family: var(--rf-font-display);
+    font-weight: 600;
+    color: var(--rf-text-primary);
+}
+
+.rf-segmented {
+    display: inline-flex;
+    align-items: stretch;
+    border-radius: 8px;
+    border: 1px solid var(--rf-border-light);
+    background-color: var(--rf-bg-main);
+    overflow: hidden;
+}
+
+    .rf-segmented > button {
+        border: none;
+        border-left: 1px solid var(--rf-border-subtle);
+        background: none;
+        color: var(--rf-text-secondary);
+        padding: 6px 12px;
+        font-size: .78rem;
+        font-weight: 600;
+    }
+
+        .rf-segmented > button:first-of-type {
+            border-left: none;
+        }
+
+        .rf-segmented > button:hover {
+            color: var(--rf-text-primary);
+        }
+
+        .rf-segmented > button.on {
+            color: #111;
+            background-color: var(--rf-orange-primary);
+        }
+
+            .rf-segmented > button.on.advantage {
+                background-color: #4fbf86;
+            }
+
+            .rf-segmented > button.on.disadvantage {
+                background-color: #e5594d;
+            }
+
+.rf-segmented-label {
+    display: flex;
+    align-items: center;
+    padding: 0 10px;
+    font-size: .72rem;
+    font-weight: 800;
+    color: var(--rf-orange-primary);
+    border-right: 1px solid var(--rf-border-subtle);
+}
+
+/* Short rest */
+.rf-rest-hp {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    padding: 8px 10px;
+    margin-bottom: 8px;
+    border-radius: 8px;
+    background-color: var(--rf-bg-main);
+}
+
+.rf-rest-dice {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-bottom: 8px;
+}
+
+.rf-rest-die {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+    font-size: .88rem;
+}
+
+.rf-rest-log {
+    list-style: none;
+    margin: 0 0 8px;
+    padding: 8px 10px;
+    border-radius: 8px;
+    border: 1px solid rgba(79, 191, 134, .4);
+    color: #7fd9a8;
+    font-size: .85rem;
+}
+
+.rf-rest-recovers {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    margin-bottom: 14px;
+    font-size: .85rem;
+    color: var(--rf-text-secondary);
+}
+
+/* Custom resources form */
+.rf-res-form {
+    margin-top: 12px;
+    padding: 12px;
+    border-radius: 10px;
+    border: 1px dashed var(--rf-border-light);
+    background-color: var(--rf-bg-main);
+}
+
+.rf-res-form-title {
+    font-size: .72rem;
+    font-weight: 700;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    color: var(--rf-orange-primary);
+    margin-bottom: 8px;
+}
+
+.rf-res-form-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    gap: 10px;
+}
+
+.rf-res-name {
+    flex: 1 1 220px;
+    width: auto;
+}
+
+.rf-res-field {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.rf-res-reset {
+    height: 48px;
+}
+
+.rf-res-add {
+    height: 48px;
+    padding: 0 18px;
+}
+
+/* ===== Sharing ===== */
+.rf-share-people {
+    margin-top: 12px;
+    padding: 12px;
+    border-radius: 10px;
+    border: 1px solid var(--rf-border-subtle);
+    background-color: var(--rf-bg-main);
+}
+
+.rf-share-people-head {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 4px;
+}
+
+.rf-share-people-title {
+    font-size: .74rem;
+    font-weight: 700;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    color: var(--rf-orange-primary);
+}
+
+.rf-share-people-count {
+    min-width: 20px;
+    height: 20px;
+    padding: 0 6px;
+    border-radius: 999px;
+    background-color: rgba(255, 140, 0, .18);
+    color: var(--rf-orange-primary);
+    font-size: .72rem;
+    font-weight: 700;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.rf-share-people-list {
+    list-style: none;
+    margin: 0 0 10px;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+    .rf-share-people-list li {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+.rf-share-avatar {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background-color: var(--rf-bg-card);
+    border: 1px solid var(--rf-border-light);
+    color: var(--rf-orange-primary);
+    font-weight: 700;
+    font-size: .8rem;
+    flex: none;
+}
+
+.rf-share-email {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    font-size: .88rem;
+}
+
+.rf-share-add {
+    display: flex;
+    gap: 8px;
+}
+
+    .rf-share-add .rf-wizard-input {
+        flex: 1;
+        width: auto;
+    }
+
+    .rf-share-add .btn {
+        height: 48px;
+        padding: 0 16px;
+    }
+
+.rf-share-mine {
+    margin-top: 10px;
+}
+
+.rf-readonly {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 10px 14px;
+    border-radius: 10px;
+    border: 1px solid rgba(95, 178, 230, .5);
+    background-color: rgba(95, 178, 230, .08);
+    color: #9ccff0;
+    font-size: .85rem;
+}
+
+.rf-characters-shared-title {
+    margin-top: 28px;
+    font-family: var(--rf-font-display);
+    font-size: 1.15rem;
+    color: var(--rf-orange-primary);
+}
+
+.rf-character-card.shared {
+    border-style: dashed;
+}
+
+.rf-character-card-owner {
+    font-size: .78rem;
+    color: #9ccff0;
+}
+
+@media (max-width: 480px) {
+    .rf-share-add {
+        flex-direction: column;
+    }
+}
+
+/* --- MAGIC ITEMS --- */
+/* Rarity colours of the flags, the usual treasure scale */
+.rf-spell-flag.rf-rarity-common { border-color: #9aa0a6; color: #c4c8cc; }
+.rf-spell-flag.rf-rarity-uncommon { border-color: #4caf50; color: #7bd27f; }
+.rf-spell-flag.rf-rarity-rare { border-color: #4a90e2; color: #7fb4f0; }
+.rf-spell-flag.rf-rarity-veryrare { border-color: #9c6ade; color: #c29cf0; }
+.rf-spell-flag.rf-rarity-legendary { border-color: #e0a030; color: #f2c46a; }
+.rf-spell-flag.rf-rarity-artifact { border-color: #d9534f; color: #f08a87; }
+
+.rf-magic-variants {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+    .rf-magic-variants td {
+        padding: 0.4rem 0.5rem;
+        border-bottom: 1px solid var(--rf-border-subtle);
+        vertical-align: top;
+    }
+
+/* Compendium picker of the magic item editor */
+.rf-magic-pick-list {
+    max-height: 14rem;
+    overflow-y: auto;
+    border: 1px solid var(--rf-border-light);
+    border-radius: 4px;
+    margin-top: 0.35rem;
+}
+
+    .rf-magic-pick-list button {
+        display: flex;
+        width: 100%;
+        justify-content: space-between;
+        gap: 0.5rem;
+        padding: 0.45rem 0.6rem;
+        min-height: 44px;
+        align-items: center;
+        background: transparent;
+        border: 0;
+        border-bottom: 1px solid var(--rf-border-subtle);
+        color: var(--rf-text-primary, #fff);
+        text-align: left;
+    }
+
+        .rf-magic-pick-list button:hover,
+        .rf-magic-pick-list button:focus-visible {
+            background: var(--rf-bg-card);
+        }
+
+        .rf-magic-pick-list button.rf-variant {
+            padding-left: 1.4rem;
+        }
+
+/* --- CAMPAIGNS --- */
+.rf-role-badge { font-weight: 600; letter-spacing: 0.5px; }
+.rf-role-badge.rf-role-master { background-color: var(--rf-orange-primary); color: #111; }
+.rf-role-badge.rf-role-comaster { background-color: #b07a2a; color: #111; }
+.rf-role-badge.rf-role-player { background-color: var(--rf-bg-card); color: var(--rf-text-secondary); border: 1px solid var(--rf-border-light); }
+
+.rf-campaign-invitations { display: flex; flex-direction: column; gap: 0.5rem; }
+
+.rf-campaign-invitation {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.75rem 1rem;
+    border: 1px solid var(--rf-orange-primary);
+    border-radius: 6px;
+    background-color: var(--rf-bg-surface);
+}
+
+.rf-campaign-pending { color: var(--rf-orange-primary); font-weight: 600; }
+
+.rf-campaign-join { max-width: 560px; }
+
+.rf-campaign-row {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 0;
+    border-bottom: 1px solid var(--rf-border-subtle);
+    min-height: 48px;
+}
+
+    .rf-campaign-row:last-child { border-bottom: 0; }
+
+.rf-campaign-row-main {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem;
+    min-width: 0;
+    overflow-wrap: anywhere;
+}
+
+.rf-campaign-role-select { width: auto; min-width: 9rem; }
+
+.rf-tab-count {
+    display: inline-block;
+    margin-left: 0.35rem;
+    padding: 0 0.4rem;
+    border-radius: 999px;
+    background-color: var(--rf-orange-primary);
+    color: #111;
+    font-size: 0.7rem;
+    font-weight: 700;
+}
+
+.rf-master-banner {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: 0.5rem;
+    padding: 0.6rem 0.9rem;
+    margin-bottom: 0.75rem;
+    border: 1px solid var(--rf-orange-primary);
+    border-radius: 6px;
+    background-color: rgba(255, 140, 0, 0.08);
+    color: var(--rf-text-secondary);
+    font-size: 0.9rem;
+}

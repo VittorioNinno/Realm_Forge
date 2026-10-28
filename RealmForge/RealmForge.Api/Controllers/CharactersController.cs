@@ -1,12 +1,16 @@
-﻿using System.Text.Json;
+﻿using System.Security.Claims;
+using System.Text.Json;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using RealmForge.Api.Characters;
 using RealmForge.Api.Localization;
 using RealmForge.Api.Security;
 using RealmForge.Domain.Entities;
+using RealmForge.Infrastructure.Identity;
 using RealmForge.Infrastructure.Persistence;
+using RealmForge.Shared.Campaigns;
 using RealmForge.Shared.Characters;
 using RealmForge.Shared.DTOs;
 using RealmForge.Shared.Enums;
@@ -16,7 +20,9 @@ namespace RealmForge.Api.Controllers
 	///	<summary>
 	///	Player characters of the signed-in user. Every save is checked by <see cref="CharacterCalculator"/> against the
 	///	compendium of the edition (the same rules the wizard runs); the play state of the sheet is saved on its own.
-	///	Characters are private: only their owner reads and changes them.
+	///	The owner changes them, and so do the masters and co-masters of the campaigns the character takes part in (the
+	///	change goes to the character itself); the owner can also share a character with other accounts, who read the
+	///	sheet without changing it. The rules are always checked with the compendium the owner sees.
 	///	</summary>
 	[ApiController]
 	[Route("api/[controller]")]
@@ -32,23 +38,53 @@ namespace RealmForge.Api.Controllers
 
 		private readonly RealmForgeDbContext _context;
 		private readonly CharacterContextBuilder _builder;
+		private readonly UserManager<ApplicationUser> _users;
 
-		public CharactersController(RealmForgeDbContext context, CharacterContextBuilder builder)
+		public const int MaxSharesPerCharacter = 20;
+
+		public CharactersController(RealmForgeDbContext context, CharacterContextBuilder builder, UserManager<ApplicationUser> users)
 		{
 			_context = context;
 			_builder = builder;
+			_users = users;
 		}
 
 		private string UserId => ContentAccess.GetUserId(User) ?? string.Empty;
 
+		//	Characters of the campaigns I run as master or co-master
+		private IQueryable<Guid> RunByMe => _context.CampaignCharacters
+			.Where(cc => _context.CampaignMembers.Any(m => m.CampaignId == cc.CampaignId && m.UserId == UserId
+				&& (m.Role == CampaignRole.Master || m.Role == CampaignRole.CoMaster)))
+			.Select(cc => cc.CharacterId);
+
+		//	The owner of a character as a principal: its rules are checked with the compendium they see
+		private static ClaimsPrincipal Owner(string ownerId) =>
+			new(new ClaimsIdentity(new[] { new Claim(ClaimTypes.NameIdentifier, ownerId) }, "character-owner"));
+
 		//	GET: api/characters/context?ruleset=2&lang=2 — the rules data of an edition (also for visitors)
 		[HttpGet("context")]
 		[AllowAnonymous]
-		public async Task<ActionResult<CharacterContextDto>> GetContext([FromQuery] RulesetVersion ruleset = RulesetVersion.Dnd5e_2024, [FromQuery] LanguageCode lang = LanguageCode.It)
+		public async Task<ActionResult<CharacterContextDto>> GetContext([FromQuery] RulesetVersion ruleset = RulesetVersion.Dnd5e_2024, [FromQuery] LanguageCode lang = LanguageCode.It,
+			[FromQuery] Guid? character = null)
 		{
 			if (!Enum.IsDefined(ruleset))
 			{
 				return BadRequest();
+			}
+
+			//	A shared character is read with the compendium its owner sees (their Homebrew included)
+			if (character is { } characterId)
+			{
+				var owner = await _context.Characters.AsNoTracking()
+					.Where(c => c.Id == characterId && (c.OwnerId == UserId || _context.CharacterShares.Any(s => s.CharacterId == c.Id && s.UserId == UserId)
+						|| RunByMe.Contains(c.Id)))
+					.Select(c => c.OwnerId)
+					.FirstOrDefaultAsync();
+				if (owner is null || UserId.Length == 0)
+				{
+					return NotFound();
+				}
+				return Ok(await _builder.BuildAsync(ruleset, lang, Owner(owner)));
 			}
 
 			return Ok(await _builder.BuildAsync(ruleset, lang, User));
@@ -64,10 +100,95 @@ namespace RealmForge.Api.Controllers
 				.Where(c => c.OwnerId == UserId)
 				.OrderByDescending(c => c.UpdatedAt)
 				.ToListAsync();
+			return Ok(await SummariesAsync(characters, lang));
+		}
 
+		//	GET: api/characters/shared?lang=2 — characters other players shared with me
+		[HttpGet("shared")]
+		public async Task<ActionResult<List<SharedCharacterDto>>> GetShared([FromQuery] LanguageCode lang = LanguageCode.It)
+		{
+			var characters = await _context.Characters.AsNoTracking()
+				.Include(c => c.Species).ThenInclude(s => s.Translations)
+				.Include(c => c.Background).ThenInclude(b => b.Translations)
+				.Where(c => _context.CharacterShares.Any(s => s.CharacterId == c.Id && s.UserId == UserId))
+				.OrderByDescending(c => c.UpdatedAt)
+				.ToListAsync();
+			var ownerIds = characters.Select(c => c.OwnerId).Distinct().ToList();
+			var owners = await _context.Users.AsNoTracking().Where(u => ownerIds.Contains(u.Id)).ToDictionaryAsync(u => u.Id, u => u.Email ?? string.Empty);
+			var summaries = await SummariesAsync(characters, lang);
+			return Ok(summaries.Select((summary, i) => new SharedCharacterDto(summary, owners.GetValueOrDefault(characters[i].OwnerId, string.Empty))).ToList());
+		}
+
+		//	GET: api/characters/{id}/shares — the accounts the owner shared the character with
+		[HttpGet("{id:guid}/shares")]
+		public async Task<ActionResult<List<ShareUserDto>>> GetShares(Guid id)
+		{
+			if (!await _context.Characters.AnyAsync(c => c.Id == id && c.OwnerId == UserId))
+			{
+				return NotFound();
+			}
+			var ids = await _context.CharacterShares.AsNoTracking().Where(s => s.CharacterId == id).Select(s => s.UserId).ToListAsync();
+			var users = await _context.Users.AsNoTracking().Where(u => ids.Contains(u.Id)).Select(u => new { u.Id, u.Email }).ToListAsync();
+			return Ok(users.Select(u => new ShareUserDto(u.Id, u.Email ?? string.Empty)).OrderBy(u => u.Email).ToList());
+		}
+
+		//	POST: api/characters/{id}/shares — share the sheet (read-only) with an account by e-mail
+		[HttpPost("{id:guid}/shares")]
+		public async Task<ActionResult<ShareUserDto>> Share(Guid id, [FromBody] ShareRequestDto request)
+		{
+			if (!await _context.Characters.AnyAsync(c => c.Id == id && c.OwnerId == UserId))
+			{
+				return NotFound();
+			}
+			var address = request.Email?.Trim();
+			if (string.IsNullOrEmpty(address) || address.Length > 256 || !address.Contains('@'))
+			{
+				return Problem(statusCode: StatusCodes.Status400BadRequest, title: "Invalid e-mail address.");
+			}
+			var target = await _users.FindByEmailAsync(address);
+			if (target is null)
+			{
+				return Problem(statusCode: StatusCodes.Status404NotFound, title: "No account with this e-mail address.");
+			}
+			if (target.Id == UserId)
+			{
+				return Problem(statusCode: StatusCodes.Status400BadRequest, title: "You cannot share with yourself.");
+			}
+			if (!await _context.CharacterShares.AnyAsync(s => s.CharacterId == id && s.UserId == target.Id))
+			{
+				if (await _context.CharacterShares.CountAsync(s => s.CharacterId == id) >= MaxSharesPerCharacter)
+				{
+					return Problem(statusCode: StatusCodes.Status400BadRequest, title: $"At most {MaxSharesPerCharacter} people per character.");
+				}
+				_context.CharacterShares.Add(new CharacterShare { CharacterId = id, UserId = target.Id });
+				await _context.SaveChangesAsync();
+			}
+			return Ok(new ShareUserDto(target.Id, target.Email ?? string.Empty));
+		}
+
+		//	DELETE: api/characters/{id}/shares/{userId} — the owner removes a person, or a person stops following ("me")
+		[HttpDelete("{id:guid}/shares/{userId}")]
+		public async Task<IActionResult> Unshare(Guid id, string userId)
+		{
+			var target = userId == "me" ? UserId : userId;
+			var share = await _context.CharacterShares.FirstOrDefaultAsync(s => s.CharacterId == id && s.UserId == target);
+			if (share is null || (target != UserId && !await _context.Characters.AnyAsync(c => c.Id == id && c.OwnerId == UserId)))
+			{
+				return NotFound();
+			}
+			_context.CharacterShares.Remove(share);
+			await _context.SaveChangesAsync();
+			return NoContent();
+		}
+
+		private Task<List<CharacterSummaryDto>> SummariesAsync(List<Character> characters, LanguageCode lang) => SummariesAsync(_context, characters, lang);
+
+		//	Characters loaded with their species and background translations
+		internal static async Task<List<CharacterSummaryDto>> SummariesAsync(RealmForgeDbContext db, List<Character> characters, LanguageCode lang)
+		{
 			var builds = characters.ToDictionary(c => c.Id, c => ReadBuild(c.Build));
 			var classIds = builds.Values.SelectMany(b => b.Levels.Select(l => l.ClassId)).Distinct().ToList();
-			var classNames = await _context.ClassTranslations.AsNoTracking()
+			var classNames = await db.ClassTranslations.AsNoTracking()
 				.Where(t => classIds.Contains(t.CharacterClassId))
 				.ToListAsync();
 
@@ -75,7 +196,7 @@ namespace RealmForge.Api.Controllers
 				.GroupBy(l => l.ClassId)
 				.Select(g => $"{classNames.Where(t => t.CharacterClassId == g.Key).Localize(lang)?.Name} {g.Count()}"));
 
-			return Ok(characters.Select(c =>
+			return characters.Select(c =>
 			{
 				var sheet = ReadSheet(c.Sheet);
 				return new CharacterSummaryDto(
@@ -84,15 +205,32 @@ namespace RealmForge.Api.Controllers
 					ClassLine(builds[c.Id]),
 					c.Background.Translations.Localize(lang)?.Name ?? string.Empty,
 					c.MaxHitPoints, Math.Clamp(sheet.CurrentHitPoints ?? c.MaxHitPoints, 0, c.MaxHitPoints), c.ArmorClass, c.UpdatedAt);
-			}).ToList());
+			}).ToList();
 		}
 
 		//	GET: api/characters/{id}
 		[HttpGet("{id:guid}")]
 		public async Task<ActionResult<CharacterDto>> GetCharacter(Guid id)
 		{
-			var character = await _context.Characters.AsNoTracking().FirstOrDefaultAsync(c => c.Id == id && c.OwnerId == UserId);
-			return character is null ? NotFound() : Ok(ToDto(character));
+			var character = await _context.Characters.AsNoTracking()
+				.FirstOrDefaultAsync(c => c.Id == id && (c.OwnerId == UserId || _context.CharacterShares.Any(s => s.CharacterId == c.Id && s.UserId == UserId)
+					|| RunByMe.Contains(c.Id)));
+			if (character is null)
+			{
+				return NotFound();
+			}
+			var isOwner = character.OwnerId == UserId;
+			var canEdit = isOwner || await RunByMe.ContainsAsync(character.Id);
+			var people = new[] { character.OwnerId, character.UpdatedById }.OfType<string>().Distinct().ToList();
+			var emails = await _context.Users.AsNoTracking().Where(u => people.Contains(u.Id)).ToDictionaryAsync(u => u.Id, u => u.Email ?? string.Empty);
+			return Ok(ToDto(character) with
+			{
+				ReadOnly = !canEdit,
+				IsOwner = isOwner,
+				OwnerEmail = isOwner ? null : emails.GetValueOrDefault(character.OwnerId),
+				//	Shown when the last change was made by someone else (the owner after a master, a master after the owner)
+				LastEditedBy = character.UpdatedById is { } editor && editor != UserId ? emails.GetValueOrDefault(editor) : null
+			});
 		}
 
 		//	POST: api/characters
@@ -118,7 +256,7 @@ namespace RealmForge.Api.Controllers
 				return Problem(statusCode: StatusCodes.Status400BadRequest, title: Describe(computed));
 			}
 
-			var character = new Character { OwnerId = UserId };
+			var character = new Character { OwnerId = UserId, UpdatedById = UserId };
 			Apply(character, dto, sheet, computed);
 			_context.Characters.Add(character);
 			await _context.SaveChangesAsync();
@@ -131,7 +269,7 @@ namespace RealmForge.Api.Controllers
 		public async Task<ActionResult<CharacterDto>> UpdateCharacter(Guid id, [FromBody] SaveCharacterDto dto)
 		{
 			dto.Build ??= new CharacterBuild();
-			var character = await _context.Characters.FirstOrDefaultAsync(c => c.Id == id && c.OwnerId == UserId);
+			var character = await _context.Characters.FirstOrDefaultAsync(c => c.Id == id && (c.OwnerId == UserId || RunByMe.Contains(c.Id)));
 			if (character is null)
 			{
 				return NotFound();
@@ -149,7 +287,7 @@ namespace RealmForge.Api.Controllers
 
 			var sheet = ReadSheet(character.Sheet);
 			ApplyAdvancement(sheet, dto.Advancement);
-			var context = await _builder.BuildAsync(dto.Ruleset, LanguageCode.En, User);
+			var context = await _builder.BuildAsync(dto.Ruleset, LanguageCode.En, Owner(character.OwnerId));
 			var computed = CharacterCalculator.Compute(Input(dto, sheet), context);
 			if (!computed.CanSave)
 			{
@@ -163,15 +301,16 @@ namespace RealmForge.Api.Controllers
 			}
 
 			Apply(character, dto, sheet, computed);
+			character.UpdatedById = UserId;
 			await _context.SaveChangesAsync();
-			return Ok(ToDto(character));
+			return Ok(ToDto(character) with { IsOwner = character.OwnerId == UserId });
 		}
 
 		//	PUT: api/characters/{id}/sheet — the play state (hit points, resources, inventory, notes)
 		[HttpPut("{id:guid}/sheet")]
 		public async Task<ActionResult<CharacterSavedDto>> UpdateSheet(Guid id, [FromBody] CharacterSheetState sheet)
 		{
-			var character = await _context.Characters.FirstOrDefaultAsync(c => c.Id == id && c.OwnerId == UserId);
+			var character = await _context.Characters.FirstOrDefaultAsync(c => c.Id == id && (c.OwnerId == UserId || RunByMe.Contains(c.Id)));
 			if (character is null)
 			{
 				return NotFound();
@@ -179,7 +318,7 @@ namespace RealmForge.Api.Controllers
 
 			sheet = Sanitize(sheet);
 			var build = ReadBuild(character.Build);
-			var context = await _builder.BuildAsync(character.Ruleset, LanguageCode.En, User);
+			var context = await _builder.BuildAsync(character.Ruleset, LanguageCode.En, Owner(character.OwnerId));
 			var input = new CharacterInput
 			{
 				Name = character.Name,
@@ -200,6 +339,7 @@ namespace RealmForge.Api.Controllers
 			character.MaxHitPoints = computed.MaxHitPoints;
 			character.ArmorClass = computed.ArmorClass;
 			character.UpdatedAt = DateTimeOffset.UtcNow;
+			character.UpdatedById = UserId;
 			await _context.SaveChangesAsync();
 
 			return Ok(new CharacterSavedDto(character.Id, character.MaxHitPoints, character.ArmorClass, character.UpdatedAt));

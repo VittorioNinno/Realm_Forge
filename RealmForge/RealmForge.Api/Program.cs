@@ -58,6 +58,8 @@ namespace RealmForge.Api
 
 			//	Ownership rules for SRD and Homebrew content
 			builder.Services.AddSingleton<ContentAccess>();
+			builder.Services.AddScoped<ShareService>();
+			builder.Services.AddScoped<RealmForge.Api.Campaigns.HomebrewLookup>();
 			builder.Services.AddScoped<RealmForge.Api.Characters.CharacterContextBuilder>();
 
 			//	E-mails for account confirmation and password reset (SMTP settings in the "Email" section / user-secrets)

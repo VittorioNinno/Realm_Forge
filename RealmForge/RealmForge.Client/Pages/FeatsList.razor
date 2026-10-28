@@ -202,7 +202,7 @@
 
             @if (!SelectedFeat.IsOfficialSRD)
             {
-                <ShareLink Visibility="SelectedFeat.Visibility" CanEdit="SelectedFeat.CanEdit" Path="@($"feats?id={SelectedFeat.Id}")" />
+                <ShareLink Visibility="SelectedFeat.Visibility" CanEdit="SelectedFeat.CanEdit" EntityId="SelectedFeat.Id" Path="@($"feats?id={SelectedFeat.Id}")" />
             }
 
             @if (!string.IsNullOrWhiteSpace(SelectedFeat.Prerequisite))
