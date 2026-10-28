@@ -15,7 +15,7 @@ public static class HeadbandOfIntellect2014Seeder
 		yield return Item("headband-of-intellect", null, 0, MagicItemType.WondrousItem, ItemRarity.Uncommon, true, ContentSource.Srd51,
 			Magic(Ability(MagicEffectKind.SetAbilityScore, 19, AbilityScore.Intelligence)),
 			("Fascia dell'intelletto", "Oggetto meraviglioso, non comune (richiede sintonia)",
-			"Finché il personaggio indossa questa fascia, il suo punteggio di Intelligenza è pari a 19. Se il suo punteggio di Intelligenza è già pari o superiore a 19, la fascia non ha alcun effetto."),
+			"Finché il personaggio indossa questa fascia, il suo punteggio di Intelligenza è pari a 19. Se il suo punteggio di Intelligenza è già pari o superiore a 19, la fascia non ha alcun effetto.", null),
 			("Headband of Intellect", "Wondrous item, uncommon (requires attunement)",
 			"Your Intelligence score is 19 while you wear this headband. It has no effect on you if your Intelligence is already 19 or higher.", null));
 	}

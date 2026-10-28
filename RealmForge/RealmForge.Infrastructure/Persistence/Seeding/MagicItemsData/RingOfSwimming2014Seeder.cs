@@ -15,7 +15,7 @@ public static class RingOfSwimming2014Seeder
 		yield return Item("ring-of-swimming", null, 0, MagicItemType.Ring, ItemRarity.Uncommon, false, ContentSource.Srd51,
 			null,
 			("Anello del nuotare", "Anello, non comune",
-			"Finché il personaggio indossa questo anello, la sua velocità di nuotare è pari a 12 metri."),
+			"Finché il personaggio indossa questo anello, la sua velocità di nuotare è pari a 12 metri.", null),
 			("Ring of Swimming", "Ring, uncommon",
 			"You have a swimming speed of 40 feet while wearing this ring.", null));
 	}

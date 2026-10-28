@@ -15,7 +15,7 @@ public static class SwordOfLifeStealing2014Seeder
 		yield return Item("sword-of-life-stealing", null, 0, MagicItemType.Weapon, ItemRarity.Rare, true, ContentSource.Srd51,
 			null,
 			("Spada del furto vitale", "Arma (qualsiasi spada), rara (richiede sintonia)",
-			"Quando il personaggio attacca una creatura con quest'arma magica e ottiene 20 al tiro per colpire, il bersaglio subisce 3d6 danni necrotici extra se non è un costrutto o un non morto. Il personaggio riceve inoltre punti ferita temporanei pari ai danni extra inflitti."),
+			"Quando il personaggio attacca una creatura con quest'arma magica e ottiene 20 al tiro per colpire, il bersaglio subisce 3d6 danni necrotici extra se non è un costrutto o un non morto. Il personaggio riceve inoltre punti ferita temporanei pari ai danni extra inflitti.", null),
 			("Sword of Life Stealing", "Weapon (any sword), rare (requires attunement)",
 			"When you attack a creature with this magic weapon and roll a 20 on the attack roll, that target takes an extra 3d6 necrotic damage, provided that the target isn't a construct or an undead. You gain temporary hit points equal to the extra damage dealt.", null));
 	}

@@ -15,7 +15,7 @@ public static class PearlOfPower2014Seeder
 		yield return Item("pearl-of-power", null, 0, MagicItemType.WondrousItem, ItemRarity.Uncommon, true, ContentSource.Srd51,
 			null,
 			("Perla del potere", "Oggetto meraviglioso, non comune (richiede sintonia con un incantatore)",
-			"Finché il personaggio porta questa perla sulla sua persona, può usare un'azione per pronunciarne la parola d'ordine e recuperare uno slot incantesimo consumato. Se lo slot consumato era di livello pari o superiore al 4°, il nuovo slot sarà di 3° livello. Una volta usata, la perla non può essere riutilizzata fino all'alba successiva."),
+			"Finché il personaggio porta questa perla sulla sua persona, può usare un'azione per pronunciarne la parola d'ordine e recuperare uno slot incantesimo consumato. Se lo slot consumato era di livello pari o superiore al 4°, il nuovo slot sarà di 3° livello. Una volta usata, la perla non può essere riutilizzata fino all'alba successiva.", null),
 			("Pearl of Power", "Wondrous item, uncommon (requires attunement by a spellcaster)",
 			"While this pearl is on your person, you can use an action to speak its command word and regain one expended spell slot. If the expended slot was of 4th level or higher, the new slot is 3rd level. Once you use the pearl, it can't be used again until the next dawn.", null));
 	}

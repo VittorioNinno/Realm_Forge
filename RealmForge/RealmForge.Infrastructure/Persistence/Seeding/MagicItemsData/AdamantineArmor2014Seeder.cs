@@ -15,7 +15,7 @@ public static class AdamantineArmor2014Seeder
 		yield return Item("adamantine-armor", null, 0, MagicItemType.Armor, ItemRarity.Uncommon, false, ContentSource.Srd51,
 			null,
 			("Armatura adamantina", "Armatura (media o pesante, ma non di pelle), non comune",
-			"Quest'armatura include dei rinforzi di adamantio, uno dei materiali più duri in assoluto. Tutti i colpi critici che un personaggio subisce mentre indossa questa armatura diventano colpi normali."),
+			"Quest'armatura include dei rinforzi di adamantio, uno dei materiali più duri in assoluto. Tutti i colpi critici che un personaggio subisce mentre indossa questa armatura diventano colpi normali.", null),
 			("Adamantine Armor", "Armor (medium or heavy, but not hide), uncommon",
 			"This suit of armor is reinforced with adamantine, one of the hardest substances in existence. While you're wearing it, any critical hit against you becomes a normal hit.", null));
 	}

@@ -15,7 +15,7 @@ public static class PotionOfSpeed2014Seeder
 		yield return Item("potion-of-speed", null, 0, MagicItemType.Potion, ItemRarity.VeryRare, false, ContentSource.Srd51,
 			null,
 			("Pozione di velocità", "Pozione, molto rara",
-			"Quando il personaggio beve questa pozione, ottiene l'effetto dell'incantesimo *velocità* per 1 minuto (non è richiesta la concentrazione). Il fluido giallo della pozione è striato di nero e vortica costantemente."),
+			"Quando il personaggio beve questa pozione, ottiene l'effetto dell'incantesimo *velocità* per 1 minuto (non è richiesta la concentrazione). Il fluido giallo della pozione è striato di nero e vortica costantemente.", null),
 			("Potion of Speed", "Potion, very rare",
 			"When you drink this potion, you gain the effect of the haste spell for 1 minute (no concentration required). The potion's yellow fluid is streaked with black and swirls on its own.", null));
 	}

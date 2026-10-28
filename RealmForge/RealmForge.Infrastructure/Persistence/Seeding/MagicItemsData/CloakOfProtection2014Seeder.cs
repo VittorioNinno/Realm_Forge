@@ -15,7 +15,7 @@ public static class CloakOfProtection2014Seeder
 		yield return Item("cloak-of-protection", null, 0, MagicItemType.WondrousItem, ItemRarity.Uncommon, true, ContentSource.Srd51,
 			Magic(Effect(MagicEffectKind.ArmorClass, 1), Effect(MagicEffectKind.SavingThrows, 1)),
 			("Mantello della protezione", "Oggetto meraviglioso, non comune (richiede sintonia)",
-			"Il personaggio che indossa questo mantello riceve un bonus di +1 alla CA e ai tiri salvezza."),
+			"Il personaggio che indossa questo mantello riceve un bonus di +1 alla CA e ai tiri salvezza.", null),
 			("Cloak of Protection", "Wondrous item, uncommon (requires attunement)",
 			"You gain a +1 bonus to AC and saving throws while you wear this cloak.", null));
 	}

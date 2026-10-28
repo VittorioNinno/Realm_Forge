@@ -15,7 +15,7 @@ public static class PotionOfClairvoyance2014Seeder
 		yield return Item("potion-of-clairvoyance", null, 0, MagicItemType.Potion, ItemRarity.Rare, false, ContentSource.Srd51,
 			null,
 			("Pozione di chiaroveggenza", "Pozione, rara",
-			"Quando il personaggio beve questa pozione, ottiene l'effetto dell'incantesimo *chiaroveggenza.* Nel liquido giallastro galleggia un globo oculare, che scompare quando la pozione viene aperta."),
+			"Quando il personaggio beve questa pozione, ottiene l'effetto dell'incantesimo *chiaroveggenza.* Nel liquido giallastro galleggia un globo oculare, che scompare quando la pozione viene aperta.", null),
 			("Potion of Clairvoyance", "Potion, rare",
 			"When you drink this potion, you gain the effect of the clairvoyance spell. An eyeball bobs in this yellowish liquid but vanishes when the potion is opened.", null));
 	}

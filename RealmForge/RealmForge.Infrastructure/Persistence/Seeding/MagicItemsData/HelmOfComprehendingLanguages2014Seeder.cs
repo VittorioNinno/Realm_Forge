@@ -15,7 +15,7 @@ public static class HelmOfComprehendingLanguages2014Seeder
 		yield return Item("helm-of-comprehending-languages", null, 0, MagicItemType.WondrousItem, ItemRarity.Uncommon, false, ContentSource.Srd51,
 			null,
 			("Elmo della comprensione dei linguaggi", "Oggetto meraviglioso, non comune",
-			"Finché il personaggio indossa questo elmo, può usare un'azione per lanciare con esso l'incantesimo *comprensione dei linguaggi* a volontà."),
+			"Finché il personaggio indossa questo elmo, può usare un'azione per lanciare con esso l'incantesimo *comprensione dei linguaggi* a volontà.", null),
 			("Helm of Comprehending Languages", "Wondrous item, uncommon",
 			"While wearing this helm, you can use an action to cast the comprehend languages spell from it at will.", null));
 	}

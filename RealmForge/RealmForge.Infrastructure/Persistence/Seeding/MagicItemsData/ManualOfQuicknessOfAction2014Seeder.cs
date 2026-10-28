@@ -15,7 +15,7 @@ public static class ManualOfQuicknessOfAction2014Seeder
 		yield return Item("manual-of-quickness-of-action", null, 0, MagicItemType.WondrousItem, ItemRarity.VeryRare, false, ContentSource.Srd51,
 			null,
 			("Manuale della velocità di azione", "Oggetto meraviglioso, molto raro",
-			"Questo libro contiene la descrizione di una serie di esercizi per la coordinazione e l'equilibrio, e le sue parole sono cariche di magia. Se il personaggio trascorre 48 ore in un periodo massimo di 6 giorni a studiare il contenuto del libro e ad applicarne i precetti, il suo punteggio di Destrezza aumenta di 2, come anche il massimo ottenibile in quel punteggio. Una volta letto, il libro perde il suo potere: lo riacquisterà dopo un secolo."),
+			"Questo libro contiene la descrizione di una serie di esercizi per la coordinazione e l'equilibrio, e le sue parole sono cariche di magia. Se il personaggio trascorre 48 ore in un periodo massimo di 6 giorni a studiare il contenuto del libro e ad applicarne i precetti, il suo punteggio di Destrezza aumenta di 2, come anche il massimo ottenibile in quel punteggio. Una volta letto, il libro perde il suo potere: lo riacquisterà dopo un secolo.", null),
 			("Manual of Quickness of Action", "Wondrous item, very rare",
 			"This book contains coordination and balance exercises, and its words are charged with magic. If you spend 48 hours over a period of 6 days or fewer studying the book's contents and practicing its guidelines, your Dexterity score increases by 2, as does your maximum for that score. The manual then loses its magic, but regains it in a century.", null));
 	}

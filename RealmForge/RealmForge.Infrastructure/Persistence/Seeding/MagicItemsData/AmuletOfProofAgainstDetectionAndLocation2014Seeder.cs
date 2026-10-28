@@ -15,7 +15,7 @@ public static class AmuletOfProofAgainstDetectionAndLocation2014Seeder
 		yield return Item("amulet-of-proof-against-detection-and-location", null, 0, MagicItemType.WondrousItem, ItemRarity.Uncommon, true, ContentSource.Srd51,
 			null,
 			("Amuleto anti-individuazione e localizzazione", "Oggetto meraviglioso, non comune (richiede sintonia)",
-			"Il personaggio che indossa questo amuleto è invisibile a qualsiasi forma di divinazione magica. Non può essere indicato come bersaglio di tali magie, né percepito da sensori di scrutamento magici."),
+			"Il personaggio che indossa questo amuleto è invisibile a qualsiasi forma di divinazione magica. Non può essere indicato come bersaglio di tali magie, né percepito da sensori di scrutamento magici.", null),
 			("Amulet of Proof against Detection and Location", "Wondrous item, uncommon (requires attunement)",
 			"While wearing this amulet, you are hidden from divination magic. You can't be targeted by such magic or perceived through magical scrying sensors.", null));
 	}

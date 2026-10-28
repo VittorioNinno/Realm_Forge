@@ -15,7 +15,7 @@ public static class SpellguardShield2014Seeder
 		yield return Item("spellguard-shield", null, 0, MagicItemType.Armor, ItemRarity.VeryRare, true, ContentSource.Srd51,
 			null,
 			("Scudo anti-incantesimi", "Armatura (scudo), molto raro (richiede sintonia)",
-			"Mentre il personaggio impugna questo scudo, dispone di vantaggio ai tiri salvezza contro gli incantesimi e altri effetti magici. Inoltre, gli attacchi con incantesimo contro di lui subiscono svantaggio."),
+			"Mentre il personaggio impugna questo scudo, dispone di vantaggio ai tiri salvezza contro gli incantesimi e altri effetti magici. Inoltre, gli attacchi con incantesimo contro di lui subiscono svantaggio.", null),
 			("Spellguard Shield", "Armor (shield), very rare (requires attunement)",
 			"While holding this shield, you have advantage on saving throws against spells and other magical effects, and spell attacks have disadvantage against you.", null));
 	}

@@ -15,7 +15,7 @@ public static class RingOfFeatherFalling2014Seeder
 		yield return Item("ring-of-feather-falling", null, 0, MagicItemType.Ring, ItemRarity.Rare, true, ContentSource.Srd51,
 			null,
 			("Anello della caduta morbida", "Anello, raro (richiede sintonia)",
-			"Quando il personaggio cade indossando questo anello, scende di 18 metri per round e non subisce danni dalla caduta."),
+			"Quando il personaggio cade indossando questo anello, scende di 18 metri per round e non subisce danni dalla caduta.", null),
 			("Ring of Feather Falling", "Ring, rare (requires attunement)",
 			"When you fall while wearing this ring, you descend 60 feet per round and take no damage from falling.", null));
 	}

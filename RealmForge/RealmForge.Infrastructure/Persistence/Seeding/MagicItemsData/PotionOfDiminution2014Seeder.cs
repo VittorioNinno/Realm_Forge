@@ -15,7 +15,7 @@ public static class PotionOfDiminution2014Seeder
 		yield return Item("potion-of-diminution", null, 0, MagicItemType.Potion, ItemRarity.Rare, false, ContentSource.Srd51,
 			null,
 			("Pozione di diminuzione", "Pozione, rara",
-			"Quando il personaggio beve questa pozione, ottiene l'effetto \"ridurre\" dell'incantesimo *ingrandire/ridurre,* per 1d4 ore (non è richiesta la concentrazione). All'interno della pozione è visibile un nucleo rosso che si contrae progressivamente fino a diventare un granello minuscolo per poi esplodere e tingere tutto il liquido trasparente intorno a esso. Agitare la bottiglia non interrompe il processo."),
+			"Quando il personaggio beve questa pozione, ottiene l'effetto \"ridurre\" dell'incantesimo *ingrandire/ridurre,* per 1d4 ore (non è richiesta la concentrazione). All'interno della pozione è visibile un nucleo rosso che si contrae progressivamente fino a diventare un granello minuscolo per poi esplodere e tingere tutto il liquido trasparente intorno a esso. Agitare la bottiglia non interrompe il processo.", null),
 			("Potion of Diminution", "Potion, rare",
 			"When you drink this potion, you gain the \"reduce\" effect of the enlarge/reduce spell for 1d4 hours (no concentration required). The red in the potion's liquid continuously contracts to a tiny bead and then expands to color the clear liquid around it. Shaking the bottle fails to interrupt this process.", null));
 	}

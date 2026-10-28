@@ -15,7 +15,7 @@ public static class StoneOfControllingEarthElementals2014Seeder
 		yield return Item("stone-of-controlling-earth-elementals", null, 0, MagicItemType.WondrousItem, ItemRarity.Rare, false, ContentSource.Srd51,
 			null,
 			("Pietra del controllo degli elementali della terra", "Oggetto meraviglioso, raro",
-			"Se la pietra tocca il terreno, il personaggio può usare un'azione per pronunciare la parola d'ordine ed evocare un elementale della terra, come se avesse lanciato l'incantesimo *evoca elementale.* La pietra non può più essere utilizzata in questo modo fino all'alba successiva. La pietra pesa 2,5 kg."),
+			"Se la pietra tocca il terreno, il personaggio può usare un'azione per pronunciare la parola d'ordine ed evocare un elementale della terra, come se avesse lanciato l'incantesimo *evoca elementale.* La pietra non può più essere utilizzata in questo modo fino all'alba successiva. La pietra pesa 2,5 kg.", null),
 			("Stone of Controlling Earth Elementals", "Wondrous item, rare",
 			"If the stone is touching the ground, you can use an action to speak its command word and summon an earth elemental, as if you had cast the conjure elemental spell. The stone can't be used this way again until the next dawn. The stone weighs 5 pounds.", null));
 	}

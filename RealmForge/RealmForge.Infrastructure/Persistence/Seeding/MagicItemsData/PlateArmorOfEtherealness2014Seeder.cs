@@ -15,7 +15,7 @@ public static class PlateArmorOfEtherealness2014Seeder
 		yield return Item("plate-armor-of-etherealness", null, 0, MagicItemType.Armor, ItemRarity.Legendary, true, ContentSource.Srd51,
 			null,
 			("Armatura a piastre della forma eterea", "Armatura (armatura a piastre), leggendaria (richiede sintonia)",
-			"Finché il personaggio indossa questa armatura, può usare un'azione per pronunciarne la parola d'ordine e ottenere gli effetti dell'incantesimo *forma eterea* che dura per 10 minuti, finché non toglie l'armatura o finché non usa un'azione per pronunciare di nuovo la sua parola d'ordine. Questa proprietà dell'armatura non può essere riutilizzata fino all'alba successiva."),
+			"Finché il personaggio indossa questa armatura, può usare un'azione per pronunciarne la parola d'ordine e ottenere gli effetti dell'incantesimo *forma eterea* che dura per 10 minuti, finché non toglie l'armatura o finché non usa un'azione per pronunciare di nuovo la sua parola d'ordine. Questa proprietà dell'armatura non può essere riutilizzata fino all'alba successiva.", "Armatura completa della forma eterea"),
 			("Plate Armor of Etherealness", "Armor (plate), legendary (requires attunement)",
 			"While you're wearing this armor, you can speak its command word as an action to gain the effect of the etherealness spell, which last for 10 minutes or until you remove the armor or use an action to speak the command word again. This property of the armor can't be used again until the next dawn.", null));
 	}

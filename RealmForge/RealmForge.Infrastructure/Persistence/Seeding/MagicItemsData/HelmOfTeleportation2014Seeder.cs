@@ -15,7 +15,7 @@ public static class HelmOfTeleportation2014Seeder
 		yield return Item("helm-of-teleportation", null, 0, MagicItemType.WondrousItem, ItemRarity.Rare, true, ContentSource.Srd51,
 			Charges(3, ItemRecharge.LongRest, "1d3"),
 			("Elmo del teletrasporto", "Oggetto meraviglioso, raro (richiede sintonia)",
-			"Questo elmo possiede 3 cariche. Finché il personaggio lo indossa, può usare un'azione e consumare 1 carica per lanciare l'incantesimo *teletrasporto.* L'elmo recupera 1d3 cariche consumate all'alba di ogni giorno."),
+			"Questo elmo possiede 3 cariche. Finché il personaggio lo indossa, può usare un'azione e consumare 1 carica per lanciare l'incantesimo *teletrasporto.* L'elmo recupera 1d3 cariche consumate all'alba di ogni giorno.", null),
 			("Helm of Teleportation", "Wondrous item, rare (requires attunement)",
 			"This helm has 3 charges. While wearing it, you can use an action and expend 1 charge to cast the teleport spell from it. The helm regains 1d3\n\nexpended charges daily at dawn.", null));
 	}

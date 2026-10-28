@@ -15,7 +15,7 @@ public static class DwarvenPlate2014Seeder
 		yield return Item("dwarven-plate", null, 0, MagicItemType.Armor, ItemRarity.VeryRare, false, ContentSource.Srd51,
 			Magic(Effect(MagicEffectKind.ArmorClass, 2)),
 			("Armatura completa nanica", "Armatura (armatura a piastre), molto rara",
-			"Mentre il personaggio indossa quest'armatura, ottiene un bonus di +2 alla CA. Inoltre, se un effetto lo fa muovere sul terreno contro la sua volontà, il personaggio può usare la sua reazione per ridurre la distanza di cui viene mosso di un massimo di 3 metri."),
+			"Mentre il personaggio indossa quest'armatura, ottiene un bonus di +2 alla CA. Inoltre, se un effetto lo fa muovere sul terreno contro la sua volontà, il personaggio può usare la sua reazione per ridurre la distanza di cui viene mosso di un massimo di 3 metri.", null),
 			("Dwarven Plate", "Armor (plate), very rare",
 			"While wearing this armor, you gain a +2 bonus to AC. In addition, if an effect moves you against your will along the ground, you can use your reaction to reduce the distance you are moved by up to 10 feet.", null));
 	}

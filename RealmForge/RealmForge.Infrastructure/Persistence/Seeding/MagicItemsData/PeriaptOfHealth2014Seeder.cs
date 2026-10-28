@@ -15,7 +15,7 @@ public static class PeriaptOfHealth2014Seeder
 		yield return Item("periapt-of-health", null, 0, MagicItemType.WondrousItem, ItemRarity.Uncommon, false, ContentSource.Srd51,
 			null,
 			("Talismano della salute", "Oggetto meraviglioso, non comune",
-			"Finché il personaggio indossa questo pendente, è immune a ogni forma di malattia. Se era già infetto prima di indossarlo, gli effetti della malattia sono soppressi fintantoché il personaggio lo indossa."),
+			"Finché il personaggio indossa questo pendente, è immune a ogni forma di malattia. Se era già infetto prima di indossarlo, gli effetti della malattia sono soppressi fintantoché il personaggio lo indossa.", null),
 			("Periapt of Health", "Wondrous item, uncommon",
 			"You are immune to contracting any disease while you wear this pendant. If you are already infected with a disease, the effects of the disease are suppressed you while you wear the pendant.", null));
 	}

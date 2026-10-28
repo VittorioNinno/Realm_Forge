@@ -15,7 +15,7 @@ public static class EyesOfTheEagle2014Seeder
 		yield return Item("eyes-of-the-eagle", null, 0, MagicItemType.WondrousItem, ItemRarity.Uncommon, true, ContentSource.Srd51,
 			null,
 			("Lenti dell'aquila", "Oggetto meraviglioso, non comune (richiede sintonia)",
-			"Queste lenti di cristallo si adattano agli occhi di chi le indossa. Quando il personaggio le indossa, dispone di vantaggio alle prove di Saggezza (Percezione) basate sulla vista. In condizioni di visibilità ottimale, può discernere i dettagli di creature e oggetti di almeno 60 cm di diametro anche da lunghissime distanze."),
+			"Queste lenti di cristallo si adattano agli occhi di chi le indossa. Quando il personaggio le indossa, dispone di vantaggio alle prove di Saggezza (Percezione) basate sulla vista. In condizioni di visibilità ottimale, può discernere i dettagli di creature e oggetti di almeno 60 cm di diametro anche da lunghissime distanze.", null),
 			("Eyes of the Eagle", "Wondrous item, uncommon (requires attunement)",
 			"These crystal lenses fit over the eyes. While wearing them, you have advantage on Wisdom (Perception) checks that rely on sight. In conditions of clear visibility, you can make out details of even extremely distant creatures and objects as small as 2 feet across.", null));
 	}

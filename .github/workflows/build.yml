@@ -508,7 +508,7 @@ jobs:
           mi14=$(echo "$mi_all" | jq -c '{total: length, items: map(select(.parentId == null)) | length, srd: map(select(.source == 2)) | length, realmforge: map(select(.source == 1)) | length, rules: map(select(.mechanics != null)) | length}')
           mi_types=$(echo "$mi_all" | jq -c '[map(select(.parentId == null)) | group_by(.type)[] | {(.[0].type | tostring): length}] | add')
           mi_rings=$(get "$api/api/magic-items?ruleset=1&type=3&lang=1" | jq length)
-          mi_names=$(echo "$mi_all" | jq -c '[.[] | select(.name == "Anello di protezione" or .name == "Armatura demoniaca" or .name == "Guanti del potere orchesco" or .name == "Lamanera") | .name] | sort')
+          mi_names=$(echo "$mi_all" | jq -c '[.[] | select(.name == "Anello di protezione" or .name == "Armatura demoniaca" or .name == "Guanti del potere orchesco" or .name == "Lama nera") | .name] | sort')
           mi_ring=$(echo "$mi_all" | jq -c '.[] | select(.name == "Anello di protezione") | {rarity, attunement: .requiresAttunement, effects: [.mechanics.effects[] | [.kind, .value]]}')
           superior=$(echo "$mi_all" | jq -r '.[] | select(.name == "Pozione di guarigione superiore") | .id')
           mi_superior=$(get "$api/api/magic-items/$superior?lang=2" | jq -c '{name, parentName, rarity, heal: .mechanics.healDice, text: (.description | contains("Guarigione suprema"))}')
@@ -524,7 +524,7 @@ jobs:
           micheck "2014 counts" "$mi14" '{"total":412,"items":276,"srd":366,"realmforge":46,"rules":145}'
           micheck "categories" "$mi_types" '{"1":20,"2":25,"3":22,"4":9,"5":2,"6":13,"7":14,"8":38,"9":133}'
           micheck "rings (filter)" "$mi_rings" "36"
-          micheck "official names" "$mi_names" '["Anello di protezione","Armatura demoniaca","Guanti del potere orchesco","Lamanera"]'
+          micheck "official names" "$mi_names" '["Anello di protezione","Armatura demoniaca","Guanti del potere orchesco","Lama nera"]'
           micheck "ring of protection" "$mi_ring" '{"rarity":3,"attunement":true,"effects":[[1,1],[4,1]]}'
           micheck "superior healing" "$mi_superior" '{"name":"Pozione di guarigione superiore","parentName":"Pozione di guarigione","rarity":3,"heal":"8d4+8","text":true}'
           micheck "healing variants EN" "$mi_healing_en" '{"name":"Potion of Healing","variants":["Potion of Healing","Potion of Greater Healing","Potion of Superior Healing","Potion of Supreme Healing"]}'

@@ -15,7 +15,7 @@ public static class RingOfEvasion2014Seeder
 		yield return Item("ring-of-evasion", null, 0, MagicItemType.Ring, ItemRarity.Rare, true, ContentSource.Srd51,
 			null,
 			("Anello di eludere", "Anello, raro (richiede sintonia)",
-			"Questo anello possiede 3 cariche e recupera 1d3 cariche consumate all'alba di ogni giorno. Quando il personaggio fallisce un tiro salvezza su Destrezza mentre indossa l'anello, può usare la sua reazione per consumare 1 carica e superare quel tiro salvezza."),
+			"Questo anello possiede 3 cariche e recupera 1d3 cariche consumate all'alba di ogni giorno. Quando il personaggio fallisce un tiro salvezza su Destrezza mentre indossa l'anello, può usare la sua reazione per consumare 1 carica e superare quel tiro salvezza.", null),
 			("Ring of Evasion", "Ring, rare (requires attunement)",
 			"This ring has 3 charges, and it regains 1d3 expended charges daily at dawn. When you fail a Dexterity saving throw while wearing it, you can use your reaction to expend 1 of its charges to succeed on that saving throw instead.", null));
 	}

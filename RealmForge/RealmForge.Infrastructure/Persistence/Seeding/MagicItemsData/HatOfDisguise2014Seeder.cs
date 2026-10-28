@@ -15,7 +15,7 @@ public static class HatOfDisguise2014Seeder
 		yield return Item("hat-of-disguise", null, 0, MagicItemType.WondrousItem, ItemRarity.Uncommon, true, ContentSource.Srd51,
 			null,
 			("Cappello del camuffamento", "Oggetto meraviglioso, non comune (richiede sintonia)",
-			"Finché indossa questo cappello, il personaggio può usare un'azione per lanciare con esso l'incantesimo *camuffare se stesso* a volontà. L'incantesimo termina se il cappello viene rimosso."),
+			"Finché indossa questo cappello, il personaggio può usare un'azione per lanciare con esso l'incantesimo *camuffare se stesso* a volontà. L'incantesimo termina se il cappello viene rimosso.", null),
 			("Hat of Disguise", "Wondrous item, uncommon (requires attunement)",
 			"While wearing this hat, you can use an action to cast the disguise self spell from it at will. The spell ends if the hat is removed.", null));
 	}

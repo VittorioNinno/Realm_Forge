@@ -15,7 +15,7 @@ public static class BracersOfArchery2014Seeder
 		yield return Item("bracers-of-archery", null, 0, MagicItemType.WondrousItem, ItemRarity.Uncommon, true, ContentSource.Srd51,
 			null,
 			("Bracciali dell'arciere", "Oggetto meraviglioso, non comune (richiede sintonia)",
-			"Quando il personaggio indossa questi bracciali, possiede competenza nell'arco lungo e nell'arco corto e ottiene un bonus di +2 ai tiri per i danni inflitti da attacchi a distanza effettuati con tali armi."),
+			"Quando il personaggio indossa questi bracciali, possiede competenza nell'arco lungo e nell'arco corto e ottiene un bonus di +2 ai tiri per i danni inflitti da attacchi a distanza effettuati con tali armi.", null),
 			("Bracers of Archery", "Wondrous item, uncommon (requires attunement)",
 			"While wearing these bracers, you have proficiency with the longbow and shortbow, and you gain a +2 bonus to damage rolls on ranged attacks made with such weapons.", null));
 	}

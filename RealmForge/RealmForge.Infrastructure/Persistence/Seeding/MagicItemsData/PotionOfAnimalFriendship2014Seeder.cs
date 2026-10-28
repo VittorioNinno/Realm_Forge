@@ -15,7 +15,7 @@ public static class PotionOfAnimalFriendship2014Seeder
 		yield return Item("potion-of-animal-friendship", null, 0, MagicItemType.Potion, ItemRarity.Uncommon, false, ContentSource.Srd51,
 			null,
 			("Pozione di amicizia con gli animali", "Pozione, non comune",
-			"Quando il personaggio beve questa pozione, può lanciare l'incantesimo *amicizia con gli animali* (CD del tiro salvezza 13) a volontà per 1 ora. Agitando questo liquido melmoso si notano alcuni piccoli oggetti al suo interno: una squama di pesce, la lingua di un colibrì, l'artiglio di un gatto o un pelo di scoiattolo."),
+			"Quando il personaggio beve questa pozione, può lanciare l'incantesimo *amicizia con gli animali* (CD del tiro salvezza 13) a volontà per 1 ora. Agitando questo liquido melmoso si notano alcuni piccoli oggetti al suo interno: una squama di pesce, la lingua di un colibrì, l'artiglio di un gatto o un pelo di scoiattolo.", null),
 			("Potion of Animal Friendship", "Potion, uncommon",
 			"When you drink this potion, you can cast the animal friendship spell (save DC 13) for 1 hour at will. Agitating this muddy liquid brings little bits into view: a fish scale, a hummingbird tongue, a cat claw, or a squirrel hair.", null));
 	}

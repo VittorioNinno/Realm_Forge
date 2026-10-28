@@ -14,8 +14,8 @@ public static class GlovesOfThievery2014Seeder
 	{
 		yield return Item("gloves-of-thievery", null, 0, MagicItemType.WondrousItem, ItemRarity.Uncommon, false, ContentSource.RealmForge,
 			null,
-			("Guanti del ladro", "Oggetto meraviglioso, non comune",
-			"Questi guanti diventano invisibili quando vengono indossati. Mentre li indossa, il personaggio ottiene un bonus di +5 alle prove di Destrezza (Rapidità di Mano) e alle prove di Destrezza per scassinare serrature."),
+			("Guanti ladreschi", "Oggetto meraviglioso, non comune",
+			"Questi guanti diventano invisibili quando vengono indossati. Mentre li indossa, il personaggio ottiene un bonus di +5 alle prove di Destrezza (Rapidità di Mano) e alle prove di Destrezza per scassinare serrature.", null),
 			("Gloves of Thievery", "Wondrous item, uncommon",
 			"These gloves turn invisible while worn. While wearing them, you gain a +5 bonus to Dexterity (Sleight of Hand) checks and to Dexterity checks made to pick locks.", null));
 	}

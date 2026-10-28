@@ -15,7 +15,7 @@ public static class RingOfRegeneration2014Seeder
 		yield return Item("ring-of-regeneration", null, 0, MagicItemType.Ring, ItemRarity.VeryRare, true, ContentSource.Srd51,
 			null,
 			("Anello di rigenerazione", "Anello, molto raro (richiede sintonia)",
-			"Finché il personaggio indossa questo anello, recupera 1d6 punti ferita ogni 10 minuti, purché possieda almeno 1 punto ferita. Se il personaggio perde una parte del corpo, l'anello fa ricrescere la parte mancante facendola tornare alla piena funzionalità dopo 1d6 + 1 giorni, purché il personaggio abbia almeno 1 punto ferita in tutto questo periodo di tempo."),
+			"Finché il personaggio indossa questo anello, recupera 1d6 punti ferita ogni 10 minuti, purché possieda almeno 1 punto ferita. Se il personaggio perde una parte del corpo, l'anello fa ricrescere la parte mancante facendola tornare alla piena funzionalità dopo 1d6 + 1 giorni, purché il personaggio abbia almeno 1 punto ferita in tutto questo periodo di tempo.", null),
 			("Ring of Regeneration", "Ring, very rare (requires attunement)",
 			"While wearing this ring, you regain 1d6 hit points every 10 minutes, provided that you have at least 1 hit point. If you lose a body part, the ring causes the missing part to regrow and return to full functionality after 1d6 + 1 days if you have at least 1 hit point the whole time.", null));
 	}

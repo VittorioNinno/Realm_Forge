@@ -15,7 +15,7 @@ public static class EyesOfMinuteSeeing2014Seeder
 		yield return Item("eyes-of-minute-seeing", null, 0, MagicItemType.WondrousItem, ItemRarity.Uncommon, false, ContentSource.Srd51,
 			null,
 			("Lenti della visione dettagliata", "Oggetto meraviglioso, non comune",
-			"Queste lenti di cristallo si adattano agli occhi di chi le indossa. Quando un personaggio lo fa, può vedere molto meglio del normale fino a una distanza di 30 cm. Dispone inoltre di vantaggio alle prove di Intelligenza (Indagare) basate sulla vista quando esamina un'area o studia un oggetto entro quella distanza."),
+			"Queste lenti di cristallo si adattano agli occhi di chi le indossa. Quando un personaggio lo fa, può vedere molto meglio del normale fino a una distanza di 30 cm. Dispone inoltre di vantaggio alle prove di Intelligenza (Indagare) basate sulla vista quando esamina un'area o studia un oggetto entro quella distanza.", null),
 			("Eyes of Minute Seeing", "Wondrous item, uncommon",
 			"These crystal lenses fit over the eyes. While wearing them, you can see much better than normal out to a range of 1 foot. You have advantage on Intelligence (Investigation) checks that rely on sight while searching an area or studying an object within that range.", null));
 	}

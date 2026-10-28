@@ -15,7 +15,7 @@ public static class RingOfInvisibility2014Seeder
 		yield return Item("ring-of-invisibility", null, 0, MagicItemType.Ring, ItemRarity.Legendary, true, ContentSource.Srd51,
 			null,
 			("Anello di invisibilità", "Anello, leggendario (richiede sintonia)",
-			"Mentre il personaggio indossa questo anello, può usare un'azione per diventare invisibile insieme a tutto ciò che indossa o trasporta. Rimane invisibile finché l'anello non è rimosso, finché non attacca o lancia un incantesimo o finché non usa un'azione bonus per diventare di nuovo visibile."),
+			"Mentre il personaggio indossa questo anello, può usare un'azione per diventare invisibile insieme a tutto ciò che indossa o trasporta. Rimane invisibile finché l'anello non è rimosso, finché non attacca o lancia un incantesimo o finché non usa un'azione bonus per diventare di nuovo visibile.", null),
 			("Ring of Invisibility", "Ring, legendary (requires attunement)",
 			"While wearing this ring, you can turn invisible as an action. Anything you are wearing or carrying is invisible with you. You remain invisible until the ring is removed, until you attack or cast a spell, or until you use a bonus action to become visible again.", null));
 	}

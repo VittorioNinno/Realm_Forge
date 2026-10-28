@@ -14,8 +14,8 @@ public static class EfreetiChain2014Seeder
 	{
 		yield return Item("efreeti-chain", null, 0, MagicItemType.Armor, ItemRarity.Legendary, true, ContentSource.RealmForge,
 			Magic(Effect(MagicEffectKind.ArmorClass, 3)),
-			("Cotta dell'efreeti", "Armatura (cotta di maglia), leggendaria (richiede sintonia)",
-			"Mentre indossa questa armatura, il personaggio ottiene un bonus di +3 alla CA, è immune ai danni da fuoco e può parlare e capire il Primordiale. Inoltre può stare in piedi e camminare sulla roccia fusa come se fosse terreno solido."),
+			("Cotta di maglia dell'efreeti", "Armatura (cotta di maglia), leggendaria (richiede sintonia)",
+			"Mentre indossa questa armatura, il personaggio ottiene un bonus di +3 alla CA, è immune ai danni da fuoco e può parlare e capire il Primordiale. Inoltre può stare in piedi e camminare sulla roccia fusa come se fosse terreno solido.", null),
 			("Efreeti Chain", "Armor (chain mail), legendary (requires attunement)",
 			"While wearing this armor, you gain a +3 bonus to AC, you are immune to fire damage, and you can speak and understand Primordial. You can also stand on and walk across molten rock as if it were solid ground.", null));
 	}
