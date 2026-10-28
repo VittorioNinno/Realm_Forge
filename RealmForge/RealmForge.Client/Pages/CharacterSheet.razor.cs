@@ -119,7 +119,8 @@ namespace RealmForge.Client.Pages
 		{
 			var lang = Lang;
 			await Glossary.EnsureLoadedAsync(lang);
-			context = ReadOnly
+			//	Someone else's character (shared with me, or of a campaign I run): the compendium its owner sees
+			context = ReadOnly || !character!.IsOwner
 				? await Characters.GetCharacterContextAsync(character!.Id, character.Ruleset, lang)
 				: await Characters.GetContextAsync(character!.Ruleset, lang);
 			var entries = await Glossary.GetEntriesAsync(lang);
