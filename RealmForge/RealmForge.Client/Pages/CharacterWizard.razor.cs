@@ -81,7 +81,7 @@ namespace RealmForge.Client.Pages
 			SpeciesDetails.Clear();
 			BackgroundDetails.Clear();
 			ClassDetails.Clear();
-			Context = await Characters.GetContextAsync(Ruleset, Lang);
+			Context = await ContextAsync(Ruleset);
 			await Glossary.EnsureLoadedAsync(Lang);
 			Update();
 			await LoadDetailsAsync();
@@ -89,6 +89,13 @@ namespace RealmForge.Client.Pages
 		});
 
 		public void Dispose() => LanguageState.OnLanguageChanged -= OnLanguageChanged;
+
+		//	A character of a campaign I run (edited as master): its rules come from the compendium its owner sees
+		private Guid? ownerContextOf;
+
+		private Task<CharacterContextDto?> ContextAsync(RulesetVersion ruleset) => ownerContextOf is { } characterId
+			? Characters.GetCharacterContextAsync(characterId, ruleset, Lang)
+			: Characters.GetContextAsync(ruleset, Lang);
 
 		private async Task LoadAsync(bool useDraft = true)
 		{
@@ -119,9 +126,10 @@ namespace RealmForge.Client.Pages
 				};
 				Abilities.LoadFrom(Build);
 				SavedLevels = Build.Levels.Count;
+				ownerContextOf = character.IsOwner ? null : character.Id;
 			}
 
-			Context = await Characters.GetContextAsync(Ruleset, Lang);
+			Context = await ContextAsync(Ruleset);
 			if (Context is null)
 			{
 				loadFailed = true;
@@ -135,7 +143,7 @@ namespace RealmForge.Client.Pages
 				//	The draft may be of the other edition
 				if (Context.Ruleset != Ruleset)
 				{
-					Context = await Characters.GetContextAsync(Ruleset, Lang);
+					Context = await ContextAsync(Ruleset);
 					if (Context is null)
 					{
 						loadFailed = true;

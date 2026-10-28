@@ -5959,3 +5959,76 @@ button.rf-stat-card {
         .rf-magic-pick-list button.rf-variant {
             padding-left: 1.4rem;
         }
+
+/* --- CAMPAIGNS --- */
+.rf-role-badge { font-weight: 600; letter-spacing: 0.5px; }
+.rf-role-badge.rf-role-master { background-color: var(--rf-orange-primary); color: #111; }
+.rf-role-badge.rf-role-comaster { background-color: #b07a2a; color: #111; }
+.rf-role-badge.rf-role-player { background-color: var(--rf-bg-card); color: var(--rf-text-secondary); border: 1px solid var(--rf-border-light); }
+
+.rf-campaign-invitations { display: flex; flex-direction: column; gap: 0.5rem; }
+
+.rf-campaign-invitation {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.75rem 1rem;
+    border: 1px solid var(--rf-orange-primary);
+    border-radius: 6px;
+    background-color: var(--rf-bg-surface);
+}
+
+.rf-campaign-pending { color: var(--rf-orange-primary); font-weight: 600; }
+
+.rf-campaign-join { max-width: 560px; }
+
+.rf-campaign-row {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 0;
+    border-bottom: 1px solid var(--rf-border-subtle);
+    min-height: 48px;
+}
+
+    .rf-campaign-row:last-child { border-bottom: 0; }
+
+.rf-campaign-row-main {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem;
+    min-width: 0;
+    overflow-wrap: anywhere;
+}
+
+.rf-campaign-role-select { width: auto; min-width: 9rem; }
+
+.rf-tab-count {
+    display: inline-block;
+    margin-left: 0.35rem;
+    padding: 0 0.4rem;
+    border-radius: 999px;
+    background-color: var(--rf-orange-primary);
+    color: #111;
+    font-size: 0.7rem;
+    font-weight: 700;
+}
+
+.rf-master-banner {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: 0.5rem;
+    padding: 0.6rem 0.9rem;
+    margin-bottom: 0.75rem;
+    border: 1px solid var(--rf-orange-primary);
+    border-radius: 6px;
+    background-color: rgba(255, 140, 0, 0.08);
+    color: var(--rf-text-secondary);
+    font-size: 0.9rem;
+}

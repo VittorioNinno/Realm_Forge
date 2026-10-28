@@ -1,0 +1,598 @@
+﻿@page "/campaigns/{Id:guid}"
+@using RealmForge.Client.Localization
+@using RealmForge.Client.Services
+@using RealmForge.Shared.Campaigns
+@using RealmForge.Shared.DTOs
+@using RealmForge.Shared.Enums
+@implements IDisposable
+@inject CampaignDataService Campaigns
+@inject CharacterDataService Characters
+@inject LanguageStateService LanguageState
+@inject NavigationManager Navigation
+@inject IJSRuntime JS
+
+<PageTitle>RealmForge - @(campaign?.Name ?? UiText.CampaignsTitle(Lang))</PageTitle>
+
+<div class="container-fluid px-0 py-4">
+    @if (loading)
+    {
+        <div class="small" style="color: var(--rf-text-muted);">@UiText.LoadingCampaigns(Lang)</div>
+    }
+    else if (campaign is null)
+    {
+        <div class="rf-account-card text-center" data-test="campaign-missing">
+            <p class="mb-3" style="color: var(--rf-text-secondary);">@UiText.CampaignNotFound(Lang)</p>
+            <a href="campaigns" class="btn btn-rf-outline">@UiText.CampaignsTitle(Lang)</a>
+        </div>
+    }
+    else
+    {
+        var role = campaign.MyRole;
+        <div class="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-3 pb-3" style="border-bottom: 2px solid var(--rf-orange-primary);">
+            <div>
+                <a href="campaigns" class="small" style="color: var(--rf-text-muted);">← @UiText.CampaignsTitle(Lang)</a>
+                <h1 class="h3 fw-bold mb-1 rf-page-title" data-test="campaign-title">@campaign.Name</h1>
+                <div class="d-flex flex-wrap gap-2 align-items-center small" style="color: var(--rf-text-secondary);">
+                    <span class="badge rf-role-badge rf-role-@role.ToString().ToLowerInvariant()" data-test="campaign-role">@UiText.CampaignRoleName(role, Lang)</span>
+                    <span>@(campaign.Ruleset is { } ruleset ? UiText.FormatRuleset(ruleset, Lang) : UiText.CampaignAnyEdition(Lang))</span>
+                    <span>· @UiText.CampaignMembersCount(campaign.Members.Count, Lang)</span>
+                </div>
+            </div>
+        </div>
+
+        @if (message is not null)
+        {
+            <div class="alert alert-warning bg-dark border-warning text-warning p-2 small mb-3" data-test="campaign-message">@message</div>
+        }
+
+        <div class="rf-pill-group mb-3" role="tablist" data-test="campaign-tabs">
+            @foreach (var t in new[] { Tab.Overview, Tab.Members, Tab.Characters, Tab.Content })
+            {
+                var current = t;
+                <button type="button" role="tab" class="rf-pill-btn @(tab == current ? "active" : null)" aria-selected="@(tab == current)"
+                        @onclick="() => tab = current" data-test="@($"campaign-tab-{current.ToString().ToLowerInvariant()}")">
+                    @TabName(current)
+                    @if (current == Tab.Content && PendingCount > 0 && CampaignRules.CanReview(role))
+                    {
+                        <span class="rf-tab-count">@PendingCount</span>
+                    }
+                </button>
+            }
+        </div>
+
+        @switch (tab)
+        {
+            case Tab.Overview:
+                <section class="rf-card2 mb-3" data-test="campaign-overview">
+                    <div class="small mb-2" style="color: var(--rf-text-muted);">@UiText.CampaignRoleHint(role, Lang)</div>
+                    <div class="rf-markdown-container" data-test="campaign-description">
+                        @if (string.IsNullOrWhiteSpace(campaign.Description))
+                        {
+                            <p style="color: var(--rf-text-muted);">@UiText.CampaignNoDescription(Lang)</p>
+                        }
+                        else
+                        {
+                            @((MarkupString)MarkdownText.ToHtml(campaign.Description, null))
+                        }
+                    </div>
+                    @if (CampaignRules.CanEditCampaign(role))
+                    {
+                        <button type="button" class="btn btn-sm btn-rf-outline mt-2" @onclick="OpenEdit" data-test="campaign-edit">@UiText.BtnEditCampaign(Lang)</button>
+                    }
+                </section>
+
+                @if (CampaignRules.CanManageInviteLink(role))
+                {
+                    <section class="rf-card2 mb-3" data-test="campaign-link">
+                        <div class="rf-mini-title">@UiText.CampaignLinkTitle(Lang)</div>
+                        @if (campaign.InviteCode is { } code)
+                        {
+                            <div class="small mb-2" style="color: var(--rf-text-muted);">@UiText.CampaignLinkHint(Lang)</div>
+                            <div class="d-flex flex-wrap gap-2">
+                                <input class="rf-form-control flex-grow-1" readonly value="@JoinUrl(code)" data-test="campaign-link-url" />
+                                <button type="button" class="btn btn-sm btn-rf-outline" @onclick="() => CopyAsync(JoinUrl(code))">@(copied ? UiText.LinkCopied(Lang) : UiText.BtnCopyLink(Lang))</button>
+                                <button type="button" class="btn btn-sm btn-rf-outline" @onclick="NewLinkAsync" data-test="campaign-link-new">@UiText.BtnNewLink(Lang)</button>
+                                <button type="button" class="btn btn-sm btn-rf-outline" @onclick="DisableLinkAsync" data-test="campaign-link-disable">@UiText.BtnDisableLink(Lang)</button>
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="small mb-2" style="color: var(--rf-text-muted);">@UiText.CampaignLinkDisabled(Lang)</div>
+                            <button type="button" class="btn btn-sm btn-rf-outline" @onclick="NewLinkAsync" data-test="campaign-link-new">@UiText.BtnEnableLink(Lang)</button>
+                        }
+                    </section>
+                }
+
+                <div class="d-flex flex-wrap gap-2">
+                    <button type="button" class="btn btn-sm btn-rf-outline" @onclick="() => confirm = Confirm.Leave" data-test="campaign-leave">@UiText.BtnLeaveCampaign(Lang)</button>
+                    @if (CampaignRules.CanDeleteCampaign(role))
+                    {
+                        <button type="button" class="btn btn-sm btn-rf-outline" style="border-color: #dc3545; color: #dc3545;" @onclick="() => confirm = Confirm.Delete" data-test="campaign-delete">@UiText.BtnDeleteCampaign(Lang)</button>
+                    }
+                </div>
+                break;
+
+            case Tab.Members:
+                <section class="rf-card2 mb-3" data-test="campaign-members">
+                    @foreach (var member in campaign.Members)
+                    {
+                        var m = member;
+                        <div class="rf-campaign-row" data-test="campaign-member">
+                            <div class="rf-campaign-row-main">
+                                <span>@m.Email</span>
+                                @if (m.IsMe)
+                                {
+                                    <span class="small" style="color: var(--rf-text-muted);">(@UiText.CampaignYou(Lang))</span>
+                                }
+                            </div>
+                            <div class="d-flex gap-2 align-items-center">
+                                @if (CampaignRules.CanChangeRoles(role))
+                                {
+                                    <select class="rf-form-control rf-campaign-role-select" aria-label="@UiText.CampaignChangeRole(Lang)" value="@((int)m.Role)"
+                                            @onchange="e => ChangeRoleAsync(m, e)" data-test="campaign-member-role">
+                                        @foreach (var option in Enum.GetValues<CampaignRole>())
+                                        {
+                                            <option value="@((int)option)">@UiText.CampaignRoleName(option, Lang)</option>
+                                        }
+                                    </select>
+                                }
+                                else
+                                {
+                                    <span class="badge rf-role-badge rf-role-@m.Role.ToString().ToLowerInvariant()">@UiText.CampaignRoleName(m.Role, Lang)</span>
+                                }
+                                @if (!m.IsMe && CampaignRules.CanRemoveMember(role, false))
+                                {
+                                    <button type="button" class="rf-mini-btn" title="@UiText.BtnRemove(Lang)" aria-label="@UiText.BtnRemove(Lang)" @onclick="() => RemoveMemberAsync(m)" data-test="campaign-member-remove">✕</button>
+                                }
+                            </div>
+                        </div>
+                    }
+                </section>
+
+                @if (CampaignRules.CanInvite(role, CampaignRole.Player))
+                {
+                    <section class="rf-card2 mb-3" data-test="campaign-invite">
+                        <div class="rf-mini-title">@UiText.CampaignInviteTitle(Lang)</div>
+                        <div class="d-flex flex-wrap gap-2">
+                            <input type="email" class="rf-form-control flex-grow-1" placeholder="email@example.com" @bind="inviteEmail" data-test="campaign-invite-email" />
+                            <select class="rf-form-control rf-campaign-role-select" aria-label="@UiText.CampaignInviteRole(Lang)" value="@((int)inviteRole)"
+                                    @onchange="SetInviteRole" data-test="campaign-invite-role">
+                                @foreach (var option in Enum.GetValues<CampaignRole>().Where(r => CampaignRules.CanInvite(role, r)))
+                                {
+                                    <option value="@((int)option)">@UiText.CampaignRoleName(option, Lang)</option>
+                                }
+                            </select>
+                            <button type="button" class="btn btn-rf-orange" @onclick="InviteAsync" data-test="campaign-invite-send">@UiText.BtnInvite(Lang)</button>
+                        </div>
+                        @if (inviteNote is not null)
+                        {
+                            <div class="small mt-2" style="color: var(--rf-text-secondary);" data-test="campaign-invite-note">@inviteNote</div>
+                        }
+                        @if (campaign.Invites.Count > 0)
+                        {
+                            <div class="rf-mini-title mt-3">@UiText.CampaignPendingInvites(Lang)</div>
+                            @foreach (var invite in campaign.Invites)
+                            {
+                                var i = invite;
+                                <div class="rf-campaign-row" data-test="campaign-pending-invite">
+                                    <div class="rf-campaign-row-main"><span>@i.Email</span> <span class="small" style="color: var(--rf-text-muted);">@UiText.CampaignRoleName(i.Role, Lang)</span></div>
+                                    @if (CampaignRules.CanInvite(role, i.Role))
+                                    {
+                                        <button type="button" class="btn btn-sm btn-rf-outline" @onclick="() => WithdrawInviteAsync(i)">@UiText.BtnWithdraw(Lang)</button>
+                                    }
+                                </div>
+                            }
+                        }
+                    </section>
+                }
+                break;
+
+            case Tab.Characters:
+                <section class="mb-3">
+                    @if (campaign.Characters.Count == 0)
+                    {
+                        <div class="rf-account-card text-center mb-3" data-test="campaign-characters-empty">@UiText.CampaignCharactersEmpty(Lang)</div>
+                    }
+                    else
+                    {
+                        <div class="rf-character-grid mb-3" data-test="campaign-characters">
+                            @foreach (var entry in campaign.Characters)
+                            {
+                                var e = entry;
+                                var ch = e.Character;
+                                <div class="rf-character-card @(e.IsMine ? null : "shared")" data-test="campaign-character">
+                                    <div class="d-flex justify-content-between align-items-start gap-2 flex-wrap">
+                                        <div class="rf-character-card-name">@ch.Name</div>
+                                        <span class="badge @(ch.Ruleset == RulesetVersion.Dnd5e_2024 ? "badge-edition-2024" : "badge-edition-2014")">@UiText.FormatRuleset(ch.Ruleset, Lang)</span>
+                                    </div>
+                                    <div class="small mt-1" style="color: var(--rf-text-secondary);">@ch.SpeciesName · @ch.ClassLine · @UiText.CharacterLevel(ch.Level, Lang)</div>
+                                    <div class="rf-character-card-owner">@UiText.CampaignPlayedBy(e.IsMine ? UiText.CampaignYou(Lang) : e.OwnerEmail, Lang)</div>
+                                    <div class="d-flex gap-3 mt-2 small">
+                                        <span><strong style="color: var(--rf-orange-primary);">@UiText.SheetArmorClass(Lang)</strong> @ch.ArmorClass</span>
+                                        <span><strong style="color: var(--rf-orange-primary);">@UiText.SheetHitPoints(Lang)</strong> @ch.CurrentHitPoints / @ch.MaxHitPoints</span>
+                                    </div>
+                                    <div class="d-flex flex-wrap gap-2 mt-2">
+                                        @if (e.CanOpen)
+                                        {
+                                            <a class="btn btn-sm btn-rf-orange" href="@($"characters/{ch.Id}")" data-test="campaign-character-open">@(e.IsMine || !e.CanEdit ? UiText.BtnOpenSheet(Lang) : UiText.BtnEditAsMaster(Lang))</a>
+                                        }
+                                        @if (e.CanRemove)
+                                        {
+                                            <button type="button" class="btn btn-sm btn-rf-outline" @onclick="() => RemoveCharacterAsync(e)" data-test="campaign-character-remove">@UiText.BtnTakeOut(Lang)</button>
+                                        }
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                    }
+
+                    <div class="rf-card2" data-test="campaign-bring">
+                        <div class="rf-mini-title">@UiText.CampaignAddCharacter(Lang)</div>
+                        @if (Bringable.Count == 0)
+                        {
+                            <div class="small" style="color: var(--rf-text-muted);">@UiText.CampaignNoCharacterToAdd(Lang)</div>
+                        }
+                        else
+                        {
+                            <div class="d-flex flex-wrap gap-2">
+                                <select class="rf-form-control flex-grow-1" value="@(bringId?.ToString() ?? string.Empty)" @onchange="e => bringId = Guid.TryParse(e.Value?.ToString(), out var g) ? g : null" data-test="campaign-bring-select">
+                                    <option value="">—</option>
+                                    @foreach (var mine in Bringable)
+                                    {
+                                        <option value="@mine.Id">@mine.Name (@mine.ClassLine)</option>
+                                    }
+                                </select>
+                                <button type="button" class="btn btn-rf-orange" disabled="@(bringId is null)" @onclick="BringAsync" data-test="campaign-bring-add">@UiText.BtnBring(Lang)</button>
+                            </div>
+                        }
+                    </div>
+                </section>
+                break;
+
+            case Tab.Content:
+                <section class="mb-3">
+                    <div class="small mb-3" style="color: var(--rf-text-muted);">@UiText.CampaignContentHint(campaign.Ruleset, Lang)</div>
+                    @{ var pending = campaign.Contents.Where(c => c.Status == CampaignContentStatus.Pending).ToList(); }
+                    @if (pending.Count > 0)
+                    {
+                        <div class="rf-card2 mb-3" data-test="campaign-content-pending">
+                            <div class="rf-mini-title">@UiText.CampaignContentPending(Lang)</div>
+                            @foreach (var item in pending)
+                            {
+                                var c = item;
+                                <div class="rf-campaign-row" data-test="campaign-content-row">
+                                    <div class="rf-campaign-row-main">
+                                        <span class="rf-spell-flag">@UiText.CampaignKindName(c.Kind, Lang)</span>
+                                        <a href="@c.Link">@c.Name</a>
+                                        <span class="small" style="color: var(--rf-text-muted);">@UiText.CampaignSharedBy(c.SharedBy, c.SharedByRole, Lang)</span>
+                                    </div>
+                                    <div class="d-flex gap-2">
+                                        @if (c.CanReview)
+                                        {
+                                            <button type="button" class="btn btn-sm btn-rf-orange" @onclick="() => ApproveAsync(c)" data-test="campaign-content-approve">@UiText.BtnApprove(Lang)</button>
+                                        }
+                                        @if (c.CanRemove)
+                                        {
+                                            <button type="button" class="btn btn-sm btn-rf-outline" @onclick="() => RemoveContentAsync(c)" data-test="campaign-content-remove">@(c.CanReview ? UiText.BtnDecline(Lang) : UiText.BtnWithdraw(Lang))</button>
+                                        }
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                    }
+
+                    <div class="rf-card2 mb-3" data-test="campaign-content-approved">
+                        <div class="rf-mini-title">@UiText.CampaignContentApproved(Lang)</div>
+                        @{ var approved = campaign.Contents.Where(c => c.Status == CampaignContentStatus.Approved).ToList(); }
+                        @if (approved.Count == 0)
+                        {
+                            <div class="small" style="color: var(--rf-text-muted);">@UiText.CampaignContentEmpty(Lang)</div>
+                        }
+                        @foreach (var item in approved)
+                        {
+                            var c = item;
+                            <div class="rf-campaign-row" data-test="campaign-content-row">
+                                <div class="rf-campaign-row-main">
+                                    <span class="rf-spell-flag">@UiText.CampaignKindName(c.Kind, Lang)</span>
+                                    <a href="@c.Link">@c.Name</a>
+                                    <span class="small" style="color: var(--rf-text-muted);">@UiText.CampaignSharedBy(c.SharedBy, c.SharedByRole, Lang)</span>
+                                </div>
+                                @if (c.CanRemove)
+                                {
+                                    <button type="button" class="rf-mini-btn" title="@UiText.BtnRemove(Lang)" aria-label="@UiText.BtnRemove(Lang)" @onclick="() => RemoveContentAsync(c)" data-test="campaign-content-remove">✕</button>
+                                }
+                            </div>
+                        }
+                    </div>
+
+                    <div class="rf-card2" data-test="campaign-share">
+                        <div class="rf-mini-title">@UiText.CampaignShareTitle(Lang)</div>
+                        <div class="small mb-2" style="color: var(--rf-text-muted);">
+                            @(CampaignRules.StatusOfNewShare(role) == CampaignContentStatus.Approved ? UiText.CampaignShareHintMaster(Lang) : UiText.CampaignShareHintPlayer(Lang))
+                        </div>
+                        @if (shareable is null)
+                        {
+                            <div class="small" style="color: var(--rf-text-muted);">…</div>
+                        }
+                        else if (shareable.Count == 0)
+                        {
+                            <div class="small" style="color: var(--rf-text-muted);">@UiText.CampaignNothingToShare(Lang)</div>
+                        }
+                        else
+                        {
+                            <div class="d-flex flex-wrap gap-2">
+                                <select class="rf-form-control flex-grow-1" value="@(shareId?.ToString() ?? string.Empty)" @onchange="e => shareId = Guid.TryParse(e.Value?.ToString(), out var g) ? g : null" data-test="campaign-share-select">
+                                    <option value="">—</option>
+                                    @foreach (var entry in shareable)
+                                    {
+                                        <option value="@entry.EntityId">@UiText.CampaignKindName(entry.Kind, Lang) · @entry.Name</option>
+                                    }
+                                </select>
+                                <button type="button" class="btn btn-rf-orange" disabled="@(shareId is null)" @onclick="ShareAsync" data-test="campaign-share-add">@UiText.BtnShareWithTable(Lang)</button>
+                            </div>
+                        }
+                    </div>
+                </section>
+                break;
+        }
+    }
+</div>
+
+@if (editOpen && campaign is not null)
+{
+    <div class="rf-modal-backdrop" @onclick="() => editOpen = false">
+        <div class="rf-modal-dialog" style="max-width: 560px;" @onclick:stopPropagation="true" data-test="campaign-form">
+            <h2 class="h4 mb-3 pb-2" style="border-bottom: 1px solid var(--rf-border-light); font-family: var(--rf-font-display);">@UiText.BtnEditCampaign(Lang)</h2>
+            <div class="mb-3">
+                <label class="rf-form-label" for="campaign-name">@UiText.CampaignName(Lang)</label>
+                <input id="campaign-name" class="rf-form-control" maxlength="100" @bind="form.Name" data-test="campaign-name" />
+            </div>
+            <div class="mb-3">
+                <label class="rf-form-label" for="campaign-ruleset">@UiText.CampaignEdition(Lang)</label>
+                <select id="campaign-ruleset" class="rf-form-control" value="@(form.Ruleset is { } r ? ((int)r).ToString() : string.Empty)" @onchange="SetRuleset">
+                    <option value="">@UiText.CampaignAnyEdition(Lang)</option>
+                    <option value="@((int)RulesetVersion.Dnd5e_2014)">@UiText.FormatRuleset(RulesetVersion.Dnd5e_2014, Lang)</option>
+                    <option value="@((int)RulesetVersion.Dnd5e_2024)">@UiText.FormatRuleset(RulesetVersion.Dnd5e_2024, Lang)</option>
+                </select>
+            </div>
+            <div class="mb-3">
+                <label class="rf-form-label" for="campaign-description">@UiText.CampaignDescription(Lang)</label>
+                <textarea id="campaign-description" class="rf-form-control" rows="8" maxlength="8000" placeholder="@UiText.CampaignDescriptionHint(Lang)" @bind="form.Description" data-test="campaign-description-input"></textarea>
+            </div>
+            @if (formError is not null)
+            {
+                <div class="alert alert-warning bg-dark border-warning text-warning p-2 small mb-3">@formError</div>
+            }
+            <div class="d-flex justify-content-end gap-2">
+                <button type="button" class="btn btn-rf-outline" @onclick="() => editOpen = false">@UiText.BtnCancel(Lang)</button>
+                <button type="button" class="btn btn-rf-orange" @onclick="SaveEditAsync" data-test="campaign-save">@UiText.BtnConfirm(Lang)</button>
+            </div>
+        </div>
+    </div>
+}
+
+@if (confirm != Confirm.None && campaign is not null)
+{
+    <div class="rf-modal-backdrop" @onclick="() => confirm = Confirm.None">
+        <div class="rf-modal-dialog" style="max-width: 450px; text-align: center;" @onclick:stopPropagation="true" data-test="campaign-confirm">
+            <div class="p-3 mb-4 rounded" style="background-color: var(--rf-bg-main); border: 1px solid var(--rf-border-subtle); color: var(--rf-text-secondary);">
+                @(confirm == Confirm.Delete ? UiText.CampaignDeleteWarning(campaign.Name, Lang) : UiText.CampaignLeaveWarning(Lang))
+            </div>
+            <div class="d-flex justify-content-center gap-3">
+                <button type="button" class="btn btn-rf-outline" @onclick="() => confirm = Confirm.None">@UiText.BtnCancel(Lang)</button>
+                <button type="button" class="btn btn-rf-orange" style="background-color: #dc3545; border-color: #dc3545;" @onclick="ConfirmAsync" data-test="campaign-confirm-yes">@UiText.BtnConfirm(Lang)</button>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter] public Guid Id { get; set; }
+
+    private enum Tab { Overview, Members, Characters, Content }
+    private enum Confirm { None, Leave, Delete }
+
+    private LanguageCode Lang => LanguageState.CurrentLanguage;
+
+    private CampaignDetailDto? campaign;
+    private List<CharacterSummaryDto> myCharacters = new();
+    private List<ShareableEntryDto>? shareable;
+    private bool loading = true;
+    private Tab tab = Tab.Overview;
+    private Confirm confirm;
+    private string? message;
+    private bool copied;
+
+    private string inviteEmail = string.Empty;
+    private CampaignRole inviteRole = CampaignRole.Player;
+    private string? inviteNote;
+    private Guid? bringId;
+    private Guid? shareId;
+
+    private bool editOpen;
+    private string? formError;
+    private SaveCampaignDto form = new();
+
+    private int PendingCount => campaign?.Contents.Count(c => c.Status == CampaignContentStatus.Pending) ?? 0;
+
+    private string TabName(Tab t) => t switch
+    {
+        Tab.Overview => UiText.CampaignTabOverview(Lang),
+        Tab.Members => UiText.CampaignTabMembers(Lang),
+        Tab.Characters => UiText.CampaignTabCharacters(Lang),
+        _ => UiText.CampaignTabContent(Lang)
+    };
+
+    //	My characters not yet at the table, of the campaign's edition
+    private List<CharacterSummaryDto> Bringable => campaign is null ? new() : myCharacters
+        .Where(c => campaign.Ruleset is null || c.Ruleset == campaign.Ruleset)
+        .Where(c => campaign.Characters.All(e => e.Character.Id != c.Id))
+        .ToList();
+
+    private string JoinUrl(string code) => Navigation.ToAbsoluteUri($"campaigns/join/{code}").ToString();
+
+    protected override async Task OnInitializedAsync()
+    {
+        LanguageState.OnLanguageChanged += HandleLanguageChanged;
+        await LoadAsync();
+        loading = false;
+    }
+
+    private async void HandleLanguageChanged()
+    {
+        await LoadAsync();
+        StateHasChanged();
+    }
+
+    private async Task LoadAsync()
+    {
+        var detail = Campaigns.GetCampaignAsync(Id, Lang);
+        var mine = Characters.GetCharactersAsync(Lang);
+        var entries = Campaigns.GetShareableAsync(Id, Lang);
+        campaign = await detail;
+        myCharacters = await mine ?? new List<CharacterSummaryDto>();
+        shareable = await entries;
+        if (campaign is not null && !CampaignRules.CanInvite(campaign.MyRole, inviteRole))
+        {
+            inviteRole = CampaignRole.Player;
+        }
+    }
+
+    //	Runs an action, reports a failure in the page and reloads
+    private async Task RunAsync(Func<Task<CampaignResult>> action, bool contentChanged = false)
+    {
+        var result = await action();
+        message = result.Ok ? null : UiText.CampaignActionFailed(result.Status, Lang);
+        if (result.Ok && contentChanged)
+        {
+            Characters.InvalidateContexts();
+        }
+        await LoadAsync();
+    }
+
+    private async Task CopyAsync(string text)
+    {
+        try
+        {
+            await JS.InvokeVoidAsync("navigator.clipboard.writeText", text);
+            copied = true;
+        }
+        catch (JSException)
+        {
+            copied = false;
+        }
+    }
+
+    private Task NewLinkAsync() => RunAsync(() => Campaigns.NewInviteCodeAsync(Id));
+
+    private Task DisableLinkAsync() => RunAsync(() => Campaigns.DisableInviteCodeAsync(Id));
+
+    private void SetInviteRole(ChangeEventArgs e) =>
+        inviteRole = int.TryParse(e.Value?.ToString(), out var value) && Enum.IsDefined(typeof(CampaignRole), value) ? (CampaignRole)value : CampaignRole.Player;
+
+    private async Task InviteAsync()
+    {
+        if (string.IsNullOrWhiteSpace(inviteEmail))
+        {
+            return;
+        }
+        var email = inviteEmail.Trim();
+        var result = await Campaigns.InviteAsync(Id, email, inviteRole);
+        inviteNote = result.Ok
+            ? UiText.CampaignInviteSent(email, Lang)
+            : result.Status switch
+            {
+                System.Net.HttpStatusCode.NotFound => UiText.ShareNoAccount(Lang),
+                System.Net.HttpStatusCode.Conflict => UiText.CampaignInviteMember(Lang),
+                _ => UiText.CampaignActionFailed(result.Status, Lang)
+            };
+        if (result.Ok)
+        {
+            inviteEmail = string.Empty;
+            await LoadAsync();
+        }
+    }
+
+    private Task WithdrawInviteAsync(CampaignPendingInviteDto invite) => RunAsync(() => Campaigns.DeleteInviteAsync(invite.Id));
+
+    private async Task ChangeRoleAsync(CampaignMemberDto member, ChangeEventArgs e)
+    {
+        if (int.TryParse(e.Value?.ToString(), out var value) && Enum.IsDefined(typeof(CampaignRole), value) && (CampaignRole)value != member.Role)
+        {
+            await RunAsync(() => Campaigns.ChangeRoleAsync(Id, member.UserId, (CampaignRole)value), contentChanged: true);
+        }
+    }
+
+    private Task RemoveMemberAsync(CampaignMemberDto member) => RunAsync(() => Campaigns.RemoveMemberAsync(Id, member.UserId));
+
+    private async Task BringAsync()
+    {
+        if (bringId is { } characterId)
+        {
+            bringId = null;
+            await RunAsync(() => Campaigns.AddCharacterAsync(Id, characterId));
+        }
+    }
+
+    private Task RemoveCharacterAsync(CampaignCharacterDto entry) => RunAsync(() => Campaigns.RemoveCharacterAsync(Id, entry.Character.Id));
+
+    private async Task ShareAsync()
+    {
+        if (shareId is { } entityId)
+        {
+            shareId = null;
+            await RunAsync(() => Campaigns.ShareAsync(Id, entityId), contentChanged: true);
+        }
+    }
+
+    private Task ApproveAsync(CampaignContentDto content) => RunAsync(() => Campaigns.ApproveAsync(Id, content.EntityId), contentChanged: true);
+
+    private Task RemoveContentAsync(CampaignContentDto content) => RunAsync(() => Campaigns.RemoveContentAsync(Id, content.EntityId), contentChanged: true);
+
+    private void OpenEdit()
+    {
+        if (campaign is null)
+        {
+            return;
+        }
+        form = new SaveCampaignDto { Name = campaign.Name, Description = campaign.Description, Ruleset = campaign.Ruleset };
+        formError = null;
+        editOpen = true;
+    }
+
+    private void SetRuleset(ChangeEventArgs e) =>
+        form.Ruleset = int.TryParse(e.Value?.ToString(), out var value) && Enum.IsDefined(typeof(RulesetVersion), value) ? (RulesetVersion)value : null;
+
+    private async Task SaveEditAsync()
+    {
+        if (string.IsNullOrWhiteSpace(form.Name))
+        {
+            formError = UiText.CampaignNameMissing(Lang);
+            return;
+        }
+        var result = await Campaigns.UpdateAsync(Id, form);
+        if (!result.Ok)
+        {
+            formError = UiText.CampaignActionFailed(result.Status, Lang);
+            return;
+        }
+        editOpen = false;
+        await LoadAsync();
+    }
+
+    private async Task ConfirmAsync()
+    {
+        var leaving = confirm == Confirm.Leave;
+        confirm = Confirm.None;
+        var result = leaving ? await Campaigns.RemoveMemberAsync(Id, "me") : await Campaigns.DeleteAsync(Id);
+        if (result.Ok)
+        {
+            Characters.InvalidateContexts();
+            Navigation.NavigateTo("campaigns");
+            return;
+        }
+        message = leaving && result.Status == System.Net.HttpStatusCode.BadRequest ? UiText.CampaignLastMaster(Lang) : UiText.CampaignActionFailed(result.Status, Lang);
+    }
+
+    public void Dispose() => LanguageState.OnLanguageChanged -= HandleLanguageChanged;
+}
