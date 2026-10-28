@@ -15,7 +15,7 @@ public static class MantleOfSpellResistance2014Seeder
 		yield return Item("mantle-of-spell-resistance", null, 0, MagicItemType.WondrousItem, ItemRarity.Rare, true, ContentSource.Srd51,
 			null,
 			("Mantello della resistenza agli incantesimi", "Oggetto meraviglioso, raro (richiede sintonia)",
-			"Finché il personaggio indossa questo mantello, dispone di vantaggio ai tiri salvezza contro gli incantesimi."),
+			"Finché il personaggio indossa questo mantello, dispone di vantaggio ai tiri salvezza contro gli incantesimi.", "Manto della resistenza agli incantesimi"),
 			("Mantle of Spell Resistance", "Wondrous item, rare (requires attunement)",
 			"You have advantage on saving throws against spells while you wear this cloak.", null));
 	}

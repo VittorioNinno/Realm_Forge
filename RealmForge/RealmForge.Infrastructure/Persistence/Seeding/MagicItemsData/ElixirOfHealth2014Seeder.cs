@@ -15,7 +15,7 @@ public static class ElixirOfHealth2014Seeder
 		yield return Item("elixir-of-health", null, 0, MagicItemType.Potion, ItemRarity.Rare, false, ContentSource.RealmForge,
 			null,
 			("Elisir della salute", "Pozione, rara",
-			"Chi beve questa pozione guarisce da qualsiasi malattia e si libera delle condizioni accecato, assordato, avvelenato e paralizzato. Il liquido, rosso e trasparente, è attraversato da minuscole bolle di luce."),
+			"Chi beve questa pozione guarisce da qualsiasi malattia e si libera delle condizioni accecato, assordato, avvelenato e paralizzato. Il liquido, rosso e trasparente, è attraversato da minuscole bolle di luce.", null),
 			("Elixir of Health", "Potion, rare",
 			"Drinking this potion cures any disease affecting you and ends the blinded, deafened, paralyzed and poisoned conditions on you. The clear red liquid holds tiny bubbles of light.", null));
 	}

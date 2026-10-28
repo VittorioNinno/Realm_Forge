@@ -15,7 +15,7 @@ public static class RingOfFreeAction2014Seeder
 		yield return Item("ring-of-free-action", null, 0, MagicItemType.Ring, ItemRarity.Rare, true, ContentSource.Srd51,
 			null,
 			("Anello della libertà di azione", "Anello, raro (richiede sintonia)",
-			"Mentre il personaggio indossa questo anello, il terreno difficile non gli costa movimento extra. Inoltre, la magia non può né ridurre la sua velocità né renderlo paralizzato o trattenuto."),
+			"Mentre il personaggio indossa questo anello, il terreno difficile non gli costa movimento extra. Inoltre, la magia non può né ridurre la sua velocità né renderlo paralizzato o trattenuto.", null),
 			("Ring of Free Action", "Ring, rare (requires attunement)",
 			"While you wear this ring, difficult terrain doesn't cost you extra movement. In addition, magic can neither reduce your speed nor cause you to be paralyzed or restrained.", null));
 	}

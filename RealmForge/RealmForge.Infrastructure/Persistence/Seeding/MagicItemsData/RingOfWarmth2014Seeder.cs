@@ -15,7 +15,7 @@ public static class RingOfWarmth2014Seeder
 		yield return Item("ring-of-warmth", null, 0, MagicItemType.Ring, ItemRarity.Uncommon, true, ContentSource.Srd51,
 			null,
 			("Anello del calore", "Anello, non comune (richiede sintonia)",
-			"Finché il personaggio indossa questo anello, ottiene resistenza ai danni da freddo. Inoltre, il personaggio e tutto ciò che indossa e trasporta non subiscono effetti nocivi dalle basse temperature fino a – 45° C."),
+			"Finché il personaggio indossa questo anello, ottiene resistenza ai danni da freddo. Inoltre, il personaggio e tutto ciò che indossa e trasporta non subiscono effetti nocivi dalle basse temperature fino a – 45° C.", null),
 			("Ring of Warmth", "Ring, uncommon (requires attunement)",
 			"While wearing this ring, you have resistance to cold damage. In addition, you and everything you wear and carry are unharmed by temperatures as low as -50 degrees Fahrenheit.", null));
 	}

@@ -15,7 +15,7 @@ public static class SaddleOfTheCavalier2014Seeder
 		yield return Item("saddle-of-the-cavalier", null, 0, MagicItemType.WondrousItem, ItemRarity.Uncommon, false, ContentSource.RealmForge,
 			null,
 			("Sella del cavaliere", "Oggetto meraviglioso, non comune",
-			"Mentre il personaggio è in sella a una cavalcatura con questa sella, non può essere disarcionato contro la sua volontà finché è cosciente, e i tiri per colpire contro la cavalcatura subiscono svantaggio."),
+			"Mentre il personaggio è in sella a una cavalcatura con questa sella, non può essere disarcionato contro la sua volontà finché è cosciente, e i tiri per colpire contro la cavalcatura subiscono svantaggio.", null),
 			("Saddle of the Cavalier", "Wondrous item, uncommon",
 			"While you ride a mount in this saddle, you can't be dismounted against your will as long as you are conscious, and attack rolls against the mount have disadvantage.", null));
 	}

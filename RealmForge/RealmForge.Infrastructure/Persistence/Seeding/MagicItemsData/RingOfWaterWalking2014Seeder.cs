@@ -15,7 +15,7 @@ public static class RingOfWaterWalking2014Seeder
 		yield return Item("ring-of-water-walking", null, 0, MagicItemType.Ring, ItemRarity.Uncommon, false, ContentSource.Srd51,
 			null,
 			("Anello del camminare sull'acqua", "Anello, non comune",
-			"Finché il personaggio indossa questo anello, può stare in piedi e camminare su qualsiasi superficie liquida come se fosse terreno solido."),
+			"Finché il personaggio indossa questo anello, può stare in piedi e camminare su qualsiasi superficie liquida come se fosse terreno solido.", null),
 			("Ring of Water Walking", "Ring, uncommon",
 			"While wearing this ring, you can stand on and move across any liquid surface as if it were solid ground.", null));
 	}

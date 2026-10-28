@@ -15,7 +15,7 @@ public static class BootsOfElvenkind2014Seeder
 		yield return Item("boots-of-elvenkind", null, 0, MagicItemType.WondrousItem, ItemRarity.Uncommon, false, ContentSource.Srd51,
 			null,
 			("Stivali elfici", "Oggetto meraviglioso, non comune",
-			"Indossando questi stivali, il personaggio non fa alcun rumore quando cammina, a prescindere dalla superficie su cui si muove. Dispone inoltre di vantaggio alle prove di Destrezza (Furtività) effettuate per muoversi silenziosamente."),
+			"Indossando questi stivali, il personaggio non fa alcun rumore quando cammina, a prescindere dalla superficie su cui si muove. Dispone inoltre di vantaggio alle prove di Destrezza (Furtività) effettuate per muoversi silenziosamente.", null),
 			("Boots of Elvenkind", "Wondrous item, uncommon",
 			"While you wear these boots, your steps make no sound, regardless of the surface you are moving across. You also have advantage on Dexterity (Stealth) checks that rely on moving silently.", null));
 	}

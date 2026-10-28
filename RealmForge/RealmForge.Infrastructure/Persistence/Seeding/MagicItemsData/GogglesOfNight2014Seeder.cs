@@ -15,7 +15,7 @@ public static class GogglesOfNight2014Seeder
 		yield return Item("goggles-of-night", null, 0, MagicItemType.WondrousItem, ItemRarity.Uncommon, false, ContentSource.Srd51,
 			null,
 			("Occhiali della Notte", "Oggetto meraviglioso, non comune",
-			"Finché il personaggio indossa queste lenti scure, ottiene scurovisione entro un raggio di 18 metri. Se possiede già la scurovisione, gli occhiali ne aumentano il raggio di 18 metri."),
+			"Finché il personaggio indossa queste lenti scure, ottiene scurovisione entro un raggio di 18 metri. Se possiede già la scurovisione, gli occhiali ne aumentano il raggio di 18 metri.", null),
 			("Goggles of Night", "Wondrous item, uncommon",
 			"While wearing these dark lenses, you have darkvision out to a range of 60 feet. If you already have darkvision, wearing the goggles increases its range by 60 feet.", null));
 	}

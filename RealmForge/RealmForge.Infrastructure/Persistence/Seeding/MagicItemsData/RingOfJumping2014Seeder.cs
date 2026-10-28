@@ -15,7 +15,7 @@ public static class RingOfJumping2014Seeder
 		yield return Item("ring-of-jumping", null, 0, MagicItemType.Ring, ItemRarity.Uncommon, true, ContentSource.Srd51,
 			null,
 			("Anello del saltare", "Anello, non comune (richiede sintonia)",
-			"Mentre il personaggio indossa questo anello, può lanciare con esso l'incantesimo *saltare* a volontà come azione bonus, ma può bersagliare solo se stesso."),
+			"Mentre il personaggio indossa questo anello, può lanciare con esso l'incantesimo *saltare* a volontà come azione bonus, ma può bersagliare solo se stesso.", null),
 			("Ring of Jumping", "Ring, uncommon (requires attunement)",
 			"While wearing this ring, you can cast the jump spell from it as a bonus action at will, but can target only yourself when you do so.", null));
 	}

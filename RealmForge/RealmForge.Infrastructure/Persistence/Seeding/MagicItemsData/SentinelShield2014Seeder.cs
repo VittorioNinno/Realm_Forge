@@ -14,8 +14,8 @@ public static class SentinelShield2014Seeder
 	{
 		yield return Item("sentinel-shield", null, 0, MagicItemType.Armor, ItemRarity.Uncommon, false, ContentSource.RealmForge,
 			null,
-			("Scudo della sentinella", "Armatura (scudo), non comune",
-			"Mentre impugna questo scudo, decorato con il simbolo di un occhio, il personaggio dispone di vantaggio ai tiri di iniziativa e alle prove di Saggezza (Percezione)."),
+			("Scudo sentinella", "Armatura (scudo), non comune",
+			"Mentre impugna questo scudo, decorato con il simbolo di un occhio, il personaggio dispone di vantaggio ai tiri di iniziativa e alle prove di Saggezza (Percezione).", null),
 			("Sentinel Shield", "Armor (shield), uncommon",
 			"While holding this shield, which bears the symbol of an eye, you have advantage on initiative rolls and Wisdom (Perception) checks.", null));
 	}

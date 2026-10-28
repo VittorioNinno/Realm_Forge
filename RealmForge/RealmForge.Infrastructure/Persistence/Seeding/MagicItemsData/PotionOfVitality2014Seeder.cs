@@ -14,8 +14,8 @@ public static class PotionOfVitality2014Seeder
 	{
 		yield return Item("potion-of-vitality", null, 0, MagicItemType.Potion, ItemRarity.VeryRare, false, ContentSource.RealmForge,
 			null,
-			("Pozione della vitalità", "Pozione, molto rara",
-			"Chi beve questa pozione si libera di qualsiasi livello di indebolimento e guarisce da qualsiasi malattia o veleno. Per le 24 ore successive, ogni Dado Vita che spende gli fa recuperare il massimo dei punti ferita possibili. Il liquido cremisi pulsa di una luce fioca, come un battito cardiaco."),
+			("Pozione di vitalità", "Pozione, molto rara",
+			"Chi beve questa pozione si libera di qualsiasi livello di indebolimento e guarisce da qualsiasi malattia o veleno. Per le 24 ore successive, ogni Dado Vita che spende gli fa recuperare il massimo dei punti ferita possibili. Il liquido cremisi pulsa di una luce fioca, come un battito cardiaco.", null),
 			("Potion of Vitality", "Potion, very rare",
 			"Drinking this potion removes all your exhaustion and cures any disease or poison affecting you. For the next 24 hours, every Hit Die you spend restores the maximum number of hit points. The crimson liquid pulses with a dim light, like a heartbeat.", null));
 	}

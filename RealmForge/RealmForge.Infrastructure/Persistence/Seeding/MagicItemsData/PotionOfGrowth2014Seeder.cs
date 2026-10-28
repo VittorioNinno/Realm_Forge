@@ -15,7 +15,7 @@ public static class PotionOfGrowth2014Seeder
 		yield return Item("potion-of-growth", null, 0, MagicItemType.Potion, ItemRarity.Uncommon, false, ContentSource.Srd51,
 			null,
 			("Pozione di crescita", "Pozione, non comune",
-			"Quando il personaggio beve questa pozione, ottiene l'effetto \"ingrandire\" dell'incantesimo *ingrandire/ridurre,* per 1d4 ore (non è richiesta la concentrazione). All'interno della pozione è visibile un piccolo nucleo rosso che si espande progressivamente fino a tingere tutto il liquido trasparente intorno a esso per poi contrarsi fino a diventare un granello minuscolo. Agitare la bottiglia non interrompe il processo."),
+			"Quando il personaggio beve questa pozione, ottiene l'effetto \"ingrandire\" dell'incantesimo *ingrandire/ridurre,* per 1d4 ore (non è richiesta la concentrazione). All'interno della pozione è visibile un piccolo nucleo rosso che si espande progressivamente fino a tingere tutto il liquido trasparente intorno a esso per poi contrarsi fino a diventare un granello minuscolo. Agitare la bottiglia non interrompe il processo.", null),
 			("Potion of Growth", "Potion, uncommon",
 			"When you drink this potion, you gain the \"enlarge\" effect of the enlarge/reduce spell for 1d4 hours (no concentration required). The red in the potion's liquid continuously expands from a tiny bead to color the clear liquid around it and then contracts. Shaking the bottle fails to interrupt this process.", null));
 	}

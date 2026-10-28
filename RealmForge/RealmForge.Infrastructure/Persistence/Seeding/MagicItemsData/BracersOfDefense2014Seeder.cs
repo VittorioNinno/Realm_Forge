@@ -15,7 +15,7 @@ public static class BracersOfDefense2014Seeder
 		yield return Item("bracers-of-defense", null, 0, MagicItemType.WondrousItem, ItemRarity.Rare, true, ContentSource.Srd51,
 			Magic(Effect(MagicEffectKind.UnarmoredArmorClass, 2)),
 			("Bracciali della difesa", "Oggetto meraviglioso, raro (richiede sintonia)",
-			"Il personaggio che indossa questi bracciali ottiene un bonus di +2 alla CA se non veste alcuna armatura e non usa uno scudo."),
+			"Il personaggio che indossa questi bracciali ottiene un bonus di +2 alla CA se non veste alcuna armatura e non usa uno scudo.", null),
 			("Bracers of Defense", "Wondous item, rare (requires attunement)",
 			"While wearing these bracers, you gain a +2 bonus to AC if you are wearing no armor and using no shield.", null));
 	}

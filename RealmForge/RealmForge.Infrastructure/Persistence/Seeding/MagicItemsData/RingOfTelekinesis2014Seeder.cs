@@ -15,7 +15,7 @@ public static class RingOfTelekinesis2014Seeder
 		yield return Item("ring-of-telekinesis", null, 0, MagicItemType.Ring, ItemRarity.VeryRare, true, ContentSource.Srd51,
 			null,
 			("Anello di telecinesi", "Anello, molto raro (richiede sintonia)",
-			"Finché il personaggio indossa questo anello, può lanciare l'incantesimo *telecinesi* a volontà, ma il bersaglio dell'incantesimo può essere solo un oggetto che non è indossato o trasportato."),
+			"Finché il personaggio indossa questo anello, può lanciare l'incantesimo *telecinesi* a volontà, ma il bersaglio dell'incantesimo può essere solo un oggetto che non è indossato o trasportato.", null),
 			("Ring of Telekinesis", "Ring, very rare (requires attunement)",
 			"While wearing this ring, you can cast the telekinesis spell at will, but you can target only objects that aren't being worn or carried.", null));
 	}

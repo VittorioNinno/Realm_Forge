@@ -114,11 +114,16 @@ public class MagicItemSeedDataTests
 	{
 		var dmg = Items.Where(i => i.Source == ContentSource.RealmForge && i.ParentId is null).ToList();
 		Assert.Equal(36, dmg.Count);
-		Assert.Equal("Lamanera", Tr(ByEnglishName("Blackrazor"), LanguageCode.It).Name);
-		Assert.Equal("Pietre dei messaggi", Tr(ByEnglishName("Sending Stones"), LanguageCode.It).Name);
+		Assert.Equal("Lama nera", Tr(ByEnglishName("Blackrazor"), LanguageCode.It).Name);
+		Assert.Equal("Pietre parlanti", Tr(ByEnglishName("Sending Stones"), LanguageCode.It).Name);
 		Assert.Equal(7, Items.Count(i => i.ParentId == ByEnglishName("Instrument of the Bards").Id));
 
 		//	The DMG names of SRD items are kept as aliases
 		Assert.Equal("Heward's Handy Haversack", Tr(ByEnglishName("Handy Haversack"), LanguageCode.En).Alias);
+
+		//	and so are the Italian names of the Manuale del Dungeon Master that differ from the Italian SRD
+		Assert.Equal("Bacchetta dei dardi incantati", Tr(ByEnglishName("Wand of Magic Missiles"), LanguageCode.It).Alias);
+		Assert.Equal("Zainetto pratico di Heward", Tr(ByEnglishName("Handy Haversack"), LanguageCode.It).Alias);
+		Assert.Equal(15, Items.Count(i => Tr(i, LanguageCode.It).Alias is not null));
 	}
 }

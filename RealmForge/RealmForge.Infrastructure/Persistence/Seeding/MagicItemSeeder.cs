@@ -44,7 +44,7 @@ public static class MagicItemSeeder
 	public static MagicItem Item(
 		string key, string? parentKey, int order, MagicItemType type, ItemRarity? rarity, bool attunement, ContentSource source,
 		MagicItemProperties? mechanics,
-		(string Name, string Subtitle, string Description) it,
+		(string Name, string Subtitle, string Description, string? Alias) it,
 		(string Name, string Subtitle, string Description, string? Alias) en)
 	{
 		var ruleset = RulesetVersion.Dnd5e_2014;
@@ -69,7 +69,8 @@ public static class MagicItemSeeder
 					Language = LanguageCode.It,
 					Name = it.Name,
 					Subtitle = it.Subtitle,
-					Description = it.Description
+					Description = it.Description,
+					Alias = it.Alias
 				},
 				new()
 				{

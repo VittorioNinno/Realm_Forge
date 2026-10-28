@@ -15,7 +15,7 @@ public static class PotionOfHeroism2014Seeder
 		yield return Item("potion-of-heroism", null, 0, MagicItemType.Potion, ItemRarity.Rare, false, ContentSource.Srd51,
 			null,
 			("Pozione di eroismo", "Pozione, rara",
-			"Quando il personaggio beve questa pozione, ottiene 10 punti ferita temporanei che durano 1 ora. Per la stessa durata, il personaggio è sotto l'effetto dell'incantesimo *benedizione* (non è richiesta la concentrazione). Il liquido blu di questa pozione gorgoglia e fuma come se stesse bollendo."),
+			"Quando il personaggio beve questa pozione, ottiene 10 punti ferita temporanei che durano 1 ora. Per la stessa durata, il personaggio è sotto l'effetto dell'incantesimo *benedizione* (non è richiesta la concentrazione). Il liquido blu di questa pozione gorgoglia e fuma come se stesse bollendo.", null),
 			("Potion of Heroism", "Potion, rare",
 			"For 1 hour after drinking it, you gain 10 temporary hit points that last for 1 hour. For the same duration, you are under the effect of the bless spell (no concentration required). This blue potion bubbles and steams as if boiling.", null));
 	}

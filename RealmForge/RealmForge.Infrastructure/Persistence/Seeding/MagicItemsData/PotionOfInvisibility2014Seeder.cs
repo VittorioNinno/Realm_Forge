@@ -15,7 +15,7 @@ public static class PotionOfInvisibility2014Seeder
 		yield return Item("potion-of-invisibility", null, 0, MagicItemType.Potion, ItemRarity.VeryRare, false, ContentSource.Srd51,
 			null,
 			("Pozione dell'invisibilità", "Pozione, molto rara",
-			"Il contenitore di questa pozione sembra vuoto, ma pesa come se al suo interno ci fosse un liquido. Quando il personaggio beve la pozione, diventa invisibile per 1 ora. Tutto ciò che indossa o trasporta diventa invisibile assieme a lui. L'effetto termina anticipatamente se il personaggio effettua un attacco o lancia un incantesimo."),
+			"Il contenitore di questa pozione sembra vuoto, ma pesa come se al suo interno ci fosse un liquido. Quando il personaggio beve la pozione, diventa invisibile per 1 ora. Tutto ciò che indossa o trasporta diventa invisibile assieme a lui. L'effetto termina anticipatamente se il personaggio effettua un attacco o lancia un incantesimo.", "Pozione di invisibilità"),
 			("Potion of Invisibility", "Potion, very rare",
 			"This potion's container looks empty but feels as though it holds liquid. When you drink it, you become invisible for 1 hour. Anything you wear or carry is invisible with you. The effect ends early if you attack or cast a spell.", null));
 	}

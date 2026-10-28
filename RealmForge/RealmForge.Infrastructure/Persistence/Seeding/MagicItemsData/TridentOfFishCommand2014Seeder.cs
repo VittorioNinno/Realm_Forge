@@ -15,7 +15,7 @@ public static class TridentOfFishCommand2014Seeder
 		yield return Item("trident-of-fish-command", null, 0, MagicItemType.Weapon, ItemRarity.Uncommon, true, ContentSource.Srd51,
 			Charges(3, ItemRecharge.LongRest, "1d3"),
 			("Tridente del comando dei pesci", "Arma (tridente), non comune (richiede sintonia)",
-			"Questo tridente è un'arma magica. Possiede 3 cariche. Finché il personaggio lo trasporta, può usare un'azione e spendere 1 carica per lanciare con esso l'incantesimo *dominare bestie* (CD del tiro salvezza 15) su una bestia dotata di una velocità di nuotare innata. Il tridente recupera 1d3 cariche consumate all'alba di ogni giorno."),
+			"Questo tridente è un'arma magica. Possiede 3 cariche. Finché il personaggio lo trasporta, può usare un'azione e spendere 1 carica per lanciare con esso l'incantesimo *dominare bestie* (CD del tiro salvezza 15) su una bestia dotata di una velocità di nuotare innata. Il tridente recupera 1d3 cariche consumate all'alba di ogni giorno.", null),
 			("Trident of Fish Command", "Weapon (trident), uncommon (requires attunement)",
 			"This trident is a magic weapon. It has 3 charges. While you carry it, you can use an action and expend 1 charge to cast dominate beast (save DC 15) from it on a beast that has an innate swimming speed. The trident regains 1d3 expended charges daily at dawn.", null));
 	}

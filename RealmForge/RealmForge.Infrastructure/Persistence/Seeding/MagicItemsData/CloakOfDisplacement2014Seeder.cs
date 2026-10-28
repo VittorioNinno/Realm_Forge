@@ -15,7 +15,7 @@ public static class CloakOfDisplacement2014Seeder
 		yield return Item("cloak-of-displacement", null, 0, MagicItemType.WondrousItem, ItemRarity.Rare, true, ContentSource.Srd51,
 			null,
 			("Mantello distorcente", "Oggetto meraviglioso, raro (richiede sintonia)",
-			"Quando il personaggio indossa questo mantello proietta un'illusione che lo fa apparire in un punto diverso da quello in cui si trova in realtà. Di conseguenza, tutte le creature subiscono svantaggio ai tiri per colpire contro di lui. Se il personaggio subisce danni, la proprietà smette di funzionare fino all'inizio del suo turno successivo. Questa proprietà è soppressa finché il personaggio è incapacitato, trattenuto o impossibilitato a muoversi in altri modi."),
+			"Quando il personaggio indossa questo mantello proietta un'illusione che lo fa apparire in un punto diverso da quello in cui si trova in realtà. Di conseguenza, tutte le creature subiscono svantaggio ai tiri per colpire contro di lui. Se il personaggio subisce danni, la proprietà smette di funzionare fino all'inizio del suo turno successivo. Questa proprietà è soppressa finché il personaggio è incapacitato, trattenuto o impossibilitato a muoversi in altri modi.", null),
 			("Cloak of Displacement", "Wondrous item, rare (requires attunement)",
 			"While you wear this cloak, it projects an illusion that makes you appear to be standing in a place near your actual location, causing any creature to have disadvantage on attack rolls against you. If you take damage, the property ceases to function until the start of your next turn. This property is suppressed while you are incapacitated, restrained, or otherwise unable to move.", null));
 	}

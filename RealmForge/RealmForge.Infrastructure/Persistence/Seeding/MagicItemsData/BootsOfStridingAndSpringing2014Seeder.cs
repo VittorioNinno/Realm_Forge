@@ -15,7 +15,7 @@ public static class BootsOfStridingAndSpringing2014Seeder
 		yield return Item("boots-of-striding-and-springing", null, 0, MagicItemType.WondrousItem, ItemRarity.Uncommon, true, ContentSource.Srd51,
 			null,
 			("Stivali molleggiati", "Oggetto meraviglioso, non comune (richiede sintonia)",
-			"Fintantoché il personaggio indossa questi stivali, ha una velocità base sul terreno pari a 9 metri (a meno che la sua velocità normale non sia superiore), che non viene ridotta se è ingombrato o se indossa un'armatura pesante. Inoltre, il personaggio può saltare di una distanza tripla rispetto al normale, anche se non può superare la distanza concessa dal proprio movimento rimanente."),
+			"Fintantoché il personaggio indossa questi stivali, ha una velocità base sul terreno pari a 9 metri (a meno che la sua velocità normale non sia superiore), che non viene ridotta se è ingombrato o se indossa un'armatura pesante. Inoltre, il personaggio può saltare di una distanza tripla rispetto al normale, anche se non può superare la distanza concessa dal proprio movimento rimanente.", null),
 			("Boots of Striding and Springing", "Wondrous item, uncommon (requires attunement)",
 			"While you wear these boots, your walking speed becomes 30 feet, unless your walking speed is higher, and your speed isn't reduced if you are encumbered or wearing heavy armor. In addition, you can jump three times the normal distance, though you can't jump farther than your remaining movement would allow.", null));
 	}

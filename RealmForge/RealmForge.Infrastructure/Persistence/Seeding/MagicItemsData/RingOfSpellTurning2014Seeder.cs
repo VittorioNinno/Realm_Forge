@@ -15,7 +15,7 @@ public static class RingOfSpellTurning2014Seeder
 		yield return Item("ring-of-spell-turning", null, 0, MagicItemType.Ring, ItemRarity.Legendary, true, ContentSource.Srd51,
 			null,
 			("Anello rifletti incantesimo", "Anello, leggendario (richiede sintonia)",
-			"Finché il personaggio indossa questo anello, dispone di vantaggio ai tiri salvezza contro qualsiasi incantesimo che bersagli soltanto lui (non in un'area di effetto). Inoltre, se il personaggio ottiene 20 al tiro salvezza e l'incantesimo è di livello pari o inferiore al 7°, esso non ha alcun effetto sul personaggio e viene invece riflesso contro l'incantatore, usando il livello di slot, la CD del tiro salvezza sull'incantesimo, il bonus di attacco e la caratteristica da incantatore di chi ha lanciato l'incantesimo."),
+			"Finché il personaggio indossa questo anello, dispone di vantaggio ai tiri salvezza contro qualsiasi incantesimo che bersagli soltanto lui (non in un'area di effetto). Inoltre, se il personaggio ottiene 20 al tiro salvezza e l'incantesimo è di livello pari o inferiore al 7°, esso non ha alcun effetto sul personaggio e viene invece riflesso contro l'incantatore, usando il livello di slot, la CD del tiro salvezza sull'incantesimo, il bonus di attacco e la caratteristica da incantatore di chi ha lanciato l'incantesimo.", null),
 			("Ring of Spell Turning", "Ring, legendary (requires attunement)",
 			"While wearing this ring, you have advantage on saving throws against any spell that targets only you (not in an area of effect). In addition, if you roll a 20 for the save and the spell is 7th level or lower, the spell has no effect on you and instead targets the caster, using the slot level, spell save DC, attack bonus, and spellcasting ability of the caster.", null));
 	}

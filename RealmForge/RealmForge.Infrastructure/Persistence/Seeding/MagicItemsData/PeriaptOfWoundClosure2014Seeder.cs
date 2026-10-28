@@ -15,7 +15,7 @@ public static class PeriaptOfWoundClosure2014Seeder
 		yield return Item("periapt-of-wound-closure", null, 0, MagicItemType.WondrousItem, ItemRarity.Uncommon, true, ContentSource.Srd51,
 			null,
 			("Talismano della rimarginazione", "Oggetto meraviglioso, non comune (richiede sintonia)",
-			"Finché il personaggio indossa questo pendente, si stabilizza automaticamente ogni volta che sta per morire all'inizio del suo turno. Inoltre, ogni volta che tira un Dado Vita per recuperare punti ferita, raddoppia il numero di punti ferita ripristinati."),
+			"Finché il personaggio indossa questo pendente, si stabilizza automaticamente ogni volta che sta per morire all'inizio del suo turno. Inoltre, ogni volta che tira un Dado Vita per recuperare punti ferita, raddoppia il numero di punti ferita ripristinati.", null),
 			("Periapt of Wound Closure", "Wondrous item, uncommon (requires attunement)",
 			"While you wear this pendant, you stabilize whenever you are dying at the start of your turn. In addition, whenever you roll a Hit Die to regain hit points, double the number of hit points it restores.", null));
 	}

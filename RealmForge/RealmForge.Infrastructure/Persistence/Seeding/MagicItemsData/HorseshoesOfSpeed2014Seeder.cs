@@ -15,7 +15,7 @@ public static class HorseshoesOfSpeed2014Seeder
 		yield return Item("horseshoes-of-speed", null, 0, MagicItemType.WondrousItem, ItemRarity.Rare, false, ContentSource.Srd51,
 			null,
 			("Ferri della velocità", "Oggetto meraviglioso, raro",
-			"Questi ferri da cavallo sono creati a gruppi di quattro. Quando vengono applicati tutti e quattro agli zoccoli di un cavallo o di una creatura simile, aumentano di 9 metri la sua velocità base sul terreno."),
+			"Questi ferri da cavallo sono creati a gruppi di quattro. Quando vengono applicati tutti e quattro agli zoccoli di un cavallo o di una creatura simile, aumentano di 9 metri la sua velocità base sul terreno.", null),
 			("Horseshoes of Speed", "Wondrous item, rare",
 			"These iron horseshoes come in a set of four. While all four shoes are affixed to the hooves of a horse or similar creature, they increase the creature's walking speed by 30 feet.", null));
 	}

@@ -15,7 +15,7 @@ public static class WandOfPolymorph2014Seeder
 		yield return Item("wand-of-polymorph", null, 0, MagicItemType.Wand, ItemRarity.VeryRare, true, ContentSource.Srd51,
 			Charges(7, ItemRecharge.LongRest, "1d6+1"),
 			("Bacchetta della metamorfosi", "Bacchetta, molto rara (richiede sintonia con un incantatore)",
-			"Questa bacchetta possiede 7 cariche. Mentre il personaggio la impugna, può usare un'azione per consumare 1 carica e lanciare con essa l'incantesimo *metamorfosi* (CD del tiro salvezza 15).\n\nAll'alba di ogni giorno, la bacchetta recupera 1d6 + 1 cariche consumate. Se il personaggio consuma l'ultima carica, deve tirare un d20: se ottiene 1, la bacchetta diventa cenere e viene distrutta."),
+			"Questa bacchetta possiede 7 cariche. Mentre il personaggio la impugna, può usare un'azione per consumare 1 carica e lanciare con essa l'incantesimo *metamorfosi* (CD del tiro salvezza 15).\n\nAll'alba di ogni giorno, la bacchetta recupera 1d6 + 1 cariche consumate. Se il personaggio consuma l'ultima carica, deve tirare un d20: se ottiene 1, la bacchetta diventa cenere e viene distrutta.", null),
 			("Wand of Polymorph", "Wand, very rare (requires attunement by a spellcaster)",
 			"This wand has 7 charges. While holding it, you can use an action to expend 1 of its charges to cast the polymorph spell (save DC 15) from it.\n\nThe wand regains 1d6 + 1 expended charges daily at dawn. If you expend the wand's last charge, roll a d20. On a 1, the wand crumbles into ashes and is destroyed.", null));
 	}

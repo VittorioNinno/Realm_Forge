@@ -15,7 +15,7 @@ public static class PotionOfWaterBreathing2014Seeder
 		yield return Item("potion-of-water-breathing", null, 0, MagicItemType.Potion, ItemRarity.Uncommon, false, ContentSource.Srd51,
 			null,
 			("Pozione del respirare sott'acqua", "Pozione, non comune",
-			"Il personaggio può respirare sott'acqua per 1 ora dopo aver bevuto questa pozione. Il suo liquido verde torbido ha un odore salmastro e al suo interno galleggia una bolla simile a una medusa."),
+			"Il personaggio può respirare sott'acqua per 1 ora dopo aver bevuto questa pozione. Il suo liquido verde torbido ha un odore salmastro e al suo interno galleggia una bolla simile a una medusa.", null),
 			("Potion of Water Breathing", "Potion, uncommon",
 			"You can breathe underwater for 1 hour after drinking this potion. Its cloudy green fluid smells of the sea and has a jellyfish-like bubble floating in it.", null));
 	}

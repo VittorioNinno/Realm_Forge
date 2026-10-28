@@ -15,7 +15,7 @@ public static class StoneOfGoodLuckLuckstone2014Seeder
 		yield return Item("stone-of-good-luck-luckstone", null, 0, MagicItemType.WondrousItem, ItemRarity.Uncommon, true, ContentSource.Srd51,
 			Magic(Effect(MagicEffectKind.AbilityChecks, 1), Effect(MagicEffectKind.SavingThrows, 1)),
 			("Pietra della buona fortuna (pietrafortuna)", "Oggetto meraviglioso, non comune (richiede sintonia)",
-			"Mentre il personaggio porta quest'agata levigata sulla sua persona, ottiene un bonus di +1 alle prove di caratteristica e ai tiri salvezza."),
+			"Mentre il personaggio porta quest'agata levigata sulla sua persona, ottiene un bonus di +1 alle prove di caratteristica e ai tiri salvezza.", null),
 			("Stone of Good Luck (Luckstone)", "Wondrous item, uncommon (requires attunement)",
 			"While this polished agate is on your person, you gain a +1 bonus to ability checks and saving throws.", null));
 	}

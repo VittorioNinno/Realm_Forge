@@ -15,7 +15,7 @@ public static class BroochOfShielding2014Seeder
 		yield return Item("brooch-of-shielding", null, 0, MagicItemType.WondrousItem, ItemRarity.Uncommon, true, ContentSource.Srd51,
 			Magic(Resist(DamageType.Force)),
 			("Fermaglio dello scudo", "Oggetto meraviglioso, non comune (richiede sintonia)",
-			"Quando indossa questo fermaglio, il personaggio possiede resistenza ai danni da forza ed è immune ai danni inflitti dall'incantesimo *dardo incantato.*"),
+			"Quando indossa questo fermaglio, il personaggio possiede resistenza ai danni da forza ed è immune ai danni inflitti dall'incantesimo *dardo incantato.*", null),
 			("Brooch of Shielding", "Wondrous item, uncommon (requires attunement)",
 			"While wearing this brooch, you have resistance to force damage, and you have immunity to damage from the magic missile spell.", null));
 	}

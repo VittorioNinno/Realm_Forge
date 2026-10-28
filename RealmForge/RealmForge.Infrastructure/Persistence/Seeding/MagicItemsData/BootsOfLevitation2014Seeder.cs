@@ -15,7 +15,7 @@ public static class BootsOfLevitation2014Seeder
 		yield return Item("boots-of-levitation", null, 0, MagicItemType.WondrousItem, ItemRarity.Rare, true, ContentSource.Srd51,
 			null,
 			("Stivali della levitazione", "Oggetto meraviglioso, raro (richiede sintonia)",
-			"Il personaggio che indossa questi stivali può usare un'azione per lanciare l'incantesimo *levitazione* su se stesso a volontà."),
+			"Il personaggio che indossa questi stivali può usare un'azione per lanciare l'incantesimo *levitazione* su se stesso a volontà.", null),
 			("Boots of Levitation", "Wondrous item, rare (requires attunement)",
 			"While you wear these boots, you can use an action to cast the levitate spell on yourself at will.", null));
 	}

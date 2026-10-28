@@ -15,7 +15,7 @@ public static class OilOfSharpness2014Seeder
 		yield return Item("oil-of-sharpness", null, 0, MagicItemType.Potion, ItemRarity.VeryRare, false, ContentSource.Srd51,
 			null,
 			("Olio dell'affilatura", "Pozione, molto rara",
-			"Quest'olio trasparente e gelatinoso luccica a causa di minuscoli e sottilissimi frammenti d'argento. L'olio può ricoprire un'arma tagliente o perforante, oppure fino a 5 munizioni taglienti o perforanti. L'applicazione dell'olio richiede 1 minuto. Per 1 ora, l'oggetto ricoperto è magico e conferisce un bonus di +3 ai tiri per colpire e ai tiri per i danni."),
+			"Quest'olio trasparente e gelatinoso luccica a causa di minuscoli e sottilissimi frammenti d'argento. L'olio può ricoprire un'arma tagliente o perforante, oppure fino a 5 munizioni taglienti o perforanti. L'applicazione dell'olio richiede 1 minuto. Per 1 ora, l'oggetto ricoperto è magico e conferisce un bonus di +3 ai tiri per colpire e ai tiri per i danni.", null),
 			("Oil of Sharpness", "Potion, very rare",
 			"This clear, gelatinous oil sparkles with tiny, ultrathin silver shards. The oil can coat one slashing or piercing weapon or up to 5 pieces of slashing or piercing ammunition. Applying the oil takes 1 minute. For 1 hour, the coated item is magical and has a +3 bonus to attack and damage rolls.", null));
 	}
