@@ -624,6 +624,7 @@ jobs:
           # Campaigns: bob is the master, alice joins as a player and brings her character; bob edits it (the change is
           # saved on the character), approves her Homebrew, promotes her to co-master; roles and the last master are enforced
           cp=$(curl -s -X POST "$api/api/campaigns?lang=2" $json -H "Authorization: Bearer $B" -d '{"name":"Tavola di prova","ruleset":2}')
+          echo "::notice title=characters::campaign create: $(printf '%s' "$cp" | tr '\n' ' ' | head -c 900)"
           cp_id=$(echo "$cp" | jq -r .id)
           cp_created=$(echo "$cp" | jq -c '{role: .myRole, members: (.members | length), link: (.inviteCode != null)}')
           cp_other=$(code "$api/api/campaigns/$cp_id" -H "Authorization: Bearer $A")

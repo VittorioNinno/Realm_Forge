@@ -638,9 +638,8 @@ namespace RealmForge.Api.Controllers
 			}
 			var runs = CampaignRules.RunsTheTable(me.Role);
 
-			var characters = await _context.CampaignCharacters.AsNoTracking()
-				.Where(cc => cc.CampaignId == id)
-				.Select(cc => cc.Character)
+			var characters = await _context.Characters.AsNoTracking()
+				.Where(c => _context.CampaignCharacters.Any(cc => cc.CampaignId == id && cc.CharacterId == c.Id))
 				.Include(c => c.Species).ThenInclude(s => s.Translations)
 				.Include(c => c.Background).ThenInclude(b => b.Translations)
 				.OrderBy(c => c.Name)
