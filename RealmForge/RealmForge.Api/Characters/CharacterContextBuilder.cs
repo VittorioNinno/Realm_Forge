@@ -19,16 +19,19 @@ namespace RealmForge.Api.Characters
 	{
 		private readonly RealmForgeDbContext _context;
 		private readonly ContentAccess _access;
+		private readonly ShareService _shares;
 
-		public CharacterContextBuilder(RealmForgeDbContext context, ContentAccess access)
+		public CharacterContextBuilder(RealmForgeDbContext context, ContentAccess access, ShareService shares)
 		{
 			_context = context;
 			_access = access;
+			_shares = shares;
 		}
 
 		public async Task<CharacterContextDto> BuildAsync(RulesetVersion ruleset, LanguageCode lang, ClaimsPrincipal user)
 		{
-			var equipment = await ContentAccess.ListedFor(_context.Equipment.AsNoTracking().Include(e => e.Translations), user)
+			var shared = await _shares.SharedWithAsync(user);
+			var equipment = await ContentAccess.ListedFor(_context.Equipment.AsNoTracking().Include(e => e.Translations), user, shared)
 				.Where(e => e.Ruleset == ruleset).ToListAsync();
 			var matcher = new EquipmentNameMatcher(equipment
 				.OrderByDescending(e => e.IsOfficialSRD)
@@ -36,21 +39,21 @@ namespace RealmForge.Api.Characters
 
 			var classes = await ContentAccess.ListedFor(_context.Classes.AsNoTracking()
 					.Include(c => c.Translations)
-					.Include(c => c.Subclasses).ThenInclude(s => s.Translations), user)
+					.Include(c => c.Subclasses).ThenInclude(s => s.Translations), user, shared)
 				.Where(c => c.Ruleset == ruleset).ToListAsync();
 
 			var species = await ContentAccess.ListedFor(_context.Species.AsNoTracking()
 					.Include(s => s.Translations)
-					.Include(s => s.Subspecies).ThenInclude(s => s.Translations), user)
+					.Include(s => s.Subspecies).ThenInclude(s => s.Translations), user, shared)
 				.Where(s => s.Ruleset == ruleset).ToListAsync();
 
-			var backgrounds = await ContentAccess.ListedFor(_context.Backgrounds.AsNoTracking().Include(b => b.Translations), user)
+			var backgrounds = await ContentAccess.ListedFor(_context.Backgrounds.AsNoTracking().Include(b => b.Translations), user, shared)
 				.Where(b => b.Ruleset == ruleset).ToListAsync();
 
-			var feats = await ContentAccess.ListedFor(_context.Feats.AsNoTracking().Include(f => f.Translations), user)
+			var feats = await ContentAccess.ListedFor(_context.Feats.AsNoTracking().Include(f => f.Translations), user, shared)
 				.Where(f => f.Ruleset == ruleset).ToListAsync();
 
-			var spells = await ContentAccess.ListedFor(_context.Spells.AsNoTracking().Include(s => s.Translations), user)
+			var spells = await ContentAccess.ListedFor(_context.Spells.AsNoTracking().Include(s => s.Translations), user, shared)
 				.Where(s => s.Ruleset == ruleset).ToListAsync();
 
 			string? Key(Guid id, bool isBase) => isBase ? BaseContentKeys.Of(id) : null;
@@ -63,7 +66,7 @@ namespace RealmForge.Api.Characters
 				return new ContextClass(
 					c.Id, local?.Name ?? string.Empty, key, c.HitDie, c.PrimaryAbilities, c.SavingThrows, c.SkillChoiceCount, c.SkillOptions,
 					c.CasterProgression, c.SpellcastingAbility, BaseClassKeys.SpellList(key), c.SubclassLevel, en?.ProgressionTable,
-					c.Subclasses.Where(s => _access.IsListed(s, user))
+					c.Subclasses.Where(s => _access.IsListed(s, user, shared, c))
 						.Select(s => new ContextSubclass(s.Id, s.Translations.Localize(lang)?.Name ?? string.Empty, Key(s.Id, s.IsOfficialSRD), s.CasterProgression, s.SpellcastingAbility))
 						.OrderBy(s => s.Name, StringComparer.CurrentCultureIgnoreCase)
 						.ToList(),
@@ -72,7 +75,7 @@ namespace RealmForge.Api.Characters
 
 			var contextSpecies = species.Select(s => new ContextSpecies(
 				s.Id, s.Translations.Localize(lang)?.Name ?? string.Empty, Key(s.Id, s.IsOfficialSRD), s.AllowedSizes, s.BaseSpeedInFeet,
-				s.Subspecies.Where(x => _access.IsListed(x, user))
+				s.Subspecies.Where(x => _access.IsListed(x, user, shared, s))
 					.Select(x => new ContextSubspecies(x.Id, x.Translations.Localize(lang)?.Name ?? string.Empty, Key(x.Id, x.IsOfficialSRD), x.BaseSpeedOverrideInFeet))
 					.OrderBy(x => x.Name, StringComparer.CurrentCultureIgnoreCase)
 					.ToList()))

@@ -260,9 +260,24 @@ jobs:
           vis_default=$(echo "$created" | jq .visibility)
           b_private=$(code "$api/api/feats/$id" -H "Authorization: Bearer $B"); anon_private=$(code "$api/api/feats/$id")
           list_private="anon=$(listed) bob=$(listed -H "Authorization: Bearer $B") alice=$(listed -H "Authorization: Bearer $A")"
+          # Sharing with a chosen account: bob reads and lists the private feat, until alice removes him
+          share_bob=$(code -X POST "$api/api/shares/content/$id" $json -H "Authorization: Bearer $A" -d '{"email":"bob@example.com"}')
+          share_nobody=$(code -X POST "$api/api/shares/content/$id" $json -H "Authorization: Bearer $A" -d '{"email":"nobody@example.com"}')
+          share_by_bob=$(code -X POST "$api/api/shares/content/$id" $json -H "Authorization: Bearer $B" -d '{"email":"alice@example.com"}')
+          people=$(curl -sf "$api/api/shares/content/$id" -H "Authorization: Bearer $A")
+          shared_bob="detail=$(code "$api/api/feats/$id" -H "Authorization: Bearer $B") listed=$(listed -H "Authorization: Bearer $B") people=$(echo "$people" | jq -r '[.[].email] | join(",")')"
+          unshare_bob=$(code -X DELETE "$api/api/shares/content/$id/$(echo "$people" | jq -r '.[0].userId')" -H "Authorization: Bearer $A")
+          unshared_bob="detail=$(code "$api/api/feats/$id" -H "Authorization: Bearer $B") listed=$(listed -H "Authorization: Bearer $B")"
+          echo "::notice title=database::sharing: share=$share_bob unknown=$share_nobody by other=$share_by_bob | shared $shared_bob | unshare=$unshare_bob then $unshared_bob"
+          test "$share_bob" = "200" && test "$share_nobody" = "404" && test "$share_by_bob" = "404"
+          test "$shared_bob" = "detail=200 listed=1 people=bob@example.com" && test "$unshare_bob" = "204" && test "$unshared_bob" = "detail=404 listed=0"
           update=$(echo "$feat" | jq --arg id "$id" '. + {id: $id, visibility: 1}')
           link_update=$(code -X PUT $api/api/feats/$id $json -H "Authorization: Bearer $A" -d "$update")
           anon_link=$(code "$api/api/feats/$id"); list_link=$(listed)
+          # A link-only entry added to bob's collection is listed for him (and in his character creation) until he removes it
+          collect_bob="collect=$(code -X POST "$api/api/shares/content/$id/collect" -H "Authorization: Bearer $B") listed=$(listed -H "Authorization: Bearer $B") mine=$(curl -sf "$api/api/shares/content/mine" -H "Authorization: Bearer $B" | jq -c '[.[] | .collected]') leave=$(code -X DELETE "$api/api/shares/content/$id/me" -H "Authorization: Bearer $B") after=$(listed -H "Authorization: Bearer $B")"
+          echo "::notice title=database::collection: $collect_bob"
+          test "$collect_bob" = "collect=204 listed=1 mine=[true] leave=204 after=0"
           update=$(echo "$feat" | jq --arg id "$id" '. + {id: $id, visibility: 0}')
           own_update=$(code -X PUT $api/api/feats/$id $json -H "Authorization: Bearer $A" -d "$update")
           list_public=$(listed)
@@ -563,6 +578,18 @@ jobs:
           ch_bob_sheet=$(code -X PUT "$api/api/characters/$ch_id/sheet" $json -H "Authorization: Bearer $B" -d "$sheet")
           ch_edition=$(code -X PUT "$api/api/characters/$ch_id" $json -H "Authorization: Bearer $A" -d "$(echo "$levelup" | jq '.ruleset = 1')")
           ch_list2=$(get "$api/api/characters?lang=2" -H "Authorization: Bearer $A" | jq -c '[.[] | {level, classLine, hp: .currentHitPoints}]')
+          # Sharing the character with bob (the game master): read-only sheet, owner's compendium, no writes, until he leaves
+          sh_add=$(curl -s -X POST "$api/api/characters/$ch_id/shares" $json -H "Authorization: Bearer $A" -d '{"email":"bob@example.com"}' | jq -r .email)
+          sh_unknown=$(code -X POST "$api/api/characters/$ch_id/shares" $json -H "Authorization: Bearer $A" -d '{"email":"nobody@example.com"}')
+          sh_get=$(get "$api/api/characters/$ch_id" -H "Authorization: Bearer $B" | jq -c '{readOnly, name}')
+          sh_owner_get=$(get "$api/api/characters/$ch_id" -H "Authorization: Bearer $A" | jq -c '.readOnly')
+          sh_list=$(get "$api/api/characters/shared?lang=2" -H "Authorization: Bearer $B" | jq -c '[.[] | {name: .character.name, owner: .ownerName}]')
+          sh_ctx=$(code "$api/api/characters/context?ruleset=2&lang=2&character=$ch_id" -H "Authorization: Bearer $B")
+          sh_sheet=$(code -X PUT "$api/api/characters/$ch_id/sheet" $json -H "Authorization: Bearer $B" -d "$sheet")
+          sh_people=$(get "$api/api/characters/$ch_id/shares" -H "Authorization: Bearer $A" | jq -r '[.[].email] | join(",")')
+          sh_leave=$(code -X DELETE "$api/api/characters/$ch_id/shares/me" -H "Authorization: Bearer $B")
+          sh_after=$(code "$api/api/characters/$ch_id" -H "Authorization: Bearer $B")
+          echo "::notice title=characters::sharing: add=$sh_add unknown=$sh_unknown | bob GET=$sh_get owner readOnly=$sh_owner_get | bob shared=$sh_list | context=$sh_ctx | bob sheet PUT=$sh_sheet | people=$sh_people | leave=$sh_leave then GET=$sh_after"
           ch_bob_delete=$(code -X DELETE "$api/api/characters/$ch_id" -H "Authorization: Bearer $B")
           ch_delete=$(code -X DELETE "$api/api/characters/$ch_id" -H "Authorization: Bearer $A")
           echo "::notice title=characters::context=$ctx_counts | 2014 fighter rows IT=$ctx_it | anonymous=$ch_anon | created=$ch_vitals | list=$ch_list | bob list=$ch_bob_list GET=$ch_bob sheet=$ch_bob_sheet DELETE=$ch_bob_delete"
@@ -591,6 +618,16 @@ jobs:
           chcheck "edition change" "$ch_edition" "400"
           chcheck "list after level up" "$ch_list2" '[{"level":2,"classLine":"Mago 1 / Guerriero 1","hp":5}]'
           chcheck "other DELETE" "$ch_bob_delete" "404"
+          chcheck "share with bob" "$sh_add" "bob@example.com"
+          chcheck "share with an unknown address" "$sh_unknown" "404"
+          chcheck "shared GET" "$sh_get" '{"readOnly":true,"name":"Elminster di prova"}'
+          chcheck "owner GET" "$sh_owner_get" "false"
+          chcheck "shared list" "$sh_list" '[{"name":"Elminster di prova","owner":"alice@example.com"}]'
+          chcheck "shared context" "$sh_ctx" "200"
+          chcheck "shared sheet PUT" "$sh_sheet" "404"
+          chcheck "people" "$sh_people" "bob@example.com"
+          chcheck "leave" "$sh_leave" "204"
+          chcheck "GET after leaving" "$sh_after" "404"
           chcheck "DELETE" "$ch_delete" "204"
           test "$chfail" = "0"
 

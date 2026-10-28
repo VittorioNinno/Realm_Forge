@@ -31,12 +31,27 @@
         <div class="rf-sheet2" data-test="character-sheet">
 
             @* ===== Toolbar: save state and the less frequent actions, kept out of the way ===== *@
-            <div class="rf-sheet-toolbar">
-                <span class="rf-sheet-save @(saveStatus == SaveStatus.Failed ? "text-warning" : null)" data-test="sheet-save-status">@SaveText</span>
-                <a class="rf-tool-btn" href="@($"characters/{character.Id}/edit")" title="@UiText.BtnEditCharacter(Lang)" data-test="sheet-edit">@Icon("edit")<span>@UiText.BtnEditShort(Lang)</span></a>
-                <button type="button" class="rf-tool-btn" @onclick="DownloadPdfAsync" title="@UiText.BtnDownloadPdf(Lang)" data-test="sheet-pdf">@Icon("download")<span>PDF</span></button>
-                <button type="button" class="rf-tool-btn danger" @onclick="() => deleteOpen = true" title="@UiText.Delete(Lang)" data-test="sheet-delete">@Icon("trash")<span>@UiText.Delete(Lang)</span></button>
-            </div>
+            @if (ReadOnly)
+            {
+                <div class="rf-readonly" data-test="sheet-readonly">
+                    <span>@UiText.ReadOnlySheet(Lang)</span>
+                    <div class="d-flex gap-1">
+                        <button type="button" class="rf-tool-btn" @onclick="ReloadAsync" data-test="sheet-reload">↻ @UiText.BtnRefresh(Lang)</button>
+                        <button type="button" class="rf-tool-btn" @onclick="DownloadPdfAsync" title="@UiText.BtnDownloadPdf(Lang)" data-test="sheet-pdf">@Icon("download")<span>PDF</span></button>
+                        <button type="button" class="rf-tool-btn danger" @onclick="StopFollowingAsync" data-test="sheet-unfollow">@UiText.BtnStopFollowing(Lang)</button>
+                    </div>
+                </div>
+            }
+            else
+            {
+                <div class="rf-sheet-toolbar">
+                    <span class="rf-sheet-save @(saveStatus == SaveStatus.Failed ? "text-warning" : null)" data-test="sheet-save-status">@SaveText</span>
+                    <button type="button" class="rf-tool-btn" @onclick="() => shareOpen = true" title="@UiText.BtnShareCharacter(Lang)" data-test="sheet-share">@Icon("share")<span>@UiText.BtnShare(Lang)</span></button>
+                    <a class="rf-tool-btn" href="@($"characters/{character.Id}/edit")" title="@UiText.BtnEditCharacter(Lang)" data-test="sheet-edit">@Icon("edit")<span>@UiText.BtnEditShort(Lang)</span></a>
+                    <button type="button" class="rf-tool-btn" @onclick="DownloadPdfAsync" title="@UiText.BtnDownloadPdf(Lang)" data-test="sheet-pdf">@Icon("download")<span>PDF</span></button>
+                    <button type="button" class="rf-tool-btn danger" @onclick="() => deleteOpen = true" title="@UiText.Delete(Lang)" data-test="sheet-delete">@Icon("trash")<span>@UiText.Delete(Lang)</span></button>
+                </div>
+            }
 
             @* ===== Identity card: portrait, name, origin, classes with the level up, personal details, traits ===== *@
             <section class="rf-card2 rf-hero">
@@ -68,7 +83,7 @@
                         <div class="rf-hero-classline">
                             <span class="rf-hero-classes" data-test="sheet-classes">@ClassLine</span>
                             <span class="rf-hero-level">@UiText.CharacterLevel(c.Level, Lang)</span>
-                            @if (c.Level < 20)
+                            @if (c.Level < 20 && !ReadOnly)
                             {
                                 <a class="rf-levelup-pill @(ReadyToLevelUp ? "ready rf-pulse" : null)" href="@($"characters/{character.Id}/edit?levelup=true")" data-test="sheet-levelup">@Icon("up")@UiText.BtnLevelUp(Lang)</a>
                             }
@@ -167,6 +182,10 @@
                             </div>
                             <div class="rf-hp-buttons">
                                 <button type="button" class="rf-hp-btn damage" @onclick="Damage" data-test="sheet-damage">@UiText.BtnDamage(Lang)</button>
+                                @if (CurrentHp == 0 && !Dead)
+                                {
+                                    <button type="button" class="rf-hp-btn critical" @onclick="DamageCritical" title="@UiText.CriticalHitHint(Lang)" data-test="sheet-damage-critical">@UiText.BtnCriticalDamage(Lang)</button>
+                                }
                                 <button type="button" class="rf-hp-btn heal" @onclick="Heal" data-test="sheet-heal">@UiText.BtnHeal(Lang)</button>
                                 <button type="button" class="rf-hp-btn temp" @onclick="SetTemp" data-test="sheet-temp">@UiText.BtnTempHp(Lang)</button>
                             </div>
@@ -209,13 +228,6 @@
                                 </div>
                                 <button type="button" class="rf-death-roll" disabled="@(Stable || Dead || deathRolling)" @onclick="RollDeathSaveAsync" data-test="sheet-death-roll">@UiText.BtnRollDeathSave(Lang)</button>
                             </div>
-                            @if (!Dead)
-                            {
-                                <button type="button" class="rf-toggle mt-2 @(criticalHit ? "on" : null)" aria-pressed="@criticalHit" @onclick="() => criticalHit = !criticalHit" data-test="sheet-critical">
-                                    <span class="rf-toggle-track"><span class="rf-toggle-thumb"></span></span>
-                                    <span>@UiText.CriticalHitToggle(Lang)</span>
-                                </button>
-                            }
                             @if (deathNote is not null)
                             {
                                 <div class="rf-death-note" data-test="sheet-death-note">@deathNote</div>
@@ -232,7 +244,7 @@
                             }
                         </div>
                         <div class="rf-hp-footer-rests">
-                            <button type="button" class="rf-rest-btn short" @onclick="() => shortRestOpen = true" data-test="sheet-short-rest">@UiText.BtnShortRest(Lang)</button>
+                            <button type="button" class="rf-rest-btn short" @onclick="OpenShortRest" data-test="sheet-short-rest">@UiText.BtnShortRest(Lang)</button>
                             <button type="button" class="rf-rest-btn long" @onclick="() => longRestOpen = true" data-test="sheet-long-rest">@UiText.BtnLongRest(Lang)</button>
                         </div>
                     </div>
@@ -271,7 +283,18 @@
                 </div>
             </section>
 
-            @* ===== Ability scores ===== *@
+            @* ===== Ability scores, with how the d20 is rolled (normal, advantage, disadvantage) ===== *@
+            <div class="rf-ability-head">
+                <span class="rf-ability-head-title">@UiText.SheetAbilitiesTitle(Lang)</span>
+                <div class="rf-segmented" role="radiogroup" aria-label="@UiText.RollModeLabel(Lang)" title="@UiText.HintClickToRoll(Lang)" data-test="sheet-roll-mode">
+                    <span class="rf-segmented-label">d20</span>
+                    @foreach (var mode in Enum.GetValues<RollMode>())
+                    {
+                        var m = mode;
+                        <button type="button" role="radio" aria-checked="@(rollMode == m)" class="@(rollMode == m ? "on" : null) @m.ToString().ToLowerInvariant()" @onclick="() => rollMode = m">@RollModeName(m)</button>
+                    }
+                </div>
+            </div>
             <div class="rf-ability-grid" data-test="sheet-scores">
                 @foreach (var ability in CharacterMath.Abilities)
                 {
@@ -327,18 +350,6 @@
                 }
             </section>
 
-            @* ===== Dice result ===== *@
-            <div class="rf-sheet-roller">
-                <div class="rf-sheet-rollmode">
-                    @foreach (var mode in Enum.GetValues<RollMode>())
-                    {
-                        var m = mode;
-                        <button type="button" class="rf-wizard-pill @(rollMode == m ? "selected" : null)" @onclick="() => rollMode = m">@RollModeName(m)</button>
-                    }
-                </div>
-                <span class="small" style="color: var(--rf-text-muted);">@UiText.HintClickToRoll(Lang)</span>
-            </div>
-
             @TurnSummary(c)
 
             <div class="rf-sheet-tabs" role="tablist">
@@ -375,6 +386,21 @@
 
 <SpellDetailModal SpellId="spellDetailId" OnClose="CloseSpell" Actions="CastPanel()" />
 <DiceTray @ref="diceTray" />
+@if (shareOpen && character is not null && !ReadOnly)
+{
+    var characterId = character.Id;
+    <div class="rf-modal-backdrop" @onclick="() => shareOpen = false">
+        <div class="rf-modal-dialog" style="max-width: 520px;" @onclick:stopPropagation="true" data-test="sheet-share-dialog">
+            <h2 class="h5 mb-2" style="color: var(--rf-orange-primary); font-family: var(--rf-font-display);">@UiText.BtnShareCharacter(Lang)</h2>
+            <SharePeople Title="@UiText.ShareCharacterTitle(Lang)" Hint="@UiText.ShareCharacterHint(Lang)"
+                         Load="() => Characters.GetCharacterSharesAsync(characterId)" Add="email => Characters.ShareCharacterAsync(characterId, email)"
+                         Remove="userId => Characters.UnshareCharacterAsync(characterId, userId)" DataTest="sheet-share-people" />
+            <div class="d-flex justify-content-end mt-3">
+                <button type="button" class="btn btn-rf-outline" @onclick="() => shareOpen = false">@UiText.BtnClose(Lang)</button>
+            </div>
+        </div>
+    </div>
+}
 @BookEditor()
 @if (magicEditorOpen)
 {
@@ -387,22 +413,40 @@
     <div class="rf-modal-backdrop" @onclick="() => shortRestOpen = false">
         <div class="rf-modal-dialog" style="max-width: 460px;" @onclick:stopPropagation="true" data-test="sheet-short-rest-dialog">
             <h2 class="h5 mb-2" style="color: var(--rf-orange-primary);">@UiText.BtnShortRest(Lang)</h2>
-            <p class="small" style="color: var(--rf-text-secondary);">@UiText.ShortRestText(Lang)</p>
-            <div class="d-flex flex-wrap gap-2 mb-3">
+            <p class="small" style="color: var(--rf-text-secondary);">@UiText.ShortRestIntro(Lang)</p>
+            <div class="rf-rest-hp">
+                <span class="rf-mini-label">@UiText.SheetHitPoints(Lang)</span>
+                <strong>@CurrentHp / @MaxHp</strong>
+            </div>
+            @if (CurrentHp >= MaxHp)
+            {
+                <div class="small mb-2" style="color: var(--rf-text-muted);" data-test="sheet-rest-full">@UiText.ShortRestFull(Lang)</div>
+            }
+            <div class="rf-rest-dice">
                 @foreach (var (die, count) in computed.HitDice)
                 {
                     var d = die;
                     var total = count;
-                    <button type="button" class="btn btn-rf-outline btn-sm" disabled="@(HitDiceSpent(d) >= total || CurrentHp >= MaxHp)" @onclick="() => SpendHitDie(d, total)" data-test="sheet-spend-hit-die">
-                        @UiText.BtnSpendHitDie(d, Lang) (@(total - HitDiceSpent(d)))
-                    </button>
+                    var left = total - HitDiceSpent(d);
+                    <div class="rf-rest-die">
+                        <span>@UiText.HitDiceLeft(d, left, total, Lang)</span>
+                        <button type="button" class="rf-slot-use" disabled="@(left == 0 || CurrentHp >= MaxHp)" @onclick="() => SpendHitDie(d, total)" data-test="sheet-spend-hit-die">@UiText.BtnSpendOne(d, Lang)</button>
+                    </div>
                 }
             </div>
-            @if (lastRoll is not null)
+            @if (shortRestLog.Count > 0)
             {
-                <div class="rf-sheet-lastroll mb-3">@lastRoll</div>
+                <ul class="rf-rest-log" data-test="sheet-rest-log">
+                    @foreach (var line in shortRestLog)
+                    {
+                        <li>@line</li>
+                    }
+                </ul>
             }
-            <div class="small mb-3">@UiText.SheetHitPoints(Lang): @CurrentHp / @MaxHp</div>
+            <div class="rf-rest-recovers">
+                <span class="rf-mini-label">@UiText.ShortRestRecovers(Lang)</span>
+                <span>@string.Join(" · ", ShortRestRecoveries)</span>
+            </div>
             <div class="d-flex justify-content-end gap-2">
                 <button class="btn btn-rf-outline" @onclick="() => shortRestOpen = false">@UiText.BtnCancel(Lang)</button>
                 <button class="btn btn-rf-orange" @onclick="FinishShortRest" data-test="sheet-short-rest-done">@UiText.BtnConfirm(Lang)</button>
@@ -591,7 +635,7 @@
                     <span>@name</span>
                     <span class="rf-card2-head-accent">@UiText.SheetSpellcasting(source.Ability, source.SaveDc, source.AttackBonus, Lang)</span>
                 </div>
-                @if (source.Class is not null)
+                @if (source.Class is not null && !ReadOnly)
                 {
                     var src = source;
                     <div class="rf-book-bar">
@@ -797,25 +841,37 @@
             {
                 var resource = counter;
                 <div class="rf-slot-row" data-test="sheet-resource">
-                    <span class="rf-slot-level">@resource.Name@(resource.ShortRest ? " ↺" : null)</span>
+                    <div class="rf-resource-name">
+                        <span>@resource.Name</span>
+                        <small>@(resource.ShortRest ? UiText.ResetShortRest(Lang) : UiText.ResetLongRest(Lang))</small>
+                    </div>
                     <div class="rf-slot-dots">
                         @for (var i = 0; i < resource.Maximum; i++)
                         {
                             var index = i;
-                            <button type="button" class="rf-slot-dot @(index < resource.Maximum - resource.Used ? "full" : null)" @onclick="() => UseResource(resource, resource.Maximum - 1 - index)"></button>
+                            <button type="button" class="rf-slot-dot @(index < resource.Maximum - resource.Used ? "full" : null)" @onclick="() => UseResource(resource, resource.Maximum - 1 - index)" aria-label="@resource.Name @(index + 1)"></button>
                         }
                     </div>
                     <button type="button" class="rf-mini-btn" @onclick="() => RemoveResource(resource)" aria-label="@UiText.BtnRemove(Lang)">✕</button>
                 </div>
             }
-            <div class="d-flex flex-wrap gap-2 align-items-center mt-2">
-                <input class="rf-wizard-input flex-grow-1" style="min-width: 180px; width: auto;" placeholder="@UiText.PlaceholderResource(Lang)" value="@newResource" @oninput="e => newResource = e.Value?.ToString() ?? string.Empty" data-test="sheet-resource-name" />
-                <NumberStepper Value="newResourceMax" ValueChanged="v => newResourceMax = v" Min="1" Max="99" AriaLabel="@UiText.LabelUses(Lang)" />
-                <button type="button" class="rf-toggle @(newResourceShort ? "on" : null)" aria-pressed="@newResourceShort" @onclick="() => newResourceShort = !newResourceShort" data-test="sheet-resource-short">
-                    <span class="rf-toggle-track"><span class="rf-toggle-thumb"></span></span>
-                    <span>@UiText.LabelShortRestReset(Lang)</span>
-                </button>
-                <button type="button" class="btn btn-rf-outline btn-sm" @onclick="AddResource" data-test="sheet-resource-add">@UiText.BtnAdd(Lang)</button>
+            <div class="rf-res-form">
+                <div class="rf-res-form-title">@UiText.NewResource(Lang)</div>
+                <div class="rf-res-form-row">
+                    <input class="rf-wizard-input rf-res-name" placeholder="@UiText.PlaceholderResource(Lang)" value="@newResource" @oninput="e => newResource = e.Value?.ToString() ?? string.Empty" aria-label="@UiText.MagicName(Lang)" data-test="sheet-resource-name" />
+                    <div class="rf-res-field">
+                        <span class="rf-mini-label">@UiText.LabelUses(Lang)</span>
+                        <NumberStepper Value="newResourceMax" ValueChanged="v => newResourceMax = v" Min="1" Max="99" AriaLabel="@UiText.LabelUses(Lang)" />
+                    </div>
+                    <div class="rf-res-field">
+                        <span class="rf-mini-label">@UiText.MagicRecharge(Lang)</span>
+                        <div class="rf-segmented rf-res-reset">
+                            <button type="button" class="@(!newResourceShort ? "on" : null)" @onclick="() => newResourceShort = false">@UiText.ResetLongShort(Lang)</button>
+                            <button type="button" class="@(newResourceShort ? "on" : null)" @onclick="() => newResourceShort = true" data-test="sheet-resource-short">@UiText.ResetShortShort(Lang)</button>
+                        </div>
+                    </div>
+                    <button type="button" class="btn btn-rf-orange rf-res-add" disabled="@string.IsNullOrWhiteSpace(newResource)" @onclick="AddResource" data-test="sheet-resource-add">@UiText.BtnAdd(Lang)</button>
+                </div>
             </div>
         </section>
 
@@ -972,6 +1028,7 @@
         "edit" => @<svg class="rf-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h4L19 9l-4-4L4 16v4zM14 6l4 4" /></svg>,
         "download" => @<svg class="rf-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11m0 0l-4-4m4 4l4-4M5 20h14" /></svg>,
         "trash" => @<svg class="rf-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 7h14M10 7V5h4v2M7 7l1 13h8l1-13" /></svg>,
+        "share" => @<svg class="rf-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="6" cy="12" r="2.5" /><circle cx="18" cy="6" r="2.5" /><circle cx="18" cy="18" r="2.5" /><path d="M8.2 10.9l7.6-3.8M8.2 13.1l7.6 3.8" /></svg>,
         _ => @<svg class="rf-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 19V5m0 0l-6 6m6-6l6 6" /></svg>
     };
 

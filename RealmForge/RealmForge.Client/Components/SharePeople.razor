@@ -1,0 +1,107 @@
+﻿@using System.Net
+@using RealmForge.Client.Localization
+@using RealmForge.Client.Services
+@using RealmForge.Shared.DTOs
+@using RealmForge.Shared.Enums
+@inject LanguageStateService LanguageState
+
+@* People something is shared with: add by e-mail, remove; used by Homebrew entries and characters *@
+<div class="rf-share-people" data-test="@DataTest">
+    <div class="rf-share-people-head">
+        <span class="rf-share-people-title">@Title</span>
+        @if (people is not null)
+        {
+            <span class="rf-share-people-count">@people.Count</span>
+        }
+    </div>
+    @if (!string.IsNullOrEmpty(Hint))
+    {
+        <div class="small mb-2" style="color: var(--rf-text-muted);">@Hint</div>
+    }
+    @if (people is null)
+    {
+        <div class="small" style="color: var(--rf-text-muted);">@UiText.LoadingShares(Lang)</div>
+    }
+    else
+    {
+        @if (people.Count > 0)
+        {
+            <ul class="rf-share-people-list">
+                @foreach (var person in people)
+                {
+                    var p = person;
+                    <li data-test="share-person">
+                        <span class="rf-share-avatar">@Initial(p.Email)</span>
+                        <span class="rf-share-email">@p.Email</span>
+                        <button type="button" class="rf-mini-btn" @onclick="() => RemoveAsync(p)" title="@UiText.BtnStopSharing(Lang)" aria-label="@UiText.BtnStopSharing(Lang)">✕</button>
+                    </li>
+                }
+            </ul>
+        }
+        <form class="rf-share-add" @onsubmit="AddAsync" @onsubmit:preventDefault="true">
+            <input type="email" class="rf-wizard-input" placeholder="@UiText.PlaceholderShareEmail(Lang)" value="@email"
+                   @oninput="e => { email = e.Value?.ToString() ?? string.Empty; error = null; }" aria-label="@UiText.PlaceholderShareEmail(Lang)" data-test="share-email" />
+            <button type="submit" class="btn btn-rf-orange" disabled="@(busy || string.IsNullOrWhiteSpace(email))" data-test="share-add">@UiText.BtnShare(Lang)</button>
+        </form>
+        @if (error is not null)
+        {
+            <div class="small mt-1 text-warning" data-test="share-error">@error</div>
+        }
+    }
+</div>
+
+@code {
+    [Parameter, EditorRequired] public string Title { get; set; } = string.Empty;
+    [Parameter] public string? Hint { get; set; }
+    [Parameter, EditorRequired] public Func<Task<List<ShareUserDto>?>> Load { get; set; } = default!;
+    [Parameter, EditorRequired] public Func<string, Task<ShareResult>> Add { get; set; } = default!;
+    [Parameter, EditorRequired] public Func<string, Task<bool>> Remove { get; set; } = default!;
+    [Parameter] public string DataTest { get; set; } = "share-people";
+
+    private List<ShareUserDto>? people;
+    private string email = string.Empty;
+    private string? error;
+    private bool busy;
+
+    private LanguageCode Lang => LanguageState.CurrentLanguage;
+
+    protected override async Task OnInitializedAsync() => people = await Load() ?? new List<ShareUserDto>();
+
+    private static string Initial(string email) => string.IsNullOrEmpty(email) ? "?" : email[..1].ToUpperInvariant();
+
+    private async Task AddAsync()
+    {
+        if (string.IsNullOrWhiteSpace(email))
+        {
+            return;
+        }
+        busy = true;
+        var result = await Add(email);
+        busy = false;
+        if (result.User is { } user)
+        {
+            people ??= new List<ShareUserDto>();
+            if (people.All(p => p.UserId != user.UserId))
+            {
+                people.Add(user);
+            }
+            email = string.Empty;
+            error = null;
+            return;
+        }
+        error = result.Status switch
+        {
+            HttpStatusCode.NotFound => UiText.ShareNoAccount(Lang),
+            HttpStatusCode.BadRequest => UiText.ShareInvalid(Lang),
+            _ => UiText.ShareFailed(Lang)
+        };
+    }
+
+    private async Task RemoveAsync(ShareUserDto person)
+    {
+        if (await Remove(person.UserId))
+        {
+            people?.Remove(person);
+        }
+    }
+}

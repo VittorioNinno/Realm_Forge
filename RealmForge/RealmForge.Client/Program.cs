@@ -54,6 +54,7 @@ namespace RealmForge.Client
 			builder.Services.AddScoped<ClassDataService>();
 			builder.Services.AddScoped<EquipmentDataService>();
 			builder.Services.AddScoped<CharacterDataService>();
+			builder.Services.AddScoped<ShareDataService>();
 
 			//	Rules glossary: kept in memory for the whole session, it also links the terms in the other modules
 			builder.Services.AddScoped<GlossaryService>();

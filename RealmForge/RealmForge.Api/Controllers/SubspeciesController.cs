@@ -19,14 +19,16 @@ namespace RealmForge.Api.Controllers
 	{
 		private readonly RealmForgeDbContext _context;
 		private readonly ContentAccess _access;
+		private readonly ShareService _shares;
 
 		///	<summary>
 		///	Initializes a new instance of the SubspeciesController.
 		///	</summary>
-		public SubspeciesController(RealmForgeDbContext context, ContentAccess access)
+		public SubspeciesController(RealmForgeDbContext context, ContentAccess access, ShareService shares)
 		{
 			_context = context;
 			_access = access;
+			_shares = shares;
 		}
 
 		///	<summary>
@@ -57,7 +59,7 @@ namespace RealmForge.Api.Controllers
 			}
 
 			//	Private Homebrew of other users and link-only entries are not listed
-			query = ContentAccess.ListedFor(query, User);
+			query = ContentAccess.ListedFor(query, User, await _shares.SharedWithAsync(User));
 
 			var subspeciesList = await query.ToListAsync();
 
@@ -116,7 +118,7 @@ namespace RealmForge.Api.Controllers
 				.FirstOrDefaultAsync(s => s.Id == id);
 
 			//	Private entries of other users answer 404, as if they did not exist
-			if (sub == null || !_access.CanView(sub, User))
+			if (sub == null || !_access.CanView(sub, User, await _shares.SharedWithAsync(User)))
 			{
 				return NotFound();
 			}

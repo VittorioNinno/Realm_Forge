@@ -469,6 +469,33 @@ namespace RealmForge.Infrastructure.Migrations
                     b.ToTable("ClassTranslations", (string)null);
                 });
 
+            modelBuilder.Entity("RealmForge.Domain.Entities.CharacterShare", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("CharacterId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("UserId")
+                        .IsRequired()
+                        .HasMaxLength(450)
+                        .HasColumnType("character varying(450)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId");
+
+                    b.HasIndex("CharacterId", "UserId")
+                        .IsUnique();
+
+                    b.ToTable("CharacterShares");
+                });
+
             modelBuilder.Entity("RealmForge.Domain.Entities.ClassFeature", b =>
                 {
                     b.Property<Guid>("Id")
@@ -543,6 +570,38 @@ namespace RealmForge.Infrastructure.Migrations
                         .IsUnique();
 
                     b.ToTable("ClassFeatureTranslations");
+                });
+
+            modelBuilder.Entity("RealmForge.Domain.Entities.ContentShare", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("EntityId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("GrantedById")
+                        .IsRequired()
+                        .HasMaxLength(450)
+                        .HasColumnType("character varying(450)");
+
+                    b.Property<string>("UserId")
+                        .IsRequired()
+                        .HasMaxLength(450)
+                        .HasColumnType("character varying(450)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId");
+
+                    b.HasIndex("EntityId", "UserId")
+                        .IsUnique();
+
+                    b.ToTable("ContentShares");
                 });
 
             modelBuilder.Entity("RealmForge.Domain.Entities.Equipment", b =>
@@ -1392,6 +1451,17 @@ namespace RealmForge.Infrastructure.Migrations
                         .IsRequired();
 
                     b.Navigation("CharacterClass");
+                });
+
+            modelBuilder.Entity("RealmForge.Domain.Entities.CharacterShare", b =>
+                {
+                    b.HasOne("RealmForge.Domain.Entities.Character", "Character")
+                        .WithMany()
+                        .HasForeignKey("CharacterId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Character");
                 });
 
             modelBuilder.Entity("RealmForge.Domain.Entities.ClassFeature", b =>
