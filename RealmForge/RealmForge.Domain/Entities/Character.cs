@@ -6,7 +6,8 @@ namespace RealmForge.Domain.Entities
 	///	A player character. The columns hold what lists and links need (owner, name, edition, level, origin, starting
 	///	class and the derived values shown in the list); every rules choice is in <see cref="Build"/> and the play state
 	///	(hit points, resources, inventory, notes) in <see cref="Sheet"/>, both JSON documents
-	///	(RealmForge.Shared.Characters). Always private to its owner.
+	///	(RealmForge.Shared.Characters). Private to its owner, readable by the accounts it is shared with, and editable
+	///	by the masters and co-masters of the campaigns it takes part in.
 	///	</summary>
 	public class Character
 	{
@@ -40,5 +41,8 @@ namespace RealmForge.Domain.Entities
 
 		public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
 		public DateTimeOffset UpdatedAt { get; set; } = DateTimeOffset.UtcNow;
+
+		//	Who saved it last: the owner, or a master of one of its campaigns (shown on the sheet); null before campaigns
+		public string? UpdatedById { get; set; }
 	}
 }

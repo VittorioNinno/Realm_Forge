@@ -44,12 +44,33 @@
             }
             else
             {
+                @if (!character.IsOwner)
+                {
+                    @* A master or co-master of one of its campaigns: the changes go to the character itself *@
+                    <div class="rf-master-banner" data-test="sheet-master">
+                        <span>@UiText.SheetEditingAsMaster(character.OwnerEmail ?? string.Empty, Lang)</span>
+                    </div>
+                }
                 <div class="rf-sheet-toolbar">
                     <span class="rf-sheet-save @(saveStatus == SaveStatus.Failed ? "text-warning" : null)" data-test="sheet-save-status">@SaveText</span>
-                    <button type="button" class="rf-tool-btn" @onclick="() => shareOpen = true" title="@UiText.BtnShareCharacter(Lang)" data-test="sheet-share">@Icon("share")<span>@UiText.BtnShare(Lang)</span></button>
+                    @if (character.LastEditedBy is { } editor)
+                    {
+                        <span class="small" style="color: var(--rf-text-muted);" data-test="sheet-last-edit">@UiText.SheetLastEditedBy(editor, Lang)</span>
+                    }
+                    @if (character.IsOwner)
+                    {
+                        <button type="button" class="rf-tool-btn" @onclick="() => shareOpen = true" title="@UiText.BtnShareCharacter(Lang)" data-test="sheet-share">@Icon("share")<span>@UiText.BtnShare(Lang)</span></button>
+                    }
+                    else
+                    {
+                        <button type="button" class="rf-tool-btn" @onclick="ReloadAsync" data-test="sheet-reload">↻ @UiText.BtnRefresh(Lang)</button>
+                    }
                     <a class="rf-tool-btn" href="@($"characters/{character.Id}/edit")" title="@UiText.BtnEditCharacter(Lang)" data-test="sheet-edit">@Icon("edit")<span>@UiText.BtnEditShort(Lang)</span></a>
                     <button type="button" class="rf-tool-btn" @onclick="DownloadPdfAsync" title="@UiText.BtnDownloadPdf(Lang)" data-test="sheet-pdf">@Icon("download")<span>PDF</span></button>
-                    <button type="button" class="rf-tool-btn danger" @onclick="() => deleteOpen = true" title="@UiText.Delete(Lang)" data-test="sheet-delete">@Icon("trash")<span>@UiText.Delete(Lang)</span></button>
+                    @if (character.IsOwner)
+                    {
+                        <button type="button" class="rf-tool-btn danger" @onclick="() => deleteOpen = true" title="@UiText.Delete(Lang)" data-test="sheet-delete">@Icon("trash")<span>@UiText.Delete(Lang)</span></button>
+                    }
                 </div>
             }
 
@@ -386,7 +407,7 @@
 
 <SpellDetailModal SpellId="spellDetailId" OnClose="CloseSpell" Actions="CastPanel()" />
 <DiceTray @ref="diceTray" />
-@if (shareOpen && character is not null && !ReadOnly)
+@if (shareOpen && character is not null && !ReadOnly && character.IsOwner)
 {
     var characterId = character.Id;
     <div class="rf-modal-backdrop" @onclick="() => shareOpen = false">

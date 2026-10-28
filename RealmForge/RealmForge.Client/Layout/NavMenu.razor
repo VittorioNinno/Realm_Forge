@@ -31,6 +31,13 @@
             </NavLink>
         </div>
 
+        @* The campaigns: the table, its characters and the shared content *@
+        <div class="nav-item px-3" data-test="nav-campaigns">
+            <NavLink class="nav-link" href="campaigns">
+                <NavIcon Name="campaigns" /> @UiText.CampaignsTitle(LanguageState.CurrentLanguage)
+            </NavLink>
+        </div>
+
         @* Rules glossary: a reference of its own, before the compendium *@
         <div class="nav-item px-3 rf-nav-reference" data-test="nav-rules">
             <NavLink class="nav-link" href="rules">
