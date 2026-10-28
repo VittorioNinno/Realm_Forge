@@ -2,33 +2,76 @@
 @using RealmForge.Client.Localization
 @using RealmForge.Client.Services
 @using RealmForge.Shared.Characters
+@using RealmForge.Shared.DTOs
 @using RealmForge.Shared.Enums
 @using RealmForge.Shared.Localization
 @using RealmForge.Shared.Rules
 @inject LanguageStateService LanguageState
+@inject MagicItemDataService MagicItems
 
-@* Magic properties of an inventory item: a ready-made SRD item or a custom one (rarity, attunement, effects that
-   the sheet applies on its own, charges and how they come back, healing for potions) *@
+@* Magic properties of an inventory item: an item of the compendium of the character's edition (its rules already set),
+   a ready-made template (editions without a compendium yet) or a custom one (rarity, attunement, effects that the
+   sheet applies on its own, charges and how they come back, healing for potions) *@
 <div class="rf-modal-backdrop" @onclick="Cancel">
     <div class="rf-modal-dialog rf-magic-editor" @onclick:stopPropagation="true" data-test="magic-editor">
         <h2 class="h5 mb-3" style="color: var(--rf-orange-primary); font-family: var(--rf-font-display);">
             @(IsNew ? UiText.MagicNewTitle(Lang) : UiText.MagicEditTitle(ItemName ?? string.Empty, Lang))
         </h2>
 
-        <div class="rf-magic-field">
-            <label class="rf-mini-label" for="magic-template">@UiText.MagicTemplate(Lang)</label>
-            <select id="magic-template" class="rf-wizard-input" value="@(draft.Template ?? string.Empty)" @onchange="ApplyTemplate" data-test="magic-template">
-                <option value="">@UiText.MagicCustom(Lang)</option>
-                @foreach (var template in Templates)
+        @if (compendium.Count > 0)
+        {
+            <div class="rf-magic-field" data-test="magic-compendium">
+                <label class="rf-mini-label" for="magic-compendium-search">@UiText.MagicFromCompendium(Lang)</label>
+                <input id="magic-compendium-search" class="rf-wizard-input" type="search" autocomplete="off" placeholder="@UiText.MagicCompendiumSearch(Lang)"
+                       value="@search" @oninput="e => search = e.Value?.ToString() ?? string.Empty" data-test="magic-compendium-search" />
+                @if (search.Trim().Length > 0)
                 {
-                    <option value="@template.Key">@template.Name(Lang)</option>
+                    var found = Matches().ToList();
+                    if (found.Count == 0)
+                    {
+                        <div class="small mt-1" style="color: var(--rf-text-muted);">@UiText.MagicCompendiumNone(Lang)</div>
+                    }
+                    else
+                    {
+                        <div class="rf-magic-pick-list" role="listbox">
+                            @foreach (var option in found)
+                            {
+                                var picked = option;
+                                <button type="button" class="@(picked.ParentId is null ? null : "rf-variant")" role="option" aria-selected="@(draft.Template == picked.Id.ToString())"
+                                        @onclick="() => ApplyCompendium(picked)" data-test="magic-compendium-option">
+                                    <span>@picked.Name</span>
+                                    <span class="small" style="color: var(--rf-text-muted);">@RarityOf(picked)</span>
+                                </button>
+                            }
+                        </div>
+                    }
                 }
-            </select>
-            @if (MagicItemCatalog.Find(draft.Template) is { } chosen)
-            {
-                <div class="small mt-1" style="color: var(--rf-text-secondary);">@chosen.Summary(Lang)</div>
-            }
-        </div>
+                @if (ChosenItem is { } chosen)
+                {
+                    <div class="small mt-1" style="color: var(--rf-text-secondary);" data-test="magic-compendium-chosen">
+                        @UiText.MagicCompendiumChosen(Lang): <strong>@chosen.Name</strong> · <span class="fst-italic">@chosen.Subtitle</span>
+                        · <a href="@($"magic-items?id={chosen.Id}")" target="_blank" rel="noopener">@UiText.MagicOpenDetail(Lang)</a>
+                    </div>
+                }
+            </div>
+        }
+        else if (loaded)
+        {
+            <div class="rf-magic-field">
+                <label class="rf-mini-label" for="magic-template">@UiText.MagicTemplate(Lang)</label>
+                <select id="magic-template" class="rf-wizard-input" value="@(draft.Template ?? string.Empty)" @onchange="ApplyTemplate" data-test="magic-template">
+                    <option value="">@UiText.MagicCustom(Lang)</option>
+                    @foreach (var template in Templates)
+                    {
+                        <option value="@template.Key">@template.Name(Lang)</option>
+                    }
+                </select>
+                @if (MagicItemCatalog.Find(draft.Template) is { } chosenTemplate)
+                {
+                    <div class="small mt-1" style="color: var(--rf-text-secondary);">@chosenTemplate.Summary(Lang)</div>
+                }
+            </div>
+        }
 
         @if (IsNew)
         {
@@ -151,9 +194,18 @@
     [Parameter] public EventCallback<(string? Name, MagicItemProperties? Magic)> OnSave { get; set; }
     [Parameter] public EventCallback OnCancel { get; set; }
 
+    //	Edition of the character: the compendium items offered are the ones of that edition
+    [Parameter] public RulesetVersion Ruleset { get; set; } = RulesetVersion.Dnd5e_2014;
+
     private MagicItemProperties draft = new();
     private string name = string.Empty;
     private string? error;
+    private string search = string.Empty;
+
+    //	Compendium items that fit the inventory item (weapons for a weapon, armor for armor, shields for a shield,
+    //	everything else for a free item); empty when the edition has none yet
+    private List<MagicItemResponseDto> compendium = new();
+    private bool loaded;
 
     private LanguageCode Lang => LanguageState.CurrentLanguage;
 
@@ -161,10 +213,69 @@
         ? MagicItemCatalog.OfKind(kind)
         : MagicItemCatalog.All.Where(t => t.Kind is MagicTemplateKind.Wondrous or MagicTemplateKind.Potion);
 
-    protected override void OnInitialized()
+    protected override async Task OnInitializedAsync()
     {
         draft = Initial is null ? new MagicItemProperties() : JsonSerializer.Deserialize<MagicItemProperties>(JsonSerializer.Serialize(Initial))!;
         name = ItemName ?? string.Empty;
+        var all = await MagicItems.GetMagicItemsAsync(Lang, Ruleset);
+        compendium = all.Where(Fits).ToList();
+        loaded = true;
+    }
+
+    private static bool IsShield(MagicItemResponseDto item) =>
+        item.Subtitle.Contains("scudo", StringComparison.OrdinalIgnoreCase) || item.Subtitle.Contains("shield", StringComparison.OrdinalIgnoreCase);
+
+    private bool Fits(MagicItemResponseDto item) => Kind switch
+    {
+        MagicTemplateKind.Weapon => item.Type == MagicItemType.Weapon,
+        MagicTemplateKind.Shield => item.Type == MagicItemType.Armor && IsShield(item),
+        MagicTemplateKind.Armor => item.Type == MagicItemType.Armor && !IsShield(item),
+        _ => item.Type is not (MagicItemType.Weapon or MagicItemType.Armor)
+    };
+
+    //	Items and variants whose name (or the name of their item) contains the search, variants right after their item
+    private IEnumerable<MagicItemResponseDto> Matches()
+    {
+        var term = search.Trim();
+        var byId = compendium.ToDictionary(i => i.Id);
+        bool Hit(MagicItemResponseDto i) => i.Name.Contains(term, StringComparison.OrdinalIgnoreCase)
+            || (i.Alias?.Contains(term, StringComparison.OrdinalIgnoreCase) ?? false);
+        var parents = compendium.Where(i => i.ParentId is null)
+            .Where(i => Hit(i) || compendium.Any(v => v.ParentId == i.Id && Hit(v)));
+        foreach (var parent in parents.Take(30))
+        {
+            yield return parent;
+            var parentHit = Hit(parent);
+            foreach (var variant in compendium.Where(v => v.ParentId == parent.Id && (parentHit || Hit(v))))
+            {
+                yield return variant;
+            }
+        }
+    }
+
+    private MagicItemResponseDto? ChosenItem => Guid.TryParse(draft.Template, out var id) ? compendium.FirstOrDefault(i => i.Id == id) : null;
+
+    private ItemRarity? RarityValue(MagicItemResponseDto item) =>
+        item.Rarity ?? (item.ParentId is { } parent ? compendium.FirstOrDefault(i => i.Id == parent)?.Rarity : null);
+
+    private string RarityOf(MagicItemResponseDto item) => RarityValue(item) is { } rarity ? UiText.RarityName(rarity, Lang) : UiText.RarityVaries(Lang);
+
+    //	The rules of the compendium item replace the draft; the charges already spent stay spent
+    private void ApplyCompendium(MagicItemResponseDto item)
+    {
+        var used = draft.ChargesUsed;
+        draft = item.Mechanics is { } mechanics
+            ? JsonSerializer.Deserialize<MagicItemProperties>(JsonSerializer.Serialize(mechanics))!
+            : new MagicItemProperties();
+        draft.Rarity = RarityValue(item) ?? ItemRarity.Uncommon;
+        draft.RequiresAttunement = item.RequiresAttunement;
+        draft.ChargesUsed = Math.Min(used, draft.Charges);
+        draft.Template = item.Id.ToString();
+        if (IsNew)
+        {
+            name = item.Name;
+        }
+        search = string.Empty;
     }
 
     private void ApplyTemplate(ChangeEventArgs e)
