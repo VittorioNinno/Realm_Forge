@@ -821,6 +821,92 @@ namespace RealmForge.Infrastructure.Migrations
                     b.ToTable("FeatTranslations");
                 });
 
+            modelBuilder.Entity("RealmForge.Domain.Entities.MagicItem", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("AuthorId")
+                        .HasColumnType("text");
+
+                    b.Property<bool>("IsOfficialSRD")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Mechanics")
+                        .HasColumnType("jsonb");
+
+                    b.Property<Guid?>("ParentId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int?>("Rarity")
+                        .HasColumnType("integer");
+
+                    b.Property<bool>("RequiresAttunement")
+                        .HasColumnType("boolean");
+
+                    b.Property<int>("Ruleset")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("Source")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("Type")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("Visibility")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ParentId");
+
+                    b.HasIndex("Ruleset", "Type");
+
+                    b.ToTable("MagicItems", (string)null);
+                });
+
+            modelBuilder.Entity("RealmForge.Domain.Entities.MagicItemTranslation", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Alias")
+                        .HasMaxLength(150)
+                        .HasColumnType("character varying(150)");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<int>("Language")
+                        .HasColumnType("integer");
+
+                    b.Property<Guid>("MagicItemId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("character varying(150)");
+
+                    b.Property<string>("Subtitle")
+                        .IsRequired()
+                        .HasMaxLength(300)
+                        .HasColumnType("character varying(300)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("MagicItemId", "Language")
+                        .IsUnique();
+
+                    b.ToTable("MagicItemTranslations");
+                });
+
             modelBuilder.Entity("RealmForge.Domain.Entities.RuleEntry", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1514,6 +1600,27 @@ namespace RealmForge.Infrastructure.Migrations
                     b.Navigation("Feat");
                 });
 
+            modelBuilder.Entity("RealmForge.Domain.Entities.MagicItem", b =>
+                {
+                    b.HasOne("RealmForge.Domain.Entities.MagicItem", "Parent")
+                        .WithMany("Variants")
+                        .HasForeignKey("ParentId")
+                        .OnDelete(DeleteBehavior.Cascade);
+
+                    b.Navigation("Parent");
+                });
+
+            modelBuilder.Entity("RealmForge.Domain.Entities.MagicItemTranslation", b =>
+                {
+                    b.HasOne("RealmForge.Domain.Entities.MagicItem", "MagicItem")
+                        .WithMany("Translations")
+                        .HasForeignKey("MagicItemId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("MagicItem");
+                });
+
             modelBuilder.Entity("RealmForge.Domain.Entities.RuleEntryTranslation", b =>
                 {
                     b.HasOne("RealmForge.Domain.Entities.RuleEntry", "RuleEntry")
@@ -1646,6 +1753,13 @@ namespace RealmForge.Infrastructure.Migrations
             modelBuilder.Entity("RealmForge.Domain.Entities.Feat", b =>
                 {
                     b.Navigation("Translations");
+                });
+
+            modelBuilder.Entity("RealmForge.Domain.Entities.MagicItem", b =>
+                {
+                    b.Navigation("Translations");
+
+                    b.Navigation("Variants");
                 });
 
             modelBuilder.Entity("RealmForge.Domain.Entities.RuleEntry", b =>
