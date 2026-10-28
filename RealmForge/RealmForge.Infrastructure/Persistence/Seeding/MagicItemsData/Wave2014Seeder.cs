@@ -1,0 +1,22 @@
+﻿using RealmForge.Domain.Entities;
+using RealmForge.Shared.Characters;
+using RealmForge.Shared.Enums;
+using static RealmForge.Infrastructure.Persistence.Seeding.MagicItemSeeder;
+
+namespace RealmForge.Infrastructure.Persistence.Seeding.MagicItemsData;
+
+///	<summary>
+///	Wave (2014 ruleset). Item of the 2014 Dungeon Master's Guide outside the SRD: name and texts written by RealmForge (Italian and English).
+///	</summary>
+public static class Wave2014Seeder
+{
+	public static IEnumerable<MagicItem> Build()
+	{
+		yield return Item("wave", null, 0, MagicItemType.Weapon, ItemRarity.Legendary, true, ContentSource.RealmForge,
+			Magic(Effect(MagicEffectKind.AttackAndDamage, 3)),
+			("Onda", "Arma (tridente), leggendaria (richiede sintonia con una creatura che venera una divinità del mare)",
+			"Custodito nei sotterranei del Monte Pennabianca, questo tridente è un'arma squisita, incisa con onde, conchiglie e creature marine. Per entrare in sintonia con esso bisogna venerare una divinità del mare, ma Onda accoglie con gioia i nuovi convertiti.\n\nIl personaggio ottiene un bonus di +3 ai tiri per colpire e ai danni effettuati con quest'arma magica. Se mette a segno un colpo critico, il bersaglio subisce danni necrotici extra pari alla metà dei suoi punti ferita massimi.\n\nL'arma funziona anche come un *tridente del comando dei pesci* e come un'*arma dell'allerta*. Mentre il personaggio la impugna, gli concede i benefici di un *berretto del respirare sott'acqua*, e può usarla come un *cubo di forza* scegliendo direttamente l'effetto invece di premere le facce del cubo.\n\n***Senzienza.*** Onda è un'arma senziente neutrale con Intelligenza 14, Saggezza 10 e Carisma 18, con udito e scurovisione fino a 36 metri. Comunica telepaticamente con chi la impugna e può parlare, leggere e capire l'Aquan. Può anche parlare con gli animali acquatici come con l'incantesimo *parlare con gli animali*, coinvolgendo telepaticamente il suo portatore nella conversazione.\n\n***Personalità.*** Quando è irrequieta canticchia melodie che vanno dalle canzoni marinaresche agli inni sacri degli dèi del mare. Desidera con zelo convertire i mortali al culto delle divinità del mare o condannare a morte gli infedeli, ed entra in conflitto con chi la impugna se non ne favorisce gli scopi. È legata con nostalgia al luogo in cui fu forgiata, un'isola desolata chiamata Forgiatuono, dove una famiglia di giganti delle tempeste imprigionata da un dio del mare la creò, per devozione o per ribellione. Onda nutre un dubbio segreto: teme di essere stata creata per causare la fine di un particolare dio del mare, un destino che forse non potrà evitare."),
+			("Wave", "Weapon (trident), legendary (requires attunement by a creature that worships a god of the sea)",
+			"Held in the dungeon of White Plume Mountain, this trident is an exquisite weapon engraved with waves, shells and sea creatures. You must worship a god of the sea to attune to it, but Wave gladly welcomes new converts.\n\nYou gain a +3 bonus to attack and damage rolls made with this magic weapon. If you score a critical hit with it, the target takes extra necrotic damage equal to half its hit point maximum.\n\nThe weapon also works as a *trident of fish command* and a *weapon of warning*. While you hold it, it gives you the benefit of a *cap of water breathing*, and you can use it as a *cube of force* by choosing the effect directly instead of pressing the cube's sides.\n\n***Sentience.*** Wave is a sentient neutral weapon with Intelligence 14, Wisdom 10 and Charisma 18, with hearing and darkvision out to 120 feet. It communicates telepathically with its wielder and can speak, read and understand Aquan. It can also speak with aquatic animals as with the *speak with animals* spell, bringing its wielder into the conversation telepathically.\n\n***Personality.*** When restless it hums tunes ranging from sea shanties to sacred hymns of the sea gods. It zealously wants to convert mortals to the worship of the sea gods or send the faithless to their deaths, and it comes into conflict with a wielder who doesn't further those aims. It is nostalgically attached to the place it was forged, a bleak island called Thunderforge, where a family of storm giants imprisoned by a sea god made it, out of devotion or rebellion. Wave hides a secret doubt: it fears it was made to bring about the end of a particular sea god, a fate it might not be able to avoid.", null));
+	}
+}

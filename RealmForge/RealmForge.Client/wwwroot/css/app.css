@@ -5906,3 +5906,56 @@ button.rf-stat-card {
         flex-direction: column;
     }
 }
+
+/* --- MAGIC ITEMS --- */
+/* Rarity colours of the flags, the usual treasure scale */
+.rf-spell-flag.rf-rarity-common { border-color: #9aa0a6; color: #c4c8cc; }
+.rf-spell-flag.rf-rarity-uncommon { border-color: #4caf50; color: #7bd27f; }
+.rf-spell-flag.rf-rarity-rare { border-color: #4a90e2; color: #7fb4f0; }
+.rf-spell-flag.rf-rarity-veryrare { border-color: #9c6ade; color: #c29cf0; }
+.rf-spell-flag.rf-rarity-legendary { border-color: #e0a030; color: #f2c46a; }
+.rf-spell-flag.rf-rarity-artifact { border-color: #d9534f; color: #f08a87; }
+
+.rf-magic-variants {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+    .rf-magic-variants td {
+        padding: 0.4rem 0.5rem;
+        border-bottom: 1px solid var(--rf-border-subtle);
+        vertical-align: top;
+    }
+
+/* Compendium picker of the magic item editor */
+.rf-magic-pick-list {
+    max-height: 14rem;
+    overflow-y: auto;
+    border: 1px solid var(--rf-border-light);
+    border-radius: 4px;
+    margin-top: 0.35rem;
+}
+
+    .rf-magic-pick-list button {
+        display: flex;
+        width: 100%;
+        justify-content: space-between;
+        gap: 0.5rem;
+        padding: 0.45rem 0.6rem;
+        min-height: 44px;
+        align-items: center;
+        background: transparent;
+        border: 0;
+        border-bottom: 1px solid var(--rf-border-subtle);
+        color: var(--rf-text-primary, #fff);
+        text-align: left;
+    }
+
+        .rf-magic-pick-list button:hover,
+        .rf-magic-pick-list button:focus-visible {
+            background: var(--rf-bg-card);
+        }
+
+        .rf-magic-pick-list button.rf-variant {
+            padding-left: 1.4rem;
+        }

@@ -1,0 +1,386 @@
+﻿@page "/magic-items"
+@using RealmForge.Client.Components
+@using RealmForge.Client.Localization
+@using RealmForge.Client.Services
+@using RealmForge.Shared.Characters
+@using RealmForge.Shared.DTOs
+@using RealmForge.Shared.Enums
+@implements IDisposable
+@inject MagicItemDataService MagicItems
+@inject LanguageStateService LanguageState
+@inject GlossaryService Glossary
+@inject ApiErrorState ApiErrors
+
+<PageTitle>RealmForge - @UiText.MagicItemsTitle(Lang)</PageTitle>
+
+<div class="container-fluid px-0 py-4">
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4 pb-3" style="border-bottom: 2px solid var(--rf-orange-primary);">
+        <div>
+            <h1 class="h3 fw-bold mb-1 rf-page-title">@UiText.MagicItemsTitle(Lang)</h1>
+            <p class="mb-0 small" style="color: var(--rf-text-muted); letter-spacing: 1px; text-transform: uppercase;">
+                @UiText.MagicItemsSubtitle(Lang)
+            </p>
+        </div>
+    </div>
+
+    @* Filters: edition reloads from the API, everything else filters the loaded list *@
+    <div class="row g-3 mb-4 p-3 rounded" style="background-color: var(--rf-bg-surface); border: 1px solid var(--rf-border-light);" data-test="magic-filters">
+        <div class="col-lg-3 col-md-6">
+            <label class="rf-form-label small text-uppercase" style="letter-spacing: 0.5px;">@UiText.LabelSearchMagicItem(Lang)</label>
+            <input type="text" class="rf-form-control" placeholder="@UiText.PlaceholderSearchMagicItems(Lang)"
+                   @bind="SearchTerm" @bind:event="oninput" data-test="magic-search" />
+        </div>
+        <div class="col-lg-3 col-md-6" data-test="magic-ruleset">
+            <label class="rf-form-label small text-uppercase" style="letter-spacing: 0.5px;">@UiText.LabelRuleset(Lang)</label>
+            <RfSelect TValue="string" @bind-Value="SelectedRulesetFilter" OnChange="LoadAsync"
+                      Options="@(new List<RfSelect<string>.OptionItem>
+                      {
+                          new("", UiText.FilterRulesetAll(Lang)),
+                          new(((int)RulesetVersion.Dnd5e_2024).ToString(), UiText.FormatRuleset(RulesetVersion.Dnd5e_2024, Lang)),
+                          new(((int)RulesetVersion.Dnd5e_2014).ToString(), UiText.FormatRuleset(RulesetVersion.Dnd5e_2014, Lang))
+                      })" />
+        </div>
+        <div class="col-lg-3 col-md-6" data-test="magic-type">
+            <label class="rf-form-label small text-uppercase" style="letter-spacing: 0.5px;">@UiText.LabelMagicType(Lang)</label>
+            <RfSelect TValue="MagicItemType?" @bind-Value="TypeFilter" Options="TypeOptions" />
+        </div>
+        <div class="col-lg-3 col-md-6" data-test="magic-rarity">
+            <label class="rf-form-label small text-uppercase" style="letter-spacing: 0.5px;">@UiText.LabelRarity(Lang)</label>
+            <RfSelect TValue="ItemRarity?" @bind-Value="RarityFilter" Options="RarityOptions" />
+        </div>
+        <div class="col-12 d-flex flex-wrap align-items-center gap-2">
+            <div class="rf-pill-group">
+                <button type="button" class="rf-pill-btn @(AttunementFilter == true ? "active" : "")" aria-pressed="@(AttunementFilter == true ? "true" : "false")"
+                        @onclick="() => AttunementFilter = AttunementFilter == true ? null : true" data-test="magic-filter-attunement">
+                    @UiText.FilterAttunement(Lang)
+                </button>
+                <button type="button" class="rf-pill-btn @(AttunementFilter == false ? "active" : "")" aria-pressed="@(AttunementFilter == false ? "true" : "false")"
+                        @onclick="() => AttunementFilter = AttunementFilter == false ? null : false" data-test="magic-filter-no-attunement">
+                    @UiText.FilterNoAttunement(Lang)
+                </button>
+                <button type="button" class="rf-pill-btn @(SheetOnly ? "active" : "")" aria-pressed="@(SheetOnly ? "true" : "false")"
+                        @onclick="() => SheetOnly = !SheetOnly" data-test="magic-filter-sheet">
+                    ✦ @UiText.FilterAppliedOnSheet(Lang)
+                </button>
+            </div>
+            <span class="ms-auto small" style="color: var(--rf-text-muted);" data-test="magic-count">@UiText.MagicItemCount(Filtered.Count, Lang)</span>
+        </div>
+    </div>
+
+    @if (IsLoading)
+    {
+        <div class="text-center my-5 py-5">
+            <div class="spinner-border" style="color: var(--rf-orange-primary);" role="status"></div>
+            <p class="mt-3" style="color: var(--rf-text-muted); text-transform: uppercase; letter-spacing: 1px;">@UiText.LoadingMagicItems(Lang)</p>
+        </div>
+    }
+    else if (Filtered.Count == 0)
+    {
+        <div class="p-4 rounded text-center" style="background-color: var(--rf-bg-surface); border: 1px solid var(--rf-border-light);" data-test="magic-empty">
+            <p class="mb-0" style="color: var(--rf-text-muted);">@UiText.NoMagicItemsFound(Lang)</p>
+        </div>
+    }
+    else
+    {
+        @* One section per category; each one opens and closes *@
+        <div class="d-flex justify-content-end gap-2">
+            <button type="button" class="btn btn-sm btn-rf-outline" @onclick="() => SetAllGroups(true)" data-test="magic-expand-all">@UiText.BtnExpandAll(Lang)</button>
+            <button type="button" class="btn btn-sm btn-rf-outline" @onclick="() => SetAllGroups(false)" data-test="magic-collapse-all">@UiText.BtnCollapseAll(Lang)</button>
+        </div>
+        @foreach (var group in Filtered.GroupBy(i => i.Type).OrderBy(g => UiText.MagicTypeName(g.Key, Lang), StringComparer.CurrentCultureIgnoreCase))
+        {
+            var expanded = IsExpanded(group.Key);
+            <h2 class="h5 mt-4 mb-3 rf-spell-level-title">
+                <button type="button" class="rf-group-toggle" aria-expanded="@(expanded ? "true" : "false")" @onclick="() => ToggleGroup(group.Key)" data-test="magic-group">
+                    <span class="rf-group-chevron @(expanded ? "open" : null)"><NavIcon Name="chevron" /></span>
+                    @UiText.MagicTypeName(group.Key, Lang) <span class="small" style="color: var(--rf-text-muted);">(@group.Count())</span>
+                </button>
+            </h2>
+            @if (!expanded)
+            {
+                continue;
+            }
+            <div class="row row-cols-1 row-cols-md-2 row-cols-xl-3 g-3">
+                @foreach (var item in group)
+                {
+                    var variants = VariantsOf(item.Id);
+                    <div class="col">
+                        <div class="rf-card rf-spell-card h-100 d-flex flex-column" style="cursor: pointer;" data-test="magic-card"
+                             @onclick="() => OpenDetailAsync(item.Id)">
+                            <div class="d-flex justify-content-between align-items-start mb-1 gap-2">
+                                <span class="rf-card-title mb-0">@item.Name</span>
+                                <div class="d-flex gap-1 flex-shrink-0 align-items-center">
+                                    <span class="badge @(item.Ruleset == RulesetVersion.Dnd5e_2024 ? "badge-edition-2024" : "badge-edition-2014")">
+                                        @UiText.FormatRuleset(item.Ruleset, Lang)
+                                    </span>
+                                    <ContentBadge IsBase="item.IsOfficialSRD" Source="item.Source" Visibility="item.Visibility" />
+                                </div>
+                            </div>
+                            <div class="small fst-italic mb-2" style="color: var(--rf-text-secondary);">@item.Subtitle</div>
+                            <p class="small lh-base mb-3 flex-grow-1" style="color: var(--rf-text-secondary);">@item.ShortDescription</p>
+                            <div class="d-flex flex-wrap gap-1 pt-2" style="border-top: 1px solid var(--rf-border-subtle);">
+                                <span class="rf-spell-flag rf-rarity-@RarityClass(item.Rarity)">@RarityText(item.Rarity)</span>
+                                @if (item.RequiresAttunement)
+                                {
+                                    <span class="rf-spell-flag">@UiText.SheetAttuned(Lang)</span>
+                                }
+                                @if (HasMechanics(item) || variants.Any(HasMechanics))
+                                {
+                                    <span class="rf-spell-flag" title="@UiText.FilterAppliedOnSheet(Lang)" data-test="magic-sheet-flag">✦</span>
+                                }
+                                @if (variants.Count > 0)
+                                {
+                                    <span class="small ms-auto" style="color: var(--rf-text-muted);" data-test="magic-variant-count">@UiText.MagicVariants(Lang): @variants.Count</span>
+                                }
+                            </div>
+                        </div>
+                    </div>
+                }
+            </div>
+        }
+    }
+</div>
+
+@if (Selected is { } detail)
+{
+    <div class="rf-modal-backdrop" @onclick="CloseDetail">
+        <div class="rf-modal-dialog" style="max-width: 760px;" @onclick:stopPropagation="true" data-test="magic-detail">
+            <div class="d-flex justify-content-between align-items-start mb-3 pb-2" style="border-bottom: 2px solid var(--rf-orange-primary);">
+                <div>
+                    <h2 class="h3 mb-1" style="color: var(--rf-orange-primary); font-family: var(--rf-font-display);" data-test="magic-detail-name">@detail.Name</h2>
+                    <div class="fst-italic small mb-2" style="color: var(--rf-text-secondary);" data-test="magic-subtitle">@detail.Subtitle</div>
+                    <div class="d-flex flex-wrap gap-2">
+                        <span class="badge @(detail.Ruleset == RulesetVersion.Dnd5e_2024 ? "badge-edition-2024" : "badge-edition-2014")">
+                            @UiText.FormatRuleset(detail.Ruleset, Lang)
+                        </span>
+                        <ContentBadge IsBase="detail.IsOfficialSRD" Source="detail.Source" Visibility="detail.Visibility" ShowSource="true" />
+                    </div>
+                </div>
+                <button class="btn btn-sm btn-rf-outline" @onclick="CloseDetail">✕</button>
+            </div>
+
+            @if (detail.ParentId is { } parentId)
+            {
+                <div class="small mb-2" data-test="magic-parent">
+                    <strong class="text-uppercase" style="color: var(--rf-text-muted); letter-spacing: 0.5px;">@UiText.MagicVariantOf(Lang):</strong>
+                    <a href="@($"magic-items?id={parentId}")">@detail.ParentName</a>
+                </div>
+            }
+            @if (!string.IsNullOrWhiteSpace(detail.Alias))
+            {
+                <div class="small mb-2" data-test="magic-alias">
+                    <strong class="text-uppercase" style="color: var(--rf-text-muted); letter-spacing: 0.5px;">@UiText.MagicAlsoKnownAs(Lang):</strong>
+                    <span style="color: #ffffff;">@detail.Alias</span>
+                </div>
+            }
+            @if (MechanicsText(detail.Mechanics) is { Length: > 0 } onSheet)
+            {
+                <div class="small mb-3" data-test="magic-on-sheet">
+                    <strong class="text-uppercase" style="color: var(--rf-orange-primary); letter-spacing: 0.5px;">✦ @UiText.MagicOnSheet(Lang):</strong>
+                    <span style="color: #ffffff;">@onSheet</span>
+                </div>
+            }
+
+            <div class="mb-3 p-3 rounded" style="background-color: var(--rf-bg-main); border-left: 3px solid var(--rf-border-light);">
+                <div class="rf-markdown-container" data-test="magic-description">
+                    @((MarkupString)MarkdownText.ToHtml(detail.Description, Terms(detail.Ruleset)))
+                </div>
+            </div>
+
+            @if (detail.Variants.Count > 0)
+            {
+                <h3 class="h6 text-uppercase mt-3 mb-2" style="color: var(--rf-orange-primary); letter-spacing: 0.5px;">@UiText.MagicVariants(Lang)</h3>
+                <div class="table-responsive">
+                    <table class="rf-magic-variants mb-3" data-test="magic-variants">
+                        <tbody>
+                            @foreach (var variant in detail.Variants)
+                            {
+                                <tr>
+                                    <td><a href="@($"magic-items?id={variant.Id}")" data-test="magic-variant-link">@variant.Name</a></td>
+                                    <td class="small" style="color: var(--rf-text-secondary);">@RarityText(variant.Rarity)</td>
+                                    <td class="small" style="color: var(--rf-text-secondary);">@MechanicsText(variant.Mechanics)</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+
+            <div class="d-flex justify-content-end pt-3 mt-3" style="border-top: 1px solid var(--rf-border-light);">
+                <button class="btn btn-rf-outline text-uppercase" style="letter-spacing: 1px;" @onclick="CloseDetail">@UiText.BtnClose(Lang)</button>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    [SupplyParameterFromQuery(Name = "id")]
+    public Guid? QueryId { get; set; }
+
+    private LanguageCode Lang => LanguageState.CurrentLanguage;
+
+    private List<MagicItemResponseDto> All { get; set; } = new();
+    private ILookup<Guid, MagicItemResponseDto> variantsByParent = Array.Empty<MagicItemResponseDto>().ToLookup(i => i.Id);
+    private MagicItemDetailResponseDto? Selected { get; set; }
+    private bool IsLoading { get; set; } = true;
+    private Guid? openedQueryId;
+
+    //	Filters
+    private RulesetVersion? SelectedRuleset { get; set; }
+    private string SearchTerm { get; set; } = string.Empty;
+    private MagicItemType? TypeFilter { get; set; }
+    private ItemRarity? RarityFilter { get; set; }
+    private bool? AttunementFilter { get; set; }
+    private bool SheetOnly { get; set; }
+
+    //	Open and closed categories: closed by default, open as soon as a filter or a search narrows the list
+    private readonly Dictionary<MagicItemType, bool> toggledGroups = new();
+    private string? groupFilters;
+
+    private bool IsFiltered => TypeFilter is not null || RarityFilter is not null || AttunementFilter is not null || SheetOnly
+        || !string.IsNullOrWhiteSpace(SearchTerm);
+
+    private bool IsExpanded(MagicItemType type)
+    {
+        var filters = $"{TypeFilter}|{RarityFilter}|{AttunementFilter}|{SheetOnly}|{SearchTerm}|{SelectedRuleset}";
+        if (filters != groupFilters)
+        {
+            groupFilters = filters;
+            toggledGroups.Clear();
+        }
+        return toggledGroups.TryGetValue(type, out var open) ? open : IsFiltered;
+    }
+
+    private void ToggleGroup(MagicItemType type) => toggledGroups[type] = !IsExpanded(type);
+
+    private void SetAllGroups(bool open)
+    {
+        IsExpanded(MagicItemType.Armor);
+        foreach (var type in Enum.GetValues<MagicItemType>())
+        {
+            toggledGroups[type] = open;
+        }
+    }
+
+    private string SelectedRulesetFilter
+    {
+        get => SelectedRuleset.HasValue ? ((int)SelectedRuleset.Value).ToString() : "";
+        set => SelectedRuleset = int.TryParse(value, out var v) && Enum.IsDefined(typeof(RulesetVersion), v) ? (RulesetVersion)v : null;
+    }
+
+    private List<MagicItemResponseDto> VariantsOf(Guid id) => variantsByParent[id].ToList();
+
+    private static bool HasMechanics(MagicItemResponseDto item) => item.Mechanics is { } m && (m.Effects.Count > 0 || m.Charges > 0 || m.HealDice is not null);
+
+    //	An item matches when it or one of its variants does (rarity, sheet effects, a variant's name)
+    private List<MagicItemResponseDto> Filtered
+    {
+        get
+        {
+            var term = SearchTerm.Trim();
+            return All
+                .Where(i => i.ParentId is null)
+                .Where(i => TypeFilter is null || i.Type == TypeFilter)
+                .Where(i => AttunementFilter is null || i.RequiresAttunement == AttunementFilter)
+                .Where(i => RarityFilter is null || i.Rarity == RarityFilter || VariantsOf(i.Id).Any(v => v.Rarity == RarityFilter))
+                .Where(i => !SheetOnly || HasMechanics(i) || VariantsOf(i.Id).Any(HasMechanics))
+                .Where(i => term.Length == 0
+                            || i.Name.Contains(term, StringComparison.OrdinalIgnoreCase)
+                            || (i.Alias?.Contains(term, StringComparison.OrdinalIgnoreCase) ?? false)
+                            || i.ShortDescription.Contains(term, StringComparison.OrdinalIgnoreCase)
+                            || VariantsOf(i.Id).Any(v => v.Name.Contains(term, StringComparison.OrdinalIgnoreCase)))
+                .ToList();
+        }
+    }
+
+    private List<RfSelect<MagicItemType?>.OptionItem> TypeOptions =>
+        new List<RfSelect<MagicItemType?>.OptionItem> { new(null, UiText.FilterAllMagicTypes(Lang)) }
+            .Concat(Enum.GetValues<MagicItemType>().Select(t => new RfSelect<MagicItemType?>.OptionItem(t, UiText.MagicTypeName(t, Lang))).OrderBy(o => o.Label))
+            .ToList();
+
+    private List<RfSelect<ItemRarity?>.OptionItem> RarityOptions =>
+        new List<RfSelect<ItemRarity?>.OptionItem> { new(null, UiText.FilterAllRarities(Lang)) }
+            .Concat(Enum.GetValues<ItemRarity>().Select(r => new RfSelect<ItemRarity?>.OptionItem(r, UiText.RarityName(r, Lang))))
+            .ToList();
+
+    private string RarityText(ItemRarity? rarity) => rarity is { } r ? UiText.RarityName(r, Lang) : UiText.RarityVaries(Lang);
+
+    private static string RarityClass(ItemRarity? rarity) => rarity?.ToString().ToLowerInvariant() ?? "varies";
+
+    //	"+1 CA · +1 tiri salvezza · 7 cariche (1d6+1 all'alba)"
+    private string MechanicsText(MagicItemProperties? magic)
+    {
+        if (magic is null)
+        {
+            return string.Empty;
+        }
+        var parts = magic.Effects.Select(e => UiText.MagicEffectText(e, Lang)).ToList();
+        if (magic.Charges > 0)
+        {
+            var back = magic.Recharge == ItemRecharge.None ? string.Empty : $" ({UiText.MagicChargesBack(magic.RechargeDice, Lang)})";
+            parts.Add(UiText.MagicChargesCount(magic.Charges, Lang) + back);
+        }
+        if (magic.HealDice is { } heal)
+        {
+            parts.Add(UiText.MagicHeals(heal, Lang));
+        }
+        return string.Join(" · ", parts);
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        LanguageState.OnLanguageChanged += HandleLanguageChanged;
+        _ = Glossary.EnsureLoadedAsync(Lang);
+        await LoadAsync();
+        openedQueryId = QueryId;
+        if (QueryId is { } id)
+        {
+            await OpenDetailAsync(id);
+            if (Selected == null)
+            {
+                ApiErrors.Report(ApiErrorKind.NotAvailable);
+            }
+        }
+    }
+
+    //	A variant or item link (magic-items?id=…): same page, only the query changes
+    protected override async Task OnParametersSetAsync()
+    {
+        if (QueryId != openedQueryId)
+        {
+            openedQueryId = QueryId;
+            if (QueryId is { } id)
+            {
+                await OpenDetailAsync(id);
+            }
+        }
+    }
+
+    private async void HandleLanguageChanged()
+    {
+        await Glossary.EnsureLoadedAsync(LanguageState.CurrentLanguage);
+        if (Selected != null)
+        {
+            Selected = await MagicItems.GetMagicItemAsync(Selected.Id, Lang);
+        }
+        await LoadAsync();
+        StateHasChanged();
+    }
+
+    private async Task LoadAsync()
+    {
+        IsLoading = true;
+        All = await MagicItems.GetMagicItemsAsync(Lang, SelectedRuleset);
+        variantsByParent = All.Where(i => i.ParentId is not null).ToLookup(i => i.ParentId!.Value);
+        IsLoading = false;
+    }
+
+    private async Task OpenDetailAsync(Guid id) => Selected = await MagicItems.GetMagicItemAsync(id, Lang);
+
+    private void CloseDetail() => Selected = null;
+
+    private RealmForge.Shared.Text.GlossaryLinker? Terms(RulesetVersion? ruleset) =>
+        ruleset is { } edition ? Glossary.Linker(LanguageState.CurrentLanguage, edition) : null;
+
+    public void Dispose() => LanguageState.OnLanguageChanged -= HandleLanguageChanged;
+}
