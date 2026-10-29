@@ -9,7 +9,7 @@ namespace RealmForge.Infrastructure.Persistence.Seeding.MonstersData;
 ///	</summary>
 public static class Pony2014Seeder
 {
-	public static Monster Build() => Create("pony", null, CreatureSize.Medium, CreatureType.Beast,
+	public static Monster Build() => Create("pony", null, ContentSource.Srd51, CreatureSize.Medium, CreatureType.Beast,
 		10, 11, "2d8 + 2", 40, new[] { 15, 10, 13, 2, 11, 7 }, 0.125m, 25, 2, 10,
 		new Text(
 			"Pony",
@@ -28,6 +28,8 @@ public static class Pony2014Seeder
 			"",
 			"***Zoccoli.*** *Attacco con arma da mischia:* +4 al tiro per colpire, portata 1,5 m, un bersaglio. *Colpito:* 7 (2d4 + 2) danni contundenti.",
 			"",
+			"",
+			"",
 			""),
 		new Text(
 			"Pony",
@@ -45,6 +47,8 @@ public static class Pony2014Seeder
 			"—",
 			"",
 			"***Hooves.*** *Melee Weapon Attack:* +4 to hit, reach 5 ft., one target. *Hit:* 7 (2d4 + 2) bludgeoning damage.",
+			"",
+			"",
 			"",
 			""));
 }

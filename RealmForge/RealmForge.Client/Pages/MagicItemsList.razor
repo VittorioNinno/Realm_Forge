@@ -60,7 +60,7 @@
                 </button>
                 <button type="button" class="rf-pill-btn @(SheetOnly ? "active" : "")" aria-pressed="@(SheetOnly ? "true" : "false")"
                         @onclick="() => SheetOnly = !SheetOnly" data-test="magic-filter-sheet">
-                    ✦ @UiText.FilterAppliedOnSheet(Lang)
+                    <Icon Name="magic-items" /> @UiText.FilterAppliedOnSheet(Lang)
                 </button>
             </div>
             <span class="ms-auto small" style="color: var(--rf-text-muted);" data-test="magic-count">@UiText.MagicItemCount(Filtered.Count, Lang)</span>
@@ -92,7 +92,7 @@
             var expanded = IsExpanded(group.Key);
             <h2 class="h5 mt-4 mb-3 rf-spell-level-title">
                 <button type="button" class="rf-group-toggle" aria-expanded="@(expanded ? "true" : "false")" @onclick="() => ToggleGroup(group.Key)" data-test="magic-group">
-                    <span class="rf-group-chevron @(expanded ? "open" : null)"><NavIcon Name="chevron" /></span>
+                    <span class="rf-group-chevron @(expanded ? "open" : null)"><Icon Name="chevron" Class="rf-nav-icon" /></span>
                     @UiText.MagicTypeName(group.Key, Lang) <span class="small" style="color: var(--rf-text-muted);">(@group.Count())</span>
                 </button>
             </h2>
@@ -126,7 +126,7 @@
                                 }
                                 @if (HasMechanics(item) || variants.Any(HasMechanics))
                                 {
-                                    <span class="rf-spell-flag" title="@UiText.FilterAppliedOnSheet(Lang)" data-test="magic-sheet-flag">✦</span>
+                                    <span class="rf-spell-flag" title="@UiText.FilterAppliedOnSheet(Lang)" data-test="magic-sheet-flag"><Icon Name="magic-items" /></span>
                                 }
                                 @if (variants.Count > 0)
                                 {
@@ -156,7 +156,7 @@
                         <ContentBadge IsBase="detail.IsOfficialSRD" Source="detail.Source" Visibility="detail.Visibility" ShowSource="true" />
                     </div>
                 </div>
-                <button class="btn btn-sm btn-rf-outline" @onclick="CloseDetail">✕</button>
+                <button class="btn btn-sm btn-rf-outline" @onclick="CloseDetail"><Icon Name="close" /></button>
             </div>
 
             @if (detail.ParentId is { } parentId)
@@ -176,7 +176,7 @@
             @if (MechanicsText(detail.Mechanics) is { Length: > 0 } onSheet)
             {
                 <div class="small mb-3" data-test="magic-on-sheet">
-                    <strong class="text-uppercase" style="color: var(--rf-orange-primary); letter-spacing: 0.5px;">✦ @UiText.MagicOnSheet(Lang):</strong>
+                    <strong class="text-uppercase" style="color: var(--rf-orange-primary); letter-spacing: 0.5px;"><Icon Name="magic-items" /> @UiText.MagicOnSheet(Lang):</strong>
                     <span style="color: #ffffff;">@onSheet</span>
                 </div>
             }

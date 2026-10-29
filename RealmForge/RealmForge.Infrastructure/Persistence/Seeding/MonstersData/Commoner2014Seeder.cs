@@ -9,7 +9,7 @@ namespace RealmForge.Infrastructure.Persistence.Seeding.MonstersData;
 ///	</summary>
 public static class Commoner2014Seeder
 {
-	public static Monster Build() => Create("commoner", null, CreatureSize.Medium, CreatureType.Humanoid,
+	public static Monster Build() => Create("commoner", null, ContentSource.Srd51, CreatureSize.Medium, CreatureType.Humanoid,
 		10, 4, "1d8", 30, new[] { 10, 10, 10, 10, 10, 10 }, 0m, 10, 2, 10,
 		new Text(
 			"Popolano",
@@ -28,6 +28,8 @@ public static class Commoner2014Seeder
 			"",
 			"***Randello.*** *Attacco con arma da mischia:* +2 al tiro per colpire, portata 1,5 m, un bersaglio. *Colpito:* 2 (1d4) danni contundenti.",
 			"",
+			"",
+			"",
 			""),
 		new Text(
 			"Commoner",
@@ -45,6 +47,8 @@ public static class Commoner2014Seeder
 			"any one language (usually Common)",
 			"",
 			"***Club.*** *Melee Weapon Attack:* +2 to hit, reach 5 ft., one target. *Hit:* 2 (1d4) bludgeoning damage.",
+			"",
+			"",
 			"",
 			""));
 }

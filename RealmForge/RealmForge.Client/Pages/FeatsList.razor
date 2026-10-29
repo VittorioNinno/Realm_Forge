@@ -126,55 +126,74 @@
     }
     else
     {
-        <div class="row row-cols-1 row-cols-md-2 row-cols-xl-3 g-4">
-            @foreach (var feat in FilteredFeats)
+        @* One section per category, in the order of the rules; each one opens and closes *@
+        <div class="d-flex justify-content-end gap-2">
+            <button type="button" class="btn btn-sm btn-rf-outline" @onclick="() => SetAllGroups(true)" data-test="feat-expand-all">@UiText.BtnExpandAll(LanguageState.CurrentLanguage)</button>
+            <button type="button" class="btn btn-sm btn-rf-outline" @onclick="() => SetAllGroups(false)" data-test="feat-collapse-all">@UiText.BtnCollapseAll(LanguageState.CurrentLanguage)</button>
+        </div>
+        @foreach (var group in FilteredFeats.GroupBy(f => f.Category).OrderBy(g => g.Key))
+        {
+            var expanded = IsExpanded(group.Key);
+            <h2 class="h5 mt-4 mb-3 rf-spell-level-title">
+                <button type="button" class="rf-group-toggle" aria-expanded="@(expanded ? "true" : "false")" @onclick="() => ToggleGroup(group.Key)" data-test="feat-group">
+                    <span class="rf-group-chevron @(expanded ? "open" : null)"><Icon Name="chevron" Class="rf-nav-icon" /></span>
+                    @UiText.FormatFeatCategory(group.Key, LanguageState.CurrentLanguage) <span class="small" style="color: var(--rf-text-muted);">(@group.Count())</span>
+                </button>
+            </h2>
+            @if (!expanded)
             {
-                <div class="col">
-                    <div class="rf-card h-100 d-flex flex-column justify-content-between"
-                         style="cursor: pointer;"
-                         @onclick="() => OpenDetailAsync(feat.Id)">
-                        <div>
-                            <div class="d-flex justify-content-between align-items-start mb-3 gap-2">
-                                <span class="rf-card-title mb-0">@feat.Name</span>
-                                <div class="d-flex gap-1 flex-shrink-0 align-items-center">
-                                    <span class="badge @(feat.Ruleset == RulesetVersion.Dnd5e_2024 ? "badge-edition-2024" : "badge-edition-2014")">
-                                        @UiText.FormatRuleset(feat.Ruleset, LanguageState.CurrentLanguage)
-                                    </span>
-                                    <RealmForge.Client.Components.ContentBadge IsBase="feat.IsOfficialSRD" Source="feat.Source" Visibility="feat.Visibility" />
-                                </div>
-                            </div>
-
-                            <div class="rf-meta-row">
-                                <div>
-                                    <strong>@UiText.LabelCategory(LanguageState.CurrentLanguage)</strong>
-                                    <span style="color: #ffffff;">@UiText.FormatFeatCategory(feat.Category, LanguageState.CurrentLanguage)</span>
-                                </div>
-                                @if (!string.IsNullOrWhiteSpace(feat.Prerequisite))
-                                {
-                                    <div>
-                                        <strong>@UiText.LabelPrerequisite(LanguageState.CurrentLanguage)</strong>
-                                        <span style="color: #ffffff;">@feat.Prerequisite</span>
+                continue;
+            }
+            <div class="row row-cols-1 row-cols-md-2 row-cols-xl-3 g-4">
+                @foreach (var feat in group)
+                {
+                    <div class="col">
+                        <div class="rf-card h-100 d-flex flex-column justify-content-between"
+                             style="cursor: pointer;"
+                             @onclick="() => OpenDetailAsync(feat.Id)">
+                            <div>
+                                <div class="d-flex justify-content-between align-items-start mb-3 gap-2">
+                                    <span class="rf-card-title mb-0">@feat.Name</span>
+                                    <div class="d-flex gap-1 flex-shrink-0 align-items-center">
+                                        <span class="badge @(feat.Ruleset == RulesetVersion.Dnd5e_2024 ? "badge-edition-2024" : "badge-edition-2014")">
+                                            @UiText.FormatRuleset(feat.Ruleset, LanguageState.CurrentLanguage)
+                                        </span>
+                                        <RealmForge.Client.Components.ContentBadge IsBase="feat.IsOfficialSRD" Source="feat.Source" Visibility="feat.Visibility" />
                                     </div>
-                                }
+                                </div>
+
+                                <div class="rf-meta-row">
+                                    <div>
+                                        <strong>@UiText.LabelCategory(LanguageState.CurrentLanguage)</strong>
+                                        <span style="color: #ffffff;">@UiText.FormatFeatCategory(feat.Category, LanguageState.CurrentLanguage)</span>
+                                    </div>
+                                    @if (!string.IsNullOrWhiteSpace(feat.Prerequisite))
+                                    {
+                                        <div>
+                                            <strong>@UiText.LabelPrerequisite(LanguageState.CurrentLanguage)</strong>
+                                            <span style="color: #ffffff;">@feat.Prerequisite</span>
+                                        </div>
+                                    }
+                                </div>
+
+                                <p class="small lh-base mb-3" style="color: var(--rf-text-secondary); text-align: left;">
+                                    @(string.IsNullOrWhiteSpace(feat.ShortDescription) ? UiText.NoDescription(LanguageState.CurrentLanguage) : feat.ShortDescription)
+                                </p>
                             </div>
 
-                            <p class="small lh-base mb-3" style="color: var(--rf-text-secondary); text-align: left;">
-                                @(string.IsNullOrWhiteSpace(feat.ShortDescription) ? UiText.NoDescription(LanguageState.CurrentLanguage) : feat.ShortDescription)
-                            </p>
-                        </div>
-
-                        <div class="pt-3 d-flex justify-content-between align-items-center" style="border-top: 1px solid var(--rf-border-subtle);">
-                            <span class="badge bg-dark border border-warning text-warning small py-1 px-2">
-                                @UiText.FormatFeatCategory(feat.Category, LanguageState.CurrentLanguage)
-                            </span>
-                            <button class="btn btn-sm btn-rf-outline text-uppercase flex-shrink-0" style="letter-spacing: 1px;" @onclick:stopPropagation="true" @onclick="() => OpenDetailAsync(feat.Id)">
-                                @UiText.BtnViewDetails(LanguageState.CurrentLanguage)
-                            </button>
+                            <div class="pt-3 d-flex justify-content-between align-items-center" style="border-top: 1px solid var(--rf-border-subtle);">
+                                <span class="badge bg-dark border border-warning text-warning small py-1 px-2">
+                                    @UiText.FormatFeatCategory(feat.Category, LanguageState.CurrentLanguage)
+                                </span>
+                                <button class="btn btn-sm btn-rf-outline text-uppercase flex-shrink-0" style="letter-spacing: 1px;" @onclick:stopPropagation="true" @onclick="() => OpenDetailAsync(feat.Id)">
+                                    @UiText.BtnViewDetails(LanguageState.CurrentLanguage)
+                                </button>
+                            </div>
                         </div>
                     </div>
-                </div>
-            }
-        </div>
+                }
+            </div>
+        }
     }
 </div>
 
@@ -197,7 +216,7 @@
                         </span>
                     </div>
                 </div>
-                <button class="btn btn-sm btn-rf-outline" @onclick="CloseDetail">✕</button>
+                <button class="btn btn-sm btn-rf-outline" @onclick="CloseDetail"><Icon Name="close" /></button>
             </div>
 
             @if (!SelectedFeat.IsOfficialSRD)
@@ -486,6 +505,36 @@
             .Where(f => string.IsNullOrWhiteSpace(SearchTerm)
                         || f.Name.Contains(SearchTerm.Trim(), StringComparison.OrdinalIgnoreCase)
                         || f.ShortDescription.Contains(SearchTerm.Trim(), StringComparison.OrdinalIgnoreCase));
+
+    //	Open and closed categories: closed by default (the page reads as an index), open as soon as a filter or a search
+    //	narrows the list; the user's toggles win until the filters change again
+    private readonly Dictionary<FeatCategory, bool> toggledGroups = new();
+    private string? groupFilters;
+
+    private bool IsFiltered => SelectedCategory is not null || !string.IsNullOrWhiteSpace(SearchTerm) || OriginFilter.Length > 0;
+
+    private bool IsExpanded(FeatCategory category)
+    {
+        var filters = $"{SelectedCategory}|{SearchTerm}|{OriginFilter}|{SelectedRuleset}";
+        if (filters != groupFilters)
+        {
+            groupFilters = filters;
+            toggledGroups.Clear();
+        }
+
+        return toggledGroups.TryGetValue(category, out var open) ? open : IsFiltered;
+    }
+
+    private void ToggleGroup(FeatCategory category) => toggledGroups[category] = !IsExpanded(category);
+
+    private void SetAllGroups(bool open)
+    {
+        IsExpanded(default);
+        foreach (var category in Enum.GetValues<FeatCategory>())
+        {
+            toggledGroups[category] = open;
+        }
+    }
 
     private List<RfSelect<FeatFeatureRequirement?>.OptionItem> FeatureOptions =>
         new List<RfSelect<FeatFeatureRequirement?>.OptionItem> { new(null, "—") }

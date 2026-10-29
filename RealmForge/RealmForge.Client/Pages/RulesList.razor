@@ -71,7 +71,7 @@
             var expanded = IsExpanded(group.Key);
             <h2 class="h5 mt-4 mb-3 rf-spell-level-title">
                 <button type="button" class="rf-group-toggle" aria-expanded="@(expanded ? "true" : "false")" @onclick="() => ToggleGroup(group.Key)" data-test="rules-group">
-                    <span class="rf-group-chevron @(expanded ? "open" : null)"><NavIcon Name="chevron" /></span>
+                    <span class="rf-group-chevron @(expanded ? "open" : null)"><Icon Name="chevron" Class="rf-nav-icon" /></span>
                     @UiText.RuleCategoryGroup(group.Key, Lang) <span class="small" style="color: var(--rf-text-muted);">(@group.Count())</span>
                 </button>
             </h2>
@@ -113,7 +113,7 @@
                         <ContentBadge IsBase="true" Source="detail.Source" ShowSource="true" />
                     </div>
                 </div>
-                <button class="btn btn-sm btn-rf-outline" @onclick="CloseDetail">✕</button>
+                <button class="btn btn-sm btn-rf-outline" @onclick="CloseDetail"><Icon Name="close" /></button>
             </div>
 
             <div class="rf-markdown-container mb-3" data-test="rules-description">

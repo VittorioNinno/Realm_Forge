@@ -9,7 +9,7 @@ namespace RealmForge.Infrastructure.Persistence.Seeding.MonstersData;
 ///	</summary>
 public static class DireWolf2014Seeder
 {
-	public static Monster Build() => Create("dire-wolf", null, CreatureSize.Large, CreatureType.Beast,
+	public static Monster Build() => Create("dire-wolf", null, ContentSource.Srd51, CreatureSize.Large, CreatureType.Beast,
 		14, 37, "5d10 + 10", 50, new[] { 17, 15, 15, 3, 12, 7 }, 1m, 200, 2, 13,
 		new Text(
 			"Lupo feroce",
@@ -28,6 +28,8 @@ public static class DireWolf2014Seeder
 			"***Tattiche del branco.*** Il lupo dispone di vantaggio nel tiro per colpire contro una creatura se almeno uno degli alleati dell'animale si trova entro 1,5 metri dalla creatura e non è incapacitato.\n\n***Udito e olfatto acuti.*** Il lupo dispone di vantaggio alle prove di Saggezza (Percezione) basate sull'olfatto o sull'udito.",
 			"***Morso.*** *Attacco con arma da mischia:* +5 al tiro per colpire, portata 1,5 m, un bersaglio. *Colpito:* 10 (2d6 + 3) danni perforanti. Se il bersaglio è una creatura, deve superare un tiro salvezza su Forza con CD 13, altrimenti cade a terra prono.",
 			"",
+			"",
+			"",
 			""),
 		new Text(
 			"Dire Wolf",
@@ -45,6 +47,8 @@ public static class DireWolf2014Seeder
 			"—",
 			"***Keen Hearing and Smell.*** The wolf has advantage on Wisdom (Perception) checks that rely on hearing or smell.\n\n***Pack Tactics.*** The wolf has advantage on an attack roll against a creature if at least one of the wolf's allies is within 5 ft. of the creature and the ally isn't incapacitated.",
 			"***Bite.*** *Melee Weapon Attack:* +5 to hit, reach 5 ft., one target. *Hit:* 10 (2d6 + 3) piercing damage. If the target is a creature, it must succeed on a DC 13 Strength saving throw or be knocked prone.",
+			"",
+			"",
 			"",
 			""));
 }

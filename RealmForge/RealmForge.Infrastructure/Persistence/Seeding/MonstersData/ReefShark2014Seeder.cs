@@ -9,7 +9,7 @@ namespace RealmForge.Infrastructure.Persistence.Seeding.MonstersData;
 ///	</summary>
 public static class ReefShark2014Seeder
 {
-	public static Monster Build() => Create("reef-shark", null, CreatureSize.Medium, CreatureType.Beast,
+	public static Monster Build() => Create("reef-shark", null, ContentSource.Srd51, CreatureSize.Medium, CreatureType.Beast,
 		12, 22, "4d8 + 4", 0, new[] { 14, 13, 13, 1, 10, 4 }, 0.5m, 100, 2, 12,
 		new Text(
 			"Squalo tropicale",
@@ -28,6 +28,8 @@ public static class ReefShark2014Seeder
 			"***Respirare sott'acqua.*** Lo squalo può respirare soltanto sott'acqua.\n\n***Tattiche del branco.*** Lo squalo dispone di vantaggio a un tiro per colpire contro una creatura se almeno uno degli alleati dello squalo si trova entro 1,5 metri dalla creatura e non è incapacitato.",
 			"***Morso.*** *Attacco con arma da mischia:* +4 al tiro per colpire, portata 1,5 m, un bersaglio. *Colpito:* 6 (1d8 + 2) danni perforanti.",
 			"",
+			"",
+			"",
 			""),
 		new Text(
 			"Reef Shark",
@@ -45,6 +47,8 @@ public static class ReefShark2014Seeder
 			"—",
 			"***Pack Tactics.*** The shark has advantage on an attack roll against a creature if at least one of the shark's allies is within 5 ft. of the creature and the ally isn't incapacitated.\n\n***Water Breathing.*** The shark can breathe only underwater.",
 			"***Bite.*** *Melee Weapon Attack:* +4 to hit, reach 5 ft., one target. *Hit:* 6 (1d8 + 2) piercing damage.",
+			"",
+			"",
 			"",
 			""));
 }

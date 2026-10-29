@@ -20,28 +20,28 @@
     <nav class="flex-column rf-nav">
         <div class="nav-item px-3">
             <NavLink class="nav-link" href="" Match="NavLinkMatch.All">
-                <NavIcon Name="home" /> @UiText.NavDashboard(LanguageState.CurrentLanguage)
+                <Icon Name="home" Class="rf-nav-icon" /> @UiText.NavDashboard(LanguageState.CurrentLanguage)
             </NavLink>
         </div>
 
         @* The characters of the signed-in user *@
         <div class="nav-item px-3" data-test="nav-characters">
             <NavLink class="nav-link" href="characters">
-                <NavIcon Name="characters" /> @UiText.NavCharacters(LanguageState.CurrentLanguage)
+                <Icon Name="characters" Class="rf-nav-icon" /> @UiText.NavCharacters(LanguageState.CurrentLanguage)
             </NavLink>
         </div>
 
         @* The campaigns: the table, its characters and the shared content *@
         <div class="nav-item px-3" data-test="nav-campaigns">
             <NavLink class="nav-link" href="campaigns">
-                <NavIcon Name="campaigns" /> @UiText.CampaignsTitle(LanguageState.CurrentLanguage)
+                <Icon Name="campaigns" Class="rf-nav-icon" /> @UiText.CampaignsTitle(LanguageState.CurrentLanguage)
             </NavLink>
         </div>
 
         @* Rules glossary: a reference of its own, before the compendium *@
         <div class="nav-item px-3 rf-nav-reference" data-test="nav-rules">
             <NavLink class="nav-link" href="rules">
-                <NavIcon Name="rules" /> @UiText.NavRules(LanguageState.CurrentLanguage)
+                <Icon Name="rules" Class="rf-nav-icon" /> @UiText.NavRules(LanguageState.CurrentLanguage)
             </NavLink>
         </div>
 
@@ -49,37 +49,37 @@
         <div class="rf-nav-group px-3" data-test="nav-compendium">
             <button type="button" class="rf-nav-group-toggle" aria-expanded="@compendiumOpen"
                     @onclick="ToggleCompendium" @onclick:stopPropagation="true">
-                <NavIcon Name="compendium" />
+                <Icon Name="compendium" Class="rf-nav-icon" />
                 <span class="flex-grow-1 text-start">@UiText.NavCompendium(LanguageState.CurrentLanguage)</span>
-                <span class="rf-nav-chevron @(compendiumOpen ? "open" : null)"><NavIcon Name="chevron" /></span>
+                <span class="rf-nav-chevron @(compendiumOpen ? "open" : null)"><Icon Name="chevron" Class="rf-nav-icon" /></span>
             </button>
 
             @if (compendiumOpen)
             {
                 <div class="rf-nav-group-items">
                     <NavLink class="nav-link" href="species">
-                        <NavIcon Name="species" /> @UiText.NavSpecies(LanguageState.CurrentLanguage)
+                        <Icon Name="species" Class="rf-nav-icon" /> @UiText.NavSpecies(LanguageState.CurrentLanguage)
                     </NavLink>
                     <NavLink class="nav-link" href="backgrounds">
-                        <NavIcon Name="backgrounds" /> @UiText.BackgroundsTitle(LanguageState.CurrentLanguage)
+                        <Icon Name="backgrounds" Class="rf-nav-icon" /> @UiText.BackgroundsTitle(LanguageState.CurrentLanguage)
                     </NavLink>
                     <NavLink class="nav-link" href="feats">
-                        <NavIcon Name="feats" /> @UiText.FeatsTitle(LanguageState.CurrentLanguage)
+                        <Icon Name="feats" Class="rf-nav-icon" /> @UiText.FeatsTitle(LanguageState.CurrentLanguage)
                     </NavLink>
                     <NavLink class="nav-link" href="spells">
-                        <NavIcon Name="spells" /> @UiText.SpellsTitle(LanguageState.CurrentLanguage)
+                        <Icon Name="spells" Class="rf-nav-icon" /> @UiText.SpellsTitle(LanguageState.CurrentLanguage)
                     </NavLink>
                     <NavLink class="nav-link" href="classes">
-                        <NavIcon Name="classes" /> @UiText.ClassesTitle(LanguageState.CurrentLanguage)
+                        <Icon Name="classes" Class="rf-nav-icon" /> @UiText.ClassesTitle(LanguageState.CurrentLanguage)
                     </NavLink>
                     <NavLink class="nav-link" href="equipment">
-                        <NavIcon Name="equipment" /> @UiText.EquipmentTitle(LanguageState.CurrentLanguage)
+                        <Icon Name="equipment" Class="rf-nav-icon" /> @UiText.EquipmentTitle(LanguageState.CurrentLanguage)
                     </NavLink>
                     <NavLink class="nav-link" href="magic-items">
-                        <NavIcon Name="magic-items" /> @UiText.MagicItemsTitle(LanguageState.CurrentLanguage)
+                        <Icon Name="magic-items" Class="rf-nav-icon" /> @UiText.MagicItemsTitle(LanguageState.CurrentLanguage)
                     </NavLink>
                     <NavLink class="nav-link" href="monsters">
-                        <NavIcon Name="monsters" /> @UiText.MonstersTitle(LanguageState.CurrentLanguage)
+                        <Icon Name="monsters" Class="rf-nav-icon" /> @UiText.MonstersTitle(LanguageState.CurrentLanguage)
                     </NavLink>
                 </div>
             }

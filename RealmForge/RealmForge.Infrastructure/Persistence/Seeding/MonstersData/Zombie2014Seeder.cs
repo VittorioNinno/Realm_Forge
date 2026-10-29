@@ -9,7 +9,7 @@ namespace RealmForge.Infrastructure.Persistence.Seeding.MonstersData;
 ///	</summary>
 public static class Zombie2014Seeder
 {
-	public static Monster Build() => Create("zombie", null, CreatureSize.Medium, CreatureType.Undead,
+	public static Monster Build() => Create("zombie", null, ContentSource.Srd51, CreatureSize.Medium, CreatureType.Undead,
 		8, 22, "3d8 + 9", 20, new[] { 13, 6, 16, 3, 6, 5 }, 0.25m, 50, 2, 8,
 		new Text(
 			"Zombi",
@@ -28,6 +28,8 @@ public static class Zombie2014Seeder
 			"***Tempra dei non morti.*** Se i danni riducono lo zombi a 0 punti ferita, esso deve effettuare un tiro salvezza su Costituzione con una CD pari a 5 + i danni subiti, a meno che non si tratti di danni radiosi o di un colpo critico. In caso di successo, lo zombi scende invece a 1 punto ferita.",
 			"***Schianto.*** *Attacco con arma da mischia:* +3 al tiro per colpire, portata 1,5 m, un bersaglio. *Colpito:* 4 (1d6 + 1) danni contundenti.",
 			"",
+			"",
+			"",
 			""),
 		new Text(
 			"Zombie",
@@ -45,6 +47,8 @@ public static class Zombie2014Seeder
 			"understands all languages it spoke in life but can't speak",
 			"***Undead Fortitude.*** If damage reduces the zombie to 0 hit points, it must make a Constitution saving throw with a DC of 5+the damage taken, unless the damage is radiant or from a critical hit. On a success, the zombie drops to 1 hit point instead.",
 			"***Slam.*** *Melee Weapon Attack:* +3 to hit, reach 5 ft., one target. *Hit:* 4 (1d6 + 1) bludgeoning damage.",
+			"",
+			"",
 			"",
 			""));
 }

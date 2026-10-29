@@ -9,7 +9,7 @@ namespace RealmForge.Infrastructure.Persistence.Seeding.MonstersData;
 ///	</summary>
 public static class BlackDragonWyrmling2014Seeder
 {
-	public static Monster Build() => Create("black-dragon-wyrmling", null, CreatureSize.Medium, CreatureType.Dragon,
+	public static Monster Build() => Create("black-dragon-wyrmling", null, ContentSource.Srd51, CreatureSize.Medium, CreatureType.Dragon,
 		17, 33, "6d8 + 6", 30, new[] { 15, 14, 13, 10, 11, 13 }, 2m, 450, 2, 14,
 		new Text(
 			"Drago nero cucciolo",
@@ -28,6 +28,8 @@ public static class BlackDragonWyrmling2014Seeder
 			"***Anfibio.*** Il drago può respirare in aria e in acqua.",
 			"***Morso.*** *Attacco con arma da mischia:* +4 al tiro per colpire, portata 1,5 m, un bersaglio. *Colpito:* 7 (1d10 + 2) danni perforanti più 2 (1d4) danni da acido.\n\n***Soffio di acido (ricarica 5–6).*** Il drago esala una scia di acido lunga 4,5 metri e larga 1,5 metri. Ogni creatura su quella scia deve effettuare un tiro salvezza su Destrezza con CD 11, subendo 22 (5d8) danni da acido in caso di fallimento, o la metà dei danni in caso di successo.",
 			"",
+			"",
+			"",
 			""),
 		new Text(
 			"Black Dragon Wyrmling",
@@ -45,6 +47,8 @@ public static class BlackDragonWyrmling2014Seeder
 			"Draconic",
 			"***Amphibious.*** The dragon can breathe air and water.",
 			"***Bite.*** *Melee Weapon Attack:* +4 to hit, reach 5 ft., one target. *Hit:* 7 (1d10 + 2) piercing damage plus 2 (1d4) acid damage.\n\n***Acid Breath (Recharge 5–6).*** The dragon exhales acid in a 15-foot line that is 5 feet wide. Each creature in that line must make a DC 11 Dexterity saving throw, taking 22 (5d8) acid damage on a failed save, or half as much damage on a successful one.",
+			"",
+			"",
 			"",
 			""));
 }

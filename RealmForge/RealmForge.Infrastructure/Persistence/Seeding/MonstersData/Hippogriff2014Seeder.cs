@@ -9,7 +9,7 @@ namespace RealmForge.Infrastructure.Persistence.Seeding.MonstersData;
 ///	</summary>
 public static class Hippogriff2014Seeder
 {
-	public static Monster Build() => Create("hippogriff", null, CreatureSize.Large, CreatureType.Monstrosity,
+	public static Monster Build() => Create("hippogriff", null, ContentSource.Srd51, CreatureSize.Large, CreatureType.Monstrosity,
 		11, 19, "3d10 + 3", 40, new[] { 17, 13, 13, 2, 12, 8 }, 1m, 200, 2, 15,
 		new Text(
 			"Ippogrifo",
@@ -28,6 +28,8 @@ public static class Hippogriff2014Seeder
 			"***Vista acuta.*** L'ippogrifo dispone di vantaggio alle prove di Saggezza (Percezione) basate sulla vista.",
 			"***Multiattacco.*** L'ippogrifo effettua due attacchi: uno con il becco e uno con gli artigli.\n\n***Artigli.*** *Attacco con arma da mischia:* +5 al tiro per colpire, portata 1,5 m, un bersaglio. *Colpito:* 10 (2d6 + 3) danni taglienti.\n\n***Becco.*** *Attacco con arma da mischia:* +5 al tiro per colpire, portata 1,5 m, un bersaglio. *Colpito:* 8 (1d10 + 3) danni perforanti.",
 			"",
+			"",
+			"",
 			""),
 		new Text(
 			"Hippogriff",
@@ -45,6 +47,8 @@ public static class Hippogriff2014Seeder
 			"—",
 			"***Keen Sight.*** The hippogriff has advantage on Wisdom (Perception) checks that rely on sight.",
 			"***Multiattack.*** The hippogriff makes two attacks: one with its beak and one with its claws.\n\n***Beak.*** *Melee Weapon Attack:* +5 to hit, reach 5 ft., one target. *Hit:* 8 (1d10 + 3) piercing damage.\n\n***Claws.*** *Melee Weapon Attack:* +5 to hit, reach 5 ft., one target. *Hit:* 10 (2d6 + 3) slashing damage.",
+			"",
+			"",
 			"",
 			""));
 }

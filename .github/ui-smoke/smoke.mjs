@@ -1,6 +1,15 @@
 // UI smoke test: drives the real Blazor client in headless Chromium.
 import { chromium } from 'playwright';
-import { readFileSync } from 'node:fs';
+import { readFileSync, mkdirSync } from 'node:fs';
+
+// Screenshots of the screens changed most often, kept as a CI artifact for a visual review
+mkdirSync('shots', { recursive: true });
+const shot = async (page, name, selector) => {
+  try {
+    const target = selector ? page.locator(selector).first() : page;
+    await target.screenshot({ path: `shots/${name}.png`, ...(selector ? {} : { fullPage: false }) });
+  } catch { /* a missing screenshot never fails the test */ }
+};
 
 const base = 'http://localhost:5227';
 const email = `ui${Date.now()}@example.com`;
@@ -37,8 +46,11 @@ try {
   await page.getByText('Accedi per forgiare').first().waitFor({ timeout: 120000 });
   ok('anonymous user sees "Accedi per forgiare"');
 
+  await page.locator('[data-test=feat-group]').first().waitFor({ timeout: 30000 });
+  await shot(page, 'feats-groups', 'main');
+  await page.locator('[data-test=feat-expand-all]').click();
   await page.getByText('Allerta').first().waitFor({ timeout: 30000 });
-  ok('feats list loaded from the API');
+  ok('feats list loaded from the API, grouped by category');
 
   // Blazor boot UI: the error bar stays hidden when nothing failed, the loading ring is a styled ring (not a black disc)
   const bootUi = await page.evaluate(() => {
@@ -454,7 +466,7 @@ try {
   await otherProfile.close();
 
   await page.goto(`${base}/feats`);
-  await page.getByText('Allerta').first().waitFor({ timeout: 30000 });
+  await page.locator('[data-test=feat-group]').first().waitFor({ timeout: 30000 });
   await page.getByText('+ NUOVO TALENTO').waitFor({ timeout: 30000 });
   if (await page.getByText('Accedi per forgiare').count() !== 0) throw new Error('create button still hidden after login');
   ok('signed-in user with a confirmed e-mail sees the create button');
@@ -618,7 +630,7 @@ try {
   const compendium = await page.evaluate(() => Object.fromEntries([...document.querySelectorAll('[data-test=account-compendium] tbody tr')]
     .map((tr) => [tr.getAttribute('data-test').replace('account-compendium-', ''), [...tr.querySelectorAll('td.rf-num')].map((td) => td.textContent.trim()).join('/')])));
   results.push(`INFO account compendium (2024/2014): ${JSON.stringify(compendium)}`);
-  if (JSON.stringify(compendium) !== JSON.stringify({ rules: '155/88', species: '10/9', backgrounds: '16/13', feats: '75/42', spells: '391/361', classes: '12/12', equipment: '208/242', monsters: '0/322' })) throw new Error('unexpected compendium counts in the account');
+  if (JSON.stringify(compendium) !== JSON.stringify({ rules: '155/88', species: '10/9', backgrounds: '16/13', feats: '75/42', spells: '391/361', classes: '12/12', equipment: '208/242', monsters: '0/441' })) throw new Error('unexpected compendium counts in the account');
   ok('account: Base content per section and edition (glossary 155+88, species 10+9, backgrounds 16+13, feats 75+42, spells 391+361, classes 12+12, equipment 208+242)');
   const newCredential = ['Rf', crypto.randomUUID(), 'B!'].join('-');
   await page.locator('[data-test=pwd-current]').fill('wrong-password-1A!');
@@ -796,6 +808,40 @@ try {
   const afterReload = (await page.locator('[data-test=sheet-hp-current]').innerText()).trim();
   const xpAfterReload = (await page.locator('[data-test=sheet-xp-value]').innerText()).trim();
   if (xpAfterReload !== '300 / 300') throw new Error(`the advancement type or the XP were not saved: ${xpAfterReload}`);
+  // Heroic inspiration: the star and the label on the same middle line
+  const inspiration = await page.evaluate(() => {
+    const button = document.querySelector('[data-test=sheet-inspiration]');
+    const mid = (el) => { const r = el.getBoundingClientRect(); return r.top + r.height / 2; };
+    return { star: mid(button.querySelector('svg')), label: mid(button.querySelector('span')), button: mid(button) };
+  });
+  results.push(`INFO inspiration: star ${(inspiration.star - inspiration.button).toFixed(1)}px, label ${(inspiration.label - inspiration.button).toFixed(1)}px from the middle`);
+  if (Math.abs(inspiration.star - inspiration.button) > 1 || Math.abs(inspiration.label - inspiration.button) > 1.5) throw new Error(`inspiration not aligned: ${JSON.stringify(inspiration)}`);
+  // Portrait: choosing a picture opens the crop; dragged and zoomed, it is saved as a square JPEG
+  await page.setViewportSize({ width: 1280, height: 900 });
+  const picture = await page.screenshot({ clip: { x: 0, y: 0, width: 900, height: 500 } });
+  await page.locator('[data-test=sheet-portrait-upload] input[type=file]').setInputFiles({ name: 'ritratto.png', mimeType: 'image/png', buffer: picture });
+  await page.locator('[data-test=portrait-crop]').waitFor({ timeout: 15000 });
+  const frame = await page.locator('[data-test=portrait-crop-frame]').boundingBox();
+  await page.mouse.move(frame.x + 128, frame.y + 128);
+  await page.mouse.down();
+  await page.mouse.move(frame.x + 64, frame.y + 128, { steps: 4 });
+  await page.mouse.up();
+  await page.locator('[data-test=portrait-crop-zoom]').fill('150');
+  const cropStyle = await page.locator('[data-test=portrait-crop-frame]').getAttribute('style');
+  await shot(page, 'portrait-crop', '[data-test=portrait-crop]');
+  await page.locator('[data-test=portrait-crop-save]').click();
+  await page.locator('[data-test=portrait-crop]').waitFor({ state: 'detached', timeout: 15000 });
+  const portraitStyle = await page.locator('[data-test=sheet-portrait]').getAttribute('style');
+  const portraitSize = await page.evaluate(async (style) => {
+    const src = style.match(/url\(["']?(data:[^"')]+)/)[1];
+    const img = new Image();
+    await new Promise((r) => { img.onload = r; img.src = src; });
+    return `${img.naturalWidth}x${img.naturalHeight}`;
+  }, portraitStyle ?? '');
+  await shot(page, 'sheet-hero', '.rf-hero');
+  results.push(`INFO portrait: crop ${cropStyle?.match(/background-position:[^;]+/)?.[0]}, saved ${portraitSize}`);
+  if (!/background-position: [0-9]+% 50%/.test(cropStyle ?? '') || /background-position: 50% 50%/.test(cropStyle ?? '') || portraitSize !== '320x320') throw new Error(`portrait crop: ${cropStyle} -> ${portraitSize}`);
+  ok('portrait: a new picture opens the crop (drag and zoom), the sheet keeps the 320 px square; inspiration star and label aligned');
   await page.locator('[data-test=sheet-long-rest]').click();
   await page.locator('[data-test=sheet-long-rest-done]').click();
   const afterRest = (await page.locator('[data-test=sheet-hp-current]').innerText()).trim();
@@ -888,19 +934,20 @@ try {
   if (!/Nessun account/.test(shareError)) throw new Error(`sharing with an unknown address: "${shareError}"`);
   ok('character sharing: the dialog adds people by e-mail and explains an unknown address');
   const sheetUrl = page.url();
-  // Monsters: 322 statblocks of 2014, type filter, the Goblin's statblock, a Homebrew variant made from it (then deleted)
+  // Monsters: 441 statblocks of 2014 grouped by type, type filter, the Goblin's statblock, a Homebrew variant made from it (then deleted)
   await page.goto(`${base}/monsters`);
-  await page.locator('[data-test=monster-card]').first().waitFor({ timeout: 60000 });
+  await page.locator('[data-test=monster-group]').first().waitFor({ timeout: 60000 });
   const monsterCount = async (expected) => {
     for (let i = 0; i < 100 && (await page.locator('[data-test=monster-count]').innerText()).trim() !== expected; i++) await page.waitForTimeout(100);
     return (await page.locator('[data-test=monster-count]').innerText()).trim();
   };
-  const monsterUi = { all: await monsterCount('322 mostri') };
+  const monsterUi = { all: await monsterCount('441 mostri') };
   await pickOption('monster-type', 'Drago');
-  monsterUi.dragons = await monsterCount('43 mostri');
+  monsterUi.dragons = await monsterCount('46 mostri');
   await pickOption('monster-type', 'Tutti i tipi');
   await page.locator('[data-test=monster-search]').fill('goblin');
-  monsterUi.goblins = await monsterCount('3 mostri');
+  monsterUi.goblins = await monsterCount('7 mostri');
+  await shot(page, 'monsters-goblins', 'main');
   await page.locator('[data-test=monster-card]').filter({ has: page.locator('.rf-card-title', { hasText: /^Goblin$/ }) }).click();
   await page.locator('[data-test=monster-statblock]').waitFor({ timeout: 15000 });
   const goblinBlock = (await page.locator('[data-test=monster-statblock]').innerText()).replace(/\s+/g, ' ');
@@ -916,15 +963,16 @@ try {
   await page.locator('[data-test=monster-delete-yes]').click();
   await page.locator('[data-test=monster-detail]').waitFor({ state: 'detached', timeout: 15000 });
   results.push(`INFO monsters: ${JSON.stringify(monsterUi)}`);
-  if (monsterUi.all !== '322 mostri' || monsterUi.dragons !== '43 mostri' || monsterUi.goblins !== '3 mostri' || monsterUi.statblock !== 4
+  if (monsterUi.all !== '441 mostri' || monsterUi.dragons !== '46 mostri' || monsterUi.goblins !== '7 mostri' || monsterUi.statblock !== 4
     || !/Goblin/.test(monsterUi.variantOf) || !monsterUi.variantHp) throw new Error(`unexpected monsters page: ${JSON.stringify(monsterUi)}`);
-  ok('monsters: 322 statblocks of 2014, 43 dragons, the Goblin statblock, a Homebrew variant with its own hit points (then deleted)');
+  ok('monsters: 441 statblocks of 2014, 46 dragons, 7 goblinoids, the Goblin statblock, a Homebrew variant with its own hit points (then deleted)');
   // Campaigns: a new campaign makes its creator the master, with the invite link; the character joins the table
   await page.goto(`${base}/campaigns`);
   await page.locator('[data-test=campaign-new]').click();
   await page.locator('[data-test=campaign-name]').fill('Tavola di prova');
   await page.locator('[data-test=campaign-create]').click();
   await page.locator('[data-test=campaign-title]', { hasText: 'Tavola di prova' }).waitFor({ timeout: 30000 });
+  const campaignUrl = page.url();
   const campaignUi = {
     role: (await page.locator('[data-test=campaign-role]').innerText()).trim(),
     link: (await page.locator('[data-test=campaign-link-url]').inputValue()).includes('/campaigns/join/'),
@@ -933,6 +981,14 @@ try {
   await pickOption('campaign-bring-select', 'Eroe di prova');
   await page.locator('[data-test=campaign-bring-add]').click();
   await page.locator('[data-test=campaign-character]', { hasText: 'Eroe di prova' }).waitFor({ timeout: 15000 });
+  await shot(page, 'campaign-characters', '[data-test=campaign-characters]');
+  // The whole card opens the sheet (no "open" button), taking out is a small action on it
+  campaignUi.cardButtons = await page.locator('[data-test=campaign-character] .btn').count();
+  await page.locator('[data-test=campaign-character]').click({ position: { x: 24, y: 64 } });
+  await page.waitForURL(/\/characters\/[0-9a-f-]+$/, { timeout: 15000 });
+  campaignUi.cardOpens = true;
+  await page.goto(campaignUrl);
+  await page.locator('[data-test=campaign-title]').waitFor({ timeout: 30000 });
   await page.locator('[data-test=campaign-tab-content]').click();
   campaignUi.share = await page.locator('[data-test=campaign-share]').count();
   // The shared journal: a page written by the master
@@ -943,6 +999,8 @@ try {
   await page.locator('[data-test=campaign-note-save]').click();
   await page.locator('[data-test=campaign-note]', { hasText: 'Sessione 1' }).waitFor({ timeout: 15000 });
   campaignUi.notes = await page.locator('[data-test=campaign-note]').count();
+  campaignUi.noteKinds = (await page.locator('[data-test=campaign-notes-kinds] .rf-pill-btn').allInnerTexts()).map((t) => t.trim()).join(',');
+  await shot(page, 'campaign-notes', 'main');
   // An encounter: three goblins and the party, its difficulty, the fight starts and the turn moves on
   await page.locator('[data-test=campaign-tab-encounters]').click();
   await page.locator('[data-test=encounter-new-name]').fill('Imboscata');
@@ -967,14 +1025,25 @@ try {
   for (let i = 0; i < 4; i++) await page.locator('[data-test=encounter-next]').click();
   await page.locator('[data-test=encounter-round]', { hasText: 'Round 2' }).waitFor({ timeout: 15000 });
   campaignUi.current = await page.locator('.rf-combatant.current').count();
+  // From the sheet, the owner takes the character out of the campaign
+  await page.goto(sheetUrl);
+  await page.locator('[data-test=sheet-campaign]').click();
+  await page.locator('[data-test=sheet-campaign-leave]').click();
+  await page.locator('[data-test=sheet-campaign-note]', { hasText: 'ha lasciato' }).waitFor({ timeout: 15000 });
+  campaignUi.leftFromSheet = await page.locator('[data-test=sheet-campaign-bring]').count();
+  await page.goto(campaignUrl);
+  await page.locator('[data-test=campaign-title]').waitFor({ timeout: 30000 });
+  await page.locator('[data-test=campaign-tab-characters]').click();
+  await page.locator('[data-test=campaign-characters-empty]').waitFor({ timeout: 15000 });
   await page.locator('[data-test=campaign-tab-overview]').click();
   await page.locator('[data-test=campaign-delete]').click();
   await page.locator('[data-test=campaign-confirm-yes]').click();
   await page.waitForURL(/\/campaigns$/, { timeout: 15000 });
   results.push(`INFO campaign: ${JSON.stringify(campaignUi)}`);
   if (campaignUi.role !== 'Master' || !campaignUi.link || campaignUi.share !== 1 || campaignUi.notes !== 1
-    || campaignUi.combatants !== 4 || campaignUi.goblins !== 3 || !campaignUi.hero || !/^(Facile|Medio|Difficile|Mortale)$/.test(campaignUi.rating) || campaignUi.current !== 1) throw new Error(`unexpected campaign page: ${JSON.stringify(campaignUi)}`);
-  ok('campaigns: the creator is the master with an invite link, the character joins the table, a journal page, an encounter with three goblins run to round 2, the campaign is deleted');
+    || campaignUi.combatants !== 4 || campaignUi.goblins !== 3 || !campaignUi.hero || !/^(Facile|Medio|Difficile|Mortale)$/.test(campaignUi.rating) || campaignUi.current !== 1
+    || campaignUi.cardButtons !== 0 || !campaignUi.cardOpens || campaignUi.noteKinds !== 'Diario di viaggio,Personali,Per i master' || campaignUi.leftFromSheet !== 1) throw new Error(`unexpected campaign page: ${JSON.stringify(campaignUi)}`);
+  ok('campaigns: the creator is the master with an invite link, the character joins the table (the whole card opens the sheet), a journal page, an encounter with three goblins run to round 2, the character leaves from its sheet, the campaign is deleted');
   await page.goto(sheetUrl);
   await page.locator('[data-test=character-sheet]').waitFor({ timeout: 30000 });
   const [download] = await Promise.all([page.waitForEvent('download', { timeout: 20000 }), page.locator('[data-test=sheet-pdf]').click()]);
@@ -1095,7 +1164,7 @@ try {
   await audit('/rules', '[data-test=rules-group]', () => mobile.locator('[data-test=rules-tile]').first().click());
   await audit('/species', '.rf-card', () => mobile.locator('.rf-card').first().click());
   await audit('/backgrounds', '.rf-card', () => mobile.locator('.rf-card').first().click());
-  await audit('/feats', '.rf-card', () => mobile.locator('.rf-card').first().click());
+  await audit('/feats', '[data-test=feat-group]', () => mobile.locator('.rf-card').first().click());
   await audit('/spells', '[data-test=spell-level-group]', () => mobile.locator('[data-test=spell-card]').first().click());
   await audit('/classes', '[data-test=class-card]', () => mobile.locator('[data-test=class-card]').first().click());
   await audit('/equipment', '[data-test=equipment-group]', () => mobile.locator('[data-test=equipment-row]').first().click());

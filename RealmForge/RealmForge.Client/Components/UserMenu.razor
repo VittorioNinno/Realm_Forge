@@ -1,4 +1,4 @@
-@using RealmForge.Client.Localization
+﻿@using RealmForge.Client.Localization
 @using RealmForge.Client.Services
 @implements IDisposable
 @inject AuthService Auth
@@ -14,12 +14,12 @@
             </a>
             <button type="button" class="rf-account-logout" aria-label="@UiText.BtnLogout(LanguageState.CurrentLanguage)"
                     title="@UiText.BtnLogout(LanguageState.CurrentLanguage)" @onclick="Auth.LogoutAsync">
-                <NavIcon Name="logout" />
+                <Icon Name="logout" Class="rf-nav-icon" />
             </button>
         </Authorized>
         <NotAuthorized>
             <a href="account" class="rf-account-login">
-                <NavIcon Name="account" />
+                <Icon Name="account" Class="rf-nav-icon" />
                 <span>@UiText.BtnLogin(LanguageState.CurrentLanguage)</span>
             </a>
         </NotAuthorized>

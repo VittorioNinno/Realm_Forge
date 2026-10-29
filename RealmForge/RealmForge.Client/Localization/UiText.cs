@@ -115,7 +115,7 @@ namespace RealmForge.Client.Localization
 		public static string BtnClose(LanguageCode lang) => lang == LanguageCode.It ? "CHIUDI" : "CLOSE";
 		public static string BtnCancel(LanguageCode lang) => lang == LanguageCode.It ? "ANNULLA" : "CANCEL";
 		public static string BtnViewDetails(LanguageCode lang) => lang == LanguageCode.It ? "DETTAGLI" : "DETAILS";
-		public static string BtnInspect(LanguageCode lang) => lang == LanguageCode.It ? "Esamina →" : "Inspect →";
+		public static string BtnInspect(LanguageCode lang) => lang == LanguageCode.It ? "Esamina" : "Inspect";
 		public static string ConfirmDeletion(LanguageCode lang) => lang == LanguageCode.It ? "Conferma Eliminazione" : "Confirm Deletion";
 
 		public static string TabItalian(LanguageCode lang) => lang == LanguageCode.It ? "🇮🇹 Traduzione Italiana" : "🇮🇹 Italian Translation";
@@ -160,7 +160,7 @@ namespace RealmForge.Client.Localization
 		public static string FormatGold(int gp, LanguageCode lang) => lang == LanguageCode.It ? $"{gp} mo" : $"{gp} gp";
 
 		//	Starting equipment (classes and backgrounds)
-		public static string LinkClassSpellList(LanguageCode lang) => lang == LanguageCode.It ? "Vai alla lista degli incantesimi →" : "Open the spell list →";
+		public static string LinkClassSpellList(LanguageCode lang) => lang == LanguageCode.It ? "Vai alla lista degli incantesimi" : "Open the spell list";
 		public static string LoadoutKit(LanguageCode lang) => lang == LanguageCode.It ? "Opzione" : "Option";
 		public static string LoadoutOr(LanguageCode lang) => lang == LanguageCode.It ? "oppure" : "or";
 		public static string LoadoutAnd(LanguageCode lang) => lang == LanguageCode.It ? " e " : " and ";
@@ -179,9 +179,8 @@ namespace RealmForge.Client.Localization
 		public static string LabelBonds(LanguageCode lang) => lang == LanguageCode.It ? "Legami" : "Bonds";
 		public static string LabelFlaws(LanguageCode lang) => lang == LanguageCode.It ? "Difetti" : "Flaws";
 		public static string HintOnePerLine(LanguageCode lang) => lang == LanguageCode.It ? "Una voce per riga, nell'ordine del tiro di dado" : "One entry per line, in die-roll order";
-		public static string BtnShowCharacteristics(LanguageCode lang) => lang == LanguageCode.It ? "▸ Caratteristiche suggerite" : "▸ Suggested characteristics";
-		public static string BtnHideCharacteristics(LanguageCode lang) => lang == LanguageCode.It ? "▾ Caratteristiche suggerite" : "▾ Suggested characteristics";
-		public static string BtnOpenFeat(LanguageCode lang) => lang == LanguageCode.It ? "Apri talento →" : "Open feat →";
+		public static string BtnShowCharacteristics(LanguageCode lang) => lang == LanguageCode.It ? "Caratteristiche suggerite" : "Suggested characteristics";
+		public static string BtnOpenFeat(LanguageCode lang) => lang == LanguageCode.It ? "Apri talento" : "Open feat";
 		public static string NoOriginFeat(LanguageCode lang) => lang == LanguageCode.It ? "Nessuno" : "None";
 		public static string DeleteBackgroundWarning(LanguageCode lang, string name) => lang == LanguageCode.It
 			? $"Eliminare definitivamente il background \"{name}\"? L'operazione non può essere annullata."
@@ -416,7 +415,7 @@ namespace RealmForge.Client.Localization
 			? "Privato: per condividerlo imposta la visibilità su \"Con link\" o \"Pubblico\" con Modifica."
 			: "Private: to share it, set its visibility to \"With link\" or \"Public\" with Edit.";
 		public static string BtnCopyLink(LanguageCode lang) => lang == LanguageCode.It ? "Copia link" : "Copy link";
-		public static string LinkCopied(LanguageCode lang) => lang == LanguageCode.It ? "Link copiato ✓" : "Link copied ✓";
+		public static string LinkCopied(LanguageCode lang) => lang == LanguageCode.It ? "Link copiato" : "Link copied";
 		public static string ContentNotAvailable(LanguageCode lang) => lang == LanguageCode.It
 			? "Contenuto non disponibile: potrebbe essere privato o essere stato eliminato."
 			: "Content not available: it may be private or it was deleted.";
@@ -920,7 +919,7 @@ namespace RealmForge.Client.Localization
 
 		public static string BtnManageSubspecies(LanguageCode lang) => lang == LanguageCode.It ? "Gestisci Sottospecie" : "Manage Subspecies";
 
-		public static string BtnBackToSpecies(LanguageCode lang) => lang == LanguageCode.It ? "← TORNA ALLA SPECIE" : "← BACK TO SPECIES";
+		public static string BtnBackToSpecies(LanguageCode lang) => lang == LanguageCode.It ? "TORNA ALLA SPECIE" : "BACK TO SPECIES";
 
 		public static string NoSubspeciesFound(LanguageCode lang) => lang == LanguageCode.It
 			? "Nessuna sottospecie trovata. Forgia la prima variante!"

@@ -9,7 +9,7 @@ namespace RealmForge.Infrastructure.Persistence.Seeding.MonstersData;
 ///	</summary>
 public static class Vulture2014Seeder
 {
-	public static Monster Build() => Create("vulture", null, CreatureSize.Medium, CreatureType.Beast,
+	public static Monster Build() => Create("vulture", null, ContentSource.Srd51, CreatureSize.Medium, CreatureType.Beast,
 		10, 5, "1d8 + 1", 10, new[] { 7, 10, 13, 2, 12, 4 }, 0m, 10, 2, 13,
 		new Text(
 			"Avvoltoio",
@@ -28,6 +28,8 @@ public static class Vulture2014Seeder
 			"***Tattiche del branco.*** L'avvoltoio dispone di vantaggio nel tiro per colpire contro una creatura se almeno uno degli alleati dell'animale si trova entro 1,5 metri dalla creatura e non è incapacitato.\n\n***Vista e olfatto acuti.*** L'avvoltoio dispone di vantaggio alle prove di Saggezza (Percezione) basate sulla vista o sull'olfatto.",
 			"***Becco.*** *Attacco con arma da mischia:* +2 al tiro per colpire, portata 1,5 m, un bersaglio. *Colpito:* 2 (1d4) danni perforanti.",
 			"",
+			"",
+			"",
 			""),
 		new Text(
 			"Vulture",
@@ -45,6 +47,8 @@ public static class Vulture2014Seeder
 			"—",
 			"***Keen Sight and Smell.*** The vulture has advantage on Wisdom (Perception) checks that rely on sight or smell.\n\n***Pack Tactics.*** The vulture has advantage on an attack roll against a creature if at least one of the vulture's allies is within 5 ft. of the creature and the ally isn't incapacitated.",
 			"***Beak.*** *Melee Weapon Attack:* +2 to hit, reach 5 ft., one target. *Hit:* 2 (1d4) piercing damage.",
+			"",
+			"",
 			"",
 			""));
 }

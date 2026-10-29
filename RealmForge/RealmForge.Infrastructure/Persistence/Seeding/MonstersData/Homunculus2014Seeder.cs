@@ -9,7 +9,7 @@ namespace RealmForge.Infrastructure.Persistence.Seeding.MonstersData;
 ///	</summary>
 public static class Homunculus2014Seeder
 {
-	public static Monster Build() => Create("homunculus", null, CreatureSize.Tiny, CreatureType.Construct,
+	public static Monster Build() => Create("homunculus", null, ContentSource.Srd51, CreatureSize.Tiny, CreatureType.Construct,
 		13, 5, "2d4", 20, new[] { 4, 15, 11, 10, 10, 7 }, 0m, 10, 2, 10,
 		new Text(
 			"Omuncolo",
@@ -28,6 +28,8 @@ public static class Homunculus2014Seeder
 			"***Legame telepatico.*** Finché l'omuncolo si trova sullo stesso piano di esistenza del suo padrone, può trasmettergli magicamente ciò che percepisce e i due possono comunicare telepaticamente.",
 			"***Morso.*** *Attacco con arma da mischia:* +4 al tiro per colpire, portata 1,5 m, una creatura. *Colpito:* 1 danno perforante e il bersaglio deve superare un tiro salvezza su Costituzione con CD 10, altrimenti è avvelenato per 1 minuto. Se fallisce il tiro salvezza di 5 o più, il bersaglio è invece avvelenato per 5 (1d10) minuti ed è privo di sensi finché è in questo stato.",
 			"",
+			"",
+			"",
 			""),
 		new Text(
 			"Homunculus",
@@ -45,6 +47,8 @@ public static class Homunculus2014Seeder
 			"understands the languages of its creator but can't speak",
 			"***Telepathic Bond.*** While the homunculus is on the same plane of existence as its master, it can magically convey what it senses to its master, and the two can communicate telepathically.",
 			"***Bite.*** *Melee Weapon Attack:* +4 to hit, reach 5 ft., one creature. *Hit:* 1 piercing damage, and the target must succeed on a DC 10 Constitution saving throw or be poisoned for 1 minute. If the saving throw fails by 5 or more, the target is instead poisoned for 5 (1d10) minutes and unconscious while poisoned in this way.",
+			"",
+			"",
 			"",
 			""));
 }

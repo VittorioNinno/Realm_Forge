@@ -9,7 +9,7 @@ namespace RealmForge.Infrastructure.Persistence.Seeding.MonstersData;
 ///	</summary>
 public static class Mastiff2014Seeder
 {
-	public static Monster Build() => Create("mastiff", null, CreatureSize.Medium, CreatureType.Beast,
+	public static Monster Build() => Create("mastiff", null, ContentSource.Srd51, CreatureSize.Medium, CreatureType.Beast,
 		12, 5, "1d8 + 1", 40, new[] { 13, 14, 12, 3, 12, 7 }, 0.125m, 25, 2, 13,
 		new Text(
 			"Mastino",
@@ -28,6 +28,8 @@ public static class Mastiff2014Seeder
 			"***Udito e olfatto acuti.*** Il mastino dispone di vantaggio alle prove di Saggezza (Percezione) basate sull'olfatto o sull'udito.",
 			"***Morso.*** *Attacco con arma da mischia:* +3 al tiro per colpire, portata 1,5 m, un bersaglio. *Colpito:* 4 (1d6 + 1) danni perforanti. Se il bersaglio è una creatura, deve superare un tiro salvezza su Forza con CD 11, altrimenti cade a terra prono.",
 			"",
+			"",
+			"",
 			""),
 		new Text(
 			"Mastiff",
@@ -45,6 +47,8 @@ public static class Mastiff2014Seeder
 			"—",
 			"***Keen Hearing and Smell.*** The mastiff has advantage on Wisdom (Perception) checks that rely on hearing or smell.",
 			"***Bite.*** *Melee Weapon Attack:* +3 to hit, reach 5 ft., one target. *Hit:* 4 (1d6 + 1) piercing damage. If the target is a creature, it must succeed on a DC 11 Strength saving throw or be knocked prone.",
+			"",
+			"",
 			"",
 			""));
 }
