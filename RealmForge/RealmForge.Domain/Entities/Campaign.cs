@@ -29,6 +29,35 @@ namespace RealmForge.Domain.Entities
 		public ICollection<CampaignCharacter> Characters { get; set; } = new List<CampaignCharacter>();
 		public ICollection<CampaignContent> Contents { get; set; } = new List<CampaignContent>();
 		public ICollection<CampaignNote> Notes { get; set; } = new List<CampaignNote>();
+		public ICollection<CampaignEncounter> Encounters { get; set; } = new List<CampaignEncounter>();
+	}
+
+	///	<summary>
+	///	An encounter prepared (and then run) by the masters and co-masters: the combatants with initiative, hit points and
+	///	conditions (JSON of EncounterCombatant), the characters it is balanced for, round and turn. Shown makes an
+	///	encounter under way visible to the players.
+	///	</summary>
+	public class CampaignEncounter
+	{
+		public Guid Id { get; set; } = Guid.NewGuid();
+		public Guid CampaignId { get; set; }
+		public Campaign Campaign { get; set; } = null!;
+		public string Name { get; set; } = string.Empty;
+		public string Notes { get; set; } = string.Empty;
+		public EncounterStatus Status { get; set; } = EncounterStatus.Planned;
+		public int Round { get; set; }
+		//	The combatant whose turn it is
+		public Guid? CurrentId { get; set; }
+		public bool Shown { get; set; }
+
+		//	JSON array of EncounterCombatant
+		public string Combatants { get; set; } = "[]";
+		public List<Guid> PartyIds { get; set; } = new();
+
+		public int Version { get; set; } = 1;
+		public string CreatedById { get; set; } = string.Empty;
+		public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
+		public DateTimeOffset UpdatedAt { get; set; } = DateTimeOffset.UtcNow;
 	}
 
 	///	<summary>

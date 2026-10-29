@@ -45,6 +45,9 @@ namespace RealmForge.Client.Services
 					var emailNotConfirmed = response.Headers.TryGetValues("X-RealmForge-Error", out var codes) && codes.Contains("EmailNotConfirmed");
 					_state.Report(emailNotConfirmed ? ApiErrorKind.EmailNotConfirmed : ApiErrorKind.Forbidden);
 					break;
+				//	An encounter saved meanwhile by another master is reloaded by its page, not an error
+				case HttpStatusCode.Conflict when request.RequestUri?.AbsolutePath.Contains("/encounters") == true:
+					break;
 				case HttpStatusCode.BadRequest:
 				case HttpStatusCode.Conflict:
 					_state.Report(ApiErrorKind.Validation);

@@ -1,0 +1,768 @@
+﻿@using RealmForge.Client.Localization
+@using RealmForge.Client.Services
+@using RealmForge.Shared.Campaigns
+@using RealmForge.Shared.DTOs
+@using RealmForge.Shared.Enums
+@using RealmForge.Shared.Monsters
+@implements IDisposable
+@inject EncounterDataService Encounters
+@inject MonsterDataService MonsterService
+@inject LanguageStateService LanguageState
+
+@* One encounter: masters and co-masters build it (monsters, characters, others), see its difficulty for the party and
+   run it (initiative, hit points, conditions, rounds); the players follow the initiative order of a shown encounter *@
+<div data-test="encounter">
+    <div class="d-flex flex-wrap align-items-center gap-2 mb-3">
+        <button type="button" class="btn btn-sm btn-rf-outline" @onclick="() => OnClose.InvokeAsync()" data-test="encounter-back">← @UiText.EncountersBack(Lang)</button>
+        @if (encounter is not null)
+        {
+            <span class="badge rf-encounter-status rf-encounter-status-@draft.Status.ToString().ToLowerInvariant()" data-test="encounter-status">@UiText.EncounterStatusName(draft.Status, Lang)</span>
+            @if (draft.Status == EncounterStatus.Running)
+            {
+                <span class="rf-encounter-round" data-test="encounter-round">@UiText.EncounterRound(draft.Round, Lang)</span>
+            }
+        }
+        @if (!Manage && encounter is not null)
+        {
+            <button type="button" class="btn btn-sm btn-rf-outline ms-auto" @onclick="LoadAsync" data-test="encounter-refresh">↻ @UiText.BtnRefresh(Lang)</button>
+        }
+    </div>
+
+    @if (message is not null)
+    {
+        <div class="alert alert-warning bg-dark border-warning text-warning p-2 small mb-3" data-test="encounter-message">@message</div>
+    }
+
+    @if (loading)
+    {
+        <div class="small" style="color: var(--rf-text-muted);">…</div>
+    }
+    else if (encounter is null)
+    {
+        <div class="rf-account-card text-center">@UiText.EncounterNotFound(Lang)</div>
+    }
+    else
+    {
+        @if (Manage)
+        {
+            <div class="rf-card2 mb-3">
+                <div class="row g-2 align-items-end">
+                    <div class="col-md-6">
+                        <label class="rf-form-label">@UiText.EncounterName(Lang)</label>
+                        <input class="rf-form-control" maxlength="100" @bind="draft.Name" @bind:after="SaveAsync" data-test="encounter-name" />
+                    </div>
+                    <div class="col-md-6 d-flex flex-wrap gap-2 justify-content-md-end">
+                        @switch (draft.Status)
+                        {
+                            case EncounterStatus.Planned:
+                                <button type="button" class="btn btn-rf-orange" disabled="@(draft.Combatants.Count == 0)" @onclick="StartAsync" data-test="encounter-start">⚔ @UiText.EncounterStart(Lang)</button>
+                                break;
+                            case EncounterStatus.Running:
+                                <button type="button" class="btn btn-rf-outline" @onclick="PreviousAsync" data-test="encounter-prev">◀</button>
+                                <button type="button" class="btn btn-rf-orange" @onclick="NextAsync" data-test="encounter-next">@UiText.EncounterNextTurn(Lang) ▶</button>
+                                <button type="button" class="btn btn-rf-outline" @onclick="FinishAsync" data-test="encounter-finish">@UiText.EncounterFinish(Lang)</button>
+                                break;
+                            default:
+                                <button type="button" class="btn btn-rf-outline" @onclick="ReopenAsync" data-test="encounter-reopen">@UiText.EncounterReopen(Lang)</button>
+                                break;
+                        }
+                        <button type="button" class="btn btn-rf-outline @(draft.Shown ? "active" : null)" aria-pressed="@(draft.Shown ? "true" : "false")"
+                                title="@UiText.EncounterShownHint(Lang)" @onclick="ToggleShownAsync" data-test="encounter-shown">
+                            👁 @(draft.Shown ? UiText.EncounterShown(Lang) : UiText.EncounterHidden(Lang))
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            @* Difficulty for the chosen characters *@
+            <div class="rf-card2 mb-3" data-test="encounter-difficulty">
+                <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
+                    <div class="rf-mini-title mb-0">@UiText.EncounterDifficulty(Lang)</div>
+                    @if (Campaign.Ruleset is null)
+                    {
+                        <div class="ms-auto" style="min-width: 180px;" data-test="encounter-rules">
+                            <RfSelect TValue="RulesetVersion" @bind-Value="difficultyRuleset" Options="RulesetOptions" />
+                        </div>
+                    }
+                </div>
+                @if (encounter.Characters.Count == 0)
+                {
+                    <div class="small" style="color: var(--rf-text-muted);">@UiText.EncounterNoCharacters(Lang)</div>
+                }
+                else
+                {
+                    <div class="rf-pill-group mb-2" data-test="encounter-party">
+                        @foreach (var member in encounter.Characters)
+                        {
+                            var m = member;
+                            var inParty = draft.PartyIds.Contains(m.CharacterId);
+                            <button type="button" class="rf-pill-btn @(inParty ? "active" : null)" aria-pressed="@(inParty ? "true" : "false")" @onclick="() => TogglePartyAsync(m.CharacterId)">
+                                @m.Name · @UiText.CharacterLevel(m.Level, Lang)
+                            </button>
+                        }
+                    </div>
+                }
+                @{
+                    var budget = Budget;
+                }
+                <div class="rf-encounter-budget">
+                    <span class="rf-encounter-rating rf-encounter-rating-@budget.Rating" data-test="encounter-rating">@UiText.EncounterRating(budget.Ruleset, budget.Rating, Lang)</span>
+                    <span>@UiText.EncounterXpLine(budget.TotalXp, budget.Multiplier, budget.AdjustedXp, budget.Ruleset, Lang)</span>
+                    @if (budget.Thresholds.Length > 0)
+                    {
+                        <span class="small" style="color: var(--rf-text-muted);">@UiText.EncounterThresholds(budget.Ruleset, budget.Thresholds, Lang)</span>
+                        <span class="small" style="color: var(--rf-text-muted);">@UiText.EncounterXpEach(budget.XpPerCharacter(PartyLevels.Count), Lang)</span>
+                    }
+                </div>
+            </div>
+        }
+
+        @* Initiative order *@
+        <div class="rf-card2 mb-3" data-test="encounter-combatants">
+            <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
+                <div class="rf-mini-title mb-0">@UiText.EncounterCombatants(Lang)</div>
+                @if (Manage && draft.Combatants.Count > 0)
+                {
+                    <button type="button" class="btn btn-sm btn-rf-outline ms-auto" @onclick="RollInitiativeAsync" data-test="encounter-roll-initiative">🎲 @UiText.EncounterRollInitiative(Lang)</button>
+                }
+            </div>
+
+            @if (draft.Combatants.Count == 0)
+            {
+                <div class="small" style="color: var(--rf-text-muted);" data-test="encounter-combatants-empty">@UiText.EncounterNoCombatants(Lang)</div>
+            }
+            @foreach (var combatant in EncounterRules.Order(draft.Combatants))
+            {
+                var c = combatant;
+                var current = draft.Status == EncounterStatus.Running && draft.CurrentId == c.Id;
+                var down = c.Kind != CombatantKind.Character && (c.Health == CombatantHealth.Down || (c.Health is null && c.MaxHp > 0 && c.Hp <= 0));
+                <div class="rf-combatant @(current ? "current" : null) @(down ? "down" : null) @(c.Hidden ? "hidden-foe" : null)" data-test="encounter-combatant">
+                    <div class="rf-combatant-init">
+                        @if (Manage)
+                        {
+                            <input type="number" class="rf-form-control" title="@UiText.EncounterInitiative(Lang)" value="@c.Initiative"
+                                   @onchange="e => SetInitiativeAsync(c, e.Value)" data-test="combatant-initiative" />
+                        }
+                        else
+                        {
+                            <span>@(c.Initiative?.ToString() ?? "—")</span>
+                        }
+                    </div>
+                    <div class="rf-combatant-main">
+                        <div class="rf-combatant-name">
+                            @if (current)
+                            {
+                                <span class="rf-combatant-turn" title="@UiText.EncounterCurrentTurn(Lang)">▶</span>
+                            }
+                            @if (Manage)
+                            {
+                                <input class="rf-form-control rf-combatant-name-input" maxlength="100" value="@c.Name" @onchange="e => RenameAsync(c, e.Value)" data-test="combatant-name" />
+                            }
+                            else
+                            {
+                                <span>@c.Name</span>
+                            }
+                            <span class="rf-combatant-kind">@UiText.CombatantKindName(c.Kind, Lang)@(c.ChallengeRating is { } cr && Manage ? $" · {UiText.MonsterChallengeShort(Lang)} {MonsterMath.FormatChallenge(cr)}" : null)</span>
+                            @if (c.MonsterId is { } monsterId)
+                            {
+                                <button type="button" class="btn btn-sm btn-link p-0" @onclick="() => OpenStatblockAsync(monsterId)" data-test="combatant-statblock">@UiText.EncounterStatblock(Lang)</button>
+                            }
+                        </div>
+                        <div class="rf-combatant-conditions">
+                            @foreach (var key in c.Conditions)
+                            {
+                                var k = key;
+                                if (Manage)
+                                {
+                                    <button type="button" class="rf-condition-chip" title="@UiText.BtnRemove(Lang)" @onclick="() => RemoveConditionAsync(c, k)">@UiText.ConditionName(k, Lang) ✕</button>
+                                }
+                                else
+                                {
+                                    <span class="rf-condition-chip">@UiText.ConditionName(k, Lang)</span>
+                                }
+                            }
+                            @if (Manage)
+                            {
+                                <div class="rf-condition-add" data-test="combatant-condition">
+                                    <RfSelect TValue="string" Value="@(string.Empty)" ValueChanged="v => AddConditionAsync(c, v)" Options="ConditionOptions(c)" />
+                                </div>
+                            }
+                        </div>
+                    </div>
+                    <div class="rf-combatant-stats">
+                        @if (Manage || c.Kind == CombatantKind.Character)
+                        {
+                            <span class="rf-combatant-ac" title="@UiText.MonsterArmorClass(Lang)">🛡 @c.ArmorClass</span>
+                            <span class="rf-combatant-hp" data-test="combatant-hp">❤ @c.Hp@(c.MaxHp > 0 ? $"/{c.MaxHp}" : null)@(c.TempHp > 0 ? $" (+{c.TempHp})" : null)</span>
+                        }
+                        else if (c.Health is { } health)
+                        {
+                            <span class="rf-health rf-health-@health.ToString().ToLowerInvariant()" data-test="combatant-health">@UiText.HealthName(health, Lang)</span>
+                        }
+                        @if (Manage)
+                        {
+                            <div class="rf-combatant-hp-edit">
+                                <input type="number" min="0" class="rf-form-control" placeholder="0" value="@AmountOf(c)" @onchange="e => amounts[c.Id] = e.Value?.ToString()" data-test="combatant-amount" />
+                                <button type="button" class="btn btn-sm btn-rf-outline" title="@UiText.EncounterDamage(Lang)" @onclick="() => ApplyAsync(c, -1)" data-test="combatant-damage">−</button>
+                                <button type="button" class="btn btn-sm btn-rf-outline" title="@UiText.EncounterHeal(Lang)" @onclick="() => ApplyAsync(c, 1)" data-test="combatant-heal">+</button>
+                                <button type="button" class="btn btn-sm btn-rf-outline" title="@UiText.EncounterTempHp(Lang)" @onclick="() => ApplyAsync(c, 0)">T</button>
+                            </div>
+                        }
+                    </div>
+                    @if (Manage)
+                    {
+                        <div class="rf-combatant-actions">
+                            <button type="button" class="btn btn-sm btn-rf-outline @(c.Hidden ? "active" : null)" title="@UiText.EncounterHideHint(Lang)" @onclick="() => ToggleHiddenAsync(c)" data-test="combatant-hide">@(c.Hidden ? "🙈" : "👁")</button>
+                            <button type="button" class="btn btn-sm btn-rf-outline" title="@UiText.BtnRemove(Lang)" @onclick="() => RemoveAsync(c)" data-test="combatant-remove">✕</button>
+                        </div>
+                    }
+                </div>
+            }
+        </div>
+
+        @if (Manage)
+        {
+            @* Add combatants *@
+            <div class="rf-card2 mb-3" data-test="encounter-add">
+                <div class="rf-mini-title">@UiText.EncounterAddMonsters(Lang)</div>
+                <div class="d-flex flex-wrap gap-2 align-items-center mb-2">
+                    <input class="rf-form-control flex-grow-1" style="max-width: 360px;" placeholder="@UiText.PlaceholderSearchMonsters(Lang)"
+                           @bind="monsterSearch" @bind:event="oninput" @onfocus="EnsureMonstersAsync" data-test="encounter-monster-search" />
+                    <label class="small d-flex align-items-center gap-1" style="color: var(--rf-text-secondary);">
+                        <input type="checkbox" @bind="rollHp" /> @UiText.EncounterRollHp(Lang)
+                    </label>
+                </div>
+                @if (MonsterResults.Count > 0)
+                {
+                    <div class="rf-monster-picker" data-test="encounter-monster-results">
+                        @foreach (var monster in MonsterResults)
+                        {
+                            var m = monster;
+                            <div class="rf-monster-pick">
+                                <span class="rf-monster-pick-name">@m.Name</span>
+                                <span class="small" style="color: var(--rf-text-muted);">@UiText.MonsterChallengeShort(Lang) @MonsterMath.FormatChallenge(m.ChallengeRating) · @UiText.MonsterArmorClassShort(Lang) @m.ArmorClass · @UiText.MonsterHitPointsShort(Lang) @m.HitPoints · @m.Xp @UiText.XpLabel(Lang)</span>
+                                <input type="number" min="1" max="20" class="rf-form-control rf-monster-pick-count" value="@CountOf(m.Id)" @onchange="e => SetCount(m.Id, e.Value)" />
+                                <button type="button" class="btn btn-sm btn-rf-orange" @onclick="() => AddMonsterAsync(m)" data-test="encounter-monster-add">+ @UiText.BtnAdd(Lang)</button>
+                            </div>
+                        }
+                    </div>
+                }
+                else if (!string.IsNullOrWhiteSpace(monsterSearch) && monsters is not null)
+                {
+                    <div class="small" style="color: var(--rf-text-muted);">@UiText.NoMonstersFound(Lang)</div>
+                }
+
+                <div class="d-flex flex-wrap gap-2 mt-3">
+                    <button type="button" class="btn btn-sm btn-rf-outline" disabled="@(PartyToAdd.Count == 0)" @onclick="AddPartyAsync" data-test="encounter-add-party">+ @UiText.EncounterAddParty(Lang)</button>
+                    <input class="rf-form-control" style="max-width: 260px;" maxlength="100" placeholder="@UiText.EncounterOtherPlaceholder(Lang)" @bind="otherName" @bind:event="oninput" data-test="encounter-other-name" />
+                    <button type="button" class="btn btn-sm btn-rf-outline" disabled="@(string.IsNullOrWhiteSpace(otherName))" @onclick="AddOtherAsync" data-test="encounter-add-other">+ @UiText.BtnAdd(Lang)</button>
+                </div>
+            </div>
+
+            <div class="rf-card2 mb-3">
+                <label class="rf-form-label">@UiText.EncounterNotes(Lang)</label>
+                <textarea class="rf-form-control" rows="4" maxlength="8000" placeholder="@UiText.EncounterNotesHint(Lang)" @bind="draft.Notes" @bind:after="SaveAsync" data-test="encounter-notes"></textarea>
+            </div>
+
+            <div class="d-flex justify-content-end gap-2">
+                @if (confirmDelete)
+                {
+                    <button type="button" class="btn btn-sm btn-rf-outline" @onclick="() => confirmDelete = false">@UiText.BtnCancel(Lang)</button>
+                    <button type="button" class="btn btn-sm btn-rf-orange" style="background-color: #dc3545; border-color: #dc3545;" @onclick="DeleteAsync" data-test="encounter-delete-yes">@UiText.EncounterDeleteConfirm(Lang)</button>
+                }
+                else
+                {
+                    <button type="button" class="btn btn-sm btn-rf-outline" style="border-color: #dc3545; color: #dc3545;" @onclick="() => confirmDelete = true" data-test="encounter-delete">@UiText.Delete(Lang)</button>
+                }
+            </div>
+        }
+    }
+</div>
+
+@if (statblock is not null)
+{
+    <div class="rf-modal-backdrop" @onclick="() => statblock = null">
+        <div class="rf-modal-dialog" style="max-width: 760px;" @onclick:stopPropagation="true" data-test="encounter-statblock">
+            <div class="d-flex justify-content-end mb-2">
+                <button class="btn btn-sm btn-rf-outline" @onclick="() => statblock = null">✕</button>
+            </div>
+            <MonsterStatBlock Monster="statblock" />
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter, EditorRequired] public Guid CampaignId { get; set; }
+    [Parameter, EditorRequired] public Guid EncounterId { get; set; }
+    [Parameter, EditorRequired] public CampaignDetailDto Campaign { get; set; } = default!;
+    [Parameter] public EventCallback OnClose { get; set; }
+
+    //	The players' view follows the masters every few seconds
+    private const int RefreshSeconds = 8;
+
+    private LanguageCode Lang => LanguageState.CurrentLanguage;
+    private bool Manage => encounter?.CanManage == true;
+
+    private EncounterDto? encounter;
+    private SaveEncounterDto draft = new();
+    private bool loading = true;
+    private string? message;
+    private bool confirmDelete;
+    private RulesetVersion difficultyRuleset = RulesetVersion.Dnd5e_2014;
+
+    private List<MonsterResponseDto>? monsters;
+    private string monsterSearch = string.Empty;
+    private bool rollHp;
+    private readonly Dictionary<Guid, int> addCounts = new();
+    private readonly Dictionary<Guid, string?> amounts = new();
+    private string otherName = string.Empty;
+    private MonsterDetailDto? statblock;
+
+    private readonly SemaphoreSlim saveLock = new(1, 1);
+    private System.Threading.Timer? refresh;
+
+    protected override async Task OnInitializedAsync()
+    {
+        difficultyRuleset = Campaign.Ruleset ?? RulesetVersion.Dnd5e_2014;
+        await LoadAsync();
+        loading = false;
+        if (encounter is not null && !encounter.CanManage)
+        {
+            refresh = new System.Threading.Timer(_ => InvokeAsync(async () =>
+            {
+                await LoadAsync();
+                StateHasChanged();
+            }), null, TimeSpan.FromSeconds(RefreshSeconds), TimeSpan.FromSeconds(RefreshSeconds));
+        }
+    }
+
+    private async Task LoadAsync()
+    {
+        var loaded = await Encounters.GetEncounterAsync(CampaignId, EncounterId);
+        if (loaded is null && encounter is not null && !encounter.CanManage)
+        {
+            //	Hidden again or finished: the players go back to the list
+            message = UiText.EncounterNotFound(Lang);
+        }
+        encounter = loaded;
+        if (loaded is not null)
+        {
+            draft = ToDraft(loaded);
+        }
+    }
+
+    private static SaveEncounterDto ToDraft(EncounterDto e) => new()
+    {
+        Name = e.Name,
+        Notes = e.Notes,
+        Status = e.Status,
+        Round = e.Round,
+        CurrentId = e.CurrentId,
+        Shown = e.Shown,
+        PartyIds = e.PartyIds.ToList(),
+        Version = e.Version,
+        Combatants = e.Combatants.Select(c => new EncounterCombatant
+        {
+            Id = c.Id,
+            Kind = c.Kind,
+            MonsterId = c.MonsterId,
+            CharacterId = c.CharacterId,
+            Name = c.Name,
+            Initiative = c.Initiative,
+            InitiativeBonus = c.InitiativeBonus,
+            ArmorClass = c.ArmorClass,
+            MaxHp = c.MaxHp,
+            Hp = c.Hp,
+            TempHp = c.TempHp,
+            Xp = c.Xp,
+            ChallengeRating = c.ChallengeRating,
+            Conditions = c.Conditions.ToList(),
+            Note = c.Note,
+            Hidden = c.Hidden,
+            Health = c.Health
+        }).ToList()
+    };
+
+    //	Every change is saved at once; a save made meanwhile by another master reloads the encounter
+    private async Task SaveAsync()
+    {
+        if (!Manage || encounter is null)
+        {
+            return;
+        }
+        if (string.IsNullOrWhiteSpace(draft.Name))
+        {
+            draft.Name = encounter.Name;
+        }
+        await saveLock.WaitAsync();
+        try
+        {
+            var result = await Encounters.SaveAsync(CampaignId, EncounterId, draft);
+            if (result.Encounter is { } saved)
+            {
+                encounter = saved;
+                draft.Version = saved.Version;
+                message = null;
+            }
+            else if (result.Status == System.Net.HttpStatusCode.Conflict && result.Current is { } current)
+            {
+                encounter = current;
+                draft = ToDraft(current);
+                message = UiText.EncounterConflict(Lang);
+            }
+            else
+            {
+                message = UiText.CampaignActionFailed(result.Status, Lang);
+            }
+        }
+        finally
+        {
+            saveLock.Release();
+        }
+    }
+
+    // ===== Difficulty =====
+
+    private List<int> PartyLevels => encounter is null ? new() : encounter.Characters.Where(c => draft.PartyIds.Contains(c.CharacterId)).Select(c => c.Level).ToList();
+
+    private EncounterBudget Budget => EncounterMath.Evaluate(difficultyRuleset, PartyLevels,
+        draft.Combatants.Where(c => c.Kind == CombatantKind.Monster).Select(c => c.Xp).ToList());
+
+    private List<RfSelect<RulesetVersion>.OptionItem> RulesetOptions => new()
+    {
+        new(RulesetVersion.Dnd5e_2014, UiText.FormatRuleset(RulesetVersion.Dnd5e_2014, Lang)),
+        new(RulesetVersion.Dnd5e_2024, UiText.FormatRuleset(RulesetVersion.Dnd5e_2024, Lang))
+    };
+
+    private async Task TogglePartyAsync(Guid characterId)
+    {
+        if (!draft.PartyIds.Remove(characterId))
+        {
+            draft.PartyIds.Add(characterId);
+        }
+        await SaveAsync();
+    }
+
+    // ===== Adding =====
+
+    private async Task EnsureMonstersAsync()
+    {
+        monsters ??= await MonsterService.GetMonstersAsync(Lang, Campaign.Ruleset);
+    }
+
+    private List<MonsterResponseDto> MonsterResults
+    {
+        get
+        {
+            var term = monsterSearch.Trim();
+            if (term.Length < 2 || monsters is null)
+            {
+                return new();
+            }
+            return monsters
+                .Where(m => m.Name.Contains(term, StringComparison.OrdinalIgnoreCase) || (m.Alias?.Contains(term, StringComparison.OrdinalIgnoreCase) ?? false))
+                .OrderBy(m => m.Name.StartsWith(term, StringComparison.OrdinalIgnoreCase) ? 0 : 1)
+                .ThenBy(m => m.Name, StringComparer.CurrentCultureIgnoreCase)
+                .Take(12)
+                .ToList();
+        }
+    }
+
+    private int CountOf(Guid monsterId) => addCounts.TryGetValue(monsterId, out var n) ? n : 1;
+
+    private void SetCount(Guid monsterId, object? value)
+    {
+        if (int.TryParse(value?.ToString(), out var n))
+        {
+            addCounts[monsterId] = Math.Clamp(n, 1, 20);
+        }
+    }
+
+    //	"Goblin 1", "Goblin 2"… when there is more than one of a kind
+    private async Task AddMonsterAsync(MonsterResponseDto m)
+    {
+        var count = CountOf(m.Id);
+        var same = draft.Combatants.Where(c => c.MonsterId == m.Id).ToList();
+        if (same.Count + count > EncounterRules.MaxCombatants - (draft.Combatants.Count - same.Count))
+        {
+            message = UiText.EncounterTooMany(Lang);
+            return;
+        }
+        if (same.Count == 1 && same[0].Name == m.Name)
+        {
+            same[0].Name = $"{m.Name} 1";
+        }
+        for (var i = 1; i <= count; i++)
+        {
+            var hp = rollHp ? Roll(m.HitDice) ?? m.HitPoints : m.HitPoints;
+            draft.Combatants.Add(new EncounterCombatant
+            {
+                Kind = CombatantKind.Monster,
+                MonsterId = m.Id,
+                Name = same.Count + count > 1 ? $"{m.Name} {same.Count + i}" : m.Name,
+                InitiativeBonus = MonsterMath.Modifier(m.Dexterity),
+                ArmorClass = m.ArmorClass,
+                MaxHp = Math.Max(1, hp),
+                Hp = Math.Max(1, hp),
+                Xp = m.Xp,
+                ChallengeRating = m.ChallengeRating
+            });
+        }
+        addCounts.Remove(m.Id);
+        await SaveAsync();
+    }
+
+    //	The characters of the party that are not on the field yet
+    private List<CampaignCharacterDto> PartyToAdd => Campaign.Characters
+        .Where(e => draft.PartyIds.Count == 0 || draft.PartyIds.Contains(e.Character.Id))
+        .Where(e => draft.Combatants.All(c => c.CharacterId != e.Character.Id))
+        .ToList();
+
+    private async Task AddPartyAsync()
+    {
+        foreach (var entry in PartyToAdd)
+        {
+            var ch = entry.Character;
+            draft.Combatants.Add(new EncounterCombatant
+            {
+                Kind = CombatantKind.Character,
+                CharacterId = ch.Id,
+                Name = ch.Name,
+                ArmorClass = ch.ArmorClass,
+                MaxHp = ch.MaxHitPoints,
+                Hp = ch.CurrentHitPoints
+            });
+        }
+        await SaveAsync();
+    }
+
+    private async Task AddOtherAsync()
+    {
+        if (string.IsNullOrWhiteSpace(otherName))
+        {
+            return;
+        }
+        draft.Combatants.Add(new EncounterCombatant { Kind = CombatantKind.Other, Name = otherName.Trim() });
+        otherName = string.Empty;
+        await SaveAsync();
+    }
+
+    private async Task RemoveAsync(EncounterCombatant c)
+    {
+        draft.Combatants.RemoveAll(x => x.Id == c.Id);
+        if (draft.CurrentId == c.Id)
+        {
+            draft.CurrentId = null;
+        }
+        await SaveAsync();
+    }
+
+    private async Task RenameAsync(EncounterCombatant c, object? value)
+    {
+        var name = value?.ToString()?.Trim();
+        if (!string.IsNullOrEmpty(name))
+        {
+            c.Name = name;
+            await SaveAsync();
+        }
+    }
+
+    // ===== Running =====
+
+    private static int RollDie(int faces) => Random.Shared.Next(1, faces + 1);
+
+    //	A dice formula rolled ("2d8 + 2"); null when it cannot be read
+    private static int? Roll(string? formula)
+    {
+        var match = System.Text.RegularExpressions.Regex.Match((formula ?? string.Empty).Replace(" ", string.Empty).ToLowerInvariant(), @"^(\d+)d(\d+)([+-]\d+)?$");
+        if (!match.Success)
+        {
+            return null;
+        }
+        var count = Math.Min(int.Parse(match.Groups[1].Value), 200);
+        var faces = Math.Min(int.Parse(match.Groups[2].Value), 100);
+        var total = match.Groups[3].Success ? int.Parse(match.Groups[3].Value) : 0;
+        for (var i = 0; i < count; i++)
+        {
+            total += RollDie(faces);
+        }
+        return total;
+    }
+
+    private async Task SetInitiativeAsync(EncounterCombatant c, object? value)
+    {
+        c.Initiative = int.TryParse(value?.ToString(), out var n) ? n : null;
+        await SaveAsync();
+    }
+
+    //	Monsters and others without initiative roll d20 + bonus (the players roll their own)
+    private void RollMissingInitiative()
+    {
+        foreach (var c in draft.Combatants.Where(c => c.Kind != CombatantKind.Character && c.Initiative is null))
+        {
+            c.Initiative = RollDie(20) + c.InitiativeBonus;
+        }
+    }
+
+    private async Task RollInitiativeAsync()
+    {
+        RollMissingInitiative();
+        await SaveAsync();
+    }
+
+    //	Who still takes turns: characters always, the others until they drop
+    private List<EncounterCombatant> Acting => EncounterRules.Order(draft.Combatants)
+        .Where(c => c.Kind == CombatantKind.Character || c.MaxHp == 0 || c.Hp > 0)
+        .ToList();
+
+    private async Task StartAsync()
+    {
+        RollMissingInitiative();
+        draft.Status = EncounterStatus.Running;
+        draft.Round = 1;
+        draft.CurrentId = Acting.FirstOrDefault()?.Id;
+        await SaveAsync();
+    }
+
+    private async Task NextAsync()
+    {
+        var order = Acting;
+        if (order.Count == 0)
+        {
+            return;
+        }
+        var index = order.FindIndex(c => c.Id == draft.CurrentId);
+        if (index + 1 >= order.Count)
+        {
+            draft.Round++;
+            draft.CurrentId = order[0].Id;
+        }
+        else
+        {
+            draft.CurrentId = order[index + 1].Id;
+        }
+        await SaveAsync();
+    }
+
+    private async Task PreviousAsync()
+    {
+        var order = Acting;
+        if (order.Count == 0)
+        {
+            return;
+        }
+        var index = order.FindIndex(c => c.Id == draft.CurrentId);
+        if (index <= 0)
+        {
+            if (draft.Round > 1)
+            {
+                draft.Round--;
+                draft.CurrentId = order[^1].Id;
+            }
+        }
+        else
+        {
+            draft.CurrentId = order[index - 1].Id;
+        }
+        await SaveAsync();
+    }
+
+    private async Task FinishAsync()
+    {
+        draft.Status = EncounterStatus.Finished;
+        draft.CurrentId = null;
+        await SaveAsync();
+    }
+
+    private async Task ReopenAsync()
+    {
+        draft.Status = EncounterStatus.Planned;
+        draft.Round = 0;
+        draft.CurrentId = null;
+        await SaveAsync();
+    }
+
+    private async Task ToggleShownAsync()
+    {
+        draft.Shown = !draft.Shown;
+        await SaveAsync();
+    }
+
+    private string? AmountOf(EncounterCombatant c) => amounts.TryGetValue(c.Id, out var text) ? text : null;
+
+    //	-1 damage (temporary hit points first), +1 healing (up to the maximum), 0 temporary hit points (the higher stays)
+    private async Task ApplyAsync(EncounterCombatant c, int direction)
+    {
+        if (!int.TryParse(AmountOf(c), out var amount) || amount <= 0)
+        {
+            return;
+        }
+        switch (direction)
+        {
+            case < 0:
+                var absorbed = Math.Min(c.TempHp, amount);
+                c.TempHp -= absorbed;
+                c.Hp = Math.Max(0, c.Hp - (amount - absorbed));
+                break;
+            case > 0:
+                c.Hp = c.MaxHp > 0 ? Math.Min(c.MaxHp, Math.Max(0, c.Hp) + amount) : c.Hp + amount;
+                break;
+            default:
+                c.TempHp = Math.Max(c.TempHp, amount);
+                break;
+        }
+        amounts.Remove(c.Id);
+        await SaveAsync();
+    }
+
+    private List<RfSelect<string>.OptionItem> ConditionOptions(EncounterCombatant c) =>
+        new List<RfSelect<string>.OptionItem> { new(string.Empty, "+ " + UiText.EncounterCondition(Lang)) }
+            .Concat(EncounterRules.Conditions.Where(k => !c.Conditions.Contains(k))
+                .Select(k => new RfSelect<string>.OptionItem(k, UiText.ConditionName(k, Lang)))
+                .OrderBy(o => o.Label, StringComparer.CurrentCultureIgnoreCase))
+            .ToList();
+
+    private async Task AddConditionAsync(EncounterCombatant c, string? key)
+    {
+        if (!string.IsNullOrEmpty(key) && !c.Conditions.Contains(key))
+        {
+            c.Conditions.Add(key);
+            await SaveAsync();
+        }
+    }
+
+    private async Task RemoveConditionAsync(EncounterCombatant c, string key)
+    {
+        c.Conditions.Remove(key);
+        await SaveAsync();
+    }
+
+    private async Task ToggleHiddenAsync(EncounterCombatant c)
+    {
+        c.Hidden = !c.Hidden;
+        await SaveAsync();
+    }
+
+    private async Task OpenStatblockAsync(Guid monsterId)
+    {
+        statblock = await MonsterService.GetMonsterAsync(monsterId, Lang);
+        if (statblock is null)
+        {
+            message = UiText.EncounterStatblockMissing(Lang);
+        }
+    }
+
+    private async Task DeleteAsync()
+    {
+        if (await Encounters.DeleteAsync(CampaignId, EncounterId))
+        {
+            await OnClose.InvokeAsync();
+        }
+    }
+
+    public void Dispose()
+    {
+        refresh?.Dispose();
+        saveLock.Dispose();
+    }
+}

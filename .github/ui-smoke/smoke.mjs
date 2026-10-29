@@ -64,7 +64,7 @@ try {
 
   // Navigation: reference pages live in the collapsible "Compendio" group, opened on compendium routes
   const compendiumLinks = (await page.locator('[data-test=nav-compendium] a').allInnerTexts()).map((t) => t.trim());
-  if (compendiumLinks.join(',') !== 'Specie,Background,Talenti,Incantesimi,Classi,Equipaggiamento,Oggetti magici') throw new Error(`unexpected compendium links: ${compendiumLinks.join(',')}`);
+  if (compendiumLinks.join(',') !== 'Specie,Background,Talenti,Incantesimi,Classi,Equipaggiamento,Oggetti magici,Mostri') throw new Error(`unexpected compendium links: ${compendiumLinks.join(',')}`);
   // The rules glossary is a menu entry of its own, next to the compendium group
   const rulesLink = (await page.locator('[data-test=nav-rules] a').innerText()).trim();
   if (rulesLink !== 'Glossario') throw new Error(`unexpected glossary menu entry: ${rulesLink}`);
@@ -92,7 +92,7 @@ try {
     rules: document.querySelectorAll('[data-test=home-rules] dt').length,
   }));
   results.push(`INFO dashboard: ${JSON.stringify(home)}`);
-  if (home.links.join(',') !== 'rules,species,backgrounds,feats,spells,classes,equipment,magic-items' || home.figures !== 0 || home.how !== 4 || home.rules !== 6) throw new Error('unexpected dashboard');
+  if (home.links.join(',') !== 'rules,species,backgrounds,feats,spells,classes,equipment,magic-items,monsters' || home.figures !== 0 || home.how !== 4 || home.rules !== 6) throw new Error('unexpected dashboard');
   if (await page.locator('main a[href=account]', { hasText: 'Accedi per forgiare' }).count() !== 1) throw new Error('dashboard misses the sign-in call to action');
   ok('dashboard: welcome, links to the 8 sections without figures, how it works (4 points), house rules (6) and the sign-in call to action');
 
@@ -393,7 +393,7 @@ try {
     return { label: el.textContent.trim(), inset: Math.round(icon.left - el.getBoundingClientRect().left), left: Math.round(icon.left) };
   }));
   results.push(`INFO menu icons: ${iconGaps.map((g) => `${g.label}@${g.left}(+${g.inset})`).join(', ')}`);
-  if (iconGaps.length !== 12 || iconGaps.some((g) => g.inset < 8) || new Set(iconGaps.map((g) => g.left)).size !== 1) throw new Error('menu icons are not padded or not aligned');
+  if (iconGaps.length !== 13 || iconGaps.some((g) => g.inset < 8) || new Set(iconGaps.map((g) => g.left)).size !== 1) throw new Error('menu icons are not padded or not aligned');
   await page.locator('[data-test=nav-compendium] button').click();
   ok('"Compendio" menu group: Specie, Background, Talenti, Incantesimi, Classi, Equipaggiamento, and Glossario next to it; collapsed elsewhere and toggles on click; icons padded and aligned');
   await page.getByText('Non hai un account? Registrati').click();
@@ -618,7 +618,7 @@ try {
   const compendium = await page.evaluate(() => Object.fromEntries([...document.querySelectorAll('[data-test=account-compendium] tbody tr')]
     .map((tr) => [tr.getAttribute('data-test').replace('account-compendium-', ''), [...tr.querySelectorAll('td.rf-num')].map((td) => td.textContent.trim()).join('/')])));
   results.push(`INFO account compendium (2024/2014): ${JSON.stringify(compendium)}`);
-  if (JSON.stringify(compendium) !== JSON.stringify({ rules: '155/88', species: '10/9', backgrounds: '16/13', feats: '75/42', spells: '391/361', classes: '12/12', equipment: '208/242' })) throw new Error('unexpected compendium counts in the account');
+  if (JSON.stringify(compendium) !== JSON.stringify({ rules: '155/88', species: '10/9', backgrounds: '16/13', feats: '75/42', spells: '391/361', classes: '12/12', equipment: '208/242', monsters: '0/322' })) throw new Error('unexpected compendium counts in the account');
   ok('account: Base content per section and edition (glossary 155+88, species 10+9, backgrounds 16+13, feats 75+42, spells 391+361, classes 12+12, equipment 208+242)');
   const newCredential = ['Rf', crypto.randomUUID(), 'B!'].join('-');
   await page.locator('[data-test=pwd-current]').fill('wrong-password-1A!');
@@ -887,8 +887,39 @@ try {
   await page.locator('[data-test=sheet-share-dialog] button', { hasText: /chiudi/i }).click();
   if (!/Nessun account/.test(shareError)) throw new Error(`sharing with an unknown address: "${shareError}"`);
   ok('character sharing: the dialog adds people by e-mail and explains an unknown address');
-  // Campaigns: a new campaign makes its creator the master, with the invite link; the character joins the table
   const sheetUrl = page.url();
+  // Monsters: 322 statblocks of 2014, type filter, the Goblin's statblock, a Homebrew variant made from it (then deleted)
+  await page.goto(`${base}/monsters`);
+  await page.locator('[data-test=monster-card]').first().waitFor({ timeout: 60000 });
+  const monsterCount = async (expected) => {
+    for (let i = 0; i < 100 && (await page.locator('[data-test=monster-count]').innerText()).trim() !== expected; i++) await page.waitForTimeout(100);
+    return (await page.locator('[data-test=monster-count]').innerText()).trim();
+  };
+  const monsterUi = { all: await monsterCount('322 mostri') };
+  await pickOption('monster-type', 'Drago');
+  monsterUi.dragons = await monsterCount('43 mostri');
+  await pickOption('monster-type', 'Tutti i tipi');
+  await page.locator('[data-test=monster-search]').fill('goblin');
+  monsterUi.goblins = await monsterCount('2 mostri');
+  await page.locator('[data-test=monster-card]').filter({ has: page.locator('.rf-card-title', { hasText: /^Goblin$/ }) }).click();
+  await page.locator('[data-test=monster-statblock]').waitFor({ timeout: 15000 });
+  const goblinBlock = (await page.locator('[data-test=monster-statblock]').innerText()).replace(/\s+/g, ' ');
+  monsterUi.statblock = ['Classe Armatura 15 (armatura di cuoio, scudo)', 'Punti Ferita 7 (2d6)', 'Sfida 1/4 (50 PE)', 'Fuga agile'].filter((t) => goblinBlock.includes(t)).length;
+  await page.locator('[data-test=monster-variant]').click();
+  await page.locator('[data-test=monster-form]').waitFor({ timeout: 15000 });
+  await page.locator('[data-test=monster-form-hp]').fill('12');
+  await page.locator('[data-test=monster-form-save]').click();
+  await page.locator('[data-test=monster-detail-name]', { hasText: 'Goblin (variante)' }).waitFor({ timeout: 15000 });
+  monsterUi.variantOf = (await page.locator('[data-test=monster-variant-of]').innerText()).trim();
+  monsterUi.variantHp = (await page.locator('[data-test=monster-statblock]').innerText()).includes('Punti Ferita 12');
+  await page.locator('[data-test=monster-delete]').click();
+  await page.locator('[data-test=monster-delete-yes]').click();
+  await page.locator('[data-test=monster-detail]').waitFor({ state: 'detached', timeout: 15000 });
+  results.push(`INFO monsters: ${JSON.stringify(monsterUi)}`);
+  if (monsterUi.all !== '322 mostri' || monsterUi.dragons !== '43 mostri' || monsterUi.goblins !== '2 mostri' || monsterUi.statblock !== 4
+    || !/Goblin/.test(monsterUi.variantOf) || !monsterUi.variantHp) throw new Error(`unexpected monsters page: ${JSON.stringify(monsterUi)}`);
+  ok('monsters: 322 statblocks of 2014, 43 dragons, the Goblin statblock, a Homebrew variant with its own hit points (then deleted)');
+  // Campaigns: a new campaign makes its creator the master, with the invite link; the character joins the table
   await page.goto(`${base}/campaigns`);
   await page.locator('[data-test=campaign-new]').click();
   await page.locator('[data-test=campaign-name]').fill('Tavola di prova');
@@ -912,13 +943,35 @@ try {
   await page.locator('[data-test=campaign-note-save]').click();
   await page.locator('[data-test=campaign-note]', { hasText: 'Sessione 1' }).waitFor({ timeout: 15000 });
   campaignUi.notes = await page.locator('[data-test=campaign-note]').count();
+  // An encounter: three goblins and the party, its difficulty, the fight starts and the turn moves on
+  await page.locator('[data-test=campaign-tab-encounters]').click();
+  await page.locator('[data-test=encounter-new-name]').fill('Imboscata');
+  await page.locator('[data-test=encounter-new-create]').click();
+  await page.locator('[data-test=encounter-monster-search]').waitFor({ timeout: 15000 });
+  await page.locator('[data-test=encounter-monster-search]').fill('goblin');
+  const goblinPick = page.locator('.rf-monster-pick').filter({ has: page.locator('.rf-monster-pick-name', { hasText: /^Goblin$/ }) });
+  await goblinPick.waitFor({ timeout: 30000 });
+  await goblinPick.locator('input').fill('3');
+  await goblinPick.locator('[data-test=encounter-monster-add]').click();
+  await page.locator('[data-test=encounter-combatant]').nth(2).waitFor({ timeout: 15000 });
+  await page.locator('[data-test=encounter-add-party]').click();
+  await page.locator('[data-test=encounter-combatant]', { hasText: 'Eroe di prova' }).waitFor({ timeout: 15000 });
+  campaignUi.combatants = await page.locator('[data-test=encounter-combatant]').count();
+  campaignUi.goblins = (await page.locator('[data-test=combatant-name]').evaluateAll((els) => els.map((e) => e.value))).filter((n) => /^Goblin [123]$/.test(n)).length;
+  campaignUi.rating = (await page.locator('[data-test=encounter-rating]').innerText()).trim();
+  await page.locator('[data-test=encounter-start]').click();
+  await page.locator('[data-test=encounter-round]', { hasText: 'Round 1' }).waitFor({ timeout: 15000 });
+  for (let i = 0; i < 4; i++) await page.locator('[data-test=encounter-next]').click();
+  await page.locator('[data-test=encounter-round]', { hasText: 'Round 2' }).waitFor({ timeout: 15000 });
+  campaignUi.current = await page.locator('.rf-combatant.current').count();
   await page.locator('[data-test=campaign-tab-overview]').click();
   await page.locator('[data-test=campaign-delete]').click();
   await page.locator('[data-test=campaign-confirm-yes]').click();
   await page.waitForURL(/\/campaigns$/, { timeout: 15000 });
   results.push(`INFO campaign: ${JSON.stringify(campaignUi)}`);
-  if (campaignUi.role !== 'Master' || !campaignUi.link || campaignUi.share !== 1 || campaignUi.notes !== 1) throw new Error(`unexpected campaign page: ${JSON.stringify(campaignUi)}`);
-  ok('campaigns: the creator is the master with an invite link, the character joins the table, a journal page, the campaign is deleted');
+  if (campaignUi.role !== 'Master' || !campaignUi.link || campaignUi.share !== 1 || campaignUi.notes !== 1
+    || campaignUi.combatants !== 4 || campaignUi.goblins !== 3 || !/^(Facile|Medio|Difficile|Mortale)$/.test(campaignUi.rating) || campaignUi.current !== 1) throw new Error(`unexpected campaign page: ${JSON.stringify(campaignUi)}`);
+  ok('campaigns: the creator is the master with an invite link, the character joins the table, a journal page, an encounter with three goblins run to round 2, the campaign is deleted');
   await page.goto(sheetUrl);
   await page.locator('[data-test=character-sheet]').waitFor({ timeout: 30000 });
   const [download] = await Promise.all([page.waitForEvent('download', { timeout: 20000 }), page.locator('[data-test=sheet-pdf]').click()]);

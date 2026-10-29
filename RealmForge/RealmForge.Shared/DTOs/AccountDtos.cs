@@ -22,8 +22,8 @@
 	///	<summary>
 	///	Number of Homebrew entries created by the user, per module.
 	///	</summary>
-	public record HomebrewCountsDto(int Feats, int Species, int Subspecies, int Backgrounds, int Spells = 0, int Classes = 0, int Subclasses = 0, int Equipment = 0)
+	public record HomebrewCountsDto(int Feats, int Species, int Subspecies, int Backgrounds, int Spells = 0, int Classes = 0, int Subclasses = 0, int Equipment = 0, int Monsters = 0)
 	{
-		public int Total => Feats + Species + Subspecies + Backgrounds + Spells + Classes + Subclasses + Equipment;
+		public int Total => Feats + Species + Subspecies + Backgrounds + Spells + Classes + Subclasses + Equipment + Monsters;
 	}
 }

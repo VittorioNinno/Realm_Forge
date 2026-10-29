@@ -1,0 +1,112 @@
+﻿@using RealmForge.Client.Localization
+@using RealmForge.Client.Services
+@using RealmForge.Shared.Campaigns
+@using RealmForge.Shared.DTOs
+@using RealmForge.Shared.Enums
+@inject EncounterDataService Encounters
+@inject LanguageStateService LanguageState
+
+@* Encounters tab of a campaign: the list (masters and co-masters see them all, the players only the ones under way
+   that were shown to them) and the encounter that is open *@
+<section data-test="campaign-encounters">
+    @if (openId is { } id)
+    {
+        <EncounterTracker CampaignId="Campaign.Id" EncounterId="id" Campaign="Campaign" OnClose="CloseAsync" />
+    }
+    else
+    {
+        <div class="small mb-3" style="color: var(--rf-text-muted);">
+            @(EncounterRules.CanManage(Campaign.MyRole) ? UiText.EncountersHintMaster(Lang) : UiText.EncountersHintPlayer(Lang))
+        </div>
+
+        @if (EncounterRules.CanManage(Campaign.MyRole))
+        {
+            <div class="rf-card2 mb-3" data-test="encounter-create">
+                <div class="rf-mini-title">@UiText.EncounterNew(Lang)</div>
+                <div class="d-flex flex-wrap gap-2">
+                    <input class="rf-form-control flex-grow-1" style="max-width: 420px;" maxlength="100" placeholder="@UiText.EncounterNamePlaceholder(Lang)"
+                           @bind="newName" @bind:event="oninput" data-test="encounter-new-name" />
+                    <button type="button" class="btn btn-rf-orange" disabled="@(string.IsNullOrWhiteSpace(newName) || busy)" @onclick="CreateAsync" data-test="encounter-new-create">@UiText.BtnCreate(Lang)</button>
+                </div>
+                @if (error is not null)
+                {
+                    <div class="small text-warning mt-2">@error</div>
+                }
+            </div>
+        }
+
+        @if (list is null)
+        {
+            <div class="small" style="color: var(--rf-text-muted);">…</div>
+        }
+        else if (list.Count == 0)
+        {
+            <div class="rf-account-card text-center" data-test="encounters-empty">@UiText.EncountersEmpty(Lang)</div>
+        }
+        else
+        {
+            <div class="rf-encounter-list" data-test="encounter-list">
+                @foreach (var item in list)
+                {
+                    var e = item;
+                    <button type="button" class="rf-encounter-item" @onclick="() => openId = e.Id" data-test="encounter-item">
+                        <span class="rf-encounter-item-name">@e.Name</span>
+                        <span class="badge rf-encounter-status rf-encounter-status-@e.Status.ToString().ToLowerInvariant()">@UiText.EncounterStatusName(e.Status, Lang)</span>
+                        @if (e.Status == EncounterStatus.Running)
+                        {
+                            <span class="small">@UiText.EncounterRound(e.Round, Lang)</span>
+                        }
+                        <span class="small ms-auto" style="color: var(--rf-text-muted);">
+                            @UiText.EncounterMonsterCount(e.Monsters, Lang)@(EncounterRules.CanManage(Campaign.MyRole) ? $" · {e.MonsterXp} {UiText.XpLabel(Lang)}" : null)
+                            @if (e.Shown)
+                            {
+                                <text> · 👁 @UiText.EncounterShownShort(Lang)</text>
+                            }
+                        </span>
+                    </button>
+                }
+            </div>
+        }
+    }
+</section>
+
+@code {
+    [Parameter, EditorRequired] public CampaignDetailDto Campaign { get; set; } = default!;
+
+    private LanguageCode Lang => LanguageState.CurrentLanguage;
+    private List<EncounterSummaryDto>? list;
+    private Guid? openId;
+    private string newName = string.Empty;
+    private string? error;
+    private bool busy;
+
+    protected override Task OnInitializedAsync() => LoadAsync();
+
+    private async Task LoadAsync() => list = await Encounters.GetEncountersAsync(Campaign.Id) ?? new List<EncounterSummaryDto>();
+
+    private async Task CreateAsync()
+    {
+        if (string.IsNullOrWhiteSpace(newName))
+        {
+            return;
+        }
+        busy = true;
+        error = null;
+        var result = await Encounters.SaveAsync(Campaign.Id, null, new SaveEncounterDto { Name = newName.Trim() });
+        busy = false;
+        if (result.Encounter is { } created)
+        {
+            newName = string.Empty;
+            openId = created.Id;
+            await LoadAsync();
+            return;
+        }
+        error = UiText.CampaignActionFailed(result.Status, Lang);
+    }
+
+    private async Task CloseAsync()
+    {
+        openId = null;
+        await LoadAsync();
+    }
+}

@@ -9,6 +9,7 @@
 @inject SpellDataService SpellService
 @inject ClassDataService ClassService
 @inject EquipmentDataService EquipmentService
+@inject MonsterDataService MonsterService
 @inject GlossaryService Glossary
 
 @* Base content of each section per edition (Homebrew is counted in the card below it) *@
@@ -63,6 +64,7 @@
         "feats" => UiText.FeatsTitle(Lang),
         "spells" => UiText.SpellsTitle(Lang),
         "classes" => UiText.ClassesTitle(Lang),
+        "monsters" => UiText.MonstersTitle(Lang),
         _ => UiText.EquipmentTitle(Lang)
     };
 
@@ -77,8 +79,9 @@
         var spells = SpellService.GetSpellsAsync(lang);
         var classes = ClassService.GetClassesAsync(lang);
         var equipment = EquipmentService.GetEquipmentAsync(lang);
+        var monsters = MonsterService.GetMonstersAsync(lang);
         var rules = Glossary.GetEntriesAsync(lang);
-        await Task.WhenAll(species, backgrounds, feats, spells, classes, equipment, rules);
+        await Task.WhenAll(species, backgrounds, feats, spells, classes, equipment, monsters, rules);
 
         rows = new List<Row>
         {
@@ -88,7 +91,8 @@
             Count("feats", (await feats).Select(f => (f.Ruleset, f.IsOfficialSRD))),
             Count("spells", (await spells).Select(s => (s.Ruleset, s.IsOfficialSRD))),
             Count("classes", (await classes).Select(c => (c.Ruleset, c.IsOfficialSRD))),
-            Count("equipment", (await equipment).Select(e => (e.Ruleset, e.IsOfficialSRD)))
+            Count("equipment", (await equipment).Select(e => (e.Ruleset, e.IsOfficialSRD))),
+            Count("monsters", (await monsters).Select(m => (m.Ruleset, m.IsOfficialSRD)))
         };
 
         //	No Base content at all is never a real state: the API could not be read
