@@ -1,0 +1,75 @@
+﻿@using RealmForge.Client.Localization
+@using RealmForge.Client.Services
+@using RealmForge.Shared.DTOs
+@using RealmForge.Shared.Enums
+@inject LanguageStateService LanguageState
+
+@* A character as a card, like the character lists of D&D Beyond: portrait, name, "Level 1 | Elf | Druid", the
+   person who plays it; a band (the campaigns, for instance) and a row of actions under it. Clicking the card opens
+   the sheet: the name is a link stretched over the top of the card, the actions sit above it. *@
+<div class="rf-pc-card @(Shared ? "shared" : null) @(Inactive ? "inactive" : null)" data-test="@DataTest">
+    <div class="rf-pc-head @(Href is null ? null : "rf-card-linked")">
+        <div class="rf-pc-portrait @(Character.Portrait is null ? "empty" : null)" style="@PortraitStyle" aria-hidden="true">
+            @if (Character.Portrait is null)
+            {
+                @Initial
+            }
+        </div>
+        <div class="rf-pc-info">
+            <div class="rf-pc-titlerow">
+                @if (Href is not null)
+                {
+                    <a class="rf-pc-name rf-card-link" href="@Href" data-test="@($"{DataTest}-open")">@Character.Name</a>
+                }
+                else
+                {
+                    <span class="rf-pc-name">@Character.Name</span>
+                }
+                <span class="badge @(Character.Ruleset == RulesetVersion.Dnd5e_2024 ? "badge-edition-2024" : "badge-edition-2014")">@UiText.FormatRuleset(Character.Ruleset, Lang)</span>
+            </div>
+            <div class="rf-pc-line">@UiText.CharacterLevel(Character.Level, Lang) <span>|</span> @Character.SpeciesName <span>|</span> @Character.ClassLine</div>
+            <div class="rf-pc-stats">
+                <span><strong>@UiText.SheetArmorClass(Lang)</strong> @Character.ArmorClass</span>
+                <span><strong>@UiText.SheetHitPoints(Lang)</strong> @Character.CurrentHitPoints / @Character.MaxHitPoints</span>
+                @if (Inactive)
+                {
+                    <span class="rf-pc-inactive" data-test="@($"{DataTest}-inactive")">@UiText.CampaignCharacterInactive(Lang)</span>
+                }
+            </div>
+            @if (Note is not null)
+            {
+                <div class="rf-pc-note">@Note</div>
+            }
+        </div>
+    </div>
+    @if (Band is not null)
+    {
+        <div class="rf-pc-band">@Band</div>
+    }
+    @if (Actions is not null)
+    {
+        <div class="rf-pc-actions">@Actions</div>
+    }
+</div>
+
+@code {
+    [Parameter, EditorRequired] public CharacterSummaryDto Character { get; set; } = default!;
+
+    //	The page the card opens (the sheet); null: the card does not open
+    [Parameter] public string? Href { get; set; }
+
+    [Parameter] public string? Note { get; set; }
+    [Parameter] public bool Shared { get; set; }
+    [Parameter] public bool Inactive { get; set; }
+    [Parameter] public RenderFragment? Band { get; set; }
+    [Parameter] public RenderFragment? Actions { get; set; }
+    [Parameter] public string DataTest { get; set; } = "character-card";
+
+    private LanguageCode Lang => LanguageState.CurrentLanguage;
+
+    private string Initial => string.IsNullOrWhiteSpace(Character.Name) ? "?" : Character.Name.Trim()[..1].ToUpperInvariant();
+
+    private string? PortraitStyle => Character.Portrait is { } src
+        ? $"background-image: url('{src}'); background-position: {Character.PortraitX ?? 50}% {Character.PortraitY ?? 50}%;"
+        : null;
+}

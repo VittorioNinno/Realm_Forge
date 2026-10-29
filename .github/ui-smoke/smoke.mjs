@@ -684,6 +684,8 @@ try {
   await page.locator('[data-test=wizard-name]').fill('Eroe di prova');
   await choose('wizard-advancement', 'narrativa');
   await page.locator('[data-test=wizard-advancement-hint]', { hasText: 'master' }).waitFor({ timeout: 5000 });
+  await choose('wizard-advancement', 'punti esperienza');
+  await page.locator('[data-test=wizard-advancement-hint]', { hasText: 'accumulando' }).waitFor({ timeout: 5000 });
   // 2014: the race comes right after the identity, with the 2014 terms
   await choose('wizard-edition', '2014');
   await page.locator('[data-test=character-wizard][data-ruleset="1"]').waitFor({ timeout: 30000 });
@@ -783,17 +785,16 @@ try {
   const sheetName = (await page.locator('[data-test=sheet-name]').innerText()).trim();
   const sheetAc = (await page.locator('[data-test=sheet-ac]').innerText()).trim();
   const sheetHp = (await page.locator('[data-test=sheet-hp]').innerText()).trim();
-  // Advancement type: story-based from the wizard, switched to XP on the sheet, 300 XP make level 2 ready
-  await page.locator('[data-test=sheet-milestone]').waitFor({ timeout: 10000 });
-  const milestoneXpBar = await page.locator('[data-test=sheet-xp-value]').count();
-  await page.locator('[data-test=sheet-advancement-experience]').click();
+  // Advancement type: chosen in the wizard only (no switch on the sheet); XP-based shows the bar, 300 XP make level 2 ready
+  await page.locator('[data-test=sheet-xp]').waitFor({ timeout: 10000 });
+  const milestoneXpBar = await page.locator('[data-test^=sheet-advancement]').count();
   await page.locator('[data-test=sheet-xp-amount]').fill('300');
   await page.locator('[data-test=sheet-xp-amount]').press('Tab');
   await page.locator('[data-test=sheet-xp-add]').click();
   const xpValue = (await page.locator('[data-test=sheet-xp-value]').innerText()).trim();
   const levelUpReady = await page.locator('[data-test=sheet-levelup].rf-pulse').count();
-  if (milestoneXpBar !== 0 || xpValue !== '300 / 300' || levelUpReady !== 1) throw new Error(`advancement type not applied: xp bar with milestones=${milestoneXpBar} xp=${xpValue} ready=${levelUpReady}`);
-  ok('advancement type: story-based chosen in the wizard hides XP on the sheet, XP-based shows the bar and highlights the level up at 300 XP');
+  if (milestoneXpBar !== 0 || xpValue !== '300 / 300' || levelUpReady !== 1) throw new Error(`advancement type: switches on the sheet=${milestoneXpBar} xp=${xpValue} ready=${levelUpReady}`);
+  ok('advancement type: chosen in the wizard (hint for each), no switch on the sheet; XP-based shows the bar and highlights the level up at 300 XP');
   // Class resources computed on their own: the wizard's Arcane Recovery, spent with "use" and back after a long rest
   const classResources = await page.locator('[data-test=sheet-class-resource]').allInnerTexts();
   await page.locator('[data-test=sheet-class-resource-use]').first().click();
@@ -987,8 +988,21 @@ try {
   await page.locator('[data-test=campaign-character]').click({ position: { x: 24, y: 64 } });
   await page.waitForURL(/\/characters\/[0-9a-f-]+$/, { timeout: 15000 });
   campaignUi.cardOpens = true;
+  // The list of characters shows the campaign on the card, with edit and delete
+  await page.goto(`${base}/characters`);
+  await page.locator('[data-test=character-campaign]', { hasText: 'Tavola di prova' }).waitFor({ timeout: 30000 });
+  campaignUi.listActions = await page.locator('[data-test=character-card]', { hasText: 'Eroe di prova' }).locator('[data-test=character-edit], [data-test=character-delete]').count();
+  await shot(page, 'characters-list', '[data-test=characters-grid]');
+  // Deactivated, the character stays at the table marked as inactive; activated again for the encounter
   await page.goto(campaignUrl);
   await page.locator('[data-test=campaign-title]').waitFor({ timeout: 30000 });
+  await page.locator('[data-test=campaign-tab-characters]').click();
+  await page.locator('[data-test=campaign-character-active]').click();
+  await page.locator('[data-test=campaign-character-inactive]').waitFor({ timeout: 15000 });
+  await shot(page, 'campaign-characters-inactive', '[data-test=campaign-characters]');
+  await page.locator('[data-test=campaign-character-active]').click();
+  await page.locator('[data-test=campaign-character-inactive]').waitFor({ state: 'detached', timeout: 15000 });
+  campaignUi.toggled = true;
   await page.locator('[data-test=campaign-tab-content]').click();
   campaignUi.share = await page.locator('[data-test=campaign-share]').count();
   // The shared journal: a page written by the master
@@ -1042,8 +1056,8 @@ try {
   results.push(`INFO campaign: ${JSON.stringify(campaignUi)}`);
   if (campaignUi.role !== 'Master' || !campaignUi.link || campaignUi.share !== 1 || campaignUi.notes !== 1
     || campaignUi.combatants !== 4 || campaignUi.goblins !== 3 || !campaignUi.hero || !/^(Facile|Medio|Difficile|Mortale)$/.test(campaignUi.rating) || campaignUi.current !== 1
-    || campaignUi.cardButtons !== 0 || !campaignUi.cardOpens || campaignUi.noteKinds !== 'Diario di viaggio,Personali,Per i master' || campaignUi.leftFromSheet !== 1) throw new Error(`unexpected campaign page: ${JSON.stringify(campaignUi)}`);
-  ok('campaigns: the creator is the master with an invite link, the character joins the table (the whole card opens the sheet), a journal page, an encounter with three goblins run to round 2, the character leaves from its sheet, the campaign is deleted');
+    || campaignUi.cardButtons !== 0 || !campaignUi.cardOpens || campaignUi.listActions !== 2 || !campaignUi.toggled || campaignUi.noteKinds !== 'Diario di viaggio,Personali,Per i master' || campaignUi.leftFromSheet !== 1) throw new Error(`unexpected campaign page: ${JSON.stringify(campaignUi)}`);
+  ok('campaigns: the creator is the master with an invite link, the character joins the table (the whole card opens the sheet, deactivated and activated again; its card in the list shows the campaign), a journal page, an encounter with three goblins run to round 2, the character leaves from its sheet, the campaign is deleted');
   await page.goto(sheetUrl);
   await page.locator('[data-test=character-sheet]').waitFor({ timeout: 30000 });
   const [download] = await Promise.all([page.waitForEvent('download', { timeout: 20000 }), page.locator('[data-test=sheet-pdf]').click()]);

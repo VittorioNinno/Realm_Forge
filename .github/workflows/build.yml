@@ -754,7 +754,7 @@ jobs:
           chcheck "2014 fighter rows (letters from the English text)" "$ctx_it" "ab ab ab ab"
           chcheck "anonymous list" "$ch_anon" "401"
           chcheck "derived values" "$ch_vitals" '{"hp":9,"ac":12,"items":true,"gold":13,"worn":2}'
-          chcheck "owner list" "$ch_list" '[{"level":1,"classLine":"Mago 1","hp":9}]'
+          chcheck "owner list" "$ch_list" '[{"level":1,"classLine":"Mago","hp":9}]'
           chcheck "other list" "$ch_bob_list" "0"
           chcheck "other GET" "$ch_bob" "404"
           chcheck "scores not of the array" "$ch_bad_scores" "400"

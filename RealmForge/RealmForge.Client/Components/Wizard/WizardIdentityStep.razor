@@ -32,7 +32,7 @@
                        data-test="wizard-level" aria-label="@UiText.LabelStartingLevel(Lang)" />
                 <span class="rf-wizard-level-value" data-test="wizard-level-value">@Build.Levels.Count</span>
             </div>
-            <div class="small mt-1" style="color: var(--rf-text-muted);">@UiText.HintStartingLevel(Lang)</div>
+            <div class="small mt-2" style="color: var(--rf-text-muted);">@UiText.HintStartingLevel(Lang)</div>
         </div>
     </div>
 }
@@ -41,7 +41,7 @@
     <div class="rf-wizard-label">@UiText.LabelAdvancement(Lang)</div>
     <div class="rf-wizard-field">
         <ForgeSelector TValue="AdvancementType" Value="W.Input.Sheet.Advancement" ValueChanged="SetAdvancement" Options="AdvancementOptions" DataTest="wizard-advancement" />
-        <div class="small mt-1" style="color: var(--rf-text-muted);" data-test="wizard-advancement-hint">@UiText.AdvancementHint(W.Input.Sheet.Advancement, Lang)</div>
+        <div class="small mt-2" style="color: var(--rf-text-muted);" data-test="wizard-advancement-hint">@UiText.AdvancementHint(W.Input.Sheet.Advancement, Lang)</div>
     </div>
 </div>
 

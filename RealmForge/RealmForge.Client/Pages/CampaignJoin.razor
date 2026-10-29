@@ -35,7 +35,7 @@
             else
             {
                 <div class="rf-account-card" data-test="campaign-join-preview">
-                    <div class="rf-character-card-name mb-1">@preview.Name</div>
+                    <div class="rf-character-card-name mb-2">@preview.Name</div>
                     <div class="small mb-3" style="color: var(--rf-text-secondary);">
                         @(preview.Ruleset is { } ruleset ? UiText.FormatRuleset(ruleset, Lang) : UiText.CampaignAnyEdition(Lang)) · @UiText.CampaignMembersCount(preview.Members, Lang)
                     </div>
