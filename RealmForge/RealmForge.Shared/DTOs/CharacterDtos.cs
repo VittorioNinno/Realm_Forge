@@ -61,12 +61,15 @@ namespace RealmForge.Shared.DTOs
 		//	Opened by someone the owner shared it with: the sheet is shown but nothing is saved
 		bool ReadOnly = false,
 
-		//	Opened by a master or co-master of one of its campaigns: the sheet saves, OwnerEmail says whose it is
+		//	Opened by a master or co-master of one of its campaigns: the sheet saves, OwnerName says whose it is
 		bool IsOwner = true,
-		string? OwnerEmail = null,
+		string? OwnerName = null,
 
-		//	E-mail of whoever saved it last, when it is someone else than the reader
-		string? LastEditedBy = null);
+		//	Nickname of whoever saved it last, when it is someone else than the reader
+		string? LastEditedBy = null,
+
+		//	Campaigns the character takes part in (for its owner and the masters who opened it)
+		List<Guid>? Campaigns = null);
 
 	public record CharacterSavedDto(Guid Id, int MaxHitPoints, int ArmorClass, DateTimeOffset UpdatedAt);
 }

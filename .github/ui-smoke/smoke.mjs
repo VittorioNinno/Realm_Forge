@@ -899,19 +899,26 @@ try {
     link: (await page.locator('[data-test=campaign-link-url]').inputValue()).includes('/campaigns/join/'),
   };
   await page.locator('[data-test=campaign-tab-characters]').click();
-  const heroOption = await page.locator('[data-test=campaign-bring-select] option', { hasText: 'Eroe di prova' }).first().getAttribute('value', { timeout: 15000 });
-  await page.locator('[data-test=campaign-bring-select]').selectOption(heroOption);
+  await pickOption('campaign-bring-select', 'Eroe di prova');
   await page.locator('[data-test=campaign-bring-add]').click();
   await page.locator('[data-test=campaign-character]', { hasText: 'Eroe di prova' }).waitFor({ timeout: 15000 });
   await page.locator('[data-test=campaign-tab-content]').click();
   campaignUi.share = await page.locator('[data-test=campaign-share]').count();
+  // The shared journal: a page written by the master
+  await page.locator('[data-test=campaign-tab-notes]').click();
+  await page.locator('[data-test=campaign-note-new]').click();
+  await page.locator('[data-test=campaign-note-title]').fill('Sessione 1');
+  await page.locator('[data-test=campaign-note-body]').fill('Il gruppo parte da Valdoras.');
+  await page.locator('[data-test=campaign-note-save]').click();
+  await page.locator('[data-test=campaign-note]', { hasText: 'Sessione 1' }).waitFor({ timeout: 15000 });
+  campaignUi.notes = await page.locator('[data-test=campaign-note]').count();
   await page.locator('[data-test=campaign-tab-overview]').click();
   await page.locator('[data-test=campaign-delete]').click();
   await page.locator('[data-test=campaign-confirm-yes]').click();
   await page.waitForURL(/\/campaigns$/, { timeout: 15000 });
   results.push(`INFO campaign: ${JSON.stringify(campaignUi)}`);
-  if (campaignUi.role !== 'Master' || !campaignUi.link || campaignUi.share !== 1) throw new Error(`unexpected campaign page: ${JSON.stringify(campaignUi)}`);
-  ok('campaigns: the creator is the master with an invite link, the character joins the table, the campaign is deleted');
+  if (campaignUi.role !== 'Master' || !campaignUi.link || campaignUi.share !== 1 || campaignUi.notes !== 1) throw new Error(`unexpected campaign page: ${JSON.stringify(campaignUi)}`);
+  ok('campaigns: the creator is the master with an invite link, the character joins the table, a journal page, the campaign is deleted');
   await page.goto(sheetUrl);
   await page.locator('[data-test=character-sheet]').waitFor({ timeout: 30000 });
   const [download] = await Promise.all([page.waitForEvent('download', { timeout: 20000 }), page.locator('[data-test=sheet-pdf]').click()]);

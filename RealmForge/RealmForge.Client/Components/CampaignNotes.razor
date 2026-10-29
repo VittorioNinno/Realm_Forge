@@ -1,0 +1,174 @@
+﻿@using RealmForge.Client.Localization
+@using RealmForge.Client.Services
+@using RealmForge.Shared.Campaigns
+@using RealmForge.Shared.DTOs
+@using RealmForge.Shared.Enums
+@inject CampaignDataService Campaigns
+@inject LanguageStateService LanguageState
+
+@* Notes of a campaign: private ones, the masters' (only masters and co-masters) and the party's travel journal *@
+<section data-test="campaign-notes">
+    <div class="rf-pill-group mb-2" role="tablist">
+        @foreach (var kind in Kinds)
+        {
+            var current = kind;
+            <button type="button" role="tab" class="rf-pill-btn @(selected == current ? "active" : null)" aria-selected="@(selected == current)"
+                    @onclick="() => Select(current)" data-test="@($"campaign-notes-{current.ToString().ToLowerInvariant()}")">
+                @UiText.CampaignNoteKindName(current, Lang)
+            </button>
+        }
+    </div>
+    <div class="small mb-3" style="color: var(--rf-text-muted);">@UiText.CampaignNoteKindHint(selected, Lang)</div>
+
+    @if (CampaignRules.CanWriteNotes(selected, Role))
+    {
+        @if (editing is null)
+        {
+            <button type="button" class="btn btn-sm btn-rf-orange mb-3" @onclick="NewNote" data-test="campaign-note-new">+ @UiText.BtnNewNote(Lang)</button>
+        }
+        else
+        {
+            <div class="rf-card2 mb-3" data-test="campaign-note-form">
+                <input class="rf-form-control mb-2" maxlength="120" placeholder="@UiText.CampaignNoteTitle(Lang)" @bind="draft.Title" data-test="campaign-note-title" />
+                <textarea class="rf-form-control mb-2" rows="6" maxlength="8000" placeholder="@UiText.CampaignNoteBody(Lang)" @bind="draft.Body" data-test="campaign-note-body"></textarea>
+                @if (error is not null)
+                {
+                    <div class="small text-warning mb-2">@error</div>
+                }
+                <div class="d-flex justify-content-end gap-2">
+                    <button type="button" class="btn btn-sm btn-rf-outline" @onclick="() => editing = null">@UiText.BtnCancel(Lang)</button>
+                    <button type="button" class="btn btn-sm btn-rf-orange" disabled="@saving" @onclick="SaveAsync" data-test="campaign-note-save">@UiText.BtnConfirm(Lang)</button>
+                </div>
+            </div>
+        }
+    }
+
+    <div class="rf-card2">
+        @if (notes is null)
+        {
+            <div class="small" style="color: var(--rf-text-muted);">…</div>
+        }
+        else if (!Shown.Any())
+        {
+            <div class="small" style="color: var(--rf-text-muted);" data-test="campaign-notes-empty">@UiText.CampaignNotesEmpty(Lang)</div>
+        }
+        else
+        {
+            @foreach (var note in Shown)
+            {
+                var n = note;
+                <article class="rf-campaign-note" data-test="campaign-note">
+                    <div class="rf-campaign-note-head">
+                        <span class="rf-campaign-note-title">@(string.IsNullOrWhiteSpace(n.Title) ? "—" : n.Title)</span>
+                        <span class="rf-campaign-note-meta">
+                            @n.Author · @UiText.FormatDate(n.CreatedAt.ToLocalTime(), Lang)
+                            @if (n.UpdatedAt > n.CreatedAt.AddMinutes(1))
+                            {
+                                <text> · @UiText.CampaignNoteEdited(Lang)</text>
+                            }
+                        </span>
+                    </div>
+                    @if (!string.IsNullOrWhiteSpace(n.Body))
+                    {
+                        <div class="rf-markdown-container mt-1">@((MarkupString)MarkdownText.ToHtml(n.Body, null))</div>
+                    }
+                    @if (n.CanEdit || n.CanDelete)
+                    {
+                        <div class="d-flex gap-2 mt-1">
+                            @if (n.CanEdit)
+                            {
+                                <button type="button" class="btn btn-sm btn-rf-outline" @onclick="() => Edit(n)" data-test="campaign-note-edit">@UiText.Edit(Lang)</button>
+                            }
+                            @if (n.CanDelete)
+                            {
+                                <button type="button" class="btn btn-sm btn-rf-outline" @onclick="() => DeleteAsync(n)" data-test="campaign-note-delete">@UiText.Delete(Lang)</button>
+                            }
+                        </div>
+                    }
+                </article>
+            }
+        }
+    </div>
+</section>
+
+@code {
+    [Parameter, EditorRequired] public Guid CampaignId { get; set; }
+    [Parameter] public CampaignRole Role { get; set; } = CampaignRole.Player;
+
+    private LanguageCode Lang => LanguageState.CurrentLanguage;
+    private List<CampaignNoteDto>? notes;
+    private CampaignNoteKind selected = CampaignNoteKind.Journal;
+
+    //	Note being written: Guid.Empty for a new one, null when the form is closed
+    private Guid? editing;
+    private SaveCampaignNoteDto draft = new();
+    private string? error;
+    private bool saving;
+
+    private IEnumerable<CampaignNoteKind> Kinds => new[] { CampaignNoteKind.Journal, CampaignNoteKind.Private, CampaignNoteKind.Masters }
+        .Where(k => CampaignRules.CanReadNotes(k, Role));
+
+    private IEnumerable<CampaignNoteDto> Shown => (notes ?? new()).Where(n => n.Kind == selected);
+
+    protected override Task OnInitializedAsync() => LoadAsync();
+
+    //	A role that changed (demoted from co-master) no longer shows the masters' notes
+    protected override void OnParametersSet()
+    {
+        if (!CampaignRules.CanReadNotes(selected, Role))
+        {
+            selected = CampaignNoteKind.Journal;
+        }
+    }
+
+    private async Task LoadAsync() => notes = await Campaigns.GetNotesAsync(CampaignId) ?? new List<CampaignNoteDto>();
+
+    private void Select(CampaignNoteKind kind)
+    {
+        selected = kind;
+        editing = null;
+    }
+
+    private void NewNote()
+    {
+        draft = new SaveCampaignNoteDto { Kind = selected };
+        error = null;
+        editing = Guid.Empty;
+    }
+
+    private void Edit(CampaignNoteDto note)
+    {
+        draft = new SaveCampaignNoteDto { Kind = note.Kind, Title = note.Title, Body = note.Body };
+        error = null;
+        editing = note.Id;
+    }
+
+    private async Task SaveAsync()
+    {
+        if (string.IsNullOrWhiteSpace(draft.Title) && string.IsNullOrWhiteSpace(draft.Body))
+        {
+            error = UiText.CampaignNoteEmpty(Lang);
+            return;
+        }
+        saving = true;
+        var result = editing is { } id && id != Guid.Empty
+            ? await Campaigns.UpdateNoteAsync(CampaignId, id, draft)
+            : await Campaigns.AddNoteAsync(CampaignId, draft);
+        saving = false;
+        if (!result.Ok)
+        {
+            error = UiText.CampaignActionFailed(result.Status, Lang);
+            return;
+        }
+        editing = null;
+        await LoadAsync();
+    }
+
+    private async Task DeleteAsync(CampaignNoteDto note)
+    {
+        if ((await Campaigns.DeleteNoteAsync(CampaignId, note.Id)).Ok)
+        {
+            await LoadAsync();
+        }
+    }
+}

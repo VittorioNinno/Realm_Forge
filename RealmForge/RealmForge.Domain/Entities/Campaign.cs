@@ -28,6 +28,7 @@ namespace RealmForge.Domain.Entities
 		public ICollection<CampaignInvite> Invites { get; set; } = new List<CampaignInvite>();
 		public ICollection<CampaignCharacter> Characters { get; set; } = new List<CampaignCharacter>();
 		public ICollection<CampaignContent> Contents { get; set; } = new List<CampaignContent>();
+		public ICollection<CampaignNote> Notes { get; set; } = new List<CampaignNote>();
 	}
 
 	///	<summary>
@@ -69,6 +70,24 @@ namespace RealmForge.Domain.Entities
 		public Character Character { get; set; } = null!;
 		public string AddedById { get; set; } = string.Empty;
 		public DateTimeOffset AddedAt { get; set; } = DateTimeOffset.UtcNow;
+	}
+
+	///	<summary>
+	///	A note of the campaign: private (its author only), for the masters, or a page of the shared journal.
+	///	</summary>
+	public class CampaignNote
+	{
+		public Guid Id { get; set; } = Guid.NewGuid();
+		public Guid CampaignId { get; set; }
+		public Campaign Campaign { get; set; } = null!;
+		public CampaignNoteKind Kind { get; set; } = CampaignNoteKind.Journal;
+		public string AuthorId { get; set; } = string.Empty;
+		public string Title { get; set; } = string.Empty;
+
+		//	Markdown
+		public string Body { get; set; } = string.Empty;
+		public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
+		public DateTimeOffset UpdatedAt { get; set; } = DateTimeOffset.UtcNow;
 	}
 
 	///	<summary>

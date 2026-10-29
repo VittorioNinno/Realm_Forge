@@ -112,8 +112,37 @@ namespace RealmForge.Client.Services
 		public Task<CampaignResult> RemoveMemberAsync(Guid id, string userId) =>
 			SendAsync(() => _http.DeleteAsync($"api/campaigns/{id}/members/{Uri.EscapeDataString(userId)}"), "remove member");
 
-		public Task<CampaignResult> AddCharacterAsync(Guid id, Guid characterId) =>
-			SendAsync(() => _http.PostAsJsonAsync($"api/campaigns/{id}/characters", new CampaignCharacterRequestDto { CharacterId = characterId }), "add character");
+		///	<summary>
+		///	Brings a character to the table. When it does not meet the campaign's requirements, Check lists the reasons.
+		///	</summary>
+		public async Task<(CampaignResult Result, CampaignCharacterCheckDto? Check)> AddCharacterAsync(Guid id, Guid characterId, LanguageCode lang)
+		{
+			try
+			{
+				var response = await _http.PostAsJsonAsync($"api/campaigns/{id}/characters?lang={(int)lang}", new CampaignCharacterRequestDto { CharacterId = characterId });
+				if (response.StatusCode == HttpStatusCode.UnprocessableEntity)
+				{
+					return (new CampaignResult(false, response.StatusCode), await response.Content.ReadFromJsonAsync<CampaignCharacterCheckDto>());
+				}
+				return (new CampaignResult(response.IsSuccessStatusCode, response.IsSuccessStatusCode ? null : response.StatusCode), null);
+			}
+			catch (Exception ex)
+			{
+				_logger.LogError(ex, "Bringing a character failed");
+				return (new CampaignResult(false), null);
+			}
+		}
+
+		public Task<List<CampaignNoteDto>?> GetNotesAsync(Guid id) => GetAsync<List<CampaignNoteDto>>($"api/campaigns/{id}/notes");
+
+		public Task<CampaignResult> AddNoteAsync(Guid id, SaveCampaignNoteDto note) =>
+			SendAsync(() => _http.PostAsJsonAsync($"api/campaigns/{id}/notes", note), "add note");
+
+		public Task<CampaignResult> UpdateNoteAsync(Guid id, Guid noteId, SaveCampaignNoteDto note) =>
+			SendAsync(() => _http.PutAsJsonAsync($"api/campaigns/{id}/notes/{noteId}", note), "update note");
+
+		public Task<CampaignResult> DeleteNoteAsync(Guid id, Guid noteId) =>
+			SendAsync(() => _http.DeleteAsync($"api/campaigns/{id}/notes/{noteId}"), "delete note");
 
 		public Task<CampaignResult> RemoveCharacterAsync(Guid id, Guid characterId) =>
 			SendAsync(() => _http.DeleteAsync($"api/campaigns/{id}/characters/{characterId}"), "remove character");
