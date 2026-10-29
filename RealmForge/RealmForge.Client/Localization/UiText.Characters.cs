@@ -44,8 +44,8 @@ namespace RealmForge.Client.Localization
 		public static string LoadingCharacters(LanguageCode lang) => T(lang, "Apertura degli archivi degli eroi...", "Opening the hall of heroes...");
 		public static string CharacterLevel(int level, LanguageCode lang) => T(lang, $"Livello {level}", $"Level {level}");
 		public static string DeleteCharacterWarning(string name, LanguageCode lang) => T(lang,
-			$"Vuoi eliminare definitivamente il personaggio \"{name}\"? L'operazione non può essere annullata.",
-			$"Do you want to permanently delete the character \"{name}\"? This cannot be undone.");
+			$"Vuoi eliminare il personaggio \"{name}\"? Potrai recuperarlo dal cestino per 3 giorni.",
+			$"Do you want to delete the character \"{name}\"? You can restore it from the bin for 3 days.");
 		public static string BtnBackToCharacters(LanguageCode lang) => T(lang, "Tutti i personaggi", "All characters");
 		public static string BtnBackToSheet(LanguageCode lang) => T(lang, "Torna alla scheda", "Back to the sheet");
 		public static string CharacterNotFound(LanguageCode lang) => T(lang,

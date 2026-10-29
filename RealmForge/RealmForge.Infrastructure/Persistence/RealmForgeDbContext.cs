@@ -71,6 +71,9 @@ namespace RealmForge.Infrastructure.Persistence
 		public DbSet<CampaignNote> CampaignNotes => Set<CampaignNote>();
 		public DbSet<CampaignEncounter> CampaignEncounters => Set<CampaignEncounter>();
 
+		//	The bin: deleted characters, campaigns and Homebrew, restorable for a few days
+		public DbSet<TrashEntry> TrashEntries => Set<TrashEntry>();
+
 		//	Rules glossary
 		public DbSet<RuleEntry> RuleEntries => Set<RuleEntry>();
 		public DbSet<RuleEntryTranslation> RuleEntryTranslations => Set<RuleEntryTranslation>();
@@ -537,6 +540,18 @@ namespace RealmForge.Infrastructure.Persistence
 			});
 
 			//	Rules glossary configuration
+			modelBuilder.Entity<TrashEntry>(entity =>
+			{
+				entity.HasKey(t => t.Id);
+				entity.Property(t => t.UserId).IsRequired().HasMaxLength(450);
+				entity.Property(t => t.Kind).IsRequired().HasMaxLength(32);
+				entity.Property(t => t.NameIt).IsRequired().HasMaxLength(300);
+				entity.Property(t => t.NameEn).IsRequired().HasMaxLength(300);
+				entity.Property(t => t.Payload).IsRequired();
+				entity.HasIndex(t => new { t.UserId, t.ExpiresAt });
+				entity.HasIndex(t => t.ExpiresAt);
+			});
+
 			modelBuilder.Entity<RuleEntry>(entity =>
 			{
 				entity.HasKey(e => e.Id);
