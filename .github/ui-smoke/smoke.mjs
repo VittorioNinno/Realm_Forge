@@ -900,7 +900,7 @@ try {
   monsterUi.dragons = await monsterCount('43 mostri');
   await pickOption('monster-type', 'Tutti i tipi');
   await page.locator('[data-test=monster-search]').fill('goblin');
-  monsterUi.goblins = await monsterCount('2 mostri');
+  monsterUi.goblins = await monsterCount('3 mostri');
   await page.locator('[data-test=monster-card]').filter({ has: page.locator('.rf-card-title', { hasText: /^Goblin$/ }) }).click();
   await page.locator('[data-test=monster-statblock]').waitFor({ timeout: 15000 });
   const goblinBlock = (await page.locator('[data-test=monster-statblock]').innerText()).replace(/\s+/g, ' ');
@@ -916,7 +916,7 @@ try {
   await page.locator('[data-test=monster-delete-yes]').click();
   await page.locator('[data-test=monster-detail]').waitFor({ state: 'detached', timeout: 15000 });
   results.push(`INFO monsters: ${JSON.stringify(monsterUi)}`);
-  if (monsterUi.all !== '322 mostri' || monsterUi.dragons !== '43 mostri' || monsterUi.goblins !== '2 mostri' || monsterUi.statblock !== 4
+  if (monsterUi.all !== '322 mostri' || monsterUi.dragons !== '43 mostri' || monsterUi.goblins !== '3 mostri' || monsterUi.statblock !== 4
     || !/Goblin/.test(monsterUi.variantOf) || !monsterUi.variantHp) throw new Error(`unexpected monsters page: ${JSON.stringify(monsterUi)}`);
   ok('monsters: 322 statblocks of 2014, 43 dragons, the Goblin statblock, a Homebrew variant with its own hit points (then deleted)');
   // Campaigns: a new campaign makes its creator the master, with the invite link; the character joins the table
