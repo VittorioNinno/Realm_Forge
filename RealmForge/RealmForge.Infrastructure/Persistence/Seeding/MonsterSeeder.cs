@@ -39,14 +39,16 @@ public static class MonsterSeeder
 	public sealed record Text(
 		string Name, string? Alias, string Subtitle, string ArmorClass, string Speed, string SavingThrows, string Skills,
 		string DamageVulnerabilities, string DamageResistances, string DamageImmunities, string ConditionImmunities,
-		string Senses, string Languages, string Traits, string Actions, string Reactions, string LegendaryActions);
+		string Senses, string Languages, string Traits, string Actions, string BonusActions, string Reactions, string LegendaryActions,
+		string Description);
 
 	///	<summary>
-	///	A base monster of the 2014 rules (SRD 5.1), with its Italian and English texts. Abilities: Str, Dex, Con, Int,
-	///	Wis, Cha; speed in feet; variantOf is the key of the statblock it varies (a swarm of insects, a giant rat).
+	///	A base monster of the 2014 rules, with its Italian and English texts: SRD 5.1 statblocks, and the Monster Manual
+	///	ones outside the SRD with texts written for RealmForge. Abilities: Str, Dex, Con, Int, Wis, Cha; speed in feet;
+	///	variantOf is the key of the statblock it varies (a swarm of insects, a giant rat, a cave bear).
 	///	</summary>
 	public static Monster Create(
-		string key, string? variantOf, CreatureSize size, CreatureType type, int armorClass, int hitPoints, string hitDice, int speed,
+		string key, string? variantOf, ContentSource source, CreatureSize size, CreatureType type, int armorClass, int hitPoints, string hitDice, int speed,
 		int[] abilities, decimal challenge, int xp, int proficiency, int passivePerception, Text it, Text en)
 	{
 		var ruleset = RulesetVersion.Dnd5e_2014;
@@ -55,7 +57,7 @@ public static class MonsterSeeder
 			Id = DeterministicGuid.ForSrd(ruleset, "monster", key),
 			Ruleset = ruleset,
 			IsOfficialSRD = true,
-			Source = ContentSource.Srd51,
+			Source = source,
 			Size = size,
 			Type = type,
 			ArmorClass = armorClass,
@@ -105,10 +107,10 @@ public static class MonsterSeeder
 		tr.Languages = t.Languages;
 		tr.Traits = t.Traits;
 		tr.Actions = t.Actions;
-		tr.BonusActions = string.Empty;
+		tr.BonusActions = t.BonusActions;
 		tr.Reactions = t.Reactions;
 		tr.LegendaryActions = t.LegendaryActions;
-		tr.Description = string.Empty;
+		tr.Description = t.Description;
 	}
 
 	private static void Copy(MonsterTranslation target, MonsterTranslation source)

@@ -9,7 +9,7 @@ namespace RealmForge.Infrastructure.Persistence.Seeding.MonstersData;
 ///	</summary>
 public static class Nightmare2014Seeder
 {
-	public static Monster Build() => Create("nightmare", null, CreatureSize.Large, CreatureType.Fiend,
+	public static Monster Build() => Create("nightmare", null, ContentSource.Srd51, CreatureSize.Large, CreatureType.Fiend,
 		13, 68, "8d10 + 24", 60, new[] { 18, 15, 16, 10, 13, 15 }, 3m, 700, 2, 11,
 		new Text(
 			"Cavallo degli incubi",
@@ -28,6 +28,8 @@ public static class Nightmare2014Seeder
 			"***Conferire resistenza al fuoco.*** Il cavallo degli incubi può conferire resistenza ai danni da fuoco a chiunque lo cavalchi.\n\n***Illuminazione.*** Il cavallo degli incubi emana luce intensa in un raggio di 3 metri e luce fioca per ulteriori 3 metri.",
 			"***Zoccoli.*** *Attacco con arma da mischia:* +6 al tiro per colpire, portata 1,5 m, un bersaglio. *Colpito:* 13 (2d8 + 4) danni contundenti più 7 (2d6) danni da fuoco.\n\n***Passo etereo.*** Il cavallo degli incubi e un massimo di tre creature consenzienti situate entro 1,5 metri da esso passano magicamente dal Piano Materiale al Piano Etereo o viceversa.",
 			"",
+			"",
+			"",
 			""),
 		new Text(
 			"Nightmare",
@@ -45,6 +47,8 @@ public static class Nightmare2014Seeder
 			"understands Abyssal, Common, and Infernal but can't speak",
 			"***Confer Fire Resistance.*** The nightmare can grant resistance to fire damage to anyone riding it.\n\n***Illumination.*** The nightmare sheds bright light in a 10-foot radius and dim light for an additional 10 feet.",
 			"***Hooves.*** *Melee Weapon Attack:* +6 to hit, reach 5 ft., one target. *Hit:* 13 (2d8 + 4) bludgeoning damage plus 7 (2d6) fire damage.\n\n***Ethereal Stride.*** The nightmare and up to three willing creatures within 5 feet of it magically enter the Ethereal Plane from the Material Plane, or vice versa.",
+			"",
+			"",
 			"",
 			""));
 }

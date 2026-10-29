@@ -9,7 +9,7 @@ namespace RealmForge.Infrastructure.Persistence.Seeding.MonstersData;
 ///	</summary>
 public static class Thug2014Seeder
 {
-	public static Monster Build() => Create("thug", null, CreatureSize.Medium, CreatureType.Humanoid,
+	public static Monster Build() => Create("thug", null, ContentSource.Srd51, CreatureSize.Medium, CreatureType.Humanoid,
 		11, 32, "5d8 + 10", 30, new[] { 15, 11, 14, 10, 10, 11 }, 0.5m, 100, 2, 10,
 		new Text(
 			"Malvivente",
@@ -28,6 +28,8 @@ public static class Thug2014Seeder
 			"***Tattiche del branco.*** Il malvivente dispone di vantaggio nel tiro per colpire contro una creatura se almeno uno degli alleati del malvivente si trova entro 1,5 metri dalla creatura e non è incapacitato.",
 			"***Multiattacco.*** Il malvivente effettua due attacchi in mischia.\n\n***Mazza.*** *Attacco con arma da mischia:* +4 al tiro per colpire, portata 1,5 m, una creatura. *Colpito:* 5 (1d6 + 2) danni contundenti.\n\n***Balestra pesante.*** *Attacco con arma a distanza:* +2 al tiro per colpire, gittata 30/120 m, un bersaglio. *Colpito:* 5 (1d10) danni perforanti.",
 			"",
+			"",
+			"",
 			""),
 		new Text(
 			"Thug",
@@ -45,6 +47,8 @@ public static class Thug2014Seeder
 			"any one language (usually Common)",
 			"***Pack Tactics.*** The thug has advantage on an attack roll against a creature if at least one of the thug's allies is within 5 ft. of the creature and the ally isn't incapacitated.",
 			"***Multiattack.*** The thug makes two melee attacks.\n\n***Mace.*** *Melee Weapon Attack:* +4 to hit, reach 5 ft., one creature. *Hit:* 5 (1d6 + 2) bludgeoning damage.\n\n***Heavy Crossbow.*** *Ranged Weapon Attack:* +2 to hit, range 100/400 ft., one target. *Hit:* 5 (1d10) piercing damage.",
+			"",
+			"",
 			"",
 			""));
 }

@@ -9,7 +9,7 @@ namespace RealmForge.Infrastructure.Persistence.Seeding.MonstersData;
 ///	</summary>
 public static class Gargoyle2014Seeder
 {
-	public static Monster Build() => Create("gargoyle", null, CreatureSize.Medium, CreatureType.Elemental,
+	public static Monster Build() => Create("gargoyle", null, ContentSource.Srd51, CreatureSize.Medium, CreatureType.Elemental,
 		15, 52, "7d8 + 21", 30, new[] { 15, 11, 16, 6, 11, 7 }, 2m, 450, 2, 10,
 		new Text(
 			"Gargoyle",
@@ -28,6 +28,8 @@ public static class Gargoyle2014Seeder
 			"***Falso aspetto.*** Finché il gargoyle rimane immobile, non è possibile distinguerlo da una statua inanimata.",
 			"***Multiattacco.*** Il gargoyle effettua due attacchi: uno con il morso e uno con gli artigli.\n\n***Artigli.*** *Attacco con arma da mischia:* +4 al tiro per colpire, portata 1,5 m, un bersaglio. *Colpito:* 5 (1d6 + 2) danni taglienti.\n\n***Morso.*** *Attacco con arma da mischia:* +4 al tiro per colpire, portata 1,5 m, un bersaglio. *Colpito:* 5 (1d6 + 2) danni perforanti.",
 			"",
+			"",
+			"",
 			""),
 		new Text(
 			"Gargoyle",
@@ -45,6 +47,8 @@ public static class Gargoyle2014Seeder
 			"Terran",
 			"***False Appearance.*** While the gargoyle remains motion less, it is indistinguishable from an inanimate statue.",
 			"***Multiattack.*** The gargoyle makes two attacks: one with its bite and one with its claws.\n\n***Bite.*** *Melee Weapon Attack:* +4 to hit, reach 5 ft., one target. *Hit:* 5 (1d6 + 2) piercing damage.\n\n***Claws.*** *Melee Weapon Attack:* +4 to hit, reach 5 ft., one target. *Hit:* 5 (1d6 + 2) slashing damage.",
+			"",
+			"",
 			"",
 			""));
 }

@@ -9,7 +9,7 @@ namespace RealmForge.Infrastructure.Persistence.Seeding.MonstersData;
 ///	</summary>
 public static class HunterShark2014Seeder
 {
-	public static Monster Build() => Create("hunter-shark", null, CreatureSize.Large, CreatureType.Beast,
+	public static Monster Build() => Create("hunter-shark", null, ContentSource.Srd51, CreatureSize.Large, CreatureType.Beast,
 		12, 45, "6d10 + 12", 0, new[] { 18, 13, 15, 1, 10, 4 }, 2m, 450, 2, 12,
 		new Text(
 			"Squalo cacciatore",
@@ -28,6 +28,8 @@ public static class HunterShark2014Seeder
 			"***Frenesia di sangue.*** Lo squalo dispone di vantaggio ai tiri per colpire in mischia contro ogni creatura che non possieda tutti i propri punti ferita.\n\n***Respirare sott'acqua.*** Lo squalo può respirare soltanto sott'acqua.",
 			"***Morso.*** *Attacco con arma da mischia:* +6 al tiro per colpire, portata 1,5 m, un bersaglio. *Colpito:* 13 (2d8 + 4) danni perforanti.",
 			"",
+			"",
+			"",
 			""),
 		new Text(
 			"Hunter Shark",
@@ -45,6 +47,8 @@ public static class HunterShark2014Seeder
 			"—",
 			"***Blood Frenzy.*** The shark has advantage on melee attack rolls against any creature that doesn't have all its hit points.\n\n***Water Breathing.*** The shark can breathe only underwater.",
 			"***Bite.*** *Melee Weapon Attack:* +6 to hit, reach 5 ft., one target. *Hit:* 13 (2d8 + 4) piercing damage.",
+			"",
+			"",
 			"",
 			""));
 }

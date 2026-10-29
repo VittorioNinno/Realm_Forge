@@ -9,7 +9,7 @@ namespace RealmForge.Infrastructure.Persistence.Seeding.MonstersData;
 ///	</summary>
 public static class BlueDragonWyrmling2014Seeder
 {
-	public static Monster Build() => Create("blue-dragon-wyrmling", null, CreatureSize.Medium, CreatureType.Dragon,
+	public static Monster Build() => Create("blue-dragon-wyrmling", null, ContentSource.Srd51, CreatureSize.Medium, CreatureType.Dragon,
 		17, 52, "8d8 + 16", 30, new[] { 17, 10, 15, 12, 11, 15 }, 3m, 700, 2, 14,
 		new Text(
 			"Drago blu cucciolo",
@@ -28,6 +28,8 @@ public static class BlueDragonWyrmling2014Seeder
 			"",
 			"***Morso.*** *Attacco con arma da mischia:* +5 al tiro per colpire, portata 1,5 m, un bersaglio. *Colpito:* 8 (1d10 + 3) danni perforanti più 3 (1d6) danni da fulmine.\n\n***Soffio di fulmini (ricarica 5–6).*** Il drago esala una scarica di fulmini lunga 9 metri e larga 1,5 metri. Ogni creatura su quella linea deve effettuare un tiro salvezza su Destrezza con CD 12, subendo 22 (4d10) danni da fulmine in caso di fallimento, o la metà dei danni in caso di successo.",
 			"",
+			"",
+			"",
 			""),
 		new Text(
 			"Blue Dragon Wyrmling",
@@ -45,6 +47,8 @@ public static class BlueDragonWyrmling2014Seeder
 			"Draconic",
 			"",
 			"***Bite.*** *Melee Weapon Attack:* +5 to hit, reach 5 ft., one target. *Hit:* 8 (1d10 + 3) piercing damage plus 3 (1d6) lightning damage.\n\n***Lightning Breath (Recharge 5–6).*** The dragon exhales lightning in a 30-foot line that is 5 feet wide. Each creature in that line must make a DC 12 Dexterity saving throw, taking 22 (4d10) lightning damage on a failed save, or half as much damage on a successful one.",
+			"",
+			"",
 			"",
 			""));
 }

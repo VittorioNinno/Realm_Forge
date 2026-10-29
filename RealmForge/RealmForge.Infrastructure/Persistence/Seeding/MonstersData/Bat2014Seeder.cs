@@ -9,7 +9,7 @@ namespace RealmForge.Infrastructure.Persistence.Seeding.MonstersData;
 ///	</summary>
 public static class Bat2014Seeder
 {
-	public static Monster Build() => Create("bat", null, CreatureSize.Tiny, CreatureType.Beast,
+	public static Monster Build() => Create("bat", null, ContentSource.Srd51, CreatureSize.Tiny, CreatureType.Beast,
 		12, 1, "1d4 - 1", 5, new[] { 2, 15, 8, 2, 12, 4 }, 0m, 10, 2, 11,
 		new Text(
 			"Pipistrello",
@@ -28,6 +28,8 @@ public static class Bat2014Seeder
 			"***Senso radar.*** Il pipistrello non può usare vista cieca se è assordato.\n\n***Udito acuto.*** Il pipistrello dispone di vantaggio alle prove di Saggezza (Percezione) basate sull'udito.",
 			"***Morso.*** *Attacco con arma da mischia:* +0 al tiro per colpire, portata 1,5 m, una creatura. *Colpito:* 1 danno perforante.",
 			"",
+			"",
+			"",
 			""),
 		new Text(
 			"Bat",
@@ -45,6 +47,8 @@ public static class Bat2014Seeder
 			"—",
 			"***Echolocation.*** The bat can't use its blindsight while deafened.\n\n***Keen Hearing.*** The bat has advantage on Wisdom (Perception) checks that rely on hearing.",
 			"***Bite.*** *Melee Weapon Attack:* +0 to hit, reach 5 ft., one creature. *Hit:* 1 piercing damage.",
+			"",
+			"",
 			"",
 			""));
 }

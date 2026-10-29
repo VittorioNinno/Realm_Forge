@@ -9,7 +9,7 @@ namespace RealmForge.Infrastructure.Persistence.Seeding.MonstersData;
 ///	</summary>
 public static class Eagle2014Seeder
 {
-	public static Monster Build() => Create("eagle", null, CreatureSize.Small, CreatureType.Beast,
+	public static Monster Build() => Create("eagle", null, ContentSource.Srd51, CreatureSize.Small, CreatureType.Beast,
 		12, 3, "1d6", 10, new[] { 6, 15, 10, 2, 14, 7 }, 0m, 10, 2, 14,
 		new Text(
 			"Aquila",
@@ -28,6 +28,8 @@ public static class Eagle2014Seeder
 			"***Vista acuta.*** L'aquila dispone di vantaggio alle prove di Saggezza (Percezione) basate sulla vista.",
 			"***Artigli.*** *Attacco con arma da mischia:* +4 al tiro per colpire, portata 1,5 m, un bersaglio. *Colpito:* 4 (1d4 + 2) danni taglienti.",
 			"",
+			"",
+			"",
 			""),
 		new Text(
 			"Eagle",
@@ -45,6 +47,8 @@ public static class Eagle2014Seeder
 			"—",
 			"***Keen Sight.*** The eagle has advantage on Wisdom (Perception) checks that rely on sight.",
 			"***Talons.*** *Melee Weapon Attack:* +4 to hit, reach 5 ft., one target. *Hit:* 4 (1d4 + 2) slashing damage.",
+			"",
+			"",
 			"",
 			""));
 }

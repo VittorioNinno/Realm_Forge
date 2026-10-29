@@ -9,7 +9,7 @@ namespace RealmForge.Infrastructure.Persistence.Seeding.MonstersData;
 ///	</summary>
 public static class GiantLizard2014Seeder
 {
-	public static Monster Build() => Create("giant-lizard", null, CreatureSize.Large, CreatureType.Beast,
+	public static Monster Build() => Create("giant-lizard", null, ContentSource.Srd51, CreatureSize.Large, CreatureType.Beast,
 		12, 19, "3d10 + 3", 30, new[] { 15, 12, 13, 2, 10, 5 }, 0.25m, 50, 2, 10,
 		new Text(
 			"Lucertola gigante",
@@ -28,6 +28,8 @@ public static class GiantLizard2014Seeder
 			"",
 			"***Morso.*** *Attacco con arma da mischia:* +4 al tiro per colpire, portata 1,5 m, un bersaglio. *Colpito:* 6 (1d8 + 2) danni perforanti.",
 			"",
+			"",
+			"",
 			""),
 		new Text(
 			"Giant Lizard",
@@ -45,6 +47,8 @@ public static class GiantLizard2014Seeder
 			"—",
 			"",
 			"***Bite.*** *Melee Weapon Attack:* +4 to hit, reach 5 ft., one target. *Hit:* 6 (1d8 + 2) piercing damage.",
+			"",
+			"",
 			"",
 			""));
 }

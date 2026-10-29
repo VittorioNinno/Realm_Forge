@@ -618,7 +618,7 @@ try {
   const compendium = await page.evaluate(() => Object.fromEntries([...document.querySelectorAll('[data-test=account-compendium] tbody tr')]
     .map((tr) => [tr.getAttribute('data-test').replace('account-compendium-', ''), [...tr.querySelectorAll('td.rf-num')].map((td) => td.textContent.trim()).join('/')])));
   results.push(`INFO account compendium (2024/2014): ${JSON.stringify(compendium)}`);
-  if (JSON.stringify(compendium) !== JSON.stringify({ rules: '155/88', species: '10/9', backgrounds: '16/13', feats: '75/42', spells: '391/361', classes: '12/12', equipment: '208/242', monsters: '0/322' })) throw new Error('unexpected compendium counts in the account');
+  if (JSON.stringify(compendium) !== JSON.stringify({ rules: '155/88', species: '10/9', backgrounds: '16/13', feats: '75/42', spells: '391/361', classes: '12/12', equipment: '208/242', monsters: '0/441' })) throw new Error('unexpected compendium counts in the account');
   ok('account: Base content per section and edition (glossary 155+88, species 10+9, backgrounds 16+13, feats 75+42, spells 391+361, classes 12+12, equipment 208+242)');
   const newCredential = ['Rf', crypto.randomUUID(), 'B!'].join('-');
   await page.locator('[data-test=pwd-current]').fill('wrong-password-1A!');
@@ -888,19 +888,19 @@ try {
   if (!/Nessun account/.test(shareError)) throw new Error(`sharing with an unknown address: "${shareError}"`);
   ok('character sharing: the dialog adds people by e-mail and explains an unknown address');
   const sheetUrl = page.url();
-  // Monsters: 322 statblocks of 2014, type filter, the Goblin's statblock, a Homebrew variant made from it (then deleted)
+  // Monsters: 441 statblocks of 2014, type filter, the Goblin's statblock, a Homebrew variant made from it (then deleted)
   await page.goto(`${base}/monsters`);
   await page.locator('[data-test=monster-card]').first().waitFor({ timeout: 60000 });
   const monsterCount = async (expected) => {
     for (let i = 0; i < 100 && (await page.locator('[data-test=monster-count]').innerText()).trim() !== expected; i++) await page.waitForTimeout(100);
     return (await page.locator('[data-test=monster-count]').innerText()).trim();
   };
-  const monsterUi = { all: await monsterCount('322 mostri') };
+  const monsterUi = { all: await monsterCount('441 mostri') };
   await pickOption('monster-type', 'Drago');
-  monsterUi.dragons = await monsterCount('43 mostri');
+  monsterUi.dragons = await monsterCount('46 mostri');
   await pickOption('monster-type', 'Tutti i tipi');
   await page.locator('[data-test=monster-search]').fill('goblin');
-  monsterUi.goblins = await monsterCount('3 mostri');
+  monsterUi.goblins = await monsterCount('7 mostri');
   await page.locator('[data-test=monster-card]').filter({ has: page.locator('.rf-card-title', { hasText: /^Goblin$/ }) }).click();
   await page.locator('[data-test=monster-statblock]').waitFor({ timeout: 15000 });
   const goblinBlock = (await page.locator('[data-test=monster-statblock]').innerText()).replace(/\s+/g, ' ');
@@ -916,9 +916,9 @@ try {
   await page.locator('[data-test=monster-delete-yes]').click();
   await page.locator('[data-test=monster-detail]').waitFor({ state: 'detached', timeout: 15000 });
   results.push(`INFO monsters: ${JSON.stringify(monsterUi)}`);
-  if (monsterUi.all !== '322 mostri' || monsterUi.dragons !== '43 mostri' || monsterUi.goblins !== '3 mostri' || monsterUi.statblock !== 4
+  if (monsterUi.all !== '441 mostri' || monsterUi.dragons !== '46 mostri' || monsterUi.goblins !== '7 mostri' || monsterUi.statblock !== 4
     || !/Goblin/.test(monsterUi.variantOf) || !monsterUi.variantHp) throw new Error(`unexpected monsters page: ${JSON.stringify(monsterUi)}`);
-  ok('monsters: 322 statblocks of 2014, 43 dragons, the Goblin statblock, a Homebrew variant with its own hit points (then deleted)');
+  ok('monsters: 441 statblocks of 2014, 46 dragons, 7 goblinoids, the Goblin statblock, a Homebrew variant with its own hit points (then deleted)');
   // Campaigns: a new campaign makes its creator the master, with the invite link; the character joins the table
   await page.goto(`${base}/campaigns`);
   await page.locator('[data-test=campaign-new]').click();

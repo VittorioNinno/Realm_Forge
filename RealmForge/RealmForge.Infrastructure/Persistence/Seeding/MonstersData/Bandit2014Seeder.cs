@@ -9,7 +9,7 @@ namespace RealmForge.Infrastructure.Persistence.Seeding.MonstersData;
 ///	</summary>
 public static class Bandit2014Seeder
 {
-	public static Monster Build() => Create("bandit", null, CreatureSize.Medium, CreatureType.Humanoid,
+	public static Monster Build() => Create("bandit", null, ContentSource.Srd51, CreatureSize.Medium, CreatureType.Humanoid,
 		12, 11, "2d8 + 2", 30, new[] { 11, 12, 12, 10, 10, 10 }, 0.125m, 25, 2, 10,
 		new Text(
 			"Bandito",
@@ -28,6 +28,8 @@ public static class Bandit2014Seeder
 			"",
 			"***Scimitarra.*** *Attacco con arma da mischia:* +3 al tiro per colpire, portata 1,5 m, un bersaglio. *Colpito:* 4 (1d6 + 1) danni taglienti.\n\n***Balestra leggera.*** *Attacco con arma a distanza:* +3 al tiro per colpire, gittata 24/96 m, un bersaglio. *Colpito:* 5 (1d8 + 1) danni perforanti.",
 			"",
+			"",
+			"",
 			""),
 		new Text(
 			"Bandit",
@@ -45,6 +47,8 @@ public static class Bandit2014Seeder
 			"any one language (usually Common)",
 			"",
 			"***Scimitar.*** *Melee Weapon Attack:* +3 to hit, reach 5 ft., one target. *Hit:* 4 (1d6 + 1) slashing damage.\n\n***Light Crossbow.*** *Ranged Weapon Attack:* +3 to hit, range 80/320 ft., one target. *Hit:* 5 (1d8 + 1) piercing damage.",
+			"",
+			"",
 			"",
 			""));
 }

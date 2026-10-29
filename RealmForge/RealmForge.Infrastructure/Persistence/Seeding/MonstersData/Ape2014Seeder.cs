@@ -9,7 +9,7 @@ namespace RealmForge.Infrastructure.Persistence.Seeding.MonstersData;
 ///	</summary>
 public static class Ape2014Seeder
 {
-	public static Monster Build() => Create("ape", null, CreatureSize.Medium, CreatureType.Beast,
+	public static Monster Build() => Create("ape", null, ContentSource.Srd51, CreatureSize.Medium, CreatureType.Beast,
 		12, 19, "3d8 + 6", 30, new[] { 16, 14, 14, 6, 12, 7 }, 0.5m, 100, 2, 13,
 		new Text(
 			"Gorilla",
@@ -28,6 +28,8 @@ public static class Ape2014Seeder
 			"",
 			"***Multiattacco.*** Il gorilla effettua due attacchi con i pugni.\n\n***Pugno.*** *Attacco con arma da mischia:* +5 al tiro per colpire, portata 1,5 m, un bersaglio. *Colpito:* 6 (1d6 + 3) danni contundenti.\n\n***Roccia.*** *Attacco con arma a distanza:* +5 al tiro per colpire, gittata 7,5/15 m, un bersaglio. *Colpito:* 6 (1d6 + 3) danni contundenti.",
 			"",
+			"",
+			"",
 			""),
 		new Text(
 			"Ape",
@@ -45,6 +47,8 @@ public static class Ape2014Seeder
 			"—",
 			"",
 			"***Multiattack.*** The ape makes two fist attacks.\n\n***Fist.*** *Melee Weapon Attack:* +5 to hit, reach 5 ft., one target. *Hit:* 6 (1d6 + 3) bludgeoning damage.\n\n***Rock.*** *Ranged Weapon Attack:* +5 to hit, range 25/50 ft., one target. *Hit:* 6 (1d6 + 3) bludgeoning damage.",
+			"",
+			"",
 			"",
 			""));
 }

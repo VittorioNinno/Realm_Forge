@@ -9,7 +9,7 @@ namespace RealmForge.Infrastructure.Persistence.Seeding.MonstersData;
 ///	</summary>
 public static class YoungBlueDragon2014Seeder
 {
-	public static Monster Build() => Create("young-blue-dragon", null, CreatureSize.Large, CreatureType.Dragon,
+	public static Monster Build() => Create("young-blue-dragon", null, ContentSource.Srd51, CreatureSize.Large, CreatureType.Dragon,
 		18, 152, "16d10 + 64", 40, new[] { 21, 10, 19, 14, 13, 17 }, 9m, 5000, 4, 19,
 		new Text(
 			"Drago blu giovane",
@@ -28,6 +28,8 @@ public static class YoungBlueDragon2014Seeder
 			"",
 			"***Multiattacco.*** Il drago effettua tre attacchi: uno con il morso e due con gli artigli.\n\n***Artiglio.*** *Attacco con arma da mischia:* +9 al tiro per colpire, portata 1,5 m, un bersaglio. *Colpito:* 12 (2d6 + 5) danni taglienti.\n\n***Morso.*** *Attacco con arma da mischia:* +9 al tiro per colpire, portata 3 m, un bersaglio. *Colpito:* 16 (2d10 + 5) danni perforanti più 5 (1d10) danni da fulmine.\n\n***Soffio di fulmini (ricarica 5–6).*** Il drago esala una scarica di fulmini lunga 18 metri e larga 1,5 metri. Ogni creatura su quella linea deve effettuare un tiro salvezza su Destrezza con CD 16, subendo 55 (10d10) danni da fulmine in caso di fallimento, o la metà dei danni in caso di successo.",
 			"",
+			"",
+			"",
 			""),
 		new Text(
 			"Young Blue Dragon",
@@ -45,6 +47,8 @@ public static class YoungBlueDragon2014Seeder
 			"Common, Draconic",
 			"",
 			"***Multiattack.*** The dragon makes three attacks: one with its bite and two with its claws.\n\n***Bite.*** *Melee Weapon Attack:* +9 to hit, reach 10 ft., one target. *Hit:* 16 (2d10 + 5) piercing damage plus 5 (1d10) lightning damage.\n\n***Claw.*** *Melee Weapon Attack:* +9 to hit, reach 5 ft., one target. *Hit:* 12 (2d6 + 5) slashing damage.\n\n***Lightning Breath (Recharge 5–6).*** The dragon exhales lightning in a 60-foot line that is 5 feet wide. Each creature in that line must make a DC 16 Dexterity saving throw, taking 55 (10d10) lightning damage on a failed save, or half as much damage on a successful one.",
+			"",
+			"",
 			"",
 			""));
 }

@@ -9,7 +9,7 @@ namespace RealmForge.Infrastructure.Persistence.Seeding.MonstersData;
 ///	</summary>
 public static class ConstrictorSnake2014Seeder
 {
-	public static Monster Build() => Create("constrictor-snake", null, CreatureSize.Large, CreatureType.Beast,
+	public static Monster Build() => Create("constrictor-snake", null, ContentSource.Srd51, CreatureSize.Large, CreatureType.Beast,
 		12, 13, "2d10 + 2", 30, new[] { 15, 14, 12, 1, 10, 3 }, 0.25m, 50, 2, 10,
 		new Text(
 			"Serpente stritolatore",
@@ -28,6 +28,8 @@ public static class ConstrictorSnake2014Seeder
 			"",
 			"***Morso.*** *Attacco con arma da mischia:* +4 al tiro per colpire, portata 1,5 m, una creatura. *Colpito:* 5 (1d6 + 2) danni perforanti.\n\n***Stritolare.*** *Attacco con arma da mischia:* +4 al tiro per colpire, portata 1,5 m, una creatura. *Colpito:* 6 (1d8 + 2) danni contundenti e il bersaglio è afferrato (CD 14 per sfuggire). Finché è afferrato, il bersaglio è trattenuto e il serpente non può stritolarne un altro.",
 			"",
+			"",
+			"",
 			""),
 		new Text(
 			"Constrictor Snake",
@@ -45,6 +47,8 @@ public static class ConstrictorSnake2014Seeder
 			"—",
 			"",
 			"***Bite.*** *Melee Weapon Attack:* +4 to hit, reach 5 ft., one creature. *Hit:* 5 (1d6 + 2) piercing damage.\n\n***Constrict.*** *Melee Weapon Attack:* +4 to hit, reach 5 ft., one creature. *Hit:* 6 (1d8 + 2) bludgeoning damage, and the target is grappled (escape DC 14). Until this grapple ends, the creature is restrained, and the snake can't constrict another target.",
+			"",
+			"",
 			"",
 			""));
 }

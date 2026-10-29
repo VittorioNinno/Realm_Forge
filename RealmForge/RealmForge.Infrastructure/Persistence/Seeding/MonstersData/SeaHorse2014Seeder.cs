@@ -9,7 +9,7 @@ namespace RealmForge.Infrastructure.Persistence.Seeding.MonstersData;
 ///	</summary>
 public static class SeaHorse2014Seeder
 {
-	public static Monster Build() => Create("sea-horse", null, CreatureSize.Tiny, CreatureType.Beast,
+	public static Monster Build() => Create("sea-horse", null, ContentSource.Srd51, CreatureSize.Tiny, CreatureType.Beast,
 		11, 1, "1d4 - 1", 0, new[] { 1, 12, 8, 1, 10, 2 }, 0m, 0, 2, 10,
 		new Text(
 			"Cavalluccio marino",
@@ -28,6 +28,8 @@ public static class SeaHorse2014Seeder
 			"***Respirare sott'acqua.*** Il cavalluccio marino può respirare soltanto sott'acqua.",
 			"",
 			"",
+			"",
+			"",
 			""),
 		new Text(
 			"Sea Horse",
@@ -44,6 +46,8 @@ public static class SeaHorse2014Seeder
 			"passive Perception 10",
 			"—",
 			"***Water Breathing.*** The sea horse can breathe only underwater.",
+			"",
+			"",
 			"",
 			"",
 			""));

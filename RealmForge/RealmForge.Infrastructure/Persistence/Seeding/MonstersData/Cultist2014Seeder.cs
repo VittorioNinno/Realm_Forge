@@ -9,7 +9,7 @@ namespace RealmForge.Infrastructure.Persistence.Seeding.MonstersData;
 ///	</summary>
 public static class Cultist2014Seeder
 {
-	public static Monster Build() => Create("cultist", null, CreatureSize.Medium, CreatureType.Humanoid,
+	public static Monster Build() => Create("cultist", null, ContentSource.Srd51, CreatureSize.Medium, CreatureType.Humanoid,
 		12, 9, "2d8", 30, new[] { 11, 12, 10, 10, 11, 10 }, 0.125m, 25, 2, 10,
 		new Text(
 			"Cultista",
@@ -28,6 +28,8 @@ public static class Cultist2014Seeder
 			"***Devozione oscura.*** Il cultista dispone di vantaggio ai tiri salvezza contro le condizioni affascinato e spaventato.",
 			"***Scimitarra.*** *Attacco con arma da mischia:* +3 al tiro per colpire, portata 1,5 m, una creatura. *Colpito:* 4 (1d6 + 1) danni taglienti.",
 			"",
+			"",
+			"",
 			""),
 		new Text(
 			"Cultist",
@@ -45,6 +47,8 @@ public static class Cultist2014Seeder
 			"any one language (usually Common)",
 			"***Dark Devotion.*** The cultist has advantage on saving throws against being charmed or frightened.",
 			"***Scimitar.*** *Melee Weapon Attack:* +3 to hit, reach 5 ft., one creature. *Hit:* 4 (1d6 + 1) slashing damage.",
+			"",
+			"",
 			"",
 			""));
 }
