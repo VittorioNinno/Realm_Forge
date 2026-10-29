@@ -955,9 +955,12 @@ try {
   await goblinPick.locator('[data-test=encounter-monster-add]').click();
   await page.locator('[data-test=encounter-combatant]').nth(2).waitFor({ timeout: 15000 });
   await page.locator('[data-test=encounter-add-party]').click();
-  await page.locator('[data-test=encounter-combatant]', { hasText: 'Eroe di prova' }).waitFor({ timeout: 15000 });
+  // The names are in inputs (the master can rename them): the party arrives as a fourth combatant
+  await page.locator('[data-test=encounter-combatant]').nth(3).waitFor({ timeout: 15000 });
   campaignUi.combatants = await page.locator('[data-test=encounter-combatant]').count();
-  campaignUi.goblins = (await page.locator('[data-test=combatant-name]').evaluateAll((els) => els.map((e) => e.value))).filter((n) => /^Goblin [123]$/.test(n)).length;
+  const combatantNames = await page.locator('[data-test=combatant-name]').evaluateAll((els) => els.map((e) => e.value));
+  campaignUi.goblins = combatantNames.filter((n) => /^Goblin [123]$/.test(n)).length;
+  campaignUi.hero = combatantNames.includes('Eroe di prova');
   campaignUi.rating = (await page.locator('[data-test=encounter-rating]').innerText()).trim();
   await page.locator('[data-test=encounter-start]').click();
   await page.locator('[data-test=encounter-round]', { hasText: 'Round 1' }).waitFor({ timeout: 15000 });
@@ -970,7 +973,7 @@ try {
   await page.waitForURL(/\/campaigns$/, { timeout: 15000 });
   results.push(`INFO campaign: ${JSON.stringify(campaignUi)}`);
   if (campaignUi.role !== 'Master' || !campaignUi.link || campaignUi.share !== 1 || campaignUi.notes !== 1
-    || campaignUi.combatants !== 4 || campaignUi.goblins !== 3 || !/^(Facile|Medio|Difficile|Mortale)$/.test(campaignUi.rating) || campaignUi.current !== 1) throw new Error(`unexpected campaign page: ${JSON.stringify(campaignUi)}`);
+    || campaignUi.combatants !== 4 || campaignUi.goblins !== 3 || !campaignUi.hero || !/^(Facile|Medio|Difficile|Mortale)$/.test(campaignUi.rating) || campaignUi.current !== 1) throw new Error(`unexpected campaign page: ${JSON.stringify(campaignUi)}`);
   ok('campaigns: the creator is the master with an invite link, the character joins the table, a journal page, an encounter with three goblins run to round 2, the campaign is deleted');
   await page.goto(sheetUrl);
   await page.locator('[data-test=character-sheet]').waitFor({ timeout: 30000 });
