@@ -33,7 +33,7 @@
                     <li data-test="share-person">
                         <span class="rf-share-avatar">@Initial(p.Email)</span>
                         <span class="rf-share-email">@p.Email</span>
-                        <button type="button" class="rf-mini-btn" @onclick="() => RemoveAsync(p)" title="@UiText.BtnStopSharing(Lang)" aria-label="@UiText.BtnStopSharing(Lang)">✕</button>
+                        <button type="button" class="rf-mini-btn" @onclick="() => RemoveAsync(p)" title="@UiText.BtnStopSharing(Lang)" aria-label="@UiText.BtnStopSharing(Lang)"><Icon Name="close" /></button>
                     </li>
                 }
             </ul>

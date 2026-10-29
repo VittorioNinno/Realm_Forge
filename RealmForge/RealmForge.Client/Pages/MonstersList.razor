@@ -82,41 +82,54 @@
     }
     else
     {
-        <div class="row row-cols-1 row-cols-md-2 row-cols-xl-3 g-3">
-            @foreach (var monster in Filtered.Take(shown))
+        @* One section per creature type, in alphabetical order; each one opens and closes *@
+        <div class="d-flex justify-content-end gap-2">
+            <button type="button" class="btn btn-sm btn-rf-outline" @onclick="() => SetAllGroups(true)" data-test="monster-expand-all">@UiText.BtnExpandAll(Lang)</button>
+            <button type="button" class="btn btn-sm btn-rf-outline" @onclick="() => SetAllGroups(false)" data-test="monster-collapse-all">@UiText.BtnCollapseAll(Lang)</button>
+        </div>
+        @foreach (var group in Groups)
+        {
+            var expanded = IsExpanded(group.Key);
+            <h2 class="h5 mt-4 mb-3 rf-spell-level-title">
+                <button type="button" class="rf-group-toggle" aria-expanded="@(expanded ? "true" : "false")" @onclick="() => ToggleGroup(group.Key)" data-test="monster-group">
+                    <span class="rf-group-chevron @(expanded ? "open" : null)"><Icon Name="chevron" Class="rf-nav-icon" /></span>
+                    @UiText.FormatCreatureType(group.Key, Lang) <span class="small" style="color: var(--rf-text-muted);">(@group.Count())</span>
+                </button>
+            </h2>
+            @if (!expanded)
             {
-                var m = monster;
-                <div class="col">
-                    <div class="rf-card rf-spell-card h-100 d-flex flex-column" style="cursor: pointer;" data-test="monster-card" @onclick="() => OpenDetailAsync(m.Id)">
-                        <div class="d-flex justify-content-between align-items-start mb-1 gap-2">
-                            <span class="rf-card-title mb-0">@m.Name</span>
-                            <div class="d-flex gap-1 flex-shrink-0 align-items-center">
-                                <span class="badge @(m.Ruleset == RulesetVersion.Dnd5e_2024 ? "badge-edition-2024" : "badge-edition-2014")">@UiText.FormatRuleset(m.Ruleset, Lang)</span>
-                                <ContentBadge IsBase="m.IsOfficialSRD" Source="m.Source" Visibility="m.Visibility" />
+                continue;
+            }
+            <div class="row row-cols-1 row-cols-md-2 row-cols-xl-3 g-3">
+                @foreach (var monster in group)
+                {
+                    var m = monster;
+                    <div class="col">
+                        <div class="rf-card rf-spell-card h-100 d-flex flex-column" style="cursor: pointer;" data-test="monster-card" @onclick="() => OpenDetailAsync(m.Id)">
+                            <div class="d-flex justify-content-between align-items-start mb-1 gap-2">
+                                <span class="rf-card-title mb-0">@m.Name</span>
+                                <div class="d-flex gap-1 flex-shrink-0 align-items-center">
+                                    <span class="badge @(m.Ruleset == RulesetVersion.Dnd5e_2024 ? "badge-edition-2024" : "badge-edition-2014")">@UiText.FormatRuleset(m.Ruleset, Lang)</span>
+                                    <ContentBadge IsBase="m.IsOfficialSRD" Source="m.Source" Visibility="m.Visibility" />
+                                </div>
+                            </div>
+                            @if (!string.IsNullOrWhiteSpace(m.Alias))
+                            {
+                                <div class="small" style="color: var(--rf-text-muted);">@UiText.MagicAlsoKnownAs(Lang): @m.Alias</div>
+                            }
+                            <div class="small fst-italic mb-2 flex-grow-1" style="color: var(--rf-text-secondary);">@m.Subtitle</div>
+                            <div class="d-flex flex-wrap gap-1 pt-2 align-items-center" style="border-top: 1px solid var(--rf-border-subtle);">
+                                <span class="rf-spell-flag rf-monster-cr" data-test="monster-card-cr">@UiText.MonsterChallengeShort(Lang) @MonsterMath.FormatChallenge(m.ChallengeRating)</span>
+                                <span class="rf-spell-flag">@UiText.MonsterArmorClassShort(Lang) @m.ArmorClass</span>
+                                <span class="rf-spell-flag">@UiText.MonsterHitPointsShort(Lang) @m.HitPoints</span>
+                                @if (m.VariantOfId is not null)
+                                {
+                                    <span class="small ms-auto" style="color: var(--rf-text-muted);">@UiText.MonsterVariant(Lang)</span>
+                                }
                             </div>
                         </div>
-                        @if (!string.IsNullOrWhiteSpace(m.Alias))
-                        {
-                            <div class="small" style="color: var(--rf-text-muted);">@UiText.MagicAlsoKnownAs(Lang): @m.Alias</div>
-                        }
-                        <div class="small fst-italic mb-2 flex-grow-1" style="color: var(--rf-text-secondary);">@m.Subtitle</div>
-                        <div class="d-flex flex-wrap gap-1 pt-2 align-items-center" style="border-top: 1px solid var(--rf-border-subtle);">
-                            <span class="rf-spell-flag rf-monster-cr" data-test="monster-card-cr">@UiText.MonsterChallengeShort(Lang) @MonsterMath.FormatChallenge(m.ChallengeRating)</span>
-                            <span class="rf-spell-flag">@UiText.MonsterArmorClassShort(Lang) @m.ArmorClass</span>
-                            <span class="rf-spell-flag">@UiText.MonsterHitPointsShort(Lang) @m.HitPoints</span>
-                            @if (m.VariantOfId is not null)
-                            {
-                                <span class="small ms-auto" style="color: var(--rf-text-muted);">@UiText.MonsterVariant(Lang)</span>
-                            }
-                        </div>
                     </div>
-                </div>
-            }
-        </div>
-        @if (Filtered.Count > shown)
-        {
-            <div class="text-center mt-4">
-                <button type="button" class="btn btn-rf-outline" @onclick="() => shown += PageSize" data-test="monster-more">@UiText.BtnShowMore(Filtered.Count - shown, Lang)</button>
+                }
             </div>
         }
     }
@@ -134,7 +147,7 @@
                         <ContentBadge IsBase="detail.IsOfficialSRD" Source="detail.Source" Visibility="detail.Visibility" ShowSource="true" />
                     </div>
                 </div>
-                <button class="btn btn-sm btn-rf-outline" @onclick="CloseDetail">✕</button>
+                <button class="btn btn-sm btn-rf-outline" @onclick="CloseDetail"><Icon Name="close" /></button>
             </div>
 
             @if (detail.VariantOfId is { } originalId && detail.VariantOfName is not null)
@@ -204,15 +217,12 @@
     [SupplyParameterFromQuery(Name = "id")]
     public Guid? QueryId { get; set; }
 
-    private const int PageSize = 60;
-
     private LanguageCode Lang => LanguageState.CurrentLanguage;
 
     private List<MonsterResponseDto> All { get; set; } = new();
     private MonsterDetailDto? Selected { get; set; }
     private bool IsLoading { get; set; } = true;
     private Guid? openedQueryId;
-    private int shown = PageSize;
 
     //	Filters
     private RulesetVersion? SelectedRuleset { get; set; }
@@ -263,6 +273,40 @@
         new("srd", UiText.FilterOnlyBase(Lang)),
         new("homebrew", UiText.FilterOnlyHomebrew(Lang))
     };
+
+    private List<IGrouping<CreatureType, MonsterResponseDto>> Groups =>
+        Filtered.GroupBy(m => m.Type).OrderBy(g => UiText.FormatCreatureType(g.Key, Lang), StringComparer.CurrentCultureIgnoreCase).ToList();
+
+    //	Open and closed types: closed by default (the page reads as an index), open as soon as a filter or a search
+    //	narrows the list; the user's toggles win until the filters change again
+    private readonly Dictionary<CreatureType, bool> toggledGroups = new();
+    private string? groupFilters;
+
+    private bool IsFiltered => TypeFilter is not null || SizeFilter is not null || MinChallenge is not null || MaxChallenge is not null
+        || !string.IsNullOrWhiteSpace(SearchTerm) || OriginFilter.Length > 0;
+
+    private bool IsExpanded(CreatureType type)
+    {
+        var filters = $"{TypeFilter}|{SizeFilter}|{MinChallenge}|{MaxChallenge}|{SearchTerm}|{OriginFilter}|{SelectedRuleset}";
+        if (filters != groupFilters)
+        {
+            groupFilters = filters;
+            toggledGroups.Clear();
+        }
+
+        return toggledGroups.TryGetValue(type, out var open) ? open : IsFiltered;
+    }
+
+    private void ToggleGroup(CreatureType type) => toggledGroups[type] = !IsExpanded(type);
+
+    private void SetAllGroups(bool open)
+    {
+        IsExpanded(default);
+        foreach (var type in Enum.GetValues<CreatureType>())
+        {
+            toggledGroups[type] = open;
+        }
+    }
 
     private List<RfSelect<CreatureType?>.OptionItem> TypeOptions =>
         new List<RfSelect<CreatureType?>.OptionItem> { new(null, UiText.FilterAllTypes(Lang)) }

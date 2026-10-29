@@ -11,7 +11,7 @@
 <PageTitle>RealmForge - @(character?.Name ?? UiText.NavCharacters(Lang))</PageTitle>
 
 <div class="py-4">
-    <a href="characters" class="small text-decoration-none d-inline-block mb-3" style="color: var(--rf-text-muted);">@UiText.BtnBackToCharacters(Lang)</a>
+    <a href="characters" class="small text-decoration-none d-inline-block mb-3" style="color: var(--rf-text-muted);"><Icon Name="left" /> @UiText.BtnBackToCharacters(Lang)</a>
 
     @if (loading)
     {
@@ -36,8 +36,8 @@
                 <div class="rf-readonly" data-test="sheet-readonly">
                     <span>@UiText.ReadOnlySheet(Lang)</span>
                     <div class="d-flex gap-1">
-                        <button type="button" class="rf-tool-btn" @onclick="ReloadAsync" data-test="sheet-reload">↻ @UiText.BtnRefresh(Lang)</button>
-                        <button type="button" class="rf-tool-btn" @onclick="DownloadPdfAsync" title="@UiText.BtnDownloadPdf(Lang)" data-test="sheet-pdf">@Icon("download")<span>PDF</span></button>
+                        <button type="button" class="rf-tool-btn" @onclick="ReloadAsync" data-test="sheet-reload"><Icon Name="refresh" /> @UiText.BtnRefresh(Lang)</button>
+                        <button type="button" class="rf-tool-btn" @onclick="DownloadPdfAsync" title="@UiText.BtnDownloadPdf(Lang)" data-test="sheet-pdf"><Icon Name="download" /><span>PDF</span></button>
                         <button type="button" class="rf-tool-btn danger" @onclick="StopFollowingAsync" data-test="sheet-unfollow">@UiText.BtnStopFollowing(Lang)</button>
                     </div>
                 </div>
@@ -59,18 +59,18 @@
                     }
                     @if (character.IsOwner)
                     {
-                        <button type="button" class="rf-tool-btn" @onclick="OpenCampaignsAsync" title="@UiText.SheetCampaignTitle(Lang)" data-test="sheet-campaign">@Icon("map")<span>@UiText.BtnCampaign(Lang)</span></button>
-                        <button type="button" class="rf-tool-btn" @onclick="() => shareOpen = true" title="@UiText.BtnShareCharacter(Lang)" data-test="sheet-share">@Icon("share")<span>@UiText.BtnShare(Lang)</span></button>
+                        <button type="button" class="rf-tool-btn" @onclick="OpenCampaignsAsync" title="@UiText.SheetCampaignTitle(Lang)" data-test="sheet-campaign"><Icon Name="map" /><span>@UiText.BtnCampaign(Lang)</span></button>
+                        <button type="button" class="rf-tool-btn" @onclick="() => shareOpen = true" title="@UiText.BtnShareCharacter(Lang)" data-test="sheet-share"><Icon Name="share" /><span>@UiText.BtnShare(Lang)</span></button>
                     }
                     else
                     {
-                        <button type="button" class="rf-tool-btn" @onclick="ReloadAsync" data-test="sheet-reload">↻ @UiText.BtnRefresh(Lang)</button>
+                        <button type="button" class="rf-tool-btn" @onclick="ReloadAsync" data-test="sheet-reload"><Icon Name="refresh" /> @UiText.BtnRefresh(Lang)</button>
                     }
-                    <a class="rf-tool-btn" href="@($"characters/{character.Id}/edit")" title="@UiText.BtnEditCharacter(Lang)" data-test="sheet-edit">@Icon("edit")<span>@UiText.BtnEditShort(Lang)</span></a>
-                    <button type="button" class="rf-tool-btn" @onclick="DownloadPdfAsync" title="@UiText.BtnDownloadPdf(Lang)" data-test="sheet-pdf">@Icon("download")<span>PDF</span></button>
+                    <a class="rf-tool-btn" href="@($"characters/{character.Id}/edit")" title="@UiText.BtnEditCharacter(Lang)" data-test="sheet-edit"><Icon Name="edit" /><span>@UiText.BtnEditShort(Lang)</span></a>
+                    <button type="button" class="rf-tool-btn" @onclick="DownloadPdfAsync" title="@UiText.BtnDownloadPdf(Lang)" data-test="sheet-pdf"><Icon Name="download" /><span>PDF</span></button>
                     @if (character.IsOwner)
                     {
-                        <button type="button" class="rf-tool-btn danger" @onclick="() => deleteOpen = true" title="@UiText.Delete(Lang)" data-test="sheet-delete">@Icon("trash")<span>@UiText.Delete(Lang)</span></button>
+                        <button type="button" class="rf-tool-btn danger" @onclick="() => deleteOpen = true" title="@UiText.Delete(Lang)" data-test="sheet-delete"><Icon Name="trash" /><span>@UiText.Delete(Lang)</span></button>
                     }
                 </div>
             }
@@ -78,18 +78,18 @@
             @* ===== Identity card: portrait, name, origin, classes with the level up, personal details, traits ===== *@
             <section class="rf-card2 rf-hero">
                 <div class="rf-hero-top">
-                    @* Square frame: the picture is dragged (or moved with the arrows) to centre it as the player likes *@
-                    <div class="rf-hero-portrait @(Sheet.Portrait is null ? "empty" : null) @(panning ? "panning" : null)" style="@PortraitStyle"
-                         title="@(Sheet.Portrait is not null && !ReadOnly ? UiText.PortraitDragHint(Lang) : null)" tabindex="@(Sheet.Portrait is not null && !ReadOnly ? 0 : -1)"
-                         @onpointerdown="StartPan" @onpointermove="Pan" @onpointerup="EndPan" @onpointerleave="EndPan" @onpointercancel="EndPan" @onkeydown="PanWithKeys"
-                         data-test="sheet-portrait">
-                        <label class="rf-hero-portrait-upload" title="@UiText.BtnPortrait(Lang)" @onpointerdown:stopPropagation="true">
-                            <InputFile OnChange="UploadPortraitAsync" accept="image/*" class="d-none" />
-                            @(Sheet.Portrait is null ? UiText.BtnPortrait(Lang) : "✎")
-                        </label>
-                        @if (Sheet.Portrait is not null)
+                    @* Square frame: choosing or changing the picture opens the crop *@
+                    <div class="rf-hero-portrait @(Sheet.Portrait is null ? "empty" : null)" style="@PortraitStyle" data-test="sheet-portrait">
+                        @if (!ReadOnly)
                         {
-                            <button type="button" class="rf-hero-portrait-remove" @onclick="RemovePortrait" @onpointerdown:stopPropagation="true" aria-label="@UiText.BtnRemove(Lang)">✕</button>
+                            <label class="rf-hero-portrait-upload" title="@(Sheet.Portrait is null ? UiText.BtnPortrait(Lang) : UiText.BtnPortraitChange(Lang))" data-test="sheet-portrait-upload">
+                                <InputFile OnChange="UploadPortraitAsync" accept="image/*" class="d-none" />
+                                @if (Sheet.Portrait is null) { @UiText.BtnPortrait(Lang) } else { <Icon Name="edit" /> }
+                            </label>
+                            @if (Sheet.Portrait is not null)
+                            {
+                                <button type="button" class="rf-hero-portrait-remove" @onclick="RemovePortrait" title="@UiText.BtnRemove(Lang)" aria-label="@UiText.BtnRemove(Lang)" data-test="sheet-portrait-remove"><Icon Name="close" /></button>
+                            }
                         }
                     </div>
                     <div class="rf-hero-info">
@@ -97,7 +97,7 @@
                             <div class="rf-sheet-name" data-test="sheet-name">@character.Name</div>
                             <button type="button" class="rf-hero-inspiration @(Sheet.Inspiration ? "on" : null)" @onclick="ToggleInspiration" aria-pressed="@Sheet.Inspiration"
                                     title="@UiText.SheetInspiration(Ruleset, Lang)" data-test="sheet-inspiration">
-                                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2l2.9 6.9L22 10l-5.5 4.8L18.2 22 12 18.3 5.8 22l1.7-7.2L2 10l7.1-1.1z" /></svg>
+                                <Icon Name="@(Sheet.Inspiration ? "star-fill" : "star")" />
                                 <span>@UiText.SheetInspiration(Ruleset, Lang)</span>
                             </button>
                         </div>
@@ -111,7 +111,7 @@
                             <span class="rf-hero-level">@UiText.CharacterLevel(c.Level, Lang)</span>
                             @if (c.Level < 20 && !ReadOnly)
                             {
-                                <a class="rf-levelup-pill @(ReadyToLevelUp ? "ready rf-pulse" : null)" href="@($"characters/{character.Id}/edit?levelup=true")" data-test="sheet-levelup">@Icon("up")@UiText.BtnLevelUp(Lang)</a>
+                                <a class="rf-levelup-pill @(ReadyToLevelUp ? "ready rf-pulse" : null)" href="@($"characters/{character.Id}/edit?levelup=true")" data-test="sheet-levelup"><Icon Name="up" />@UiText.BtnLevelUp(Lang)</a>
                             }
                         </div>
                         <div class="rf-hero-bio">
@@ -186,7 +186,7 @@
                 <div class="rf-hp @HpState" data-test="sheet-hp-panel">
                     <div class="rf-hp-top">
                         <div class="rf-hp-heart" aria-hidden="true">
-                            <svg viewBox="0 0 24 24"><path d="M12 21s-7.5-4.6-9.6-9.2C.9 8.4 3 4.5 6.7 4.5c2.1 0 3.6 1.1 5.3 3 1.7-1.9 3.2-3 5.3-3 3.7 0 5.8 3.9 4.3 7.3C19.5 16.4 12 21 12 21z" /></svg>
+                            <Icon Name="heart" />
                         </div>
                         <div class="rf-hp-numbers">
                             <div class="rf-mini-label">@UiText.SheetHitPoints(Lang)</div>
@@ -438,7 +438,10 @@
                         </div>
                         @if (InCampaign(cmp.Id))
                         {
-                            <span class="small" style="color: var(--rf-text-secondary);" data-test="sheet-campaign-in">✓ @UiText.SheetCampaignAlready(Lang)</span>
+                            <div class="d-flex align-items-center gap-3">
+                                <span class="small" style="color: var(--rf-text-secondary);" data-test="sheet-campaign-in"><Icon Name="check" /> @UiText.SheetCampaignAlready(Lang)</span>
+                                <button type="button" class="rf-ghost-btn danger" disabled="@(campaignBusy is not null)" title="@UiText.BtnTakeOut(Lang)" @onclick="() => LeaveCampaignAsync(cmp)" data-test="sheet-campaign-leave"><Icon Name="remove-person" /> @UiText.BtnTakeOutShort(Lang)</button>
+                            </div>
                         }
                         else
                         {
@@ -457,6 +460,27 @@
             }
             <div class="d-flex justify-content-end mt-3">
                 <button type="button" class="btn btn-rf-outline" @onclick="() => campaignOpen = false">@UiText.BtnClose(Lang)</button>
+            </div>
+        </div>
+    </div>
+}
+
+@if (cropSource is not null)
+{
+    <div class="rf-modal-backdrop">
+        <div class="rf-modal-dialog rf-crop-dialog" @onclick:stopPropagation="true" data-test="portrait-crop">
+            <h2 class="h5 mb-2" style="color: var(--rf-orange-primary); font-family: var(--rf-font-display);">@UiText.PortraitCropTitle(Lang)</h2>
+            <p class="small mb-3" style="color: var(--rf-text-muted);">@UiText.PortraitCropHint(Lang)</p>
+            <div class="rf-crop-frame @(cropDragging ? "dragging" : null)" style="@CropStyle" tabindex="0"
+                 @onpointerdown="StartCropDrag" @onpointermove="CropDrag" @onpointerup="EndCropDrag" @onpointerleave="EndCropDrag" @onpointercancel="EndCropDrag"
+                 @onkeydown="CropWithKeys" data-test="portrait-crop-frame"></div>
+            <label class="rf-crop-zoom">
+                <span class="rf-mini-label">@UiText.PortraitZoom(Lang)</span>
+                <input type="range" min="100" max="300" step="5" value="@cropZoom" @oninput="SetCropZoom" data-test="portrait-crop-zoom" />
+            </label>
+            <div class="d-flex justify-content-end gap-2 mt-3">
+                <button type="button" class="btn btn-rf-outline" @onclick="CloseCrop">@UiText.BtnCancel(Lang)</button>
+                <button type="button" class="btn btn-rf-orange" @onclick="SaveCropAsync" data-test="portrait-crop-save">@UiText.BtnConfirm(Lang)</button>
             </div>
         </div>
     </div>
@@ -716,7 +740,7 @@
                     var src = source;
                     <div class="rf-book-bar">
                         <span class="small" data-test="sheet-book-changes">@ChangesText(src)</span>
-                        <button type="button" class="rf-tool-btn" @onclick="() => OpenBook(src)" data-test="sheet-book-open">✎ @UiText.BtnManageSpells(IsWizardBook(src), Lang)</button>
+                        <button type="button" class="rf-tool-btn" @onclick="() => OpenBook(src)" data-test="sheet-book-open"><Icon Name="edit" /> @UiText.BtnManageSpells(IsWizardBook(src), Lang)</button>
                     </div>
                 }
                 <div class="rf-spell-counts">
@@ -791,9 +815,9 @@
 
         <div class="rf-magic-bar">
             <span class="rf-attune-count @(MagicItemRules.AttunedCount(Sheet) >= MagicItemRules.MaxAttuned ? "full" : null)" data-test="sheet-attunement">
-                ✦ @UiText.AttunementCount(MagicItemRules.AttunedCount(Sheet), MagicItemRules.MaxAttuned, Lang)
+                <Icon Name="magic-items" /> @UiText.AttunementCount(MagicItemRules.AttunedCount(Sheet), MagicItemRules.MaxAttuned, Lang)
             </span>
-            <button type="button" class="rf-tool-btn" @onclick="OpenNewMagic" data-test="sheet-magic-add">✦ @UiText.BtnAddMagicItem(Lang)</button>
+            <button type="button" class="rf-tool-btn" @onclick="OpenNewMagic" data-test="sheet-magic-add"><Icon Name="magic-items" /> @UiText.BtnAddMagicItem(Lang)</button>
         </div>
         @if (attuneError is not null)
         {
@@ -830,7 +854,7 @@
                             @if (item.Magic is { } magic)
                             {
                                 <div class="rf-item-magic" data-test="sheet-item-magic-line">
-                                    <span class="rf-rarity @($"rf-rarity-{magic.Rarity.ToString().ToLowerInvariant()}")">✦ @UiText.RarityName(magic.Rarity, Lang)</span>
+                                    <span class="rf-rarity @($"rf-rarity-{magic.Rarity.ToString().ToLowerInvariant()}")"><Icon Name="magic-items" /> @UiText.RarityName(magic.Rarity, Lang)</span>
                                     @if (MagicLine(magic) is { Length: > 0 } line)
                                     {
                                         <span>@line</span>
@@ -876,10 +900,10 @@
                             @if (item.Magic?.RequiresAttunement == true)
                             {
                                 <button type="button" class="rf-mini-btn @(item.Attuned ? "on" : null)" title="@(item.Attuned ? UiText.BtnEndAttunement(Lang) : UiText.BtnAttune(Lang))"
-                                        aria-pressed="@item.Attuned" @onclick="() => ToggleAttuned(item)" data-test="sheet-item-attune">◈</button>
+                                        aria-pressed="@item.Attuned" @onclick="() => ToggleAttuned(item)" data-test="sheet-item-attune"><Icon Name="attune" /></button>
                             }
-                            <button type="button" class="rf-mini-btn @(item.Magic is not null ? "on" : null)" title="@UiText.BtnMagicProperties(Lang)" aria-label="@UiText.BtnMagicProperties(Lang)" @onclick="() => OpenMagic(item)" data-test="sheet-item-magic">✦</button>
-                            <button type="button" class="rf-mini-btn" @onclick="() => RemoveItem(item)" title="@UiText.BtnDeleteItem(Lang)" aria-label="@UiText.BtnDeleteItem(Lang)" data-test="sheet-item-remove">✕</button>
+                            <button type="button" class="rf-mini-btn @(item.Magic is not null ? "on" : null)" title="@UiText.BtnMagicProperties(Lang)" aria-label="@UiText.BtnMagicProperties(Lang)" @onclick="() => OpenMagic(item)" data-test="sheet-item-magic"><Icon Name="magic-items" /></button>
+                            <button type="button" class="rf-mini-btn" @onclick="() => RemoveItem(item)" title="@UiText.BtnDeleteItem(Lang)" aria-label="@UiText.BtnDeleteItem(Lang)" data-test="sheet-item-remove"><Icon Name="close" /></button>
                         </div>
                     </div>
                 }
@@ -928,7 +952,7 @@
                             <button type="button" class="rf-slot-dot @(index < resource.Maximum - resource.Used ? "full" : null)" @onclick="() => UseResource(resource, resource.Maximum - 1 - index)" aria-label="@resource.Name @(index + 1)"></button>
                         }
                     </div>
-                    <button type="button" class="rf-mini-btn" @onclick="() => RemoveResource(resource)" aria-label="@UiText.BtnRemove(Lang)">✕</button>
+                    <button type="button" class="rf-mini-btn" @onclick="() => RemoveResource(resource)" aria-label="@UiText.BtnRemove(Lang)"><Icon Name="close" /></button>
                 </div>
             }
             <div class="rf-res-form">
@@ -1099,16 +1123,6 @@
         Changed();
     }
 
-    private static RenderFragment Icon(string name) => name switch
-    {
-        "edit" => @<svg class="rf-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h4L19 9l-4-4L4 16v4zM14 6l4 4" /></svg>,
-        "download" => @<svg class="rf-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11m0 0l-4-4m4 4l4-4M5 20h14" /></svg>,
-        "trash" => @<svg class="rf-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 7h14M10 7V5h4v2M7 7l1 13h8l1-13" /></svg>,
-        "map" => @<svg class="rf-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6l6-2 6 2 6-2v14l-6 2-6-2-6 2zM9 4v14M15 6v14" /></svg>,
-        "share" => @<svg class="rf-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="6" cy="12" r="2.5" /><circle cx="18" cy="6" r="2.5" /><circle cx="18" cy="18" r="2.5" /><path d="M8.2 10.9l7.6-3.8M8.2 13.1l7.6 3.8" /></svg>,
-        _ => @<svg class="rf-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 19V5m0 0l-6 6m6-6l6 6" /></svg>
-    };
-
     private RenderFragment ConcentrationBanner() => @<text>
         @if (ConcentrationSpell is { } focus)
         {
@@ -1241,7 +1255,7 @@
                             {
                                 var sp = spell;
                                 var src = source;
-                                <button type="button" class="rf-turn-chip spell" @onclick="() => OpenSpell(sp, src)">✦ @sp.Name@(sp.Level > 0 ? $" ({sp.Level}°)" : null)</button>
+                                <button type="button" class="rf-turn-chip spell" @onclick="() => OpenSpell(sp, src)"><Icon Name="spells" /> @sp.Name@(sp.Level > 0 ? $" ({sp.Level}°)" : null)</button>
                             }
                             @if (actionSpells.Count == 0)
                             {
@@ -1282,7 +1296,7 @@
                         {
                             var sp = spell;
                             var src = source;
-                            <button type="button" class="rf-turn-chip spell" @onclick="() => OpenSpell(sp, src)">✦ @sp.Name</button>
+                            <button type="button" class="rf-turn-chip spell" @onclick="() => OpenSpell(sp, src)"><Icon Name="spells" /> @sp.Name</button>
                         }
                         @if (offHand.Count == 0 && !features.Any(f => f.Slot == TurnSlot.BonusAction) && bonusSpells.Count == 0)
                         {
@@ -1298,7 +1312,7 @@
                         {
                             var sp = spell;
                             var src = source;
-                            <button type="button" class="rf-turn-chip spell" @onclick="() => OpenSpell(sp, src)">✦ @sp.Name</button>
+                            <button type="button" class="rf-turn-chip spell" @onclick="() => OpenSpell(sp, src)"><Icon Name="spells" /> @sp.Name</button>
                         }
                     </div>
                 </div>
@@ -1347,7 +1361,7 @@
     private RenderFragment RuleLink(string key) => @<text>
         @if (RuleEntry(key) is { } rule)
         {
-            <a class="rf-turn-rule" href="@($"rules?id={rule.Id}")" target="_blank" rel="noopener" title="@rule.Summary">@UiText.TurnRule(Lang)</a>
+            <a class="rf-turn-rule" href="@($"rules?id={rule.Id}")" target="_blank" rel="noopener" title="@rule.Summary">@UiText.TurnRule(Lang) <Icon Name="external" /></a>
         }
     </text>;
 
@@ -1463,7 +1477,7 @@
                                         <span class="rf-book-tag">@(copied ? UiText.BookCopied(Lang) : UiText.BookLearned(Lang))</span>
                                         @if (!originalBook.Contains(sp.Id) || bookFree)
                                         {
-                                            <button type="button" class="rf-mini-btn" @onclick="() => RemoveFromBook(sp.Id)" aria-label="@UiText.BtnRemove(Lang)">✕</button>
+                                            <button type="button" class="rf-mini-btn" @onclick="() => RemoveFromBook(sp.Id)" aria-label="@UiText.BtnRemove(Lang)"><Icon Name="close" /></button>
                                         }
                                     }
                                     else

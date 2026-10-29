@@ -10,7 +10,7 @@
     <div class="rf-dice-tray @(rolling ? "rolling" : "landed") @Outcome" role="status" aria-live="polite" data-test="sheet-last-roll">
         <div class="rf-dice-tray-head">
             <span class="rf-dice-tray-label">@current.Label</span>
-            <button type="button" class="rf-dice-tray-close" @onclick="Close" aria-label="@UiText.BtnClose(LanguageState.CurrentLanguage)">✕</button>
+            <button type="button" class="rf-dice-tray-close" @onclick="Close" aria-label="@UiText.BtnClose(LanguageState.CurrentLanguage)"><Icon Name="close" /></button>
         </div>
         <div class="rf-dice-tray-body">
             <div class="rf-dice-row">
