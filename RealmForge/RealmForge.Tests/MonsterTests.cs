@@ -27,7 +27,7 @@ public class MonsterTests
 		Assert.Equal(119, Monsters.Count(m => m.Source == ContentSource.RealmForge));
 		Assert.Equal(13, Monsters.Count(m => m.VariantOfId is not null));
 		Assert.All(Monsters, m => Assert.True(m.IsOfficialSRD));
-		Assert.All(Monsters, m => Assert.Contains(m.Source, new[] { ContentSource.Srd51, ContentSource.RealmForge }));
+		Assert.All(Monsters, m => Assert.True(m.Source is ContentSource.Srd51 or ContentSource.RealmForge));
 		Assert.All(Monsters, m => Assert.Equal(RulesetVersion.Dnd5e_2014, m.Ruleset));
 	}
 
