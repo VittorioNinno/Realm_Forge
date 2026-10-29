@@ -10,6 +10,7 @@ using RealmForge.Api.Security;
 using RealmForge.Domain.Entities;
 using RealmForge.Infrastructure.Identity;
 using RealmForge.Infrastructure.Persistence;
+using RealmForge.Infrastructure.Persistence.Trash;
 using RealmForge.Shared.Campaigns;
 using RealmForge.Shared.Characters;
 using RealmForge.Shared.DTOs;
@@ -225,7 +226,8 @@ namespace RealmForge.Api.Controllers
 				{
 					Portrait = sheet.Portrait,
 					PortraitX = sheet.PortraitX,
-					PortraitY = sheet.PortraitY
+					PortraitY = sheet.PortraitY,
+					BackgroundId = c.BackgroundId
 				};
 			}).ToList();
 		}
@@ -373,7 +375,7 @@ namespace RealmForge.Api.Controllers
 
 		//	DELETE: api/characters/{id}
 		[HttpDelete("{id:guid}")]
-		public async Task<IActionResult> DeleteCharacter(Guid id)
+		public async Task<IActionResult> DeleteCharacter(Guid id, [FromServices] TrashBin bin)
 		{
 			var character = await _context.Characters.FirstOrDefaultAsync(c => c.Id == id && c.OwnerId == UserId);
 			if (character is null)
@@ -381,6 +383,8 @@ namespace RealmForge.Api.Controllers
 				return NotFound();
 			}
 
+			//	Kept in the bin for a few days, to be restored
+			await bin.AddAsync(character, "character", ContentAccess.GetUserId(User) ?? string.Empty, character.Id);
 			_context.Characters.Remove(character);
 			await _context.SaveChangesAsync();
 			return NoContent();

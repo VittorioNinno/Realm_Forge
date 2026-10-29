@@ -62,6 +62,8 @@ namespace RealmForge.Api
 			builder.Services.AddScoped<RealmForge.Api.Campaigns.HomebrewLookup>();
 			builder.Services.AddScoped<RealmForge.Api.Campaigns.CampaignCharacterCheck>();
 			builder.Services.AddScoped<RealmForge.Api.Characters.CharacterContextBuilder>();
+			builder.Services.AddScoped<RealmForge.Infrastructure.Persistence.Trash.TrashBin>();
+			builder.Services.AddHostedService<RealmForge.Api.Trash.TrashPurgeService>();
 
 			//	E-mails for account confirmation and password reset (SMTP settings in the "Email" section / user-secrets)
 			builder.Services.Configure<EmailOptions>(builder.Configuration.GetSection("Email"));

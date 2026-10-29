@@ -73,7 +73,7 @@ namespace RealmForge.Client.Localization
 		public static string BtnEditCampaign(LanguageCode lang) => T(lang, "Modifica", "Edit");
 		public static string BtnDeleteCampaign(LanguageCode lang) => T(lang, "Elimina campagna", "Delete campaign");
 		public static string CampaignDeleteWarning(string name, LanguageCode lang) =>
-			T(lang, $"Eliminare \"{name}\"? I personaggi e i contenuti restano ai loro proprietari.", $"Delete \"{name}\"? Characters and content stay with their owners.");
+			T(lang, $"Eliminare \"{name}\"? I personaggi e i contenuti restano ai loro proprietari; potrai recuperarla dal cestino per 3 giorni.", $"Delete \"{name}\"? Characters and content stay with their owners; you can restore it from the bin for 3 days.");
 		public static string BtnLeaveCampaign(LanguageCode lang) => T(lang, "Lascia la campagna", "Leave the campaign");
 		public static string CampaignLeaveWarning(LanguageCode lang) =>
 			T(lang, "Lasciare la campagna? I tuoi personaggi ne escono e le tue proposte in attesa vengono ritirate.", "Leave the campaign? Your characters leave it and your pending entries are withdrawn.");
@@ -112,6 +112,8 @@ namespace RealmForge.Client.Localization
 		public static string CampaignCharacterInactive(LanguageCode lang) => T(lang, "Inattivo", "Inactive");
 		public static string HintDeactivate(LanguageCode lang) => T(lang, "Resta al tavolo ma non entra nel gruppo dei nuovi incontri", "Stays at the table but is left out of the party of new encounters");
 		public static string LabelCampaign(LanguageCode lang) => T(lang, "Campagna", "Campaign");
+		public static string CharacterYours(LanguageCode lang) => T(lang, "Il tuo personaggio", "Your character");
+		public static string CharacterOf(string owner, LanguageCode lang) => T(lang, $"Personaggio di {owner}", $"Played by {owner}");
 		public static string CampaignPlayedBy(string email, LanguageCode lang) => T(lang, $"di {email}", $"by {email}");
 
 		//	Content

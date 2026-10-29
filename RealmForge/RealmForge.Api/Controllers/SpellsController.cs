@@ -5,6 +5,7 @@ using RealmForge.Api.Localization;
 using RealmForge.Api.Security;
 using RealmForge.Domain.Entities;
 using RealmForge.Infrastructure.Persistence;
+using RealmForge.Infrastructure.Persistence.Trash;
 using RealmForge.Shared.DTOs;
 using RealmForge.Shared.Enums;
 using RealmForge.Shared.Text;
@@ -208,7 +209,7 @@ namespace RealmForge.Api.Controllers
 		//	DELETE: api/spells/{id}
 		[HttpDelete("{id:guid}")]
 		[Authorize]
-		public async Task<IActionResult> DeleteSpell(Guid id)
+		public async Task<IActionResult> DeleteSpell(Guid id, [FromServices] TrashBin bin)
 		{
 			var spell = await _context.Spells.FindAsync(id);
 
@@ -223,6 +224,8 @@ namespace RealmForge.Api.Controllers
 				return denied;
 			}
 
+			//	Kept in the bin for a few days, to be restored
+			await bin.AddAsync(spell, "spell", ContentAccess.GetUserId(User) ?? string.Empty, spell.Id);
 			_context.Spells.Remove(spell);
 			await _context.SaveChangesAsync();
 			return NoContent();

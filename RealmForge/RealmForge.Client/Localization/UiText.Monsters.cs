@@ -32,8 +32,8 @@ namespace RealmForge.Client.Localization
 		public static string MonsterVariant(LanguageCode lang) => T(lang, "Variante", "Variant");
 		public static string MonsterAuthor(string name, LanguageCode lang) => T(lang, $"Creato da {name}", $"Made by {name}");
 		public static string MonsterDeleteWarning(string name, LanguageCode lang) =>
-			T(lang, $"Eliminare «{name}»? Le varianti create da questo mostro restano, senza il collegamento.",
-				$"Delete “{name}”? The variants made from this monster stay, without the link.");
+			T(lang, $"Eliminare «{name}»? Le varianti create da questo mostro restano, senza il collegamento; potrai recuperarlo dal cestino per 3 giorni.",
+				$"Delete “{name}”? The variants made from this monster stay, without the link; you can restore it from the bin for 3 days.");
 		public static string MonsterVariantName(string name, LanguageCode lang) => T(lang, $"{name} (variante)", $"{name} (variant)");
 		public static string MonsterVariantHint(string original, LanguageCode lang) =>
 			T(lang, $"Variante di «{original}»: una copia Homebrew da modificare liberamente, l'originale resta com'è.",

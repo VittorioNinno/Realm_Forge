@@ -7,6 +7,7 @@ using RealmForge.Shared.Enums;
 using RealmForge.Api.Localization;
 using RealmForge.Api.Security;
 using RealmForge.Infrastructure.Persistence;
+using RealmForge.Infrastructure.Persistence.Trash;
 
 namespace RealmForge.Api.Controllers
 {
@@ -308,7 +309,7 @@ namespace RealmForge.Api.Controllers
 		///	</summary>
 		[HttpDelete("{id:guid}")]
 		[Authorize]
-		public async Task<IActionResult> DeleteSubspecies(Guid id)
+		public async Task<IActionResult> DeleteSubspecies(Guid id, [FromServices] TrashBin bin)
 		{
 			var subspecies = await _context.Subspecies.FindAsync(id);
 
@@ -323,6 +324,8 @@ namespace RealmForge.Api.Controllers
 				return denied;
 			}
 
+			//	Kept in the bin for a few days, to be restored
+			await bin.AddAsync(subspecies, "subspecies", ContentAccess.GetUserId(User) ?? string.Empty, subspecies.Id);
 			_context.Subspecies.Remove(subspecies);
 			await _context.SaveChangesAsync();
 

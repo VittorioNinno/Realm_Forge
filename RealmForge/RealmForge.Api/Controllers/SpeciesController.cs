@@ -7,6 +7,7 @@ using RealmForge.Shared.Enums;
 using RealmForge.Api.Localization;
 using RealmForge.Api.Security;
 using RealmForge.Infrastructure.Persistence;
+using RealmForge.Infrastructure.Persistence.Trash;
 
 namespace RealmForge.Api.Controllers
 {
@@ -363,7 +364,7 @@ namespace RealmForge.Api.Controllers
 		//	DELETE: api/species/{id}
 		[HttpDelete("{id:guid}")]
 		[Authorize]
-		public async Task<IActionResult> DeleteSpecies(Guid id)
+		public async Task<IActionResult> DeleteSpecies(Guid id, [FromServices] TrashBin bin)
 		{
 			var species = await _context.Species.FindAsync(id);
 
@@ -378,6 +379,8 @@ namespace RealmForge.Api.Controllers
 				return denied;
 			}
 
+			//	Kept in the bin for a few days, to be restored
+			await bin.AddAsync(species, "species", ContentAccess.GetUserId(User) ?? string.Empty, species.Id);
 			_context.Species.Remove(species);
 			await _context.SaveChangesAsync();
 
