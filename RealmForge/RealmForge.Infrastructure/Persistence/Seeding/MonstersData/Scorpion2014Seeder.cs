@@ -9,7 +9,7 @@ namespace RealmForge.Infrastructure.Persistence.Seeding.MonstersData;
 ///	</summary>
 public static class Scorpion2014Seeder
 {
-	public static Monster Build() => Create("scorpion", null, CreatureSize.Tiny, CreatureType.Beast,
+	public static Monster Build() => Create("scorpion", null, ContentSource.Srd51, CreatureSize.Tiny, CreatureType.Beast,
 		11, 1, "1d4 - 1", 10, new[] { 2, 11, 8, 1, 8, 2 }, 0m, 10, 2, 9,
 		new Text(
 			"Scorpione",
@@ -28,6 +28,8 @@ public static class Scorpion2014Seeder
 			"",
 			"***Pungiglione.*** *Attacco con arma da mischia:* +2 al tiro per colpire, portata 1,5 m, una creatura. *Colpito:* 1 danno perforante e il bersaglio deve effettuare un tiro salvezza su Costituzione con CD 9, subendo 4 (1d8) danni da veleno in caso di fallimento, o la metà in caso di successo.",
 			"",
+			"",
+			"",
 			""),
 		new Text(
 			"Scorpion",
@@ -45,6 +47,8 @@ public static class Scorpion2014Seeder
 			"—",
 			"",
 			"***Sting.*** *Melee Weapon Attack:* +2 to hit, reach 5 ft., one creature. *Hit:* 1 piercing damage, and the target must make a DC 9 Constitution saving throw, taking 4 (1d8) poison damage on a failed save, or half as much damage on a successful one.",
+			"",
+			"",
 			"",
 			""));
 }

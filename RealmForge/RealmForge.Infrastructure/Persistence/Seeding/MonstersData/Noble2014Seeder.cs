@@ -9,7 +9,7 @@ namespace RealmForge.Infrastructure.Persistence.Seeding.MonstersData;
 ///	</summary>
 public static class Noble2014Seeder
 {
-	public static Monster Build() => Create("noble", null, CreatureSize.Medium, CreatureType.Humanoid,
+	public static Monster Build() => Create("noble", null, ContentSource.Srd51, CreatureSize.Medium, CreatureType.Humanoid,
 		15, 9, "2d8", 30, new[] { 11, 12, 11, 12, 14, 16 }, 0.125m, 25, 2, 12,
 		new Text(
 			"Nobile",
@@ -27,7 +27,9 @@ public static class Noble2014Seeder
 			"due qualsiasi",
 			"",
 			"***Stocco.*** *Attacco con arma da mischia:* +3 al tiro per colpire, portata 1,5 m, un bersaglio. *Colpito:* 5 (1d8 + 1) danni perforanti.",
+			"",
 			"***Parata.*** Il nobile aggiunge 2 alla sua CA contro un attacco in mischia che lo colpirebbe. Per farlo, deve vedere l'attaccante e deve impugnare un'arma da mischia.",
+			"",
 			""),
 		new Text(
 			"Noble",
@@ -45,6 +47,8 @@ public static class Noble2014Seeder
 			"any two languages",
 			"",
 			"***Rapier.*** *Melee Weapon Attack:* +3 to hit, reach 5 ft., one target. *Hit:* 5 (1d8 + 1) piercing damage.",
+			"",
 			"***Parry.*** The noble adds 2 to its AC against one melee attack that would hit it. To do so, the noble must see the attacker and be wielding a melee weapon.",
+			"",
 			""));
 }

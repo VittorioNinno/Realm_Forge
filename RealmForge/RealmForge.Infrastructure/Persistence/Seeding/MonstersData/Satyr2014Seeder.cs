@@ -9,7 +9,7 @@ namespace RealmForge.Infrastructure.Persistence.Seeding.MonstersData;
 ///	</summary>
 public static class Satyr2014Seeder
 {
-	public static Monster Build() => Create("satyr", null, CreatureSize.Medium, CreatureType.Fey,
+	public static Monster Build() => Create("satyr", null, ContentSource.Srd51, CreatureSize.Medium, CreatureType.Fey,
 		14, 31, "7d8", 40, new[] { 12, 16, 11, 12, 10, 14 }, 0.5m, 100, 2, 12,
 		new Text(
 			"Satiro",
@@ -28,6 +28,8 @@ public static class Satyr2014Seeder
 			"***Resistenza alla magia.*** Il satiro dispone di vantaggio ai tiri salvezza contro incantesimi e altri effetti magici.",
 			"***Sfondamento.*** *Attacco con arma da mischia:* +3 al tiro per colpire, portata 1,5 m, un bersaglio. *Colpito:* 6 (2d4 + 1) danni contundenti.\n\n***Spada corta.*** *Attacco con arma da mischia:* +5 al tiro per colpire, portata 1,5 m, un bersaglio. *Colpito:* 6 (1d6 + 3) danni perforanti.\n\n***Arco corto.*** *Attacco con arma a distanza:* +5 al tiro per colpire, gittata 24/96 m, un bersaglio. *Colpito:* 6 (1d6 + 3) danni perforanti.",
 			"",
+			"",
+			"",
 			""),
 		new Text(
 			"Satyr",
@@ -45,6 +47,8 @@ public static class Satyr2014Seeder
 			"Common, Elvish, Sylvan",
 			"***Magic Resistance.*** The satyr has advantage on saving throws against spells and other magical effects.",
 			"***Ram.*** *Melee Weapon Attack:* +3 to hit, reach 5 ft., one target. *Hit:* 6 (2d4 + 1) bludgeoning damage.\n\n***Shortsword.*** *Melee Weapon Attack:* +5 to hit, reach 5 ft., one target. *Hit:* 6 (1d6 + 3) piercing damage.\n\n***Shortbow.*** *Ranged Weapon Attack:* +5 to hit, range 80/320 ft., one target. *Hit:* 6 (1d6 + 3) piercing damage.",
+			"",
+			"",
 			"",
 			""));
 }

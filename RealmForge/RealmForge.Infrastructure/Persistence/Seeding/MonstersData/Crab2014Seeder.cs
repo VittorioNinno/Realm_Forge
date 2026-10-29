@@ -9,7 +9,7 @@ namespace RealmForge.Infrastructure.Persistence.Seeding.MonstersData;
 ///	</summary>
 public static class Crab2014Seeder
 {
-	public static Monster Build() => Create("crab", null, CreatureSize.Tiny, CreatureType.Beast,
+	public static Monster Build() => Create("crab", null, ContentSource.Srd51, CreatureSize.Tiny, CreatureType.Beast,
 		11, 2, "1d4", 20, new[] { 2, 11, 10, 1, 8, 2 }, 0m, 10, 2, 9,
 		new Text(
 			"Granchio",
@@ -28,6 +28,8 @@ public static class Crab2014Seeder
 			"***Anfibio.*** Il granchio può respirare in aria e in acqua.",
 			"***Artiglio.*** *Attacco con arma da mischia:* +0 al tiro per colpire, portata 1,5 m, un bersaglio. *Colpito:* 1 danno contundente.",
 			"",
+			"",
+			"",
 			""),
 		new Text(
 			"Crab",
@@ -45,6 +47,8 @@ public static class Crab2014Seeder
 			"—",
 			"***Amphibious.*** The crab can breathe air and water.",
 			"***Claw.*** *Melee Weapon Attack:* +0 to hit, reach 5 ft., one target. *Hit:* 1 bludgeoning damage.",
+			"",
+			"",
 			"",
 			""));
 }

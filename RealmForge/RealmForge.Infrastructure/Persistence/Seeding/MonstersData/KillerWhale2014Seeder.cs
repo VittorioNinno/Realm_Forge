@@ -9,7 +9,7 @@ namespace RealmForge.Infrastructure.Persistence.Seeding.MonstersData;
 ///	</summary>
 public static class KillerWhale2014Seeder
 {
-	public static Monster Build() => Create("killer-whale", null, CreatureSize.Huge, CreatureType.Beast,
+	public static Monster Build() => Create("killer-whale", null, ContentSource.Srd51, CreatureSize.Huge, CreatureType.Beast,
 		12, 90, "12d12 + 12", 0, new[] { 19, 10, 13, 3, 12, 7 }, 3m, 700, 2, 13,
 		new Text(
 			"Orca assassina",
@@ -28,6 +28,8 @@ public static class KillerWhale2014Seeder
 			"***Apnea.*** L'orca può trattenere il respiro per 30 minuti.\n\n***Senso radar.*** L'orca non può usare vista cieca se è assordata.\n\n***Udito acuto.*** L'orca dispone di vantaggio alle prove di Saggezza (Percezione) basate sull'udito.",
 			"***Morso.*** *Attacco con arma da mischia:* +6 al tiro per colpire, portata 1,5 m, un bersaglio. *Colpito:* 21 (5d6 + 4) danni perforanti.",
 			"",
+			"",
+			"",
 			""),
 		new Text(
 			"Killer Whale",
@@ -45,6 +47,8 @@ public static class KillerWhale2014Seeder
 			"—",
 			"***Echolocation.*** The whale can't use its blindsight while deafened.\n\n***Hold Breath.*** The whale can hold its breath for 30 minutes\n\n***Keen Hearing.*** The whale has advantage on Wisdom (Perception) checks that rely on hearing.",
 			"***Bite.*** *Melee Weapon Attack:* +6 to hit, reach 5 ft., one target. *Hit:* 21 (5d6 + 4) piercing damage.",
+			"",
+			"",
 			"",
 			""));
 }

@@ -9,11 +9,11 @@ namespace RealmForge.Infrastructure.Persistence.Seeding.MonstersData;
 ///	</summary>
 public static class WarhorseSkeleton2014Seeder
 {
-	public static Monster Build() => Create("warhorse-skeleton", null, CreatureSize.Large, CreatureType.Undead,
+	public static Monster Build() => Create("warhorse-skeleton", null, ContentSource.Srd51, CreatureSize.Large, CreatureType.Undead,
 		13, 22, "3d10 + 6", 60, new[] { 18, 12, 15, 2, 8, 5 }, 0.5m, 100, 2, 9,
 		new Text(
 			"Scheletro di cavallo da guerra",
-			"Scheletro cavallo da guerra",
+			null,
 			"Non morto Grande, legale malvagio",
 			"13 (frammenti di bardatura)",
 			"18 m",
@@ -27,6 +27,8 @@ public static class WarhorseSkeleton2014Seeder
 			"—",
 			"",
 			"***Zoccoli.*** *Attacco con arma da mischia:* +6 al tiro per colpire, portata 1,5 m, un bersaglio. *Colpito:* 11 (2d6 + 4) danni contundenti.",
+			"",
+			"",
 			"",
 			""),
 		new Text(
@@ -45,6 +47,8 @@ public static class WarhorseSkeleton2014Seeder
 			"—",
 			"",
 			"***Hooves.*** *Melee Weapon Attack:* +6 to hit, reach 5 ft., one target. *Hit:* 11 (2d6 + 4) bludgeoning damage.",
+			"",
+			"",
 			"",
 			""));
 }

@@ -9,7 +9,7 @@ namespace RealmForge.Infrastructure.Persistence.Seeding.MonstersData;
 ///	</summary>
 public static class BoneDevil2014Seeder
 {
-	public static Monster Build() => Create("bone-devil", null, CreatureSize.Large, CreatureType.Fiend,
+	public static Monster Build() => Create("bone-devil", null, ContentSource.Srd51, CreatureSize.Large, CreatureType.Fiend,
 		19, 142, "15d10 + 60", 40, new[] { 18, 16, 18, 13, 14, 16 }, 9m, 5000, 4, 12,
 		new Text(
 			"Diavolo d'ossa",
@@ -28,6 +28,8 @@ public static class BoneDevil2014Seeder
 			"***Resistenza alla magia.*** Il diavolo dispone di vantaggio ai tiri salvezza contro incantesimi e altri effetti magici.\n\n***Vista del diavolo.*** L'oscurità magica non ostacola la scurovisione del diavolo.",
 			"***Multiattacco.*** Il diavolo effettua tre attacchi: due con gli artigli e uno con il pungiglione.\n\n***Artiglio.*** *Attacco con arma da mischia:* +8 al tiro per colpire, portata 3 m, un bersaglio. *Colpito:* 8 (1d8 + 4) danni taglienti.\n\n***Pungiglione.*** *Attacco con arma da mischia:* +8 al tiro per colpire, portata 3 m, un bersaglio. *Colpito:* 13 (2d8 + 4) danni perforanti più 17 (5d6) danni da veleno e il bersaglio deve superare un tiro salvezza su Costituzione con CD 14, altrimenti è avvelenato per 1 minuto. Il bersaglio può ripetere il tiro salvezza alla fine di ogni suo turno e, se lo supera, l'effetto svanisce.",
 			"",
+			"",
+			"",
 			""),
 		new Text(
 			"Bone Devil",
@@ -45,6 +47,8 @@ public static class BoneDevil2014Seeder
 			"Infernal, telepathy 120 ft.",
 			"***Devil's Sight.*** Magical darkness doesn't impede the devil's darkvision.\n\n***Magic Resistance.*** The devil has advantage on saving throws against spells and other magical effects.",
 			"***Multiattack.*** The devil makes three attacks: two with its claws and one with its sting.\n\n***Claw.*** *Melee Weapon Attack:* +8 to hit, reach 10 ft., one target. *Hit:* 8 (1d8 + 4) slashing damage.\n\n***Sting.*** *Melee Weapon Attack:* +8 to hit, reach 10 ft., one target. *Hit:* 13 (2d8 + 4) piercing damage plus 17 (5d6) poison damage, and the target must succeed on a DC 14 Constitution saving throw or become poisoned for 1 minute. The target can repeat the saving throw at the end of each of its turns, ending the effect on itself on a success.",
+			"",
+			"",
 			"",
 			""));
 }

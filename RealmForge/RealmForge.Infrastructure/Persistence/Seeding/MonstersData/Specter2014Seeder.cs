@@ -9,7 +9,7 @@ namespace RealmForge.Infrastructure.Persistence.Seeding.MonstersData;
 ///	</summary>
 public static class Specter2014Seeder
 {
-	public static Monster Build() => Create("specter", null, CreatureSize.Medium, CreatureType.Undead,
+	public static Monster Build() => Create("specter", null, ContentSource.Srd51, CreatureSize.Medium, CreatureType.Undead,
 		12, 22, "5d8", 0, new[] { 1, 14, 11, 10, 10, 11 }, 1m, 200, 2, 10,
 		new Text(
 			"Spettro",
@@ -28,6 +28,8 @@ public static class Specter2014Seeder
 			"***Movimento incorporeo.*** Lo spettro può muoversi attraverso altre creature e oggetti come se fossero terreno difficile. Subisce 5 (1d10) danni da forza se termina il proprio turno all'interno di un oggetto.\n\n***Sensibilità al sole.*** Finché è esposto alla luce del sole, lo spettro subisce svantaggio ai tiri per colpire, oltre che alle prove di Saggezza (Percezione) basate sulla vista.",
 			"***Risucchio di vita.*** *Attacco in mischia con incantesimo:* +4 al tiro per colpire, portata 1,5 m, una creatura. *Colpito:* 10 (3d6) danni necrotici. Il bersaglio deve superare un tiro salvezza su Costituzione con CD 10, o i suoi punti ferita massimi vengono ridotti di un importo pari al danno subito. Tale riduzione perdura finché la creatura non termina un riposo lungo. Il bersaglio muore se questo effetto riduce a 0 i suoi punti ferita massimi.",
 			"",
+			"",
+			"",
 			""),
 		new Text(
 			"Specter",
@@ -45,6 +47,8 @@ public static class Specter2014Seeder
 			"understands all languages it knew in life but can't speak",
 			"***Incorporeal Movement.*** The specter can move through other creatures and objects as if they were difficult terrain. It takes 5 (1d10) force damage if it ends its turn inside an object.\n\n***Sunlight Sensitivity.*** While in sunlight, the specter has disadvantage on attack rolls, as well as on Wisdom (Perception) checks that rely on sight.",
 			"***Life Drain.*** *Melee Spell Attack:* +4 to hit, reach 5 ft., one creature. *Hit:* 10 (3d6) necrotic damage. The target must succeed on a DC 10 Constitution saving throw or its hit point maximum is reduced by an amount equal to the damage taken. This reduction lasts until the creature finishes a long rest. The target dies if this effect reduces its hit point maximum to 0.",
+			"",
+			"",
 			"",
 			""));
 }

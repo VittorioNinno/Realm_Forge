@@ -9,7 +9,7 @@ namespace RealmForge.Infrastructure.Persistence.Seeding.MonstersData;
 ///	</summary>
 public static class Acolyte2014Seeder
 {
-	public static Monster Build() => Create("acolyte", null, CreatureSize.Medium, CreatureType.Humanoid,
+	public static Monster Build() => Create("acolyte", null, ContentSource.Srd51, CreatureSize.Medium, CreatureType.Humanoid,
 		10, 9, "2d8", 30, new[] { 10, 10, 10, 10, 14, 11 }, 0.25m, 50, 2, 12,
 		new Text(
 			"Accolito",
@@ -28,6 +28,8 @@ public static class Acolyte2014Seeder
 			"***Incantesimi.*** L'accolito è un incantatore di 1° livello: la sua caratteristica da incantatore è Saggezza (CD del tiro salvezza sull'incantesimo 12, +4 al tiro per colpire con attacco con incantesimo). L'accolito ha a disposizione i seguenti incantesimi da chierico:\n\n- Trucchetti (a volontà): *fiamma sacra, luce, taumaturgia*\n- 1° livello (3 slot): *benedizione, cura ferite, santuario*",
 			"***Randello.*** *Attacco con arma da mischia:* +2 al tiro per colpire, portata 1,5 m, un bersaglio. *Colpito:* 2 (1d4) danni contundenti.",
 			"",
+			"",
+			"",
 			""),
 		new Text(
 			"Acolyte",
@@ -45,6 +47,8 @@ public static class Acolyte2014Seeder
 			"any one language (usually Common)",
 			"***Spellcasting.*** The acolyte is a 1st-level spellcaster. Its spellcasting ability is Wisdom (spell save DC 12, +4 to hit with spell attacks). The acolyte has following cleric spells prepared:\n\n- Cantrips (at will): *light, sacred flame, thaumaturgy*\n- 1st level (3 slots): *bless, cure wounds, sanctuary*",
 			"***Club.*** *Melee Weapon Attack:* +2 to hit, reach 5 ft., one target. *Hit:* 2 (1d4) bludgeoning damage.",
+			"",
+			"",
 			"",
 			""));
 }

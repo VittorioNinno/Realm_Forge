@@ -9,7 +9,7 @@ namespace RealmForge.Infrastructure.Persistence.Seeding.MonstersData;
 ///	</summary>
 public static class RedDragonWyrmling2014Seeder
 {
-	public static Monster Build() => Create("red-dragon-wyrmling", null, CreatureSize.Medium, CreatureType.Dragon,
+	public static Monster Build() => Create("red-dragon-wyrmling", null, ContentSource.Srd51, CreatureSize.Medium, CreatureType.Dragon,
 		17, 75, "10d8 + 30", 30, new[] { 19, 10, 17, 12, 11, 15 }, 4m, 1100, 2, 14,
 		new Text(
 			"Drago rosso cucciolo",
@@ -28,6 +28,8 @@ public static class RedDragonWyrmling2014Seeder
 			"",
 			"***Morso.*** *Attacco con arma da mischia:* +6 al tiro per colpire, portata 1,5 m, un bersaglio. *Colpito:* 9 (1d10 + 4) danni perforanti più 3 (1d6) danni da fuoco.\n\n***Soffio di fuoco (ricarica 5–6).*** Il drago esala fuoco in un cono di 4,5 metri. Ogni creatura in quell'area deve effettuare un tiro salvezza su Destrezza con CD 13, subendo 24 (7d6) danni da fuoco in caso di fallimento, o la metà dei danni in caso di successo.",
 			"",
+			"",
+			"",
 			""),
 		new Text(
 			"Red Dragon Wyrmling",
@@ -45,6 +47,8 @@ public static class RedDragonWyrmling2014Seeder
 			"Draconic",
 			"",
 			"***Bite.*** *Melee Weapon Attack:* +6 to hit, reach 5 ft., one target. *Hit:* 9 (1d10 + 4) piercing damage plus 3 (1d6) fire damage.\n\n***Fire Breath (Recharge 5–6).*** The dragon exhales fire in a 15-foot cone. Each creature in that area must make a DC 13 Dexterity saving throw, taking 24 (7d6) fire damage on a failed save, or half as much damage on a successful one.",
+			"",
+			"",
 			"",
 			""));
 }

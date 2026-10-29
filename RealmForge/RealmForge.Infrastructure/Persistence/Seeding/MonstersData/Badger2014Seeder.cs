@@ -9,7 +9,7 @@ namespace RealmForge.Infrastructure.Persistence.Seeding.MonstersData;
 ///	</summary>
 public static class Badger2014Seeder
 {
-	public static Monster Build() => Create("badger", null, CreatureSize.Tiny, CreatureType.Beast,
+	public static Monster Build() => Create("badger", null, ContentSource.Srd51, CreatureSize.Tiny, CreatureType.Beast,
 		10, 3, "1d4 + 1", 20, new[] { 4, 11, 12, 2, 12, 5 }, 0m, 10, 2, 11,
 		new Text(
 			"Tasso",
@@ -28,6 +28,8 @@ public static class Badger2014Seeder
 			"***Olfatto acuto.*** Il tasso dispone di vantaggio alle prove di Saggezza (Percezione) basate sull'olfatto.",
 			"***Morso.*** *Attacco con arma da mischia:* +2 al tiro per colpire, portata 1,5 m, un bersaglio. *Colpito:* 1 danno perforante.",
 			"",
+			"",
+			"",
 			""),
 		new Text(
 			"Badger",
@@ -45,6 +47,8 @@ public static class Badger2014Seeder
 			"—",
 			"***Keen Smell.*** The badger has advantage on Wisdom (Perception) checks that rely on smell.",
 			"***Bite.*** *Melee Weapon Attack:* +2 to hit, reach 5 ft., one target. *Hit:* 1 piercing damage.",
+			"",
+			"",
 			"",
 			""));
 }

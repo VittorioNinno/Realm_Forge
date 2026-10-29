@@ -9,7 +9,7 @@ namespace RealmForge.Infrastructure.Persistence.Seeding.MonstersData;
 ///	</summary>
 public static class Ogre2014Seeder
 {
-	public static Monster Build() => Create("ogre", null, CreatureSize.Large, CreatureType.Giant,
+	public static Monster Build() => Create("ogre", null, ContentSource.Srd51, CreatureSize.Large, CreatureType.Giant,
 		11, 59, "7d10 + 21", 40, new[] { 19, 8, 16, 5, 7, 7 }, 2m, 450, 2, 8,
 		new Text(
 			"Ogre",
@@ -28,6 +28,8 @@ public static class Ogre2014Seeder
 			"",
 			"***Randello pesante.*** *Attacco con arma da mischia:* +6 al tiro per colpire, portata 1,5 m, un bersaglio. *Colpito:* 13 (2d8 + 4) danni contundenti.\n\n***Giavellotto.*** *Attacco con arma da mischia o a distanza:* +6 al tiro per colpire, portata 1,5 m o gittata 9/36 m, un bersaglio. *Colpito:* 11 (2d6 + 4) danni perforanti.",
 			"",
+			"",
+			"",
 			""),
 		new Text(
 			"Ogre",
@@ -45,6 +47,8 @@ public static class Ogre2014Seeder
 			"Common, Giant",
 			"",
 			"***Greatclub.*** *Melee Weapon Attack:* +6 to hit, reach 5 ft., one target. *Hit:* 13 (2d8 + 4) bludgeoning damage.\n\n***Javelin.*** *Melee or Ranged Weapon Attack:* +6 to hit, reach 5 ft. or range 30/120 ft., one target. *Hit:* 11 (2d6 + 4) piercing damage.",
+			"",
+			"",
 			"",
 			""));
 }

@@ -9,7 +9,7 @@ namespace RealmForge.Infrastructure.Persistence.Seeding.MonstersData;
 ///	</summary>
 public static class Frog2014Seeder
 {
-	public static Monster Build() => Create("frog", null, CreatureSize.Tiny, CreatureType.Beast,
+	public static Monster Build() => Create("frog", null, ContentSource.Srd51, CreatureSize.Tiny, CreatureType.Beast,
 		11, 1, "1d4 - 1", 20, new[] { 1, 13, 8, 1, 8, 3 }, 0m, 0, 2, 11,
 		new Text(
 			"Rana",
@@ -28,6 +28,8 @@ public static class Frog2014Seeder
 			"***Anfibio.*** La rana può respirare in aria e in acqua.\n\n***Balzo da fermo.*** La rana può compiere un salto in lungo di un massimo di 3 metri e uno in alto di un massimo di 1,5 metri, con o senza rincorsa.",
 			"",
 			"",
+			"",
+			"",
 			""),
 		new Text(
 			"Frog",
@@ -44,6 +46,8 @@ public static class Frog2014Seeder
 			"darkvision 30 ft., passive Perception 11",
 			"—",
 			"***Amphibious.*** The frog can breathe air and water\n\n***Standing Leap.*** The frog's long jump is up to 10 ft. and its high jump is up to 5 ft., with or without a running start.",
+			"",
+			"",
 			"",
 			"",
 			""));

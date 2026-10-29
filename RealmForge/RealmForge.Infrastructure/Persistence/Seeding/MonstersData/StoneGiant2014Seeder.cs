@@ -9,7 +9,7 @@ namespace RealmForge.Infrastructure.Persistence.Seeding.MonstersData;
 ///	</summary>
 public static class StoneGiant2014Seeder
 {
-	public static Monster Build() => Create("stone-giant", null, CreatureSize.Huge, CreatureType.Giant,
+	public static Monster Build() => Create("stone-giant", null, ContentSource.Srd51, CreatureSize.Huge, CreatureType.Giant,
 		17, 126, "11d12 + 55", 40, new[] { 23, 15, 20, 10, 12, 9 }, 7m, 2900, 3, 14,
 		new Text(
 			"Gigante delle pietre",
@@ -27,7 +27,9 @@ public static class StoneGiant2014Seeder
 			"Gigante",
 			"***Mimetizzazione rocciosa.*** Il gigante dispone di vantaggio alle prove di Destrezza (Furtività) effettuate per nascondersi nei terreni rocciosi.",
 			"***Multiattacco.*** Il gigante effettua due attacchi con il randello pesante.\n\n***Randello pesante.*** *Attacco con arma da mischia:* +9 al tiro per colpire, portata 4,5 m, un bersaglio. *Colpito:* 19 (3d8 + 6) danni contundenti.\n\n***Roccia.*** *Attacco con arma a distanza:* +9 al tiro per colpire, gittata 18/72 m, un bersaglio. *Colpito:* 28 (4d10 + 6) danni contundenti. Se il bersaglio è una creatura, deve superare un tiro salvezza su Forza con CD 17, altrimenti viene buttato a terra prono.",
+			"",
 			"***Afferrare roccia.*** Se una roccia o un oggetto simile viene scagliato contro il gigante, quest'ultimo può afferrarlo superando un tiro salvezza su Destrezza con CD 10, nel qual caso non subisce danni contundenti da esso.",
+			"",
 			""),
 		new Text(
 			"Stone Giant",
@@ -45,6 +47,8 @@ public static class StoneGiant2014Seeder
 			"Giant",
 			"***Stone Camouflage.*** The giant has advantage on Dexterity (Stealth) checks made to hide in rocky terrain.",
 			"***Multiattack.*** The giant makes two greatclub attacks.\n\n***Greatclub.*** *Melee Weapon Attack:* +9 to hit, reach 15 ft., one target. *Hit:* 19 (3d8 + 6) bludgeoning damage.\n\n***Rock.*** *Ranged Weapon Attack:* +9 to hit, range 60/240 ft., one target. *Hit:* 28 (4d10 + 6) bludgeoning damage. If the target is a creature, it must succeed on a DC 17 Strength saving throw or be knocked prone.",
+			"",
 			"***Rock Catching.*** If a rock or similar object is hurled at the giant, the giant can, with a successful DC 10 Dexterity saving throw, catch the missile and take no bludgeoning damage from it.",
+			"",
 			""));
 }

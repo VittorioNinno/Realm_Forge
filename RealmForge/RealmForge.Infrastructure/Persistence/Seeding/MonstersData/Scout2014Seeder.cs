@@ -9,7 +9,7 @@ namespace RealmForge.Infrastructure.Persistence.Seeding.MonstersData;
 ///	</summary>
 public static class Scout2014Seeder
 {
-	public static Monster Build() => Create("scout", null, CreatureSize.Medium, CreatureType.Humanoid,
+	public static Monster Build() => Create("scout", null, ContentSource.Srd51, CreatureSize.Medium, CreatureType.Humanoid,
 		13, 16, "3d8 + 3", 30, new[] { 11, 14, 12, 11, 13, 11 }, 0.5m, 100, 2, 15,
 		new Text(
 			"Esploratore",
@@ -28,6 +28,8 @@ public static class Scout2014Seeder
 			"***Udito e vista acuti.*** L'esploratore dispone di vantaggio alle prove di Saggezza (Percezione) basate sulla vista o sull'udito.",
 			"***Multiattacco.*** L'esploratore effettua due attacchi in mischia o due attacchi a distanza.\n\n***Spada corta.*** *Attacco con arma da mischia:* +4 al tiro per colpire, portata 1,5 m, un bersaglio. *Colpito:* 5 (1d6 + 2) danni perforanti.\n\n***Arco lungo.*** *Attacco con arma a distanza:* +4 al tiro per colpire, gittata 45/180 m, un bersaglio. *Colpito:* 6 (1d8 + 2) danni perforanti.",
 			"",
+			"",
+			"",
 			""),
 		new Text(
 			"Scout",
@@ -45,6 +47,8 @@ public static class Scout2014Seeder
 			"any one language (usually Common)",
 			"***Keen Hearing and Sight.*** The scout has advantage on Wisdom (Perception) checks that rely on hearing or sight.",
 			"***Multiattack.*** The scout makes two melee attacks or two ranged attacks.\n\n***Shortsword.*** *Melee Weapon Attack:* +4 to hit, reach 5 ft., one target. *Hit:* 5 (1d6 + 2) piercing damage.\n\n***Longbow.*** *Ranged Weapon Attack:* +4 to hit, range 150/600 ft., one target. *Hit:* 6 (1d8 + 2) piercing damage.",
+			"",
+			"",
 			"",
 			""));
 }

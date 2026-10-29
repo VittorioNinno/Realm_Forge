@@ -9,7 +9,7 @@ namespace RealmForge.Infrastructure.Persistence.Seeding.MonstersData;
 ///	</summary>
 public static class Owl2014Seeder
 {
-	public static Monster Build() => Create("owl", null, CreatureSize.Tiny, CreatureType.Beast,
+	public static Monster Build() => Create("owl", null, ContentSource.Srd51, CreatureSize.Tiny, CreatureType.Beast,
 		11, 1, "1d4 - 1", 5, new[] { 3, 13, 8, 2, 12, 7 }, 0m, 10, 2, 13,
 		new Text(
 			"Gufo",
@@ -28,6 +28,8 @@ public static class Owl2014Seeder
 			"***Sfuggente.*** Il gufo non provoca attacchi d'opportunità quando vola oltre la portata di un nemico.\n\n***Udito e vista acuti.*** Il gufo dispone di vantaggio alle prove di Saggezza (Percezione) basate sulla vista o sull'udito.",
 			"***Artigli.*** *Attacco con arma da mischia:* +3 al tiro per colpire, portata 1,5 m, un bersaglio. *Colpito:* 1 danno tagliente.",
 			"",
+			"",
+			"",
 			""),
 		new Text(
 			"Owl",
@@ -45,6 +47,8 @@ public static class Owl2014Seeder
 			"—",
 			"***Flyby.*** The owl doesn't provoke opportunity attacks when it flies out of an enemy's reach.\n\n***Keen Hearing and Sight.*** The owl has advantage on Wisdom (Perception) checks that rely on hearing or sight.",
 			"***Talons.*** *Melee Weapon Attack:* +3 to hit, reach 5 ft., one target. *Hit:* 1 slashing damage.",
+			"",
+			"",
 			"",
 			""));
 }
