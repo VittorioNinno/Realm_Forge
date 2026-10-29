@@ -29,7 +29,7 @@
                     var found = Matches().ToList();
                     if (found.Count == 0)
                     {
-                        <div class="small mt-1" style="color: var(--rf-text-muted);">@UiText.MagicCompendiumNone(Lang)</div>
+                        <div class="small mt-2" style="color: var(--rf-text-muted);">@UiText.MagicCompendiumNone(Lang)</div>
                     }
                     else
                     {
@@ -48,7 +48,7 @@
                 }
                 @if (ChosenItem is { } chosen)
                 {
-                    <div class="small mt-1" style="color: var(--rf-text-secondary);" data-test="magic-compendium-chosen">
+                    <div class="small mt-2" style="color: var(--rf-text-secondary);" data-test="magic-compendium-chosen">
                         @UiText.MagicCompendiumChosen(Lang): <strong>@chosen.Name</strong> · <span class="fst-italic">@chosen.Subtitle</span>
                         · <a href="@($"magic-items?id={chosen.Id}")" target="_blank" rel="noopener">@UiText.MagicOpenDetail(Lang)</a>
                     </div>
@@ -68,7 +68,7 @@
                 </select>
                 @if (MagicItemCatalog.Find(draft.Template) is { } chosenTemplate)
                 {
-                    <div class="small mt-1" style="color: var(--rf-text-secondary);">@chosenTemplate.Summary(Lang)</div>
+                    <div class="small mt-2" style="color: var(--rf-text-secondary);">@chosenTemplate.Summary(Lang)</div>
                 }
             </div>
         }

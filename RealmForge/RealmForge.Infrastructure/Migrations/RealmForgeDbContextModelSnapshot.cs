@@ -349,6 +349,9 @@ namespace RealmForge.Infrastructure.Migrations
                     b.Property<Guid>("CharacterId")
                         .HasColumnType("uuid");
 
+                    b.Property<bool>("Inactive")
+                        .HasColumnType("boolean");
+
                     b.HasKey("Id");
 
                     b.HasIndex("CharacterId");

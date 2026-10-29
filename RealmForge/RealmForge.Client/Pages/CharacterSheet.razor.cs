@@ -672,8 +672,5 @@ namespace RealmForge.Client.Pages
 			SaveStatus.Failed => UiText.SheetSaveFailed(Lang),
 			_ => string.Empty
 		};
-
-		private string ClassLine => computed is null ? string.Empty : string.Join(" / ", computed.Classes.Select(c =>
-			c.Subclass is null ? $"{c.Class.Name} {c.Level}" : $"{c.Class.Name} {c.Level} ({c.Subclass.Name})"));
 	}
 }
