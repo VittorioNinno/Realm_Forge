@@ -8,8 +8,16 @@
 		bool EmailConfirmed,
 		bool IsAdmin,
 		DateTimeOffset? RegisteredAt,
-		HomebrewCountsDto Homebrew
+		HomebrewCountsDto Homebrew,
+
+		//	Public name shown to the other players (null: not chosen yet)
+		string? Nickname = null
 	);
+
+	public class NicknameRequestDto
+	{
+		public string? Nickname { get; set; }
+	}
 
 	///	<summary>
 	///	Number of Homebrew entries created by the user, per module.

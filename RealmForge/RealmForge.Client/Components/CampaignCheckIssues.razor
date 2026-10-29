@@ -1,0 +1,26 @@
+﻿@using RealmForge.Client.Localization
+@using RealmForge.Client.Services
+@using RealmForge.Shared.DTOs
+@using RealmForge.Shared.Enums
+@inject LanguageStateService LanguageState
+
+@* Why a character cannot join a campaign: the edition and every Homebrew piece the table cannot use *@
+@if (Check is { Ok: false } check)
+{
+    <div class="rf-campaign-issues" role="alert" data-test="campaign-check-issues">
+        <strong>@UiText.CampaignCheckTitle(LanguageState.CurrentLanguage)</strong>
+        <ul class="mb-0 mt-1">
+            @foreach (var issue in check.Issues)
+            {
+                <li data-test="campaign-check-issue">@UiText.CampaignIssueText(issue, Ruleset, LanguageState.CurrentLanguage)</li>
+            }
+        </ul>
+    </div>
+}
+
+@code {
+    [Parameter] public CampaignCharacterCheckDto? Check { get; set; }
+
+    //	Edition of the campaign, for the message about the character's edition
+    [Parameter] public RulesetVersion? Ruleset { get; set; }
+}

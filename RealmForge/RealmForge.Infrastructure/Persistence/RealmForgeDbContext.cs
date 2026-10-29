@@ -64,6 +64,7 @@ namespace RealmForge.Infrastructure.Persistence
 		public DbSet<CampaignInvite> CampaignInvites => Set<CampaignInvite>();
 		public DbSet<CampaignCharacter> CampaignCharacters => Set<CampaignCharacter>();
 		public DbSet<CampaignContent> CampaignContents => Set<CampaignContent>();
+		public DbSet<CampaignNote> CampaignNotes => Set<CampaignNote>();
 
 		//	Rules glossary
 		public DbSet<RuleEntry> RuleEntries => Set<RuleEntry>();
@@ -80,6 +81,14 @@ namespace RealmForge.Infrastructure.Persistence
 		protected override void OnModelCreating(ModelBuilder modelBuilder)
 		{
 			base.OnModelCreating(modelBuilder);
+
+			//	Nicknames: never two equal ones, whatever the case
+			modelBuilder.Entity<ApplicationUser>(entity =>
+			{
+				entity.Property(u => u.Nickname).HasMaxLength(32);
+				entity.Property(u => u.NormalizedNickname).HasMaxLength(32);
+				entity.HasIndex(u => u.NormalizedNickname).IsUnique();
+			});
 
 			//	Species configuration
 			modelBuilder.Entity<Species>(entity =>
@@ -445,6 +454,16 @@ namespace RealmForge.Infrastructure.Persistence
 				entity.HasIndex(c => new { c.CampaignId, c.EntityId }).IsUnique();
 				entity.HasIndex(c => c.EntityId);
 				entity.HasOne(c => c.Campaign).WithMany(c => c.Contents).HasForeignKey(c => c.CampaignId).OnDelete(DeleteBehavior.Cascade);
+			});
+
+			modelBuilder.Entity<CampaignNote>(entity =>
+			{
+				entity.HasKey(n => n.Id);
+				entity.Property(n => n.AuthorId).IsRequired().HasMaxLength(450);
+				entity.Property(n => n.Title).IsRequired().HasMaxLength(120);
+				entity.Property(n => n.Body).IsRequired().HasMaxLength(8000);
+				entity.HasIndex(n => new { n.CampaignId, n.Kind });
+				entity.HasOne(n => n.Campaign).WithMany(c => c.Notes).HasForeignKey(n => n.CampaignId).OnDelete(DeleteBehavior.Cascade);
 			});
 
 			//	Rules glossary configuration

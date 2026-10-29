@@ -213,6 +213,14 @@ jobs:
           test "$(code -X POST $api/api/auth/register $json -d "$(cred bob@example.com)")" = "200"
           A=$(curl -sf -X POST $api/api/auth/login $json -d "$(cred alice@example.com)" | jq -r .accessToken)
           B=$(curl -sf -X POST $api/api/auth/login $json -d "$(cred bob@example.com)" | jq -r .accessToken)
+          # Nicknames: what the other players see instead of the e-mail; never two equal ones (whatever the case)
+          nick_a=$(code -X PUT $api/api/account/nickname $json -H "Authorization: Bearer $A" -d '{"nickname":"Alice"}')
+          nick_b=$(code -X PUT $api/api/account/nickname $json -H "Authorization: Bearer $B" -d '{"nickname":"Bob"}')
+          nick_taken=$(code -X PUT $api/api/account/nickname $json -H "Authorization: Bearer $B" -d '{"nickname":"ALICE"}')
+          nick_bad=$(code -X PUT $api/api/account/nickname $json -H "Authorization: Bearer $B" -d '{"nickname":"x"}')
+          nick_summary=$(curl -sf $api/api/account/summary -H "Authorization: Bearer $A" | jq -r .nickname)
+          echo "::notice title=database::nicknames: alice=$nick_a bob=$nick_b taken=$nick_taken invalid=$nick_bad summary=$nick_summary"
+          test "$nick_a" = "200" && test "$nick_b" = "200" && test "$nick_taken" = "409" && test "$nick_bad" = "400" && test "$nick_summary" = "Alice"
 
 
           feat='{"category":2,"ruleset":2,"prerequisites":{"minimumLevel":4,"abilities":[1],"minimumScore":13},"translations":[{"language":1,"name":"Forge Test","description":"x","prerequisiteNote":"Dwarf"},{"language":2,"name":"Prova Forgia","description":"x","prerequisiteNote":"Nano"}]}'
@@ -633,7 +641,7 @@ jobs:
           cp_accept=$(code -X POST "$api/api/campaigns/invitations/$cp_inv_id/accept" -H "Authorization: Bearer $A")
           cp_player_invite=$(code -X POST "$api/api/campaigns/$cp_id/invites" $json -H "Authorization: Bearer $A" -d '{"email":"carol@example.com","role":2}')
           cp_bring=$(code -X POST "$api/api/campaigns/$cp_id/characters" $json -H "Authorization: Bearer $A" -d "{\"characterId\":\"$ch_id\"}")
-          cp_master_get=$(get "$api/api/characters/$ch_id" -H "Authorization: Bearer $B" | jq -c '{readOnly, isOwner, ownerEmail}')
+          cp_master_get=$(get "$api/api/characters/$ch_id" -H "Authorization: Bearer $B" | jq -c '{readOnly, isOwner, ownerName, campaigns: (.campaigns | length)}')
           cp_master_ctx=$(code "$api/api/characters/context?ruleset=2&lang=2&character=$ch_id" -H "Authorization: Bearer $B")
           cp_master_sheet=$(code -X PUT "$api/api/characters/$ch_id/sheet" $json -H "Authorization: Bearer $B" -d "$(echo "$sheet" | jq '.notes = "Il master"')")
           cp_owner_view=$(get "$api/api/characters/$ch_id" -H "Authorization: Bearer $A" | jq -c '{notes: .sheet.notes, lastEditedBy}')
@@ -644,8 +652,21 @@ jobs:
           cp_review_read=$(code "$api/api/feats/$cp_feat" -H "Authorization: Bearer $B")
           cp_approve_player=$(code -X POST "$api/api/campaigns/$cp_id/contents/$cp_feat/approve" -H "Authorization: Bearer $A")
           cp_approve=$(code -X POST "$api/api/campaigns/$cp_id/contents/$cp_feat/approve" -H "Authorization: Bearer $B")
-          cp_promote=$(code -X PUT "$api/api/campaigns/$cp_id/members/$(get "$api/api/campaigns/$cp_id" -H "Authorization: Bearer $B" | jq -r '.members[] | select(.email == "alice@example.com") | .userId')" $json -H "Authorization: Bearer $B" -d '{"role":2}')
-          bob_id=$(get "$api/api/campaigns/$cp_id" -H "Authorization: Bearer $B" | jq -r '.members[] | select(.email == "bob@example.com") | .userId')
+          # Requirements: a 2014 campaign refuses the 2024 character and says why
+          cp14=$(curl -s -X POST "$api/api/campaigns?lang=2" $json -H "Authorization: Bearer $A" -d '{"name":"Tavola 2014","ruleset":1}' | jq -r .id)
+          cp14_check=$(get "$api/api/campaigns/$cp14/characters/$ch_id/check?lang=2" -H "Authorization: Bearer $A" | jq -c '{ok, issues: [.issues[].issue]}')
+          cp14_bring=$(curl -s -o /dev/null -w '%{http_code}' -X POST "$api/api/campaigns/$cp14/characters" $json -H "Authorization: Bearer $A" -d "{\"characterId\":\"$ch_id\"}")
+          code -X DELETE "$api/api/campaigns/$cp14" -H "Authorization: Bearer $A" >/dev/null
+          # Notes: private (the author only), for the masters, the shared journal
+          note() { curl -s -o /dev/null -w '%{http_code}' -X POST "$api/api/campaigns/$cp_id/notes" $json -H "Authorization: Bearer $1" -d "{\"kind\":$2,\"title\":\"$3\",\"body\":\"x\"}"; }
+          cp_notes_post="$(note "$A" 1 Mia) $(note "$A" 3 Diario) $(note "$B" 2 Master) $(note "$A" 2 Vietata)"
+          cp_notes_alice=$(get "$api/api/campaigns/$cp_id/notes" -H "Authorization: Bearer $A" | jq -c '[.[].kind] | sort')
+          cp_notes_bob=$(get "$api/api/campaigns/$cp_id/notes" -H "Authorization: Bearer $B" | jq -c '[.[].kind] | sort')
+          journal=$(get "$api/api/campaigns/$cp_id/notes" -H "Authorization: Bearer $B" | jq -r '.[] | select(.kind == 3) | .id')
+          cp_note_edit_other=$(code -X PUT "$api/api/campaigns/$cp_id/notes/$journal" $json -H "Authorization: Bearer $B" -d '{"kind":3,"title":"x","body":"y"}')
+          cp_note_delete=$(code -X DELETE "$api/api/campaigns/$cp_id/notes/$journal" -H "Authorization: Bearer $B")
+          cp_promote=$(code -X PUT "$api/api/campaigns/$cp_id/members/$(get "$api/api/campaigns/$cp_id" -H "Authorization: Bearer $B" | jq -r '.members[] | select(.name == "Alice") | .userId')" $json -H "Authorization: Bearer $B" -d '{"role":2}')
+          bob_id=$(get "$api/api/campaigns/$cp_id" -H "Authorization: Bearer $B" | jq -r '.members[] | select(.name == "Bob") | .userId')
           cp_comaster_promote=$(code -X PUT "$api/api/campaigns/$cp_id/members/$bob_id" $json -H "Authorization: Bearer $A" -d '{"role":3}')
           cp_last_master=$(code -X DELETE "$api/api/campaigns/$cp_id/members/me" -H "Authorization: Bearer $B")
           cp_bob_feat=$(curl -sf -X POST "$api/api/feats?lang=2" $json -H "Authorization: Bearer $B" -d "$feat" | jq -r .id)
@@ -693,7 +714,7 @@ jobs:
           chcheck "share with an unknown address" "$sh_unknown" "404"
           chcheck "shared GET" "$sh_get" '{"readOnly":true,"name":"Elminster di prova"}'
           chcheck "owner GET" "$sh_owner_get" "false"
-          chcheck "shared list" "$sh_list" '[{"name":"Elminster di prova","owner":"alice@example.com"}]'
+          chcheck "shared list" "$sh_list" '[{"name":"Elminster di prova","owner":"Alice"}]'
           chcheck "shared context" "$sh_ctx" "200"
           chcheck "shared sheet PUT" "$sh_sheet" "404"
           chcheck "people" "$sh_people" "bob@example.com"
@@ -704,16 +725,23 @@ jobs:
           chcheck "accept" "$cp_accept" "204"
           chcheck "player invites a co-master" "$cp_player_invite" "403"
           chcheck "bring a character" "$cp_bring" "204"
-          chcheck "master opens it" "$cp_master_get" '{"readOnly":false,"isOwner":false,"ownerEmail":"alice@example.com"}'
+          chcheck "master opens it" "$cp_master_get" '{"readOnly":false,"isOwner":false,"ownerName":"Alice","campaigns":1}'
           chcheck "master context" "$cp_master_ctx" "200"
           chcheck "master saves the sheet" "$cp_master_sheet" "200"
-          chcheck "owner sees the change" "$cp_owner_view" '{"notes":"Il master","lastEditedBy":"bob@example.com"}'
+          chcheck "owner sees the change" "$cp_owner_view" '{"notes":"Il master","lastEditedBy":"Bob"}'
           chcheck "master cannot delete it" "$cp_master_delete" "404"
           chcheck "player share waits" "$cp_share" "1"
           chcheck "campaign list" "$cp_pending" '[{"role":1,"members":2,"characters":1,"pending":1}]'
           chcheck "master reads the pending entry" "$cp_review_read" "200"
           chcheck "player approves" "$cp_approve_player" "403"
           chcheck "master approves" "$cp_approve" "204"
+          chcheck "2014 campaign check" "$cp14_check" '{"ok":false,"issues":[1]}'
+          chcheck "2014 campaign refuses" "$cp14_bring" "422"
+          chcheck "notes written" "$cp_notes_post" "200 200 200 403"
+          chcheck "notes of the player" "$cp_notes_alice" "[1,3]"
+          chcheck "notes of the master" "$cp_notes_bob" "[2,3]"
+          chcheck "edit someone else's note" "$cp_note_edit_other" "403"
+          chcheck "master deletes a journal page" "$cp_note_delete" "204"
           chcheck "promote to co-master" "$cp_promote" "204"
           chcheck "co-master promotes" "$cp_comaster_promote" "403"
           chcheck "last master leaves" "$cp_last_master" "400"

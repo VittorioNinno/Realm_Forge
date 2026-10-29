@@ -9,6 +9,7 @@
 @inject CharacterDataService Characters
 @inject LanguageStateService LanguageState
 @inject NavigationManager Navigation
+@inject AuthService Auth
 
 <PageTitle>RealmForge - @UiText.CampaignsTitle(Lang)</PageTitle>
 
@@ -33,6 +34,14 @@
             </div>
         </NotAuthorized>
         <Authorized>
+            @if (noNickname)
+            {
+                @* Without a nickname the others see only the first letters of the e-mail: suggest choosing one *@
+                <div class="rf-master-banner" data-test="campaign-nickname-hint">
+                    <span>@UiText.NicknameMissingHint(Lang)</span>
+                    <a href="account" class="btn btn-sm btn-rf-outline">@UiText.NavAccount(Lang)</a>
+                </div>
+            }
             @if (invitations is { Count: > 0 })
             {
                 <h2 class="rf-characters-shared-title mt-0">@UiText.CampaignInvitationsTitle(Lang)</h2>
@@ -110,12 +119,10 @@
                 <input id="campaign-name" class="rf-form-control" maxlength="100" @bind="form.Name" data-test="campaign-name" />
             </div>
             <div class="mb-3">
-                <label class="rf-form-label" for="campaign-ruleset">@UiText.CampaignEdition(Lang)</label>
-                <select id="campaign-ruleset" class="rf-form-control" value="@(form.Ruleset is { } r ? ((int)r).ToString() : string.Empty)" @onchange="SetRuleset" data-test="campaign-ruleset">
-                    <option value="">@UiText.CampaignAnyEdition(Lang)</option>
-                    <option value="@((int)RulesetVersion.Dnd5e_2014)">@UiText.FormatRuleset(RulesetVersion.Dnd5e_2014, Lang)</option>
-                    <option value="@((int)RulesetVersion.Dnd5e_2024)">@UiText.FormatRuleset(RulesetVersion.Dnd5e_2024, Lang)</option>
-                </select>
+                <label class="rf-form-label">@UiText.CampaignEdition(Lang)</label>
+                <div data-test="campaign-ruleset">
+                    <RfSelect TValue="RulesetVersion?" @bind-Value="form.Ruleset" Options="EditionOptions" />
+                </div>
             </div>
             <div class="mb-3">
                 <label class="rf-form-label" for="campaign-description">@UiText.CampaignDescription(Lang)</label>
@@ -145,6 +152,7 @@
     private string? error;
     private string joinCode = string.Empty;
     private SaveCampaignDto form = new();
+    private bool noNickname;
 
     protected override async Task OnInitializedAsync()
     {
@@ -161,6 +169,7 @@
         var received = Campaigns.GetInvitationsAsync();
         campaigns = await list ?? new List<CampaignSummaryDto>();
         invitations = await received ?? new List<CampaignInvitationDto>();
+        noNickname = (await Auth.GetAccountSummaryAsync()) is { Nickname: null };
     }
 
     private void OpenCreate()
@@ -170,8 +179,12 @@
         createOpen = true;
     }
 
-    private void SetRuleset(ChangeEventArgs e) =>
-        form.Ruleset = int.TryParse(e.Value?.ToString(), out var value) && Enum.IsDefined(typeof(RulesetVersion), value) ? (RulesetVersion)value : null;
+    private List<RfSelect<RulesetVersion?>.OptionItem> EditionOptions => new()
+    {
+        new(null, UiText.CampaignAnyEdition(Lang)),
+        new(RulesetVersion.Dnd5e_2014, UiText.FormatRuleset(RulesetVersion.Dnd5e_2014, Lang)),
+        new(RulesetVersion.Dnd5e_2024, UiText.FormatRuleset(RulesetVersion.Dnd5e_2024, Lang))
+    };
 
     private async Task CreateAsync()
     {

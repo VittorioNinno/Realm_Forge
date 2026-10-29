@@ -76,4 +76,20 @@ public class CampaignRulesTests
 		Assert.False(CampaignRules.CanEditCharacter(Player, owner: false));
 		Assert.True(CampaignRules.CanEditCharacter(Player, owner: true));
 	}
+
+	[Fact]
+	public void Notes_follow_their_kind()
+	{
+		Assert.False(CampaignRules.CanReadNotes(CampaignNoteKind.Masters, Player));
+		Assert.True(CampaignRules.CanReadNotes(CampaignNoteKind.Masters, CoMaster));
+		Assert.True(CampaignRules.CanWriteNotes(CampaignNoteKind.Journal, Player));
+		Assert.False(CampaignRules.CanEditNote(author: false));
+
+		//	Private notes: only their author; the journal: masters too, co-masters except the masters' pages
+		Assert.False(CampaignRules.CanDeleteNote(CampaignNoteKind.Private, Master, author: false, authorRole: Player));
+		Assert.True(CampaignRules.CanDeleteNote(CampaignNoteKind.Journal, Master, author: false, authorRole: Player));
+		Assert.True(CampaignRules.CanDeleteNote(CampaignNoteKind.Journal, CoMaster, author: false, authorRole: Player));
+		Assert.False(CampaignRules.CanDeleteNote(CampaignNoteKind.Journal, CoMaster, author: false, authorRole: Master));
+		Assert.False(CampaignRules.CanDeleteNote(CampaignNoteKind.Journal, Player, author: false, authorRole: Player));
+	}
 }
