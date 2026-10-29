@@ -4,7 +4,7 @@
 @using RealmForge.Shared.DTOs
 @using RealmForge.Shared.Enums
 @implements IDisposable
-@inject TrashDataService Trash
+@inject TrashDataService Bin
 @inject LanguageStateService LanguageState
 
 <PageTitle>RealmForge - @UiText.TrashTitle(Lang)</PageTitle>
@@ -107,7 +107,7 @@
         {
             return;
         }
-        entries = await Trash.GetAsync(Lang) ?? new List<TrashEntryDto>();
+        entries = await Bin.GetAsync(Lang) ?? new List<TrashEntryDto>();
     }
 
     private async Task RestoreAsync(TrashEntryDto entry)
@@ -115,7 +115,7 @@
         busy = entry.Id;
         message = null;
         messageLink = null;
-        var result = await Trash.RestoreAsync(entry.Id, Lang);
+        var result = await Bin.RestoreAsync(entry.Id, Lang);
         busy = null;
         if (result.Restored is { } restored)
         {
@@ -137,7 +137,7 @@
     {
         busy = entry.Id;
         message = null;
-        var ok = await Trash.PurgeAsync(entry.Id);
+        var ok = await Bin.PurgeAsync(entry.Id);
         busy = null;
         confirming = null;
         if (ok)
