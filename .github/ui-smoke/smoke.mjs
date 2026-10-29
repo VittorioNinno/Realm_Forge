@@ -840,6 +840,7 @@ try {
     return `${img.naturalWidth}x${img.naturalHeight}`;
   }, portraitStyle ?? '');
   await shot(page, 'sheet-hero', '.rf-hero');
+  await shot(page, 'sheet-xp', '[data-test=sheet-hp-box]');
   results.push(`INFO portrait: crop ${cropStyle?.match(/background-position:[^;]+/)?.[0]}, saved ${portraitSize}`);
   if (!/background-position: [0-9]+% 50%/.test(cropStyle ?? '') || /background-position: 50% 50%/.test(cropStyle ?? '') || portraitSize !== '320x320') throw new Error(`portrait crop: ${cropStyle} -> ${portraitSize}`);
   ok('portrait: a new picture opens the crop (drag and zoom), the sheet keeps the 320 px square; inspiration star and label aligned');
