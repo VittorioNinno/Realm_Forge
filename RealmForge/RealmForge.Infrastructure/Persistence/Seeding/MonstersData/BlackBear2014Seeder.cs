@@ -9,7 +9,7 @@ namespace RealmForge.Infrastructure.Persistence.Seeding.MonstersData;
 ///	</summary>
 public static class BlackBear2014Seeder
 {
-	public static Monster Build() => Create("black-bear", null, CreatureSize.Medium, CreatureType.Beast,
+	public static Monster Build() => Create("black-bear", null, ContentSource.Srd51, CreatureSize.Medium, CreatureType.Beast,
 		11, 19, "3d8 + 6", 40, new[] { 15, 10, 14, 2, 12, 7 }, 0.5m, 100, 2, 13,
 		new Text(
 			"Orso nero",
@@ -28,6 +28,8 @@ public static class BlackBear2014Seeder
 			"***Olfatto acuto.*** L'orso dispone di vantaggio alle prove di Saggezza (Percezione) basate sull'olfatto.",
 			"***Multiattacco.*** L'orso effettua due attacchi: uno con il morso e uno con gli artigli.\n\n***Artigli.*** *Attacco con arma da mischia:* +3 al tiro per colpire, portata 1,5 m, un bersaglio. *Colpito:* 7 (2d4 + 2) danni taglienti.\n\n***Morso.*** *Attacco con arma da mischia:* +3 al tiro per colpire, portata 1,5 m, un bersaglio. *Colpito:* 5 (1d6 + 2) danni perforanti.",
 			"",
+			"",
+			"",
 			""),
 		new Text(
 			"Black Bear",
@@ -45,6 +47,8 @@ public static class BlackBear2014Seeder
 			"—",
 			"***Keen Smell.*** The bear has advantage on Wisdom (Perception) checks that rely on smell.",
 			"***Multiattack.*** The bear makes two attacks: one with its bite and one with its claws.\n\n***Bite.*** *Melee Weapon Attack:* +3 to hit, reach 5 ft., one target. *Hit:* 5 (1d6 + 2) piercing damage.\n\n***Claws.*** *Melee Weapon Attack:* +3 to hit, reach 5 ft., one target. *Hit:* 7 (2d4 + 2) slashing damage.",
+			"",
+			"",
 			"",
 			""));
 }

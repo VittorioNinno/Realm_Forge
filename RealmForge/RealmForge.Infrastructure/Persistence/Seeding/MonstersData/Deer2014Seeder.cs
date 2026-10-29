@@ -9,7 +9,7 @@ namespace RealmForge.Infrastructure.Persistence.Seeding.MonstersData;
 ///	</summary>
 public static class Deer2014Seeder
 {
-	public static Monster Build() => Create("deer", null, CreatureSize.Medium, CreatureType.Beast,
+	public static Monster Build() => Create("deer", null, ContentSource.Srd51, CreatureSize.Medium, CreatureType.Beast,
 		13, 4, "1d8", 50, new[] { 11, 16, 11, 2, 14, 5 }, 0m, 10, 2, 12,
 		new Text(
 			"Daino",
@@ -28,6 +28,8 @@ public static class Deer2014Seeder
 			"",
 			"***Morso.*** *Attacco con arma da mischia:* +2 al tiro per colpire, portata 1,5 m, un bersaglio. *Colpito:* 2 (1d4) danni perforanti.",
 			"",
+			"",
+			"",
 			""),
 		new Text(
 			"Deer",
@@ -45,6 +47,8 @@ public static class Deer2014Seeder
 			"—",
 			"",
 			"***Bite.*** *Melee Weapon Attack:* +2 to hit, reach 5 ft., one target. *Hit:* 2 (1d4) piercing damage.",
+			"",
+			"",
 			"",
 			""));
 }

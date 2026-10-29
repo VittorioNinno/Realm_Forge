@@ -9,7 +9,7 @@ namespace RealmForge.Infrastructure.Persistence.Seeding.MonstersData;
 ///	</summary>
 public static class Plesiosaurus2014Seeder
 {
-	public static Monster Build() => Create("plesiosaurus", null, CreatureSize.Large, CreatureType.Beast,
+	public static Monster Build() => Create("plesiosaurus", null, ContentSource.Srd51, CreatureSize.Large, CreatureType.Beast,
 		13, 68, "8d10 + 24", 20, new[] { 18, 15, 16, 2, 12, 5 }, 2m, 450, 2, 13,
 		new Text(
 			"Plesiosauro",
@@ -28,6 +28,8 @@ public static class Plesiosaurus2014Seeder
 			"***Apnea.*** Il plesiosauro può trattenere il respiro per 1 ora.",
 			"***Morso.*** *Attacco con arma da mischia:* +6 al tiro per colpire, portata 3 m, un bersaglio. *Colpito:* 14 (3d6 + 4) danni perforanti.",
 			"",
+			"",
+			"",
 			""),
 		new Text(
 			"Plesiosaurus",
@@ -45,6 +47,8 @@ public static class Plesiosaurus2014Seeder
 			"—",
 			"***Hold Breath.*** The plesiosaurus can hold its breath for 1 hour.",
 			"***Bite.*** *Melee Weapon Attack:* +6 to hit, reach 10 ft., one target. *Hit:* 14 (3d6 + 4) piercing damage.",
+			"",
+			"",
 			"",
 			""));
 }

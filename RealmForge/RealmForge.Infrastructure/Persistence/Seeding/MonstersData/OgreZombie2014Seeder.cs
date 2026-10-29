@@ -9,7 +9,7 @@ namespace RealmForge.Infrastructure.Persistence.Seeding.MonstersData;
 ///	</summary>
 public static class OgreZombie2014Seeder
 {
-	public static Monster Build() => Create("ogre-zombie", null, CreatureSize.Large, CreatureType.Undead,
+	public static Monster Build() => Create("ogre-zombie", null, ContentSource.Srd51, CreatureSize.Large, CreatureType.Undead,
 		8, 85, "9d10 + 36", 30, new[] { 19, 6, 18, 3, 6, 5 }, 2m, 450, 2, 8,
 		new Text(
 			"Zombi ogre",
@@ -28,6 +28,8 @@ public static class OgreZombie2014Seeder
 			"***Tempra dei non morti.*** Se i danni riducono lo zombi a 0 punti ferita, esso deve effettuare un tiro salvezza su Costituzione con una CD pari a 5 + i danni subiti, a meno che non si tratti di danni radiosi o di un colpo critico. In caso di successo, lo zombi scende invece a 1 punto ferita.",
 			"***Mazza chiodata.*** *Attacco con arma da mischia:* +6 al tiro per colpire, portata 1,5 m, un bersaglio. *Colpito:* 13 (2d8 + 4) danni contundenti.",
 			"",
+			"",
+			"",
 			""),
 		new Text(
 			"Ogre Zombie",
@@ -45,6 +47,8 @@ public static class OgreZombie2014Seeder
 			"understands Common and Giant but can't speak",
 			"***Undead Fortitude.*** If damage reduces the zombie to 0 hit points, it must make a Constitution saving throw with a DC of 5+the damage taken, unless the damage is radiant or from a critical hit. On a success, the zombie drops to 1 hit point instead.",
 			"***Morningstar.*** *Melee Weapon Attack:* +6 to hit, reach 5 ft., one target. *Hit:* 13 (2d8 + 4) bludgeoning damage.",
+			"",
+			"",
 			"",
 			""));
 }

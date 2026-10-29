@@ -9,7 +9,7 @@ namespace RealmForge.Infrastructure.Persistence.Seeding.MonstersData;
 ///	</summary>
 public static class AnimatedArmor2014Seeder
 {
-	public static Monster Build() => Create("animated-armor", null, CreatureSize.Medium, CreatureType.Construct,
+	public static Monster Build() => Create("animated-armor", null, ContentSource.Srd51, CreatureSize.Medium, CreatureType.Construct,
 		18, 33, "6d8 + 6", 25, new[] { 14, 11, 13, 1, 3, 1 }, 1m, 200, 2, 6,
 		new Text(
 			"Armatura animata",
@@ -28,6 +28,8 @@ public static class AnimatedArmor2014Seeder
 			"***Falso aspetto.*** Finché l'armatura rimane immobile, non è distinguibile da un'armatura normale.\n\n***Suscettibilità all'anti-magia.*** L'armatura è incapacitata finché si trova nell'area di un *campo anti-magia.* Se bersagliata da un incantesimo *dissolvi magie,* l'armatura deve superare un tiro salvezza su Costituzione contro la CD del tiro salvezza sull'incantesimo di chi lo lancia, altrimenti è priva di sensi per 1 minuto.",
 			"***Multiattacco.*** L'armatura effettua due attacchi in mischia.\n\n***Schianto.*** *Attacco con arma da mischia:* +4 al tiro per colpire, portata 1,5 m, un bersaglio. *Colpito:* 5 (1d6 + 2) danni contundenti.",
 			"",
+			"",
+			"",
 			""),
 		new Text(
 			"Animated Armor",
@@ -45,6 +47,8 @@ public static class AnimatedArmor2014Seeder
 			"—",
 			"***Antimagic Susceptibility.*** The armor is incapacitated while in the area of an antimagic field. If targeted by dispel magic, the armor must succeed on a Constitution saving throw against the caster's spell save DC or fall unconscious for 1 minute.\n\n***False Appearance.*** While the armor remains motionless, it is indistinguishable from a normal suit of armor.",
 			"***Multiattack.*** The armor makes two melee attacks.\n\n***Slam.*** *Melee Weapon Attack:* +4 to hit, reach 5 ft., one target. *Hit:* 5 (1d6 + 2) bludgeoning damage.",
+			"",
+			"",
 			"",
 			""));
 }

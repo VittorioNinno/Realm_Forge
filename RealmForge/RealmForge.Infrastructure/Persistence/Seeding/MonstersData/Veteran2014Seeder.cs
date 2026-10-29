@@ -9,7 +9,7 @@ namespace RealmForge.Infrastructure.Persistence.Seeding.MonstersData;
 ///	</summary>
 public static class Veteran2014Seeder
 {
-	public static Monster Build() => Create("veteran", null, CreatureSize.Medium, CreatureType.Humanoid,
+	public static Monster Build() => Create("veteran", null, ContentSource.Srd51, CreatureSize.Medium, CreatureType.Humanoid,
 		17, 58, "9d8 + 18", 30, new[] { 16, 13, 14, 10, 11, 10 }, 3m, 700, 2, 12,
 		new Text(
 			"Veterano",
@@ -28,6 +28,8 @@ public static class Veteran2014Seeder
 			"",
 			"***Multiattacco.*** Il veterano sferra due attacchi con la spada lunga. Se ha sfoderato una spada corta, può effettuare anche un attacco con la spada corta.\n\n***Spada corta.*** *Attacco con arma da mischia:* +5 al tiro per colpire, portata 1,5 m, un bersaglio. *Colpito:* 6 (1d6 + 3) danni perforanti.\n\n***Spada lunga.*** *Attacco con arma da mischia:* +5 al tiro per colpire, portata 1,5 m, un bersaglio. *Colpito:* 7 (1d8 + 3) danni taglienti o 8 (1d10 + 3) danni taglienti se usata a due mani.\n\n***Balestra pesante.*** *Attacco con arma a distanza:* +3 al tiro per colpire, gittata 30/120 m, un bersaglio. *Colpito:* 6 (1d10 + 1) danni perforanti.",
 			"",
+			"",
+			"",
 			""),
 		new Text(
 			"Veteran",
@@ -45,6 +47,8 @@ public static class Veteran2014Seeder
 			"any one language (usually Common)",
 			"",
 			"***Multiattack.*** The veteran makes two longsword attacks. If it has a shortsword drawn, it can also make a shortsword attack.\n\n***Longsword.*** *Melee Weapon Attack:* +5 to hit, reach 5 ft., one target. *Hit:* 7 (1d8 + 3) slashing damage, or 8 (1d10 + 3) slashing damage if used with two hands.\n\n***Shortsword.*** *Melee Weapon Attack:* +5 to hit, reach 5 ft., one target. *Hit:* 6 (1d6 + 3) piercing damage.\n\n***Heavy Crossbow.*** *Ranged Weapon Attack:* +3 to hit, range 100/400 ft., one target. *Hit:* 6 (1d10 + 1) piercing damage.",
+			"",
+			"",
 			"",
 			""));
 }

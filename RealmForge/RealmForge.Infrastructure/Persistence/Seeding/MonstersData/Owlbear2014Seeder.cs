@@ -9,7 +9,7 @@ namespace RealmForge.Infrastructure.Persistence.Seeding.MonstersData;
 ///	</summary>
 public static class Owlbear2014Seeder
 {
-	public static Monster Build() => Create("owlbear", null, CreatureSize.Large, CreatureType.Monstrosity,
+	public static Monster Build() => Create("owlbear", null, ContentSource.Srd51, CreatureSize.Large, CreatureType.Monstrosity,
 		13, 59, "7d10 + 21", 40, new[] { 20, 12, 17, 3, 12, 7 }, 3m, 700, 2, 13,
 		new Text(
 			"Orsogufo",
@@ -28,6 +28,8 @@ public static class Owlbear2014Seeder
 			"***Vista e olfatto acuti.*** L'orsogufo dispone di vantaggio nelle prove di Saggezza (Percezione) basate sulla vista o sull'olfatto.",
 			"***Multiattacco.*** L'orsogufo effettua due attacchi: uno con il becco e uno con gli artigli.\n\n***Artigli.*** *Attacco con arma da mischia:* +7 al tiro per colpire, portata 1,5 m, un bersaglio. *Colpito:* 14 (2d8 + 5) danni taglienti.\n\n***Becco.*** *Attacco con arma da mischia:* +7 al tiro per colpire, portata 1,5 m, una creatura. *Colpito:* 10 (1d10 + 5) danni perforanti.",
 			"",
+			"",
+			"",
 			""),
 		new Text(
 			"Owlbear",
@@ -45,6 +47,8 @@ public static class Owlbear2014Seeder
 			"—",
 			"***Keen Sight and Smell.*** The owlbear has advantage on Wisdom (Perception) checks that rely on sight or smell.",
 			"***Multiattack.*** The owlbear makes two attacks: one with its beak and one with its claws.\n\n***Beak.*** *Melee Weapon Attack:* +7 to hit, reach 5 ft., one creature. *Hit:* 10 (1d10 + 5) piercing damage.\n\n***Claws.*** *Melee Weapon Attack:* +7 to hit, reach 5 ft., one target. *Hit:* 14 (2d8 + 5) slashing damage.",
+			"",
+			"",
 			"",
 			""));
 }

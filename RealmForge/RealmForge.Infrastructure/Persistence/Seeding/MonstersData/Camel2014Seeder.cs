@@ -9,7 +9,7 @@ namespace RealmForge.Infrastructure.Persistence.Seeding.MonstersData;
 ///	</summary>
 public static class Camel2014Seeder
 {
-	public static Monster Build() => Create("camel", null, CreatureSize.Large, CreatureType.Beast,
+	public static Monster Build() => Create("camel", null, ContentSource.Srd51, CreatureSize.Large, CreatureType.Beast,
 		9, 15, "2d10 + 4", 50, new[] { 16, 8, 14, 2, 8, 5 }, 0.125m, 25, 2, 9,
 		new Text(
 			"Cammello",
@@ -28,6 +28,8 @@ public static class Camel2014Seeder
 			"",
 			"***Morso.*** *Attacco con arma da mischia:* +5 al tiro per colpire, portata 1,5 m, un bersaglio. *Colpito:* 2 (1d4) danni contundenti.",
 			"",
+			"",
+			"",
 			""),
 		new Text(
 			"Camel",
@@ -45,6 +47,8 @@ public static class Camel2014Seeder
 			"—",
 			"",
 			"***Bite.*** *Melee Weapon Attack:* +5 to hit, reach 5 ft., one target. *Hit:* 2 (1d4) bludgeoning damage.",
+			"",
+			"",
 			"",
 			""));
 }

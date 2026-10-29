@@ -9,7 +9,7 @@ namespace RealmForge.Infrastructure.Persistence.Seeding.MonstersData;
 ///	</summary>
 public static class GiantPoisonousSnake2014Seeder
 {
-	public static Monster Build() => Create("giant-poisonous-snake", null, CreatureSize.Medium, CreatureType.Beast,
+	public static Monster Build() => Create("giant-poisonous-snake", null, ContentSource.Srd51, CreatureSize.Medium, CreatureType.Beast,
 		14, 11, "2d8 + 2", 30, new[] { 10, 18, 13, 2, 10, 3 }, 0.25m, 50, 2, 12,
 		new Text(
 			"Serpente velenoso gigante",
@@ -28,6 +28,8 @@ public static class GiantPoisonousSnake2014Seeder
 			"",
 			"***Morso.*** *Attacco con arma da mischia:* +6 al tiro per colpire, portata 3 m, un bersaglio. *Colpito:* 6 (1d4 + 4) danni perforanti e il bersaglio deve effettuare un tiro salvezza su Costituzione con CD 11 subendo 10 (3d6) danni da veleno in caso di fallimento, o la metà in caso di successo.",
 			"",
+			"",
+			"",
 			""),
 		new Text(
 			"Giant Poisonous Snake",
@@ -45,6 +47,8 @@ public static class GiantPoisonousSnake2014Seeder
 			"—",
 			"",
 			"***Bite.*** *Melee Weapon Attack:* +6 to hit, reach 10 ft., one target. *Hit:* 6 (1d4 + 4) piercing damage, and the target must make a DC 11 Constitution saving throw, taking 10 (3d6) poison damage on a failed save, or half as much damage on a successful one.",
+			"",
+			"",
 			"",
 			""));
 }

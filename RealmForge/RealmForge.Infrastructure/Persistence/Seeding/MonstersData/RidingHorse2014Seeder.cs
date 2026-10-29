@@ -9,7 +9,7 @@ namespace RealmForge.Infrastructure.Persistence.Seeding.MonstersData;
 ///	</summary>
 public static class RidingHorse2014Seeder
 {
-	public static Monster Build() => Create("riding-horse", null, CreatureSize.Large, CreatureType.Beast,
+	public static Monster Build() => Create("riding-horse", null, ContentSource.Srd51, CreatureSize.Large, CreatureType.Beast,
 		10, 13, "2d10 + 2", 60, new[] { 16, 10, 12, 2, 11, 7 }, 0.25m, 50, 2, 10,
 		new Text(
 			"Cavallo da galoppo",
@@ -28,6 +28,8 @@ public static class RidingHorse2014Seeder
 			"",
 			"***Zoccoli.*** *Attacco con arma da mischia:* +5 al tiro per colpire, portata 1,5 m, un bersaglio. *Colpito:* 8 (2d4 + 3) danni contundenti.",
 			"",
+			"",
+			"",
 			""),
 		new Text(
 			"Riding Horse",
@@ -45,6 +47,8 @@ public static class RidingHorse2014Seeder
 			"—",
 			"",
 			"***Hooves.*** *Melee Weapon Attack:* +5 to hit, reach 5 ft., one target. *Hit:* 8 (2d4 + 3) bludgeoning damage.",
+			"",
+			"",
 			"",
 			""));
 }
