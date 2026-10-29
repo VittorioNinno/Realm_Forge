@@ -72,7 +72,7 @@ namespace RealmForge.Api.Controllers
 				{
 					var tr = m.Translations.Localize(lang);
 					return new MonsterResponseDto(m.Id, tr?.Name ?? "Unknown", tr?.Alias, m.Ruleset, m.IsOfficialSRD, m.Size, m.Type,
-						tr?.Subtitle ?? string.Empty, m.ArmorClass, m.HitPoints, m.HitDice, m.ChallengeRating, m.Xp, m.Dexterity,
+						tr?.Subtitle ?? string.Empty, m.ArmorClass, m.HitPoints, m.HitDice, Plain(m.ChallengeRating), m.Xp, m.Dexterity,
 						m.VariantOfId, _access.CanModify(m, User), m.Source, m.Visibility);
 				})
 				.OrderBy(m => m.Name, StringComparer.CurrentCultureIgnoreCase)
@@ -226,6 +226,9 @@ namespace RealmForge.Api.Controllers
 
 		#region Mapping & validation
 
+		//	0.250 read from the database answers 0.25 (no trailing zeros of the column scale)
+		private static decimal Plain(decimal value) => value / 1.000000000000000000000000000000000m;
+
 		internal static MonsterTextDto ToText(MonsterTranslation? tr, LanguageCode lang) => new()
 		{
 			Language = tr?.Language ?? lang,
@@ -253,7 +256,7 @@ namespace RealmForge.Api.Controllers
 		private MonsterDetailDto ToDetail(Monster m, LanguageCode lang, string? original, string? author) => new(
 			m.Id, m.Ruleset, m.IsOfficialSRD, m.Size, m.Type, m.ArmorClass, m.HitPoints, m.HitDice, m.Speed,
 			new List<int> { m.Strength, m.Dexterity, m.Constitution, m.Intelligence, m.Wisdom, m.Charisma },
-			m.ChallengeRating, m.Xp, m.ProficiencyBonus, m.PassivePerception, m.VariantOfId, original,
+			Plain(m.ChallengeRating), m.Xp, m.ProficiencyBonus, m.PassivePerception, m.VariantOfId, original,
 			ToText(m.Translations.Localize(lang), lang), _access.CanModify(m, User), m.Source, m.Visibility, author);
 
 		private static void Apply(Monster m, SaveMonsterDto dto)
