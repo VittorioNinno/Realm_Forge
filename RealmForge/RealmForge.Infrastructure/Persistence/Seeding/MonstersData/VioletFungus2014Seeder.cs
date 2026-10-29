@@ -9,7 +9,7 @@ namespace RealmForge.Infrastructure.Persistence.Seeding.MonstersData;
 ///	</summary>
 public static class VioletFungus2014Seeder
 {
-	public static Monster Build() => Create("violet-fungus", null, CreatureSize.Medium, CreatureType.Plant,
+	public static Monster Build() => Create("violet-fungus", null, ContentSource.Srd51, CreatureSize.Medium, CreatureType.Plant,
 		5, 18, "4d8", 5, new[] { 3, 1, 10, 1, 3, 1 }, 0.25m, 50, 2, 6,
 		new Text(
 			"Fungo viola",
@@ -28,6 +28,8 @@ public static class VioletFungus2014Seeder
 			"***Falso aspetto.*** Finché il fungo viola rimane immobile, non è possibile distinguerlo da un normale fungo.",
 			"***Multiattacco.*** Il fungo effettua 1d4 attacchi Tocco marcescente.\n\n***Tocco marcescente.*** *Attacco con arma da mischia:* +2 al tiro per colpire, portata 3 m, una creatura. *Colpito:* 4 (1d8) danni necrotici.",
 			"",
+			"",
+			"",
 			""),
 		new Text(
 			"Violet Fungus",
@@ -45,6 +47,8 @@ public static class VioletFungus2014Seeder
 			"—",
 			"***False Appearance.*** While the violet fungus remains motionless, it is indistinguishable from an ordinary fungus.",
 			"***Multiattack.*** The fungus makes 1d4 Rotting Touch attacks.\n\n***Rotting Touch.*** *Melee Weapon Attack:* +2 to hit, reach 10 ft., one creature. *Hit:* 4 (1d8) necrotic damage.",
+			"",
+			"",
 			"",
 			""));
 }

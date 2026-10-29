@@ -9,7 +9,7 @@ namespace RealmForge.Infrastructure.Persistence.Seeding.MonstersData;
 ///	</summary>
 public static class Skeleton2014Seeder
 {
-	public static Monster Build() => Create("skeleton", null, CreatureSize.Medium, CreatureType.Undead,
+	public static Monster Build() => Create("skeleton", null, ContentSource.Srd51, CreatureSize.Medium, CreatureType.Undead,
 		13, 13, "2d8 + 4", 30, new[] { 10, 14, 15, 6, 8, 5 }, 0.25m, 50, 2, 9,
 		new Text(
 			"Scheletro",
@@ -28,6 +28,8 @@ public static class Skeleton2014Seeder
 			"",
 			"***Spada corta.*** *Attacco con arma da mischia:* +4 al tiro per colpire, portata 1,5 m, un bersaglio. *Colpito:* 5 (1d6 + 2) danni perforanti.\n\n***Arco corto.*** *Attacco con arma a distanza:* +4 al tiro per colpire, gittata 24/96 m, un bersaglio. *Colpito:* 5 (1d6 + 2) danni perforanti.",
 			"",
+			"",
+			"",
 			""),
 		new Text(
 			"Skeleton",
@@ -45,6 +47,8 @@ public static class Skeleton2014Seeder
 			"understands all languages it spoke in life but can't speak",
 			"",
 			"***Shortsword.*** *Melee Weapon Attack:* +4 to hit, reach 5 ft., one target. *Hit:* 5 (1d6 + 2) piercing damage.\n\n***Shortbow.*** *Ranged Weapon Attack:* +4 to hit, range 80/320 ft., one target. *Hit:* 5 (1d6 + 2) piercing damage.",
+			"",
+			"",
 			"",
 			""));
 }

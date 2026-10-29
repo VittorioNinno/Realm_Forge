@@ -9,7 +9,7 @@ namespace RealmForge.Infrastructure.Persistence.Seeding.MonstersData;
 ///	</summary>
 public static class Troll2014Seeder
 {
-	public static Monster Build() => Create("troll", null, CreatureSize.Large, CreatureType.Giant,
+	public static Monster Build() => Create("troll", null, ContentSource.Srd51, CreatureSize.Large, CreatureType.Giant,
 		15, 84, "8d10 + 40", 30, new[] { 18, 13, 20, 7, 9, 7 }, 5m, 1800, 3, 12,
 		new Text(
 			"Troll",
@@ -28,6 +28,8 @@ public static class Troll2014Seeder
 			"***Olfatto acuto.*** Il troll dispone di vantaggio alle prove di Saggezza (Percezione) basate sull'olfatto.\n\n***Rigenerazione.*** Il troll recupera 10 punti ferita all'inizio del suo turno. Se il troll subisce danni da acido o fuoco, questo tratto non funziona all'inizio del suo turno successivo. Il troll muore solo se inizia il turno con 0 punti ferita e non si rigenera.",
 			"***Multiattacco.*** Il troll effettua tre attacchi: uno con il morso e due con gli artigli.\n\n***Artiglio.*** *Attacco con arma da mischia:* +7 al tiro per colpire, portata 1,5 m, un bersaglio. *Colpito:* 11 (2d6 + 4) danni taglienti.\n\n***Morso.*** *Attacco con arma da mischia:* +7 al tiro per colpire, portata 1,5 m, un bersaglio. *Colpito:* 7 (1d6 + 4) danni perforanti.",
 			"",
+			"",
+			"",
 			""),
 		new Text(
 			"Troll",
@@ -45,6 +47,8 @@ public static class Troll2014Seeder
 			"Giant",
 			"***Keen Smell.*** The troll has advantage on Wisdom (Perception) checks that rely on smell.\n\n***Regeneration.*** The troll regains 10 hit points at the start of its turn. If the troll takes acid or fire damage, this trait doesn't function at the start of the troll's next turn. The troll dies only if it starts its turn with 0 hit points and doesn't regenerate.",
 			"***Multiattack.*** The troll makes three attacks: one with its bite and two with its claws.\n\n***Bite.*** *Melee Weapon Attack:* +7 to hit, reach 5 ft., one target. *Hit:* 7 (1d6 + 4) piercing damage.\n\n***Claw.*** *Melee Weapon Attack:* +7 to hit, reach 5 ft., one target. *Hit:* 11 (2d6 + 4) slashing damage.",
+			"",
+			"",
 			"",
 			""));
 }

@@ -9,7 +9,7 @@ namespace RealmForge.Infrastructure.Persistence.Seeding.MonstersData;
 ///	</summary>
 public static class HillGiant2014Seeder
 {
-	public static Monster Build() => Create("hill-giant", null, CreatureSize.Huge, CreatureType.Giant,
+	public static Monster Build() => Create("hill-giant", null, ContentSource.Srd51, CreatureSize.Huge, CreatureType.Giant,
 		13, 105, "10d12 + 40", 40, new[] { 21, 8, 19, 5, 9, 6 }, 5m, 1800, 3, 12,
 		new Text(
 			"Gigante delle colline",
@@ -28,6 +28,8 @@ public static class HillGiant2014Seeder
 			"",
 			"***Multiattacco.*** Il gigante effettua due attacchi con il randello pesante.\n\n***Randello pesante.*** *Attacco con arma da mischia:* +8 al tiro per colpire, portata 3 m, un bersaglio. *Colpito:* 18 (3d8 + 5) danni contundenti.\n\n***Roccia.*** *Attacco con arma a distanza:* +8 al tiro per colpire, gittata 18/72 m, un bersaglio. *Colpito:* 21 (3d10 + 5) danni contundenti.",
 			"",
+			"",
+			"",
 			""),
 		new Text(
 			"Hill Giant",
@@ -45,6 +47,8 @@ public static class HillGiant2014Seeder
 			"Giant",
 			"",
 			"***Multiattack.*** The giant makes two greatclub attacks.\n\n***Greatclub.*** *Melee Weapon Attack:* +8 to hit, reach 10 ft., one target. *Hit:* 18 (3d8 + 5) bludgeoning damage.\n\n***Rock.*** *Ranged Weapon Attack:* +8 to hit, range 60/240 ft., one target. *Hit:* 21 (3d10 + 5) bludgeoning damage.",
+			"",
+			"",
 			"",
 			""));
 }

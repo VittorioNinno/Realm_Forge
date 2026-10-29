@@ -9,7 +9,7 @@ namespace RealmForge.Infrastructure.Persistence.Seeding.MonstersData;
 ///	</summary>
 public static class GiantOwl2014Seeder
 {
-	public static Monster Build() => Create("giant-owl", null, CreatureSize.Large, CreatureType.Beast,
+	public static Monster Build() => Create("giant-owl", null, ContentSource.Srd51, CreatureSize.Large, CreatureType.Beast,
 		12, 19, "3d10 + 3", 5, new[] { 13, 15, 12, 8, 13, 10 }, 0.25m, 50, 2, 15,
 		new Text(
 			"Gufo gigante",
@@ -28,6 +28,8 @@ public static class GiantOwl2014Seeder
 			"***Sfuggente.*** Il gufo non provoca attacchi d'opportunità quando vola oltre la portata di un nemico.\n\n***Udito e vista acuti.*** Il gufo dispone di vantaggio alle prove di Saggezza (Percezione) basate sulla vista o sull'udito.",
 			"***Artigli.*** *Attacco con arma da mischia:* +3 al tiro per colpire, portata 1,5 m, un bersaglio. *Colpito:* 8 (2d6 + 1) danni taglienti.",
 			"",
+			"",
+			"",
 			""),
 		new Text(
 			"Giant Owl",
@@ -45,6 +47,8 @@ public static class GiantOwl2014Seeder
 			"Giant Owl, understands Common, Elvish, and Sylvan but can't speak",
 			"***Flyby.*** The owl doesn't provoke opportunity attacks when it flies out of an enemy's reach.\n\n***Keen Hearing and Sight.*** The owl has advantage on Wisdom (Perception) checks that rely on hearing or sight.",
 			"***Talons.*** *Melee Weapon Attack:* +3 to hit, reach 5 ft., one target. *Hit:* 8 (2d6 + 1) slashing damage.",
+			"",
+			"",
 			"",
 			""));
 }

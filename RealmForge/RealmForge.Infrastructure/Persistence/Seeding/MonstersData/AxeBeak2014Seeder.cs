@@ -9,7 +9,7 @@ namespace RealmForge.Infrastructure.Persistence.Seeding.MonstersData;
 ///	</summary>
 public static class AxeBeak2014Seeder
 {
-	public static Monster Build() => Create("axe-beak", null, CreatureSize.Large, CreatureType.Beast,
+	public static Monster Build() => Create("axe-beak", null, ContentSource.Srd51, CreatureSize.Large, CreatureType.Beast,
 		11, 19, "3d10 + 3", 50, new[] { 14, 12, 12, 2, 10, 5 }, 0.25m, 50, 2, 10,
 		new Text(
 			"Beccoaguzzo",
@@ -28,6 +28,8 @@ public static class AxeBeak2014Seeder
 			"",
 			"***Becco.*** *Attacco con arma da mischia:* +4 al tiro per colpire, portata 1,5 m, un bersaglio. *Colpito:* 6 (1d8 + 2) danni taglienti.",
 			"",
+			"",
+			"",
 			""),
 		new Text(
 			"Axe Beak",
@@ -45,6 +47,8 @@ public static class AxeBeak2014Seeder
 			"—",
 			"",
 			"***Beak.*** *Melee Weapon Attack:* +4 to hit, reach 5 ft., one target. *Hit:* 6 (1d8 + 2) slashing damage.",
+			"",
+			"",
 			"",
 			""));
 }

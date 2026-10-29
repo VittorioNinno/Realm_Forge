@@ -9,7 +9,7 @@ namespace RealmForge.Infrastructure.Persistence.Seeding.MonstersData;
 ///	</summary>
 public static class Weasel2014Seeder
 {
-	public static Monster Build() => Create("weasel", null, CreatureSize.Tiny, CreatureType.Beast,
+	public static Monster Build() => Create("weasel", null, ContentSource.Srd51, CreatureSize.Tiny, CreatureType.Beast,
 		13, 1, "1d4 - 1", 30, new[] { 3, 16, 8, 2, 12, 3 }, 0m, 10, 2, 13,
 		new Text(
 			"Faina",
@@ -28,6 +28,8 @@ public static class Weasel2014Seeder
 			"***Udito e olfatto acuti.*** La faina dispone di vantaggio alle prove di Saggezza (Percezione) basate sull'olfatto o sull'udito.",
 			"***Morso.*** *Attacco con arma da mischia:* +5 al tiro per colpire, portata 1,5 m, un bersaglio. *Colpito:* 1 danno perforante.",
 			"",
+			"",
+			"",
 			""),
 		new Text(
 			"Weasel",
@@ -45,6 +47,8 @@ public static class Weasel2014Seeder
 			"—",
 			"***Keen Hearing and Smell.*** The weasel has advantage on Wisdom (Perception) checks that rely on hearing or smell.",
 			"***Bite.*** *Melee Weapon Attack:* +5 to hit, reach 5 ft., one creature. *Hit:* 1 piercing damage.",
+			"",
+			"",
 			"",
 			""));
 }

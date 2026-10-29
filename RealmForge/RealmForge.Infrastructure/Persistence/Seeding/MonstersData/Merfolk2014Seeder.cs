@@ -9,7 +9,7 @@ namespace RealmForge.Infrastructure.Persistence.Seeding.MonstersData;
 ///	</summary>
 public static class Merfolk2014Seeder
 {
-	public static Monster Build() => Create("merfolk", null, CreatureSize.Medium, CreatureType.Humanoid,
+	public static Monster Build() => Create("merfolk", null, ContentSource.Srd51, CreatureSize.Medium, CreatureType.Humanoid,
 		11, 11, "2d8 + 2", 10, new[] { 10, 13, 12, 11, 11, 12 }, 0.125m, 25, 2, 12,
 		new Text(
 			"Marinide",
@@ -28,6 +28,8 @@ public static class Merfolk2014Seeder
 			"***Anfibio.*** Il marinide può respirare in aria e in acqua.",
 			"***Lancia.*** *Attacco con arma da mischia o a distanza:* +2 al tiro per colpire, portata 1,5 m o gittata 6/18 m, un bersaglio. *Colpito:* 3 (1d6) danni perforanti o 4 (1d8) danni perforanti se usata a due mani per effettuare un attacco in mischia.",
 			"",
+			"",
+			"",
 			""),
 		new Text(
 			"Merfolk",
@@ -45,6 +47,8 @@ public static class Merfolk2014Seeder
 			"Aquan, Common",
 			"***Amphibious.*** The merfolk can breathe air and water.",
 			"***Spear.*** *Melee or Ranged Weapon Attack:* +2 to hit, reach 5 ft. or range 20/60 ft., one target. *Hit:* 3 (1d6) piercing damage, or 4 (1d8) piercing damage if used with two hands to make a melee attack.",
+			"",
+			"",
 			"",
 			""));
 }

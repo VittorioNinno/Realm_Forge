@@ -9,7 +9,7 @@ namespace RealmForge.Infrastructure.Persistence.Seeding.MonstersData;
 ///	</summary>
 public static class FlyingSword2014Seeder
 {
-	public static Monster Build() => Create("flying-sword", null, CreatureSize.Small, CreatureType.Construct,
+	public static Monster Build() => Create("flying-sword", null, ContentSource.Srd51, CreatureSize.Small, CreatureType.Construct,
 		17, 17, "5d6", 0, new[] { 12, 15, 11, 1, 5, 1 }, 0.25m, 50, 2, 7,
 		new Text(
 			"Spada volante",
@@ -28,6 +28,8 @@ public static class FlyingSword2014Seeder
 			"***Falso aspetto.*** Finché la spada non vola e rimane immobile, non è distinguibile da una spada normale.\n\n***Suscettibilità all'anti-magia.*** La spada è incapacitata finché si trova nell'area di un *campo anti-magia.* Se bersagliata da un incantesimo *dissolvi magie,* la spada deve superare un tiro salvezza su Costituzione contro la CD del tiro salvezza sull'incantesimo, altrimenti è priva di sensi per 1 minuto.",
 			"***Spada lunga.*** *Attacco con arma da mischia:* +3 al tiro per colpire, portata 1,5 m, un bersaglio. *Colpito:* 5 (1d8 + 1) danni taglienti.",
 			"",
+			"",
+			"",
 			""),
 		new Text(
 			"Flying Sword",
@@ -45,6 +47,8 @@ public static class FlyingSword2014Seeder
 			"—",
 			"***Antimagic Susceptibility.*** The sword is incapacitated while in the area of an antimagic field. If targeted by dispel magic, the sword must succeed on a Constitution saving throw against the caster's spell save DC or fall unconscious for 1 minute.\n\n***False Appearance.*** While the sword remains motionless and isn't flying, it is indistinguishable from a normal sword.",
 			"***Longsword.*** *Melee Weapon Attack:* +3 to hit, reach 5 ft., one target. *Hit:* 5 (1d8 + 1) slashing damage.",
+			"",
+			"",
 			"",
 			""));
 }

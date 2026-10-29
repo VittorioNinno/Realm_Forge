@@ -9,7 +9,7 @@ namespace RealmForge.Infrastructure.Persistence.Seeding.MonstersData;
 ///	</summary>
 public static class InvisibleStalker2014Seeder
 {
-	public static Monster Build() => Create("invisible-stalker", null, CreatureSize.Medium, CreatureType.Elemental,
+	public static Monster Build() => Create("invisible-stalker", null, ContentSource.Srd51, CreatureSize.Medium, CreatureType.Elemental,
 		14, 104, "16d8 + 32", 50, new[] { 16, 19, 14, 10, 15, 11 }, 6m, 2300, 3, 18,
 		new Text(
 			"Cacciatore invisibile",
@@ -28,6 +28,8 @@ public static class InvisibleStalker2014Seeder
 			"***Invisibilità.*** Il cacciatore è invisibile.\n\n***Segugio infallibile.*** L'evocatore indica una preda al cacciatore. Il cacciatore conosce la direzione e la distanza a cui si trova la preda, purché entrambi siano sullo stesso piano di esistenza. Il cacciatore conosce anche l'ubicazione del suo evocatore.",
 			"***Multiattacco.*** Il cacciatore effettua due attacchi con schianto.\n\n***Schianto.*** *Attacco con arma da mischia:* +6 al tiro per colpire, portata 1,5 m, un bersaglio. *Colpito:* 10 (2d6 + 3) danni contundenti.",
 			"",
+			"",
+			"",
 			""),
 		new Text(
 			"Invisible Stalker",
@@ -45,6 +47,8 @@ public static class InvisibleStalker2014Seeder
 			"Auran, understands Common but doesn't speak it",
 			"***Invisibility.*** The stalker is invisible.\n\n***Faultless Tracker.*** The stalker is given a quarry by its summoner. The stalker knows the direction and distance to its quarry as long as the two of them are on the same plane of existence. The stalker also knows the location of its summoner.",
 			"***Multiattack.*** The stalker makes two slam attacks.\n\n***Slam.*** *Melee Weapon Attack:* +6 to hit, reach 5 ft., one target. *Hit:* 10 (2d6 + 3) bludgeoning damage.",
+			"",
+			"",
 			"",
 			""));
 }

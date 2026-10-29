@@ -9,7 +9,7 @@ namespace RealmForge.Infrastructure.Persistence.Seeding.MonstersData;
 ///	</summary>
 public static class Griffon2014Seeder
 {
-	public static Monster Build() => Create("griffon", null, CreatureSize.Large, CreatureType.Monstrosity,
+	public static Monster Build() => Create("griffon", null, ContentSource.Srd51, CreatureSize.Large, CreatureType.Monstrosity,
 		12, 59, "7d10 + 21", 30, new[] { 18, 15, 16, 2, 13, 8 }, 2m, 450, 2, 15,
 		new Text(
 			"Grifone",
@@ -28,6 +28,8 @@ public static class Griffon2014Seeder
 			"***Vista acuta.*** Il grifone dispone di vantaggio alle prove di Saggezza (Percezione) basate sulla vista.",
 			"***Multiattacco.*** Il grifone effettua due attacchi: uno con il becco e uno con gli artigli.\n\n***Artigli.*** *Attacco con arma da mischia:* +6 al tiro per colpire, portata 1,5 m, un bersaglio. *Colpito:* 11 (2d6 + 4) danni taglienti.\n\n***Becco.*** *Attacco con arma da mischia:* +6 al tiro per colpire, portata 1,5 m, un bersaglio. *Colpito:* 8 (1d8 + 4) danni perforanti.",
 			"",
+			"",
+			"",
 			""),
 		new Text(
 			"Griffon",
@@ -45,6 +47,8 @@ public static class Griffon2014Seeder
 			"—",
 			"***Keen Sight.*** The griffon has advantage on Wisdom (Perception) checks that rely on sight.",
 			"***Multiattack.*** The griffon makes two attacks: one with its beak and one with its claws.\n\n***Beak.*** *Melee Weapon Attack:* +6 to hit, reach 5 ft., one target. *Hit:* 8 (1d8 + 4) piercing damage.\n\n***Claws.*** *Melee Weapon Attack:* +6 to hit, reach 5 ft., one target. *Hit:* 11 (2d6 + 4) slashing damage.",
+			"",
+			"",
 			"",
 			""));
 }

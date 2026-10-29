@@ -541,16 +541,16 @@ jobs:
           micheck "unknown" "$mi_missing" "404"
           test "$mifail" = "0"
 
-          # Monsters: 322 statblocks of 2014 (SRD 5.1: lycanthropes and the vampire as one statblock, the swarm and giant rat
-          # variants linked to their original), the statblock in both languages, filters; a Homebrew variant of the goblin
+          # Monsters: 441 statblocks of 2014, 322 of the SRD 5.1 (lycanthropes and the vampire as one statblock, the swarm and
+          # giant rat variants linked to their original) and 119 of the Monster Manual outside it, texts written for RealmForge, the statblock in both languages, filters; a Homebrew variant of the goblin
           # (private to its author, the original untouched) and the validation of the statblock
           mo_all=$(get "$api/api/monsters?ruleset=1&lang=2")
-          mo14=$(echo "$mo_all" | jq -c '{total: length, srd: map(select(.source == 2)) | length, variants: map(select(.variantOfId != null)) | length, dragons: map(select(.type == 8)) | length}')
+          mo14=$(echo "$mo_all" | jq -c '{total: length, srd: map(select(.source == 2)) | length, realmforge: map(select(.source == 1)) | length, variants: map(select(.variantOfId != null)) | length, dragons: map(select(.type == 8)) | length}')
           mo_cr=$(get "$api/api/monsters?ruleset=1&minCr=20&lang=1" | jq length)
           goblin=$(echo "$mo_all" | jq -r '.[] | select(.name == "Goblin") | .id')
           mo_goblin=$(get "$api/api/monsters/$goblin?lang=2" | jq -c '{name: .text.name, ac: .armorClass, hp: .hitPoints, xp, cr: .challengeRating, armor: .text.armorClass, speed: .text.speed}')
           mo_goblin_en=$(get "$api/api/monsters/$goblin?lang=1" | jq -c '{name: .text.name, speed: .text.speed, nimble: (.text.traits | contains("Nimble Escape"))}')
-          variant=$(get "$api/api/monsters/$goblin?lang=2" | jq -c --arg id "$goblin" '{ruleset, visibility: 2, size, type, armorClass: 16, hitPoints, hitDice, speed, abilities, challengeRating, xp, proficiencyBonus, passivePerception, variantOfId: $id, translations: [.text | .name = "Goblin capo" | .alias = null]}')
+          variant=$(get "$api/api/monsters/$goblin?lang=2" | jq -c --arg id "$goblin" '{ruleset, visibility: 2, size, type, armorClass: 16, hitPoints, hitDice, speed, abilities, challengeRating, xp, proficiencyBonus, passivePerception, variantOfId: $id, translations: [.text | .name = "Goblin furtivo" | .alias = null]}')
           mo_variant=$(curl -s -X POST "$api/api/monsters?lang=2" $json -H "Authorization: Bearer $A" -d "$variant")
           mo_variant_id=$(echo "$mo_variant" | jq -r .id)
           mo_variant_view=$(echo "$mo_variant" | jq -c '{name: .text.name, ac: .armorClass, variantOf: (.variantOfId != null), base: .isOfficialSRD, canEdit}')
@@ -567,11 +567,11 @@ jobs:
           echo "::notice title=database::monsters 2014: $mo14 | CR 20+=$mo_cr | goblin=$mo_goblin EN=$mo_goblin_en | variant=$mo_variant_view detail=$mo_variant_detail bob=$mo_variant_bob original=$mo_goblin_after | invalid=$mo_bad cr=$mo_bad_cr | base PUT=$mo_srd_put bob DELETE=$mo_bob_delete anonymous POST=$mo_anon_post account=$mo_acc | DELETE=$mo_delete"
           mofail=0
           mocheck() { if [ "$2" != "$3" ]; then echo "::error title=monsters::$1: got '$2', expected '$3'"; mofail=1; fi; }
-          mocheck "2014 counts" "$mo14" '{"total":322,"srd":322,"variants":5,"dragons":43}'
-          mocheck "challenge filter" "$mo_cr" "15"
+          mocheck "2014 counts" "$mo14" '{"total":441,"srd":322,"realmforge":119,"variants":13,"dragons":46}'
+          mocheck "challenge filter" "$mo_cr" "17"
           mocheck "goblin" "$mo_goblin" '{"name":"Goblin","ac":15,"hp":7,"xp":50,"cr":0.25,"armor":"15 (armatura di cuoio, scudo)","speed":"9 m"}'
           mocheck "goblin EN" "$mo_goblin_en" '{"name":"Goblin","speed":"30 ft.","nimble":true}'
-          mocheck "variant" "$mo_variant_view" '{"name":"Goblin capo","ac":16,"variantOf":true,"base":false,"canEdit":true}'
+          mocheck "variant" "$mo_variant_view" '{"name":"Goblin furtivo","ac":16,"variantOf":true,"base":false,"canEdit":true}'
           mocheck "variant detail" "$mo_variant_detail" '{"variantOfName":"Goblin","author":"Alice"}'
           mocheck "private variant for others" "$mo_variant_bob" "404"
           mocheck "original untouched" "$mo_goblin_after" '{"ac":15,"name":"Goblin"}'

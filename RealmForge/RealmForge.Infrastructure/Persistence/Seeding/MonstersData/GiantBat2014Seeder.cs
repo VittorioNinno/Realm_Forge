@@ -9,7 +9,7 @@ namespace RealmForge.Infrastructure.Persistence.Seeding.MonstersData;
 ///	</summary>
 public static class GiantBat2014Seeder
 {
-	public static Monster Build() => Create("giant-bat", null, CreatureSize.Large, CreatureType.Beast,
+	public static Monster Build() => Create("giant-bat", null, ContentSource.Srd51, CreatureSize.Large, CreatureType.Beast,
 		13, 22, "4d10", 10, new[] { 15, 16, 11, 2, 12, 6 }, 0.25m, 50, 2, 11,
 		new Text(
 			"Pipistrello gigante",
@@ -28,6 +28,8 @@ public static class GiantBat2014Seeder
 			"***Senso radar.*** Il pipistrello non può usare vista cieca se è assordato.\n\n***Udito acuto.*** Il pipistrello dispone di vantaggio alle prove di Saggezza (Percezione) basate sull'udito.",
 			"***Morso.*** *Attacco con arma da mischia:* +4 al tiro per colpire, portata 1,5 m, una creatura. *Colpito:* 5 (1d6 + 2) danni perforanti.",
 			"",
+			"",
+			"",
 			""),
 		new Text(
 			"Giant Bat",
@@ -45,6 +47,8 @@ public static class GiantBat2014Seeder
 			"—",
 			"***Echolocation.*** The bat can't use its blindsight while deafened.\n\n***Keen Hearing.*** The bat has advantage on Wisdom (Perception) checks that rely on hearing.",
 			"***Bite.*** *Melee Weapon Attack:* +4 to hit, reach 5 ft., one creature. *Hit:* 5 (1d6 + 2) piercing damage.",
+			"",
+			"",
 			"",
 			""));
 }

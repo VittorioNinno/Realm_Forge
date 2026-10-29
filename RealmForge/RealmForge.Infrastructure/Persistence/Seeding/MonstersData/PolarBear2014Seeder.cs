@@ -9,7 +9,7 @@ namespace RealmForge.Infrastructure.Persistence.Seeding.MonstersData;
 ///	</summary>
 public static class PolarBear2014Seeder
 {
-	public static Monster Build() => Create("polar-bear", null, CreatureSize.Large, CreatureType.Beast,
+	public static Monster Build() => Create("polar-bear", null, ContentSource.Srd51, CreatureSize.Large, CreatureType.Beast,
 		12, 42, "5d10 + 15", 40, new[] { 20, 10, 16, 2, 13, 7 }, 2m, 450, 2, 13,
 		new Text(
 			"Orso polare",
@@ -28,6 +28,8 @@ public static class PolarBear2014Seeder
 			"***Olfatto acuto.*** L'orso dispone di vantaggio alle prove di Saggezza (Percezione) basate sull'olfatto.",
 			"***Multiattacco.*** L'orso effettua due attacchi: uno con il morso e uno con gli artigli.\n\n***Artigli.*** *Attacco con arma da mischia:* +7 al tiro per colpire, portata 1,5 m, un bersaglio. *Colpito:* 12 (2d6 + 5) danni taglienti.\n\n***Morso.*** *Attacco con arma da mischia:* +7 al tiro per colpire, portata 1,5 m, un bersaglio. *Colpito:* 9 (1d8 + 5) danni perforanti.",
 			"",
+			"",
+			"",
 			""),
 		new Text(
 			"Polar Bear",
@@ -45,6 +47,8 @@ public static class PolarBear2014Seeder
 			"—",
 			"***Keen Smell.*** The bear has advantage on Wisdom (Perception) checks that rely on smell.",
 			"***Multiattack.*** The bear makes two attacks: one with its bite and one with its claws.\n\n***Bite.*** *Melee Weapon Attack:* +7 to hit, reach 5 ft., one target. *Hit:* 9 (1d8 + 5) piercing damage.\n\n***Claws.*** *Melee Weapon Attack:* +7 to hit, reach 5 ft., one target. *Hit:* 12 (2d6 + 5) slashing damage.",
+			"",
+			"",
 			"",
 			""));
 }

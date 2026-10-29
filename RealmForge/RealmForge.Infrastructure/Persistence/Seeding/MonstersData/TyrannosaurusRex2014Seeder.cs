@@ -9,7 +9,7 @@ namespace RealmForge.Infrastructure.Persistence.Seeding.MonstersData;
 ///	</summary>
 public static class TyrannosaurusRex2014Seeder
 {
-	public static Monster Build() => Create("tyrannosaurus-rex", null, CreatureSize.Huge, CreatureType.Beast,
+	public static Monster Build() => Create("tyrannosaurus-rex", null, ContentSource.Srd51, CreatureSize.Huge, CreatureType.Beast,
 		13, 136, "13d12 + 52", 50, new[] { 25, 10, 19, 2, 12, 9 }, 8m, 3900, 3, 14,
 		new Text(
 			"Tirannosauro",
@@ -28,6 +28,8 @@ public static class TyrannosaurusRex2014Seeder
 			"",
 			"***Multiattacco.*** Il tirannosauro effettua due attacchi: uno con il morso e uno con la coda. Non può effettuare entrambi gli attacchi contro lo stesso bersaglio.\n\n***Coda.*** *Attacco con arma da mischia:* +10 al tiro per colpire, portata 3 m, un bersaglio. *Colpito:* 20 (3d8 + 7) danni contundenti.\n\n***Morso.*** *Attacco con arma da mischia:* +10 al tiro per colpire, portata 3 m, un bersaglio. *Colpito:* 33 (4d12 + 7) danni perforanti. Se il bersaglio è una creatura di taglia Media o inferiore, viene afferrato (CD 17 per sfuggire). Finché la presa perdura, il bersaglio è trattenuto e il tirannosauro non può morderne un altro.",
 			"",
+			"",
+			"",
 			""),
 		new Text(
 			"Tyrannosaurus Rex",
@@ -45,6 +47,8 @@ public static class TyrannosaurusRex2014Seeder
 			"—",
 			"",
 			"***Multiattack.*** The tyrannosaurus makes two attacks: one with its bite and one with its tail. It can't make both attacks against the same target.\n\n***Bite.*** *Melee Weapon Attack:* +10 to hit, reach 10 ft., one target. *Hit:* 33 (4d12 + 7) piercing damage. If the target is a Medium or smaller creature, it is grappled (escape DC 17). Until this grapple ends, the target is restrained, and the tyrannosaurus can't bite another target.\n\n***Tail.*** *Melee Weapon Attack:* +10 to hit, reach 10 ft., one target. *Hit:* 20 (3d8 + 7) bludgeoning damage.",
+			"",
+			"",
 			"",
 			""));
 }

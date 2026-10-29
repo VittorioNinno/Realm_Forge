@@ -9,7 +9,7 @@ namespace RealmForge.Infrastructure.Persistence.Seeding.MonstersData;
 ///	</summary>
 public static class Hyena2014Seeder
 {
-	public static Monster Build() => Create("hyena", null, CreatureSize.Medium, CreatureType.Beast,
+	public static Monster Build() => Create("hyena", null, ContentSource.Srd51, CreatureSize.Medium, CreatureType.Beast,
 		11, 5, "1d8 + 1", 50, new[] { 11, 13, 12, 2, 12, 5 }, 0m, 10, 2, 13,
 		new Text(
 			"Iena",
@@ -28,6 +28,8 @@ public static class Hyena2014Seeder
 			"***Tattiche del branco.*** La iena dispone di vantaggio a un tiro per colpire contro una creatura se almeno uno degli alleati dell'animale si trova entro 1,5 metri dalla creatura e non è incapacitato.",
 			"***Morso.*** *Attacco con arma da mischia:* +2 al tiro per colpire, portata 1,5 m, un bersaglio. *Colpito:* 3 (1d6) danni perforanti.",
 			"",
+			"",
+			"",
 			""),
 		new Text(
 			"Hyena",
@@ -45,6 +47,8 @@ public static class Hyena2014Seeder
 			"—",
 			"***Pack Tactics.*** The hyena has advantage on an attack roll against a creature if at least one of the hyena's allies is within 5 ft. of the creature and the ally isn't incapacitated.",
 			"***Bite.*** *Melee Weapon Attack:* +2 to hit, reach 5 ft., one target. *Hit:* 3 (1d6) piercing damage.",
+			"",
+			"",
 			"",
 			""));
 }

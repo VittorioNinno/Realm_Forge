@@ -9,7 +9,7 @@ namespace RealmForge.Infrastructure.Persistence.Seeding.MonstersData;
 ///	</summary>
 public static class Pegasus2014Seeder
 {
-	public static Monster Build() => Create("pegasus", null, CreatureSize.Large, CreatureType.Celestial,
+	public static Monster Build() => Create("pegasus", null, ContentSource.Srd51, CreatureSize.Large, CreatureType.Celestial,
 		12, 59, "7d10 + 21", 60, new[] { 18, 15, 16, 10, 15, 13 }, 2m, 450, 2, 16,
 		new Text(
 			"Pegaso",
@@ -28,6 +28,8 @@ public static class Pegasus2014Seeder
 			"",
 			"***Zoccoli.*** *Attacco con arma da mischia:* +6 al tiro per colpire, portata 1,5 m, un bersaglio. *Colpito:* 11 (2d6 + 4) danni contundenti.",
 			"",
+			"",
+			"",
 			""),
 		new Text(
 			"Pegasus",
@@ -45,6 +47,8 @@ public static class Pegasus2014Seeder
 			"understands Celestial, Common, Elvish, and Sylvan but can't speak",
 			"",
 			"***Hooves.*** *Melee Weapon Attack:* +6 to hit, reach 5 ft., one target. *Hit:* 11 (2d6 + 4) bludgeoning damage.",
+			"",
+			"",
 			"",
 			""));
 }

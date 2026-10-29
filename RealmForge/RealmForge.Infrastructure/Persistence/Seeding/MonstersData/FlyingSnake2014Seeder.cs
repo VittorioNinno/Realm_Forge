@@ -9,7 +9,7 @@ namespace RealmForge.Infrastructure.Persistence.Seeding.MonstersData;
 ///	</summary>
 public static class FlyingSnake2014Seeder
 {
-	public static Monster Build() => Create("flying-snake", null, CreatureSize.Tiny, CreatureType.Beast,
+	public static Monster Build() => Create("flying-snake", null, ContentSource.Srd51, CreatureSize.Tiny, CreatureType.Beast,
 		14, 5, "2d4", 30, new[] { 4, 18, 11, 2, 12, 5 }, 0.125m, 25, 2, 11,
 		new Text(
 			"Serpente volante",
@@ -28,6 +28,8 @@ public static class FlyingSnake2014Seeder
 			"***Sfuggente.*** Il serpente non provoca attacchi d'opportunità quando vola oltre la portata di un nemico.",
 			"***Morso.*** *Attacco con arma da mischia:* +6 al tiro per colpire, portata 1,5 m, un bersaglio. *Colpito:* 1 danno perforante più 7 (3d4) danni da veleno.",
 			"",
+			"",
+			"",
 			""),
 		new Text(
 			"Flying Snake",
@@ -45,6 +47,8 @@ public static class FlyingSnake2014Seeder
 			"—",
 			"***Flyby.*** The snake doesn't provoke opportunity attacks when it flies out of an enemy's reach.",
 			"***Bite.*** *Melee Weapon Attack:* +6 to hit, reach 5 ft., one target. *Hit:* 1 piercing damage plus 7 (3d4) poison damage.",
+			"",
+			"",
 			"",
 			""));
 }

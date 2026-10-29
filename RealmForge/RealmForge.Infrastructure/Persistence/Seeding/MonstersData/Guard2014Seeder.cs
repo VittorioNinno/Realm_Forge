@@ -9,7 +9,7 @@ namespace RealmForge.Infrastructure.Persistence.Seeding.MonstersData;
 ///	</summary>
 public static class Guard2014Seeder
 {
-	public static Monster Build() => Create("guard", null, CreatureSize.Medium, CreatureType.Humanoid,
+	public static Monster Build() => Create("guard", null, ContentSource.Srd51, CreatureSize.Medium, CreatureType.Humanoid,
 		16, 11, "2d8 + 2", 30, new[] { 13, 12, 12, 10, 11, 10 }, 0.125m, 25, 2, 12,
 		new Text(
 			"Guardia",
@@ -28,6 +28,8 @@ public static class Guard2014Seeder
 			"",
 			"***Lancia.*** *Attacco con arma da mischia o a distanza:* +3 al tiro per colpire, portata 1,5 m o gittata 6/18 m, un bersaglio. *Colpito:* 4 (1d6 + 1) danni perforanti o 5 (1d8 + 1) danni perforanti se usata a due mani per effettuare un attacco in mischia.",
 			"",
+			"",
+			"",
 			""),
 		new Text(
 			"Guard",
@@ -45,6 +47,8 @@ public static class Guard2014Seeder
 			"any one language (usually Common)",
 			"",
 			"***Spear.*** *Melee or Ranged Weapon Attack:* +3 to hit, reach 5 ft. or range 20/60 ft., one target. *Hit:* 4 (1d6 + 1) piercing damage or 5 (1d8 + 1) piercing damage if used with two hands to make a melee attack.",
+			"",
+			"",
 			"",
 			""));
 }

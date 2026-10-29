@@ -9,7 +9,7 @@ namespace RealmForge.Infrastructure.Persistence.Seeding.MonstersData;
 ///	</summary>
 public static class BloodHawk2014Seeder
 {
-	public static Monster Build() => Create("blood-hawk", null, CreatureSize.Small, CreatureType.Beast,
+	public static Monster Build() => Create("blood-hawk", null, ContentSource.Srd51, CreatureSize.Small, CreatureType.Beast,
 		12, 7, "2d6", 10, new[] { 6, 14, 10, 3, 14, 5 }, 0.125m, 25, 2, 14,
 		new Text(
 			"Falco di sangue",
@@ -28,6 +28,8 @@ public static class BloodHawk2014Seeder
 			"***Tattiche del branco.*** Il falco dispone di vantaggio nel tiro per colpire contro una creatura se almeno uno degli alleati dell'animale si trova entro 1,5 metri dalla creatura e non è incapacitato.\n\n***Vista acuta.*** Il falco dispone di vantaggio alle prove di Saggezza (Percezione) basate sulla vista.",
 			"***Becco.*** *Attacco con arma da mischia:* +4 al tiro per colpire, portata 1,5 m, un bersaglio. *Colpito:* 4 (1d4 + 2) danni perforanti.",
 			"",
+			"",
+			"",
 			""),
 		new Text(
 			"Blood Hawk",
@@ -45,6 +47,8 @@ public static class BloodHawk2014Seeder
 			"—",
 			"***Keen Sight.*** The hawk has advantage on Wisdom (Perception) checks that rely on sight.\n\n***Pack Tactics.*** The hawk has advantage on an attack roll against a creature if at least one of the hawk's allies is within 5 ft. of the creature and the ally isn't incapacitated.",
 			"***Beak.*** *Melee Weapon Attack:* +4 to hit, reach 5 ft., one target. *Hit:* 4 (1d4 + 2) piercing damage.",
+			"",
+			"",
 			"",
 			""));
 }

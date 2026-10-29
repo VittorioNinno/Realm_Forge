@@ -9,7 +9,7 @@ namespace RealmForge.Infrastructure.Persistence.Seeding.MonstersData;
 ///	</summary>
 public static class AwakenedTree2014Seeder
 {
-	public static Monster Build() => Create("awakened-tree", null, CreatureSize.Huge, CreatureType.Plant,
+	public static Monster Build() => Create("awakened-tree", null, ContentSource.Srd51, CreatureSize.Huge, CreatureType.Plant,
 		13, 59, "7d12 + 14", 20, new[] { 19, 6, 15, 10, 10, 7 }, 2m, 450, 2, 10,
 		new Text(
 			"Albero risvegliato",
@@ -28,6 +28,8 @@ public static class AwakenedTree2014Seeder
 			"***Falso aspetto.*** Finché questo essere rimane immobile, non è possibile distinguerlo da un normale albero.",
 			"***Schianto.*** *Attacco con arma da mischia:* +6 al tiro per colpire, portata 3 m, un bersaglio. *Colpito:* 14 (3d6 + 4) danni contundenti.",
 			"",
+			"",
+			"",
 			""),
 		new Text(
 			"Awakened Tree",
@@ -45,6 +47,8 @@ public static class AwakenedTree2014Seeder
 			"one language known by its creator",
 			"***False Appearance.*** While the tree remains motionless, it is indistinguishable from a normal tree.",
 			"***Slam.*** *Melee Weapon Attack:* +6 to hit, reach 10 ft., one target. *Hit:* 14 (3d6 + 4) bludgeoning damage.",
+			"",
+			"",
 			"",
 			""));
 }

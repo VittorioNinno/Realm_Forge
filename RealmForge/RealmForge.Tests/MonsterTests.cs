@@ -15,14 +15,19 @@ public class MonsterTests
 	private static Monster ByEnglishName(string name) => Monsters.Single(m => Tr(m, LanguageCode.En).Name == name);
 
 	[Fact]
-	public void The_2014_monsters_are_the_SRD_statblocks()
+	public void The_2014_monsters_are_the_Monster_Manual_statblocks()
 	{
 		//	SRD 5.1: 317 statblocks (lycanthropes and the vampire as one statblock each, like the book) plus the variants
 		//	of the swarm of insects (beetles, centipedes, spiders, wasps) and the diseased giant rat
-		Assert.Equal(322, Monsters.Count);
-		Assert.Equal(5, Monsters.Count(m => m.VariantOfId is not null));
+		Assert.Equal(441, Monsters.Count);
+		Assert.Equal(322, Monsters.Count(m => m.Source == ContentSource.Srd51));
+
+		//	The Monster Manual outside the SRD, texts written for RealmForge: 117 statblocks plus the cave bear and the
+		//	psychic gray ooze, variants of SRD statblocks
+		Assert.Equal(119, Monsters.Count(m => m.Source == ContentSource.RealmForge));
+		Assert.Equal(13, Monsters.Count(m => m.VariantOfId is not null));
 		Assert.All(Monsters, m => Assert.True(m.IsOfficialSRD));
-		Assert.All(Monsters, m => Assert.Equal(ContentSource.Srd51, m.Source));
+		Assert.All(Monsters, m => Assert.Contains(m.Source, new[] { ContentSource.Srd51, ContentSource.RealmForge }));
 		Assert.All(Monsters, m => Assert.Equal(RulesetVersion.Dnd5e_2014, m.Ruleset));
 	}
 
@@ -41,8 +46,15 @@ public class MonsterTests
 			Assert.InRange(m.HitPoints, 1, 676);
 			Assert.All(new[] { m.Strength, m.Dexterity, m.Constitution, m.Intelligence, m.Wisdom, m.Charisma }, a => Assert.InRange(a, 1, 30));
 
-			//	The hit points are the average of their dice
-			Assert.Equal(m.HitPoints, MonsterMath.Average(m.HitDice));
+			//	The hit points are the average of their dice, except the demilich (and Acererak), which always has the maximum
+			if (Tr(m, LanguageCode.En).Name is "Demilich" or "Acererak")
+			{
+				Assert.Equal(80, m.HitPoints);
+			}
+			else
+			{
+				Assert.Equal(m.HitPoints, MonsterMath.Average(m.HitDice));
+			}
 
 			foreach (var tr in m.Translations)
 			{
@@ -91,9 +103,47 @@ public class MonsterTests
 		Assert.Contains("***Bite (Wolf or Hybrid Form Only).***", Tr(werewolf, LanguageCode.En).Actions);
 		Assert.Equal("Perception +4, Stealth +3", Tr(werewolf, LanguageCode.En).Skills);
 
+		//	The Manuale dei Mostri names equal the SRD ones for the skeletons, so no alias
+		Assert.Null(Tr(ByEnglishName("Warhorse Skeleton"), LanguageCode.It).Alias);
+		Assert.Null(Tr(ByEnglishName("Minotaur Skeleton"), LanguageCode.It).Alias);
+
 		var rat = ByEnglishName("Giant Rat (Diseased)");
 		Assert.Equal(ByEnglishName("Giant Rat").Id, rat.VariantOfId);
 		Assert.Equal("Topo gigante contagioso", Tr(rat, LanguageCode.It).Name);
+	}
+
+	[Fact]
+	public void Monster_Manual_statblocks_outside_the_SRD()
+	{
+		var beholder = ByEnglishName("Beholder");
+		Assert.Equal(ContentSource.RealmForge, beholder.Source);
+		Assert.Equal("Beholder", Tr(beholder, LanguageCode.It).Name);
+		Assert.Equal(18, beholder.ArmorClass);
+		Assert.Equal(180, beholder.HitPoints);
+		Assert.Equal(13m, beholder.ChallengeRating);
+		Assert.Equal(10000, beholder.Xp);
+		Assert.False(string.IsNullOrWhiteSpace(Tr(beholder, LanguageCode.It).LegendaryActions));
+
+		//	Official Italian names from the Manuale dei Mostri
+		Assert.Equal("Vermeiena", Tr(ByEnglishName("Carrion Crawler"), LanguageCode.It).Name);
+		Assert.Equal("Cuspide letale", Tr(ByEnglishName("Piercer"), LanguageCode.It).Name);
+		Assert.Equal("Yuan-ti sanguepuro", Tr(ByEnglishName("Yuan-ti Pureblood"), LanguageCode.It).Name);
+		Assert.Equal("Mostruosità Media (mutaforma, yuan-ti), neutrale malvagio", Tr(ByEnglishName("Yuan-ti Malison"), LanguageCode.It).Subtitle);
+
+		//	Variants of other statblocks, SRD ones included
+		Assert.Equal(ByEnglishName("Specter").Id, ByEnglishName("Poltergeist").VariantOfId);
+		Assert.Equal(ByEnglishName("Mind Flayer").Id, ByEnglishName("Mind Flayer Arcanist").VariantOfId);
+		var cave = ByEnglishName("Cave Bear");
+		Assert.Equal(ByEnglishName("Polar Bear").Id, cave.VariantOfId);
+		Assert.StartsWith("darkvision 60 ft.", Tr(cave, LanguageCode.En).Senses);
+		Assert.Equal(6, ByEnglishName("Psychic Gray Ooze").Intelligence);
+
+		//	Spells with their Italian names, proper names capitalized
+		Assert.Contains("*disco fluttuante di Tenser*", Tr(ByEnglishName("Arcanaloth"), LanguageCode.It).Traits);
+		Assert.Contains("*tentacoli neri di Evard*", Tr(ByEnglishName("Drow Mage"), LanguageCode.It).Traits);
+
+		//	Notes on the variants written in the description
+		Assert.Contains("gythka", Tr(ByEnglishName("Thri-kreen"), LanguageCode.En).Description);
 	}
 
 	[Fact]
