@@ -51,6 +51,10 @@ namespace RealmForge.Infrastructure.Persistence
 		public DbSet<MagicItem> MagicItems => Set<MagicItem>();
 		public DbSet<MagicItemTranslation> MagicItemTranslations => Set<MagicItemTranslation>();
 
+		//	Monsters
+		public DbSet<Monster> Monsters => Set<Monster>();
+		public DbSet<MonsterTranslation> MonsterTranslations => Set<MonsterTranslation>();
+
 		//	Player characters
 		public DbSet<Character> Characters => Set<Character>();
 
@@ -65,6 +69,7 @@ namespace RealmForge.Infrastructure.Persistence
 		public DbSet<CampaignCharacter> CampaignCharacters => Set<CampaignCharacter>();
 		public DbSet<CampaignContent> CampaignContents => Set<CampaignContent>();
 		public DbSet<CampaignNote> CampaignNotes => Set<CampaignNote>();
+		public DbSet<CampaignEncounter> CampaignEncounters => Set<CampaignEncounter>();
 
 		//	Rules glossary
 		public DbSet<RuleEntry> RuleEntries => Set<RuleEntry>();
@@ -365,6 +370,59 @@ namespace RealmForge.Infrastructure.Persistence
 				entity.HasIndex(t => new { t.MagicItemId, t.Language }).IsUnique();
 			});
 
+			//	Monsters configuration: a variant loses the link (not itself) when its original is deleted
+			modelBuilder.Entity<Monster>(entity =>
+			{
+				entity.ToTable("Monsters");
+				entity.HasKey(e => e.Id);
+				entity.Property(e => e.Ruleset).IsRequired();
+				entity.Property(e => e.IsOfficialSRD).IsRequired();
+				entity.Property(e => e.HitDice).IsRequired().HasMaxLength(40);
+				entity.Property(e => e.ChallengeRating).HasPrecision(6, 3);
+
+				//	The list filters by ruleset, type and challenge
+				entity.HasIndex(e => new { e.Ruleset, e.Type });
+				entity.HasIndex(e => e.AuthorId);
+
+				entity.HasOne(e => e.VariantOf)
+						.WithMany()
+						.HasForeignKey(e => e.VariantOfId)
+						.OnDelete(DeleteBehavior.SetNull);
+
+				entity.HasMany(e => e.Translations)
+						.WithOne(t => t.Monster)
+						.HasForeignKey(t => t.MonsterId)
+						.OnDelete(DeleteBehavior.Cascade);
+			});
+
+			//	Monster translations configuration
+			modelBuilder.Entity<MonsterTranslation>(entity =>
+			{
+				entity.HasKey(t => t.Id);
+				entity.Property(t => t.Name).IsRequired().HasMaxLength(150);
+				entity.Property(t => t.Alias).HasMaxLength(150);
+				entity.Property(t => t.Subtitle).IsRequired().HasMaxLength(300);
+				entity.Property(t => t.ArmorClass).IsRequired().HasMaxLength(300);
+				entity.Property(t => t.Speed).IsRequired().HasMaxLength(300);
+				entity.Property(t => t.SavingThrows).IsRequired().HasMaxLength(300);
+				entity.Property(t => t.Skills).IsRequired().HasMaxLength(500);
+				entity.Property(t => t.DamageVulnerabilities).IsRequired().HasMaxLength(500);
+				entity.Property(t => t.DamageResistances).IsRequired().HasMaxLength(500);
+				entity.Property(t => t.DamageImmunities).IsRequired().HasMaxLength(500);
+				entity.Property(t => t.ConditionImmunities).IsRequired().HasMaxLength(500);
+				entity.Property(t => t.Senses).IsRequired().HasMaxLength(500);
+				entity.Property(t => t.Languages).IsRequired().HasMaxLength(500);
+				entity.Property(t => t.Traits).IsRequired();
+				entity.Property(t => t.Actions).IsRequired();
+				entity.Property(t => t.BonusActions).IsRequired();
+				entity.Property(t => t.Reactions).IsRequired();
+				entity.Property(t => t.LegendaryActions).IsRequired();
+				entity.Property(t => t.Description).IsRequired();
+
+				//	Unique index: a monster cannot have two translations for the same language
+				entity.HasIndex(t => new { t.MonsterId, t.Language }).IsUnique();
+			});
+
 			//	Characters configuration: private to their owner; the compendium entries they use cannot be deleted under them
 			modelBuilder.Entity<Character>(entity =>
 			{
@@ -464,6 +522,18 @@ namespace RealmForge.Infrastructure.Persistence
 				entity.Property(n => n.Body).IsRequired().HasMaxLength(8000);
 				entity.HasIndex(n => new { n.CampaignId, n.Kind });
 				entity.HasOne(n => n.Campaign).WithMany(c => c.Notes).HasForeignKey(n => n.CampaignId).OnDelete(DeleteBehavior.Cascade);
+			});
+
+			modelBuilder.Entity<CampaignEncounter>(entity =>
+			{
+				entity.HasKey(e => e.Id);
+				entity.Property(e => e.Name).IsRequired().HasMaxLength(100);
+				entity.Property(e => e.Notes).IsRequired().HasMaxLength(8000);
+				entity.Property(e => e.Combatants).IsRequired().HasColumnType("jsonb");
+				entity.Property(e => e.PartyIds).IsRequired();
+				entity.Property(e => e.CreatedById).IsRequired().HasMaxLength(450);
+				entity.HasIndex(e => e.CampaignId);
+				entity.HasOne(e => e.Campaign).WithMany(c => c.Encounters).HasForeignKey(e => e.CampaignId).OnDelete(DeleteBehavior.Cascade);
 			});
 
 			//	Rules glossary configuration

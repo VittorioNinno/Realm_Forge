@@ -46,7 +46,7 @@
         }
 
         <div class="rf-pill-group mb-3" role="tablist" data-test="campaign-tabs">
-            @foreach (var t in new[] { Tab.Overview, Tab.Members, Tab.Characters, Tab.Content, Tab.Notes })
+            @foreach (var t in new[] { Tab.Overview, Tab.Members, Tab.Characters, Tab.Encounters, Tab.Content, Tab.Notes })
             {
                 var current = t;
                 <button type="button" role="tab" class="rf-pill-btn @(tab == current ? "active" : null)" aria-selected="@(tab == current)"
@@ -322,6 +322,10 @@
                 </section>
                 break;
 
+            case Tab.Encounters:
+                <CampaignEncounters Campaign="campaign" />
+                break;
+
             case Tab.Notes:
                 <CampaignNotes CampaignId="campaign.Id" Role="role" />
                 break;
@@ -378,7 +382,7 @@
 @code {
     [Parameter] public Guid Id { get; set; }
 
-    private enum Tab { Overview, Members, Characters, Content, Notes }
+    private enum Tab { Overview, Members, Characters, Encounters, Content, Notes }
     private enum Confirm { None, Leave, Delete }
 
     private LanguageCode Lang => LanguageState.CurrentLanguage;
@@ -411,6 +415,7 @@
         Tab.Members => UiText.CampaignTabMembers(Lang),
         Tab.Characters => UiText.CampaignTabCharacters(Lang),
         Tab.Content => UiText.CampaignTabContent(Lang),
+        Tab.Encounters => UiText.CampaignTabEncounters(Lang),
         _ => UiText.CampaignTabNotes(Lang)
     };
 
