@@ -5,6 +5,7 @@ using RealmForge.Api.Localization;
 using RealmForge.Api.Security;
 using RealmForge.Domain.Entities;
 using RealmForge.Infrastructure.Persistence;
+using RealmForge.Infrastructure.Persistence.Trash;
 using RealmForge.Shared.DTOs;
 using RealmForge.Shared.Text;
 using RealmForge.Shared.Enums;
@@ -192,7 +193,7 @@ namespace RealmForge.Api.Controllers
 		//	DELETE: api/backgrounds/{id}
 		[HttpDelete("{id:guid}")]
 		[Authorize]
-		public async Task<IActionResult> DeleteBackground(Guid id)
+		public async Task<IActionResult> DeleteBackground(Guid id, [FromServices] TrashBin bin)
 		{
 			var background = await _context.Backgrounds.FindAsync(id);
 
@@ -207,6 +208,8 @@ namespace RealmForge.Api.Controllers
 				return denied;
 			}
 
+			//	Kept in the bin for a few days, to be restored
+			await bin.AddAsync(background, "background", ContentAccess.GetUserId(User) ?? string.Empty, background.Id);
 			_context.Backgrounds.Remove(background);
 			await _context.SaveChangesAsync();
 			return NoContent();

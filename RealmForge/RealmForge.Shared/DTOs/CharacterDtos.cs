@@ -45,6 +45,9 @@ namespace RealmForge.Shared.DTOs
 		public int? PortraitX { get; init; }
 		public int? PortraitY { get; init; }
 
+		//	The background, linked from the card
+		public Guid BackgroundId { get; init; }
+
 		//	The campaigns the character sits in (filled in the owner's list)
 		public List<CharacterCampaignRefDto> Campaigns { get; init; } = new();
 	}

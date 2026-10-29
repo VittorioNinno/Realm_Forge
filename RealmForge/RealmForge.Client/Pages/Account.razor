@@ -108,6 +108,13 @@
                 </div>
             }
 
+            @* The bin: deleted entries, restorable for a few days *@
+            <div class="rf-account-card mb-3" data-test="account-trash">
+                <div class="rf-account-card-title">@UiText.TrashTitle(LanguageState.CurrentLanguage)</div>
+                <p class="small mb-3" style="color: var(--rf-text-secondary);">@UiText.AccountTrashHint(LanguageState.CurrentLanguage)</p>
+                <a href="trash" class="btn btn-sm btn-rf-outline" data-test="account-trash-open"><Icon Name="trash" /> @UiText.BtnOpenTrash(LanguageState.CurrentLanguage)</a>
+            </div>
+
             @* Password change *@
             <div class="rf-account-card mb-3" data-test="account-password">
                 <div class="rf-account-card-title">@UiText.AccountSecurityTitle(LanguageState.CurrentLanguage)</div>
