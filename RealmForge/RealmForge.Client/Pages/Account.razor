@@ -63,6 +63,24 @@
                 }
             </div>
 
+            @* Public name: what the other players see instead of the e-mail address *@
+            @if (summary != null)
+            {
+                <div class="rf-account-card mb-3" data-test="account-nickname">
+                    <div class="rf-account-card-title">@UiText.NicknameTitle(LanguageState.CurrentLanguage)</div>
+                    <p class="small mb-2" style="color: var(--rf-text-secondary);">@UiText.NicknameHint(LanguageState.CurrentLanguage)</p>
+                    <div class="d-flex flex-wrap gap-2">
+                        <input class="rf-form-control flex-grow-1" maxlength="@RealmForge.Shared.Text.Nicknames.MaxLength" placeholder="@UiText.NicknamePlaceholder(LanguageState.CurrentLanguage)"
+                               @bind="nickname" @bind:event="oninput" data-test="account-nickname-input" />
+                        <button type="button" class="btn btn-rf-orange" disabled="@savingNickname" @onclick="SaveNicknameAsync" data-test="account-nickname-save">@UiText.BtnSaveNickname(LanguageState.CurrentLanguage)</button>
+                    </div>
+                    @if (nicknameMessage is not null)
+                    {
+                        <div class="small mt-2" style="color: var(--rf-text-secondary);" data-test="account-nickname-message">@nicknameMessage</div>
+                    }
+                </div>
+            }
+
             @* Base content of the compendium per section and edition (moved here from the dashboard) *@
             @if (summary != null)
             {
@@ -194,6 +212,31 @@
     [CascadingParameter] private Task<AuthenticationState>? AuthState { get; set; }
 
     private AccountSummaryDto? summary;
+    private string nickname = string.Empty;
+    private string? nicknameMessage;
+    private bool savingNickname;
+
+    //	Nickname: checked here first (length, characters), then by the server (never two equal ones)
+    private async Task SaveNicknameAsync()
+    {
+        var lang = LanguageState.CurrentLanguage;
+        var value = RealmForge.Shared.Text.Nicknames.Clean(nickname);
+        if (value is not null && !RealmForge.Shared.Text.Nicknames.IsValid(value))
+        {
+            nicknameMessage = UiText.NicknameInvalid(lang);
+            return;
+        }
+        savingNickname = true;
+        var (ok, status) = await Auth.SetNicknameAsync(value);
+        savingNickname = false;
+        nicknameMessage = ok
+            ? (value is null ? UiText.NicknameRemoved(lang) : UiText.NicknameSaved(value, lang))
+            : status == System.Net.HttpStatusCode.Conflict ? UiText.NicknameTaken(lang) : UiText.NicknameInvalid(lang);
+        if (ok)
+        {
+            nickname = value ?? string.Empty;
+        }
+    }
     private string currentPassword = "";
     private string newPassword = "";
     private string repeatPassword = "";
@@ -242,6 +285,7 @@
         {
             wasAuthenticated = authenticated;
             summary = authenticated ? await Auth.GetAccountSummaryAsync() : null;
+            nickname = summary?.Nickname ?? string.Empty;
         }
     }
 
@@ -256,6 +300,7 @@
         yield return (UiText.ClassesTitle(lang), h.Classes, "classes");
         yield return (UiText.LabelSubclassesShort(lang), h.Subclasses, "classes");
         yield return (UiText.EquipmentTitle(lang), h.Equipment, "equipment");
+        yield return (UiText.MonstersTitle(lang), h.Monsters, "monsters");
     }
 
     private static string Initial(string? name) =>

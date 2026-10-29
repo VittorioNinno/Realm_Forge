@@ -48,7 +48,7 @@
                 {
                     @* A master or co-master of one of its campaigns: the changes go to the character itself *@
                     <div class="rf-master-banner" data-test="sheet-master">
-                        <span>@UiText.SheetEditingAsMaster(character.OwnerEmail ?? string.Empty, Lang)</span>
+                        <span>@UiText.SheetEditingAsMaster(character.OwnerName ?? string.Empty, Lang)</span>
                     </div>
                 }
                 <div class="rf-sheet-toolbar">
@@ -59,6 +59,7 @@
                     }
                     @if (character.IsOwner)
                     {
+                        <button type="button" class="rf-tool-btn" @onclick="OpenCampaignsAsync" title="@UiText.SheetCampaignTitle(Lang)" data-test="sheet-campaign">@Icon("map")<span>@UiText.BtnCampaign(Lang)</span></button>
                         <button type="button" class="rf-tool-btn" @onclick="() => shareOpen = true" title="@UiText.BtnShareCharacter(Lang)" data-test="sheet-share">@Icon("share")<span>@UiText.BtnShare(Lang)</span></button>
                     }
                     else
@@ -77,14 +78,18 @@
             @* ===== Identity card: portrait, name, origin, classes with the level up, personal details, traits ===== *@
             <section class="rf-card2 rf-hero">
                 <div class="rf-hero-top">
-                    <div class="rf-hero-portrait @(Sheet.Portrait is null ? "empty" : null)" style="@(Sheet.Portrait is { } src ? $"background-image: url('{src}');" : null)">
-                        <label class="rf-hero-portrait-upload" title="@UiText.BtnPortrait(Lang)">
+                    @* Square frame: the picture is dragged (or moved with the arrows) to centre it as the player likes *@
+                    <div class="rf-hero-portrait @(Sheet.Portrait is null ? "empty" : null) @(panning ? "panning" : null)" style="@PortraitStyle"
+                         title="@(Sheet.Portrait is not null && !ReadOnly ? UiText.PortraitDragHint(Lang) : null)" tabindex="@(Sheet.Portrait is not null && !ReadOnly ? 0 : -1)"
+                         @onpointerdown="StartPan" @onpointermove="Pan" @onpointerup="EndPan" @onpointerleave="EndPan" @onpointercancel="EndPan" @onkeydown="PanWithKeys"
+                         data-test="sheet-portrait">
+                        <label class="rf-hero-portrait-upload" title="@UiText.BtnPortrait(Lang)" @onpointerdown:stopPropagation="true">
                             <InputFile OnChange="UploadPortraitAsync" accept="image/*" class="d-none" />
                             @(Sheet.Portrait is null ? UiText.BtnPortrait(Lang) : "✎")
                         </label>
                         @if (Sheet.Portrait is not null)
                         {
-                            <button type="button" class="rf-hero-portrait-remove" @onclick="RemovePortrait" aria-label="@UiText.BtnRemove(Lang)">✕</button>
+                            <button type="button" class="rf-hero-portrait-remove" @onclick="RemovePortrait" @onpointerdown:stopPropagation="true" aria-label="@UiText.BtnRemove(Lang)">✕</button>
                         }
                     </div>
                     <div class="rf-hero-info">
@@ -407,6 +412,56 @@
 
 <SpellDetailModal SpellId="spellDetailId" OnClose="CloseSpell" Actions="CastPanel()" />
 <DiceTray @ref="diceTray" />
+@if (campaignOpen && character is not null)
+{
+    <div class="rf-modal-backdrop" @onclick="() => campaignOpen = false">
+        <div class="rf-modal-dialog" style="max-width: 560px;" @onclick:stopPropagation="true" data-test="sheet-campaign-dialog">
+            <h2 class="h5 mb-3" style="color: var(--rf-orange-primary); font-family: var(--rf-font-display);">@UiText.SheetCampaignTitle(Lang)</h2>
+            @if (myCampaigns is null)
+            {
+                <div class="small" style="color: var(--rf-text-muted);">…</div>
+            }
+            else if (myCampaigns.Count == 0)
+            {
+                <p class="small" style="color: var(--rf-text-muted);">@UiText.SheetCampaignNone(Lang)</p>
+                <a href="campaigns" class="btn btn-sm btn-rf-outline">@UiText.CampaignsTitle(Lang)</a>
+            }
+            else
+            {
+                @foreach (var campaign in myCampaigns)
+                {
+                    var cmp = campaign;
+                    <div class="rf-campaign-row" data-test="sheet-campaign-row">
+                        <div class="rf-campaign-row-main">
+                            <a href="@($"campaigns/{cmp.Id}")">@cmp.Name</a>
+                            <span class="small" style="color: var(--rf-text-muted);">@(cmp.Ruleset is { } r ? UiText.FormatRuleset(r, Lang) : UiText.CampaignAnyEdition(Lang))</span>
+                        </div>
+                        @if (InCampaign(cmp.Id))
+                        {
+                            <span class="small" style="color: var(--rf-text-secondary);" data-test="sheet-campaign-in">✓ @UiText.SheetCampaignAlready(Lang)</span>
+                        }
+                        else
+                        {
+                            <button type="button" class="btn btn-sm btn-rf-orange" disabled="@(campaignBusy is not null)" @onclick="() => BringToCampaignAsync(cmp)" data-test="sheet-campaign-bring">@UiText.BtnBring(Lang)</button>
+                        }
+                    </div>
+                    @if (campaignCheckFor == cmp.Id)
+                    {
+                        <CampaignCheckIssues Check="campaignCheck" Ruleset="cmp.Ruleset" />
+                    }
+                }
+            }
+            @if (campaignNote is not null)
+            {
+                <div class="small mt-3" style="color: var(--rf-text-secondary);" data-test="sheet-campaign-note">@campaignNote</div>
+            }
+            <div class="d-flex justify-content-end mt-3">
+                <button type="button" class="btn btn-rf-outline" @onclick="() => campaignOpen = false">@UiText.BtnClose(Lang)</button>
+            </div>
+        </div>
+    </div>
+}
+
 @if (shareOpen && character is not null && !ReadOnly && character.IsOwner)
 {
     var characterId = character.Id;
@@ -1049,6 +1104,7 @@
         "edit" => @<svg class="rf-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h4L19 9l-4-4L4 16v4zM14 6l4 4" /></svg>,
         "download" => @<svg class="rf-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11m0 0l-4-4m4 4l4-4M5 20h14" /></svg>,
         "trash" => @<svg class="rf-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 7h14M10 7V5h4v2M7 7l1 13h8l1-13" /></svg>,
+        "map" => @<svg class="rf-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6l6-2 6 2 6-2v14l-6 2-6-2-6 2zM9 4v14M15 6v14" /></svg>,
         "share" => @<svg class="rf-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="6" cy="12" r="2.5" /><circle cx="18" cy="6" r="2.5" /><circle cx="18" cy="18" r="2.5" /><path d="M8.2 10.9l7.6-3.8M8.2 13.1l7.6 3.8" /></svg>,
         _ => @<svg class="rf-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 19V5m0 0l-6 6m6-6l6 6" /></svg>
     };

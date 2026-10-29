@@ -213,6 +213,14 @@ jobs:
           test "$(code -X POST $api/api/auth/register $json -d "$(cred bob@example.com)")" = "200"
           A=$(curl -sf -X POST $api/api/auth/login $json -d "$(cred alice@example.com)" | jq -r .accessToken)
           B=$(curl -sf -X POST $api/api/auth/login $json -d "$(cred bob@example.com)" | jq -r .accessToken)
+          # Nicknames: what the other players see instead of the e-mail; never two equal ones (whatever the case)
+          nick_a=$(code -X PUT $api/api/account/nickname $json -H "Authorization: Bearer $A" -d '{"nickname":"Alice"}')
+          nick_b=$(code -X PUT $api/api/account/nickname $json -H "Authorization: Bearer $B" -d '{"nickname":"Bob"}')
+          nick_taken=$(code -X PUT $api/api/account/nickname $json -H "Authorization: Bearer $B" -d '{"nickname":"ALICE"}')
+          nick_bad=$(code -X PUT $api/api/account/nickname $json -H "Authorization: Bearer $B" -d '{"nickname":"x"}')
+          nick_summary=$(curl -sf $api/api/account/summary -H "Authorization: Bearer $A" | jq -r .nickname)
+          echo "::notice title=database::nicknames: alice=$nick_a bob=$nick_b taken=$nick_taken invalid=$nick_bad summary=$nick_summary"
+          test "$nick_a" = "200" && test "$nick_b" = "200" && test "$nick_taken" = "409" && test "$nick_bad" = "400" && test "$nick_summary" = "Alice"
 
 
           feat='{"category":2,"ruleset":2,"prerequisites":{"minimumLevel":4,"abilities":[1],"minimumScore":13},"translations":[{"language":1,"name":"Forge Test","description":"x","prerequisiteNote":"Dwarf"},{"language":2,"name":"Prova Forgia","description":"x","prerequisiteNote":"Nano"}]}'
@@ -533,6 +541,49 @@ jobs:
           micheck "unknown" "$mi_missing" "404"
           test "$mifail" = "0"
 
+          # Monsters: 322 statblocks of 2014 (SRD 5.1: lycanthropes and the vampire as one statblock, the swarm and giant rat
+          # variants linked to their original), the statblock in both languages, filters; a Homebrew variant of the goblin
+          # (private to its author, the original untouched) and the validation of the statblock
+          mo_all=$(get "$api/api/monsters?ruleset=1&lang=2")
+          mo14=$(echo "$mo_all" | jq -c '{total: length, srd: map(select(.source == 2)) | length, variants: map(select(.variantOfId != null)) | length, dragons: map(select(.type == 8)) | length}')
+          mo_cr=$(get "$api/api/monsters?ruleset=1&minCr=20&lang=1" | jq length)
+          goblin=$(echo "$mo_all" | jq -r '.[] | select(.name == "Goblin") | .id')
+          mo_goblin=$(get "$api/api/monsters/$goblin?lang=2" | jq -c '{name: .text.name, ac: .armorClass, hp: .hitPoints, xp, cr: .challengeRating, armor: .text.armorClass, speed: .text.speed}')
+          mo_goblin_en=$(get "$api/api/monsters/$goblin?lang=1" | jq -c '{name: .text.name, speed: .text.speed, nimble: (.text.traits | contains("Nimble Escape"))}')
+          variant=$(get "$api/api/monsters/$goblin?lang=2" | jq -c --arg id "$goblin" '{ruleset, visibility: 2, size, type, armorClass: 16, hitPoints, hitDice, speed, abilities, challengeRating, xp, proficiencyBonus, passivePerception, variantOfId: $id, translations: [.text | .name = "Goblin capo" | .alias = null]}')
+          mo_variant=$(curl -s -X POST "$api/api/monsters?lang=2" $json -H "Authorization: Bearer $A" -d "$variant")
+          mo_variant_id=$(echo "$mo_variant" | jq -r .id)
+          mo_variant_view=$(echo "$mo_variant" | jq -c '{name: .text.name, ac: .armorClass, variantOf: (.variantOfId != null), base: .isOfficialSRD, canEdit}')
+          mo_variant_detail=$(get "$api/api/monsters/$mo_variant_id?lang=2" -H "Authorization: Bearer $A" | jq -c '{variantOfName, author: .authorName}')
+          mo_variant_bob=$(code "$api/api/monsters/$mo_variant_id?lang=2" -H "Authorization: Bearer $B")
+          mo_goblin_after=$(get "$api/api/monsters/$goblin?lang=2" | jq -c '{ac: .armorClass, name: .text.name}')
+          mo_bad=$(code -X POST "$api/api/monsters" $json -H "Authorization: Bearer $A" -d "$(echo "$variant" | jq -c '.abilities = [10,10,10]')")
+          mo_bad_cr=$(code -X POST "$api/api/monsters" $json -H "Authorization: Bearer $A" -d "$(echo "$variant" | jq -c '.challengeRating = 0.3')")
+          mo_srd_put=$(code -X PUT "$api/api/monsters/$goblin" $json -H "Authorization: Bearer $A" -d "$variant")
+          mo_bob_delete=$(code -X DELETE "$api/api/monsters/$mo_variant_id" -H "Authorization: Bearer $B")
+          mo_anon_post=$(code -X POST "$api/api/monsters" $json -d "$variant")
+          mo_acc=$(curl -sf $api/api/account/summary -H "Authorization: Bearer $A" | jq .homebrew.monsters)
+          mo_delete=$(code -X DELETE "$api/api/monsters/$mo_variant_id" -H "Authorization: Bearer $A")
+          echo "::notice title=database::monsters 2014: $mo14 | CR 20+=$mo_cr | goblin=$mo_goblin EN=$mo_goblin_en | variant=$mo_variant_view detail=$mo_variant_detail bob=$mo_variant_bob original=$mo_goblin_after | invalid=$mo_bad cr=$mo_bad_cr | base PUT=$mo_srd_put bob DELETE=$mo_bob_delete anonymous POST=$mo_anon_post account=$mo_acc | DELETE=$mo_delete"
+          mofail=0
+          mocheck() { if [ "$2" != "$3" ]; then echo "::error title=monsters::$1: got '$2', expected '$3'"; mofail=1; fi; }
+          mocheck "2014 counts" "$mo14" '{"total":322,"srd":322,"variants":5,"dragons":43}'
+          mocheck "challenge filter" "$mo_cr" "15"
+          mocheck "goblin" "$mo_goblin" '{"name":"Goblin","ac":15,"hp":7,"xp":50,"cr":0.25,"armor":"15 (armatura di cuoio, scudo)","speed":"9 m"}'
+          mocheck "goblin EN" "$mo_goblin_en" '{"name":"Goblin","speed":"30 ft.","nimble":true}'
+          mocheck "variant" "$mo_variant_view" '{"name":"Goblin capo","ac":16,"variantOf":true,"base":false,"canEdit":true}'
+          mocheck "variant detail" "$mo_variant_detail" '{"variantOfName":"Goblin","author":"Alice"}'
+          mocheck "private variant for others" "$mo_variant_bob" "404"
+          mocheck "original untouched" "$mo_goblin_after" '{"ac":15,"name":"Goblin"}'
+          mocheck "three abilities" "$mo_bad" "400"
+          mocheck "unknown challenge" "$mo_bad_cr" "400"
+          mocheck "base PUT" "$mo_srd_put" "403"
+          mocheck "other DELETE" "$mo_bob_delete" "403"
+          mocheck "anonymous POST" "$mo_anon_post" "401"
+          mocheck "account" "$mo_acc" "1"
+          mocheck "DELETE" "$mo_delete" "204"
+          test "$mofail" = "0"
+
           # Rules glossary: 88 entries of 2014 (SRD 5.1) and 155 of 2024 (SRD 5.2.1), Prone 2024 in Italian with the forms
           # linked in the other modules, the "See also" of Grappling, read only (no POST) and 404 for an unknown entry
           gl14=$(get "$api/api/rules?ruleset=1&lang=2" | jq -c '{total: length, srd: map(select(.source == 2)) | length, conditions: map(select(.category == 2)) | length, actions: map(select(.category == 3)) | length}')
@@ -633,7 +684,7 @@ jobs:
           cp_accept=$(code -X POST "$api/api/campaigns/invitations/$cp_inv_id/accept" -H "Authorization: Bearer $A")
           cp_player_invite=$(code -X POST "$api/api/campaigns/$cp_id/invites" $json -H "Authorization: Bearer $A" -d '{"email":"carol@example.com","role":2}')
           cp_bring=$(code -X POST "$api/api/campaigns/$cp_id/characters" $json -H "Authorization: Bearer $A" -d "{\"characterId\":\"$ch_id\"}")
-          cp_master_get=$(get "$api/api/characters/$ch_id" -H "Authorization: Bearer $B" | jq -c '{readOnly, isOwner, ownerEmail}')
+          cp_master_get=$(get "$api/api/characters/$ch_id" -H "Authorization: Bearer $B" | jq -c '{readOnly, isOwner, ownerName, campaigns: (.campaigns | length)}')
           cp_master_ctx=$(code "$api/api/characters/context?ruleset=2&lang=2&character=$ch_id" -H "Authorization: Bearer $B")
           cp_master_sheet=$(code -X PUT "$api/api/characters/$ch_id/sheet" $json -H "Authorization: Bearer $B" -d "$(echo "$sheet" | jq '.notes = "Il master"')")
           cp_owner_view=$(get "$api/api/characters/$ch_id" -H "Authorization: Bearer $A" | jq -c '{notes: .sheet.notes, lastEditedBy}')
@@ -644,8 +695,40 @@ jobs:
           cp_review_read=$(code "$api/api/feats/$cp_feat" -H "Authorization: Bearer $B")
           cp_approve_player=$(code -X POST "$api/api/campaigns/$cp_id/contents/$cp_feat/approve" -H "Authorization: Bearer $A")
           cp_approve=$(code -X POST "$api/api/campaigns/$cp_id/contents/$cp_feat/approve" -H "Authorization: Bearer $B")
-          cp_promote=$(code -X PUT "$api/api/campaigns/$cp_id/members/$(get "$api/api/campaigns/$cp_id" -H "Authorization: Bearer $B" | jq -r '.members[] | select(.email == "alice@example.com") | .userId')" $json -H "Authorization: Bearer $B" -d '{"role":2}')
-          bob_id=$(get "$api/api/campaigns/$cp_id" -H "Authorization: Bearer $B" | jq -r '.members[] | select(.email == "bob@example.com") | .userId')
+          # Encounters: the master prepares one (a goblin, a hidden goblin, alice's character); the player sees it only once it
+          # is under way and shown, without the hidden goblin, the notes and the monsters' numbers, and cannot change it;
+          # a save from an old version answers 409
+          goblin=$(get "$api/api/monsters?ruleset=1&lang=2" | jq -r '.[] | select(.name == "Goblin") | .id')
+          enc=$(curl -s -X POST "$api/api/campaigns/$cp_id/encounters" $json -H "Authorization: Bearer $B" -d "{\"name\":\"Imboscata\",\"combatants\":[{\"kind\":1,\"monsterId\":\"$goblin\",\"name\":\"Goblin 1\",\"armorClass\":15,\"maxHp\":7,\"hp\":3,\"xp\":50,\"initiative\":12},{\"kind\":1,\"monsterId\":\"$goblin\",\"name\":\"Goblin 2\",\"armorClass\":15,\"maxHp\":7,\"hp\":7,\"xp\":50,\"hidden\":true,\"conditions\":[\"prone\",\"flying\"]},{\"kind\":2,\"characterId\":\"$ch_id\",\"name\":\"Eroe\",\"maxHp\":9,\"hp\":9,\"initiative\":15}]}")
+          echo "::notice title=characters::encounter create: $(printf '%s' "$enc" | tr '\n' ' ' | head -c 600)"
+          enc_id=$(echo "$enc" | jq -r .id)
+          enc_created=$(echo "$enc" | jq -c '{status, version, combatants: (.combatants | length), party: (.partyIds | length), conditions: .combatants[1].conditions, canManage}')
+          enc_player_list=$(get "$api/api/campaigns/$cp_id/encounters" -H "Authorization: Bearer $A" | jq length)
+          enc_player_get=$(code "$api/api/campaigns/$cp_id/encounters/$enc_id" -H "Authorization: Bearer $A")
+          enc_player_post=$(code -X POST "$api/api/campaigns/$cp_id/encounters" $json -H "Authorization: Bearer $A" -d '{"name":"Mio"}')
+          enc_run=$(echo "$enc" | jq -c '{name, notes: "Tattica segreta", status: 2, round: 1, currentId: .combatants[0].id, shown: true, combatants, partyIds, version}')
+          enc_saved=$(curl -s -X PUT "$api/api/campaigns/$cp_id/encounters/$enc_id" $json -H "Authorization: Bearer $B" -d "$enc_run" | jq -c '{status, version, round}')
+          enc_stale=$(code -X PUT "$api/api/campaigns/$cp_id/encounters/$enc_id" $json -H "Authorization: Bearer $B" -d "$enc_run")
+          enc_player_list2=$(get "$api/api/campaigns/$cp_id/encounters" -H "Authorization: Bearer $A" | jq -c '[.[] | {status, monsters, monsterXp}]')
+          enc_player=$(get "$api/api/campaigns/$cp_id/encounters/$enc_id" -H "Authorization: Bearer $A" | jq -c '{notes, canManage, names: [.combatants[].name], goblin: (.combatants[] | select(.kind == 1) | {hp, armorClass, health, monsterId}), hero: (.combatants[] | select(.kind == 2) | .hp)}')
+          enc_player_put=$(code -X PUT "$api/api/campaigns/$cp_id/encounters/$enc_id" $json -H "Authorization: Bearer $A" -d "$enc_run")
+          enc_anon=$(code "$api/api/campaigns/$cp_id/encounters")
+          echo "::notice title=characters::encounters: created=$enc_created player list=$enc_player_list GET=$enc_player_get POST=$enc_player_post | run=$enc_saved stale=$enc_stale | player list=$enc_player_list2 view=$enc_player PUT=$enc_player_put | anonymous=$enc_anon"
+          # Requirements: a 2014 campaign refuses the 2024 character and says why
+          cp14=$(curl -s -X POST "$api/api/campaigns?lang=2" $json -H "Authorization: Bearer $A" -d '{"name":"Tavola 2014","ruleset":1}' | jq -r .id)
+          cp14_check=$(get "$api/api/campaigns/$cp14/characters/$ch_id/check?lang=2" -H "Authorization: Bearer $A" | jq -c '{ok, issues: [.issues[].issue]}')
+          cp14_bring=$(curl -s -o /dev/null -w '%{http_code}' -X POST "$api/api/campaigns/$cp14/characters" $json -H "Authorization: Bearer $A" -d "{\"characterId\":\"$ch_id\"}")
+          code -X DELETE "$api/api/campaigns/$cp14" -H "Authorization: Bearer $A" >/dev/null
+          # Notes: private (the author only), for the masters, the shared journal
+          note() { curl -s -o /dev/null -w '%{http_code}' -X POST "$api/api/campaigns/$cp_id/notes" $json -H "Authorization: Bearer $1" -d "{\"kind\":$2,\"title\":\"$3\",\"body\":\"x\"}"; }
+          cp_notes_post="$(note "$A" 1 Mia) $(note "$A" 3 Diario) $(note "$B" 2 Master) $(note "$A" 2 Vietata)"
+          cp_notes_alice=$(get "$api/api/campaigns/$cp_id/notes" -H "Authorization: Bearer $A" | jq -c '[.[].kind] | sort')
+          cp_notes_bob=$(get "$api/api/campaigns/$cp_id/notes" -H "Authorization: Bearer $B" | jq -c '[.[].kind] | sort')
+          journal=$(get "$api/api/campaigns/$cp_id/notes" -H "Authorization: Bearer $B" | jq -r '.[] | select(.kind == 3) | .id')
+          cp_note_edit_other=$(code -X PUT "$api/api/campaigns/$cp_id/notes/$journal" $json -H "Authorization: Bearer $B" -d '{"kind":3,"title":"x","body":"y"}')
+          cp_note_delete=$(code -X DELETE "$api/api/campaigns/$cp_id/notes/$journal" -H "Authorization: Bearer $B")
+          cp_promote=$(code -X PUT "$api/api/campaigns/$cp_id/members/$(get "$api/api/campaigns/$cp_id" -H "Authorization: Bearer $B" | jq -r '.members[] | select(.name == "Alice") | .userId')" $json -H "Authorization: Bearer $B" -d '{"role":2}')
+          bob_id=$(get "$api/api/campaigns/$cp_id" -H "Authorization: Bearer $B" | jq -r '.members[] | select(.name == "Bob") | .userId')
           cp_comaster_promote=$(code -X PUT "$api/api/campaigns/$cp_id/members/$bob_id" $json -H "Authorization: Bearer $A" -d '{"role":3}')
           cp_last_master=$(code -X DELETE "$api/api/campaigns/$cp_id/members/me" -H "Authorization: Bearer $B")
           cp_bob_feat=$(curl -sf -X POST "$api/api/feats?lang=2" $json -H "Authorization: Bearer $B" -d "$feat" | jq -r .id)
@@ -693,7 +776,7 @@ jobs:
           chcheck "share with an unknown address" "$sh_unknown" "404"
           chcheck "shared GET" "$sh_get" '{"readOnly":true,"name":"Elminster di prova"}'
           chcheck "owner GET" "$sh_owner_get" "false"
-          chcheck "shared list" "$sh_list" '[{"name":"Elminster di prova","owner":"alice@example.com"}]'
+          chcheck "shared list" "$sh_list" '[{"name":"Elminster di prova","owner":"Alice"}]'
           chcheck "shared context" "$sh_ctx" "200"
           chcheck "shared sheet PUT" "$sh_sheet" "404"
           chcheck "people" "$sh_people" "bob@example.com"
@@ -704,16 +787,33 @@ jobs:
           chcheck "accept" "$cp_accept" "204"
           chcheck "player invites a co-master" "$cp_player_invite" "403"
           chcheck "bring a character" "$cp_bring" "204"
-          chcheck "master opens it" "$cp_master_get" '{"readOnly":false,"isOwner":false,"ownerEmail":"alice@example.com"}'
+          chcheck "master opens it" "$cp_master_get" '{"readOnly":false,"isOwner":false,"ownerName":"Alice","campaigns":1}'
           chcheck "master context" "$cp_master_ctx" "200"
           chcheck "master saves the sheet" "$cp_master_sheet" "200"
-          chcheck "owner sees the change" "$cp_owner_view" '{"notes":"Il master","lastEditedBy":"bob@example.com"}'
+          chcheck "owner sees the change" "$cp_owner_view" '{"notes":"Il master","lastEditedBy":"Bob"}'
           chcheck "master cannot delete it" "$cp_master_delete" "404"
           chcheck "player share waits" "$cp_share" "1"
           chcheck "campaign list" "$cp_pending" '[{"role":1,"members":2,"characters":1,"pending":1}]'
           chcheck "master reads the pending entry" "$cp_review_read" "200"
           chcheck "player approves" "$cp_approve_player" "403"
           chcheck "master approves" "$cp_approve" "204"
+          chcheck "encounter created" "$enc_created" '{"status":1,"version":1,"combatants":3,"party":1,"conditions":["prone"],"canManage":true}'
+          chcheck "planned encounters are hidden from players" "$enc_player_list" "0"
+          chcheck "player GET of a planned encounter" "$enc_player_get" "404"
+          chcheck "player creates an encounter" "$enc_player_post" "403"
+          chcheck "encounter under way" "$enc_saved" '{"status":2,"version":2,"round":1}'
+          chcheck "stale save" "$enc_stale" "409"
+          chcheck "player list" "$enc_player_list2" '[{"status":2,"monsters":1,"monsterXp":0}]'
+          chcheck "player view" "$enc_player" '{"notes":"","canManage":false,"names":["Goblin 1","Eroe"],"goblin":{"hp":0,"armorClass":0,"health":3,"monsterId":null},"hero":9}'
+          chcheck "player PUT" "$enc_player_put" "403"
+          chcheck "anonymous encounters" "$enc_anon" "401"
+          chcheck "2014 campaign check" "$cp14_check" '{"ok":false,"issues":[1]}'
+          chcheck "2014 campaign refuses" "$cp14_bring" "422"
+          chcheck "notes written" "$cp_notes_post" "200 200 200 403"
+          chcheck "notes of the player" "$cp_notes_alice" "[1,3]"
+          chcheck "notes of the master" "$cp_notes_bob" "[2,3]"
+          chcheck "edit someone else's note" "$cp_note_edit_other" "403"
+          chcheck "master deletes a journal page" "$cp_note_delete" "204"
           chcheck "promote to co-master" "$cp_promote" "204"
           chcheck "co-master promotes" "$cp_comaster_promote" "403"
           chcheck "last master leaves" "$cp_last_master" "400"

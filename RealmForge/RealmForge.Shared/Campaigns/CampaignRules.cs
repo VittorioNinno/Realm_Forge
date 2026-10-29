@@ -25,6 +25,35 @@ public enum CampaignContentStatus
 }
 
 ///	<summary>
+///	Why a character cannot join a campaign.
+///	</summary>
+public enum CampaignCheckIssue
+{
+	//	The campaign is of another edition
+	Edition = 1,
+
+	//	Homebrew of the owner that is not shared with the campaign (or not approved yet)
+	HomebrewNotShared = 2,
+
+	//	Someone else's Homebrew the table cannot see
+	HomebrewUnavailable = 3,
+
+	//	Homebrew of another edition than the campaign's
+	HomebrewEdition = 4
+}
+
+///	<summary>
+///	Notes of a campaign: private (only the author), for the masters (masters and co-masters), the shared journal
+///	(every member writes, like a travel diary of the party).
+///	</summary>
+public enum CampaignNoteKind
+{
+	Private = 1,
+	Masters = 2,
+	Journal = 3
+}
+
+///	<summary>
 ///	Who may do what in a campaign. Used by the API (the rule) and by the client (which buttons to show).
 ///	</summary>
 public static class CampaignRules
@@ -76,4 +105,24 @@ public static class CampaignRules
 	public static bool CanEditCharacter(CampaignRole role, bool owner) => owner || RunsTheTable(role);
 
 	public static bool CanRemoveCharacter(CampaignRole role, bool owner) => owner || RunsTheTable(role);
+
+	//	Notes: the private ones are the author's alone; the masters' notes are read and written by masters and co-masters;
+	//	the journal is everyone's
+	public static bool CanReadNotes(CampaignNoteKind kind, CampaignRole role) => kind switch
+	{
+		CampaignNoteKind.Masters => RunsTheTable(role),
+		_ => true
+	};
+
+	public static bool CanWriteNotes(CampaignNoteKind kind, CampaignRole role) => CanReadNotes(kind, role);
+
+	//	Only the author changes a note
+	public static bool CanEditNote(bool author) => author;
+
+	///	<summary>
+	///	Deleting a note: the author; in the masters' notes and the journal also the masters, and the co-masters for
+	///	notes not written by a master. Nobody else touches a private note.
+	///	</summary>
+	public static bool CanDeleteNote(CampaignNoteKind kind, CampaignRole role, bool author, CampaignRole? authorRole) =>
+		author || (kind != CampaignNoteKind.Private && (role == CampaignRole.Master || (role == CampaignRole.CoMaster && authorRole != CampaignRole.Master)));
 }

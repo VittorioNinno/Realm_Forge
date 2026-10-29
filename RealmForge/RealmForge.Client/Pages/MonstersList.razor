@@ -1,0 +1,443 @@
+﻿@page "/monsters"
+@using RealmForge.Client.Components
+@using RealmForge.Client.Localization
+@using RealmForge.Client.Services
+@using RealmForge.Shared.DTOs
+@using RealmForge.Shared.Enums
+@using RealmForge.Shared.Monsters
+@implements IDisposable
+@inject MonsterDataService MonsterService
+@inject LanguageStateService LanguageState
+@inject GlossaryService Glossary
+@inject ApiErrorState ApiErrors
+@inject NavigationManager Navigation
+
+<PageTitle>RealmForge - @UiText.MonstersTitle(Lang)</PageTitle>
+
+<div class="container-fluid px-0 py-4">
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4 pb-3" style="border-bottom: 2px solid var(--rf-orange-primary);">
+        <div>
+            <h1 class="h3 fw-bold mb-1 rf-page-title">@UiText.MonstersTitle(Lang)</h1>
+            <p class="mb-0 small" style="color: var(--rf-text-muted); letter-spacing: 1px; text-transform: uppercase;">@UiText.MonstersSubtitle(Lang)</p>
+        </div>
+        <div>
+            <ForgeAction>
+                <button class="btn btn-rf-orange" @onclick="OpenCreate" data-test="monster-new">@UiText.BtnNewMonster(Lang)</button>
+            </ForgeAction>
+        </div>
+    </div>
+
+    @* Filters: edition reloads from the API, everything else filters the loaded list *@
+    <div class="row g-3 mb-4 p-3 rounded" style="background-color: var(--rf-bg-surface); border: 1px solid var(--rf-border-light);" data-test="monster-filters">
+        <div class="col-lg-4 col-md-6">
+            <label class="rf-form-label small text-uppercase" style="letter-spacing: 0.5px;">@UiText.LabelSearchMagicItem(Lang)</label>
+            <input type="text" class="rf-form-control" placeholder="@UiText.PlaceholderSearchMonsters(Lang)"
+                   @bind="SearchTerm" @bind:event="oninput" data-test="monster-search" />
+        </div>
+        <div class="col-lg-2 col-md-6" data-test="monster-ruleset">
+            <label class="rf-form-label small text-uppercase" style="letter-spacing: 0.5px;">@UiText.LabelRuleset(Lang)</label>
+            <RfSelect TValue="RulesetVersion?" @bind-Value="SelectedRuleset" OnChange="LoadAsync" Options="RulesetOptions" />
+        </div>
+        <div class="col-lg-2 col-md-4" data-test="monster-origin">
+            <label class="rf-form-label small text-uppercase" style="letter-spacing: 0.5px;">@UiText.LabelOrigin(Lang)</label>
+            <RfSelect TValue="string" @bind-Value="OriginFilter" Options="OriginOptions" />
+        </div>
+        <div class="col-lg-2 col-md-4" data-test="monster-type">
+            <label class="rf-form-label small text-uppercase" style="letter-spacing: 0.5px;">@UiText.MonsterType(Lang)</label>
+            <RfSelect TValue="CreatureType?" @bind-Value="TypeFilter" Options="TypeOptions" />
+        </div>
+        <div class="col-lg-2 col-md-4" data-test="monster-size">
+            <label class="rf-form-label small text-uppercase" style="letter-spacing: 0.5px;">@UiText.MonsterSize(Lang)</label>
+            <RfSelect TValue="CreatureSize?" @bind-Value="SizeFilter" Options="SizeOptions" />
+        </div>
+        <div class="col-lg-2 col-md-4 col-6" data-test="monster-cr-min">
+            <label class="rf-form-label small text-uppercase" style="letter-spacing: 0.5px;">@UiText.MonsterChallengeFrom(Lang)</label>
+            <RfSelect TValue="decimal?" @bind-Value="MinChallenge" Options="ChallengeOptions" />
+        </div>
+        <div class="col-lg-2 col-md-4 col-6" data-test="monster-cr-max">
+            <label class="rf-form-label small text-uppercase" style="letter-spacing: 0.5px;">@UiText.MonsterChallengeTo(Lang)</label>
+            <RfSelect TValue="decimal?" @bind-Value="MaxChallenge" Options="ChallengeOptions" />
+        </div>
+        <div class="col-lg-8 col-md-4 d-flex flex-wrap align-items-end gap-2">
+            <div class="rf-pill-group">
+                <button type="button" class="rf-pill-btn @(SortByChallenge ? null : "active")" @onclick="() => SortByChallenge = false" data-test="monster-sort-name">@UiText.SortByName(Lang)</button>
+                <button type="button" class="rf-pill-btn @(SortByChallenge ? "active" : null)" @onclick="() => SortByChallenge = true" data-test="monster-sort-cr">@UiText.SortByChallenge(Lang)</button>
+            </div>
+            <span class="ms-auto small" style="color: var(--rf-text-muted);" data-test="monster-count">@UiText.MonsterCount(Filtered.Count, Lang)</span>
+        </div>
+    </div>
+
+    @if (IsLoading)
+    {
+        <div class="text-center my-5 py-5">
+            <div class="spinner-border" style="color: var(--rf-orange-primary);" role="status"></div>
+            <p class="mt-3" style="color: var(--rf-text-muted); text-transform: uppercase; letter-spacing: 1px;">@UiText.LoadingMonsters(Lang)</p>
+        </div>
+    }
+    else if (Filtered.Count == 0)
+    {
+        <div class="p-4 rounded text-center" style="background-color: var(--rf-bg-surface); border: 1px solid var(--rf-border-light);" data-test="monster-empty">
+            <p class="mb-0" style="color: var(--rf-text-muted);">@UiText.NoMonstersFound(Lang)</p>
+        </div>
+    }
+    else
+    {
+        <div class="row row-cols-1 row-cols-md-2 row-cols-xl-3 g-3">
+            @foreach (var monster in Filtered.Take(shown))
+            {
+                var m = monster;
+                <div class="col">
+                    <div class="rf-card rf-spell-card h-100 d-flex flex-column" style="cursor: pointer;" data-test="monster-card" @onclick="() => OpenDetailAsync(m.Id)">
+                        <div class="d-flex justify-content-between align-items-start mb-1 gap-2">
+                            <span class="rf-card-title mb-0">@m.Name</span>
+                            <div class="d-flex gap-1 flex-shrink-0 align-items-center">
+                                <span class="badge @(m.Ruleset == RulesetVersion.Dnd5e_2024 ? "badge-edition-2024" : "badge-edition-2014")">@UiText.FormatRuleset(m.Ruleset, Lang)</span>
+                                <ContentBadge IsBase="m.IsOfficialSRD" Source="m.Source" Visibility="m.Visibility" />
+                            </div>
+                        </div>
+                        @if (!string.IsNullOrWhiteSpace(m.Alias))
+                        {
+                            <div class="small" style="color: var(--rf-text-muted);">@UiText.MagicAlsoKnownAs(Lang): @m.Alias</div>
+                        }
+                        <div class="small fst-italic mb-2 flex-grow-1" style="color: var(--rf-text-secondary);">@m.Subtitle</div>
+                        <div class="d-flex flex-wrap gap-1 pt-2 align-items-center" style="border-top: 1px solid var(--rf-border-subtle);">
+                            <span class="rf-spell-flag rf-monster-cr" data-test="monster-card-cr">@UiText.MonsterChallengeShort(Lang) @MonsterMath.FormatChallenge(m.ChallengeRating)</span>
+                            <span class="rf-spell-flag">@UiText.MonsterArmorClassShort(Lang) @m.ArmorClass</span>
+                            <span class="rf-spell-flag">@UiText.MonsterHitPointsShort(Lang) @m.HitPoints</span>
+                            @if (m.VariantOfId is not null)
+                            {
+                                <span class="small ms-auto" style="color: var(--rf-text-muted);">@UiText.MonsterVariant(Lang)</span>
+                            }
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+        @if (Filtered.Count > shown)
+        {
+            <div class="text-center mt-4">
+                <button type="button" class="btn btn-rf-outline" @onclick="() => shown += PageSize" data-test="monster-more">@UiText.BtnShowMore(Filtered.Count - shown, Lang)</button>
+            </div>
+        }
+    }
+</div>
+
+@if (Selected is { } detail)
+{
+    <div class="rf-modal-backdrop" @onclick="CloseDetail">
+        <div class="rf-modal-dialog" style="max-width: 780px;" @onclick:stopPropagation="true" data-test="monster-detail">
+            <div class="d-flex justify-content-between align-items-start mb-3 pb-2" style="border-bottom: 2px solid var(--rf-orange-primary);">
+                <div>
+                    <h2 class="h3 mb-1" style="color: var(--rf-orange-primary); font-family: var(--rf-font-display);" data-test="monster-detail-name">@detail.Text.Name</h2>
+                    <div class="d-flex flex-wrap gap-2">
+                        <span class="badge @(detail.Ruleset == RulesetVersion.Dnd5e_2024 ? "badge-edition-2024" : "badge-edition-2014")">@UiText.FormatRuleset(detail.Ruleset, Lang)</span>
+                        <ContentBadge IsBase="detail.IsOfficialSRD" Source="detail.Source" Visibility="detail.Visibility" ShowSource="true" />
+                    </div>
+                </div>
+                <button class="btn btn-sm btn-rf-outline" @onclick="CloseDetail">✕</button>
+            </div>
+
+            @if (detail.VariantOfId is { } originalId && detail.VariantOfName is not null)
+            {
+                <div class="small mb-2" data-test="monster-variant-of">
+                    <strong class="text-uppercase" style="color: var(--rf-text-muted); letter-spacing: 0.5px;">@UiText.MagicVariantOf(Lang):</strong>
+                    <a href="@($"monsters?id={originalId}")">@detail.VariantOfName</a>
+                </div>
+            }
+            @if (!string.IsNullOrWhiteSpace(detail.Text.Alias))
+            {
+                <div class="small mb-2" data-test="monster-alias">
+                    <strong class="text-uppercase" style="color: var(--rf-text-muted); letter-spacing: 0.5px;">@UiText.MagicAlsoKnownAs(Lang):</strong>
+                    <span style="color: #ffffff;">@detail.Text.Alias</span>
+                </div>
+            }
+            @if (!detail.IsOfficialSRD && detail.AuthorName is not null)
+            {
+                <div class="small mb-2" style="color: var(--rf-text-muted);">@UiText.MonsterAuthor(detail.AuthorName, Lang)</div>
+            }
+            @if (!detail.IsOfficialSRD)
+            {
+                <ShareLink Visibility="detail.Visibility" CanEdit="detail.CanEdit" EntityId="detail.Id" Path="@($"monsters?id={detail.Id}")" />
+            }
+
+            <MonsterStatBlock Monster="detail" ShowName="false" />
+
+            <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 pt-3 mt-3" style="border-top: 1px solid var(--rf-border-light);">
+                <div class="d-flex flex-wrap gap-2">
+                    <ForgeAction>
+                        <button class="btn btn-sm btn-rf-orange" @onclick="() => OpenVariantAsync(detail)" data-test="monster-variant">@UiText.BtnCreateVariant(Lang)</button>
+                    </ForgeAction>
+                    @if (detail.CanEdit)
+                    {
+                        <button class="btn btn-sm btn-rf-outline text-uppercase" @onclick="() => OpenEditAsync(detail)" data-test="monster-edit">@UiText.Edit(Lang)</button>
+                        <button class="btn btn-sm btn-rf-outline text-uppercase" style="border-color: #dc3545; color: #dc3545;" @onclick="() => deleting = detail" data-test="monster-delete">@UiText.Delete(Lang)</button>
+                    }
+                </div>
+                <button class="btn btn-rf-outline text-uppercase" style="letter-spacing: 1px;" @onclick="CloseDetail">@UiText.BtnClose(Lang)</button>
+            </div>
+        </div>
+    </div>
+}
+
+@if (editor is not null)
+{
+    <MonsterEditor Model="editor" EditingId="editingId" Title="@editorTitle" VariantOfName="@editorVariantOf" OnSaved="SavedAsync" OnCancel="() => editor = null" />
+}
+
+@if (deleting is { } victim)
+{
+    <div class="rf-modal-backdrop" @onclick="() => deleting = null">
+        <div class="rf-modal-dialog" @onclick:stopPropagation="true" style="max-width: 450px; text-align: center;" data-test="monster-delete-confirm">
+            <h2 class="h4 mb-3" style="color: var(--rf-orange-primary);">@UiText.ConfirmDeletion(Lang)</h2>
+            <div class="p-3 mb-4 rounded" style="background-color: var(--rf-bg-main); border: 1px solid var(--rf-border-subtle); color: var(--rf-text-secondary);">
+                @UiText.MonsterDeleteWarning(victim.Text.Name, Lang)
+            </div>
+            <div class="d-flex justify-content-center gap-3">
+                <button class="btn btn-rf-outline" @onclick="() => deleting = null">@UiText.BtnCancel(Lang)</button>
+                <button class="btn btn-rf-orange" style="background-color: #dc3545; border-color: #dc3545;" @onclick="DeleteAsync" data-test="monster-delete-yes">@UiText.Delete(Lang)</button>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    [SupplyParameterFromQuery(Name = "id")]
+    public Guid? QueryId { get; set; }
+
+    private const int PageSize = 60;
+
+    private LanguageCode Lang => LanguageState.CurrentLanguage;
+
+    private List<MonsterResponseDto> All { get; set; } = new();
+    private MonsterDetailDto? Selected { get; set; }
+    private bool IsLoading { get; set; } = true;
+    private Guid? openedQueryId;
+    private int shown = PageSize;
+
+    //	Filters
+    private RulesetVersion? SelectedRuleset { get; set; }
+    private string SearchTerm { get; set; } = string.Empty;
+    private string OriginFilter { get; set; } = string.Empty;
+    private CreatureType? TypeFilter { get; set; }
+    private CreatureSize? SizeFilter { get; set; }
+    private decimal? MinChallenge { get; set; }
+    private decimal? MaxChallenge { get; set; }
+    private bool SortByChallenge { get; set; }
+
+    //	Editor: null when closed
+    private SaveMonsterDto? editor;
+    private Guid? editingId;
+    private string editorTitle = string.Empty;
+    private string? editorVariantOf;
+    private MonsterDetailDto? deleting;
+
+    private List<MonsterResponseDto> Filtered
+    {
+        get
+        {
+            var term = SearchTerm.Trim();
+            var list = All
+                .Where(m => OriginFilter switch { "srd" => m.IsOfficialSRD, "homebrew" => !m.IsOfficialSRD, _ => true })
+                .Where(m => TypeFilter is null || m.Type == TypeFilter)
+                .Where(m => SizeFilter is null || m.Size == SizeFilter)
+                .Where(m => MinChallenge is null || m.ChallengeRating >= MinChallenge)
+                .Where(m => MaxChallenge is null || m.ChallengeRating <= MaxChallenge)
+                .Where(m => term.Length == 0
+                            || m.Name.Contains(term, StringComparison.OrdinalIgnoreCase)
+                            || (m.Alias?.Contains(term, StringComparison.OrdinalIgnoreCase) ?? false)
+                            || m.Subtitle.Contains(term, StringComparison.OrdinalIgnoreCase));
+            return (SortByChallenge ? list.OrderBy(m => m.ChallengeRating).ThenBy(m => m.Name, StringComparer.CurrentCultureIgnoreCase) : list).ToList();
+        }
+    }
+
+    private List<RfSelect<RulesetVersion?>.OptionItem> RulesetOptions => new()
+    {
+        new(null, UiText.FilterRulesetAll(Lang)),
+        new(RulesetVersion.Dnd5e_2024, UiText.FormatRuleset(RulesetVersion.Dnd5e_2024, Lang)),
+        new(RulesetVersion.Dnd5e_2014, UiText.FormatRuleset(RulesetVersion.Dnd5e_2014, Lang))
+    };
+
+    private List<RfSelect<string>.OptionItem> OriginOptions => new()
+    {
+        new("", UiText.FilterOriginAll(Lang)),
+        new("srd", UiText.FilterOnlyBase(Lang)),
+        new("homebrew", UiText.FilterOnlyHomebrew(Lang))
+    };
+
+    private List<RfSelect<CreatureType?>.OptionItem> TypeOptions =>
+        new List<RfSelect<CreatureType?>.OptionItem> { new(null, UiText.FilterAllTypes(Lang)) }
+            .Concat(Enum.GetValues<CreatureType>().Select(t => new RfSelect<CreatureType?>.OptionItem(t, UiText.FormatCreatureType(t, Lang)))
+                .OrderBy(o => o.Label, StringComparer.CurrentCultureIgnoreCase))
+            .ToList();
+
+    private List<RfSelect<CreatureSize?>.OptionItem> SizeOptions =>
+        new List<RfSelect<CreatureSize?>.OptionItem> { new(null, UiText.FilterAllSizes(Lang)) }
+            .Concat(Enum.GetValues<CreatureSize>().Select(s => new RfSelect<CreatureSize?>.OptionItem(s, UiText.FormatSizeSingle(s, Lang))))
+            .ToList();
+
+    private List<RfSelect<decimal?>.OptionItem> ChallengeOptions =>
+        new List<RfSelect<decimal?>.OptionItem> { new(null, "—") }
+            .Concat(MonsterMath.Challenges.Select(c => new RfSelect<decimal?>.OptionItem(c.Rating, MonsterMath.FormatChallenge(c.Rating))))
+            .ToList();
+
+    protected override async Task OnInitializedAsync()
+    {
+        LanguageState.OnLanguageChanged += HandleLanguageChanged;
+        _ = Glossary.EnsureLoadedAsync(Lang);
+        await LoadAsync();
+        openedQueryId = QueryId;
+        if (QueryId is { } id)
+        {
+            await OpenDetailAsync(id);
+            if (Selected == null)
+            {
+                ApiErrors.Report(ApiErrorKind.NotAvailable);
+            }
+        }
+    }
+
+    //	A link to another monster (monsters?id=…): same page, only the query changes
+    protected override async Task OnParametersSetAsync()
+    {
+        if (QueryId != openedQueryId)
+        {
+            openedQueryId = QueryId;
+            if (QueryId is { } id)
+            {
+                await OpenDetailAsync(id);
+            }
+        }
+    }
+
+    private async void HandleLanguageChanged()
+    {
+        await Glossary.EnsureLoadedAsync(Lang);
+        if (Selected != null)
+        {
+            Selected = await MonsterService.GetMonsterAsync(Selected.Id, Lang);
+        }
+        await LoadAsync();
+        StateHasChanged();
+    }
+
+    private async Task LoadAsync()
+    {
+        IsLoading = true;
+        All = await MonsterService.GetMonstersAsync(Lang, SelectedRuleset);
+        IsLoading = false;
+    }
+
+    private async Task OpenDetailAsync(Guid id) => Selected = await MonsterService.GetMonsterAsync(id, Lang);
+
+    private void CloseDetail() => Selected = null;
+
+    // ===== Editor =====
+
+    private void OpenCreate()
+    {
+        editingId = null;
+        editorVariantOf = null;
+        editorTitle = UiText.BtnNewMonster(Lang);
+        editor = new SaveMonsterDto
+        {
+            Ruleset = SelectedRuleset ?? RulesetVersion.Dnd5e_2014,
+            ChallengeRating = 1,
+            Xp = MonsterMath.XpFor(1),
+            ProficiencyBonus = 2,
+            HitPoints = 9,
+            HitDice = "2d8"
+        };
+    }
+
+    //	The statblock in both languages; a translation that is missing stays empty (not filled with the other language)
+    private async Task<SaveMonsterDto?> LoadModelAsync(Guid id)
+    {
+        var it = MonsterService.GetMonsterAsync(id, LanguageCode.It);
+        var en = MonsterService.GetMonsterAsync(id, LanguageCode.En);
+        await Task.WhenAll(it, en);
+        var source = (await it) ?? (await en);
+        if (source is null)
+        {
+            return null;
+        }
+        var texts = new[] { await it, await en }
+            .Where(d => d is not null && d.Text.Language is LanguageCode.It or LanguageCode.En)
+            .Select(d => d!.Text)
+            .GroupBy(t => t.Language)
+            .Select(g => g.First())
+            .ToList();
+        return new SaveMonsterDto
+        {
+            Ruleset = source.Ruleset,
+            Visibility = source.Visibility,
+            Size = source.Size,
+            Type = source.Type,
+            ArmorClass = source.ArmorClass,
+            HitPoints = source.HitPoints,
+            HitDice = source.HitDice,
+            Speed = source.Speed,
+            Abilities = source.Abilities.ToList(),
+            ChallengeRating = source.ChallengeRating,
+            Xp = source.Xp,
+            ProficiencyBonus = source.ProficiencyBonus,
+            PassivePerception = source.PassivePerception,
+            VariantOfId = source.VariantOfId,
+            Translations = texts
+        };
+    }
+
+    private async Task OpenEditAsync(MonsterDetailDto detail)
+    {
+        var model = await LoadModelAsync(detail.Id);
+        if (model is null)
+        {
+            return;
+        }
+        editingId = detail.Id;
+        editorVariantOf = detail.VariantOfName;
+        editorTitle = UiText.Edit(Lang);
+        Selected = null;
+        editor = model;
+    }
+
+    //	"Crea variante": a private Homebrew copy of the statblock, linked to the original
+    private async Task OpenVariantAsync(MonsterDetailDto detail)
+    {
+        var model = await LoadModelAsync(detail.Id);
+        if (model is null)
+        {
+            return;
+        }
+        model.VariantOfId = detail.Id;
+        model.Visibility = ContentVisibility.Private;
+        foreach (var text in model.Translations)
+        {
+            text.Name = UiText.MonsterVariantName(text.Name, text.Language);
+            text.Alias = null;
+        }
+        editingId = null;
+        editorVariantOf = detail.Text.Name;
+        editorTitle = UiText.BtnCreateVariant(Lang);
+        Selected = null;
+        editor = model;
+    }
+
+    private async Task SavedAsync(Guid id)
+    {
+        editor = null;
+        await LoadAsync();
+        await OpenDetailAsync(id);
+    }
+
+    private async Task DeleteAsync()
+    {
+        if (deleting is { } victim && await MonsterService.DeleteAsync(victim.Id))
+        {
+            deleting = null;
+            Selected = null;
+            await LoadAsync();
+        }
+    }
+
+    public void Dispose() => LanguageState.OnLanguageChanged -= HandleLanguageChanged;
+}

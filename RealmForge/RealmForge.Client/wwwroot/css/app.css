@@ -6032,3 +6032,491 @@ button.rf-stat-card {
     color: var(--rf-text-secondary);
     font-size: 0.9rem;
 }
+
+.rf-campaign-issues {
+    margin-top: 0.75rem;
+    padding: 0.75rem 1rem;
+    border: 1px solid #dc3545;
+    border-radius: 6px;
+    background-color: rgba(220, 53, 69, 0.08);
+    color: var(--rf-text-secondary);
+    font-size: 0.9rem;
+}
+
+    .rf-campaign-issues strong { color: #f08a87; }
+
+    .rf-campaign-issues li + li { margin-top: 0.25rem; }
+
+.rf-campaign-note {
+    padding: 0.75rem 0;
+    border-bottom: 1px solid var(--rf-border-subtle);
+}
+
+    .rf-campaign-note:last-child { border-bottom: 0; }
+
+.rf-campaign-note-head {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 0.5rem;
+}
+
+.rf-campaign-note-title { font-weight: 600; color: var(--rf-text-primary); }
+
+.rf-campaign-note-meta { font-size: 0.8rem; color: var(--rf-text-muted); }
+
+/* ===== Sheet: identity card with room to breathe, square portrait the player can frame ===== */
+.rf-hero-top {
+    gap: 20px;
+    align-items: flex-start;
+}
+
+.rf-hero-portrait {
+    flex: 0 0 140px;
+    width: 140px;
+    height: 140px;
+    aspect-ratio: 1 / 1;
+    background-position: 50% 50%;
+    background-repeat: no-repeat;
+    touch-action: none;
+    user-select: none;
+}
+
+    .rf-hero-portrait:not(.empty) {
+        cursor: grab;
+    }
+
+    .rf-hero-portrait.panning {
+        cursor: grabbing;
+        border-color: var(--rf-orange-primary);
+    }
+
+    .rf-hero-portrait:focus-visible {
+        outline: 2px solid var(--rf-orange-primary);
+        outline-offset: 2px;
+    }
+
+.rf-hero-info {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding-top: 2px;
+}
+
+.rf-hero-nameline {
+    gap: 8px 16px;
+}
+
+    .rf-hero-nameline .rf-sheet-name {
+        line-height: 1.1;
+    }
+
+.rf-hero-inspiration {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    height: 32px;
+    padding: 0 14px 0 10px;
+    gap: 8px;
+    line-height: 1;
+}
+
+    .rf-hero-inspiration svg {
+        display: block;
+        flex: none;
+    }
+
+    .rf-hero-inspiration span {
+        display: block;
+        line-height: 1;
+        padding-top: 1px;
+    }
+
+.rf-hero-origin {
+    line-height: 1.4;
+}
+
+.rf-hero-classline {
+    gap: 8px 14px;
+    margin-top: 0;
+}
+
+.rf-levelup-pill {
+    padding: 4px 12px 4px 8px;
+}
+
+.rf-hero-bio {
+    margin-top: 4px;
+    gap: 12px 20px;
+}
+
+@media (max-width: 480px) {
+    .rf-hero-portrait {
+        flex-basis: auto;
+        width: 140px;
+    }
+}
+
+/* ===== Monsters: statblock ===== */
+.rf-statblock {
+    background: var(--rf-bg-main);
+    border: 1px solid var(--rf-border-light);
+    border-top: 3px solid var(--rf-orange-primary);
+    border-bottom: 3px solid var(--rf-orange-primary);
+    border-radius: 6px;
+    padding: 14px 16px;
+    color: var(--rf-text-secondary);
+    font-size: 0.92rem;
+    line-height: 1.45;
+}
+
+.rf-statblock-name {
+    font-family: var(--rf-font-display);
+    color: var(--rf-orange-primary);
+    font-size: 1.35rem;
+    margin: 0 0 2px;
+}
+
+.rf-statblock-subtitle {
+    font-style: italic;
+    color: var(--rf-text-secondary);
+}
+
+.rf-statblock-rule {
+    height: 2px;
+    margin: 8px 0;
+    background: linear-gradient(90deg, var(--rf-orange-primary), transparent);
+    opacity: 0.7;
+}
+
+.rf-statblock-line strong {
+    color: var(--rf-orange-hover);
+    font-weight: 600;
+    margin-right: 4px;
+}
+
+.rf-statblock-abilities {
+    display: grid;
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    gap: 4px;
+    text-align: center;
+}
+
+.rf-statblock-ability-name {
+    font-weight: 700;
+    color: var(--rf-orange-hover);
+    font-size: 0.8rem;
+    letter-spacing: 0.5px;
+}
+
+.rf-statblock-section {
+    font-family: var(--rf-font-display);
+    color: var(--rf-orange-primary);
+    font-size: 1.05rem;
+    border-bottom: 1px solid var(--rf-orange-dark);
+    padding-bottom: 2px;
+    margin: 14px 0 6px;
+}
+
+.rf-statblock-entries {
+    margin-top: 8px;
+}
+
+.rf-statblock-entries p,
+.rf-statblock-description p {
+    margin-bottom: 6px;
+}
+
+.rf-statblock-entries ul {
+    margin: 0 0 6px;
+    padding-left: 18px;
+}
+
+.rf-statblock-description {
+    margin-top: 14px;
+    padding-top: 10px;
+    border-top: 1px solid var(--rf-border-light);
+}
+
+@media (max-width: 480px) {
+    .rf-statblock-abilities {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        row-gap: 8px;
+    }
+}
+
+.rf-monster-cr {
+    color: var(--rf-orange-hover);
+}
+
+.rf-monster-form-abilities {
+    display: grid;
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    gap: 8px;
+}
+
+.rf-monster-form-abilities .rf-form-label {
+    text-align: center;
+    display: block;
+}
+
+@media (max-width: 576px) {
+    .rf-monster-form-abilities {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+}
+
+.rf-monster-form-block {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 0.85rem;
+}
+
+/* ===== Campaign encounters ===== */
+.rf-encounter-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.rf-encounter-item {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px 12px;
+    width: 100%;
+    text-align: left;
+    background: var(--rf-bg-card);
+    border: 1px solid var(--rf-border-light);
+    border-radius: 8px;
+    padding: 10px 14px;
+    color: var(--rf-text-primary);
+    transition: border-color 0.15s ease;
+}
+
+.rf-encounter-item:hover,
+.rf-encounter-item:focus-visible {
+    border-color: var(--rf-orange-primary);
+}
+
+.rf-encounter-item-name {
+    font-weight: 600;
+}
+
+.rf-encounter-status {
+    border: 1px solid var(--rf-border-light);
+    background: var(--rf-bg-main);
+    color: var(--rf-text-secondary);
+    font-weight: 600;
+}
+
+.rf-encounter-status-running {
+    border-color: var(--rf-orange-primary);
+    color: var(--rf-orange-primary);
+}
+
+.rf-encounter-status-finished {
+    color: var(--rf-text-muted);
+}
+
+.rf-encounter-round {
+    font-family: var(--rf-font-display);
+    color: var(--rf-orange-primary);
+    font-size: 1.1rem;
+}
+
+.rf-encounter-budget {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px 14px;
+}
+
+.rf-encounter-rating {
+    font-weight: 700;
+    padding: 2px 10px;
+    border-radius: 999px;
+    border: 1px solid currentColor;
+}
+
+.rf-encounter-rating-0 { color: var(--rf-text-muted); }
+.rf-encounter-rating-1 { color: #6cc070; }
+.rf-encounter-rating-2 { color: #e6c547; }
+.rf-encounter-rating-3 { color: #ff8c00; }
+.rf-encounter-rating-4 { color: #ff4d3d; }
+
+.rf-combatant {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px 12px;
+    padding: 8px 10px;
+    border: 1px solid var(--rf-border-subtle);
+    border-left: 3px solid transparent;
+    border-radius: 6px;
+    margin-bottom: 6px;
+    background: var(--rf-bg-main);
+}
+
+.rf-combatant.current {
+    border-left-color: var(--rf-orange-primary);
+    box-shadow: 0 0 0 1px var(--rf-orange-glow);
+}
+
+.rf-combatant.down {
+    opacity: 0.55;
+}
+
+.rf-combatant.hidden-foe {
+    border-style: dashed;
+}
+
+.rf-combatant-init {
+    width: 64px;
+    flex: 0 0 64px;
+    text-align: center;
+    font-weight: 700;
+    color: var(--rf-orange-hover);
+}
+
+.rf-combatant-init input {
+    text-align: center;
+    padding-left: 4px;
+    padding-right: 4px;
+}
+
+.rf-combatant-main {
+    flex: 1 1 220px;
+    min-width: 0;
+}
+
+.rf-combatant-name {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 4px 8px;
+}
+
+.rf-combatant-name-input {
+    max-width: 220px;
+    padding-top: 2px;
+    padding-bottom: 2px;
+}
+
+.rf-combatant-turn {
+    color: var(--rf-orange-primary);
+}
+
+.rf-combatant-kind {
+    font-size: 0.75rem;
+    color: var(--rf-text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.rf-combatant-conditions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 4px;
+    margin-top: 4px;
+}
+
+.rf-condition-chip {
+    font-size: 0.75rem;
+    border: 1px solid var(--rf-border-light);
+    border-radius: 999px;
+    padding: 1px 8px;
+    background: var(--rf-bg-card);
+    color: var(--rf-text-secondary);
+}
+
+button.rf-condition-chip:hover {
+    border-color: #dc3545;
+    color: #ff8080;
+}
+
+.rf-condition-add {
+    min-width: 150px;
+    font-size: 0.8rem;
+}
+
+.rf-combatant-stats {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px 10px;
+}
+
+.rf-combatant-hp {
+    color: var(--rf-hp-color, #d6453a);
+    font-weight: 600;
+}
+
+.rf-combatant-hp-edit {
+    display: flex;
+    gap: 4px;
+    align-items: center;
+}
+
+.rf-combatant-hp-edit input {
+    width: 64px;
+}
+
+.rf-combatant-actions {
+    display: flex;
+    gap: 4px;
+    margin-left: auto;
+}
+
+.rf-health {
+    font-size: 0.8rem;
+    font-weight: 600;
+    border-radius: 999px;
+    padding: 1px 10px;
+    border: 1px solid currentColor;
+}
+
+.rf-health-unharmed { color: #6cc070; }
+.rf-health-wounded { color: #e6c547; }
+.rf-health-bloodied { color: #ff8c00; }
+.rf-health-down { color: #ff4d3d; }
+
+.rf-monster-picker {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    max-height: 340px;
+    overflow-y: auto;
+}
+
+.rf-monster-pick {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px 10px;
+    padding: 6px 8px;
+    border: 1px solid var(--rf-border-subtle);
+    border-radius: 6px;
+}
+
+.rf-monster-pick-name {
+    font-weight: 600;
+    min-width: 140px;
+}
+
+.rf-monster-pick-count {
+    width: 64px;
+    margin-left: auto;
+}
+
+@media (max-width: 576px) {
+    .rf-combatant-init {
+        width: 56px;
+        flex-basis: 56px;
+    }
+
+    .rf-combatant-actions {
+        margin-left: 0;
+    }
+}

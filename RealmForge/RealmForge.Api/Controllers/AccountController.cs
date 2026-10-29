@@ -6,6 +6,7 @@ using RealmForge.Api.Security;
 using RealmForge.Infrastructure.Identity;
 using RealmForge.Infrastructure.Persistence;
 using RealmForge.Shared.DTOs;
+using RealmForge.Shared.Text;
 
 namespace RealmForge.Api.Controllers
 {
@@ -49,14 +50,53 @@ namespace RealmForge.Api.Controllers
 				await _context.Spells.CountAsync(s => s.AuthorId == user.Id),
 				await _context.Classes.CountAsync(c => c.AuthorId == user.Id),
 				await _context.Subclasses.CountAsync(s => s.AuthorId == user.Id),
-				await _context.Equipment.CountAsync(e => e.AuthorId == user.Id));
+				await _context.Equipment.CountAsync(e => e.AuthorId == user.Id),
+				await _context.Monsters.CountAsync(m => m.AuthorId == user.Id));
 
 			return new AccountSummaryDto(
 				user.Email ?? user.UserName ?? string.Empty,
 				user.EmailConfirmed,
 				_access.IsAdmin(User),
 				user.RegisteredAt,
-				counts);
+				counts,
+				user.Nickname);
+		}
+
+		//	PUT: api/account/nickname — the public name (empty removes it); 409 when another account uses it
+		[HttpPut("nickname")]
+		public async Task<IActionResult> SetNickname([FromBody] NicknameRequestDto request)
+		{
+			var user = await _users.GetUserAsync(User);
+			if (user == null)
+			{
+				return Unauthorized();
+			}
+
+			var nickname = Nicknames.Clean(request.Nickname);
+			if (nickname is not null && !Nicknames.IsValid(nickname))
+			{
+				return Problem(statusCode: StatusCodes.Status400BadRequest,
+					title: $"A nickname has {Nicknames.MinLength}-{Nicknames.MaxLength} letters, digits, spaces, dots, dashes or underscores.");
+			}
+
+			var normalized = nickname is null ? null : Nicknames.Normalize(nickname);
+			if (normalized is not null && await _context.Users.AnyAsync(u => u.NormalizedNickname == normalized && u.Id != user.Id))
+			{
+				return Problem(statusCode: StatusCodes.Status409Conflict, title: "This nickname is already taken.");
+			}
+
+			user.Nickname = nickname;
+			user.NormalizedNickname = normalized;
+			try
+			{
+				await _context.SaveChangesAsync();
+			}
+			catch (DbUpdateException)
+			{
+				//	Taken at the same moment by someone else: the unique index decides
+				return Problem(statusCode: StatusCodes.Status409Conflict, title: "This nickname is already taken.");
+			}
+			return Ok(new NicknameRequestDto { Nickname = nickname });
 		}
 	}
 }

@@ -78,6 +78,9 @@
                     <NavLink class="nav-link" href="magic-items">
                         <NavIcon Name="magic-items" /> @UiText.MagicItemsTitle(LanguageState.CurrentLanguage)
                     </NavLink>
+                    <NavLink class="nav-link" href="monsters">
+                        <NavIcon Name="monsters" /> @UiText.MonstersTitle(LanguageState.CurrentLanguage)
+                    </NavLink>
                 </div>
             }
         </div>
@@ -89,7 +92,7 @@
 </div>
 
 @code {
-    private static readonly string[] CompendiumRoutes = ["species", "subspecies", "backgrounds", "feats", "spells", "classes", "equipment", "magic-items"];
+    private static readonly string[] CompendiumRoutes = ["species", "subspecies", "backgrounds", "feats", "spells", "classes", "equipment", "magic-items", "monsters"];
 
     private bool collapseNavMenu = true;
     private bool compendiumOpen;

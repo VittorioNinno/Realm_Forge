@@ -132,6 +132,7 @@ namespace RealmForge.Client.Localization
 			("feat", true) => "Talento",
 			("spell", true) => "Incantesimo",
 			("equipment", true) => "Equipaggiamento",
+			("monster", true) => "Mostro",
 			("species", false) => "Species",
 			("subspecies", false) => "Subspecies",
 			("class", false) => "Class",
@@ -140,6 +141,7 @@ namespace RealmForge.Client.Localization
 			("feat", false) => "Feat",
 			("spell", false) => "Spell",
 			("equipment", false) => "Equipment",
+			("monster", false) => "Monster",
 			_ => kind
 		};
 
@@ -158,6 +160,71 @@ namespace RealmForge.Client.Localization
 		public static string CampaignJoinAlready(LanguageCode lang) => T(lang, "Fai già parte di questa campagna.", "You are already part of this campaign.");
 		public static string CampaignJoinAs(LanguageCode lang) => T(lang, "Entrerai come giocatore.", "You will join as a player.");
 		public static string BtnGoToCampaign(LanguageCode lang) => T(lang, "Vai alla campagna", "Go to the campaign");
+
+		//	Requirements of the campaign for a character
+		public static string CampaignCheckTitle(LanguageCode lang) => T(lang, "Il personaggio non può unirsi a questa campagna:", "The character cannot join this campaign:");
+		public static string CampaignIssueText(RealmForge.Shared.DTOs.CampaignCheckIssueDto issue, RulesetVersion? campaignRuleset, LanguageCode lang)
+		{
+			var what = issue.Kind is { } kind ? $"{CampaignKindName(kind, lang)} «{issue.Name}»" : string.Empty;
+			return issue.Issue switch
+			{
+				CampaignCheckIssue.Edition => T(lang,
+					$"è un personaggio {(issue.Ruleset is { } r ? FormatRuleset(r, lang) : "?")}, la campagna usa {(campaignRuleset is { } c ? FormatRuleset(c, lang) : "?")}.",
+					$"it is a {(issue.Ruleset is { } r2 ? FormatRuleset(r2, lang) : "?")} character, the campaign uses {(campaignRuleset is { } c2 ? FormatRuleset(c2, lang) : "?")}."),
+				CampaignCheckIssue.HomebrewNotShared => T(lang,
+					$"{what} è un tuo contenuto Homebrew non ancora condiviso con la campagna (o in attesa di approvazione): condividilo dalla sezione Contenuti.",
+					$"{what} is your Homebrew, not yet shared with the campaign (or waiting for approval): share it from the Content tab."),
+				CampaignCheckIssue.HomebrewUnavailable => T(lang,
+					$"{what} è un contenuto Homebrew di un altro autore che il tavolo non può vedere.",
+					$"{what} is someone else's Homebrew the table cannot see."),
+				_ => T(lang,
+					$"{what} è un contenuto Homebrew di un'altra edizione ({(issue.Ruleset is { } e ? FormatRuleset(e, lang) : "?")}).",
+					$"{what} is Homebrew of another edition ({(issue.Ruleset is { } e2 ? FormatRuleset(e2, lang) : "?")}).")
+			};
+		}
+		public static string PortraitDragHint(LanguageCode lang) => T(lang, "Trascina l'immagine (o usa le frecce) per centrarla nel riquadro", "Drag the picture (or use the arrows) to centre it in the frame");
+		public static string BtnCampaign(LanguageCode lang) => T(lang, "Campagna", "Campaign");
+		public static string SheetCampaignTitle(LanguageCode lang) => T(lang, "Porta il personaggio in una campagna", "Bring the character to a campaign");
+		public static string SheetCampaignNone(LanguageCode lang) => T(lang, "Non partecipi a nessuna campagna.", "You are not in any campaign.");
+		public static string SheetCampaignJoined(string name, LanguageCode lang) => T(lang, $"Il personaggio siede ora al tavolo di «{name}».", $"The character now sits at the table of “{name}”.");
+		public static string SheetCampaignAlready(LanguageCode lang) => T(lang, "Già al tavolo", "Already at the table");
+
+		//	Notes
+		public static string CampaignTabNotes(LanguageCode lang) => T(lang, "Note", "Notes");
+		public static string CampaignNoteKindName(CampaignNoteKind kind, LanguageCode lang) => (kind, lang == LanguageCode.It) switch
+		{
+			(CampaignNoteKind.Private, true) => "Private",
+			(CampaignNoteKind.Masters, true) => "Per i master",
+			(CampaignNoteKind.Journal, true) => "Diario di viaggio",
+			(CampaignNoteKind.Private, false) => "Private",
+			(CampaignNoteKind.Masters, false) => "For the GMs",
+			_ => "Travel journal"
+		};
+		public static string CampaignNoteKindHint(CampaignNoteKind kind, LanguageCode lang) => kind switch
+		{
+			CampaignNoteKind.Private => T(lang, "Solo tu le vedi.", "Only you see them."),
+			CampaignNoteKind.Masters => T(lang, "Le vedono e le scrivono solo master e co-master.", "Only GMs and co-GMs see and write them."),
+			_ => T(lang, "Il diario del gruppo: tutti leggono e scrivono.", "The party's journal: everyone reads and writes.")
+		};
+		public static string CampaignNotesEmpty(LanguageCode lang) => T(lang, "Ancora nessuna nota.", "No notes yet.");
+		public static string BtnNewNote(LanguageCode lang) => T(lang, "Nuova nota", "New note");
+		public static string CampaignNoteTitle(LanguageCode lang) => T(lang, "Titolo", "Title");
+		public static string CampaignNoteBody(LanguageCode lang) => T(lang, "Testo (Markdown)", "Text (Markdown)");
+		public static string CampaignNoteEdited(LanguageCode lang) => T(lang, "modificata", "edited");
+		public static string CampaignNoteEmpty(LanguageCode lang) => T(lang, "Scrivi un titolo o un testo.", "Write a title or a text.");
+
+		//	Nickname
+		public static string NicknameTitle(LanguageCode lang) => T(lang, "Nickname", "Nickname");
+		public static string NicknameHint(LanguageCode lang) => T(lang, "Il nome con cui ti vedono gli altri giocatori, al posto dell'e-mail. È unico: nessun altro può usarlo.",
+			"The name other players see instead of your e-mail. It is unique: nobody else can use it.");
+		public static string NicknamePlaceholder(LanguageCode lang) => T(lang, "Es. Sylas il Bardo", "E.g. Sylas the Bard");
+		public static string BtnSaveNickname(LanguageCode lang) => T(lang, "Salva", "Save");
+		public static string NicknameSaved(string name, LanguageCode lang) => T(lang, $"Ora gli altri ti vedono come {name}.", $"Others now see you as {name}.");
+		public static string NicknameRemoved(LanguageCode lang) => T(lang, "Nickname rimosso: gli altri vedono solo le prime lettere della tua e-mail.", "Nickname removed: others see only the first letters of your e-mail.");
+		public static string NicknameTaken(LanguageCode lang) => T(lang, "Questo nickname è già usato da un altro account.", "This nickname is already used by another account.");
+		public static string NicknameInvalid(LanguageCode lang) => T(lang, "Da 3 a 24 caratteri: lettere, numeri, spazi, punti, trattini o trattini bassi.", "3 to 24 characters: letters, digits, spaces, dots, dashes or underscores.");
+		public static string NicknameMissingHint(LanguageCode lang) => T(lang, "Scegli un nickname nel tuo account: al tavolo gli altri vedranno quello, non la tua e-mail.",
+			"Choose a nickname in your account: at the table the others will see it, not your e-mail.");
 
 		//	Sheet opened by a master
 		public static string SheetEditingAsMaster(string owner, LanguageCode lang) =>
