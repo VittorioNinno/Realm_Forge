@@ -396,6 +396,66 @@ namespace RealmForge.Infrastructure.Migrations
                     b.ToTable("CampaignContents");
                 });
 
+            modelBuilder.Entity("RealmForge.Domain.Entities.CampaignEncounter", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("CampaignId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Combatants")
+                        .IsRequired()
+                        .HasColumnType("jsonb");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("CreatedById")
+                        .IsRequired()
+                        .HasMaxLength(450)
+                        .HasColumnType("character varying(450)");
+
+                    b.Property<Guid?>("CurrentId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("Notes")
+                        .IsRequired()
+                        .HasMaxLength(8000)
+                        .HasColumnType("character varying(8000)");
+
+                    b.PrimitiveCollection<List<Guid>>("PartyIds")
+                        .IsRequired()
+                        .HasColumnType("uuid[]");
+
+                    b.Property<int>("Round")
+                        .HasColumnType("integer");
+
+                    b.Property<bool>("Shown")
+                        .HasColumnType("boolean");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("Version")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CampaignId");
+
+                    b.ToTable("CampaignEncounters");
+                });
+
             modelBuilder.Entity("RealmForge.Domain.Entities.CampaignInvite", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1125,6 +1185,200 @@ namespace RealmForge.Infrastructure.Migrations
                     b.ToTable("MagicItemTranslations");
                 });
 
+            modelBuilder.Entity("RealmForge.Domain.Entities.Monster", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("ArmorClass")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("AuthorId")
+                        .HasColumnType("text");
+
+                    b.Property<decimal>("ChallengeRating")
+                        .HasPrecision(6, 3)
+                        .HasColumnType("numeric(6,3)");
+
+                    b.Property<int>("Charisma")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("Constitution")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("Dexterity")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("HitDice")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)");
+
+                    b.Property<int>("HitPoints")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("Intelligence")
+                        .HasColumnType("integer");
+
+                    b.Property<bool>("IsOfficialSRD")
+                        .HasColumnType("boolean");
+
+                    b.Property<int>("PassivePerception")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("ProficiencyBonus")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("Ruleset")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("Size")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("Source")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("Speed")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("Strength")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("Type")
+                        .HasColumnType("integer");
+
+                    b.Property<Guid?>("VariantOfId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("Visibility")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("Wisdom")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("Xp")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AuthorId");
+
+                    b.HasIndex("VariantOfId");
+
+                    b.HasIndex("Ruleset", "Type");
+
+                    b.ToTable("Monsters", (string)null);
+                });
+
+            modelBuilder.Entity("RealmForge.Domain.Entities.MonsterTranslation", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Actions")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Alias")
+                        .HasMaxLength(150)
+                        .HasColumnType("character varying(150)");
+
+                    b.Property<string>("ArmorClass")
+                        .IsRequired()
+                        .HasMaxLength(300)
+                        .HasColumnType("character varying(300)");
+
+                    b.Property<string>("BonusActions")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("ConditionImmunities")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<string>("DamageImmunities")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<string>("DamageResistances")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<string>("DamageVulnerabilities")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<int>("Language")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Languages")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<string>("LegendaryActions")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<Guid>("MonsterId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("character varying(150)");
+
+                    b.Property<string>("Reactions")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("SavingThrows")
+                        .IsRequired()
+                        .HasMaxLength(300)
+                        .HasColumnType("character varying(300)");
+
+                    b.Property<string>("Senses")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<string>("Skills")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<string>("Speed")
+                        .IsRequired()
+                        .HasMaxLength(300)
+                        .HasColumnType("character varying(300)");
+
+                    b.Property<string>("Subtitle")
+                        .IsRequired()
+                        .HasMaxLength(300)
+                        .HasColumnType("character varying(300)");
+
+                    b.Property<string>("Traits")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("MonsterId", "Language")
+                        .IsUnique();
+
+                    b.ToTable("MonsterTranslations");
+                });
+
             modelBuilder.Entity("RealmForge.Domain.Entities.RuleEntry", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1753,6 +2007,17 @@ namespace RealmForge.Infrastructure.Migrations
                     b.Navigation("Campaign");
                 });
 
+            modelBuilder.Entity("RealmForge.Domain.Entities.CampaignEncounter", b =>
+                {
+                    b.HasOne("RealmForge.Domain.Entities.Campaign", "Campaign")
+                        .WithMany("Encounters")
+                        .HasForeignKey("CampaignId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Campaign");
+                });
+
             modelBuilder.Entity("RealmForge.Domain.Entities.CampaignInvite", b =>
                 {
                     b.HasOne("RealmForge.Domain.Entities.Campaign", "Campaign")
@@ -1913,6 +2178,27 @@ namespace RealmForge.Infrastructure.Migrations
                     b.Navigation("MagicItem");
                 });
 
+            modelBuilder.Entity("RealmForge.Domain.Entities.Monster", b =>
+                {
+                    b.HasOne("RealmForge.Domain.Entities.Monster", "VariantOf")
+                        .WithMany()
+                        .HasForeignKey("VariantOfId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("VariantOf");
+                });
+
+            modelBuilder.Entity("RealmForge.Domain.Entities.MonsterTranslation", b =>
+                {
+                    b.HasOne("RealmForge.Domain.Entities.Monster", "Monster")
+                        .WithMany("Translations")
+                        .HasForeignKey("MonsterId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Monster");
+                });
+
             modelBuilder.Entity("RealmForge.Domain.Entities.RuleEntryTranslation", b =>
                 {
                     b.HasOne("RealmForge.Domain.Entities.RuleEntry", "RuleEntry")
@@ -2029,6 +2315,8 @@ namespace RealmForge.Infrastructure.Migrations
 
                     b.Navigation("Contents");
 
+                    b.Navigation("Encounters");
+
                     b.Navigation("Invites");
 
                     b.Navigation("Members");
@@ -2065,6 +2353,11 @@ namespace RealmForge.Infrastructure.Migrations
                     b.Navigation("Translations");
 
                     b.Navigation("Variants");
+                });
+
+            modelBuilder.Entity("RealmForge.Domain.Entities.Monster", b =>
+                {
+                    b.Navigation("Translations");
                 });
 
             modelBuilder.Entity("RealmForge.Domain.Entities.RuleEntry", b =>
