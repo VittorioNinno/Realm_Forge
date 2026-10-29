@@ -1,0 +1,92 @@
+﻿@using RealmForge.Client.Localization
+@using RealmForge.Client.Services
+@using RealmForge.Shared.DTOs
+@using RealmForge.Shared.Enums
+@using RealmForge.Shared.Monsters
+@inject LanguageStateService LanguageState
+@inject GlossaryService Glossary
+
+@* A monster's statblock, laid out like the book: lines, abilities, then traits, actions, reactions, legendary actions *@
+<article class="rf-statblock" data-test="monster-statblock">
+    @if (ShowName)
+    {
+        <h3 class="rf-statblock-name">@Monster.Text.Name</h3>
+    }
+    <div class="rf-statblock-subtitle">@Monster.Text.Subtitle</div>
+    <div class="rf-statblock-rule"></div>
+
+    <div class="rf-statblock-line"><strong>@UiText.MonsterArmorClass(Lang)</strong> @(string.IsNullOrWhiteSpace(Monster.Text.ArmorClass) ? Monster.ArmorClass.ToString() : Monster.Text.ArmorClass)</div>
+    <div class="rf-statblock-line"><strong>@UiText.MonsterHitPoints(Lang)</strong> @Monster.HitPoints@(string.IsNullOrWhiteSpace(Monster.HitDice) ? null : $" ({Monster.HitDice})")</div>
+    <div class="rf-statblock-line"><strong>@UiText.MonsterSpeed(Lang)</strong> @Monster.Text.Speed</div>
+    <div class="rf-statblock-rule"></div>
+
+    <div class="rf-statblock-abilities">
+        @for (var i = 0; i < 6; i++)
+        {
+            var index = i;
+            <div class="rf-statblock-ability">
+                <div class="rf-statblock-ability-name">@UiText.AbilityShort((AbilityScore)(index + 1), Lang)</div>
+                <div>@MonsterMath.Score(Monster.Abilities.ElementAtOrDefault(index))</div>
+            </div>
+        }
+    </div>
+    <div class="rf-statblock-rule"></div>
+
+    @Line(UiText.MonsterSavingThrows(Lang), Monster.Text.SavingThrows)
+    @Line(UiText.MonsterSkills(Lang), Monster.Text.Skills)
+    @Line(UiText.MonsterVulnerabilities(Lang), Monster.Text.DamageVulnerabilities)
+    @Line(UiText.MonsterResistances(Lang), Monster.Text.DamageResistances)
+    @Line(UiText.MonsterImmunities(Lang), Monster.Text.DamageImmunities)
+    @Line(UiText.MonsterConditionImmunities(Lang), Monster.Text.ConditionImmunities)
+    @Line(UiText.MonsterSenses(Lang), Monster.Text.Senses)
+    @Line(UiText.MonsterLanguages(Lang), string.IsNullOrWhiteSpace(Monster.Text.Languages) ? "—" : Monster.Text.Languages)
+    <div class="rf-statblock-line d-flex flex-wrap gap-3">
+        <span><strong>@UiText.MonsterChallenge(Lang)</strong> @MonsterMath.ChallengeLine(Monster.ChallengeRating, Monster.Xp, Lang)</span>
+        <span><strong>@UiText.MonsterProficiency(Lang)</strong> @MonsterMath.Signed(Monster.ProficiencyBonus)</span>
+    </div>
+
+    @Section(null, Monster.Text.Traits)
+    @Section(UiText.MonsterActions(Lang), Monster.Text.Actions)
+    @Section(UiText.MonsterBonusActions(Lang), Monster.Text.BonusActions)
+    @Section(UiText.MonsterReactions(Lang), Monster.Text.Reactions)
+    @Section(UiText.MonsterLegendaryActions(Lang), Monster.Text.LegendaryActions)
+
+    @if (!string.IsNullOrWhiteSpace(Monster.Text.Description))
+    {
+        <div class="rf-statblock-description rf-markdown-container">@((MarkupString)MarkdownText.ToHtml(Monster.Text.Description, Terms))</div>
+    }
+</article>
+
+@code {
+    [Parameter, EditorRequired] public MonsterDetailDto Monster { get; set; } = default!;
+    [Parameter] public bool ShowName { get; set; } = true;
+
+    private LanguageCode Lang => LanguageState.CurrentLanguage;
+
+    private RealmForge.Shared.Text.GlossaryLinker? Terms => Glossary.Linker(Lang, Monster.Ruleset);
+
+    protected override async Task OnInitializedAsync()
+    {
+        await Glossary.EnsureLoadedAsync(Lang);
+    }
+
+    private RenderFragment Line(string label, string? text) => __builder =>
+    {
+        if (!string.IsNullOrWhiteSpace(text))
+        {
+            <div class="rf-statblock-line"><strong>@label</strong> @text</div>
+        }
+    };
+
+    private RenderFragment Section(string? title, string? markdown) => __builder =>
+    {
+        if (!string.IsNullOrWhiteSpace(markdown))
+        {
+            if (title is not null)
+            {
+                <h4 class="rf-statblock-section">@title</h4>
+            }
+            <div class="rf-statblock-entries rf-markdown-container">@((MarkupString)MarkdownText.ToHtml(markdown, Terms))</div>
+        }
+    };
+}

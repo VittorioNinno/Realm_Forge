@@ -1,0 +1,301 @@
+﻿@using RealmForge.Client.Localization
+@using RealmForge.Client.Services
+@using RealmForge.Shared.DTOs
+@using RealmForge.Shared.Enums
+@using RealmForge.Shared.Monsters
+@inject MonsterDataService MonsterService
+@inject LanguageStateService LanguageState
+
+@* Homebrew statblock form: the numbers once, the texts per language (a language without a name is left out) *@
+<div class="rf-modal-backdrop" @onclick="Cancel">
+    <div class="rf-modal-dialog" style="max-width: 900px;" @onclick:stopPropagation="true" data-test="monster-form">
+        <h2 class="h4 mb-1 pb-2" style="border-bottom: 1px solid var(--rf-border-light); font-family: var(--rf-font-display);">@Title</h2>
+        @if (VariantOfName is not null)
+        {
+            <div class="small mb-3" style="color: var(--rf-text-muted);">@UiText.MonsterVariantHint(VariantOfName, Lang)</div>
+        }
+
+        @if (error is not null)
+        {
+            <div class="alert alert-warning bg-dark border-warning text-warning p-2 small mb-3" data-test="monster-form-error">@error</div>
+        }
+
+        <div class="row g-3 mb-3">
+            <div class="col-md-3 col-6">
+                <label class="rf-form-label">@UiText.LabelRuleset(Lang)</label>
+                <RfSelect TValue="RulesetVersion" @bind-Value="Model.Ruleset" Options="RulesetOptions" />
+            </div>
+            <div class="col-md-3 col-6">
+                <label class="rf-form-label">@UiText.MonsterSize(Lang)</label>
+                <RfSelect TValue="CreatureSize" @bind-Value="Model.Size" Options="SizeOptions" />
+            </div>
+            <div class="col-md-3 col-6">
+                <label class="rf-form-label">@UiText.MonsterType(Lang)</label>
+                <RfSelect TValue="CreatureType" @bind-Value="Model.Type" Options="TypeOptions" />
+            </div>
+            <div class="col-md-3 col-6" data-test="monster-form-cr">
+                <label class="rf-form-label">@UiText.MonsterChallenge(Lang)</label>
+                <RfSelect TValue="decimal" Value="Model.ChallengeRating" ValueChanged="SetChallenge" Options="ChallengeOptions" />
+            </div>
+        </div>
+
+        <div class="row g-3 mb-3">
+            <div class="col-md-2 col-4">
+                <label class="rf-form-label">@UiText.MonsterArmorClassShort(Lang)</label>
+                <input type="number" class="rf-form-control" min="1" max="40" @bind="Model.ArmorClass" data-test="monster-form-ac" />
+            </div>
+            <div class="col-md-2 col-4">
+                <label class="rf-form-label">@UiText.MonsterHitPointsShort(Lang)</label>
+                <input type="number" class="rf-form-control" min="1" max="5000" @bind="Model.HitPoints" data-test="monster-form-hp" />
+            </div>
+            <div class="col-md-3 col-4">
+                <label class="rf-form-label">@UiText.MonsterHitDice(Lang)</label>
+                <div class="d-flex gap-1">
+                    <input type="text" class="rf-form-control" maxlength="40" placeholder="4d8 + 4" @bind="Model.HitDice" @bind:after="AverageHitPoints" data-test="monster-form-dice" />
+                </div>
+            </div>
+            <div class="col-md-2 col-4">
+                <label class="rf-form-label">@UiText.MonsterSpeedFeet(Lang)</label>
+                <input type="number" class="rf-form-control" min="0" max="500" step="5" @bind="Model.Speed" />
+            </div>
+            <div class="col-md-1 col-4">
+                <label class="rf-form-label">@UiText.MonsterXpShort(Lang)</label>
+                <input type="number" class="rf-form-control" min="0" @bind="Model.Xp" />
+            </div>
+            <div class="col-md-1 col-4">
+                <label class="rf-form-label">@UiText.MonsterProficiencyShort(Lang)</label>
+                <input type="number" class="rf-form-control" min="0" max="12" @bind="Model.ProficiencyBonus" />
+            </div>
+            <div class="col-md-1 col-4">
+                <label class="rf-form-label" title="@UiText.MonsterPassivePerception(Lang)">@UiText.MonsterPassiveShort(Lang)</label>
+                <input type="number" class="rf-form-control" min="0" max="50" @bind="Model.PassivePerception" />
+            </div>
+        </div>
+
+        <div class="rf-monster-form-abilities mb-3">
+            @for (var i = 0; i < 6; i++)
+            {
+                var index = i;
+                <div>
+                    <label class="rf-form-label">@UiText.AbilityShort((AbilityScore)(index + 1), Lang)</label>
+                    <input type="number" class="rf-form-control" min="1" max="30" value="@Model.Abilities[index]"
+                           @onchange="e => SetAbility(index, e.Value)" data-test="@($"monster-form-ability-{index}")" />
+                    <div class="small text-center" style="color: var(--rf-text-muted);">@MonsterMath.Signed(MonsterMath.Modifier(Model.Abilities[index]))</div>
+                </div>
+            }
+        </div>
+
+        <VisibilityPicker @bind-Value="Model.Visibility" />
+
+        <div class="rf-pill-group mb-2" role="tablist">
+            @foreach (var language in new[] { LanguageCode.It, LanguageCode.En })
+            {
+                var current = language;
+                <button type="button" role="tab" class="rf-pill-btn @(tab == current ? "active" : null)" @onclick="() => tab = current" data-test="@($"monster-form-tab-{current.ToString().ToLowerInvariant()}")">
+                    @(current == LanguageCode.It ? UiText.TabItalian(Lang) : UiText.TabEnglish(Lang))
+                </button>
+            }
+        </div>
+
+        @{
+            var text = TextOf(tab);
+        }
+        <div class="p-3 mb-3 rounded" style="background-color: var(--rf-bg-card); border-left: 3px solid var(--rf-orange-primary);">
+            <div class="row g-2 mb-2">
+                <div class="col-md-6">
+                    <label class="rf-form-label">@UiText.LabelName(Lang)</label>
+                    <input class="rf-form-control" maxlength="150" @bind="text.Name" data-test="monster-form-name" />
+                </div>
+                <div class="col-md-6">
+                    <label class="rf-form-label">@UiText.MonsterAlias(Lang)</label>
+                    <input class="rf-form-control" maxlength="150" @bind="text.Alias" />
+                </div>
+                <div class="col-12">
+                    <label class="rf-form-label">@UiText.MonsterSubtitle(Lang)</label>
+                    <input class="rf-form-control" maxlength="300" placeholder="@UiText.MonsterSubtitleHint(tab)" @bind="text.Subtitle" />
+                </div>
+                <div class="col-md-6">
+                    <label class="rf-form-label">@UiText.MonsterArmorClass(Lang)</label>
+                    <input class="rf-form-control" maxlength="300" placeholder="@UiText.MonsterArmorHint(tab)" @bind="text.ArmorClass" />
+                </div>
+                <div class="col-md-6">
+                    <label class="rf-form-label">@UiText.MonsterSpeed(Lang)</label>
+                    <input class="rf-form-control" maxlength="300" placeholder="@UiText.MonsterSpeedHint(tab)" @bind="text.Speed" />
+                </div>
+                <div class="col-md-6">
+                    <label class="rf-form-label">@UiText.MonsterSavingThrows(Lang)</label>
+                    <input class="rf-form-control" maxlength="300" @bind="text.SavingThrows" />
+                </div>
+                <div class="col-md-6">
+                    <label class="rf-form-label">@UiText.MonsterSkills(Lang)</label>
+                    <input class="rf-form-control" maxlength="500" @bind="text.Skills" />
+                </div>
+                <div class="col-md-4">
+                    <label class="rf-form-label">@UiText.MonsterVulnerabilities(Lang)</label>
+                    <input class="rf-form-control" maxlength="500" @bind="text.DamageVulnerabilities" />
+                </div>
+                <div class="col-md-4">
+                    <label class="rf-form-label">@UiText.MonsterResistances(Lang)</label>
+                    <input class="rf-form-control" maxlength="500" @bind="text.DamageResistances" />
+                </div>
+                <div class="col-md-4">
+                    <label class="rf-form-label">@UiText.MonsterImmunities(Lang)</label>
+                    <input class="rf-form-control" maxlength="500" @bind="text.DamageImmunities" />
+                </div>
+                <div class="col-md-4">
+                    <label class="rf-form-label">@UiText.MonsterConditionImmunities(Lang)</label>
+                    <input class="rf-form-control" maxlength="500" @bind="text.ConditionImmunities" />
+                </div>
+                <div class="col-md-4">
+                    <label class="rf-form-label">@UiText.MonsterSenses(Lang)</label>
+                    <input class="rf-form-control" maxlength="500" @bind="text.Senses" />
+                </div>
+                <div class="col-md-4">
+                    <label class="rf-form-label">@UiText.MonsterLanguages(Lang)</label>
+                    <input class="rf-form-control" maxlength="500" @bind="text.Languages" />
+                </div>
+            </div>
+            <div class="small mb-2" style="color: var(--rf-text-muted);">@UiText.MonsterEntriesHint(Lang)</div>
+            @Block(UiText.MonsterTraits(Lang), () => text.Traits, v => text.Traits = v, "traits")
+            @Block(UiText.MonsterActions(Lang), () => text.Actions, v => text.Actions = v, "actions")
+            @Block(UiText.MonsterBonusActions(Lang), () => text.BonusActions, v => text.BonusActions = v, "bonus")
+            @Block(UiText.MonsterReactions(Lang), () => text.Reactions, v => text.Reactions = v, "reactions")
+            @Block(UiText.MonsterLegendaryActions(Lang), () => text.LegendaryActions, v => text.LegendaryActions = v, "legendary")
+            @Block(UiText.MonsterDescription(Lang), () => text.Description, v => text.Description = v, "description")
+        </div>
+
+        <div class="d-flex justify-content-end gap-2 pt-2" style="border-top: 1px solid var(--rf-border-light);">
+            <button type="button" class="btn btn-rf-outline" @onclick="Cancel">@UiText.BtnCancel(Lang)</button>
+            <button type="button" class="btn btn-rf-orange" disabled="@saving" @onclick="SaveAsync" data-test="monster-form-save">@(saving ? "..." : UiText.BtnConfirm(Lang))</button>
+        </div>
+    </div>
+</div>
+
+@code {
+    [Parameter, EditorRequired] public SaveMonsterDto Model { get; set; } = default!;
+
+    //	Null for a new monster (or a new variant)
+    [Parameter] public Guid? EditingId { get; set; }
+    [Parameter] public string Title { get; set; } = string.Empty;
+    [Parameter] public string? VariantOfName { get; set; }
+    [Parameter] public EventCallback<Guid> OnSaved { get; set; }
+    [Parameter] public EventCallback OnCancel { get; set; }
+
+    private LanguageCode Lang => LanguageState.CurrentLanguage;
+    private LanguageCode tab;
+    private string? error;
+    private bool saving;
+
+    protected override void OnInitialized()
+    {
+        tab = Lang;
+        foreach (var language in new[] { LanguageCode.It, LanguageCode.En })
+        {
+            TextOf(language);
+        }
+        while (Model.Abilities.Count < 6)
+        {
+            Model.Abilities.Add(10);
+        }
+    }
+
+    //	The texts of a language, created empty when missing
+    private MonsterTextDto TextOf(LanguageCode language)
+    {
+        var text = Model.Translations.FirstOrDefault(t => t.Language == language);
+        if (text is null)
+        {
+            text = new MonsterTextDto { Language = language };
+            Model.Translations.Add(text);
+        }
+        return text;
+    }
+
+    private List<RfSelect<RulesetVersion>.OptionItem> RulesetOptions =>
+        Enum.GetValues<RulesetVersion>().Select(r => new RfSelect<RulesetVersion>.OptionItem(r, UiText.FormatRuleset(r, Lang))).ToList();
+
+    private List<RfSelect<CreatureSize>.OptionItem> SizeOptions =>
+        Enum.GetValues<CreatureSize>().Select(s => new RfSelect<CreatureSize>.OptionItem(s, UiText.FormatSizeSingle(s, Lang))).ToList();
+
+    private List<RfSelect<CreatureType>.OptionItem> TypeOptions =>
+        Enum.GetValues<CreatureType>().Select(t => new RfSelect<CreatureType>.OptionItem(t, UiText.FormatCreatureType(t, Lang)))
+            .OrderBy(o => o.Label, StringComparer.CurrentCultureIgnoreCase).ToList();
+
+    private List<RfSelect<decimal>.OptionItem> ChallengeOptions =>
+        MonsterMath.Challenges.Select(c => new RfSelect<decimal>.OptionItem(c.Rating, MonsterMath.ChallengeLine(c.Rating, c.Xp, Lang))).ToList();
+
+    //	Experience and proficiency follow the challenge (they can still be changed by hand)
+    private void SetChallenge(decimal rating)
+    {
+        Model.ChallengeRating = rating;
+        Model.Xp = MonsterMath.XpFor(rating);
+        Model.ProficiencyBonus = MonsterMath.ProficiencyFor(rating);
+    }
+
+    //	A dice formula gives the average hit points
+    private void AverageHitPoints()
+    {
+        if (MonsterMath.Average(Model.HitDice) is { } average && average > 0)
+        {
+            Model.HitPoints = average;
+        }
+    }
+
+    private void SetAbility(int index, object? value)
+    {
+        if (int.TryParse(value?.ToString(), out var score))
+        {
+            Model.Abilities[index] = Math.Clamp(score, 1, 30);
+        }
+    }
+
+    private RenderFragment Block(string label, Func<string> get, Action<string> set, string key) => __builder =>
+    {
+        <div class="mb-2">
+            <label class="rf-form-label">@label</label>
+            <textarea class="rf-form-control rf-monster-form-block" rows="4" value="@get()" @onchange="e => set(e.Value?.ToString() ?? string.Empty)"
+                      data-test="@($"monster-form-{key}")"></textarea>
+        </div>
+    };
+
+    private Task Cancel() => OnCancel.InvokeAsync();
+
+    private async Task SaveAsync()
+    {
+        error = null;
+        var translations = Model.Translations.Where(t => !string.IsNullOrWhiteSpace(t.Name)).ToList();
+        if (translations.Count == 0)
+        {
+            error = UiText.MonsterNameMissing(Lang);
+            return;
+        }
+        var dto = new SaveMonsterDto
+        {
+            Ruleset = Model.Ruleset,
+            Visibility = Model.Visibility,
+            Size = Model.Size,
+            Type = Model.Type,
+            ArmorClass = Model.ArmorClass,
+            HitPoints = Model.HitPoints,
+            HitDice = Model.HitDice ?? string.Empty,
+            Speed = Model.Speed,
+            Abilities = Model.Abilities.ToList(),
+            ChallengeRating = Model.ChallengeRating,
+            Xp = Model.Xp,
+            ProficiencyBonus = Model.ProficiencyBonus,
+            PassivePerception = Model.PassivePerception,
+            VariantOfId = Model.VariantOfId,
+            Translations = translations
+        };
+
+        saving = true;
+        var (id, status) = await MonsterService.SaveAsync(EditingId, dto);
+        saving = false;
+        if (id is { } saved)
+        {
+            await OnSaved.InvokeAsync(saved);
+            return;
+        }
+        error = status == System.Net.HttpStatusCode.BadRequest ? UiText.MonsterInvalid(Lang) : UiText.ErrApiSave(Lang);
+    }
+}
