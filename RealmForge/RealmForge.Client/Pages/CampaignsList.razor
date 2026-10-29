@@ -16,7 +16,7 @@
 <div class="container-fluid px-0 py-4">
     <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4 pb-3" style="border-bottom: 2px solid var(--rf-orange-primary);">
         <div>
-            <h1 class="h3 fw-bold mb-1 rf-page-title">@UiText.CampaignsTitle(Lang)</h1>
+            <h1 class="h3 fw-bold mb-2 rf-page-title">@UiText.CampaignsTitle(Lang)</h1>
             <p class="mb-0 small" style="color: var(--rf-text-muted); letter-spacing: 1px; text-transform: uppercase;">@UiText.CampaignsSubtitle(Lang)</p>
         </div>
         <AuthorizeView>
@@ -84,7 +84,7 @@
                                 <div class="rf-character-card-name">@campaign.Name</div>
                                 <span class="badge rf-role-badge rf-role-@campaign.MyRole.ToString().ToLowerInvariant()">@UiText.CampaignRoleName(campaign.MyRole, Lang)</span>
                             </div>
-                            <div class="small mt-1" style="color: var(--rf-text-secondary);">
+                            <div class="small mt-2" style="color: var(--rf-text-secondary);">
                                 @(campaign.Ruleset is { } ruleset ? UiText.FormatRuleset(ruleset, Lang) : UiText.CampaignAnyEdition(Lang))
                                 · @UiText.CampaignMembersCount(campaign.Members, Lang) · @UiText.CampaignCharactersCount(campaign.Characters, Lang)
                             </div>

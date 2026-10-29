@@ -228,7 +228,7 @@
                 <div class="d-flex flex-wrap gap-2 align-items-center mb-2">
                     <input class="rf-form-control flex-grow-1" style="max-width: 360px;" placeholder="@UiText.PlaceholderSearchMonsters(Lang)"
                            @bind="monsterSearch" @bind:event="oninput" @onfocus="EnsureMonstersAsync" data-test="encounter-monster-search" />
-                    <label class="small d-flex align-items-center gap-1" style="color: var(--rf-text-secondary);">
+                    <label class="small d-flex align-items-center gap-2" style="color: var(--rf-text-secondary);">
                         <input type="checkbox" @bind="rollHp" /> @UiText.EncounterRollHp(Lang)
                     </label>
                 </div>

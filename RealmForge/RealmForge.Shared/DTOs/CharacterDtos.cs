@@ -38,7 +38,18 @@ namespace RealmForge.Shared.DTOs
 		int MaxHitPoints,
 		int CurrentHitPoints,
 		int ArmorClass,
-		DateTimeOffset UpdatedAt);
+		DateTimeOffset UpdatedAt)
+	{
+		//	The portrait (a small square JPEG) and its framing, for the cards of the lists
+		public string? Portrait { get; init; }
+		public int? PortraitX { get; init; }
+		public int? PortraitY { get; init; }
+
+		//	The campaigns the character sits in (filled in the owner's list)
+		public List<CharacterCampaignRefDto> Campaigns { get; init; } = new();
+	}
+
+	public record CharacterCampaignRefDto(Guid Id, string Name);
 
 	///	<summary>
 	///	A whole character: the client computes the sheet with <see cref="CharacterCalculator"/> and the context of
