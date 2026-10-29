@@ -105,7 +105,7 @@ namespace RealmForge.Api.Controllers
 			//	A new encounter is balanced for every character of the campaign unless told otherwise
 			if (dto.PartyIds.Count == 0)
 			{
-				encounter.PartyIds = await _context.CampaignCharacters.Where(c => c.CampaignId == campaignId).Select(c => c.CharacterId).ToListAsync();
+				encounter.PartyIds = await _context.CampaignCharacters.Where(c => c.CampaignId == campaignId && !c.Inactive).Select(c => c.CharacterId).ToListAsync();
 			}
 
 			_context.CampaignEncounters.Add(encounter);

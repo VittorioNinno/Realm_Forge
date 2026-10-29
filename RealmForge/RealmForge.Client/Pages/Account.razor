@@ -180,11 +180,11 @@
                 <PasswordInput @bind-Value="password" Autocomplete="@(isRegisterMode ? "new-password" : "current-password")" DataTest="auth-password" />
                 @if (isRegisterMode)
                 {
-                    <div class="small mt-1" style="color: var(--rf-text-muted);">@UiText.PasswordHint(LanguageState.CurrentLanguage)</div>
+                    <div class="small mt-2" style="color: var(--rf-text-muted);">@UiText.PasswordHint(LanguageState.CurrentLanguage)</div>
                 }
                 else
                 {
-                    <div class="text-end mt-1">
+                    <div class="text-end mt-2">
                         <a href="forgot-password" class="small" data-test="forgot-password-link">@UiText.LinkForgotPassword(LanguageState.CurrentLanguage)</a>
                     </div>
                 }

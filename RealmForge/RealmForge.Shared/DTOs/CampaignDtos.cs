@@ -36,7 +36,13 @@ namespace RealmForge.Shared.DTOs
 	///	A character taking part in the campaign. CanOpen: the owner, masters and co-masters open the sheet; CanEdit:
 	///	masters and co-masters change the character itself, not only a view of it.
 	///	</summary>
-	public record CampaignCharacterDto(CharacterSummaryDto Character, string OwnerId, string OwnerName, bool IsMine, bool CanOpen, bool CanEdit, bool CanRemove);
+	public record CampaignCharacterDto(CharacterSummaryDto Character, string OwnerId, string OwnerName, bool IsMine, bool CanOpen, bool CanEdit, bool CanRemove,
+		bool Active = true);
+
+	public class CampaignCharacterActiveDto
+	{
+		public bool Active { get; set; }
+	}
 
 	///	<summary>
 	///	A Homebrew entry shared with the campaign. Kind: species, subspecies, class, subclass, background, feat, spell,

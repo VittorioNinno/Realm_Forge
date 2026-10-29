@@ -105,8 +105,13 @@ namespace RealmForge.Client.Localization
 		public static string BtnBring(LanguageCode lang) => T(lang, "Porta", "Bring");
 		public static string BtnOpenSheet(LanguageCode lang) => T(lang, "Apri scheda", "Open sheet");
 		public static string BtnEditAsMaster(LanguageCode lang) => T(lang, "Modifica scheda", "Edit sheet");
-		public static string BtnTakeOut(LanguageCode lang) => T(lang, "Togli dalla campagna", "Take out of the campaign");
-		public static string BtnTakeOutShort(LanguageCode lang) => T(lang, "Togli", "Take out");
+		public static string BtnTakeOut(LanguageCode lang) => T(lang, "Rimuovi dalla campagna", "Remove from the campaign");
+		public static string BtnTakeOutShort(LanguageCode lang) => T(lang, "Rimuovi", "Remove");
+		public static string BtnDeactivate(LanguageCode lang) => T(lang, "Disattiva", "Deactivate");
+		public static string BtnActivate(LanguageCode lang) => T(lang, "Attiva", "Activate");
+		public static string CampaignCharacterInactive(LanguageCode lang) => T(lang, "Inattivo", "Inactive");
+		public static string HintDeactivate(LanguageCode lang) => T(lang, "Resta al tavolo ma non entra nel gruppo dei nuovi incontri", "Stays at the table but is left out of the party of new encounters");
+		public static string LabelCampaign(LanguageCode lang) => T(lang, "Campagna", "Campaign");
 		public static string CampaignPlayedBy(string email, LanguageCode lang) => T(lang, $"di {email}", $"by {email}");
 
 		//	Content

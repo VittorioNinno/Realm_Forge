@@ -6,11 +6,11 @@
             @if (item.Pick is { } pick)
             {
                 <div class="w-100">
-                    <div class="rf-loadout-name mb-1">@UiText.PickLabel(pick.Kind, pick.MeleeOnly, Lang)@(pick.Count > 1 ? $" ×{pick.Count}" : null)</div>
+                    <div class="rf-loadout-name mb-2">@UiText.PickLabel(pick.Kind, pick.MeleeOnly, Lang)@(pick.Count > 1 ? $" ×{pick.Count}" : null)</div>
                     @for (var n = 0; n < pick.Count; n++)
                     {
                         var number = n;
-                        <div class="mb-1">
+                        <div class="mb-2">
                             <ForgeSelector TValue="Guid?" Value="Picked(slot, number)" ValueChanged="v => SetPick(slot, number, pick.Count, v)"
                                            Options="PickOptions(pick)" DataTest="wizard-equipment-pick" />
                         </div>

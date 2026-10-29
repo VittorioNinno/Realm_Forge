@@ -100,7 +100,18 @@ namespace RealmForge.Api.Controllers
 				.Where(c => c.OwnerId == UserId)
 				.OrderByDescending(c => c.UpdatedAt)
 				.ToListAsync();
-			return Ok(await SummariesAsync(characters, lang));
+			var summaries = await SummariesAsync(characters, lang);
+
+			//	The campaigns of each character, so that the list can take it out of one
+			var ids = characters.Select(c => c.Id).ToList();
+			var tables = await _context.CampaignCharacters.AsNoTracking()
+				.Where(cc => ids.Contains(cc.CharacterId))
+				.Select(cc => new { cc.CharacterId, cc.CampaignId, cc.Campaign.Name })
+				.ToListAsync();
+			return Ok(summaries.Select(s => s with
+			{
+				Campaigns = tables.Where(t => t.CharacterId == s.Id).OrderBy(t => t.Name).Select(t => new CharacterCampaignRefDto(t.CampaignId, t.Name)).ToList()
+			}).ToList());
 		}
 
 		//	GET: api/characters/shared?lang=2 — characters other players shared with me
@@ -192,9 +203,15 @@ namespace RealmForge.Api.Controllers
 				.Where(t => classIds.Contains(t.CharacterClassId))
 				.ToListAsync();
 
-			string ClassLine(CharacterBuild build) => string.Join(" / ", build.Levels
-				.GroupBy(l => l.ClassId)
-				.Select(g => $"{classNames.Where(t => t.CharacterClassId == g.Key).Localize(lang)?.Name} {g.Count()}"));
+			//	One class: its name (the level is shown apart); more classes: each with its levels
+			string ClassLine(CharacterBuild build)
+			{
+				var groups = build.Levels.GroupBy(l => l.ClassId).ToList();
+				string Name(Guid id) => classNames.Where(t => t.CharacterClassId == id).Localize(lang)?.Name ?? string.Empty;
+				return groups.Count == 1
+					? Name(groups[0].Key)
+					: string.Join(" / ", groups.Select(g => $"{Name(g.Key)} {g.Count()}"));
+			}
 
 			return characters.Select(c =>
 			{
@@ -204,7 +221,12 @@ namespace RealmForge.Api.Controllers
 					c.Species.Translations.Localize(lang)?.Name ?? string.Empty,
 					ClassLine(builds[c.Id]),
 					c.Background.Translations.Localize(lang)?.Name ?? string.Empty,
-					c.MaxHitPoints, Math.Clamp(sheet.CurrentHitPoints ?? c.MaxHitPoints, 0, c.MaxHitPoints), c.ArmorClass, c.UpdatedAt);
+					c.MaxHitPoints, Math.Clamp(sheet.CurrentHitPoints ?? c.MaxHitPoints, 0, c.MaxHitPoints), c.ArmorClass, c.UpdatedAt)
+				{
+					Portrait = sheet.Portrait,
+					PortraitX = sheet.PortraitX,
+					PortraitY = sheet.PortraitY
+				};
 			}).ToList();
 		}
 

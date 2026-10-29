@@ -17,7 +17,7 @@
 <div class="container-fluid px-0 py-4">
     <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4 pb-3" style="border-bottom: 2px solid var(--rf-orange-primary);">
         <div>
-            <h1 class="h3 fw-bold mb-1 rf-page-title">@UiText.ClassesTitle(Lang)</h1>
+            <h1 class="h3 fw-bold mb-2 rf-page-title">@UiText.ClassesTitle(Lang)</h1>
             <p class="mb-0 small" style="color: var(--rf-text-muted); letter-spacing: 1px; text-transform: uppercase;">
                 @UiText.ClassesSubtitle(Lang)
             </p>
@@ -90,7 +90,7 @@
                     <div class="rf-card rf-class-card h-100 d-flex flex-column" style="cursor: pointer;" data-test="class-card" @onclick="() => OpenDetailAsync(c.Id)">
                         <div class="d-flex justify-content-between align-items-start mb-2 gap-2">
                             <span class="rf-card-title mb-0">@c.Name</span>
-                            <div class="d-flex gap-1 flex-shrink-0 align-items-center">
+                            <div class="d-flex gap-2 flex-shrink-0 align-items-center">
                                 <span class="badge @(c.Ruleset == RulesetVersion.Dnd5e_2024 ? "badge-edition-2024" : "badge-edition-2014")">@UiText.FormatRuleset(c.Ruleset, Lang)</span>
                                 <ContentBadge IsBase="c.IsOfficialSRD" Source="c.Source" Visibility="c.Visibility" />
                             </div>
@@ -101,7 +101,7 @@
                             <span><strong>@UiText.LabelSaves(Lang)</strong> @Abilities(c.SavingThrows)</span>
                         </div>
                         <p class="small lh-base mb-3 flex-grow-1" style="color: var(--rf-text-secondary);">@c.ShortDescription</p>
-                        <div class="d-flex flex-wrap gap-1 pt-2 align-items-center" style="border-top: 1px solid var(--rf-border-subtle);">
+                        <div class="d-flex flex-wrap gap-2 pt-2 align-items-center" style="border-top: 1px solid var(--rf-border-subtle);">
                             @if (c.CasterProgression != CasterProgression.None)
                             {
                                 <span class="rf-spell-flag">@GameTerms.CasterProgressionName(c.CasterProgression, Lang)</span>
@@ -123,7 +123,7 @@
         <div class="rf-modal-dialog rf-class-dialog" @onclick:stopPropagation="true" data-test="class-detail">
             <div class="d-flex justify-content-between align-items-start mb-3 pb-2" style="border-bottom: 2px solid var(--rf-orange-primary);">
                 <div>
-                    <h2 class="h3 mb-1" style="color: var(--rf-orange-primary); font-family: var(--rf-font-display);" data-test="class-name">@cls.Name</h2>
+                    <h2 class="h3 mb-2" style="color: var(--rf-orange-primary); font-family: var(--rf-font-display);" data-test="class-name">@cls.Name</h2>
                     <div class="d-flex flex-wrap gap-2">
                         <span class="badge @(cls.Ruleset == RulesetVersion.Dnd5e_2024 ? "badge-edition-2024" : "badge-edition-2014")">@UiText.FormatRuleset(cls.Ruleset, Lang)</span>
                         <ContentBadge IsBase="cls.IsOfficialSRD" Source="cls.Source" Visibility="cls.Visibility" ShowSource="true" />
@@ -181,7 +181,7 @@
                                         @GameTerms.CasterProgressionName(cls.CasterProgression, Lang)@(cls.SpellcastingAbility is { } sa ? $" · {FeatPrerequisiteFormatter.AbilityName(sa, Lang)}" : "")
                                         @if (Glossary.SpellListOfClass(Lang, cls.Id) is { } spellList)
                                         {
-                                            <a class="d-block small mt-1" href="@($"spells?class={(int)spellList}&ruleset={(int)cls.Ruleset}")" data-test="class-spell-list">@UiText.LinkClassSpellList(Lang) <Icon Name="right" /></a>
+                                            <a class="d-block small mt-2" href="@($"spells?class={(int)spellList}&ruleset={(int)cls.Ruleset}")" data-test="class-spell-list">@UiText.LinkClassSpellList(Lang) <Icon Name="right" /></a>
                                         }
                                     </dd>
                                 </div>
@@ -247,7 +247,7 @@
                                         @current.Name
                                         @if (!current.IsOfficialSRD)
                                         {
-                                            <span class="ms-1 small" style="opacity: 0.7;">· Homebrew</span>
+                                            <span class="ms-2 small" style="opacity: 0.7;">· Homebrew</span>
                                         }
                                     </button>
                                 }
@@ -450,7 +450,7 @@
 {
     <div class="rf-modal-backdrop" @onclick="() => isSubclassModalOpen = false">
         <div class="rf-modal-dialog rf-class-dialog" @onclick:stopPropagation="true" data-test="subclass-form">
-            <h2 class="h4 mb-1 pb-2" style="font-family: var(--rf-font-display);">
+            <h2 class="h4 mb-2 pb-2" style="font-family: var(--rf-font-display);">
                 @(editingSubclassId is null ? UiText.ModalTitleAddSubclass(Lang) : UiText.Edit(Lang))
             </h2>
             <p class="small mb-3 pb-2" style="border-bottom: 1px solid var(--rf-border-light); color: var(--rf-text-secondary);">@UiText.LabelParentClass(Lang): <strong>@subclassParentName</strong></p>

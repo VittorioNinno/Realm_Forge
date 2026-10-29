@@ -5,6 +5,7 @@
 @using RealmForge.Shared.Enums
 @implements IDisposable
 @inject CharacterDataService CharacterService
+@inject CampaignDataService Campaigns
 @inject LanguageStateService LanguageState
 
 <PageTitle>RealmForge - @UiText.CharactersTitle(Lang)</PageTitle>
@@ -12,7 +13,7 @@
 <div class="container-fluid px-0 py-4">
     <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4 pb-3" style="border-bottom: 2px solid var(--rf-orange-primary);">
         <div>
-            <h1 class="h3 fw-bold mb-1 rf-page-title">@UiText.CharactersTitle(Lang)</h1>
+            <h1 class="h3 fw-bold mb-2 rf-page-title">@UiText.CharactersTitle(Lang)</h1>
             <p class="mb-0 small" style="color: var(--rf-text-muted); letter-spacing: 1px; text-transform: uppercase;">@UiText.CharactersSubtitle(Lang)</p>
         </div>
         <AuthorizeView>
@@ -37,25 +38,20 @@
             }
             else
             {
+                @* Cards like D&D Beyond's: the card opens the sheet; edit and delete below, and the campaigns it sits in
+                   with the action to take it out of one *@
                 <div class="rf-character-grid" data-test="characters-grid">
                     @foreach (var character in characters)
                     {
-                        <a href="@($"characters/{character.Id}")" class="rf-character-card" data-test="character-card">
-                            <div class="d-flex justify-content-between align-items-start gap-2 flex-wrap">
-                                <div class="rf-character-card-name">@character.Name</div>
-                                <span class="badge @(character.Ruleset == RulesetVersion.Dnd5e_2024 ? "badge-edition-2024" : "badge-edition-2014")">@UiText.FormatRuleset(character.Ruleset, Lang)</span>
-                            </div>
-                            <div class="small mt-1" style="color: var(--rf-text-secondary);">
-                                @character.SpeciesName · @character.ClassLine · @UiText.CharacterLevel(character.Level, Lang)
-                            </div>
-                            <div class="small" style="color: var(--rf-text-muted);">@character.BackgroundName</div>
-                            <div class="d-flex gap-3 mt-2 small">
-                                <span><strong style="color: var(--rf-orange-primary);">@UiText.SheetArmorClass(Lang)</strong> @character.ArmorClass</span>
-                                <span><strong style="color: var(--rf-orange-primary);">@UiText.SheetHitPoints(Lang)</strong> @character.CurrentHitPoints / @character.MaxHitPoints</span>
-                            </div>
-                        </a>
+                        var ch = character;
+                        <CharacterCard Character="ch" Href="@($"characters/{ch.Id}")" Note="@ch.BackgroundName"
+                                       Band="@(ch.Campaigns.Count > 0 ? CampaignBand(ch) : null)" Actions="CardActions(ch)" />
                     }
                 </div>
+                @if (actionError is not null)
+                {
+                    <div class="small text-warning mt-2" data-test="characters-error">@actionError</div>
+                }
             }
 
             @if (shared is { Count: > 0 })
@@ -65,21 +61,8 @@
                 <div class="rf-character-grid" data-test="shared-characters">
                     @foreach (var entry in shared)
                     {
-                        var character = entry.Character;
-                        <a href="@($"characters/{character.Id}")" class="rf-character-card shared" data-test="shared-character-card">
-                            <div class="d-flex justify-content-between align-items-start gap-2 flex-wrap">
-                                <div class="rf-character-card-name">@character.Name</div>
-                                <span class="badge @(character.Ruleset == RulesetVersion.Dnd5e_2024 ? "badge-edition-2024" : "badge-edition-2014")">@UiText.FormatRuleset(character.Ruleset, Lang)</span>
-                            </div>
-                            <div class="small mt-1" style="color: var(--rf-text-secondary);">
-                                @character.SpeciesName · @character.ClassLine · @UiText.CharacterLevel(character.Level, Lang)
-                            </div>
-                            <div class="rf-character-card-owner">@UiText.SharedBy(entry.OwnerName, Lang)</div>
-                            <div class="d-flex gap-3 mt-2 small">
-                                <span><strong style="color: var(--rf-orange-primary);">@UiText.SheetArmorClass(Lang)</strong> @character.ArmorClass</span>
-                                <span><strong style="color: var(--rf-orange-primary);">@UiText.SheetHitPoints(Lang)</strong> @character.CurrentHitPoints / @character.MaxHitPoints</span>
-                            </div>
-                        </a>
+                        <CharacterCard Character="entry.Character" Href="@($"characters/{entry.Character.Id}")" Shared="true"
+                                       Note="@UiText.SharedBy(entry.OwnerName, Lang)" DataTest="shared-character-card" />
                     }
                 </div>
             }
@@ -93,10 +76,29 @@
     </AuthorizeView>
 </div>
 
+@if (deleting is not null)
+{
+    <div class="rf-modal-backdrop" @onclick="() => deleting = null">
+        <div class="rf-modal-dialog" @onclick:stopPropagation="true" style="max-width: 448px; text-align: center;" data-test="character-delete-dialog">
+            <h2 class="h4 mb-3" style="color: var(--rf-orange-primary);">@UiText.ConfirmDeletion(Lang)</h2>
+            <div class="p-3 mb-4 rounded" style="background-color: var(--rf-bg-main); border: 1px solid var(--rf-border-subtle); color: var(--rf-text-secondary); line-height: 1.5;">
+                @UiText.DeleteCharacterWarning(deleting.Name, Lang)
+            </div>
+            <div class="d-flex justify-content-center gap-3">
+                <button class="btn btn-rf-outline" @onclick="() => deleting = null">@UiText.BtnCancel(Lang)</button>
+                <button class="btn btn-rf-orange" style="background-color: #dc3545; border-color: #dc3545;" disabled="@busy" @onclick="DeleteAsync" data-test="character-delete-confirm">@UiText.Delete(Lang)</button>
+            </div>
+        </div>
+    </div>
+}
+
 @code {
     [CascadingParameter] private Task<AuthenticationState>? AuthState { get; set; }
 
     private List<CharacterSummaryDto>? characters;
+    private CharacterSummaryDto? deleting;
+    private bool busy;
+    private string? actionError;
     private List<SharedCharacterDto>? shared;
 
     private LanguageCode Lang => LanguageState.CurrentLanguage;
@@ -119,6 +121,63 @@
         var others = CharacterService.GetSharedCharactersAsync(Lang);
         characters = await mine ?? new List<CharacterSummaryDto>();
         shared = await others;
+    }
+
+    private RenderFragment CardActions(CharacterSummaryDto ch) => @<text>
+        <a class="rf-pc-action" href="@($"characters/{ch.Id}/edit")" data-test="character-edit"><Icon Name="edit" /> @UiText.BtnEditShort(Lang)</a>
+        <button type="button" class="rf-pc-action danger" @onclick="() => deleting = ch" data-test="character-delete"><Icon Name="trash" /> @UiText.Delete(Lang)</button>
+    </text>;
+
+    private RenderFragment CampaignBand(CharacterSummaryDto ch) => @<text>
+        @foreach (var campaign in ch.Campaigns)
+        {
+            var cmp = campaign;
+            <div class="rf-pc-campaign" data-test="character-campaign">
+                <span class="rf-pc-campaign-label">@UiText.LabelCampaign(Lang):</span>
+                <a href="@($"campaigns/{cmp.Id}")">@cmp.Name</a>
+                <button type="button" class="rf-ghost-btn danger ms-auto" disabled="@busy" title="@UiText.BtnTakeOut(Lang)" @onclick="() => LeaveCampaignAsync(ch, cmp)" data-test="character-campaign-remove">
+                    <Icon Name="remove-person" /> @UiText.BtnTakeOutShort(Lang)
+                </button>
+            </div>
+        }
+    </text>;
+
+    private async Task DeleteAsync()
+    {
+        if (deleting is not { } target)
+        {
+            return;
+        }
+        busy = true;
+        actionError = null;
+        if (await CharacterService.DeleteCharacterAsync(target.Id))
+        {
+            characters?.RemoveAll(c => c.Id == target.Id);
+        }
+        else
+        {
+            actionError = UiText.CampaignActionFailed(null, Lang);
+        }
+        busy = false;
+        deleting = null;
+    }
+
+    private async Task LeaveCampaignAsync(CharacterSummaryDto ch, CharacterCampaignRefDto campaign)
+    {
+        busy = true;
+        actionError = null;
+        var result = await Campaigns.RemoveCharacterAsync(campaign.Id, ch.Id);
+        busy = false;
+        if (!result.Ok)
+        {
+            actionError = UiText.CampaignActionFailed(result.Status, Lang);
+            return;
+        }
+        var index = characters?.FindIndex(c => c.Id == ch.Id) ?? -1;
+        if (index >= 0)
+        {
+            characters![index] = ch with { Campaigns = ch.Campaigns.Where(c => c.Id != campaign.Id).ToList() };
+        }
     }
 
     private void OnLanguageChanged() => _ = InvokeAsync(async () =>

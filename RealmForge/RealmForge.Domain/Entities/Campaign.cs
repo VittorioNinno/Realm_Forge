@@ -99,6 +99,9 @@ namespace RealmForge.Domain.Entities
 		public Character Character { get; set; } = null!;
 		public string AddedById { get; set; } = string.Empty;
 		public DateTimeOffset AddedAt { get; set; } = DateTimeOffset.UtcNow;
+
+		//	An inactive character stays at the table but sits out: it is not counted in the party of new encounters
+		public bool Inactive { get; set; }
 	}
 
 	///	<summary>

@@ -18,7 +18,7 @@
     @* Page Header *@
     <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4 pb-3" style="border-bottom: 2px solid var(--rf-orange-primary);">
         <div>
-            <h1 class="h3 fw-bold mb-1 rf-page-title">@UiText.SpeciesTitle(LanguageState.CurrentLanguage)</h1>
+            <h1 class="h3 fw-bold mb-2 rf-page-title">@UiText.SpeciesTitle(LanguageState.CurrentLanguage)</h1>
             <p class="mb-0 small" style="color: var(--rf-text-muted); letter-spacing: 1px; text-transform: uppercase;">
                 @UiText.SpeciesSubtitle(LanguageState.CurrentLanguage)
             </p>
@@ -117,7 +117,7 @@
                             @* CARD HEADER *@
                             <div class="d-flex justify-content-between align-items-start mb-3 gap-2">
                                 <span class="rf-card-title mb-0">@sp.Name</span>
-                                <div class="d-flex gap-1 flex-shrink-0 align-items-center">
+                                <div class="d-flex gap-2 flex-shrink-0 align-items-center">
                                     <span class="badge @(sp.Ruleset == RulesetVersion.Dnd5e_2024 ? "badge-edition-2024" : "badge-edition-2014")">
                                         @UiText.FormatRuleset(sp.Ruleset, LanguageState.CurrentLanguage)
                                     </span>
@@ -152,13 +152,13 @@
                             <div class="d-flex gap-2 flex-wrap">
                                 @if (sp.TraitCount > 0)
                                 {
-                                    <span class="badge bg-dark border border-secondary text-light small py-1 px-2">
+                                    <span class="badge bg-dark border border-secondary text-light small py-2 px-2">
                                         @UiText.BadgeTraitsCount(sp.TraitCount, LanguageState.CurrentLanguage)
                                     </span>
                                 }
                                 @if (sp.SubspeciesCount > 0)
                                 {
-                                    <span class="badge bg-dark border border-warning text-warning small py-1 px-2">
+                                    <span class="badge bg-dark border border-warning text-warning small py-2 px-2">
                                         @UiText.BadgeSubspeciesCount(sp.SubspeciesCount, LanguageState.CurrentLanguage)
                                     </span>
                                 }
@@ -194,7 +194,7 @@
                 @* MODAL HEADER *@
                 <div class="d-flex justify-content-between align-items-start mb-3 pb-2" style="border-bottom: 2px solid var(--rf-orange-primary);">
                     <div>
-                        <div class="d-flex align-items-center gap-2 mb-1">
+                        <div class="d-flex align-items-center gap-2 mb-2">
                             <h2 class="h3 mb-0" style="color: var(--rf-orange-primary); font-family: var(--rf-font-display);">
                                 @selectedDetail.Name
                             </h2>
@@ -203,7 +203,7 @@
                                 <span class="h5 mb-0 text-white fw-light">/ @ActiveSubspecies.Name</span>
                             }
                         </div>
-                        <div class="d-flex gap-2 mt-1">
+                        <div class="d-flex gap-2 mt-2">
                             <span class="badge @(selectedDetail.Ruleset == RulesetVersion.Dnd5e_2024 ? "badge-edition-2024" : "badge-edition-2014")">
                                 @UiText.FormatRuleset(selectedDetail.Ruleset, LanguageState.CurrentLanguage)
                             </span>
@@ -212,7 +212,7 @@
                     </div>
 
                     @* Navigazione Sottospecie (Top Right) *@
-                    <button class="btn btn-sm btn-rf-outline text-uppercase mt-1"
+                    <button class="btn btn-sm btn-rf-outline text-uppercase mt-2"
                             style="letter-spacing: 1px; color: var(--rf-orange-primary); border-color: var(--rf-orange-primary);"
                             @onclick="() => NavigateToSubspecies(selectedDetail.Id)">
                         @UiText.BtnManageSubspecies(LanguageState.CurrentLanguage)
@@ -278,7 +278,7 @@
                     @if (ActiveSubspecies != null && !string.IsNullOrWhiteSpace(ActiveSubspecies.Description))
                     {
                         <div class="p-3 mt-2 rounded" style="background-color: var(--rf-bg-main); border-left: 3px solid #ffb74d;">
-                            <strong class="text-warning small d-block mb-1 text-uppercase" style="letter-spacing: 0.5px;">
+                            <strong class="text-warning small d-block mb-2 text-uppercase" style="letter-spacing: 0.5px;">
                                 @ActiveSubspecies.Name
                             </strong>
                             <div class="rf-markdown-container small text-light">
@@ -304,7 +304,7 @@
                              style="background-color: var(--rf-bg-card);
                             border-left: 3px solid @(isHighlighted ? "#4fc3f7" : (item.IsSubspeciesTrait ? "#ffb74d" : "var(--rf-orange-primary)"));
                             @(isHighlighted ? "box-shadow: 0 0 10px rgba(79, 195, 247, 0.3);" : "")">
-                            <div class="d-flex justify-content-between align-items-center mb-1">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
                                 <div class="d-flex align-items-center gap-2">
                                     <strong class="text-light">@item.Trait.Name</strong>
                                     <span class="badge @(item.IsSubspeciesTrait ? "bg-dark border border-warning text-warning" : "bg-dark border border-secondary text-secondary")" style="font-size: 0.65rem;">
@@ -415,7 +415,7 @@
                     <div class="col-md-6">
                         <label class="rf-form-label">
                             @UiText.LabelSpeed(LanguageState.CurrentLanguage)
-                            <span class="text-secondary ms-1">(@UiText.FormatSpeed(newSpeed, LanguageState.CurrentLanguage))</span>
+                            <span class="text-secondary ms-2">(@UiText.FormatSpeed(newSpeed, LanguageState.CurrentLanguage))</span>
                         </label>
                         <input type="number" class="rf-form-control" @bind="newSpeed" min="5" step="5" />
                     </div>

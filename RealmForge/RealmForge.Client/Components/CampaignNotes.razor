@@ -70,11 +70,11 @@
                     </div>
                     @if (!string.IsNullOrWhiteSpace(n.Body))
                     {
-                        <div class="rf-markdown-container mt-1">@((MarkupString)MarkdownText.ToHtml(n.Body, null))</div>
+                        <div class="rf-markdown-container mt-2">@((MarkupString)MarkdownText.ToHtml(n.Body, null))</div>
                     }
                     @if (n.CanEdit || n.CanDelete)
                     {
-                        <div class="d-flex gap-2 mt-1">
+                        <div class="d-flex gap-2 mt-2">
                             @if (n.CanEdit)
                             {
                                 <button type="button" class="btn btn-sm btn-rf-outline" @onclick="() => Edit(n)" data-test="campaign-note-edit">@UiText.Edit(Lang)</button>
