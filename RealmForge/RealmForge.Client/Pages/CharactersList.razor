@@ -44,7 +44,7 @@
                     @foreach (var character in characters)
                     {
                         var ch = character;
-                        <CharacterCard Character="ch" Href="@($"characters/{ch.Id}")" Note="@ch.BackgroundName"
+                        <CharacterCard Character="ch" Href="@($"characters/{ch.Id}")" ShowBackground="true"
                                        Band="@(ch.Campaigns.Count > 0 ? CampaignBand(ch) : null)" Actions="CardActions(ch)" />
                     }
                 </div>
@@ -62,7 +62,7 @@
                     @foreach (var entry in shared)
                     {
                         <CharacterCard Character="entry.Character" Href="@($"characters/{entry.Character.Id}")" Shared="true"
-                                       Note="@UiText.SharedBy(entry.OwnerName, Lang)" DataTest="shared-character-card" />
+                                       Owner="@UiText.CharacterOf(entry.OwnerName, Lang)" ShowBackground="true" DataTest="shared-character-card" />
                     }
                 </div>
             }
@@ -135,7 +135,7 @@
             <div class="rf-pc-campaign" data-test="character-campaign">
                 <span class="rf-pc-campaign-label">@UiText.LabelCampaign(Lang):</span>
                 <a href="@($"campaigns/{cmp.Id}")">@cmp.Name</a>
-                <button type="button" class="rf-ghost-btn danger ms-auto" disabled="@busy" title="@UiText.BtnTakeOut(Lang)" @onclick="() => LeaveCampaignAsync(ch, cmp)" data-test="character-campaign-remove">
+                <button type="button" class="rf-pc-unlink ms-auto" disabled="@busy" title="@UiText.BtnTakeOut(Lang)" @onclick="() => LeaveCampaignAsync(ch, cmp)" data-test="character-campaign-remove">
                     <Icon Name="remove-person" /> @UiText.BtnTakeOutShort(Lang)
                 </button>
             </div>

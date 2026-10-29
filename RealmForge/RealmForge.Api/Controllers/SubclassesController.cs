@@ -5,6 +5,7 @@ using RealmForge.Api.Localization;
 using RealmForge.Api.Security;
 using RealmForge.Domain.Entities;
 using RealmForge.Infrastructure.Persistence;
+using RealmForge.Infrastructure.Persistence.Trash;
 using RealmForge.Shared.DTOs;
 using RealmForge.Shared.Enums;
 
@@ -179,7 +180,7 @@ namespace RealmForge.Api.Controllers
 		//	DELETE: api/subclasses/{id}
 		[HttpDelete("{id:guid}")]
 		[Authorize]
-		public async Task<IActionResult> DeleteSubclass(Guid id)
+		public async Task<IActionResult> DeleteSubclass(Guid id, [FromServices] TrashBin bin)
 		{
 			var subclass = await _context.Subclasses.Include(s => s.Features).FirstOrDefaultAsync(s => s.Id == id);
 
@@ -194,6 +195,8 @@ namespace RealmForge.Api.Controllers
 				return denied;
 			}
 
+			//	Kept in the bin for a few days, to be restored
+			await bin.AddAsync(subclass, "subclass", ContentAccess.GetUserId(User) ?? string.Empty, subclass.Id);
 			_context.ClassFeatures.RemoveRange(subclass.Features);
 			_context.Subclasses.Remove(subclass);
 			await _context.SaveChangesAsync();

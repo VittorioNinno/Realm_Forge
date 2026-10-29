@@ -1053,11 +1053,33 @@ try {
   await page.locator('[data-test=campaign-delete]').click();
   await page.locator('[data-test=campaign-confirm-yes]').click();
   await page.waitForURL(/\/campaigns$/, { timeout: 15000 });
+  // The bin: the deleted campaign is there, restored it opens again; deleted again, it is purged for good
+  await page.goto(`${base}/account`);
+  await page.locator('[data-test=account-trash-open]').click();
+  const binRow = page.locator('[data-test=trash-entry]', { hasText: 'Tavola di prova' });
+  await binRow.waitFor({ timeout: 30000 });
+  campaignUi.binKind = (await binRow.locator('.rf-trash-kind').innerText()).trim();
+  await shot(page, 'trash', 'main');
+  await binRow.locator('[data-test=trash-restore]').click();
+  await page.locator('[data-test=trash-message]', { hasText: 'ripristinato' }).waitFor({ timeout: 15000 });
+  await page.locator('[data-test=trash-message] a').click();
+  await page.locator('[data-test=campaign-title]', { hasText: 'Tavola di prova' }).waitFor({ timeout: 30000 });
+  campaignUi.restored = true;
+  await page.locator('[data-test=campaign-delete]').click();
+  await page.locator('[data-test=campaign-confirm-yes]').click();
+  await page.waitForURL(/\/campaigns$/, { timeout: 15000 });
+  await page.goto(`${base}/trash`);
+  await binRow.waitFor({ timeout: 30000 });
+  await binRow.locator('[data-test=trash-purge]').click();
+  await binRow.locator('[data-test=trash-purge-confirm]').click();
+  await binRow.waitFor({ state: 'detached', timeout: 15000 });
+  campaignUi.purged = true;
   results.push(`INFO campaign: ${JSON.stringify(campaignUi)}`);
   if (campaignUi.role !== 'Master' || !campaignUi.link || campaignUi.share !== 1 || campaignUi.notes !== 1
     || campaignUi.combatants !== 4 || campaignUi.goblins !== 3 || !campaignUi.hero || !/^(Facile|Medio|Difficile|Mortale)$/.test(campaignUi.rating) || campaignUi.current !== 1
+    || campaignUi.binKind !== 'CAMPAGNA' || !campaignUi.restored || !campaignUi.purged
     || campaignUi.cardButtons !== 0 || !campaignUi.cardOpens || campaignUi.listActions !== 2 || !campaignUi.toggled || campaignUi.noteKinds !== 'Diario di viaggio,Personali,Per i master' || campaignUi.leftFromSheet !== 1) throw new Error(`unexpected campaign page: ${JSON.stringify(campaignUi)}`);
-  ok('campaigns: the creator is the master with an invite link, the character joins the table (the whole card opens the sheet, deactivated and activated again; its card in the list shows the campaign), a journal page, an encounter with three goblins run to round 2, the character leaves from its sheet, the campaign is deleted');
+  ok('campaigns: the creator is the master with an invite link, the character joins the table (the whole card opens the sheet, deactivated and activated again; its card in the list shows the campaign), a journal page, an encounter with three goblins run to round 2, the character leaves from its sheet, the campaign is deleted, restored from the bin, deleted again and purged');
   await page.goto(sheetUrl);
   await page.locator('[data-test=character-sheet]').waitFor({ timeout: 30000 });
   const [download] = await Promise.all([page.waitForEvent('download', { timeout: 20000 }), page.locator('[data-test=sheet-pdf]').click()]);

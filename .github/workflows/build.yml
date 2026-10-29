@@ -830,9 +830,51 @@ jobs:
           chcheck "DELETE" "$ch_delete" "204"
           test "$chfail" = "0"
 
+          # The bin: Alice's deleted character, Bob's deleted campaign (with its master) and a feat come back; nobody
+          # restores someone else's entry, an entry restores once; then everything is deleted again and purged
+          tr_entry() { get "$api/api/trash?lang=2" -H "Authorization: Bearer $1" | jq -r --arg id "$2" '.[] | select(.entityId == $id) | .id'; }
+          tr_char_row=$(get "$api/api/trash?lang=2" -H "Authorization: Bearer $A" | jq -c --arg id "$ch_id" '[.[] | select(.entityId == $id) | {kind, name, days: (((.expiresAt | sub("\\.[0-9]+"; "") | sub("\\+00:00$"; "Z") | fromdateiso8601) - (.deletedAt | sub("\\.[0-9]+"; "") | sub("\\+00:00$"; "Z") | fromdateiso8601)) / 86400 | round)}]')
+          tr_char=$(tr_entry "$A" "$ch_id")
+          tr_camp=$(tr_entry "$B" "$cp_id")
+          tr_feat=$(tr_entry "$A" "$cp_feat")
+          tr_other=$(code -X POST "$api/api/trash/$tr_camp/restore" -H "Authorization: Bearer $A")
+          tr_char_restore=$(curl -s -X POST "$api/api/trash/$tr_char/restore?lang=2" -H "Authorization: Bearer $A" | jq -c --arg id "$ch_id" '{kind, link: (.link == ("characters/" + $id))}')
+          tr_char_get=$(code "$api/api/characters/$ch_id" -H "Authorization: Bearer $A")
+          tr_camp_restore=$(code -X POST "$api/api/trash/$tr_camp/restore?lang=2" -H "Authorization: Bearer $B")
+          tr_camp_get=$(get "$api/api/campaigns/$cp_id?lang=2" -H "Authorization: Bearer $B" | jq -c '{characters: (.characters | length), members: (.members | length)}')
+          tr_twice=$(code -X POST "$api/api/trash/$tr_camp/restore" -H "Authorization: Bearer $B")
+          tr_feat_restore=$(code -X POST "$api/api/trash/$tr_feat/restore" -H "Authorization: Bearer $A")
+          tr_feat_get=$(code "$api/api/feats/$cp_feat" -H "Authorization: Bearer $A")
+          code -X DELETE "$api/api/campaigns/$cp_id" -H "Authorization: Bearer $B" >/dev/null
+          code -X DELETE "$api/api/characters/$ch_id" -H "Authorization: Bearer $A" >/dev/null
+          code -X DELETE "$api/api/feats/$cp_feat" -H "Authorization: Bearer $A" >/dev/null
+          tr_purge=$(code -X DELETE "$api/api/trash/$(tr_entry "$A" "$ch_id")" -H "Authorization: Bearer $A")
+          code -X DELETE "$api/api/trash/$(tr_entry "$A" "$cp_feat")" -H "Authorization: Bearer $A" >/dev/null
+          code -X DELETE "$api/api/trash/$(tr_entry "$B" "$cp_id")" -H "Authorization: Bearer $B" >/dev/null
+          tr_after=$(get "$api/api/trash?lang=2" -H "Authorization: Bearer $A" | jq --arg id "$ch_id" '[.[] | select(.entityId == $id)] | length')
+          tr_anon=$(code "$api/api/trash")
+          echo "::notice title=bin::character=$tr_char_row restore=$tr_char_restore GET=$tr_char_get | campaign restore=$tr_camp_restore detail=$tr_camp_get by another=$tr_other twice=$tr_twice | feat restore=$tr_feat_restore GET=$tr_feat_get | purge=$tr_purge after=$tr_after anonymous=$tr_anon"
+          trfail=0
+          trcheck() { if [ "$2" != "$3" ]; then echo "::error title=bin::$1: got '$2', expected '$3'"; trfail=1; fi; }
+          trcheck "deleted character in the bin" "$tr_char_row" '[{"kind":"character","name":"Elminster di prova","days":3}]'
+          trcheck "someone else's entry" "$tr_other" "404"
+          trcheck "character restored" "$tr_char_restore" '{"kind":"character","link":true}'
+          trcheck "character back" "$tr_char_get" "200"
+          trcheck "campaign restored" "$tr_camp_restore" "200"
+          trcheck "campaign back with its master" "$tr_camp_get" '{"characters":0,"members":1}'
+          trcheck "restored once" "$tr_twice" "404"
+          trcheck "feat restored" "$tr_feat_restore" "200"
+          trcheck "feat back" "$tr_feat_get" "200"
+          trcheck "purged" "$tr_purge" "204"
+          trcheck "gone from the bin" "$tr_after" "0"
+          trcheck "anonymous" "$tr_anon" "401"
+          test "$trfail" = "0"
+
   ui:
     runs-on: ubuntu-24.04
     needs: build
+    permissions:
+      contents: write
     services:
       postgres:
         image: postgres:17
@@ -887,6 +929,16 @@ jobs:
           npm install playwright@1 >/dev/null
           npx playwright install --with-deps chromium >/dev/null
           node smoke.mjs
+
+      - name: TEMP push the screenshots to a review branch
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          cd .github/ui-smoke/shots || exit 0
+          git init -q -b shots . && git add -A
+          git -c user.name=ci -c user.email=ci@localhost commit -qm "shots ${GITHUB_SHA}"
+          git push -qf "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" shots:refs/heads/ci-shots/${GITHUB_SHA::8}
 
       - name: Keep the screenshots of the smoke test
         if: always()

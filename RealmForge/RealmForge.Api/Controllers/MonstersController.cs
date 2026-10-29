@@ -5,6 +5,7 @@ using RealmForge.Api.Localization;
 using RealmForge.Api.Security;
 using RealmForge.Domain.Entities;
 using RealmForge.Infrastructure.Persistence;
+using RealmForge.Infrastructure.Persistence.Trash;
 using RealmForge.Shared.DTOs;
 using RealmForge.Shared.Enums;
 using RealmForge.Shared.Monsters;
@@ -205,7 +206,7 @@ namespace RealmForge.Api.Controllers
 		//	DELETE: api/monsters/{id} — the variants made from it stay, without the link
 		[HttpDelete("{id:guid}")]
 		[Authorize]
-		public async Task<IActionResult> DeleteMonster(Guid id)
+		public async Task<IActionResult> DeleteMonster(Guid id, [FromServices] TrashBin bin)
 		{
 			var monster = await _context.Monsters.FindAsync(id);
 			if (monster is null)
@@ -219,6 +220,8 @@ namespace RealmForge.Api.Controllers
 				return denied;
 			}
 
+			//	Kept in the bin for a few days, to be restored
+			await bin.AddAsync(monster, "monster", ContentAccess.GetUserId(User) ?? string.Empty, monster.Id);
 			_context.Monsters.Remove(monster);
 			await _context.SaveChangesAsync();
 			return NoContent();

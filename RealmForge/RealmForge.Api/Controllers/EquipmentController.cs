@@ -6,6 +6,7 @@ using RealmForge.Api.Localization;
 using RealmForge.Api.Security;
 using RealmForge.Domain.Entities;
 using RealmForge.Infrastructure.Persistence;
+using RealmForge.Infrastructure.Persistence.Trash;
 using RealmForge.Shared.DTOs;
 using RealmForge.Shared.Enums;
 using RealmForge.Shared.Text;
@@ -192,7 +193,7 @@ namespace RealmForge.Api.Controllers
 		//	DELETE: api/equipment/{id}
 		[HttpDelete("{id:guid}")]
 		[Authorize]
-		public async Task<IActionResult> DeleteItem(Guid id)
+		public async Task<IActionResult> DeleteItem(Guid id, [FromServices] TrashBin bin)
 		{
 			var item = await _context.Equipment.FindAsync(id);
 
@@ -207,6 +208,8 @@ namespace RealmForge.Api.Controllers
 				return denied;
 			}
 
+			//	Kept in the bin for a few days, to be restored
+			await bin.AddAsync(item, "equipment", ContentAccess.GetUserId(User) ?? string.Empty, item.Id);
 			_context.Equipment.Remove(item);
 			await _context.SaveChangesAsync();
 			return NoContent();

@@ -8,6 +8,7 @@ using RealmForge.Api.Security;
 using RealmForge.Domain.Entities;
 using RealmForge.Infrastructure.Identity;
 using RealmForge.Infrastructure.Persistence;
+using RealmForge.Infrastructure.Persistence.Trash;
 using RealmForge.Shared.Campaigns;
 using RealmForge.Shared.DTOs;
 using RealmForge.Shared.Enums;
@@ -142,7 +143,7 @@ namespace RealmForge.Api.Controllers
 
 		//	DELETE: api/campaigns/{id} — masters; the characters stay with their owners
 		[HttpDelete("{id:guid}")]
-		public async Task<IActionResult> DeleteCampaign(Guid id)
+		public async Task<IActionResult> DeleteCampaign(Guid id, [FromServices] TrashBin bin)
 		{
 			var (campaign, me) = await LoadAsync(id);
 			if (campaign is null || me is null)
@@ -153,6 +154,8 @@ namespace RealmForge.Api.Controllers
 			{
 				return Forbid();
 			}
+			//	Kept in the bin for a few days, to be restored
+			await bin.AddAsync(campaign, "campaign", ContentAccess.GetUserId(User) ?? string.Empty, campaign.Id);
 			_context.Campaigns.Remove(campaign);
 			await _context.SaveChangesAsync();
 			return NoContent();

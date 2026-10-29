@@ -5,6 +5,7 @@ using RealmForge.Api.Localization;
 using RealmForge.Api.Security;
 using RealmForge.Domain.Entities;
 using RealmForge.Infrastructure.Persistence;
+using RealmForge.Infrastructure.Persistence.Trash;
 using RealmForge.Shared.DTOs;
 using RealmForge.Shared.Enums;
 using RealmForge.Shared.Text;
@@ -259,7 +260,7 @@ namespace RealmForge.Api.Controllers
 		//	DELETE: api/classes/{id}
 		[HttpDelete("{id:guid}")]
 		[Authorize]
-		public async Task<IActionResult> DeleteClass(Guid id)
+		public async Task<IActionResult> DeleteClass(Guid id, [FromServices] TrashBin bin)
 		{
 			var characterClass = await _context.Classes
 				.Include(c => c.Features)
@@ -278,6 +279,8 @@ namespace RealmForge.Api.Controllers
 				return denied;
 			}
 
+			//	Kept in the bin for a few days, to be restored
+			await bin.AddAsync(characterClass, "class", ContentAccess.GetUserId(User) ?? string.Empty, characterClass.Id);
 			_context.ClassFeatures.RemoveRange(characterClass.Features.Concat(characterClass.Subclasses.SelectMany(s => s.Features)));
 			_context.Classes.Remove(characterClass);
 			await _context.SaveChangesAsync();
