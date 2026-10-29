@@ -840,7 +840,6 @@ try {
     return `${img.naturalWidth}x${img.naturalHeight}`;
   }, portraitStyle ?? '');
   await shot(page, 'sheet-hero', '.rf-hero');
-  await shot(page, 'sheet-xp', '[data-test=sheet-hp-box]');
   results.push(`INFO portrait: crop ${cropStyle?.match(/background-position:[^;]+/)?.[0]}, saved ${portraitSize}`);
   if (!/background-position: [0-9]+% 50%/.test(cropStyle ?? '') || /background-position: 50% 50%/.test(cropStyle ?? '') || portraitSize !== '320x320') throw new Error(`portrait crop: ${cropStyle} -> ${portraitSize}`);
   ok('portrait: a new picture opens the crop (drag and zoom), the sheet keeps the 320 px square; inspiration star and label aligned');
@@ -1076,7 +1075,7 @@ try {
   for (let guard = 0; guard < 6 && await page.locator('[data-test=wizard-forge]').count() === 0; guard++) await next();
   await page.locator('[data-test=wizard-forge]').click();
   await page.locator('[data-test=character-sheet]').waitFor({ timeout: 30000 });
-  const classes = (await page.locator('[data-test=sheet-classes]').innerText()).trim();
+  const classes = (await page.locator('[data-test=sheet-classes]').innerText()).replace(/\s+/g, ' ').trim();
   const levelUpHp = (await page.locator('[data-test=sheet-hp]').innerText()).trim();
   await page.goto(`${base}/characters`);
   const characterCard = (await page.locator('[data-test=character-card]', { hasText: 'Eroe di prova' }).innerText({ timeout: 30000 })).replace(/\s+/g, ' ');
