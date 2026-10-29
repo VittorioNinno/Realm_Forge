@@ -1,4 +1,4 @@
-@using RealmForge.Client.Localization
+﻿@using RealmForge.Client.Localization
 @using RealmForge.Client.Services
 @using RealmForge.Shared.Enums
 @implements IDisposable
@@ -8,9 +8,9 @@
 <div class="rf-lang-select" data-test="lang-select" @onkeydown="HandleKeyDown">
     <button type="button" class="rf-lang-trigger" aria-haspopup="listbox" aria-expanded="@isOpen"
             title="@UiText.LabelLanguage(LanguageState.CurrentLanguage)" @onclick="() => isOpen = !isOpen">
-        <NavIcon Name="language" />
+        <Icon Name="language" Class="rf-nav-icon" />
         <span>@UiText.LanguageName(LanguageState.CurrentLanguage)</span>
-        <span class="rf-lang-chevron @(isOpen ? "open" : null)"><NavIcon Name="chevron" /></span>
+        <span class="rf-lang-chevron @(isOpen ? "open" : null)"><Icon Name="chevron" Class="rf-nav-icon" /></span>
     </button>
 
     @if (isOpen)
@@ -27,7 +27,7 @@
                     <span>@UiText.LanguageName(current)</span>
                     @if (selected)
                     {
-                        <NavIcon Name="check" />
+                        <Icon Name="check" Class="rf-nav-icon" />
                     }
                 </li>
             }

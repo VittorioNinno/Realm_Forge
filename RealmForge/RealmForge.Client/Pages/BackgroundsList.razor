@@ -158,7 +158,7 @@
                         <RealmForge.Client.Components.ContentBadge IsBase="SelectedBackground.IsOfficialSRD" Source="SelectedBackground.Source" Visibility="SelectedBackground.Visibility" ShowSource="true" />
                     </div>
                 </div>
-                <button class="btn btn-sm btn-rf-outline" @onclick="CloseDetail">✕</button>
+                <button class="btn btn-sm btn-rf-outline" @onclick="CloseDetail"><Icon Name="close" /></button>
             </div>
 
             @if (!SelectedBackground.IsOfficialSRD)
@@ -186,7 +186,7 @@
                                 <span style="color: var(--rf-text-secondary);"> (@SelectedBackground.OriginFeatNote)</span>
                             }
                         </span>
-                        <a class="ms-2 small" href="@($"feats?id={featId}")">@UiText.BtnOpenFeat(LanguageState.CurrentLanguage)</a>
+                        <a class="ms-2 small" href="@($"feats?id={featId}")">@UiText.BtnOpenFeat(LanguageState.CurrentLanguage) <Icon Name="right" /></a>
                     </div>
                 }
                 @if (!string.IsNullOrWhiteSpace(SelectedBackground.ToolProficiencies))

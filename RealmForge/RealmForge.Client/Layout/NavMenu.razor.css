@@ -11,30 +11,30 @@
     font-size: 1.1rem;
 }
 
-/* Inline SVG icons (NavIcon): fixed box so every label starts at the same x */
+/* Inline SVG icons (Icon): fixed box so every label starts at the same x */
 ::deep .rf-nav-icon {
     flex: 0 0 1.1rem;
     width: 1.1rem;
     height: 1.1rem;
-    margin-right: 0.75rem;
+    margin-right: 16px;
 }
 
 .nav-item {
     font-size: 0.9rem;
-    padding-bottom: 0.5rem;
+    padding-bottom: 8px;
 }
 
     .nav-item:first-of-type {
-        padding-top: 1rem;
+        padding-top: 16px;
     }
 
     .nav-item:last-of-type {
-        padding-bottom: 1rem;
+        padding-bottom: 16px;
     }
 
     .nav-item ::deep a {
         /* Explicit padding: Bootstrap's .nav-link reads it from variables defined only inside .nav */
-        padding: 0 1rem;
+        padding: 0 16px;
         color: #d7d7d7;
         border-radius: 4px;
         height: 3rem;
@@ -75,8 +75,8 @@
 /* Collapsible "Compendium" section */
 /* Reference section (glossary and compendium) under a thin separator */
 .rf-nav-reference {
-    margin-top: 0.5rem;
-    padding-top: 0.75rem;
+    margin-top: 8px;
+    padding-top: 16px;
     border-top: 1px solid rgba(255, 255, 255, 0.08);
 }
 
@@ -89,7 +89,7 @@
     align-items: center;
     width: 100%;
     height: 2.5rem;
-    padding: 0 1rem;
+    padding: 0 16px;
     border: 0;
     border-radius: 4px;
     background: transparent;
@@ -123,12 +123,12 @@
 .rf-nav-group-items {
     display: flex;
     flex-direction: column;
-    gap: 0.25rem;
-    padding: 0.25rem 0 1rem 0;
+    gap: 4px;
+    padding: 4px 0 16px 0;
 }
 
     .rf-nav-group-items ::deep a {
-        padding: 0 1rem;
+        padding: 0 16px;
         color: #d7d7d7;
         border-radius: 4px;
         height: 2.5rem;

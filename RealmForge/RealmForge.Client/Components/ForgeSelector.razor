@@ -6,11 +6,11 @@
 @* Arrow selector of the character wizard: ‹ value ›. The arrows cycle through the options, the value opens the full list. *@
 <div class="rf-forge-selector" data-test="@DataTest" @onclick:stopPropagation="true">
     <button type="button" class="rf-forge-selector-btn" aria-label="‹" disabled="@ArrowsDisabled" @onclick="() => Step(-1)" data-test="selector-prev">
-        <svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6" /></svg>
+        <Icon Name="chevron-left" />
     </button>
     <button type="button" class="rf-forge-selector-display @(HasValue ? null : "placeholder")" @onclick="() => open = !open" data-test="selector-value">@(HasValue ? CurrentLabel : Placeholder ?? UiText.SelectorPlaceholder(LanguageState.CurrentLanguage))</button>
     <button type="button" class="rf-forge-selector-btn" aria-label="›" disabled="@ArrowsDisabled" @onclick="() => Step(1)" data-test="selector-next">
-        <svg viewBox="0 0 24 24"><path d="M9 18l6-6-6-6" /></svg>
+        <Icon Name="chevron-right" />
     </button>
 
     @if (open && Options.Count > 0)

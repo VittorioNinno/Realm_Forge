@@ -23,7 +23,7 @@
                         <h2 class="h4 mb-1" style="color: var(--rf-orange-primary); font-family: var(--rf-font-display);">@spell.Name</h2>
                         <div class="fst-italic small" style="color: var(--rf-text-secondary);">@GameTerms.SpellSubtitle(spell.Level, spell.School, spell.Ritual, Lang, spell.Ruleset)</div>
                     </div>
-                    <button class="btn btn-sm btn-rf-outline" @onclick="CloseAsync" aria-label="@UiText.BtnClose(Lang)" data-test="spell-detail-close">✕</button>
+                    <button class="btn btn-sm btn-rf-outline" @onclick="CloseAsync" aria-label="@UiText.BtnClose(Lang)" data-test="spell-detail-close"><Icon Name="close" /></button>
                 </div>
                 @Actions
                 <dl class="rf-spell-stats mb-3">
@@ -40,7 +40,7 @@
                         <div class="rf-markdown-container">@((MarkupString)MarkdownText.ToHtml(spell.HigherLevels, Glossary.Linker(Lang, spell.Ruleset)))</div>
                     </div>
                 }
-                <a href="@($"spells?id={spell.Id}")" target="_blank" rel="noopener" class="small">@UiText.OpenInCompendium(Lang)</a>
+                <a href="@($"spells?id={spell.Id}")" target="_blank" rel="noopener" class="small">@UiText.OpenInCompendium(Lang) <Icon Name="external" /></a>
             }
         </div>
     </div>

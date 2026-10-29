@@ -60,7 +60,7 @@
                             @UiText.EncounterMonsterCount(e.Monsters, Lang)@(EncounterRules.CanManage(Campaign.MyRole) ? $" · {e.MonsterXp} {UiText.XpLabel(Lang)}" : null)
                             @if (e.Shown)
                             {
-                                <text> · 👁 @UiText.EncounterShownShort(Lang)</text>
+                                <text> · <Icon Name="eye" /> @UiText.EncounterShownShort(Lang)</text>
                             }
                         </span>
                     </button>

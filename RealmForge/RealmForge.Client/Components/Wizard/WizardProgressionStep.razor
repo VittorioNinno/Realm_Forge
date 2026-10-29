@@ -105,11 +105,11 @@
         <div class="flex-grow-1" style="min-width: 200px;">
             <ForgeSelector TValue="Guid" Value="NextClassId" ValueChanged="v => nextClassId = v" Options="ClassOptions" DataTest="wizard-next-class" />
         </div>
-        <button type="button" class="rf-wizard-btn" style="flex: none; padding: 0 1.2rem;" @onclick="() => W.AddLevel(NextClassId)" data-test="wizard-add-level">@UiText.BtnAddLevel(Lang)</button>
+        <button type="button" class="rf-wizard-btn" style="flex: none; padding: 0 16px;" @onclick="() => W.AddLevel(NextClassId)" data-test="wizard-add-level">@UiText.BtnAddLevel(Lang)</button>
     }
     @if (Build.Levels.Count > MinimumLevels)
     {
-        <button type="button" class="rf-wizard-btn secondary" style="flex: none; padding: 0 1.2rem;" @onclick="W.RemoveLastLevel" data-test="wizard-remove-level">@UiText.BtnRemoveLevel(Lang)</button>
+        <button type="button" class="rf-wizard-btn secondary" style="flex: none; padding: 0 16px;" @onclick="W.RemoveLastLevel" data-test="wizard-remove-level">@UiText.BtnRemoveLevel(Lang)</button>
     }
 </div>
 @if (NextClass is { } next && !CharacterRules.MeetsMulticlassPrerequisite(next, Computed.FinalScores) && Build.Levels.All(l => l.ClassId != next.Id))

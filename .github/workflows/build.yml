@@ -888,6 +888,17 @@ jobs:
           npx playwright install --with-deps chromium >/dev/null
           node smoke.mjs
 
+      - name: Keep the screenshots of the smoke test
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ui-shots
+          path: |
+            .github/ui-smoke/shots/
+            .github/ui-smoke/ui-failure.png
+          retention-days: 7
+          if-no-files-found: ignore
+
   # The API image as Render builds it: Production environment, PORT from the platform, a postgresql:// URL as on Neon,
   # migrations at startup, health check, data protection keys stored in the database, and a client publish.
   # The allowed origin is given with a trailing slash on purpose: it must still match the browser's Origin header

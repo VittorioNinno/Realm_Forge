@@ -6,9 +6,9 @@
 @inject CampaignDataService Campaigns
 @inject LanguageStateService LanguageState
 
-@* Notes of a campaign: private ones, the masters' (only masters and co-masters) and the party's travel journal *@
+@* Notes of a campaign: personal ones, the masters' (only masters and co-masters) and the party's travel journal *@
 <section data-test="campaign-notes">
-    <div class="rf-pill-group mb-2" role="tablist">
+    <div class="rf-pill-group rf-subtabs mb-2" role="tablist" data-test="campaign-notes-kinds">
         @foreach (var kind in Kinds)
         {
             var current = kind;

@@ -133,37 +133,6 @@ namespace RealmForge.Client.Pages
 
 		// ===== Portrait and personal details =====
 
-		private async Task UploadPortraitAsync(InputFileChangeEventArgs e)
-		{
-			portraitError = null;
-			try
-			{
-				//	Resized in the browser to a small square-ish JPEG before it is read
-				var image = await e.File.RequestImageFileAsync("image/jpeg", 320, 320);
-				await using var stream = image.OpenReadStream(maxAllowedSize: 1_000_000);
-				using var memory = new MemoryStream();
-				await stream.CopyToAsync(memory);
-				var url = $"data:image/jpeg;base64,{Convert.ToBase64String(memory.ToArray())}";
-				if (url.Length > 400_000)
-				{
-					portraitError = UiText.PortraitTooLarge(Lang);
-					return;
-				}
-				Sheet.Portrait = url;
-				Changed();
-			}
-			catch (Exception)
-			{
-				portraitError = UiText.PortraitTooLarge(Lang);
-			}
-		}
-
-		private void RemovePortrait()
-		{
-			Sheet.Portrait = null;
-			Changed();
-		}
-
 		private void SetBio(Action<string?> set, ChangeEventArgs e) => SetText(set, e);
 
 		// ===== Hit points bar =====
