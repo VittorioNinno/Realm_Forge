@@ -48,6 +48,9 @@ namespace RealmForge.Client.Services
 				//	An encounter saved meanwhile by another master is reloaded by its page, not an error
 				case HttpStatusCode.Conflict when request.RequestUri?.AbsolutePath.Contains("/encounters") == true:
 					break;
+				//	An entry of the bin that cannot come back: the bin page explains why
+				case HttpStatusCode.Conflict when request.RequestUri?.AbsolutePath.Contains("/api/trash") == true:
+					break;
 				case HttpStatusCode.BadRequest:
 				case HttpStatusCode.Conflict:
 					_state.Report(ApiErrorKind.Validation);

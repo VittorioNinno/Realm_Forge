@@ -1,0 +1,159 @@
+﻿@page "/trash"
+@using RealmForge.Client.Localization
+@using RealmForge.Client.Services
+@using RealmForge.Shared.DTOs
+@using RealmForge.Shared.Enums
+@implements IDisposable
+@inject TrashDataService Bin
+@inject LanguageStateService LanguageState
+
+<PageTitle>RealmForge - @UiText.TrashTitle(Lang)</PageTitle>
+
+<div class="container-fluid px-0 py-4" style="max-width: 760px;" data-test="trash-page">
+    <div class="mb-4 pb-3" style="border-bottom: 2px solid var(--rf-orange-primary);">
+        <h1 class="h3 fw-bold mb-2 rf-page-title">@UiText.TrashTitle(Lang)</h1>
+        <p class="mb-0 small" style="color: var(--rf-text-muted); letter-spacing: 1px; text-transform: uppercase;">@UiText.TrashSubtitle(Lang)</p>
+    </div>
+
+    <AuthorizeView>
+        <Authorized>
+            @if (message is not null)
+            {
+                <div class="rf-trash-message @(messageOk ? "ok" : "error")" role="status" data-test="trash-message">
+                    <Icon Name="@(messageOk ? "check" : "close")" />
+                    <span>@message</span>
+                    @if (messageLink is not null)
+                    {
+                        <a href="@messageLink" class="ms-auto">@UiText.BtnOpenRestored(Lang) <Icon Name="right" /></a>
+                    }
+                </div>
+            }
+            @if (entries is null)
+            {
+                <div class="small" style="color: var(--rf-text-muted);">@UiText.TrashLoading(Lang)</div>
+            }
+            else if (entries.Count == 0)
+            {
+                <div class="rf-account-card text-center" data-test="trash-empty">
+                    <Icon Name="trash" Class="rf-icon rf-trash-empty-icon" />
+                    <p class="mb-0" style="color: var(--rf-text-secondary);">@UiText.TrashEmpty(Lang)</p>
+                </div>
+            }
+            else
+            {
+                <ul class="rf-trash-list" data-test="trash-list">
+                    @foreach (var entry in entries)
+                    {
+                        var e = entry;
+                        <li class="rf-trash-row" data-test="trash-entry">
+                            <div class="rf-trash-info">
+                                <span class="rf-trash-kind">@UiText.TrashKind(e.Kind, Lang)</span>
+                                <span class="rf-trash-name" data-test="trash-name">@e.Name</span>
+                                <span class="rf-trash-when">@UiText.TrashDeletedOn(e.DeletedAt, Lang) · @UiText.TrashExpiresIn(e.ExpiresAt, Lang)</span>
+                            </div>
+                            <div class="rf-trash-actions">
+                                <button type="button" class="btn btn-sm btn-rf-orange" disabled="@(busy is not null)" @onclick="() => RestoreAsync(e)" data-test="trash-restore">
+                                    <Icon Name="refresh" /> @UiText.BtnRestore(Lang)
+                                </button>
+                                @if (confirming == e.Id)
+                                {
+                                    <button type="button" class="btn btn-sm btn-rf-outline rf-trash-danger" disabled="@(busy is not null)" @onclick="() => PurgeAsync(e)" data-test="trash-purge-confirm">
+                                        <Icon Name="trash" /> @UiText.BtnDeleteForever(Lang)
+                                    </button>
+                                    <button type="button" class="btn btn-sm btn-rf-outline" @onclick="() => confirming = null">@UiText.BtnCancel(Lang)</button>
+                                }
+                                else
+                                {
+                                    <button type="button" class="btn btn-sm btn-rf-outline" disabled="@(busy is not null)" title="@UiText.BtnDeleteForever(Lang)" aria-label="@UiText.BtnDeleteForever(Lang)" @onclick="() => confirming = e.Id" data-test="trash-purge">
+                                        <Icon Name="trash" />
+                                    </button>
+                                }
+                            </div>
+                        </li>
+                    }
+                </ul>
+            }
+        </Authorized>
+        <NotAuthorized>
+            <div class="rf-account-card text-center">
+                <a href="account" class="btn btn-rf-orange">@UiText.BtnLoginToForge(Lang)</a>
+            </div>
+        </NotAuthorized>
+    </AuthorizeView>
+</div>
+
+@code {
+    [CascadingParameter] private Task<AuthenticationState>? AuthState { get; set; }
+
+    private List<TrashEntryDto>? entries;
+    private Guid? busy;
+    private Guid? confirming;
+    private string? message;
+    private bool messageOk;
+    private string? messageLink;
+
+    private LanguageCode Lang => LanguageState.CurrentLanguage;
+
+    protected override async Task OnInitializedAsync()
+    {
+        LanguageState.OnLanguageChanged += OnLanguageChanged;
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        var state = AuthState is null ? null : await AuthState;
+        if (state?.User.Identity?.IsAuthenticated != true)
+        {
+            return;
+        }
+        entries = await Bin.GetAsync(Lang) ?? new List<TrashEntryDto>();
+    }
+
+    private async Task RestoreAsync(TrashEntryDto entry)
+    {
+        busy = entry.Id;
+        message = null;
+        messageLink = null;
+        var result = await Bin.RestoreAsync(entry.Id, Lang);
+        busy = null;
+        if (result.Restored is { } restored)
+        {
+            entries?.Remove(entry);
+            messageOk = true;
+            message = UiText.TrashRestored(entry.Name, Lang);
+            messageLink = string.IsNullOrEmpty(restored.Link) ? null : restored.Link;
+            return;
+        }
+        messageOk = false;
+        message = result.Status == System.Net.HttpStatusCode.Conflict ? UiText.TrashRestoreMissing(result.MissingKind, Lang) : UiText.TrashActionFailed(Lang);
+        if (result.Status == System.Net.HttpStatusCode.NotFound)
+        {
+            await LoadAsync();
+        }
+    }
+
+    private async Task PurgeAsync(TrashEntryDto entry)
+    {
+        busy = entry.Id;
+        message = null;
+        var ok = await Bin.PurgeAsync(entry.Id);
+        busy = null;
+        confirming = null;
+        if (ok)
+        {
+            entries?.Remove(entry);
+            return;
+        }
+        messageOk = false;
+        message = UiText.TrashActionFailed(Lang);
+    }
+
+    private void OnLanguageChanged() => _ = InvokeAsync(async () =>
+    {
+        await LoadAsync();
+        StateHasChanged();
+    });
+
+    public void Dispose() => LanguageState.OnLanguageChanged -= OnLanguageChanged;
+}

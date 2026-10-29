@@ -196,7 +196,7 @@
                                 var ch = e.Character;
                                 @* The card opens the sheet; edit, deactivate and remove only for the owner, the master and the co-masters *@
                                 <CharacterCard Character="ch" Href="@(e.CanOpen ? $"characters/{ch.Id}" : null)" Shared="!e.IsMine" Inactive="!e.Active"
-                                               Note="@UiText.CampaignPlayedBy(e.IsMine ? UiText.CampaignYou(Lang) : e.OwnerName, Lang)" DataTest="campaign-character"
+                                               Owner="@(e.IsMine ? UiText.CharacterYours(Lang) : UiText.CharacterOf(e.OwnerName, Lang))" DataTest="campaign-character"
                                                Actions="@(e.CanRemove ? CampaignCharacterActions(e) : null)" />
                             }
                         </div>

@@ -183,8 +183,8 @@ namespace RealmForge.Client.Localization
 		public static string BtnOpenFeat(LanguageCode lang) => lang == LanguageCode.It ? "Apri talento" : "Open feat";
 		public static string NoOriginFeat(LanguageCode lang) => lang == LanguageCode.It ? "Nessuno" : "None";
 		public static string DeleteBackgroundWarning(LanguageCode lang, string name) => lang == LanguageCode.It
-			? $"Eliminare definitivamente il background \"{name}\"? L'operazione non può essere annullata."
-			: $"Permanently delete the background \"{name}\"? This cannot be undone.";
+			? $"Eliminare il background \"{name}\"? Potrai recuperarlo dal cestino per 3 giorni."
+			: $"Delete the background \"{name}\"? You can restore it from the bin for 3 days.";
 		public static string ErrDeleteBackground(LanguageCode lang) => lang == LanguageCode.It ? "Errore durante l'eliminazione del background." : "Failed to delete background.";
 		#endregion
 
@@ -498,8 +498,8 @@ namespace RealmForge.Client.Localization
 
 		public static string DeleteFeatWarning(LanguageCode lang, string featName) =>
 			lang == LanguageCode.It
-				? $"Sei sicuro di voler eliminare il talento '{featName}'? L'azione è irreversibile."
-				: $"Are you sure you want to delete the feat '{featName}'? This action cannot be undone.";
+				? $"Sei sicuro di voler eliminare il talento '{featName}'? Potrai recuperarlo dal cestino per 3 giorni."
+				: $"Are you sure you want to delete the feat '{featName}'? You can restore it from the bin for 3 days.";
 
 		public static string ErrDeleteFeat(LanguageCode lang) => lang == LanguageCode.It ? "Errore durante l'eliminazione del talento." : "Failed to delete feat.";
 
@@ -564,8 +564,8 @@ namespace RealmForge.Client.Localization
 			: "Fill in casting time, range and duration in both languages.";
 		public static string DeleteSpellWarning(LanguageCode lang, string spellName) =>
 			lang == LanguageCode.It
-				? $"Vuoi eliminare definitivamente l'incantesimo \"{spellName}\"? L'operazione non può essere annullata."
-				: $"Do you want to permanently delete the spell \"{spellName}\"? This cannot be undone.";
+				? $"Vuoi eliminare l'incantesimo \"{spellName}\"? Potrai recuperarlo dal cestino per 3 giorni."
+				: $"Do you want to delete the spell \"{spellName}\"? You can restore it from the bin for 3 days.";
 		public static string ErrDeleteSpell(LanguageCode lang) => lang == LanguageCode.It ? "Errore durante l'eliminazione dell'incantesimo." : "Failed to delete spell.";
 		#endregion
 
@@ -656,8 +656,8 @@ namespace RealmForge.Client.Localization
 			: "Check the statistics: a weapon needs damage dice (e.g. 1d8) and a damage type, ranged or thrown weapons a range, armor its AC.";
 		public static string DeleteEquipmentWarning(LanguageCode lang, string name) =>
 			lang == LanguageCode.It
-				? $"Vuoi eliminare definitivamente l'oggetto \"{name}\"? L'operazione non può essere annullata."
-				: $"Do you want to permanently delete the item \"{name}\"? This cannot be undone.";
+				? $"Vuoi eliminare l'oggetto \"{name}\"? Potrai recuperarlo dal cestino per 3 giorni."
+				: $"Do you want to delete the item \"{name}\"? You can restore it from the bin for 3 days.";
 		public static string ErrDeleteEquipment(LanguageCode lang) => lang == LanguageCode.It ? "Errore durante l'eliminazione dell'oggetto." : "Failed to delete item.";
 		#endregion
 
@@ -746,10 +746,10 @@ namespace RealmForge.Client.Localization
 		public static string ErrDeleteClass(LanguageCode lang) => lang == LanguageCode.It ? "Errore durante l'eliminazione." : "Failed to delete.";
 		public static string DeleteClassWarning(LanguageCode lang, string name, bool isSubclass) => (lang == LanguageCode.It, isSubclass) switch
 		{
-			(true, true) => $"Vuoi eliminare definitivamente la sottoclasse \"{name}\" e i suoi privilegi? L'operazione non può essere annullata.",
-			(true, false) => $"Vuoi eliminare definitivamente la classe \"{name}\", con i suoi privilegi e le sue sottoclassi? L'operazione non può essere annullata.",
-			(false, true) => $"Do you want to permanently delete the subclass \"{name}\" and its features? This cannot be undone.",
-			_ => $"Do you want to permanently delete the class \"{name}\", with its features and subclasses? This cannot be undone."
+			(true, true) => $"Vuoi eliminare la sottoclasse \"{name}\" e i suoi privilegi? Potrai recuperarla dal cestino per 3 giorni.",
+			(true, false) => $"Vuoi eliminare la classe \"{name}\", con i suoi privilegi e le sue sottoclassi? Potrai recuperarla dal cestino per 3 giorni.",
+			(false, true) => $"Do you want to delete the subclass \"{name}\" and its features? You can restore it from the bin for 3 days.",
+			_ => $"Do you want to delete the class \"{name}\", with its features and subclasses? You can restore it from the bin for 3 days."
 		};
 		#endregion
 
@@ -844,8 +844,8 @@ namespace RealmForge.Client.Localization
 
 		public static string DeleteSpeciesWarning(LanguageCode lang, string speciesName) =>
 			lang == LanguageCode.It
-				? $"Sei sicuro di voler eliminare la specie '{speciesName}'? L'azione è irreversibile."
-				: $"Are you sure you want to delete the species '{speciesName}'? This action cannot be undone.";
+				? $"Sei sicuro di voler eliminare la specie '{speciesName}'? Potrai recuperarla dal cestino per 3 giorni."
+				: $"Are you sure you want to delete the species '{speciesName}'? You can restore it from the bin for 3 days.";
 
 		public static string LabelSelectSubspecies(LanguageCode lang) => lang == LanguageCode.It ? "Sottospecie / Lignaggio:" : "Subspecies / Lineage:";
 		public static string OptionBaseSpeciesOnly(LanguageCode lang) => lang == LanguageCode.It ? "Specie Base" : "Base Species";
@@ -933,8 +933,8 @@ namespace RealmForge.Client.Localization
 		public static string LabelSpeedOverride(LanguageCode lang) => lang == LanguageCode.It ? "Override Velocità (Opzionale)" : "Speed Override (Optional)";
 
 		public static string DeleteSubspeciesWarning(LanguageCode lang, string name) => lang == LanguageCode.It
-			? $"Sei sicuro di voler eliminare la sottospecie '{name}'? L'azione è irreversibile."
-			: $"Are you sure you want to delete the subspecies '{name}'? This action cannot be undone.";
+			? $"Sei sicuro di voler eliminare la sottospecie '{name}'? Potrai recuperarla dal cestino per 3 giorni."
+			: $"Are you sure you want to delete the subspecies '{name}'? You can restore it from the bin for 3 days.";
 
 		public static string InheritedFromParent(LanguageCode lang) => lang == LanguageCode.It ? "Ereditato dalla Specie" : "Inherited from Species";
 		#endregion
