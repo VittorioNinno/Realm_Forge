@@ -114,7 +114,7 @@ namespace RealmForge.Api.Controllers
 				.OrderByDescending(c => c.UpdatedAt)
 				.ToListAsync();
 			var ownerIds = characters.Select(c => c.OwnerId).Distinct().ToList();
-			var owners = await _context.Users.AsNoTracking().Where(u => ownerIds.Contains(u.Id)).ToDictionaryAsync(u => u.Id, u => u.Email ?? string.Empty);
+			var owners = await PublicNames.LoadAsync(_context, ownerIds);
 			var summaries = await SummariesAsync(characters, lang);
 			return Ok(summaries.Select((summary, i) => new SharedCharacterDto(summary, owners.GetValueOrDefault(characters[i].OwnerId, string.Empty))).ToList());
 		}
@@ -222,14 +222,18 @@ namespace RealmForge.Api.Controllers
 			var isOwner = character.OwnerId == UserId;
 			var canEdit = isOwner || await RunByMe.ContainsAsync(character.Id);
 			var people = new[] { character.OwnerId, character.UpdatedById }.OfType<string>().Distinct().ToList();
-			var emails = await _context.Users.AsNoTracking().Where(u => people.Contains(u.Id)).ToDictionaryAsync(u => u.Id, u => u.Email ?? string.Empty);
+			var names = await PublicNames.LoadAsync(_context, people);
+			var campaigns = canEdit
+				? await _context.CampaignCharacters.AsNoTracking().Where(cc => cc.CharacterId == character.Id).Select(cc => cc.CampaignId).ToListAsync()
+				: null;
 			return Ok(ToDto(character) with
 			{
 				ReadOnly = !canEdit,
 				IsOwner = isOwner,
-				OwnerEmail = isOwner ? null : emails.GetValueOrDefault(character.OwnerId),
+				OwnerName = isOwner ? null : names.GetValueOrDefault(character.OwnerId),
 				//	Shown when the last change was made by someone else (the owner after a master, a master after the owner)
-				LastEditedBy = character.UpdatedById is { } editor && editor != UserId ? emails.GetValueOrDefault(editor) : null
+				LastEditedBy = character.UpdatedById is { } editor && editor != UserId ? names.GetValueOrDefault(editor) : null,
+				Campaigns = campaigns
 			});
 		}
 
@@ -521,6 +525,8 @@ namespace RealmForge.Api.Controllers
 				.ToDictionary(l => l.Key, l => Clamp(l.Value, 0, 20));
 			sheet.Experience = Clamp(sheet.Experience, 0, 10_000_000);
 			sheet.Portrait = sheet.Portrait is { Length: <= MaxPortraitLength } portrait && portrait.StartsWith("data:image/", StringComparison.Ordinal) ? portrait : null;
+			sheet.PortraitX = sheet.PortraitX is { } px ? Math.Clamp(px, 0, 100) : null;
+			sheet.PortraitY = sheet.PortraitY is { } py ? Math.Clamp(py, 0, 100) : null;
 			sheet.Age = Text(sheet.Age, 40);
 			sheet.Gender = Text(sheet.Gender, 40);
 			sheet.Faith = Text(sheet.Faith, 80);

@@ -6032,3 +6032,128 @@ button.rf-stat-card {
     color: var(--rf-text-secondary);
     font-size: 0.9rem;
 }
+
+.rf-campaign-issues {
+    margin-top: 0.75rem;
+    padding: 0.75rem 1rem;
+    border: 1px solid #dc3545;
+    border-radius: 6px;
+    background-color: rgba(220, 53, 69, 0.08);
+    color: var(--rf-text-secondary);
+    font-size: 0.9rem;
+}
+
+    .rf-campaign-issues strong { color: #f08a87; }
+
+    .rf-campaign-issues li + li { margin-top: 0.25rem; }
+
+.rf-campaign-note {
+    padding: 0.75rem 0;
+    border-bottom: 1px solid var(--rf-border-subtle);
+}
+
+    .rf-campaign-note:last-child { border-bottom: 0; }
+
+.rf-campaign-note-head {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 0.5rem;
+}
+
+.rf-campaign-note-title { font-weight: 600; color: var(--rf-text-primary); }
+
+.rf-campaign-note-meta { font-size: 0.8rem; color: var(--rf-text-muted); }
+
+/* ===== Sheet: identity card with room to breathe, square portrait the player can frame ===== */
+.rf-hero-top {
+    gap: 20px;
+    align-items: flex-start;
+}
+
+.rf-hero-portrait {
+    flex: 0 0 140px;
+    width: 140px;
+    height: 140px;
+    aspect-ratio: 1 / 1;
+    background-position: 50% 50%;
+    background-repeat: no-repeat;
+    touch-action: none;
+    user-select: none;
+}
+
+    .rf-hero-portrait:not(.empty) {
+        cursor: grab;
+    }
+
+    .rf-hero-portrait.panning {
+        cursor: grabbing;
+        border-color: var(--rf-orange-primary);
+    }
+
+    .rf-hero-portrait:focus-visible {
+        outline: 2px solid var(--rf-orange-primary);
+        outline-offset: 2px;
+    }
+
+.rf-hero-info {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding-top: 2px;
+}
+
+.rf-hero-nameline {
+    gap: 8px 16px;
+}
+
+    .rf-hero-nameline .rf-sheet-name {
+        line-height: 1.1;
+    }
+
+.rf-hero-inspiration {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    height: 32px;
+    padding: 0 14px 0 10px;
+    gap: 8px;
+    line-height: 1;
+}
+
+    .rf-hero-inspiration svg {
+        display: block;
+        flex: none;
+    }
+
+    .rf-hero-inspiration span {
+        display: block;
+        line-height: 1;
+        padding-top: 1px;
+    }
+
+.rf-hero-origin {
+    line-height: 1.4;
+}
+
+.rf-hero-classline {
+    gap: 8px 14px;
+    margin-top: 0;
+}
+
+.rf-levelup-pill {
+    padding: 4px 12px 4px 8px;
+}
+
+.rf-hero-bio {
+    margin-top: 4px;
+    gap: 12px 20px;
+}
+
+@media (max-width: 480px) {
+    .rf-hero-portrait {
+        flex-basis: auto;
+        width: 140px;
+    }
+}

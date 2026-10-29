@@ -11,6 +11,7 @@ using RealmForge.Infrastructure.Persistence;
 using RealmForge.Shared.Campaigns;
 using RealmForge.Shared.DTOs;
 using RealmForge.Shared.Enums;
+using RealmForge.Shared.Text;
 
 namespace RealmForge.Api.Controllers
 {
@@ -34,12 +35,16 @@ namespace RealmForge.Api.Controllers
 		private readonly RealmForgeDbContext _context;
 		private readonly UserManager<ApplicationUser> _users;
 		private readonly HomebrewLookup _homebrew;
+		private readonly CampaignCharacterCheck _check;
 
-		public CampaignsController(RealmForgeDbContext context, UserManager<ApplicationUser> users, HomebrewLookup homebrew)
+		public const int MaxNotes = 500;
+
+		public CampaignsController(RealmForgeDbContext context, UserManager<ApplicationUser> users, HomebrewLookup homebrew, CampaignCharacterCheck check)
 		{
 			_context = context;
 			_users = users;
 			_homebrew = homebrew;
+			_check = check;
 		}
 
 		private string UserId => ContentAccess.GetUserId(User) ?? string.Empty;
@@ -163,7 +168,7 @@ namespace RealmForge.Api.Controllers
 				.Where(i => i.UserId == UserId)
 				.Select(i => new { i.Id, i.CampaignId, i.Campaign.Name, i.Role, i.InvitedById, i.CreatedAt })
 				.ToListAsync();
-			var emails = await EmailsAsync(rows.Select(r => r.InvitedById));
+			var emails = await NamesAsync(rows.Select(r => r.InvitedById));
 			return Ok(rows.Select(r => new CampaignInvitationDto(r.Id, r.CampaignId, r.Name, r.Role, emails.GetValueOrDefault(r.InvitedById, string.Empty), r.CreatedAt))
 				.OrderByDescending(r => r.CreatedAt).ToList());
 		}
@@ -211,8 +216,9 @@ namespace RealmForge.Api.Controllers
 			invite.InvitedById = UserId;
 			invite.CreatedAt = DateTimeOffset.UtcNow;
 			await _context.SaveChangesAsync();
-			var inviter = (await EmailsAsync(new[] { UserId })).GetValueOrDefault(UserId, string.Empty);
-			return Ok(new CampaignPendingInviteDto(invite.Id, target.Email ?? string.Empty, invite.Role, inviter, invite.CreatedAt));
+			var inviter = (await NamesAsync(new[] { UserId })).GetValueOrDefault(UserId, string.Empty);
+			var invited = Nicknames.Display(target.Nickname, target.Email);
+			return Ok(new CampaignPendingInviteDto(invite.Id, invited, invite.Role, inviter, invite.CreatedAt));
 		}
 
 		//	POST: api/campaigns/invitations/{inviteId}/accept
@@ -402,6 +408,9 @@ namespace RealmForge.Api.Controllers
 			_context.CampaignMembers.Remove(member);
 			_context.CampaignCharacters.RemoveRange(_context.CampaignCharacters.Where(c => c.CampaignId == id && c.Character.OwnerId == target));
 			_context.CampaignContents.RemoveRange(_context.CampaignContents.Where(c => c.CampaignId == id && c.SharedById == target && c.Status == CampaignContentStatus.Pending));
+
+			//	Their private notes go with them; what they wrote in the journal and in the masters' notes stays
+			_context.CampaignNotes.RemoveRange(_context.CampaignNotes.Where(n => n.CampaignId == id && n.AuthorId == target && n.Kind == CampaignNoteKind.Private));
 			campaign.UpdatedAt = DateTimeOffset.UtcNow;
 			await _context.SaveChangesAsync();
 			return NoContent();
@@ -409,9 +418,23 @@ namespace RealmForge.Api.Controllers
 
 		// ===== Characters =====
 
-		//	POST: api/campaigns/{id}/characters — a member brings one of their characters
+		//	GET: api/campaigns/{id}/characters/{characterId}/check — can this character of mine join? (and why not)
+		[HttpGet("{id:guid}/characters/{characterId:guid}/check")]
+		public async Task<ActionResult<CampaignCharacterCheckDto>> CheckCharacter(Guid id, Guid characterId, [FromQuery] LanguageCode lang = LanguageCode.It)
+		{
+			var (campaign, me) = await LoadAsync(id);
+			var character = await _context.Characters.AsNoTracking().FirstOrDefaultAsync(c => c.Id == characterId && c.OwnerId == UserId);
+			if (campaign is null || me is null || character is null)
+			{
+				return NotFound();
+			}
+			return Ok(await _check.CheckAsync(campaign, character, lang));
+		}
+
+		//	POST: api/campaigns/{id}/characters — a member brings one of their characters; 422 with the reasons when it
+		//	does not meet the campaign's requirements (edition, Homebrew the table cannot use)
 		[HttpPost("{id:guid}/characters")]
-		public async Task<IActionResult> AddCharacter(Guid id, [FromBody] CampaignCharacterRequestDto request)
+		public async Task<IActionResult> AddCharacter(Guid id, [FromBody] CampaignCharacterRequestDto request, [FromQuery] LanguageCode lang = LanguageCode.It)
 		{
 			var (campaign, me) = await LoadAsync(id);
 			if (campaign is null || me is null)
@@ -423,9 +446,10 @@ namespace RealmForge.Api.Controllers
 			{
 				return NotFound();
 			}
-			if (campaign.Ruleset is { } ruleset && character.Ruleset != ruleset)
+			var check = await _check.CheckAsync(campaign, character, lang);
+			if (!check.Ok)
 			{
-				return Problem(statusCode: StatusCodes.Status400BadRequest, title: "The character is of another edition than the campaign.");
+				return UnprocessableEntity(check);
 			}
 			if (!await _context.CampaignCharacters.AnyAsync(c => c.CampaignId == id && c.CharacterId == character.Id))
 			{
@@ -570,6 +594,131 @@ namespace RealmForge.Api.Controllers
 			return NoContent();
 		}
 
+		// ===== Notes =====
+
+		//	GET: api/campaigns/{id}/notes — the notes I can read: my private ones, the journal, the masters' (if I run the table)
+		[HttpGet("{id:guid}/notes")]
+		public async Task<ActionResult<List<CampaignNoteDto>>> GetNotes(Guid id)
+		{
+			var (campaign, me) = await LoadAsync(id);
+			if (campaign is null || me is null)
+			{
+				return NotFound();
+			}
+			var runs = CampaignRules.RunsTheTable(me.Role);
+			var notes = await _context.CampaignNotes.AsNoTracking()
+				.Where(n => n.CampaignId == id
+					&& ((n.Kind == CampaignNoteKind.Private && n.AuthorId == UserId) || n.Kind == CampaignNoteKind.Journal || (n.Kind == CampaignNoteKind.Masters && runs)))
+				.OrderByDescending(n => n.CreatedAt)
+				.ToListAsync();
+			var names = await NamesAsync(notes.Select(n => n.AuthorId));
+			var roles = campaign.Members.ToDictionary(m => m.UserId, m => m.Role);
+			return Ok(notes.Select(n => ToNoteDto(n, me.Role, names, roles)).ToList());
+		}
+
+		//	POST: api/campaigns/{id}/notes
+		[HttpPost("{id:guid}/notes")]
+		public async Task<ActionResult<CampaignNoteDto>> AddNote(Guid id, [FromBody] SaveCampaignNoteDto dto)
+		{
+			var (campaign, me) = await LoadAsync(id);
+			if (campaign is null || me is null)
+			{
+				return NotFound();
+			}
+			if (!Enum.IsDefined(dto.Kind) || !CampaignRules.CanWriteNotes(dto.Kind, me.Role))
+			{
+				return Forbid();
+			}
+			if (ValidateNote(dto) is { } error)
+			{
+				return error;
+			}
+			if (await _context.CampaignNotes.CountAsync(n => n.CampaignId == id) >= MaxNotes)
+			{
+				return Problem(statusCode: StatusCodes.Status400BadRequest, title: $"At most {MaxNotes} notes per campaign.");
+			}
+			var note = new CampaignNote { CampaignId = id, Kind = dto.Kind, AuthorId = UserId, Title = dto.Title.Trim(), Body = dto.Body.Trim() };
+			_context.CampaignNotes.Add(note);
+			if (note.Kind != CampaignNoteKind.Private)
+			{
+				campaign.UpdatedAt = DateTimeOffset.UtcNow;
+			}
+			await _context.SaveChangesAsync();
+			var names = await NamesAsync(new[] { UserId });
+			return Ok(ToNoteDto(note, me.Role, names, campaign.Members.ToDictionary(m => m.UserId, m => m.Role)));
+		}
+
+		//	PUT: api/campaigns/{id}/notes/{noteId} — the author changes title and text (the kind stays)
+		[HttpPut("{id:guid}/notes/{noteId:guid}")]
+		public async Task<IActionResult> UpdateNote(Guid id, Guid noteId, [FromBody] SaveCampaignNoteDto dto)
+		{
+			var (campaign, me) = await LoadAsync(id);
+			var note = await _context.CampaignNotes.FirstOrDefaultAsync(n => n.Id == noteId && n.CampaignId == id);
+			if (campaign is null || me is null || note is null || !CanSee(note, me.Role))
+			{
+				return NotFound();
+			}
+			if (!CampaignRules.CanEditNote(note.AuthorId == UserId) || !CampaignRules.CanWriteNotes(note.Kind, me.Role))
+			{
+				return Forbid();
+			}
+			if (ValidateNote(dto) is { } error)
+			{
+				return error;
+			}
+			note.Title = dto.Title.Trim();
+			note.Body = dto.Body.Trim();
+			note.UpdatedAt = DateTimeOffset.UtcNow;
+			await _context.SaveChangesAsync();
+			return NoContent();
+		}
+
+		//	DELETE: api/campaigns/{id}/notes/{noteId}
+		[HttpDelete("{id:guid}/notes/{noteId:guid}")]
+		public async Task<IActionResult> DeleteNote(Guid id, Guid noteId)
+		{
+			var (campaign, me) = await LoadAsync(id);
+			var note = await _context.CampaignNotes.FirstOrDefaultAsync(n => n.Id == noteId && n.CampaignId == id);
+			if (campaign is null || me is null || note is null || !CanSee(note, me.Role))
+			{
+				return NotFound();
+			}
+			var authorRole = campaign.Members.FirstOrDefault(m => m.UserId == note.AuthorId)?.Role;
+			if (!CampaignRules.CanDeleteNote(note.Kind, me.Role, note.AuthorId == UserId, authorRole))
+			{
+				return Forbid();
+			}
+			_context.CampaignNotes.Remove(note);
+			await _context.SaveChangesAsync();
+			return NoContent();
+		}
+
+		private bool CanSee(CampaignNote note, CampaignRole role) =>
+			note.Kind == CampaignNoteKind.Private ? note.AuthorId == UserId : CampaignRules.CanReadNotes(note.Kind, role);
+
+		private CampaignNoteDto ToNoteDto(CampaignNote n, CampaignRole myRole, Dictionary<string, string> names, Dictionary<string, CampaignRole> roles)
+		{
+			var mine = n.AuthorId == UserId;
+			var authorRole = roles.TryGetValue(n.AuthorId, out var role) ? role : (CampaignRole?)null;
+			return new CampaignNoteDto(n.Id, n.Kind, n.Title, n.Body, n.AuthorId, names.GetValueOrDefault(n.AuthorId, "•••"), mine,
+				n.CreatedAt, n.UpdatedAt, CampaignRules.CanEditNote(mine), CampaignRules.CanDeleteNote(n.Kind, myRole, mine, authorRole));
+		}
+
+		private ActionResult? ValidateNote(SaveCampaignNoteDto dto)
+		{
+			if (string.IsNullOrWhiteSpace(dto.Body) && string.IsNullOrWhiteSpace(dto.Title))
+			{
+				return Problem(statusCode: StatusCodes.Status400BadRequest, title: "An empty note.");
+			}
+			if ((dto.Title?.Trim().Length ?? 0) > 120 || (dto.Body?.Length ?? 0) > 8000)
+			{
+				return Problem(statusCode: StatusCodes.Status400BadRequest, title: "The note is too long.");
+			}
+			dto.Title ??= string.Empty;
+			dto.Body ??= string.Empty;
+			return null;
+		}
+
 		// ===== Helpers =====
 
 		private async Task<(Campaign? Campaign, CampaignMember? Me)> LoadAsync(Guid id)
@@ -597,11 +746,8 @@ namespace RealmForge.Api.Controllers
 			return string.IsNullOrEmpty(value) || value.Length > 32 ? null : await _context.Campaigns.FirstOrDefaultAsync(c => c.InviteCode == value);
 		}
 
-		private async Task<Dictionary<string, string>> EmailsAsync(IEnumerable<string> ids)
-		{
-			var list = ids.Distinct().ToList();
-			return await _context.Users.AsNoTracking().Where(u => list.Contains(u.Id)).ToDictionaryAsync(u => u.Id, u => u.Email ?? string.Empty);
-		}
+		//	Nicknames, never the e-mail addresses: other members see each other by name
+		private Task<Dictionary<string, string>> NamesAsync(IEnumerable<string> ids) => PublicNames.LoadAsync(_context, ids);
 
 		//	A link code that is hard to guess (72 random bits, URL safe)
 		private static string NewCode() => Convert.ToBase64String(RandomNumberGenerator.GetBytes(9)).Replace('+', '-').Replace('/', '_');
@@ -647,7 +793,7 @@ namespace RealmForge.Api.Controllers
 			var summaries = await CharactersController.SummariesAsync(_context, characters, lang);
 
 			var roles = campaign.Members.ToDictionary(m => m.UserId, m => m.Role);
-			var emails = await EmailsAsync(campaign.Members.Select(m => m.UserId)
+			var emails = await NamesAsync(campaign.Members.Select(m => m.UserId)
 				.Concat(campaign.Invites.SelectMany(i => new[] { i.UserId, i.InvitedById }))
 				.Concat(campaign.Contents.Select(c => c.SharedById))
 				.Concat(characters.Select(c => c.OwnerId)));

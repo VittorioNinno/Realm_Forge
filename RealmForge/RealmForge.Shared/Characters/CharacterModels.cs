@@ -163,6 +163,10 @@ public sealed class CharacterSheetState
 
 	//	Identity card of the sheet: portrait (a small data URL made in the browser) and personal details
 	public string? Portrait { get; set; }
+
+	//	Where the portrait sits in its square frame, as CSS background-position percentages (null: centred)
+	public int? PortraitX { get; set; }
+	public int? PortraitY { get; set; }
 	public string? Age { get; set; }
 	public string? Gender { get; set; }
 	public string? Faith { get; set; }

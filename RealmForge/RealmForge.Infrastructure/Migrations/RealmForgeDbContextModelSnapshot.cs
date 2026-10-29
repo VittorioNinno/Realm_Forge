@@ -461,6 +461,46 @@ namespace RealmForge.Infrastructure.Migrations
                     b.ToTable("CampaignMembers");
                 });
 
+            modelBuilder.Entity("RealmForge.Domain.Entities.CampaignNote", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("AuthorId")
+                        .IsRequired()
+                        .HasMaxLength(450)
+                        .HasColumnType("character varying(450)");
+
+                    b.Property<string>("Body")
+                        .IsRequired()
+                        .HasMaxLength(8000)
+                        .HasColumnType("character varying(8000)");
+
+                    b.Property<Guid>("CampaignId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("Kind")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("character varying(120)");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CampaignId", "Kind");
+
+                    b.ToTable("CampaignNotes");
+                });
+
             modelBuilder.Entity("RealmForge.Domain.Entities.Character", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1558,9 +1598,17 @@ namespace RealmForge.Infrastructure.Migrations
                     b.Property<DateTimeOffset?>("LockoutEnd")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<string>("Nickname")
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)");
+
                     b.Property<string>("NormalizedEmail")
                         .HasMaxLength(256)
                         .HasColumnType("character varying(256)");
+
+                    b.Property<string>("NormalizedNickname")
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)");
 
                     b.Property<string>("NormalizedUserName")
                         .HasMaxLength(256)
@@ -1592,6 +1640,9 @@ namespace RealmForge.Infrastructure.Migrations
 
                     b.HasIndex("NormalizedEmail")
                         .HasDatabaseName("EmailIndex");
+
+                    b.HasIndex("NormalizedNickname")
+                        .IsUnique();
 
                     b.HasIndex("NormalizedUserName")
                         .IsUnique()
@@ -1717,6 +1768,17 @@ namespace RealmForge.Infrastructure.Migrations
                 {
                     b.HasOne("RealmForge.Domain.Entities.Campaign", "Campaign")
                         .WithMany("Members")
+                        .HasForeignKey("CampaignId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Campaign");
+                });
+
+            modelBuilder.Entity("RealmForge.Domain.Entities.CampaignNote", b =>
+                {
+                    b.HasOne("RealmForge.Domain.Entities.Campaign", "Campaign")
+                        .WithMany("Notes")
                         .HasForeignKey("CampaignId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
@@ -1970,6 +2032,8 @@ namespace RealmForge.Infrastructure.Migrations
                     b.Navigation("Invites");
 
                     b.Navigation("Members");
+
+                    b.Navigation("Notes");
                 });
 
             modelBuilder.Entity("RealmForge.Domain.Entities.CharacterClass", b =>

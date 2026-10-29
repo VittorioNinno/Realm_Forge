@@ -95,6 +95,22 @@ namespace RealmForge.Client.Services
 		}
 
 		///	<summary>
+		///	Sets the public nickname (null or empty removes it): the status code tells why it failed (409: taken).
+		///	</summary>
+		public async Task<(bool Ok, System.Net.HttpStatusCode? Status)> SetNicknameAsync(string? nickname)
+		{
+			try
+			{
+				var response = await _http.PutAsJsonAsync("api/account/nickname", new NicknameRequestDto { Nickname = nickname });
+				return (response.IsSuccessStatusCode, response.IsSuccessStatusCode ? null : response.StatusCode);
+			}
+			catch (HttpRequestException)
+			{
+				return (false, null);
+			}
+		}
+
+		///	<summary>
 		///	Sends a new confirmation e-mail (Identity answers 200 even for unknown addresses, so nothing leaks).
 		///	</summary>
 		public async Task<AuthResult> ResendConfirmationAsync(string email)
