@@ -59,7 +59,7 @@
 
     <button type="button" class="btn btn-link p-0 small text-decoration-none" style="color: var(--rf-orange-primary);"
             @onclick="() => showCharacteristics = !showCharacteristics" data-test="bg-toggle-characteristics-@Model.Language">
-        @(showCharacteristics ? UiText.BtnHideCharacteristics(Lang) : UiText.BtnShowCharacteristics(Lang))
+        <span class="rf-group-chevron @(showCharacteristics ? "open" : null)"><Icon Name="chevron" Class="rf-nav-icon" /></span> @UiText.BtnShowCharacteristics(Lang)
     </button>
 
     @if (showCharacteristics)

@@ -4,7 +4,7 @@
     @* Select bar (keeps the full width of its container) *@
     <div class="rf-custom-select-trigger @(isOpen ? "active" : "")" @onclick="ToggleOpen">
         <span class="rf-select-value">@GetSelectedLabel()</span>
-        <span class="rf-select-arrow @(isOpen ? "open" : "")">▼</span>
+        <span class="rf-select-arrow @(isOpen ? "open" : "")"><Icon Name="caret-down" /></span>
     </div>
 
     @* Drop-down list in the dark / orange theme *@

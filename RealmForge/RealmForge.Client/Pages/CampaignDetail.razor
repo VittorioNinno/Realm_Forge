@@ -30,7 +30,7 @@
         var role = campaign.MyRole;
         <div class="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-3 pb-3" style="border-bottom: 2px solid var(--rf-orange-primary);">
             <div>
-                <a href="campaigns" class="small" style="color: var(--rf-text-muted);">← @UiText.CampaignsTitle(Lang)</a>
+                <a href="campaigns" class="small" style="color: var(--rf-text-muted);"><Icon Name="left" /> @UiText.CampaignsTitle(Lang)</a>
                 <h1 class="h3 fw-bold mb-1 rf-page-title" data-test="campaign-title">@campaign.Name</h1>
                 <div class="d-flex flex-wrap gap-2 align-items-center small" style="color: var(--rf-text-secondary);">
                     <span class="badge rf-role-badge rf-role-@role.ToString().ToLowerInvariant()" data-test="campaign-role">@UiText.CampaignRoleName(role, Lang)</span>
@@ -45,11 +45,13 @@
             <div class="alert alert-warning bg-dark border-warning text-warning p-2 small mb-3" data-test="campaign-message">@message</div>
         }
 
-        <div class="rf-pill-group mb-3" role="tablist" data-test="campaign-tabs">
+        @* Sections of the campaign: folder tabs like the sheet's, so that the pills inside a section (the kinds of notes)
+           read as a second level *@
+        <div class="rf-sheet-tabs mb-3" role="tablist" data-test="campaign-tabs">
             @foreach (var t in new[] { Tab.Overview, Tab.Members, Tab.Characters, Tab.Encounters, Tab.Content, Tab.Notes })
             {
                 var current = t;
-                <button type="button" role="tab" class="rf-pill-btn @(tab == current ? "active" : null)" aria-selected="@(tab == current)"
+                <button type="button" role="tab" class="rf-sheet-tab @(tab == current ? "active" : null)" aria-selected="@(tab == current)"
                         @onclick="() => tab = current" data-test="@($"campaign-tab-{current.ToString().ToLowerInvariant()}")">
                     @TabName(current)
                     @if (current == Tab.Content && PendingCount > 0 && CampaignRules.CanReview(role))
@@ -90,7 +92,7 @@
                             <div class="small mb-2" style="color: var(--rf-text-muted);">@UiText.CampaignLinkHint(Lang)</div>
                             <div class="d-flex flex-wrap gap-2">
                                 <input class="rf-form-control flex-grow-1" readonly value="@JoinUrl(code)" data-test="campaign-link-url" />
-                                <button type="button" class="btn btn-sm btn-rf-outline" @onclick="() => CopyAsync(JoinUrl(code))">@(copied ? UiText.LinkCopied(Lang) : UiText.BtnCopyLink(Lang))</button>
+                                <button type="button" class="btn btn-sm btn-rf-outline" @onclick="() => CopyAsync(JoinUrl(code))">@if (copied) { <Icon Name="check" /> } @(copied ? UiText.LinkCopied(Lang) : UiText.BtnCopyLink(Lang))</button>
                                 <button type="button" class="btn btn-sm btn-rf-outline" @onclick="NewLinkAsync" data-test="campaign-link-new">@UiText.BtnNewLink(Lang)</button>
                                 <button type="button" class="btn btn-sm btn-rf-outline" @onclick="DisableLinkAsync" data-test="campaign-link-disable">@UiText.BtnDisableLink(Lang)</button>
                             </div>
@@ -138,7 +140,7 @@
                                 }
                                 @if (!m.IsMe && CampaignRules.CanRemoveMember(role, false))
                                 {
-                                    <button type="button" class="rf-mini-btn" title="@UiText.BtnRemove(Lang)" aria-label="@UiText.BtnRemove(Lang)" @onclick="() => RemoveMemberAsync(m)" data-test="campaign-member-remove">✕</button>
+                                    <button type="button" class="rf-mini-btn" title="@UiText.BtnRemove(Lang)" aria-label="@UiText.BtnRemove(Lang)" @onclick="() => RemoveMemberAsync(m)" data-test="campaign-member-remove"><Icon Name="close" /></button>
                                 }
                             </div>
                         </div>
@@ -192,25 +194,28 @@
                             {
                                 var e = entry;
                                 var ch = e.Character;
-                                <div class="rf-character-card @(e.IsMine ? null : "shared")" data-test="campaign-character">
+                                @* The whole card opens the sheet (the name is a link stretched over the card); taking the character
+                                   out is a small action on top of it *@
+                                <div class="rf-character-card @(e.IsMine ? null : "shared") @(e.CanOpen ? "rf-card-linked" : null)" data-test="campaign-character">
                                     <div class="d-flex justify-content-between align-items-start gap-2 flex-wrap">
-                                        <div class="rf-character-card-name">@ch.Name</div>
+                                        @if (e.CanOpen)
+                                        {
+                                            <a class="rf-character-card-name rf-card-link" href="@($"characters/{ch.Id}")" title="@(e.IsMine || !e.CanEdit ? UiText.BtnOpenSheet(Lang) : UiText.BtnEditAsMaster(Lang))" data-test="campaign-character-open">@ch.Name</a>
+                                        }
+                                        else
+                                        {
+                                            <div class="rf-character-card-name">@ch.Name</div>
+                                        }
                                         <span class="badge @(ch.Ruleset == RulesetVersion.Dnd5e_2024 ? "badge-edition-2024" : "badge-edition-2014")">@UiText.FormatRuleset(ch.Ruleset, Lang)</span>
                                     </div>
                                     <div class="small mt-1" style="color: var(--rf-text-secondary);">@ch.SpeciesName · @ch.ClassLine · @UiText.CharacterLevel(ch.Level, Lang)</div>
                                     <div class="rf-character-card-owner">@UiText.CampaignPlayedBy(e.IsMine ? UiText.CampaignYou(Lang) : e.OwnerName, Lang)</div>
-                                    <div class="d-flex gap-3 mt-2 small">
+                                    <div class="d-flex align-items-center flex-wrap gap-3 mt-2 small">
                                         <span><strong style="color: var(--rf-orange-primary);">@UiText.SheetArmorClass(Lang)</strong> @ch.ArmorClass</span>
                                         <span><strong style="color: var(--rf-orange-primary);">@UiText.SheetHitPoints(Lang)</strong> @ch.CurrentHitPoints / @ch.MaxHitPoints</span>
-                                    </div>
-                                    <div class="d-flex flex-wrap gap-2 mt-2">
-                                        @if (e.CanOpen)
-                                        {
-                                            <a class="btn btn-sm btn-rf-orange" href="@($"characters/{ch.Id}")" data-test="campaign-character-open">@(e.IsMine || !e.CanEdit ? UiText.BtnOpenSheet(Lang) : UiText.BtnEditAsMaster(Lang))</a>
-                                        }
                                         @if (e.CanRemove)
                                         {
-                                            <button type="button" class="btn btn-sm btn-rf-outline" @onclick="() => RemoveCharacterAsync(e)" data-test="campaign-character-remove">@UiText.BtnTakeOut(Lang)</button>
+                                            <button type="button" class="rf-ghost-btn danger ms-auto" title="@UiText.BtnTakeOut(Lang)" @onclick="() => RemoveCharacterAsync(e)" data-test="campaign-character-remove"><Icon Name="remove-person" /> @UiText.BtnTakeOutShort(Lang)</button>
                                         }
                                     </div>
                                 </div>
@@ -289,7 +294,7 @@
                                 </div>
                                 @if (c.CanRemove)
                                 {
-                                    <button type="button" class="rf-mini-btn" title="@UiText.BtnRemove(Lang)" aria-label="@UiText.BtnRemove(Lang)" @onclick="() => RemoveContentAsync(c)" data-test="campaign-content-remove">✕</button>
+                                    <button type="button" class="rf-mini-btn" title="@UiText.BtnRemove(Lang)" aria-label="@UiText.BtnRemove(Lang)" @onclick="() => RemoveContentAsync(c)" data-test="campaign-content-remove"><Icon Name="close" /></button>
                                 }
                             </div>
                         }
