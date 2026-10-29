@@ -32,7 +32,7 @@
     <div id="blazor-error-ui">
         An unhandled error has occurred.
         <a href="." class="reload">Reload</a>
-        <span class="dismiss">🗙</span>
+        <span class="dismiss" aria-label="Close"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16" aria-hidden="true"><path d="M2.146 2.854a.5.5 0 1 1 .708-.708L8 7.293l5.146-5.147a.5.5 0 0 1 .708.708L8.707 8l5.147 5.146a.5.5 0 0 1-.708.708L8 8.707l-5.146 5.147a.5.5 0 0 1-.708-.708L7.293 8z" /></svg></span>
     </div>
     <script>
         // Small helpers called from .NET (LanguageStateService, CrossTabService)
@@ -136,6 +136,33 @@
             link.remove();
             setTimeout(() => URL.revokeObjectURL(url), 10000);
         };
+    </script>
+    <script>
+        // Portrait crop: the size of a picture, and the square chosen in the crop dialog saved as a JPEG
+        // (x, y: position of the square in % like background-position; zoom: 1 = the short side fills the square)
+        window.rfImageSize = (src) => new Promise((resolve) => {
+            const img = new Image();
+            img.onload = () => resolve([img.naturalWidth, img.naturalHeight]);
+            img.onerror = () => resolve([0, 0]);
+            img.src = src;
+        });
+        window.rfCropImage = (src, x, y, zoom, size) => new Promise((resolve) => {
+            const img = new Image();
+            img.onload = () => {
+                const side = Math.min(img.naturalWidth, img.naturalHeight) / zoom;
+                const sx = (img.naturalWidth - side) * x / 100;
+                const sy = (img.naturalHeight - side) * y / 100;
+                const canvas = document.createElement('canvas');
+                canvas.width = size;
+                canvas.height = size;
+                const ctx = canvas.getContext('2d');
+                ctx.imageSmoothingQuality = 'high';
+                ctx.drawImage(img, sx, sy, side, side, 0, 0, size, size);
+                resolve(canvas.toDataURL('image/jpeg', 0.85));
+            };
+            img.onerror = () => resolve('');
+            img.src = src;
+        });
     </script>
     <script src="_framework/blazor.webassembly#[.{fingerprint}].js"></script>
 </body>

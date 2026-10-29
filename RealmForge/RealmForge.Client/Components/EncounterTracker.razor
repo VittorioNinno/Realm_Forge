@@ -13,7 +13,7 @@
    run it (initiative, hit points, conditions, rounds); the players follow the initiative order of a shown encounter *@
 <div data-test="encounter">
     <div class="d-flex flex-wrap align-items-center gap-2 mb-3">
-        <button type="button" class="btn btn-sm btn-rf-outline" @onclick="() => OnClose.InvokeAsync()" data-test="encounter-back">← @UiText.EncountersBack(Lang)</button>
+        <button type="button" class="btn btn-sm btn-rf-outline" @onclick="() => OnClose.InvokeAsync()" data-test="encounter-back"><Icon Name="left" /> @UiText.EncountersBack(Lang)</button>
         @if (encounter is not null)
         {
             <span class="badge rf-encounter-status rf-encounter-status-@draft.Status.ToString().ToLowerInvariant()" data-test="encounter-status">@UiText.EncounterStatusName(draft.Status, Lang)</span>
@@ -24,7 +24,7 @@
         }
         @if (!Manage && encounter is not null)
         {
-            <button type="button" class="btn btn-sm btn-rf-outline ms-auto" @onclick="LoadAsync" data-test="encounter-refresh">↻ @UiText.BtnRefresh(Lang)</button>
+            <button type="button" class="btn btn-sm btn-rf-outline ms-auto" @onclick="LoadAsync" data-test="encounter-refresh"><Icon Name="refresh" /> @UiText.BtnRefresh(Lang)</button>
         }
     </div>
 
@@ -55,11 +55,11 @@
                         @switch (draft.Status)
                         {
                             case EncounterStatus.Planned:
-                                <button type="button" class="btn btn-rf-orange" disabled="@(draft.Combatants.Count == 0)" @onclick="StartAsync" data-test="encounter-start">⚔ @UiText.EncounterStart(Lang)</button>
+                                <button type="button" class="btn btn-rf-orange" disabled="@(draft.Combatants.Count == 0)" @onclick="StartAsync" data-test="encounter-start"><Icon Name="play" /> @UiText.EncounterStart(Lang)</button>
                                 break;
                             case EncounterStatus.Running:
-                                <button type="button" class="btn btn-rf-outline" @onclick="PreviousAsync" data-test="encounter-prev">◀</button>
-                                <button type="button" class="btn btn-rf-orange" @onclick="NextAsync" data-test="encounter-next">@UiText.EncounterNextTurn(Lang) ▶</button>
+                                <button type="button" class="btn btn-rf-outline" @onclick="PreviousAsync" data-test="encounter-prev"><Icon Name="caret-left" /></button>
+                                <button type="button" class="btn btn-rf-orange" @onclick="NextAsync" data-test="encounter-next">@UiText.EncounterNextTurn(Lang) <Icon Name="caret-right" /></button>
                                 <button type="button" class="btn btn-rf-outline" @onclick="FinishAsync" data-test="encounter-finish">@UiText.EncounterFinish(Lang)</button>
                                 break;
                             default:
@@ -68,7 +68,7 @@
                         }
                         <button type="button" class="btn btn-rf-outline @(draft.Shown ? "active" : null)" aria-pressed="@(draft.Shown ? "true" : "false")"
                                 title="@UiText.EncounterShownHint(Lang)" @onclick="ToggleShownAsync" data-test="encounter-shown">
-                            👁 @(draft.Shown ? UiText.EncounterShown(Lang) : UiText.EncounterHidden(Lang))
+                            <Icon Name="@(draft.Shown ? "eye" : "eye-slash")" /> @(draft.Shown ? UiText.EncounterShown(Lang) : UiText.EncounterHidden(Lang))
                         </button>
                     </div>
                 </div>
@@ -123,7 +123,7 @@
                 <div class="rf-mini-title mb-0">@UiText.EncounterCombatants(Lang)</div>
                 @if (Manage && draft.Combatants.Count > 0)
                 {
-                    <button type="button" class="btn btn-sm btn-rf-outline ms-auto" @onclick="RollInitiativeAsync" data-test="encounter-roll-initiative">🎲 @UiText.EncounterRollInitiative(Lang)</button>
+                    <button type="button" class="btn btn-sm btn-rf-outline ms-auto" @onclick="RollInitiativeAsync" data-test="encounter-roll-initiative"><Icon Name="dice" /> @UiText.EncounterRollInitiative(Lang)</button>
                 }
             </div>
 
@@ -152,7 +152,7 @@
                         <div class="rf-combatant-name">
                             @if (current)
                             {
-                                <span class="rf-combatant-turn" title="@UiText.EncounterCurrentTurn(Lang)">▶</span>
+                                <span class="rf-combatant-turn" title="@UiText.EncounterCurrentTurn(Lang)"><Icon Name="play" /></span>
                             }
                             @if (Manage)
                             {
@@ -174,7 +174,7 @@
                                 var k = key;
                                 if (Manage)
                                 {
-                                    <button type="button" class="rf-condition-chip" title="@UiText.BtnRemove(Lang)" @onclick="() => RemoveConditionAsync(c, k)">@UiText.ConditionName(k, Lang) ✕</button>
+                                    <button type="button" class="rf-condition-chip" title="@UiText.BtnRemove(Lang)" @onclick="() => RemoveConditionAsync(c, k)">@UiText.ConditionName(k, Lang) <Icon Name="close" /></button>
                                 }
                                 else
                                 {
@@ -192,8 +192,8 @@
                     <div class="rf-combatant-stats">
                         @if (Manage || c.Kind == CombatantKind.Character)
                         {
-                            <span class="rf-combatant-ac" title="@UiText.MonsterArmorClass(Lang)">🛡 @c.ArmorClass</span>
-                            <span class="rf-combatant-hp" data-test="combatant-hp">❤ @c.Hp@(c.MaxHp > 0 ? $"/{c.MaxHp}" : null)@(c.TempHp > 0 ? $" (+{c.TempHp})" : null)</span>
+                            <span class="rf-combatant-ac" title="@UiText.MonsterArmorClass(Lang)"><Icon Name="shield" /> @c.ArmorClass</span>
+                            <span class="rf-combatant-hp" data-test="combatant-hp"><Icon Name="heart" /> @c.Hp@(c.MaxHp > 0 ? $"/{c.MaxHp}" : null)@(c.TempHp > 0 ? $" (+{c.TempHp})" : null)</span>
                         }
                         else if (c.Health is { } health)
                         {
@@ -212,8 +212,8 @@
                     @if (Manage)
                     {
                         <div class="rf-combatant-actions">
-                            <button type="button" class="btn btn-sm btn-rf-outline @(c.Hidden ? "active" : null)" title="@UiText.EncounterHideHint(Lang)" @onclick="() => ToggleHiddenAsync(c)" data-test="combatant-hide">@(c.Hidden ? "🙈" : "👁")</button>
-                            <button type="button" class="btn btn-sm btn-rf-outline" title="@UiText.BtnRemove(Lang)" @onclick="() => RemoveAsync(c)" data-test="combatant-remove">✕</button>
+                            <button type="button" class="btn btn-sm btn-rf-outline @(c.Hidden ? "active" : null)" title="@UiText.EncounterHideHint(Lang)" @onclick="() => ToggleHiddenAsync(c)" data-test="combatant-hide"><Icon Name="@(c.Hidden ? "eye-slash" : "eye")" /></button>
+                            <button type="button" class="btn btn-sm btn-rf-outline" title="@UiText.BtnRemove(Lang)" @onclick="() => RemoveAsync(c)" data-test="combatant-remove"><Icon Name="close" /></button>
                         </div>
                     }
                 </div>
@@ -284,7 +284,7 @@
     <div class="rf-modal-backdrop" @onclick="() => statblock = null">
         <div class="rf-modal-dialog" style="max-width: 760px;" @onclick:stopPropagation="true" data-test="encounter-statblock">
             <div class="d-flex justify-content-end mb-2">
-                <button class="btn btn-sm btn-rf-outline" @onclick="() => statblock = null">✕</button>
+                <button class="btn btn-sm btn-rf-outline" @onclick="() => statblock = null"><Icon Name="close" /></button>
             </div>
             <MonsterStatBlock Monster="statblock" />
         </div>

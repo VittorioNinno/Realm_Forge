@@ -27,9 +27,9 @@
                               Options="@(Enumerable.Range(1, 20).Select(l => new RfSelect<int>.OptionItem(l, UiText.FormatClassLevel(l, Lang))).ToList())" />
                 </div>
                 <div class="ms-auto d-flex gap-1">
-                    <button type="button" class="btn btn-sm btn-rf-outline" title="@UiText.MoveUp(Lang)" disabled="@(index == 0)" @onclick="() => Move(index, -1)">↑</button>
-                    <button type="button" class="btn btn-sm btn-rf-outline" title="@UiText.MoveDown(Lang)" disabled="@(index == Items.Count - 1)" @onclick="() => Move(index, 1)">↓</button>
-                    <button type="button" class="btn btn-sm btn-rf-outline" style="border-color: #dc3545; color: #dc3545;" title="@UiText.Delete(Lang)" @onclick="() => Items.RemoveAt(index)" data-test="feature-remove">✕</button>
+                    <button type="button" class="btn btn-sm btn-rf-outline" title="@UiText.MoveUp(Lang)" disabled="@(index == 0)" @onclick="() => Move(index, -1)"><Icon Name="up" /></button>
+                    <button type="button" class="btn btn-sm btn-rf-outline" title="@UiText.MoveDown(Lang)" disabled="@(index == Items.Count - 1)" @onclick="() => Move(index, 1)"><Icon Name="down" /></button>
+                    <button type="button" class="btn btn-sm btn-rf-outline" style="border-color: #dc3545; color: #dc3545;" title="@UiText.Delete(Lang)" @onclick="() => Items.RemoveAt(index)" data-test="feature-remove"><Icon Name="close" /></button>
                 </div>
             </div>
             <div class="row g-2">

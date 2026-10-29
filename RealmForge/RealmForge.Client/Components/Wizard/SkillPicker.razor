@@ -10,7 +10,7 @@
         {
             var source = Expertise ? W.ExpertiseBlock(skill) : W.SkillSource(skill);
             <span class="rf-wizard-pill known" title="@UiText.SkillAlreadyKnown(source, Lang)">
-                @(Expertise ? null : "✓ ")@GameTerms.SkillName(skill, Lang) <small>· @source</small>
+                @if (!Expertise) { <Icon Name="check" /> } @GameTerms.SkillName(skill, Lang) <small>· @source</small>
             </span>
         }
         else

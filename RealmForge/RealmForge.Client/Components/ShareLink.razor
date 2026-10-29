@@ -15,7 +15,7 @@
     <div class="rf-share" data-test="share-link">
         <span class="small">@UiText.ShareHint(Visibility, LanguageState.CurrentLanguage)</span>
         <button type="button" class="btn btn-sm btn-rf-outline" @onclick="CopyAsync">
-            @(copied ? UiText.LinkCopied(LanguageState.CurrentLanguage) : UiText.BtnCopyLink(LanguageState.CurrentLanguage))
+            @if (copied) { <Icon Name="check" /> } @(copied ? UiText.LinkCopied(LanguageState.CurrentLanguage) : UiText.BtnCopyLink(LanguageState.CurrentLanguage))
         </button>
         @if (copyFailed)
         {

@@ -24,7 +24,7 @@ main {
 
     .top-row ::deep a, .top-row ::deep .btn-link {
         white-space: nowrap;
-        margin-left: 1.5rem;
+        margin-left: 24px;
         text-decoration: none;
     }
 
@@ -72,15 +72,15 @@ main {
     }
 
     .top-row, article {
-        padding-left: 2rem !important;
-        padding-right: 1.5rem !important;
+        padding-left: 32px !important;
+        padding-right: 24px !important;
     }
 }
 
 .rf-github-link {
     display: inline-flex;
     align-items: center;
-    gap: 0.4rem;
+    gap: 8px;
     color: var(--rf-text-secondary);
     font-size: 0.85rem;
 }

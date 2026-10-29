@@ -129,7 +129,7 @@
                         <ContentBadge IsBase="cls.IsOfficialSRD" Source="cls.Source" Visibility="cls.Visibility" ShowSource="true" />
                     </div>
                 </div>
-                <button class="btn btn-sm btn-rf-outline" @onclick="CloseDetail">✕</button>
+                <button class="btn btn-sm btn-rf-outline" @onclick="CloseDetail"><Icon Name="close" /></button>
             </div>
 
             @if (!cls.IsOfficialSRD)
@@ -181,7 +181,7 @@
                                         @GameTerms.CasterProgressionName(cls.CasterProgression, Lang)@(cls.SpellcastingAbility is { } sa ? $" · {FeatPrerequisiteFormatter.AbilityName(sa, Lang)}" : "")
                                         @if (Glossary.SpellListOfClass(Lang, cls.Id) is { } spellList)
                                         {
-                                            <a class="d-block small mt-1" href="@($"spells?class={(int)spellList}&ruleset={(int)cls.Ruleset}")" data-test="class-spell-list">@UiText.LinkClassSpellList(Lang)</a>
+                                            <a class="d-block small mt-1" href="@($"spells?class={(int)spellList}&ruleset={(int)cls.Ruleset}")" data-test="class-spell-list">@UiText.LinkClassSpellList(Lang) <Icon Name="right" /></a>
                                         }
                                     </dd>
                                 </div>

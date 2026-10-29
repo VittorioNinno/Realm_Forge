@@ -46,8 +46,8 @@ namespace RealmForge.Client.Localization
 		public static string DeleteCharacterWarning(string name, LanguageCode lang) => T(lang,
 			$"Vuoi eliminare definitivamente il personaggio \"{name}\"? L'operazione non può essere annullata.",
 			$"Do you want to permanently delete the character \"{name}\"? This cannot be undone.");
-		public static string BtnBackToCharacters(LanguageCode lang) => T(lang, "← Tutti i personaggi", "← All characters");
-		public static string BtnBackToSheet(LanguageCode lang) => T(lang, "← Torna alla scheda", "← Back to the sheet");
+		public static string BtnBackToCharacters(LanguageCode lang) => T(lang, "Tutti i personaggi", "All characters");
+		public static string BtnBackToSheet(LanguageCode lang) => T(lang, "Torna alla scheda", "Back to the sheet");
 		public static string CharacterNotFound(LanguageCode lang) => T(lang,
 			"Personaggio non trovato: forse è stato eliminato, oppure appartiene a un altro account.",
 			"Character not found: it may have been deleted, or it belongs to another account.");
@@ -577,8 +577,8 @@ namespace RealmForge.Client.Localization
 		public static string AlreadyExpertise(LanguageCode lang) => T(lang, "già con maestria", "already expertise");
 		public static string NotProficient(LanguageCode lang) => T(lang, "serve la competenza", "needs proficiency");
 		public static string HintKnownSkills(LanguageCode lang) => T(lang,
-			"Le abilità con ✓ sono già note (dal background, dalla specie o da un'altra classe): non si possono scegliere due volte, quindi non contano tra quelle da scegliere.",
-			"Skills marked ✓ are already known (from the background, species or another class): they cannot be picked twice, so they do not count toward your picks.");
+			"Le abilità con la spunta sono già note (dal background, dalla specie o da un'altra classe): non si possono scegliere due volte, quindi non contano tra quelle da scegliere.",
+			"Skills with a check mark are already known (from the background, species or another class): they cannot be picked twice, so they do not count toward your picks.");
 		public static string HitPointsSummary(int die, LanguageCode lang) => T(lang,
 			$"PF al 1° livello: {die} + mod. Cos · poi {die / 2 + 1} + mod. Cos per livello",
 			$"HP at level 1: {die} + Con mod · then {die / 2 + 1} + Con mod per level");
@@ -590,7 +590,7 @@ namespace RealmForge.Client.Localization
 		public static string DraftRestored(LanguageCode lang) => T(lang, "Abbiamo ripreso la creazione da dove l'avevi lasciata.", "We picked up the creation where you left it.");
 		public static string BtnStartOver(LanguageCode lang) => T(lang, "Ricomincia da capo", "Start over");
 		public static string BtnSpellDetails(LanguageCode lang) => T(lang, "Dettagli dell'incantesimo", "Spell details");
-		public static string OpenInCompendium(LanguageCode lang) => T(lang, "Apri nel compendio ↗", "Open in the compendium ↗");
+		public static string OpenInCompendium(LanguageCode lang) => T(lang, "Apri nel compendio", "Open in the compendium");
 		public static string LoadingTraits(LanguageCode lang) => T(lang, "Caricamento dei tratti…", "Loading traits…");
 		public static string HintSuggest(LanguageCode lang) => T(lang,
 			"Serve un'idea? I suggerimenti partono da classe, origine e allineamento: modificali come preferisci.",
@@ -708,7 +708,7 @@ namespace RealmForge.Client.Localization
 		public static string TurnAction(LanguageCode lang) => T(lang, "Azione", "Action");
 		public static string TurnBonusAction(LanguageCode lang) => T(lang, "Azione bonus", "Bonus action");
 		public static string TurnReaction(LanguageCode lang) => T(lang, "Reazione", "Reaction");
-		public static string TurnRule(LanguageCode lang) => T(lang, "regola ↗", "rule ↗");
+		public static string TurnRule(LanguageCode lang) => T(lang, "regola", "rule");
 		public static string LastCast(LanguageCode lang) => T(lang, "Ultimo incantesimo:", "Last spell:");
 		public static string ConcentratingOn(LanguageCode lang) => T(lang, "Concentrazione su", "Concentrating on");
 		public static string BtnEndConcentration(LanguageCode lang) => T(lang, "Termina", "End");
@@ -822,7 +822,7 @@ namespace RealmForge.Client.Localization
 		}
 
 		public static string MagicSummary(MagicItemProperties magic, LanguageCode lang) =>
-			string.Join(", ", new[] { "✦ " + RarityName(magic.Rarity, lang) }.Concat(magic.Effects.Select(e => MagicEffectText(e, lang))));
+			string.Join(", ", new[] { RarityName(magic.Rarity, lang) }.Concat(magic.Effects.Select(e => MagicEffectText(e, lang))));
 
 		public static string MagicHeals(string dice, LanguageCode lang) => T(lang, $"cura {dice} PF", $"heals {dice} HP");
 		public static string MagicRecharged(LanguageCode lang) => T(lang, "Ricarica", "Recharge");

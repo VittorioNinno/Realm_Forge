@@ -106,6 +106,7 @@ namespace RealmForge.Client.Localization
 		public static string BtnOpenSheet(LanguageCode lang) => T(lang, "Apri scheda", "Open sheet");
 		public static string BtnEditAsMaster(LanguageCode lang) => T(lang, "Modifica scheda", "Edit sheet");
 		public static string BtnTakeOut(LanguageCode lang) => T(lang, "Togli dalla campagna", "Take out of the campaign");
+		public static string BtnTakeOutShort(LanguageCode lang) => T(lang, "Togli", "Take out");
 		public static string CampaignPlayedBy(string email, LanguageCode lang) => T(lang, $"di {email}", $"by {email}");
 
 		//	Content
@@ -182,18 +183,22 @@ namespace RealmForge.Client.Localization
 					$"{what} is Homebrew of another edition ({(issue.Ruleset is { } e2 ? FormatRuleset(e2, lang) : "?")}).")
 			};
 		}
-		public static string PortraitDragHint(LanguageCode lang) => T(lang, "Trascina l'immagine (o usa le frecce) per centrarla nel riquadro", "Drag the picture (or use the arrows) to centre it in the frame");
+		public static string PortraitCropTitle(LanguageCode lang) => T(lang, "Inquadra il ritratto", "Frame the portrait");
+		public static string PortraitCropHint(LanguageCode lang) => T(lang, "Trascina l'immagine (o usa le frecce) per centrarla nel riquadro e lo zoom per avvicinarla.", "Drag the picture (or use the arrows) to centre it in the frame, and the zoom to bring it closer.");
+		public static string PortraitZoom(LanguageCode lang) => T(lang, "Zoom", "Zoom");
+		public static string BtnPortraitChange(LanguageCode lang) => T(lang, "Cambia ritratto", "Change portrait");
 		public static string BtnCampaign(LanguageCode lang) => T(lang, "Campagna", "Campaign");
 		public static string SheetCampaignTitle(LanguageCode lang) => T(lang, "Porta il personaggio in una campagna", "Bring the character to a campaign");
 		public static string SheetCampaignNone(LanguageCode lang) => T(lang, "Non partecipi a nessuna campagna.", "You are not in any campaign.");
 		public static string SheetCampaignJoined(string name, LanguageCode lang) => T(lang, $"Il personaggio siede ora al tavolo di «{name}».", $"The character now sits at the table of “{name}”.");
 		public static string SheetCampaignAlready(LanguageCode lang) => T(lang, "Già al tavolo", "Already at the table");
+		public static string SheetCampaignLeft(string name, LanguageCode lang) => T(lang, $"Il personaggio ha lasciato il tavolo di «{name}».", $"The character left the table of “{name}”.");
 
 		//	Notes
 		public static string CampaignTabNotes(LanguageCode lang) => T(lang, "Note", "Notes");
 		public static string CampaignNoteKindName(CampaignNoteKind kind, LanguageCode lang) => (kind, lang == LanguageCode.It) switch
 		{
-			(CampaignNoteKind.Private, true) => "Private",
+			(CampaignNoteKind.Private, true) => "Personali",
 			(CampaignNoteKind.Masters, true) => "Per i master",
 			(CampaignNoteKind.Journal, true) => "Diario di viaggio",
 			(CampaignNoteKind.Private, false) => "Private",

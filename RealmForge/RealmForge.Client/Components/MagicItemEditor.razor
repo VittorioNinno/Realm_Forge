@@ -134,7 +134,7 @@
                 {
                     <NumberStepper Value="e.Value" ValueChanged="v => e.Value = v" Min="-30" Max="30" AriaLabel="@UiText.MagicValue(Lang)" />
                 }
-                <button type="button" class="rf-mini-btn" @onclick="() => draft.Effects.Remove(e)" aria-label="@UiText.BtnRemove(Lang)">✕</button>
+                <button type="button" class="rf-mini-btn" @onclick="() => draft.Effects.Remove(e)" aria-label="@UiText.BtnRemove(Lang)"><Icon Name="close" /></button>
             </div>
         }
         <button type="button" class="rf-tool-btn mb-2" @onclick="AddEffect" data-test="magic-add-effect">+ @UiText.MagicAddEffect(Lang)</button>

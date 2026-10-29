@@ -124,7 +124,7 @@
             var expanded = IsExpanded(group.Key);
             <h2 class="h5 mt-4 mb-3 rf-spell-level-title">
                 <button type="button" class="rf-group-toggle" aria-expanded="@(expanded ? "true" : "false")" @onclick="() => ToggleGroup(group.Key)" data-test="equipment-group">
-                    <span class="rf-group-chevron @(expanded ? "open" : null)"><NavIcon Name="chevron" /></span>
+                    <span class="rf-group-chevron @(expanded ? "open" : null)"><Icon Name="chevron" Class="rf-nav-icon" /></span>
                     @EquipmentTerms.CategoryName(group.Key, Lang) <span class="small" style="color: var(--rf-text-muted);">(@group.Count())</span>
                 </button>
             </h2>
@@ -251,7 +251,7 @@
         <div class="rf-modal-dialog" style="max-width: 760px;" @onclick:stopPropagation="true" data-test="equipment-rules">
             <div class="d-flex justify-content-between align-items-start mb-3 pb-2" style="border-bottom: 2px solid var(--rf-orange-primary);">
                 <h2 class="h4 mb-0" style="color: var(--rf-orange-primary); font-family: var(--rf-font-display);">@UiText.WeaponRulesTitle(Lang)</h2>
-                <button class="btn btn-sm btn-rf-outline" @onclick="() => showRules = false">✕</button>
+                <button class="btn btn-sm btn-rf-outline" @onclick="() => showRules = false"><Icon Name="close" /></button>
             </div>
             <dl class="rf-equipment-rules mb-4">
                 @foreach (var property in Enum.GetValues<WeaponProperty>())
@@ -290,7 +290,7 @@
                         <ContentBadge IsBase="detail.IsOfficialSRD" Source="detail.Source" Visibility="detail.Visibility" ShowSource="true" />
                     </div>
                 </div>
-                <button class="btn btn-sm btn-rf-outline" @onclick="CloseDetail">✕</button>
+                <button class="btn btn-sm btn-rf-outline" @onclick="CloseDetail"><Icon Name="close" /></button>
             </div>
 
             @if (!detail.IsOfficialSRD)

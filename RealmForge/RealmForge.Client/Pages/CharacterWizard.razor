@@ -13,11 +13,11 @@
         <div class="py-4">
             @if (Id is { } backId)
             {
-                <a href="@($"characters/{backId}")" class="small text-decoration-none d-inline-block mb-3" style="color: var(--rf-text-muted);">@UiText.BtnBackToSheet(Lang)</a>
+                <a href="@($"characters/{backId}")" class="small text-decoration-none d-inline-block mb-3" style="color: var(--rf-text-muted);"><Icon Name="left" /> @UiText.BtnBackToSheet(Lang)</a>
             }
             else
             {
-                <a href="characters" class="small text-decoration-none d-inline-block mb-3" style="color: var(--rf-text-muted);">@UiText.BtnBackToCharacters(Lang)</a>
+                <a href="characters" class="small text-decoration-none d-inline-block mb-3" style="color: var(--rf-text-muted);"><Icon Name="left" /> @UiText.BtnBackToCharacters(Lang)</a>
             }
 
             <div class="rf-wizard" data-test="character-wizard" data-ruleset="@((int)Ruleset)">
