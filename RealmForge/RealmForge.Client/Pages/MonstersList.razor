@@ -17,7 +17,7 @@
 <div class="container-fluid px-0 py-4">
     <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4 pb-3" style="border-bottom: 2px solid var(--rf-orange-primary);">
         <div>
-            <h1 class="h3 fw-bold mb-1 rf-page-title">@UiText.MonstersTitle(Lang)</h1>
+            <h1 class="h3 fw-bold mb-2 rf-page-title">@UiText.MonstersTitle(Lang)</h1>
             <p class="mb-0 small" style="color: var(--rf-text-muted); letter-spacing: 1px; text-transform: uppercase;">@UiText.MonstersSubtitle(Lang)</p>
         </div>
         <div>
@@ -106,9 +106,9 @@
                     var m = monster;
                     <div class="col">
                         <div class="rf-card rf-spell-card h-100 d-flex flex-column" style="cursor: pointer;" data-test="monster-card" @onclick="() => OpenDetailAsync(m.Id)">
-                            <div class="d-flex justify-content-between align-items-start mb-1 gap-2">
+                            <div class="d-flex justify-content-between align-items-start mb-2 gap-2">
                                 <span class="rf-card-title mb-0">@m.Name</span>
-                                <div class="d-flex gap-1 flex-shrink-0 align-items-center">
+                                <div class="d-flex gap-2 flex-shrink-0 align-items-center">
                                     <span class="badge @(m.Ruleset == RulesetVersion.Dnd5e_2024 ? "badge-edition-2024" : "badge-edition-2014")">@UiText.FormatRuleset(m.Ruleset, Lang)</span>
                                     <ContentBadge IsBase="m.IsOfficialSRD" Source="m.Source" Visibility="m.Visibility" />
                                 </div>
@@ -118,7 +118,7 @@
                                 <div class="small" style="color: var(--rf-text-muted);">@UiText.MagicAlsoKnownAs(Lang): @m.Alias</div>
                             }
                             <div class="small fst-italic mb-2 flex-grow-1" style="color: var(--rf-text-secondary);">@m.Subtitle</div>
-                            <div class="d-flex flex-wrap gap-1 pt-2 align-items-center" style="border-top: 1px solid var(--rf-border-subtle);">
+                            <div class="d-flex flex-wrap gap-2 pt-2 align-items-center" style="border-top: 1px solid var(--rf-border-subtle);">
                                 <span class="rf-spell-flag rf-monster-cr" data-test="monster-card-cr">@UiText.MonsterChallengeShort(Lang) @MonsterMath.FormatChallenge(m.ChallengeRating)</span>
                                 <span class="rf-spell-flag">@UiText.MonsterArmorClassShort(Lang) @m.ArmorClass</span>
                                 <span class="rf-spell-flag">@UiText.MonsterHitPointsShort(Lang) @m.HitPoints</span>
@@ -141,7 +141,7 @@
         <div class="rf-modal-dialog" style="max-width: 780px;" @onclick:stopPropagation="true" data-test="monster-detail">
             <div class="d-flex justify-content-between align-items-start mb-3 pb-2" style="border-bottom: 2px solid var(--rf-orange-primary);">
                 <div>
-                    <h2 class="h3 mb-1" style="color: var(--rf-orange-primary); font-family: var(--rf-font-display);" data-test="monster-detail-name">@detail.Text.Name</h2>
+                    <h2 class="h3 mb-2" style="color: var(--rf-orange-primary); font-family: var(--rf-font-display);" data-test="monster-detail-name">@detail.Text.Name</h2>
                     <div class="d-flex flex-wrap gap-2">
                         <span class="badge @(detail.Ruleset == RulesetVersion.Dnd5e_2024 ? "badge-edition-2024" : "badge-edition-2014")">@UiText.FormatRuleset(detail.Ruleset, Lang)</span>
                         <ContentBadge IsBase="detail.IsOfficialSRD" Source="detail.Source" Visibility="detail.Visibility" ShowSource="true" />

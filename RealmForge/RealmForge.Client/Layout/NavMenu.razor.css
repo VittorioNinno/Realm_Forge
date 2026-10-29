@@ -3,7 +3,7 @@
 }
 
 .top-row {
-    min-height: 3.5rem;
+    min-height: 56px;
     background-color: rgba(0,0,0,0.4);
 }
 
@@ -37,7 +37,7 @@
         padding: 0 16px;
         color: #d7d7d7;
         border-radius: 4px;
-        height: 3rem;
+        height: 48px;
         display: flex;
         align-items: center;
         line-height: 3rem;
@@ -65,7 +65,7 @@
 
     .nav-scrollable {
         /* Allow sidebar to scroll for tall menus */
-        height: calc(100vh - 3.5rem);
+        height: calc(100vh - 56px);
         overflow-y: auto;
         /* Room for the scrollbar is always kept, so opening the compendium does not shift the menu */
         scrollbar-gutter: stable;
@@ -88,7 +88,7 @@
     display: flex;
     align-items: center;
     width: 100%;
-    height: 2.5rem;
+    height: 40px;
     padding: 0 16px;
     border: 0;
     border-radius: 4px;
@@ -123,15 +123,15 @@
 .rf-nav-group-items {
     display: flex;
     flex-direction: column;
-    gap: 4px;
-    padding: 4px 0 16px 0;
+    gap: 8px;
+    padding: 8px 0 16px 0;
 }
 
     .rf-nav-group-items ::deep a {
         padding: 0 16px;
         color: #d7d7d7;
         border-radius: 4px;
-        height: 2.5rem;
+        height: 40px;
         display: flex;
         align-items: center;
     }
@@ -169,7 +169,7 @@
 /* Anvil emblem next to the brand name */
 .rf-brand-icon {
     width: 30px;
-    height: 30px;
+    height: 32px;
     border-radius: 6px;
     box-shadow: 0 0 0 1px rgba(255, 140, 0, 0.35), 0 0 10px rgba(255, 140, 0, 0.25);
 }

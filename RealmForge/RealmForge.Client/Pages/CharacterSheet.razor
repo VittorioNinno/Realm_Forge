@@ -35,7 +35,7 @@
             {
                 <div class="rf-readonly" data-test="sheet-readonly">
                     <span>@UiText.ReadOnlySheet(Lang)</span>
-                    <div class="d-flex gap-1">
+                    <div class="d-flex gap-2">
                         <button type="button" class="rf-tool-btn" @onclick="ReloadAsync" data-test="sheet-reload"><Icon Name="refresh" /> @UiText.BtnRefresh(Lang)</button>
                         <button type="button" class="rf-tool-btn" @onclick="DownloadPdfAsync" title="@UiText.BtnDownloadPdf(Lang)" data-test="sheet-pdf"><Icon Name="download" /><span>PDF</span></button>
                         <button type="button" class="rf-tool-btn danger" @onclick="StopFollowingAsync" data-test="sheet-unfollow">@UiText.BtnStopFollowing(Lang)</button>
@@ -75,9 +75,10 @@
                 </div>
             }
 
-            @* ===== Identity card: portrait, name, origin, classes with the level up, personal details, traits ===== *@
+            @* ===== Identity card: portrait, name, origin and classes, with inspiration and the level up in the corner;
+                     personal details, senses and traits, proficiencies across the whole card ===== *@
             <section class="rf-card2 rf-hero">
-                <div class="rf-hero-top">
+                <div class="rf-hero-header">
                     @* Square frame: choosing or changing the picture opens the crop *@
                     <div class="rf-hero-portrait @(Sheet.Portrait is null ? "empty" : null)" style="@PortraitStyle" data-test="sheet-portrait">
                         @if (!ReadOnly)
@@ -92,69 +93,96 @@
                             }
                         }
                     </div>
-                    <div class="rf-hero-info">
-                        <div class="rf-hero-nameline">
-                            <div class="rf-sheet-name" data-test="sheet-name">@character.Name</div>
-                            <button type="button" class="rf-hero-inspiration @(Sheet.Inspiration ? "on" : null)" @onclick="ToggleInspiration" aria-pressed="@Sheet.Inspiration"
-                                    title="@UiText.SheetInspiration(Ruleset, Lang)" data-test="sheet-inspiration">
-                                <Icon Name="@(Sheet.Inspiration ? "star-fill" : "star")" />
-                                <span>@UiText.SheetInspiration(Ruleset, Lang)</span>
-                            </button>
+                    <div class="rf-hero-main">
+                        <div class="rf-hero-titlerow">
+                            <div class="rf-hero-titles">
+                                <div class="rf-sheet-name" data-test="sheet-name">@character.Name</div>
+                                <div class="rf-hero-origin">
+                                    @(c.Subspecies is { } sub ? $"{sub.Name} ({c.Species?.Name})" : c.Species?.Name)
+                                    <span class="rf-hero-sep">•</span>
+                                    <a href="@($"backgrounds?id={character.BackgroundId}")" class="text-reset">@c.Background?.Name</a>
+                                </div>
+                            </div>
+                            <div class="rf-hero-actions">
+                                <button type="button" class="rf-hero-pill @(Sheet.Inspiration ? "on" : null)" @onclick="ToggleInspiration" aria-pressed="@Sheet.Inspiration"
+                                        title="@UiText.SheetInspiration(Ruleset, Lang)" data-test="sheet-inspiration">
+                                    <Icon Name="@(Sheet.Inspiration ? "star-fill" : "star")" />
+                                    <span>@UiText.SheetInspiration(Ruleset, Lang)</span>
+                                </button>
+                                @if (c.Level < 20 && !ReadOnly)
+                                {
+                                    <a class="rf-hero-pill @(ReadyToLevelUp ? "ready rf-pulse" : null)" href="@($"characters/{character.Id}/edit?levelup=true")" data-test="sheet-levelup">
+                                        <Icon Name="up" /><span>@UiText.BtnLevelUp(Lang)</span>
+                                    </a>
+                                }
+                            </div>
                         </div>
-                        <div class="rf-hero-origin">
-                            @(c.Subspecies is { } sub ? $"{sub.Name} ({c.Species?.Name})" : c.Species?.Name)
-                            <span class="rf-hero-sep">|</span>
-                            <a href="@($"backgrounds?id={character.BackgroundId}")" class="text-reset">@c.Background?.Name</a>
-                        </div>
-                        <div class="rf-hero-classline">
-                            <span class="rf-hero-classes" data-test="sheet-classes">@ClassLine</span>
-                            <span class="rf-hero-level">@UiText.CharacterLevel(c.Level, Lang)</span>
-                            @if (c.Level < 20 && !ReadOnly)
+                        @* One class: its name (and subclass) next to the level; more classes: one chip each with its levels *@
+                        <div class="rf-hero-classline" data-test="sheet-classes">
+                            @if (c.Classes.Count == 1)
                             {
-                                <a class="rf-levelup-pill @(ReadyToLevelUp ? "ready rf-pulse" : null)" href="@($"characters/{character.Id}/edit?levelup=true")" data-test="sheet-levelup"><Icon Name="up" />@UiText.BtnLevelUp(Lang)</a>
+                                var only = c.Classes[0];
+                                <span class="rf-hero-class">
+                                    @only.Class.Name
+                                    @if (only.Subclass is not null)
+                                    {
+                                        <small>· @only.Subclass.Name</small>
+                                    }
+                                </span>
                             }
-                        </div>
-                        <div class="rf-hero-bio">
-                            @BioField(UiText.LabelAge(Lang), Sheet.Age, v => Sheet.Age = v, "age")
-                            @BioField(UiText.LabelGender(Lang), Sheet.Gender, v => Sheet.Gender = v, "gender")
-                            <div><div class="rf-mini-label">@UiText.LabelAlignment(Lang)</div><div class="rf-hero-bio-value">@UiText.AlignmentName(character.Build.Alignment, Lang)</div></div>
-                            @BioField(UiText.LabelFaith(Lang), Sheet.Faith, v => Sheet.Faith = v, "faith")
-                            <div><div class="rf-mini-label">@UiText.LabelSize(Lang)</div><div class="rf-hero-bio-value">@UiText.FormatSizeSingle(character.Build.Size, Lang)</div></div>
-                            <div><div class="rf-mini-label">@UiText.LabelEdition(Lang)</div><div class="rf-hero-bio-value">@UiText.FormatRuleset(Ruleset, Lang)</div></div>
+                            else
+                            {
+                                @foreach (var cl in c.Classes)
+                                {
+                                    <span class="rf-hero-class-chip" title="@cl.Subclass?.Name">@cl.Class.Name <span>@cl.Level</span></span>
+                                }
+                            }
+                            <span class="rf-hero-level">@UiText.CharacterLevel(c.Level, Lang)</span>
                         </div>
                     </div>
                 </div>
                 @if (portraitError is not null)
                 {
-                    <div class="small text-warning mt-2">@portraitError</div>
+                    <div class="small text-warning">@portraitError</div>
                 }
+
+                <div class="rf-hero-attrs">
+                    @BioField(UiText.LabelAge(Lang), Sheet.Age, v => Sheet.Age = v, "age")
+                    @BioField(UiText.LabelGender(Lang), Sheet.Gender, v => Sheet.Gender = v, "gender")
+                    <div><div class="rf-mini-label">@UiText.LabelAlignment(Lang)</div><div class="rf-hero-bio-value">@UiText.AlignmentName(character.Build.Alignment, Lang)</div></div>
+                    @BioField(UiText.LabelFaith(Lang), Sheet.Faith, v => Sheet.Faith = v, "faith")
+                    <div><div class="rf-mini-label">@UiText.LabelSize(Lang)</div><div class="rf-hero-bio-value">@UiText.FormatSizeSingle(character.Build.Size, Lang)</div></div>
+                    <div><div class="rf-mini-label">@UiText.LabelEdition(Lang)</div><div class="rf-hero-bio-value">@UiText.FormatRuleset(Ruleset, Lang)</div></div>
+                </div>
 
                 @if (SpeciesTraits.Any())
                 {
-                    <div class="rf-mini-title mt-3">@UiText.SheetSensesAndTraits(Lang)</div>
-                    <div class="rf-chip-list">
-                        @foreach (var trait in SpeciesTraits)
+                    <div class="rf-hero-traits">
+                        <div class="rf-mini-title">@UiText.SheetSensesAndTraits(Lang)</div>
+                        <div class="rf-chip-list">
+                            @foreach (var trait in SpeciesTraits)
+                            {
+                                var t = trait;
+                                <button type="button" class="rf-chip @(openTrait == t.Name ? "open" : null)" @onclick="() => ToggleTrait(t.Name)" data-test="sheet-trait">@t.Name</button>
+                            }
+                        </div>
+                        @if (SpeciesTraits.FirstOrDefault(t => t.Name == openTrait) is { } shown)
                         {
-                            var t = trait;
-                            <button type="button" class="rf-chip @(openTrait == t.Name ? "open" : null)" @onclick="() => ToggleTrait(t.Name)" data-test="sheet-trait">@t.Name</button>
+                            <div class="rf-chip-detail rf-markdown-container">@((MarkupString)MarkdownText.ToHtml(shown.Description, Glossary.Linker(Lang, Ruleset)))</div>
                         }
                     </div>
-                    @if (SpeciesTraits.FirstOrDefault(t => t.Name == openTrait) is { } shown)
-                    {
-                        <div class="rf-chip-detail rf-markdown-container">@((MarkupString)MarkdownText.ToHtml(shown.Description, Glossary.Linker(Lang, Ruleset)))</div>
-                    }
                 }
 
-                <div class="rf-hero-footer">
-                    <div><span class="rf-mini-label">@UiText.LabelLanguages(Ruleset, Lang):</span> @string.Join(", ", c.Languages.Select(l => CharacterLanguages.Name(Ruleset, l, Lang)))</div>
+                <div class="rf-hero-profs">
+                    <div class="rf-hero-prof"><span class="rf-mini-label">@UiText.LabelLanguages(Ruleset, Lang)</span>@string.Join(", ", c.Languages.Select(l => CharacterLanguages.Name(Ruleset, l, Lang)))</div>
                     @if (c.Feats.Count > 0)
                     {
-                        <div><span class="rf-mini-label">@UiText.SheetFeats(Lang):</span> @string.Join(", ", c.Feats.Select(f => f.Feat.Name))</div>
+                        <div class="rf-hero-prof"><span class="rf-mini-label">@UiText.SheetFeats(Lang)</span>@string.Join(", ", c.Feats.Select(f => f.Feat.Name))</div>
                     }
-                    <div><span class="rf-mini-label">@UiText.SheetArmorTraining(Lang):</span> @UiText.ArmorTrainingText(c.ArmorTraining, Lang)</div>
+                    <div class="rf-hero-prof"><span class="rf-mini-label">@UiText.SheetArmorTraining(Lang)</span>@UiText.ArmorTrainingText(c.ArmorTraining, Lang)</div>
                     @if (!string.IsNullOrWhiteSpace(backgroundDetail?.ToolProficiencies))
                     {
-                        <div><span class="rf-mini-label">@UiText.LabelTools(Lang):</span> @backgroundDetail.ToolProficiencies</div>
+                        <div class="rf-hero-prof"><span class="rf-mini-label">@UiText.LabelTools(Lang)</span>@backgroundDetail.ToolProficiencies</div>
                     }
                 </div>
             </section>
@@ -164,7 +192,7 @@
                 <div class="rf-sheet-todo" data-test="sheet-todo">
                     <span class="fw-bold">@UiText.SheetTodoBanner(Lang)</span>
                     @string.Join(" · ", c.Issues.Select(i => UiText.Issue(i, Ruleset, Lang)).Distinct().Take(6))
-                    <a href="@($"characters/{character.Id}/edit")" class="ms-1">@UiText.BtnEditCharacter(Lang)</a>
+                    <a href="@($"characters/{character.Id}/edit")" class="ms-2">@UiText.BtnEditCharacter(Lang)</a>
                 </div>
             }
 
@@ -276,22 +304,10 @@
                     </div>
                 </div>
 
-                <div class="rf-bar-row mb-0">
-                    <div class="rf-advancement" role="group" aria-label="@UiText.LabelAdvancement(Lang)">
-                        <span class="rf-mini-label">@UiText.LabelAdvancement(Lang)</span>
-                        @foreach (var type in new[] { AdvancementType.Experience, AdvancementType.Milestone })
-                        {
-                            var t = type;
-                            <button type="button" class="rf-wizard-pill @(Sheet.Advancement == t ? "selected" : null)" @onclick="() => SetAdvancement(t)"
-                                    aria-pressed="@(Sheet.Advancement == t)" data-test="@($"sheet-advancement-{t.ToString().ToLowerInvariant()}")">@UiText.AdvancementName(t, Lang)</button>
-                        }
-                    </div>
-                    @if (Sheet.Advancement == AdvancementType.Milestone)
-                    {
-                        <div class="small" style="color: var(--rf-text-secondary);" data-test="sheet-milestone">@UiText.MilestoneSheetText(Lang)</div>
-                    }
-                    else
-                    {
+                @* Experience only for XP-based progression; the progression is chosen in the character's edit *@
+                @if (Sheet.Advancement != AdvancementType.Milestone)
+                {
+                    <div class="rf-bar-row mb-0" data-test="sheet-xp">
                         <div class="rf-bar-label">
                             <span>@UiText.SheetExperience(Lang)</span>
                             <span data-test="sheet-xp-value">@Sheet.Experience / @NextLevelExperience</span>
@@ -305,8 +321,8 @@
                         {
                             <div class="small mt-2" style="color: var(--rf-orange-primary);">@UiText.ReadyToLevelUp(Lang)</div>
                         }
-                    }
-                </div>
+                    </div>
+                }
             </section>
 
             @* ===== Ability scores, with how the d20 is rolled (normal, advantage, disadvantage) ===== *@
@@ -656,18 +672,18 @@
                     {
                         if (!string.IsNullOrWhiteSpace(detail.WeaponProficiencies))
                         {
-                            <div class="rf-wizard-text small mb-1"><strong>@UiText.LabelWeapons(Lang):</strong> @detail.WeaponProficiencies</div>
+                            <div class="rf-wizard-text small mb-2"><strong>@UiText.LabelWeapons(Lang):</strong> @detail.WeaponProficiencies</div>
                         }
                         if (!string.IsNullOrWhiteSpace(detail.ToolProficiencies))
                         {
-                            <div class="rf-wizard-text small mb-1"><strong>@UiText.LabelTools(Lang):</strong> @detail.ToolProficiencies</div>
+                            <div class="rf-wizard-text small mb-2"><strong>@UiText.LabelTools(Lang):</strong> @detail.ToolProficiencies</div>
                         }
                     }
                 }
-                <div class="rf-wizard-text small mb-1"><strong>@UiText.SheetArmorTraining(Lang):</strong> @UiText.ArmorTrainingText(c.ArmorTraining, Lang)</div>
+                <div class="rf-wizard-text small mb-2"><strong>@UiText.SheetArmorTraining(Lang):</strong> @UiText.ArmorTrainingText(c.ArmorTraining, Lang)</div>
                 @if (!string.IsNullOrWhiteSpace(Sheet.OtherProficiencies))
                 {
-                    <div class="rf-wizard-text small mb-1">@Sheet.OtherProficiencies</div>
+                    <div class="rf-wizard-text small mb-2">@Sheet.OtherProficiencies</div>
                 }
             </section>
         </div>
@@ -1435,7 +1451,7 @@
             var wizard = IsWizardBook(src);
             <div class="rf-modal-backdrop" @onclick="CloseBook">
                 <div class="rf-modal-dialog rf-book" @onclick:stopPropagation="true" data-test="spell-book">
-                    <h2 class="h5 mb-1" style="color: var(--rf-orange-primary); font-family: var(--rf-font-display);">@UiText.BookTitle(src.Class?.Class.Name ?? string.Empty, wizard, Lang)</h2>
+                    <h2 class="h5 mb-2" style="color: var(--rf-orange-primary); font-family: var(--rf-font-display);">@UiText.BookTitle(src.Class?.Class.Name ?? string.Empty, wizard, Lang)</h2>
                     <div class="small mb-2" style="color: var(--rf-text-secondary);">@UiText.SpellChangeRuleText(SpellChangeRules.For(Ruleset, src.Class!), Lang)</div>
                     <div class="rf-book-status">
                         <span>@UiText.BookNow(Lang) <strong>@ChangesText(src)</strong></span>

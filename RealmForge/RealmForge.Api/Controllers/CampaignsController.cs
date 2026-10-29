@@ -488,6 +488,31 @@ namespace RealmForge.Api.Controllers
 			return NoContent();
 		}
 
+		//	PUT: api/campaigns/{id}/characters/{characterId}/active — the owner, a master or a co-master sets a character
+		//	active or inactive at the table
+		[HttpPut("{id:guid}/characters/{characterId:guid}/active")]
+		public async Task<IActionResult> SetCharacterActive(Guid id, Guid characterId, [FromBody] CampaignCharacterActiveDto dto)
+		{
+			var (campaign, me) = await LoadAsync(id);
+			if (campaign is null || me is null)
+			{
+				return NotFound();
+			}
+			var link = await _context.CampaignCharacters.Include(c => c.Character).FirstOrDefaultAsync(c => c.CampaignId == id && c.CharacterId == characterId);
+			if (link is null)
+			{
+				return NotFound();
+			}
+			if (!CampaignRules.CanRemoveCharacter(me.Role, link.Character.OwnerId == UserId))
+			{
+				return Forbid();
+			}
+			link.Inactive = !dto.Active;
+			campaign.UpdatedAt = DateTimeOffset.UtcNow;
+			await _context.SaveChangesAsync();
+			return NoContent();
+		}
+
 		// ===== Shared content =====
 
 		//	GET: api/campaigns/{id}/shareable — my Homebrew not yet shared with the campaign
@@ -791,6 +816,10 @@ namespace RealmForge.Api.Controllers
 				.OrderBy(c => c.Name)
 				.ToListAsync();
 			var summaries = await CharactersController.SummariesAsync(_context, characters, lang);
+			var inactive = (await _context.CampaignCharacters.AsNoTracking()
+				.Where(cc => cc.CampaignId == id && cc.Inactive)
+				.Select(cc => cc.CharacterId)
+				.ToListAsync()).ToHashSet();
 
 			var roles = campaign.Members.ToDictionary(m => m.UserId, m => m.Role);
 			var emails = await NamesAsync(campaign.Members.Select(m => m.UserId)
@@ -822,7 +851,7 @@ namespace RealmForge.Api.Controllers
 				{
 					var mine = c.OwnerId == UserId;
 					return new CampaignCharacterDto(summaries[i], c.OwnerId, emails.GetValueOrDefault(c.OwnerId, string.Empty), mine,
-						mine || runs, CampaignRules.CanEditCharacter(me.Role, mine), CampaignRules.CanRemoveCharacter(me.Role, mine));
+						mine || runs, CampaignRules.CanEditCharacter(me.Role, mine), CampaignRules.CanRemoveCharacter(me.Role, mine), !inactive.Contains(c.Id));
 				}).ToList(),
 				visible
 					.Where(c => entries.ContainsKey(c.EntityId))

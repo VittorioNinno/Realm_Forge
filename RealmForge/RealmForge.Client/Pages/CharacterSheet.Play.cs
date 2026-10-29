@@ -55,12 +55,6 @@ namespace RealmForge.Client.Pages
 
 		private bool ReadyToLevelUp => Sheet.Advancement == AdvancementType.Experience && Level < 20 && Sheet.Experience >= NextLevelExperience;
 
-		private void SetAdvancement(AdvancementType type)
-		{
-			Sheet.Advancement = type;
-			Changed();
-		}
-
 		private void AddExperience()
 		{
 			Sheet.Experience = Math.Clamp(Sheet.Experience + xpAmount, 0, 10_000_000);

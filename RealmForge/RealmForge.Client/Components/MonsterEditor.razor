@@ -9,7 +9,7 @@
 @* Homebrew statblock form: the numbers once, the texts per language (a language without a name is left out) *@
 <div class="rf-modal-backdrop" @onclick="Cancel">
     <div class="rf-modal-dialog" style="max-width: 900px;" @onclick:stopPropagation="true" data-test="monster-form">
-        <h2 class="h4 mb-1 pb-2" style="border-bottom: 1px solid var(--rf-border-light); font-family: var(--rf-font-display);">@Title</h2>
+        <h2 class="h4 mb-2 pb-2" style="border-bottom: 1px solid var(--rf-border-light); font-family: var(--rf-font-display);">@Title</h2>
         @if (VariantOfName is not null)
         {
             <div class="small mb-3" style="color: var(--rf-text-muted);">@UiText.MonsterVariantHint(VariantOfName, Lang)</div>
@@ -50,7 +50,7 @@
             </div>
             <div class="col-md-3 col-4">
                 <label class="rf-form-label">@UiText.MonsterHitDice(Lang)</label>
-                <div class="d-flex gap-1">
+                <div class="d-flex gap-2">
                     <input type="text" class="rf-form-control" maxlength="40" placeholder="4d8 + 4" @bind="Model.HitDice" @bind:after="AverageHitPoints" data-test="monster-form-dice" />
                 </div>
             </div>

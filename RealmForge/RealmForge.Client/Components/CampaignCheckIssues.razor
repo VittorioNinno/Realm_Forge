@@ -9,7 +9,7 @@
 {
     <div class="rf-campaign-issues" role="alert" data-test="campaign-check-issues">
         <strong>@UiText.CampaignCheckTitle(LanguageState.CurrentLanguage)</strong>
-        <ul class="mb-0 mt-1">
+        <ul class="mb-0 mt-2">
             @foreach (var issue in check.Issues)
             {
                 <li data-test="campaign-check-issue">@UiText.CampaignIssueText(issue, Ruleset, LanguageState.CurrentLanguage)</li>

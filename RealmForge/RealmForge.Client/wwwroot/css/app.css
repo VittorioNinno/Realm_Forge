@@ -141,7 +141,7 @@ h1, h2, h3, h4, h5, h6, .rf-page-title, .brand-title {
         font-size: 0.75em;
         letter-spacing: 1px;
         display: block;
-        margin-bottom: 4px;
+        margin-bottom: 8px;
     }
 
 /* --- BADGES (Uniform Dimensions, High Contrast) --- */
@@ -157,7 +157,8 @@ h1, h2, h3, h4, h5, h6, .rf-page-title, .brand-title {
     font-weight: 800 !important;
     letter-spacing: 0.8px !important;
     text-transform: uppercase;
-    padding: 4px 8px !important;
+    padding: 0 8px !important;
+    min-height: 24px;
     border-radius: 4px !important;
     line-height: 1.2 !important;
     box-sizing: border-box;
@@ -300,12 +301,12 @@ h1, h2, h3, h4, h5, h6, .rf-page-title, .brand-title {
         text-transform: uppercase;
         letter-spacing: 1px;
         text-align: left;
-        padding: 4px 8px;
+        padding: 8px 8px;
         border-bottom: 1px solid var(--rf-border-light);
     }
 
     .rf-dice-table td {
-        padding: 4px 8px;
+        padding: 8px 8px;
         vertical-align: top;
         color: var(--rf-text-secondary);
         border-bottom: 1px solid var(--rf-border-subtle);
@@ -352,8 +353,8 @@ h1, h2, h3, h4, h5, h6, .rf-page-title, .brand-title {
 }
 
 .rf-loadout-kit-head {
-    padding-bottom: 4px;
-    margin-bottom: 4px;
+    padding-bottom: 8px;
+    margin-bottom: 8px;
     border-bottom: 1px solid var(--rf-border-light);
     font-size: 0.72rem;
     font-weight: 600;
@@ -746,7 +747,7 @@ select.rf-form-control {
 .rf-account-card-avatar {
     flex: 0 0 3rem;
     width: 3rem;
-    height: 3rem;
+    height: 48px;
     border-radius: 50%;
     display: inline-flex;
     align-items: center;
@@ -814,7 +815,7 @@ select.rf-form-control {
 @media (max-width: 575.98px) {
     .rf-account-facts {
         grid-template-columns: 1fr;
-        gap: 4px;
+        gap: 8px;
     }
 
         .rf-account-facts dd {
@@ -838,7 +839,7 @@ select.rf-form-control {
 }
 
     .rf-dashboard-stats .rf-account-stat {
-        padding: 8px 4px;
+        padding: 8px 8px;
     }
 
 /* Unconfirmed e-mail notice in the account page */
@@ -922,7 +923,6 @@ input::-ms-clear {
     display: none;
 }
 
-
 /* --- SPELLS --- */
 .rf-spell-level-title {
     font-size: 1rem;
@@ -934,10 +934,13 @@ input::-ms-clear {
     font-size: 0.7rem;
     text-transform: uppercase;
     letter-spacing: 0.5px;
-    padding: 4px 8px;
+    padding: 0 8px;
     border-radius: 3px;
     border: 1px solid var(--rf-orange-primary);
     color: var(--rf-orange-primary);
+    min-height: 24px;
+    display: inline-flex;
+    align-items: center;
 }
 
 /* Stat block of the detail: label above value, two columns on wide screens */
@@ -977,7 +980,7 @@ input::-ms-clear {
     position: absolute;
     display: block;
     width: 8rem;
-    height: 8rem;
+    height: 128px;
     inset: 20vh 0 auto 0;
     margin: 0 auto;
 }
@@ -1057,7 +1060,7 @@ input::-ms-clear {
     display: flex;
     flex-wrap: wrap;
     align-items: center;
-    gap: 4px 16px;
+    gap: 8px 16px;
     font-size: 0.8rem;
     color: var(--rf-text-primary);
 }
@@ -1067,7 +1070,7 @@ input::-ms-clear {
         text-transform: uppercase;
         letter-spacing: 0.5px;
         color: var(--rf-text-muted);
-        margin-right: 4px;
+        margin-right: 8px;
     }
 
 /* Hit die as a small die-shaped token */
@@ -1076,7 +1079,7 @@ input::-ms-clear {
     align-items: center;
     justify-content: center;
     min-width: 2.6rem;
-    height: 2.1rem;
+    height: 32px;
     padding: 0 8px;
     font-family: var(--rf-font-display);
     font-weight: 700;
@@ -1127,7 +1130,7 @@ input::-ms-clear {
     .rf-class-table-wrap th,
     .rf-class-table-wrap td {
         white-space: nowrap;
-        padding: 4px 8px !important;
+        padding: 8px 8px !important;
         text-align: center;
     }
 
@@ -1172,13 +1175,16 @@ input::-ms-clear {
 .rf-class-feature-level {
     flex-shrink: 0;
     min-width: 2.6rem;
-    padding: 4px 8px;
+    padding: 0 8px;
     font-size: 0.72rem;
     font-weight: 700;
     text-align: center;
     color: var(--rf-bg-main);
     background-color: var(--rf-orange-primary);
     border-radius: 4px;
+    min-height: 24px;
+    display: inline-flex;
+    align-items: center;
 }
 
 .rf-class-feature-name {
@@ -1271,8 +1277,8 @@ input::-ms-clear {
 
 .rf-item-badges {
     display: inline-flex;
-    gap: 4px;
-    margin-left: 4px;
+    gap: 8px;
+    margin-left: 8px;
     vertical-align: middle;
 }
 
@@ -1311,7 +1317,7 @@ input::-ms-clear {
     display: flex;
     flex-wrap: wrap;
     gap: 16px;
-    margin-top: 4px;
+    margin-top: 8px;
     font-size: 0.8rem;
     color: #ffd27a;
 }
@@ -1350,7 +1356,7 @@ input::-ms-clear {
 .rf-glossary-tile {
     display: flex;
     flex-direction: column;
-    gap: 4px;
+    gap: 8px;
     padding: 8px 16px;
     border-radius: 6px;
     background-color: var(--rf-bg-surface);
@@ -1392,12 +1398,14 @@ input::-ms-clear {
 
 .rf-glossary-chip {
     display: inline-block;
-    padding: 4px 8px;
+    padding: 0 8px;
     border-radius: 999px;
     border: 1px solid var(--rf-border-light);
     background-color: var(--rf-bg-card);
     font-size: 0.82rem;
     text-decoration: none;
+    min-height: 24px;
+    align-items: center;
 }
 
     .rf-glossary-chip:hover {
@@ -1445,7 +1453,7 @@ a.rf-term {
     justify-content: space-between;
     align-items: baseline;
     gap: 16px;
-    margin-bottom: 4px;
+    margin-bottom: 8px;
 }
 
     .rf-term-tip-head strong {
@@ -1547,7 +1555,7 @@ a.rf-term {
 .rf-home-module-icon {
     flex-shrink: 0;
     display: inline-flex;
-    padding-top: 4px;
+    padding-top: 8px;
     color: var(--rf-orange-primary);
 }
 
@@ -1562,7 +1570,7 @@ a.rf-term {
 
 .rf-home-module-text {
     display: block;
-    margin-top: 4px;
+    margin-top: 8px;
     font-size: 0.82rem;
     line-height: 1.45;
     color: var(--rf-text-secondary);
@@ -1581,7 +1589,7 @@ a.rf-term {
     }
 
     .rf-home-points dd {
-        margin: 4px 0 0;
+        margin: 8px 0 0;
         line-height: 1.5;
         color: var(--rf-text-secondary);
     }
@@ -1940,7 +1948,7 @@ a.rf-term {
 
     .rf-wizard-meta strong {
         display: block;
-        margin-bottom: 4px;
+        margin-bottom: 8px;
         font-size: 0.7rem;
         letter-spacing: 0.5px;
         text-transform: uppercase;
@@ -2016,7 +2024,7 @@ button.rf-wizard-feature {
     }
 
 .rf-wizard-feature-title {
-    margin-bottom: 4px;
+    margin-bottom: 8px;
     font-size: 0.92rem;
     font-weight: 800;
     letter-spacing: 0.5px;
@@ -2053,7 +2061,7 @@ button.rf-wizard-feature {
     display: flex;
     flex-direction: column;
     align-items: center;
-    padding: 16px 4px;
+    padding: 16px 8px;
     border-radius: 8px;
     background: var(--rf-bg-surface);
     border: 1px solid #222;
@@ -2112,7 +2120,7 @@ button.rf-wizard-feature {
 
 .rf-pb-btn {
     flex: 1;
-    min-height: 38px;
+    min-height: 40px;
     border-radius: 4px;
     background: #1a1a1a;
     border: 1px solid var(--rf-border-light);
@@ -2275,7 +2283,7 @@ button.rf-wizard-feature {
 
 .rf-wizard-btn {
     flex: 1;
-    min-height: 50px;
+    min-height: 48px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -2377,7 +2385,7 @@ button.rf-wizard-feature {
 }
 
     .rf-sheet-list li {
-        padding: 4px 0;
+        padding: 8px 0;
         border-bottom: 1px solid var(--rf-border-subtle);
     }
 
@@ -2452,7 +2460,7 @@ button.rf-wizard-feature {
 
     .rf-die {
         width: 34px;
-        height: 34px;
+        height: 32px;
         font-size: 1rem;
     }
 
@@ -2700,13 +2708,13 @@ button.rf-stat-card {
 
     .rf-sheet-hp-controls .rf-wizard-input {
         width: 90px;
-        min-height: 44px;
+        min-height: 48px;
     }
 
     .rf-sheet-hp-controls .rf-wizard-btn {
         flex: 1;
         min-width: 80px;
-        min-height: 44px;
+        min-height: 48px;
     }
 
 .rf-sheet-hp-dice,
@@ -2746,8 +2754,11 @@ button.rf-stat-card {
 }
 
     .rf-sheet-conditions .rf-wizard-pill {
-        padding: 4px 8px;
+        padding: 0 8px;
         font-size: 0.78rem;
+        min-height: 32px;
+        display: inline-flex;
+        align-items: center;
     }
 
 .rf-sheet-roller {
@@ -2764,8 +2775,11 @@ button.rf-stat-card {
 }
 
     .rf-sheet-rollmode .rf-wizard-pill {
-        padding: 4px 8px;
+        padding: 0 8px;
         font-size: 0.78rem;
+        min-height: 32px;
+        display: inline-flex;
+        align-items: center;
     }
 
 .rf-sheet-lastroll {
@@ -2780,7 +2794,7 @@ button.rf-stat-card {
 
 .rf-sheet-tabs {
     display: flex;
-    gap: 4px;
+    gap: 8px;
     overflow-x: auto;
     border-bottom: 2px solid var(--rf-orange-primary);
 }
@@ -2880,7 +2894,7 @@ button.rf-stat-card {
     flex-wrap: wrap;
     align-items: center;
     gap: 8px;
-    padding: 4px 0;
+    padding: 8px 0;
     border-bottom: 1px solid var(--rf-border-subtle);
 }
 
@@ -2923,13 +2937,16 @@ button.rf-stat-card {
 }
 
     .rf-sheet-item-controls .rf-wizard-pill {
-        padding: 4px 8px;
+        padding: 0 8px;
         font-size: 0.78rem;
+        min-height: 32px;
+        display: inline-flex;
+        align-items: center;
     }
 
 .rf-sheet-qty {
     width: 70px !important;
-    min-height: 34px;
+    min-height: 32px;
     padding: 0 8px;
 }
 
@@ -2942,7 +2959,7 @@ button.rf-stat-card {
 .rf-sheet-coin {
     display: flex;
     flex-direction: column;
-    gap: 4px;
+    gap: 8px;
     font-size: 0.75rem;
     font-weight: 800;
     letter-spacing: 1px;
@@ -3014,7 +3031,7 @@ button.rf-stat-card {
     align-items: center;
     justify-content: center;
     width: 54px;
-    height: 54px;
+    height: 56px;
     border-radius: 10px;
     border: 2px solid var(--rf-orange-primary);
     background: #1a1100;
@@ -3051,7 +3068,7 @@ button.rf-stat-card {
         letter-spacing: 1px;
         text-transform: uppercase;
         color: #8a8a8a;
-        padding-top: 4px;
+        padding-top: 8px;
     }
 
     .rf-def-list dd {
@@ -3062,7 +3079,7 @@ button.rf-stat-card {
 @media (max-width: 650px) {
     .rf-def-list {
         grid-template-columns: 1fr;
-        gap: 4px;
+        gap: 8px;
     }
 
         .rf-def-list dd {
@@ -3082,7 +3099,7 @@ button.rf-stat-card {
 
 /* Ability cards of the wizard: the base score (assigned), then the increases and the final score with its modifier */
 .rf-stat-card-caption {
-    margin: -4px 0 8px;
+    margin: 0 0 8px;
     font-size: 0.62rem;
     font-weight: 700;
     letter-spacing: 1px;
@@ -3092,7 +3109,7 @@ button.rf-stat-card {
 
 .rf-stat-card-breakdown {
     width: 90%;
-    min-height: 44px;
+    min-height: 48px;
     margin-bottom: 8px;
     padding-top: 8px;
     border-top: 1px solid var(--rf-border-subtle);
@@ -3114,7 +3131,7 @@ button.rf-stat-card {
 
 .rf-stat-card-modifier {
     display: inline-block;
-    margin-left: 4px;
+    margin-left: 8px;
     padding: 0 8px;
     border-radius: 4px;
     background: #222;
@@ -3229,7 +3246,7 @@ button.rf-stat-card {
 
 .rf-mini-btn {
     min-width: 30px;
-    height: 30px;
+    height: 32px;
     padding: 0 8px;
     border-radius: 8px;
     border: 1px solid var(--rf-border-light);
@@ -3259,129 +3276,6 @@ button.rf-stat-card {
     }
 
 /* Hero */
-.rf-hero-top {
-    display: flex;
-    gap: 16px;
-}
-
-.rf-hero-portrait {
-    position: relative;
-    flex: 0 0 120px;
-    height: 150px;
-    border-radius: 10px;
-    border: 1px solid var(--rf-border-light);
-    background-color: var(--rf-bg-main);
-    background-size: cover;
-    background-position: center top;
-}
-
-.rf-hero-portrait-upload {
-    position: absolute;
-    inset: auto 8px 8px 8px;
-    text-align: center;
-    font-size: .75rem;
-    padding: 4px;
-    border-radius: 6px;
-    background-color: rgba(0, 0, 0, .55);
-    color: #fff;
-    cursor: pointer;
-}
-
-.rf-hero-portrait.empty .rf-hero-portrait-upload {
-    inset: 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: none;
-    color: var(--rf-text-muted);
-    border: 1px dashed var(--rf-border-light);
-    border-radius: 10px;
-}
-
-.rf-hero-portrait-remove {
-    position: absolute;
-    top: 4px;
-    right: 4px;
-    width: 24px;
-    height: 24px;
-    border-radius: 50%;
-    border: none;
-    background-color: rgba(0, 0, 0, .55);
-    color: #fff;
-    font-size: .7rem;
-}
-
-.rf-hero-info {
-    flex: 1;
-    min-width: 0;
-}
-
-.rf-hero-header {
-    display: flex;
-    justify-content: space-between;
-    gap: 16px;
-}
-
-.rf-hero-title .rf-sheet-name {
-    font-family: var(--rf-font-display);
-    font-size: 1.6rem;
-    color: var(--rf-orange-primary);
-    line-height: 1.15;
-}
-
-.rf-hero-origin {
-    color: var(--rf-text-secondary);
-    font-size: .92rem;
-}
-
-.rf-hero-sep {
-    color: var(--rf-text-muted);
-    margin: 0 8px;
-}
-
-.rf-hero-classes {
-    color: var(--rf-text-primary);
-    font-weight: 600;
-    font-size: .92rem;
-}
-
-.rf-hero-controls {
-    display: flex;
-    align-items: flex-start;
-    gap: 16px;
-}
-
-.rf-hero-speed {
-    font-weight: 700;
-    color: var(--rf-text-primary);
-    white-space: nowrap;
-}
-
-.rf-hero-bio {
-    display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 8px 16px;
-    margin-top: 16px;
-}
-
-.rf-hero-bio-value,
-.rf-hero-bio-input {
-    font-size: .9rem;
-    color: var(--rf-text-primary);
-}
-
-.rf-hero-bio-input {
-    width: 100%;
-    background: none;
-    border: none;
-    border-bottom: 1px dashed var(--rf-border-light);
-    padding: 1px 0;
-}
-
-    .rf-hero-bio-input:focus {
-        outline: none;
-        border-bottom-color: var(--rf-orange-primary);
-    }
 
 .rf-chip-list {
     display: flex;
@@ -3390,12 +3284,15 @@ button.rf-stat-card {
 }
 
 .rf-chip {
-    padding: 4px 8px;
+    padding: 0 8px;
     border-radius: 999px;
     border: 1px solid var(--rf-border-light);
     background-color: var(--rf-bg-surface);
     color: var(--rf-text-primary);
     font-size: .8rem;
+    min-height: 32px;
+    display: inline-flex;
+    align-items: center;
 }
 
     .rf-chip:hover,
@@ -3411,17 +3308,6 @@ button.rf-stat-card {
     background-color: var(--rf-bg-main);
     border-radius: 6px;
     font-size: .88rem;
-}
-
-.rf-hero-footer {
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-    margin-top: 16px;
-    padding-top: 8px;
-    border-top: 1px solid var(--rf-border-subtle);
-    font-size: .85rem;
-    color: var(--rf-text-secondary);
 }
 
 .rf-sheet-actions {
@@ -3513,7 +3399,7 @@ button.rf-stat-card {
 
 .rf-defense {
     text-align: center;
-    padding: 8px 4px;
+    padding: 8px 8px;
     border-radius: 8px;
     background-color: var(--rf-bg-main);
 }
@@ -3538,7 +3424,7 @@ button.rf-stat-card {
     display: flex;
     justify-content: space-between;
     font-weight: 600;
-    margin-bottom: 4px;
+    margin-bottom: 8px;
     color: var(--rf-text-primary);
 }
 
@@ -3640,7 +3526,7 @@ button.rf-stat-card {
     font-size: .75rem;
     color: var(--rf-text-muted);
     border-top: 1px solid var(--rf-border-subtle) !important;
-    padding-top: 4px;
+    padding-top: 8px;
     text-align: center;
 }
 
@@ -3771,7 +3657,7 @@ button.rf-stat-card {
     }
 
 .rf-slot-use {
-    padding: 4px 16px;
+    padding: 0 16px;
     border-radius: 8px;
     border: 1px solid var(--rf-orange-primary);
     background: none;
@@ -3779,6 +3665,9 @@ button.rf-stat-card {
     font-size: .78rem;
     text-transform: uppercase;
     letter-spacing: .05em;
+    min-height: 32px;
+    display: inline-flex;
+    align-items: center;
 }
 
     .rf-slot-use:disabled {
@@ -3839,12 +3728,12 @@ button.rf-stat-card {
 
 .rf-coin {
     text-align: center;
-    padding: 8px 4px;
+    padding: 8px 8px;
     border-radius: 8px;
     background-color: var(--rf-bg-main);
     display: flex;
     flex-direction: column;
-    gap: 4px;
+    gap: 8px;
 }
 
 .rf-coin-input {
@@ -3879,7 +3768,7 @@ button.rf-stat-card {
 .rf-item-controls {
     display: flex;
     align-items: center;
-    gap: 4px;
+    gap: 8px;
     flex: none;
 }
 
@@ -3890,13 +3779,16 @@ button.rf-stat-card {
 }
 
 .rf-item-equip {
-    padding: 4px 8px;
+    padding: 0 8px;
     border-radius: 8px;
     border: 1px solid var(--rf-orange-primary);
     background: none;
     color: var(--rf-orange-primary);
     font-size: .75rem;
     text-transform: uppercase;
+    min-height: 32px;
+    display: inline-flex;
+    align-items: center;
 }
 
     .rf-item-equip.on {
@@ -3920,22 +3812,6 @@ button.rf-stat-card {
 }
 
 @media (max-width: 480px) {
-    .rf-hero-top {
-        flex-direction: column;
-    }
-
-    .rf-hero-portrait {
-        flex-basis: auto;
-        width: 120px;
-    }
-
-    .rf-hero-header {
-        flex-direction: column;
-    }
-
-    .rf-hero-bio {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-    }
 
     .rf-coin-grid {
         grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -3973,8 +3849,8 @@ button.rf-stat-card {
     flex-direction: column;
     align-items: center;
     justify-content: space-between;
-    gap: 4px;
-    padding: 8px 4px;
+    gap: 8px;
+    padding: 8px 8px;
 }
 
     .rf-defense .rf-mini-label {
@@ -4023,7 +3899,7 @@ button.rf-stat-card {
 .rf-hp-heart {
     flex: none;
     width: 46px;
-    height: 46px;
+    height: 48px;
     border-radius: 50%;
     display: flex;
     align-items: center;
@@ -4081,13 +3957,16 @@ button.rf-stat-card {
 }
 
 .rf-hp-temp-chip {
-    padding: 4px 8px;
+    padding: 0 8px;
     border-radius: 999px;
     font-size: .75rem;
     font-weight: 600;
     color: #7cc4f0;
     border: 1px solid rgba(74, 163, 223, .55);
     background-color: rgba(74, 163, 223, .12);
+    min-height: 24px;
+    display: inline-flex;
+    align-items: center;
 }
 
 .rf-hp-actions {
@@ -4100,7 +3979,7 @@ button.rf-stat-card {
 .rf-hp-stepper {
     display: inline-flex;
     align-items: stretch;
-    height: 36px;
+    height: 40px;
     border-radius: 8px;
     border: 1px solid var(--rf-border-light);
     overflow: hidden;
@@ -4152,7 +4031,7 @@ button.rf-stat-card {
 
 .rf-hp-btn {
     --rf-btn: var(--rf-text-secondary);
-    height: 36px;
+    height: 40px;
     padding: 0 16px;
     border-radius: 8px;
     border: 1px solid var(--rf-btn);
@@ -4212,12 +4091,12 @@ button.rf-stat-card {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 4px;
+    gap: 8px;
 }
 
 .rf-coin-badge {
     width: 30px;
-    height: 30px;
+    height: 32px;
     border-radius: 50%;
     display: flex;
     align-items: center;
@@ -4239,7 +4118,7 @@ button.rf-stat-card {
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 4px;
+    gap: 8px;
     width: 100%;
 }
 
@@ -4253,7 +4132,7 @@ button.rf-stat-card {
     .rf-coin-stepper .rf-mini-btn {
         flex: none;
         min-width: 28px;
-        height: 28px;
+        height: 32px;
         padding: 0;
     }
 
@@ -4277,7 +4156,7 @@ button.rf-stat-card {
     display: flex;
     align-items: center;
     justify-content: flex-end;
-    gap: 4px;
+    gap: 8px;
 }
 
     .rf-resource-pool .rf-coin-input {
@@ -4289,7 +4168,7 @@ button.rf-stat-card {
 .rf-resource-max {
     color: var(--rf-text-muted);
     font-size: .85rem;
-    margin-right: 4px;
+    margin-right: 8px;
 }
 
 /* Collapsible card and small number inputs */
@@ -4373,9 +4252,9 @@ button.rf-stat-card {
     display: flex;
     align-items: center;
     justify-content: flex-end;
-    gap: 4px;
+    gap: 8px;
     flex-wrap: wrap;
-    margin-bottom: -8px;
+    margin-bottom: 0;
 }
 
     .rf-sheet-toolbar .rf-sheet-save {
@@ -4387,8 +4266,8 @@ button.rf-stat-card {
 .rf-tool-btn {
     display: inline-flex;
     align-items: center;
-    gap: 4px;
-    padding: 4px 8px;
+    gap: 8px;
+    padding: 0 8px;
     border-radius: 7px;
     border: 1px solid transparent;
     background: none;
@@ -4396,6 +4275,7 @@ button.rf-stat-card {
     font-size: .78rem;
     text-decoration: none;
     transition: color .15s ease, border-color .15s ease;
+    min-height: 32px;
 }
 
     .rf-tool-btn:hover {
@@ -4415,45 +4295,6 @@ button.rf-stat-card {
     flex: none;
     vertical-align: -0.125em;
 }
-
-.rf-hero-classline {
-    display: flex;
-    align-items: center;
-    flex-wrap: wrap;
-    gap: 8px 8px;
-    margin-top: 4px;
-}
-
-.rf-hero-level {
-    font-size: .78rem;
-    color: var(--rf-text-muted);
-    text-transform: uppercase;
-    letter-spacing: .06em;
-}
-
-.rf-levelup-pill {
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    padding: 4px 8px 4px 8px;
-    border-radius: 999px;
-    border: 1px solid var(--rf-border-light);
-    color: var(--rf-text-secondary);
-    font-size: .74rem;
-    font-weight: 600;
-    text-decoration: none;
-}
-
-    .rf-levelup-pill:hover {
-        color: var(--rf-orange-primary);
-        border-color: var(--rf-orange-primary);
-    }
-
-    .rf-levelup-pill.ready {
-        color: #111;
-        background-color: var(--rf-orange-primary);
-        border-color: var(--rf-orange-primary);
-    }
 
 .rf-stat-strip {
     display: grid;
@@ -4595,7 +4436,7 @@ button.rf-stat-card {
 .rf-stepper {
     display: inline-flex;
     align-items: stretch;
-    height: 38px;
+    height: 40px;
     border-radius: 8px;
     border: 1px solid var(--rf-border-light);
     background-color: var(--rf-bg-main);
@@ -4651,7 +4492,7 @@ button.rf-stat-card {
     display: inline-flex;
     align-items: center;
     gap: 8px;
-    padding: 8px 4px;
+    padding: 8px 8px;
     border: none;
     background: none;
     color: var(--rf-text-secondary);
@@ -4707,18 +4548,21 @@ button.rf-stat-card {
 .rf-turn-chips {
     display: flex;
     flex-wrap: wrap;
-    gap: 4px;
+    gap: 8px;
     align-items: center;
 }
 
 .rf-turn-chip {
-    padding: 4px 8px;
+    padding: 0 8px;
     border-radius: 6px;
     border: 1px solid var(--rf-border-subtle);
     background-color: var(--rf-bg-main);
     color: var(--rf-text-primary);
     font-size: .78rem;
     text-decoration: none;
+    min-height: 32px;
+    display: inline-flex;
+    align-items: center;
 }
 
     a.rf-turn-chip:hover,
@@ -4797,7 +4641,7 @@ button.rf-stat-card {
     display: flex;
     flex-direction: column;
     align-items: flex-start;
-    gap: 4px;
+    gap: 8px;
     padding: 8px 8px;
     border-radius: 8px;
     border: 1px solid var(--rf-border-light);
@@ -4915,7 +4759,7 @@ button.rf-stat-card {
 .rf-die3d {
     position: relative;
     width: 50px;
-    height: 50px;
+    height: 48px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -5044,12 +4888,6 @@ button.rf-stat-card {
 }
 
 /* ===== Sheet: name with inspiration, attacks, full turn summary ===== */
-.rf-hero-nameline {
-    display: flex;
-    align-items: center;
-    flex-wrap: wrap;
-    gap: 8px 16px;
-}
 
 .rf-stat-strip {
     grid-template-columns: repeat(7, minmax(0, 1fr));
@@ -5060,7 +4898,7 @@ button.rf-stat-card {
 }
 
     .rf-bar-controls .rf-wizard-btn {
-        height: 38px;
+        height: 40px;
         display: inline-flex;
         align-items: center;
         padding: 0 16px;
@@ -5117,12 +4955,13 @@ button.rf-stat-card {
     flex-direction: column;
     align-items: center;
     min-width: 58px;
-    padding: 4px 8px;
+    padding: 0 8px;
     border-radius: 8px;
     border: 1px solid var(--rf-border-light);
     background-color: var(--rf-bg-main);
     color: var(--rf-text-primary);
     line-height: 1.15;
+    min-height: 32px;
 }
 
     .rf-attack-btn:hover {
@@ -5184,7 +5023,7 @@ button.rf-stat-card {
     font-size: .8rem;
     font-weight: 600;
     color: var(--rf-text-secondary);
-    padding-top: 4px;
+    padding-top: 8px;
 }
 
 .rf-turn-split {
@@ -5214,8 +5053,8 @@ button.rf-stat-card {
     justify-content: center;
     min-width: 18px;
     height: 18px;
-    margin-left: 4px;
-    padding: 0 4px;
+    margin-left: 8px;
+    padding: 0 8px;
     border-radius: 999px;
     background-color: rgba(255, 140, 0, .18);
     font-size: .68rem;
@@ -5232,9 +5071,12 @@ button.rf-stat-card {
 }
 
 .rf-turn-attack-name {
-    padding: 4px 8px;
+    padding: 0 8px;
     color: var(--rf-text-primary);
     background-color: var(--rf-bg-card);
+    min-height: 24px;
+    display: inline-flex;
+    align-items: center;
 }
 
 .rf-turn-attack button {
@@ -5242,8 +5084,11 @@ button.rf-stat-card {
     border-left: 1px solid var(--rf-border-subtle);
     background: none;
     color: var(--rf-text-secondary);
-    padding: 4px 8px;
+    padding: 0 8px;
     font-weight: 700;
+    min-height: 32px;
+    display: inline-flex;
+    align-items: center;
 }
 
     .rf-turn-attack button:hover {
@@ -5264,7 +5109,7 @@ button.rf-stat-card {
 @media (max-width: 480px) {
     .rf-turn-row {
         grid-template-columns: minmax(0, 1fr);
-        gap: 4px;
+        gap: 8px;
     }
 
     .rf-attack {
@@ -5294,13 +5139,16 @@ button.rf-stat-card {
 }
 
 .rf-concentration-save {
-    padding: 4px 8px;
+    padding: 0 8px;
     border-radius: 6px;
     border: 1px solid #c3a8ff;
     background: none;
     color: #c3a8ff;
     font-size: .75rem;
     font-weight: 700;
+    min-height: 32px;
+    display: inline-flex;
+    align-items: center;
 }
 
     .rf-concentration-save:hover {
@@ -5332,14 +5180,14 @@ button.rf-stat-card {
 .rf-item-name {
     display: flex;
     flex-direction: column;
-    gap: 4px;
+    gap: 8px;
 }
 
 .rf-item-magic {
     display: flex;
     flex-wrap: wrap;
     align-items: center;
-    gap: 4px 8px;
+    gap: 8px 8px;
     font-size: .74rem;
     color: var(--rf-text-secondary);
 }
@@ -5393,7 +5241,7 @@ button.rf-stat-card {
 .rf-magic-field {
     display: flex;
     flex-direction: column;
-    gap: 4px;
+    gap: 8px;
     margin-bottom: 8px;
 }
 
@@ -5451,7 +5299,7 @@ button.rf-stat-card {
 
 .rf-book-tabs {
     display: flex;
-    gap: 4px;
+    gap: 8px;
     margin-bottom: 8px;
 }
 
@@ -5473,12 +5321,15 @@ button.rf-stat-card {
 }
 
 .rf-book-pick {
-    padding: 4px 8px;
+    padding: 0 8px;
     border-radius: 6px;
     border: 1px solid var(--rf-border-light);
     background-color: var(--rf-bg-main);
     color: var(--rf-text-primary);
     font-size: .8rem;
+    min-height: 32px;
+    display: inline-flex;
+    align-items: center;
 }
 
     .rf-book-pick small {
@@ -5500,7 +5351,7 @@ button.rf-stat-card {
     align-items: center;
     gap: 8px;
     width: 100%;
-    padding: 4px 8px;
+    padding: 8px 8px;
     border-bottom: 1px solid var(--rf-border-subtle);
     font-size: .85rem;
 }
@@ -5515,7 +5366,7 @@ button.rf-stat-card {
 
     .rf-book-name small {
         color: var(--rf-text-muted);
-        margin-left: 4px;
+        margin-left: 8px;
     }
 
 .rf-book-tag {
@@ -5524,12 +5375,15 @@ button.rf-stat-card {
 }
 
 .rf-book-add {
-    padding: 4px 8px;
+    padding: 0 8px;
     border-radius: 6px;
     border: 1px solid var(--rf-border-light);
     background: none;
     color: var(--rf-text-secondary);
     font-size: .75rem;
+    min-height: 32px;
+    display: inline-flex;
+    align-items: center;
 }
 
     .rf-book-add:hover {
@@ -5557,7 +5411,7 @@ button.rf-stat-card {
     align-items: center;
     flex-wrap: wrap;
     gap: 8px;
-    margin-bottom: -4px;
+    margin-bottom: 0;
 }
 
 .rf-ability-head-title {
@@ -5655,7 +5509,7 @@ button.rf-stat-card {
 .rf-rest-recovers {
     display: flex;
     flex-direction: column;
-    gap: 4px;
+    gap: 8px;
     margin-bottom: 16px;
     font-size: .85rem;
     color: var(--rf-text-secondary);
@@ -5694,7 +5548,7 @@ button.rf-stat-card {
 .rf-res-field {
     display: flex;
     flex-direction: column;
-    gap: 4px;
+    gap: 8px;
 }
 
 .rf-res-reset {
@@ -5719,7 +5573,7 @@ button.rf-stat-card {
     display: flex;
     align-items: center;
     gap: 8px;
-    margin-bottom: 4px;
+    margin-bottom: 8px;
 }
 
 .rf-share-people-title {
@@ -5761,7 +5615,7 @@ button.rf-stat-card {
 
 .rf-share-avatar {
     width: 28px;
-    height: 28px;
+    height: 32px;
     border-radius: 50%;
     display: inline-flex;
     align-items: center;
@@ -5858,7 +5712,7 @@ button.rf-stat-card {
     z-index: 1;
     display: inline-flex;
     align-items: center;
-    gap: 4px;
+    gap: 8px;
     padding: 0;
     border: none;
     background: none;
@@ -5914,7 +5768,7 @@ button.rf-stat-card {
     overflow-y: auto;
     border: 1px solid var(--rf-border-light);
     border-radius: 4px;
-    margin-top: 4px;
+    margin-top: 8px;
 }
 
     .rf-magic-pick-list button {
@@ -5923,7 +5777,7 @@ button.rf-stat-card {
         justify-content: space-between;
         gap: 8px;
         padding: 8px 8px;
-        min-height: 44px;
+        min-height: 48px;
         align-items: center;
         background: transparent;
         border: 0;
@@ -6025,7 +5879,7 @@ button.rf-stat-card {
 
     .rf-campaign-issues strong { color: #f08a87; }
 
-    .rf-campaign-issues li + li { margin-top: 4px; }
+    .rf-campaign-issues li + li { margin-top: 8px; }
 
 .rf-campaign-note {
     padding: 16px 0;
@@ -6046,20 +5900,6 @@ button.rf-stat-card {
 
 .rf-campaign-note-meta { font-size: 0.8rem; color: var(--rf-text-muted); }
 
-/* ===== Sheet: identity card with room to breathe, square portrait the player can frame ===== */
-.rf-hero-top {
-    gap: 24px;
-    align-items: flex-start;
-}
-
-.rf-hero-portrait {
-    flex: 0 0 140px;
-    width: 140px;
-    height: 140px;
-    aspect-ratio: 1 / 1;
-    background-position: 50% 50%;
-    background-repeat: no-repeat;
-}
 
 /* Portrait crop: a square frame on the picture, dragged and zoomed */
 .rf-crop-dialog {
@@ -6101,78 +5941,6 @@ button.rf-stat-card {
         accent-color: var(--rf-orange-primary);
     }
 
-.rf-hero-info {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-    padding-top: 4px;
-}
-
-.rf-hero-nameline {
-    gap: 8px 16px;
-}
-
-    .rf-hero-nameline .rf-sheet-name {
-        line-height: 1.1;
-    }
-
-/* Heroic inspiration: a pill next to the name, star and label on the same middle line */
-.rf-hero-inspiration {
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    height: 32px;
-    padding: 0 16px 0 8px;
-    border-radius: 999px;
-    border: 1px solid var(--rf-border-light);
-    background-color: var(--rf-bg-surface);
-    color: var(--rf-text-muted);
-    font-size: .75rem;
-    font-weight: 600;
-    letter-spacing: .03em;
-    line-height: 1;
-}
-
-    .rf-hero-inspiration .rf-icon {
-        width: 16px;
-        height: 16px;
-        vertical-align: 0;
-    }
-
-    .rf-hero-inspiration:hover,
-    .rf-hero-inspiration.on {
-        color: var(--rf-orange-primary);
-        border-color: var(--rf-orange-primary);
-    }
-
-    .rf-hero-inspiration.on {
-        box-shadow: 0 0 8px var(--rf-orange-glow);
-    }
-
-.rf-hero-origin {
-    line-height: 1.4;
-}
-
-.rf-hero-classline {
-    gap: 8px 16px;
-    margin-top: 0;
-}
-
-.rf-levelup-pill {
-    padding: 4px 16px 4px 8px;
-}
-
-.rf-hero-bio {
-    margin-top: 4px;
-    gap: 16px 24px;
-}
-
-@media (max-width: 480px) {
-    .rf-hero-portrait {
-        flex-basis: auto;
-        width: 140px;
-    }
-}
 
 /* ===== Monsters: statblock ===== */
 .rf-statblock {
@@ -6191,7 +5959,7 @@ button.rf-stat-card {
     font-family: var(--rf-font-display);
     color: var(--rf-orange-primary);
     font-size: 1.35rem;
-    margin: 0 0 4px;
+    margin: 0 0 8px;
 }
 
 .rf-statblock-subtitle {
@@ -6209,13 +5977,13 @@ button.rf-stat-card {
 .rf-statblock-line strong {
     color: var(--rf-orange-hover);
     font-weight: 600;
-    margin-right: 4px;
+    margin-right: 8px;
 }
 
 .rf-statblock-abilities {
     display: grid;
     grid-template-columns: repeat(6, minmax(0, 1fr));
-    gap: 4px;
+    gap: 8px;
     text-align: center;
 }
 
@@ -6231,7 +5999,7 @@ button.rf-stat-card {
     color: var(--rf-orange-primary);
     font-size: 1.05rem;
     border-bottom: 1px solid var(--rf-orange-dark);
-    padding-bottom: 4px;
+    padding-bottom: 8px;
     margin: 16px 0 8px;
 }
 
@@ -6350,9 +6118,12 @@ button.rf-stat-card {
 
 .rf-encounter-rating {
     font-weight: 700;
-    padding: 4px 8px;
+    padding: 0 8px;
     border-radius: 999px;
     border: 1px solid currentColor;
+    min-height: 24px;
+    display: inline-flex;
+    align-items: center;
 }
 
 .rf-encounter-rating-0 { color: var(--rf-text-muted); }
@@ -6397,8 +6168,11 @@ button.rf-stat-card {
 
 .rf-combatant-init input {
     text-align: center;
-    padding-left: 4px;
-    padding-right: 4px;
+    padding-left: 8px;
+    padding-right: 8px;
+    min-height: 32px;
+    display: inline-flex;
+    align-items: center;
 }
 
 .rf-combatant-main {
@@ -6410,13 +6184,14 @@ button.rf-stat-card {
     display: flex;
     flex-wrap: wrap;
     align-items: center;
-    gap: 4px 8px;
+    gap: 8px 8px;
 }
 
 .rf-combatant-name-input {
     max-width: 220px;
-    padding-top: 4px;
-    padding-bottom: 4px;
+    min-height: 32px;
+    display: inline-flex;
+    align-items: center;
 }
 
 .rf-combatant-turn {
@@ -6434,8 +6209,8 @@ button.rf-stat-card {
     display: flex;
     flex-wrap: wrap;
     align-items: center;
-    gap: 4px;
-    margin-top: 4px;
+    gap: 8px;
+    margin-top: 8px;
 }
 
 .rf-condition-chip {
@@ -6471,7 +6246,7 @@ button.rf-condition-chip:hover {
 
 .rf-combatant-hp-edit {
     display: flex;
-    gap: 4px;
+    gap: 8px;
     align-items: center;
 }
 
@@ -6481,7 +6256,7 @@ button.rf-condition-chip:hover {
 
 .rf-combatant-actions {
     display: flex;
-    gap: 4px;
+    gap: 8px;
     margin-left: auto;
 }
 
@@ -6501,7 +6276,7 @@ button.rf-condition-chip:hover {
 .rf-monster-picker {
     display: flex;
     flex-direction: column;
-    gap: 4px;
+    gap: 8px;
     max-height: 340px;
     overflow-y: auto;
 }
@@ -6535,4 +6310,519 @@ button.rf-condition-chip:hover {
     .rf-combatant-actions {
         margin-left: 0;
     }
+}
+
+/* ===== Sheet: identity card =====
+   Header: portrait, name and origin, classes with the level; inspiration and level up in the top right corner.
+   Below, across the whole card: personal details in one row, senses and traits, proficiencies in boxes. */
+.rf-hero {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+    padding: 24px;
+}
+
+.rf-hero-header {
+    display: flex;
+    align-items: center;
+    gap: 24px;
+}
+
+.rf-hero-portrait {
+    position: relative;
+    flex: 0 0 112px;
+    width: 112px;
+    height: 112px;
+    border-radius: 8px;
+    border: 1px solid var(--rf-border-light);
+    background-color: var(--rf-bg-main);
+    background-size: cover;
+    background-position: 50% 50%;
+    background-repeat: no-repeat;
+}
+
+.rf-hero-portrait-upload {
+    position: absolute;
+    inset: auto 8px 8px 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 24px;
+    border-radius: 4px;
+    background-color: rgba(0, 0, 0, .6);
+    color: #fff;
+    font-size: .75rem;
+    cursor: pointer;
+}
+
+.rf-hero-portrait.empty .rf-hero-portrait-upload {
+    inset: 0;
+    height: auto;
+    background: none;
+    color: var(--rf-text-muted);
+    border: 1px dashed var(--rf-border-light);
+    border-radius: 8px;
+}
+
+.rf-hero-portrait-remove {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    padding: 0;
+    border-radius: 50%;
+    border: none;
+    background-color: rgba(0, 0, 0, .6);
+    color: #fff;
+    font-size: .75rem;
+}
+
+.rf-hero-main {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.rf-hero-titlerow {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    flex-wrap: wrap;
+    gap: 16px;
+}
+
+.rf-hero-titles {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    min-width: 0;
+}
+
+    .rf-hero-titles .rf-sheet-name {
+        line-height: 1.1;
+    }
+
+.rf-hero-origin {
+    color: var(--rf-text-secondary);
+    font-size: .95rem;
+    line-height: 1.4;
+}
+
+.rf-hero-sep {
+    color: var(--rf-text-muted);
+    margin: 0 8px;
+}
+
+.rf-hero-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+/* Inspiration and level up: pills of the same size, icon and label on the same middle line */
+.rf-hero-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    height: 32px;
+    padding: 0 16px 0 8px;
+    border-radius: 999px;
+    border: 1px solid var(--rf-border-light);
+    background-color: var(--rf-bg-surface);
+    color: var(--rf-text-secondary);
+    font-size: .75rem;
+    font-weight: 600;
+    letter-spacing: .03em;
+    line-height: 1;
+    text-decoration: none;
+    white-space: nowrap;
+}
+
+    .rf-hero-pill .rf-icon {
+        width: 16px;
+        height: 16px;
+        vertical-align: 0;
+    }
+
+    .rf-hero-pill:hover,
+    .rf-hero-pill.on {
+        color: var(--rf-orange-primary);
+        border-color: var(--rf-orange-primary);
+    }
+
+    .rf-hero-pill.on {
+        box-shadow: 0 0 8px var(--rf-orange-glow);
+    }
+
+    .rf-hero-pill.ready {
+        color: #111;
+        background-color: var(--rf-orange-primary);
+        border-color: var(--rf-orange-primary);
+    }
+
+.rf-hero-classline {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px 16px;
+}
+
+.rf-hero-class {
+    color: var(--rf-text-primary);
+    font-weight: 600;
+}
+
+    .rf-hero-class small {
+        color: var(--rf-text-secondary);
+        font-weight: 400;
+        font-size: .85rem;
+    }
+
+/* Multiclass: one chip per class with its level */
+.rf-hero-class-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    height: 32px;
+    padding: 0 16px;
+    border-radius: 8px;
+    border: 1px solid var(--rf-border-light);
+    background-color: var(--rf-bg-surface);
+    color: var(--rf-text-primary);
+    font-size: .85rem;
+    font-weight: 600;
+}
+
+    .rf-hero-class-chip span {
+        color: var(--rf-orange-primary);
+    }
+
+.rf-hero-level {
+    font-size: .75rem;
+    color: var(--rf-text-muted);
+    text-transform: uppercase;
+    letter-spacing: .08em;
+}
+
+/* Personal details: one row of six on a desktop, three then two on smaller screens */
+.rf-hero-attrs {
+    display: grid;
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    gap: 16px 24px;
+    padding: 16px 24px;
+    border-radius: 8px;
+    border: 1px solid var(--rf-border-subtle);
+    background-color: var(--rf-bg-surface);
+}
+
+    .rf-hero-attrs > div {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        min-width: 0;
+    }
+
+.rf-hero-bio-value,
+.rf-hero-bio-input {
+    font-size: .95rem;
+    font-weight: 600;
+    color: var(--rf-text-primary);
+}
+
+.rf-hero-bio-input {
+    width: 100%;
+    background: none;
+    border: none;
+    border-bottom: 1px dashed var(--rf-border-light);
+    padding: 0;
+}
+
+    .rf-hero-bio-input:focus {
+        outline: none;
+        border-bottom-color: var(--rf-orange-primary);
+    }
+
+.rf-hero-traits {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+/* Proficiencies: four boxes instead of a squeezed list */
+.rf-hero-profs {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(176px, 1fr));
+    gap: 16px;
+    padding-top: 24px;
+    border-top: 1px solid var(--rf-border-subtle);
+}
+
+.rf-hero-prof {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 16px;
+    border-radius: 8px;
+    background-color: var(--rf-bg-surface);
+    font-size: .9rem;
+    color: var(--rf-text-primary);
+    line-height: 1.4;
+}
+
+@media (max-width: 992px) {
+    .rf-hero-attrs {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 576px) {
+    .rf-hero {
+        padding: 16px;
+    }
+
+    .rf-hero-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 16px;
+    }
+
+    .rf-hero-attrs {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        padding: 16px;
+    }
+}
+
+/* ===== Character cards (lists and campaigns): portrait, name and "Level | Species | Class" on top, an optional
+   band (the campaigns) and a row of actions at the bottom, like the character lists of D&D Beyond ===== */
+.rf-pc-card {
+    display: flex;
+    flex-direction: column;
+    border-radius: 8px;
+    border: 1px solid var(--rf-border-subtle);
+    border-left: 3px solid var(--rf-orange-primary);
+    background-color: var(--rf-bg-surface);
+    overflow: hidden;
+}
+
+    .rf-pc-card.shared {
+        border-style: dashed;
+        border-left-style: solid;
+    }
+
+    .rf-pc-card.inactive {
+        border-left-color: var(--rf-border-light);
+    }
+
+        .rf-pc-card.inactive .rf-pc-portrait,
+        .rf-pc-card.inactive .rf-pc-name {
+            opacity: .55;
+        }
+
+.rf-pc-head {
+    display: flex;
+    gap: 16px;
+    padding: 16px;
+    flex: 1;
+}
+
+    .rf-pc-head.rf-card-linked:hover {
+        background-color: var(--rf-bg-card);
+    }
+
+.rf-pc-portrait {
+    flex: 0 0 64px;
+    width: 64px;
+    height: 64px;
+    border-radius: 8px;
+    border: 1px solid var(--rf-border-light);
+    background-color: var(--rf-bg-main);
+    background-size: cover;
+    background-repeat: no-repeat;
+}
+
+    .rf-pc-portrait.empty {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-family: var(--rf-font-display);
+        font-size: 1.5rem;
+        color: var(--rf-orange-primary);
+    }
+
+.rf-pc-info {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.rf-pc-titlerow {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 8px;
+}
+
+.rf-pc-name {
+    font-family: var(--rf-font-display);
+    font-size: 1.15rem;
+    font-weight: 700;
+    color: var(--rf-orange-primary);
+    text-decoration: none;
+    line-height: 1.3;
+    overflow-wrap: anywhere;
+}
+
+    a.rf-pc-name:hover {
+        color: var(--rf-orange-primary);
+    }
+
+.rf-pc-line {
+    font-size: .85rem;
+    color: var(--rf-text-secondary);
+}
+
+    .rf-pc-line span {
+        color: var(--rf-text-muted);
+        margin: 0 8px;
+    }
+
+.rf-pc-stats {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px 16px;
+    font-size: .8rem;
+    color: var(--rf-text-primary);
+}
+
+    .rf-pc-stats strong {
+        color: var(--rf-orange-primary);
+        font-weight: 600;
+    }
+
+.rf-pc-inactive {
+    padding: 0 8px;
+    border-radius: 4px;
+    border: 1px solid var(--rf-border-light);
+    color: var(--rf-text-muted);
+    font-size: .7rem;
+    text-transform: uppercase;
+    letter-spacing: .06em;
+}
+
+.rf-pc-note {
+    font-size: .8rem;
+    color: #9ccff0;
+}
+
+.rf-pc-band {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 8px 16px;
+    border-top: 1px solid var(--rf-border-subtle);
+    background-color: var(--rf-bg-main);
+    font-size: .8rem;
+}
+
+.rf-pc-campaign {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+    min-width: 0;
+}
+
+    .rf-pc-campaign a {
+        color: #9ccff0;
+        overflow-wrap: anywhere;
+    }
+
+.rf-pc-campaign-label {
+    color: var(--rf-text-muted);
+    font-weight: 600;
+}
+
+/* Actions: equal parts of the bottom row, icon and label */
+.rf-pc-actions {
+    display: flex;
+    border-top: 1px solid var(--rf-border-subtle);
+}
+
+.rf-pc-action {
+    flex: 1;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    height: 40px;
+    padding: 0 8px;
+    border: none;
+    background: none;
+    color: var(--rf-text-secondary);
+    font-size: .75rem;
+    font-weight: 700;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+    text-decoration: none;
+    white-space: nowrap;
+}
+
+    .rf-pc-action + .rf-pc-action {
+        border-left: 1px solid var(--rf-border-subtle);
+    }
+
+    .rf-pc-action:hover,
+    .rf-pc-action:focus-visible {
+        color: var(--rf-orange-primary);
+        background-color: var(--rf-bg-card);
+    }
+
+    .rf-pc-action.danger:hover,
+    .rf-pc-action.danger:focus-visible {
+        color: #e5594d;
+    }
+
+/* ===== 8 px grid for the controls: every button, field and select is 32, 40 or 48 px tall ===== */
+.btn {
+    min-height: 40px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding-top: 0;
+    padding-bottom: 0;
+}
+
+    .btn.btn-sm {
+        min-height: 32px;
+        padding: 0 8px;
+    }
+
+    .btn.btn-lg {
+        min-height: 48px;
+        padding: 0 24px;
+    }
+
+input.rf-form-control,
+select.rf-form-control {
+    height: 40px;
+    padding-top: 0;
+    padding-bottom: 0;
+}
+
+.rf-custom-select-trigger {
+    min-height: 40px;
+}
+
+textarea.rf-form-control {
+    min-height: 80px;
 }

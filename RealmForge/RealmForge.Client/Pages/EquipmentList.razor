@@ -16,7 +16,7 @@
 <div class="container-fluid px-0 py-4">
     <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4 pb-3" style="border-bottom: 2px solid var(--rf-orange-primary);">
         <div>
-            <h1 class="h3 fw-bold mb-1 rf-page-title">@UiText.EquipmentTitle(Lang)</h1>
+            <h1 class="h3 fw-bold mb-2 rf-page-title">@UiText.EquipmentTitle(Lang)</h1>
             <p class="mb-0 small" style="color: var(--rf-text-muted); letter-spacing: 1px; text-transform: uppercase;">
                 @UiText.EquipmentSubtitle(Lang)
             </p>
@@ -234,7 +234,7 @@
                                 </div>
                                 @if (!string.IsNullOrWhiteSpace(item.ShortDescription))
                                 {
-                                    <p class="small mb-0 mt-1" style="color: var(--rf-text-muted);">@item.ShortDescription</p>
+                                    <p class="small mb-0 mt-2" style="color: var(--rf-text-muted);">@item.ShortDescription</p>
                                 }
                             </div>
                         }
@@ -281,7 +281,7 @@
         <div class="rf-modal-dialog" style="max-width: 680px;" @onclick:stopPropagation="true" data-test="equipment-detail">
             <div class="d-flex justify-content-between align-items-start mb-3 pb-2" style="border-bottom: 2px solid var(--rf-orange-primary);">
                 <div>
-                    <h2 class="h3 mb-1" style="color: var(--rf-orange-primary); font-family: var(--rf-font-display);" data-test="equipment-name">@detail.Name</h2>
+                    <h2 class="h3 mb-2" style="color: var(--rf-orange-primary); font-family: var(--rf-font-display);" data-test="equipment-name">@detail.Name</h2>
                     <div class="fst-italic small mb-2" style="color: var(--rf-text-secondary);" data-test="equipment-subtitle">@Subtitle(s)</div>
                     <div class="d-flex flex-wrap gap-2">
                         <span class="badge @(detail.Ruleset == RulesetVersion.Dnd5e_2024 ? "badge-edition-2024" : "badge-edition-2014")">

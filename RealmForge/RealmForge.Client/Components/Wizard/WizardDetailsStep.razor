@@ -75,11 +75,11 @@
         <div class="rf-wizard-field">
             <textarea class="rf-wizard-input rf-wizard-textarea" rows="@(field == StoryField.Backstory ? 5 : 2)" maxlength="8000" value="@value"
                       @onchange="e => { set(e.Value?.ToString()); W.Update(); }" data-test="@($"wizard-detail-{key}")"></textarea>
-            <div class="d-flex flex-wrap gap-2 mt-1">
-            <button type="button" class="rf-stat-card-btn" style="width: auto; padding: 4px 16px;" @onclick="() => Suggest(field, set)" data-test="@($"wizard-suggest-{key}")">@UiText.BtnSuggest(Lang)</button>
+            <div class="d-flex flex-wrap gap-2 mt-2">
+            <button type="button" class="rf-stat-card-btn" style="width: auto; padding: 8px 16px;" @onclick="() => Suggest(field, set)" data-test="@($"wizard-suggest-{key}")">@UiText.BtnSuggest(Lang)</button>
             @if (!Is2024 && table is { Count: > 0 })
             {
-                <button type="button" class="rf-stat-card-btn" style="width: auto; padding: 4px 16px;"
+                <button type="button" class="rf-stat-card-btn" style="width: auto; padding: 8px 16px;"
                         @onclick="() => { set(table[Random.Shared.Next(table.Count)]); W.Update(); }" data-test="@($"wizard-roll-{key}")">@UiText.BtnRollTable(Lang)</button>
             }
             </div>

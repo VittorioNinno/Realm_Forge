@@ -147,6 +147,9 @@ namespace RealmForge.Client.Services
 		public Task<CampaignResult> RemoveCharacterAsync(Guid id, Guid characterId) =>
 			SendAsync(() => _http.DeleteAsync($"api/campaigns/{id}/characters/{characterId}"), "remove character");
 
+		public Task<CampaignResult> SetCharacterActiveAsync(Guid id, Guid characterId, bool active) =>
+			SendAsync(() => _http.PutAsJsonAsync($"api/campaigns/{id}/characters/{characterId}/active", new CampaignCharacterActiveDto { Active = active }), "set character active");
+
 		public Task<CampaignResult> ShareAsync(Guid id, Guid entityId) =>
 			SendAsync(() => _http.PostAsJsonAsync($"api/campaigns/{id}/contents", new CampaignContentRequestDto { EntityId = entityId }), "share");
 

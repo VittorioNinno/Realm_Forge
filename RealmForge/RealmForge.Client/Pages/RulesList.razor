@@ -14,7 +14,7 @@
 
 <div class="container-fluid px-0 py-4">
     <div class="mb-4 pb-3" style="border-bottom: 2px solid var(--rf-orange-primary);">
-        <h1 class="h3 fw-bold mb-1 rf-page-title">@UiText.RulesTitle(Lang)</h1>
+        <h1 class="h3 fw-bold mb-2 rf-page-title">@UiText.RulesTitle(Lang)</h1>
         <p class="mb-0 small" style="color: var(--rf-text-muted); letter-spacing: 0.5px;">@UiText.RulesSubtitle(Lang)</p>
     </div>
 
@@ -104,7 +104,7 @@
         <div class="rf-modal-dialog" style="max-width: 720px;" @onclick:stopPropagation="true" data-test="rules-detail">
             <div class="d-flex justify-content-between align-items-start mb-3 pb-2" style="border-bottom: 2px solid var(--rf-orange-primary);">
                 <div>
-                    <h2 class="h3 mb-1" style="color: var(--rf-orange-primary); font-family: var(--rf-font-display);" data-test="rules-name">@detail.Name</h2>
+                    <h2 class="h3 mb-2" style="color: var(--rf-orange-primary); font-family: var(--rf-font-display);" data-test="rules-name">@detail.Name</h2>
                     <div class="fst-italic small mb-2" style="color: var(--rf-text-secondary);" data-test="rules-tag">@UiText.RuleCategoryName(detail.Category, Lang)</div>
                     <div class="d-flex flex-wrap gap-2">
                         <span class="badge @(detail.Ruleset == RulesetVersion.Dnd5e_2024 ? "badge-edition-2024" : "badge-edition-2014")">
