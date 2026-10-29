@@ -2395,7 +2395,7 @@ button.rf-wizard-feature {
 
 .rf-character-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(min(100%, 280px), 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 368px), 1fr));
     gap: 16px;
 }
 
@@ -6795,12 +6795,15 @@ textarea.rf-form-control {
 
 .rf-pc-titlerow {
     display: flex;
+    flex-wrap: wrap;
     justify-content: space-between;
     align-items: flex-start;
     gap: 8px;
 }
 
+/* The name takes the row; the edition badge goes under it when the name is long */
 .rf-pc-titles {
+    flex: 1 1 144px;
     display: flex;
     flex-direction: column;
     min-width: 0;
