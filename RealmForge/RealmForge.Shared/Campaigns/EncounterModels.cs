@@ -1,4 +1,6 @@
-﻿namespace RealmForge.Shared.Campaigns;
+﻿using RealmForge.Shared.Characters;
+
+namespace RealmForge.Shared.Campaigns;
 
 public enum EncounterStatus
 {
@@ -68,6 +70,12 @@ public class EncounterCombatant
 
 	//	Only in the players' view, instead of the hit points
 	public CombatantHealth? Health { get; set; }
+
+	//	Characters: the values of the sheet the encounter was read with. A save changes on the sheet only what differs
+	//	from them (hit points as a difference, so a heal made on the sheet meanwhile is kept)
+	public int? SheetHp { get; set; }
+	public int? SheetTempHp { get; set; }
+	public List<string>? SheetConditions { get; set; }
 }
 
 ///	<summary>
@@ -86,6 +94,10 @@ public static class EncounterRules
 		"blinded", "charmed", "deafened", "frightened", "grappled", "incapacitated", "invisible", "paralyzed",
 		"petrified", "poisoned", "prone", "restrained", "stunned", "unconscious", "exhaustion", "concentrating"
 	};
+
+	//	Conditions a character carries on its sheet in another form (the exhaustion level, the spell of concentration)
+	public const string Exhaustion = "exhaustion";
+	public const string Concentrating = "concentrating";
 
 	//	Masters and co-masters prepare and run the encounters
 	public static bool CanManage(CampaignRole role) => CampaignRules.RunsTheTable(role);
@@ -111,4 +123,113 @@ public static class EncounterRules
 			.ThenBy(c => c.Kind == CombatantKind.Character ? 0 : 1)
 			.ThenBy(c => c.Name, StringComparer.CurrentCultureIgnoreCase)
 			.ToList();
+}
+
+///	<summary>
+///	The link between a character on the field and its sheet: the encounter shows the hit points and the conditions
+///	of the sheet, and what a master changes in the encounter goes back to the sheet.
+///	</summary>
+public static class EncounterSheetSync
+{
+	//	The conditions of the sheet as the encounter names them (exhaustion and concentration included)
+	public static List<string> ConditionsOf(CharacterSheetState sheet)
+	{
+		var list = sheet.Conditions.Where(k => EncounterRules.Conditions.Contains(k)).ToList();
+		if (sheet.Exhaustion > 0)
+		{
+			list.Add(EncounterRules.Exhaustion);
+		}
+		if (sheet.Concentration is not null)
+		{
+			list.Add(EncounterRules.Concentrating);
+		}
+		return list.Distinct().ToList();
+	}
+
+	public static int CurrentHp(CharacterSheetState sheet, int maxHp) => Math.Clamp(sheet.CurrentHitPoints ?? maxHp, 0, Math.Max(0, maxHp));
+
+	///	<summary>
+	///	The combatant shows the sheet: hit points, maximum, temporary hit points, armor class and conditions, and
+	///	remembers them as the values it was read with.
+	///	</summary>
+	public static void Show(EncounterCombatant c, CharacterSheetState sheet, int maxHp, int armorClass)
+	{
+		c.MaxHp = maxHp;
+		c.Hp = CurrentHp(sheet, maxHp);
+		c.TempHp = sheet.TemporaryHitPoints;
+		c.ArmorClass = armorClass;
+		c.Conditions = ConditionsOf(sheet);
+		c.SheetHp = c.Hp;
+		c.SheetTempHp = c.TempHp;
+		c.SheetConditions = c.Conditions.ToList();
+	}
+
+	///	<summary>
+	///	Applies to the sheet what the master changed in the encounter (compared with the values it was read with):
+	///	hit points as a difference, temporary hit points as they are, conditions added and removed. True when the
+	///	sheet changed; its stamp goes up so an older copy of the sheet does not undo it.
+	///	</summary>
+	public static bool Apply(CharacterSheetState sheet, int maxHp, EncounterCombatant c)
+	{
+		if (c.SheetHp is not { } baseHp)
+		{
+			return false;
+		}
+		var changed = false;
+		if (c.Hp != baseHp)
+		{
+			var hp = Math.Clamp(CurrentHp(sheet, maxHp) + c.Hp - baseHp, 0, Math.Max(0, maxHp));
+			sheet.CurrentHitPoints = hp >= maxHp ? null : hp;
+			if (hp == 0)
+			{
+				sheet.Concentration = null;
+			}
+			else
+			{
+				//	Back above 0: the death saves start over
+				sheet.DeathSaveSuccesses = 0;
+				sheet.DeathSaveFailures = 0;
+			}
+			changed = true;
+		}
+		if (c.SheetTempHp is { } baseTemp && c.TempHp != baseTemp)
+		{
+			sheet.TemporaryHitPoints = Math.Clamp(c.TempHp, 0, 9999);
+			changed = true;
+		}
+		var before = c.SheetConditions ?? new List<string>();
+		foreach (var key in c.Conditions.Except(before).ToList())
+		{
+			if (key == EncounterRules.Exhaustion)
+			{
+				sheet.Exhaustion = Math.Max(1, sheet.Exhaustion);
+			}
+			else if (key != EncounterRules.Concentrating && !sheet.Conditions.Contains(key))
+			{
+				sheet.Conditions.Add(key);
+			}
+			changed = true;
+		}
+		foreach (var key in before.Except(c.Conditions).ToList())
+		{
+			if (key == EncounterRules.Exhaustion)
+			{
+				sheet.Exhaustion = 0;
+			}
+			else if (key == EncounterRules.Concentrating)
+			{
+				sheet.Concentration = null;
+			}
+			else
+			{
+				sheet.Conditions.Remove(key);
+			}
+			changed = true;
+		}
+		if (changed)
+		{
+			sheet.VitalsStamp++;
+		}
+		return changed;
+	}
 }

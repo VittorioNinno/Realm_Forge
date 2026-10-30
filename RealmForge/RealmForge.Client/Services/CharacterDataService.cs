@@ -137,6 +137,20 @@ namespace RealmForge.Client.Services
 			}
 		}
 
+		//	Hit points and conditions of the sheet (null when they cannot be read)
+		public async Task<SheetVitalsDto?> GetVitalsAsync(Guid id)
+		{
+			try
+			{
+				return await _http.GetFromJsonAsync<SheetVitalsDto>($"api/characters/{id}/vitals");
+			}
+			catch (Exception ex)
+			{
+				_logger.LogWarning(ex, "Failed to read the hit points of character {CharacterId}", id);
+				return null;
+			}
+		}
+
 		public async Task<CharacterSavedDto?> SaveSheetAsync(Guid id, CharacterSheetState sheet)
 		{
 			try
