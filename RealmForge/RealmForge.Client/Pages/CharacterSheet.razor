@@ -1284,7 +1284,6 @@
         var offHand = OffHandAttacks(c);
         var (unarmedBonus, unarmedDamage) = UnarmedStrike(c);
         var unarmedName = UiText.UnarmedStrike(Lang);
-        var opportunity = RuleEntry("opportunity-attacks");
         return @<section class="rf-card2 rf-turn" data-test="sheet-turn">
             <div class="rf-turn-header">
                 <h2 class="rf-turn-title">@UiText.TurnTitle(Lang)</h2>
@@ -1389,11 +1388,7 @@
                         <span class="rf-turn-tag">@UiText.TurnReaction(Lang)</span>
                         @RuleLink(Ruleset == RulesetVersion.Dnd5e_2024 ? "reaction" : "opportunity-attacks")
                     </div>
-                    <div class="rf-turn-wrap" data-test="sheet-turn-reaction">
-                        @if (opportunity is not null)
-                        {
-                            <a class="rf-turn-pill reaction" href="@($"rules?id={opportunity.Id}")" target="_blank" rel="noopener" title="@opportunity.Summary">@opportunity.Name</a>
-                        }
+                    <div class="rf-turn-wrap reaction" data-test="sheet-turn-reaction">
                         @FeatureChipList(features.Where(f => f.Slot == TurnSlot.Reaction))
                         @foreach (var (spell, source) in reactionSpells)
                         {
