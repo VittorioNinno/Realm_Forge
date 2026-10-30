@@ -893,9 +893,11 @@ try {
     await page.locator(`[data-test=sheet-tab-${tab}]`).click();
     await page.waitForTimeout(300);
     characterAudits.push(await overflowOf(page, `sheet ${tab}`));
-    if (tab === 'features') {
+    if (tab === 'notes') {
       await page.locator('[data-test=sheet-adjustments] summary').click();
       await shot(page, 'sheet-mods', '[data-test=sheet-adjustments]');
+    }
+    if (tab === 'features') {
       await page.setViewportSize({ width: 390, height: 844 });
       await page.waitForTimeout(300);
       await shot(page, 'phone-resources', '.rf-res-form');
