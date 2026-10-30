@@ -171,6 +171,10 @@ namespace RealmForge.Client.Localization
 		public static string EncounterTempHp(LanguageCode lang) => T(lang, "Punti ferita temporanei", "Temporary hit points");
 		public static string EncounterHideHint(LanguageCode lang) => T(lang, "Nascondi ai giocatori (imboscata)", "Hide from the players (ambush)");
 		public static string EncounterCondition(LanguageCode lang) => T(lang, "condizione", "condition");
+		public static string EncounterOpenSheet(LanguageCode lang) => T(lang, "Scheda", "Sheet");
+		public static string EncounterSheetSynced(LanguageCode lang) =>
+			T(lang, "Punti ferita, punti ferita temporanei e condizioni sono quelli della scheda: cambiarli qui li cambia anche lì.",
+				"Hit points, temporary hit points and conditions are the sheet's: changing them here changes them there too.");
 		public static string EncounterAddMonsters(LanguageCode lang) => T(lang, "Aggiungi partecipanti", "Add combatants");
 		public static string EncounterRollHp(LanguageCode lang) => T(lang, "Tira i punti ferita", "Roll hit points");
 		public static string EncounterAddParty(LanguageCode lang) => T(lang, "Personaggi del gruppo", "Party characters");

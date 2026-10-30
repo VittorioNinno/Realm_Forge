@@ -754,6 +754,20 @@ jobs:
           enc_player=$(get "$api/api/campaigns/$cp_id/encounters/$enc_id" -H "Authorization: Bearer $A" | jq -c '{notes, canManage, names: [.combatants[].name], goblin: (.combatants[] | select(.kind == 1) | {hp, armorClass, health, monsterId}), hero: (.combatants[] | select(.kind == 2) | .hp)}')
           enc_player_put=$(code -X PUT "$api/api/campaigns/$cp_id/encounters/$enc_id" $json -H "Authorization: Bearer $A" -d "$enc_run")
           enc_anon=$(code "$api/api/campaigns/$cp_id/encounters")
+          # Encounter and sheet: the hero shows its sheet (5 of 19, prone); the master deals 3 damage, gives 4 temporary
+          # hit points and swaps prone for poisoned, and the sheet changes; an older copy of the sheet saved by the player
+          # gets the encounter's values back, a newer one is kept, and a later hit counts from it
+          enc_master=$(get "$api/api/campaigns/$cp_id/encounters/$enc_id" -H "Authorization: Bearer $B")
+          enc_hero=$(echo "$enc_master" | jq -c '.combatants[] | select(.kind == 2) | {hp, maxHp, tempHp, conditions, sheetHp}')
+          enc_hit=$(echo "$enc_master" | jq -c '{name, notes, status, round, currentId, shown, partyIds, version, combatants: [.combatants[] | if .kind == 2 then .hp -= 3 | .tempHp = 4 | .conditions = ["poisoned"] else . end]}')
+          enc_hit_saved=$(curl -s -X PUT "$api/api/campaigns/$cp_id/encounters/$enc_id" $json -H "Authorization: Bearer $B" -d "$enc_hit")
+          enc_sheet_after=$(get "$api/api/characters/$ch_id" -H "Authorization: Bearer $A" | jq -c '{hp: .sheet.currentHitPoints, temp: .sheet.temporaryHitPoints, conditions: .sheet.conditions, stamp: .sheet.vitalsStamp}')
+          enc_old_sheet=$(curl -s -X PUT "$api/api/characters/$ch_id/sheet" $json -H "Authorization: Bearer $A" -d "$(echo "$sheet" | jq -c '.currentHitPoints = 10 | .vitalsStamp = 0')" | jq -c '{hp: .vitals.currentHitPoints, conditions: .vitals.conditions}')
+          enc_new_sheet=$(curl -s -X PUT "$api/api/characters/$ch_id/sheet" $json -H "Authorization: Bearer $A" -d "$(echo "$sheet" | jq -c '.currentHitPoints = 7 | .temporaryHitPoints = 4 | .conditions = ["poisoned"] | .vitalsStamp = 1')" | jq -c '.vitals')
+          enc_hit2=$(echo "$enc_hit_saved" | jq -c '{name, notes, status, round, currentId, shown, partyIds, version, combatants: [.combatants[] | if .kind == 2 then .hp -= 1 else . end]}')
+          enc_hit2_saved=$(curl -s -X PUT "$api/api/campaigns/$cp_id/encounters/$enc_id" $json -H "Authorization: Bearer $B" -d "$enc_hit2" | jq -c '.combatants[] | select(.kind == 2) | {hp, tempHp}')
+          enc_vitals=$(get "$api/api/characters/$ch_id/vitals" -H "Authorization: Bearer $A" | jq -c '{stamp: .vitalsStamp, hp: .currentHitPoints, by: .updatedBy}')
+          echo "::notice title=characters::encounter and sheet: hero=$enc_hero | after the hit=$enc_sheet_after | old sheet=$enc_old_sheet new sheet=$enc_new_sheet | second hit=$enc_hit2_saved vitals=$enc_vitals"
           echo "::notice title=characters::encounters: created=$enc_created player list=$enc_player_list GET=$enc_player_get POST=$enc_player_post | run=$enc_saved stale=$enc_stale | player list=$enc_player_list2 view=$enc_player PUT=$enc_player_put | anonymous=$enc_anon"
           # Requirements: a 2014 campaign refuses the 2024 character and says why
           cp14=$(curl -s -X POST "$api/api/campaigns?lang=2" $json -H "Authorization: Bearer $A" -d '{"name":"Tavola 2014","ruleset":1}' | jq -r .id)
@@ -845,9 +859,15 @@ jobs:
           chcheck "encounter under way" "$enc_saved" '{"status":2,"version":2,"round":1}'
           chcheck "stale save" "$enc_stale" "409"
           chcheck "player list" "$enc_player_list2" '[{"status":2,"monsters":1,"monsterXp":0}]'
-          chcheck "player view" "$enc_player" '{"notes":"","canManage":false,"names":["Goblin 1","Eroe"],"goblin":{"hp":0,"armorClass":0,"health":3,"monsterId":null},"hero":9}'
+          chcheck "player view" "$enc_player" '{"notes":"","canManage":false,"names":["Goblin 1","Eroe"],"goblin":{"hp":0,"armorClass":0,"health":3,"monsterId":null},"hero":5}'
           chcheck "player PUT" "$enc_player_put" "403"
           chcheck "anonymous encounters" "$enc_anon" "401"
+          chcheck "hero from the sheet" "$enc_hero" '{"hp":5,"maxHp":19,"tempHp":0,"conditions":["prone"],"sheetHp":5}'
+          chcheck "the hit on the sheet" "$enc_sheet_after" '{"hp":2,"temp":4,"conditions":["poisoned"],"stamp":1}'
+          chcheck "old sheet copy" "$enc_old_sheet" '{"hp":2,"conditions":["poisoned"]}'
+          chcheck "new sheet copy" "$enc_new_sheet" "null"
+          chcheck "second hit from the sheet" "$enc_hit2_saved" '{"hp":6,"tempHp":4}'
+          chcheck "vitals" "$enc_vitals" '{"stamp":2,"hp":6,"by":"Bob"}'
           chcheck "2014 campaign check" "$cp14_check" '{"ok":false,"issues":[1]}'
           chcheck "2014 campaign refuses" "$cp14_bring" "422"
           chcheck "notes written" "$cp_notes_post" "200 200 200 403"
