@@ -985,6 +985,30 @@ try {
   if (monsterUi.all !== '441 mostri' || monsterUi.dragons !== '46 mostri' || monsterUi.goblins !== '7 mostri' || monsterUi.statblock !== 4
     || !/Goblin/.test(monsterUi.variantOf) || !monsterUi.variantHp) throw new Error(`unexpected monsters page: ${JSON.stringify(monsterUi)}`);
   ok('monsters: 441 statblocks of 2014, 46 dragons, 7 goblinoids, the Goblin statblock, a Homebrew variant with its own hit points (then deleted)');
+  // Homebrew magic item: a new wondrous item with a rule the sheet applies (+1 AC), its detail, then deleted
+  await page.goto(`${base}/magic-items`);
+  await page.locator('[data-test=magic-group]').first().waitFor({ timeout: 60000 });
+  await page.locator('[data-test=magic-new]').click();
+  await page.locator('[data-test=magic-form]').waitFor({ timeout: 15000 });
+  await page.locator('[data-test=magic-form-name]').fill('Amuleto di prova');
+  await page.locator('[data-test=magic-form-subtitle]').fill('Oggetto meraviglioso, non comune');
+  await page.locator('[data-test=magic-form-description]').fill('Un amuleto che **protegge** chi lo indossa.');
+  await page.locator('[data-test=magic-add-effect]').click();
+  await shot(page, 'magic-form', '[data-test=magic-form]');
+  await page.locator('[data-test=magic-form-save]').click();
+  await page.locator('[data-test=magic-detail-name]', { hasText: 'Amuleto di prova' }).waitFor({ timeout: 15000 });
+  const magicUi = {
+    onSheet: (await page.locator('[data-test=magic-on-sheet]').innerText()).trim(),
+    text: (await page.locator('[data-test=magic-description]').innerText()).trim(),
+    edit: await page.locator('[data-test=magic-edit]').count()
+  };
+  await shot(page, 'magic-homebrew', '[data-test=magic-detail]');
+  await page.locator('[data-test=magic-delete]').click();
+  await page.locator('[data-test=magic-delete-yes]').click();
+  await page.locator('[data-test=magic-detail]').waitFor({ state: 'detached', timeout: 15000 });
+  results.push(`INFO magic homebrew: ${JSON.stringify(magicUi)}`);
+  if (!/\+1/.test(magicUi.onSheet) || !/protegge/.test(magicUi.text) || magicUi.edit !== 1) throw new Error(`unexpected Homebrew magic item: ${JSON.stringify(magicUi)}`);
+  ok('magic items: a Homebrew wondrous item with +1 AC applied by the sheet, its detail, then deleted');
   // Campaigns: a new campaign makes its creator the master, with the invite link; the character joins the table
   await page.goto(`${base}/campaigns`);
   await page.locator('[data-test=campaign-new]').click();
