@@ -23,7 +23,7 @@
     </button>
     @if (open && !string.IsNullOrWhiteSpace(Text))
     {
-        <div class="rf-wizard-feature-desc rf-markdown-container mt-2">@((MarkupString)MarkdownText.ToHtml(Text, Glossary.Linker(LanguageState.CurrentLanguage, Ruleset)))</div>
+        <div @key="Text" class="rf-wizard-feature-desc rf-markdown-container mt-2">@((MarkupString)MarkdownText.ToHtml(Text, Glossary.Linker(LanguageState.CurrentLanguage, Ruleset)))</div>
     }
 </div>
 
