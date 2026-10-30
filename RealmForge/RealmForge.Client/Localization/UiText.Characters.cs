@@ -212,6 +212,11 @@ namespace RealmForge.Client.Localization
 		public static string LabelWeaponMastery(int count, LanguageCode lang) => T(lang, $"Maestria nelle armi (scegline {count})", $"Weapon Mastery (choose {count})");
 		public static string LabelStyleCantrips(LanguageCode lang) => T(lang, "Trucchetti dello stile", "Style cantrips");
 		public static string MulticlassNeeds(string abilities, LanguageCode lang) => T(lang, $"Richiede 13 in {abilities}", $"Requires 13 in {abilities}");
+		public static string SpellTakenBy(string source, LanguageCode lang) => T(lang, $"Già scelto: {source}", $"Already chosen: {source}");
+		public static string MulticlassRequires(string abilities, LanguageCode lang) => T(lang, $"Multiclasse: 13 in {abilities}", $"Multiclass: 13 in {abilities}");
+		public static string MulticlassCurrentNeeds(string classes, LanguageCode lang) => T(lang,
+			$"Per multiclassare servono anche i requisiti delle classi che hai già: {classes}",
+			$"Multiclassing also needs the requirements of the classes you already have: {classes}");
 		public static string MulticlassProficiencies(LanguageCode lang) => T(lang,
 			"Con una nuova classe ottieni solo una parte delle sue competenze iniziali (vedi la descrizione della classe); tiri salvezza e abilità di classe restano quelli della classe iniziale.",
 			"A new class grants only some of its starting proficiencies (see the class description); saving throws and class skills stay those of the starting class.");
@@ -705,6 +710,14 @@ namespace RealmForge.Client.Localization
 		public static string DeathSaveDead(LanguageCode lang) => T(lang, "Morto", "Dead");
 		public static string TurnTitle(LanguageCode lang) => T(lang, "Nel tuo turno", "On your turn");
 		public static string TurnMovement(string speed, LanguageCode lang) => T(lang, $"Movimento {speed}", $"Movement {speed}");
+		public static string PlaceholderOtherProficiencies(LanguageCode lang) => T(lang, "Es. Arnesi da scasso, Strumenti da navigatore, Veicoli terrestri…", "E.g. Thieves' Tools, Navigator's Tools, Land Vehicles…");
+		public static string SheetCastingAbility(LanguageCode lang) => T(lang, "Caratteristica", "Ability");
+		public static string SheetSaveDc(LanguageCode lang) => T(lang, "CD salvezza", "Save DC");
+		public static string SheetAttackShort(LanguageCode lang) => T(lang, "Attacco", "Attack");
+		public static string SheetPreparedCounter(int chosen, int total, LanguageCode lang) => T(lang, $"{chosen} / {total} preparati", $"{chosen} / {total} prepared");
+		public static string SheetNoSpellsChosen(LanguageCode lang) => T(lang, "Nessun incantesimo scelto.", "No spells chosen.");
+		public static string TurnMovementLabel(LanguageCode lang) => T(lang, "Movimento", "Movement");
+		public static string TurnCantrips(LanguageCode lang) => T(lang, "Trucchetti", "Cantrips");
 		public static string TurnAction(LanguageCode lang) => T(lang, "Azione", "Action");
 		public static string TurnBonusAction(LanguageCode lang) => T(lang, "Azione bonus", "Bonus action");
 		public static string TurnReaction(LanguageCode lang) => T(lang, "Reazione", "Reaction");
