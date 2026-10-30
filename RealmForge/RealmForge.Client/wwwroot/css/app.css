@@ -6960,6 +6960,7 @@ textarea.rf-form-control {
             color: var(--rf-spell);
         }
 
+    .rf-turn-wrap.reaction .rf-turn-pill.feature,
     .rf-turn-pill.reaction {
         border-color: rgba(255, 140, 0, .5);
         background-color: rgba(255, 140, 0, .08);
@@ -7329,10 +7330,9 @@ textarea.rf-form-control {
 
 .rf-mods-number {
     display: flex;
-    justify-content: space-between;
-    align-items: center;
-    flex-wrap: wrap;
-    gap: 8px 16px;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
     padding: 16px;
     border-radius: 8px;
     border: 1px solid var(--rf-border-subtle);
@@ -7359,8 +7359,11 @@ textarea.rf-form-control {
 
 .rf-mods-heading {
     margin: 0;
+    font-family: var(--rf-font-body);
     font-size: .85rem;
     font-weight: 700;
+    letter-spacing: 0;
+    text-transform: none;
     color: var(--rf-orange-primary);
 }
 
