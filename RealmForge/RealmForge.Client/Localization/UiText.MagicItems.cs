@@ -70,7 +70,6 @@ namespace RealmForge.Client.Localization
 		public static string MagicItemLine(LanguageCode lang) => T(lang, "Riga dell'oggetto", "Item line");
 		public static string MagicItemLineHint(LanguageCode lang) => T(lang, "Oggetto meraviglioso, raro (richiede sintonia)", "Wondrous item, rare (requires attunement)");
 		public static string MagicDescription(LanguageCode lang) => T(lang, "Descrizione (Markdown)", "Description (Markdown)");
-		public static string MagicSheetRules(LanguageCode lang) => T(lang, "Regole applicate dalla scheda", "Rules the sheet applies");
 		public static string MagicSheetRulesHint(LanguageCode lang) =>
 			T(lang, "Facoltative: bonus, cariche e cure che la scheda calcola da sola quando l'oggetto è indossato (e in sintonia, se la richiede).",
 				"Optional: bonuses, charges and healing the sheet works out on its own while the item is worn (and attuned, when it needs it).");
