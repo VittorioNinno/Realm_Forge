@@ -1,0 +1,186 @@
+﻿@using RealmForge.Client.Localization
+@using RealmForge.Client.Services
+@using RealmForge.Shared.Characters
+@using RealmForge.Shared.DTOs
+@using RealmForge.Shared.Enums
+@using RealmForge.Shared.Rules
+@inject MagicItemDataService MagicItems
+@inject LanguageStateService LanguageState
+
+@* Homebrew magic item form: category, rarity and rules once, the texts per language (a language without a name is left out) *@
+<div class="rf-modal-backdrop" @onclick="Cancel">
+    <div class="rf-modal-dialog" style="max-width: 800px;" @onclick:stopPropagation="true" data-test="magic-form">
+        <h2 class="h4 mb-2 pb-2" style="border-bottom: 1px solid var(--rf-border-light); font-family: var(--rf-font-display);">@Title</h2>
+        @if (VariantOfName is not null)
+        {
+            <div class="small mb-3" style="color: var(--rf-text-muted);" data-test="magic-form-variant-of">@UiText.MagicVariantHint(VariantOfName, Lang)</div>
+        }
+
+        @if (error is not null)
+        {
+            <div class="alert alert-warning bg-dark border-warning text-warning p-2 small mb-3" data-test="magic-form-error">@error</div>
+        }
+
+        <div class="row g-3 mb-3">
+            <div class="col-md-3 col-6">
+                <label class="rf-form-label">@UiText.LabelRuleset(Lang)</label>
+                <RfSelect TValue="RulesetVersion" @bind-Value="Model.Ruleset" Options="RulesetOptions" />
+            </div>
+            <div class="col-md-3 col-6" data-test="magic-form-type">
+                <label class="rf-form-label">@UiText.MagicCategory(Lang)</label>
+                <RfSelect TValue="MagicItemType" @bind-Value="Model.Type" Options="TypeOptions" />
+            </div>
+            <div class="col-md-3 col-6" data-test="magic-form-rarity">
+                <label class="rf-form-label">@UiText.MagicRarity(Lang)</label>
+                <RfSelect TValue="ItemRarity?" @bind-Value="Model.Rarity" Options="RarityOptions" />
+            </div>
+            <div class="col-md-3 col-6 d-flex flex-column">
+                <span class="rf-form-label">@UiText.SheetAttuned(Lang)</span>
+                <button type="button" class="rf-toggle mt-auto @(Model.RequiresAttunement ? "on" : null)" aria-pressed="@Model.RequiresAttunement"
+                        @onclick="() => Model.RequiresAttunement = !Model.RequiresAttunement" data-test="magic-form-attunement">
+                    <span class="rf-toggle-track"><span class="rf-toggle-thumb"></span></span>
+                    <span>@UiText.MagicRequiresAttunement(Lang)</span>
+                </button>
+            </div>
+        </div>
+
+        <VisibilityPicker @bind-Value="Model.Visibility" />
+
+        <div class="rf-pill-group mb-2" role="tablist">
+            @foreach (var language in new[] { LanguageCode.It, LanguageCode.En })
+            {
+                var current = language;
+                <button type="button" role="tab" class="rf-pill-btn @(tab == current ? "active" : null)" @onclick="() => tab = current" data-test="@($"magic-form-tab-{current.ToString().ToLowerInvariant()}")">
+                    @(current == LanguageCode.It ? UiText.TabItalian(Lang) : UiText.TabEnglish(Lang))
+                </button>
+            }
+        </div>
+
+        @{
+            var text = TextOf(tab);
+        }
+        <div class="p-3 mb-3 rounded" style="background-color: var(--rf-bg-card); border-left: 3px solid var(--rf-orange-primary);" @key="tab">
+            <div class="row g-2 mb-2">
+                <div class="col-md-6">
+                    <label class="rf-form-label">@UiText.LabelName(Lang)</label>
+                    <input class="rf-form-control" maxlength="150" @bind="text.Name" data-test="magic-form-name" />
+                </div>
+                <div class="col-md-6">
+                    <label class="rf-form-label">@UiText.MonsterAlias(Lang)</label>
+                    <input class="rf-form-control" maxlength="150" @bind="text.Alias" />
+                </div>
+                <div class="col-12">
+                    <label class="rf-form-label">@UiText.MagicItemLine(Lang)</label>
+                    <input class="rf-form-control" maxlength="300" placeholder="@UiText.MagicItemLineHint(tab)" @bind="text.Subtitle" data-test="magic-form-subtitle" />
+                </div>
+            </div>
+            <label class="rf-form-label">@UiText.MagicDescription(Lang)</label>
+            <textarea class="rf-form-control rf-monster-form-block" rows="8" maxlength="20000" @bind="text.Description" data-test="magic-form-description"></textarea>
+        </div>
+
+        <div class="rf-magic-form-rules mb-3" data-test="magic-form-rules">
+            <div class="rf-mini-title mt-0">@UiText.MagicSheetRules(Lang)</div>
+            <div class="small mb-2" style="color: var(--rf-text-muted);">@UiText.MagicSheetRulesHint(Lang)</div>
+            <MagicMechanicsFields Draft="mechanics" Kind="KindOf(Model.Type)" />
+        </div>
+
+        <div class="d-flex justify-content-end gap-2 pt-2" style="border-top: 1px solid var(--rf-border-light);">
+            <button type="button" class="btn btn-rf-outline" @onclick="Cancel">@UiText.BtnCancel(Lang)</button>
+            <button type="button" class="btn btn-rf-orange" disabled="@saving" @onclick="SaveAsync" data-test="magic-form-save">@(saving ? "..." : UiText.BtnConfirm(Lang))</button>
+        </div>
+    </div>
+</div>
+
+@code {
+    [Parameter, EditorRequired] public SaveMagicItemDto Model { get; set; } = default!;
+
+    //	Null for a new item (or a new variant)
+    [Parameter] public Guid? EditingId { get; set; }
+    [Parameter] public string Title { get; set; } = string.Empty;
+    [Parameter] public string? VariantOfName { get; set; }
+    [Parameter] public EventCallback<Guid> OnSaved { get; set; }
+    [Parameter] public EventCallback OnCancel { get; set; }
+
+    private LanguageCode Lang => LanguageState.CurrentLanguage;
+    private LanguageCode tab;
+    private string? error;
+    private bool saving;
+    private MagicItemProperties mechanics = new();
+
+    protected override void OnInitialized()
+    {
+        tab = Lang;
+        foreach (var language in new[] { LanguageCode.It, LanguageCode.En })
+        {
+            TextOf(language);
+        }
+        mechanics = Model.Mechanics ?? new MagicItemProperties();
+    }
+
+    //	The texts of a language, created empty when missing
+    private MagicItemTextDto TextOf(LanguageCode language)
+    {
+        var text = Model.Translations.FirstOrDefault(t => t.Language == language);
+        if (text is null)
+        {
+            text = new MagicItemTextDto { Language = language };
+            Model.Translations.Add(text);
+        }
+        return text;
+    }
+
+    private static MagicTemplateKind? KindOf(MagicItemType type) => type switch
+    {
+        MagicItemType.Weapon => MagicTemplateKind.Weapon,
+        MagicItemType.Armor => MagicTemplateKind.Armor,
+        _ => null
+    };
+
+    private List<RfSelect<RulesetVersion>.OptionItem> RulesetOptions =>
+        Enum.GetValues<RulesetVersion>().Select(r => new RfSelect<RulesetVersion>.OptionItem(r, UiText.FormatRuleset(r, Lang))).ToList();
+
+    private List<RfSelect<MagicItemType>.OptionItem> TypeOptions =>
+        Enum.GetValues<MagicItemType>().Select(t => new RfSelect<MagicItemType>.OptionItem(t, UiText.MagicTypeName(t, Lang)))
+            .OrderBy(o => o.Label, StringComparer.CurrentCultureIgnoreCase).ToList();
+
+    //	"Varia" for an item whose variants have rarities of their own
+    private List<RfSelect<ItemRarity?>.OptionItem> RarityOptions =>
+        Enum.GetValues<ItemRarity>().Select(r => new RfSelect<ItemRarity?>.OptionItem(r, UiText.RarityName(r, Lang)))
+            .Append(new RfSelect<ItemRarity?>.OptionItem(null, UiText.RarityVaries(Lang)))
+            .ToList();
+
+    private Task Cancel() => OnCancel.InvokeAsync();
+
+    private async Task SaveAsync()
+    {
+        error = null;
+        var translations = Model.Translations.Where(t => !string.IsNullOrWhiteSpace(t.Name)).ToList();
+        if (translations.Count == 0)
+        {
+            error = UiText.MonsterNameMissing(Lang);
+            return;
+        }
+        var empty = mechanics.Effects.Count == 0 && mechanics.Charges <= 0 && string.IsNullOrWhiteSpace(mechanics.HealDice);
+        var dto = new SaveMagicItemDto
+        {
+            Ruleset = Model.Ruleset,
+            Visibility = Model.Visibility,
+            Type = Model.Type,
+            Rarity = Model.Rarity,
+            RequiresAttunement = Model.RequiresAttunement,
+            Mechanics = empty ? null : mechanics,
+            VariantOfId = Model.VariantOfId,
+            Translations = translations
+        };
+
+        saving = true;
+        var (id, status) = await MagicItems.SaveAsync(EditingId, dto);
+        saving = false;
+        if (id is { } saved)
+        {
+            await OnSaved.InvokeAsync(saved);
+            return;
+        }
+        error = status == System.Net.HttpStatusCode.BadRequest ? UiText.MagicItemInvalid(Lang) : UiText.ErrApiSave(Lang);
+    }
+}

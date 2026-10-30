@@ -101,72 +101,7 @@
             </div>
         </div>
 
-        <div class="rf-mini-title">@UiText.MagicEffects(Lang)</div>
-        @foreach (var effect in draft.Effects.ToList())
-        {
-            var e = effect;
-            <div class="rf-magic-effect" data-test="magic-effect">
-                <select class="rf-wizard-input" value="@((int)e.Kind)" @onchange="ev => e.Kind = (MagicEffectKind)ToInt(ev, 1)" aria-label="@UiText.MagicEffects(Lang)">
-                    @foreach (var kind in Enum.GetValues<MagicEffectKind>())
-                    {
-                        <option value="@((int)kind)">@UiText.MagicEffectName(kind, Lang)</option>
-                    }
-                </select>
-                @if (e.Kind is MagicEffectKind.SetAbilityScore or MagicEffectKind.AbilityScoreBonus)
-                {
-                    <select class="rf-wizard-input" value="@((int)(e.Ability ?? AbilityScore.Strength))" @onchange="ev => e.Ability = (AbilityScore)ToInt(ev, 1)">
-                        @foreach (var ability in CharacterMath.Abilities)
-                        {
-                            <option value="@((int)ability)">@FeatPrerequisiteFormatter.AbilityName(ability, Lang)</option>
-                        }
-                    </select>
-                }
-                @if (e.Kind == MagicEffectKind.Resistance)
-                {
-                    <select class="rf-wizard-input" value="@((int)(e.DamageType ?? DamageType.Fire))" @onchange="ev => e.DamageType = (DamageType)ToInt(ev, 1)">
-                        @foreach (var type in Enum.GetValues<DamageType>())
-                        {
-                            <option value="@((int)type)">@EquipmentTerms.DamageTypeName(type, Lang)</option>
-                        }
-                    </select>
-                }
-                else
-                {
-                    <NumberStepper Value="e.Value" ValueChanged="v => e.Value = v" Min="-30" Max="30" AriaLabel="@UiText.MagicValue(Lang)" />
-                }
-                <button type="button" class="rf-mini-btn" @onclick="() => draft.Effects.Remove(e)" aria-label="@UiText.BtnRemove(Lang)"><Icon Name="close" /></button>
-            </div>
-        }
-        <button type="button" class="rf-tool-btn mb-2" @onclick="AddEffect" data-test="magic-add-effect">+ @UiText.MagicAddEffect(Lang)</button>
-
-        <div class="rf-mini-title">@UiText.MagicCharges(Lang)</div>
-        <div class="rf-magic-grid">
-            <div class="rf-magic-field">
-                <span class="rf-mini-label">@UiText.MagicChargesMax(Lang)</span>
-                <NumberStepper Value="draft.Charges" ValueChanged="v => { draft.Charges = v; draft.ChargesUsed = Math.Min(draft.ChargesUsed, v); }" Min="0" Max="99" AriaLabel="@UiText.MagicChargesMax(Lang)" InputTest="magic-charges" />
-            </div>
-            @if (draft.Charges > 0)
-            {
-                <div class="rf-magic-field">
-                    <label class="rf-mini-label" for="magic-recharge">@UiText.MagicRecharge(Lang)</label>
-                    <select id="magic-recharge" class="rf-wizard-input" value="@((int)draft.Recharge)" @onchange="e => draft.Recharge = (ItemRecharge)ToInt(e, 0)">
-                        @foreach (var recharge in Enum.GetValues<ItemRecharge>())
-                        {
-                            <option value="@((int)recharge)">@UiText.RechargeName(recharge, Lang)</option>
-                        }
-                    </select>
-                </div>
-                <div class="rf-magic-field">
-                    <label class="rf-mini-label" for="magic-recharge-dice">@UiText.MagicRechargeDice(Lang)</label>
-                    <input id="magic-recharge-dice" class="rf-wizard-input" maxlength="10" placeholder="1d6+1" value="@draft.RechargeDice" @onchange="e => draft.RechargeDice = Dice(e.Value?.ToString())" />
-                </div>
-            }
-        </div>
-
-        <div class="rf-magic-field">
-            <label class="rf-mini-label" for="magic-heal">@UiText.MagicHealDice(Lang)</label>
-            <input id="magic-heal" class="rf-wizard-input" maxlength="10" placeholder="2d4+2" value="@draft.HealDice" @onchange="e => draft.HealDice = Dice(e.Value?.ToString())" data-test="magic-heal" />
-        </div>
+        <MagicMechanicsFields Draft="draft" Kind="Kind" />
 
         @if (error is not null)
         {
@@ -293,14 +228,6 @@
         {
             name = template.Name(Lang);
         }
-    }
-
-    private void AddEffect() => draft.Effects.Add(new MagicEffect { Kind = Kind == MagicTemplateKind.Weapon ? MagicEffectKind.AttackAndDamage : MagicEffectKind.ArmorClass, Value = 1 });
-
-    private static string? Dice(string? value)
-    {
-        var text = value?.Replace(" ", string.Empty).Replace('−', '-').ToLowerInvariant();
-        return string.IsNullOrEmpty(text) ? null : System.Text.RegularExpressions.Regex.IsMatch(text, @"^\d{1,2}d\d{1,3}([+-]\d{1,3})?$") ? text : null;
     }
 
     private Task Save()

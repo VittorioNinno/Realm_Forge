@@ -92,6 +92,10 @@ namespace RealmForge.Api.Campaigns
 			{
 				yield return Entry(e, "monster", e.Translations.Localize(lang)?.Name, $"monsters?id={e.Id}");
 			}
+			foreach (var e in await _context.MagicItems.AsNoTracking().Include(x => x.Translations).Where(Cast<RealmForge.Domain.Entities.MagicItem>(filter)).ToListAsync())
+			{
+				yield return Entry(e, "magic-item", e.Translations.Localize(lang)?.Name, $"magic-items?id={e.Id}");
+			}
 		}
 
 		//	The same filter on a concrete entity type (EF translates it like the original)
