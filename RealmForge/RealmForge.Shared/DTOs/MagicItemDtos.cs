@@ -52,4 +52,34 @@ namespace RealmForge.Shared.DTOs
 		ContentSource? Source = null,
 		ContentVisibility Visibility = ContentVisibility.Public
 	);
+
+	///	<summary>
+	///	Texts of a Homebrew magic item in one language: Subtitle is the item line ("Oggetto meraviglioso, raro"),
+	///	Description is Markdown.
+	///	</summary>
+	public class MagicItemTextDto
+	{
+		public LanguageCode Language { get; set; }
+		public string Name { get; set; } = string.Empty;
+		public string? Alias { get; set; }
+		public string Subtitle { get; set; } = string.Empty;
+		public string Description { get; set; } = string.Empty;
+	}
+
+	///	<summary>
+	///	Creation or update of a Homebrew magic item. VariantOfId makes it a variant of another item (listed under it,
+	///	with its own name, rarity and rules); Mechanics are the rules the sheet applies (rarity and attunement are the
+	///	ones of the item).
+	///	</summary>
+	public class SaveMagicItemDto
+	{
+		public RulesetVersion Ruleset { get; set; } = RulesetVersion.Dnd5e_2014;
+		public ContentVisibility Visibility { get; set; } = ContentVisibility.Private;
+		public MagicItemType Type { get; set; } = MagicItemType.WondrousItem;
+		public ItemRarity? Rarity { get; set; } = ItemRarity.Uncommon;
+		public bool RequiresAttunement { get; set; }
+		public MagicItemProperties? Mechanics { get; set; }
+		public Guid? VariantOfId { get; set; }
+		public List<MagicItemTextDto> Translations { get; set; } = new();
+	}
 }

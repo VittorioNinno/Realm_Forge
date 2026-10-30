@@ -21,6 +21,11 @@
                 @UiText.MagicItemsSubtitle(Lang)
             </p>
         </div>
+        <div>
+            <ForgeAction>
+                <button class="btn btn-rf-orange" @onclick="OpenCreate" data-test="magic-new">@UiText.BtnNewMagicItem(Lang)</button>
+            </ForgeAction>
+        </div>
     </div>
 
     @* Filters: edition reloads from the API, everything else filters the loaded list *@
@@ -132,6 +137,10 @@
                                 {
                                     <span class="small ms-auto" style="color: var(--rf-text-muted);" data-test="magic-variant-count">@UiText.MagicVariants(Lang): @variants.Count</span>
                                 }
+                                else if (item.ParentId is not null)
+                                {
+                                    <span class="small ms-auto" style="color: var(--rf-text-muted);" data-test="magic-homebrew-variant">@UiText.MagicHomebrewVariant(Lang)</span>
+                                }
                             </div>
                         </div>
                     </div>
@@ -158,6 +167,10 @@
                 </div>
                 <button class="btn btn-sm btn-rf-outline" @onclick="CloseDetail"><Icon Name="close" /></button>
             </div>
+            @if (!detail.IsOfficialSRD)
+            {
+                <ShareLink Visibility="detail.Visibility" CanEdit="detail.CanEdit" EntityId="detail.Id" Path="@($"magic-items?id={detail.Id}")" />
+            }
 
             @if (detail.ParentId is { } parentId)
             {
@@ -206,8 +219,39 @@
                 </div>
             }
 
-            <div class="d-flex justify-content-end pt-3 mt-3" style="border-top: 1px solid var(--rf-border-light);">
+            <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 pt-3 mt-3" style="border-top: 1px solid var(--rf-border-light);">
+                <div class="d-flex flex-wrap gap-2">
+                    <ForgeAction>
+                        <button class="btn btn-sm btn-rf-orange" @onclick="() => OpenVariantAsync(detail)" data-test="magic-variant">@UiText.BtnCreateVariant(Lang)</button>
+                    </ForgeAction>
+                    @if (detail.CanEdit)
+                    {
+                        <button class="btn btn-sm btn-rf-outline text-uppercase" @onclick="() => OpenEditAsync(detail)" data-test="magic-edit">@UiText.Edit(Lang)</button>
+                        <button class="btn btn-sm btn-rf-outline text-uppercase" style="border-color: #dc3545; color: #dc3545;" @onclick="() => deleting = detail" data-test="magic-delete">@UiText.Delete(Lang)</button>
+                    }
+                </div>
                 <button class="btn btn-rf-outline text-uppercase" style="letter-spacing: 1px;" @onclick="CloseDetail">@UiText.BtnClose(Lang)</button>
+            </div>
+        </div>
+    </div>
+}
+
+@if (editor is not null)
+{
+    <MagicItemForm Model="editor" EditingId="editingId" Title="@editorTitle" VariantOfName="@editorVariantOf" OnSaved="SavedAsync" OnCancel="() => editor = null" />
+}
+
+@if (deleting is { } victim)
+{
+    <div class="rf-modal-backdrop" @onclick="() => deleting = null">
+        <div class="rf-modal-dialog" @onclick:stopPropagation="true" style="max-width: 456px; text-align: center;" data-test="magic-delete-confirm">
+            <h2 class="h4 mb-3" style="color: var(--rf-orange-primary);">@UiText.ConfirmDeletion(Lang)</h2>
+            <div class="p-3 mb-4 rounded" style="background-color: var(--rf-bg-main); border: 1px solid var(--rf-border-subtle); color: var(--rf-text-secondary);">
+                @UiText.MagicItemDeleteWarning(victim.Name, Lang)
+            </div>
+            <div class="d-flex justify-content-center gap-3">
+                <button class="btn btn-rf-outline" @onclick="() => deleting = null">@UiText.BtnCancel(Lang)</button>
+                <button class="btn btn-rf-orange" style="background-color: #dc3545; border-color: #dc3545;" @onclick="DeleteAsync" data-test="magic-delete-yes">@UiText.Delete(Lang)</button>
             </div>
         </div>
     </div>
@@ -224,6 +268,13 @@
     private MagicItemDetailResponseDto? Selected { get; set; }
     private bool IsLoading { get; set; } = true;
     private Guid? openedQueryId;
+
+    //	Editor: null when closed
+    private SaveMagicItemDto? editor;
+    private Guid? editingId;
+    private string editorTitle = string.Empty;
+    private string? editorVariantOf;
+    private MagicItemDetailResponseDto? deleting;
 
     //	Filters
     private RulesetVersion? SelectedRuleset { get; set; }
@@ -279,7 +330,7 @@
         {
             var term = SearchTerm.Trim();
             return All
-                .Where(i => i.ParentId is null)
+                .Where(i => i.ParentId is null || !i.IsOfficialSRD)
                 .Where(i => TypeFilter is null || i.Type == TypeFilter)
                 .Where(i => AttunementFilter is null || i.RequiresAttunement == AttunementFilter)
                 .Where(i => RarityFilter is null || i.Rarity == RarityFilter || VariantsOf(i.Id).Any(v => v.Rarity == RarityFilter))
@@ -371,13 +422,81 @@
     {
         IsLoading = true;
         All = await MagicItems.GetMagicItemsAsync(Lang, SelectedRuleset);
-        variantsByParent = All.Where(i => i.ParentId is not null).ToLookup(i => i.ParentId!.Value);
+        //	The official variants go with their item; the Homebrew ones also have a card of their own
+        variantsByParent = All.Where(i => i.ParentId is not null && i.IsOfficialSRD).ToLookup(i => i.ParentId!.Value);
         IsLoading = false;
     }
 
     private async Task OpenDetailAsync(Guid id) => Selected = await MagicItems.GetMagicItemAsync(id, Lang);
 
     private void CloseDetail() => Selected = null;
+
+    // ===== Editor =====
+
+    private void OpenCreate()
+    {
+        editingId = null;
+        editorVariantOf = null;
+        editorTitle = UiText.BtnNewMagicItem(Lang);
+        editor = new SaveMagicItemDto
+        {
+            Ruleset = SelectedRuleset ?? RulesetVersion.Dnd5e_2014,
+            Type = TypeFilter ?? MagicItemType.WondrousItem
+        };
+    }
+
+    private async Task OpenEditAsync(MagicItemDetailResponseDto detail)
+    {
+        var model = await MagicItems.GetForEditAsync(detail.Id);
+        if (model is null)
+        {
+            return;
+        }
+        editingId = detail.Id;
+        editorVariantOf = detail.ParentName;
+        editorTitle = UiText.Edit(Lang);
+        Selected = null;
+        editor = model;
+    }
+
+    //	"Crea variante": a private Homebrew item under the original (or under the item of a variant), its texts to start from
+    private async Task OpenVariantAsync(MagicItemDetailResponseDto detail)
+    {
+        var model = await MagicItems.GetForEditAsync(detail.Id);
+        if (model is null)
+        {
+            return;
+        }
+        model.VariantOfId = detail.Id;
+        model.Visibility = ContentVisibility.Private;
+        foreach (var text in model.Translations)
+        {
+            text.Name = UiText.MonsterVariantName(text.Name, text.Language);
+            text.Alias = null;
+        }
+        editingId = null;
+        editorVariantOf = detail.ParentName ?? detail.Name;
+        editorTitle = UiText.BtnCreateVariant(Lang);
+        Selected = null;
+        editor = model;
+    }
+
+    private async Task SavedAsync(Guid id)
+    {
+        editor = null;
+        await LoadAsync();
+        await OpenDetailAsync(id);
+    }
+
+    private async Task DeleteAsync()
+    {
+        if (deleting is { } victim && await MagicItems.DeleteAsync(victim.Id))
+        {
+            deleting = null;
+            Selected = null;
+            await LoadAsync();
+        }
+    }
 
     private RealmForge.Shared.Text.GlossaryLinker? Terms(RulesetVersion? ruleset) =>
         ruleset is { } edition ? Glossary.Linker(LanguageState.CurrentLanguage, edition) : null;

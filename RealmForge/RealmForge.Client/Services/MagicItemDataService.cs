@@ -1,4 +1,5 @@
-﻿using System.Net.Http.Json;
+﻿using System.Net;
+using System.Net.Http.Json;
 using Microsoft.Extensions.Logging;
 using RealmForge.Shared.DTOs;
 using RealmForge.Shared.Enums;
@@ -7,7 +8,7 @@ namespace RealmForge.Client.Services
 {
 	///	<summary>
 	///	Client for /api/magic-items: list (kept in memory per language and edition, the character sheet reads it often)
-	///	and detail.
+	///	and detail, and the Homebrew items (create, update, delete).
 	///	</summary>
 	public class MagicItemDataService
 	{
@@ -61,6 +62,67 @@ namespace RealmForge.Client.Services
 			{
 				_logger.LogError(ex, "Failed to load magic item {ItemId} for language {Language}", id, language);
 				return null;
+			}
+		}
+
+		//	The item as the editor saves it (both languages); null when it cannot be read
+		public async Task<SaveMagicItemDto?> GetForEditAsync(Guid id)
+		{
+			try
+			{
+				return await _http.GetFromJsonAsync<SaveMagicItemDto>($"api/magic-items/{id}/edit");
+			}
+			catch (Exception ex)
+			{
+				_logger.LogError(ex, "Failed to load magic item {ItemId} for editing", id);
+				return null;
+			}
+		}
+
+		///	<summary>
+		///	Creates (id null) or updates a Homebrew magic item; returns its id, or null with the status of the failure.
+		///	</summary>
+		public async Task<(Guid? Id, HttpStatusCode? Status)> SaveAsync(Guid? id, SaveMagicItemDto dto)
+		{
+			try
+			{
+				var response = id is { } existing
+					? await _http.PutAsJsonAsync($"api/magic-items/{existing}", dto)
+					: await _http.PostAsJsonAsync("api/magic-items", dto);
+				if (!response.IsSuccessStatusCode)
+				{
+					return (null, response.StatusCode);
+				}
+				_lists.Clear();
+				if (id is { } updated)
+				{
+					return (updated, null);
+				}
+				var created = await response.Content.ReadFromJsonAsync<MagicItemDetailResponseDto>();
+				return (created?.Id, null);
+			}
+			catch (Exception ex)
+			{
+				_logger.LogError(ex, "Saving magic item {ItemId} failed", id);
+				return (null, null);
+			}
+		}
+
+		public async Task<bool> DeleteAsync(Guid id)
+		{
+			try
+			{
+				var response = await _http.DeleteAsync($"api/magic-items/{id}");
+				if (response.IsSuccessStatusCode)
+				{
+					_lists.Clear();
+				}
+				return response.IsSuccessStatusCode;
+			}
+			catch (Exception ex)
+			{
+				_logger.LogError(ex, "Deleting magic item {ItemId} failed", id);
+				return false;
 			}
 		}
 	}
