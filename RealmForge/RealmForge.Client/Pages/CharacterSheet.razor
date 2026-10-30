@@ -168,7 +168,8 @@
                         </div>
                         @if (SpeciesTraits.FirstOrDefault(t => t.Name == openTrait) is { } shown)
                         {
-                            <div class="rf-chip-detail rf-markdown-container">@((MarkupString)MarkdownText.ToHtml(shown.Description, Glossary.Linker(Lang, Ruleset)))</div>
+                            @* Keyed by the trait: a new box for each trait, so that nothing of the previous text (its linked terms) stays *@
+                            <div @key="shown.Name" class="rf-chip-detail rf-markdown-container">@((MarkupString)MarkdownText.ToHtml(shown.Description, Glossary.Linker(Lang, Ruleset)))</div>
                         }
                     </div>
                 }
@@ -746,49 +747,75 @@
                 : source.Source == "species" ? UiText.SpellSourceSpecies(Ruleset, Lang) : source.Source;
             var spells = source.ChosenCantrips.Concat(source.ChosenSpells).Select(id => context!.Spells.FirstOrDefault(s => s.Id == id)).Where(s => s is not null).Select(s => s!).ToList();
             var attackLabel = UiText.SheetSpellAttack(Lang);
-            <section class="rf-card2" data-test="sheet-spellcasting">
-                <div class="rf-card2-head">
-                    <span>@name</span>
-                    <span class="rf-card2-head-accent">@UiText.SheetSpellcasting(source.Ability, source.SaveDc, source.AttackBonus, Lang)</span>
-                </div>
-                @if (source.Class is not null && !ReadOnly)
-                {
-                    var src = source;
-                    <div class="rf-book-bar">
-                        <span class="small" data-test="sheet-book-changes">@ChangesText(src)</span>
-                        <button type="button" class="rf-tool-btn" @onclick="() => OpenBook(src)" data-test="sheet-book-open"><Icon Name="edit" /> @UiText.BtnManageSpells(IsWizardBook(src), Lang)</button>
+            <section class="rf-card2 rf-casting" data-test="sheet-spellcasting">
+                @* Header: the class, how it casts (ability, save DC, attack, which rolls), the changes allowed and the editor *@
+                <div class="rf-casting-head">
+                    <div class="rf-casting-left">
+                        <h2 class="rf-casting-title">@name</h2>
+                        <div class="rf-casting-stats">
+                            <span class="rf-casting-pill"><span>@UiText.SheetCastingAbility(Lang)</span>@FeatPrerequisiteFormatter.AbilityName(source.Ability, Lang)</span>
+                            <span class="rf-casting-pill"><span>@UiText.SheetSaveDc(Lang)</span>@source.SaveDc</span>
+                            <button type="button" class="rf-casting-pill rf-rollable" @onclick="() => Roll(attackLabel, source.AttackBonus)" title="@attackLabel">
+                                <span>@UiText.SheetAttackShort(Lang)</span><strong>@CharacterMath.FormatModifier(source.AttackBonus)</strong>
+                            </button>
+                        </div>
                     </div>
-                }
-                <div class="rf-spell-counts">
-                    <div><div class="rf-mini-label">@UiText.LabelCantrips(Lang)</div><div class="rf-defense-value">@source.ChosenCantrips.Count / @source.Cantrips</div></div>
-                    <div><div class="rf-mini-label">@UiText.SheetSpellsPrepared(Lang)</div><div class="rf-defense-value">@source.ChosenSpells.Count / @source.Spells</div></div>
-                    <button type="button" class="rf-defense rf-rollable" @onclick="() => Roll(attackLabel, source.AttackBonus)">
-                        <div class="rf-mini-label">@attackLabel</div><div class="rf-defense-value">@CharacterMath.FormatModifier(source.AttackBonus)</div>
-                    </button>
+                    @if (source.Class is not null && !ReadOnly)
+                    {
+                        var src = source;
+                        <div class="rf-casting-right">
+                            <span class="rf-casting-status" data-test="sheet-book-changes">@ChangesText(src)</span>
+                            <button type="button" class="rf-casting-manage" @onclick="() => OpenBook(src)" data-test="sheet-book-open"><Icon Name="edit" /> @UiText.BtnManageSpells(IsWizardBook(src), Lang)</button>
+                        </div>
+                    }
                 </div>
+                @{
+                    var firstLevel = true;
+                }
                 @foreach (var group in spells.GroupBy(s => s.Level).OrderBy(g => g.Key))
                 {
-                    <div class="rf-mini-title">@(group.Key == 0 ? UiText.LabelCantrips(Lang) : GameTerms.SpellLevel(group.Key, Lang))</div>
-                    <div class="rf-spell-rows" data-test="sheet-spells" data-level="@group.Key">
-                        @foreach (var spell in group.OrderBy(s => s.Name))
-                        {
-                            var sp = spell;
-                            <a href="@($"spells?id={sp.Id}")" class="rf-spell-row @(Sheet.Concentration == sp.Id ? "concentrating" : null)" @onclick="() => OpenSpell(sp, source)" @onclick:preventDefault="true">
-                                <span class="rf-spell-row-name">@sp.Name</span>
-                                <span class="rf-spell-row-tags">
-                                    @if (sp.Concentration)
-                                    {
-                                        <span title="@UiText.ConcentrationShort(Lang)">C</span>
-                                    }
-                                    @if (sp.Ritual)
-                                    {
-                                        <span title="@UiText.RitualShort(Lang)">R</span>
-                                    }
-                                    <span class="rf-spell-row-school">@GameTerms.SchoolName(sp.School, Lang)</span>
-                                </span>
-                            </a>
-                        }
+                    var cantrips = group.Key == 0;
+                    var counter = cantrips ? $"{source.ChosenCantrips.Count} / {source.Cantrips}"
+                        : firstLevel ? UiText.SheetPreparedCounter(source.ChosenSpells.Count, source.Spells, Lang) : null;
+                    if (!cantrips)
+                    {
+                        firstLevel = false;
+                    }
+                    <div class="rf-casting-section">
+                        <div class="rf-casting-bar">
+                            <span class="rf-casting-section-title">@(cantrips ? UiText.LabelCantrips(Lang) : GameTerms.SpellLevel(group.Key, Lang))</span>
+                            @if (counter is not null)
+                            {
+                                <span class="rf-casting-counter">@counter</span>
+                            }
+                        </div>
+                        <div class="rf-casting-grid" data-test="sheet-spells" data-level="@group.Key">
+                            @foreach (var spell in group.OrderBy(s => s.Name))
+                            {
+                                var sp = spell;
+                                <a href="@($"spells?id={sp.Id}")" class="rf-casting-card @(Sheet.Concentration == sp.Id ? "concentrating" : null)" @onclick="() => OpenSpell(sp, source)" @onclick:preventDefault="true">
+                                    <span class="rf-casting-card-name">@sp.Name</span>
+                                    <span class="rf-casting-card-meta">
+                                        <span class="rf-casting-card-school">@GameTerms.SchoolName(sp.School, Lang)</span>
+                                        <span class="rf-casting-card-tags">
+                                            @if (sp.Concentration)
+                                            {
+                                                <span class="c" title="@UiText.ConcentrationShort(Lang)">C</span>
+                                            }
+                                            @if (sp.Ritual)
+                                            {
+                                                <span class="r" title="@UiText.RitualShort(Lang)">R</span>
+                                            }
+                                        </span>
+                                    </span>
+                                </a>
+                            }
+                        </div>
                     </div>
+                }
+                @if (spells.Count == 0)
+                {
+                    <div class="rf-turn-none">@UiText.SheetNoSpellsChosen(Lang)</div>
                 }
             </section>
         }
@@ -1054,39 +1081,57 @@
             @NoteField(UiText.LabelNotes(Lang), Sheet.Notes, v => Sheet.Notes = v, 6)
         </section>
 
-        <details class="rf-card2 rf-collapsible" data-test="sheet-adjustments">
-            <summary class="rf-card2-head"><span>@UiText.SheetAdjustments(Lang)</span><span class="rf-collapsible-hint">@UiText.LabelAdvanced(Lang)</span></summary>
-            <div class="small mb-3" style="color: var(--rf-text-secondary);">@UiText.HintAdjustments(Lang)</div>
-            @NumberRow(UiText.LabelMaxHpAdjustment(Lang), Sheet.MaxHitPointsAdjustment, v => Sheet.MaxHitPointsAdjustment = v, "max-hp")
-            @NumberRow(UiText.SheetArmorClass(Lang), Sheet.ArmorClassAdjustment, v => Sheet.ArmorClassAdjustment = v, "ac")
-            @NumberRow(UiText.SheetSpeed(Lang), Sheet.SpeedAdjustment, v => Sheet.SpeedAdjustment = v, "speed")
-            @NumberRow(UiText.SheetInitiative(Lang), Sheet.InitiativeAdjustment, v => Sheet.InitiativeAdjustment = v, "initiative")
-
-            <div class="rf-wizard-counter">@UiText.LabelExtraSkills(Lang)</div>
-            <div class="rf-wizard-pills">
-                @foreach (var skill in Enum.GetValues<Skill>().OrderBy(s => GameTerms.SkillName(s, Lang)))
-                {
-                    var s = skill;
-                    <button type="button" class="rf-wizard-pill @(Sheet.ExtraSkills.Contains(s) ? "selected" : null)" @onclick="() => ToggleExtra(Sheet.ExtraSkills, s)">@GameTerms.SkillName(s, Lang)</button>
-                }
+        @* Manual modifiers: four numbers in a row, the skills in a 6 × 3 grid, expertise and saves side by side *@
+        <details class="rf-card2 rf-collapsible rf-mods" data-test="sheet-adjustments">
+            <summary class="rf-mods-summary">
+                <span class="rf-mods-title">@UiText.SheetAdjustments(Lang)</span>
+                <span class="rf-mods-badge">@UiText.LabelAdvanced(Lang)</span>
+            </summary>
+            <div class="rf-mods-body">
+                <p class="rf-mods-desc">@UiText.HintAdjustments(Lang)</p>
+                <div class="rf-mods-numbers">
+                    @ModNumber(UiText.LabelMaxHpAdjustment(Lang), Sheet.MaxHitPointsAdjustment, v => Sheet.MaxHitPointsAdjustment = v, "max-hp")
+                    @ModNumber(UiText.SheetArmorClass(Lang), Sheet.ArmorClassAdjustment, v => Sheet.ArmorClassAdjustment = v, "ac")
+                    @ModNumber(UiText.SheetSpeed(Lang), Sheet.SpeedAdjustment, v => Sheet.SpeedAdjustment = v, "speed")
+                    @ModNumber(UiText.SheetInitiative(Lang), Sheet.InitiativeAdjustment, v => Sheet.InitiativeAdjustment = v, "initiative")
+                </div>
+                <div class="rf-mods-section">
+                    <h3 class="rf-mods-heading">@UiText.LabelExtraSkills(Lang)</h3>
+                    <div class="rf-mods-skills">
+                        @foreach (var skill in Enum.GetValues<Skill>().OrderBy(s => GameTerms.SkillName(s, Lang)))
+                        {
+                            var s = skill;
+                            <button type="button" class="rf-mods-pill @(Sheet.ExtraSkills.Contains(s) ? "selected" : null)" aria-pressed="@Sheet.ExtraSkills.Contains(s)" title="@GameTerms.SkillName(s, Lang)" @onclick="() => ToggleExtra(Sheet.ExtraSkills, s)">@GameTerms.SkillName(s, Lang)</button>
+                        }
+                    </div>
+                </div>
+                <div class="rf-mods-dual">
+                    <div class="rf-mods-box">
+                        <h3 class="rf-mods-heading">@UiText.LabelExtraExpertise(Lang)</h3>
+                        <div class="rf-mods-flex">
+                            @foreach (var skill in c.SkillProficiencies.OrderBy(s => GameTerms.SkillName(s, Lang)))
+                            {
+                                var s = skill;
+                                <button type="button" class="rf-mods-pill @(Sheet.ExtraExpertise.Contains(s) ? "selected" : null)" aria-pressed="@Sheet.ExtraExpertise.Contains(s)" @onclick="() => ToggleExtra(Sheet.ExtraExpertise, s)">@GameTerms.SkillName(s, Lang)</button>
+                            }
+                        </div>
+                    </div>
+                    <div class="rf-mods-box">
+                        <h3 class="rf-mods-heading">@UiText.LabelExtraSaves(Lang)</h3>
+                        <div class="rf-mods-saves">
+                            @foreach (var ability in CharacterMath.Abilities)
+                            {
+                                var a = ability;
+                                <button type="button" class="rf-mods-pill @(Sheet.ExtraSaves.Contains(a) ? "selected" : null)" aria-pressed="@Sheet.ExtraSaves.Contains(a)" @onclick="() => ToggleExtra(Sheet.ExtraSaves, a)">@FeatPrerequisiteFormatter.AbilityName(a, Lang)</button>
+                            }
+                        </div>
+                    </div>
+                </div>
+                <div class="rf-mods-section">
+                    <label class="rf-mods-label" for="sheet-other-proficiencies">@UiText.LabelOtherProficiencies(Lang)</label>
+                    <textarea id="sheet-other-proficiencies" class="rf-form-control" rows="3" value="@Sheet.OtherProficiencies" placeholder="@UiText.PlaceholderOtherProficiencies(Lang)" @onchange="e => SetText(v => Sheet.OtherProficiencies = v, e)" data-test="sheet-other-proficiencies"></textarea>
+                </div>
             </div>
-            <div class="rf-wizard-counter">@UiText.LabelExtraExpertise(Lang)</div>
-            <div class="rf-wizard-pills">
-                @foreach (var skill in c.SkillProficiencies.OrderBy(s => GameTerms.SkillName(s, Lang)))
-                {
-                    var s = skill;
-                    <button type="button" class="rf-wizard-pill @(Sheet.ExtraExpertise.Contains(s) ? "selected" : null)" @onclick="() => ToggleExtra(Sheet.ExtraExpertise, s)">@GameTerms.SkillName(s, Lang)</button>
-                }
-            </div>
-            <div class="rf-wizard-counter">@UiText.LabelExtraSaves(Lang)</div>
-            <div class="rf-wizard-pills">
-                @foreach (var ability in CharacterMath.Abilities)
-                {
-                    var a = ability;
-                    <button type="button" class="rf-wizard-pill @(Sheet.ExtraSaves.Contains(a) ? "selected" : null)" @onclick="() => ToggleExtra(Sheet.ExtraSaves, a)">@FeatPrerequisiteFormatter.AbilityName(a, Lang)</button>
-                }
-            </div>
-            @NoteField(UiText.LabelOtherProficiencies(Lang), Sheet.OtherProficiencies, v => Sheet.OtherProficiencies = v, 2)
         </details>
     </div>;
 
@@ -1095,6 +1140,11 @@
         <div class="rf-wizard-field">
             <input class="rf-wizard-input" value="@value" maxlength="40" @onchange="e => SetText(set, e)" data-test="@($"sheet-{key}")" />
         </div>
+    </div>;
+
+    private RenderFragment ModNumber(string label, int value, Action<int> set, string key) => @<div class="rf-mods-number">
+        <span class="rf-mods-label">@label</span>
+        <NumberStepper Value="value" ValueChanged="v => SetAdjustment(set, v)" Min="-99" Max="99" AriaLabel="@label" InputTest="@($"sheet-adjust-{key}")" />
     </div>;
 
     private RenderFragment NumberRow(string label, int value, Action<int> set, string key) => @<div class="rf-wizard-row">
@@ -1234,26 +1284,28 @@
         var offHand = OffHandAttacks(c);
         var (unarmedBonus, unarmedDamage) = UnarmedStrike(c);
         var unarmedName = UiText.UnarmedStrike(Lang);
+        var opportunity = RuleEntry("opportunity-attacks");
         return @<section class="rf-card2 rf-turn" data-test="sheet-turn">
-            <div class="rf-card2-head">
-                <span>@UiText.TurnTitle(Lang)</span>
-                <span class="rf-card2-head-accent">@UiText.TurnMovement(UiText.FormatSpeed(c.Speed, Lang), Lang)</span>
+            <div class="rf-turn-header">
+                <h2 class="rf-turn-title">@UiText.TurnTitle(Lang)</h2>
+                <span class="rf-turn-move"><span>@UiText.TurnMovementLabel(Lang)</span>@UiText.FormatSpeed(c.Speed, Lang)</span>
             </div>
             @ConcentrationBanner()
             @if (CannotAct)
             {
-                <div class="rf-cast-warning mb-2">@UiText.TurnBlocked(Lang)</div>
+                <div class="rf-cast-warning">@UiText.TurnBlocked(Lang)</div>
             }
             @if (lastCast is not null)
             {
-                <div class="small mb-2" style="color: var(--rf-text-secondary);" data-test="sheet-last-cast">@UiText.LastCast(Lang) <strong>@lastCast</strong></div>
+                <div class="small" style="color: var(--rf-text-secondary);" data-test="sheet-last-cast">@UiText.LastCast(Lang) <strong>@lastCast</strong></div>
             }
 
-            <div class="rf-turn-block">
-                <div class="rf-turn-block-title">@UiText.TurnAction(Lang)</div>
-                <div class="rf-turn-row">
-                    <div class="rf-turn-row-label">@(attackRule?.Name ?? "Attack")@(attacks > 1 ? $" ×{attacks}" : null)</div>
-                    <div class="rf-turn-chips" data-test="sheet-turn-attacks">
+            @* The action: attack, magic, features and the other actions, one labelled row each *@
+            <div class="rf-turn-box">
+                <span class="rf-turn-tag">@UiText.TurnAction(Lang)</span>
+                <div class="rf-turn-group">
+                    <div class="rf-turn-label">@(attackRule?.Name ?? "Attack")@(attacks > 1 ? $" ×{attacks}" : null)</div>
+                    <div class="rf-turn-wrap" data-test="sheet-turn-attacks">
                         @foreach (var attack in c.Attacks)
                         {
                             var at = attack;
@@ -1264,14 +1316,22 @@
                 </div>
                 @if (c.Spellcasting.Count > 0)
                 {
-                    <div class="rf-turn-row">
-                        <div class="rf-turn-row-label">@(magicRule?.Name ?? "Magic")</div>
-                        <div class="rf-turn-chips" data-test="sheet-turn-spells">
-                            @foreach (var (spell, source) in actionSpells)
+                    <div class="rf-turn-group">
+                        <div class="rf-turn-label">@(magicRule?.Name ?? "Magic")</div>
+                        <div class="rf-turn-magic" data-test="sheet-turn-spells">
+                            @foreach (var level in actionSpells.GroupBy(x => x.Spell.Level).OrderBy(g => g.Key))
                             {
-                                var sp = spell;
-                                var src = source;
-                                <button type="button" class="rf-turn-chip spell" @onclick="() => OpenSpell(sp, src)"><Icon Name="spells" /> @sp.Name@(sp.Level > 0 ? $" ({sp.Level}°)" : null)</button>
+                                <div class="rf-turn-spell-row">
+                                    <span class="rf-turn-subtag">@(level.Key == 0 ? UiText.TurnCantrips(Lang) : GameTerms.SpellLevel(level.Key, Lang))</span>
+                                    <div class="rf-turn-wrap">
+                                        @foreach (var (spell, source) in level)
+                                        {
+                                            var sp = spell;
+                                            var src = source;
+                                            <button type="button" class="rf-turn-pill spell" @onclick="() => OpenSpell(sp, src)">@sp.Name</button>
+                                        }
+                                    </div>
+                                </div>
                             }
                             @if (actionSpells.Count == 0)
                             {
@@ -1282,37 +1342,41 @@
                 }
                 @if (features.Any(f => f.Slot == TurnSlot.Action))
                 {
-                    <div class="rf-turn-row">
-                        <div class="rf-turn-row-label">@UiText.TurnFeatures(Lang)</div>
-                        @FeatureChips(features.Where(f => f.Slot == TurnSlot.Action))
+                    <div class="rf-turn-group">
+                        <div class="rf-turn-label">@UiText.TurnFeatures(Lang)</div>
+                        <div class="rf-turn-wrap">@FeatureChipList(features.Where(f => f.Slot == TurnSlot.Action))</div>
                     </div>
                 }
-                <div class="rf-turn-row">
-                    <div class="rf-turn-row-label">@UiText.TurnOtherActions(Lang)</div>
-                    <div class="rf-turn-chips">
+                <div class="rf-turn-group">
+                    <div class="rf-turn-label">@UiText.TurnOtherActions(Lang)</div>
+                    <div class="rf-turn-wrap">
                         @foreach (var action in StandardActions.Where(a => a.Key != "attack" && a.Key != magicKey))
                         {
-                            <a class="rf-turn-chip" href="@($"rules?id={action.Id}")" target="_blank" rel="noopener" title="@action.Summary">@action.Name</a>
+                            <a class="rf-turn-pill" href="@($"rules?id={action.Id}")" target="_blank" rel="noopener" title="@action.Summary">@action.Name</a>
                         }
                     </div>
                 </div>
             </div>
 
+            @* Bonus action, reaction and what takes no action, side by side *@
             <div class="rf-turn-split">
-                <div class="rf-turn-block">
-                    <div class="rf-turn-block-title">@UiText.TurnBonusAction(Lang) @RuleLink(Ruleset == RulesetVersion.Dnd5e_2024 ? "bonus-action" : "bonus-actions")</div>
-                    <div class="rf-turn-chips" data-test="sheet-turn-bonus">
+                <div class="rf-turn-box">
+                    <div class="rf-turn-box-head">
+                        <span class="rf-turn-tag">@UiText.TurnBonusAction(Lang)</span>
+                        @RuleLink(Ruleset == RulesetVersion.Dnd5e_2024 ? "bonus-action" : "bonus-actions")
+                    </div>
+                    <div class="rf-turn-wrap" data-test="sheet-turn-bonus">
                         @foreach (var attack in offHand)
                         {
                             var at = attack;
                             @TurnAttack($"{at.Item.Name} · {UiText.TurnOffHand(Lang)}", at.AttackBonus, OffHandDamage(at))
                         }
-                        @FeatureChips(features.Where(f => f.Slot == TurnSlot.BonusAction), inline: true)
+                        @FeatureChipList(features.Where(f => f.Slot == TurnSlot.BonusAction))
                         @foreach (var (spell, source) in bonusSpells)
                         {
                             var sp = spell;
                             var src = source;
-                            <button type="button" class="rf-turn-chip spell" @onclick="() => OpenSpell(sp, src)"><Icon Name="spells" /> @sp.Name</button>
+                            <button type="button" class="rf-turn-pill spell" @onclick="() => OpenSpell(sp, src)">@sp.Name@if (sp.Level > 0) { <small>(@(sp.Level)°)</small> }</button>
                         }
                         @if (offHand.Count == 0 && !features.Any(f => f.Slot == TurnSlot.BonusAction) && bonusSpells.Count == 0)
                         {
@@ -1320,51 +1384,49 @@
                         }
                     </div>
                 </div>
-                <div class="rf-turn-block">
-                    <div class="rf-turn-block-title">@UiText.TurnReaction(Lang) @RuleLink(Ruleset == RulesetVersion.Dnd5e_2024 ? "reaction" : "opportunity-attacks")</div>
-                    <div class="rf-turn-chips" data-test="sheet-turn-reaction">
-                        @FeatureChips(features.Where(f => f.Slot == TurnSlot.Reaction), inline: true)
+                <div class="rf-turn-box">
+                    <div class="rf-turn-box-head">
+                        <span class="rf-turn-tag">@UiText.TurnReaction(Lang)</span>
+                        @RuleLink(Ruleset == RulesetVersion.Dnd5e_2024 ? "reaction" : "opportunity-attacks")
+                    </div>
+                    <div class="rf-turn-wrap" data-test="sheet-turn-reaction">
+                        @if (opportunity is not null)
+                        {
+                            <a class="rf-turn-pill reaction" href="@($"rules?id={opportunity.Id}")" target="_blank" rel="noopener" title="@opportunity.Summary">@opportunity.Name</a>
+                        }
+                        @FeatureChipList(features.Where(f => f.Slot == TurnSlot.Reaction))
                         @foreach (var (spell, source) in reactionSpells)
                         {
                             var sp = spell;
                             var src = source;
-                            <button type="button" class="rf-turn-chip spell" @onclick="() => OpenSpell(sp, src)"><Icon Name="spells" /> @sp.Name</button>
+                            <button type="button" class="rf-turn-pill spell" @onclick="() => OpenSpell(sp, src)">@sp.Name@if (sp.Level > 0) { <small>(@(sp.Level)°)</small> }</button>
                         }
                     </div>
                 </div>
-                <div class="rf-turn-block">
-                    <div class="rf-turn-block-title">@UiText.TurnFree(Lang)</div>
-                    <div class="rf-turn-chips">
-                        <span class="rf-turn-chip muted">@UiText.TurnInteract(Lang)</span>
-                        <span class="rf-turn-chip muted">@UiText.TurnTalk(Lang)</span>
+                <div class="rf-turn-box">
+                    <div class="rf-turn-box-head">
+                        <span class="rf-turn-tag">@UiText.TurnFree(Lang)</span>
+                    </div>
+                    <div class="rf-turn-wrap">
+                        <span class="rf-turn-pill muted">@UiText.TurnInteract(Lang)</span>
+                        <span class="rf-turn-pill muted">@UiText.TurnTalk(Lang)</span>
                     </div>
                 </div>
             </div>
         </section>;
     }
 
-    private RenderFragment TurnAttack(string name, int bonus, string damage) => @<span class="rf-turn-attack">
-        <span class="rf-turn-attack-name">@name</span>
-        <button type="button" @onclick="() => Roll(name, bonus)" title="@UiText.LabelToHit(Lang)">@CharacterMath.FormatModifier(bonus)</button>
-        <button type="button" @onclick="() => RollDamage(name, damage)" title="@UiText.LabelDamage(Lang)">@damage</button>
+    private RenderFragment TurnAttack(string name, int bonus, string damage) => @<span class="rf-turn-weapon">
+        <span class="rf-turn-weapon-name">@name</span>
+        <button type="button" class="hit" @onclick="() => Roll(name, bonus)" title="@UiText.LabelToHit(Lang)">@CharacterMath.FormatModifier(bonus)</button>
+        <button type="button" class="dmg" @onclick="() => RollDamage(name, damage)" title="@UiText.LabelDamage(Lang)">@damage</button>
     </span>;
-
-    private RenderFragment FeatureChips(IEnumerable<TurnFeature> features, bool inline = false) => @<text>
-        @if (!inline)
-        {
-            <div class="rf-turn-chips">@FeatureChipList(features)</div>
-        }
-        else
-        {
-            @FeatureChipList(features)
-        }
-    </text>;
 
     private RenderFragment FeatureChipList(IEnumerable<TurnFeature> features) => @<text>
         @foreach (var feature in features)
         {
             var left = FeatureUsesLeft(feature);
-            <span class="rf-turn-chip feature @(left == 0 ? "spent" : null)" title="@feature.Note">
+            <span class="rf-turn-pill feature @(left == 0 ? "spent" : null)" title="@feature.Note">
                 @feature.Name@(feature.Note is null ? null : $" · {feature.Note}")
                 @if (left is { } uses)
                 {

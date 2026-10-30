@@ -13,14 +13,20 @@
         @foreach (var spell in shown)
         {
             var selected = Chosen.Contains(spell.Id);
+            var takenBy = !selected && TakenBy is not null && TakenBy.TryGetValue(spell.Id, out var source) ? source : null;
             <div class="rf-spell-card-wrap">
-                <button type="button" class="rf-wizard-feature mb-0 w-100 h-100 @(selected ? "selected" : null)" disabled="@(!selected && Chosen.Count >= Max)"
+                <button type="button" class="rf-wizard-feature mb-0 w-100 h-100 @(selected ? "selected" : null) @(takenBy is not null ? "taken" : null)"
+                        disabled="@((!selected && Chosen.Count >= Max) || takenBy is not null)"
                         @onclick="() => W.Toggle(Chosen, spell.Id, Max)" data-test="@DataTest">
                     <div class="rf-wizard-feature-title pe-4">@spell.Name</div>
                     <div class="rf-wizard-feature-desc">@GameTerms.SpellSubtitle(spell.Level, spell.School, spell.Ritual, Lang, Ruleset)@(spell.Concentration ? $" · {UiText.ConcentrationShort(Lang)}" : null)</div>
+                    @if (takenBy is not null)
+                    {
+                        <div class="rf-wizard-feature-taken" data-test="spell-taken">@UiText.SpellTakenBy(takenBy, Lang)</div>
+                    }
                 </button>
                 <button type="button" class="rf-spell-info" title="@UiText.BtnSpellDetails(Lang)" aria-label="@UiText.BtnSpellDetails(Lang)"
-                        @onclick="() => detailId = spell.Id" data-test="spell-info">i</button>
+                        @onclick="() => detailId = spell.Id" data-test="spell-info"><Icon Name="info" /></button>
             </div>
         }
     </div>
@@ -40,6 +46,9 @@
     [Parameter] public int MaxLevel { get; set; }
     [Parameter] public string? Search { get; set; }
     [Parameter] public string DataTest { get; set; } = "wizard-spell";
+
+    //	Spells chosen by the other sources, with their name: shown but not selectable
+    [Parameter] public IReadOnlyDictionary<Guid, string>? TakenBy { get; set; }
 
     private List<ContextSpell> Available => Context.Spells
         .Where(s => s.Level >= MinLevel && s.Level <= MaxLevel && (List is null || s.Classes.Contains(List.Value)))
