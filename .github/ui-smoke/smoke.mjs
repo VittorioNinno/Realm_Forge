@@ -851,6 +851,13 @@ try {
   ok('class resources: Arcane Recovery listed on its own, spent with "use", recovered by a long rest');
   // Turn summary with the edition's actions; death saving throws rolled by the sheet at 0 hit points
   const turn = (await page.locator('[data-test=sheet-turn]').innerText()).replace(/\s+/g, ' ');
+  await shot(page, 'sheet-turn', '[data-test=sheet-turn]');
+  // The sheet on a phone: the stats, the hit point controls and the turn
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.waitForTimeout(300);
+  await shot(page, 'phone-stats', '[data-test=sheet-stats]');
+  await shot(page, 'phone-hp', '[data-test=sheet-hp-box]');
+  await page.setViewportSize({ width: 1280, height: 900 });
   const damage = async (value) => {
     await page.locator('[data-test=sheet-hp-amount]').fill(String(value));
     await page.locator('[data-test=sheet-hp-amount]').press('Tab');
@@ -886,7 +893,18 @@ try {
     await page.locator(`[data-test=sheet-tab-${tab}]`).click();
     await page.waitForTimeout(300);
     characterAudits.push(await overflowOf(page, `sheet ${tab}`));
+    if (tab === 'notes') {
+      await page.locator('[data-test=sheet-adjustments] summary').click();
+      await shot(page, 'sheet-mods', '[data-test=sheet-adjustments]');
+    }
+    if (tab === 'features') {
+      await page.setViewportSize({ width: 390, height: 844 });
+      await page.waitForTimeout(300);
+      await shot(page, 'phone-resources', '.rf-res-form');
+      await page.setViewportSize({ width: 1280, height: 900 });
+    }
     if (tab === 'spells') {
+      await shot(page, 'sheet-spells', '[data-test=sheet-spellcasting]');
       tabs.spells = await page.locator('[data-test=sheet-spells] a').count();
       // Casting from the spell: its details with the slot choice, the slot is spent and the details close
       const fullBefore = await page.locator('[data-test=sheet-slots] .rf-slot-dot.full').count();

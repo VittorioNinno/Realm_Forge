@@ -18,7 +18,7 @@
 {
     <div class="rf-wizard-panel mb-3" data-test="wizard-background-panel">
         <div class="rf-wizard-block-title">@detail.Name</div>
-        <div class="rf-wizard-text rf-markdown-container">@((MarkupString)MarkdownText.ToHtml(detail.Description, W.Terms))</div>
+        <div @key="detail.Description" class="rf-wizard-text rf-markdown-container">@((MarkupString)MarkdownText.ToHtml(detail.Description, W.Terms))</div>
         <div class="rf-wizard-meta">
             @if (Is2024 && detail.AbilityOptions.Count > 0)
             {

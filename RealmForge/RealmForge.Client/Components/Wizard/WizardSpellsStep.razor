@@ -33,8 +33,8 @@
     <div class="rf-wizard-panel mb-3" data-test="wizard-spellcasting">
         <div class="rf-wizard-block-title">@SourceName(info)</div>
         <div class="small mb-2" style="color: var(--rf-text-secondary);">@UiText.SheetSpellcasting(info.Ability, info.SaveDc, info.AttackBonus, Lang)</div>
-        <SpellPicker W="W" Title="@UiText.LabelCantrips(Lang)" Chosen="lists.Value.Cantrips" List="info.SpellList" Max="info.Cantrips" MinLevel="0" MaxLevel="0" Search="@search" DataTest="wizard-cantrip" />
-        <SpellPicker W="W" Title="@UiText.LabelLeveledSpells(info.MaxSpellLevel, Lang)" Chosen="lists.Value.Spells" List="info.SpellList" Max="info.Spells" MinLevel="1" MaxLevel="info.MaxSpellLevel" Search="@search" DataTest="wizard-spell" />
+        <SpellPicker W="W" Title="@UiText.LabelCantrips(Lang)" Chosen="lists.Value.Cantrips" List="info.SpellList" Max="info.Cantrips" MinLevel="0" MaxLevel="0" Search="@search" TakenBy="TakenElsewhere(lists.Value.Cantrips, lists.Value.Spells)" DataTest="wizard-cantrip" />
+        <SpellPicker W="W" Title="@UiText.LabelLeveledSpells(info.MaxSpellLevel, Lang)" Chosen="lists.Value.Spells" List="info.SpellList" Max="info.Spells" MinLevel="1" MaxLevel="info.MaxSpellLevel" Search="@search" TakenBy="TakenElsewhere(lists.Value.Cantrips, lists.Value.Spells)" DataTest="wizard-spell" />
     </div>
 }
 
@@ -43,7 +43,7 @@
     any = true;
     <div class="rf-wizard-panel mb-3">
         <div class="rf-wizard-block-title">@info.Class.Name · @UiText.LabelStyleCantrips(Lang)</div>
-        <SpellPicker W="W" Title="@UiText.LabelCantrips(Lang)" Chosen="info.Build.StyleCantrips" List="CharacterRules.StyleAlternativeList(info.Build.FightingStyle)" Max="2" MinLevel="0" MaxLevel="0" Search="@search" DataTest="wizard-style-cantrip" />
+        <SpellPicker W="W" Title="@UiText.LabelCantrips(Lang)" Chosen="info.Build.StyleCantrips" List="CharacterRules.StyleAlternativeList(info.Build.FightingStyle)" Max="2" MinLevel="0" MaxLevel="0" Search="@search" TakenBy="TakenElsewhere(info.Build.StyleCantrips, null)" DataTest="wizard-style-cantrip" />
     </div>
 }
 
@@ -69,6 +69,32 @@
 
         var feat = Computed.Feats.FirstOrDefault(f => CharacterRules.IsMagicInitiate(f.Feat) && f.Feat.Name == info.Source);
         return feat is null ? null : (feat.Choice.Cantrips, feat.Choice.Spells);
+    }
+
+    //	Spells already chosen by the other sources (another class, the species, a feat, a Fighting Style), with the
+    //	source's name: the same spell cannot be picked twice
+    private Dictionary<Guid, string> TakenElsewhere(List<Guid> mine, List<Guid>? mine2)
+    {
+        var taken = new Dictionary<Guid, string>();
+        void Add(IEnumerable<Guid> ids, string source)
+        {
+            foreach (var id in ids)
+            {
+                taken.TryAdd(id, source);
+            }
+        }
+        foreach (var info in Computed.Spellcasting)
+        {
+            if (Lists(info) is { } lists && !ReferenceEquals(lists.Cantrips, mine) && !ReferenceEquals(lists.Spells, mine2 ?? mine))
+            {
+                Add(lists.Cantrips.Concat(lists.Spells), SourceName(info));
+            }
+        }
+        foreach (var info in Computed.Classes.Where(c => c.Build.StyleCantrips.Count > 0 && !ReferenceEquals(c.Build.StyleCantrips, mine)))
+        {
+            Add(info.Build.StyleCantrips, $"{info.Class.Name} · {UiText.LabelStyleCantrips(Lang)}");
+        }
+        return taken;
     }
 
     private string SourceName(SpellcastingInfo info) => info.Class is { } cls

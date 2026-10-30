@@ -520,7 +520,7 @@ a.rf-spell-link {
     border-radius: 4px;
     box-shadow: 0 8px 24px rgba(0, 0, 0, 0.95);
     z-index: 1050;
-    max-height: 260px;
+    max-height: 256px;
     overflow-y: auto;
     box-sizing: border-box;
 }
@@ -812,7 +812,7 @@ select.rf-form-control {
     color: var(--rf-text-secondary);
 }
 
-@media (max-width: 575.98px) {
+@media (max-width: 576px) {
     .rf-account-facts {
         grid-template-columns: 1fr;
         gap: 8px;
@@ -890,7 +890,7 @@ input::-ms-clear {
     top: 0;
     right: 0;
     height: 100%;
-    width: 2.6rem;
+    width: 40px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -1005,7 +1005,7 @@ input::-ms-clear {
     font-family: var(--rf-font-body);
     font-weight: 600;
     color: var(--rf-text-secondary);
-    inset: calc(20vh + 3.25rem) 0 auto 0.2rem;
+    inset: calc(20vh + 48px) 0 auto 0.2rem;
 }
 
     .loading-progress-text:after {
@@ -1053,7 +1053,7 @@ input::-ms-clear {
    Classes compendium
    --------------------------------------------------------------- */
 .rf-class-dialog {
-    max-width: 980px;
+    max-width: 976px;
 }
 
 .rf-class-quick {
@@ -1078,7 +1078,7 @@ input::-ms-clear {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    min-width: 2.6rem;
+    min-width: 40px;
     height: 32px;
     padding: 0 8px;
     font-family: var(--rf-font-display);
@@ -1138,7 +1138,7 @@ input::-ms-clear {
         .rf-class-table-wrap td:nth-child(3) {
             white-space: normal;
             text-align: left;
-            min-width: 220px;
+            min-width: 224px;
         }
 
         .rf-class-table-wrap th:first-child,
@@ -1174,7 +1174,7 @@ input::-ms-clear {
 
 .rf-class-feature-level {
     flex-shrink: 0;
-    min-width: 2.6rem;
+    min-width: 40px;
     padding: 0 8px;
     font-size: 0.72rem;
     font-weight: 700;
@@ -1228,7 +1228,7 @@ input::-ms-clear {
 
 .rf-equipment-table {
     width: 100%;
-    min-width: 620px;
+    min-width: 624px;
     border-collapse: collapse;
     font-size: 0.86rem;
 }
@@ -1272,7 +1272,7 @@ input::-ms-clear {
 
     .rf-equipment-table .rf-col-wide {
         white-space: normal;
-        min-width: 180px;
+        min-width: 176px;
     }
 
 .rf-item-badges {
@@ -1655,7 +1655,7 @@ a.rf-term {
 
 /* ===== Character creation wizard (ported from the Obsidian "Hero Generator") ===== */
 .rf-wizard {
-    max-width: 860px;
+    max-width: 864px;
     margin: 0 auto;
     padding: 24px;
     border-radius: 12px;
@@ -1804,7 +1804,7 @@ a.rf-term {
     }
 
 .rf-wizard-level-value {
-    min-width: 35px;
+    min-width: 32px;
     text-align: right;
     font-size: 1.4rem;
     font-weight: 900;
@@ -1886,7 +1886,9 @@ a.rf-term {
 }
 
 .rf-forge-selector-option {
-    display: block;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
     width: 100%;
     padding: 8px 16px;
     border: 0;
@@ -1896,10 +1898,24 @@ a.rf-term {
     font-size: 0.88rem;
 }
 
-    .rf-forge-selector-option:hover, .rf-forge-selector-option.selected {
+    .rf-forge-selector-option:hover:not(:disabled), .rf-forge-selector-option.selected {
         background: var(--rf-orange-dark);
         color: #fff;
     }
+
+    .rf-forge-selector-option small {
+        font-size: .75rem;
+        color: var(--rf-text-muted);
+    }
+
+    .rf-forge-selector-option.disabled {
+        cursor: not-allowed;
+        color: var(--rf-text-muted);
+    }
+
+        .rf-forge-selector-option.disabled small {
+            color: #ffaa00;
+        }
 
 /* Information panels and blocks */
 .rf-wizard-panel {
@@ -2225,7 +2241,7 @@ button.rf-wizard-feature {
     }
 
 .rf-roll-sum {
-    min-width: 45px;
+    min-width: 48px;
     margin-left: auto;
     padding-left: 16px;
     border-left: 2px solid var(--rf-border-light);
@@ -2422,7 +2438,7 @@ button.rf-wizard-feature {
     color: var(--rf-orange-primary);
 }
 
-@media (max-width: 650px) {
+@media (max-width: 648px) {
     .rf-wizard {
         padding: 16px;
         border-radius: 8px;
@@ -2459,7 +2475,7 @@ button.rf-wizard-feature {
     }
 
     .rf-die {
-        width: 34px;
+        width: 32px;
         height: 32px;
         font-size: 1rem;
     }
@@ -2498,7 +2514,7 @@ button.rf-wizard-feature {
             vertical-align: middle;
         }
 
-@media (min-width: 651px) {
+@media (min-width: 648px) {
     .rf-sheet-skills {
         columns: 2;
         column-gap: 32px;
@@ -2572,7 +2588,7 @@ button.rf-wizard-feature {
 }
 
 .rf-level-number {
-    min-width: 90px;
+    min-width: 88px;
     font-weight: 900;
     letter-spacing: 1px;
     text-transform: uppercase;
@@ -2621,7 +2637,7 @@ button.rf-wizard-feature {
 }
 
 .rf-sheet-save {
-    min-width: 90px;
+    min-width: 88px;
     color: var(--rf-text-muted);
 }
 
@@ -2707,7 +2723,7 @@ button.rf-stat-card {
 }
 
     .rf-sheet-hp-controls .rf-wizard-input {
-        width: 90px;
+        width: 88px;
         min-height: 48px;
     }
 
@@ -2945,7 +2961,7 @@ button.rf-stat-card {
     }
 
 .rf-sheet-qty {
-    width: 70px !important;
+    width: 72px !important;
     min-height: 32px;
     padding: 0 8px;
 }
@@ -2971,7 +2987,7 @@ button.rf-stat-card {
         min-height: 40px;
     }
 
-@media (max-width: 650px) {
+@media (max-width: 648px) {
     .rf-sheet-hp,
     .rf-sheet-columns {
         grid-template-columns: 1fr;
@@ -3030,7 +3046,7 @@ button.rf-stat-card {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: 54px;
+    width: 56px;
     height: 56px;
     border-radius: 10px;
     border: 2px solid var(--rf-orange-primary);
@@ -3076,7 +3092,7 @@ button.rf-stat-card {
         color: #fff;
     }
 
-@media (max-width: 650px) {
+@media (max-width: 648px) {
     .rf-def-list {
         grid-template-columns: 1fr;
         gap: 8px;
@@ -3170,10 +3186,10 @@ button.rf-stat-card {
     border: 1px solid var(--rf-orange-primary);
     background: #1a1100;
     color: var(--rf-orange-primary);
-    font-family: Georgia, serif;
-    font-size: 0.8rem;
-    font-style: italic;
-    font-weight: 700;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: .9rem;
     line-height: 1;
 }
 
@@ -3245,7 +3261,7 @@ button.rf-stat-card {
 }
 
 .rf-mini-btn {
-    min-width: 30px;
+    min-width: 32px;
     height: 32px;
     padding: 0 8px;
     border-radius: 8px;
@@ -3457,7 +3473,7 @@ button.rf-stat-card {
 }
 
     .rf-bar-controls .rf-wizard-input {
-        width: 90px;
+        width: 88px;
         flex: none;
     }
 
@@ -3514,7 +3530,7 @@ button.rf-stat-card {
 
 .rf-ability-score {
     display: inline-block;
-    min-width: 34px;
+    min-width: 32px;
     padding: 1px 8px;
     border-radius: 999px;
     border: 1px solid var(--rf-border-light);
@@ -3631,7 +3647,7 @@ button.rf-stat-card {
 
 .rf-slot-level {
     flex: 0 0 auto;
-    min-width: 90px;
+    min-width: 88px;
     font-size: .85rem;
     color: var(--rf-text-secondary);
 }
@@ -3673,51 +3689,6 @@ button.rf-stat-card {
     .rf-slot-use:disabled {
         opacity: .4;
     }
-
-.rf-spell-counts {
-    display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 8px;
-    text-align: center;
-}
-
-    .rf-spell-counts > div {
-        padding: 8px;
-        border-radius: 8px;
-        background-color: var(--rf-bg-main);
-    }
-
-.rf-spell-rows {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-    gap: 8px;
-}
-
-.rf-spell-row {
-    display: flex;
-    justify-content: space-between;
-    gap: 8px;
-    padding: 8px 8px;
-    border-radius: 8px;
-    border: 1px solid var(--rf-border-subtle);
-    background-color: var(--rf-bg-main);
-    color: var(--rf-text-primary);
-    text-decoration: none;
-    font-size: .88rem;
-}
-
-    .rf-spell-row:hover {
-        border-color: var(--rf-orange-primary);
-        color: var(--rf-orange-primary);
-    }
-
-.rf-spell-row-tags {
-    display: flex;
-    gap: 8px;
-    color: var(--rf-text-muted);
-    font-size: .75rem;
-    align-items: center;
-}
 
 /* Inventory */
 .rf-coin-grid {
@@ -3773,7 +3744,7 @@ button.rf-stat-card {
 }
 
 .rf-item-qty {
-    min-width: 34px;
+    min-width: 32px;
     text-align: center;
     font-size: .85rem;
 }
@@ -3898,7 +3869,7 @@ button.rf-stat-card {
 
 .rf-hp-heart {
     flex: none;
-    width: 46px;
+    width: 48px;
     height: 48px;
     border-radius: 50%;
     display: flex;
@@ -4000,7 +3971,7 @@ button.rf-stat-card {
     }
 
 .rf-hp-amount {
-    width: 52px;
+    width: 48px;
     border: none;
     border-left: 1px solid var(--rf-border-subtle);
     border-right: 1px solid var(--rf-border-subtle);
@@ -4095,7 +4066,7 @@ button.rf-stat-card {
 }
 
 .rf-coin-badge {
-    width: 30px;
+    width: 32px;
     height: 32px;
     border-radius: 50%;
     display: flex;
@@ -4131,7 +4102,7 @@ button.rf-stat-card {
 
     .rf-coin-stepper .rf-mini-btn {
         flex: none;
-        min-width: 28px;
+        min-width: 32px;
         height: 32px;
         padding: 0;
     }
@@ -4139,7 +4110,7 @@ button.rf-stat-card {
 /* Resources */
 .rf-resource-name {
     flex: 0 0 auto;
-    min-width: 130px;
+    min-width: 128px;
     display: flex;
     flex-direction: column;
     font-size: .88rem;
@@ -4211,7 +4182,7 @@ button.rf-stat-card {
 }
 
 .rf-number-input {
-    max-width: 140px;
+    max-width: 144px;
 }
 
 .rf-wizard-notice {
@@ -4444,7 +4415,7 @@ button.rf-stat-card {
 }
 
 .rf-stepper-btn {
-    width: 34px;
+    width: 40px;
     border: none;
     background: none;
     color: var(--rf-text-secondary);
@@ -4462,7 +4433,7 @@ button.rf-stat-card {
     }
 
 .rf-stepper-input {
-    width: 70px;
+    width: 64px;
     border: none;
     border-left: 1px solid var(--rf-border-subtle);
     border-right: 1px solid var(--rf-border-subtle);
@@ -4501,7 +4472,7 @@ button.rf-stat-card {
 
 .rf-toggle-track {
     position: relative;
-    width: 36px;
+    width: 32px;
     height: 20px;
     border-radius: 999px;
     border: 1px solid var(--rf-border-light);
@@ -4535,56 +4506,6 @@ button.rf-stat-card {
     }
 
 /* Turn summary */
-.rf-turn-grid {
-    display: grid;
-    grid-template-columns: 2fr 1fr 1fr;
-    gap: 16px;
-}
-
-.rf-turn-col .rf-mini-title {
-    margin-top: 0;
-}
-
-.rf-turn-chips {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-    align-items: center;
-}
-
-.rf-turn-chip {
-    padding: 0 8px;
-    border-radius: 6px;
-    border: 1px solid var(--rf-border-subtle);
-    background-color: var(--rf-bg-main);
-    color: var(--rf-text-primary);
-    font-size: .78rem;
-    text-decoration: none;
-    min-height: 32px;
-    display: inline-flex;
-    align-items: center;
-}
-
-    a.rf-turn-chip:hover,
-    button.rf-turn-chip:hover {
-        border-color: var(--rf-orange-primary);
-        color: var(--rf-orange-primary);
-    }
-
-    .rf-turn-chip.feature {
-        border-color: rgba(255, 140, 0, .45);
-        color: var(--rf-orange-primary);
-    }
-
-    .rf-turn-chip.spell {
-        border-color: rgba(160, 120, 255, .45);
-        color: #c3a8ff;
-    }
-
-.rf-turn-rule {
-    font-size: .72rem;
-    color: var(--rf-text-muted);
-}
 
 .rf-concentration {
     display: flex;
@@ -4611,14 +4532,10 @@ button.rf-stat-card {
     animation: rf-pulse 1.6s ease-in-out infinite;
 }
 
-.rf-spell-row.concentrating {
-    border-color: rgba(160, 120, 255, .6);
-}
-
 .rf-slot-count {
     font-size: .78rem;
     color: var(--rf-text-muted);
-    min-width: 44px;
+    min-width: 48px;
     text-align: right;
 }
 
@@ -4697,7 +4614,7 @@ button.rf-stat-card {
     right: 16px;
     bottom: 16px;
     z-index: 1040;
-    width: 300px;
+    width: 304px;
     max-width: calc(100vw - 32px);
     padding: 16px 16px;
     border-radius: 14px;
@@ -4758,7 +4675,7 @@ button.rf-stat-card {
 
 .rf-die3d {
     position: relative;
-    width: 50px;
+    width: 48px;
     height: 48px;
     display: flex;
     align-items: center;
@@ -4870,10 +4787,6 @@ button.rf-stat-card {
     .rf-stat-strip {
         grid-template-columns: repeat(4, minmax(0, 1fr));
     }
-
-    .rf-turn-grid {
-        grid-template-columns: minmax(0, 1fr);
-    }
 }
 
 @media (max-width: 480px) {
@@ -4954,7 +4867,7 @@ button.rf-stat-card {
     display: flex;
     flex-direction: column;
     align-items: center;
-    min-width: 58px;
+    min-width: 56px;
     padding: 0 8px;
     border-radius: 8px;
     border: 1px solid var(--rf-border-light);
@@ -4986,131 +4899,14 @@ button.rf-stat-card {
 }
 
 /* Turn summary */
-.rf-turn-block {
-    padding: 8px 16px;
-    border-radius: 10px;
-    border: 1px solid var(--rf-border-subtle);
-    background-color: var(--rf-bg-main);
-}
-
-.rf-turn-block-title {
-    display: flex;
-    align-items: baseline;
-    gap: 8px;
-    font-size: .74rem;
-    font-weight: 700;
-    letter-spacing: .08em;
-    text-transform: uppercase;
-    color: var(--rf-orange-primary);
-    margin-bottom: 8px;
-}
-
-.rf-turn-row {
-    display: grid;
-    grid-template-columns: 130px minmax(0, 1fr);
-    gap: 8px;
-    align-items: start;
-    padding: 8px 0;
-    border-top: 1px dashed var(--rf-border-subtle);
-}
-
-    .rf-turn-block-title + .rf-turn-row {
-        border-top: none;
-        padding-top: 0;
-    }
-
-.rf-turn-row-label {
-    font-size: .8rem;
-    font-weight: 600;
-    color: var(--rf-text-secondary);
-    padding-top: 8px;
-}
-
-.rf-turn-split {
-    display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 8px;
-    margin-top: 8px;
-}
-
-.rf-turn-none {
-    font-size: .78rem;
-    color: var(--rf-text-muted);
-    font-style: italic;
-}
-
-.rf-turn-chip.muted {
-    color: var(--rf-text-muted);
-}
-
-.rf-turn-chip.spent {
-    opacity: .45;
-}
-
-.rf-turn-uses {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    min-width: 18px;
-    height: 18px;
-    margin-left: 8px;
-    padding: 0 8px;
-    border-radius: 999px;
-    background-color: rgba(255, 140, 0, .18);
-    font-size: .68rem;
-    font-weight: 700;
-}
-
-.rf-turn-attack {
-    display: inline-flex;
-    align-items: stretch;
-    border-radius: 6px;
-    border: 1px solid var(--rf-border-light);
-    overflow: hidden;
-    font-size: .78rem;
-}
-
-.rf-turn-attack-name {
-    padding: 0 8px;
-    color: var(--rf-text-primary);
-    background-color: var(--rf-bg-card);
-    min-height: 24px;
-    display: inline-flex;
-    align-items: center;
-}
-
-.rf-turn-attack button {
-    border: none;
-    border-left: 1px solid var(--rf-border-subtle);
-    background: none;
-    color: var(--rf-text-secondary);
-    padding: 0 8px;
-    font-weight: 700;
-    min-height: 32px;
-    display: inline-flex;
-    align-items: center;
-}
-
-    .rf-turn-attack button:hover {
-        color: var(--rf-orange-primary);
-        background-color: rgba(255, 140, 0, .08);
-    }
 
 @media (max-width: 768px) {
     .rf-stat-strip {
         grid-template-columns: repeat(4, minmax(0, 1fr));
     }
-
-    .rf-turn-split {
-        grid-template-columns: minmax(0, 1fr);
-    }
 }
 
 @media (max-width: 480px) {
-    .rf-turn-row {
-        grid-template-columns: minmax(0, 1fr);
-        gap: 8px;
-    }
 
     .rf-attack {
         flex-direction: column;
@@ -5123,10 +4919,6 @@ button.rf-stat-card {
 
     .rf-attack-btn {
         flex: 1;
-    }
-
-    .rf-turn-attack {
-        flex-wrap: wrap;
     }
 }
 
@@ -5261,22 +5053,10 @@ button.rf-stat-card {
 
     .rf-magic-effect select {
         flex: 1;
-        min-width: 140px;
+        min-width: 144px;
     }
 
 /* ===== Spell changes and spellbook ===== */
-.rf-book-bar {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    flex-wrap: wrap;
-    gap: 8px;
-    margin-bottom: 8px;
-    padding: 8px 8px;
-    border-radius: 8px;
-    background-color: var(--rf-bg-main);
-    color: var(--rf-text-secondary);
-}
 
 .rf-book {
     max-width: 720px;
@@ -5316,7 +5096,7 @@ button.rf-stat-card {
     display: flex;
     flex-wrap: wrap;
     gap: 8px;
-    max-height: 260px;
+    max-height: 256px;
     overflow-y: auto;
 }
 
@@ -5614,7 +5394,7 @@ button.rf-stat-card {
     }
 
 .rf-share-avatar {
-    width: 28px;
+    width: 32px;
     height: 32px;
     border-radius: 50%;
     display: inline-flex;
@@ -6186,7 +5966,7 @@ button.rf-stat-card {
 }
 
 .rf-combatant-name-input {
-    max-width: 220px;
+    max-width: 224px;
     min-height: 32px;
     display: inline-flex;
     align-items: center;
@@ -6226,7 +6006,7 @@ button.rf-condition-chip:hover {
 }
 
 .rf-condition-add {
-    min-width: 150px;
+    min-width: 152px;
     font-size: 0.8rem;
 }
 
@@ -6275,7 +6055,7 @@ button.rf-condition-chip:hover {
     display: flex;
     flex-direction: column;
     gap: 8px;
-    max-height: 340px;
+    max-height: 336px;
     overflow-y: auto;
 }
 
@@ -6291,7 +6071,7 @@ button.rf-condition-chip:hover {
 
 .rf-monster-pick-name {
     font-weight: 600;
-    min-width: 140px;
+    min-width: 144px;
 }
 
 .rf-monster-pick-count {
@@ -6595,8 +6375,6 @@ button.rf-condition-chip:hover {
         padding: 16px;
     }
 }
-
-
 
 /* Actions: equal parts of the bottom row, icon and label */
 
@@ -6980,3 +6758,781 @@ textarea.rf-form-control {
         color: #ff6b6b;
         background-color: rgba(220, 53, 69, .15);
     }
+
+/* ===== Sheet: "On your turn" =====
+   Header with the movement; the action in one box (attack, magic by level, features, other actions, each with its
+   label on the left); bonus action, reaction and what takes no action in three boxes under it */
+.rf-turn {
+    --rf-spell: #a78bfa;
+    --rf-spell-soft: rgba(139, 92, 246, .08);
+    --rf-spell-border: rgba(139, 92, 246, .45);
+    --rf-hit: #4da3ff;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    padding: 24px;
+}
+
+.rf-turn-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px 16px;
+}
+
+.rf-turn-title {
+    margin: 0;
+    font-family: var(--rf-font-display);
+    font-size: 1rem;
+    font-weight: 700;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+    color: var(--rf-text-primary);
+}
+
+.rf-turn-move {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    min-height: 32px;
+    padding: 0 16px;
+    border-radius: 999px;
+    border: 1px solid rgba(255, 140, 0, .35);
+    background-color: rgba(255, 140, 0, .1);
+    color: var(--rf-text-primary);
+    font-size: .8rem;
+    font-weight: 700;
+    text-transform: uppercase;
+}
+
+    .rf-turn-move > span {
+        color: var(--rf-orange-primary);
+    }
+
+.rf-turn-box {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    padding: 16px 24px;
+    border-radius: 8px;
+    border: 1px solid var(--rf-border-subtle);
+    background-color: var(--rf-bg-main);
+}
+
+.rf-turn-box-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+}
+
+.rf-turn-tag {
+    color: var(--rf-orange-primary);
+    font-size: .75rem;
+    font-weight: 700;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+}
+
+/* A labelled row of the action: the label on the left, the choices on the right; dashed line between rows */
+.rf-turn-group {
+    display: grid;
+    grid-template-columns: 112px minmax(0, 1fr);
+    gap: 16px;
+    align-items: start;
+    padding-bottom: 16px;
+    border-bottom: 1px dashed var(--rf-border-subtle);
+}
+
+    .rf-turn-group:last-child {
+        padding-bottom: 0;
+        border-bottom: none;
+    }
+
+.rf-turn-label {
+    padding-top: 8px;
+    color: var(--rf-text-secondary);
+    font-size: .85rem;
+    font-weight: 600;
+}
+
+.rf-turn-wrap {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+}
+
+.rf-turn-magic {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.rf-turn-spell-row {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.rf-turn-subtag {
+    color: var(--rf-spell);
+    font-size: .7rem;
+    font-weight: 700;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+}
+
+/* A weapon: its name, then the attack roll and the damage roll as two buttons */
+.rf-turn-weapon {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    min-height: 40px;
+    padding: 0 8px 0 16px;
+    border-radius: 8px;
+    border: 1px solid var(--rf-border-light);
+    background-color: var(--rf-bg-surface);
+}
+
+.rf-turn-weapon-name {
+    font-size: .85rem;
+    font-weight: 600;
+    color: var(--rf-text-primary);
+}
+
+.rf-turn-weapon button {
+    min-height: 24px;
+    padding: 0 8px;
+    border-radius: 4px;
+    border: 1px solid var(--rf-border-light);
+    background-color: var(--rf-bg-card);
+    color: var(--rf-text-primary);
+    font-size: .8rem;
+    font-weight: 700;
+}
+
+    .rf-turn-weapon button.hit {
+        color: var(--rf-hit);
+        border-color: rgba(77, 163, 255, .25);
+    }
+
+    .rf-turn-weapon button:hover {
+        border-color: var(--rf-orange-primary);
+    }
+
+/* Pills: actions and features (neutral), spells (violet), reactions (orange) */
+.rf-turn-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    min-height: 32px;
+    padding: 0 16px;
+    border-radius: 8px;
+    border: 1px solid var(--rf-border-light);
+    background-color: var(--rf-bg-surface);
+    color: var(--rf-text-secondary);
+    font-size: .8rem;
+    font-weight: 500;
+    text-decoration: none;
+}
+
+    a.rf-turn-pill:hover,
+    button.rf-turn-pill:hover {
+        color: var(--rf-text-primary);
+        border-color: var(--rf-text-muted);
+    }
+
+    .rf-turn-pill.spell {
+        border-color: var(--rf-spell-border);
+        background-color: var(--rf-spell-soft);
+        color: #e2d9ff;
+    }
+
+        .rf-turn-pill.spell:hover {
+            border-color: var(--rf-spell);
+            background-color: rgba(139, 92, 246, .18);
+            color: #fff;
+        }
+
+        .rf-turn-pill.spell small {
+            color: var(--rf-spell);
+        }
+
+    .rf-turn-wrap.reaction .rf-turn-pill.feature,
+    .rf-turn-pill.reaction {
+        border-color: rgba(255, 140, 0, .5);
+        background-color: rgba(255, 140, 0, .08);
+        color: #ffb74d;
+        font-weight: 600;
+    }
+
+    .rf-turn-pill.feature {
+        color: var(--rf-text-primary);
+    }
+
+    .rf-turn-pill.spent {
+        opacity: .5;
+    }
+
+    .rf-turn-pill.muted {
+        color: var(--rf-text-muted);
+    }
+
+.rf-turn-uses {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 24px;
+    min-height: 24px;
+    padding: 0 8px;
+    border-radius: 999px;
+    background-color: var(--rf-orange-primary);
+    color: #111;
+    font-size: .7rem;
+    font-weight: 700;
+}
+
+.rf-turn-none {
+    color: var(--rf-text-muted);
+    font-size: .8rem;
+}
+
+.rf-turn-rule {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--rf-text-muted);
+    font-size: .7rem;
+    font-weight: 600;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+}
+
+    .rf-turn-rule:hover {
+        color: var(--rf-text-secondary);
+    }
+
+.rf-turn-split {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 16px;
+}
+
+@media (max-width: 992px) {
+    .rf-turn-split {
+        grid-template-columns: minmax(0, 1fr);
+    }
+}
+
+@media (max-width: 576px) {
+    .rf-turn {
+        padding: 16px;
+    }
+
+    .rf-turn-box {
+        padding: 16px;
+    }
+
+    .rf-turn-group {
+        grid-template-columns: minmax(0, 1fr);
+        gap: 8px;
+    }
+
+    .rf-turn-label {
+        padding-top: 0;
+    }
+}
+
+/* ===== Sheet: spells of a class =====
+   Header: the class and how it casts in pills, the changes allowed and the editor on the right; then cantrips and each
+   level as a titled grid of cards (name, school, C and R) */
+.rf-casting {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+    padding: 24px;
+}
+
+.rf-casting-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 16px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid var(--rf-border-subtle);
+}
+
+.rf-casting-left,
+.rf-casting-right {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 16px;
+}
+
+.rf-casting-title {
+    margin: 0;
+    font-family: var(--rf-font-display);
+    font-size: 1.15rem;
+    font-weight: 700;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+    color: var(--rf-text-primary);
+}
+
+.rf-casting-stats {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.rf-casting-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    min-height: 32px;
+    padding: 0 16px;
+    border-radius: 8px;
+    border: 1px solid var(--rf-border-light);
+    background-color: var(--rf-bg-surface);
+    color: var(--rf-text-primary);
+    font-size: .85rem;
+    font-weight: 700;
+}
+
+    .rf-casting-pill > span {
+        color: var(--rf-text-muted);
+        font-size: .7rem;
+        letter-spacing: .06em;
+        text-transform: uppercase;
+    }
+
+    .rf-casting-pill strong {
+        color: var(--rf-orange-primary);
+    }
+
+    button.rf-casting-pill:hover {
+        border-color: var(--rf-orange-primary);
+    }
+
+.rf-casting-status {
+    font-size: .8rem;
+    color: var(--rf-text-muted);
+}
+
+.rf-casting-manage {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    min-height: 32px;
+    padding: 0 16px;
+    border-radius: 8px;
+    border: 1px solid var(--rf-border-light);
+    background-color: var(--rf-bg-surface);
+    color: var(--rf-text-primary);
+    font-size: .8rem;
+    font-weight: 600;
+}
+
+    .rf-casting-manage:hover {
+        border-color: var(--rf-orange-primary);
+        color: var(--rf-orange-primary);
+    }
+
+.rf-casting-section {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.rf-casting-bar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.rf-casting-section-title {
+    color: var(--rf-orange-primary);
+    font-size: .75rem;
+    font-weight: 700;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+}
+
+.rf-casting-counter {
+    display: inline-flex;
+    align-items: center;
+    min-height: 24px;
+    padding: 0 8px;
+    border-radius: 999px;
+    border: 1px solid rgba(255, 140, 0, .35);
+    background-color: rgba(255, 140, 0, .12);
+    color: #ffb74d;
+    font-size: .75rem;
+    font-weight: 700;
+}
+
+.rf-casting-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 16px;
+}
+
+.rf-casting-card {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 16px;
+    border-radius: 8px;
+    border: 1px solid var(--rf-border-light);
+    background-color: var(--rf-bg-surface);
+    color: inherit;
+    text-decoration: none;
+}
+
+    .rf-casting-card:hover {
+        border-color: var(--rf-text-muted);
+        background-color: var(--rf-bg-card);
+        color: inherit;
+    }
+
+    .rf-casting-card.concentrating {
+        border-color: var(--rf-orange-primary);
+        box-shadow: 0 0 8px var(--rf-orange-glow);
+    }
+
+.rf-casting-card-name {
+    font-size: .9rem;
+    font-weight: 600;
+    line-height: 1.35;
+    color: var(--rf-text-primary);
+}
+
+.rf-casting-card-meta {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+    padding-top: 8px;
+    border-top: 1px solid var(--rf-border-subtle);
+}
+
+.rf-casting-card-school {
+    font-size: .75rem;
+    color: var(--rf-text-muted);
+}
+
+.rf-casting-card-tags {
+    display: flex;
+    gap: 8px;
+}
+
+    .rf-casting-card-tags span {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 24px;
+        min-height: 24px;
+        border-radius: 4px;
+        font-size: .7rem;
+        font-weight: 700;
+    }
+
+    .rf-casting-card-tags .c {
+        color: #ff9800;
+        background-color: rgba(255, 140, 0, .15);
+        border: 1px solid rgba(255, 140, 0, .4);
+    }
+
+    .rf-casting-card-tags .r {
+        color: #4da3ff;
+        background-color: rgba(77, 163, 255, .15);
+        border: 1px solid rgba(77, 163, 255, .4);
+    }
+
+@media (max-width: 992px) {
+    .rf-casting-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 576px) {
+    .rf-casting {
+        padding: 16px;
+    }
+}
+
+/* ===== Sheet: manual modifiers (collapsible) ===== */
+.rf-mods {
+    padding: 24px;
+}
+
+    .rf-mods > summary.rf-mods-summary {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        margin: 0;
+    }
+
+    .rf-mods[open] > summary.rf-mods-summary {
+        padding-bottom: 16px;
+        margin-bottom: 0;
+    }
+
+.rf-mods-title {
+    font-family: var(--rf-font-display);
+    font-size: 1rem;
+    font-weight: 700;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+    color: var(--rf-text-primary);
+}
+
+.rf-mods-badge {
+    display: inline-flex;
+    align-items: center;
+    min-height: 24px;
+    padding: 0 8px;
+    border-radius: 4px;
+    border: 1px solid var(--rf-border-light);
+    background-color: var(--rf-bg-surface);
+    color: var(--rf-text-muted);
+    font-size: .7rem;
+    font-weight: 600;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+}
+
+.rf-mods-body {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+    padding-top: 16px;
+    border-top: 1px solid var(--rf-border-subtle);
+}
+
+.rf-mods-desc {
+    margin: 0;
+    font-size: .85rem;
+    line-height: 1.5;
+    color: var(--rf-text-secondary);
+}
+
+.rf-mods-numbers {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 16px;
+}
+
+.rf-mods-number {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+    padding: 16px;
+    border-radius: 8px;
+    border: 1px solid var(--rf-border-subtle);
+    background-color: var(--rf-bg-surface);
+}
+
+    .rf-mods-number .rf-stepper {
+        height: 40px;
+    }
+
+.rf-mods-label {
+    font-size: .75rem;
+    font-weight: 700;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+    color: var(--rf-text-muted);
+}
+
+.rf-mods-section {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.rf-mods-heading {
+    margin: 0;
+    font-family: var(--rf-font-body);
+    font-size: .85rem;
+    font-weight: 700;
+    letter-spacing: 0;
+    text-transform: none;
+    color: var(--rf-orange-primary);
+}
+
+.rf-mods-skills {
+    display: grid;
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    gap: 8px;
+}
+
+.rf-mods-dual {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px;
+}
+
+.rf-mods-box {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    padding: 16px;
+    border-radius: 8px;
+    border: 1px solid var(--rf-border-subtle);
+    background-color: var(--rf-bg-surface);
+}
+
+.rf-mods-flex {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.rf-mods-saves {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
+}
+
+.rf-mods-pill {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 40px;
+    padding: 0 16px;
+    border-radius: 8px;
+    border: 1px solid var(--rf-border-light);
+    background-color: var(--rf-bg-main);
+    color: var(--rf-text-primary);
+    font-size: .8rem;
+    font-weight: 600;
+    text-align: center;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+    .rf-mods-pill:hover {
+        border-color: var(--rf-text-muted);
+    }
+
+    .rf-mods-pill.selected {
+        border-color: var(--rf-orange-primary);
+        background-color: rgba(255, 140, 0, .12);
+        color: var(--rf-orange-primary);
+    }
+
+@media (max-width: 992px) {
+    .rf-mods-numbers {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .rf-mods-skills {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    .rf-mods-dual {
+        grid-template-columns: minmax(0, 1fr);
+    }
+}
+
+@media (max-width: 576px) {
+    .rf-mods {
+        padding: 16px;
+    }
+
+    .rf-mods-numbers,
+    .rf-mods-skills {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+/* ===== Sheet on a phone: the stats in four columns with labels that fit, the hit point controls and the rests across
+   the whole width, the new resource form in a column of full-width controls ===== */
+@media (max-width: 576px) {
+    .rf-stat-strip {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+
+        .rf-stat-strip .rf-mini-label {
+            font-size: .6rem;
+            letter-spacing: 0;
+            overflow-wrap: anywhere;
+            hyphens: auto;
+        }
+
+    .rf-hp-actions {
+        flex-direction: column;
+        align-items: stretch;
+        width: 100%;
+    }
+
+    .rf-hp-stepper {
+        width: 100%;
+    }
+
+        .rf-hp-stepper .rf-hp-amount {
+            flex: 1;
+            width: auto;
+        }
+
+    .rf-hp-buttons {
+        display: grid;
+        grid-auto-flow: column;
+        grid-auto-columns: minmax(0, 1fr);
+        width: 100%;
+    }
+
+        .rf-hp-buttons .rf-hp-btn {
+            padding: 0 8px;
+        }
+
+    .rf-hp-footer-rests {
+        width: 100%;
+    }
+
+        .rf-hp-footer-rests .rf-rest-btn {
+            flex: 1;
+            min-height: 40px;
+        }
+
+    .rf-res-form-row {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+        .rf-res-form-row > *,
+        .rf-res-field .rf-stepper,
+        .rf-res-field .rf-segmented {
+            flex: none;
+            width: 100%;
+        }
+
+        .rf-res-field .rf-stepper .rf-stepper-input {
+            flex: 1;
+            width: auto;
+        }
+
+        .rf-res-field .rf-segmented button {
+            flex: 1;
+        }
+}
+
+/* A spell chosen by another source: visible, greyed out, with the source */
+.rf-wizard-feature.taken {
+    opacity: .6;
+}
+
+.rf-wizard-feature-taken {
+    margin-top: 8px;
+    font-size: .75rem;
+    font-weight: 600;
+    color: #ffaa00;
+}
