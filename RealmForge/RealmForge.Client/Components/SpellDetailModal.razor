@@ -32,12 +32,12 @@
                     <div><dt>@UiText.LabelComponents(Lang)</dt><dd>@Components(spell)</dd></div>
                     <div><dt>@UiText.LabelDuration(Lang)</dt><dd>@(spell.Concentration ? $"{UiText.ConcentrationShort(Lang)}, " : null)@spell.Duration</dd></div>
                 </dl>
-                <div class="rf-markdown-container mb-3">@((MarkupString)MarkdownText.ToHtml(spell.Description, Glossary.Linker(Lang, spell.Ruleset)))</div>
+                <div @key="spell.Description" class="rf-markdown-container mb-3">@((MarkupString)MarkdownText.ToHtml(spell.Description, Glossary.Linker(Lang, spell.Ruleset)))</div>
                 @if (!string.IsNullOrWhiteSpace(spell.HigherLevels))
                 {
                     <div class="p-2 rounded mb-2" style="border-left: 3px solid var(--rf-orange-primary); background: var(--rf-bg-main);">
                         <strong class="small d-block mb-2 text-uppercase" style="color: var(--rf-orange-primary);">@GameTerms.SpellHigherLevelsHeading(spell.Level, Lang, spell.Ruleset)</strong>
-                        <div class="rf-markdown-container">@((MarkupString)MarkdownText.ToHtml(spell.HigherLevels, Glossary.Linker(Lang, spell.Ruleset)))</div>
+                        <div @key="spell.HigherLevels" class="rf-markdown-container">@((MarkupString)MarkdownText.ToHtml(spell.HigherLevels, Glossary.Linker(Lang, spell.Ruleset)))</div>
                     </div>
                 }
                 <a href="@($"spells?id={spell.Id}")" target="_blank" rel="noopener" class="small">@UiText.OpenInCompendium(Lang) <Icon Name="external" /></a>

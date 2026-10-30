@@ -19,14 +19,23 @@
             @foreach (var option in Options)
             {
                 var selected = EqualityComparer<TValue>.Default.Equals(option.Value, Value);
-                <button type="button" role="option" class="rf-forge-selector-option @(selected ? "selected" : null)" @onclick="() => SelectAsync(option.Value)">@option.Label</button>
+                @* An option that cannot be chosen stays in the list, greyed out, with the reason under its name *@
+                <button type="button" role="option" class="rf-forge-selector-option @(selected ? "selected" : null) @(option.Disabled ? "disabled" : null)"
+                        disabled="@option.Disabled" aria-disabled="@(option.Disabled ? "true" : null)" @onclick="() => SelectAsync(option.Value)">
+                    <span>@option.Label</span>
+                    @if (option.Note is not null)
+                    {
+                        <small>@option.Note</small>
+                    }
+                </button>
             }
         </div>
     }
 </div>
 
 @code {
-    public record Option(TValue Value, string Label);
+    //	Disabled: shown but not selectable (a requirement not met); Note: the requirement, under the name
+    public record Option(TValue Value, string Label, bool Disabled = false, string? Note = null);
 
     [Parameter] public TValue? Value { get; set; }
     [Parameter] public EventCallback<TValue> ValueChanged { get; set; }
@@ -51,9 +60,17 @@
             return;
         }
 
+        //	The arrows skip the options that cannot be chosen
         var index = Options.FindIndex(o => EqualityComparer<TValue>.Default.Equals(o.Value, Value));
-        index = index < 0 ? 0 : (index + delta + Options.Count) % Options.Count;
-        await SelectAsync(Options[index].Value);
+        for (var step = 0; step < Options.Count; step++)
+        {
+            index = index < 0 ? 0 : (index + delta + Options.Count) % Options.Count;
+            if (!Options[index].Disabled)
+            {
+                await SelectAsync(Options[index].Value);
+                return;
+            }
+        }
     }
 
     private async Task SelectAsync(TValue value)

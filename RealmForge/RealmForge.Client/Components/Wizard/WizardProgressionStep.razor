@@ -105,16 +105,25 @@
         <div class="flex-grow-1" style="min-width: 200px;">
             <ForgeSelector TValue="Guid" Value="NextClassId" ValueChanged="v => nextClassId = v" Options="ClassOptions" DataTest="wizard-next-class" />
         </div>
-        <button type="button" class="rf-wizard-btn" style="flex: none; padding: 0 16px;" @onclick="() => W.AddLevel(NextClassId)" data-test="wizard-add-level">@UiText.BtnAddLevel(Lang)</button>
+        <button type="button" class="rf-wizard-btn" style="flex: none; padding: 0 16px;" disabled="@(!NextAllowed)" @onclick="() => W.AddLevel(NextClassId)" data-test="wizard-add-level">@UiText.BtnAddLevel(Lang)</button>
     }
     @if (Build.Levels.Count > MinimumLevels)
     {
         <button type="button" class="rf-wizard-btn secondary" style="flex: none; padding: 0 16px;" @onclick="W.RemoveLastLevel" data-test="wizard-remove-level">@UiText.BtnRemoveLevel(Lang)</button>
     }
 </div>
-@if (NextClass is { } next && !CharacterRules.MeetsMulticlassPrerequisite(next, Computed.FinalScores) && Build.Levels.All(l => l.ClassId != next.Id))
+@if (!NextAllowed && NextClass is { } next)
 {
-    <div class="small mt-2" style="color: #ffaa00;">@UiText.MulticlassNeeds(PrerequisiteText(next), Lang)</div>
+    <div class="small mt-2" style="color: #ffaa00;" data-test="wizard-multiclass-needs">
+        @if (!CharacterRules.MeetsMulticlassPrerequisite(next, Computed.FinalScores))
+        {
+            @UiText.MulticlassNeeds(PrerequisiteText(next), Lang)
+        }
+        else
+        {
+            @UiText.MulticlassCurrentNeeds(string.Join(", ", Computed.Classes.Where(i => !CharacterRules.MeetsMulticlassPrerequisite(i.Class, Computed.FinalScores)).Select(i => $"{i.Class.Name} ({PrerequisiteText(i.Class)})")), Lang)
+        }
+    </div>
 }
 @if (Computed.Classes.Count > 1)
 {
@@ -137,12 +146,20 @@
 
     private ContextClass? NextClass => W.Class(NextClassId);
 
+    //	Every class shows what it takes to multiclass into it; a new class is chosen only when its requirement and those of
+    //	the classes already taken are met (the rule asks for both)
     private List<ForgeSelector<Guid>.Option> ClassOptions => Context.Classes.Select(c =>
     {
         var taken = Build.Levels.Any(l => l.ClassId == c.Id);
-        var label = taken || CharacterRules.MeetsMulticlassPrerequisite(c, Computed.FinalScores) ? c.Name : $"{c.Name} ({UiText.MulticlassNeeds(PrerequisiteText(c), Lang)})";
-        return new ForgeSelector<Guid>.Option(c.Id, label);
+        var note = CharacterRules.MulticlassPrerequisite(c).Abilities.Count == 0 ? null : UiText.MulticlassRequires(PrerequisiteText(c), Lang);
+        return new ForgeSelector<Guid>.Option(c.Id, c.Name, !taken && !CanTake(c), taken ? null : note);
     }).ToList();
+
+    private bool CanTake(ContextClass cls) =>
+        CharacterRules.MeetsMulticlassPrerequisite(cls, Computed.FinalScores)
+        && Computed.Classes.All(info => CharacterRules.MeetsMulticlassPrerequisite(info.Class, Computed.FinalScores));
+
+    private bool NextAllowed => NextClass is not { } next || Build.Levels.Any(l => l.ClassId == next.Id) || CanTake(next);
 
     private string PrerequisiteText(ContextClass cls)
     {
