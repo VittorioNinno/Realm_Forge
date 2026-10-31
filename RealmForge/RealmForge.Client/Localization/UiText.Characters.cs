@@ -440,6 +440,8 @@ namespace RealmForge.Client.Localization
 		public static string LabelOtherProficiencies(LanguageCode lang) => T(lang, "Strumenti e altre competenze", "Tools and other proficiencies");
 		public static string LabelFeatureNotes(LanguageCode lang) => T(lang, "Opzioni dei privilegi (suppliche, metamagia, manovre...)", "Feature options (invocations, metamagic, maneuvers...)");
 		public static string SheetFeaturesOf(string name, int level, LanguageCode lang) => T(lang, $"{name} · {level}° livello", $"{name} · level {level}");
+		public static string PdfPassives(LanguageCode lang) => T(lang, "Sensi passivi", "Passive senses");
+		public static string PdfHandNotes(LanguageCode lang) => T(lang, "Appunti di campagna e annotazioni", "Campaign notes");
 		public static string PdfPage(LanguageCode lang) => T(lang, "Pagina {0} / {1}", "Page {0} / {1}");
 		public static string PdfPassivePerception(LanguageCode lang) => T(lang, "Perc. passiva", "Passive Perc.");
 		public static string PdfWeapon(LanguageCode lang) => T(lang, "Arma", "Weapon");

@@ -74,6 +74,11 @@ namespace RealmForge.Client.Services
 					c.SkillProficiencies.Contains(s), c.Expertise.Contains(s)))
 				.ToList();
 
+			data.PassivesTitle = UiText.PdfPassives(lang);
+			data.Passives.Add(new PdfField(GameTerms.SkillName(Skill.Perception, lang), $"{c.PassivePerception}"));
+			data.Passives.Add(new PdfField(GameTerms.SkillName(Skill.Insight, lang), $"{10 + c.SkillBonus(Skill.Insight)}"));
+			data.Passives.Add(new PdfField(GameTerms.SkillName(Skill.Investigation, lang), $"{10 + c.SkillBonus(Skill.Investigation)}"));
+
 			// Attacks
 			data.AttacksTitle = UiText.SheetAttacks(lang);
 			data.AttackHeaders = new List<string> { UiText.PdfWeapon(lang), UiText.PdfAttackBonus(lang), UiText.PdfDamage(lang) };
@@ -193,6 +198,7 @@ namespace RealmForge.Client.Services
 
 			// Page of the notes: personality in a grid, then the longer texts
 			data.NotesSubtitle = UiText.PdfNotesSubtitle(lang);
+			data.HandNotesTitle = UiText.PdfHandNotes(lang);
 			data.NotesMeta.Add(new PdfField(UiText.LabelAdvancement(lang), UiText.AdvancementName(sheet.Advancement, lang)));
 			if (sheet.Advancement == AdvancementType.Experience)
 			{
