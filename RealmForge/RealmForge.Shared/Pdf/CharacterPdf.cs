@@ -275,7 +275,7 @@ public static class CharacterPdf
 	private static void Skills(PdfDocument pdf, CharacterPdfData data, double x, double y, double w)
 	{
 		const double minRow = 13.5;
-		const double maxRow = 21;
+		const double maxRow = 30;
 		var passives = data.Passives.Count > 0 ? 56 : 0;
 		var needed = Pad + TitleHeight + data.Skills.Count * minRow + passives + Pad;
 		var h = Math.Max(needed, Bottom - y);
