@@ -92,6 +92,69 @@ public sealed class PdfDocument
 	}
 
 	///	<summary>
+	///	A rectangle with rounded corners (radius r), filled and/or stroked.
+	///	</summary>
+	public void RoundRect(double x, double y, double w, double h, double r, PdfColor? fill, PdfColor? stroke, double width = 0.6)
+	{
+		r = Math.Max(0, Math.Min(r, Math.Min(w, h) / 2));
+		var k = r * Kappa;
+		var b = Height - y - h;
+		var t = Height - y;
+		Paint(fill, stroke, width);
+		_page.Append(CultureInfo.InvariantCulture,
+			$"{N(x + r)} {N(b)} m {N(x + w - r)} {N(b)} l {N(x + w - r + k)} {N(b)} {N(x + w)} {N(b + r - k)} {N(x + w)} {N(b + r)} c ");
+		_page.Append(CultureInfo.InvariantCulture,
+			$"{N(x + w)} {N(t - r)} l {N(x + w)} {N(t - r + k)} {N(x + w - r + k)} {N(t)} {N(x + w - r)} {N(t)} c ");
+		_page.Append(CultureInfo.InvariantCulture,
+			$"{N(x + r)} {N(t)} l {N(x + r - k)} {N(t)} {N(x)} {N(t - r + k)} {N(x)} {N(t - r)} c ");
+		_page.Append(CultureInfo.InvariantCulture,
+			$"{N(x)} {N(b + r)} l {N(x)} {N(b + r - k)} {N(x + r - k)} {N(b)} {N(x + r)} {N(b)} c h {Op(fill, stroke)}\n");
+	}
+
+	///	<summary>
+	///	A circle centered on (cx, cy), filled and/or stroked.
+	///	</summary>
+	public void Circle(double cx, double cy, double r, PdfColor? fill, PdfColor? stroke, double width = 0.6)
+	{
+		var k = r * Kappa;
+		var y = Height - cy;
+		Paint(fill, stroke, width);
+		_page.Append(CultureInfo.InvariantCulture,
+			$"{N(cx + r)} {N(y)} m {N(cx + r)} {N(y + k)} {N(cx + k)} {N(y + r)} {N(cx)} {N(y + r)} c {N(cx - k)} {N(y + r)} {N(cx - r)} {N(y + k)} {N(cx - r)} {N(y)} c ");
+		_page.Append(CultureInfo.InvariantCulture,
+			$"{N(cx - r)} {N(y - k)} {N(cx - k)} {N(y - r)} {N(cx)} {N(y - r)} c {N(cx + k)} {N(y - r)} {N(cx + r)} {N(y - k)} {N(cx + r)} {N(y)} c h {Op(fill, stroke)}\n");
+	}
+
+	///	<summary>
+	///	A dashed line (dash and gap in points).
+	///	</summary>
+	public void DashedLine(double x1, double y1, double x2, double y2, PdfColor color, double width = 0.6, double dash = 2, double gap = 2) =>
+		_page.Append(CultureInfo.InvariantCulture,
+			$"[{N(dash)} {N(gap)}] 0 d {Rgb(color)} RG {N(width)} w {N(x1)} {N(Height - y1)} m {N(x2)} {N(Height - y2)} l S [] 0 d\n");
+
+	//	Bezier handle of a quarter circle
+	private const double Kappa = 0.5523;
+
+	private void Paint(PdfColor? fill, PdfColor? stroke, double width)
+	{
+		if (fill is { } f)
+		{
+			_page.Append(CultureInfo.InvariantCulture, $"{Rgb(f)} rg ");
+		}
+		if (stroke is { } s)
+		{
+			_page.Append(CultureInfo.InvariantCulture, $"{Rgb(s)} RG {N(width)} w ");
+		}
+	}
+
+	private static string Op(PdfColor? fill, PdfColor? stroke) => (fill, stroke) switch
+	{
+		(not null, not null) => "B",
+		(not null, null) => "f",
+		_ => "S"
+	};
+
+	///	<summary>
 	///	Width of a text in points.
 	///	</summary>
 	public static double Measure(string text, PdfFont font, double size)
