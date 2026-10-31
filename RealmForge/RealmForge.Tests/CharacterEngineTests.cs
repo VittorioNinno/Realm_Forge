@@ -346,7 +346,7 @@ public class CharacterEngineTests
 		var pages = int.Parse(System.Text.RegularExpressions.Regex.Match(text, @"/Count (\d+)").Groups[1].Value);
 		Assert.InRange(pages, 4, 8);
 		Assert.Contains($"Pagina {pages} / {pages}", text);
-		Assert.Contains("Brünhilde l'Intrepida", text);
+		Assert.Contains("BRÜNHILDE L'INTREPIDA", text);
 		Assert.Contains("/WinAnsiEncoding", text);
 	}
 	// ===== Magic items =====
