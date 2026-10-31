@@ -21,6 +21,10 @@ public sealed class CharacterPdfData
 	public string SkillsTitle { get; set; } = string.Empty;
 	public List<PdfSkill> Skills { get; set; } = new();
 
+	//	Passive senses at the foot of the skills (Perception, Insight, Investigation)
+	public string PassivesTitle { get; set; } = string.Empty;
+	public List<PdfField> Passives { get; set; } = new();
+
 	public string AttacksTitle { get; set; } = string.Empty;
 	public List<string> AttackHeaders { get; set; } = new();
 	public List<PdfAttack> Attacks { get; set; } = new();
@@ -42,6 +46,9 @@ public sealed class CharacterPdfData
 	public List<PdfField> NotesMeta { get; set; } = new();
 	public List<PdfNote> Personality { get; set; } = new();
 	public List<PdfNote> Notes { get; set; } = new();
+
+	//	Ruled block that takes the rest of the last page, to write on by hand
+	public string HandNotesTitle { get; set; } = string.Empty;
 
 	public string Footer { get; set; } = string.Empty;
 
@@ -78,7 +85,7 @@ public sealed record PdfNote(string Title, string Text);
 ///	</summary>
 public static class CharacterPdf
 {
-	private const double Margin = 40;
+	private const double Margin = 36;
 	private const double ContentWidth = PdfDocument.Width - 2 * Margin;
 	private const double Bottom = PdfDocument.Height - 52;
 
@@ -127,20 +134,21 @@ public static class CharacterPdf
 		InfoPair(flow, data.Proficiencies, data.Features);
 		Inventory(flow, data);
 
-		// Personality and notes on a page of their own
-		if (data.Personality.Count > 0 || data.Notes.Count > 0)
+		// Personality and notes on a page of their own, then ruled lines down to the end of the page
+		pdf.AddPage();
+		var ny = Header(pdf, data.Name, data.LevelBadge, null, data.NotesSubtitle, data.NotesMeta);
+		var notes = new Flow(pdf, Margin, ContentWidth, ny);
+		for (var i = 0; i < data.Personality.Count; i += 2)
 		{
-			pdf.AddPage();
-			var ny = Header(pdf, data.Name, data.LevelBadge, null, data.NotesSubtitle, data.NotesMeta);
-			var notes = new Flow(pdf, Margin, ContentWidth, ny);
-			for (var i = 0; i < data.Personality.Count; i += 2)
-			{
-				NotePair(notes, data.Personality[i], i + 1 < data.Personality.Count ? data.Personality[i + 1] : null);
-			}
-			foreach (var note in data.Notes)
-			{
-				Note(notes, note);
-			}
+			NotePair(notes, data.Personality[i], i + 1 < data.Personality.Count ? data.Personality[i + 1] : null);
+		}
+		foreach (var note in data.Notes)
+		{
+			Note(notes, note);
+		}
+		if (!string.IsNullOrEmpty(data.HandNotesTitle))
+		{
+			notes.Ruled(data.HandNotesTitle);
 		}
 
 		Footers(pdf, data);
@@ -263,31 +271,54 @@ public static class CharacterPdf
 
 	// ===== Skills =====
 
+	//	The skills box runs down to the end of the page body, like the right column; the rows spread over it
 	private static void Skills(PdfDocument pdf, CharacterPdfData data, double x, double y, double w)
 	{
-		const double row = 13.5;
-		var h = Pad + TitleHeight + data.Skills.Count * row + Pad - 2;
+		const double minRow = 13.5;
+		const double maxRow = 21;
+		var passives = data.Passives.Count > 0 ? 56 : 0;
+		var needed = Pad + TitleHeight + data.Skills.Count * minRow + passives + Pad;
+		var h = Math.Max(needed, Bottom - y);
+		var row = Math.Clamp((h - Pad - TitleHeight - passives - Pad) / Math.Max(1, data.Skills.Count), minRow, maxRow);
 		pdf.RoundRect(x, y, w, h, 7, White, BorderStrong);
 		BoxTitle(pdf, x, y, w, data.SkillsTitle, null);
 		var ry = y + Pad + TitleHeight;
+		var offset = (row - minRow) / 2;
 		foreach (var s in data.Skills)
 		{
+			var ty = ry + offset;
 			if (s.Proficient)
 			{
-				pdf.RoundRect(x + 6, ry - 2, w - 12, row - 1, 3.5, Subtle, AccentBorder);
+				pdf.RoundRect(x + 6, ty - 2, w - 12, minRow - 1, 3.5, Subtle, AccentBorder);
 			}
-			Dot(pdf, x + 13, ry + 4.8, s.Proficient);
+			Dot(pdf, x + 13, ty + 4.8, s.Proficient);
 			if (s.Expertise)
 			{
-				pdf.Circle(x + 13, ry + 4.8, 4.2, null, Accent, 0.7);
+				pdf.Circle(x + 13, ty + 4.8, 4.2, null, Accent, 0.7);
 			}
 			var font = s.Proficient ? PdfFont.Bold : PdfFont.Regular;
 			var bonusWidth = PdfDocument.Measure(s.Bonus, PdfFont.Bold, 8.5);
 			var name = Fit(s.Name, font, 8.5, w - 52 - bonusWidth);
-			pdf.Text(x + 21, ry + 1, name, font, 8.5, s.Proficient ? Main : Muted);
-			pdf.Text(x + 21 + PdfDocument.Measure(name, font, 8.5) + 4, ry + 2, $"({s.Ability})", PdfFont.Regular, 7, Dim);
-			pdf.TextRight(x + w - 11, ry + 1, s.Bonus, PdfFont.Bold, 8.5, s.Proficient ? Accent : Main);
+			pdf.Text(x + 21, ty + 1, name, font, 8.5, s.Proficient ? Main : Muted);
+			pdf.Text(x + 21 + PdfDocument.Measure(name, font, 8.5) + 4, ty + 2, $"({s.Ability})", PdfFont.Regular, 7, Dim);
+			pdf.TextRight(x + w - 11, ty + 1, s.Bonus, PdfFont.Bold, 8.5, s.Proficient ? Accent : Main);
 			ry += row;
+		}
+
+		if (data.Passives.Count > 0)
+		{
+			var py = y + h - Pad - passives + 8;
+			pdf.Line(x + Pad, py, x + w - Pad, py, AccentBright, 1.1);
+			pdf.Text(x + Pad, py + 6, data.PassivesTitle.ToUpperInvariant(), PdfFont.Bold, 7, Accent);
+			const double gap = 5;
+			var pw = (w - 2 * Pad - gap * (data.Passives.Count - 1)) / data.Passives.Count;
+			for (var i = 0; i < data.Passives.Count; i++)
+			{
+				var px = x + Pad + i * (pw + gap);
+				pdf.RoundRect(px, py + 18, pw, 28, 5, Neutral, BorderSoft);
+				pdf.TextCenter(px + pw / 2, py + 21, data.Passives[i].Value, PdfFont.Bold, 10.5, Accent);
+				pdf.TextCenter(px + pw / 2, py + 35, Fit(data.Passives[i].Label.ToUpperInvariant(), PdfFont.Bold, 5.5, pw - 4), PdfFont.Bold, 5.5, Muted);
+			}
 		}
 	}
 
@@ -442,10 +473,6 @@ public static class CharacterPdf
 
 	private static void Inventory(Flow flow, CharacterPdfData data)
 	{
-		if (data.Items.Count == 0 && data.CoinsPill is null)
-		{
-			return;
-		}
 		var items = new List<Func<double, Part>>();
 		for (var i = 0; i < data.Items.Count; i += 2)
 		{
@@ -467,7 +494,16 @@ public static class CharacterPdf
 				});
 			});
 		}
-		flow.Box(data.InventoryTitle, data.CoinsPill, items);
+		//	The box runs down to the end of the page: the room left gets empty rows to write in
+		flow.Box(data.InventoryTitle, data.CoinsPill, items, fill: (pdf, x, top, w, bottom) =>
+		{
+			var cw = (w - 14) / 2;
+			for (var ry = top + 15.5; ry <= bottom; ry += 15.5)
+			{
+				pdf.DashedLine(x, ry - 2, x + cw, ry - 2, BorderStrong, 0.5);
+				pdf.DashedLine(x + cw + 14, ry - 2, x + w, ry - 2, BorderStrong, 0.5);
+			}
+		});
 	}
 
 	private static List<string> ItemLines(PdfItem item, double w)
@@ -720,10 +756,22 @@ public static class CharacterPdf
 		///	<summary>
 		///	A titled box with its parts; the parts that do not fit go to the next page in a box with the same title.
 		///	</summary>
-		public void Box(string title, string? pill, List<Func<double, Part>> items, bool note = false)
+		public void Box(string title, string? pill, List<Func<double, Part>> items, bool note = false,
+			Action<PdfDocument, double, double, double, double>? fill = null)
 		{
 			if (items.Count == 0)
 			{
+				if (fill is not null)
+				{
+					if (_y + 80 > Bottom)
+					{
+						NewPage();
+					}
+					_pdf.RoundRect(_x, _y, _w, Bottom - _y, 7, White, BorderStrong);
+					BoxTitle(_pdf, _x, _y, _w, title, pill);
+					fill(_pdf, _x + Pad, _y + Pad + TitleHeight, _w - 2 * Pad, Bottom - Pad);
+					_y = Bottom + 10;
+				}
 				return;
 			}
 			var head = note ? 30 : Pad + TitleHeight;
@@ -785,6 +833,11 @@ public static class CharacterPdf
 				if (drawn.Count > 0)
 				{
 					var bottom = y + Pad - 4;
+					var last = index >= parts.Count;
+					if (last && fill is not null && bottom < Bottom)
+					{
+						bottom = Bottom;
+					}
 					if (note)
 					{
 						_pdf.RoundRect(_x, top, _w, bottom - top, 6, White, BorderStrong);
@@ -801,6 +854,10 @@ public static class CharacterPdf
 					{
 						part.Draw(_pdf, _x + Pad + (note ? 4 : 0), py);
 					}
+					if (last && fill is not null)
+					{
+						fill(_pdf, _x + Pad, y, _w - 2 * Pad, bottom - Pad);
+					}
 					_y = bottom + 10;
 				}
 
@@ -815,6 +872,27 @@ public static class CharacterPdf
 					}
 				}
 			}
+		}
+
+		///	<summary>
+		///	A note block with ruled lines from here to the end of the page (nothing when too little room is left).
+		///	</summary>
+		public void Ruled(string title)
+		{
+			if (_y + 90 > Bottom)
+			{
+				return;
+			}
+			var top = _y;
+			_pdf.RoundRect(_x, top, _w, Bottom - top, 6, White, BorderStrong);
+			_pdf.RoundRect(_x, top, 3.5, Bottom - top, 1.75, AccentBright, null);
+			_pdf.Text(_x + 14, top + 11, title.ToUpperInvariant(), PdfFont.Bold, 8.5, Accent);
+			_pdf.Line(_x + 14, top + 24, _x + _w - 12, top + 24, BorderSoft, 0.6);
+			for (var ly = top + 48; ly <= Bottom - 12; ly += 22)
+			{
+				_pdf.DashedLine(_x + 14, ly, _x + _w - 12, ly, BorderStrong, 0.5);
+			}
+			_y = Bottom + 10;
 		}
 
 		private static Part LinesPart(List<string> lines) => new(lines.Count * 13, (pdf, x, y) =>
