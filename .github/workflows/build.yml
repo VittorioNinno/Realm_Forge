@@ -525,8 +525,32 @@ jobs:
           haversack=$(echo "$mi_all" | jq -r '.[] | select(.name == "Zainetto pratico") | .id')
           mi_alias=$(get "$api/api/magic-items/$haversack?lang=1" | jq -c '{name, alias}')
           mi_post=$(code -X POST $api/api/magic-items $json -H "Authorization: Bearer $A" -d '{}')
+          # Homebrew: a private variant of the ring of protection (listed on its own and under the ring for its author only),
+          # the editor model in both languages, the validation of the rules, the account count and the bin
+          ring=$(echo "$mi_all" | jq -r '.[] | select(.name == "Anello di protezione") | .id')
+          mi_ring_edit=$(get "$api/api/magic-items/$ring/edit")
+          mi_edit_view=$(echo "$mi_ring_edit" | jq -c '{languages: [.translations[].language] | sort, type, rarity, effects: (.mechanics.effects | length)}')
+          hb=$(echo "$mi_ring_edit" | jq -c --arg id "$ring" '.visibility = 2 | .variantOfId = $id | .rarity = 4 | .mechanics.effects = [{kind: 1, value: 2}, {kind: 4, value: 2}] | .translations = [.translations[] | if .language == 2 then .name = "Anello di protezione superiore" else .name = "Ring of Greater Protection" end | .alias = null]')
+          mi_hb=$(curl -s -X POST "$api/api/magic-items?lang=2" $json -H "Authorization: Bearer $A" -d "$hb")
+          mi_hb_id=$(echo "$mi_hb" | jq -r .id)
+          mi_hb_view=$(get "$api/api/magic-items/$mi_hb_id?lang=2" -H "Authorization: Bearer $A" | jq -c '{name, parentName, rarity, base: .isOfficialSRD, canEdit, effects: [.mechanics.effects[] | [.kind, .value]], text: (.description | length > 0)}')
+          mi_hb_list=$(get "$api/api/magic-items?ruleset=1&lang=2" -H "Authorization: Bearer $A" | jq -c --arg id "$mi_hb_id" '[.[] | select(.id == $id) | .parentId != null]')
+          mi_hb_under=$(get "$api/api/magic-items/$ring?lang=1" -H "Authorization: Bearer $A" | jq -c '[.variants[].name]')
+          mi_hb_anon=$(get "$api/api/magic-items/$ring?lang=1" | jq -c '[.variants[].name]')
+          mi_hb_bob=$(code "$api/api/magic-items/$mi_hb_id?lang=2" -H "Authorization: Bearer $B")
+          mi_hb_dice=$(code -X POST "$api/api/magic-items" $json -H "Authorization: Bearer $A" -d "$(echo "$hb" | jq -c '.mechanics.healDice = "tanti"')")
+          mi_hb_effect=$(code -X POST "$api/api/magic-items" $json -H "Authorization: Bearer $A" -d "$(echo "$hb" | jq -c '.mechanics.effects = [{kind: 13, value: 0}]')")
+          mi_hb_put=$(code -X PUT "$api/api/magic-items/$mi_hb_id" $json -H "Authorization: Bearer $A" -d "$(echo "$hb" | jq -c '.requiresAttunement = false')")
+          mi_hb_after=$(get "$api/api/magic-items/$mi_hb_id?lang=1" -H "Authorization: Bearer $A" | jq -c '{name, attunement: .requiresAttunement}')
+          mi_srd_put=$(code -X PUT "$api/api/magic-items/$ring" $json -H "Authorization: Bearer $A" -d "$hb")
+          mi_bob_delete=$(code -X DELETE "$api/api/magic-items/$mi_hb_id" -H "Authorization: Bearer $B")
+          mi_anon_post=$(code -X POST "$api/api/magic-items" $json -d "$hb")
+          mi_acc=$(curl -sf $api/api/account/summary -H "Authorization: Bearer $A" | jq .homebrew.magicItems)
+          mi_delete=$(code -X DELETE "$api/api/magic-items/$mi_hb_id" -H "Authorization: Bearer $A")
+          mi_bin=$(curl -sf "$api/api/trash?lang=2" -H "Authorization: Bearer $A" | jq -c '[.[] | select(.kind == "magic-item") | .name]')
           mi_missing=$(code "$api/api/magic-items/00000000-0000-0000-0000-000000000001?lang=1")
           echo "::notice title=database::magic items 2014: $mi14 | types=$mi_types | rings EN=$mi_rings | names=$mi_names | ring=$mi_ring | superior=$mi_superior | healing EN=$mi_healing_en | alias=$mi_alias | POST=$mi_post | unknown=$mi_missing"
+          echo "::notice title=database::magic items Homebrew: edit=$mi_edit_view | variant=$mi_hb_view list=$mi_hb_list under ring=$mi_hb_under anonymous=$mi_hb_anon bob=$mi_hb_bob | dice=$mi_hb_dice effect=$mi_hb_effect | PUT=$mi_hb_put after=$mi_hb_after | base PUT=$mi_srd_put bob DELETE=$mi_bob_delete anonymous POST=$mi_anon_post account=$mi_acc | DELETE=$mi_delete bin=$mi_bin"
           mifail=0
           micheck() { if [ "$2" != "$3" ]; then echo "::error title=magic items::$1: got '$2', expected '$3'"; mifail=1; fi; }
           micheck "2014 counts" "$mi14" '{"total":412,"items":276,"srd":366,"realmforge":46,"rules":145}'
@@ -537,7 +561,24 @@ jobs:
           micheck "superior healing" "$mi_superior" '{"name":"Pozione di guarigione superiore","parentName":"Pozione di guarigione","rarity":3,"heal":"8d4+8","text":true}'
           micheck "healing variants EN" "$mi_healing_en" '{"name":"Potion of Healing","variants":["Potion of Healing","Potion of Greater Healing","Potion of Superior Healing","Potion of Supreme Healing"]}'
           micheck "DMG alias" "$mi_alias" '{"name":"Handy Haversack","alias":"Heward'"'"'s Handy Haversack"}'
-          micheck "read only" "$mi_post" "405"
+          micheck "empty POST" "$mi_post" "400"
+          micheck "editor model" "$mi_edit_view" '{"languages":[1,2],"type":3,"rarity":3,"effects":2}'
+          micheck "homebrew variant" "$mi_hb_view" '{"name":"Anello di protezione superiore","parentName":"Anello di protezione","rarity":4,"base":false,"canEdit":true,"effects":[[1,2],[4,2]],"text":true}'
+          micheck "listed on its own" "$mi_hb_list" '[true]'
+          micheck "under the ring" "$mi_hb_under" '["Ring of Greater Protection"]'
+          micheck "hidden to others" "$mi_hb_anon" '[]'
+          micheck "private for others" "$mi_hb_bob" "404"
+          micheck "invalid dice" "$mi_hb_dice" "400"
+          micheck "incomplete effect" "$mi_hb_effect" "400"
+          micheck "PUT" "$mi_hb_put" "204"
+          micheck "after PUT" "$mi_hb_after" '{"name":"Ring of Greater Protection","attunement":false}'
+          micheck "base PUT" "$mi_srd_put" "403"
+          micheck "other DELETE" "$mi_bob_delete" "403"
+          micheck "anonymous POST" "$mi_anon_post" "401"
+          micheck "account" "$mi_acc" "1"
+          micheck "DELETE" "$mi_delete" "204"
+          micheck "bin" "$mi_bin" '["Anello di protezione superiore"]'
+
           micheck "unknown" "$mi_missing" "404"
           test "$mifail" = "0"
 
