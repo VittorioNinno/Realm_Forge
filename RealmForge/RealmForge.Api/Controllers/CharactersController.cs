@@ -345,6 +345,16 @@ namespace RealmForge.Api.Controllers
 			}
 
 			sheet = Sanitize(sheet);
+
+			//	A master changed hit points or conditions from an encounter after this copy of the sheet was read:
+			//	those values win, and go back to the client with the answer
+			var stored = ReadSheet(character.Sheet);
+			var fromEncounter = sheet.VitalsStamp != stored.VitalsStamp;
+			if (fromEncounter)
+			{
+				SheetVitalsDto.From(stored, character.MaxHitPoints, character.UpdatedAt).ApplyTo(sheet);
+			}
+
 			var build = ReadBuild(character.Build);
 			var context = await _builder.BuildAsync(character.Ruleset, LanguageCode.En, Owner(character.OwnerId));
 			var input = new CharacterInput
@@ -370,7 +380,26 @@ namespace RealmForge.Api.Controllers
 			character.UpdatedById = UserId;
 			await _context.SaveChangesAsync();
 
-			return Ok(new CharacterSavedDto(character.Id, character.MaxHitPoints, character.ArmorClass, character.UpdatedAt));
+			return Ok(new CharacterSavedDto(character.Id, character.MaxHitPoints, character.ArmorClass, character.UpdatedAt,
+				fromEncounter ? SheetVitalsDto.From(sheet, character.MaxHitPoints, character.UpdatedAt) : null));
+		}
+
+		//	GET: api/characters/{id}/vitals — hit points and conditions, read often by an open sheet to follow the encounters
+		[HttpGet("{id:guid}/vitals")]
+		public async Task<ActionResult<SheetVitalsDto>> GetVitals(Guid id)
+		{
+			var character = await _context.Characters.AsNoTracking()
+				.Where(c => c.Id == id && (c.OwnerId == UserId || _context.CharacterShares.Any(s => s.CharacterId == c.Id && s.UserId == UserId)
+					|| RunByMe.Contains(c.Id)))
+				.Select(c => new { c.Sheet, c.MaxHitPoints, c.UpdatedAt, c.UpdatedById })
+				.FirstOrDefaultAsync();
+			if (character is null)
+			{
+				return NotFound();
+			}
+			var names = character.UpdatedById is { } by ? await PublicNames.LoadAsync(_context, new[] { by }) : new Dictionary<string, string>();
+			return Ok(SheetVitalsDto.From(ReadSheet(character.Sheet), character.MaxHitPoints, character.UpdatedAt,
+				character.UpdatedById is { } who ? names.GetValueOrDefault(who) : null));
 		}
 
 		//	DELETE: api/characters/{id}

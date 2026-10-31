@@ -14,7 +14,9 @@ namespace RealmForge.Api.Controllers
 	///	Encounters of a campaign. Masters and co-masters prepare them (monsters from the compendium, the characters of the
 	///	campaign, anything else) and run them (initiative, hit points, conditions, rounds); the players see only the
 	///	encounters under way that were shown to them, without the hidden combatants, the notes and the monsters' numbers.
-	///	Non-members get 404, like the campaign itself.
+	///	The characters on the field show their sheet (hit points, temporary hit points, armor class, conditions) and what
+	///	a master changes on them is written to the sheet (<see cref="EncounterSheetSync"/>). Non-members get 404, like
+	///	the campaign itself.
 	///	</summary>
 	[ApiController]
 	[Route("api/campaigns/{campaignId:guid}/encounters")]
@@ -197,8 +199,12 @@ namespace RealmForge.Api.Controllers
 			//	Only the characters of this campaign can be in the party or on the field
 			var characters = (await _context.CampaignCharacters.Where(c => c.CampaignId == encounter.CampaignId).Select(c => c.CharacterId).ToListAsync()).ToHashSet();
 
-			var combatants = dto.Combatants
+			var onField = dto.Combatants
 				.Where(c => c.Kind != CombatantKind.Character || (c.CharacterId is { } cid && characters.Contains(cid)))
+				.ToList();
+			await WriteSheetsAsync(onField);
+
+			var combatants = onField
 				.Select(c => new EncounterCombatant
 				{
 					Id = c.Id == Guid.Empty ? Guid.NewGuid() : c.Id,
@@ -228,6 +234,38 @@ namespace RealmForge.Api.Controllers
 			encounter.Shown = dto.Shown;
 			encounter.Combatants = JsonSerializer.Serialize(combatants, Json);
 			encounter.PartyIds = dto.PartyIds.Where(characters.Contains).Distinct().ToList();
+		}
+
+		//	What a master changed on the characters goes to their sheets (only what differs from the values the encounter
+		//	was read with, so the changes made on the sheet meanwhile stay)
+		private async Task WriteSheetsAsync(List<EncounterCombatant> combatants)
+		{
+			var changed = combatants
+				.Where(c => c.Kind == CombatantKind.Character && c.CharacterId is not null && c.SheetHp is not null)
+				.Where(c => c.Conditions is not null)
+				.ToList();
+			if (changed.Count == 0)
+			{
+				return;
+			}
+			var ids = changed.Select(c => c.CharacterId!.Value).Distinct().ToList();
+			var rows = await _context.Characters.Where(c => ids.Contains(c.Id)).ToListAsync();
+			foreach (var c in changed)
+			{
+				var character = rows.FirstOrDefault(r => r.Id == c.CharacterId);
+				if (character is null)
+				{
+					continue;
+				}
+				c.Conditions = c.Conditions.Where(k => EncounterRules.Conditions.Contains(k)).Distinct().ToList();
+				var sheet = CharactersController.ReadSheet(character.Sheet);
+				if (EncounterSheetSync.Apply(sheet, character.MaxHitPoints, c))
+				{
+					character.Sheet = JsonSerializer.Serialize(sheet, CharactersController.Json);
+					character.UpdatedAt = DateTimeOffset.UtcNow;
+					character.UpdatedById = UserId;
+				}
+			}
 		}
 
 		private static string? Validate(SaveEncounterDto dto)
@@ -288,6 +326,23 @@ namespace RealmForge.Api.Controllers
 				.Select(c => new EncounterPartyMemberDto(c.Id, c.Name, c.Level, owners.GetValueOrDefault(c.OwnerId) ?? string.Empty))
 				.OrderBy(c => c.Name, StringComparer.CurrentCultureIgnoreCase)
 				.ToList();
+
+			//	The characters on the field as their sheets are now
+			var onField = combatants.Where(c => c.Kind == CombatantKind.Character && c.CharacterId is not null).Select(c => c.CharacterId!.Value).Distinct().ToList();
+			if (onField.Count > 0)
+			{
+				var sheets = await _context.Characters.AsNoTracking()
+					.Where(c => onField.Contains(c.Id))
+					.Select(c => new { c.Id, c.Sheet, c.MaxHitPoints, c.ArmorClass })
+					.ToDictionaryAsync(c => c.Id);
+				foreach (var c in combatants.Where(c => c.Kind == CombatantKind.Character))
+				{
+					if (c.CharacterId is { } characterId && sheets.TryGetValue(characterId, out var row))
+					{
+						EncounterSheetSync.Show(c, CharactersController.ReadSheet(row.Sheet), row.MaxHitPoints, row.ArmorClass);
+					}
+				}
+			}
 
 			//	A hidden combatant's turn looks like nobody's to the players
 			var current = e.CurrentId is { } id && combatants.Any(c => c.Id == id) ? e.CurrentId : null;

@@ -213,6 +213,9 @@ namespace RealmForge.Client.Localization
 		public static string LabelStyleCantrips(LanguageCode lang) => T(lang, "Trucchetti dello stile", "Style cantrips");
 		public static string MulticlassNeeds(string abilities, LanguageCode lang) => T(lang, $"Richiede 13 in {abilities}", $"Requires 13 in {abilities}");
 		public static string SpellTakenBy(string source, LanguageCode lang) => T(lang, $"Già scelto: {source}", $"Already chosen: {source}");
+		public static string SheetVitalsFromEncounter(string? master, LanguageCode lang) => string.IsNullOrWhiteSpace(master)
+			? T(lang, "Punti ferita e condizioni aggiornati dall'incontro.", "Hit points and conditions updated by the encounter.")
+			: T(lang, $"Punti ferita e condizioni aggiornati dall'incontro ({master}).", $"Hit points and conditions updated by the encounter ({master}).");
 		public static string MulticlassRequires(string abilities, LanguageCode lang) => T(lang, $"Multiclasse: 13 in {abilities}", $"Multiclass: 13 in {abilities}");
 		public static string MulticlassCurrentNeeds(string classes, LanguageCode lang) => T(lang,
 			$"Per multiclassare servono anche i requisiti delle classi che hai già: {classes}",

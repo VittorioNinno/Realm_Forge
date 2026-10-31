@@ -246,6 +246,13 @@
                             </div>
                         </div>
                     </div>
+                    @if (vitalsNote is not null)
+                    {
+                        <div class="rf-vitals-note" data-test="sheet-vitals-note">
+                            <Icon Name="info" /> <span>@vitalsNote</span>
+                            <button type="button" class="rf-mini-btn ms-auto" @onclick="() => vitalsNote = null" aria-label="@UiText.BtnClose(Lang)"><Icon Name="close" /></button>
+                        </div>
+                    }
                     <div class="rf-hp-track" role="progressbar" aria-valuemin="0" aria-valuemax="@MaxHp" aria-valuenow="@CurrentHp">
                         <div class="rf-hp-fill" style="width: @(FillPercent)%;"></div>
                         @if (Sheet.TemporaryHitPoints > 0)
