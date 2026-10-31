@@ -1,6 +1,6 @@
 // UI smoke test: drives the real Blazor client in headless Chromium.
 import { chromium } from 'playwright';
-import { readFileSync, mkdirSync } from 'node:fs';
+import { readFileSync, mkdirSync, copyFileSync } from 'node:fs';
 
 // Screenshots of the screens changed most often, kept as a CI artifact for a visual review
 mkdirSync('shots', { recursive: true });
@@ -1130,6 +1130,7 @@ try {
   const pdfPath = await download.path();
   const pdfHead = readFileSync(pdfPath).subarray(0, 8).toString('latin1');
   const pdfSize = readFileSync(pdfPath).length;
+  copyFileSync(pdfPath, 'shots/character.pdf');
 
   // Level up into fighter (multiclass): Fighting Style feat and three Weapon Masteries
   await page.locator('[data-test=sheet-levelup]').click();
