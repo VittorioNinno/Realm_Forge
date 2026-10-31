@@ -85,5 +85,29 @@ namespace RealmForge.Shared.DTOs
 		//	Campaigns the character takes part in (for its owner and the masters who opened it)
 		List<Guid>? Campaigns = null);
 
-	public record CharacterSavedDto(Guid Id, int MaxHitPoints, int ArmorClass, DateTimeOffset UpdatedAt);
+	public record CharacterSavedDto(Guid Id, int MaxHitPoints, int ArmorClass, DateTimeOffset UpdatedAt, SheetVitalsDto? Vitals = null);
+
+	///	<summary>
+	///	What an encounter shares with the sheet: hit points, temporary hit points, conditions, exhaustion, concentration
+	///	and death saves, with the stamp of the last change made from an encounter.
+	///	</summary>
+	public record SheetVitalsDto(int VitalsStamp, int? CurrentHitPoints, int TemporaryHitPoints, List<string> Conditions, int Exhaustion,
+		Guid? Concentration, int DeathSaveSuccesses, int DeathSaveFailures, int MaxHitPoints, DateTimeOffset UpdatedAt, string? UpdatedBy = null)
+	{
+		public static SheetVitalsDto From(CharacterSheetState s, int maxHitPoints, DateTimeOffset updatedAt, string? updatedBy = null) =>
+			new(s.VitalsStamp, s.CurrentHitPoints, s.TemporaryHitPoints, s.Conditions.ToList(), s.Exhaustion, s.Concentration,
+				s.DeathSaveSuccesses, s.DeathSaveFailures, maxHitPoints, updatedAt, updatedBy);
+
+		public void ApplyTo(CharacterSheetState s)
+		{
+			s.VitalsStamp = VitalsStamp;
+			s.CurrentHitPoints = CurrentHitPoints;
+			s.TemporaryHitPoints = TemporaryHitPoints;
+			s.Conditions = Conditions.ToList();
+			s.Exhaustion = Exhaustion;
+			s.Concentration = Concentration;
+			s.DeathSaveSuccesses = DeathSaveSuccesses;
+			s.DeathSaveFailures = DeathSaveFailures;
+		}
+	}
 }

@@ -167,6 +167,10 @@
                             {
                                 <button type="button" class="btn btn-sm btn-link p-0" @onclick="() => OpenStatblockAsync(monsterId)" data-test="combatant-statblock">@UiText.EncounterStatblock(Lang)</button>
                             }
+                            @if (c.Kind == CombatantKind.Character && c.CharacterId is { } characterId && Manage)
+                            {
+                                <a class="btn btn-sm btn-link p-0" href="@($"characters/{characterId}")" title="@UiText.EncounterSheetSynced(Lang)" data-test="combatant-sheet">@UiText.EncounterOpenSheet(Lang)</a>
+                            }
                         </div>
                         <div class="rf-combatant-conditions">
                             @foreach (var key in c.Conditions)
@@ -326,11 +330,19 @@
         difficultyRuleset = Campaign.Ruleset ?? RulesetVersion.Dnd5e_2014;
         await LoadAsync();
         loading = false;
-        if (encounter is not null && !encounter.CanManage)
+        if (encounter is not null)
         {
+            var manage = encounter.CanManage;
             refresh = new System.Threading.Timer(_ => InvokeAsync(async () =>
             {
-                await LoadAsync();
+                if (manage)
+                {
+                    await RefreshSheetsAsync();
+                }
+                else
+                {
+                    await LoadAsync();
+                }
                 StateHasChanged();
             }), null, TimeSpan.FromSeconds(RefreshSeconds), TimeSpan.FromSeconds(RefreshSeconds));
         }
@@ -379,9 +391,51 @@
             Conditions = c.Conditions.ToList(),
             Note = c.Note,
             Hidden = c.Hidden,
-            Health = c.Health
+            Health = c.Health,
+            SheetHp = c.SheetHp,
+            SheetTempHp = c.SheetTempHp,
+            SheetConditions = c.SheetConditions?.ToList()
         }).ToList()
     };
+
+    //	The characters as their sheets are now (and the values a next save compares with)
+    private void TakeSheets(EncounterDto from)
+    {
+        foreach (var c in draft.Combatants.Where(c => c.Kind == CombatantKind.Character))
+        {
+            if (from.Combatants.FirstOrDefault(s => s.Id == c.Id) is { } fresh)
+            {
+                c.Hp = fresh.Hp;
+                c.MaxHp = fresh.MaxHp;
+                c.TempHp = fresh.TempHp;
+                c.ArmorClass = fresh.ArmorClass;
+                c.Conditions = fresh.Conditions.ToList();
+                c.SheetHp = fresh.SheetHp;
+                c.SheetTempHp = fresh.SheetTempHp;
+                c.SheetConditions = fresh.SheetConditions?.ToList();
+            }
+        }
+    }
+
+    //	Masters: the hit points and conditions the players change on their sheets show up without a reload
+    private async Task RefreshSheetsAsync()
+    {
+        if (!await saveLock.WaitAsync(0))
+        {
+            return;
+        }
+        try
+        {
+            if (await Encounters.GetEncounterAsync(CampaignId, EncounterId) is { } loaded)
+            {
+                TakeSheets(loaded);
+            }
+        }
+        finally
+        {
+            saveLock.Release();
+        }
+    }
 
     //	Every change is saved at once; a save made meanwhile by another master reloads the encounter
     private async Task SaveAsync()
@@ -402,6 +456,7 @@
             {
                 encounter = saved;
                 draft.Version = saved.Version;
+                TakeSheets(saved);
                 message = null;
             }
             else if (result.Status == System.Net.HttpStatusCode.Conflict && result.Current is { } current)
@@ -718,6 +773,8 @@
     private List<RfSelect<string>.OptionItem> ConditionOptions(EncounterCombatant c) =>
         new List<RfSelect<string>.OptionItem> { new(string.Empty, "+ " + UiText.EncounterCondition(Lang)) }
             .Concat(EncounterRules.Conditions.Where(k => !c.Conditions.Contains(k))
+                //	A character concentrates on a spell of its sheet
+                .Where(k => c.Kind != CombatantKind.Character || k != EncounterRules.Concentrating)
                 .Select(k => new RfSelect<string>.OptionItem(k, UiText.ConditionName(k, Lang)))
                 .OrderBy(o => o.Label, StringComparer.CurrentCultureIgnoreCase))
             .ToList();

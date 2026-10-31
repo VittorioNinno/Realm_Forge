@@ -4930,6 +4930,19 @@ button.rf-stat-card {
     color: #f08a80;
 }
 
+.rf-vitals-note {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 8px 0;
+    padding: 8px 16px;
+    border-radius: 8px;
+    border: 1px solid rgba(255, 140, 0, 0.35);
+    background: rgba(255, 140, 0, 0.08);
+    color: var(--rf-text-primary, #fff);
+    font-size: .82rem;
+}
+
 .rf-concentration-save {
     padding: 0 8px;
     border-radius: 6px;
