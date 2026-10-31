@@ -140,6 +140,10 @@ public sealed class CharacterSheetState
 	//	Spell the character is concentrating on (ends on its own at 0 hit points)
 	public Guid? Concentration { get; set; }
 
+	//	Raised each time a master changes hit points or conditions from an encounter: a sheet saved from an older
+	//	stamp keeps the values of the encounter (see SheetVitals)
+	public int VitalsStamp { get; set; }
+
 	//	Spent spell slots per spell level (index 0 = level 1) and spent Pact Magic slots
 	public List<int> SpentSlots { get; set; } = new();
 	public int SpentPactSlots { get; set; }

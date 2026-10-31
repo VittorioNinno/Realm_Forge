@@ -63,5 +63,25 @@ namespace RealmForge.Client.Localization
 		public static string MagicCompendiumNone(LanguageCode lang) => T(lang, "Nessun oggetto trovato.", "No item found.");
 		public static string MagicCompendiumChosen(LanguageCode lang) => T(lang, "Preso dal compendio", "Taken from the compendium");
 		public static string MagicOpenDetail(LanguageCode lang) => T(lang, "Dettagli", "Details");
+
+		// ===== Homebrew magic items =====
+		public static string BtnNewMagicItem(LanguageCode lang) => T(lang, "Nuovo oggetto magico", "New magic item");
+		public static string MagicCategory(LanguageCode lang) => T(lang, "Categoria", "Category");
+		public static string MagicItemLine(LanguageCode lang) => T(lang, "Riga dell'oggetto", "Item line");
+		public static string MagicItemLineHint(LanguageCode lang) => T(lang, "Oggetto meraviglioso, raro (richiede sintonia)", "Wondrous item, rare (requires attunement)");
+		public static string MagicDescription(LanguageCode lang) => T(lang, "Descrizione (Markdown)", "Description (Markdown)");
+		public static string MagicSheetRulesHint(LanguageCode lang) =>
+			T(lang, "Facoltative: bonus, cariche e cure che la scheda calcola da sola quando l'oggetto è indossato (e in sintonia, se la richiede).",
+				"Optional: bonuses, charges and healing the sheet works out on its own while the item is worn (and attuned, when it needs it).");
+		public static string MagicVariantHint(string original, LanguageCode lang) =>
+			T(lang, $"Variante di «{original}»: un oggetto Homebrew elencato sotto l'originale, con nome, rarità e regole proprie. L'originale resta com'è.",
+				$"Variant of “{original}”: a Homebrew item listed under the original, with its own name, rarity and rules. The original stays as it is.");
+		public static string MagicItemDeleteWarning(string name, LanguageCode lang) =>
+			T(lang, $"Eliminare «{name}»? Le sue varianti vanno con lui, quelle create da altri restano senza il collegamento; potrai recuperarlo dal cestino per 3 giorni.",
+				$"Delete “{name}”? Its variants go with it, the ones made by others stay without the link; you can restore it from the bin for 3 days.");
+		public static string MagicItemInvalid(LanguageCode lang) =>
+			T(lang, "Alcuni valori non sono validi: controlla gli effetti, le cariche, i dadi (es. 2d4+2) e la lunghezza dei testi.",
+				"Some values are not valid: check the effects, the charges, the dice (e.g. 2d4+2) and the length of the texts.");
+		public static string MagicHomebrewVariant(LanguageCode lang) => T(lang, "Variante Homebrew", "Homebrew variant");
 	}
 }

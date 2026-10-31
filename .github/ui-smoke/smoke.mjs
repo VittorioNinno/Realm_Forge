@@ -1,6 +1,6 @@
 // UI smoke test: drives the real Blazor client in headless Chromium.
 import { chromium } from 'playwright';
-import { readFileSync, mkdirSync } from 'node:fs';
+import { readFileSync, mkdirSync, copyFileSync } from 'node:fs';
 
 // Screenshots of the screens changed most often, kept as a CI artifact for a visual review
 mkdirSync('shots', { recursive: true });
@@ -985,6 +985,30 @@ try {
   if (monsterUi.all !== '441 mostri' || monsterUi.dragons !== '46 mostri' || monsterUi.goblins !== '7 mostri' || monsterUi.statblock !== 4
     || !/Goblin/.test(monsterUi.variantOf) || !monsterUi.variantHp) throw new Error(`unexpected monsters page: ${JSON.stringify(monsterUi)}`);
   ok('monsters: 441 statblocks of 2014, 46 dragons, 7 goblinoids, the Goblin statblock, a Homebrew variant with its own hit points (then deleted)');
+  // Homebrew magic item: a new wondrous item with a rule the sheet applies (+1 AC), its detail, then deleted
+  await page.goto(`${base}/magic-items`);
+  await page.locator('[data-test=magic-group]').first().waitFor({ timeout: 60000 });
+  await page.locator('[data-test=magic-new]').click();
+  await page.locator('[data-test=magic-form]').waitFor({ timeout: 15000 });
+  await page.locator('[data-test=magic-form-name]').fill('Amuleto di prova');
+  await page.locator('[data-test=magic-form-subtitle]').fill('Oggetto meraviglioso, non comune');
+  await page.locator('[data-test=magic-form-description]').fill('Un amuleto che **protegge** chi lo indossa.');
+  await page.locator('[data-test=magic-add-effect]').click();
+  await shot(page, 'magic-form', '[data-test=magic-form]');
+  await page.locator('[data-test=magic-form-save]').click();
+  await page.locator('[data-test=magic-detail-name]', { hasText: 'Amuleto di prova' }).waitFor({ timeout: 15000 });
+  const magicUi = {
+    onSheet: (await page.locator('[data-test=magic-on-sheet]').innerText()).trim(),
+    text: (await page.locator('[data-test=magic-description]').innerText()).trim(),
+    edit: await page.locator('[data-test=magic-edit]').count()
+  };
+  await shot(page, 'magic-homebrew', '[data-test=magic-detail]');
+  await page.locator('[data-test=magic-delete]').click();
+  await page.locator('[data-test=magic-delete-yes]').click();
+  await page.locator('[data-test=magic-detail]').waitFor({ state: 'detached', timeout: 15000 });
+  results.push(`INFO magic homebrew: ${JSON.stringify(magicUi)}`);
+  if (!/\+1/.test(magicUi.onSheet) || !/protegge/.test(magicUi.text) || magicUi.edit !== 1) throw new Error(`unexpected Homebrew magic item: ${JSON.stringify(magicUi)}`);
+  ok('magic items: a Homebrew wondrous item with +1 AC applied by the sheet, its detail, then deleted');
   // Campaigns: a new campaign makes its creator the master, with the invite link; the character joins the table
   await page.goto(`${base}/campaigns`);
   await page.locator('[data-test=campaign-new]').click();
@@ -1051,6 +1075,8 @@ try {
   const combatantNames = await page.locator('[data-test=combatant-name]').evaluateAll((els) => els.map((e) => e.value));
   campaignUi.goblins = combatantNames.filter((n) => /^Goblin [123]$/.test(n)).length;
   campaignUi.hero = combatantNames.includes('Eroe di prova');
+  for (let i = 0; i < 50 && await page.locator('[data-test=combatant-sheet]').count() === 0; i++) await page.waitForTimeout(100);
+  campaignUi.sheetLink = await page.locator('[data-test=combatant-sheet]').count();
   campaignUi.rating = (await page.locator('[data-test=encounter-rating]').innerText()).trim();
   await page.locator('[data-test=encounter-start]').click();
   await page.locator('[data-test=encounter-round]', { hasText: 'Round 1' }).waitFor({ timeout: 15000 });
@@ -1094,7 +1120,7 @@ try {
   campaignUi.purged = true;
   results.push(`INFO campaign: ${JSON.stringify(campaignUi)}`);
   if (campaignUi.role !== 'Master' || !campaignUi.link || campaignUi.share !== 1 || campaignUi.notes !== 1
-    || campaignUi.combatants !== 4 || campaignUi.goblins !== 3 || !campaignUi.hero || !/^(Facile|Medio|Difficile|Mortale)$/.test(campaignUi.rating) || campaignUi.current !== 1
+    || campaignUi.combatants !== 4 || campaignUi.goblins !== 3 || !campaignUi.hero || campaignUi.sheetLink !== 1 || !/^(Facile|Medio|Difficile|Mortale)$/.test(campaignUi.rating) || campaignUi.current !== 1
     || campaignUi.binKind !== 'CAMPAGNA' || !campaignUi.restored || !campaignUi.purged
     || campaignUi.cardButtons !== 0 || !campaignUi.cardOpens || campaignUi.listActions !== 2 || !campaignUi.toggled || campaignUi.noteKinds !== 'Diario di viaggio,Personali,Per i master' || campaignUi.leftFromSheet !== 1) throw new Error(`unexpected campaign page: ${JSON.stringify(campaignUi)}`);
   ok('campaigns: the creator is the master with an invite link, the character joins the table (the whole card opens the sheet, deactivated and activated again; its card in the list shows the campaign), a journal page, an encounter with three goblins run to round 2, the character leaves from its sheet, the campaign is deleted, restored from the bin, deleted again and purged');
@@ -1104,6 +1130,7 @@ try {
   const pdfPath = await download.path();
   const pdfHead = readFileSync(pdfPath).subarray(0, 8).toString('latin1');
   const pdfSize = readFileSync(pdfPath).length;
+  copyFileSync(pdfPath, 'shots/character.pdf');
 
   // Level up into fighter (multiclass): Fighting Style feat and three Weapon Masteries
   await page.locator('[data-test=sheet-levelup]').click();

@@ -102,6 +102,7 @@ namespace RealmForge.Client.Pages
 		{
 			LanguageState.OnLanguageChanged -= OnLanguageChanged;
 			saveDelay?.Cancel();
+			StopWatchingVitals();
 		}
 
 		private async Task LoadAsync()
@@ -113,6 +114,7 @@ namespace RealmForge.Client.Pages
 				await LoadContextAsync();
 			}
 			loading = false;
+			WatchVitals();
 		}
 
 		private async Task LoadContextAsync()
@@ -212,6 +214,10 @@ namespace RealmForge.Client.Pages
 			await InvokeAsync(StateHasChanged);
 			var saved = await Characters.SaveSheetAsync(character.Id, character.Sheet);
 			saveStatus = saved is null ? SaveStatus.Failed : SaveStatus.Saved;
+			if (saved?.Vitals is { } vitals)
+			{
+				ApplyVitals(vitals);
+			}
 			await InvokeAsync(StateHasChanged);
 		}
 

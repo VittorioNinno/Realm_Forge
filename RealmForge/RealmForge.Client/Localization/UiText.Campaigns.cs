@@ -141,6 +141,7 @@ namespace RealmForge.Client.Localization
 			("spell", true) => "Incantesimo",
 			("equipment", true) => "Equipaggiamento",
 			("monster", true) => "Mostro",
+			("magic-item", true) => "Oggetto magico",
 			("species", false) => "Species",
 			("subspecies", false) => "Subspecies",
 			("class", false) => "Class",
@@ -150,6 +151,7 @@ namespace RealmForge.Client.Localization
 			("spell", false) => "Spell",
 			("equipment", false) => "Equipment",
 			("monster", false) => "Monster",
+			("magic-item", false) => "Magic item",
 			_ => kind
 		};
 
