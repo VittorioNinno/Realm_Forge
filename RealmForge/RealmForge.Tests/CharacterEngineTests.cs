@@ -313,19 +313,39 @@ public class CharacterEngineTests
 		var data = new CharacterPdfData
 		{
 			Name = "Brünhilde l'Intrepida",
-			Subtitle = { "Nana delle colline · Guerriera 5 (Campionessa)" },
-			Vitals = { ("Classe Armatura", "18"), ("Punti ferita", "44/44") },
+			LevelBadge = "Livello 5",
+			Origin = "Nana delle colline",
+			Classes = "Guerriera 5 (Campionessa)",
+			Meta = { new PdfField("Background", "Soldato"), new PdfField("Allineamento", "Legale buono"), new PdfField("Taglia", "Media") },
+			Vitals = { new PdfField("Classe Armatura", "18"), new PdfField("Punti ferita", "44 / 44") },
 			Abilities = { new PdfAbility("Forza", 18, "+4", "TS +7", true) },
-			Columns = { new PdfSection("Abilità", new List<PdfRow> { new("Atletica (FOR)", "+7", true) }) },
-			Sections = { new PdfSection("Note", Enumerable.Range(0, 80).Select(i => new PdfRow($"Riga {i}: è già più facile così", Paragraph: true)).ToList()) },
-			Footer = "Scheda generata da RealmForge"
+			Status = "Condizioni: Prono",
+			SkillsTitle = "Abilità",
+			Skills = { new PdfSkill("Atletica", "FOR", "+7", true), new PdfSkill("Storia", "INT", "+0", false) },
+			AttacksTitle = "Attacchi",
+			AttackHeaders = { "Arma", "Bonus attacco", "Danni e tipo" },
+			Attacks = { new PdfAttack("Spadone", "+7", "2d6+4 taglienti") },
+			SpellsTitle = "Incantesimi",
+			Proficiencies = new PdfInfoBox("Competenze e lingue", new() { new PdfLine("Lingue", "Comune, Nanico") }),
+			Features = new PdfInfoBox("Privilegi e talenti", new() { new PdfLine("Guerriera 5", "Stile di combattimento, Recuperare energie") }),
+			InventoryTitle = "Inventario",
+			CoinsPill = "Monete: 25 mo",
+			Items = Enumerable.Range(0, 120).Select(i => new PdfItem($"Oggetto {i}", i % 3 == 0 ? "Indossato" : null)).ToList(),
+			NotesSubtitle = "Note, background e caratterizzazione",
+			Personality = { new PdfNote("Tratti caratteriali", "Parla poco."), new PdfNote("Ideali", "Onore.") },
+			Notes = { new PdfNote("Storia", string.Join("\n", Enumerable.Range(0, 120).Select(i => $"Riga {i}: è già più facile così"))) },
+			Footer = "Scheda generata da RealmForge",
+			PageFormat = "Pagina {0} / {1}"
 		};
 
 		var bytes = CharacterPdf.Create(data);
 		var text = System.Text.Encoding.Latin1.GetString(bytes);
 		Assert.StartsWith("%PDF-1.4", text);
 		Assert.EndsWith("%%EOF\n", text);
-		Assert.Contains("/Count 2", text);
+		//	The inventory goes on to a second page, the long story takes more than one
+		var pages = int.Parse(System.Text.RegularExpressions.Regex.Match(text, @"/Count (\d+)").Groups[1].Value);
+		Assert.InRange(pages, 4, 8);
+		Assert.Contains($"Pagina {pages} / {pages}", text);
 		Assert.Contains("Brünhilde l'Intrepida", text);
 		Assert.Contains("/WinAnsiEncoding", text);
 	}
