@@ -1308,6 +1308,57 @@ try {
   if (!/Mago 1/.test(classes) || !/Guerriero 1/.test(classes) || Number(levelUpHp) <= Number(sheetHp)) throw new Error('the level up into fighter was not saved');
   if (!/Mago 1 \/ Guerriero 1/.test(characterCard)) throw new Error(`the list does not show the classes: ${characterCard}`);
   ok('characters: edition-specific steps, 2024 wizard to the end, sheet matches the summary, damage autosaved, long rest, tabs, PDF download, level up into a second class');
+
+  // Rule modules: "Fortuna" written in the effects editor (an ability worth 10 in the array, its points coming back on a
+  // long rest), picked for the character in the wizard: a seventh card in the abilities step and on the sheet
+  await page.goto(`${base}/modules`);
+  await page.locator('[data-test=module-add]').click();
+  await page.locator('[data-test=module-editor]').waitFor({ timeout: 30000 });
+  await page.locator('[data-test=module-name-it]').fill('Fortuna');
+  await page.locator('[data-test=module-name-en]').fill('Luck');
+  const effectRows = page.locator('[data-test=effect-row]');
+  const pickKind = async (row, label) => {
+    await row.locator('[data-test=effect-kind] .rf-custom-select-trigger').click();
+    await row.locator('.rf-custom-select-option', { hasText: label }).first().click();
+  };
+  const typeIn = async (locator, text) => { await locator.fill(text); await locator.press('Tab'); };
+  await page.locator('[data-test=effect-add]').click();
+  await pickKind(effectRows.nth(0), 'Una caratteristica in più');
+  await typeIn(effectRows.nth(0).locator('[data-test=effect-name-it]'), 'Fortuna');
+  await typeIn(effectRows.nth(0).locator('[data-test=effect-name-en]'), 'Luck');
+  await typeIn(effectRows.nth(0).locator('[data-test=effect-short-it]'), 'FRT');
+  await page.locator('[data-test=effect-add]').click();
+  await pickKind(effectRows.nth(1), 'Una risorsa con usi');
+  await typeIn(effectRows.nth(1).locator('[data-test=effect-name-it]'), 'Punti Fortuna');
+  const modulePreviews = await page.locator('[data-test=effect-preview]').allInnerTexts();
+  await shot(page, 'module-editor', '[data-test=module-editor]');
+  await page.locator('[data-test=module-save]').click();
+  await page.locator('[data-test=module-card]', { hasText: 'Fortuna' }).click({ timeout: 30000 });
+  await page.locator('[data-test=module-effects]').waitFor({ timeout: 15000 });
+  const moduleEffects = (await page.locator('[data-test=module-effects]').innerText()).replace(/\s+/g, ' ').trim();
+  await shot(page, 'module-detail', '[data-test=module-detail]');
+  await page.goto(`${sheetUrl}/edit`);
+  await page.locator('[data-test=wizard-module]', { hasText: 'Fortuna' }).click({ timeout: 60000 });
+  for (let guard = 0; guard < 10 && await page.locator('[data-test=wizard-step-abilities]').count() === 0; guard++) await next();
+  await page.locator('[data-test=wizard-stat-6]').waitFor({ timeout: 15000 });
+  const fortunaPool = (await page.locator('[data-test=wizard-pool-die]').allInnerTexts()).join(',');
+  await page.locator('[data-test=wizard-pool-die]').first().click();
+  await page.locator('[data-test=wizard-stat-6] [data-test=wizard-assign]').click();
+  const fortunaWizard = (await page.locator('[data-test=wizard-stat-6]').innerText()).replace(/\s+/g, ' ').trim();
+  await shot(page, 'module-wizard', '[data-test=wizard-stats]');
+  for (let guard = 0; guard < 10 && await page.locator('[data-test=wizard-forge]').count() === 0; guard++) await next();
+  await page.locator('[data-test=wizard-forge]').click();
+  await page.locator('[data-test=character-sheet]').waitFor({ timeout: 30000 });
+  await page.locator('[data-test=sheet-extra-ability]').waitFor({ timeout: 15000 });
+  const fortunaSheet = (await page.locator('[data-test=sheet-extra-ability]').innerText()).replace(/\s+/g, ' ').trim();
+  const sheetModules = (await page.locator('[data-test=sheet-modules]').innerText()).replace(/\s+/g, ' ').trim();
+  await shot(page, 'module-sheet', '[data-test=sheet-scores]');
+  results.push(`INFO modules: previews=${JSON.stringify(modulePreviews)} detail="${moduleEffects}" pool=${fortunaPool} wizard="${fortunaWizard}" sheet="${fortunaSheet}" modules="${sheetModules}"`);
+  if (!/Fortuna \(FRT\)/.test(modulePreviews[0] ?? '') || !/Punti Fortuna, 3 usi/.test(modulePreviews[1] ?? '') || !/riposo lungo/.test(moduleEffects)
+    || fortunaPool !== '10' || !/Fortuna/.test(fortunaWizard) || !/10/.test(fortunaWizard) || !/Fortuna/.test(fortunaSheet) || !/\+0/.test(fortunaSheet) || !/Fortuna/.test(sheetModules)) {
+    throw new Error('unexpected rule module flow');
+  }
+  ok('rule modules: Fortuna written in the effects editor (ability + resource), picked in the wizard, joins the array as a seventh value and shows next to the six on the sheet');
   await page.goto(`${base}/backgrounds`);
   await page.getByText('Accolito').first().waitFor({ timeout: 30000 });
 

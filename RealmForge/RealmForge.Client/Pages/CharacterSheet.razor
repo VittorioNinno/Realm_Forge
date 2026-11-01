@@ -387,6 +387,7 @@
                 {
                     var x = extra;
                     var name = x.Definition.Name(Lang);
+                    var extraSaveLabel = UiText.SheetSaveShort(Lang) + " " + name;
                     <div class="rf-ability-card rf-ability-extra" title="@x.Module" data-test="sheet-extra-ability">
                         <button type="button" class="rf-ability-main rf-rollable" @onclick="() => Roll(name, x.Modifier + c.CheckBonusAll)">
                             <div class="rf-mini-label">@name</div>
@@ -395,7 +396,7 @@
                         </button>
                         @if (x.HasSave)
                         {
-                            <button type="button" class="rf-ability-save rf-rollable @(x.SaveProficient ? "proficient" : null)" @onclick="() => Roll(UiText.SheetSaveShort(Lang) + " " + name, x.SaveBonus)" title="@UiText.SheetSaves(Lang)">
+                            <button type="button" class="rf-ability-save rf-rollable @(x.SaveProficient ? "proficient" : null)" @onclick="() => Roll(extraSaveLabel, x.SaveBonus)" title="@UiText.SheetSaves(Lang)">
                                 @UiText.SheetSaveShort(Lang) @CharacterMath.FormatModifier(x.SaveBonus)
                             </button>
                         }
