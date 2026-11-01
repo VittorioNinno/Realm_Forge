@@ -652,7 +652,7 @@ jobs:
           # then a level in fighter (multiclass), the sheet state, owner-only access and the refused choices
           ctx=$(get "$api/api/characters/context?ruleset=2&lang=1")
           ctx_counts=$(echo "$ctx" | jq -c '{classes: (.classes | length), species: (.species | length), backgrounds: (.backgrounds | length), feats: (.feats | length), spells: (.spells | length), items: (.items | length), wizardKits: ([.classes[] | select(.key == "wizard") | .equipment.kits[].letter] | join(",")), sageKeys: ([.backgrounds[] | select(.key == "sage") | .originFeatId != null] | .[0])}')
-          ctx_spell_keys=$(echo "$ctx" | jq -c '{keyed: ([.spells[] | select(.key != null)] | length) == (.spells | length), bless: ([.spells[] | select(.key == "bless")] | length)}')
+          ctx_spell_keys=$(echo "$ctx" | jq -c '{keyed: (([.spells[] | select(.key != null)] | length) == (.spells | length)), bless: ([.spells[] | select(.key == "bless")] | length)}')
           ctx_it=$(get "$api/api/characters/context?ruleset=1&lang=2" | jq -r '[.classes[] | select(.key == "fighter") | .equipment.rows[] | [.options[].letter] | join("")] | join(" ")')
           wizard=$(echo "$ctx" | jq -r '.classes[] | select(.key == "wizard") | .id')
           fighter=$(echo "$ctx" | jq -r '.classes[] | select(.key == "fighter") | .id')
