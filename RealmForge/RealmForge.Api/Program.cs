@@ -41,8 +41,22 @@ namespace RealmForge.Api
 			builder.Services.AddIdentityApiEndpoints<ApplicationUser>(options =>
 				{
 					options.User.RequireUniqueEmail = true;
+
+					//	Version 3 of the Identity tables adds the passkeys (AspNetUserPasskeys)
+					options.Stores.SchemaVersion = IdentitySchemaVersions.Version3;
 				})
 				.AddEntityFrameworkStores<RealmForgeDbContext>();
+
+			//	Passkeys are created and used on the client's page, so the relying party is the client's domain (not the API's):
+			//	Passkeys:ServerDomain, or the host of the first allowed origin; the browser's origin must be an allowed one
+			builder.Services.AddOptions<IdentityPasskeyOptions>().Configure<IConfiguration>((options, configuration) =>
+			{
+				var origins = PasskeyOrigins.Allowed(configuration);
+				options.ServerDomain = configuration["Passkeys:ServerDomain"] is { Length: > 0 } domain
+					? domain
+					: origins.Select(o => Uri.TryCreate(o, UriKind.Absolute, out var uri) ? uri.Host : null).FirstOrDefault(h => h is not null);
+				options.ValidateOrigin = context => ValueTask.FromResult(!context.CrossOrigin && origins.Contains(context.Origin.TrimEnd('/'), StringComparer.OrdinalIgnoreCase));
+			});
 
 			//	Keys for bearer tokens and e-mail links live in the database: a restarted or redeployed container
 			//	(e.g. on a free hosting plan) keeps users signed in and the links already sent still work
@@ -98,7 +112,9 @@ namespace RealmForge.Api
 			builder.Services.Configure<EmailOptions>(builder.Configuration.GetSection("Email"));
 			builder.Services.AddHttpContextAccessor();
 			builder.Services.AddHttpClient<BrevoEmailClient>(client => client.Timeout = TimeSpan.FromSeconds(30));
-			builder.Services.AddTransient<IEmailSender<ApplicationUser>, IdentityEmailSender>();
+			builder.Services.AddTransient<IdentityEmailSender>();
+			builder.Services.AddTransient<IEmailSender<ApplicationUser>>(sp => sp.GetRequiredService<IdentityEmailSender>());
+			builder.Services.AddTransient<AccountNotices>();
 
 			//	Creating or editing content requires a confirmed e-mail address
 			builder.Services.AddScoped<RequireConfirmedEmailFilter>();

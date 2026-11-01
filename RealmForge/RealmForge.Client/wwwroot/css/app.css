@@ -8087,3 +8087,51 @@ textarea.rf-form-control {
     gap: 8px;
     min-width: 160px;
 }
+
+/* ===== Passkeys ===== */
+.rf-passkey-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+.rf-passkey {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px 16px;
+    padding: 8px 0;
+    border-bottom: 1px solid var(--rf-border-subtle);
+}
+
+    .rf-passkey:last-child { border-bottom: 0; }
+
+    .rf-passkey > svg { color: var(--rf-orange-primary); }
+
+.rf-passkey-name {
+    font-weight: 600;
+    color: var(--rf-text-primary);
+}
+
+.rf-passkey-date {
+    font-size: .8rem;
+    color: var(--rf-text-muted);
+}
+
+/* "oppure" between the password sign-in and the passkey */
+.rf-login-or {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    font-size: .75rem;
+    text-transform: uppercase;
+    letter-spacing: .08em;
+    color: var(--rf-text-muted);
+}
+
+    .rf-login-or::before,
+    .rf-login-or::after {
+        content: "";
+        flex: 1 1 auto;
+        border-top: 1px solid var(--rf-border-light);
+    }
