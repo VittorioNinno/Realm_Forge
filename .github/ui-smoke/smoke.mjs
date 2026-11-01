@@ -362,6 +362,16 @@ try {
   if (allRules !== '243 termini' || rules2024 !== '155 termini' || conditions2024 !== '15 termini' || prone.name !== 'Prono' || prone.tag !== 'Condizione'
     || prone.terms.join(',') !== 'svantaggio,vantaggio' || prone.url !== '/rules?id=') throw new Error('unexpected glossary page');
   ok('glossary: 243 Base entries (155 of 2024), edition and family filters, Prone 2024 (Condizione) with its rules terms linked, opened at rules?id=');
+  // Search: the entry named like the text comes first, before the ones that only mention it
+  await page.goto(`${base}/rules`);
+  await page.locator('[data-test=rules-group]').first().waitFor({ timeout: 60000 });
+  await page.locator('[data-test=rules-search]').fill('Paralizzato');
+  await page.locator('[data-test=rules-tile]').first().waitFor({ timeout: 15000 });
+  for (let i = 0; i < 50 && await page.locator('[data-test=rules-tile] .rf-glossary-tile-name').count() < 2; i++) await page.waitForTimeout(100);
+  const paralyzedOrder = (await page.locator('[data-test=rules-tile] .rf-glossary-tile-name').allInnerTexts()).map((t) => t.trim());
+  results.push(`INFO glossary search "Paralizzato": ${paralyzedOrder.slice(0, 5).join(', ')}`);
+  if (paralyzedOrder[0] !== 'Paralizzato' || paralyzedOrder.length < 2) throw new Error(`the condition is not the first result: ${paralyzedOrder.join(', ')}`);
+  ok('list search: "Paralizzato" shows the condition first, then the entries that mention it');
 
   // Rules terms in the other modules: Command 2024 links "prono" and "azione bonus", with a tooltip and a link to the glossary
   await page.goto(`${base}/spells`);

@@ -119,7 +119,7 @@
             <button type="button" class="btn btn-sm btn-rf-outline" @onclick="() => SetAllGroups(true)" data-test="equipment-expand-all">@UiText.BtnExpandAll(Lang)</button>
             <button type="button" class="btn btn-sm btn-rf-outline" @onclick="() => SetAllGroups(false)" data-test="equipment-collapse-all">@UiText.BtnCollapseAll(Lang)</button>
         </div>
-        @foreach (var group in FilteredItems.GroupBy(i => i.Stats.Category).OrderBy(g => g.Key))
+        @foreach (var group in FilteredItems.GroupBy(i => i.Stats.Category).OrderBy(g => g.Min(i => SearchRank.Of(SearchTerm, i.Name))).ThenBy(g => g.Key))
         {
             var expanded = IsExpanded(group.Key);
             <h2 class="h5 mt-4 mb-3 rf-spell-level-title">
@@ -138,7 +138,7 @@
             {
                 case EquipmentCategory.Weapon:
                     var showMastery = group.Any(i => i.Stats.Mastery.HasValue);
-                    @foreach (var kind in group.GroupBy(i => (i.Stats.WeaponCategory ?? WeaponCategory.Simple, i.Stats.WeaponRange ?? WeaponRange.Melee)).OrderBy(k => k.Key))
+                    @foreach (var kind in group.GroupBy(i => (i.Stats.WeaponCategory ?? WeaponCategory.Simple, i.Stats.WeaponRange ?? WeaponRange.Melee)).OrderBy(k => k.Min(i => SearchRank.Of(SearchTerm, i.Name))).ThenBy(k => k.Key))
                     {
                         <h3 class="rf-equipment-subtitle">@EquipmentTerms.WeaponCategoryName(kind.Key.Item1, kind.Key.Item2, Lang)</h3>
                         <div class="rf-equipment-table-wrap mb-3">
@@ -173,7 +173,7 @@
                     break;
 
                 case EquipmentCategory.Armor:
-                    @foreach (var kind in group.GroupBy(i => i.Stats.ArmorCategory ?? ArmorCategory.Light).OrderBy(k => k.Key))
+                    @foreach (var kind in group.GroupBy(i => i.Stats.ArmorCategory ?? ArmorCategory.Light).OrderBy(k => k.Min(i => SearchRank.Of(SearchTerm, i.Name))).ThenBy(k => k.Key))
                     {
                         <h3 class="rf-equipment-subtitle">@EquipmentTerms.ArmorCategoryName(kind.Key, Lang)</h3>
                         <div class="rf-equipment-table-wrap mb-3">
@@ -689,6 +689,7 @@
             .Where(i => string.IsNullOrWhiteSpace(SearchTerm)
                         || i.Name.Contains(SearchTerm.Trim(), StringComparison.OrdinalIgnoreCase)
                         || i.ShortDescription.Contains(SearchTerm.Trim(), StringComparison.OrdinalIgnoreCase))
+            .OrderBy(i => SearchRank.Of(SearchTerm, i.Name))
             .ToList();
 
     private List<RfSelect<EquipmentCategory?>.OptionItem> CategoryOptions =>

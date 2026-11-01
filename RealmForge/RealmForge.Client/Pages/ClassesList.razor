@@ -568,7 +568,8 @@
                         || c.Name.Contains(SearchTerm.Trim(), StringComparison.OrdinalIgnoreCase)
                         || c.SubclassNames.Any(s => s.Contains(SearchTerm.Trim(), StringComparison.OrdinalIgnoreCase))
                         || c.ShortDescription.Contains(SearchTerm.Trim(), StringComparison.OrdinalIgnoreCase))
-            .OrderBy(c => c.Name, StringComparer.CurrentCultureIgnoreCase)
+            .OrderBy(c => SearchRank.Of(SearchTerm, c.Name, c.SubclassNames))
+            .ThenBy(c => c.Name, StringComparer.CurrentCultureIgnoreCase)
             .ThenBy(c => c.Ruleset)
             .ToList();
 
