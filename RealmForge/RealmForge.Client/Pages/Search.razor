@@ -81,9 +81,14 @@
 
     protected override async Task OnParametersSetAsync()
     {
-        if ((Query ?? string.Empty) != text.Trim())
+        //	The address changed (typing, back, a link): search what it says
+        var query = (Query ?? string.Empty).Trim();
+        if (query != searched || results is null)
         {
-            text = Query ?? string.Empty;
+            if (query != text.Trim())
+            {
+                text = query;
+            }
             await SearchAsync();
         }
     }
