@@ -105,7 +105,7 @@
             <button type="button" class="btn btn-sm btn-rf-outline" @onclick="() => SetAllGroups(true)" data-test="spell-expand-all">@UiText.BtnExpandAll(Lang)</button>
             <button type="button" class="btn btn-sm btn-rf-outline" @onclick="() => SetAllGroups(false)" data-test="spell-collapse-all">@UiText.BtnCollapseAll(Lang)</button>
         </div>
-        @foreach (var group in FilteredSpells.GroupBy(s => s.Level).OrderBy(g => g.Key))
+        @foreach (var group in FilteredSpells.GroupBy(s => s.Level).OrderBy(g => g.Min(s => SearchRank.Of(SearchTerm, s.Name))).ThenBy(g => g.Key))
         {
             var expanded = IsExpanded(group.Key);
             <h2 class="h5 mt-4 mb-3 rf-spell-level-title">
@@ -468,6 +468,7 @@
             .Where(s => string.IsNullOrWhiteSpace(SearchTerm)
                         || s.Name.Contains(SearchTerm.Trim(), StringComparison.OrdinalIgnoreCase)
                         || s.ShortDescription.Contains(SearchTerm.Trim(), StringComparison.OrdinalIgnoreCase))
+            .OrderBy(s => SearchRank.Of(SearchTerm, s.Name))
             .ToList();
 
     private List<RfSelect<int?>.OptionItem> LevelOptions =>

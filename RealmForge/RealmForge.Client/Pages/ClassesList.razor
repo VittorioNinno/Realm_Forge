@@ -568,7 +568,8 @@
                         || c.Name.Contains(SearchTerm.Trim(), StringComparison.OrdinalIgnoreCase)
                         || c.SubclassNames.Any(s => s.Contains(SearchTerm.Trim(), StringComparison.OrdinalIgnoreCase))
                         || c.ShortDescription.Contains(SearchTerm.Trim(), StringComparison.OrdinalIgnoreCase))
-            .OrderBy(c => c.Name, StringComparer.CurrentCultureIgnoreCase)
+            .OrderBy(c => SearchRank.Of(SearchTerm, c.Name, c.SubclassNames))
+            .ThenBy(c => c.Name, StringComparer.CurrentCultureIgnoreCase)
             .ThenBy(c => c.Ruleset)
             .ToList();
 
@@ -620,6 +621,7 @@
                     {
                         <div class="rf-markdown-container rf-class-feature-body">@((MarkupString)MarkdownText.ToHtml(feature.Description, Terms(SelectedClass?.Ruleset)))</div>
                     }
+                    <EffectList Effects="feature.Effects" />
                 </section>
             }
         </div>
@@ -813,7 +815,8 @@
             return new ClassFeatureEditor.Item
             {
                 Level = f.Level, NameIt = f.Name, DescriptionIt = f.Description,
-                NameEn = english?.Name ?? f.Name, DescriptionEn = english?.Description ?? f.Description
+                NameEn = english?.Name ?? f.Name, DescriptionEn = english?.Description ?? f.Description,
+                Effects = f.Effects ?? new()
             };
         }).ToList();
 
@@ -821,6 +824,7 @@
         items.Select(f => new SaveClassFeatureDto
         {
             Level = f.Level,
+            Effects = f.Effects,
             Translations = new List<FeatureTextDto>
             {
                 new() { Language = LanguageCode.It, Name = f.NameIt.Trim(), Description = f.DescriptionIt.Trim() },

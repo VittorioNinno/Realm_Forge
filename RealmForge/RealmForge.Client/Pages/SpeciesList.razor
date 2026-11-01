@@ -288,6 +288,9 @@
                     }
                 </div>
 
+                @* What the Homebrew species (and the chosen lineage) does on the sheet *@
+                <EffectList Effects="@((selectedDetail.Effects ?? new()).Concat(ActiveSubspecies?.Effects ?? new()).ToList())" />
+
                 @* DYNAMIC COMBINED TRAITS LIST *@
                 <h5 class="h6 text-uppercase fw-bold mb-3" style="color: var(--rf-orange-primary); letter-spacing: 1px;">
                     @UiText.SectionBaseTraits(LanguageState.CurrentLanguage)
@@ -465,6 +468,12 @@
                     </div>
                 </div>
 
+                <details class="rf-effects-details mb-3" data-test="species-effects">
+                    <summary>@UiText.EffectsOnSheet(newEffects.Count, LanguageState.CurrentLanguage)</summary>
+                    <div class="small my-2" style="color: var(--rf-text-muted);">@UiText.EffectsOnSheetHint(LanguageState.CurrentLanguage)</div>
+                    <RuleEffectsEditor Effects="newEffects" OnChanged="StateHasChanged" />
+                </details>
+
                 <div class="d-flex justify-content-end gap-2 pt-2" style="border-top: 1px solid var(--rf-border-light);">
                     <button class="btn btn-rf-outline" @onclick="CloseCreateModal">
                         @UiText.BtnCancel(LanguageState.CurrentLanguage)
@@ -516,7 +525,8 @@
         string.IsNullOrWhiteSpace(searchTerm)
             ? speciesList
             : speciesList.Where(s => s.Name.Contains(searchTerm.Trim(), StringComparison.OrdinalIgnoreCase)
-                                     || s.Description.Contains(searchTerm.Trim(), StringComparison.OrdinalIgnoreCase));
+                                     || s.Description.Contains(searchTerm.Trim(), StringComparison.OrdinalIgnoreCase))
+                                 .OrderBy(s => SearchRank.Of(searchTerm, s.Name));
     private bool isLoading = true;
     private string? errorMessage;
 
@@ -606,6 +616,7 @@
     private string descIt = "";
     private string nameEn = "";
     private string descEn = "";
+    private List<RealmForge.Shared.Characters.RuleEffect> newEffects = new();
 
     // Delete Modal state
     private bool isDeleteModalOpen = false;
@@ -682,6 +693,7 @@
         descIt = "";
         nameEn = "";
         descEn = "";
+        newEffects = new();
         isModalOpen = true;
     }
 
@@ -717,6 +729,7 @@
                 descIt = detailIt.Description;
                 nameEn = detailEn.Name;
                 descEn = detailEn.Description;
+                newEffects = detailIt.Effects ?? new();
             }
         }
         catch (Exception ex)
@@ -759,6 +772,12 @@
             return;
         }
 
+        if (RealmForge.Shared.Characters.RuleEffectRules.Validate(newEffects) is { } effectProblem)
+        {
+            formValidationMessage = UiText.ModuleError(effectProblem, LanguageState.CurrentLanguage);
+            return;
+        }
+
         isSaving = true;
         formValidationMessage = null;
 
@@ -780,7 +799,8 @@
                 newCreatureType,
                 newRuleset,
                 translations,
-                Visibility: newVisibility
+                Visibility: newVisibility,
+                Effects: newEffects
             );
             success = await SpeciesService.UpdateSpeciesAsync(editingId, updateDto);
         }
@@ -792,7 +812,8 @@
                 newCreatureType,
                 newRuleset,
                 translations,
-                Visibility: newVisibility
+                Visibility: newVisibility,
+                Effects: newEffects
             );
             success = await SpeciesService.CreateSpeciesAsync(createDto);
         }

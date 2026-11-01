@@ -3530,7 +3530,7 @@ button.rf-stat-card {
 /* Abilities */
 .rf-ability-grid {
     display: grid;
-    grid-template-columns: repeat(6, minmax(0, 1fr));
+    grid-template-columns: repeat(var(--rf-abilities, 6), minmax(0, 1fr));
     gap: 8px;
 }
 
@@ -8010,6 +8010,373 @@ textarea.rf-form-control {
     margin-top: 8px;
 }
 
+.rf-search-hit-detail {
+    font-size: .8rem;
+    color: var(--rf-text-secondary);
+}
+
+/* The search page: header with the random entry, the bar with the shortcut, the chips, then the way in */
+.rf-search-page {
+    display: flex;
+    flex-direction: column;
+    gap: 32px;
+    max-width: 1040px;
+    margin: 0 auto;
+    padding: 32px 0 56px;
+}
+
+.rf-search-hero {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.rf-search-hero-top {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: flex-end;
+    gap: 16px;
+}
+
+.rf-search-title { margin: 0; }
+
+.rf-search-subtitle {
+    margin: 8px 0 0;
+    font-size: .85rem;
+    color: var(--rf-text-muted);
+}
+
+.rf-search-random {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 16px;
+    font-size: .8rem;
+    font-weight: 600;
+    color: var(--rf-text-secondary);
+    background-color: var(--rf-bg-surface);
+    border: 1px solid var(--rf-border-light);
+    border-radius: 8px;
+}
+
+    .rf-search-random > svg { color: var(--rf-orange-primary); }
+
+    .rf-search-random:hover:not(:disabled) {
+        color: var(--rf-text-primary);
+        border-color: var(--rf-orange-primary);
+    }
+
+.rf-search-rule {
+    height: 1px;
+    background-color: var(--rf-orange-primary);
+}
+
+.rf-search-bar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 0 16px;
+    background-color: var(--rf-bg-surface);
+    border: 1px solid var(--rf-orange-primary);
+    border-radius: 8px;
+    box-shadow: 0 0 24px rgba(255, 140, 0, 0.08);
+}
+
+    .rf-search-bar > svg {
+        flex: 0 0 auto;
+        color: var(--rf-text-muted);
+    }
+
+.rf-search-input {
+    flex: 1 1 auto;
+    min-width: 0;
+    padding: 16px 8px;
+    font-size: .95rem;
+    color: var(--rf-text-primary);
+    background: transparent;
+    border: 0;
+    outline: none;
+}
+
+    .rf-search-input::placeholder { color: var(--rf-text-muted); }
+
+.rf-search-shortcuts {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex: 0 0 auto;
+}
+
+.rf-search-lang {
+    padding: 0 8px;
+    font-size: .7rem;
+    font-weight: 700;
+    letter-spacing: .04em;
+    color: var(--rf-orange-hover);
+    background-color: rgba(255, 140, 0, 0.12);
+    border: 1px solid rgba(255, 140, 0, 0.3);
+    border-radius: 4px;
+}
+
+.rf-search-kbd {
+    padding: 0 8px;
+    font-size: .75rem;
+    color: var(--rf-text-secondary);
+    background-color: var(--rf-bg-card);
+    border: 1px solid var(--rf-border-light);
+    border-radius: 4px;
+}
+
+@media (max-width: 575.98px) {
+    .rf-search-shortcuts { display: none; }
+}
+
+.rf-search-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.rf-search-chip {
+    padding: 8px 16px;
+    font-size: .8rem;
+    font-weight: 600;
+    color: var(--rf-text-secondary);
+    background-color: var(--rf-bg-surface);
+    border: 1px solid var(--rf-border-light);
+    border-radius: 999px;
+}
+
+    .rf-search-chip:hover { color: var(--rf-text-primary); border-color: #555555; }
+
+    .rf-search-chip.active {
+        color: var(--rf-orange-hover);
+        background-color: rgba(255, 140, 0, 0.14);
+        border-color: var(--rf-orange-primary);
+    }
+
+.rf-search-hub {
+    display: flex;
+    flex-direction: column;
+    gap: 32px;
+}
+
+.rf-search-section-head {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 16px;
+}
+
+.rf-search-section-tag {
+    margin: 0 0 8px;
+    font-size: .75rem;
+    font-weight: 700;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    color: var(--rf-orange-primary);
+}
+
+.rf-search-section-head .rf-search-section-tag { margin: 0; }
+
+.rf-search-meta {
+    font-size: .75rem;
+    color: var(--rf-text-muted);
+}
+
+.rf-search-editions {
+    display: inline-flex;
+    border: 1px solid var(--rf-border-light);
+    border-radius: 999px;
+    overflow: hidden;
+}
+
+    .rf-search-editions > button {
+        padding: 0 16px;
+        font-size: .75rem;
+        color: var(--rf-text-muted);
+        background: transparent;
+        border: 0;
+    }
+
+        .rf-search-editions > button.active {
+            color: var(--rf-orange-hover);
+            background-color: rgba(255, 140, 0, 0.14);
+        }
+
+.rf-search-categories {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 16px;
+}
+
+.rf-search-category {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 16px;
+    color: inherit;
+    text-decoration: none;
+    background-color: var(--rf-bg-card);
+    border: 1px solid var(--rf-border-subtle);
+    border-radius: 8px;
+    transition: border-color .15s, transform .15s;
+}
+
+    .rf-search-category:hover {
+        color: inherit;
+        border-color: rgba(255, 140, 0, 0.55);
+        transform: translateY(-2px);
+    }
+
+.rf-search-category-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+}
+
+.rf-search-category-name {
+    font-weight: 700;
+    color: var(--rf-text-primary);
+}
+
+.rf-search-category-count {
+    flex: 0 0 auto;
+    padding: 0 8px;
+    font-size: .7rem;
+    font-weight: 700;
+    color: var(--rf-orange-hover);
+    background-color: rgba(255, 140, 0, 0.1);
+    border: 1px solid rgba(255, 140, 0, 0.3);
+    border-radius: 999px;
+}
+
+.rf-search-category-desc {
+    font-size: .8rem;
+    line-height: 1.45;
+    color: var(--rf-text-muted);
+}
+
+.rf-search-category-sub {
+    padding-top: 8px;
+    font-size: .7rem;
+    color: #666666;
+    border-top: 1px dashed var(--rf-border-subtle);
+}
+
+.rf-search-panels {
+    display: grid;
+    grid-template-columns: minmax(0, 1.15fr) minmax(0, .85fr);
+    gap: 16px;
+}
+
+.rf-search-panel {
+    padding: 16px 24px;
+    background-color: var(--rf-bg-card);
+    border: 1px solid var(--rf-border-subtle);
+    border-radius: 12px;
+}
+
+.rf-search-pills {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.rf-search-pill {
+    padding: 8px 16px;
+    font-size: .8rem;
+    color: var(--rf-text-secondary);
+    text-decoration: none;
+    background-color: var(--rf-bg-surface);
+    border: 1px solid var(--rf-border-light);
+    border-radius: 8px;
+}
+
+    .rf-search-pill:hover { color: var(--rf-text-primary); border-color: #555555; }
+
+    .rf-search-pill.highlight {
+        color: var(--rf-orange-hover);
+        background-color: rgba(255, 140, 0, 0.08);
+        border-color: rgba(255, 140, 0, 0.35);
+    }
+
+.rf-search-clear {
+    padding: 0;
+    font-size: .75rem;
+    color: var(--rf-text-muted);
+    text-decoration: underline;
+    background: transparent;
+    border: 0;
+}
+
+    .rf-search-clear:hover { color: var(--rf-text-secondary); }
+
+.rf-search-recent {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.rf-search-recent-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 16px;
+    padding: 8px 16px;
+    text-decoration: none;
+    background-color: var(--rf-bg-surface);
+    border: 1px solid var(--rf-border-subtle);
+    border-radius: 8px;
+}
+
+    .rf-search-recent-item:hover { border-color: #444444; }
+
+.rf-search-recent-left {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+}
+
+.rf-search-recent-title {
+    overflow: hidden;
+    font-size: .85rem;
+    font-weight: 600;
+    color: var(--rf-text-primary);
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+
+.rf-search-recent-sub {
+    font-size: .75rem;
+    color: var(--rf-text-muted);
+}
+
+.rf-search-recent-badge {
+    flex: 0 0 auto;
+    padding: 0 8px;
+    font-size: .7rem;
+    font-weight: 700;
+    color: var(--rf-text-secondary);
+    background-color: var(--rf-bg-card);
+    border: 1px solid var(--rf-border-light);
+    border-radius: 4px;
+}
+
+@media (max-width: 899.98px) {
+    .rf-search-categories { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .rf-search-panels { grid-template-columns: minmax(0, 1fr); }
+}
+
+@media (max-width: 479.98px) {
+    .rf-search-categories { grid-template-columns: minmax(0, 1fr); }
+}
+
 /* ===== Administration ===== */
 .rf-admin-stats {
     display: grid;
@@ -8086,4 +8453,130 @@ textarea.rf-form-control {
     align-items: center;
     gap: 8px;
     min-width: 160px;
+}
+
+/* ===== Passkeys ===== */
+.rf-passkey-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+.rf-passkey {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px 16px;
+    padding: 8px 0;
+    border-bottom: 1px solid var(--rf-border-subtle);
+}
+
+    .rf-passkey:last-child { border-bottom: 0; }
+
+    .rf-passkey > svg { color: var(--rf-orange-primary); }
+
+.rf-passkey-name {
+    font-weight: 600;
+    color: var(--rf-text-primary);
+}
+
+.rf-passkey-date {
+    font-size: .8rem;
+    color: var(--rf-text-muted);
+}
+
+/* "oppure" between the password sign-in and the passkey */
+.rf-login-or {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    font-size: .75rem;
+    text-transform: uppercase;
+    letter-spacing: .08em;
+    color: var(--rf-text-muted);
+}
+
+    .rf-login-or::before,
+    .rf-login-or::after {
+        content: "";
+        flex: 1 1 auto;
+        border-top: 1px solid var(--rf-border-light);
+    }
+
+/* ===== Rule modules: effects editor and lists ===== */
+.rf-effect-row {
+    padding: 16px;
+    margin-bottom: 16px;
+    border-radius: 8px;
+    background-color: var(--rf-bg-main);
+    border: 1px solid var(--rf-border-subtle);
+    border-left: 3px solid var(--rf-orange-primary);
+}
+
+.rf-effect-remove {
+    margin-top: 24px;
+}
+
+.rf-effect-preview {
+    color: var(--rf-orange-primary);
+}
+
+.rf-effect-list {
+    padding-left: 24px;
+    margin-bottom: 0;
+    color: var(--rf-text-secondary);
+}
+
+.rf-effect-list li + li {
+    margin-top: 8px;
+}
+
+.rf-module-pick {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    padding: 16px;
+    border-radius: 8px;
+    border: 1px solid var(--rf-border-subtle);
+    background-color: var(--rf-bg-card);
+    cursor: pointer;
+}
+
+.rf-module-pick.active {
+    border-color: var(--rf-orange-primary);
+}
+
+.rf-module-pick ul {
+    margin: 8px 0 0;
+    padding-left: 24px;
+    color: var(--rf-text-secondary);
+}
+
+/* An ability added by a rule module, next to the six */
+.rf-ability-extra {
+    border-color: var(--rf-orange-primary);
+}
+
+.rf-ability-save-none {
+    color: var(--rf-text-muted);
+    text-align: center;
+}
+
+.rf-stat-card-extra {
+    border-color: var(--rf-orange-primary);
+}
+
+/* Effects of a Homebrew entry: what the sheet applies on its own */
+.rf-effect-box {
+    margin-top: 8px;
+    padding: 8px 16px;
+    border-radius: 8px;
+    border-left: 3px solid var(--rf-orange-primary);
+    background-color: var(--rf-bg-main);
+}
+
+.rf-effects-details > summary {
+    cursor: pointer;
+    font-size: .85rem;
+    color: var(--rf-orange-primary);
 }

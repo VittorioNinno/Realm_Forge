@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using RealmForge.Shared.Characters;
 using RealmForge.Shared.DTOs;
 using RealmForge.Domain.Entities;
 using RealmForge.Shared.Enums;
@@ -162,7 +163,8 @@ namespace RealmForge.Api.Controllers
 					exclusiveTraits,
 					CanEdit: _access.CanModify(sub, User),
 					Source: sub.Source,
-					Visibility: sub.Visibility
+					Visibility: sub.Visibility,
+					Effects: RuleEffectJson.Read(sub.Effects)
 				);
 			})
 			.ToList();
@@ -181,7 +183,8 @@ namespace RealmForge.Api.Controllers
 				subspeciesList,
 				CanEdit: _access.CanModify(species, User),
 				Source: species.Source,
-				Visibility: species.Visibility
+				Visibility: species.Visibility,
+				Effects: RuleEffectJson.Read(species.Effects)
 			);
 
 			return Ok(response);
@@ -203,8 +206,14 @@ namespace RealmForge.Api.Controllers
 				return BadRequest("At least one size must be selected.");
 			}
 
+			if (RuleEffectRules.Validate(dto.Effects ?? new()) is { } effectError)
+			{
+				return Problem(statusCode: StatusCodes.Status400BadRequest, title: "Invalid effect.", detail: effectError);
+			}
+
 			var species = new Species
 			{
+				Effects = RuleEffectJson.Write(dto.Effects),
 				BaseSpeedInFeet = dto.BaseSpeedInFeet,
 				AllowedSizes = dto.AllowedSizes,
 				CreatureType = dto.CreatureType,
@@ -312,6 +321,12 @@ namespace RealmForge.Api.Controllers
 			{
 				return denied;
 			}
+
+			if (RuleEffectRules.Validate(dto.Effects ?? new()) is { } effectError)
+			{
+				return Problem(statusCode: StatusCodes.Status400BadRequest, title: "Invalid effect.", detail: effectError);
+			}
+			species.Effects = RuleEffectJson.Write(dto.Effects);
 
 			//	Update core mechanical data
 			species.BaseSpeedInFeet = dto.BaseSpeedInFeet;

@@ -16,7 +16,7 @@
         {
             <span class="rf-wizard-feature-level">@Badge</span>
         }
-        @if (!string.IsNullOrWhiteSpace(Text))
+        @if (!string.IsNullOrWhiteSpace(Text) || Effects is { Count: > 0 })
         {
             <span class="rf-feature-chevron @(open ? "open" : null)">›</span>
         }
@@ -24,6 +24,10 @@
     @if (open && !string.IsNullOrWhiteSpace(Text))
     {
         <div @key="Text" class="rf-wizard-feature-desc rf-markdown-container mt-2">@((MarkupString)MarkdownText.ToHtml(Text, Glossary.Linker(LanguageState.CurrentLanguage, Ruleset)))</div>
+    }
+    @if (open)
+    {
+        <EffectList Effects="Effects" />
     }
 </div>
 
@@ -34,6 +38,7 @@
     [Parameter] public string? Badge { get; set; }
     [Parameter] public RulesetVersion Ruleset { get; set; }
     [Parameter] public bool Open { get; set; }
+    [Parameter] public List<RealmForge.Shared.Characters.RuleEffect>? Effects { get; set; }
 
     private bool open;
 

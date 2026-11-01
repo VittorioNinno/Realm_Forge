@@ -4,7 +4,8 @@ namespace RealmForge.Shared.Characters;
 
 ///	<summary>
 ///	The compendium of one edition as the character rules need it (numbers, lists and keys, names in the reader's
-///	language). The API builds it for the wizard and the sheet, and uses the same data to check a character on save,
+///	language). Homebrew species, feats and class features carry their rule effects (the levels of the class features
+///	are class levels). The API builds it for the wizard and the sheet, and uses the same data to check a character on save,
 ///	so both sides compute the same values. Keys identify the Base content ("wizard", "hill-dwarf", "tough"…);
 ///	Homebrew entries have none.
 ///	</summary>
@@ -15,7 +16,8 @@ public sealed record CharacterContextDto(
 	List<ContextBackground> Backgrounds,
 	List<ContextFeat> Feats,
 	List<ContextSpell> Spells,
-	List<ContextItem> Items);
+	List<ContextItem> Items,
+	List<ContextModule>? Modules = null);
 
 public sealed record ContextClass(
 	Guid Id,
@@ -32,13 +34,14 @@ public sealed record ContextClass(
 	int SubclassLevel,
 	string? ProgressionTable,
 	List<ContextSubclass> Subclasses,
-	ContextLoadout Equipment);
+	ContextLoadout Equipment,
+	List<RuleEffect>? Effects = null);
 
-public sealed record ContextSubclass(Guid Id, string Name, string? Key, CasterProgression CasterProgression, AbilityScore? SpellcastingAbility);
+public sealed record ContextSubclass(Guid Id, string Name, string? Key, CasterProgression CasterProgression, AbilityScore? SpellcastingAbility, List<RuleEffect>? Effects = null);
 
-public sealed record ContextSpecies(Guid Id, string Name, string? Key, List<CreatureSize> Sizes, int Speed, List<ContextSubspecies> Subspecies);
+public sealed record ContextSpecies(Guid Id, string Name, string? Key, List<CreatureSize> Sizes, int Speed, List<ContextSubspecies> Subspecies, List<RuleEffect>? Effects = null);
 
-public sealed record ContextSubspecies(Guid Id, string Name, string? Key, int? Speed);
+public sealed record ContextSubspecies(Guid Id, string Name, string? Key, int? Speed, List<RuleEffect>? Effects = null);
 
 public sealed record ContextBackground(
 	Guid Id,
@@ -64,7 +67,8 @@ public sealed record ContextFeat(
 	int? MinimumScore,
 	FeatFeatureRequirement? PrerequisiteFeature,
 	List<AbilityScore> Increases,
-	int IncreaseMaximum);
+	int IncreaseMaximum,
+	List<RuleEffect>? Effects = null);
 
 public sealed record ContextSpell(Guid Id, string Name, int Level, SpellSchool School, List<SpellcastingClass> Classes, bool Ritual, bool Concentration, string? Key = null);
 

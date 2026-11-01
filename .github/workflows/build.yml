@@ -748,6 +748,67 @@ jobs:
           cp_review_read=$(code "$api/api/feats/$cp_feat" -H "Authorization: Bearer $B")
           cp_approve_player=$(code -X POST "$api/api/campaigns/$cp_id/contents/$cp_feat/approve" -H "Authorization: Bearer $A")
           cp_approve=$(code -X POST "$api/api/campaigns/$cp_id/contents/$cp_feat/approve" -H "Authorization: Bearer $B")
+          # Rule modules: alice writes "Fortuna" (an ability worth 10 in the array, points equal to its modifier + 1, +1 Stealth,
+          # fire resistance); bad effects are refused; a character that picks it gives Fortuna a value of the larger array;
+          # shared with the campaign and approved, it applies to her character there; removed from the table, then binned
+          fortuna='{"ruleset":2,"visibility":2,"translations":[{"language":2,"name":"Fortuna","description":"La sorte del personaggio."},{"language":1,"name":"Luck","description":""}],
+            "effects":[{"kind":40,"key":"fortuna","nameIt":"Fortuna","nameEn":"Luck","shortIt":"FRT","shortEn":"LCK","value":10,"points":3,"save":true},
+              {"kind":41,"nameIt":"Punti Fortuna","nameEn":"Luck Points","uses":2,"abilityKey":"fortuna","value":1,"reset":1},
+              {"kind":11,"skill":17,"value":1},{"kind":30,"damageType":4}]}'
+          md=$(curl -s -X POST "$api/api/modules?lang=2" $json -H "Authorization: Bearer $A" -d "$fortuna")
+          md_id=$(echo "$md" | jq -r .id)
+          md_created=$(echo "$md" | jq -c '{name, effects: (.effects | length), key: .effects[0].key, canEdit}')
+          md_bad=$(curl -s -X POST "$api/api/modules" $json -H "Authorization: Bearer $A" -d "$(echo "$fortuna" | jq -c '.effects += [.effects[0]]')" | jq -r .detail)
+          md_bob=$(code "$api/api/modules/$md_id" -H "Authorization: Bearer $B")
+          md_bob_put=$(code -X PUT "$api/api/modules/$md_id" $json -H "Authorization: Bearer $B" -d "$fortuna")
+          md_list=$(get "$api/api/modules?lang=1" -H "Authorization: Bearer $A" | jq -c '[.[] | {name, effectKinds}]')
+          md_ctx=$(get "$api/api/characters/context?ruleset=2&lang=2" -H "Authorization: Bearer $A" | jq -c '[.modules[] | {name, effects: (.effects | length)}]')
+          lucky=$(echo "$hero" | jq -c --arg m "$md_id" '.name = "Fortunato" | .build.moduleIds = [$m] | .build.extraScores = {"fortuna": 10}')
+          md_char=$(curl -s -X POST $api/api/characters $json -H "Authorization: Bearer $A" -d "$lucky")
+          md_char_id=$(echo "$md_char" | jq -r .id)
+          md_char_saved=$(echo "$md_char" | jq -c '{modules: .build.moduleIds | length, fortuna: .build.extraScores.fortuna}')
+          if [ "$md_char_id" = "null" ] || [ -z "$md_char_id" ]; then echo "::error title=modules::character refused: $(echo "$md_char" | head -c 600)"; fi
+          md_char_bad=$(post "$(echo "$lucky" | jq -c '.build.extraScores = {"fortuna": 16}')")
+          md_share=$(curl -s -X POST "$api/api/campaigns/$cp_id/contents" $json -H "Authorization: Bearer $A" -d "{\"entityId\":\"$md_id\"}")
+          md_approve=$(code -X POST "$api/api/campaigns/$cp_id/contents/$md_id/approve" -H "Authorization: Bearer $B")
+          md_campaign=$(get "$api/api/characters/$ch_id" -H "Authorization: Bearer $A" | jq -c --arg m "$md_id" '.campaignModuleIds == [$m]')
+          md_campaign_sheet=$(code -X PUT "$api/api/characters/$ch_id/sheet" $json -H "Authorization: Bearer $A" -d "$sheet")
+          md_unshare=$(code -X DELETE "$api/api/campaigns/$cp_id/contents/$md_id" -H "Authorization: Bearer $B")
+          md_campaign_after=$(get "$api/api/characters/$ch_id" -H "Authorization: Bearer $A" | jq -c '.campaignModuleIds | length')
+          md_char_delete=$(code -X DELETE "$api/api/characters/$md_char_id" -H "Authorization: Bearer $A")
+          md_delete=$(code -X DELETE "$api/api/modules/$md_id" -H "Authorization: Bearer $A")
+          md_bin=$(get "$api/api/trash?lang=2" -H "Authorization: Bearer $A" | jq -c '[.[] | select(.kind == "module") | .name]')
+          # The same effects on a Homebrew feat: saved, read back, in the character context; a broken one is refused
+          ef_feat=$(curl -s -X POST "$api/api/feats?lang=2" $json -H "Authorization: Bearer $A" -d "$(echo "$feat" | jq -c '.effects = [{"kind":4,"value":2},{"kind":32,"value":60}]')")
+          ef_id=$(echo "$ef_feat" | jq -r .id)
+          ef_detail=$(get "$api/api/feats/$ef_id?lang=2" -H "Authorization: Bearer $A" | jq -c '[.effects[].kind]')
+          ef_ctx=$(get "$api/api/characters/context?ruleset=$(echo "$feat" | jq -r .ruleset)&lang=2" -H "Authorization: Bearer $A" | jq -c --arg id "$ef_id" '[.feats[] | select(.id == $id) | .effects | length]')
+          ef_bad=$(curl -s -X POST "$api/api/feats" $json -H "Authorization: Bearer $A" -d "$(echo "$feat" | jq -c '.effects = [{"kind":11,"value":1}]')" | jq -r .detail)
+          code -X DELETE "$api/api/feats/$ef_id" -H "Authorization: Bearer $A" >/dev/null
+          echo "::notice title=modules::created=$md_created bad=$md_bad bob GET=$md_bob PUT=$md_bob_put list=$md_list context=$md_ctx | character=$md_char_saved wrong Fortuna=$md_char_bad | campaign share=$md_share approve=$md_approve active=$md_campaign sheet=$md_campaign_sheet unshare=$md_unshare after=$md_campaign_after | delete=$md_delete bin=$md_bin | feat effects=$ef_detail context=$ef_ctx bad=$ef_bad"
+          mdfail=0
+          mdcheck() { if [ "$2" != "$3" ]; then echo "::error title=modules::$1: got '$2', expected '$3'"; mdfail=1; fi; }
+          mdcheck "created" "$md_created" '{"name":"Fortuna","effects":4,"key":"fortuna","canEdit":true}'
+          mdcheck "two abilities with one key" "$md_bad" "ExtraAbility"
+          mdcheck "private for bob" "$md_bob" "404"
+          mdcheck "bob cannot change it" "$md_bob_put" "403"
+          mdcheck "list" "$md_list" '[{"name":"Luck","effectKinds":[40,41,11,30]}]'
+          mdcheck "context" "$md_ctx" '[{"name":"Fortuna","effects":4}]'
+          mdcheck "character with Fortuna" "$md_char_saved" '{"modules":1,"fortuna":10}'
+          mdcheck "Fortuna outside the array" "$md_char_bad" "400"
+          mdcheck "player shares it" "$md_share" "1"
+          mdcheck "master approves it" "$md_approve" "204"
+          mdcheck "active for the campaign's character" "$md_campaign" "true"
+          mdcheck "sheet saved with the module" "$md_campaign_sheet" "200"
+          mdcheck "removed from the table" "$md_unshare" "204"
+          mdcheck "no longer active" "$md_campaign_after" "0"
+          mdcheck "character deleted" "$md_char_delete" "204"
+          mdcheck "module deleted" "$md_delete" "204"
+          mdcheck "module in the bin" "$md_bin" '["Fortuna"]'
+          mdcheck "feat effects saved" "$ef_detail" '[4,32]'
+          mdcheck "feat effects in the context" "$ef_ctx" '[2]'
+          mdcheck "feat effect without its skill" "$ef_bad" "Skill"
+          test "$mdfail" = "0"
           # Encounters: the master prepares one (a goblin, a hidden goblin, alice's character); the player sees it only once it
           # is under way and shown, without the hidden goblin, the notes and the monsters' numbers, and cannot change it;
           # a save from an old version answers 409
@@ -1062,6 +1123,10 @@ jobs:
           sr_fireball=$(curl -s "$api/api/compendium/search?q=fireball&lang=2" | jq -c '[.[] | select(.kind == "spell")][0] | {name, otherName, isBase}')
           sr_rule=$(curl -s "$api/api/compendium/search?q=prono&lang=2" | jq -c '[.[] | select(.kind == "rule")] | length > 0')
           sr_short=$(code "$api/api/compendium/search?q=x")
+          sr_counts=$(curl -s "$api/api/compendium/counts" | jq -c '[.[] | select(.kind == "spell" or .kind == "rule")] | map({(.kind): [.edition2024, .edition2014]}) | add')
+          sr_random=$(curl -s "$api/api/compendium/random?kinds=rule&lang=2" | jq -c '{kind, base: .isBase, link: (.link | startswith("rules?id="))}')
+          sr_only_rules=$(curl -s "$api/api/compendium/search?q=fireball&kinds=rule&lang=2" | jq length)
+          sr_detail=$(curl -s "$api/api/compendium/search?q=fireball&kinds=spell&lang=2" | jq -c '.[0].detail | {spellLevel, school}')
           sr_wild=$(curl -s "$api/api/compendium/search?q=%25%25&lang=2" | jq length)
           sr_alice=$(curl -s "$api/api/compendium/search?q=zzforge&lang=2" -H "Authorization: Bearer $A" | jq -c '[.[] | {name, otherName, isMine}]')
           sr_bob=$(curl -s "$api/api/compendium/search?q=zzforge&lang=2" -H "Authorization: Bearer $B" | jq length)
@@ -1089,6 +1154,10 @@ jobs:
           adcheck "search in English, shown in Italian" "$sr_fireball" '{"name":"Palla di Fuoco","otherName":"Fireball","isBase":true}'
           adcheck "glossary searched" "$sr_rule" "true"
           adcheck "too short" "$sr_short" "400"
+          adcheck "counts per edition" "$sr_counts" '{"spell":[391,361],"rule":[155,88]}'
+          adcheck "random rule" "$sr_random" '{"kind":"rule","base":true,"link":true}'
+          adcheck "kinds filter" "$sr_only_rules" "0"
+          adcheck "spell detail" "$sr_detail" '{"spellLevel":3,"school":5}'
           adcheck "wildcards are literal" "$sr_wild" "0"
           adcheck "own private entry found" "$sr_alice" '[{"name":"Zzforge Segreto","otherName":"Zzforge Secret","isMine":true}]'
           adcheck "someone else's private entry hidden" "$sr_bob" "0"
@@ -1108,6 +1177,50 @@ jobs:
           adcheck "account deleted" "$ad_delete" "200"
           adcheck "deleted account" "$ad_deleted_login" "401"
           test "$adfail" = "0"
+
+          # Notices by e-mail (without a mail service the API logs them): suspended, reactivated, deleted by an
+          # administrator (erin), deleted by the person (dave2)
+          noticed() {
+            for i in $(seq 1 20); do
+              grep -rqE "for $1: notice:$2( |$)" --include='*.log' . && { echo yes; return 0; }
+              sleep 0.5
+            done
+            echo no
+          }
+          nt_suspended=$(noticed erin@example.com suspended)
+          nt_reactivated=$(noticed erin@example.com reactivated)
+          nt_admin_delete=$(noticed erin@example.com deleted-by-admin)
+          nt_self_delete=$(noticed dave2@example.com deleted)
+          echo "::notice title=notices::suspended=$nt_suspended reactivated=$nt_reactivated deleted by admin=$nt_admin_delete deleted by the person=$nt_self_delete"
+          test "$nt_suspended" = "yes" && test "$nt_reactivated" = "yes" && test "$nt_admin_delete" = "yes" && test "$nt_self_delete" = "yes"
+
+          # Passkeys: options for the client's domain, the state bound to its purpose, forged answers refused
+          # (the full ceremony with a virtual authenticator runs in the UI job)
+          pk_anon_list=$(code "$api/api/passkeys")
+          pk_req=$(curl -s -X POST "$api/api/passkeys/request-options" -H 'Origin: https://localhost:7171')
+          pk_req_shape=$(echo "$pk_req" | jq -c '.options | fromjson | {rpId, challenge: (.challenge | length > 30), uv: .userVerification}')
+          pk_create=$(curl -s -X POST "$api/api/passkeys/creation-options" -H "Authorization: Bearer $A")
+          pk_create_shape=$(echo "$pk_create" | jq -c '.options | fromjson | {rp: .rp.id, user: .user.name, display: .user.displayName}')
+          pk_create_anon=$(code -X POST "$api/api/passkeys/creation-options")
+          fake='{"id":"AAAA","rawId":"AAAA","type":"public-key","response":{"clientDataJSON":"e30","authenticatorData":"AAAA","signature":"AAAA"},"clientExtensionResults":{}}'
+          pk_forged=$(curl -s -X POST "$api/api/passkeys/sign-in" $json -d "$(jq -nc --arg c "$fake" --arg s "$(echo "$pk_req" | jq -r .state)" '{credential:$c, state:$s}')" | jq -r '.detail // "token"')
+          pk_bad_state=$(curl -s -X POST "$api/api/passkeys/sign-in" $json -d "$(jq -nc --arg c "$fake" '{credential:$c, state:"nope"}')" | jq -r '.detail // "token"')
+          pk_wrong_purpose=$(curl -s -X POST "$api/api/passkeys/sign-in" $json -d "$(jq -nc --arg c "$fake" --arg s "$(echo "$pk_create" | jq -r .state)" '{credential:$c, state:$s}')" | jq -r '.detail // "token"')
+          pk_forged_add=$(code -X POST "$api/api/passkeys" $json -H "Authorization: Bearer $A" -d "$(jq -nc --arg c "$fake" --arg s "$(echo "$pk_create" | jq -r .state)" '{credential:$c, state:$s, name:"Finta"}')")
+          pk_list=$(curl -s "$api/api/passkeys" -H "Authorization: Bearer $A" | jq length)
+          echo "::notice title=passkeys::anonymous list=$pk_anon_list | request=$pk_req_shape | creation=$pk_create_shape anonymous=$pk_create_anon | forged sign-in=$pk_forged bad state=$pk_bad_state wrong purpose=$pk_wrong_purpose forged add=$pk_forged_add | alice passkeys=$pk_list"
+          pkfail=0
+          pkcheck() { if [ "$2" != "$3" ]; then echo "::error title=passkeys::$1: got '$2', expected '$3'"; pkfail=1; fi; }
+          pkcheck "anonymous list" "$pk_anon_list" "401"
+          pkcheck "sign-in options" "$pk_req_shape" '{"rpId":"localhost","challenge":true,"uv":"required"}'
+          pkcheck "creation options" "$pk_create_shape" '{"rp":"localhost","user":"alice@example.com","display":"Alice"}'
+          pkcheck "creation options need an account" "$pk_create_anon" "401"
+          pkcheck "forged answer" "$pk_forged" "PasskeyFailed"
+          pkcheck "unreadable state" "$pk_bad_state" "PasskeyExpired"
+          pkcheck "state of another operation" "$pk_wrong_purpose" "PasskeyExpired"
+          pkcheck "forged passkey not added" "$pk_forged_add" "400"
+          pkcheck "no passkey saved" "$pk_list" "0"
+          test "$pkfail" = "0"
 
   ui:
     runs-on: ubuntu-24.04

@@ -44,7 +44,8 @@ namespace RealmForge.Infrastructure.Persistence.Trash
 			[typeof(Spell)] = "spell",
 			[typeof(Equipment)] = "equipment",
 			[typeof(Monster)] = "monster",
-			[typeof(MagicItem)] = "magic-item"
+			[typeof(MagicItem)] = "magic-item",
+			[typeof(RuleModule)] = "module"
 		};
 
 		private readonly RealmForgeDbContext _context;

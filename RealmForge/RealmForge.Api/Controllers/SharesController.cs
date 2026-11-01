@@ -146,7 +146,8 @@ namespace RealmForge.Api.Controllers
 			?? (GameEntity?)await _context.Spells.FirstOrDefaultAsync(e => e.Id == id)
 			?? (GameEntity?)await _context.Equipment.FirstOrDefaultAsync(e => e.Id == id)
 			?? (GameEntity?)await _context.Monsters.FirstOrDefaultAsync(e => e.Id == id)
-			?? await _context.MagicItems.FirstOrDefaultAsync(e => e.Id == id);
+			?? (GameEntity?)await _context.MagicItems.FirstOrDefaultAsync(e => e.Id == id)
+			?? await _context.RuleModules.FirstOrDefaultAsync(e => e.Id == id);
 
 		internal async Task<(ApplicationUser? User, ActionResult? Problem)> FindUserAsync(string? email)
 		{

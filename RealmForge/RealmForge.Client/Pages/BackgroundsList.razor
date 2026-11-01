@@ -452,7 +452,8 @@
             .Where(b => OriginFilter switch { "srd" => b.IsOfficialSRD, "homebrew" => !b.IsOfficialSRD, _ => true })
             .Where(b => string.IsNullOrWhiteSpace(SearchTerm)
                         || b.Name.Contains(SearchTerm.Trim(), StringComparison.OrdinalIgnoreCase)
-                        || b.ShortDescription.Contains(SearchTerm.Trim(), StringComparison.OrdinalIgnoreCase));
+                        || b.ShortDescription.Contains(SearchTerm.Trim(), StringComparison.OrdinalIgnoreCase))
+            .OrderBy(b => SearchRank.Of(SearchTerm, b.Name));
 
     private List<RfSelect<RulesetVersion?>.OptionItem> RulesetFilterOptions => new()
     {

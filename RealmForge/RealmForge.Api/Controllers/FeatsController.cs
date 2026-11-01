@@ -6,6 +6,7 @@ using RealmForge.Api.Security;
 using RealmForge.Domain.Entities;
 using RealmForge.Infrastructure.Persistence;
 using RealmForge.Infrastructure.Persistence.Trash;
+using RealmForge.Shared.Characters;
 using RealmForge.Shared.DTOs;
 using RealmForge.Shared.Text;
 using RealmForge.Shared.Enums;
@@ -114,6 +115,11 @@ namespace RealmForge.Api.Controllers
 		[Authorize]
 		public async Task<ActionResult<FeatDetailResponseDto>> CreateFeat([FromBody] CreateFeatDto dto, [FromQuery] LanguageCode lang = LanguageCode.It)
 		{
+			if (RuleEffectRules.Validate(dto.Effects ??= new()) is { } effectError)
+			{
+				return Problem(statusCode: StatusCodes.Status400BadRequest, title: "Invalid effect.", detail: effectError);
+			}
+
 			var error = Validate(dto.Prerequisites, dto.Translations.Select(t => (t.Language, t.Name)));
 			if (error != null)
 			{
@@ -129,6 +135,7 @@ namespace RealmForge.Api.Controllers
 				IsOfficialSRD = false,
 				AuthorId = ContentAccess.GetUserId(User),
 				Visibility = dto.Visibility,
+				Effects = RuleEffectJson.Write(dto.Effects),
 
 				Translations = dto.Translations.Select(t => new FeatTranslation
 				{
@@ -153,6 +160,11 @@ namespace RealmForge.Api.Controllers
 		[Authorize]
 		public async Task<IActionResult> UpdateFeat(Guid id, [FromBody] UpdateFeatDto dto)
 		{
+			if (RuleEffectRules.Validate(dto.Effects ??= new()) is { } effectError)
+			{
+				return Problem(statusCode: StatusCodes.Status400BadRequest, title: "Invalid effect.", detail: effectError);
+			}
+
 			if (id != dto.Id)
 			{
 				return Problem(statusCode: StatusCodes.Status400BadRequest, title: "ID mismatch between route and payload.");
@@ -182,6 +194,7 @@ namespace RealmForge.Api.Controllers
 			feat.Category = dto.Category;
 			feat.Ruleset = dto.Ruleset;
 			feat.Visibility = dto.Visibility;
+			feat.Effects = RuleEffectJson.Write(dto.Effects);
 			ApplyPrerequisites(feat, dto.Prerequisites);
 
 			var dtoLanguages = dto.Translations.Select(t => t.Language).ToHashSet();
@@ -266,7 +279,8 @@ namespace RealmForge.Api.Controllers
 				tr?.PrerequisiteNote,
 				canEdit,
 				feat.Source,
-				feat.Visibility
+				feat.Visibility,
+				RuleEffectJson.Read(feat.Effects)
 			);
 		}
 

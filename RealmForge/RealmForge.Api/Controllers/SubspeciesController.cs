@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using RealmForge.Shared.Characters;
 using RealmForge.Shared.DTOs;
 using RealmForge.Domain.Entities;
 using RealmForge.Shared.Enums;
@@ -95,7 +96,8 @@ namespace RealmForge.Api.Controllers
 					exclusiveTraits,
 					CanEdit: _access.CanModify(sub, User),
 					Source: sub.Source,
-					Visibility: sub.Visibility
+					Visibility: sub.Visibility,
+					Effects: RuleEffectJson.Read(sub.Effects)
 				);
 			});
 
@@ -153,7 +155,8 @@ namespace RealmForge.Api.Controllers
 				exclusiveTraits,
 				CanEdit: _access.CanModify(sub, User),
 				Source: sub.Source,
-				Visibility: sub.Visibility
+				Visibility: sub.Visibility,
+				Effects: RuleEffectJson.Read(sub.Effects)
 			);
 
 			return Ok(response);
@@ -172,6 +175,11 @@ namespace RealmForge.Api.Controllers
 				return BadRequest("At least one translation must be provided.");
 			}
 
+			if (RuleEffectRules.Validate(dto.Effects ?? new()) is { } effectError)
+			{
+				return Problem(statusCode: StatusCodes.Status400BadRequest, title: "Invalid effect.", detail: effectError);
+			}
+
 			var parent = await _context.Species.FindAsync(speciesId);
 			if (parent == null)
 			{
@@ -187,6 +195,7 @@ namespace RealmForge.Api.Controllers
 			var subspecies = new Subspecies
 			{
 				SpeciesId = speciesId,
+				Effects = RuleEffectJson.Write(dto.Effects),
 				BaseSpeedOverrideInFeet = dto.BaseSpeedOverrideInFeet,
 				Ruleset = dto.Ruleset,
 				IsOfficialSRD = false,
@@ -229,7 +238,8 @@ namespace RealmForge.Api.Controllers
 				new List<TraitResponseDto>(),
 				CanEdit: _access.CanModify(subspecies, User),
 				Source: subspecies.Source,
-				Visibility: subspecies.Visibility
+				Visibility: subspecies.Visibility,
+				Effects: RuleEffectJson.Read(subspecies.Effects)
 			);
 
 			return CreatedAtAction(nameof(GetById), new { id = subspecies.Id }, response);
@@ -263,6 +273,11 @@ namespace RealmForge.Api.Controllers
 				return denied;
 			}
 
+			if (RuleEffectRules.Validate(dto.Effects ?? new()) is { } effectError)
+			{
+				return Problem(statusCode: StatusCodes.Status400BadRequest, title: "Invalid effect.", detail: effectError);
+			}
+			subspecies.Effects = RuleEffectJson.Write(dto.Effects);
 			subspecies.BaseSpeedOverrideInFeet = dto.BaseSpeedOverrideInFeet;
 			subspecies.Ruleset = dto.Ruleset;
 			subspecies.Visibility = dto.Visibility;

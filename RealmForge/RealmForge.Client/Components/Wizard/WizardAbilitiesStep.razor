@@ -53,14 +53,13 @@ else
 }
 
 <div class="rf-stat-grid" data-test="wizard-stats">
-    @for (var i = 0; i < 6; i++)
+    @for (var i = 0; i < state.Count; i++)
     {
         var index = i;
-        var ability = CharacterMath.Abilities[index];
+        var extra = index >= 6 ? Computed.ExtraAbilities.FirstOrDefault(e => string.Equals(e.Key, state.Extras[index - 6].Key, StringComparison.OrdinalIgnoreCase)) : null;
         var value = state.Base(index);
-        var bonus = Computed.OriginBonuses[index] + Computed.LevelBonuses[index];
-        <div class="rf-stat-card" data-test="wizard-stat-@index">
-            <div class="rf-stat-card-label">@FeatPrerequisiteFormatter.AbilityName(ability, Lang)</div>
+        <div class="rf-stat-card @(index >= 6 ? "rf-stat-card-extra" : null)" data-test="wizard-stat-@index">
+            <div class="rf-stat-card-label">@(index < 6 ? FeatPrerequisiteFormatter.AbilityName(CharacterMath.Abilities[index], Lang) : state.Extras[index - 6].Name(Lang))</div>
             @if (state.Method == AbilityMethod.PointBuy)
             {
                 <div class="rf-stat-card-value">@value</div>
@@ -71,7 +70,11 @@ else
             }
             <div class="rf-stat-card-caption">@UiText.LabelBaseScore(Lang)</div>
             <div class="rf-stat-card-breakdown" data-test="wizard-stat-final-@index">
-                @if (value is not null)
+                @if (value is null)
+                {
+                    <div class="rf-stat-card-final">@UiText.LabelNotAssigned(Lang)</div>
+                }
+                else if (index < 6)
                 {
                     @if (Computed.OriginBonuses[index] > 0)
                     {
@@ -86,9 +89,13 @@ else
                         <span class="rf-stat-card-modifier">@UiText.LabelModifierShort(Lang) @CharacterMath.FormatModifier(CharacterMath.Modifier(Computed.FinalScores[index]))</span>
                     </div>
                 }
-                else
+                else if (extra is not null)
                 {
-                    <div class="rf-stat-card-final">@UiText.LabelNotAssigned(Lang)</div>
+                    <div class="rf-stat-card-bonus">@extra.Module</div>
+                    <div class="rf-stat-card-final">
+                        @UiText.LabelFinalShort(Lang) <strong>@extra.Score</strong>
+                        <span class="rf-stat-card-modifier">@UiText.LabelModifierShort(Lang) @CharacterMath.FormatModifier(extra.Modifier)</span>
+                    </div>
                 }
             </div>
             @if (state.Method == AbilityMethod.PointBuy)
@@ -156,7 +163,7 @@ else
         state.SelectedPool = null;
         if (method == AbilityMethod.StandardArray && state.Assigned.All(v => v is null))
         {
-            state.Pool = CharacterMath.StandardArray.ToList();
+            state.Pool = state.ArrayValues;
         }
         Commit();
     }
@@ -233,12 +240,18 @@ else
         {
             state.Assigned[(int)order[i] - 1] = values[i];
         }
+
+        //	An added ability takes the value it brought to the array
+        for (var x = 0; x < state.Extras.Count; x++)
+        {
+            state.Assigned[6 + x] = RuleModules.ArrayValue(state.Extras[x]);
+        }
         state.Pool.Clear();
         state.SelectedPool = null;
         Commit();
     }
 
-    private int PointsLeft => CharacterMath.PointBuyBudget - W.Abilities.PointBuy.Sum(s => CharacterMath.PointBuyCost(s) ?? 0);
+    private int PointsLeft => W.Abilities.PointBudget - W.Abilities.PointBuy.Sum(s => CharacterMath.PointBuyCost(s) ?? 0);
 
     private bool CanRaise(int index)
     {
@@ -286,16 +299,19 @@ else
         _ = RollAsync();
     }
 
-    //	Six rows of 4d6: the dice tumble for a moment, then the lowest one of each row is dropped
+    //	One row of 4d6 per ability (six, and those of the modules): the dice tumble for a moment, then the lowest one of each row is dropped
     private async Task RollAsync()
     {
         var state = W.Abilities;
         state.Rolling = true;
         state.RollsLeft--;
         state.Rolled.Clear();
-        Array.Clear(state.RolledAssigned);
+        for (var i = 0; i < state.RolledAssigned.Count; i++)
+        {
+            state.RolledAssigned[i] = null;
+        }
         state.SelectedPool = null;
-        state.DiceRows = Enumerable.Range(0, 6).Select(_ => new WizardAbilityState.DiceRow()).ToList();
+        state.DiceRows = Enumerable.Range(0, state.Count).Select(_ => new WizardAbilityState.DiceRow()).ToList();
         Commit();
 
         for (var frame = 0; frame < 10; frame++)

@@ -1,0 +1,335 @@
+﻿@page "/modules"
+@using RealmForge.Client.Components
+@using RealmForge.Client.Localization
+@using RealmForge.Client.Services
+@using RealmForge.Shared.Characters
+@using RealmForge.Shared.DTOs
+@using RealmForge.Shared.Enums
+@implements IDisposable
+@inject RuleModuleDataService Modules
+@inject LanguageStateService LanguageState
+@inject ApiErrorState ApiErrors
+
+<PageTitle>RealmForge - @UiText.ModulesTitle(Lang)</PageTitle>
+
+<div class="container-fluid px-0 py-4">
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4 pb-3" style="border-bottom: 2px solid var(--rf-orange-primary);">
+        <div>
+            <h1 class="h3 fw-bold mb-2 rf-page-title">@UiText.ModulesTitle(Lang)</h1>
+            <p class="mb-0 small" style="color: var(--rf-text-muted); letter-spacing: 1px; text-transform: uppercase;">@UiText.ModulesSubtitle(Lang)</p>
+        </div>
+        <ForgeAction>
+            <button class="btn btn-rf-orange" @onclick="OpenCreate" data-test="module-add">@UiText.BtnAddModule(Lang)</button>
+        </ForgeAction>
+    </div>
+
+    <p class="small mb-4" style="color: var(--rf-text-secondary);">@UiText.ModulesIntro(Lang)</p>
+
+    @if (loading)
+    {
+        <div class="text-center my-5 py-5">
+            <div class="spinner-border" style="color: var(--rf-orange-primary);" role="status"></div>
+            <p class="mt-3" style="color: var(--rf-text-muted); text-transform: uppercase; letter-spacing: 1px;">@UiText.ModulesLoading(Lang)</p>
+        </div>
+    }
+    else if (modules.Count == 0)
+    {
+        <div class="p-4 rounded text-center" style="background-color: var(--rf-bg-surface); border: 1px solid var(--rf-border-light);" data-test="modules-empty">
+            <p class="mb-0" style="color: var(--rf-text-muted);">@UiText.ModulesEmpty(Lang)</p>
+        </div>
+    }
+    else
+    {
+        <div class="row row-cols-1 row-cols-md-2 row-cols-xl-3 g-4">
+            @foreach (var module in modules)
+            {
+                var current = module;
+                <div class="col">
+                    <div class="rf-card h-100 d-flex flex-column justify-content-between" style="cursor: pointer;" @onclick="() => OpenDetailAsync(current.Id)" data-test="module-card">
+                        <div>
+                            <div class="d-flex justify-content-between align-items-start mb-3 gap-2">
+                                <span class="rf-card-title mb-0">@module.Name</span>
+                                <ContentBadge IsBase="false" Visibility="module.Visibility" />
+                            </div>
+                            <p class="small lh-base mb-3" style="color: var(--rf-text-secondary); text-align: left;">
+                                @(string.IsNullOrWhiteSpace(module.ShortDescription) ? UiText.NoDescription(Lang) : module.ShortDescription)
+                            </p>
+                        </div>
+                        <div class="pt-3 d-flex flex-wrap gap-2 align-items-center" style="border-top: 1px solid var(--rf-border-subtle);">
+                            @foreach (var group in module.EffectKinds.Select(UiText.EffectGroupOf).Distinct().OrderBy(g => g))
+                            {
+                                <span class="badge bg-dark border border-warning text-warning small py-2 px-2">@UiText.EffectGroup(group, Lang)</span>
+                            }
+                            @if (module.Author is { } author)
+                            {
+                                <span class="small ms-auto" style="color: var(--rf-text-muted);">@author</span>
+                            }
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+</div>
+
+@if (selected is not null)
+{
+    <div class="rf-modal-backdrop" @onclick="CloseDetail">
+        <div class="rf-modal-dialog" style="max-width: 760px;" @onclick:stopPropagation="true" data-test="module-detail">
+            <div class="d-flex justify-content-between align-items-start mb-3 pb-2" style="border-bottom: 2px solid var(--rf-orange-primary);">
+                <div>
+                    <h2 class="h3 mb-2" style="color: var(--rf-orange-primary); font-family: var(--rf-font-display);">@selected.Name</h2>
+                    <div class="d-flex gap-2 mt-2">
+                        <ContentBadge IsBase="false" Visibility="selected.Visibility" />
+                        @if (selected.Author is { } author)
+                        {
+                            <span class="small" style="color: var(--rf-text-muted);">@author</span>
+                        }
+                    </div>
+                </div>
+                <button class="btn btn-sm btn-rf-outline" @onclick="CloseDetail" aria-label="@UiText.BtnClose(Lang)"><Icon Name="close" /></button>
+            </div>
+
+            <ShareLink Visibility="selected.Visibility" CanEdit="selected.CanEdit" EntityId="selected.Id" Path="@($"modules?id={selected.Id}")" />
+
+            @if (!string.IsNullOrWhiteSpace(selected.Description))
+            {
+                <div class="mb-3 p-3 rounded" style="background-color: var(--rf-bg-main); border-left: 3px solid var(--rf-border-light);">
+                    <div class="rf-markdown-container">@((MarkupString)MarkdownText.ToHtml(selected.Description))</div>
+                </div>
+            }
+
+            <h3 class="h6 text-uppercase mb-2" style="color: var(--rf-orange-primary); letter-spacing: 1px;">@UiText.ModuleEffectsTitle(Lang)</h3>
+            @if (selected.Effects.Count == 0)
+            {
+                <p class="small" style="color: var(--rf-text-muted);">@UiText.ModuleNoEffects(Lang)</p>
+            }
+            else
+            {
+                <ul class="rf-effect-list" data-test="module-effects">
+                    @foreach (var effect in selected.Effects.OrderBy(e => e.Level).ThenBy(e => UiText.EffectGroupOf(e.Kind) == 4 ? 0 : 1))
+                    {
+                        <li>@UiText.EffectText(effect, selected.Effects, Lang)</li>
+                    }
+                </ul>
+            }
+
+            <div class="d-flex justify-content-between align-items-center pt-3 mt-4" style="border-top: 1px solid var(--rf-border-light);">
+                @if (selected.CanEdit)
+                {
+                    <div class="d-flex gap-3">
+                        <button class="btn btn-sm btn-rf-outline text-uppercase" style="letter-spacing: 1px;" @onclick="() => OpenEditAsync(selected.Id)" data-test="module-edit">@UiText.Edit(Lang)</button>
+                        <button class="btn btn-sm btn-rf-outline text-uppercase px-3" style="border-color: #dc3545; color: #dc3545;" @onclick="() => deleting = selected" data-test="module-delete">@UiText.Delete(Lang)</button>
+                    </div>
+                }
+                else
+                {
+                    <div></div>
+                }
+                <button class="btn btn-rf-outline text-uppercase" style="letter-spacing: 1px;" @onclick="CloseDetail">@UiText.BtnClose(Lang)</button>
+            </div>
+        </div>
+    </div>
+}
+
+@if (editing)
+{
+    <div class="rf-modal-backdrop" @onclick="() => editing = false">
+        <div class="rf-modal-dialog" style="max-width: 760px;" @onclick:stopPropagation="true" data-test="module-editor">
+            <h2 class="h4 mb-3 pb-2" style="border-bottom: 1px solid var(--rf-border-light); font-family: var(--rf-font-display);">@UiText.ModuleEditTitle(editId is not null, Lang)</h2>
+
+            @if (error is not null)
+            {
+                <div class="alert alert-warning bg-dark border-warning text-warning p-2 small mb-3" data-test="module-error">@error</div>
+            }
+
+            <VisibilityPicker @bind-Value="visibility" />
+
+            <div class="p-3 mb-3 rounded" style="background-color: var(--rf-bg-card); border-left: 3px solid var(--rf-orange-primary);">
+                <div class="fw-bold mb-2 small" style="color: var(--rf-orange-primary);">@UiText.TabItalian(Lang)</div>
+                <div class="mb-2">
+                    <label class="rf-form-label">@UiText.LabelName(Lang)</label>
+                    <input type="text" class="rf-form-control" maxlength="100" placeholder="@UiText.ModuleNamePlaceholderIt(Lang)" @bind="nameIt" data-test="module-name-it" />
+                </div>
+                <div>
+                    <label class="rf-form-label">@UiText.LabelDescription(Lang)</label>
+                    <textarea class="rf-form-control" rows="3" maxlength="8000" @bind="descIt" data-test="module-desc-it"></textarea>
+                </div>
+            </div>
+
+            <div class="p-3 mb-3 rounded" style="background-color: var(--rf-bg-card); border-left: 3px solid #666;">
+                <div class="fw-bold mb-2 small text-secondary">@UiText.TabEnglish(Lang)</div>
+                <div class="mb-2">
+                    <label class="rf-form-label" style="color: var(--rf-text-secondary);">@UiText.LabelName(Lang)</label>
+                    <input type="text" class="rf-form-control" maxlength="100" placeholder="@UiText.ModuleNamePlaceholderEn(Lang)" @bind="nameEn" data-test="module-name-en" />
+                </div>
+                <div>
+                    <label class="rf-form-label" style="color: var(--rf-text-secondary);">@UiText.LabelDescription(Lang)</label>
+                    <textarea class="rf-form-control" rows="3" maxlength="8000" @bind="descEn"></textarea>
+                </div>
+            </div>
+
+            <h3 class="h6 text-uppercase mb-3" style="color: var(--rf-orange-primary); letter-spacing: 1px;">@UiText.ModuleEffectsTitle(Lang)</h3>
+            <RuleEffectsEditor Effects="effects" OnChanged="StateHasChanged" />
+
+            <div class="d-flex justify-content-end gap-2 pt-3 mt-3" style="border-top: 1px solid var(--rf-border-light);">
+                <button class="btn btn-rf-outline" @onclick="() => editing = false">@UiText.BtnCancel(Lang)</button>
+                <button class="btn btn-rf-orange" @onclick="SaveAsync" disabled="@saving" data-test="module-save">@(saving ? "..." : UiText.BtnSaveModule(Lang))</button>
+            </div>
+        </div>
+    </div>
+}
+
+@if (deleting is not null)
+{
+    <div class="rf-modal-backdrop" @onclick="() => deleting = null">
+        <div class="rf-modal-dialog" @onclick:stopPropagation="true" style="max-width: 450px; text-align: center;">
+            <h2 class="h4 mb-3" style="color: var(--rf-orange-primary);">@UiText.ConfirmDeletion(Lang)</h2>
+            <div class="p-3 mb-4 rounded" style="background-color: var(--rf-bg-main); border: 1px solid var(--rf-border-subtle); color: var(--rf-text-secondary); line-height: 1.5;">
+                @UiText.ModuleDeleteWarning(deleting.Name, Lang)
+            </div>
+            <div class="d-flex justify-content-center gap-3">
+                <button class="btn btn-rf-outline" @onclick="() => deleting = null">@UiText.BtnCancel(Lang)</button>
+                <button class="btn btn-rf-orange" style="background-color: #dc3545; border-color: #dc3545;" @onclick="DeleteAsync" data-test="module-delete-confirm">@UiText.Delete(Lang)</button>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    [SupplyParameterFromQuery(Name = "id")] public Guid? QueryId { get; set; }
+
+    private LanguageCode Lang => LanguageState.CurrentLanguage;
+
+    private List<RuleModuleResponseDto> modules = new();
+    private bool loading = true;
+    private RuleModuleDetailDto? selected;
+    private RuleModuleDetailDto? deleting;
+
+    private bool editing;
+    private bool saving;
+    private Guid? editId;
+    private string? error;
+    private ContentVisibility visibility = ContentVisibility.Private;
+    private RulesetVersion ruleset = RulesetVersion.Dnd5e_2024;
+    private string nameIt = string.Empty;
+    private string nameEn = string.Empty;
+    private string descIt = string.Empty;
+    private string descEn = string.Empty;
+    private List<RuleEffect> effects = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        LanguageState.OnLanguageChanged += HandleLanguageChanged;
+        await LoadAsync();
+        if (QueryId is { } id)
+        {
+            await OpenDetailAsync(id);
+            if (selected is null)
+            {
+                ApiErrors.Report(ApiErrorKind.NotAvailable);
+            }
+        }
+    }
+
+    private async void HandleLanguageChanged()
+    {
+        await LoadAsync();
+        if (selected is not null)
+        {
+            selected = await Modules.GetModuleAsync(selected.Id, Lang);
+        }
+        StateHasChanged();
+    }
+
+    private async Task LoadAsync()
+    {
+        loading = true;
+        modules = await Modules.GetModulesAsync(Lang);
+        loading = false;
+    }
+
+    private async Task OpenDetailAsync(Guid id) => selected = await Modules.GetModuleAsync(id, Lang);
+
+    private void CloseDetail() => selected = null;
+
+    private void OpenCreate()
+    {
+        editId = null;
+        error = null;
+        visibility = ContentVisibility.Private;
+        ruleset = RulesetVersion.Dnd5e_2024;
+        nameIt = nameEn = descIt = descEn = string.Empty;
+        effects = new();
+        editing = true;
+    }
+
+    private async Task OpenEditAsync(Guid id)
+    {
+        var module = await Modules.GetModuleAsync(id, Lang);
+        if (module is null)
+        {
+            return;
+        }
+        selected = null;
+        editId = id;
+        error = null;
+        visibility = module.Visibility;
+        ruleset = module.Ruleset;
+        var it = module.Translations.FirstOrDefault(t => t.Language == LanguageCode.It);
+        var en = module.Translations.FirstOrDefault(t => t.Language == LanguageCode.En);
+        nameIt = it?.Name ?? string.Empty;
+        descIt = it?.Description ?? string.Empty;
+        nameEn = en?.Name ?? string.Empty;
+        descEn = en?.Description ?? string.Empty;
+        effects = module.Effects;
+        editing = true;
+    }
+
+    private async Task SaveAsync()
+    {
+        if (string.IsNullOrWhiteSpace(nameIt) && string.IsNullOrWhiteSpace(nameEn))
+        {
+            error = UiText.ErrFillNames(Lang);
+            return;
+        }
+        var problem = RuleEffectRules.Validate(effects);
+        if (problem is not null)
+        {
+            error = UiText.ModuleError(problem, Lang);
+            return;
+        }
+        var translations = new List<RuleModuleTranslationDto>();
+        if (!string.IsNullOrWhiteSpace(nameIt))
+        {
+            translations.Add(new RuleModuleTranslationDto { Language = LanguageCode.It, Name = nameIt.Trim(), Description = descIt.Trim() });
+        }
+        if (!string.IsNullOrWhiteSpace(nameEn))
+        {
+            translations.Add(new RuleModuleTranslationDto { Language = LanguageCode.En, Name = nameEn.Trim(), Description = descEn.Trim() });
+        }
+        saving = true;
+        error = null;
+        var result = await Modules.SaveAsync(editId, new SaveRuleModuleDto { Ruleset = ruleset, Visibility = visibility, Effects = effects, Translations = translations });
+        saving = false;
+        if (!result.Ok)
+        {
+            error = result.Code is null ? UiText.ErrApiSave(Lang) : UiText.ModuleError(result.Code, Lang);
+            return;
+        }
+        editing = false;
+        await LoadAsync();
+    }
+
+    private async Task DeleteAsync()
+    {
+        if (deleting is { } module && await Modules.DeleteAsync(module.Id))
+        {
+            deleting = null;
+            selected = null;
+            await LoadAsync();
+        }
+    }
+
+    public void Dispose() => LanguageState.OnLanguageChanged -= HandleLanguageChanged;
+}

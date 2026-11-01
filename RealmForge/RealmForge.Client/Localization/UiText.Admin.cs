@@ -1,4 +1,5 @@
-﻿using RealmForge.Shared.Enums;
+﻿using RealmForge.Shared.DTOs;
+using RealmForge.Shared.Enums;
 
 namespace RealmForge.Client.Localization
 {
@@ -9,7 +10,121 @@ namespace RealmForge.Client.Localization
 	{
 		// ===== Global search =====
 		public static string SearchTitle(LanguageCode lang) => T(lang, "Cerca", "Search");
-		public static string SearchPlaceholder(LanguageCode lang) => T(lang, "Cerca nel compendio…", "Search the compendium…");
+		public static string SearchPlaceholder(LanguageCode lang) => T(lang, "Cerca nel compendio (es. Palla di Fuoco, Fireball, Goblin, Guaritore)…",
+			"Search the compendium (e.g. Fireball, Palla di Fuoco, Goblin, Healer)…");
+		public static string SearchRandom(LanguageCode lang) => T(lang, "Voce casuale", "Random entry");
+		public static string SearchRandomHint(LanguageCode lang) => T(lang, "Apri una voce a caso del compendio (della categoria scelta)", "Open a random entry of the compendium (of the chosen kind)");
+		public static string SearchSlashHint(LanguageCode lang) => T(lang, "Premi / da qualsiasi punto della pagina per cercare", "Press / anywhere on the page to search");
+		public static string SearchChipName(string key, LanguageCode lang) => (key, lang == LanguageCode.It) switch
+		{
+			("spell", true) => "Incantesimi", ("spell", false) => "Spells",
+			("monster", true) => "Mostri", ("monster", false) => "Monsters",
+			("item", true) => "Oggetti", ("item", false) => "Items",
+			("class", true) => "Classi", ("class", false) => "Classes",
+			("species", true) => "Specie", ("species", false) => "Species",
+			("feat", true) => "Talenti", ("feat", false) => "Feats",
+			("background", _) => "Background",
+			("rule", true) => "Regole", ("rule", false) => "Rules",
+			_ => key
+		};
+		public static string SearchExplore(LanguageCode lang) => T(lang, "Esplora il compendio", "Explore the compendium");
+		public static string SearchEdition(LanguageCode lang) => T(lang, "Edizione", "Edition");
+		public static string SearchCategoryName(string kind, LanguageCode lang) => (kind, lang == LanguageCode.It) switch
+		{
+			("spell", true) => "Incantesimi", ("spell", false) => "Spells",
+			("monster", true) => "Mostri e PNG", ("monster", false) => "Monsters and NPCs",
+			("equipment", true) => "Equipaggiamento e oggetti", ("equipment", false) => "Equipment and items",
+			("class", true) => "Classi e sottoclassi", ("class", false) => "Classes and subclasses",
+			("species", true) => "Specie e lignaggi", ("species", false) => "Species and lineages",
+			("feat", true) => "Talenti", ("feat", false) => "Feats",
+			("background", _) => "Background",
+			("rule", true) => "Glossario regole", ("rule", false) => "Rules glossary",
+			_ => kind
+		};
+		public static string SearchCategoryText(string kind, LanguageCode lang) => (kind, lang == LanguageCode.It) switch
+		{
+			("spell", true) => "Trucchetti e incantesimi fino al 9° livello per tutte le classi.",
+			("spell", false) => "Cantrips and spells up to 9th level for every class.",
+			("monster", true) => "Statistiche complete, grado di sfida, tratti e azioni leggendarie.",
+			("monster", false) => "Full stat blocks, challenge rating, traits and legendary actions.",
+			("equipment", true) => "Armi, armature, strumenti, dotazioni e oggetti magici.",
+			("equipment", false) => "Weapons, armor, tools, packs and magic items.",
+			("class", true) => "Progressioni dal 1° al 20° livello, privilegi e tabelle di classe.",
+			("class", false) => "Progressions from 1st to 20th level, features and class tables.",
+			("species", true) => "Tratti ancestrali, taglie, velocità e capacità innate.",
+			("species", false) => "Ancestral traits, sizes, speeds and innate abilities.",
+			("feat", true) => "Talenti di origine, generali, stili di combattimento e doni epici.",
+			("feat", false) => "Origin and general feats, fighting styles and epic boons.",
+			("background", true) => "Incrementi di caratteristica, competenze, talento di origine ed equipaggiamento.",
+			("background", false) => "Ability increases, proficiencies, origin feat and equipment.",
+			("rule", true) => "Definizioni per combattimento, magia, esplorazione e condizioni.",
+			("rule", false) => "Definitions for combat, magic, exploration and conditions.",
+			_ => string.Empty
+		};
+		public static string SearchCategoryFilters(string kind, LanguageCode lang) => (kind, lang == LanguageCode.It) switch
+		{
+			("spell", true) => "Filtra per: livello • scuola • classe", ("spell", false) => "Filter by: level • school • class",
+			("monster", true) => "Filtra per: GS • tipo • taglia", ("monster", false) => "Filter by: CR • type • size",
+			("equipment", true) => "Filtra per: categoria • maestria • rarità", ("equipment", false) => "Filter by: category • mastery • rarity",
+			("class", true) => "Mago • Chierico • Guerriero • Druido…", ("class", false) => "Wizard • Cleric • Fighter • Druid…",
+			("species", true) => "Elfo • Nano • Tiefling • Umano…", ("species", false) => "Elf • Dwarf • Tiefling • Human…",
+			("feat", true) => "Filtra per: categoria • prerequisito", ("feat", false) => "Filter by: category • prerequisite",
+			("background", true) => "Accolito • Criminale • Sapiente…", ("background", false) => "Acolyte • Criminal • Sage…",
+			("rule", true) => "Azioni • Condizioni • Copertura • Riposi", ("rule", false) => "Actions • Conditions • Cover • Rests",
+			_ => string.Empty
+		};
+		public static string SearchQuickTitle(LanguageCode lang) => T(lang, "Consultazione rapida al tavolo", "Quick reference at the table");
+		public static string SearchQuickMeta(LanguageCode lang) => T(lang, "Condizioni e regole", "Conditions and rules");
+		public static string SearchRecentTitle(LanguageCode lang) => T(lang, "Visti di recente", "Recently viewed");
+		public static string SearchRecentClear(LanguageCode lang) => T(lang, "Pulisci", "Clear");
+		public static string SearchRecentEmpty(LanguageCode lang) => T(lang, "Le voci che apri da qui compaiono in questa lista (solo su questo browser).",
+			"The entries you open from here show in this list (in this browser only).");
+
+		//	"1° livello · Invocazione", "GS 1/4 · Umanoide", "Raro", "Arma", "Talento generale", "Condizione"
+		public static string SearchDetail(SearchResultDto hit, LanguageCode lang)
+		{
+			if (hit.Detail is not { } d)
+			{
+				return string.Empty;
+			}
+			var parts = new List<string>();
+			if (d.SpellLevel is { } level)
+			{
+				parts.Add(level == 0 ? T(lang, "Trucchetto", "Cantrip") : T(lang, $"{level}° livello", $"Level {level}"));
+			}
+			if (d.School is { } school)
+			{
+				parts.Add(Shared.Localization.GameTerms.SchoolName(school, lang));
+			}
+			if (d.Challenge is { } cr)
+			{
+				parts.Add(T(lang, "GS ", "CR ") + Shared.Monsters.MonsterMath.FormatChallenge(cr));
+			}
+			if (d.Creature is { } creature)
+			{
+				parts.Add(FormatCreatureType(creature, lang));
+			}
+			if (d.Rarity is { } rarity)
+			{
+				parts.Add(RarityName(rarity, lang));
+			}
+			if (d.Equipment is { } category)
+			{
+				parts.Add(Shared.Localization.EquipmentTerms.CategoryName(category, lang));
+			}
+			if (d.Feat is { } feat)
+			{
+				parts.Add(FormatFeatCategory(feat, lang));
+			}
+			if (d.Rule is { } rule)
+			{
+				parts.Add(RuleCategoryName(rule, lang));
+			}
+			return string.Join(" · ", parts);
+		}
+
+		public static string SearchRecentDetail(SearchResultDto hit, LanguageCode lang) =>
+			SearchDetail(hit, lang) is { Length: > 0 } detail ? detail : (hit.OtherName ?? string.Empty);
 		public static string SearchHint(LanguageCode lang) => T(lang,
 			"Incantesimi, mostri, oggetti, classi, specie, talenti e regole, in italiano o in inglese.",
 			"Spells, monsters, items, classes, species, feats and rules, in Italian or English.");
