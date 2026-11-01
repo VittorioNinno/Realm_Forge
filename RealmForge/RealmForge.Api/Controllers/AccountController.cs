@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
+using RealmForge.Api.Email;
 using RealmForge.Api.Security;
 using RealmForge.Infrastructure.Identity;
 using RealmForge.Infrastructure.Persistence;
@@ -104,7 +105,8 @@ namespace RealmForge.Api.Controllers
 		//	DELETE: api/account — the password confirms it; the data goes as AccountDeletion describes, then the account
 		[HttpDelete]
 		[EnableRateLimiting(Program.AuthRateLimit)]
-		public async Task<ActionResult<AccountDeletedDto>> DeleteAccount([FromBody] DeleteAccountRequestDto request, [FromServices] AccountDeletion deletion)
+		public async Task<ActionResult<AccountDeletedDto>> DeleteAccount([FromBody] DeleteAccountRequestDto request, [FromServices] AccountDeletion deletion,
+			[FromServices] AccountNotices notices)
 		{
 			var user = await _users.GetUserAsync(User);
 			if (user == null)
@@ -116,11 +118,16 @@ namespace RealmForge.Api.Controllers
 				return Problem(statusCode: StatusCodes.Status400BadRequest, title: "Wrong password.");
 			}
 
+			var email = user.Email;
 			var outcome = await deletion.RemoveDataAsync(user.Id);
 			var result = await _users.DeleteAsync(user);
 			if (!result.Succeeded)
 			{
 				return Problem(statusCode: StatusCodes.Status500InternalServerError, title: "The account could not be deleted.");
+			}
+			if (email is { Length: > 0 })
+			{
+				await notices.DeletedAsync(email, byAdministrator: false);
 			}
 			return Ok(new AccountDeletedDto(outcome.Characters, outcome.HomebrewDeleted, outcome.HomebrewKept, outcome.CampaignsDeleted, outcome.CampaignsHandedOver));
 		}
