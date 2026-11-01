@@ -27,7 +27,7 @@
                 </label>
                 <label class="d-block">
                     <span class="rf-form-label">@UiText.SessionWhen(Lang)</span>
-                    <input class="rf-form-control" type="datetime-local" @bind="when" @bind:format="yyyy-MM-ddTHH:mm" data-test="session-when" />
+                    <input class="rf-form-control" type="datetime-local" value="@WhenText" @onchange="e => WhenText = e.Value?.ToString()" data-test="session-when" />
                 </label>
                 <div data-test="session-status">
                     <span class="rf-form-label">@UiText.SessionStatusLabel(Lang)</span>
@@ -172,6 +172,16 @@
     private int editingNumber;
     private SaveCampaignSessionDto draft = new();
     private DateTime? when;
+
+    //	The browser gives and takes "2026-11-14T21:00" whatever the language: parsed by hand, not with the culture
+    private const string WhenFormat = "yyyy-MM-dd'T'HH':'mm";
+
+    private string? WhenText
+    {
+        get => when?.ToString(WhenFormat, System.Globalization.CultureInfo.InvariantCulture);
+        set => when = DateTime.TryParseExact(value?.Length > 16 ? value[..16] : value, WhenFormat, System.Globalization.CultureInfo.InvariantCulture,
+            System.Globalization.DateTimeStyles.None, out var parsed) ? parsed : null;
+    }
     private string? error;
     private bool saving;
     private CampaignSessionDto? removing;
