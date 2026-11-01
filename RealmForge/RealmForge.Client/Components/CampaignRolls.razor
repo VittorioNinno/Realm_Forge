@@ -85,7 +85,7 @@
                     <li class="rf-roll @(r.IsMine ? "mine" : null) @(fresh.Contains(r.Id) ? "fresh" : null) @Outcome(r)" data-test="roll">
                         <div class="rf-roll-who">
                             <span class="rf-roll-swatch" style="background-color: @r.Color;"></span>
-                            <span class="rf-roll-name" style="color: @r.Color;" data-test="roll-roller">@r.Roller</span>
+                            <span class="rf-roll-name @(r.Removed ? "removed" : null)" style="color: @r.Color;" data-test="roll-roller">@(r.Removed && !r.IsCharacter ? UiText.RollDeletedAccount(Lang) : r.Roller)</span>
                             @if (r.Hidden)
                             {
                                 <span class="rf-roll-hidden"><Icon Name="eye-slash" /> @UiText.RollHiddenBadge(Lang)</span>

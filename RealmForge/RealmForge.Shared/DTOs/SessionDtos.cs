@@ -53,7 +53,8 @@ namespace RealmForge.Shared.DTOs
 		string? Note,
 		bool Hidden,
 		bool IsMine,
-		DateTimeOffset CreatedAt);
+		DateTimeOffset CreatedAt,
+		bool Removed = false);
 
 	///	<summary>
 	///	A new roll. With Expression and no Dice the server rolls it (the shared roller of the campaign page); a roll made on

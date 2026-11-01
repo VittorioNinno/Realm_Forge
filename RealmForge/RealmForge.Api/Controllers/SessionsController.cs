@@ -337,8 +337,8 @@ namespace RealmForge.Api.Controllers
 		}
 
 		private CampaignRollDto ToDto(CampaignRoll r) =>
-			new(r.Id, string.IsNullOrEmpty(r.Roller) ? "•••" : r.Roller, r.Color, r.CharacterId is not null, r.Label, r.Expression, Read(r.Dice), r.Modifier, r.Total,
-				r.Note, r.Hidden, r.UserId == UserId, r.CreatedAt);
+			new(r.Id, r.Roller, r.Color, r.CharacterId is not null, r.Label, r.Expression, Read(r.Dice), r.Modifier, r.Total,
+				r.Note, r.Hidden, r.UserId == UserId, r.CreatedAt, string.IsNullOrEmpty(r.UserId));
 
 		private static List<RollDieDto> Read(string json)
 		{

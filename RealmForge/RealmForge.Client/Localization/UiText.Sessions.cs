@@ -70,6 +70,7 @@ namespace RealmForge.Client.Localization
 		public static string RollLabel(LanguageCode lang) => T(lang, "Per cosa (facoltativo)", "What for (optional)");
 		public static string RollAs(LanguageCode lang) => T(lang, "Tira come", "Roll as");
 		public static string RollAsMe(LanguageCode lang) => T(lang, "Me stesso", "Myself");
+		public static string RollDeletedAccount(LanguageCode lang) => T(lang, "Account eliminato", "Deleted account");
 		public static string RollMyColor(LanguageCode lang) => T(lang, "Il tuo colore in questa campagna", "Your colour in this campaign");
 		public static string BtnRoll(LanguageCode lang) => T(lang, "Tira", "Roll");
 		public static string RollHidden(LanguageCode lang) => T(lang, "Dietro lo schermo", "Behind the screen");

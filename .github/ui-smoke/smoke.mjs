@@ -655,6 +655,17 @@ try {
   await page.getByRole('button', { name: 'Aggiorna password' }).click();
   await page.getByText('Password aggiornata.').waitFor({ timeout: 15000 });
   ok('account page: role "Utente", Homebrew counts (0 feats, 1 background), password change rejects a wrong current password and succeeds with the right one');
+  // Account deletion asks for the password: a wrong one is refused and the account stays (the dialog is then closed)
+  await page.locator('[data-test=account-delete-open]').click();
+  await page.locator('[data-test=account-delete-confirm]').waitFor({ timeout: 5000 });
+  await page.locator('[data-test=account-delete-password]').fill('wrong-password-1A!');
+  await page.locator('[data-test=account-delete-yes]').click();
+  await page.locator('[data-test=account-delete-error]', { hasText: 'Password non corretta' }).waitFor({ timeout: 15000 });
+  await shot(page, 'account-delete', '[data-test=account-delete-confirm]');
+  await page.locator('[data-test=account-delete-confirm]').getByRole('button', { name: 'Annulla' }).click();
+  await page.locator('[data-test=account-delete-confirm]').waitFor({ state: 'detached', timeout: 5000 });
+  await shot(page, 'account-danger', '[data-test=account-delete]');
+  ok('account deletion: the dialog asks for the password, a wrong one is refused and nothing is deleted');
 
   // Character creation at phone width (375 px): edition order, every step of the 2024 wizard (overflow checked),
   // the interactive sheet (damage saved on its own, rests, tabs, PDF), a level up into a second class and the list
@@ -1113,6 +1124,8 @@ try {
   await page.locator('[data-test=campaign-tab-rolls]').click();
   await page.locator('[data-test=roll]', { hasText: 'Iniziativa' }).waitFor({ timeout: 15000 });
   campaignUi.rolls = (await page.locator('[data-test=roll] [data-test=roll-label-text]').allInnerTexts()).join(',');
+  campaignUi.rollers = (await page.locator('[data-test=roll-roller]').allInnerTexts()).join(',');
+  campaignUi.rollerColors = await page.locator('[data-test=roll-roller]').evaluateAll((els) => els.map((e) => getComputedStyle(e).color).join('|'));
   await shot(page, 'campaign-rolls', 'main');
   await page.setViewportSize({ width: 390, height: 844 });
   await page.waitForTimeout(300);
@@ -1160,7 +1173,7 @@ try {
     || campaignUi.cardButtons !== 0 || !campaignUi.cardOpens || campaignUi.listActions !== 2 || !campaignUi.toggled || campaignUi.noteKinds !== 'Diario di viaggio,Personali,Per i master' || campaignUi.leftFromSheet !== 1
     || !/Prossima sessione/i.test(campaignUi.session) || !/tra 3 giorni/.test(campaignUi.session) || !/Il lich/.test(campaignUi.session)
     || !/Sessione 1/i.test(campaignUi.nextSession) || !/21:00/.test(campaignUi.nextSession) || campaignUi.sheetShared !== 1
-    || campaignUi.rolls !== 'Iniziativa,Danni della spada') throw new Error(`unexpected campaign page: ${JSON.stringify(campaignUi)}`);
+    || campaignUi.rolls !== 'Iniziativa,Danni della spada' || campaignUi.rollers !== 'Eroe di prova,Master') throw new Error(`unexpected campaign page: ${JSON.stringify(campaignUi)}`);
   ok('campaigns: the creator is the master with an invite link, the character joins the table (the whole card opens the sheet, deactivated and activated again; its card in the list shows the campaign), a journal page, an encounter with three goblins run to round 2, the character leaves from its sheet, the campaign is deleted, restored from the bin, deleted again and purged');
   await page.goto(sheetUrl);
   await page.locator('[data-test=character-sheet]').waitFor({ timeout: 30000 });
