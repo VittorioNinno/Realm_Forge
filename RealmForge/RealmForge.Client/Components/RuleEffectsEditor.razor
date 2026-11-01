@@ -78,7 +78,7 @@
                         <div class="col-sm-6">
                             <label class="rf-form-label">@UiText.EffectArmorLabel(Lang)</label>
                             <RfSelect TValue="string" Value="effect.Text" ValueChanged="v => { effect.Text = v; Changed(); }"
-                                      Options="@RuleEffectRules.ArmorTexts.Select(a => new RfSelect<string>.OptionItem(a, UiText.EffectArmorName(a, Lang))).ToList()" />
+                                      Options="ArmorOptions" />
                         </div>
                         break;
                     case RuleEffectKind.ToolProficiency or RuleEffectKind.Language:
@@ -92,7 +92,7 @@
                         <div class="col-sm-8" data-test="effect-damage">
                             <label class="rf-form-label">@UiText.EffectDamageLabel(Lang)</label>
                             <RfSelect TValue="DamageType?" Value="effect.DamageType" ValueChanged="d => { effect.DamageType = d; Changed(); }"
-                                      Options="@Enum.GetValues<DamageType>().Select(d => new RfSelect<DamageType?>.OptionItem(d, EquipmentTerms.DamageTypeName(d, Lang))).OrderBy(o => o.Label).ToList()" />
+                                      Options="DamageOptions" />
                         </div>
                         break;
                     case RuleEffectKind.ExtraAbility:
@@ -108,7 +108,7 @@
                         </div>
                         <div class="col-6 col-sm-3">
                             <label class="rf-form-label">@UiText.EffectShortIt(Lang)</label>
-                            <input type="text" class="rf-form-control" maxlength="4" value="@effect.ShortIt" placeholder="@ShortOf(effect.NameIt)"
+                            <input type="text" class="rf-form-control" maxlength="4" value="@effect.ShortIt" placeholder="@ShortOf(effect.NameIt)" data-test="effect-short-it"
                                    @onchange="e => { effect.ShortIt = e.Value?.ToString(); Changed(); }" />
                         </div>
                         <div class="col-6 col-sm-3">
@@ -148,7 +148,7 @@
                         <div class="col-sm-6" data-test="effect-uses">
                             <label class="rf-form-label">@UiText.EffectUsesLabel(Lang)</label>
                             <RfSelect TValue="ResourceUses" Value="effect.Uses" ValueChanged="u => { effect.Uses = u; Changed(); }"
-                                      Options="@Enum.GetValues<ResourceUses>().Select(u => new RfSelect<ResourceUses>.OptionItem(u, UiText.EffectUsesName(u, Lang))).ToList()" />
+                                      Options="UsesOptions" />
                         </div>
                         <div class="col-sm-6">@ValueInput(effect, effect.Uses == ResourceUses.Fixed ? 1 : -5, effect.Uses == ResourceUses.Fixed ? 50 : 10)</div>
                         @if (effect.Uses == ResourceUses.AbilityModifier)
@@ -184,6 +184,11 @@
         .Select(k => new RfSelect<RuleEffectKind>.OptionItem(k, $"{UiText.EffectGroup(UiText.EffectGroupOf(k), Lang)} · {UiText.EffectKindName(k, Lang)}"))
         .ToList();
 
+    private List<RfSelect<ResourceUses>.OptionItem> UsesOptions => Enum.GetValues<ResourceUses>().Select(u => new RfSelect<ResourceUses>.OptionItem(u, UiText.EffectUsesName(u, Lang))).ToList();
+    private List<RfSelect<Skill?>.OptionItem> SkillOptions => Enum.GetValues<Skill>().Select(s => new RfSelect<Skill?>.OptionItem(s, GameTerms.SkillName(s, Lang))).OrderBy(o => o.Label).ToList();
+    private List<RfSelect<DamageType?>.OptionItem> DamageOptions => Enum.GetValues<DamageType>().Select(d => new RfSelect<DamageType?>.OptionItem(d, EquipmentTerms.DamageTypeName(d, Lang))).OrderBy(o => o.Label).ToList();
+    private List<RfSelect<string>.OptionItem> ArmorOptions => RuleEffectRules.ArmorTexts.Select(a => new RfSelect<string>.OptionItem(a, UiText.EffectArmorName(a, Lang))).ToList();
+
     //	The six abilities and the ones added by this list (their key)
     private List<RfSelect<string>.OptionItem> AbilityOptions => Enum.GetValues<AbilityScore>()
         .Select(a => new RfSelect<string>.OptionItem(((int)a).ToString(), FeatPrerequisiteFormatter.AbilityName(a, Lang)))
@@ -208,7 +213,7 @@
         @<div data-test="effect-skill">
             <label class="rf-form-label">@UiText.EffectSkillLabel(Lang)</label>
             <RfSelect TValue="Skill?" Value="effect.Skill" ValueChanged="s => { effect.Skill = s; Changed(); }"
-                      Options="@Enum.GetValues<Skill>().Select(s => new RfSelect<Skill?>.OptionItem(s, GameTerms.SkillName(s, Lang))).OrderBy(o => o.Label).ToList()" />
+                      Options="SkillOptions" />
         </div>;
 
     private static string? AbilityValue(RuleEffect e) => e.Ability is { } a ? ((int)a).ToString() : e.AbilityKey is { } key ? "x:" + key : null;
