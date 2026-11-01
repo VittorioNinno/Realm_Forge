@@ -40,7 +40,13 @@ namespace RealmForge.Client.Services
 				var response = await _http.PostAsJsonAsync("api/auth/login", new { email, password });
 				if (!response.IsSuccessStatusCode)
 				{
-					return AuthResult.Fail(response.StatusCode == System.Net.HttpStatusCode.TooManyRequests ? "TooManyRequests" : "InvalidCredentials");
+					if (response.StatusCode == System.Net.HttpStatusCode.TooManyRequests)
+					{
+						return AuthResult.Fail("TooManyRequests");
+					}
+					//	A locked account (failed attempts or an administrator): Identity answers 401 with "Lockedout" as detail
+					var problem = await response.Content.ReadAsStringAsync();
+					return AuthResult.Fail(problem.Contains("Lockedout", StringComparison.OrdinalIgnoreCase) ? "LockedOut" : "InvalidCredentials");
 				}
 
 				var body = await response.Content.ReadFromJsonAsync<AccessTokenResponse>();

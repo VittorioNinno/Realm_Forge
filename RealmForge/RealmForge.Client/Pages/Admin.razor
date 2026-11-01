@@ -1,0 +1,300 @@
+﻿@page "/admin"
+@using RealmForge.Client.Localization
+@using RealmForge.Client.Services
+@using RealmForge.Shared.DTOs
+@using RealmForge.Shared.Enums
+@inject AdminDataService Data
+@inject LanguageStateService LanguageState
+
+<PageTitle>RealmForge - @UiText.AdminTitle(Lang)</PageTitle>
+
+@* Administration: the figures of the site, the accounts (suspend, reactivate, delete) and the moderation of the Homebrew *@
+<div class="container-fluid px-0 py-4" style="max-width: 1040px;" data-test="admin-page">
+    <div class="mb-4 pb-3" style="border-bottom: 2px solid var(--rf-orange-primary);">
+        <h1 class="h3 fw-bold mb-2 rf-page-title">@UiText.AdminTitle(Lang)</h1>
+        <p class="mb-0 small" style="color: var(--rf-text-muted); letter-spacing: 1px; text-transform: uppercase;">@UiText.AdminSubtitle(Lang)</p>
+    </div>
+
+    @if (denied)
+    {
+        <div class="rf-account-card text-center" data-test="admin-denied">@UiText.AdminDenied(Lang)</div>
+    }
+    else if (stats is null)
+    {
+        <div class="small" style="color: var(--rf-text-muted);">…</div>
+    }
+    else
+    {
+        <div class="rf-admin-stats mb-4" data-test="admin-stats">
+            @Stat(stats.Users, UiText.AdminStatUsers(Lang))
+            @Stat(stats.ConfirmedUsers, UiText.AdminStatConfirmed(Lang))
+            @Stat(stats.LockedUsers, UiText.AdminStatLocked(Lang))
+            @Stat(stats.Characters, UiText.AdminStatCharacters(Lang))
+            @Stat(stats.Campaigns, UiText.AdminStatCampaigns(Lang))
+            @Stat(stats.Homebrew, UiText.AdminStatHomebrew(Lang))
+            @Stat(stats.PublicHomebrew, UiText.AdminStatPublic(Lang))
+        </div>
+
+        @if (message is not null)
+        {
+            <div class="alert alert-warning bg-dark border-warning text-warning p-2 small mb-3" data-test="admin-message">@message</div>
+        }
+
+        <div class="rf-sheet-tabs mb-3" role="tablist">
+            <button type="button" role="tab" class="rf-sheet-tab @(tab == 0 ? "active" : null)" @onclick="() => tab = 0" data-test="admin-tab-users">@UiText.AdminTabUsers(Lang)</button>
+            <button type="button" role="tab" class="rf-sheet-tab @(tab == 1 ? "active" : null)" @onclick="ShowHomebrewAsync" data-test="admin-tab-homebrew">@UiText.AdminTabHomebrew(Lang)</button>
+        </div>
+
+        @if (tab == 0)
+        {
+            <div class="rf-search-box mb-3">
+                <Icon Name="search" />
+                <input class="rf-form-control" type="search" placeholder="@UiText.AdminUserSearch(Lang)" @bind="userQuery" @bind:event="oninput" @bind:after="SearchUsersAsync" data-test="admin-user-search" />
+            </div>
+            <div class="rf-card2" data-test="admin-users">
+                @if (users is null)
+                {
+                    <div class="small" style="color: var(--rf-text-muted);">…</div>
+                }
+                else
+                {
+                    @foreach (var user in users)
+                    {
+                        var u = user;
+                        <div class="rf-admin-row @(u.LockedUntil is not null ? "locked" : null)" data-test="admin-user">
+                            <div class="rf-admin-row-main">
+                                <div class="rf-admin-row-title">
+                                    <span>@u.Email</span>
+                                    @if (u.Nickname is not null)
+                                    {
+                                        <span class="rf-admin-muted">· @u.Nickname</span>
+                                    }
+                                    @if (u.IsAdmin)
+                                    {
+                                        <span class="badge badge-edition-2024">@UiText.AdminBadge(Lang)</span>
+                                    }
+                                    @if (u.IsMe)
+                                    {
+                                        <span class="badge badge-edition-2014">@UiText.AdminYou(Lang)</span>
+                                    }
+                                    @if (u.LockedUntil is { } until)
+                                    {
+                                        <span class="rf-admin-locked" data-test="admin-user-locked"><Icon Name="person-lock" /> @UiText.AdminLockedUntil(until, Lang)</span>
+                                    }
+                                </div>
+                                <div class="rf-admin-muted small">
+                                    @UiText.AdminUserOwns(u.Characters, u.Homebrew, u.Campaigns, Lang)
+                                    @if (u.RegisteredAt is { } at)
+                                    {
+                                        <text> · @UiText.AdminRegistered(at, Lang)</text>
+                                    }
+                                    @if (!u.EmailConfirmed)
+                                    {
+                                        <text> · @UiText.AdminUnverified(Lang)</text>
+                                    }
+                                </div>
+                            </div>
+                            @if (!u.IsAdmin && !u.IsMe)
+                            {
+                                <div class="rf-admin-row-actions">
+                                    @if (u.LockedUntil is null)
+                                    {
+                                        <button type="button" class="btn btn-sm btn-rf-outline" @onclick="() => { suspending = u; lockDays = 7; }" data-test="admin-user-suspend">@UiText.BtnSuspend(Lang)</button>
+                                    }
+                                    else
+                                    {
+                                        <button type="button" class="btn btn-sm btn-rf-outline" @onclick="() => LockAsync(u, 0)" data-test="admin-user-reactivate">@UiText.BtnReactivate(Lang)</button>
+                                    }
+                                    <button type="button" class="btn btn-sm btn-rf-outline rf-btn-danger" @onclick="() => deleting = u" data-test="admin-user-delete"><Icon Name="trash" /></button>
+                                </div>
+                            }
+                        </div>
+                    }
+                }
+            </div>
+        }
+        else
+        {
+            <div class="small mb-3" style="color: var(--rf-text-muted);">@UiText.AdminHomebrewHint(Lang)</div>
+            <div class="rf-pill-group rf-subtabs mb-3" role="tablist" data-test="admin-homebrew-filter">
+                @foreach (var option in new ContentVisibility?[] { ContentVisibility.Public, ContentVisibility.Link, ContentVisibility.Private, null })
+                {
+                    var current = option;
+                    <button type="button" role="tab" class="rf-pill-btn @(visibility == current ? "active" : null)" @onclick="() => FilterAsync(current)">
+                        @(current is { } v ? UiText.FormatVisibility(v, Lang) : UiText.AdminHomebrewFilterAll(Lang))
+                    </button>
+                }
+            </div>
+            <div class="rf-card2" data-test="admin-homebrew">
+                @if (homebrew is null)
+                {
+                    <div class="small" style="color: var(--rf-text-muted);">…</div>
+                }
+                else if (homebrew.Count == 0)
+                {
+                    <div class="small" style="color: var(--rf-text-muted);">@UiText.AdminHomebrewEmpty(Lang)</div>
+                }
+                else
+                {
+                    @foreach (var entry in homebrew)
+                    {
+                        var e = entry;
+                        <div class="rf-admin-row" data-test="admin-homebrew-entry">
+                            <div class="rf-admin-row-main">
+                                <div class="rf-admin-row-title">
+                                    <a href="@e.Link">@e.Name</a>
+                                    <span class="rf-admin-muted">· @UiText.CampaignKindName(e.Kind, Lang)</span>
+                                    <span class="badge @(e.Ruleset == RulesetVersion.Dnd5e_2024 ? "badge-edition-2024" : "badge-edition-2014")">@(e.Ruleset == RulesetVersion.Dnd5e_2024 ? "2024" : "2014")</span>
+                                </div>
+                                <div class="rf-admin-muted small">
+                                    @UiText.AdminHomebrewBy(e.Author, Lang) · @UiText.AdminHomebrewShared(e.SharedWith, e.Campaigns, Lang)
+                                </div>
+                            </div>
+                            <div class="rf-admin-row-actions" data-test="admin-homebrew-visibility">
+                                <RfSelect TValue="ContentVisibility" Value="e.Visibility" ValueChanged="v => SetVisibilityAsync(e, v)" Options="VisibilityOptions" />
+                            </div>
+                        </div>
+                    }
+                }
+            </div>
+        }
+    }
+</div>
+
+@if (suspending is not null)
+{
+    <div class="rf-modal-backdrop" @onclick="() => suspending = null">
+        <div class="rf-modal-dialog" style="max-width: 480px;" @onclick:stopPropagation="true" data-test="admin-suspend-confirm">
+            <h2 class="h5 mb-3 pb-2" style="border-bottom: 1px solid var(--rf-border-light); font-family: var(--rf-font-display);">@UiText.AdminSuspendTitle(suspending.Email, Lang)</h2>
+            <p class="small" style="color: var(--rf-text-secondary);">@UiText.AdminSuspendHint(Lang)</p>
+            <div class="rf-pill-group mb-3">
+                @foreach (var days in new[] { 1, 7, 30, 3650 })
+                {
+                    var d = days;
+                    <button type="button" class="rf-pill-btn @(lockDays == d ? "active" : null)" @onclick="() => lockDays = d" data-test="@("admin-suspend-" + d)">@UiText.AdminSuspendDays(d, Lang)</button>
+                }
+            </div>
+            <div class="d-flex justify-content-end gap-2">
+                <button type="button" class="btn btn-sm btn-rf-outline" @onclick="() => suspending = null">@UiText.BtnCancel(Lang)</button>
+                <button type="button" class="btn btn-sm btn-rf-orange" @onclick="() => LockAsync(suspending, lockDays)" data-test="admin-suspend-yes">@UiText.BtnSuspend(Lang)</button>
+            </div>
+        </div>
+    </div>
+}
+
+@if (deleting is not null)
+{
+    <div class="rf-modal-backdrop" @onclick="() => deleting = null">
+        <div class="rf-modal-dialog" style="max-width: 480px;" @onclick:stopPropagation="true" data-test="admin-delete-confirm">
+            <h2 class="h5 mb-3 pb-2" style="border-bottom: 1px solid var(--rf-border-light); font-family: var(--rf-font-display);">@UiText.AdminDeleteTitle(deleting.Email, Lang)</h2>
+            <p class="small" style="color: var(--rf-text-secondary);">@UiText.AdminDeleteHint(Lang)</p>
+            <div class="d-flex justify-content-end gap-2">
+                <button type="button" class="btn btn-sm btn-rf-outline" @onclick="() => deleting = null">@UiText.BtnCancel(Lang)</button>
+                <button type="button" class="btn btn-sm rf-btn-danger-solid" @onclick="DeleteAsync" data-test="admin-delete-yes">@UiText.BtnDeleteAccountForever(Lang)</button>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private LanguageCode Lang => LanguageState.CurrentLanguage;
+    private bool denied;
+    private AdminStatsDto? stats;
+    private List<AdminUserDto>? users;
+    private List<AdminHomebrewDto>? homebrew;
+    private ContentVisibility? visibility = ContentVisibility.Public;
+    private int tab;
+    private string userQuery = string.Empty;
+    private string? message;
+    private AdminUserDto? suspending;
+    private AdminUserDto? deleting;
+    private int lockDays = 7;
+    private CancellationTokenSource? typing;
+
+    private List<RfSelect<ContentVisibility>.OptionItem> VisibilityOptions => new[] { ContentVisibility.Public, ContentVisibility.Link, ContentVisibility.Private }
+        .Select(v => new RfSelect<ContentVisibility>.OptionItem(v, UiText.FormatVisibility(v, Lang)))
+        .ToList();
+
+    private static RenderFragment Stat(int value, string label) =>
+        @<div class="rf-admin-stat"><span class="rf-admin-stat-value">@value</span><span class="rf-admin-stat-label">@label</span></div>;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var (value, status) = await Data.GetStatsAsync();
+        if (value is null)
+        {
+            denied = status is System.Net.HttpStatusCode.Forbidden or System.Net.HttpStatusCode.Unauthorized;
+            message = denied ? null : UiText.AdminActionFailed(status, Lang);
+            return;
+        }
+        stats = value;
+        await LoadUsersAsync();
+    }
+
+    private async Task LoadUsersAsync() => users = (await Data.GetUsersAsync(userQuery)).Value ?? new List<AdminUserDto>();
+
+    private async Task LoadStatsAsync() => stats = (await Data.GetStatsAsync()).Value ?? stats;
+
+    private async Task SearchUsersAsync()
+    {
+        typing?.Cancel();
+        var cts = typing = new CancellationTokenSource();
+        try
+        {
+            await Task.Delay(300, cts.Token);
+        }
+        catch (TaskCanceledException)
+        {
+            return;
+        }
+        await LoadUsersAsync();
+    }
+
+    private async Task ShowHomebrewAsync()
+    {
+        tab = 1;
+        if (homebrew is null)
+        {
+            await LoadHomebrewAsync();
+        }
+    }
+
+    private async Task LoadHomebrewAsync() => homebrew = (await Data.GetHomebrewAsync(visibility, Lang)).Value ?? new List<AdminHomebrewDto>();
+
+    private async Task FilterAsync(ContentVisibility? value)
+    {
+        visibility = value;
+        homebrew = null;
+        await LoadHomebrewAsync();
+    }
+
+    private async Task LockAsync(AdminUserDto user, int days)
+    {
+        suspending = null;
+        var failed = await Data.LockAsync(user.Id, days);
+        message = failed is null ? null : UiText.AdminActionFailed(failed, Lang);
+        await LoadUsersAsync();
+        await LoadStatsAsync();
+    }
+
+    private async Task DeleteAsync()
+    {
+        if (deleting is not { } user)
+        {
+            return;
+        }
+        deleting = null;
+        var failed = await Data.DeleteUserAsync(user.Id);
+        message = failed is null ? null : UiText.AdminActionFailed(failed, Lang);
+        await LoadUsersAsync();
+        await LoadStatsAsync();
+    }
+
+    private async Task SetVisibilityAsync(AdminHomebrewDto entry, ContentVisibility value)
+    {
+        var failed = await Data.SetVisibilityAsync(entry.Id, value);
+        message = failed is null ? null : UiText.AdminActionFailed(failed, Lang);
+        await LoadHomebrewAsync();
+        await LoadStatsAsync();
+    }
+}
