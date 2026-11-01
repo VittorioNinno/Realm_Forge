@@ -942,6 +942,69 @@ jobs:
           trcheck "anonymous" "$tr_anon" "401"
           test "$trfail" = "0"
 
+          # Sessions and dice log: bob (master) plans the sessions, alice (player) reads them without the master's notes;
+          # the server rolls the shared roller, hidden rolls stay behind the screen, the master clears the log
+          ss_cp=$(curl -sf -X POST "$api/api/campaigns?lang=2" $json -H "Authorization: Bearer $B" -d '{"name":"Tavolo delle sessioni","ruleset":2}' | jq -r .id)
+          code -X POST "$api/api/campaigns/$ss_cp/invites" $json -H "Authorization: Bearer $B" -d '{"email":"alice@example.com","role":3}' >/dev/null
+          ss_inv=$(curl -sf "$api/api/campaigns/invitations" -H "Authorization: Bearer $A" | jq -r --arg c "$ss_cp" '[.[] | select(.campaignId == $c)][0].id')
+          code -X POST "$api/api/campaigns/invitations/$ss_inv/accept" -H "Authorization: Bearer $A" >/dev/null
+          session='{"title":"La cripta","scheduledAt":"2026-11-14T20:00:00Z","status":1,"plan":"Portate i dadi","recap":"","masterNotes":"Il lich è il sindaco"}'
+          ss_player_add=$(code -X POST "$api/api/campaigns/$ss_cp/sessions" $json -H "Authorization: Bearer $A" -d "$session")
+          ss_bad=$(code -X POST "$api/api/campaigns/$ss_cp/sessions" $json -H "Authorization: Bearer $B" -d '{"status":9}')
+          ss_first=$(curl -s -X POST "$api/api/campaigns/$ss_cp/sessions" $json -H "Authorization: Bearer $B" -d "$session" | jq -c '{number, status, notes: .masterNotes, canEdit}')
+          ss_id=$(curl -s -X POST "$api/api/campaigns/$ss_cp/sessions" $json -H "Authorization: Bearer $B" -d "$session" | jq -r .id)
+          ss_put=$(curl -s -X PUT "$api/api/campaigns/$ss_cp/sessions/$ss_id" $json -H "Authorization: Bearer $B" \
+            -d "$(echo "$session" | jq '.status = 2 | .recap = "Il lich è scappato"')" | jq -c '{number, status, recap}')
+          ss_player_put=$(code -X PUT "$api/api/campaigns/$ss_cp/sessions/$ss_id" $json -H "Authorization: Bearer $A" -d "$session")
+          ss_player_list=$(curl -s "$api/api/campaigns/$ss_cp/sessions" -H "Authorization: Bearer $A" | jq -c '[.[] | {number, notes: .masterNotes, canEdit, when: .scheduledAt}]')
+          ss_outsider=$(code "$api/api/campaigns/$ss_cp/sessions" -H "Authorization: Bearer $(curl -sf -X POST $api/api/auth/login $json -d "$(jq -nc --arg p "$NEWPW" '{email:"carol@example.com",password:$p}')" | jq -r .accessToken)")
+          ss_player_delete=$(code -X DELETE "$api/api/campaigns/$ss_cp/sessions/$ss_id" -H "Authorization: Bearer $A")
+          ss_delete=$(code -X DELETE "$api/api/campaigns/$ss_cp/sessions/$ss_id" -H "Authorization: Bearer $B")
+          rl=$(curl -s -X POST "$api/api/campaigns/$ss_cp/rolls" $json -H "Authorization: Bearer $A" -d '{"expression":"1d20 + 5","label":"Percezione"}')
+          rl_alice=$(echo "$rl" | jq -c '{expression, label, dice: (.dice | length), ok: (.total >= 6 and .total <= 25 and .total == .dice[0].value + 5), mine: .isMine}')
+          rl_adv=$(curl -s -X POST "$api/api/campaigns/$ss_cp/rolls" $json -H "Authorization: Bearer $A" -d '{"expression":"2d20kh1"}' \
+            | jq -c '{label, dropped: ([.dice[] | select(.dropped)] | length), ok: (.total == ([.dice[].value] | max))}')
+          rl_bad=$(code -X POST "$api/api/campaigns/$ss_cp/rolls" $json -H "Authorization: Bearer $A" -d '{"expression":"1d20 5"}')
+          rl_hidden_player=$(code -X POST "$api/api/campaigns/$ss_cp/rolls" $json -H "Authorization: Bearer $A" -d '{"expression":"1d6","hidden":true}')
+          rl_hidden=$(code -X POST "$api/api/campaigns/$ss_cp/rolls" $json -H "Authorization: Bearer $B" -d '{"expression":"1d100","label":"Tabella incontri","hidden":true}')
+          rl_foreign=$(code -X POST "$api/api/campaigns/$ss_cp/rolls" $json -H "Authorization: Bearer $A" \
+            -d "{\"characterId\":\"$(uuidgen)\",\"dice\":[{\"sides\":20,\"value\":12}],\"modifier\":3,\"total\":15}")
+          rl_cheat=$(code -X POST "$api/api/campaigns/$ss_cp/rolls" $json -H "Authorization: Bearer $A" -d '{"dice":[{"sides":20,"value":25}],"modifier":0}')
+          rl_alice_log=$(curl -s "$api/api/campaigns/$ss_cp/rolls" -H "Authorization: Bearer $A" | jq -c '[.[] | .label]')
+          rl_bob_log=$(curl -s "$api/api/campaigns/$ss_cp/rolls" -H "Authorization: Bearer $B" | jq -c '[.[] | {label, hidden, roller, master: (.color == "#ff8c00")}]')
+          rl_colors=$(curl -s "$api/api/campaigns/$ss_cp?lang=2" -H "Authorization: Bearer $A" | jq -c '[.members[] | {name, orange: (.color == "#ff8c00"), hex: (.color | test("^#[0-9a-f]{6}$"))}] | sort_by(.name)')
+          rl_since=$(curl -s "$api/api/campaigns/$ss_cp/rolls?after=$(echo "$rl" | jq -r .createdAt | jq -Rr @uri)" -H "Authorization: Bearer $A" | jq length)
+          rl_clear_player=$(code -X DELETE "$api/api/campaigns/$ss_cp/rolls" -H "Authorization: Bearer $A")
+          rl_clear=$(code -X DELETE "$api/api/campaigns/$ss_cp/rolls" -H "Authorization: Bearer $B")
+          rl_after=$(curl -s "$api/api/campaigns/$ss_cp/rolls" -H "Authorization: Bearer $B" | jq length)
+          echo "::notice title=sessions::player add=$ss_player_add bad=$ss_bad | first=$ss_first | played=$ss_put | player PUT=$ss_player_put list=$ss_player_list | outsider=$ss_outsider | delete player=$ss_player_delete master=$ss_delete"
+          echo "::notice title=rolls::alice=$rl_alice advantage=$rl_adv | bad=$rl_bad hidden player=$rl_hidden_player master=$rl_hidden | foreign character=$rl_foreign cheat=$rl_cheat | alice log=$rl_alice_log bob log=$rl_bob_log since=$rl_since | clear player=$rl_clear_player master=$rl_clear after=$rl_after"
+          ssfail=0
+          sscheck() { if [ "$2" != "$3" ]; then echo "::error title=sessions::$1: got '$2', expected '$3'"; ssfail=1; fi; }
+          sscheck "player adds a session" "$ss_player_add" "403"
+          sscheck "unknown status" "$ss_bad" "400"
+          sscheck "first session" "$ss_first" '{"number":1,"status":1,"notes":"Il lich è il sindaco","canEdit":true}'
+          sscheck "played with recap" "$ss_put" '{"number":2,"status":2,"recap":"Il lich è scappato"}'
+          sscheck "player edits" "$ss_player_put" "403"
+          sscheck "player list without notes" "$ss_player_list" '[{"number":2,"notes":null,"canEdit":false,"when":"2026-11-14T20:00:00+00:00"},{"number":1,"notes":null,"canEdit":false,"when":"2026-11-14T20:00:00+00:00"}]'
+          sscheck "not a member" "$ss_outsider" "404"
+          sscheck "player deletes" "$ss_player_delete" "403"
+          sscheck "master deletes" "$ss_delete" "204"
+          sscheck "server roll" "$rl_alice" '{"expression":"1d20 + 5","label":"Percezione","dice":1,"ok":true,"mine":true}'
+          sscheck "advantage" "$rl_adv" '{"label":"2d20kh1","dropped":1,"ok":true}'
+          sscheck "invalid expression" "$rl_bad" "400"
+          sscheck "hidden roll by a player" "$rl_hidden_player" "403"
+          sscheck "hidden roll by the master" "$rl_hidden" "200"
+          sscheck "character not at the table" "$rl_foreign" "400"
+          sscheck "sheet dice without a character" "$rl_cheat" "400"
+          sscheck "player log" "$rl_alice_log" '["2d20kh1","Percezione"]'
+          sscheck "master log" "$rl_bob_log" '[{"label":"Tabella incontri","hidden":true,"roller":"Master","master":true},{"label":"2d20kh1","hidden":false,"roller":"Alice","master":false},{"label":"Percezione","hidden":false,"roller":"Alice","master":false}]'
+          sscheck "member colours" "$rl_colors" '[{"name":"Alice","orange":false,"hex":true},{"name":"Bob","orange":true,"hex":true}]'
+          sscheck "rolls since" "$rl_since" "1"
+          sscheck "player clears" "$rl_clear_player" "403"
+          sscheck "master clears" "$rl_clear" "204"
+          sscheck "log empty" "$rl_after" "0"
+          test "$ssfail" = "0"
           # Account: change of e-mail (confirmed on the new address) and deletion of the account with its data;
           # private Homebrew goes, public Homebrew stays without an author, the campaign passes to the other member
           test "$(code -X POST $api/api/auth/register $json -d "$(cred dave@example.com)")" = "200"
@@ -962,11 +1025,14 @@ jobs:
           ac_inv=$(curl -sf "$api/api/campaigns/invitations" -H "Authorization: Bearer $E" | jq -r '.[0].id')
           code -X POST "$api/api/campaigns/invitations/$ac_inv/accept" -H "Authorization: Bearer $E" >/dev/null
           ac_solo=$(curl -sf -X POST "$api/api/campaigns?lang=2" $json -H "Authorization: Bearer $D" -d '{"name":"Solo","ruleset":2}' | jq -r .id)
+          code -X POST "$api/api/campaigns/$ac_cp/rolls" $json -H "Authorization: Bearer $D" -d '{"expression":"1d20","label":"Visibile"}' >/dev/null
+          code -X POST "$api/api/campaigns/$ac_cp/rolls" $json -H "Authorization: Bearer $D" -d '{"expression":"1d20","label":"Nascosto","hidden":true}' >/dev/null
           ac_wrong=$(code -X DELETE $api/api/account $json -H "Authorization: Bearer $D" -d '{"password":"wrong"}')
           ac_delete=$(curl -s -X DELETE $api/api/account $json -H "Authorization: Bearer $D" -d "$(jq -nc --arg p "$PW" '{password:$p}')" | jq -c .)
           ac_private_after=$(code "$api/api/feats/$ac_private")
           ac_public_after=$(curl -s "$api/api/feats/$ac_public" -H "Authorization: Bearer $E" | jq -c '{canEdit, visibility}')
           ac_cp_after=$(curl -s "$api/api/campaigns/$ac_cp?lang=2" -H "Authorization: Bearer $E" | jq -c '{role: .myRole, members: (.members | length)}')
+          ac_rolls=$(curl -s "$api/api/campaigns/$ac_cp/rolls" -H "Authorization: Bearer $E" | jq -c '[.[] | {label, roller, removed, grey: (.color == "#6c757d")}]')
           ac_solo_rows=$(psql -h localhost -U postgres -d realm_forge_ci -tAc "SELECT count(*) FROM \"Campaigns\" WHERE \"Id\" = '$ac_solo'" 2>/dev/null || echo "?")
           ac_login_after=$(code -X POST $api/api/auth/login $json -d "$(cred dave2@example.com)")
           ac_token_after=$(code $api/api/account/summary -H "Authorization: Bearer $D")
@@ -982,6 +1048,7 @@ jobs:
           accheck "private Homebrew gone" "$ac_private_after" "404"
           accheck "public Homebrew kept, nobody edits it" "$ac_public_after" '{"canEdit":false,"visibility":0}'
           accheck "campaign handed over" "$ac_cp_after" '{"role":1,"members":1}'
+          accheck "rolls left: hidden gone, visible grey without the name" "$ac_rolls" '[{"label":"Visibile","roller":"","removed":true,"grey":true}]'
           accheck "account gone" "$ac_login_after" "401"
           accheck "old token refused" "$ac_token_after" "401"
           accheck "empty campaign deleted" "$ac_solo_rows" "0"
