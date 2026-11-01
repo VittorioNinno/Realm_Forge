@@ -22,9 +22,6 @@
                 <h1 class="rf-page-title rf-search-title">@UiText.SearchTitle(Lang)</h1>
                 <p class="rf-search-subtitle">@UiText.SearchHint(Lang)</p>
             </div>
-            <button type="button" class="rf-search-random" disabled="@randomBusy" @onclick="RandomAsync" title="@UiText.SearchRandomHint(Lang)" data-test="search-random">
-                <Icon Name="dice" /> @UiText.SearchRandom(Lang)
-            </button>
         </div>
         <div class="rf-search-rule"></div>
 
@@ -35,6 +32,7 @@
             <span class="rf-search-shortcuts" aria-hidden="true">
                 <span class="rf-search-lang">IT / EN</span>
                 <kbd class="rf-search-kbd" title="@UiText.SearchSlashHint(Lang)">/</kbd>
+                <kbd class="rf-search-kbd" title="@UiText.SearchSlashHint(Lang)">Ctrl K</kbd>
             </span>
         </div>
 
@@ -45,6 +43,31 @@
                 <button type="button" role="tab" class="rf-search-chip @(chip.Key == filter ? "active" : null)" aria-selected="@(chip.Key == filter)"
                         @onclick="() => FilterAsync(current.Key)" data-test="@($"search-chip-{current.Key}")">@ChipName(current.Key)</button>
             }
+        </div>
+
+        @* The last entries opened (this browser only) and a random entry of the chosen kind *@
+        <div class="rf-search-recentbar" data-test="search-recent">
+            <span class="rf-search-recentbar-label">@UiText.SearchRecentTitle(Lang)</span>
+            <div class="rf-search-recentbar-items">
+                @if (recent.Count == 0)
+                {
+                    <span class="rf-search-recentbar-empty" data-test="search-recent-empty">@UiText.SearchRecentEmpty(Lang)</span>
+                }
+                @foreach (var item in recent)
+                {
+                    var it = item;
+                    <a class="rf-search-recent-chip" href="@it.Link" @onclick="() => TouchRecentAsync(it)" title="@it.Detail" data-test="search-recent-item">
+                        <span class="rf-search-recent-chip-kind">@UiText.SearchKindName(it.Kind, Lang)</span>@it.Name
+                    </a>
+                }
+                @if (recent.Count > 0)
+                {
+                    <button type="button" class="rf-search-clear" @onclick="ClearRecentAsync" data-test="search-recent-clear">@UiText.SearchRecentClear(Lang)</button>
+                }
+            </div>
+            <button type="button" class="rf-search-random" disabled="@randomBusy" @onclick="RandomAsync" title="@UiText.SearchRandomHint(Lang)" data-test="search-random">
+                <Icon Name="dice" /> @UiText.SearchRandom(Lang)
+            </button>
         </div>
     </header>
 
@@ -119,9 +142,16 @@
                         <a class="rf-search-category" href="@category.Href" data-test="search-category" data-kind="@category.Kinds[0]">
                             <span class="rf-search-category-top">
                                 <span class="rf-search-category-name">@UiText.SearchCategoryName(category.Kinds[0], Lang)</span>
-                                @if (Count(category.Kinds) is { } count)
+                                @if (Count(category.Kinds, edition) is { } count)
                                 {
-                                    <span class="rf-search-category-count">@count</span>
+                                    @if (count == 0 && Count(category.Kinds, OtherEdition) is > 0 and var other)
+                                    {
+                                        <span class="rf-search-category-count rf-search-category-count-other" title="@UiText.SearchOtherEdition(other, OtherEdition, Lang)">@UiText.SearchOtherEdition(other, OtherEdition, Lang)</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="rf-search-category-count">@count</span>
+                                    }
                                 }
                             </span>
                             <span class="rf-search-category-desc">@UiText.SearchCategoryText(category.Kinds[0], Lang)</span>
@@ -131,62 +161,32 @@
                 </div>
             </section>
 
-            <div class="rf-search-panels">
-                <section class="rf-search-panel" data-test="search-quick">
-                    <div class="rf-search-section-head">
-                        <h2 class="rf-search-section-tag">@UiText.SearchQuickTitle(Lang)</h2>
-                        <span class="rf-search-meta">@UiText.SearchQuickMeta(Lang)</span>
-                    </div>
-                    @if (quick is null)
+            <section class="rf-search-panel" data-test="search-quick">
+                <div class="rf-search-section-head">
+                    <h2 class="rf-search-section-tag">@UiText.SearchQuickTitle(Lang)</h2>
+                    <span class="rf-search-meta">@UiText.SearchQuickMeta(Lang)</span>
+                </div>
+                @if (glossary is null)
+                {
+                    <div class="small" style="color: var(--rf-text-muted);">…</div>
+                }
+                else
+                {
+                    @foreach (var (title, entries) in QuickGroups)
                     {
-                        <div class="small" style="color: var(--rf-text-muted);">…</div>
-                    }
-                    else
-                    {
-                        <div class="rf-search-pills">
-                            @foreach (var entry in quick)
-                            {
-                                var e = entry;
-                                <a class="rf-search-pill @(HighlightKeys.Contains(e.Key) ? "highlight" : null)" href="@($"rules?id={e.Id}")"
-                                   @onclick="() => RememberRuleAsync(e)" data-test="search-quick-pill">@e.Name</a>
-                            }
+                        <div class="rf-search-quick-group">
+                            <div class="rf-search-quick-label">@title</div>
+                            <div class="rf-search-pills">
+                                @foreach (var entry in entries)
+                                {
+                                    var e = entry;
+                                    <a class="rf-search-pill" href="@($"rules?id={e.Id}")" @onclick="() => RememberRuleAsync(e)" data-test="search-quick-pill">@e.Name</a>
+                                }
+                            </div>
                         </div>
                     }
-                </section>
-
-                <section class="rf-search-panel" data-test="search-recent">
-                    <div class="rf-search-section-head">
-                        <h2 class="rf-search-section-tag">@UiText.SearchRecentTitle(Lang)</h2>
-                        @if (recent.Count > 0)
-                        {
-                            <button type="button" class="rf-search-clear" @onclick="ClearRecentAsync" data-test="search-recent-clear">@UiText.SearchRecentClear(Lang)</button>
-                        }
-                    </div>
-                    @if (recent.Count == 0)
-                    {
-                        <div class="small" style="color: var(--rf-text-muted);" data-test="search-recent-empty">@UiText.SearchRecentEmpty(Lang)</div>
-                    }
-                    else
-                    {
-                        <div class="rf-search-recent">
-                            @foreach (var item in recent)
-                            {
-                                var it = item;
-                                <a class="rf-search-recent-item" href="@it.Link" @onclick="() => TouchRecentAsync(it)" data-test="search-recent-item">
-                                    <span class="rf-search-recent-left">
-                                        <span class="rf-search-recent-title">@it.Name</span>
-                                        @if (!string.IsNullOrEmpty(it.Detail))
-                                        {
-                                            <span class="rf-search-recent-sub">@it.Detail</span>
-                                        }
-                                    </span>
-                                    <span class="rf-search-recent-badge">@UiText.SearchKindName(it.Kind, Lang)</span>
-                                </a>
-                            }
-                        </div>
-                    }
-                </section>
-            </div>
+                }
+            </section>
         </div>
     }
 </div>
@@ -202,13 +202,14 @@
     private sealed record Category(string[] Kinds, string Href);
 
     private const string RecentKey = "realmforge.search.recent";
-    private const int MaxRecent = 8;
+    private const int MaxRecent = 5;
 
     private static readonly Chip[] Chips =
     [
         new("all", []),
         new("spell", ["spell"]),
         new("monster", ["monster"]),
+        new("npc", ["npc"]),
         new("item", ["equipment", "magic-item"]),
         new("class", ["class", "subclass"]),
         new("species", ["species", "subspecies"]),
@@ -221,16 +222,16 @@
     [
         new(["spell"], "spells"),
         new(["monster"], "monsters"),
+        new(["npc"], "npcs"),
         new(["equipment", "magic-item"], "equipment"),
         new(["class", "subclass"], "classes"),
         new(["species", "subspecies"], "species"),
         new(["feat"], "feats"),
-        new(["background"], "backgrounds"),
         new(["rule"], "rules")
     ];
 
-    //	Rules looked up at the table besides the conditions
-    private static readonly HashSet<string> HighlightKeys = ["exhaustion", "concentration", "cover"];
+    //	Rules looked up at the table besides the conditions and the actions
+    private static readonly string[] TableRuleKeys = ["exhaustion", "concentration", "cover", "opportunity-attacks", "difficult-terrain", "short-rest", "long-rest"];
 
     private LanguageCode Lang => LanguageState.CurrentLanguage;
     private string text = string.Empty;
@@ -242,13 +243,23 @@
     private RulesetVersion edition = RulesetVersion.Dnd5e_2024;
     private List<RuleEntryResponseDto>? glossary;
 
-    //	The conditions of the chosen edition, then exhaustion, concentration and cover
-    private List<RuleEntryResponseDto>? quick => glossary is null ? null : glossary.Where(e => e.Ruleset == edition).ToList() is var ofEdition
-        ? ofEdition.Where(e => e.Category == RuleCategory.Condition && e.Key != "exhaustion")
-            .OrderBy(e => e.Name, StringComparer.CurrentCultureIgnoreCase)
-            .Concat(ofEdition.Where(e => HighlightKeys.Contains(e.Key)).OrderBy(e => e.Name, StringComparer.CurrentCultureIgnoreCase))
-            .ToList()
-        : null;
+    //	The conditions, the actions and the rules of the table (exhaustion, concentration, cover, rests…) of the chosen edition
+    private List<(string Title, List<RuleEntryResponseDto> Entries)> QuickGroups
+    {
+        get
+        {
+            var ofEdition = (glossary ?? new()).Where(e => e.Ruleset == edition).ToList();
+            List<RuleEntryResponseDto> Sorted(IEnumerable<RuleEntryResponseDto> entries) => entries.OrderBy(e => e.Name, StringComparer.CurrentCultureIgnoreCase).ToList();
+            return new List<(string, List<RuleEntryResponseDto>)>
+            {
+                (UiText.SearchQuickConditions(Lang), Sorted(ofEdition.Where(e => e.Category == RuleCategory.Condition && e.Key != "exhaustion"))),
+                (UiText.SearchQuickActions(Lang), Sorted(ofEdition.Where(e => e.Category == RuleCategory.Action))),
+                (UiText.SearchQuickRules(Lang), Sorted(ofEdition.Where(e => TableRuleKeys.Contains(e.Key))))
+            }.Where(g => g.Item2.Count > 0).ToList();
+        }
+    }
+
+    private RulesetVersion OtherEdition => edition == RulesetVersion.Dnd5e_2024 ? RulesetVersion.Dnd5e_2014 : RulesetVersion.Dnd5e_2024;
     private List<RecentEntry> recent = new();
     private bool randomBusy;
 
@@ -256,7 +267,7 @@
 
     private string[] FilterKinds => Chips.First(c => c.Key == filter).Kinds;
 
-    private int? Count(string[] kinds)
+    private int? Count(string[] kinds, RulesetVersion ofEdition)
     {
         if (counts is null)
         {
@@ -265,7 +276,7 @@
         var rows = counts.Where(c => kinds.Contains(c.Kind)).ToList();
         //	Subclasses and lineages count with their class and species only in the section's own page: here the main entries
         var main = rows.Where(c => c.Kind is not ("subclass" or "subspecies")).ToList();
-        return main.Sum(c => edition == RulesetVersion.Dnd5e_2024 ? c.Edition2024 : c.Edition2014);
+        return main.Sum(c => ofEdition == RulesetVersion.Dnd5e_2024 ? c.Edition2024 : c.Edition2014);
     }
 
     protected override async Task OnInitializedAsync()

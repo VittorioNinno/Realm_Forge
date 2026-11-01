@@ -71,7 +71,8 @@ namespace RealmForge.Api.Search
 			new Section<Spell, SpellTranslation>("spell", c => c.Spells, "SpellId", e => $"spells?id={e.Id}", e => new SearchDetailDto(SpellLevel: e.Level, School: e.School)),
 			new Section<Equipment, EquipmentTranslation>("equipment", c => c.Equipment, "EquipmentId", e => $"equipment?id={e.Id}", e => new SearchDetailDto(Equipment: e.Category)),
 			new Section<MagicItem, MagicItemTranslation>("magic-item", c => c.MagicItems, "MagicItemId", e => $"magic-items?id={e.Id}", e => new SearchDetailDto(Rarity: e.Rarity)),
-			new Section<Monster, MonsterTranslation>("monster", c => c.Monsters, "MonsterId", e => $"monsters?id={e.Id}", e => new SearchDetailDto(Challenge: e.ChallengeRating, Creature: e.Type)),
+			new Section<Monster, MonsterTranslation>("monster", c => c.Monsters.Where(m => !m.IsNpc), "MonsterId", e => $"monsters?id={e.Id}", e => new SearchDetailDto(Challenge: e.ChallengeRating, Creature: e.Type)),
+			new Section<Monster, MonsterTranslation>("npc", c => c.Monsters.Where(m => m.IsNpc), "MonsterId", e => $"npcs?id={e.Id}", e => new SearchDetailDto(Challenge: e.ChallengeRating, Creature: e.Type)),
 			new Section<RuleEntry, RuleEntryTranslation>("rule", c => c.RuleEntries, "RuleEntryId", e => $"rules?id={e.Id}", e => new SearchDetailDto(Rule: e.Category))
 		];
 

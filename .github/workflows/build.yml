@@ -1,4 +1,4 @@
-name: build
+﻿name: build
 
 on:
   push:
@@ -599,6 +599,8 @@ jobs:
           mo_all=$(get "$api/api/monsters?ruleset=1&lang=2")
           mo14=$(echo "$mo_all" | jq -c '{total: length, srd: map(select(.source == 2)) | length, realmforge: map(select(.source == 1)) | length, variants: map(select(.variantOfId != null)) | length, dragons: map(select(.type == 8)) | length}')
           mo_cr=$(get "$api/api/monsters?ruleset=1&minCr=20&lang=1" | jq length)
+          mo_npc=$(get "$api/api/monsters?ruleset=1&npc=true&lang=2" | jq -c '{count: length, guard: ([.[] | select(.name == "Guardia")] | length), isNpc: (map(.isNpc) | all)}')
+          mo_not_npc=$(get "$api/api/monsters?ruleset=1&npc=false&lang=2" | jq length)
           goblin=$(echo "$mo_all" | jq -r '.[] | select(.name == "Goblin") | .id')
           mo_goblin=$(get "$api/api/monsters/$goblin?lang=2" | jq -c '{name: .text.name, ac: .armorClass, hp: .hitPoints, xp, cr: .challengeRating, armor: .text.armorClass, speed: .text.speed}')
           mo_goblin_en=$(get "$api/api/monsters/$goblin?lang=1" | jq -c '{name: .text.name, speed: .text.speed, nimble: (.text.traits | contains("Nimble Escape"))}')
@@ -616,11 +618,13 @@ jobs:
           mo_anon_post=$(code -X POST "$api/api/monsters" $json -d "$variant")
           mo_acc=$(curl -sf $api/api/account/summary -H "Authorization: Bearer $A" | jq .homebrew.monsters)
           mo_delete=$(code -X DELETE "$api/api/monsters/$mo_variant_id" -H "Authorization: Bearer $A")
-          echo "::notice title=database::monsters 2014: $mo14 | CR 20+=$mo_cr | goblin=$mo_goblin EN=$mo_goblin_en | variant=$mo_variant_view detail=$mo_variant_detail bob=$mo_variant_bob original=$mo_goblin_after | invalid=$mo_bad cr=$mo_bad_cr | base PUT=$mo_srd_put bob DELETE=$mo_bob_delete anonymous POST=$mo_anon_post account=$mo_acc | DELETE=$mo_delete"
+          echo "::notice title=database::monsters 2014: $mo14 | CR 20+=$mo_cr NPC=$mo_npc others=$mo_not_npc | goblin=$mo_goblin EN=$mo_goblin_en | variant=$mo_variant_view detail=$mo_variant_detail bob=$mo_variant_bob original=$mo_goblin_after | invalid=$mo_bad cr=$mo_bad_cr | base PUT=$mo_srd_put bob DELETE=$mo_bob_delete anonymous POST=$mo_anon_post account=$mo_acc | DELETE=$mo_delete"
           mofail=0
           mocheck() { if [ "$2" != "$3" ]; then echo "::error title=monsters::$1: got '$2', expected '$3'"; mofail=1; fi; }
           mocheck "2014 counts" "$mo14" '{"total":441,"srd":322,"realmforge":119,"variants":13,"dragons":46}'
           mocheck "challenge filter" "$mo_cr" "17"
+          mocheck "nonplayer characters" "$mo_npc" '{"count":21,"guard":1,"isNpc":true}'
+          mocheck "monsters without the NPCs" "$mo_not_npc" "420"
           mocheck "goblin" "$mo_goblin" '{"name":"Goblin","ac":15,"hp":7,"xp":50,"cr":0.25,"armor":"15 (armatura di cuoio, scudo)","speed":"9 m"}'
           mocheck "goblin EN" "$mo_goblin_en" '{"name":"Goblin","speed":"30 ft.","nimble":true}'
           mocheck "variant" "$mo_variant_view" '{"name":"Goblin furtivo","ac":16,"variantOf":true,"base":false,"canEdit":true}'
@@ -1225,6 +1229,8 @@ jobs:
   ui:
     runs-on: ubuntu-24.04
     needs: build
+    permissions:
+      contents: write
     services:
       postgres:
         image: postgres:17
@@ -1280,6 +1286,16 @@ jobs:
           npm install playwright@1 >/dev/null
           npx playwright install --with-deps chromium >/dev/null
           node smoke.mjs
+
+      - name: TEMP push the screenshots to a review branch
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          cd .github/ui-smoke/shots || exit 0
+          git init -q -b shots . && git add -A
+          git -c user.name=ci -c user.email=ci@localhost commit -qm "shots ${GITHUB_SHA}"
+          git push -qf "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" shots:refs/heads/ci-shots/${GITHUB_SHA::8}
 
       - name: Keep the screenshots of the smoke test
         if: always()

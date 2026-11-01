@@ -14,11 +14,12 @@ namespace RealmForge.Client.Localization
 			"Search the compendium (e.g. Fireball, Palla di Fuoco, Goblin, Healer)…");
 		public static string SearchRandom(LanguageCode lang) => T(lang, "Voce casuale", "Random entry");
 		public static string SearchRandomHint(LanguageCode lang) => T(lang, "Apri una voce a caso del compendio (della categoria scelta)", "Open a random entry of the compendium (of the chosen kind)");
-		public static string SearchSlashHint(LanguageCode lang) => T(lang, "Premi / da qualsiasi punto della pagina per cercare", "Press / anywhere on the page to search");
+		public static string SearchSlashHint(LanguageCode lang) => T(lang, "Premi / o Ctrl+K da qualsiasi pagina per cercare", "Press / or Ctrl+K on any page to search");
 		public static string SearchChipName(string key, LanguageCode lang) => (key, lang == LanguageCode.It) switch
 		{
 			("spell", true) => "Incantesimi", ("spell", false) => "Spells",
 			("monster", true) => "Mostri", ("monster", false) => "Monsters",
+			("npc", true) => "PNG", ("npc", false) => "NPCs",
 			("item", true) => "Oggetti", ("item", false) => "Items",
 			("class", true) => "Classi", ("class", false) => "Classes",
 			("species", true) => "Specie", ("species", false) => "Species",
@@ -32,7 +33,8 @@ namespace RealmForge.Client.Localization
 		public static string SearchCategoryName(string kind, LanguageCode lang) => (kind, lang == LanguageCode.It) switch
 		{
 			("spell", true) => "Incantesimi", ("spell", false) => "Spells",
-			("monster", true) => "Mostri e PNG", ("monster", false) => "Monsters and NPCs",
+			("monster", true) => "Mostri", ("monster", false) => "Monsters",
+			("npc", true) => "PNG", ("npc", false) => "NPCs",
 			("equipment", true) => "Equipaggiamento e oggetti", ("equipment", false) => "Equipment and items",
 			("class", true) => "Classi e sottoclassi", ("class", false) => "Classes and subclasses",
 			("species", true) => "Specie e lignaggi", ("species", false) => "Species and lineages",
@@ -47,6 +49,8 @@ namespace RealmForge.Client.Localization
 			("spell", false) => "Cantrips and spells up to 9th level for every class.",
 			("monster", true) => "Statistiche complete, grado di sfida, tratti e azioni leggendarie.",
 			("monster", false) => "Full stat blocks, challenge rating, traits and legendary actions.",
+			("npc", true) => "Guardie, maghi, nobili, banditi: personaggi non giocanti pronti per il tavolo.",
+			("npc", false) => "Guards, mages, nobles, bandits: nonplayer characters ready for the table.",
 			("equipment", true) => "Armi, armature, strumenti, dotazioni e oggetti magici.",
 			("equipment", false) => "Weapons, armor, tools, packs and magic items.",
 			("class", true) => "Progressioni dal 1° al 20° livello, privilegi e tabelle di classe.",
@@ -65,6 +69,7 @@ namespace RealmForge.Client.Localization
 		{
 			("spell", true) => "Filtra per: livello • scuola • classe", ("spell", false) => "Filter by: level • school • class",
 			("monster", true) => "Filtra per: GS • tipo • taglia", ("monster", false) => "Filter by: CR • type • size",
+			("npc", true) => "Guardia • Mago • Nobile • Spia…", ("npc", false) => "Guard • Mage • Noble • Spy…",
 			("equipment", true) => "Filtra per: categoria • maestria • rarità", ("equipment", false) => "Filter by: category • mastery • rarity",
 			("class", true) => "Mago • Chierico • Guerriero • Druido…", ("class", false) => "Wizard • Cleric • Fighter • Druid…",
 			("species", true) => "Elfo • Nano • Tiefling • Umano…", ("species", false) => "Elf • Dwarf • Tiefling • Human…",
@@ -74,7 +79,12 @@ namespace RealmForge.Client.Localization
 			_ => string.Empty
 		};
 		public static string SearchQuickTitle(LanguageCode lang) => T(lang, "Consultazione rapida al tavolo", "Quick reference at the table");
-		public static string SearchQuickMeta(LanguageCode lang) => T(lang, "Condizioni e regole", "Conditions and rules");
+		public static string SearchQuickMeta(LanguageCode lang) => T(lang, "Apri la definizione nel glossario", "Opens the definition in the glossary");
+		public static string SearchQuickConditions(LanguageCode lang) => T(lang, "Condizioni", "Conditions");
+		public static string SearchQuickActions(LanguageCode lang) => T(lang, "Azioni", "Actions");
+		public static string SearchQuickRules(LanguageCode lang) => T(lang, "Regole da tavolo", "Table rules");
+		public static string SearchOtherEdition(int count, RulesetVersion other, LanguageCode lang) => T(lang,
+			$"{count} in {FormatRuleset(other, lang)}", $"{count} in {FormatRuleset(other, lang)}");
 		public static string SearchRecentTitle(LanguageCode lang) => T(lang, "Visti di recente", "Recently viewed");
 		public static string SearchRecentClear(LanguageCode lang) => T(lang, "Pulisci", "Clear");
 		public static string SearchRecentEmpty(LanguageCode lang) => T(lang, "Le voci che apri da qui compaiono in questa lista (solo su questo browser).",
@@ -135,7 +145,12 @@ namespace RealmForge.Client.Localization
 			1 => T(lang, "1 risultato", "1 result"),
 			_ => T(lang, $"{count} risultati", $"{count} results")
 		};
-		public static string SearchKindName(string kind, LanguageCode lang) => kind == "rule" ? T(lang, "Regola", "Rule") : CampaignKindName(kind, lang);
+		public static string SearchKindName(string kind, LanguageCode lang) => kind switch
+		{
+			"rule" => T(lang, "Regola", "Rule"),
+			"npc" => T(lang, "PNG", "NPC"),
+			_ => CampaignKindName(kind, lang)
+		};
 		public static string SearchMine(LanguageCode lang) => T(lang, "tuo", "yours");
 
 		// ===== Administration =====

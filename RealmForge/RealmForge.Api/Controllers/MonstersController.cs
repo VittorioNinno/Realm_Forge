@@ -44,9 +44,16 @@ namespace RealmForge.Api.Controllers
 			[FromQuery] RulesetVersion? ruleset = null,
 			[FromQuery] CreatureType? type = null,
 			[FromQuery] decimal? minCr = null,
-			[FromQuery] decimal? maxCr = null)
+			[FromQuery] decimal? maxCr = null,
+			[FromQuery] bool? npc = null)
 		{
 			var query = _context.Monsters.AsNoTracking().Include(m => m.Translations).AsQueryable();
+
+			//	The monsters page and the NPC page (nonplayer characters) read the same statblocks
+			if (npc.HasValue)
+			{
+				query = query.Where(m => m.IsNpc == npc.Value);
+			}
 
 			if (ruleset.HasValue)
 			{
@@ -74,7 +81,7 @@ namespace RealmForge.Api.Controllers
 					var tr = m.Translations.Localize(lang);
 					return new MonsterResponseDto(m.Id, tr?.Name ?? "Unknown", tr?.Alias, m.Ruleset, m.IsOfficialSRD, m.Size, m.Type,
 						tr?.Subtitle ?? string.Empty, m.ArmorClass, m.HitPoints, m.HitDice, Plain(m.ChallengeRating), m.Xp, m.Dexterity,
-						m.VariantOfId, _access.CanModify(m, User), m.Source, m.Visibility);
+						m.VariantOfId, _access.CanModify(m, User), m.Source, m.Visibility, m.IsNpc);
 				})
 				.OrderBy(m => m.Name, StringComparer.CurrentCultureIgnoreCase)
 				.ToList());
@@ -260,7 +267,7 @@ namespace RealmForge.Api.Controllers
 			m.Id, m.Ruleset, m.IsOfficialSRD, m.Size, m.Type, m.ArmorClass, m.HitPoints, m.HitDice, m.Speed,
 			new List<int> { m.Strength, m.Dexterity, m.Constitution, m.Intelligence, m.Wisdom, m.Charisma },
 			Plain(m.ChallengeRating), m.Xp, m.ProficiencyBonus, m.PassivePerception, m.VariantOfId, original,
-			ToText(m.Translations.Localize(lang), lang), _access.CanModify(m, User), m.Source, m.Visibility, author);
+			ToText(m.Translations.Localize(lang), lang), _access.CanModify(m, User), m.Source, m.Visibility, author, m.IsNpc);
 
 		private static void Apply(Monster m, SaveMonsterDto dto)
 		{
@@ -284,6 +291,7 @@ namespace RealmForge.Api.Controllers
 			m.Xp = dto.Xp > 0 ? dto.Xp : MonsterMath.XpFor(dto.ChallengeRating);
 			m.ProficiencyBonus = dto.ProficiencyBonus;
 			m.PassivePerception = dto.PassivePerception;
+			m.IsNpc = dto.IsNpc;
 		}
 
 		private static MonsterTranslation Translation(MonsterTranslation target, MonsterTextDto t)
