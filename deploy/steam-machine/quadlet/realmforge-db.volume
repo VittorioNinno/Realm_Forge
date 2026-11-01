@@ -1,0 +1,3 @@
+# Data of PostgreSQL (kept across container updates and restarts)
+[Volume]
+VolumeName=realmforge-db
