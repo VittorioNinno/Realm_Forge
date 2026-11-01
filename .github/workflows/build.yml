@@ -228,9 +228,18 @@ jobs:
           # E-mail confirmation: without SMTP the API logs the confirmation link; creating content needs a confirmed address
           feat_unconfirmed=$(curl -s -o /dev/null -D - -X POST $api/api/feats $json -H "Authorization: Bearer $A" -d "$feat" \
             | tr -d '\r' | awk 'NR==1{print $2} tolower($1)=="x-realmforge-error:"{print $2}' | paste -sd' ')
+          # The API writes its log in the background: the link may reach the file a moment after the response
+          logged() {
+            for i in $(seq 1 20); do
+              found=$(grep -rhoE "$1: [^ ]+" --include='*.log' . | tail -1 | sed 's/^.*: //')
+              if [ -n "$found" ]; then echo "$found"; return 0; fi
+              sleep 0.5
+            done
+            echo "::error title=e-mail::no link in the API log for '$1'" >&2
+            return 1
+          }
           confirm() {
-            link=$(grep -rhoE "for $1: [^ ]+" --include='*.log' . | tail -1 | sed 's/^.*: //')
-            test -n "$link"
+            link=$(logged "for $1") || return 1
             code "$api/api/auth/confirmEmail?${link#*\?}"
           }
           confirm_bad=$(code "$api/api/auth/confirmEmail?userId=00000000-0000-0000-0000-000000000000&code=bad")
@@ -249,7 +258,7 @@ jobs:
           forgot_unknown=$(code -X POST $api/api/auth/forgotPassword $json -d '{"email":"nobody@example.com"}')
           forgot=$(code -X POST $api/api/auth/forgotPassword $json -d '{"email":"carol@example.com"}')
           sleep 1
-          reset_link=$(grep -rhoE "Reset your password for carol@example.com: [^ ]+" --include='*.log' . | tail -1 | sed 's/^.*: //')
+          reset_link=$(logged "Reset your password for carol@example.com")
           reset_code=$(echo "$reset_link" | grep -oE '[?&]code=[^&]+' | cut -d= -f2-)
           NEWPW="Rf-$(openssl rand -hex 12)B!"
           reset_body=$(jq -nc --arg c "$reset_code" --arg p "$NEWPW" '{email:"carol@example.com",resetCode:$c,newPassword:$p}')
