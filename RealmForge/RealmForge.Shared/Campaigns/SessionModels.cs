@@ -18,6 +18,9 @@ public static class PlayerColors
 {
 	public const string Master = "#ff8c00";
 
+	//	The rolls left by a deleted account
+	public const string Removed = "#6c757d";
+
 	//	Readable on the dark page and far from the masters' orange
 	public static readonly IReadOnlyList<string> Palette =
 	[
