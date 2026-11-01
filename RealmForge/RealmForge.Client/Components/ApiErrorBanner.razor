@@ -6,7 +6,7 @@
 
 @if (ErrorState.Current is ApiErrorKind kind)
 {
-    <div class="alert alert-warning bg-dark border-warning text-warning d-flex justify-content-between align-items-center p-2 small mb-3" role="alert">
+    <div class="alert alert-warning bg-dark border-warning text-warning d-flex justify-content-between align-items-center p-2 small mb-3" role="alert" data-test="api-error">
         <span>@UiText.ApiError(kind, LanguageState.CurrentLanguage)</span>
         <button type="button" class="btn btn-sm btn-rf-outline px-2 py-0" @onclick="ErrorState.Clear"><Icon Name="close" /></button>
     </div>

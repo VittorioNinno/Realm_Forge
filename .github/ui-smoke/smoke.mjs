@@ -697,11 +697,13 @@ try {
   await page.locator('[data-test=account-logout]').click();
   await page.locator('[data-test=auth-passkey]').waitFor({ timeout: 15000 });
   await shot(page, 'login-passkey', 'main');
+  // The errors handled on the account page (wrong password of the deletion, a refused passkey) do not raise the page banner
+  const bannerOnLogin = await page.locator('[data-test=api-error]').count();
   await page.locator('[data-test=auth-passkey]').click();
   await page.locator('[data-test=account-area]', { hasText: email }).waitFor({ timeout: 30000 });
   const credentials = (await cdp.send('WebAuthn.getCredentials', { authenticatorId })).credentials.length;
   results.push(`INFO passkey: added='${passkeyMessage}' credentials on the device=${credentials}`);
-  if (!/aggiunta/i.test(passkeyMessage) || credentials !== 1) throw new Error('unexpected passkey flow');
+  if (!/aggiunta/i.test(passkeyMessage) || credentials !== 1 || bannerOnLogin !== 0) throw new Error(`unexpected passkey flow (banner=${bannerOnLogin})`);
   ok('passkey: added from the account page with a (virtual) fingerprint, a second one on the same device refused, sign-out and sign-in with the passkey');
 
   // Administration (admin-ui@example.com is in Auth:AdminEmails in this job): figures, an account suspended,
