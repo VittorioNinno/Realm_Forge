@@ -56,7 +56,20 @@ public sealed record SpellcastingInfo(
 	int Spells,
 	int MaxSpellLevel,
 	IReadOnlyList<Guid> ChosenCantrips,
-	IReadOnlyList<Guid> ChosenSpells);
+	IReadOnlyList<Guid> ChosenSpells,
+	IReadOnlyList<Guid>? AlwaysPrepared = null)
+{
+	//	Spells of the subclass and of the features, always prepared (domain, oath, circle, patron spells…)
+	public IReadOnlyList<Guid> Always => AlwaysPrepared ?? Array.Empty<Guid>();
+
+	//	Every spell of the source: chosen and always prepared
+	public IEnumerable<Guid> Known => ChosenCantrips.Concat(ChosenSpells).Concat(Always).Distinct();
+}
+
+///	<summary>
+///	A spell a trait gives (species, subclass, feat): cantrips at will, leveled spells once per long rest without a slot.
+///	</summary>
+public sealed record InnateSpellInfo(string Source, ContextSpell Spell, AbilityScore Ability, int SaveDc, int AttackBonus);
 
 public sealed record AttackInfo(Guid InventoryId, ContextItem Item, int AttackBonus, string Damage, DamageType? DamageType, bool Proficient, string? VersatileDamage);
 
@@ -124,7 +137,35 @@ public sealed class ComputedCharacter
 	public int CheckBonusAll { get; set; }
 	public List<DamageType> Resistances { get; } = new();
 
-	public int SkillBonus(Skill skill) => SkillBase(skill) + CheckBonusAll;
+	//	Senses and speeds of the traits (feet; 0: none)
+	public int Darkvision { get; set; }
+	public int Blindsight { get; set; }
+	public int Truesight { get; set; }
+	public int ClimbSpeed { get; set; }
+	public int SwimSpeed { get; set; }
+	public int FlySpeed { get; set; }
+	public List<DamageType> Immunities { get; } = new();
+
+	//	Heavy Armor Master: bludgeoning, piercing and slashing damage reduced by this much
+	public int DamageReduction { get; set; }
+	public BreathWeapon? Breath { get; set; }
+	public List<InnateSpellInfo> InnateSpells { get; } = new();
+
+	//	Weapons known by name besides the categories (2014 dwarven and elven weapon training)
+	public HashSet<string> ExtraWeapons { get; } = new(StringComparer.OrdinalIgnoreCase);
+
+	//	Bonus to the checks of one ability (2024 Fey Wanderer: Wisdom to Charisma checks), and the abilities whose
+	//	checks get half the Proficiency Bonus rounded up when not proficient (2014 Remarkable Athlete)
+	public int[] AbilityCheckBonus { get; } = new int[6];
+	public HashSet<AbilityScore> RemarkableAthlete { get; } = new();
+
+	//	Ability check without a skill: modifier, Jack of All Trades / Remarkable Athlete, bonuses
+	public int AbilityCheck(AbilityScore ability) => Modifier(ability) + HalfProficiency(ability) + AbilityCheckBonus[(int)ability - 1] + CheckBonusAll;
+
+	private int HalfProficiency(AbilityScore ability) =>
+		RemarkableAthlete.Contains(ability) ? (ProficiencyBonus + 1) / 2 : JackOfAllTrades ? ProficiencyBonus / 2 : 0;
+
+	public int SkillBonus(Skill skill) => SkillBase(skill) + CheckBonusAll + AbilityCheckBonus[(int)GameTerms.SkillAbility(skill) - 1];
 
 	private int SkillBase(Skill skill)
 	{
@@ -138,10 +179,30 @@ public sealed class ComputedCharacter
 			return mod + ProficiencyBonus;
 		}
 
-		return mod + (JackOfAllTrades ? ProficiencyBonus / 2 : 0);
+		return mod + HalfProficiency(GameTerms.SkillAbility(skill));
 	}
 
 	public int ClassLevel(string key) => Classes.Where(c => c.Class.Key == key).Sum(c => c.Level);
+
+	///	<summary>
+	///	The spellcasting sources and, as sources without a class, the spells of the traits grouped by where they come
+	///	from (species, subclass, a feat): what the sheet, the turn summary and the PDF list.
+	///	</summary>
+	public IEnumerable<SpellcastingInfo> AllSpellSources()
+	{
+		foreach (var source in Spellcasting)
+		{
+			yield return source;
+		}
+		foreach (var group in InnateSpells.GroupBy(s => (s.Source, s.Ability)))
+		{
+			var first = group.First();
+			var cantrips = group.Where(s => s.Spell.Level == 0).Select(s => s.Spell.Id).ToList();
+			var leveled = group.Where(s => s.Spell.Level > 0).Select(s => s.Spell.Id).ToList();
+			yield return new SpellcastingInfo(group.Key.Source, null, group.Key.Ability, first.SaveDc, first.AttackBonus, null,
+				cantrips.Count, leveled.Count, group.Max(s => s.Spell.Level), cantrips, leveled);
+		}
+	}
 
 	public void Error(string code, params object?[] args) => Add(code, true, IssueAreas.Of(code), args);
 
@@ -180,7 +241,8 @@ public static class IssueAreas
 	public static string Of(string code) => code switch
 	{
 		IssueCodes.Name or IssueCodes.Level => Identity,
-		IssueCodes.Species or IssueCodes.Subspecies or IssueCodes.SubspeciesMissing or IssueCodes.Size or IssueCodes.SpeciesFeatMissing => Species,
+		IssueCodes.Species or IssueCodes.Subspecies or IssueCodes.SubspeciesMissing or IssueCodes.Size or IssueCodes.SpeciesFeatMissing
+			or IssueCodes.SpeciesOption or IssueCodes.SpeciesOptionMissing => Species,
 		IssueCodes.Background => Background,
 		IssueCodes.Class => Class,
 		IssueCodes.BaseScores or IssueCodes.ScoreCap => Abilities,

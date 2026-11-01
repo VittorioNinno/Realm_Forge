@@ -404,6 +404,8 @@ namespace RealmForge.Client.Pages
 			Build.SpeciesFeatId = null;
 			Build.SpeciesFeat = new FeatChoice();
 			Build.SpeciesCantrips.Clear();
+			Build.SpeciesOption = null;
+			Build.SpeciesSpellAbility = null;
 			if (!Is2024)
 			{
 				Build.BonusChoices.Clear();
