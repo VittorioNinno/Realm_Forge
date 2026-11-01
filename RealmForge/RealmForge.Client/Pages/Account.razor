@@ -5,6 +5,7 @@
 @using RealmForge.Shared.Enums
 @implements IDisposable
 @inject AuthService Auth
+@inject PasskeyService Passkeys
 @inject LanguageStateService LanguageState
 @inject CrossTabService CrossTab
 @inject NavigationManager Navigation
@@ -161,6 +162,62 @@
                 </div>
             </div>
 
+            @* Passkeys: sign-in without the password, one per device or password manager *@
+            <div class="rf-account-card mb-3" data-test="account-passkeys">
+                <div class="rf-account-card-title">@UiText.PasskeysTitle(LanguageState.CurrentLanguage)</div>
+                <p class="small mb-3" style="color: var(--rf-text-secondary);">@UiText.PasskeysHint(LanguageState.CurrentLanguage)</p>
+                @if (passkeys is { Count: > 0 })
+                {
+                    <ul class="rf-passkey-list mb-3">
+                        @foreach (var passkey in passkeys)
+                        {
+                            var pk = passkey;
+                            <li class="rf-passkey" data-test="account-passkey">
+                                <Icon Name="key" />
+                                <span class="rf-passkey-name">@pk.Name</span>
+                                <span class="rf-passkey-date">@UiText.PasskeyCreated(pk.CreatedAt, LanguageState.CurrentLanguage)</span>
+                                <button type="button" class="btn btn-sm btn-rf-outline ms-auto" @onclick="() => removingPasskey = pk" data-test="account-passkey-remove">@UiText.BtnRemove(LanguageState.CurrentLanguage)</button>
+                            </li>
+                        }
+                    </ul>
+                }
+                else if (passkeys is not null)
+                {
+                    <div class="small mb-3" style="color: var(--rf-text-muted);" data-test="account-passkeys-empty">@UiText.PasskeysEmpty(LanguageState.CurrentLanguage)</div>
+                }
+                @if (passkeysSupported)
+                {
+                    <div class="d-flex flex-wrap gap-2">
+                        <input class="rf-form-control flex-grow-1" style="min-width: 200px;" maxlength="60" placeholder="@UiText.PasskeyNamePlaceholder(LanguageState.CurrentLanguage)"
+                               @bind="passkeyName" data-test="account-passkey-name" />
+                        <button type="button" class="btn btn-rf-orange" disabled="@addingPasskey" @onclick="AddPasskeyAsync" data-test="account-passkey-add">
+                            <Icon Name="key" /> @(addingPasskey ? "..." : UiText.BtnAddPasskey(LanguageState.CurrentLanguage))
+                        </button>
+                    </div>
+                }
+                else
+                {
+                    <div class="small" style="color: var(--rf-text-muted);">@UiText.AuthError("PasskeyUnsupported", LanguageState.CurrentLanguage)</div>
+                }
+                @if (passkeyMessage is not null)
+                {
+                    <div class="small mt-2" style="color: var(--rf-text-secondary);" data-test="account-passkey-message">@passkeyMessage</div>
+                }
+            </div>
+
+            @if (removingPasskey is not null)
+            {
+                <div class="rf-modal-backdrop" @onclick="() => removingPasskey = null">
+                    <div class="rf-modal-dialog" style="max-width: 440px;" @onclick:stopPropagation="true" data-test="account-passkey-remove-confirm">
+                        <p class="mb-3">@UiText.PasskeyRemoveConfirm(removingPasskey.Name, LanguageState.CurrentLanguage)</p>
+                        <div class="d-flex justify-content-end gap-2">
+                            <button type="button" class="btn btn-sm btn-rf-outline" @onclick="() => removingPasskey = null">@UiText.BtnCancel(LanguageState.CurrentLanguage)</button>
+                            <button type="button" class="btn btn-sm btn-rf-orange" @onclick="RemovePasskeyAsync" data-test="account-passkey-remove-yes">@UiText.BtnRemove(LanguageState.CurrentLanguage)</button>
+                        </div>
+                    </div>
+                </div>
+            }
+
             @* E-mail change: a confirmation link goes to the new address *@
             <div class="rf-account-card mb-3" data-test="account-email-change">
                 <div class="rf-account-card-title">@UiText.AccountEmailTitle(LanguageState.CurrentLanguage)</div>
@@ -186,7 +243,7 @@
             </div>
 
             <div class="d-flex justify-content-end">
-                <button class="btn btn-rf-outline" @onclick="LogoutAsync">@UiText.BtnLogout(LanguageState.CurrentLanguage)</button>
+                <button class="btn btn-rf-outline" @onclick="LogoutAsync" data-test="account-logout">@UiText.BtnLogout(LanguageState.CurrentLanguage)</button>
             </div>
 
             @if (deleteOpen)
@@ -259,6 +316,14 @@
                     @(isBusy ? "..." : isRegisterMode ? UiText.BtnRegister(LanguageState.CurrentLanguage) : UiText.BtnLogin(LanguageState.CurrentLanguage))
                 </button>
             </div>
+
+            @if (!isRegisterMode && passkeysSupported)
+            {
+                <div class="rf-login-or my-3"><span>@UiText.LoginOr(LanguageState.CurrentLanguage)</span></div>
+                <button type="button" class="btn btn-rf-outline w-100" @onclick="PasskeySignInAsync" disabled="@isBusy" data-test="auth-passkey">
+                    <Icon Name="key" /> @UiText.BtnPasskeyLogin(LanguageState.CurrentLanguage)
+                </button>
+            }
         </div>
     </NotAuthorized>
 </AuthorizeView>
@@ -388,6 +453,58 @@
             wasAuthenticated = authenticated;
             summary = authenticated ? await Auth.GetAccountSummaryAsync() : null;
             nickname = summary?.Nickname ?? string.Empty;
+            passkeysSupported = await Passkeys.IsSupportedAsync();
+            passkeys = authenticated ? await Passkeys.GetPasskeysAsync() ?? new List<PasskeyDto>() : null;
+        }
+    }
+
+    // ===== Passkeys =====
+
+    private bool passkeysSupported;
+    private List<PasskeyDto>? passkeys;
+    private string passkeyName = string.Empty;
+    private string? passkeyMessage;
+    private bool addingPasskey;
+    private PasskeyDto? removingPasskey;
+
+    private async Task AddPasskeyAsync()
+    {
+        var lang = LanguageState.CurrentLanguage;
+        addingPasskey = true;
+        passkeyMessage = null;
+        var result = await Passkeys.AddAsync(string.IsNullOrWhiteSpace(passkeyName) ? null : passkeyName.Trim());
+        addingPasskey = false;
+        passkeyMessage = result.Success ? UiText.PasskeyAdded(lang) : UiText.AuthError(result.Errors.FirstOrDefault() ?? "PasskeyFailed", lang);
+        if (result.Success)
+        {
+            passkeyName = string.Empty;
+            passkeys = await Passkeys.GetPasskeysAsync() ?? passkeys;
+        }
+    }
+
+    private async Task RemovePasskeyAsync()
+    {
+        if (removingPasskey is { } passkey && await Passkeys.RemoveAsync(passkey.Id))
+        {
+            passkeys = await Passkeys.GetPasskeysAsync() ?? passkeys;
+        }
+        removingPasskey = null;
+    }
+
+    //	Sign-in with a passkey: the browser offers the ones it has for this site
+    private async Task PasskeySignInAsync()
+    {
+        errors.Clear();
+        isBusy = true;
+        var result = await Passkeys.SignInAsync();
+        isBusy = false;
+        if (result.Success)
+        {
+            Navigation.NavigateTo("");
+        }
+        else
+        {
+            errors = result.Errors.ToList();
         }
     }
 

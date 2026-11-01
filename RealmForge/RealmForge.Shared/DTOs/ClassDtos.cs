@@ -1,4 +1,5 @@
-﻿using RealmForge.Shared.Enums;
+﻿using RealmForge.Shared.Characters;
+using RealmForge.Shared.Enums;
 
 namespace RealmForge.Shared.DTOs
 {
@@ -31,7 +32,10 @@ namespace RealmForge.Shared.DTOs
 		int Level,
 		int SortOrder,
 		string Name,
-		string Description
+		string Description,
+
+		//	Rule effects of a Homebrew feature, from its level (class level)
+		List<RuleEffect>? Effects = null
 	);
 
 	///	<summary>
@@ -127,6 +131,7 @@ namespace RealmForge.Shared.DTOs
 	{
 		public int Level { get; set; } = 1;
 		public List<FeatureTextDto> Translations { get; set; } = new();
+		public List<RuleEffect> Effects { get; set; } = new();
 	}
 
 	///	<summary>

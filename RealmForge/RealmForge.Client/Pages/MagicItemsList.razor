@@ -92,7 +92,7 @@
             <button type="button" class="btn btn-sm btn-rf-outline" @onclick="() => SetAllGroups(true)" data-test="magic-expand-all">@UiText.BtnExpandAll(Lang)</button>
             <button type="button" class="btn btn-sm btn-rf-outline" @onclick="() => SetAllGroups(false)" data-test="magic-collapse-all">@UiText.BtnCollapseAll(Lang)</button>
         </div>
-        @foreach (var group in Filtered.GroupBy(i => i.Type).OrderBy(g => UiText.MagicTypeName(g.Key, Lang), StringComparer.CurrentCultureIgnoreCase))
+        @foreach (var group in Filtered.GroupBy(i => i.Type).OrderBy(g => g.Min(Rank)).ThenBy(g => UiText.MagicTypeName(g.Key, Lang), StringComparer.CurrentCultureIgnoreCase))
         {
             var expanded = IsExpanded(group.Key);
             <h2 class="h5 mt-4 mb-3 rf-spell-level-title">
@@ -323,6 +323,9 @@
 
     private static bool HasMechanics(MagicItemResponseDto item) => item.Mechanics is { } m && (m.Effects.Count > 0 || m.Charges > 0 || m.HealDice is not null);
 
+    //	The item (or variant) named like the search first
+    private int Rank(MagicItemResponseDto i) => SearchRank.Of(SearchTerm, i.Name, VariantsOf(i.Id).Select(v => v.Name).Append(i.Alias));
+
     //	An item matches when it or one of its variants does (rarity, sheet effects, a variant's name)
     private List<MagicItemResponseDto> Filtered
     {
@@ -340,6 +343,7 @@
                             || (i.Alias?.Contains(term, StringComparison.OrdinalIgnoreCase) ?? false)
                             || i.ShortDescription.Contains(term, StringComparison.OrdinalIgnoreCase)
                             || VariantsOf(i.Id).Any(v => v.Name.Contains(term, StringComparison.OrdinalIgnoreCase)))
+                .OrderBy(Rank)
                 .ToList();
         }
     }

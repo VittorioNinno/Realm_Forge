@@ -211,6 +211,16 @@ public static class CharacterResources
 			Add("feat-lucky", T("Punti fortuna", "Luck Points"), is2024 ? proficiency : 3, ResourceReset.LongRest);
 		}
 
+		//	Resources of the Homebrew rule modules (key from the module and the resource's name, stable across languages)
+		foreach (var (effect, module) in c.ModuleEffects.Where(e => e.Effect.Kind == RuleEffectKind.Resource))
+		{
+			var key = $"module:{module}:{effect.NameEn ?? effect.NameIt}".ToLowerInvariant();
+			if (list.All(r => r.Key != key))
+			{
+				Add(key, effect.Name(lang), RuleModules.Uses(effect, c), effect.Reset);
+			}
+		}
+
 		return list;
 	}
 

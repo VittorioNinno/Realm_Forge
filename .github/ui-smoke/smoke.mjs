@@ -76,7 +76,7 @@ try {
 
   // Navigation: reference pages live in the collapsible "Compendio" group, opened on compendium routes
   const compendiumLinks = (await page.locator('[data-test=nav-compendium] a').allInnerTexts()).map((t) => t.trim());
-  if (compendiumLinks.join(',') !== 'Specie,Background,Talenti,Incantesimi,Classi,Equipaggiamento,Oggetti magici,Mostri') throw new Error(`unexpected compendium links: ${compendiumLinks.join(',')}`);
+  if (compendiumLinks.join(',') !== 'Specie,Background,Talenti,Incantesimi,Classi,Equipaggiamento,Oggetti magici,Mostri,Moduli di regole') throw new Error(`unexpected compendium links: ${compendiumLinks.join(',')}`);
   // The rules glossary is a menu entry of its own, next to the compendium group
   const rulesLink = (await page.locator('[data-test=nav-rules] a').innerText()).trim();
   if (rulesLink !== 'Glossario') throw new Error(`unexpected glossary menu entry: ${rulesLink}`);
@@ -362,6 +362,16 @@ try {
   if (allRules !== '243 termini' || rules2024 !== '155 termini' || conditions2024 !== '15 termini' || prone.name !== 'Prono' || prone.tag !== 'Condizione'
     || prone.terms.join(',') !== 'svantaggio,vantaggio' || prone.url !== '/rules?id=') throw new Error('unexpected glossary page');
   ok('glossary: 243 Base entries (155 of 2024), edition and family filters, Prone 2024 (Condizione) with its rules terms linked, opened at rules?id=');
+  // Search: the entry named like the text comes first, before the ones that only mention it
+  await page.goto(`${base}/rules`);
+  await page.locator('[data-test=rules-group]').first().waitFor({ timeout: 60000 });
+  await page.locator('[data-test=rules-search]').fill('Paralizzato');
+  await page.locator('[data-test=rules-tile]').first().waitFor({ timeout: 15000 });
+  for (let i = 0; i < 50 && await page.locator('[data-test=rules-tile] .rf-glossary-tile-name').count() < 2; i++) await page.waitForTimeout(100);
+  const paralyzedOrder = (await page.locator('[data-test=rules-tile] .rf-glossary-tile-name').allInnerTexts()).map((t) => t.trim());
+  results.push(`INFO glossary search "Paralizzato": ${paralyzedOrder.slice(0, 5).join(', ')}`);
+  if (paralyzedOrder[0] !== 'Paralizzato' || paralyzedOrder.length < 2) throw new Error(`the condition is not the first result: ${paralyzedOrder.join(', ')}`);
+  ok('list search: "Paralizzato" shows the condition first, then the entries that mention it');
 
   // Rules terms in the other modules: Command 2024 links "prono" and "azione bonus", with a tooltip and a link to the glossary
   await page.goto(`${base}/spells`);
@@ -405,7 +415,7 @@ try {
     return { label: el.textContent.trim(), inset: Math.round(icon.left - el.getBoundingClientRect().left), left: Math.round(icon.left) };
   }));
   results.push(`INFO menu icons: ${iconGaps.map((g) => `${g.label}@${g.left}(+${g.inset})`).join(', ')}`);
-  if (iconGaps.length !== 14 || iconGaps.some((g) => g.inset < 8) || new Set(iconGaps.map((g) => g.left)).size !== 1) throw new Error('menu icons are not padded or not aligned');
+  if (iconGaps.length !== 15 || iconGaps.some((g) => g.inset < 8) || new Set(iconGaps.map((g) => g.left)).size !== 1) throw new Error('menu icons are not padded or not aligned');
   await page.locator('[data-test=nav-compendium] button').click();
   ok('"Compendio" menu group: Specie, Background, Talenti, Incantesimi, Classi, Equipaggiamento, and Glossario next to it; collapsed elsewhere and toggles on click; icons padded and aligned');
   await page.getByText('Non hai un account? Registrati').click();
@@ -616,6 +626,38 @@ try {
   if (infoCallsWhileTyping !== 0) throw new Error(`${infoCallsWhileTyping} account API calls while typing in the search`);
   ok('species search filters by text and explains when nothing matches');
 
+  // Search page before typing: the sections with their size, the conditions to look up, the entries opened lately
+  await page.goto(`${base}/search`);
+  await page.locator('[data-test=search-category] .rf-search-category-count').first().waitFor({ timeout: 30000 });
+  await page.locator('[data-test=search-quick-pill]').first().waitFor({ timeout: 30000 });
+  const hub = await page.evaluate(() => ({
+    categories: document.querySelectorAll('[data-test=search-category]').length,
+    spells: document.querySelector('[data-test=search-category][data-kind=spell] .rf-search-category-count')?.textContent.trim(),
+    pills: document.querySelectorAll('[data-test=search-quick-pill]').length,
+    highlight: [...document.querySelectorAll('[data-test=search-quick-pill].highlight')].map((p) => p.textContent.trim()).join(',')
+  }));
+  await page.locator('[data-test=search-edition-1]').click();
+  hub.spells2014 = (await page.locator('[data-test=search-category][data-kind=spell] .rf-search-category-count').innerText()).trim();
+  await page.locator('[data-test=search-edition-2]').click();
+  await shot(page, 'search-hub', 'main');
+  // "/" from anywhere on the page focuses the box
+  await page.locator('h1').click();
+  await page.keyboard.press('/');
+  hub.slash = await page.evaluate(() => document.activeElement?.getAttribute('data-test'));
+  // A condition from the quick reference opens its glossary entry and is remembered
+  await page.locator('[data-test=search-quick-pill]', { hasText: /^Prono$/ }).click();
+  await page.waitForURL(/\/rules\?id=/, { timeout: 15000 });
+  await page.goto(`${base}/search`);
+  await page.locator('[data-test=search-recent-item]').first().waitFor({ timeout: 15000 });
+  hub.recent = (await page.locator('[data-test=search-recent-item]').first().innerText()).replace(/\s+/g, ' ').trim();
+  // The random entry of the chosen chip
+  await page.locator('[data-test=search-chip-monster]').click();
+  await page.locator('[data-test=search-random]').click();
+  await page.waitForURL(/\/monsters\?id=/, { timeout: 15000 });
+  results.push(`INFO search hub: ${JSON.stringify(hub)}`);
+  if (hub.categories !== 8 || hub.spells !== '391' || hub.spells2014 !== '361' || hub.pills !== 17 || hub.slash !== 'search-input' || !/Prono/.test(hub.recent)) throw new Error(`unexpected search hub: ${JSON.stringify(hub)}`);
+  ok('search page: 8 sections with their base entries per edition, 17 quick rules (conditions, exhaustion, concentration, cover), "/" focuses the box, opened entries remembered, random monster from the chip');
+
   // Global search: Italian and English names, results grouped by section with the edition
   await page.goto(`${base}/search?q=palla di fuoco`);
   await page.locator('[data-test=search-hit]').first().waitFor({ timeout: 30000 });
@@ -624,6 +666,11 @@ try {
   await page.locator('[data-test=search-group][data-kind=monster]').waitFor({ timeout: 15000 });
   const searchGroups = await page.locator('[data-test=search-group]').evaluateAll((els) => els.map((e) => e.getAttribute('data-kind')).join(','));
   await shot(page, 'search', 'main');
+  // The "Regole" chip keeps only the glossary
+  await page.locator('[data-test=search-chip-rule]').click();
+  await page.locator('[data-test=search-none]').waitFor({ timeout: 15000 });
+  await page.locator('[data-test=search-chip-all]').click();
+  await page.locator('[data-test=search-group][data-kind=monster]').waitFor({ timeout: 15000 });
   await page.locator('[data-test=search-input]').fill('zzqqxx');
   await page.locator('[data-test=search-none]').waitFor({ timeout: 15000 });
   results.push(`INFO search: fireball='${searchFireball}' goblin groups=${searchGroups}`);
@@ -680,6 +727,31 @@ try {
   await page.locator('[data-test=account-delete-confirm]').waitFor({ state: 'detached', timeout: 5000 });
   await shot(page, 'account-danger', '[data-test=account-delete]');
   ok('account deletion: the dialog asks for the password, a wrong one is refused and nothing is deleted');
+
+  // Passkey with Chromium's virtual authenticator (fingerprint simulated): added on the account page, then used to sign in
+  const cdp = await context.newCDPSession(page);
+  await cdp.send('WebAuthn.enable');
+  const { authenticatorId } = await cdp.send('WebAuthn.addVirtualAuthenticator', { options: {
+    protocol: 'ctap2', transport: 'internal', hasResidentKey: true, hasUserVerification: true, isUserVerified: true, automaticPresenceSimulation: true } });
+  await page.locator('[data-test=account-passkey-name]').fill('Portatile CI');
+  await page.locator('[data-test=account-passkey-add]').click();
+  await page.locator('[data-test=account-passkey]', { hasText: 'Portatile CI' }).waitFor({ timeout: 15000 });
+  const passkeyMessage = (await page.locator('[data-test=account-passkey-message]').innerText()).trim();
+  await shot(page, 'account-passkeys', '[data-test=account-passkeys]');
+  // The same device again: the browser refuses a second passkey for the account
+  await page.locator('[data-test=account-passkey-add]').click();
+  await page.locator('[data-test=account-passkey-message]', { hasText: 'già una passkey' }).waitFor({ timeout: 15000 });
+  await page.locator('[data-test=account-logout]').click();
+  await page.locator('[data-test=auth-passkey]').waitFor({ timeout: 15000 });
+  await shot(page, 'login-passkey', 'main');
+  // The errors handled on the account page (wrong password of the deletion, a refused passkey) do not raise the page banner
+  const bannerOnLogin = await page.locator('[data-test=api-error]').count();
+  await page.locator('[data-test=auth-passkey]').click();
+  await page.locator('[data-test=account-area]', { hasText: email }).waitFor({ timeout: 30000 });
+  const credentials = (await cdp.send('WebAuthn.getCredentials', { authenticatorId })).credentials.length;
+  results.push(`INFO passkey: added='${passkeyMessage}' credentials on the device=${credentials}`);
+  if (!/aggiunta/i.test(passkeyMessage) || credentials !== 1 || bannerOnLogin !== 0) throw new Error(`unexpected passkey flow (banner=${bannerOnLogin})`);
+  ok('passkey: added from the account page with a (virtual) fingerprint, a second one on the same device refused, sign-out and sign-in with the passkey');
 
   // Administration (admin-ui@example.com is in Auth:AdminEmails in this job): figures, an account suspended,
   // reactivated and deleted, the Homebrew moderation; an ordinary account is turned away
@@ -1273,6 +1345,57 @@ try {
   if (!/Mago 1/.test(classes) || !/Guerriero 1/.test(classes) || Number(levelUpHp) <= Number(sheetHp)) throw new Error('the level up into fighter was not saved');
   if (!/Mago 1 \/ Guerriero 1/.test(characterCard)) throw new Error(`the list does not show the classes: ${characterCard}`);
   ok('characters: edition-specific steps, 2024 wizard to the end, sheet matches the summary, damage autosaved, long rest, tabs, PDF download, level up into a second class');
+
+  // Rule modules: "Fortuna" written in the effects editor (an ability worth 10 in the array, its points coming back on a
+  // long rest), picked for the character in the wizard: a seventh card in the abilities step and on the sheet
+  await page.goto(`${base}/modules`);
+  await page.locator('[data-test=module-add]').click();
+  await page.locator('[data-test=module-editor]').waitFor({ timeout: 30000 });
+  await page.locator('[data-test=module-name-it]').fill('Fortuna');
+  await page.locator('[data-test=module-name-en]').fill('Luck');
+  const effectRows = page.locator('[data-test=effect-row]');
+  const pickKind = async (row, label) => {
+    await row.locator('[data-test=effect-kind] .rf-custom-select-trigger').click();
+    await row.locator('.rf-custom-select-option', { hasText: label }).first().click();
+  };
+  const typeIn = async (locator, text) => { await locator.fill(text); await locator.press('Tab'); };
+  await page.locator('[data-test=effect-add]').click();
+  await pickKind(effectRows.nth(0), 'Una caratteristica in più');
+  await typeIn(effectRows.nth(0).locator('[data-test=effect-name-it]'), 'Fortuna');
+  await typeIn(effectRows.nth(0).locator('[data-test=effect-name-en]'), 'Luck');
+  await typeIn(effectRows.nth(0).locator('[data-test=effect-short-it]'), 'FRT');
+  await page.locator('[data-test=effect-add]').click();
+  await pickKind(effectRows.nth(1), 'Una risorsa con usi');
+  await typeIn(effectRows.nth(1).locator('[data-test=effect-name-it]'), 'Punti Fortuna');
+  const modulePreviews = await page.locator('[data-test=effect-preview]').allInnerTexts();
+  await shot(page, 'module-editor', '[data-test=module-editor]');
+  await page.locator('[data-test=module-save]').click();
+  await page.locator('[data-test=module-card]', { hasText: 'Fortuna' }).click({ timeout: 30000 });
+  await page.locator('[data-test=module-effects]').waitFor({ timeout: 15000 });
+  const moduleEffects = (await page.locator('[data-test=module-effects]').innerText()).replace(/\s+/g, ' ').trim();
+  await shot(page, 'module-detail', '[data-test=module-detail]');
+  await page.goto(`${sheetUrl}/edit`);
+  await page.locator('[data-test=wizard-module]', { hasText: 'Fortuna' }).click({ timeout: 60000 });
+  for (let guard = 0; guard < 10 && await page.locator('[data-test=wizard-step-abilities]').count() === 0; guard++) await next();
+  await page.locator('[data-test=wizard-stat-6]').waitFor({ timeout: 15000 });
+  const fortunaPool = (await page.locator('[data-test=wizard-pool-die]').allInnerTexts()).join(',');
+  await page.locator('[data-test=wizard-pool-die]').first().click();
+  await page.locator('[data-test=wizard-stat-6] [data-test=wizard-assign]').click();
+  const fortunaWizard = (await page.locator('[data-test=wizard-stat-6]').innerText()).replace(/\s+/g, ' ').trim();
+  await shot(page, 'module-wizard', '[data-test=wizard-stats]');
+  for (let guard = 0; guard < 10 && await page.locator('[data-test=wizard-forge]').count() === 0; guard++) await next();
+  await page.locator('[data-test=wizard-forge]').click();
+  await page.locator('[data-test=character-sheet]').waitFor({ timeout: 30000 });
+  await page.locator('[data-test=sheet-extra-ability]').waitFor({ timeout: 15000 });
+  const fortunaSheet = (await page.locator('[data-test=sheet-extra-ability]').innerText()).replace(/\s+/g, ' ').trim();
+  const sheetModules = (await page.locator('[data-test=sheet-modules]').innerText()).replace(/\s+/g, ' ').trim();
+  await shot(page, 'module-sheet', '[data-test=sheet-scores]');
+  results.push(`INFO modules: previews=${JSON.stringify(modulePreviews)} detail="${moduleEffects}" pool=${fortunaPool} wizard="${fortunaWizard}" sheet="${fortunaSheet}" modules="${sheetModules}"`);
+  if (!/Fortuna \(FRT\)/.test(modulePreviews[0] ?? '') || !/Punti Fortuna, 3 usi/.test(modulePreviews[1] ?? '') || !/riposo lungo/.test(moduleEffects)
+    || fortunaPool !== '10' || !/fortuna/i.test(fortunaWizard) || !/10/.test(fortunaWizard) || !/fortuna/i.test(fortunaSheet) || !/\+0/.test(fortunaSheet) || !/fortuna/i.test(sheetModules)) {
+    throw new Error('unexpected rule module flow');
+  }
+  ok('rule modules: Fortuna written in the effects editor (ability + resource), picked in the wizard, joins the array as a seventh value and shows next to the six on the sheet');
   await page.goto(`${base}/backgrounds`);
   await page.getByText('Accolito').first().waitFor({ timeout: 30000 });
 

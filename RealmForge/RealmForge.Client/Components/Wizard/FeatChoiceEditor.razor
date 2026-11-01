@@ -10,8 +10,8 @@
             <div class="rf-wizard-row">
                 <div class="rf-wizard-label">@UiText.LabelPlusOne(Lang)</div>
                 <div class="rf-wizard-field">
-                    <ForgeSelector TValue="AbilityScore?" Value="@(index < Choice.Increases.Count ? Choice.Increases[index] : null)" ValueChanged="v => SetIncrease(index, v)"
-                                   Options="AbilityOptions(CharacterMath.Abilities)" DataTest="@($"wizard-feat-increase-{index}")" />
+                    <ForgeSelector TValue="string" Value="@IncreasePicks.Get(Choice.Increases, Choice.ExtraIncreases, index)" ValueChanged="v => SetAsiIncrease(index, v)"
+                                   Options="IncreasePicks.Options(CharacterMath.Abilities, Computed, Lang)" DataTest="@($"wizard-feat-increase-{index}")" />
                 </div>
             </div>
         }
@@ -110,6 +110,12 @@
             var options = CharacterRules.MagicInitiateLists(Ruleset).Select(l => new ForgeSelector<SpellcastingClass?>.Option(l, GameTerms.ClassName(l, Lang))).ToList();
             return options;
         }
+    }
+
+    private void SetAsiIncrease(int index, string? value)
+    {
+        IncreasePicks.Set(Choice.Increases, Choice.ExtraIncreases, index, value);
+        W.Update();
     }
 
     private void SetIncrease(int index, AbilityScore? value)

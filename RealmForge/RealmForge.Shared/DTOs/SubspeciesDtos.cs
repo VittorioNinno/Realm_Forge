@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using RealmForge.Shared.Characters;
 using RealmForge.Shared.Enums;
 
 namespace RealmForge.Shared.DTOs
@@ -17,7 +18,10 @@ namespace RealmForge.Shared.DTOs
 		List<TraitResponseDto> Traits,
 		bool CanEdit = false,
 		ContentSource? Source = null,
-		ContentVisibility Visibility = ContentVisibility.Public
+ContentVisibility Visibility = ContentVisibility.Public,
+
+		//	Rule effects the sheet applies (Homebrew)
+		List<RuleEffect>? Effects = null
 	);
 
 	///	<summary>
@@ -28,7 +32,8 @@ namespace RealmForge.Shared.DTOs
 		RulesetVersion Ruleset,
 		List<SubspeciesTranslationDto> Translations,
 		List<CreateTraitDto>? Traits = null,
-		ContentVisibility Visibility = ContentVisibility.Private
+		ContentVisibility Visibility = ContentVisibility.Private,
+		List<RuleEffect>? Effects = null
 	);
 
 	///	<summary>
@@ -39,7 +44,8 @@ namespace RealmForge.Shared.DTOs
 		int? BaseSpeedOverrideInFeet,
 		RulesetVersion Ruleset,
 		List<SubspeciesTranslationDto> Translations,
-		ContentVisibility Visibility = ContentVisibility.Private
+		ContentVisibility Visibility = ContentVisibility.Private,
+		List<RuleEffect>? Effects = null
 	);
 
 	///	<summary>

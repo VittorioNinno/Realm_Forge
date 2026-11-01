@@ -41,6 +41,7 @@ namespace RealmForge.Client
 			builder.Services.AddAuthorizationCore();
 			builder.Services.AddCascadingAuthenticationState();
 			builder.Services.AddScoped<AuthService>();
+			builder.Services.AddScoped<PasskeyService>();
 			builder.Services.AddScoped<CrossTabService>();
 			builder.Services.AddScoped<TokenAuthenticationStateProvider>();
 			builder.Services.AddScoped<AuthenticationStateProvider>(sp => sp.GetRequiredService<TokenAuthenticationStateProvider>());
@@ -55,6 +56,7 @@ namespace RealmForge.Client
 			builder.Services.AddScoped<EquipmentDataService>();
 			builder.Services.AddScoped<MagicItemDataService>();
 			builder.Services.AddScoped<MonsterDataService>();
+			builder.Services.AddScoped<RuleModuleDataService>();
 			builder.Services.AddScoped<EncounterDataService>();
 			builder.Services.AddScoped<CampaignDataService>();
 			builder.Services.AddScoped<TrashDataService>();

@@ -26,6 +26,9 @@ public sealed class CharacterInput
 	public Guid BackgroundId { get; set; }
 	public CharacterBuild Build { get; set; } = new();
 	public CharacterSheetState Sheet { get; set; } = new();
+
+	//	Rule modules of the campaigns the character plays in (they apply besides the ones of the build)
+	public List<Guid> CampaignModuleIds { get; set; } = new();
 }
 
 public sealed record ClassLevelInfo(ContextClass Class, ContextSubclass? Subclass, int Level, CharacterClassBuild Build, bool Starting);
@@ -131,7 +134,25 @@ public sealed class ComputedCharacter
 	public List<AttackInfo> Attacks { get; } = new();
 
 	public int SaveBonus(AbilityScore ability) =>
-		Modifier(ability) + (SaveProficiencies.Contains(ability) ? ProficiencyBonus : 0) + SaveBonusAll;
+		Modifier(ability) + (SaveProficiencies.Contains(ability) ? ProficiencyBonus : 0) + SaveBonusAll + SaveBonusOne[(int)ability - 1];
+
+	// ----- Homebrew rule modules -----
+
+	//	Effects of the active modules with the module they come from, the abilities they add, the extra training
+	public List<(RuleEffect Effect, string Module)> ModuleEffects { get; set; } = new();
+	public List<ContextModule> Modules { get; set; } = new();
+	public List<ExtraAbilityScore> ExtraAbilities { get; } = new();
+	public int[] SaveBonusOne { get; } = new int[6];
+	public Dictionary<Skill, int> SkillBonusExtra { get; } = new();
+	public HashSet<string> ExtraTools { get; } = new(StringComparer.OrdinalIgnoreCase);
+
+	//	Base scores, origin and level increases of the added abilities while the calculator runs (by key)
+	internal Dictionary<string, int> ExtraRunning { get; } = new(StringComparer.OrdinalIgnoreCase);
+	internal Dictionary<string, int> ExtraLevelBonus { get; } = new(StringComparer.OrdinalIgnoreCase);
+
+	public int ModuleSum(RuleEffectKind kind) => ModuleEffects.Where(e => e.Effect.Kind == kind).Sum(e => e.Effect.Value);
+
+	public ExtraAbilityScore? Extra(string? key) => key is null ? null : ExtraAbilities.FirstOrDefault(a => string.Equals(a.Key, key, StringComparison.OrdinalIgnoreCase));
 
 	//	Bonus to every ability check (magic items) and the damage types resisted thanks to items
 	public int CheckBonusAll { get; set; }
@@ -165,7 +186,7 @@ public sealed class ComputedCharacter
 	private int HalfProficiency(AbilityScore ability) =>
 		RemarkableAthlete.Contains(ability) ? (ProficiencyBonus + 1) / 2 : JackOfAllTrades ? ProficiencyBonus / 2 : 0;
 
-	public int SkillBonus(Skill skill) => SkillBase(skill) + CheckBonusAll + AbilityCheckBonus[(int)GameTerms.SkillAbility(skill) - 1];
+	public int SkillBonus(Skill skill) => SkillBase(skill) + CheckBonusAll + AbilityCheckBonus[(int)GameTerms.SkillAbility(skill) - 1] + SkillBonusExtra.GetValueOrDefault(skill);
 
 	private int SkillBase(Skill skill)
 	{

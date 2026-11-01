@@ -100,6 +100,15 @@ namespace RealmForge.Api.Email
 			return _options.ClientBaseUrl ?? _allowedOrigins.FirstOrDefault() ?? "http://localhost:5227";
 		}
 
+		///	<summary>
+		///	A notice about the account (see <see cref="AccountNotices"/>); logValue names it in the log when no mail
+		///	service is configured.
+		///	</summary>
+		public Task SendNoticeAsync(string to, string subject, string logValue, string html, string text) => SendAsync(to, subject, logValue, html, text);
+
+		//	The page of the client where the notices lead (the sign-in page)
+		public string ClientPage(string path) => $"{ClientBaseUrl().TrimEnd('/')}/{path.TrimStart('/')}";
+
 		private async Task SendAsync(string to, string subject, string logValue, string html, string text)
 		{
 			if (!_options.IsConfigured)
