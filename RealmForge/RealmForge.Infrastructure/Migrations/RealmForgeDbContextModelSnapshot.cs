@@ -503,6 +503,10 @@ namespace RealmForge.Infrastructure.Migrations
                     b.Property<Guid>("CampaignId")
                         .HasColumnType("uuid");
 
+                    b.Property<string>("Color")
+                        .HasMaxLength(9)
+                        .HasColumnType("character varying(9)");
+
                     b.Property<DateTimeOffset>("JoinedAt")
                         .HasColumnType("timestamp with time zone");
 
@@ -580,6 +584,11 @@ namespace RealmForge.Infrastructure.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("character varying(100)");
 
+                    b.Property<string>("Color")
+                        .IsRequired()
+                        .HasMaxLength(9)
+                        .HasColumnType("character varying(9)");
+
                     b.Property<DateTimeOffset>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 
@@ -606,6 +615,11 @@ namespace RealmForge.Infrastructure.Migrations
                     b.Property<string>("Note")
                         .HasMaxLength(200)
                         .HasColumnType("character varying(200)");
+
+                    b.Property<string>("Roller")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
 
                     b.Property<int>("Total")
                         .HasColumnType("integer");
