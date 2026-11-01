@@ -8,6 +8,9 @@ namespace RealmForge.Domain.Entities
 	///	</summary>
 	public class Subspecies : GameEntity
 	{
+		//	Homebrew rule effects (JSON list of RealmForge.Shared.Characters.RuleEffect) the sheet applies; "[]" for Base content
+		public string Effects { get; set; } = "[]";
+
 		//	Foreign key and navigation property to the parent Species
 		public Guid SpeciesId { get; set; }
 		public Species Species { get; set; } = null!;

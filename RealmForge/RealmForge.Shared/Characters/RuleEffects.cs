@@ -130,6 +130,47 @@ public static class RuleModules
 		result.ModuleEffects = result.Modules
 			.SelectMany(m => m.Effects.Where(e => e.Level <= result.Level).Select(e => (e, m.Name)))
 			.ToList();
+
+		//	The effects of the Homebrew the character uses: species and lineage, feats (from the character level), class
+		//	and subclass features (from the class level)
+		void From(IEnumerable<RuleEffect>? effects, string? source, int reach)
+		{
+			if (effects is not null)
+			{
+				result.ModuleEffects.AddRange(effects.Where(e => e.Level <= reach).Select(e => (e, source ?? string.Empty)));
+			}
+		}
+		var build = input.Build;
+		var species = context.Species.FirstOrDefault(s => s.Id == input.SpeciesId);
+		From(species?.Effects, species?.Name, result.Level);
+		var subspecies = species?.Subspecies.FirstOrDefault(s => s.Id == input.SubspeciesId);
+		From(subspecies?.Effects, subspecies?.Name, result.Level);
+
+		var originFeat = context.Backgrounds.FirstOrDefault(b => b.Id == input.BackgroundId)?.OriginFeatId;
+		var feats = new[] { build.SpeciesFeatId, originFeat }
+			.Concat(build.Levels.Select(l => l.FeatId))
+			.Concat(build.Classes.Select(c => c.FightingStyleFeatId))
+			.OfType<Guid>()
+			.Distinct();
+		foreach (var id in feats)
+		{
+			if (context.Feats.FirstOrDefault(f => f.Id == id) is { Effects: not null } feat)
+			{
+				From(feat.Effects, feat.Name, result.Level);
+			}
+		}
+
+		foreach (var entry in build.Classes)
+		{
+			if (context.Classes.FirstOrDefault(c => c.Id == entry.ClassId) is not { } cls)
+			{
+				continue;
+			}
+			var classLevel = build.Levels.Count(l => l.ClassId == cls.Id);
+			From(cls.Effects, cls.Name, classLevel);
+			var subclass = cls.Subclasses.FirstOrDefault(s => s.Id == entry.SubclassId);
+			From(subclass?.Effects, subclass?.Name, classLevel);
+		}
 	}
 
 	///	<summary>
@@ -307,5 +348,46 @@ public static class RuleEffectRules
 			}
 		}
 		return null;
+	}
+}
+
+///	<summary>
+///	The JSON of a list of effects as stored with a module, a feat, a species or a class feature.
+///	</summary>
+public static class RuleEffectJson
+{
+	private static readonly System.Text.Json.JsonSerializerOptions Options = new(System.Text.Json.JsonSerializerDefaults.Web);
+
+	public static List<RuleEffect> Read(string? json)
+	{
+		try
+		{
+			return string.IsNullOrWhiteSpace(json) ? new() : System.Text.Json.JsonSerializer.Deserialize<List<RuleEffect>>(json, Options) ?? new();
+		}
+		catch (System.Text.Json.JsonException)
+		{
+			return new();
+		}
+	}
+
+	///	<summary>
+	///	Cleaned JSON (keys in lower case, texts trimmed, empty names dropped) of the effects of a Homebrew entry.
+	///	</summary>
+	public static string Write(IEnumerable<RuleEffect>? effects) => System.Text.Json.JsonSerializer.Serialize(Clean(effects?.ToList() ?? new()), Options);
+
+	public static List<RuleEffect> Clean(List<RuleEffect> effects)
+	{
+		static string? Trim(string? text) => string.IsNullOrWhiteSpace(text) ? null : text.Trim();
+		foreach (var e in effects)
+		{
+			e.Key = Trim(e.Key)?.ToLowerInvariant();
+			e.AbilityKey = Trim(e.AbilityKey)?.ToLowerInvariant();
+			e.Text = Trim(e.Text);
+			e.NameIt = Trim(e.NameIt);
+			e.NameEn = Trim(e.NameEn);
+			e.ShortIt = Trim(e.ShortIt)?.ToUpperInvariant();
+			e.ShortEn = Trim(e.ShortEn)?.ToUpperInvariant();
+		}
+		return effects;
 	}
 }

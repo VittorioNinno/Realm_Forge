@@ -1,5 +1,4 @@
-﻿using System.Text.Json;
-using Microsoft.AspNetCore.Authorization;
+﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using RealmForge.Api.Localization;
@@ -24,8 +23,6 @@ namespace RealmForge.Api.Controllers
 	public class RuleModulesController : ControllerBase
 	{
 		public const int MaxModulesPerUser = 50;
-		private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web);
-
 		private readonly RealmForgeDbContext _context;
 		private readonly ContentAccess _access;
 		private readonly ShareService _shares;
@@ -87,7 +84,7 @@ namespace RealmForge.Api.Controllers
 				IsOfficialSRD = false,
 				AuthorId = userId,
 				Visibility = dto.Visibility,
-				Effects = JsonSerializer.Serialize(Clean(dto.Effects), Json),
+				Effects = RuleEffectJson.Write(dto.Effects),
 				Translations = dto.Translations.Select(t => new RuleModuleTranslation
 				{
 					Language = t.Language,
@@ -122,7 +119,7 @@ namespace RealmForge.Api.Controllers
 			}
 			module.Ruleset = dto.Ruleset;
 			module.Visibility = dto.Visibility;
-			module.Effects = JsonSerializer.Serialize(Clean(dto.Effects), Json);
+			module.Effects = RuleEffectJson.Write(dto.Effects);
 			module.UpdatedAt = DateTimeOffset.UtcNow;
 
 			var languages = dto.Translations.Select(t => t.Language).ToHashSet();
@@ -172,33 +169,7 @@ namespace RealmForge.Api.Controllers
 			return NoContent();
 		}
 
-		internal static List<RuleEffect> Read(string? json)
-		{
-			try
-			{
-				return string.IsNullOrWhiteSpace(json) ? new() : JsonSerializer.Deserialize<List<RuleEffect>>(json, Json) ?? new();
-			}
-			catch (JsonException)
-			{
-				return new();
-			}
-		}
-
-		//	Keys of the added abilities in lower case, texts trimmed
-		private static List<RuleEffect> Clean(List<RuleEffect> effects)
-		{
-			foreach (var e in effects)
-			{
-				e.Key = e.Key?.Trim().ToLowerInvariant();
-				e.AbilityKey = e.AbilityKey?.Trim().ToLowerInvariant();
-				e.Text = string.IsNullOrWhiteSpace(e.Text) ? null : e.Text.Trim();
-				e.NameIt = string.IsNullOrWhiteSpace(e.NameIt) ? null : e.NameIt.Trim();
-				e.NameEn = string.IsNullOrWhiteSpace(e.NameEn) ? null : e.NameEn.Trim();
-				e.ShortIt = string.IsNullOrWhiteSpace(e.ShortIt) ? null : e.ShortIt.Trim().ToUpperInvariant();
-				e.ShortEn = string.IsNullOrWhiteSpace(e.ShortEn) ? null : e.ShortEn.Trim().ToUpperInvariant();
-			}
-			return effects;
-		}
+		internal static List<RuleEffect> Read(string? json) => RuleEffectJson.Read(json);
 
 		private ActionResult? Validate(SaveRuleModuleDto dto)
 		{

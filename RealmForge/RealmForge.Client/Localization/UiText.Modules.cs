@@ -53,6 +53,12 @@ namespace RealmForge.Client.Localization
 		public static string WizardModuleFromCampaign(LanguageCode lang) => T(lang, "dalla campagna", "from the campaign");
 		public static string SheetModulesTitle(LanguageCode lang) => T(lang, "Regole della casa", "House rules");
 
+		public static string EffectsOnSheet(int count, LanguageCode lang) => T(lang, $"Effetti sulla scheda ({count})", $"Effects on the sheet ({count})");
+		public static string EffectsOnSheetTitle(LanguageCode lang) => T(lang, "Sulla scheda", "On the sheet");
+		public static string EffectsOnSheetHint(LanguageCode lang) => T(lang,
+			"Quello che la scheda calcola da sola per chi lo usa: il testo resta descrittivo, i numeri vengono da qui.",
+			"What the sheet works out on its own for whoever uses it: the text stays descriptive, the numbers come from here.");
+
 		//	Editor
 		public static string EffectAdd(LanguageCode lang) => T(lang, "Aggiungi effetto", "Add effect");
 		public static string EffectKindLabel(LanguageCode lang) => T(lang, "Effetto", "Effect");

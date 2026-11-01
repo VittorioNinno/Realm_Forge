@@ -101,6 +101,7 @@
                             <p class="small lh-base mb-3" style="color: var(--rf-text-secondary); text-align: left;">
                                 @(string.IsNullOrWhiteSpace(sub.Description) ? UiText.NoDescription(LanguageState.CurrentLanguage) : RealmForge.Shared.Text.MarkdownPreview.ToPlainText(sub.Description, 220))
                             </p>
+                            <EffectList Effects="sub.Effects" />
                         </div>
 
                         @* CARD FOOTER: Actions *@
@@ -204,6 +205,12 @@
                     </div>
                 </div>
 
+                <details class="rf-effects-details mb-3" data-test="subspecies-effects">
+                    <summary>@UiText.EffectsOnSheet(newEffects.Count, LanguageState.CurrentLanguage)</summary>
+                    <div class="small my-2" style="color: var(--rf-text-muted);">@UiText.EffectsOnSheetHint(LanguageState.CurrentLanguage)</div>
+                    <RuleEffectsEditor Effects="newEffects" OnChanged="StateHasChanged" />
+                </details>
+
                 <div class="d-flex justify-content-end gap-2 pt-2" style="border-top: 1px solid var(--rf-border-light);">
                     <button class="btn btn-rf-outline" @onclick="CloseCreateModal">
                         @UiText.BtnCancel(LanguageState.CurrentLanguage)
@@ -265,6 +272,7 @@
     private string descIt = "";
     private string nameEn = "";
     private string descEn = "";
+    private List<RealmForge.Shared.Characters.RuleEffect> newEffects = new();
 
     // Delete Modal state
     private bool isDeleteModalOpen = false;
@@ -321,6 +329,7 @@
         descIt = "";
         nameEn = "";
         descEn = "";
+        newEffects = new();
         
         isModalOpen = true;
     }
@@ -353,6 +362,7 @@
                 descIt = detailIt.Description;
                 nameEn = detailEn.Name;
                 descEn = detailEn.Description;
+                newEffects = detailIt.Effects ?? new();
             }
         }
         catch (Exception ex)
@@ -378,6 +388,12 @@
             return;
         }
 
+        if (RealmForge.Shared.Characters.RuleEffectRules.Validate(newEffects) is { } effectProblem)
+        {
+            formValidationMessage = UiText.ModuleError(effectProblem, LanguageState.CurrentLanguage);
+            return;
+        }
+
         isSaving = true;
         formValidationMessage = null;
 
@@ -396,7 +412,8 @@
                 newSpeedOverride,
                 newRuleset,
                 translations,
-                Visibility: newVisibility
+                Visibility: newVisibility,
+                Effects: newEffects
             );
             success = await SubspeciesService.UpdateAsync(editingId, updateDto);
         }
@@ -407,7 +424,8 @@
                 newRuleset,
                 translations,
                 new List<CreateTraitDto>(),
-                Visibility: newVisibility
+                Visibility: newVisibility,
+                Effects: newEffects
             );
             
             var created = await SubspeciesService.CreateAsync(ParentSpeciesId, createDto);

@@ -22,11 +22,14 @@
                     <label class="rf-form-label">@UiText.EffectKindLabel(Lang)</label>
                     <RfSelect TValue="RuleEffectKind" Value="effect.Kind" ValueChanged="k => SetKind(effect, k)" Options="KindOptions" />
                 </div>
-                <div style="width: 96px;">
-                    <label class="rf-form-label">@UiText.EffectLevelLabel(Lang)</label>
-                    <input type="number" class="rf-form-control" min="1" max="20" value="@effect.Level" data-test="effect-level"
-                           @onchange="e => { effect.Level = Math.Clamp(ParseInt(e.Value, 1), 1, 20); Changed(); }" />
-                </div>
+                @if (ShowLevel)
+                {
+                    <div style="width: 96px;">
+                        <label class="rf-form-label">@UiText.EffectLevelLabel(Lang)</label>
+                        <input type="number" class="rf-form-control" min="1" max="20" value="@effect.Level" data-test="effect-level"
+                               @onchange="e => { effect.Level = Math.Clamp(ParseInt(e.Value, 1), 1, 20); Changed(); }" />
+                    </div>
+                }
                 <button type="button" class="btn btn-sm btn-rf-outline rf-effect-remove" title="@UiText.EffectRemove(Lang)" aria-label="@UiText.EffectRemove(Lang)"
                         @onclick="() => Remove(index)" data-test="effect-remove"><Icon Name="close" /></button>
             </div>
@@ -177,6 +180,9 @@
 @code {
     [Parameter, EditorRequired] public List<RuleEffect> Effects { get; set; } = new();
     [Parameter] public EventCallback OnChanged { get; set; }
+
+    //	Off for a class feature: its effects work from the level of the feature
+    [Parameter] public bool ShowLevel { get; set; } = true;
 
     private LanguageCode Lang => LanguageState.CurrentLanguage;
 

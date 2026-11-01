@@ -8,6 +8,9 @@ namespace RealmForge.Domain.Entities
 	///	</summary>
 	public class Species : GameEntity
 	{
+		//	Homebrew rule effects (JSON list of RealmForge.Shared.Characters.RuleEffect) the sheet applies; "[]" for Base content
+		public string Effects { get; set; } = "[]";
+
 		//	Language-invariant numerical and mechanical data
 		public int BaseSpeedInFeet { get; set; } = 30;
 		public CreatureType CreatureType { get; set; } = CreatureType.Humanoid;

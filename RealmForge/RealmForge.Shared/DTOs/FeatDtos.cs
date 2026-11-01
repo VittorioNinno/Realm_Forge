@@ -1,4 +1,5 @@
-﻿using RealmForge.Shared.Enums;
+﻿using RealmForge.Shared.Characters;
+using RealmForge.Shared.Enums;
 
 namespace RealmForge.Shared.DTOs
 {
@@ -55,7 +56,10 @@ namespace RealmForge.Shared.DTOs
 		string? PrerequisiteNote,
 		bool CanEdit = false,
 		ContentSource? Source = null,
-		ContentVisibility Visibility = ContentVisibility.Public
+ContentVisibility Visibility = ContentVisibility.Public,
+
+		//	Rule effects the sheet applies (Homebrew)
+		List<RuleEffect>? Effects = null
 	);
 
 	///	<summary>
@@ -68,6 +72,7 @@ namespace RealmForge.Shared.DTOs
 		public FeatPrerequisiteDto Prerequisites { get; set; } = new();
 		public RulesetVersion Ruleset { get; set; }
 		public List<CreateFeatTranslationDto> Translations { get; set; } = new();
+		public List<RuleEffect> Effects { get; set; } = new();
 	}
 
 	///	<summary>
@@ -94,6 +99,7 @@ namespace RealmForge.Shared.DTOs
 		public FeatPrerequisiteDto Prerequisites { get; set; } = new();
 		public RulesetVersion Ruleset { get; set; }
 		public List<UpdateFeatTranslationDto> Translations { get; set; } = new();
+		public List<RuleEffect> Effects { get; set; } = new();
 	}
 
 	///	<summary>
