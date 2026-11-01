@@ -721,7 +721,7 @@ try {
   await shot(admin, 'admin-homebrew', 'main');
   await adminContext.close();
   results.push(`INFO admin: stats='${adminStats}' locked login=${lockedLogin} reactivated login=${unlockedLogin} homebrew rows=${moderated}`);
-  if (lockedLogin !== 401 || unlockedLogin !== 200 || moderated < 1 || !/account/.test(adminStats)) throw new Error('unexpected administration page');
+  if (lockedLogin !== 401 || unlockedLogin !== 200 || moderated < 1 || !/account/i.test(adminStats)) throw new Error('unexpected administration page');
   ok('administration: ordinary account turned away; figures, a suspended account cannot sign in until reactivated, then deleted; Homebrew listed for moderation');
 
   // Character creation at phone width (375 px): edition order, every step of the 2024 wizard (overflow checked),
