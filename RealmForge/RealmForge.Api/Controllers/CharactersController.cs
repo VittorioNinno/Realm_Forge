@@ -58,6 +58,15 @@ namespace RealmForge.Api.Controllers
 				&& (m.Role == CampaignRole.Master || m.Role == CampaignRole.CoMaster)))
 			.Select(cc => cc.CharacterId);
 
+		//	Rule modules shared with the campaigns of a character and approved: active for it
+		private Task<List<Guid>> CampaignModulesAsync(Guid characterId) => _context.CampaignContents.AsNoTracking()
+			.Where(c => c.Status == CampaignContentStatus.Approved
+				&& _context.CampaignCharacters.Any(cc => cc.CharacterId == characterId && cc.CampaignId == c.CampaignId)
+				&& _context.RuleModules.Any(m => m.Id == c.EntityId))
+			.Select(c => c.EntityId)
+			.Distinct()
+			.ToListAsync();
+
 		//	The owner of a character as a principal: its rules are checked with the compendium they see
 		private static ClaimsPrincipal Owner(string ownerId) =>
 			new(new ClaimsIdentity(new[] { new Claim(ClaimTypes.NameIdentifier, ownerId) }, "character-owner"));
@@ -85,7 +94,7 @@ namespace RealmForge.Api.Controllers
 				{
 					return NotFound();
 				}
-				return Ok(await _builder.BuildAsync(ruleset, lang, Owner(owner)));
+				return Ok(await _builder.BuildAsync(ruleset, lang, Owner(owner), await CampaignModulesAsync(characterId)));
 			}
 
 			return Ok(await _builder.BuildAsync(ruleset, lang, User));
@@ -257,7 +266,8 @@ namespace RealmForge.Api.Controllers
 				OwnerName = isOwner ? null : names.GetValueOrDefault(character.OwnerId),
 				//	Shown when the last change was made by someone else (the owner after a master, a master after the owner)
 				LastEditedBy = character.UpdatedById is { } editor && editor != UserId ? names.GetValueOrDefault(editor) : null,
-				Campaigns = campaigns
+				Campaigns = campaigns,
+				CampaignModuleIds = await CampaignModulesAsync(character.Id)
 			});
 		}
 
@@ -315,8 +325,11 @@ namespace RealmForge.Api.Controllers
 
 			var sheet = ReadSheet(character.Sheet);
 			ApplyAdvancement(sheet, dto.Advancement);
-			var context = await _builder.BuildAsync(dto.Ruleset, LanguageCode.En, Owner(character.OwnerId));
-			var computed = CharacterCalculator.Compute(Input(dto, sheet), context);
+			var modules = await CampaignModulesAsync(character.Id);
+			var context = await _builder.BuildAsync(dto.Ruleset, LanguageCode.En, Owner(character.OwnerId), modules);
+			var updateInput = Input(dto, sheet);
+			updateInput.CampaignModuleIds = modules;
+			var computed = CharacterCalculator.Compute(updateInput, context);
 			if (!computed.CanSave)
 			{
 				return Problem(statusCode: StatusCodes.Status400BadRequest, title: Describe(computed));
@@ -331,7 +344,7 @@ namespace RealmForge.Api.Controllers
 			Apply(character, dto, sheet, computed);
 			character.UpdatedById = UserId;
 			await _context.SaveChangesAsync();
-			return Ok(ToDto(character) with { IsOwner = character.OwnerId == UserId });
+			return Ok(ToDto(character) with { IsOwner = character.OwnerId == UserId, CampaignModuleIds = modules });
 		}
 
 		//	PUT: api/characters/{id}/sheet — the play state (hit points, resources, inventory, notes)
@@ -356,9 +369,11 @@ namespace RealmForge.Api.Controllers
 			}
 
 			var build = ReadBuild(character.Build);
-			var context = await _builder.BuildAsync(character.Ruleset, LanguageCode.En, Owner(character.OwnerId));
+			var campaignModules = await CampaignModulesAsync(character.Id);
+			var context = await _builder.BuildAsync(character.Ruleset, LanguageCode.En, Owner(character.OwnerId), campaignModules);
 			var input = new CharacterInput
 			{
+				CampaignModuleIds = campaignModules,
 				Name = character.Name,
 				Ruleset = character.Ruleset,
 				SpeciesId = character.SpeciesId,

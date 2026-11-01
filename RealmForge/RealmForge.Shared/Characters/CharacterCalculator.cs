@@ -53,6 +53,7 @@ public static class IssueCodes
 	public const string SpeciesOptionMissing = "species-option-missing";
 	public const string SubclassOption = "subclass-option";
 	public const string SubclassOptionMissing = "subclass-option-missing";
+	public const string Module = "module";
 }
 
 ///	<summary>
@@ -87,6 +88,7 @@ public static class CharacterCalculator
 			result.Error(IssueCodes.Level);
 		}
 		result.ProficiencyBonus = CharacterMath.ProficiencyBonus(result.Level);
+		RuleModules.Activate(input, context, result);
 
 		var classes = new List<(ContextClass Class, CharacterClassBuild Build)>();
 		foreach (var entry in build.Classes)
@@ -107,9 +109,18 @@ public static class CharacterCalculator
 
 		// ----- Ability scores -----
 		var baseScores = build.BaseScores.Count == 6 ? build.BaseScores.ToArray() : new[] { 10, 10, 10, 10, 10, 10 };
-		if (!CharacterMath.AreValidBaseScores(build.AbilityMethod, build.BaseScores))
+
+		//	The abilities added by rule modules enter the same method: one more array value each, their points, their rolls
+		var extras = RuleModules.ExtraDefinitions(result);
+		var extraBase = RuleModules.ExtraBaseScores(build, extras);
+		if (!CharacterMath.AreValidBaseScores(build.AbilityMethod, build.BaseScores.Take(6).Concat(build.BaseScores.Count == 6 ? extraBase : Enumerable.Empty<int>()).ToList(),
+			extras.Select(e => RuleModules.ArrayValue(e.Definition)).ToList(), extras.Sum(e => Math.Max(0, e.Definition.Points))))
 		{
 			result.Error(IssueCodes.BaseScores);
+		}
+		for (var x = 0; x < extras.Count; x++)
+		{
+			result.ExtraRunning[extras[x].Definition.Key!] = extraBase[x];
 		}
 		result.BaseScores = baseScores;
 		result.OriginBonuses = OriginBonuses(input, result, species, subspecies, background);
@@ -207,6 +218,7 @@ public static class CharacterCalculator
 
 		result.LevelBonuses = levelBonuses;
 		MagicItemRules.ApplyToScores(input.Sheet, running);
+		RuleModules.ApplyToScores(result, running);
 		result.FinalScores = running;
 		result.Feats.AddRange(takenFeats);
 
@@ -421,12 +433,13 @@ public static class CharacterCalculator
 		if (entry.FeatId is null)
 		{
 			//	2014: the plain improvement, +2 to one score or +1 to two; 2024 always takes a feat
-			if (ruleset == RulesetVersion.Dnd5e_2024 || entry.Increases.Count == 0)
+			if (ruleset == RulesetVersion.Dnd5e_2024 || entry.Increases.Count + entry.ExtraIncreases.Count == 0)
 			{
 				result.Todo(IssueCodes.ImprovementMissing, level);
 				return;
 			}
-			if (entry.Increases.Count != 2 || entry.Increases.Any(a => !Enum.IsDefined(a)))
+			if (entry.Increases.Count + entry.ExtraIncreases.Count != 2 || entry.Increases.Any(a => !Enum.IsDefined(a))
+				|| entry.ExtraIncreases.Any(k => !result.ExtraRunning.ContainsKey(k)))
 			{
 				result.Error(IssueCodes.Improvement, level);
 				return;
@@ -436,10 +449,14 @@ public static class CharacterCalculator
 			{
 				Raise(ability, 20, running, levelBonuses, result);
 			}
+			foreach (var key in entry.ExtraIncreases)
+			{
+				RaiseExtra(key, 20, result);
+			}
 			return;
 		}
 
-		if (entry.Increases.Count > 0)
+		if (entry.Increases.Count + entry.ExtraIncreases.Count > 0)
 		{
 			result.Error(IssueCodes.Improvement, level);
 			return;
@@ -533,12 +550,15 @@ public static class CharacterCalculator
 		var asi = feat.Key == "ability-score-improvement";
 		var expected = asi ? 2 : feat.Increases.Count > 0 ? 1 : 0;
 
-		if (increases.Count > expected || increases.Any(a => !Enum.IsDefined(a)) || (!asi && increases.Any(a => !feat.Increases.Contains(a))))
+		//	The abilities added by rule modules can take the increases of the Ability Score Improvement
+		var extraIncreases = asi ? taken.Choice.ExtraIncreases : new List<string>();
+		if (increases.Count + extraIncreases.Count > expected || increases.Any(a => !Enum.IsDefined(a)) || (!asi && increases.Any(a => !feat.Increases.Contains(a)))
+			|| (!asi && taken.Choice.ExtraIncreases.Count > 0) || extraIncreases.Any(k => !result.ExtraRunning.ContainsKey(k)))
 		{
 			result.ErrorIn(area, IssueCodes.FeatChoice, feat.Name);
 			return;
 		}
-		if (increases.Count < expected)
+		if (increases.Count + extraIncreases.Count < expected)
 		{
 			result.TodoIn(area, IssueCodes.FeatChoiceMissing, feat.Name);
 		}
@@ -546,6 +566,10 @@ public static class CharacterCalculator
 		foreach (var ability in increases)
 		{
 			Raise(ability, asi ? 20 : feat.IncreaseMaximum, running, levelBonuses, result);
+		}
+		foreach (var key in extraIncreases)
+		{
+			RaiseExtra(key, 20, result);
 		}
 
 		//	Skills of Skilled, Skill Expert, Keen Mind and Observant (2024)
@@ -559,6 +583,21 @@ public static class CharacterCalculator
 		else if (skills.Count < skillCount)
 		{
 			result.TodoIn(area, IssueCodes.FeatChoiceMissing, feat.Name);
+		}
+	}
+
+	//	An ability added by a rule module, up to the maximum like the six
+	private static void RaiseExtra(string key, int maximum, ComputedCharacter result)
+	{
+		var match = result.ExtraRunning.Keys.First(k => string.Equals(k, key, StringComparison.OrdinalIgnoreCase));
+		if (result.ExtraRunning[match] < maximum)
+		{
+			result.ExtraRunning[match]++;
+			result.ExtraLevelBonus[match] = result.ExtraLevelBonus.GetValueOrDefault(match) + 1;
+		}
+		else
+		{
+			result.Error(IssueCodes.ScoreCap, match);
 		}
 	}
 
@@ -801,8 +840,8 @@ public static class CharacterCalculator
 		}
 
 		//	Magic items: bonuses to every save and every ability check (Ring of Protection, Stone of Good Luck)
-		result.SaveBonusAll += MagicItemRules.Sum(input.Sheet, MagicEffectKind.SavingThrows);
-		result.CheckBonusAll = MagicItemRules.Sum(input.Sheet, MagicEffectKind.AbilityChecks);
+		result.SaveBonusAll += MagicItemRules.Sum(input.Sheet, MagicEffectKind.SavingThrows) + result.ModuleSum(RuleEffectKind.SavingThrows);
+		result.CheckBonusAll = MagicItemRules.Sum(input.Sheet, MagicEffectKind.AbilityChecks) + result.ModuleSum(RuleEffectKind.AbilityChecks);
 		result.Resistances.AddRange(MagicItemRules.ActiveEffects(input.Sheet)
 			.Where(e => e.Kind == MagicEffectKind.Resistance && e.DamageType is not null)
 			.Select(e => e.DamageType!.Value)
@@ -857,6 +896,10 @@ public static class CharacterCalculator
 			|| result.Classes.Any(c => c.Build.Order is "protector" or "warden")
 			|| result.Classes.Any(c => CharacterTraits.SubclassMartial(ruleset, c.Subclass?.Key))
 			|| result.Feats.Any(f => CharacterRules.FeatMartialWeapons(f.Feat));
+
+		//	Rule modules: training, single saves and skills, defences, senses; then the abilities they add
+		RuleModules.ApplyTraining(result);
+		RuleModules.FinishExtras(result);
 	}
 
 	// ===== Hit points =====
@@ -884,6 +927,7 @@ public static class CharacterCalculator
 			}
 		}
 
+		total += result.ModuleSum(RuleEffectKind.MaxHitPoints) + result.Level * result.ModuleSum(RuleEffectKind.MaxHitPointsPerLevel);
 		result.MaxHitPoints = Math.Max(1, total + MagicItemRules.Sum(input.Sheet, MagicEffectKind.MaxHitPoints) + input.Sheet.MaxHitPointsAdjustment);
 
 		foreach (var group in result.Plan.GroupBy(p => p.HitDie).OrderByDescending(g => g.Key))
@@ -926,8 +970,17 @@ public static class CharacterCalculator
 			result.Todo(IssueCodes.LanguagesMissing, choices - extras.Count);
 		}
 
+		//	Languages of rule modules (known languages of the edition only)
+		foreach (var (effect, _) in result.ModuleEffects.Where(e => e.Effect.Kind == RuleEffectKind.Language && e.Effect.Text is not null))
+		{
+			if (CharacterLanguages.IsKnown(ruleset, effect.Text!) && !result.FixedLanguages.Contains(effect.Text!))
+			{
+				result.FixedLanguages.Add(effect.Text!);
+			}
+		}
+
 		result.Languages.AddRange(result.FixedLanguages);
-		result.Languages.AddRange(extras.Where(CharacterLanguagesIsKnown(ruleset)));
+		result.Languages.AddRange(extras.Where(CharacterLanguagesIsKnown(ruleset)).Where(l => !result.FixedLanguages.Contains(l)));
 	}
 
 	private static Func<string, bool> CharacterLanguagesIsKnown(RulesetVersion ruleset) => key => CharacterLanguages.IsKnown(ruleset, key);
@@ -937,8 +990,8 @@ public static class CharacterCalculator
 	private static void ComputeSpells(CharacterInput input, ComputedCharacter result, CharacterContextDto context, ContextSubspecies? subspecies)
 	{
 		//	Magic items: Wand of the War Mage, Rod of the Pact Keeper…
-		var spellAttack = MagicItemRules.Sum(input.Sheet, MagicEffectKind.SpellAttack);
-		var spellDc = MagicItemRules.Sum(input.Sheet, MagicEffectKind.SpellSaveDc);
+		var spellAttack = MagicItemRules.Sum(input.Sheet, MagicEffectKind.SpellAttack) + result.ModuleSum(RuleEffectKind.SpellAttack);
+		var spellDc = MagicItemRules.Sum(input.Sheet, MagicEffectKind.SpellSaveDc) + result.ModuleSum(RuleEffectKind.SpellSaveDc);
 
 		var ruleset = input.Ruleset;
 		var spells = context.Spells.ToDictionary(s => s.Id);
@@ -1405,7 +1458,7 @@ public static class CharacterCalculator
 		ac += shield?.ArmorClass ?? 0;
 
 		//	Magic items: +N armor and shields, rings and cloaks; Bracers of Defense only without armor and shield
-		ac += MagicItemRules.Sum(input.Sheet, MagicEffectKind.ArmorClass);
+		ac += MagicItemRules.Sum(input.Sheet, MagicEffectKind.ArmorClass) + result.ModuleSum(RuleEffectKind.ArmorClass);
 		if (body is null && shield is null)
 		{
 			ac += MagicItemRules.Sum(input.Sheet, MagicEffectKind.UnarmoredArmorClass);
@@ -1452,7 +1505,7 @@ public static class CharacterCalculator
 		{
 			speed -= 10;
 		}
-		result.Speed = speed + MagicItemRules.Sum(input.Sheet, MagicEffectKind.Speed) + input.Sheet.SpeedAdjustment;
+		result.Speed = speed + MagicItemRules.Sum(input.Sheet, MagicEffectKind.Speed) + result.ModuleSum(RuleEffectKind.Speed) + input.Sheet.SpeedAdjustment;
 
 		//	Climb and Swim Speed of Roving, Climb Speed of the 2024 Athlete, Draconic Flight
 		if (roving)
@@ -1483,7 +1536,8 @@ public static class CharacterCalculator
 		{
 			initiative += ruleset == RulesetVersion.Dnd5e_2024 ? result.ProficiencyBonus : 5;
 		}
-		result.Initiative = initiative + result.CheckBonusAll + MagicItemRules.Sum(input.Sheet, MagicEffectKind.Initiative) + input.Sheet.InitiativeAdjustment;
+		result.Initiative = initiative + result.CheckBonusAll + MagicItemRules.Sum(input.Sheet, MagicEffectKind.Initiative) + result.ModuleSum(RuleEffectKind.Initiative)
+			+ input.Sheet.InitiativeAdjustment;
 
 		var observant = ruleset == RulesetVersion.Dnd5e_2014 && result.Feats.Any(f => f.Feat.Key == "observant") ? 5 : 0;
 		result.PassivePerception = 10 + result.SkillBonus(Skill.Perception) + observant;

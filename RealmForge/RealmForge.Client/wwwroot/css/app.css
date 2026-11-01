@@ -3530,7 +3530,7 @@ button.rf-stat-card {
 /* Abilities */
 .rf-ability-grid {
     display: grid;
-    grid-template-columns: repeat(6, minmax(0, 1fr));
+    grid-template-columns: repeat(var(--rf-abilities, 6), minmax(0, 1fr));
     gap: 8px;
 }
 
@@ -8502,3 +8502,81 @@ textarea.rf-form-control {
         flex: 1 1 auto;
         border-top: 1px solid var(--rf-border-light);
     }
+
+/* ===== Rule modules: effects editor and lists ===== */
+.rf-effect-row {
+    padding: 16px;
+    margin-bottom: 16px;
+    border-radius: 8px;
+    background-color: var(--rf-bg-main);
+    border: 1px solid var(--rf-border-subtle);
+    border-left: 3px solid var(--rf-orange-primary);
+}
+
+.rf-effect-remove {
+    margin-top: 24px;
+}
+
+.rf-effect-preview {
+    color: var(--rf-orange-primary);
+}
+
+.rf-effect-list {
+    padding-left: 24px;
+    margin-bottom: 0;
+    color: var(--rf-text-secondary);
+}
+
+.rf-effect-list li + li {
+    margin-top: 8px;
+}
+
+.rf-module-pick {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    padding: 16px;
+    border-radius: 8px;
+    border: 1px solid var(--rf-border-subtle);
+    background-color: var(--rf-bg-card);
+    cursor: pointer;
+}
+
+.rf-module-pick.active {
+    border-color: var(--rf-orange-primary);
+}
+
+.rf-module-pick ul {
+    margin: 8px 0 0;
+    padding-left: 24px;
+    color: var(--rf-text-secondary);
+}
+
+/* An ability added by a rule module, next to the six */
+.rf-ability-extra {
+    border-color: var(--rf-orange-primary);
+}
+
+.rf-ability-save-none {
+    color: var(--rf-text-muted);
+    text-align: center;
+}
+
+.rf-stat-card-extra {
+    border-color: var(--rf-orange-primary);
+}
+
+/* Effects of a Homebrew entry: what the sheet applies on its own */
+.rf-effect-box {
+    margin-top: 8px;
+    padding: 8px 16px;
+    border-radius: 8px;
+    border-left: 3px solid var(--rf-orange-primary);
+    background-color: var(--rf-bg-main);
+}
+
+.rf-effects-details > summary {
+    cursor: pointer;
+    font-size: .85rem;
+    color: var(--rf-orange-primary);
+}

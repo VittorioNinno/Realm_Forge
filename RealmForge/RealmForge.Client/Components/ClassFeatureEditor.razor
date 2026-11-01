@@ -42,6 +42,13 @@
                     <textarea class="rf-form-control" rows="3" @bind="item.DescriptionEn" placeholder="@UiText.TabEnglish(Lang)"></textarea>
                 </div>
             </div>
+            @* What the feature does on the sheet, from its level *@
+            <details class="rf-effects-details mt-2" data-test="feature-effects">
+                <summary>@UiText.EffectsOnSheet(item.Effects.Count, Lang)</summary>
+                <div class="mt-2">
+                    <RuleEffectsEditor Effects="item.Effects" ShowLevel="false" OnChanged="StateHasChanged" />
+                </div>
+            </details>
         </div>
     }
 </div>
@@ -57,6 +64,7 @@
         public string DescriptionIt { get; set; } = string.Empty;
         public string NameEn { get; set; } = string.Empty;
         public string DescriptionEn { get; set; } = string.Empty;
+        public List<RealmForge.Shared.Characters.RuleEffect> Effects { get; set; } = new();
     }
 
     [Parameter, EditorRequired]

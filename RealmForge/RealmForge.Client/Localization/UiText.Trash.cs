@@ -56,6 +56,7 @@ namespace RealmForge.Client.Localization
 			("equipment", true) => "Equipaggiamento",
 			("monster", true) => "Mostro",
 			("magic-item", true) => "Oggetto magico",
+			("module", true) => "Modulo di regole",
 			("character", false) => "Character",
 			("campaign", false) => "Campaign",
 			("species", false) => "Species",
@@ -68,6 +69,7 @@ namespace RealmForge.Client.Localization
 			("equipment", false) => "Equipment",
 			("monster", false) => "Monster",
 			("magic-item", false) => "Magic item",
+			("module", false) => "Rule module",
 			_ => kind
 		};
 

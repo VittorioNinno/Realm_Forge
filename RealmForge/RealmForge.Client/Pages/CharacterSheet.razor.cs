@@ -165,7 +165,8 @@ namespace RealmForge.Client.Pages
 				SubspeciesId = character.SubspeciesId,
 				BackgroundId = character.BackgroundId,
 				Build = character.Build,
-				Sheet = character.Sheet
+				Sheet = character.Sheet,
+				CampaignModuleIds = character.CampaignModuleIds ?? new()
 			}, context);
 		}
 

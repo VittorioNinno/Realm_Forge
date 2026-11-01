@@ -1,4 +1,5 @@
-﻿using RealmForge.Shared.Enums;
+﻿using RealmForge.Shared.Characters;
+using RealmForge.Shared.Enums;
 
 namespace RealmForge.Shared.DTOs
 {
@@ -52,7 +53,10 @@ namespace RealmForge.Shared.DTOs
 		List<SubspeciesResponseDto> Subspecies,
 		bool CanEdit = false,
 		ContentSource? Source = null,
-		ContentVisibility Visibility = ContentVisibility.Public
+ContentVisibility Visibility = ContentVisibility.Public,
+
+		//	Rule effects the sheet applies (Homebrew)
+		List<RuleEffect>? Effects = null
 	);
 
 	///	<summary>
@@ -75,7 +79,8 @@ namespace RealmForge.Shared.DTOs
 		List<SpeciesTranslationDto> Translations,
 		List<CreateTraitDto>? BaseTraits = null,
 		List<CreateSubspeciesDto>? Subspecies = null,
-		ContentVisibility Visibility = ContentVisibility.Private
+		ContentVisibility Visibility = ContentVisibility.Private,
+		List<RuleEffect>? Effects = null
 	);
 
 	///	<summary>
@@ -88,7 +93,8 @@ namespace RealmForge.Shared.DTOs
 		CreatureType CreatureType,
 		RulesetVersion Ruleset,
 		List<SpeciesTranslationDto> Translations,
-		ContentVisibility Visibility = ContentVisibility.Private
+		ContentVisibility Visibility = ContentVisibility.Private,
+		List<RuleEffect>? Effects = null
 	);
 
 	///	<summary>
