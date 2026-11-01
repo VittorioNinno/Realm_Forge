@@ -157,9 +157,59 @@
                 </div>
             </div>
 
+            @* E-mail change: a confirmation link goes to the new address *@
+            <div class="rf-account-card mb-3" data-test="account-email-change">
+                <div class="rf-account-card-title">@UiText.AccountEmailTitle(LanguageState.CurrentLanguage)</div>
+                <p class="small mb-3" style="color: var(--rf-text-secondary);">@UiText.AccountEmailHint(LanguageState.CurrentLanguage)</p>
+                <div class="d-flex flex-wrap gap-2">
+                    <input type="email" class="rf-form-control flex-grow-1" style="min-width: 240px;" autocomplete="email" maxlength="256"
+                           placeholder="@UiText.PlaceholderNewEmail(LanguageState.CurrentLanguage)" @bind="newEmail" @bind:event="oninput" data-test="account-new-email" />
+                    <button type="button" class="btn btn-rf-orange" disabled="@changingEmail" @onclick="ChangeEmailAsync" data-test="account-change-email">@UiText.BtnChangeEmail(LanguageState.CurrentLanguage)</button>
+                </div>
+                @if (emailMessage is not null)
+                {
+                    <div class="small mt-2" style="color: var(--rf-text-secondary);" data-test="account-email-message">@emailMessage</div>
+                }
+            </div>
+
+            @* Account deletion, confirmed with the password *@
+            <div class="rf-account-card rf-account-danger mb-3" data-test="account-delete">
+                <div class="rf-account-card-title">@UiText.AccountDeleteTitle(LanguageState.CurrentLanguage)</div>
+                <p class="small mb-3" style="color: var(--rf-text-secondary);">@UiText.AccountDeleteHint(LanguageState.CurrentLanguage)</p>
+                <button type="button" class="btn btn-sm btn-rf-outline rf-btn-danger" @onclick="() => { deleteOpen = true; deletePassword = string.Empty; deleteError = null; }" data-test="account-delete-open">
+                    <Icon Name="trash" /> @UiText.BtnDeleteAccount(LanguageState.CurrentLanguage)
+                </button>
+            </div>
+
             <div class="d-flex justify-content-end">
                 <button class="btn btn-rf-outline" @onclick="LogoutAsync">@UiText.BtnLogout(LanguageState.CurrentLanguage)</button>
             </div>
+
+            @if (deleteOpen)
+            {
+                <div class="rf-modal-backdrop" @onclick="() => deleteOpen = false">
+                    <div class="rf-modal-dialog" style="max-width: 480px;" @onclick:stopPropagation="true" data-test="account-delete-confirm">
+                        <h2 class="h4 mb-3" style="color: #dc3545;">@UiText.AccountDeleteTitle(LanguageState.CurrentLanguage)</h2>
+                        <ul class="small mb-3" style="color: var(--rf-text-secondary);">
+                            @foreach (var line in UiText.AccountDeleteEffects(LanguageState.CurrentLanguage))
+                            {
+                                <li>@line</li>
+                            }
+                        </ul>
+                        <label class="rf-form-label">@UiText.LabelCurrentPassword(LanguageState.CurrentLanguage)</label>
+                        <PasswordInput @bind-Value="deletePassword" Autocomplete="current-password" DataTest="account-delete-password" />
+                        @if (deleteError is not null)
+                        {
+                            <div class="small mt-2 text-warning" data-test="account-delete-error">@UiText.AuthError(deleteError, LanguageState.CurrentLanguage)</div>
+                        }
+                        <div class="d-flex justify-content-end gap-2 mt-3">
+                            <button type="button" class="btn btn-rf-outline" @onclick="() => deleteOpen = false">@UiText.BtnCancel(LanguageState.CurrentLanguage)</button>
+                            <button type="button" class="btn rf-btn-danger-solid" disabled="@(deleting || string.IsNullOrEmpty(deletePassword))"
+                                    @onclick="DeleteAccountAsync" data-test="account-delete-yes">@(deleting ? "..." : UiText.BtnDeleteAccountForever(LanguageState.CurrentLanguage))</button>
+                        </div>
+                    </div>
+                </div>
+            }
         </div>
     </Authorized>
     <NotAuthorized>
@@ -244,6 +294,47 @@
             nickname = value ?? string.Empty;
         }
     }
+    private string newEmail = string.Empty;
+    private string? emailMessage;
+    private bool changingEmail;
+    private bool deleteOpen;
+    private bool deleting;
+    private string deletePassword = string.Empty;
+    private string? deleteError;
+
+    private async Task ChangeEmailAsync()
+    {
+        var lang = LanguageState.CurrentLanguage;
+        var value = newEmail.Trim();
+        if (value.Length == 0 || !value.Contains('@'))
+        {
+            emailMessage = UiText.AuthError("InvalidEmail", lang);
+            return;
+        }
+        changingEmail = true;
+        var result = await Auth.ChangeEmailAsync(value);
+        changingEmail = false;
+        emailMessage = result.Success ? UiText.EmailChangeSent(value, lang) : UiText.AuthError(result.Errors.FirstOrDefault() ?? "Unknown", lang);
+        if (result.Success)
+        {
+            newEmail = string.Empty;
+        }
+    }
+
+    private async Task DeleteAccountAsync()
+    {
+        deleting = true;
+        var (result, error) = await Auth.DeleteAccountAsync(deletePassword);
+        deleting = false;
+        if (result is null)
+        {
+            deleteError = error;
+            return;
+        }
+        deleteOpen = false;
+        Navigation.NavigateTo("account-deleted");
+    }
+
     private string currentPassword = "";
     private string newPassword = "";
     private string repeatPassword = "";

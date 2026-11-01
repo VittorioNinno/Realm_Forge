@@ -1,0 +1,12 @@
+﻿@page "/account-deleted"
+@using RealmForge.Client.Localization
+@using RealmForge.Client.Services
+@inject LanguageStateService LanguageState
+
+<PageTitle>RealmForge - @UiText.AccountDeletedTitle(LanguageState.CurrentLanguage)</PageTitle>
+
+<div class="container-fluid px-0 py-4" style="max-width: 560px;" data-test="account-deleted">
+    <h1 class="h3 fw-bold mb-4 pb-3 rf-page-title" style="border-bottom: 2px solid var(--rf-orange-primary);">@UiText.AccountDeletedTitle(LanguageState.CurrentLanguage)</h1>
+    <p style="color: var(--rf-text-secondary);">@UiText.AccountDeletedText(LanguageState.CurrentLanguage)</p>
+    <a href="" class="btn btn-rf-outline">@UiText.BtnBackHome(LanguageState.CurrentLanguage)</a>
+</div>
