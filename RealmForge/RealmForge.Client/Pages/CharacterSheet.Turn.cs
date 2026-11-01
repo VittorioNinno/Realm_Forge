@@ -182,9 +182,9 @@ namespace RealmForge.Client.Pages
 			{
 				yield break;
 			}
-			foreach (var source in computed.Spellcasting)
+			foreach (var source in computed.AllSpellSources())
 			{
-				foreach (var id in source.ChosenCantrips.Concat(source.ChosenSpells))
+				foreach (var id in source.Known)
 				{
 					if (castingTimes.TryGetValue(id, out var time) && TurnActions.SlotOfCastingTime(time) == slot
 						&& context.Spells.FirstOrDefault(s => s.Id == id) is { } spell)
@@ -202,7 +202,7 @@ namespace RealmForge.Client.Pages
 			{
 				return;
 			}
-			var ids = computed.Spellcasting.SelectMany(s => s.ChosenCantrips.Concat(s.ChosenSpells)).Distinct().Where(id => !castingTimes.ContainsKey(id)).ToList();
+			var ids = computed.AllSpellSources().SelectMany(s => s.Known).Distinct().Where(id => !castingTimes.ContainsKey(id)).ToList();
 			var details = await Task.WhenAll(ids.Select(id => SpellService.GetSpellDetailAsync(id, lang)));
 			foreach (var detail in details.Where(d => d is not null))
 			{

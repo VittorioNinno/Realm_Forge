@@ -49,6 +49,10 @@ public static class IssueCodes
 	public const string WeaponMastery = "weapon-mastery";
 	public const string WeaponMasteryMissing = "weapon-mastery-missing";
 	public const string Equipment = "equipment";
+	public const string SpeciesOption = "species-option";
+	public const string SpeciesOptionMissing = "species-option-missing";
+	public const string SubclassOption = "subclass-option";
+	public const string SubclassOptionMissing = "subclass-option-missing";
 }
 
 ///	<summary>
@@ -232,6 +236,14 @@ public static class CharacterCalculator
 			result.Classes.Add(new ClassLevelInfo(cls, subclass, level, classBuild, result.Classes.Count == 0));
 		}
 
+		//	Capstones: barbarian Primal Champion, 2024 monk Body and Mind
+		foreach (var (ability, bonus, maximum) in CharacterTraits.Capstones(ruleset, result))
+		{
+			var index = (int)ability - 1;
+			result.FinalScores[index] = Math.Max(result.FinalScores[index], Math.Min(maximum, result.FinalScores[index] + bonus));
+		}
+
+		CheckSpeciesChoices(input, result, species);
 		ComputeProficiencies(input, result, context, species, subspecies, background);
 		ComputeHitPoints(input, result, species, subspecies);
 		ComputeLanguages(input, result, species, subspecies, background);
@@ -245,6 +257,46 @@ public static class CharacterCalculator
 		}
 
 		return result;
+	}
+
+	// ===== Species choices: ancestry, spellcasting ability of the lineage / legacy =====
+
+	private static void CheckSpeciesChoices(CharacterInput input, ComputedCharacter result, ContextSpecies? species)
+	{
+		var ruleset = input.Ruleset;
+		var build = input.Build;
+		var options = CharacterTraits.SpeciesOptions(ruleset, species);
+		if (options.Count > 0)
+		{
+			if (build.SpeciesOption is null)
+			{
+				result.TodoIn(IssueAreas.Species, IssueCodes.SpeciesOptionMissing);
+			}
+			else if (options.All(o => o.Key != build.SpeciesOption))
+			{
+				result.ErrorIn(IssueAreas.Species, IssueCodes.SpeciesOption);
+			}
+		}
+		else if (build.SpeciesOption is not null)
+		{
+			result.ErrorIn(IssueAreas.Species, IssueCodes.SpeciesOption);
+		}
+
+		if (CharacterTraits.SpeciesSpellAbilityChoice(ruleset, species))
+		{
+			if (build.SpeciesSpellAbility is null)
+			{
+				result.TodoIn(IssueAreas.Species, IssueCodes.SpeciesOptionMissing);
+			}
+			else if (!CharacterTraits.SpellAbilities.Contains(build.SpeciesSpellAbility.Value))
+			{
+				result.ErrorIn(IssueAreas.Species, IssueCodes.SpeciesOption);
+			}
+		}
+		else if (build.SpeciesSpellAbility is not null)
+		{
+			result.ErrorIn(IssueAreas.Species, IssueCodes.SpeciesOption);
+		}
 	}
 
 	// ===== Origin =====
@@ -584,6 +636,49 @@ public static class CharacterCalculator
 			}
 		}
 
+		//	Subclass skills: fixed ones (Warrior of Mercy) and the ones to choose (Lore, Knowledge with Expertise, Nature,
+		//	Battle Master, Fey Wanderer)
+		foreach (var info in result.Classes)
+		{
+			var key = info.Subclass?.Key;
+			foreach (var s in CharacterTraits.SubclassFixedSkills(ruleset, key, info.Level))
+			{
+				skills.Add(s);
+			}
+			var chosen = info.Build.SubclassSkills;
+			var grant = CharacterTraits.SubclassSkills(ruleset, info.Class, key, info.Level);
+			var area = info.Starting ? IssueAreas.Class : IssueAreas.Progression;
+			if (grant is null)
+			{
+				if (chosen.Count > 0)
+				{
+					result.ErrorIn(area, IssueCodes.Skills, info.Subclass?.Name ?? info.Class.Name);
+				}
+				continue;
+			}
+			var options = grant.Options ?? Enum.GetValues<Skill>().ToList();
+			if (chosen.Count > grant.Count || chosen.Distinct().Count() != chosen.Count || chosen.Any(s => !options.Contains(s)) || chosen.Any(skills.Contains))
+			{
+				result.ErrorIn(area, IssueCodes.Skills, info.Subclass!.Name);
+			}
+			else
+			{
+				var target = Math.Min(grant.Count, options.Count(s => !skills.Contains(s)));
+				if (chosen.Count < target)
+				{
+					result.TodoIn(area, IssueCodes.SkillsMissing, info.Subclass!.Name, target - chosen.Count);
+				}
+			}
+			foreach (var s in chosen)
+			{
+				skills.Add(s);
+				if (grant.Expertise)
+				{
+					result.Expertise.Add(s);
+				}
+			}
+		}
+
 		//	Feat skills: proficiency, or Expertise when already proficient (2024 Keen Mind, Observant)
 		foreach (var feat in result.Feats)
 		{
@@ -674,6 +769,13 @@ public static class CharacterCalculator
 				result.SaveProficiencies.Add(AbilityScore.Charisma);
 			}
 		}
+		foreach (var info in result.Classes)
+		{
+			if (CharacterTraits.SubclassSave(ruleset, info.Subclass?.Key, info.Level) is { } save)
+			{
+				result.SaveProficiencies.Add(save);
+			}
+		}
 		foreach (var a in input.Sheet.ExtraSaves)
 		{
 			result.SaveProficiencies.Add(a);
@@ -686,6 +788,17 @@ public static class CharacterCalculator
 		}
 
 		result.JackOfAllTrades = result.ClassLevel("bard") >= 2;
+		foreach (var info in result.Classes)
+		{
+			if (CharacterTraits.RemarkableAthlete(ruleset, info.Subclass?.Key, info.Level))
+			{
+				result.RemarkableAthlete.UnionWith(new[] { AbilityScore.Strength, AbilityScore.Dexterity, AbilityScore.Constitution });
+			}
+			if (CharacterTraits.CharismaChecksPlusWisdom(ruleset, info.Subclass?.Key, info.Level))
+			{
+				result.AbilityCheckBonus[(int)AbilityScore.Charisma - 1] += Math.Max(1, result.Modifier(AbilityScore.Wisdom));
+			}
+		}
 
 		//	Magic items: bonuses to every save and every ability check (Ring of Protection, Stone of Good Luck)
 		result.SaveBonusAll += MagicItemRules.Sum(input.Sheet, MagicEffectKind.SavingThrows);
@@ -694,6 +807,34 @@ public static class CharacterCalculator
 			.Where(e => e.Kind == MagicEffectKind.Resistance && e.DamageType is not null)
 			.Select(e => e.DamageType!.Value)
 			.Distinct());
+
+		//	Senses, resistances and immunities of the species, subclasses, classes and feats
+		result.Resistances.AddRange(CharacterTraits.SpeciesResistances(ruleset, species, subspecies, input.Build.SpeciesOption));
+		var darkvision = CharacterTraits.Darkvision(ruleset, species, subspecies);
+		foreach (var info in result.Classes)
+		{
+			var extra = CharacterTraits.SubclassDarkvision(ruleset, info.Subclass?.Key, info.Level);
+			darkvision = extra == 0 ? darkvision : darkvision > 0 ? darkvision + extra : extra;
+		}
+		result.Darkvision = darkvision;
+		foreach (var feat in result.Feats)
+		{
+			result.Blindsight = Math.Max(result.Blindsight, CharacterTraits.FeatBlindsight(feat.Feat, ruleset));
+			result.Truesight = Math.Max(result.Truesight, CharacterTraits.FeatTruesight(feat.Feat));
+			result.DamageReduction = Math.Max(result.DamageReduction, CharacterTraits.HeavyArmorReduction(feat.Feat, ruleset, result.ProficiencyBonus));
+		}
+		if (CharacterTraits.PurityOfBody(ruleset, result))
+		{
+			result.Immunities.Add(DamageType.Poison);
+		}
+		var resistances = result.Resistances.Distinct().Where(d => !result.Immunities.Contains(d)).ToList();
+		result.Resistances.Clear();
+		result.Resistances.AddRange(resistances);
+		result.Breath = CharacterTraits.Breath(ruleset, species, input.Build.SpeciesOption, result.Level, result.Modifier(AbilityScore.Constitution), result.ProficiencyBonus);
+		foreach (var weapon in CharacterTraits.SpeciesWeapons(ruleset, species, subspecies))
+		{
+			result.ExtraWeapons.Add(weapon);
+		}
 
 		//	Armor and weapon training
 		var training = ArmorTraining.None;
@@ -706,9 +847,15 @@ public static class CharacterCalculator
 		{
 			training |= CharacterRules.FeatArmor(feat.Feat);
 		}
+		foreach (var info in result.Classes)
+		{
+			training |= CharacterTraits.SubclassArmor(ruleset, info.Subclass?.Key);
+		}
+		training |= CharacterTraits.SpeciesArmor(ruleset, subspecies);
 		result.ArmorTraining = training;
 		result.MartialWeapons = result.Classes.Any(c => CharacterRules.MartialWeapons(c.Class))
 			|| result.Classes.Any(c => c.Build.Order is "protector" or "warden")
+			|| result.Classes.Any(c => CharacterTraits.SubclassMartial(ruleset, c.Subclass?.Key))
 			|| result.Feats.Any(f => CharacterRules.FeatMartialWeapons(f.Feat));
 	}
 
@@ -727,6 +874,7 @@ public static class CharacterCalculator
 
 		total += result.Level * CharacterRules.SpeciesHitPointsPerLevel(input.Ruleset, species, subspecies);
 		total += 2 * result.Level * result.Feats.Count(f => f.Feat.Key == "tough");
+		total += result.Feats.Sum(f => CharacterTraits.FeatHitPoints(f.Feat));
 
 		foreach (var info in result.Classes)
 		{
@@ -762,7 +910,8 @@ public static class CharacterCalculator
 		var choices = speciesChoices
 			+ (ruleset == RulesetVersion.Dnd5e_2014 ? background?.LanguageChoices ?? 0 : 0)
 			+ result.Classes.Sum(c => CharacterRules.ClassLanguageChoices(c.Class, ruleset, c.Level))
-			+ result.Feats.Sum(f => CharacterRules.FeatLanguages(f.Feat));
+			+ result.Feats.Sum(f => CharacterRules.FeatLanguages(f.Feat))
+			+ result.Classes.Sum(c => CharacterTraits.SubclassLanguages(ruleset, c.Subclass?.Key));
 		result.LanguageChoices = choices;
 
 		var chosen = input.Build.Languages.Where(l => !string.IsNullOrWhiteSpace(l)).ToList();
@@ -793,6 +942,8 @@ public static class CharacterCalculator
 
 		var ruleset = input.Ruleset;
 		var spells = context.Spells.ToDictionary(s => s.Id);
+		var byKey = context.Spells.Where(s => s.Key is not null).GroupBy(s => s.Key!).ToDictionary(g => g.Key, g => g.First());
+		List<Guid> Ids(IEnumerable<string> keys) => keys.Where(byKey.ContainsKey).Select(k => byKey[k].Id).Distinct().ToList();
 
 		var multiclassLevel = 0;
 		var casterClasses = 0;
@@ -812,6 +963,25 @@ public static class CharacterCalculator
 			}
 
 			var build = info.Build;
+			var subclassKey = info.Subclass?.Key;
+
+			//	Circle of the Land: the land of the circle spells
+			var lands = SubclassSpells.Options(ruleset, subclassKey);
+			if (lands.Count > 0 && build.SubclassOption is null)
+			{
+				result.TodoIn(info.Starting ? IssueAreas.Class : IssueAreas.Progression, IssueCodes.SubclassOptionMissing, info.Subclass!.Name);
+			}
+			else if (build.SubclassOption is not null && !lands.Contains(build.SubclassOption))
+			{
+				result.ErrorIn(info.Starting ? IssueAreas.Class : IssueAreas.Progression, IssueCodes.SubclassOption, info.Subclass?.Name ?? cls.Name);
+			}
+
+			//	2014 Way of Shadow: minor illusion without being a spellcaster
+			foreach (var innate in CharacterTraits.SubclassInnate(ruleset, subclassKey, info.Level))
+			{
+				AddInnate(innate, innate.Ability ?? AbilityScore.Wisdom);
+			}
+
 			if (progression == CasterProgression.None || ability is null)
 			{
 				if (build.Cantrips.Count > 0 || build.Spells.Count > 0)
@@ -863,12 +1033,34 @@ public static class CharacterCalculator
 				multiclassLevel += CharacterRules.MulticlassCasterLevel(progression, info.Level, ruleset);
 			}
 
-			CheckSpellList(cls.Name, build.Cantrips, build.Spells, cantrips, prepared, maxLevel, list, result, spells);
+			//	2014 Circle of the Land Bonus Cantrip; bard Magical Secrets / Lore spells from other lists; 2014 patrons'
+			//	expanded list; spells always prepared by the subclass
+			cantrips += CharacterTraits.SubclassExtraCantrips(ruleset, subclassKey, info.Level);
+			var (extraSpells, offList, extraLists) = CharacterTraits.ExtraSpellLists(ruleset, cls, subclassKey, info.Level);
+			prepared += extraSpells;
+			var always = Ids(SubclassSpells.Prepared(ruleset, subclassKey, build.SubclassOption, info.Level));
+			var allowed = new HashSet<Guid>(Ids(SubclassSpells.Expanded(ruleset, subclassKey)));
+			var leveled = build.Spells.Where(id => !always.Contains(id)).ToList();
+			var cantripList = build.Cantrips.Where(id => !always.Contains(id)).ToList();
+
+			CheckSpellList(cls.Name, cantripList, leveled, cantrips, prepared, maxLevel, list, result, spells, allowed, extraLists, offList);
 			CheckStyleCantrips(info, result, spells);
 			CheckSpellbook(info, list, maxLevel, result, spells);
 
 			result.Spellcasting.Add(new SpellcastingInfo("class", info, ability.Value, 8 + result.ProficiencyBonus + mod + spellDc, result.ProficiencyBonus + mod + spellAttack,
-				list, cantrips, prepared, maxLevel, build.Cantrips, build.Spells));
+				list, cantrips, prepared, maxLevel, build.Cantrips, build.Spells, always));
+
+			//	2014 Nature Domain: a druid cantrip with the cleric's ability
+			if (CharacterTraits.SubclassCantrips(ruleset, subclassKey) is { } extraCantrips)
+			{
+				CheckSpellList(info.Subclass!.Name, build.SubclassCantrips, new List<Guid>(), extraCantrips.Count, 0, 0, extraCantrips.List, result, spells);
+				result.Spellcasting.Add(new SpellcastingInfo("subclass", info, ability.Value, 8 + result.ProficiencyBonus + mod + spellDc, result.ProficiencyBonus + mod + spellAttack,
+					extraCantrips.List, extraCantrips.Count, 0, 0, build.SubclassCantrips, new List<Guid>()));
+			}
+			else if (build.SubclassCantrips.Count > 0)
+			{
+				result.Error(IssueCodes.Spells, info.Subclass?.Name ?? cls.Name);
+			}
 		}
 
 		var casterLevel = casterClasses == 1 ? singleLevel : multiclassLevel;
@@ -920,6 +1112,69 @@ public static class CharacterCalculator
 					result.ProficiencyBonus + mod + spellAttack, SpellcastingClass.Wizard, speciesCantrips, 0, 0, chosenSpecies, new List<Guid>()));
 			}
 		}
+
+		//	Spells of the species traits (drow, tieflings, gnomes, 2024 lineages and legacies)
+		var species = result.Species;
+		foreach (var innate in CharacterTraits.SpeciesSpells(ruleset, species, subspecies, input.Build.SpeciesSpellAbility))
+		{
+			AddInnate(innate, innate.Ability ?? AbilityScore.Charisma);
+		}
+
+		//	2024 Fey Touched, Shadow Touched, Telekinetic, Telepathic: fixed spells and a level 1 spell of a school
+		foreach (var feat in result.Feats)
+		{
+			var fixedSpells = CharacterTraits.FeatSpells(feat.Feat, ruleset);
+			var schools = CharacterTraits.FeatSpellSchools(feat.Feat, ruleset);
+			if (fixedSpells.Count == 0)
+			{
+				continue;
+			}
+			var featAbility = feat.Choice.Increases.FirstOrDefault(a => CharacterTraits.SpellAbilities.Contains(a));
+			if (featAbility == default)
+			{
+				featAbility = AbilityScore.Intelligence;
+			}
+			foreach (var key in fixedSpells)
+			{
+				AddInnate(new InnateSpell(feat.Feat.Name, key, 1, featAbility), featAbility);
+			}
+			if (schools.Count == 0)
+			{
+				continue;
+			}
+			var choice = feat.Choice.Spells;
+			var area = IssueAreas.OfSource(feat.Source);
+			if (choice.Count > 1 || choice.Any(id => !spells.TryGetValue(id, out var s) || s.Level != 1 || !schools.Contains(s.School)))
+			{
+				result.ErrorIn(area, IssueCodes.FeatChoice, feat.Feat.Name);
+			}
+			else if (choice.Count == 0)
+			{
+				result.TodoIn(area, IssueCodes.FeatChoiceMissing, feat.Feat.Name);
+			}
+			foreach (var id in choice.Where(spells.ContainsKey))
+			{
+				AddInnateSpell(feat.Feat.Name, spells[id], featAbility);
+			}
+		}
+
+		void AddInnate(InnateSpell innate, AbilityScore ability)
+		{
+			if (innate.MinLevel <= result.Level && byKey.TryGetValue(innate.SpellKey, out var spell))
+			{
+				AddInnateSpell(innate.Source, spell, ability);
+			}
+		}
+
+		void AddInnateSpell(string source, ContextSpell spell, AbilityScore ability)
+		{
+			if (result.InnateSpells.Any(s => s.Spell.Id == spell.Id && s.Source == source))
+			{
+				return;
+			}
+			var modifier = result.Modifier(ability);
+			result.InnateSpells.Add(new InnateSpellInfo(source, spell, ability, 8 + result.ProficiencyBonus + modifier + spellDc, result.ProficiencyBonus + modifier + spellAttack));
+		}
 	}
 
 	///	<summary>
@@ -961,20 +1216,29 @@ public static class CharacterCalculator
 		CheckSpellList(info.Class.Name, chosen, new List<Guid>(), 2, 0, 0, list, result, spells);
 	}
 
+	///	<summary>
+	///	Cantrips and spells of a list: <paramref name="allowed"/> are spells of other lists that count as the list's
+	///	(2014 expanded spell list); <paramref name="otherLists"/> lets up to <paramref name="offList"/> of them come
+	///	from those lists (null: any list), as the bard's Magical Secrets.
+	///	</summary>
 	private static void CheckSpellList(string source, List<Guid> cantrips, List<Guid> leveled, int maxCantrips, int maxSpells, int maxLevel,
-		SpellcastingClass? list, ComputedCharacter result, Dictionary<Guid, ContextSpell> spells)
+		SpellcastingClass? list, ComputedCharacter result, Dictionary<Guid, ContextSpell> spells,
+		HashSet<Guid>? allowed = null, IReadOnlyList<SpellcastingClass>? otherLists = null, int offList = 0)
 	{
+		bool OnList(ContextSpell s) => list is null || s.Classes.Contains(list.Value) || (allowed?.Contains(s.Id) ?? false);
+		bool OffList(ContextSpell s) => offList > 0 && (otherLists is null || s.Classes.Any(otherLists.Contains));
+		var outside = cantrips.Concat(leveled).Count(id => spells.TryGetValue(id, out var s) && !OnList(s));
 		var valid = cantrips.Distinct().Count() == cantrips.Count && leveled.Distinct().Count() == leveled.Count
-			&& cantrips.Count <= maxCantrips && leveled.Count <= maxSpells
-			&& cantrips.All(id => spells.TryGetValue(id, out var s) && s.Level == 0 && (list is null || s.Classes.Contains(list.Value)))
-			&& leveled.All(id => spells.TryGetValue(id, out var s) && s.Level >= 1 && s.Level <= maxLevel && (list is null || s.Classes.Contains(list.Value)));
+			&& cantrips.Count <= maxCantrips && leveled.Count <= maxSpells && outside <= offList
+			&& cantrips.All(id => spells.TryGetValue(id, out var s) && s.Level == 0 && (OnList(s) || OffList(s)))
+			&& leveled.All(id => spells.TryGetValue(id, out var s) && s.Level >= 1 && s.Level <= maxLevel && (OnList(s) || OffList(s)));
 		if (!valid)
 		{
 			result.Error(IssueCodes.Spells, source);
 			return;
 		}
 
-		var available = spells.Values.Where(s => list is null || s.Classes.Contains(list.Value)).ToList();
+		var available = spells.Values.Where(OnList).ToList();
 		var cantripTarget = Math.Min(maxCantrips, available.Count(s => s.Level == 0));
 		var spellTarget = Math.Min(maxSpells, available.Count(s => s.Level >= 1 && s.Level <= maxLevel));
 		if (cantrips.Count < cantripTarget)
@@ -1091,9 +1355,13 @@ public static class CharacterCalculator
 			.ToList();
 
 		var dex = result.Modifier(AbilityScore.Dexterity);
+
+		//	Medium Armor Master: Dexterity up to +3 with medium armor
+		var mediumMaster = result.Feats.Any(f => CharacterTraits.MediumArmorMaster(f.Feat));
+		int? DexCap(ContextItem armor) => armor.ArmorCategory == ArmorCategory.Medium && mediumMaster && armor.ArmorMaxDexterityBonus is { } cap ? Math.Max(cap, 3) : armor.ArmorMaxDexterityBonus;
 		var body = equipped.Where(e => e.Item.ArmorCategory is ArmorCategory.Light or ArmorCategory.Medium or ArmorCategory.Heavy && e.Item.ArmorClass is not null)
 			.Select(e => e.Item)
-			.OrderByDescending(a => a.ArmorClass!.Value + (a.ArmorAddsDexterity ? Math.Min(dex, a.ArmorMaxDexterityBonus ?? dex) : 0))
+			.OrderByDescending(a => a.ArmorClass!.Value + (a.ArmorAddsDexterity ? Math.Min(dex, DexCap(a) ?? dex) : 0))
 			.FirstOrDefault();
 		var shield = equipped.Select(e => e.Item).Where(i => i.ArmorCategory == ArmorCategory.Shield).OrderByDescending(i => i.ArmorClass ?? 0).FirstOrDefault();
 		result.WornArmor = body;
@@ -1102,7 +1370,7 @@ public static class CharacterCalculator
 		int ac;
 		if (body is not null)
 		{
-			ac = body.ArmorClass!.Value + (body.ArmorAddsDexterity ? Math.Min(dex, body.ArmorMaxDexterityBonus ?? dex) : 0);
+			ac = body.ArmorClass!.Value + (body.ArmorAddsDexterity ? Math.Min(dex, DexCap(body) ?? dex) : 0);
 		}
 		else
 		{
@@ -1123,6 +1391,14 @@ public static class CharacterCalculator
 					ac = value;
 					result.UnarmoredDefense = kind;
 				}
+
+				//	2024 College of Dance: Dazzling Footwork, without armor and shield
+				if (shield is null && CharacterTraits.DanceDefense(ruleset, info.Subclass?.Key, info.Level)
+					&& 10 + dex + result.Modifier(AbilityScore.Charisma) is var dance && dance > ac)
+				{
+					ac = dance;
+					result.UnarmoredDefense = UnarmoredDefense.Dance;
+				}
 			}
 		}
 
@@ -1138,6 +1414,13 @@ public static class CharacterCalculator
 		//	Defense: +1 while wearing armor (2014 Fighting Style or 2024 feat)
 		var defense = result.Classes.Any(c => c.Build.FightingStyle == "defense") || result.Feats.Any(f => f.Feat.Key == "defense");
 		if (defense && body is not null)
+		{
+			ac += 1;
+		}
+
+		//	2014 Dual Wielder: +1 with a melee weapon in each hand
+		var meleeWeapons = equipped.Count(e => e.Item.Category == EquipmentCategory.Weapon && e.Item.WeaponRange == WeaponRange.Melee);
+		if (meleeWeapons >= 2 && result.Feats.Any(f => CharacterTraits.DualWielderAc(f.Feat, ruleset)))
 		{
 			ac += 1;
 		}
@@ -1157,14 +1440,45 @@ public static class CharacterCalculator
 		{
 			speed += 10;
 		}
+
+		//	2024 ranger Roving, Boon of Speed
+		var roving = CharacterTraits.Roving(ruleset, result);
+		if (roving && body?.ArmorCategory != ArmorCategory.Heavy)
+		{
+			speed += 10;
+		}
+		speed += result.Feats.Sum(f => CharacterTraits.FeatSpeed(f.Feat));
 		if (body?.StrengthRequirement is { } strength && result.Score(AbilityScore.Strength) < strength && !CharacterRules.IgnoresHeavyArmorSpeed(ruleset, species))
 		{
 			speed -= 10;
 		}
 		result.Speed = speed + MagicItemRules.Sum(input.Sheet, MagicEffectKind.Speed) + input.Sheet.SpeedAdjustment;
 
-		//	Initiative: Dexterity, Alert (2014 +5, 2024 Proficiency Bonus), Jack of All Trades
-		var initiative = dex + (result.JackOfAllTrades ? result.ProficiencyBonus / 2 : 0);
+		//	Climb and Swim Speed of Roving, Climb Speed of the 2024 Athlete, Draconic Flight
+		if (roving)
+		{
+			result.ClimbSpeed = result.Speed;
+			result.SwimSpeed = result.Speed;
+		}
+		if (result.Feats.Any(f => CharacterTraits.FeatClimb(f.Feat, ruleset)))
+		{
+			result.ClimbSpeed = result.Speed;
+		}
+		if (CharacterTraits.SpeciesFlyLevel(ruleset, species) is > 0 and var fly && result.Level >= fly)
+		{
+			result.FlySpeed = result.Speed;
+		}
+
+		//	Initiative: a Dexterity check (Jack of All Trades, Remarkable Athlete), Alert (2014 +5, 2024 Proficiency
+		//	Bonus), 2024 Gloom Stalker (Wisdom)
+		var initiative = result.AbilityCheck(AbilityScore.Dexterity) - result.CheckBonusAll;
+		foreach (var info in result.Classes)
+		{
+			if (CharacterTraits.SubclassInitiative(ruleset, info.Subclass?.Key, info.Level) is { } extra)
+			{
+				initiative += result.Modifier(extra);
+			}
+		}
 		if (result.Feats.Any(f => f.Feat.Key == "alert"))
 		{
 			initiative += ruleset == RulesetVersion.Dnd5e_2024 ? result.ProficiencyBonus : 5;
@@ -1176,6 +1490,11 @@ public static class CharacterCalculator
 
 		//	Attacks with the equipped weapons
 		var archery = result.Classes.Any(c => c.Build.FightingStyle == "archery") || result.Feats.Any(f => f.Feat.Key == "archery");
+
+		//	Dueling: +2 damage with a one-handed melee weapon and no other weapon; Thrown Weapon Fighting: +2 thrown
+		var dueling = result.Classes.Any(c => c.Build.FightingStyle == "dueling") || result.Feats.Any(f => f.Feat.Key == "dueling");
+		var thrown = result.Feats.Any(f => f.Feat.Key == "thrown-weapon-fighting");
+		var weaponCount = equipped.Count(e => e.Item.Category == EquipmentCategory.Weapon && e.Item.DamageDice is not null);
 		foreach (var (entry, item) in equipped.Where(e => e.Item.Category == EquipmentCategory.Weapon && e.Item.DamageDice is not null))
 		{
 			var str = result.Modifier(AbilityScore.Strength);
@@ -1184,7 +1503,9 @@ public static class CharacterCalculator
 			var proficient = IsProficient(item, result);
 			var magic = MagicItemRules.WeaponBonus(entry);
 			var bonus = mod + magic + (proficient ? result.ProficiencyBonus : 0) + (archery && ranged ? 2 : 0);
-			var damage = $"{item.DamageDice}{FormatBonus(mod + magic)}";
+			var styleDamage = (dueling && !ranged && weaponCount == 1 && !item.WeaponProperties.Contains(WeaponProperty.TwoHanded) ? 2 : 0)
+				+ (thrown && item.WeaponProperties.Contains(WeaponProperty.Thrown) ? 2 : 0);
+			var damage = $"{item.DamageDice}{FormatBonus(mod + magic + styleDamage)}";
 			var versatile = item.VersatileDamageDice is { } v ? $"{v}{FormatBonus(mod + magic)}" : null;
 			result.Attacks.Add(new AttackInfo(entry.Id, item, bonus, damage, item.DamageType, proficient, versatile));
 		}
@@ -1195,7 +1516,7 @@ public static class CharacterCalculator
 	public static bool IsProficient(ContextItem weapon, ComputedCharacter result)
 	{
 		var name = weapon.EnglishName.Trim().ToLowerInvariant();
-		if (result.MartialWeapons)
+		if (result.MartialWeapons || result.ExtraWeapons.Contains(name))
 		{
 			return true;
 		}

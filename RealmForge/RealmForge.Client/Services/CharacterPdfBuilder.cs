@@ -106,11 +106,12 @@ namespace RealmForge.Client.Services
 			{
 				data.SlotsPill = $"{UiText.PdfSlots(lang)} {string.Join(" · ", slots)}";
 			}
-			foreach (var source in c.Spellcasting)
+			foreach (var source in c.AllSpellSources())
 			{
-				var name = source.Class?.Class.Name ?? (source.Source == "species" ? UiText.SpellSourceSpecies(ruleset, lang) : source.Source);
+				var name = source.Class is { } owner && source.Source == "subclass" ? $"{owner.Class.Name} · {owner.Subclass?.Name}"
+					: source.Class?.Class.Name ?? (source.Source == "species" ? UiText.SpellSourceSpecies(ruleset, lang) : source.Source == "subclass" ? UiText.SpellSourceSubclass(lang) : source.Source);
 				var stats = $"{UiText.AbilityShort(source.Ability, lang)} • {UiText.PdfDc(lang)} {source.SaveDc} • {UiText.SheetAttackShort(lang)} {Mod(source.AttackBonus)}";
-				var lines = source.ChosenCantrips.Concat(source.ChosenSpells)
+				var lines = source.Known
 					.Select(id => context.Spells.FirstOrDefault(s => s.Id == id))
 					.Where(s => s is not null)
 					.Select(s => s!)
@@ -138,6 +139,18 @@ namespace RealmForge.Client.Services
 				proficiencies.Add(new PdfLine(UiText.PdfOtherProficiencies(lang), sheet.OtherProficiencies.Replace('\n', ' ')));
 			}
 			proficiencies.Add(new PdfLine(UiText.LabelLanguages(ruleset, lang), string.Join(", ", c.Languages.Select(l => CharacterLanguages.Name(ruleset, l, lang)))));
+			if (c.ExtraWeapons.Count > 0)
+			{
+				proficiencies.Add(new PdfLine(UiText.SheetWeaponTraining(lang), string.Join(", ", c.ExtraWeapons.Select(w => context.Items.FirstOrDefault(i => string.Equals(i.EnglishName, w, StringComparison.OrdinalIgnoreCase))?.Name ?? w))));
+			}
+			if (UiText.SensesText(c, lang) is { Length: > 0 } senses)
+			{
+				proficiencies.Add(new PdfLine(UiText.SheetSenses(lang), senses));
+			}
+			if (UiText.DefensesText(c, lang) is { Length: > 0 } defenses)
+			{
+				proficiencies.Add(new PdfLine(UiText.SheetDefenses(lang), defenses));
+			}
 			data.Proficiencies = new PdfInfoBox(UiText.PdfProficienciesTitle(lang), proficiencies);
 
 			// Features and feats, with the resources left
@@ -167,6 +180,10 @@ namespace RealmForge.Client.Services
 			if (resources.Count > 0)
 			{
 				features.Add(new PdfLine(UiText.PdfResources(lang), string.Join(", ", resources)));
+			}
+			if (c.Breath is { } breath)
+			{
+				features.Add(new PdfLine(UiText.SheetBreath(lang), UiText.BreathText(breath, lang)));
 			}
 			data.Features = new PdfInfoBox(UiText.PdfFeaturesTitle(lang), features);
 
