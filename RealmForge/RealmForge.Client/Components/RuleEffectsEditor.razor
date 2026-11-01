@@ -1,0 +1,337 @@
+﻿@using RealmForge.Client.Localization
+@using RealmForge.Client.Services
+@using RealmForge.Shared.Characters
+@using RealmForge.Shared.Enums
+@using RealmForge.Shared.Localization
+@inject LanguageStateService LanguageState
+
+@* The rule effects of a module (and, later, of a Homebrew feat, trait or feature): one row per effect, with the fields
+   its kind needs and the level it unlocks at. Edits the list in place. *@
+<div class="rf-effects" data-test="effects-editor">
+    @if (Effects.Count == 0)
+    {
+        <div class="small mb-3" style="color: var(--rf-text-muted);">@UiText.ModuleNoEffects(Lang)</div>
+    }
+    @for (var i = 0; i < Effects.Count; i++)
+    {
+        var effect = Effects[i];
+        var index = i;
+        <div class="rf-effect-row" data-test="effect-row">
+            <div class="d-flex justify-content-between align-items-start gap-2 mb-2">
+                <div class="flex-grow-1" data-test="effect-kind">
+                    <label class="rf-form-label">@UiText.EffectKindLabel(Lang)</label>
+                    <RfSelect TValue="RuleEffectKind" Value="effect.Kind" ValueChanged="k => SetKind(effect, k)" Options="KindOptions" />
+                </div>
+                <div style="width: 96px;">
+                    <label class="rf-form-label">@UiText.EffectLevelLabel(Lang)</label>
+                    <input type="number" class="rf-form-control" min="1" max="20" value="@effect.Level" data-test="effect-level"
+                           @onchange="e => { effect.Level = Math.Clamp(ParseInt(e.Value, 1), 1, 20); Changed(); }" />
+                </div>
+                <button type="button" class="btn btn-sm btn-rf-outline rf-effect-remove" title="@UiText.EffectRemove(Lang)" aria-label="@UiText.EffectRemove(Lang)"
+                        @onclick="() => Remove(index)" data-test="effect-remove"><Icon Name="close" /></button>
+            </div>
+
+            <div class="row g-2">
+                @switch (effect.Kind)
+                {
+                    case RuleEffectKind.ArmorClass or RuleEffectKind.SavingThrows or RuleEffectKind.AbilityChecks or RuleEffectKind.Initiative
+                        or RuleEffectKind.MaxHitPoints or RuleEffectKind.MaxHitPointsPerLevel or RuleEffectKind.SpellAttack or RuleEffectKind.SpellSaveDc:
+                        <div class="col-sm-4">@ValueInput(effect, -10, 20)</div>
+                        break;
+                    case RuleEffectKind.Speed or RuleEffectKind.Darkvision:
+                        <div class="col-sm-4">
+                            <label class="rf-form-label">@UiText.EffectValueLabel(Lang) (@UiText.EffectSpeedUnit(Lang))</label>
+                            <input type="number" class="rf-form-control" step="@(Lang == LanguageCode.It ? "1.5" : "5")" value="@DistanceValue(effect.Value)" data-test="effect-value"
+                                   @onchange="e => { effect.Value = ParseDistance(e.Value); Changed(); }" />
+                        </div>
+                        break;
+                    case RuleEffectKind.AbilityScore or RuleEffectKind.SavingThrow:
+                        <div class="col-sm-8">@AbilitySelect(effect)</div>
+                        <div class="col-sm-4">@ValueInput(effect, -10, 10)</div>
+                        break;
+                    case RuleEffectKind.SaveProficiency:
+                        <div class="col-sm-8">@AbilitySelect(effect)</div>
+                        break;
+                    case RuleEffectKind.Skill:
+                        <div class="col-sm-8">@SkillSelect(effect)</div>
+                        <div class="col-sm-4">@ValueInput(effect, -10, 10)</div>
+                        break;
+                    case RuleEffectKind.SkillProficiency or RuleEffectKind.Expertise:
+                        <div class="col-sm-8">@SkillSelect(effect)</div>
+                        break;
+                    case RuleEffectKind.WeaponTraining:
+                        <div class="col-sm-6">
+                            <label class="rf-form-label">@UiText.EffectWeaponLabel(Lang)</label>
+                            <RfSelect TValue="string" Value="WeaponChoice(effect)" ValueChanged="v => SetWeapon(effect, v)"
+                                      Options="@(new List<RfSelect<string>.OptionItem> { new("simple", UiText.EffectWeaponName("simple", Lang)), new("martial", UiText.EffectWeaponName("martial", Lang)), new("other", UiText.EffectWeaponOther(Lang)) })" />
+                        </div>
+                        @if (WeaponChoice(effect) == "other")
+                        {
+                            <div class="col-sm-6">
+                                <label class="rf-form-label">@UiText.EffectWeaponOther(Lang)</label>
+                                <input type="text" class="rf-form-control" maxlength="60" value="@effect.Text" placeholder="Longsword" data-test="effect-text"
+                                       @onchange="e => { effect.Text = e.Value?.ToString(); Changed(); }" />
+                            </div>
+                        }
+                        break;
+                    case RuleEffectKind.ArmorTraining:
+                        <div class="col-sm-6">
+                            <label class="rf-form-label">@UiText.EffectArmorLabel(Lang)</label>
+                            <RfSelect TValue="string" Value="effect.Text" ValueChanged="v => { effect.Text = v; Changed(); }"
+                                      Options="@RuleEffectRules.ArmorTexts.Select(a => new RfSelect<string>.OptionItem(a, UiText.EffectArmorName(a, Lang))).ToList()" />
+                        </div>
+                        break;
+                    case RuleEffectKind.ToolProficiency or RuleEffectKind.Language:
+                        <div class="col-sm-8">
+                            <label class="rf-form-label">@(effect.Kind == RuleEffectKind.Language ? UiText.EffectLanguageLabel(Lang) : UiText.EffectToolLabel(Lang))</label>
+                            <input type="text" class="rf-form-control" maxlength="60" value="@effect.Text" data-test="effect-text"
+                                   @onchange="e => { effect.Text = e.Value?.ToString(); Changed(); }" />
+                        </div>
+                        break;
+                    case RuleEffectKind.Resistance or RuleEffectKind.Immunity:
+                        <div class="col-sm-8" data-test="effect-damage">
+                            <label class="rf-form-label">@UiText.EffectDamageLabel(Lang)</label>
+                            <RfSelect TValue="DamageType?" Value="effect.DamageType" ValueChanged="d => { effect.DamageType = d; Changed(); }"
+                                      Options="@Enum.GetValues<DamageType>().Select(d => new RfSelect<DamageType?>.OptionItem(d, EquipmentTerms.DamageTypeName(d, Lang))).OrderBy(o => o.Label).ToList()" />
+                        </div>
+                        break;
+                    case RuleEffectKind.ExtraAbility:
+                        <div class="col-sm-6">
+                            <label class="rf-form-label">@UiText.EffectNameIt(Lang)</label>
+                            <input type="text" class="rf-form-control" maxlength="40" value="@effect.NameIt" data-test="effect-name-it"
+                                   @onchange="e => { effect.NameIt = e.Value?.ToString(); KeyFromName(effect); Changed(); }" />
+                        </div>
+                        <div class="col-sm-6">
+                            <label class="rf-form-label">@UiText.EffectNameEn(Lang)</label>
+                            <input type="text" class="rf-form-control" maxlength="40" value="@effect.NameEn" data-test="effect-name-en"
+                                   @onchange="e => { effect.NameEn = e.Value?.ToString(); KeyFromName(effect); Changed(); }" />
+                        </div>
+                        <div class="col-6 col-sm-3">
+                            <label class="rf-form-label">@UiText.EffectShortIt(Lang)</label>
+                            <input type="text" class="rf-form-control" maxlength="4" value="@effect.ShortIt" placeholder="@ShortOf(effect.NameIt)"
+                                   @onchange="e => { effect.ShortIt = e.Value?.ToString(); Changed(); }" />
+                        </div>
+                        <div class="col-6 col-sm-3">
+                            <label class="rf-form-label">@UiText.EffectShortEn(Lang)</label>
+                            <input type="text" class="rf-form-control" maxlength="4" value="@effect.ShortEn" placeholder="@ShortOf(effect.NameEn)"
+                                   @onchange="e => { effect.ShortEn = e.Value?.ToString(); Changed(); }" />
+                        </div>
+                        <div class="col-6 col-sm-3">
+                            <label class="rf-form-label">@UiText.EffectArrayValue(Lang)</label>
+                            <input type="number" class="rf-form-control" min="3" max="18" value="@RuleModules.ArrayValue(effect)" data-test="effect-array"
+                                   @onchange="e => { effect.Value = Math.Clamp(ParseInt(e.Value, 10), 3, 18); Changed(); }" />
+                        </div>
+                        <div class="col-6 col-sm-3">
+                            <label class="rf-form-label">@UiText.EffectPoints(Lang)</label>
+                            <input type="number" class="rf-form-control" min="0" max="27" value="@effect.Points" data-test="effect-points"
+                                   @onchange="e => { effect.Points = Math.Clamp(ParseInt(e.Value, 0), 0, 27); Changed(); }" />
+                        </div>
+                        <div class="col-12">
+                            <label class="rf-checkbox-wrapper small">
+                                <input type="checkbox" class="rf-checkbox" checked="@effect.Save" @onchange="e => { effect.Save = e.Value is true; Changed(); }" data-test="effect-save" />
+                                <span>@UiText.EffectHasSave(Lang)</span>
+                            </label>
+                            <div class="small mt-2" style="color: var(--rf-text-muted);">@UiText.EffectArrayHint(Lang)</div>
+                        </div>
+                        break;
+                    case RuleEffectKind.Resource:
+                        <div class="col-sm-6">
+                            <label class="rf-form-label">@UiText.EffectNameIt(Lang)</label>
+                            <input type="text" class="rf-form-control" maxlength="40" value="@effect.NameIt" data-test="effect-name-it"
+                                   @onchange="e => { effect.NameIt = e.Value?.ToString(); Changed(); }" />
+                        </div>
+                        <div class="col-sm-6">
+                            <label class="rf-form-label">@UiText.EffectNameEn(Lang)</label>
+                            <input type="text" class="rf-form-control" maxlength="40" value="@effect.NameEn" data-test="effect-name-en"
+                                   @onchange="e => { effect.NameEn = e.Value?.ToString(); Changed(); }" />
+                        </div>
+                        <div class="col-sm-6" data-test="effect-uses">
+                            <label class="rf-form-label">@UiText.EffectUsesLabel(Lang)</label>
+                            <RfSelect TValue="ResourceUses" Value="effect.Uses" ValueChanged="u => { effect.Uses = u; Changed(); }"
+                                      Options="@Enum.GetValues<ResourceUses>().Select(u => new RfSelect<ResourceUses>.OptionItem(u, UiText.EffectUsesName(u, Lang))).ToList()" />
+                        </div>
+                        <div class="col-sm-6">@ValueInput(effect, effect.Uses == ResourceUses.Fixed ? 1 : -5, effect.Uses == ResourceUses.Fixed ? 50 : 10)</div>
+                        @if (effect.Uses == ResourceUses.AbilityModifier)
+                        {
+                            <div class="col-sm-6">@AbilitySelect(effect)</div>
+                        }
+                        <div class="col-sm-6" data-test="effect-reset">
+                            <label class="rf-form-label">@UiText.EffectResetLabel(Lang)</label>
+                            <RfSelect TValue="ResourceReset" Value="effect.Reset" ValueChanged="r => { effect.Reset = r; Changed(); }"
+                                      Options="@(new List<RfSelect<ResourceReset>.OptionItem> { new(ResourceReset.LongRest, UiText.ResetLongRest(Lang)), new(ResourceReset.ShortRest, UiText.ResetShortRest(Lang)), new(ResourceReset.OneOnShortRest, UiText.ResetOneOnShortRest(Lang)) })" />
+                        </div>
+                        break;
+                }
+            </div>
+            <div class="small mt-2 rf-effect-preview" data-test="effect-preview">@UiText.EffectText(effect, Effects, Lang)</div>
+        </div>
+    }
+    @if (Effects.Count < RuleEffectRules.MaxEffects)
+    {
+        <button type="button" class="btn btn-sm btn-rf-outline" @onclick="Add" data-test="effect-add">
+            <Icon Name="plus" Class="rf-icon" /> @UiText.EffectAdd(Lang)
+        </button>
+    }
+</div>
+
+@code {
+    [Parameter, EditorRequired] public List<RuleEffect> Effects { get; set; } = new();
+    [Parameter] public EventCallback OnChanged { get; set; }
+
+    private LanguageCode Lang => LanguageState.CurrentLanguage;
+
+    private List<RfSelect<RuleEffectKind>.OptionItem> KindOptions => Enum.GetValues<RuleEffectKind>()
+        .Select(k => new RfSelect<RuleEffectKind>.OptionItem(k, $"{UiText.EffectGroup(UiText.EffectGroupOf(k), Lang)} · {UiText.EffectKindName(k, Lang)}"))
+        .ToList();
+
+    //	The six abilities and the ones added by this list (their key)
+    private List<RfSelect<string>.OptionItem> AbilityOptions => Enum.GetValues<AbilityScore>()
+        .Select(a => new RfSelect<string>.OptionItem(((int)a).ToString(), FeatPrerequisiteFormatter.AbilityName(a, Lang)))
+        .Concat(Effects.Where(e => e.Kind == RuleEffectKind.ExtraAbility && !string.IsNullOrWhiteSpace(e.Key))
+            .Select(e => new RfSelect<string>.OptionItem("x:" + e.Key, e.Name(Lang))))
+        .ToList();
+
+    private RenderFragment ValueInput(RuleEffect effect, int min, int max) =>
+        @<div>
+            <label class="rf-form-label">@UiText.EffectValueLabel(Lang)</label>
+            <input type="number" class="rf-form-control" min="@min" max="@max" value="@effect.Value" data-test="effect-value"
+                   @onchange="e => { effect.Value = Math.Clamp(ParseInt(e.Value, 0), min, max); Changed(); }" />
+        </div>;
+
+    private RenderFragment AbilitySelect(RuleEffect effect) =>
+        @<div data-test="effect-ability">
+            <label class="rf-form-label">@UiText.EffectAbilityLabel(Lang)</label>
+            <RfSelect TValue="string" Value="AbilityValue(effect)" ValueChanged="v => SetAbility(effect, v)" Options="AbilityOptions" />
+        </div>;
+
+    private RenderFragment SkillSelect(RuleEffect effect) =>
+        @<div data-test="effect-skill">
+            <label class="rf-form-label">@UiText.EffectSkillLabel(Lang)</label>
+            <RfSelect TValue="Skill?" Value="effect.Skill" ValueChanged="s => { effect.Skill = s; Changed(); }"
+                      Options="@Enum.GetValues<Skill>().Select(s => new RfSelect<Skill?>.OptionItem(s, GameTerms.SkillName(s, Lang))).OrderBy(o => o.Label).ToList()" />
+        </div>;
+
+    private static string? AbilityValue(RuleEffect e) => e.Ability is { } a ? ((int)a).ToString() : e.AbilityKey is { } key ? "x:" + key : null;
+
+    private void SetAbility(RuleEffect e, string? value)
+    {
+        if (value is not null && value.StartsWith("x:"))
+        {
+            e.Ability = null;
+            e.AbilityKey = value[2..];
+        }
+        else if (int.TryParse(value, out var number) && Enum.IsDefined((AbilityScore)number))
+        {
+            e.Ability = (AbilityScore)number;
+            e.AbilityKey = null;
+        }
+        Changed();
+    }
+
+    private static string WeaponChoice(RuleEffect e) => e.Text is "simple" or "martial" ? e.Text : e.Text is null ? "simple" : "other";
+
+    private void SetWeapon(RuleEffect e, string? value)
+    {
+        e.Text = value == "other" ? string.Empty : value;
+        Changed();
+    }
+
+    //	A new kind starts from sensible values (a resource with 3 uses, an ability worth 10 in the array)
+    private void SetKind(RuleEffect e, RuleEffectKind kind)
+    {
+        var level = e.Level;
+        var fresh = New(kind);
+        fresh.Level = level;
+        var index = Effects.IndexOf(e);
+        if (index >= 0)
+        {
+            Effects[index] = fresh;
+        }
+        Changed();
+    }
+
+    private static RuleEffect New(RuleEffectKind kind) => kind switch
+    {
+        RuleEffectKind.Speed => new RuleEffect { Kind = kind, Value = 10 },
+        RuleEffectKind.Darkvision => new RuleEffect { Kind = kind, Value = 60 },
+        RuleEffectKind.AbilityScore or RuleEffectKind.SavingThrow or RuleEffectKind.SaveProficiency => new RuleEffect { Kind = kind, Value = 1, Ability = AbilityScore.Strength },
+        RuleEffectKind.Skill or RuleEffectKind.SkillProficiency or RuleEffectKind.Expertise => new RuleEffect { Kind = kind, Value = 1, Skill = Skill.Athletics },
+        RuleEffectKind.WeaponTraining => new RuleEffect { Kind = kind, Text = "simple" },
+        RuleEffectKind.ArmorTraining => new RuleEffect { Kind = kind, Text = "light" },
+        RuleEffectKind.Resistance or RuleEffectKind.Immunity => new RuleEffect { Kind = kind, DamageType = DamageType.Fire },
+        RuleEffectKind.ExtraAbility => new RuleEffect { Kind = kind, Value = 10 },
+        RuleEffectKind.Resource => new RuleEffect { Kind = kind, Value = 3, Uses = ResourceUses.Fixed, Reset = ResourceReset.LongRest },
+        _ => new RuleEffect { Kind = kind, Value = 1 }
+    };
+
+    private void Add()
+    {
+        Effects.Add(New(RuleEffectKind.ArmorClass));
+        Changed();
+    }
+
+    private void Remove(int index)
+    {
+        if (index < Effects.Count)
+        {
+            var removed = Effects[index];
+            Effects.RemoveAt(index);
+            //	Effects naming a removed ability go back to Strength
+            if (removed.Kind == RuleEffectKind.ExtraAbility && removed.Key is { } key)
+            {
+                foreach (var e in Effects.Where(e => string.Equals(e.AbilityKey, key, StringComparison.OrdinalIgnoreCase)))
+                {
+                    e.AbilityKey = null;
+                    e.Ability = AbilityScore.Strength;
+                }
+            }
+        }
+        Changed();
+    }
+
+    //	The key of an added ability follows its English name (or the Italian one) while it is not used yet
+    private void KeyFromName(RuleEffect e)
+    {
+        var source = string.IsNullOrWhiteSpace(e.NameEn) ? e.NameIt : e.NameEn;
+        var slug = new string((source ?? string.Empty).Trim().ToLowerInvariant().Select(c => char.IsLetterOrDigit(c) ? c : '-').ToArray()).Trim('-');
+        if (slug.Length == 0)
+        {
+            return;
+        }
+        var old = e.Key;
+        var key = slug.Length > 30 ? slug[..30] : slug;
+        var n = 2;
+        while (Effects.Any(x => x != e && x.Kind == RuleEffectKind.ExtraAbility && x.Key == key))
+        {
+            key = $"{slug}-{n++}";
+        }
+        e.Key = key;
+        if (old is not null && old != key)
+        {
+            foreach (var other in Effects.Where(x => string.Equals(x.AbilityKey, old, StringComparison.OrdinalIgnoreCase)))
+            {
+                other.AbilityKey = key;
+            }
+        }
+    }
+
+    private static string ShortOf(string? name) => string.IsNullOrWhiteSpace(name) ? string.Empty : name.Trim()[..Math.Min(3, name.Trim().Length)].ToUpperInvariant();
+
+    private string DistanceValue(int feet) => Lang == LanguageCode.It
+        ? (feet * 0.3m).ToString("0.#", System.Globalization.CultureInfo.InvariantCulture)
+        : feet.ToString();
+
+    private int ParseDistance(object? value)
+    {
+        if (!decimal.TryParse(value?.ToString()?.Replace(',', '.'), System.Globalization.NumberStyles.Number, System.Globalization.CultureInfo.InvariantCulture, out var number))
+        {
+            return 0;
+        }
+        var feet = Lang == LanguageCode.It ? number / 0.3m : number;
+        return Math.Clamp((int)Math.Round(feet / 5m) * 5, -300, 300);
+    }
+
+    private static int ParseInt(object? value, int fallback) => int.TryParse(value?.ToString(), out var n) ? n : fallback;
+
+    private void Changed() => OnChanged.InvokeAsync();
+}

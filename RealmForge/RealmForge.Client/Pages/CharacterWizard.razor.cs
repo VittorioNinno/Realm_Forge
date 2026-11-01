@@ -122,7 +122,8 @@ namespace RealmForge.Client.Pages
 					SubspeciesId = character.SubspeciesId,
 					BackgroundId = character.BackgroundId,
 					Build = character.Build,
-					Sheet = character.Sheet
+					Sheet = character.Sheet,
+					CampaignModuleIds = character.CampaignModuleIds ?? new()
 				};
 				Abilities.LoadFrom(Build);
 				SavedLevels = Build.Levels.Count;
@@ -237,6 +238,19 @@ namespace RealmForge.Client.Pages
 			ResolveSkillOverlaps();
 			RefreshPreview();
 			Computed = CharacterCalculator.Compute(Input, Context, checkEquipment: Mode == WizardMode.Create);
+
+			//	A module added or removed an ability: its slot joins the method, and the character is computed again
+			if (Abilities.SyncExtras(Computed.ExtraAbilities.Select(e => e.Definition).ToList(), Build))
+			{
+				var keys = Abilities.Extras.Select(e => e.Key).ToHashSet(StringComparer.OrdinalIgnoreCase);
+				foreach (var level in Build.Levels)
+				{
+					level.ExtraIncreases.RemoveAll(k => !keys.Contains(k));
+					level.Feat.ExtraIncreases.RemoveAll(k => !keys.Contains(k));
+				}
+				Abilities.WriteTo(Build);
+				Computed = CharacterCalculator.Compute(Input, Context, checkEquipment: Mode == WizardMode.Create);
+			}
 			ScheduleDraftSave();
 			stepProblems = stepProblems.Count > 0 ? ProblemsOf(CurrentStep) : stepProblems;
 			StateHasChanged();
@@ -296,6 +310,7 @@ namespace RealmForge.Client.Pages
 					level.FeatId = null;
 					level.Feat = new FeatChoice();
 					level.Increases.Clear();
+					level.ExtraIncreases.Clear();
 				}
 				if (level.HitPointRoll is { } roll && (roll < 1 || roll > cls.HitDie))
 				{
@@ -498,6 +513,7 @@ namespace RealmForge.Client.Pages
 				level.FeatId = null;
 				level.Feat = new FeatChoice();
 				level.Increases.Clear();
+				level.ExtraIncreases.Clear();
 				level.HitPointRoll = null;
 			}
 			Build.Classes.RemoveAll(c => c.ClassId == old || c.ClassId == id);
@@ -569,6 +585,7 @@ namespace RealmForge.Client.Pages
 			level.FeatId = null;
 			level.Feat = new FeatChoice();
 			level.Increases.Clear();
+			level.ExtraIncreases.Clear();
 			await UpdateAsync();
 		}
 
@@ -703,15 +720,26 @@ namespace RealmForge.Client.Pages
 	public sealed class WizardAbilityState
 	{
 		public AbilityMethod Method { get; set; } = AbilityMethod.StandardArray;
-		public int?[] Assigned { get; } = new int?[6];
-		public int[] PointBuy { get; } = { 8, 8, 8, 8, 8, 8 };
+
+		//	One slot per ability: the six, then the ones added by rule modules (index 6 + i of Extras)
+		public List<int?> Assigned { get; } = Enumerable.Repeat<int?>(null, 6).ToList();
+		public List<int> PointBuy { get; } = Enumerable.Repeat(8, 6).ToList();
 		public List<int> Pool { get; set; } = CharacterMath.StandardArray.ToList();
 		public int? SelectedPool { get; set; }
 		public List<int> Rolled { get; set; } = new();
-		public int?[] RolledAssigned { get; } = new int?[6];
+		public List<int?> RolledAssigned { get; } = Enumerable.Repeat<int?>(null, 6).ToList();
 		public int RollsLeft { get; set; } = 3;
 		public bool Rolling { get; set; }
 		public List<DiceRow> DiceRows { get; set; } = new();
+
+		//	Definitions of the abilities added by the active rule modules (Fortuna…), in the calculator's order
+		public List<RuleEffect> Extras { get; private set; } = new();
+
+		public int Count => 6 + Extras.Count;
+
+		//	The standard array with one more value per added ability, and the point buy budget with their points
+		public List<int> ArrayValues => CharacterMath.StandardArray.Concat(Extras.Select(RuleModules.ArrayValue)).OrderByDescending(v => v).ToList();
+		public int PointBudget => CharacterMath.PointBuyBudget + Extras.Sum(e => Math.Max(0, e.Points));
 
 		public sealed class DiceRow
 		{
@@ -720,22 +748,29 @@ namespace RealmForge.Client.Pages
 			public int Total => Dropped < 0 ? 0 : Dice.Where((_, i) => i != Dropped).Sum();
 		}
 
+		private static void Fill<T>(List<T> list, int count, T value)
+		{
+			list.Clear();
+			list.AddRange(Enumerable.Repeat(value, count));
+		}
+
 		public void Reset()
 		{
 			Method = AbilityMethod.StandardArray;
-			Array.Clear(Assigned);
-			Array.Fill(PointBuy, 8);
-			Pool = CharacterMath.StandardArray.ToList();
+			Fill(Assigned, Count, null);
+			Fill(PointBuy, Count, 8);
+			Pool = ArrayValues;
 			SelectedPool = null;
 			Rolled = new();
-			Array.Clear(RolledAssigned);
+			Fill(RolledAssigned, Count, null);
 			RollsLeft = 3;
 			DiceRows = new();
 		}
 
-		//	Edit mode: the saved scores, already assigned (no new rolls)
+		//	Edit mode: the saved scores, already assigned (no new rolls); the added abilities follow in SyncExtras
 		public void LoadFrom(CharacterBuild build)
 		{
+			Extras = new();
 			Reset();
 			Method = build.AbilityMethod;
 			if (build.BaseScores.Count != 6)
@@ -760,6 +795,79 @@ namespace RealmForge.Client.Pages
 			Pool = Method == AbilityMethod.StandardArray ? new List<int>() : CharacterMath.StandardArray.ToList();
 		}
 
+		///	<summary>
+		///	Follows the abilities the active modules add (a module chosen or removed): their slots appear or go, the saved
+		///	values of the build fill the new ones, the pool of the array and the rolls follow. True when something changed.
+		///	</summary>
+		public bool SyncExtras(List<RuleEffect> definitions, CharacterBuild build)
+		{
+			var oldKeys = Extras.Select(e => e.Key).ToList();
+			var newKeys = definitions.Select(e => e.Key).ToList();
+			if (oldKeys.SequenceEqual(newKeys, StringComparer.OrdinalIgnoreCase))
+			{
+				Extras = definitions;
+				return false;
+			}
+
+			int? Saved(string? key) => build.ExtraScores.FirstOrDefault(kv => string.Equals(kv.Key, key, StringComparison.OrdinalIgnoreCase)) is { Key: not null } kv ? kv.Value : null;
+			int? Old<T>(List<T> list, string? key, Func<T, int?> value)
+			{
+				var index = oldKeys.FindIndex(k => string.Equals(k, key, StringComparison.OrdinalIgnoreCase));
+				return index >= 0 && 6 + index < list.Count ? value(list[6 + index]) : null;
+			}
+
+			var assigned = newKeys.Select(k => Old(Assigned, k, v => v) ?? (Method == AbilityMethod.StandardArray ? Saved(k) : null)).ToList();
+			var points = newKeys.Select(k => Old(PointBuy, k, v => v) ?? Math.Clamp(Saved(k) ?? 8, 8, 15)).ToList();
+			var rolled = newKeys.Select(k => Old(RolledAssigned, k, v => v) ?? (Method == AbilityMethod.Roll ? Saved(k) : null)).ToList();
+			var hadRolls = Rolled.Count;
+
+			Extras = definitions;
+			Resize(Assigned, assigned);
+			Resize(PointBuy, points);
+			Resize(RolledAssigned, rolled);
+
+			//	The array: its values minus the assigned ones (a value no longer in the array leaves its ability)
+			if (Method == AbilityMethod.StandardArray)
+			{
+				var left = ArrayValues;
+				for (var i = 0; i < Count; i++)
+				{
+					if (Assigned[i] is { } value && !left.Remove(value))
+					{
+						Assigned[i] = null;
+					}
+				}
+				Pool = left;
+			}
+
+			//	Rolls: the saved values of an edited character join them; new rolls otherwise (one row per ability)
+			if (Method == AbilityMethod.Roll && hadRolls > 0)
+			{
+				if (RollsLeft == 0 && rolled.All(v => v is not null) && hadRolls == 6)
+				{
+					Rolled = Rolled.Concat(rolled.Select(v => v!.Value)).OrderByDescending(v => v).ToList();
+				}
+				else if (hadRolls != Count)
+				{
+					Rolled = new();
+					Fill(RolledAssigned, Count, null);
+					DiceRows = new();
+					RollsLeft = Math.Max(RollsLeft, 1);
+				}
+			}
+			SelectedPool = null;
+			return true;
+		}
+
+		private static void Resize<T>(List<T> list, List<T> extras)
+		{
+			if (list.Count > 6)
+			{
+				list.RemoveRange(6, list.Count - 6);
+			}
+			list.AddRange(extras);
+		}
+
 		public sealed class Snapshot
 		{
 			public AbilityMethod Method { get; set; } = AbilityMethod.StandardArray;
@@ -769,6 +877,7 @@ namespace RealmForge.Client.Pages
 			public List<int> Rolled { get; set; } = new();
 			public List<int?> RolledAssigned { get; set; } = new();
 			public int RollsLeft { get; set; } = 3;
+			public List<string> ExtraKeys { get; set; } = new();
 		}
 
 		public Snapshot ToSnapshot() => new()
@@ -779,14 +888,17 @@ namespace RealmForge.Client.Pages
 			Pool = Pool.ToList(),
 			Rolled = Rolled.ToList(),
 			RolledAssigned = RolledAssigned.ToList(),
-			RollsLeft = RollsLeft
+			RollsLeft = RollsLeft,
+			ExtraKeys = Extras.Select(e => e.Key ?? string.Empty).ToList()
 		};
 
+		//	A draft: the added abilities come back as keys, SyncExtras puts their definitions back
 		public void Restore(Snapshot snapshot)
 		{
+			Extras = snapshot.ExtraKeys.Take(RuleEffectRules.MaxExtraAbilities * 4).Select(k => new RuleEffect { Kind = RuleEffectKind.ExtraAbility, Key = k, Value = 10 }).ToList();
 			Reset();
 			Method = snapshot.Method;
-			for (var i = 0; i < 6; i++)
+			for (var i = 0; i < Count; i++)
 			{
 				Assigned[i] = i < snapshot.Assigned.Count ? snapshot.Assigned[i] : null;
 				PointBuy[i] = i < snapshot.PointBuy.Count ? Math.Clamp(snapshot.PointBuy[i], 8, 15) : 8;
@@ -804,12 +916,16 @@ namespace RealmForge.Client.Pages
 			_ => Assigned[index]
 		};
 
-		//	Writes the scores into the build when all six are set (otherwise none)
+		//	Writes the scores into the build when all of them are set (otherwise none)
 		public void WriteTo(CharacterBuild build)
 		{
 			build.AbilityMethod = Method;
-			var values = Enumerable.Range(0, 6).Select(Base).ToList();
-			build.BaseScores = values.All(v => v is not null) ? values.Select(v => v!.Value).ToList() : new List<int>();
+			var values = Enumerable.Range(0, Count).Select(Base).ToList();
+			var complete = values.All(v => v is not null);
+			build.BaseScores = complete ? values.Take(6).Select(v => v!.Value).ToList() : new List<int>();
+			build.ExtraScores = complete
+				? Extras.Select((e, i) => (e.Key, Value: values[6 + i]!.Value)).Where(x => x.Key is not null).ToDictionary(x => x.Key!, x => x.Value)
+				: new Dictionary<string, int>();
 		}
 	}
 }

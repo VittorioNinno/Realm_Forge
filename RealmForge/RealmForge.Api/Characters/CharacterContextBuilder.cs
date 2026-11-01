@@ -28,7 +28,9 @@ namespace RealmForge.Api.Characters
 			_shares = shares;
 		}
 
-		public async Task<CharacterContextDto> BuildAsync(RulesetVersion ruleset, LanguageCode lang, ClaimsPrincipal user)
+		///	<param name="campaignModules">Rule modules active in the campaigns of the character: read even when the user does
+		///	not list them (a master's module shared with the table)</param>
+		public async Task<CharacterContextDto> BuildAsync(RulesetVersion ruleset, LanguageCode lang, ClaimsPrincipal user, IReadOnlyCollection<Guid>? campaignModules = null)
 		{
 			var shared = await _shares.SharedWithAsync(user);
 			var equipment = await ContentAccess.ListedFor(_context.Equipment.AsNoTracking().Include(e => e.Translations), user, shared)
@@ -55,6 +57,16 @@ namespace RealmForge.Api.Characters
 
 			var spells = await ContentAccess.ListedFor(_context.Spells.AsNoTracking().Include(s => s.Translations), user, shared)
 				.Where(s => s.Ruleset == ruleset).ToListAsync();
+
+			//	Modules hold for both editions
+			var extra = campaignModules ?? Array.Empty<Guid>();
+			var listed = ContentAccess.ListedFor(_context.RuleModules.AsNoTracking(), user, shared).Select(m => m.Id);
+			var modules = await _context.RuleModules.AsNoTracking().Include(m => m.Translations)
+				.Where(m => listed.Contains(m.Id) || extra.Contains(m.Id))
+				.ToListAsync();
+			var contextModules = modules
+				.Select(m => new ContextModule(m.Id, m.Translations.Localize(lang)?.Name ?? string.Empty, RealmForge.Api.Controllers.RuleModulesController.Read(m.Effects)))
+				.OrderBy(m => m.Name, StringComparer.CurrentCultureIgnoreCase).ToList();
 
 			string? Key(Guid id, bool isBase) => isBase ? BaseContentKeys.Of(id) : null;
 
@@ -110,7 +122,7 @@ namespace RealmForge.Api.Characters
 					e.StrengthRequirement, e.StealthDisadvantage, e.ToolCategory, e.WeightInPounds, e.CostInCopper))
 				.OrderBy(e => e.Name, StringComparer.CurrentCultureIgnoreCase).ToList();
 
-			return new CharacterContextDto(ruleset, contextClasses, contextSpecies, contextBackgrounds, contextFeats, contextSpells, contextItems);
+			return new CharacterContextDto(ruleset, contextClasses, contextSpecies, contextBackgrounds, contextFeats, contextSpells, contextItems, contextModules);
 		}
 	}
 }

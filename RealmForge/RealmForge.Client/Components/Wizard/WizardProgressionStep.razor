@@ -67,8 +67,8 @@
                                     <div class="rf-wizard-row">
                                         <div class="rf-wizard-label">@UiText.LabelPlusOne(Lang)</div>
                                         <div class="rf-wizard-field">
-                                            <ForgeSelector TValue="AbilityScore?" Value="@(pick < level.Increases.Count ? level.Increases[pick] : null)" ValueChanged="v => SetIncrease(index, pick, v)"
-                                                           Options="AbilityOptions" DataTest="@($"wizard-asi-{pick}")" />
+                                            <ForgeSelector TValue="string" Value="@IncreasePicks.Get(level.Increases, level.ExtraIncreases, pick)" ValueChanged="v => SetIncrease(index, pick, v)"
+                                                           Options="IncreasePicks.Options(CharacterMath.Abilities, Computed, Lang)" DataTest="@($"wizard-asi-{pick}")" />
                                         </div>
                                     </div>
                                 }
@@ -167,15 +167,6 @@
         return string.Join(any ? UiText.WordOr(Lang) : UiText.WordAnd(Lang), abilities.Select(a => FeatPrerequisiteFormatter.AbilityName(a, Lang)));
     }
 
-    private List<ForgeSelector<AbilityScore?>.Option> AbilityOptions
-    {
-        get
-        {
-            var options = CharacterMath.Abilities.Select(a => new ForgeSelector<AbilityScore?>.Option(a, FeatPrerequisiteFormatter.AbilityName(a, Lang))).ToList();
-            return options;
-        }
-    }
-
     //	2024: general feats (the Ability Score Improvement among them) and the others you qualify for; at 19 the Epic Boons
     private List<ForgeSelector<Guid?>.Option> FeatOptions(LevelPlanEntry plan)
     {
@@ -210,27 +201,13 @@
     {
         featMode.Add(index);
         Build.Levels[index].Increases.Clear();
+        Build.Levels[index].ExtraIncreases.Clear();
         W.Update();
     }
 
-    private void SetIncrease(int index, int pick, AbilityScore? value)
+    private void SetIncrease(int index, int pick, string? value)
     {
-        var list = Build.Levels[index].Increases;
-        if (value is null)
-        {
-            if (pick < list.Count)
-            {
-                list.RemoveAt(pick);
-            }
-        }
-        else if (pick < list.Count)
-        {
-            list[pick] = value.Value;
-        }
-        else
-        {
-            list.Add(value.Value);
-        }
+        IncreasePicks.Set(Build.Levels[index].Increases, Build.Levels[index].ExtraIncreases, pick, value);
         W.Update();
     }
 

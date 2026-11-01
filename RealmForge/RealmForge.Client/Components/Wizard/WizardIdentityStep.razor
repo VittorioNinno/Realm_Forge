@@ -45,7 +45,55 @@
     </div>
 </div>
 
+@* Homebrew rule modules (Fortuna…): the ones of the character's campaigns apply on their own *@
+@if (Context.Modules is { Count: > 0 } modules)
+{
+    <div class="rf-wizard-row">
+        <div class="rf-wizard-label">@UiText.ModulesTitle(Lang)</div>
+        <div class="rf-wizard-field" data-test="wizard-modules">
+            <div class="small mb-2" style="color: var(--rf-text-muted);">@UiText.WizardModulesHint(Lang)</div>
+            <div class="d-flex flex-column gap-2">
+                @foreach (var module in modules)
+                {
+                    var current = module;
+                    var fromCampaign = W.Input.CampaignModuleIds.Contains(module.Id);
+                    var active = fromCampaign || Build.ModuleIds.Contains(module.Id);
+                    <label class="rf-module-pick @(active ? "active" : null)" data-test="wizard-module">
+                        <input type="checkbox" class="rf-checkbox" checked="@active" disabled="@fromCampaign" @onchange="() => ToggleModule(current.Id)" />
+                        <span class="flex-grow-1">
+                            <strong>@module.Name</strong>
+                            @if (fromCampaign)
+                            {
+                                <span class="small ms-2" style="color: var(--rf-orange-primary);">@UiText.WizardModuleFromCampaign(Lang)</span>
+                            }
+                            <ul class="small">
+                                @foreach (var effect in module.Effects.Take(6))
+                                {
+                                    <li>@UiText.EffectText(effect, module.Effects, Lang)</li>
+                                }
+                                @if (module.Effects.Count > 6)
+                                {
+                                    <li>…</li>
+                                }
+                            </ul>
+                        </span>
+                    </label>
+                }
+            </div>
+        </div>
+    </div>
+}
+
 @code {
+    private void ToggleModule(Guid id)
+    {
+        if (!Build.ModuleIds.Remove(id))
+        {
+            Build.ModuleIds.Add(id);
+        }
+        W.Update();
+    }
+
     private List<ForgeSelector<AdvancementType>.Option> AdvancementOptions =>
         new[] { AdvancementType.Experience, AdvancementType.Milestone }.Select(a => new ForgeSelector<AdvancementType>.Option(a, UiText.AdvancementName(a, Lang))).ToList();
 

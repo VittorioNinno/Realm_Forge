@@ -77,6 +77,8 @@ namespace RealmForge.Infrastructure.Persistence
 		public DbSet<TrashEntry> TrashEntries => Set<TrashEntry>();
 
 		//	Rules glossary
+		public DbSet<RuleModule> RuleModules => Set<RuleModule>();
+		public DbSet<RuleModuleTranslation> RuleModuleTranslations => Set<RuleModuleTranslation>();
 		public DbSet<RuleEntry> RuleEntries => Set<RuleEntry>();
 		public DbSet<RuleEntryTranslation> RuleEntryTranslations => Set<RuleEntryTranslation>();
 
@@ -198,6 +200,26 @@ namespace RealmForge.Infrastructure.Persistence
 			});
 
 			//	Feats configuration
+			//	Homebrew rule modules: effects as JSON, a translation per language
+			modelBuilder.Entity<RuleModule>(entity =>
+			{
+				entity.HasKey(m => m.Id);
+				entity.Property(m => m.Effects).IsRequired().HasColumnType("jsonb");
+				entity.HasIndex(m => m.AuthorId);
+				entity.HasMany(m => m.Translations)
+						.WithOne(t => t.RuleModule)
+						.HasForeignKey(t => t.RuleModuleId)
+						.OnDelete(DeleteBehavior.Cascade);
+			});
+
+			modelBuilder.Entity<RuleModuleTranslation>(entity =>
+			{
+				entity.HasKey(t => t.Id);
+				entity.Property(t => t.Name).IsRequired().HasMaxLength(100);
+				entity.Property(t => t.Description).IsRequired().HasMaxLength(8000);
+				entity.HasIndex(t => new { t.RuleModuleId, t.Language }).IsUnique();
+			});
+
 			modelBuilder.Entity<Feat>(entity =>
 			{
 				entity.HasKey(f => f.Id);
