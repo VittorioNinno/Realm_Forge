@@ -278,17 +278,17 @@ namespace RealmForge.Client.Localization
 			return string.Join(" · ", parts);
 		}
 
-		//	"Resistenza: veleno, fuoco · Immunità: veleno · Danni ridotti di 3 (contundenti, perforanti, taglienti)"
+		//	"Resistenza ai danni da veleno, da fuoco · Immunità ai danni da veleno · danni contundenti, perforanti e taglienti ridotti di 3"
 		public static string DefensesText(ComputedCharacter c, LanguageCode lang)
 		{
 			var parts = new List<string>();
 			if (c.Resistances.Count > 0)
 			{
-				parts.Add($"{T(lang, "Resistenza", "Resistance")}: {string.Join(", ", c.Resistances.Select(d => Shared.Localization.EquipmentTerms.DamageTypeName(d, lang).ToLowerInvariant()))}");
+				parts.Add($"{T(lang, "Resistenza ai danni", "Resistance:")} {string.Join(", ", c.Resistances.Select(d => Shared.Localization.EquipmentTerms.DamageTypeName(d, lang).ToLowerInvariant()))}");
 			}
 			if (c.Immunities.Count > 0)
 			{
-				parts.Add($"{T(lang, "Immunità", "Immunity")}: {string.Join(", ", c.Immunities.Select(d => Shared.Localization.EquipmentTerms.DamageTypeName(d, lang).ToLowerInvariant()))}");
+				parts.Add($"{T(lang, "Immunità ai danni", "Immunity:")} {string.Join(", ", c.Immunities.Select(d => Shared.Localization.EquipmentTerms.DamageTypeName(d, lang).ToLowerInvariant()))}");
 			}
 			if (c.DamageReduction > 0)
 			{
