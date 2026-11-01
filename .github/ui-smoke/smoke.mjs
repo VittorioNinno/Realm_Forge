@@ -405,7 +405,7 @@ try {
     return { label: el.textContent.trim(), inset: Math.round(icon.left - el.getBoundingClientRect().left), left: Math.round(icon.left) };
   }));
   results.push(`INFO menu icons: ${iconGaps.map((g) => `${g.label}@${g.left}(+${g.inset})`).join(', ')}`);
-  if (iconGaps.length !== 13 || iconGaps.some((g) => g.inset < 8) || new Set(iconGaps.map((g) => g.left)).size !== 1) throw new Error('menu icons are not padded or not aligned');
+  if (iconGaps.length !== 14 || iconGaps.some((g) => g.inset < 8) || new Set(iconGaps.map((g) => g.left)).size !== 1) throw new Error('menu icons are not padded or not aligned');
   await page.locator('[data-test=nav-compendium] button').click();
   ok('"Compendio" menu group: Specie, Background, Talenti, Incantesimi, Classi, Equipaggiamento, and Glossario next to it; collapsed elsewhere and toggles on click; icons padded and aligned');
   await page.getByText('Non hai un account? Registrati').click();
@@ -616,6 +616,20 @@ try {
   if (infoCallsWhileTyping !== 0) throw new Error(`${infoCallsWhileTyping} account API calls while typing in the search`);
   ok('species search filters by text and explains when nothing matches');
 
+  // Global search: Italian and English names, results grouped by section with the edition
+  await page.goto(`${base}/search?q=palla di fuoco`);
+  await page.locator('[data-test=search-hit]').first().waitFor({ timeout: 30000 });
+  const searchFireball = (await page.locator('[data-test=search-group][data-kind=spell] [data-test=search-hit]').first().innerText()).replace(/\s+/g, ' ').trim();
+  await page.locator('[data-test=search-input]').fill('goblin');
+  await page.locator('[data-test=search-group][data-kind=monster]').waitFor({ timeout: 15000 });
+  const searchGroups = await page.locator('[data-test=search-group]').evaluateAll((els) => els.map((e) => e.getAttribute('data-kind')).join(','));
+  await shot(page, 'search', 'main');
+  await page.locator('[data-test=search-input]').fill('zzqqxx');
+  await page.locator('[data-test=search-none]').waitFor({ timeout: 15000 });
+  results.push(`INFO search: fireball='${searchFireball}' goblin groups=${searchGroups}`);
+  if (!/Palla di Fuoco/i.test(searchFireball) || !/Fireball/.test(searchFireball) || !searchGroups.startsWith('monster')) throw new Error('unexpected global search results');
+  ok('global search: "palla di fuoco" finds the spell with its English name, "goblin" the monsters first, nothing for nonsense');
+
   // Account page: profile, Homebrew counts (the UI created one background) and password change
   await page.goto(`${base}/account`);
   await page.locator('[data-test=account-role]').waitFor({ timeout: 30000 });
@@ -666,6 +680,49 @@ try {
   await page.locator('[data-test=account-delete-confirm]').waitFor({ state: 'detached', timeout: 5000 });
   await shot(page, 'account-danger', '[data-test=account-delete]');
   ok('account deletion: the dialog asks for the password, a wrong one is refused and nothing is deleted');
+
+  // Administration (admin-ui@example.com is in Auth:AdminEmails in this job): figures, an account suspended,
+  // reactivated and deleted, the Homebrew moderation; an ordinary account is turned away
+  await page.goto(`${base}/admin`);
+  await page.locator('[data-test=admin-denied]').waitFor({ timeout: 30000 });
+  const apiBase = 'http://localhost:5080';
+  const adminCredential = ['Rf', crypto.randomUUID(), 'A!'].join('-');
+  const victim = `victim${Date.now()}@example.com`;
+  for (const who of ['admin-ui@example.com', victim]) {
+    await context.request.post(`${apiBase}/api/auth/register`, { data: { email: who, password: adminCredential } });
+  }
+  const adminLogin = await (await context.request.post(`${apiBase}/api/auth/login`, { data: { email: 'admin-ui@example.com', password: adminCredential } })).json();
+  const adminContext = await browser.newContext({ viewport: { width: 1280, height: 900 } });
+  await adminContext.addInitScript((tokens) => localStorage.setItem('realmforge.auth', tokens), JSON.stringify({
+    AccessToken: adminLogin.accessToken, RefreshToken: adminLogin.refreshToken, ExpiresAt: new Date(Date.now() + adminLogin.expiresIn * 1000).toISOString() }));
+  const admin = await adminContext.newPage();
+  await admin.goto(`${base}/admin`);
+  await admin.locator('[data-test=admin-stats]').waitFor({ timeout: 30000 });
+  const adminStats = (await admin.locator('[data-test=admin-stats]').innerText()).replace(/\s+/g, ' ').trim();
+  await admin.locator('[data-test=admin-user-search]').fill(victim);
+  const victimRow = admin.locator('[data-test=admin-user]', { hasText: victim });
+  await victimRow.waitFor({ timeout: 15000 });
+  await victimRow.locator('[data-test=admin-user-suspend]').click();
+  await admin.locator('[data-test=admin-suspend-7]').click();
+  await admin.locator('[data-test=admin-suspend-yes]').click();
+  await victimRow.locator('[data-test=admin-user-locked]').waitFor({ timeout: 15000 });
+  const lockedLogin = (await context.request.post(`${apiBase}/api/auth/login`, { data: { email: victim, password: adminCredential } })).status();
+  await shot(admin, 'admin-users', 'main');
+  await victimRow.locator('[data-test=admin-user-reactivate]').click();
+  await victimRow.locator('[data-test=admin-user-suspend]').waitFor({ timeout: 15000 });
+  const unlockedLogin = (await context.request.post(`${apiBase}/api/auth/login`, { data: { email: victim, password: adminCredential } })).status();
+  await victimRow.locator('[data-test=admin-user-delete]').click();
+  await admin.locator('[data-test=admin-delete-yes]').click();
+  await victimRow.waitFor({ state: 'detached', timeout: 15000 });
+  await admin.locator('[data-test=admin-tab-homebrew]').click();
+  await admin.locator('[data-test=admin-homebrew-filter] .rf-pill-btn').last().click();
+  await admin.locator('[data-test=admin-homebrew-entry]').first().waitFor({ timeout: 15000 });
+  const moderated = await admin.locator('[data-test=admin-homebrew-entry]').count();
+  await shot(admin, 'admin-homebrew', 'main');
+  await adminContext.close();
+  results.push(`INFO admin: stats='${adminStats}' locked login=${lockedLogin} reactivated login=${unlockedLogin} homebrew rows=${moderated}`);
+  if (lockedLogin !== 401 || unlockedLogin !== 200 || moderated < 1 || !/account/i.test(adminStats)) throw new Error('unexpected administration page');
+  ok('administration: ordinary account turned away; figures, a suspended account cannot sign in until reactivated, then deleted; Homebrew listed for moderation');
 
   // Character creation at phone width (375 px): edition order, every step of the 2024 wizard (overflow checked),
   // the interactive sheet (damage saved on its own, rests, tabs, PDF), a level up into a second class and the list

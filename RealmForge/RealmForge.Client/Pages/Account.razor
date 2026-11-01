@@ -37,6 +37,10 @@
                 @if (summary != null)
                 {
                     <p class="small mb-3" style="color: var(--rf-text-secondary);">@UiText.AccountRoleHint(summary.IsAdmin, LanguageState.CurrentLanguage)</p>
+                    @if (summary.IsAdmin)
+                    {
+                        <a class="btn btn-sm btn-rf-orange mb-3" href="admin" data-test="account-admin">@UiText.BtnAdmin(LanguageState.CurrentLanguage)</a>
+                    }
                     <dl class="rf-account-facts mb-0">
                         <dt>@UiText.LabelMemberSince(LanguageState.CurrentLanguage)</dt>
                         <dd>@(summary.RegisteredAt is DateTimeOffset at ? UiText.FormatDate(at.ToLocalTime(), LanguageState.CurrentLanguage) : UiText.LabelNotAvailable(LanguageState.CurrentLanguage))</dd>
