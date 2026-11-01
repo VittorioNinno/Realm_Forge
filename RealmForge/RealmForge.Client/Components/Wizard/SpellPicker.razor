@@ -50,7 +50,18 @@
     //	Spells chosen by the other sources, with their name: shown but not selectable
     [Parameter] public IReadOnlyDictionary<Guid, string>? TakenBy { get; set; }
 
+    //	Spells of other lists that count as this one (2014 patrons' expanded list) and lists the bard can take from
+    //	(Magical Secrets; AnyList: every class); Schools: the level 1 spell of Fey Touched / Shadow Touched
+    [Parameter] public IReadOnlyCollection<Guid>? ExtraIds { get; set; }
+    [Parameter] public IReadOnlyList<SpellcastingClass>? OtherLists { get; set; }
+    [Parameter] public bool AnyList { get; set; }
+    [Parameter] public IReadOnlyList<SpellSchool>? Schools { get; set; }
+
+    private bool OnList(ContextSpell s) => List is null || AnyList || s.Classes.Contains(List.Value) || (ExtraIds?.Contains(s.Id) ?? false)
+        || (OtherLists is not null && s.Classes.Any(OtherLists.Contains));
+
     private List<ContextSpell> Available => Context.Spells
-        .Where(s => s.Level >= MinLevel && s.Level <= MaxLevel && (List is null || s.Classes.Contains(List.Value)))
+        .Where(s => s.Level >= MinLevel && s.Level <= MaxLevel && OnList(s) && (Schools is null || Schools.Contains(s.School)))
+        .OrderBy(s => s.Name, StringComparer.CurrentCultureIgnoreCase)
         .ToList();
 }

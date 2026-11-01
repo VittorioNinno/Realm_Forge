@@ -405,7 +405,7 @@ try {
     return { label: el.textContent.trim(), inset: Math.round(icon.left - el.getBoundingClientRect().left), left: Math.round(icon.left) };
   }));
   results.push(`INFO menu icons: ${iconGaps.map((g) => `${g.label}@${g.left}(+${g.inset})`).join(', ')}`);
-  if (iconGaps.length !== 13 || iconGaps.some((g) => g.inset < 8) || new Set(iconGaps.map((g) => g.left)).size !== 1) throw new Error('menu icons are not padded or not aligned');
+  if (iconGaps.length !== 14 || iconGaps.some((g) => g.inset < 8) || new Set(iconGaps.map((g) => g.left)).size !== 1) throw new Error('menu icons are not padded or not aligned');
   await page.locator('[data-test=nav-compendium] button').click();
   ok('"Compendio" menu group: Specie, Background, Talenti, Incantesimi, Classi, Equipaggiamento, and Glossario next to it; collapsed elsewhere and toggles on click; icons padded and aligned');
   await page.getByText('Non hai un account? Registrati').click();
@@ -616,6 +616,20 @@ try {
   if (infoCallsWhileTyping !== 0) throw new Error(`${infoCallsWhileTyping} account API calls while typing in the search`);
   ok('species search filters by text and explains when nothing matches');
 
+  // Global search: Italian and English names, results grouped by section with the edition
+  await page.goto(`${base}/search?q=palla di fuoco`);
+  await page.locator('[data-test=search-hit]').first().waitFor({ timeout: 30000 });
+  const searchFireball = (await page.locator('[data-test=search-group][data-kind=spell] [data-test=search-hit]').first().innerText()).replace(/\s+/g, ' ').trim();
+  await page.locator('[data-test=search-input]').fill('goblin');
+  await page.locator('[data-test=search-group][data-kind=monster]').waitFor({ timeout: 15000 });
+  const searchGroups = await page.locator('[data-test=search-group]').evaluateAll((els) => els.map((e) => e.getAttribute('data-kind')).join(','));
+  await shot(page, 'search', 'main');
+  await page.locator('[data-test=search-input]').fill('zzqqxx');
+  await page.locator('[data-test=search-none]').waitFor({ timeout: 15000 });
+  results.push(`INFO search: fireball='${searchFireball}' goblin groups=${searchGroups}`);
+  if (!/Palla di Fuoco/i.test(searchFireball) || !/Fireball/.test(searchFireball) || !searchGroups.startsWith('monster')) throw new Error('unexpected global search results');
+  ok('global search: "palla di fuoco" finds the spell with its English name, "goblin" the monsters first, nothing for nonsense');
+
   // Account page: profile, Homebrew counts (the UI created one background) and password change
   await page.goto(`${base}/account`);
   await page.locator('[data-test=account-role]').waitFor({ timeout: 30000 });
@@ -655,6 +669,60 @@ try {
   await page.getByRole('button', { name: 'Aggiorna password' }).click();
   await page.getByText('Password aggiornata.').waitFor({ timeout: 15000 });
   ok('account page: role "Utente", Homebrew counts (0 feats, 1 background), password change rejects a wrong current password and succeeds with the right one');
+  // Account deletion asks for the password: a wrong one is refused and the account stays (the dialog is then closed)
+  await page.locator('[data-test=account-delete-open]').click();
+  await page.locator('[data-test=account-delete-confirm]').waitFor({ timeout: 5000 });
+  await page.locator('[data-test=account-delete-password]').fill('wrong-password-1A!');
+  await page.locator('[data-test=account-delete-yes]').click();
+  await page.locator('[data-test=account-delete-error]', { hasText: 'Password non corretta' }).waitFor({ timeout: 15000 });
+  await shot(page, 'account-delete', '[data-test=account-delete-confirm]');
+  await page.locator('[data-test=account-delete-confirm]').getByRole('button', { name: 'Annulla' }).click();
+  await page.locator('[data-test=account-delete-confirm]').waitFor({ state: 'detached', timeout: 5000 });
+  await shot(page, 'account-danger', '[data-test=account-delete]');
+  ok('account deletion: the dialog asks for the password, a wrong one is refused and nothing is deleted');
+
+  // Administration (admin-ui@example.com is in Auth:AdminEmails in this job): figures, an account suspended,
+  // reactivated and deleted, the Homebrew moderation; an ordinary account is turned away
+  await page.goto(`${base}/admin`);
+  await page.locator('[data-test=admin-denied]').waitFor({ timeout: 30000 });
+  const apiBase = 'http://localhost:5080';
+  const adminCredential = ['Rf', crypto.randomUUID(), 'A!'].join('-');
+  const victim = `victim${Date.now()}@example.com`;
+  for (const who of ['admin-ui@example.com', victim]) {
+    await context.request.post(`${apiBase}/api/auth/register`, { data: { email: who, password: adminCredential } });
+  }
+  const adminLogin = await (await context.request.post(`${apiBase}/api/auth/login`, { data: { email: 'admin-ui@example.com', password: adminCredential } })).json();
+  const adminContext = await browser.newContext({ viewport: { width: 1280, height: 900 } });
+  await adminContext.addInitScript((tokens) => localStorage.setItem('realmforge.auth', tokens), JSON.stringify({
+    AccessToken: adminLogin.accessToken, RefreshToken: adminLogin.refreshToken, ExpiresAt: new Date(Date.now() + adminLogin.expiresIn * 1000).toISOString() }));
+  const admin = await adminContext.newPage();
+  await admin.goto(`${base}/admin`);
+  await admin.locator('[data-test=admin-stats]').waitFor({ timeout: 30000 });
+  const adminStats = (await admin.locator('[data-test=admin-stats]').innerText()).replace(/\s+/g, ' ').trim();
+  await admin.locator('[data-test=admin-user-search]').fill(victim);
+  const victimRow = admin.locator('[data-test=admin-user]', { hasText: victim });
+  await victimRow.waitFor({ timeout: 15000 });
+  await victimRow.locator('[data-test=admin-user-suspend]').click();
+  await admin.locator('[data-test=admin-suspend-7]').click();
+  await admin.locator('[data-test=admin-suspend-yes]').click();
+  await victimRow.locator('[data-test=admin-user-locked]').waitFor({ timeout: 15000 });
+  const lockedLogin = (await context.request.post(`${apiBase}/api/auth/login`, { data: { email: victim, password: adminCredential } })).status();
+  await shot(admin, 'admin-users', 'main');
+  await victimRow.locator('[data-test=admin-user-reactivate]').click();
+  await victimRow.locator('[data-test=admin-user-suspend]').waitFor({ timeout: 15000 });
+  const unlockedLogin = (await context.request.post(`${apiBase}/api/auth/login`, { data: { email: victim, password: adminCredential } })).status();
+  await victimRow.locator('[data-test=admin-user-delete]').click();
+  await admin.locator('[data-test=admin-delete-yes]').click();
+  await victimRow.waitFor({ state: 'detached', timeout: 15000 });
+  await admin.locator('[data-test=admin-tab-homebrew]').click();
+  await admin.locator('[data-test=admin-homebrew-filter] .rf-pill-btn').last().click();
+  await admin.locator('[data-test=admin-homebrew-entry]').first().waitFor({ timeout: 15000 });
+  const moderated = await admin.locator('[data-test=admin-homebrew-entry]').count();
+  await shot(admin, 'admin-homebrew', 'main');
+  await adminContext.close();
+  results.push(`INFO admin: stats='${adminStats}' locked login=${lockedLogin} reactivated login=${unlockedLogin} homebrew rows=${moderated}`);
+  if (lockedLogin !== 401 || unlockedLogin !== 200 || moderated < 1 || !/account/i.test(adminStats)) throw new Error('unexpected administration page');
+  ok('administration: ordinary account turned away; figures, a suspended account cannot sign in until reactivated, then deleted; Homebrew listed for moderation');
 
   // Character creation at phone width (375 px): edition order, every step of the 2024 wizard (overflow checked),
   // the interactive sheet (damage saved on its own, rests, tabs, PDF), a level up into a second class and the list
@@ -784,6 +852,7 @@ try {
   characterAudits.push(await overflowOf(page, 'sheet'));
   const sheetName = (await page.locator('[data-test=sheet-name]').innerText()).trim();
   const sheetAc = (await page.locator('[data-test=sheet-ac]').innerText()).trim();
+  const sheetSenses = (await page.locator('[data-test=sheet-senses]').innerText()).replace(/\s+/g, ' ').trim();
   const sheetHp = (await page.locator('[data-test=sheet-hp]').innerText()).trim();
   // Advancement type: chosen in the wizard only (no switch on the sheet); XP-based shows the bar, 300 XP make level 2 ready
   await page.locator('[data-test=sheet-xp]').waitFor({ timeout: 10000 });
@@ -938,6 +1007,8 @@ try {
       await page.locator('[data-test=magic-template]').selectOption('ring-of-protection');
       await page.locator('[data-test=magic-save]').click();
       const ring = page.locator('[data-test=sheet-item]', { hasText: 'Anello di Protezione' });
+      // The dice tray of the earlier rolls floats over the bottom of the page: closed first
+      if (await page.locator('[data-test=sheet-last-roll]').count() > 0) await page.locator('[data-test=sheet-last-roll] .rf-dice-tray-close').click();
       await ring.locator('[data-test=sheet-item-equip]').click();
       await page.locator('[data-test=sheet-item]', { hasText: 'Anello di Protezione' }).locator('[data-test=sheet-item-attune]').click();
       tabs.ringAc = (await page.locator('[data-test=sheet-ac]').innerText()).trim();
@@ -1083,6 +1154,43 @@ try {
   for (let i = 0; i < 4; i++) await page.locator('[data-test=encounter-next]').click();
   await page.locator('[data-test=encounter-round]', { hasText: 'Round 2' }).waitFor({ timeout: 15000 });
   campaignUi.current = await page.locator('.rf-combatant.current').count();
+  // Sessions: the master plans the next one (date, plan, notes behind the screen); the overview shows it
+  await page.locator('[data-test=campaign-tab-sessions]').click();
+  await page.locator('[data-test=session-new]').click();
+  await page.locator('[data-test=session-title]').fill('La cripta');
+  const sessionDay = new Date(Date.now() + 3 * 86400000);
+  const pad = (n) => String(n).padStart(2, '0');
+  await page.locator('[data-test=session-when]').fill(`${sessionDay.getFullYear()}-${pad(sessionDay.getMonth() + 1)}-${pad(sessionDay.getDate())}T21:00`);
+  await page.locator('[data-test=session-plan]').fill('Portate i dadi e la mappa.');
+  await page.locator('[data-test=session-master-notes]').fill('Il lich è il sindaco.');
+  await page.locator('[data-test=session-save]').click();
+  await page.locator('[data-test=session]', { hasText: 'La cripta' }).waitFor({ timeout: 15000 });
+  campaignUi.session = (await page.locator('[data-test=session]').first().innerText()).replace(/\s+/g, ' ').trim();
+  await shot(page, 'campaign-sessions', 'main');
+  // The shared dice table: a roll of the roller, then one made on the sheet of the character at the table
+  await page.locator('[data-test=campaign-tab-rolls]').click();
+  await page.locator('[data-test=roll-expression]').fill('2d6+3');
+  await page.locator('[data-test=roll-label]').fill('Danni della spada');
+  await page.locator('[data-test=roll-go]').click();
+  await page.locator('[data-test=roll]', { hasText: 'Danni della spada' }).waitFor({ timeout: 15000 });
+  await page.goto(sheetUrl);
+  await page.locator('[data-test=sheet-initiative]').click();
+  campaignUi.sheetShared = await page.locator('[data-test=dice-shared]').count();
+  await page.waitForTimeout(1500);
+  await page.goto(campaignUrl);
+  await page.locator('[data-test=campaign-title]').waitFor({ timeout: 30000 });
+  campaignUi.nextSession = (await page.locator('[data-test=campaign-next-session]').innerText()).replace(/\s+/g, ' ').trim();
+  await shot(page, 'campaign-next-session', '[data-test=campaign-next-session]');
+  await page.locator('[data-test=campaign-tab-rolls]').click();
+  await page.locator('[data-test=roll]', { hasText: 'Iniziativa' }).waitFor({ timeout: 15000 });
+  campaignUi.rolls = (await page.locator('[data-test=roll] [data-test=roll-label-text]').allInnerTexts()).join(',');
+  campaignUi.rollers = (await page.locator('[data-test=roll-roller]').allInnerTexts()).join(',');
+  campaignUi.rollerColors = await page.locator('[data-test=roll-roller]').evaluateAll((els) => els.map((e) => getComputedStyle(e).color).join('|'));
+  await shot(page, 'campaign-rolls', 'main');
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.waitForTimeout(300);
+  await shot(page, 'phone-campaign-rolls', 'main');
+  await page.setViewportSize({ width: 1280, height: 900 });
   // From the sheet, the owner takes the character out of the campaign
   await page.goto(sheetUrl);
   await page.locator('[data-test=sheet-campaign]').click();
@@ -1122,7 +1230,10 @@ try {
   if (campaignUi.role !== 'Master' || !campaignUi.link || campaignUi.share !== 1 || campaignUi.notes !== 1
     || campaignUi.combatants !== 4 || campaignUi.goblins !== 3 || !campaignUi.hero || campaignUi.sheetLink !== 1 || !/^(Facile|Medio|Difficile|Mortale)$/.test(campaignUi.rating) || campaignUi.current !== 1
     || campaignUi.binKind !== 'CAMPAGNA' || !campaignUi.restored || !campaignUi.purged
-    || campaignUi.cardButtons !== 0 || !campaignUi.cardOpens || campaignUi.listActions !== 2 || !campaignUi.toggled || campaignUi.noteKinds !== 'Diario di viaggio,Personali,Per i master' || campaignUi.leftFromSheet !== 1) throw new Error(`unexpected campaign page: ${JSON.stringify(campaignUi)}`);
+    || campaignUi.cardButtons !== 0 || !campaignUi.cardOpens || campaignUi.listActions !== 2 || !campaignUi.toggled || campaignUi.noteKinds !== 'Diario di viaggio,Personali,Per i master' || campaignUi.leftFromSheet !== 1
+    || !/Prossima sessione/i.test(campaignUi.session) || !/tra 3 giorni/.test(campaignUi.session) || !/Il lich/.test(campaignUi.session)
+    || !/Sessione 1/i.test(campaignUi.nextSession) || !/21:00/.test(campaignUi.nextSession) || campaignUi.sheetShared !== 1
+    || campaignUi.rolls !== 'Iniziativa,Danni della spada' || campaignUi.rollers !== 'Eroe di prova,Master') throw new Error(`unexpected campaign page: ${JSON.stringify(campaignUi)}`);
   ok('campaigns: the creator is the master with an invite link, the character joins the table (the whole card opens the sheet, deactivated and activated again; its card in the list shows the campaign), a journal page, an encounter with three goblins run to round 2, the character leaves from its sheet, the campaign is deleted, restored from the bin, deleted again and purged');
   await page.goto(sheetUrl);
   await page.locator('[data-test=character-sheet]').waitFor({ timeout: 30000 });
@@ -1150,6 +1261,7 @@ try {
 
   results.push(`INFO character: steps 2014="${step2014}" 2024="${step2024}" | spells=${chosenSpells} | AC preview=${previewAc} summary=${summaryAc} sheet=${sheetAc} | HP summary=${summaryHp} sheet=${sheetHp} after 3 damage and reload=${afterReload} after long rest=${afterRest} | tabs=${JSON.stringify(tabs)} | pdf=${pdfHead.trim()} ${pdfSize} bytes | level up: ${classes} HP=${levelUpHp} | card: ${characterCard}`);
   if (!/razza/i.test(step2014) || !/classe/i.test(step2024)) throw new Error('the wizard steps do not follow the edition');
+  if (!/Scurovisione 36 m/.test(sheetSenses)) throw new Error(`dwarf darkvision missing on the sheet: ${sheetSenses}`);
   if (sheetName !== 'Eroe di prova' || sheetAc !== summaryAc || sheetHp !== summaryHp || previewAc !== summaryAc) throw new Error('the saved character does not match the wizard');
   if (Number(afterReload) !== Number(sheetHp) - 3 || afterRest !== sheetHp) throw new Error('damage or rest not applied and saved');
   if (tabs.spells !== chosenSpells || tabs.items < 4) throw new Error('spells or inventory missing on the sheet');

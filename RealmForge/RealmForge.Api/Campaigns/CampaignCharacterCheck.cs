@@ -114,6 +114,7 @@ namespace RealmForge.Api.Campaigns
 				AddAll(entry.Spells);
 				AddAll(entry.Spellbook);
 				AddAll(entry.StyleCantrips);
+				AddAll(entry.SubclassCantrips);
 				AddAll(entry.WeaponMasteries);
 			}
 			foreach (var level in build.Levels)

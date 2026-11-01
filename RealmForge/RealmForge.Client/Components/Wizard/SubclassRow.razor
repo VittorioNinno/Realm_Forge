@@ -33,6 +33,9 @@
     private async Task SetSubclass(Guid? id)
     {
         Entry.SubclassId = id;
+        Entry.SubclassSkills.Clear();
+        Entry.SubclassCantrips.Clear();
+        Entry.SubclassOption = null;
         if (Class.CasterProgression == CasterProgression.None)
         {
             //	Eldritch Knight / Arcane Trickster: the spells belong to the subclass

@@ -70,6 +70,8 @@ namespace RealmForge.Infrastructure.Persistence
 		public DbSet<CampaignContent> CampaignContents => Set<CampaignContent>();
 		public DbSet<CampaignNote> CampaignNotes => Set<CampaignNote>();
 		public DbSet<CampaignEncounter> CampaignEncounters => Set<CampaignEncounter>();
+		public DbSet<CampaignSession> CampaignSessions => Set<CampaignSession>();
+		public DbSet<CampaignRoll> CampaignRolls => Set<CampaignRoll>();
 
 		//	The bin: deleted characters, campaigns and Homebrew, restorable for a few days
 		public DbSet<TrashEntry> TrashEntries => Set<TrashEntry>();
@@ -482,6 +484,7 @@ namespace RealmForge.Infrastructure.Persistence
 			{
 				entity.HasKey(m => m.Id);
 				entity.Property(m => m.UserId).IsRequired().HasMaxLength(450);
+				entity.Property(m => m.Color).HasMaxLength(9);
 				entity.HasIndex(m => new { m.CampaignId, m.UserId }).IsUnique();
 				entity.HasIndex(m => m.UserId);
 				entity.HasOne(m => m.Campaign).WithMany(c => c.Members).HasForeignKey(m => m.CampaignId).OnDelete(DeleteBehavior.Cascade);
@@ -537,6 +540,33 @@ namespace RealmForge.Infrastructure.Persistence
 				entity.Property(e => e.CreatedById).IsRequired().HasMaxLength(450);
 				entity.HasIndex(e => e.CampaignId);
 				entity.HasOne(e => e.Campaign).WithMany(c => c.Encounters).HasForeignKey(e => e.CampaignId).OnDelete(DeleteBehavior.Cascade);
+			});
+
+			modelBuilder.Entity<CampaignSession>(entity =>
+			{
+				entity.HasKey(e => e.Id);
+				entity.Property(e => e.Title).IsRequired().HasMaxLength(120);
+				entity.Property(e => e.Plan).IsRequired().HasMaxLength(8000);
+				entity.Property(e => e.Recap).IsRequired().HasMaxLength(8000);
+				entity.Property(e => e.MasterNotes).IsRequired().HasMaxLength(8000);
+				entity.Property(e => e.UpdatedById).IsRequired().HasMaxLength(450);
+				entity.HasIndex(e => new { e.CampaignId, e.Number });
+				entity.HasOne(e => e.Campaign).WithMany(c => c.Sessions).HasForeignKey(e => e.CampaignId).OnDelete(DeleteBehavior.Cascade);
+			});
+
+			modelBuilder.Entity<CampaignRoll>(entity =>
+			{
+				entity.HasKey(e => e.Id);
+				entity.Property(e => e.UserId).IsRequired().HasMaxLength(450);
+				entity.Property(e => e.CharacterName).HasMaxLength(100);
+				entity.Property(e => e.Roller).IsRequired().HasMaxLength(100);
+				entity.Property(e => e.Color).IsRequired().HasMaxLength(9);
+				entity.Property(e => e.Label).IsRequired().HasMaxLength(120);
+				entity.Property(e => e.Expression).IsRequired().HasMaxLength(80);
+				entity.Property(e => e.Dice).IsRequired().HasColumnType("jsonb");
+				entity.Property(e => e.Note).HasMaxLength(200);
+				entity.HasIndex(e => new { e.CampaignId, e.CreatedAt });
+				entity.HasOne(e => e.Campaign).WithMany(c => c.Rolls).HasForeignKey(e => e.CampaignId).OnDelete(DeleteBehavior.Cascade);
 			});
 
 			//	Rules glossary configuration

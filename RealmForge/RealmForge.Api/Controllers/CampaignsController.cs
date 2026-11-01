@@ -98,7 +98,7 @@ namespace RealmForge.Api.Controllers
 				CreatedById = UserId,
 				InviteCode = NewCode()
 			};
-			campaign.Members.Add(new CampaignMember { UserId = UserId, Role = CampaignRole.Master });
+			campaign.Members.Add(new CampaignMember { UserId = UserId, Role = CampaignRole.Master, Color = PlayerColors.Pick(Array.Empty<string>()) });
 			_context.Campaigns.Add(campaign);
 			await _context.SaveChangesAsync();
 			return CreatedAtAction(nameof(GetCampaign), new { id = campaign.Id }, await DetailAsync(campaign.Id, lang));
@@ -239,7 +239,7 @@ namespace RealmForge.Api.Controllers
 			}
 			if (!await _context.CampaignMembers.AnyAsync(m => m.CampaignId == invite.CampaignId && m.UserId == UserId))
 			{
-				_context.CampaignMembers.Add(new CampaignMember { CampaignId = invite.CampaignId, UserId = UserId, Role = invite.Role });
+				_context.CampaignMembers.Add(new CampaignMember { CampaignId = invite.CampaignId, UserId = UserId, Role = invite.Role, Color = await NewColorAsync(invite.CampaignId) });
 			}
 			_context.CampaignInvites.Remove(invite);
 			await TouchAsync(invite.CampaignId);
@@ -341,7 +341,7 @@ namespace RealmForge.Api.Controllers
 				{
 					return Problem(statusCode: StatusCodes.Status400BadRequest, title: "The campaign or your account is full.");
 				}
-				_context.CampaignMembers.Add(new CampaignMember { CampaignId = campaign.Id, UserId = UserId, Role = CampaignRole.Player });
+				_context.CampaignMembers.Add(new CampaignMember { CampaignId = campaign.Id, UserId = UserId, Role = CampaignRole.Player, Color = await NewColorAsync(campaign.Id) });
 
 				//	An invitation for the same campaign is no longer needed
 				_context.CampaignInvites.RemoveRange(_context.CampaignInvites.Where(i => i.CampaignId == campaign.Id && i.UserId == UserId));
@@ -774,6 +774,10 @@ namespace RealmForge.Api.Controllers
 			return string.IsNullOrEmpty(value) || value.Length > 32 ? null : await _context.Campaigns.FirstOrDefaultAsync(c => c.InviteCode == value);
 		}
 
+		//	A colour not taken yet at this table (any of the palette when all are taken)
+		private async Task<string> NewColorAsync(Guid campaignId) =>
+			PlayerColors.Pick(await _context.CampaignMembers.Where(m => m.CampaignId == campaignId).Select(m => m.Color).ToListAsync());
+
 		//	Nicknames, never the e-mail addresses: other members see each other by name
 		private Task<Dictionary<string, string>> NamesAsync(IEnumerable<string> ids) => PublicNames.LoadAsync(_context, ids);
 
@@ -799,6 +803,11 @@ namespace RealmForge.Api.Controllers
 
 		private async Task<CampaignDetailDto?> DetailAsync(Guid id, LanguageCode lang)
 		{
+			if (!await _context.CampaignMembers.AnyAsync(m => m.CampaignId == id && m.UserId == UserId))
+			{
+				return null;
+			}
+			var colors = await CampaignAccess.EnsureColorsAsync(_context, id);
 			var campaign = await _context.Campaigns.AsNoTracking()
 				.Include(c => c.Members)
 				.Include(c => c.Invites)
@@ -843,7 +852,7 @@ namespace RealmForge.Api.Controllers
 				CampaignRules.CanManageInviteLink(me.Role) ? campaign.InviteCode : null,
 				campaign.Members
 					.OrderBy(m => m.Role).ThenBy(m => emails.GetValueOrDefault(m.UserId, string.Empty))
-					.Select(m => new CampaignMemberDto(m.UserId, emails.GetValueOrDefault(m.UserId, string.Empty), m.Role, m.UserId == UserId, m.JoinedAt))
+					.Select(m => new CampaignMemberDto(m.UserId, emails.GetValueOrDefault(m.UserId, string.Empty), m.Role, m.UserId == UserId, m.JoinedAt, colors.GetValueOrDefault(m.UserId, PlayerColors.Master)))
 					.ToList(),
 				runs
 					? campaign.Invites.OrderBy(i => i.CreatedAt)

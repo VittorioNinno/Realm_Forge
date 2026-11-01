@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using RealmForge.Api.Security;
 using RealmForge.Infrastructure.Identity;
@@ -11,8 +12,8 @@ using RealmForge.Shared.Text;
 namespace RealmForge.Api.Controllers
 {
 	///	<summary>
-	///	Account information for the signed-in user. Sign-in, registration and password changes
-	///	are served by the Identity endpoints under /api/auth.
+	///	Account information for the signed-in user and the deletion of the account. Sign-in, registration, password
+	///	and e-mail changes are served by the Identity endpoints under /api/auth.
 	///	</summary>
 	[ApiController]
 	[Route("api/[controller]")]
@@ -98,6 +99,30 @@ namespace RealmForge.Api.Controllers
 				return Problem(statusCode: StatusCodes.Status409Conflict, title: "This nickname is already taken.");
 			}
 			return Ok(new NicknameRequestDto { Nickname = nickname });
+		}
+
+		//	DELETE: api/account — the password confirms it; the data goes as AccountDeletion describes, then the account
+		[HttpDelete]
+		[EnableRateLimiting(Program.AuthRateLimit)]
+		public async Task<ActionResult<AccountDeletedDto>> DeleteAccount([FromBody] DeleteAccountRequestDto request, [FromServices] AccountDeletion deletion)
+		{
+			var user = await _users.GetUserAsync(User);
+			if (user == null)
+			{
+				return Unauthorized();
+			}
+			if (string.IsNullOrEmpty(request.Password) || !await _users.CheckPasswordAsync(user, request.Password))
+			{
+				return Problem(statusCode: StatusCodes.Status400BadRequest, title: "Wrong password.");
+			}
+
+			var outcome = await deletion.RemoveDataAsync(user.Id);
+			var result = await _users.DeleteAsync(user);
+			if (!result.Succeeded)
+			{
+				return Problem(statusCode: StatusCodes.Status500InternalServerError, title: "The account could not be deleted.");
+			}
+			return Ok(new AccountDeletedDto(outcome.Characters, outcome.HomebrewDeleted, outcome.HomebrewKept, outcome.CampaignsDeleted, outcome.CampaignsHandedOver));
 		}
 	}
 }

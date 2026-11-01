@@ -1,0 +1,300 @@
+﻿@using RealmForge.Client.Localization
+@using RealmForge.Client.Services
+@using RealmForge.Shared.Campaigns
+@using RealmForge.Shared.DTOs
+@using RealmForge.Shared.Enums
+@using RealmForge.Shared.Rules
+@inject CampaignDataService Campaigns
+@inject LanguageStateService LanguageState
+@implements IDisposable
+
+@* Shared dice log of a campaign: a roller (the server rolls, so nobody picks the numbers) and the rolls of everyone,
+   including the ones made on the sheets of the characters at the table; refreshed every few seconds *@
+<section data-test="campaign-rolls">
+    <div class="small mb-3" style="color: var(--rf-text-muted);">@UiText.RollsHint(Lang)</div>
+
+    <div class="rf-card2 mb-3" data-test="roll-form">
+        <div class="rf-roll-quick mb-3">
+            @foreach (var sides in new[] { 4, 6, 8, 10, 12, 20, 100 })
+            {
+                var die = sides;
+                <button type="button" class="rf-roll-die" disabled="@rolling" @onclick="() => RollAsync(QuickDie(die))" data-test="@("roll-d" + die)">
+                    <Icon Name="dice" /> d@(die)
+                </button>
+            }
+            <button type="button" class="rf-roll-die" disabled="@rolling" @onclick='() => RollAsync("2d20kh1", UiText.RollAdvantage(Lang))' data-test="roll-advantage">@UiText.RollAdvantage(Lang)</button>
+            <button type="button" class="rf-roll-die" disabled="@rolling" @onclick='() => RollAsync("2d20kl1", UiText.RollDisadvantage(Lang))' data-test="roll-disadvantage">@UiText.RollDisadvantage(Lang)</button>
+        </div>
+        <div class="rf-roll-form-grid">
+            <label class="d-block">
+                <span class="rf-form-label">@UiText.RollExpression(Lang)</span>
+                <input class="rf-form-control" maxlength="80" placeholder="1d20+5" @bind="expression" @bind:event="oninput"
+                       @onkeydown="OnKeyAsync" aria-invalid="@(invalid ? "true" : null)" data-test="roll-expression" />
+            </label>
+            <label class="d-block">
+                <span class="rf-form-label">@UiText.RollLabel(Lang)</span>
+                <input class="rf-form-control" maxlength="120" @bind="label" @onkeydown="OnKeyAsync" data-test="roll-label" />
+            </label>
+            <div data-test="roll-as">
+                <span class="rf-form-label">
+                    @UiText.RollAs(Lang)
+                    <span class="rf-roll-swatch ms-2" style="background-color: @MyColor;" title="@UiText.RollMyColor(Lang)" data-test="roll-my-color"></span>
+                </span>
+                @if (RollAsOptions.Count > 1)
+                {
+                    <RfSelect TValue="Guid" @bind-Value="rollAs" Options="RollAsOptions" />
+                }
+                else
+                {
+                    <div class="rf-form-control rf-roll-as-fixed">@RollAsOptions[0].Label</div>
+                }
+            </div>
+        </div>
+        @if (invalid)
+        {
+            <div class="small text-warning mt-2" data-test="roll-invalid">@UiText.RollInvalid(Lang)</div>
+        }
+        <div class="d-flex flex-wrap align-items-center justify-content-end gap-3 mt-3">
+            @if (SessionRules.CanRollHidden(Role))
+            {
+                <label class="rf-checkbox-wrapper small me-auto">
+                    <input type="checkbox" class="rf-checkbox" @bind="hidden" data-test="roll-hidden" /> <Icon Name="eye-slash" /> @UiText.RollHidden(Lang)
+                </label>
+            }
+            <button type="button" class="btn btn-sm btn-rf-orange" disabled="@(rolling || string.IsNullOrWhiteSpace(expression))" @onclick="() => RollAsync(expression)" data-test="roll-go">
+                <Icon Name="dice" /> @UiText.BtnRoll(Lang)
+            </button>
+        </div>
+    </div>
+
+    <div class="rf-card2">
+        @if (rolls is null)
+        {
+            <div class="small" style="color: var(--rf-text-muted);">…</div>
+        }
+        else if (rolls.Count == 0)
+        {
+            <div class="small" style="color: var(--rf-text-muted);" data-test="rolls-empty">@UiText.RollsEmpty(Lang)</div>
+        }
+        else
+        {
+            <ol class="rf-roll-log" data-test="roll-log">
+                @foreach (var roll in rolls)
+                {
+                    var r = roll;
+                    <li class="rf-roll @(r.IsMine ? "mine" : null) @(fresh.Contains(r.Id) ? "fresh" : null) @Outcome(r)" data-test="roll">
+                        <div class="rf-roll-who">
+                            <span class="rf-roll-swatch" style="background-color: @r.Color;"></span>
+                            <span class="rf-roll-name @(r.Removed ? "removed" : null)" style="color: @r.Color;" data-test="roll-roller">@(r.Removed && !r.IsCharacter ? UiText.RollDeletedAccount(Lang) : r.Roller)</span>
+                            @if (r.Hidden)
+                            {
+                                <span class="rf-roll-hidden"><Icon Name="eye-slash" /> @UiText.RollHiddenBadge(Lang)</span>
+                            }
+                            <span class="rf-roll-time">@UiText.RollTime(r.CreatedAt, Lang)</span>
+                        </div>
+                        <div class="rf-roll-body">
+                            <div class="rf-roll-what">
+                                <span class="rf-roll-label" data-test="roll-label-text">@r.Label</span>
+                                <span class="rf-roll-dice">
+                                    @foreach (var d in r.Dice)
+                                    {
+                                        <span class="rf-roll-face @(d.Dropped ? "dropped" : null) @(d.Sides == 20 && !d.Dropped && d.Value == 20 ? "crit" : null) @(d.Sides == 20 && !d.Dropped && d.Value == 1 ? "fumble" : null)"
+                                              title="d@(d.Sides)">@d.Value</span>
+                                    }
+                                    @if (r.Modifier != 0)
+                                    {
+                                        <span class="rf-roll-mod">@CharacterMath.FormatModifier(r.Modifier)</span>
+                                    }
+                                    @if (r.Label != r.Expression)
+                                    {
+                                        <span class="rf-roll-expr">@r.Expression</span>
+                                    }
+                                </span>
+                                @if (!string.IsNullOrEmpty(r.Note))
+                                {
+                                    <span class="rf-roll-note">@r.Note</span>
+                                }
+                            </div>
+                            <div class="rf-roll-total" data-test="roll-total">@r.Total</div>
+                        </div>
+                    </li>
+                }
+            </ol>
+            @if (SessionRules.CanClearRolls(Role))
+            {
+                <div class="d-flex justify-content-end mt-3">
+                    <button type="button" class="btn btn-sm btn-rf-outline" @onclick="() => clearing = true" data-test="rolls-clear">@UiText.BtnClearRolls(Lang)</button>
+                </div>
+            }
+        }
+    </div>
+</section>
+
+@if (clearing)
+{
+    <div class="rf-modal-backdrop" @onclick="() => clearing = false">
+        <div class="rf-modal-dialog" style="max-width: 440px;" @onclick:stopPropagation="true" data-test="rolls-clear-confirm">
+            <p class="mb-3">@UiText.RollsClearConfirm(Lang)</p>
+            <div class="d-flex justify-content-end gap-2">
+                <button type="button" class="btn btn-sm btn-rf-outline" @onclick="() => clearing = false">@UiText.BtnCancel(Lang)</button>
+                <button type="button" class="btn btn-sm btn-rf-orange" @onclick="ClearAsync" data-test="rolls-clear-yes">@UiText.BtnClearRolls(Lang)</button>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter, EditorRequired] public Guid CampaignId { get; set; }
+    [Parameter] public CampaignRole Role { get; set; } = CampaignRole.Player;
+    [Parameter] public IReadOnlyList<CampaignCharacterDto> Characters { get; set; } = Array.Empty<CampaignCharacterDto>();
+
+    //	My colour at this table (the colour of my rolls)
+    [Parameter] public string MyColor { get; set; } = PlayerColors.Master;
+
+    private LanguageCode Lang => LanguageState.CurrentLanguage;
+    private List<CampaignRollDto>? rolls;
+    private readonly HashSet<Guid> fresh = new();
+    private string expression = "1d20";
+    private string? label;
+    private Guid rollAs;
+    private bool hidden;
+    private bool rolling;
+    private bool invalid;
+    private bool clearing;
+    private PeriodicTimer? timer;
+    private CancellationTokenSource? stop;
+
+    private bool RunsTheTable => CampaignRules.RunsTheTable(Role);
+
+    //	The characters I can roll for: a player's own; for masters and co-masters, everyone's
+    private IEnumerable<CampaignCharacterDto> Playable => Characters.Where(c => c.Active && (RunsTheTable ? c.CanEdit : c.IsMine));
+
+    //	A roll shows the character's name: masters roll as themselves ("Master") or for a character; a player rolls for
+    //	one of their characters, as themselves only without any
+    private List<RfSelect<Guid>.OptionItem> RollAsOptions
+    {
+        get
+        {
+            var characters = Playable.Select(c => new RfSelect<Guid>.OptionItem(c.Character.Id, c.Character.Name)).ToList();
+            if (RunsTheTable || characters.Count == 0)
+            {
+                var self = Role switch
+                {
+                    CampaignRole.Master => "Master",
+                    CampaignRole.CoMaster => "Co-master",
+                    _ => UiText.RollAsMe(Lang)
+                };
+                characters.Insert(0, new RfSelect<Guid>.OptionItem(Guid.Empty, self));
+            }
+            return characters;
+        }
+    }
+
+    protected override void OnParametersSet()
+    {
+        //	A player starts on their (first) character
+        var options = RollAsOptions;
+        if (options.All(o => o.Value != rollAs))
+        {
+            rollAs = options[0].Value;
+        }
+    }
+
+    private static string? Outcome(CampaignRollDto r)
+    {
+        var kept = r.Dice.Where(d => !d.Dropped && d.Sides == 20).ToList();
+        return kept.Count == 1 && kept[0].Value == 20 ? "crit" : kept.Count == 1 && kept[0].Value == 1 ? "fumble" : null;
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        rolls = await Campaigns.GetRollsAsync(CampaignId) ?? new List<CampaignRollDto>();
+        stop = new CancellationTokenSource();
+        _ = PollAsync(stop.Token);
+    }
+
+    //	Every 4 seconds the rolls made since the newest one shown
+    private async Task PollAsync(CancellationToken token)
+    {
+        timer = new PeriodicTimer(TimeSpan.FromSeconds(4));
+        try
+        {
+            while (await timer.WaitForNextTickAsync(token))
+            {
+                var newest = rolls?.Select(r => r.CreatedAt).DefaultIfEmpty().Max();
+                var since = newest is { } at && at != default ? at : (DateTimeOffset?)null;
+                var news = await Campaigns.GetRollsAsync(CampaignId, since);
+                if (news is { Count: > 0 } && !token.IsCancellationRequested)
+                {
+                    Merge(news);
+                    await InvokeAsync(StateHasChanged);
+                }
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            //	Left the tab
+        }
+    }
+
+    private void Merge(IEnumerable<CampaignRollDto> news)
+    {
+        rolls ??= new List<CampaignRollDto>();
+        fresh.Clear();
+        foreach (var roll in news.Where(n => rolls.All(r => r.Id != n.Id)))
+        {
+            rolls.Add(roll);
+            fresh.Add(roll.Id);
+        }
+        rolls = rolls.OrderByDescending(r => r.CreatedAt).Take(SessionRules.MaxRolls).ToList();
+    }
+
+    private async Task OnKeyAsync(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter" && !string.IsNullOrWhiteSpace(expression))
+        {
+            await RollAsync(expression);
+        }
+    }
+
+    private static string QuickDie(int sides) => "1d" + sides;
+
+    private async Task RollAsync(string dice, string? what = null)
+    {
+        invalid = !DiceNotation.TryParse(dice, out _);
+        if (invalid || rolling)
+        {
+            return;
+        }
+        rolling = true;
+        var (roll, _) = await Campaigns.RollAsync(CampaignId, new NewCampaignRollDto
+        {
+            Expression = dice,
+            Label = string.IsNullOrWhiteSpace(label) ? what : label.Trim(),
+            CharacterId = rollAs == Guid.Empty ? null : rollAs,
+            Hidden = hidden && SessionRules.CanRollHidden(Role)
+        });
+        rolling = false;
+        if (roll is not null)
+        {
+            Merge(new[] { roll });
+            label = null;
+        }
+    }
+
+    private async Task ClearAsync()
+    {
+        clearing = false;
+        if ((await Campaigns.ClearRollsAsync(CampaignId)).Ok)
+        {
+            rolls = new List<CampaignRollDto>();
+            fresh.Clear();
+        }
+    }
+
+    public void Dispose()
+    {
+        stop?.Cancel();
+        timer?.Dispose();
+    }
+}

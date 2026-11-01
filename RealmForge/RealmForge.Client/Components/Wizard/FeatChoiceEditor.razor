@@ -60,6 +60,18 @@
         <div class="small" style="color: var(--rf-text-muted);">@UiText.HintFeatSpells(Lang)</div>
     }
 
+    @if (CharacterTraits.FeatSpells(Feat, Ruleset) is { Count: > 0 } fixedSpells)
+    {
+        <div class="small mb-2" style="color: var(--rf-text-secondary);" data-test="wizard-feat-spells">
+            @UiText.FeatFixedSpells(string.Join(", ", fixedSpells.Select(k => Context.Spells.FirstOrDefault(s => s.Key == k)?.Name ?? k)), Lang)
+        </div>
+        @if (CharacterTraits.FeatSpellSchools(Feat, Ruleset) is { Count: > 0 } schools)
+        {
+            <SpellPicker W="W" Title="@UiText.FeatSchoolSpell(string.Join(" / ", schools.Select(s => GameTerms.SchoolName(s, Lang))), Lang)" Chosen="Choice.Spells"
+                         Max="1" MinLevel="1" MaxLevel="1" Schools="schools" DataTest="wizard-feat-school-spell" />
+        }
+    }
+
     @if (!HasChoices)
     {
         <div class="small mb-0" style="color: var(--rf-text-muted);">@UiText.FeatNoChoices(Lang)</div>
@@ -73,7 +85,7 @@
     private bool IsAsi => Feat.Key == "ability-score-improvement";
 
     private bool HasChoices => IsAsi || Feat.Increases.Count > 0 || CharacterRules.FeatSkillChoices(Feat, Ruleset) > 0
-        || CharacterRules.FeatExpertise(Feat) > 0 || CharacterRules.IsMagicInitiate(Feat);
+        || CharacterRules.FeatExpertise(Feat) > 0 || CharacterRules.IsMagicInitiate(Feat) || CharacterTraits.FeatSpells(Feat, Ruleset).Count > 0;
 
     protected override void OnParametersSet()
     {

@@ -8,6 +8,8 @@ using Microsoft.AspNetCore.Identity;
 using RealmForge.Api.Email;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.HttpOverrides;
+using Microsoft.AspNetCore.RateLimiting;
+using System.Threading.RateLimiting;
 
 namespace RealmForge.Api
 {
@@ -17,6 +19,9 @@ namespace RealmForge.Api
 	///	</summary>
 	public class Program
 	{
+		//	Rate limit of the account endpoints (sign-in, registration, passwords, e-mail, account deletion)
+		public const string AuthRateLimit = "auth";
+
 		public static async Task Main(string[] args)
 		{
 			var builder = WebApplication.CreateBuilder(args);
@@ -53,6 +58,28 @@ namespace RealmForge.Api
 				options.KnownProxies.Clear();
 			});
 
+			//	Sign-in, registration, password and e-mail requests: at most RateLimit:AuthPerMinute per minute for each
+			//	address and endpoint (reads are not limited), against password guessing and e-mail flooding
+			var authPerMinute = Math.Max(1, builder.Configuration.GetValue("RateLimit:AuthPerMinute", 10));
+			builder.Services.AddRateLimiter(options =>
+			{
+				options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+				options.AddPolicy(AuthRateLimit, context =>
+				{
+					if (HttpMethods.IsGet(context.Request.Method) || HttpMethods.IsOptions(context.Request.Method))
+					{
+						return RateLimitPartition.GetNoLimiter("read");
+					}
+					var key = $"{context.Connection.RemoteIpAddress}|{context.Request.Path.Value?.ToLowerInvariant()}";
+					return RateLimitPartition.GetFixedWindowLimiter(key, _ => new FixedWindowRateLimiterOptions
+					{
+						PermitLimit = authPerMinute,
+						Window = TimeSpan.FromMinutes(1),
+						QueueLimit = 0
+					});
+				});
+			});
+
 			//	Liveness probe for the hosting platform (/health)
 			builder.Services.AddHealthChecks();
 
@@ -60,9 +87,11 @@ namespace RealmForge.Api
 			builder.Services.AddSingleton<ContentAccess>();
 			builder.Services.AddScoped<ShareService>();
 			builder.Services.AddScoped<RealmForge.Api.Campaigns.HomebrewLookup>();
+			builder.Services.AddScoped<RealmForge.Api.Search.CompendiumSearch>();
 			builder.Services.AddScoped<RealmForge.Api.Campaigns.CampaignCharacterCheck>();
 			builder.Services.AddScoped<RealmForge.Api.Characters.CharacterContextBuilder>();
 			builder.Services.AddScoped<RealmForge.Infrastructure.Persistence.Trash.TrashBin>();
+			builder.Services.AddScoped<AccountDeletion>();
 			builder.Services.AddHostedService<RealmForge.Api.Trash.TrashPurgeService>();
 
 			//	E-mails for account confirmation and password reset (SMTP settings in the "Email" section / user-secrets)
@@ -148,8 +177,9 @@ namespace RealmForge.Api
 
 			app.UseAuthentication();
 			app.UseAuthorization();
+			app.UseRateLimiter();
 
-			app.MapGroup("/api/auth").WithTags("Auth").MapIdentityApi<ApplicationUser>();
+			app.MapGroup("/api/auth").WithTags("Auth").RequireRateLimiting(AuthRateLimit).MapIdentityApi<ApplicationUser>();
 			app.MapControllers();
 			app.MapHealthChecks("/health");
 

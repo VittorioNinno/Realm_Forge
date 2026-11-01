@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Components.Forms;
 using Microsoft.AspNetCore.Components.Web;
 using Microsoft.JSInterop;
+using RealmForge.Client.Components;
 using RealmForge.Client.Localization;
 using RealmForge.Client.Services;
 using RealmForge.Shared.DTOs;
@@ -22,6 +23,30 @@ namespace RealmForge.Client.Pages
 		private CampaignCharacterCheckDto? campaignCheck;
 		private Guid? campaignCheckFor;
 		private string? campaignNote;
+
+		//	The rolls made on the sheet of a character at a table go to the dice log of its campaigns (not for a read-only copy)
+		private bool SharesRolls => !ReadOnly && character?.Campaigns is { Count: > 0 };
+
+		private async Task ShareRollAsync(DiceRollResult roll)
+		{
+			if (!SharesRolls || character is null)
+			{
+				return;
+			}
+			var dto = new NewCampaignRollDto
+			{
+				Label = roll.Label.Length > 120 ? roll.Label[..120] : roll.Label,
+				CharacterId = character.Id,
+				Dice = roll.Dice.Select(d => new RollDieDto(d.Sides, d.Value, d.Dropped)).ToList(),
+				Modifier = roll.Modifier,
+				Total = roll.Total,
+				Note = roll.Note is { Length: > 200 } note ? note[..200] : roll.Note
+			};
+			foreach (var campaignId in character.Campaigns!)
+			{
+				await Campaigns.RollAsync(campaignId, dto);
+			}
+		}
 
 		private bool InCampaign(Guid campaignId) => character?.Campaigns?.Contains(campaignId) == true;
 

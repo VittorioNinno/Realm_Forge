@@ -151,6 +151,66 @@ public static class CharacterResources
 			Add("wizard-arcane-recovery", T("Recupero Arcano", "Arcane Recovery"), 1, ResourceReset.LongRest);
 		}
 
+		//	Subclasses
+		var wisdom = Math.Max(1, c.Modifier(AbilityScore.Wisdom));
+		foreach (var info in c.Classes)
+		{
+			switch (info.Subclass?.Key)
+			{
+				case "battle-master" when info.Level >= 3:
+					Add("battle-master-dice", T("Dadi superiorità", "Superiority Dice"), Step(info.Level, (3, 4), (7, 5), (15, 6)), ResourceReset.ShortRest);
+					break;
+				case "gloom-stalker" when is2024 && info.Level >= 3:
+					Add("gloom-stalker-strike", T("Colpo Terrificante", "Dreadful Strike"), wisdom, ResourceReset.LongRest);
+					break;
+				case "circle-of-the-stars" when is2024 && info.Level >= 3:
+					Add("stars-guiding-bolt", T("Mappa Stellare: dardo tracciante", "Star Map: Guiding Bolt"), wisdom, ResourceReset.LongRest);
+					break;
+				case "war-domain" when !is2024:
+					Add("war-priest", T("Sacerdote della Guerra", "War Priest"), wisdom, ResourceReset.LongRest);
+					break;
+			}
+		}
+
+		//	Species and feats
+		var level = c.Level;
+		var proficiency = c.ProficiencyBonus;
+		if (c.Breath is { } breath)
+		{
+			Add("species-breath", T("Arma a Soffio", "Breath Weapon"), breath.Uses, breath.Reset);
+		}
+		switch (c.Species?.Key)
+		{
+			case "goliath" when is2024:
+				Add("species-giant-ancestry", T("Retaggio Gigante", "Giant Ancestry"), proficiency, ResourceReset.LongRest);
+				if (level >= 5)
+				{
+					Add("species-large-form", T("Forma Grande", "Large Form"), 1, ResourceReset.LongRest);
+				}
+				break;
+			case "aasimar" when is2024:
+				Add("species-healing-hands", T("Mani Guaritrici", "Healing Hands"), 1, ResourceReset.LongRest);
+				if (level >= 3)
+				{
+					Add("species-revelation", T("Rivelazione Celestiale", "Celestial Revelation"), 1, ResourceReset.LongRest);
+				}
+				break;
+			case "orc" when is2024:
+				Add("species-adrenaline", T("Scarica di Adrenalina", "Adrenaline Rush"), proficiency, ResourceReset.ShortRest);
+				Add("species-endurance", T("Tenacia Implacabile", "Relentless Endurance"), 1, ResourceReset.LongRest);
+				break;
+			case "half-orc" when !is2024:
+				Add("species-endurance", T("Tenacia Implacabile", "Relentless Endurance"), 1, ResourceReset.LongRest);
+				break;
+			case "dragonborn" when is2024 && level >= 5:
+				Add("species-flight", T("Volo Draconico", "Draconic Flight"), 1, ResourceReset.LongRest);
+				break;
+		}
+		if (c.Feats.Any(f => f.Feat.Key == "lucky"))
+		{
+			Add("feat-lucky", T("Punti fortuna", "Luck Points"), is2024 ? proficiency : 3, ResourceReset.LongRest);
+		}
+
 		return list;
 	}
 

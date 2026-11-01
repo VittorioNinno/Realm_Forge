@@ -66,7 +66,7 @@ public sealed record ContextFeat(
 	List<AbilityScore> Increases,
 	int IncreaseMaximum);
 
-public sealed record ContextSpell(Guid Id, string Name, int Level, SpellSchool School, List<SpellcastingClass> Classes, bool Ritual, bool Concentration);
+public sealed record ContextSpell(Guid Id, string Name, int Level, SpellSchool School, List<SpellcastingClass> Classes, bool Ritual, bool Concentration, string? Key = null);
 
 public sealed record ContextItem(
 	Guid Id,
