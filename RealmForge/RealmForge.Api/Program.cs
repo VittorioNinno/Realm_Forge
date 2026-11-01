@@ -87,6 +87,7 @@ namespace RealmForge.Api
 			builder.Services.AddSingleton<ContentAccess>();
 			builder.Services.AddScoped<ShareService>();
 			builder.Services.AddScoped<RealmForge.Api.Campaigns.HomebrewLookup>();
+			builder.Services.AddScoped<RealmForge.Api.Search.CompendiumSearch>();
 			builder.Services.AddScoped<RealmForge.Api.Campaigns.CampaignCharacterCheck>();
 			builder.Services.AddScoped<RealmForge.Api.Characters.CharacterContextBuilder>();
 			builder.Services.AddScoped<RealmForge.Infrastructure.Persistence.Trash.TrashBin>();

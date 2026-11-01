@@ -24,6 +24,13 @@
             </NavLink>
         </div>
 
+        @* Global search: every section of the compendium and the glossary *@
+        <div class="nav-item px-3" data-test="nav-search">
+            <NavLink class="nav-link" href="search">
+                <Icon Name="search" Class="rf-nav-icon" /> @UiText.SearchTitle(LanguageState.CurrentLanguage)
+            </NavLink>
+        </div>
+
         @* The characters of the signed-in user *@
         <div class="nav-item px-3" data-test="nav-characters">
             <NavLink class="nav-link" href="characters">

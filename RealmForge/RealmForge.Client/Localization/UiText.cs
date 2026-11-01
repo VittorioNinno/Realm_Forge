@@ -266,6 +266,8 @@ namespace RealmForge.Client.Localization
 			("WrongPassword", false) => "Wrong password.",
 			("InvalidCredentials", true) => "Email o password non corrette.",
 			("InvalidCredentials", false) => "Wrong email or password.",
+			("LockedOut", true) => "Account bloccato: troppi tentativi falliti o sospeso da un amministratore. Riprova più tardi.",
+			("LockedOut", false) => "Account locked: too many failed attempts or suspended by an administrator. Try again later.",
 			("MissingFields", true) => "Inserisci email e password.",
 			("MissingFields", false) => "Enter email and password.",
 			("Unreachable", true) => "Impossibile contattare il server.",
