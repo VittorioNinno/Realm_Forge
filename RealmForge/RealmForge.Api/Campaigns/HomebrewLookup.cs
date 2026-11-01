@@ -51,6 +51,35 @@ namespace RealmForge.Api.Campaigns
 			return list.OrderBy(e => e.Kind).ThenBy(e => e.Name, StringComparer.CurrentCultureIgnoreCase).ToList();
 		}
 
+		//	Every Homebrew entry of the site (the administrators' moderation)
+		public async Task<List<HomebrewEntry>> AllAsync(LanguageCode lang)
+		{
+			var list = new List<HomebrewEntry>();
+			await foreach (var entry in QueryAsync(lang, e => !e.IsOfficialSRD))
+			{
+				list.Add(entry);
+			}
+			return list;
+		}
+
+		///	<summary>
+		///	The tracked Homebrew entity with this id, of any kind (null for base content or an unknown id).
+		///	</summary>
+		public async Task<GameEntity?> FindEntityAsync(Guid id)
+		{
+			GameEntity? entity = await _context.Species.FindAsync(id);
+			entity ??= await _context.Subspecies.FindAsync(id);
+			entity ??= await _context.Classes.FindAsync(id);
+			entity ??= await _context.Subclasses.FindAsync(id);
+			entity ??= await _context.Backgrounds.FindAsync(id);
+			entity ??= await _context.Feats.FindAsync(id);
+			entity ??= await _context.Spells.FindAsync(id);
+			entity ??= await _context.Equipment.FindAsync(id);
+			entity ??= await _context.Monsters.FindAsync(id);
+			entity ??= await _context.MagicItems.FindAsync(id);
+			return entity is { IsOfficialSRD: false } ? entity : null;
+		}
+
 		private async IAsyncEnumerable<HomebrewEntry> QueryAsync(LanguageCode lang, System.Linq.Expressions.Expression<Func<GameEntity, bool>> filter)
 		{
 			HomebrewEntry Entry(GameEntity e, string kind, string? name, string link, Guid? parent = null) =>

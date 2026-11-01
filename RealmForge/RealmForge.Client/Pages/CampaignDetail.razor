@@ -48,7 +48,7 @@
         @* Sections of the campaign: folder tabs like the sheet's, so that the pills inside a section (the kinds of notes)
            read as a second level *@
         <div class="rf-sheet-tabs mb-3" role="tablist" data-test="campaign-tabs">
-            @foreach (var t in new[] { Tab.Overview, Tab.Members, Tab.Characters, Tab.Encounters, Tab.Content, Tab.Notes })
+            @foreach (var t in new[] { Tab.Overview, Tab.Sessions, Tab.Members, Tab.Characters, Tab.Encounters, Tab.Rolls, Tab.Content, Tab.Notes })
             {
                 var current = t;
                 <button type="button" role="tab" class="rf-sheet-tab @(tab == current ? "active" : null)" aria-selected="@(tab == current)"
@@ -65,6 +65,27 @@
         @switch (tab)
         {
             case Tab.Overview:
+                @if (CampaignSessions.NextSession(sessions) is { } next)
+                {
+                    <button type="button" class="rf-next-session mb-3" @onclick="() => tab = Tab.Sessions" data-test="campaign-next-session">
+                        <span class="rf-next-session-icon"><Icon Name="calendar-event" /></span>
+                        <span class="rf-next-session-text">
+                            <span class="rf-mini-label">@UiText.SessionNext(Lang) · @UiText.SessionNumber(next.Number, Lang)</span>
+                            <span class="rf-next-session-when">
+                                @(next.ScheduledAt is { } at ? UiText.FormatDateTime(at, Lang) : UiText.SessionNoDate(Lang))
+                                @if (next.ScheduledAt is { } day && UiText.SessionCountdown(day, Lang) is { Length: > 0 } countdown)
+                                {
+                                    <span class="rf-session-countdown">&nbsp;· @countdown</span>
+                                }
+                            </span>
+                            @if (!string.IsNullOrWhiteSpace(next.Title))
+                            {
+                                <span class="rf-next-session-title">@next.Title</span>
+                            }
+                        </span>
+                        <Icon Name="chevron-right" />
+                    </button>
+                }
                 <section class="rf-card2 mb-3" data-test="campaign-overview">
                     <div class="small mb-2" style="color: var(--rf-text-muted);">@UiText.CampaignRoleHint(role, Lang)</div>
                     <div class="rf-markdown-container" data-test="campaign-description">
@@ -121,7 +142,7 @@
                         var m = member;
                         <div class="rf-campaign-row" data-test="campaign-member">
                             <div class="rf-campaign-row-main">
-                                <span>@m.Name</span>
+                                <span><span class="rf-member-swatch" style="background-color: @m.Color;" title="@UiText.RollMyColor(Lang)"></span>@m.Name</span>
                                 @if (m.IsMe)
                                 {
                                     <span class="small" style="color: var(--rf-text-muted);">(@UiText.CampaignYou(Lang))</span>
@@ -313,6 +334,14 @@
             case Tab.Notes:
                 <CampaignNotes CampaignId="campaign.Id" Role="role" />
                 break;
+
+            case Tab.Sessions:
+                <CampaignSessions CampaignId="campaign.Id" Role="role" OnChanged="s => sessions = s" />
+                break;
+
+            case Tab.Rolls:
+                <CampaignRolls CampaignId="campaign.Id" Role="role" Characters="campaign.Characters" MyColor="@(campaign.Members.FirstOrDefault(m => m.IsMe)?.Color ?? PlayerColors.Master)" />
+                break;
         }
     }
 </div>
@@ -366,7 +395,7 @@
 @code {
     [Parameter] public Guid Id { get; set; }
 
-    private enum Tab { Overview, Members, Characters, Encounters, Content, Notes }
+    private enum Tab { Overview, Sessions, Members, Characters, Encounters, Rolls, Content, Notes }
     private enum Confirm { None, Leave, Delete }
 
     private LanguageCode Lang => LanguageState.CurrentLanguage;
@@ -374,6 +403,7 @@
     private CampaignDetailDto? campaign;
     private List<CharacterSummaryDto> myCharacters = new();
     private List<ShareableEntryDto>? shareable;
+    private List<CampaignSessionDto>? sessions;
     private bool loading = true;
     private Tab tab = Tab.Overview;
     private Confirm confirm;
@@ -400,6 +430,8 @@
         Tab.Characters => UiText.CampaignTabCharacters(Lang),
         Tab.Content => UiText.CampaignTabContent(Lang),
         Tab.Encounters => UiText.CampaignTabEncounters(Lang),
+        Tab.Sessions => UiText.CampaignTabSessions(Lang),
+        Tab.Rolls => UiText.CampaignTabRolls(Lang),
         _ => UiText.CampaignTabNotes(Lang)
     };
 
@@ -429,7 +461,9 @@
         var detail = Campaigns.GetCampaignAsync(Id, Lang);
         var mine = Characters.GetCharactersAsync(Lang);
         var entries = Campaigns.GetShareableAsync(Id, Lang);
+        var planned = Campaigns.GetSessionsAsync(Id);
         campaign = await detail;
+        sessions = await planned;
         myCharacters = await mine ?? new List<CharacterSummaryDto>();
         shareable = await entries;
         if (campaign is not null && !CampaignRules.CanInvite(campaign.MyRole, inviteRole))

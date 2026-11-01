@@ -147,6 +147,7 @@ jobs:
         env:
           ConnectionStrings__DefaultConnection: ${{ env.CONN }}
           ASPNETCORE_ENVIRONMENT: Development
+          Auth__AdminEmails__0: carol@example.com
           ASPNETCORE_URLS: http://localhost:5080
         run: |
           set -e
@@ -195,6 +196,7 @@ jobs:
         env:
           ConnectionStrings__DefaultConnection: ${{ env.CONN }}
           ASPNETCORE_ENVIRONMENT: Development
+          Auth__AdminEmails__0: carol@example.com
           ASPNETCORE_URLS: http://localhost:5080
         run: |
           set -e
@@ -228,9 +230,18 @@ jobs:
           # E-mail confirmation: without SMTP the API logs the confirmation link; creating content needs a confirmed address
           feat_unconfirmed=$(curl -s -o /dev/null -D - -X POST $api/api/feats $json -H "Authorization: Bearer $A" -d "$feat" \
             | tr -d '\r' | awk 'NR==1{print $2} tolower($1)=="x-realmforge-error:"{print $2}' | paste -sd' ')
+          # The API writes its log in the background: the link may reach the file a moment after the response
+          logged() {
+            for i in $(seq 1 20); do
+              found=$(grep -rhoE "$1: [^ ]+" --include='*.log' . | tail -1 | sed 's/^.*: //')
+              if [ -n "$found" ]; then echo "$found"; return 0; fi
+              sleep 0.5
+            done
+            echo "::error title=e-mail::no link in the API log for '$1'" >&2
+            return 1
+          }
           confirm() {
-            link=$(grep -rhoE "for $1: [^ ]+" --include='*.log' . | tail -1 | sed 's/^.*: //')
-            test -n "$link"
+            link=$(logged "for $1") || return 1
             code "$api/api/auth/confirmEmail?${link#*\?}"
           }
           confirm_bad=$(code "$api/api/auth/confirmEmail?userId=00000000-0000-0000-0000-000000000000&code=bad")
@@ -249,7 +260,7 @@ jobs:
           forgot_unknown=$(code -X POST $api/api/auth/forgotPassword $json -d '{"email":"nobody@example.com"}')
           forgot=$(code -X POST $api/api/auth/forgotPassword $json -d '{"email":"carol@example.com"}')
           sleep 1
-          reset_link=$(grep -rhoE "Reset your password for carol@example.com: [^ ]+" --include='*.log' . | tail -1 | sed 's/^.*: //')
+          reset_link=$(logged "Reset your password for carol@example.com")
           reset_code=$(echo "$reset_link" | grep -oE '[?&]code=[^&]+' | cut -d= -f2-)
           NEWPW="Rf-$(openssl rand -hex 12)B!"
           reset_body=$(jq -nc --arg c "$reset_code" --arg p "$NEWPW" '{email:"carol@example.com",resetCode:$c,newPassword:$p}')
@@ -652,6 +663,7 @@ jobs:
           # then a level in fighter (multiclass), the sheet state, owner-only access and the refused choices
           ctx=$(get "$api/api/characters/context?ruleset=2&lang=1")
           ctx_counts=$(echo "$ctx" | jq -c '{classes: (.classes | length), species: (.species | length), backgrounds: (.backgrounds | length), feats: (.feats | length), spells: (.spells | length), items: (.items | length), wizardKits: ([.classes[] | select(.key == "wizard") | .equipment.kits[].letter] | join(",")), sageKeys: ([.backgrounds[] | select(.key == "sage") | .originFeatId != null] | .[0])}')
+          ctx_spell_keys=$(echo "$ctx" | jq -c '{keyed: (([.spells[] | select(.key != null)] | length) == (.spells | length)), bless: ([.spells[] | select(.key == "bless")] | length)}')
           ctx_it=$(get "$api/api/characters/context?ruleset=1&lang=2" | jq -r '[.classes[] | select(.key == "fighter") | .equipment.rows[] | [.options[].letter] | join("")] | join(" ")')
           wizard=$(echo "$ctx" | jq -r '.classes[] | select(.key == "wizard") | .id')
           fighter=$(echo "$ctx" | jq -r '.classes[] | select(.key == "fighter") | .id')
@@ -821,6 +833,7 @@ jobs:
           chcheck "secret language" "$ch_bad_language" "400"
           chcheck "multiclass without Strength 13" "$ch_bad_multiclass" "400"
           chcheck "level up into fighter" "$ch_level2" '{"hp":19,"levels":2,"items":true}'
+          chcheck "spell keys in the context" "$ctx_spell_keys" '{"keyed":true,"bless":1}'
           chcheck "sheet saved" "$ch_sheet" '{"hp":19,"ac":12}'
           chcheck "sheet read back" "$ch_saved" '{"hp":5,"conditions":["prone"],"gp":99,"notes":"Test"}'
           chcheck "other sheet PUT" "$ch_bob_sheet" "404"
@@ -931,6 +944,171 @@ jobs:
           trcheck "anonymous" "$tr_anon" "401"
           test "$trfail" = "0"
 
+          # Sessions and dice log: bob (master) plans the sessions, alice (player) reads them without the master's notes;
+          # the server rolls the shared roller, hidden rolls stay behind the screen, the master clears the log
+          ss_cp=$(curl -sf -X POST "$api/api/campaigns?lang=2" $json -H "Authorization: Bearer $B" -d '{"name":"Tavolo delle sessioni","ruleset":2}' | jq -r .id)
+          code -X POST "$api/api/campaigns/$ss_cp/invites" $json -H "Authorization: Bearer $B" -d '{"email":"alice@example.com","role":3}' >/dev/null
+          ss_inv=$(curl -sf "$api/api/campaigns/invitations" -H "Authorization: Bearer $A" | jq -r --arg c "$ss_cp" '[.[] | select(.campaignId == $c)][0].id')
+          code -X POST "$api/api/campaigns/invitations/$ss_inv/accept" -H "Authorization: Bearer $A" >/dev/null
+          session='{"title":"La cripta","scheduledAt":"2026-11-14T20:00:00Z","status":1,"plan":"Portate i dadi","recap":"","masterNotes":"Il lich è il sindaco"}'
+          ss_player_add=$(code -X POST "$api/api/campaigns/$ss_cp/sessions" $json -H "Authorization: Bearer $A" -d "$session")
+          ss_bad=$(code -X POST "$api/api/campaigns/$ss_cp/sessions" $json -H "Authorization: Bearer $B" -d '{"status":9}')
+          ss_first=$(curl -s -X POST "$api/api/campaigns/$ss_cp/sessions" $json -H "Authorization: Bearer $B" -d "$session" | jq -c '{number, status, notes: .masterNotes, canEdit}')
+          ss_id=$(curl -s -X POST "$api/api/campaigns/$ss_cp/sessions" $json -H "Authorization: Bearer $B" -d "$session" | jq -r .id)
+          ss_put=$(curl -s -X PUT "$api/api/campaigns/$ss_cp/sessions/$ss_id" $json -H "Authorization: Bearer $B" \
+            -d "$(echo "$session" | jq '.status = 2 | .recap = "Il lich è scappato"')" | jq -c '{number, status, recap}')
+          ss_player_put=$(code -X PUT "$api/api/campaigns/$ss_cp/sessions/$ss_id" $json -H "Authorization: Bearer $A" -d "$session")
+          ss_player_list=$(curl -s "$api/api/campaigns/$ss_cp/sessions" -H "Authorization: Bearer $A" | jq -c '[.[] | {number, notes: .masterNotes, canEdit, when: .scheduledAt}]')
+          ss_outsider=$(code "$api/api/campaigns/$ss_cp/sessions" -H "Authorization: Bearer $(curl -sf -X POST $api/api/auth/login $json -d "$(jq -nc --arg p "$NEWPW" '{email:"carol@example.com",password:$p}')" | jq -r .accessToken)")
+          ss_player_delete=$(code -X DELETE "$api/api/campaigns/$ss_cp/sessions/$ss_id" -H "Authorization: Bearer $A")
+          ss_delete=$(code -X DELETE "$api/api/campaigns/$ss_cp/sessions/$ss_id" -H "Authorization: Bearer $B")
+          rl=$(curl -s -X POST "$api/api/campaigns/$ss_cp/rolls" $json -H "Authorization: Bearer $A" -d '{"expression":"1d20 + 5","label":"Percezione"}')
+          rl_alice=$(echo "$rl" | jq -c '{expression, label, dice: (.dice | length), ok: (.total >= 6 and .total <= 25 and .total == .dice[0].value + 5), mine: .isMine}')
+          rl_adv=$(curl -s -X POST "$api/api/campaigns/$ss_cp/rolls" $json -H "Authorization: Bearer $A" -d '{"expression":"2d20kh1"}' \
+            | jq -c '{label, dropped: ([.dice[] | select(.dropped)] | length), ok: (.total == ([.dice[].value] | max))}')
+          rl_bad=$(code -X POST "$api/api/campaigns/$ss_cp/rolls" $json -H "Authorization: Bearer $A" -d '{"expression":"1d20 5"}')
+          rl_hidden_player=$(code -X POST "$api/api/campaigns/$ss_cp/rolls" $json -H "Authorization: Bearer $A" -d '{"expression":"1d6","hidden":true}')
+          rl_hidden=$(code -X POST "$api/api/campaigns/$ss_cp/rolls" $json -H "Authorization: Bearer $B" -d '{"expression":"1d100","label":"Tabella incontri","hidden":true}')
+          rl_foreign=$(code -X POST "$api/api/campaigns/$ss_cp/rolls" $json -H "Authorization: Bearer $A" \
+            -d "{\"characterId\":\"$(uuidgen)\",\"dice\":[{\"sides\":20,\"value\":12}],\"modifier\":3,\"total\":15}")
+          rl_cheat=$(code -X POST "$api/api/campaigns/$ss_cp/rolls" $json -H "Authorization: Bearer $A" -d '{"dice":[{"sides":20,"value":25}],"modifier":0}')
+          rl_alice_log=$(curl -s "$api/api/campaigns/$ss_cp/rolls" -H "Authorization: Bearer $A" | jq -c '[.[] | .label]')
+          rl_bob_log=$(curl -s "$api/api/campaigns/$ss_cp/rolls" -H "Authorization: Bearer $B" | jq -c '[.[] | {label, hidden, roller, master: (.color == "#ff8c00")}]')
+          rl_colors=$(curl -s "$api/api/campaigns/$ss_cp?lang=2" -H "Authorization: Bearer $A" | jq -c '[.members[] | {name, orange: (.color == "#ff8c00"), hex: (.color | test("^#[0-9a-f]{6}$"))}] | sort_by(.name)')
+          rl_since=$(curl -s "$api/api/campaigns/$ss_cp/rolls?after=$(echo "$rl" | jq -r .createdAt | jq -Rr @uri)" -H "Authorization: Bearer $A" | jq length)
+          rl_clear_player=$(code -X DELETE "$api/api/campaigns/$ss_cp/rolls" -H "Authorization: Bearer $A")
+          rl_clear=$(code -X DELETE "$api/api/campaigns/$ss_cp/rolls" -H "Authorization: Bearer $B")
+          rl_after=$(curl -s "$api/api/campaigns/$ss_cp/rolls" -H "Authorization: Bearer $B" | jq length)
+          echo "::notice title=sessions::player add=$ss_player_add bad=$ss_bad | first=$ss_first | played=$ss_put | player PUT=$ss_player_put list=$ss_player_list | outsider=$ss_outsider | delete player=$ss_player_delete master=$ss_delete"
+          echo "::notice title=rolls::alice=$rl_alice advantage=$rl_adv | bad=$rl_bad hidden player=$rl_hidden_player master=$rl_hidden | foreign character=$rl_foreign cheat=$rl_cheat | alice log=$rl_alice_log bob log=$rl_bob_log since=$rl_since | clear player=$rl_clear_player master=$rl_clear after=$rl_after"
+          ssfail=0
+          sscheck() { if [ "$2" != "$3" ]; then echo "::error title=sessions::$1: got '$2', expected '$3'"; ssfail=1; fi; }
+          sscheck "player adds a session" "$ss_player_add" "403"
+          sscheck "unknown status" "$ss_bad" "400"
+          sscheck "first session" "$ss_first" '{"number":1,"status":1,"notes":"Il lich è il sindaco","canEdit":true}'
+          sscheck "played with recap" "$ss_put" '{"number":2,"status":2,"recap":"Il lich è scappato"}'
+          sscheck "player edits" "$ss_player_put" "403"
+          sscheck "player list without notes" "$ss_player_list" '[{"number":2,"notes":null,"canEdit":false,"when":"2026-11-14T20:00:00+00:00"},{"number":1,"notes":null,"canEdit":false,"when":"2026-11-14T20:00:00+00:00"}]'
+          sscheck "not a member" "$ss_outsider" "404"
+          sscheck "player deletes" "$ss_player_delete" "403"
+          sscheck "master deletes" "$ss_delete" "204"
+          sscheck "server roll" "$rl_alice" '{"expression":"1d20 + 5","label":"Percezione","dice":1,"ok":true,"mine":true}'
+          sscheck "advantage" "$rl_adv" '{"label":"2d20kh1","dropped":1,"ok":true}'
+          sscheck "invalid expression" "$rl_bad" "400"
+          sscheck "hidden roll by a player" "$rl_hidden_player" "403"
+          sscheck "hidden roll by the master" "$rl_hidden" "200"
+          sscheck "character not at the table" "$rl_foreign" "400"
+          sscheck "sheet dice without a character" "$rl_cheat" "400"
+          sscheck "player log" "$rl_alice_log" '["2d20kh1","Percezione"]'
+          sscheck "master log" "$rl_bob_log" '[{"label":"Tabella incontri","hidden":true,"roller":"Master","master":true},{"label":"2d20kh1","hidden":false,"roller":"Alice","master":false},{"label":"Percezione","hidden":false,"roller":"Alice","master":false}]'
+          sscheck "member colours" "$rl_colors" '[{"name":"Alice","orange":false,"hex":true},{"name":"Bob","orange":true,"hex":true}]'
+          sscheck "rolls since" "$rl_since" "1"
+          sscheck "player clears" "$rl_clear_player" "403"
+          sscheck "master clears" "$rl_clear" "204"
+          sscheck "log empty" "$rl_after" "0"
+          test "$ssfail" = "0"
+          # Account: change of e-mail (confirmed on the new address) and deletion of the account with its data;
+          # private Homebrew goes, public Homebrew stays without an author, the campaign passes to the other member
+          test "$(code -X POST $api/api/auth/register $json -d "$(cred dave@example.com)")" = "200"
+          test "$(code -X POST $api/api/auth/register $json -d "$(cred erin@example.com)")" = "200"
+          test "$(confirm dave@example.com)" = "200" && test "$(confirm erin@example.com)" = "200"
+          D=$(curl -sf -X POST $api/api/auth/login $json -d "$(cred dave@example.com)" | jq -r .accessToken)
+          E=$(curl -sf -X POST $api/api/auth/login $json -d "$(cred erin@example.com)" | jq -r .accessToken)
+          ac_email=$(code -X POST $api/api/auth/manage/info $json -H "Authorization: Bearer $D" -d '{"newEmail":"dave2@example.com"}')
+          sleep 1
+          ac_confirm=$(confirm dave2@example.com)
+          ac_info=$(curl -sf $api/api/auth/manage/info -H "Authorization: Bearer $D" | jq -r .email)
+          ac_login_old=$(code -X POST $api/api/auth/login $json -d "$(cred dave@example.com)")
+          D=$(curl -sf -X POST $api/api/auth/login $json -d "$(cred dave2@example.com)" | jq -r .accessToken)
+          ac_private=$(curl -sf -X POST "$api/api/feats?lang=2" $json -H "Authorization: Bearer $D" -d "$feat" | jq -r .id)
+          ac_public=$(curl -sf -X POST "$api/api/feats?lang=2" $json -H "Authorization: Bearer $D" -d "$(echo "$feat" | jq '.visibility = 0')" | jq -r .id)
+          ac_cp=$(curl -sf -X POST "$api/api/campaigns?lang=2" $json -H "Authorization: Bearer $D" -d '{"name":"Tavola di Dave","ruleset":2}' | jq -r .id)
+          code -X POST "$api/api/campaigns/$ac_cp/invites" $json -H "Authorization: Bearer $D" -d '{"email":"erin@example.com","role":3}' >/dev/null
+          ac_inv=$(curl -sf "$api/api/campaigns/invitations" -H "Authorization: Bearer $E" | jq -r '.[0].id')
+          code -X POST "$api/api/campaigns/invitations/$ac_inv/accept" -H "Authorization: Bearer $E" >/dev/null
+          ac_solo=$(curl -sf -X POST "$api/api/campaigns?lang=2" $json -H "Authorization: Bearer $D" -d '{"name":"Solo","ruleset":2}' | jq -r .id)
+          code -X POST "$api/api/campaigns/$ac_cp/rolls" $json -H "Authorization: Bearer $D" -d '{"expression":"1d20","label":"Visibile"}' >/dev/null
+          code -X POST "$api/api/campaigns/$ac_cp/rolls" $json -H "Authorization: Bearer $D" -d '{"expression":"1d20","label":"Nascosto","hidden":true}' >/dev/null
+          ac_wrong=$(code -X DELETE $api/api/account $json -H "Authorization: Bearer $D" -d '{"password":"wrong"}')
+          ac_delete=$(curl -s -X DELETE $api/api/account $json -H "Authorization: Bearer $D" -d "$(jq -nc --arg p "$PW" '{password:$p}')" | jq -c .)
+          ac_private_after=$(code "$api/api/feats/$ac_private")
+          ac_public_after=$(curl -s "$api/api/feats/$ac_public" -H "Authorization: Bearer $E" | jq -c '{canEdit, visibility}')
+          ac_cp_after=$(curl -s "$api/api/campaigns/$ac_cp?lang=2" -H "Authorization: Bearer $E" | jq -c '{role: .myRole, members: (.members | length)}')
+          ac_rolls=$(curl -s "$api/api/campaigns/$ac_cp/rolls" -H "Authorization: Bearer $E" | jq -c '[.[] | {label, roller, removed, grey: (.color == "#6c757d")}]')
+          ac_solo_rows=$(psql -h localhost -U postgres -d realm_forge_ci -tAc "SELECT count(*) FROM \"Campaigns\" WHERE \"Id\" = '$ac_solo'" 2>/dev/null || echo "?")
+          ac_login_after=$(code -X POST $api/api/auth/login $json -d "$(cred dave2@example.com)")
+          ac_token_after=$(code $api/api/account/summary -H "Authorization: Bearer $D")
+          echo "::notice title=account::change e-mail=$ac_email confirm=$ac_confirm now=$ac_info old login=$ac_login_old | delete wrong password=$ac_wrong ok=$ac_delete | private feat=$ac_private_after public feat=$ac_public_after | campaign for erin=$ac_cp_after solo rows=$ac_solo_rows | login after=$ac_login_after token after=$ac_token_after"
+          acfail=0
+          accheck() { if [ "$2" != "$3" ]; then echo "::error title=account::$1: got '$2', expected '$3'"; acfail=1; fi; }
+          accheck "change e-mail" "$ac_email" "200"
+          accheck "confirm new e-mail" "$ac_confirm" "200"
+          accheck "new e-mail in use" "$ac_info" "dave2@example.com"
+          accheck "old e-mail no longer signs in" "$ac_login_old" "401"
+          accheck "wrong password" "$ac_wrong" "400"
+          accheck "deleted" "$ac_delete" '{"characters":0,"homebrewDeleted":1,"homebrewKept":1,"campaignsDeleted":1,"campaignsHandedOver":1}'
+          accheck "private Homebrew gone" "$ac_private_after" "404"
+          accheck "public Homebrew kept, nobody edits it" "$ac_public_after" '{"canEdit":false,"visibility":0}'
+          accheck "campaign handed over" "$ac_cp_after" '{"role":1,"members":1}'
+          accheck "rolls left: hidden gone, visible grey without the name" "$ac_rolls" '[{"label":"Visibile","roller":"","removed":true,"grey":true}]'
+          accheck "account gone" "$ac_login_after" "401"
+          accheck "old token refused" "$ac_token_after" "401"
+          accheck "empty campaign deleted" "$ac_solo_rows" "0"
+          test "$acfail" = "0"
+
+          # Global search (both languages, the rule of the lists) and administration (carol is in Auth:AdminEmails)
+          C=$(curl -sf -X POST $api/api/auth/login $json -d "$(jq -nc --arg p "$NEWPW" '{email:"carol@example.com",password:$p}')" | jq -r .accessToken)
+          sr_secret=$(curl -sf -X POST "$api/api/feats?lang=2" $json -H "Authorization: Bearer $A" -d "$(echo "$feat" | jq '.translations[0].name = "Zzforge Secret" | .translations[1].name = "Zzforge Segreto"')" | jq -r .id)
+          sr_fireball=$(curl -s "$api/api/compendium/search?q=fireball&lang=2" | jq -c '[.[] | select(.kind == "spell")][0] | {name, otherName, isBase}')
+          sr_rule=$(curl -s "$api/api/compendium/search?q=prono&lang=2" | jq -c '[.[] | select(.kind == "rule")] | length > 0')
+          sr_short=$(code "$api/api/compendium/search?q=x")
+          sr_wild=$(curl -s "$api/api/compendium/search?q=%25%25&lang=2" | jq length)
+          sr_alice=$(curl -s "$api/api/compendium/search?q=zzforge&lang=2" -H "Authorization: Bearer $A" | jq -c '[.[] | {name, otherName, isMine}]')
+          sr_bob=$(curl -s "$api/api/compendium/search?q=zzforge&lang=2" -H "Authorization: Bearer $B" | jq length)
+          ad_bob=$(code "$api/api/admin/stats" -H "Authorization: Bearer $B")
+          ad_stats=$(curl -s "$api/api/admin/stats" -H "Authorization: Bearer $C" | jq -c '{users: (.users >= 4), homebrew: (.homebrew >= 1)}')
+          ad_users=$(curl -s "$api/api/admin/users?q=example.com" -H "Authorization: Bearer $C" | jq -c '[.[] | select(.email == "carol@example.com" or .email == "erin@example.com") | {email, isAdmin, isMe}] | sort_by(.email)')
+          erin_id=$(curl -s "$api/api/admin/users?q=erin" -H "Authorization: Bearer $C" | jq -r '.[0].id')
+          carol_id=$(curl -s "$api/api/admin/users?q=carol" -H "Authorization: Bearer $C" | jq -r '.[0].id')
+          ad_self=$(code -X PUT "$api/api/admin/users/$carol_id/lock" $json -H "Authorization: Bearer $C" -d '{"days":7}')
+          ad_lock=$(code -X PUT "$api/api/admin/users/$erin_id/lock" $json -H "Authorization: Bearer $C" -d '{"days":7}')
+          ad_locked_login=$(curl -s -X POST $api/api/auth/login $json -d "$(cred erin@example.com)" | jq -r '.detail // "token"')
+          ad_listed=$(curl -s "$api/api/admin/users?q=erin" -H "Authorization: Bearer $C" | jq -c '.[0].lockedUntil != null')
+          ad_unlock=$(code -X PUT "$api/api/admin/users/$erin_id/lock" $json -H "Authorization: Bearer $C" -d '{"days":0}')
+          ad_unlocked_login=$(code -X POST $api/api/auth/login $json -d "$(cred erin@example.com)")
+          ad_moderation=$(curl -s "$api/api/admin/homebrew?visibility=2&lang=2" -H "Authorization: Bearer $C" | jq -c --arg id "$sr_secret" '[.[] | select(.id == $id) | {name, author, visibility}]')
+          ad_public=$(code -X PUT "$api/api/admin/homebrew/$sr_secret/visibility" $json -H "Authorization: Bearer $C" -d '{"visibility":0}')
+          ad_bob_sees=$(curl -s "$api/api/compendium/search?q=zzforge&lang=2" -H "Authorization: Bearer $B" | jq length)
+          ad_srd=$(code -X PUT "$api/api/admin/homebrew/10000000-0000-0000-0000-000000000001/visibility" $json -H "Authorization: Bearer $C" -d '{"visibility":2}')
+          ad_delete=$(code -X DELETE "$api/api/admin/users/$erin_id" -H "Authorization: Bearer $C")
+          ad_deleted_login=$(code -X POST $api/api/auth/login $json -d "$(cred erin@example.com)")
+          echo "::notice title=search::fireball=$sr_fireball rule=$sr_rule short=$sr_short wildcards=$sr_wild | private: alice=$sr_alice bob=$sr_bob"
+          echo "::notice title=admin::bob=$ad_bob stats=$ad_stats users=$ad_users | self lock=$ad_self lock=$ad_lock login=$ad_locked_login listed=$ad_listed unlock=$ad_unlock login=$ad_unlocked_login | moderation=$ad_moderation public=$ad_public bob sees=$ad_bob_sees srd=$ad_srd | delete=$ad_delete login=$ad_deleted_login"
+          adfail=0
+          adcheck() { if [ "$2" != "$3" ]; then echo "::error title=admin::$1: got '$2', expected '$3'"; adfail=1; fi; }
+          adcheck "search in English, shown in Italian" "$sr_fireball" '{"name":"Palla di Fuoco","otherName":"Fireball","isBase":true}'
+          adcheck "glossary searched" "$sr_rule" "true"
+          adcheck "too short" "$sr_short" "400"
+          adcheck "wildcards are literal" "$sr_wild" "0"
+          adcheck "own private entry found" "$sr_alice" '[{"name":"Zzforge Segreto","otherName":"Zzforge Secret","isMine":true}]'
+          adcheck "someone else's private entry hidden" "$sr_bob" "0"
+          adcheck "not an administrator" "$ad_bob" "403"
+          adcheck "stats" "$ad_stats" '{"users":true,"homebrew":true}'
+          adcheck "users" "$ad_users" '[{"email":"carol@example.com","isAdmin":true,"isMe":true},{"email":"erin@example.com","isAdmin":false,"isMe":false}]'
+          adcheck "no self lock" "$ad_self" "400"
+          adcheck "lock" "$ad_lock" "204"
+          adcheck "locked sign-in" "$ad_locked_login" "LockedOut"
+          adcheck "lock listed" "$ad_listed" "true"
+          adcheck "unlock" "$ad_unlock" "204"
+          adcheck "sign-in again" "$ad_unlocked_login" "200"
+          adcheck "private entry in the moderation" "$ad_moderation" '[{"name":"Zzforge Segreto","author":"Alice","visibility":2}]'
+          adcheck "made public" "$ad_public" "204"
+          adcheck "public entry found by others" "$ad_bob_sees" "1"
+          adcheck "base content untouched" "$ad_srd" "404"
+          adcheck "account deleted" "$ad_delete" "200"
+          adcheck "deleted account" "$ad_deleted_login" "401"
+          test "$adfail" = "0"
+
   ui:
     runs-on: ubuntu-24.04
     needs: build
@@ -965,6 +1143,7 @@ jobs:
         env:
           ConnectionStrings__DefaultConnection: Host=localhost;Port=5432;Database=realm_forge_ci;Username=postgres
           ASPNETCORE_ENVIRONMENT: Development
+          Auth__AdminEmails__0: admin-ui@example.com
         run: |
           # Point the client at the CI API (plain http)
           echo '{ "ApiBaseUrl": "http://localhost:5080/" }' > RealmForge/RealmForge.Client/wwwroot/appsettings.Development.json
@@ -1082,10 +1261,15 @@ jobs:
           start
           after_restart=$(curl -s -o /dev/null -w '%{http_code}' http://localhost:10000/api/auth/manage/info -H "Authorization: Bearer $token")
           scalar=$(curl -s -o /dev/null -w '%{http_code}' http://localhost:10000/scalar)
+          # Sign-in attempts are limited per address: after 10 wrong passwords in a minute the API answers 429
+          bad=$(jq -nc '{email:"prod@example.com",password:"wrong"}')
+          limited=$(for i in $(seq 1 12); do curl -s -o /dev/null -w '%{http_code}\n' -X POST http://localhost:10000/api/auth/login -H Content-Type:application/json -d "$bad"; done | sort | uniq -c | awk '{printf "%s×%s ", $2, $1}')
+          after_limit=$(curl -s -o /dev/null -w '%{http_code}' http://localhost:10000/api/feats)
 
-          echo "::notice title=container::health=$health | base feats=$feats | forwarded https=$scheme | cors=$cors | data protection keys=$keys | token after restart=$after_restart | API reference in production=$scalar | e-mail via Brevo=$brevo"
+          echo "::notice title=container::health=$health | base feats=$feats | forwarded https=$scheme | cors=$cors | data protection keys=$keys | token after restart=$after_restart | API reference in production=$scalar | e-mail via Brevo=$brevo | wrong sign-ins=$limited reads after=$after_limit"
           test "$health" = "Healthy" && test "$feats" = "117" && test "$scheme" = "200" && test "$cors" = "https://realmforge.example" \
-            && test "$keys" -ge 1 && test "$after_restart" = "200" && test "$scalar" = "404" && test "$brevo" = "true"
+            && test "$keys" -ge 1 && test "$after_restart" = "200" && test "$scalar" = "404" && test "$brevo" = "true" \
+            && echo "$limited" | grep -q "401×10" && echo "$limited" | grep -q "429×2" && test "$after_limit" = "200"
 
       - name: Back up the database as backup-db does and restore it
         shell: bash

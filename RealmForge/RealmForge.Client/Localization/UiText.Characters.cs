@@ -213,6 +213,94 @@ namespace RealmForge.Client.Localization
 		public static string LabelStyleCantrips(LanguageCode lang) => T(lang, "Trucchetti dello stile", "Style cantrips");
 		public static string MulticlassNeeds(string abilities, LanguageCode lang) => T(lang, $"Richiede 13 in {abilities}", $"Requires 13 in {abilities}");
 		public static string SpellTakenBy(string source, LanguageCode lang) => T(lang, $"Già scelto: {source}", $"Already chosen: {source}");
+		// ===== Traits: choices and what the sheet applies on its own =====
+		public static string LabelSpeciesOption(string? species, LanguageCode lang) => species == "goliath"
+			? T(lang, "Retaggio gigante", "Giant ancestry")
+			: T(lang, "Retaggio draconico", "Draconic ancestry");
+		public static string SpeciesOptionName(SpeciesOption option, LanguageCode lang) =>
+			option.Damage is { } damage ? $"{(lang == LanguageCode.It ? option.It : option.En)} ({Shared.Localization.EquipmentTerms.DamageTypeName(damage, lang)})" : lang == LanguageCode.It ? option.It : option.En;
+		public static string LabelSpeciesSpellAbility(LanguageCode lang) => T(lang, "Caratteristica degli incantesimi", "Spellcasting ability");
+		public static string LabelSubclassSkills(string subclass, int count, bool expertise, LanguageCode lang) => expertise
+			? T(lang, $"{subclass}: {count} abilità con maestria", $"{subclass}: {count} skills with Expertise")
+			: T(lang, $"{subclass}: {(count == 1 ? "1 abilità" : $"{count} abilità")}", $"{subclass}: {count} skill{(count == 1 ? string.Empty : "s")}");
+		public static string LabelLand(LanguageCode lang) => T(lang, "Terra", "Land");
+		public static string LandName(string key, LanguageCode lang) => (key, lang == LanguageCode.It) switch
+		{
+			("arctic", true) => "Artico", ("arctic", false) => "Arctic",
+			("coast", true) => "Costa", ("coast", false) => "Coast",
+			("desert", true) => "Deserto", ("desert", false) => "Desert",
+			("forest", true) => "Foresta", ("forest", false) => "Forest",
+			("grassland", true) => "Prateria", ("grassland", false) => "Grassland",
+			("mountain", true) => "Montagna", ("mountain", false) => "Mountain",
+			("swamp", true) => "Palude", ("swamp", false) => "Swamp",
+			("arid", true) => "Terra arida", ("arid", false) => "Arid land",
+			("polar", true) => "Terra polare", ("polar", false) => "Polar land",
+			("temperate", true) => "Terra temperata", ("temperate", false) => "Temperate land",
+			("tropical", true) => "Terra tropicale", ("tropical", false) => "Tropical land",
+			_ => key
+		};
+		public static string HintLand2024(LanguageCode lang) => T(lang, "Nel 2024 la terra si può cambiare dopo ogni riposo lungo: modificala qui quando serve.",
+			"In 2024 the land can change after every long rest: change it here when needed.");
+		public static string LabelSubclassCantrips(string subclass, LanguageCode lang) => T(lang, $"{subclass}: trucchetto", $"{subclass}: cantrip");
+		public static string SpellAlwaysShort(LanguageCode lang) => T(lang, "Sempre", "Always");
+		public static string SpellAlwaysPreparedTitle(LanguageCode lang) => T(lang, "Sempre preparati", "Always prepared");
+		public static string SpellAlwaysPrepared(string source, LanguageCode lang) => T(lang, $"Sempre preparato ({source})", $"Always prepared ({source})");
+		public static string SpellInnateTitle(LanguageCode lang) => T(lang, "Incantesimi dei tratti", "Spells of the traits");
+		public static string SpellInnateHint(LanguageCode lang) =>
+			T(lang, "Li concedono specie, sottoclasse o talenti: i trucchetti sono sempre disponibili, gli altri si lanciano una volta per riposo lungo senza slot.",
+				"Granted by the species, subclass or feats: cantrips are always available, the others are cast once per long rest without a slot.");
+		public static string SpellSourceSubclass(LanguageCode lang) => T(lang, "Sottoclasse", "Subclass");
+		public static string FeatFixedSpells(string spells, LanguageCode lang) => T(lang, $"Incantesimi concessi: {spells}.", $"Spells granted: {spells}.");
+		public static string FeatSchoolSpell(string schools, LanguageCode lang) => T(lang, $"Incantesimo di 1° livello ({schools})", $"Level 1 spell ({schools})");
+
+		public static string SheetSenses(LanguageCode lang) => T(lang, "Sensi e movimento", "Senses and movement");
+		public static string SheetDefenses(LanguageCode lang) => T(lang, "Difese", "Defenses");
+		public static string SheetBreath(LanguageCode lang) => T(lang, "Arma a soffio", "Breath Weapon");
+		public static string SheetWeaponTraining(LanguageCode lang) => T(lang, "Addestramento nelle armi", "Weapon training");
+
+		//	"Scurovisione 18 m · Vista cieca 3 m · Scalare 9 m"
+		public static string SensesText(ComputedCharacter c, LanguageCode lang)
+		{
+			var parts = new List<string>();
+			void Add(int feet, string it, string en)
+			{
+				if (feet > 0)
+				{
+					parts.Add($"{T(lang, it, en)} {FormatSpeed(feet, lang)}");
+				}
+			}
+			Add(c.Darkvision, "Scurovisione", "Darkvision");
+			Add(c.Blindsight, "Vista cieca", "Blindsight");
+			Add(c.Truesight, "Vista pura", "Truesight");
+			Add(c.ClimbSpeed, "Scalare", "Climb");
+			Add(c.SwimSpeed, "Nuotare", "Swim");
+			Add(c.FlySpeed, "Volare", "Fly");
+			return string.Join(" · ", parts);
+		}
+
+		//	"Resistenza ai danni da veleno, da fuoco · Immunità ai danni da veleno · danni contundenti, perforanti e taglienti ridotti di 3"
+		public static string DefensesText(ComputedCharacter c, LanguageCode lang)
+		{
+			var parts = new List<string>();
+			if (c.Resistances.Count > 0)
+			{
+				parts.Add($"{T(lang, "Resistenza ai danni", "Resistance:")} {string.Join(", ", c.Resistances.Select(d => Shared.Localization.EquipmentTerms.DamageTypeName(d, lang).ToLowerInvariant()))}");
+			}
+			if (c.Immunities.Count > 0)
+			{
+				parts.Add($"{T(lang, "Immunità ai danni", "Immunity:")} {string.Join(", ", c.Immunities.Select(d => Shared.Localization.EquipmentTerms.DamageTypeName(d, lang).ToLowerInvariant()))}");
+			}
+			if (c.DamageReduction > 0)
+			{
+				parts.Add(T(lang, $"danni contundenti, perforanti e taglienti ridotti di {c.DamageReduction}", $"bludgeoning, piercing and slashing damage reduced by {c.DamageReduction}"));
+			}
+			return string.Join(" · ", parts);
+		}
+
+		public static string BreathText(BreathWeapon b, LanguageCode lang) => T(lang,
+			$"{b.Damage} {Shared.Localization.EquipmentTerms.DamageTypeName(b.Type, lang).ToLowerInvariant()} · {b.AreaIt} · TS {AbilityShort(b.Save, lang)} CD {b.Dc}",
+			$"{b.Damage} {Shared.Localization.EquipmentTerms.DamageTypeName(b.Type, lang).ToLowerInvariant()} · {b.AreaEn} · {AbilityShort(b.Save, lang)} save DC {b.Dc}");
+
 		public static string SheetVitalsFromEncounter(string? master, LanguageCode lang) => string.IsNullOrWhiteSpace(master)
 			? T(lang, "Punti ferita e condizioni aggiornati dall'incontro.", "Hit points and conditions updated by the encounter.")
 			: T(lang, $"Punti ferita e condizioni aggiornati dall'incontro ({master}).", $"Hit points and conditions updated by the encounter ({master}).");
@@ -339,6 +427,10 @@ namespace RealmForge.Client.Localization
 				IssueCodes.FightingStyleMissing => T(lang, $"Scegli lo stile di combattimento di {A(0)}.", $"Choose the {A(0)} Fighting Style."),
 				IssueCodes.Order => T(lang, $"Ordine non valido ({A(0)}).", $"Invalid order ({A(0)})."),
 				IssueCodes.OrderMissing => T(lang, $"Scegli l'ordine di {A(0)}.", $"Choose the {A(0)} order."),
+				IssueCodes.SpeciesOption => T(lang, "La scelta della specie (retaggio o caratteristica degli incantesimi) non è valida.", "The species choice (ancestry or spellcasting ability) is not valid."),
+				IssueCodes.SpeciesOptionMissing => T(lang, "Completa le scelte della specie: retaggio o caratteristica per gli incantesimi.", "Complete the species choices: ancestry or spellcasting ability."),
+				IssueCodes.SubclassOption => T(lang, $"La terra scelta per {A(0)} non è valida.", $"The land chosen for {A(0)} is not valid."),
+				IssueCodes.SubclassOptionMissing => T(lang, $"Scegli la terra di {A(0)}.", $"Choose the land of {A(0)}."),
 				IssueCodes.WeaponMastery => T(lang, $"Maestria nelle armi non valida ({A(0)}).", $"Invalid Weapon Mastery ({A(0)})."),
 				IssueCodes.WeaponMasteryMissing => T(lang, $"Scegli ancora {A(1)} armi per la Maestria di {A(0)}.", $"Choose {A(1)} more weapons for the {A(0)} Weapon Mastery."),
 				IssueCodes.Equipment => T(lang, "Completa le scelte dell'equipaggiamento.", "Complete the equipment choices."),

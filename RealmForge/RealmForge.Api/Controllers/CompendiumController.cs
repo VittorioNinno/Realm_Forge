@@ -1,6 +1,8 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using RealmForge.Api.Localization;
+using RealmForge.Api.Search;
+using RealmForge.Api.Security;
 using RealmForge.Infrastructure.Persistence;
 using RealmForge.Infrastructure.Persistence.Seeding;
 using RealmForge.Shared.DTOs;
@@ -17,10 +19,26 @@ namespace RealmForge.Api.Controllers
 	public class CompendiumController : ControllerBase
 	{
 		private readonly RealmForgeDbContext _context;
+		private readonly CompendiumSearch _search;
+		private readonly ShareService _shares;
 
-		public CompendiumController(RealmForgeDbContext context)
+		public CompendiumController(RealmForgeDbContext context, CompendiumSearch search, ShareService shares)
 		{
 			_context = context;
+			_search = search;
+			_shares = shares;
+		}
+
+		//	GET: api/compendium/search?q=palla&lang=2 — every section and the glossary, at least 2 characters
+		[HttpGet("search")]
+		public async Task<ActionResult<List<SearchResultDto>>> Search([FromQuery] string? q, [FromQuery] LanguageCode lang = LanguageCode.It)
+		{
+			var text = q?.Trim() ?? string.Empty;
+			if (text.Length < 2 || text.Length > 60)
+			{
+				return Problem(statusCode: StatusCodes.Status400BadRequest, title: "Search for 2 to 60 characters.");
+			}
+			return Ok(await _search.SearchAsync(text, lang, User, await _shares.SharedWithAsync(User)));
 		}
 
 		//	GET: api/compendium/index?lang=2

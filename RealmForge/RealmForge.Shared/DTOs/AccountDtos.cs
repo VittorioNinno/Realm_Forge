@@ -26,4 +26,15 @@
 	{
 		public int Total => Feats + Species + Subspecies + Backgrounds + Spells + Classes + Subclasses + Equipment + Monsters + MagicItems;
 	}
+
+	public class DeleteAccountRequestDto
+	{
+		public string Password { get; set; } = string.Empty;
+	}
+
+	///	<summary>
+	///	What the deletion of an account did: characters deleted, Homebrew deleted and kept without an author
+	///	(others could use it), campaigns deleted (left empty) and handed over to another master.
+	///	</summary>
+	public record AccountDeletedDto(int Characters, int HomebrewDeleted, int HomebrewKept, int CampaignsDeleted, int CampaignsHandedOver);
 }

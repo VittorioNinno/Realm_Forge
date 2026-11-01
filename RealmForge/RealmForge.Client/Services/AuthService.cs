@@ -40,7 +40,13 @@ namespace RealmForge.Client.Services
 				var response = await _http.PostAsJsonAsync("api/auth/login", new { email, password });
 				if (!response.IsSuccessStatusCode)
 				{
-					return AuthResult.Fail("InvalidCredentials");
+					if (response.StatusCode == System.Net.HttpStatusCode.TooManyRequests)
+					{
+						return AuthResult.Fail("TooManyRequests");
+					}
+					//	A locked account (failed attempts or an administrator): Identity answers 401 with "Lockedout" as detail
+					var problem = await response.Content.ReadAsStringAsync();
+					return AuthResult.Fail(problem.Contains("Lockedout", StringComparison.OrdinalIgnoreCase) ? "LockedOut" : "InvalidCredentials");
 				}
 
 				var body = await response.Content.ReadFromJsonAsync<AccessTokenResponse>();
@@ -118,7 +124,7 @@ namespace RealmForge.Client.Services
 			try
 			{
 				var response = await _http.PostAsJsonAsync("api/auth/resendConfirmationEmail", new { email });
-				return response.IsSuccessStatusCode ? AuthResult.Ok() : AuthResult.Fail("Unknown");
+				return response.IsSuccessStatusCode ? AuthResult.Ok() : AuthResult.Fail(response.StatusCode == System.Net.HttpStatusCode.TooManyRequests ? "TooManyRequests" : "Unknown");
 			}
 			catch (HttpRequestException)
 			{
@@ -173,7 +179,7 @@ namespace RealmForge.Client.Services
 			try
 			{
 				var response = await _http.PostAsJsonAsync("api/auth/forgotPassword", new { email });
-				return response.IsSuccessStatusCode ? AuthResult.Ok() : AuthResult.Fail("Unknown");
+				return response.IsSuccessStatusCode ? AuthResult.Ok() : AuthResult.Fail(response.StatusCode == System.Net.HttpStatusCode.TooManyRequests ? "TooManyRequests" : "Unknown");
 			}
 			catch (HttpRequestException)
 			{
@@ -228,9 +234,58 @@ namespace RealmForge.Client.Services
 			}
 		}
 
+		///	<summary>
+		///	Asks to change the e-mail address: Identity sends a confirmation link to the new address, and the address
+		///	changes only when that link is opened.
+		///	</summary>
+		public async Task<AuthResult> ChangeEmailAsync(string newEmail)
+		{
+			try
+			{
+				var response = await _http.PostAsJsonAsync("api/auth/manage/info", new { newEmail });
+				return response.IsSuccessStatusCode ? AuthResult.Ok() : AuthResult.Fail(await ReadIdentityErrorsAsync(response));
+			}
+			catch (HttpRequestException)
+			{
+				return AuthResult.Fail("Unreachable");
+			}
+		}
+
+		///	<summary>
+		///	Deletes the account (the password confirms it) and signs out; null when it failed, with the reason.
+		///	</summary>
+		public async Task<(AccountDeletedDto? Result, string? Error)> DeleteAccountAsync(string password)
+		{
+			try
+			{
+				using var request = new HttpRequestMessage(HttpMethod.Delete, "api/account") { Content = JsonContent.Create(new DeleteAccountRequestDto { Password = password }) };
+				var response = await _http.SendAsync(request);
+				if (!response.IsSuccessStatusCode)
+				{
+					return (null, response.StatusCode switch
+					{
+						System.Net.HttpStatusCode.BadRequest => "WrongPassword",
+						System.Net.HttpStatusCode.TooManyRequests => "TooManyRequests",
+						_ => "Unknown"
+					});
+				}
+				var result = await response.Content.ReadFromJsonAsync<AccountDeletedDto>();
+				await _tokens.ClearAsync();
+				return (result, null);
+			}
+			catch (HttpRequestException)
+			{
+				return (null, "Unreachable");
+			}
+		}
+
 		//	Identity returns { "errors": { "PasswordTooShort": ["..."], "DuplicateUserName": ["..."] } }
 		private static async Task<string[]> ReadIdentityErrorsAsync(HttpResponseMessage response)
 		{
+			if (response.StatusCode == System.Net.HttpStatusCode.TooManyRequests)
+			{
+				return new[] { "TooManyRequests" };
+			}
 			try
 			{
 				var problem = await response.Content.ReadFromJsonAsync<JsonElement>();
