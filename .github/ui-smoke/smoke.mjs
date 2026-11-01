@@ -655,6 +655,17 @@ try {
   await page.getByRole('button', { name: 'Aggiorna password' }).click();
   await page.getByText('Password aggiornata.').waitFor({ timeout: 15000 });
   ok('account page: role "Utente", Homebrew counts (0 feats, 1 background), password change rejects a wrong current password and succeeds with the right one');
+  // Account deletion asks for the password: a wrong one is refused and the account stays (the dialog is then closed)
+  await page.locator('[data-test=account-delete-open]').click();
+  await page.locator('[data-test=account-delete-confirm]').waitFor({ timeout: 5000 });
+  await page.locator('[data-test=account-delete-password]').fill('wrong-password-1A!');
+  await page.locator('[data-test=account-delete-yes]').click();
+  await page.locator('[data-test=account-delete-error]', { hasText: 'Password non corretta' }).waitFor({ timeout: 15000 });
+  await shot(page, 'account-delete', '[data-test=account-delete-confirm]');
+  await page.locator('[data-test=account-delete-confirm]').getByRole('button', { name: 'Annulla' }).click();
+  await page.locator('[data-test=account-delete-confirm]').waitFor({ state: 'detached', timeout: 5000 });
+  await shot(page, 'account-danger', '[data-test=account-delete]');
+  ok('account deletion: the dialog asks for the password, a wrong one is refused and nothing is deleted');
 
   // Character creation at phone width (375 px): edition order, every step of the 2024 wizard (overflow checked),
   // the interactive sheet (damage saved on its own, rests, tabs, PDF), a level up into a second class and the list
