@@ -241,6 +241,8 @@
     private string? editorVariantOf;
     private MonsterDetailDto? deleting;
 
+    private int Rank(MonsterResponseDto m) => SearchRank.Of(SearchTerm, m.Name, new[] { m.Alias });
+
     private List<MonsterResponseDto> Filtered
     {
         get
@@ -256,7 +258,9 @@
                             || m.Name.Contains(term, StringComparison.OrdinalIgnoreCase)
                             || (m.Alias?.Contains(term, StringComparison.OrdinalIgnoreCase) ?? false)
                             || m.Subtitle.Contains(term, StringComparison.OrdinalIgnoreCase));
-            return (SortByChallenge ? list.OrderBy(m => m.ChallengeRating).ThenBy(m => m.Name, StringComparer.CurrentCultureIgnoreCase) : list).ToList();
+            //	The monster named like the search first, then the chosen order
+            var ranked = list.OrderBy(Rank);
+            return (SortByChallenge ? ranked.ThenBy(m => m.ChallengeRating).ThenBy(m => m.Name, StringComparer.CurrentCultureIgnoreCase) : ranked).ToList();
         }
     }
 
@@ -275,7 +279,7 @@
     };
 
     private List<IGrouping<CreatureType, MonsterResponseDto>> Groups =>
-        Filtered.GroupBy(m => m.Type).OrderBy(g => UiText.FormatCreatureType(g.Key, Lang), StringComparer.CurrentCultureIgnoreCase).ToList();
+        Filtered.GroupBy(m => m.Type).OrderBy(g => g.Min(Rank)).ThenBy(g => UiText.FormatCreatureType(g.Key, Lang), StringComparer.CurrentCultureIgnoreCase).ToList();
 
     //	Open and closed types: closed by default (the page reads as an index), open as soon as a filter or a search
     //	narrows the list; the user's toggles win until the filters change again

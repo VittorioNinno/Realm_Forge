@@ -66,7 +66,7 @@
             <button type="button" class="btn btn-sm btn-rf-outline" @onclick="() => SetAllGroups(true)" data-test="rules-expand-all">@UiText.BtnExpandAll(Lang)</button>
             <button type="button" class="btn btn-sm btn-rf-outline" @onclick="() => SetAllGroups(false)" data-test="rules-collapse-all">@UiText.BtnCollapseAll(Lang)</button>
         </div>
-        @foreach (var group in FilteredEntries.GroupBy(e => e.Category).OrderBy(g => Array.IndexOf(CategoryOrder, g.Key)))
+        @foreach (var group in FilteredEntries.GroupBy(e => e.Category).OrderBy(g => g.Min(Rank)).ThenBy(g => Array.IndexOf(CategoryOrder, g.Key)))
         {
             var expanded = IsExpanded(group.Key);
             <h2 class="h5 mt-4 mb-3 rf-spell-level-title">
@@ -202,7 +202,11 @@
             .Where(e => SelectedRuleset is null || e.Ruleset == SelectedRuleset)
             .Where(e => CategoryFilter is null || e.Category == CategoryFilter)
             .Where(e => string.IsNullOrWhiteSpace(SearchTerm) || Matches(e, SearchTerm.Trim()))
+            .OrderBy(Rank)
             .ToList();
+
+    //	The entry named like the search first (OrderBy keeps the order of the others)
+    private int Rank(RuleEntryResponseDto e) => SearchRank.Of(SearchTerm, e.Name, e.Aliases);
 
     private static bool Matches(RuleEntryResponseDto entry, string term) =>
         entry.Name.Contains(term, StringComparison.OrdinalIgnoreCase)

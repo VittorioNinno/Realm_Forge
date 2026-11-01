@@ -131,7 +131,7 @@
             <button type="button" class="btn btn-sm btn-rf-outline" @onclick="() => SetAllGroups(true)" data-test="feat-expand-all">@UiText.BtnExpandAll(LanguageState.CurrentLanguage)</button>
             <button type="button" class="btn btn-sm btn-rf-outline" @onclick="() => SetAllGroups(false)" data-test="feat-collapse-all">@UiText.BtnCollapseAll(LanguageState.CurrentLanguage)</button>
         </div>
-        @foreach (var group in FilteredFeats.GroupBy(f => f.Category).OrderBy(g => g.Key))
+        @foreach (var group in FilteredFeats.GroupBy(f => f.Category).OrderBy(g => g.Min(f => SearchRank.Of(SearchTerm, f.Name))).ThenBy(g => g.Key))
         {
             var expanded = IsExpanded(group.Key);
             <h2 class="h5 mt-4 mb-3 rf-spell-level-title">
@@ -504,7 +504,8 @@
             .Where(f => OriginFilter switch { "srd" => f.IsOfficialSRD, "homebrew" => !f.IsOfficialSRD, _ => true })
             .Where(f => string.IsNullOrWhiteSpace(SearchTerm)
                         || f.Name.Contains(SearchTerm.Trim(), StringComparison.OrdinalIgnoreCase)
-                        || f.ShortDescription.Contains(SearchTerm.Trim(), StringComparison.OrdinalIgnoreCase));
+                        || f.ShortDescription.Contains(SearchTerm.Trim(), StringComparison.OrdinalIgnoreCase))
+            .OrderBy(f => SearchRank.Of(SearchTerm, f.Name));
 
     //	Open and closed categories: closed by default (the page reads as an index), open as soon as a filter or a search
     //	narrows the list; the user's toggles win until the filters change again
