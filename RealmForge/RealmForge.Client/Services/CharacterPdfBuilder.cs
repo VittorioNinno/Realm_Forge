@@ -51,6 +51,13 @@ namespace RealmForge.Client.Services
 					$"{UiText.SheetSaveShort(lang)} {Mod(c.SaveBonus(ability))}", c.SaveProficiencies.Contains(ability)));
 			}
 
+			//	Abilities added by rule modules (Fortuna), next to the six
+			foreach (var extra in c.ExtraAbilities)
+			{
+				data.Abilities.Add(new PdfAbility(extra.Definition.Name(lang), extra.Score, Mod(extra.Modifier),
+					extra.HasSave ? $"{UiText.SheetSaveShort(lang)} {Mod(extra.SaveBonus)}" : "—", extra.SaveProficient));
+			}
+
 			// Conditions and inspiration, under the abilities
 			var states = new List<string>();
 			states.AddRange(sheet.Conditions.Select(k => conditions.FirstOrDefault(x => x.Key == k)?.Name ?? k));
