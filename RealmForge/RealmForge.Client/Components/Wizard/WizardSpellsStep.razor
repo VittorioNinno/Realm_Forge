@@ -33,8 +33,38 @@
     <div class="rf-wizard-panel mb-3" data-test="wizard-spellcasting">
         <div class="rf-wizard-block-title">@SourceName(info)</div>
         <div class="small mb-2" style="color: var(--rf-text-secondary);">@UiText.SheetSpellcasting(info.Ability, info.SaveDc, info.AttackBonus, Lang)</div>
-        <SpellPicker W="W" Title="@UiText.LabelCantrips(Lang)" Chosen="lists.Value.Cantrips" List="info.SpellList" Max="info.Cantrips" MinLevel="0" MaxLevel="0" Search="@search" TakenBy="TakenElsewhere(lists.Value.Cantrips, lists.Value.Spells)" DataTest="wizard-cantrip" />
-        <SpellPicker W="W" Title="@UiText.LabelLeveledSpells(info.MaxSpellLevel, Lang)" Chosen="lists.Value.Spells" List="info.SpellList" Max="info.Spells" MinLevel="1" MaxLevel="info.MaxSpellLevel" Search="@search" TakenBy="TakenElsewhere(lists.Value.Cantrips, lists.Value.Spells)" DataTest="wizard-spell" />
+        @{
+            var (extraIds, otherLists, anyList) = ExtraLists(info);
+        }
+        @if (info.Always.Count > 0)
+        {
+            <div class="rf-wizard-counter">@UiText.SpellAlwaysPreparedTitle(Lang)</div>
+            <div class="rf-wizard-pills mb-3" data-test="wizard-always-prepared">
+                @foreach (var spell in info.Always.Select(id => Context.Spells.FirstOrDefault(s => s.Id == id)).OfType<ContextSpell>().OrderBy(s => s.Level).ThenBy(s => s.Name))
+                {
+                    <span class="rf-wizard-pill locked">@spell.Name</span>
+                }
+            </div>
+        }
+        <SpellPicker W="W" Title="@UiText.LabelCantrips(Lang)" Chosen="lists.Value.Cantrips" List="info.SpellList" Max="info.Cantrips" MinLevel="0" MaxLevel="0" Search="@search" TakenBy="TakenElsewhere(lists.Value.Cantrips, lists.Value.Spells)"
+                     ExtraIds="extraIds" OtherLists="otherLists" AnyList="anyList" DataTest="wizard-cantrip" />
+        <SpellPicker W="W" Title="@UiText.LabelLeveledSpells(info.MaxSpellLevel, Lang)" Chosen="lists.Value.Spells" List="info.SpellList" Max="info.Spells" MinLevel="1" MaxLevel="info.MaxSpellLevel" Search="@search" TakenBy="TakenElsewhere(lists.Value.Cantrips, lists.Value.Spells)"
+                     ExtraIds="extraIds" OtherLists="otherLists" AnyList="anyList" DataTest="wizard-spell" />
+    </div>
+}
+
+@if (Computed.InnateSpells.Count > 0)
+{
+    any = true;
+    <div class="rf-wizard-panel mb-3" data-test="wizard-innate-spells">
+        <div class="rf-wizard-block-title">@UiText.SpellInnateTitle(Lang)</div>
+        <div class="small mb-2" style="color: var(--rf-text-muted);">@UiText.SpellInnateHint(Lang)</div>
+        <div class="rf-wizard-pills">
+            @foreach (var innate in Computed.InnateSpells)
+            {
+                <span class="rf-wizard-pill locked" title="@InnateSource(innate)">@innate.Spell.Name</span>
+            }
+        </div>
     </div>
 }
 
@@ -58,6 +88,11 @@
     //	The lists the choices of a source are saved in
     private (List<Guid> Cantrips, List<Guid> Spells)? Lists(SpellcastingInfo info)
     {
+        //	The subclass cantrip (2014 Nature Domain) is chosen with the subclass
+        if (info.Source == "subclass")
+        {
+            return null;
+        }
         if (info.Class is { } cls)
         {
             return (cls.Build.Cantrips, cls.Build.Spells);
@@ -90,12 +125,40 @@
                 Add(lists.Cantrips.Concat(lists.Spells), SourceName(info));
             }
         }
+        foreach (var info in Computed.Spellcasting.Where(s => s.Always.Count > 0))
+        {
+            Add(info.Always, UiText.SpellAlwaysPrepared(info.Class?.Subclass?.Name ?? SourceName(info), Lang));
+        }
+        foreach (var innate in Computed.InnateSpells)
+        {
+            taken.TryAdd(innate.Spell.Id, InnateSource(innate));
+        }
+        foreach (var info in Computed.Classes.Where(c => c.Build.SubclassCantrips.Count > 0 && !ReferenceEquals(c.Build.SubclassCantrips, mine)))
+        {
+            Add(info.Build.SubclassCantrips, info.Subclass?.Name ?? info.Class.Name);
+        }
         foreach (var info in Computed.Classes.Where(c => c.Build.StyleCantrips.Count > 0 && !ReferenceEquals(c.Build.StyleCantrips, mine)))
         {
             Add(info.Build.StyleCantrips, $"{info.Class.Name} · {UiText.LabelStyleCantrips(Lang)}");
         }
         return taken;
     }
+
+    //	2014 patrons' expanded list; bard Magical Secrets / Lore spells from other lists
+    private (HashSet<Guid>? Ids, IReadOnlyList<SpellcastingClass>? Lists, bool Any) ExtraLists(SpellcastingInfo info)
+    {
+        if (info.Class is not { } cls)
+        {
+            return (null, null, false);
+        }
+        var keys = SubclassSpells.Expanded(Ruleset, cls.Subclass?.Key);
+        var ids = keys.Count == 0 ? null : Context.Spells.Where(s => s.Key is not null && keys.Contains(s.Key)).Select(s => s.Id).ToHashSet();
+        var (_, offList, lists) = CharacterTraits.ExtraSpellLists(Ruleset, cls.Class, cls.Subclass?.Key, cls.Level);
+        return offList <= 0 ? (ids, null, false) : lists is null ? (ids, null, true) : (ids, lists, false);
+    }
+
+    private string InnateSource(InnateSpellInfo innate) =>
+        innate.Source == "species" ? UiText.SpellSourceSpecies(Ruleset, Lang) : innate.Source == "subclass" ? UiText.SpellSourceSubclass(Lang) : innate.Source;
 
     private string SourceName(SpellcastingInfo info) => info.Class is { } cls
         ? cls.Subclass is { } sub && cls.Class.CasterProgression == CasterProgression.None ? $"{cls.Class.Name} · {sub.Name}" : cls.Class.Name

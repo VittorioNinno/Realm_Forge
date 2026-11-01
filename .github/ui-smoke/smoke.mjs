@@ -784,6 +784,7 @@ try {
   characterAudits.push(await overflowOf(page, 'sheet'));
   const sheetName = (await page.locator('[data-test=sheet-name]').innerText()).trim();
   const sheetAc = (await page.locator('[data-test=sheet-ac]').innerText()).trim();
+  const sheetSenses = (await page.locator('[data-test=sheet-senses]').innerText()).replace(/\s+/g, ' ').trim();
   const sheetHp = (await page.locator('[data-test=sheet-hp]').innerText()).trim();
   // Advancement type: chosen in the wizard only (no switch on the sheet); XP-based shows the bar, 300 XP make level 2 ready
   await page.locator('[data-test=sheet-xp]').waitFor({ timeout: 10000 });
@@ -1150,6 +1151,7 @@ try {
 
   results.push(`INFO character: steps 2014="${step2014}" 2024="${step2024}" | spells=${chosenSpells} | AC preview=${previewAc} summary=${summaryAc} sheet=${sheetAc} | HP summary=${summaryHp} sheet=${sheetHp} after 3 damage and reload=${afterReload} after long rest=${afterRest} | tabs=${JSON.stringify(tabs)} | pdf=${pdfHead.trim()} ${pdfSize} bytes | level up: ${classes} HP=${levelUpHp} | card: ${characterCard}`);
   if (!/razza/i.test(step2014) || !/classe/i.test(step2024)) throw new Error('the wizard steps do not follow the edition');
+  if (!/Scurovisione 36 m/.test(sheetSenses)) throw new Error(`dwarf darkvision missing on the sheet: ${sheetSenses}`);
   if (sheetName !== 'Eroe di prova' || sheetAc !== summaryAc || sheetHp !== summaryHp || previewAc !== summaryAc) throw new Error('the saved character does not match the wizard');
   if (Number(afterReload) !== Number(sheetHp) - 3 || afterRest !== sheetHp) throw new Error('damage or rest not applied and saved');
   if (tabs.spells !== chosenSpells || tabs.items < 4) throw new Error('spells or inventory missing on the sheet');

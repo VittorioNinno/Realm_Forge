@@ -4,7 +4,7 @@ using System.Text.RegularExpressions;
 namespace RealmForge.Infrastructure.Persistence.Seeding;
 
 ///	<summary>
-///	Keys of every Base entry (species, subspecies, backgrounds, classes, subclasses, feats), read once from the seeders:
+///	Keys of every Base entry (species, subspecies, backgrounds, classes, subclasses, feats, spells), read once from the seeders:
 ///	"Dwarf2014Seeder.SpeciesId" → "dwarf", "HillDwarfSubspeciesId" → "hill-dwarf", "MagicInitiate2024Seeder.FeatId" →
 ///	"magic-initiate". The character rules use them to recognize the content they apply to.
 ///	</summary>
@@ -36,7 +36,7 @@ public static partial class BaseContentKeys
 				var name = field.Name;
 				string? key = name switch
 				{
-					"SpeciesId" or "BackgroundId" or "ClassId" or "SubclassId" or "FeatId" => typeKey,
+					"SpeciesId" or "BackgroundId" or "ClassId" or "SubclassId" or "FeatId" or "SpellId" => typeKey,
 					_ when name.EndsWith("SubspeciesId", StringComparison.Ordinal) && name.Length > "SubspeciesId".Length => Kebab(name[..^"SubspeciesId".Length]),
 					_ => null
 				};

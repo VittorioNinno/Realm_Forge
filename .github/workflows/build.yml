@@ -652,6 +652,7 @@ jobs:
           # then a level in fighter (multiclass), the sheet state, owner-only access and the refused choices
           ctx=$(get "$api/api/characters/context?ruleset=2&lang=1")
           ctx_counts=$(echo "$ctx" | jq -c '{classes: (.classes | length), species: (.species | length), backgrounds: (.backgrounds | length), feats: (.feats | length), spells: (.spells | length), items: (.items | length), wizardKits: ([.classes[] | select(.key == "wizard") | .equipment.kits[].letter] | join(",")), sageKeys: ([.backgrounds[] | select(.key == "sage") | .originFeatId != null] | .[0])}')
+          ctx_spell_keys=$(echo "$ctx" | jq -c '{keyed: ([.spells[] | select(.key != null)] | length) == (.spells | length), bless: ([.spells[] | select(.key == "bless")] | length)}')
           ctx_it=$(get "$api/api/characters/context?ruleset=1&lang=2" | jq -r '[.classes[] | select(.key == "fighter") | .equipment.rows[] | [.options[].letter] | join("")] | join(" ")')
           wizard=$(echo "$ctx" | jq -r '.classes[] | select(.key == "wizard") | .id')
           fighter=$(echo "$ctx" | jq -r '.classes[] | select(.key == "fighter") | .id')
@@ -821,6 +822,7 @@ jobs:
           chcheck "secret language" "$ch_bad_language" "400"
           chcheck "multiclass without Strength 13" "$ch_bad_multiclass" "400"
           chcheck "level up into fighter" "$ch_level2" '{"hp":19,"levels":2,"items":true}'
+          chcheck "spell keys in the context" "$ctx_spell_keys" '{"keyed":true,"bless":1}'
           chcheck "sheet saved" "$ch_sheet" '{"hp":19,"ac":12}'
           chcheck "sheet read back" "$ch_saved" '{"hp":5,"conditions":["prone"],"gp":99,"notes":"Test"}'
           chcheck "other sheet PUT" "$ch_bob_sheet" "404"
@@ -934,6 +936,8 @@ jobs:
   ui:
     runs-on: ubuntu-24.04
     needs: build
+    permissions:
+      contents: write
     services:
       postgres:
         image: postgres:17
@@ -988,6 +992,16 @@ jobs:
           npm install playwright@1 >/dev/null
           npx playwright install --with-deps chromium >/dev/null
           node smoke.mjs
+
+      - name: TEMP push the screenshots to a review branch
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          cd .github/ui-smoke/shots || exit 0
+          git init -q -b shots . && git add -A
+          git -c user.name=ci -c user.email=ci@localhost commit -qm "shots ${GITHUB_SHA}"
+          git push -qf "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" shots:refs/heads/ci-shots/${GITHUB_SHA::8}
 
       - name: Keep the screenshots of the smoke test
         if: always()
