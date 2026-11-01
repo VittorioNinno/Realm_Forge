@@ -36,6 +36,10 @@
         {
             <div class="rf-dice-note">@current.Note</div>
         }
+        @if (SharedNote is { Length: > 0 } shared)
+        {
+            <div class="rf-dice-shared" data-test="dice-shared"><Icon Name="share" /> @shared</div>
+        }
         @if (history.Count > 1)
         {
             <ul class="rf-dice-history">
@@ -50,6 +54,12 @@
 
 @code {
     [Inject] private LanguageStateService LanguageState { get; set; } = default!;
+
+    //	Called with every roll shown (the sheet sends it to the dice log of its campaigns)
+    [Parameter] public EventCallback<DiceRollResult> OnRoll { get; set; }
+
+    //	Shown under the result when the rolls go to a shared log
+    [Parameter] public string? SharedNote { get; set; }
 
     private DiceRollResult? current;
     private readonly List<DiceRollResult> history = new();
@@ -70,6 +80,10 @@
         var cts = animation = new CancellationTokenSource();
         current = roll;
         history.Insert(0, roll);
+        if (OnRoll.HasDelegate)
+        {
+            _ = OnRoll.InvokeAsync(roll);
+        }
         if (history.Count > 6)
         {
             history.RemoveAt(history.Count - 1);

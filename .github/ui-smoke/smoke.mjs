@@ -1083,6 +1083,41 @@ try {
   for (let i = 0; i < 4; i++) await page.locator('[data-test=encounter-next]').click();
   await page.locator('[data-test=encounter-round]', { hasText: 'Round 2' }).waitFor({ timeout: 15000 });
   campaignUi.current = await page.locator('.rf-combatant.current').count();
+  // Sessions: the master plans the next one (date, plan, notes behind the screen); the overview shows it
+  await page.locator('[data-test=campaign-tab-sessions]').click();
+  await page.locator('[data-test=session-new]').click();
+  await page.locator('[data-test=session-title]').fill('La cripta');
+  const sessionDay = new Date(Date.now() + 3 * 86400000);
+  const pad = (n) => String(n).padStart(2, '0');
+  await page.locator('[data-test=session-when]').fill(`${sessionDay.getFullYear()}-${pad(sessionDay.getMonth() + 1)}-${pad(sessionDay.getDate())}T21:00`);
+  await page.locator('[data-test=session-plan]').fill('Portate i dadi e la mappa.');
+  await page.locator('[data-test=session-master-notes]').fill('Il lich è il sindaco.');
+  await page.locator('[data-test=session-save]').click();
+  await page.locator('[data-test=session]', { hasText: 'La cripta' }).waitFor({ timeout: 15000 });
+  campaignUi.session = (await page.locator('[data-test=session]').first().innerText()).replace(/\s+/g, ' ').trim();
+  await shot(page, 'campaign-sessions', 'main');
+  // The shared dice table: a roll of the roller, then one made on the sheet of the character at the table
+  await page.locator('[data-test=campaign-tab-rolls]').click();
+  await page.locator('[data-test=roll-expression]').fill('2d6+3');
+  await page.locator('[data-test=roll-label]').fill('Danni della spada');
+  await page.locator('[data-test=roll-go]').click();
+  await page.locator('[data-test=roll]', { hasText: 'Danni della spada' }).waitFor({ timeout: 15000 });
+  await page.goto(sheetUrl);
+  await page.locator('[data-test=sheet-initiative]').click();
+  campaignUi.sheetShared = await page.locator('[data-test=dice-shared]').count();
+  await page.waitForTimeout(1500);
+  await page.goto(campaignUrl);
+  await page.locator('[data-test=campaign-title]').waitFor({ timeout: 30000 });
+  campaignUi.nextSession = (await page.locator('[data-test=campaign-next-session]').innerText()).replace(/\s+/g, ' ').trim();
+  await shot(page, 'campaign-next-session', '[data-test=campaign-next-session]');
+  await page.locator('[data-test=campaign-tab-rolls]').click();
+  await page.locator('[data-test=roll]', { hasText: 'Iniziativa' }).waitFor({ timeout: 15000 });
+  campaignUi.rolls = (await page.locator('[data-test=roll] [data-test=roll-label-text]').allInnerTexts()).join(',');
+  await shot(page, 'campaign-rolls', 'main');
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.waitForTimeout(300);
+  await shot(page, 'phone-campaign-rolls', 'main');
+  await page.setViewportSize({ width: 1280, height: 900 });
   // From the sheet, the owner takes the character out of the campaign
   await page.goto(sheetUrl);
   await page.locator('[data-test=sheet-campaign]').click();
@@ -1122,7 +1157,10 @@ try {
   if (campaignUi.role !== 'Master' || !campaignUi.link || campaignUi.share !== 1 || campaignUi.notes !== 1
     || campaignUi.combatants !== 4 || campaignUi.goblins !== 3 || !campaignUi.hero || campaignUi.sheetLink !== 1 || !/^(Facile|Medio|Difficile|Mortale)$/.test(campaignUi.rating) || campaignUi.current !== 1
     || campaignUi.binKind !== 'CAMPAGNA' || !campaignUi.restored || !campaignUi.purged
-    || campaignUi.cardButtons !== 0 || !campaignUi.cardOpens || campaignUi.listActions !== 2 || !campaignUi.toggled || campaignUi.noteKinds !== 'Diario di viaggio,Personali,Per i master' || campaignUi.leftFromSheet !== 1) throw new Error(`unexpected campaign page: ${JSON.stringify(campaignUi)}`);
+    || campaignUi.cardButtons !== 0 || !campaignUi.cardOpens || campaignUi.listActions !== 2 || !campaignUi.toggled || campaignUi.noteKinds !== 'Diario di viaggio,Personali,Per i master' || campaignUi.leftFromSheet !== 1
+    || !/Prossima sessione/.test(campaignUi.session) || !/tra 3 giorni/.test(campaignUi.session) || !/Il lich/.test(campaignUi.session)
+    || !/Sessione 1/.test(campaignUi.nextSession) || !/21:00/.test(campaignUi.nextSession) || campaignUi.sheetShared !== 1
+    || campaignUi.rolls !== 'Iniziativa,Danni della spada') throw new Error(`unexpected campaign page: ${JSON.stringify(campaignUi)}`);
   ok('campaigns: the creator is the master with an invite link, the character joins the table (the whole card opens the sheet, deactivated and activated again; its card in the list shows the campaign), a journal page, an encounter with three goblins run to round 2, the character leaves from its sheet, the campaign is deleted, restored from the bin, deleted again and purged');
   await page.goto(sheetUrl);
   await page.locator('[data-test=character-sheet]').waitFor({ timeout: 30000 });
