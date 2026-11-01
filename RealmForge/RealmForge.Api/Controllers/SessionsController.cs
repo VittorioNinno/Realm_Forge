@@ -213,8 +213,7 @@ namespace RealmForge.Api.Controllers
 				query = query.Where(r => r.CreatedAt > utc);
 			}
 			var rows = await query.OrderByDescending(r => r.CreatedAt).Take(100).ToListAsync();
-			var names = await PublicNames.LoadAsync(_context, rows.Select(r => r.UserId));
-			return Ok(rows.Select(r => ToDto(r, names)).ToList());
+			return Ok(rows.Select(ToDto).ToList());
 		}
 
 		//	POST: api/campaigns/{campaignId}/rolls
@@ -236,7 +235,13 @@ namespace RealmForge.Api.Controllers
 				return Problem(statusCode: StatusCodes.Status400BadRequest, title: "The label is too long.");
 			}
 
-			var roll = new CampaignRoll { CampaignId = campaignId, UserId = UserId, Label = label, Note = note, Hidden = dto.Hidden };
+			//	The roll keeps the colour of whoever made it and the name it is shown with
+			var colors = await CampaignAccess.EnsureColorsAsync(_context, campaignId);
+			var roll = new CampaignRoll
+			{
+				CampaignId = campaignId, UserId = UserId, Label = label, Note = note, Hidden = dto.Hidden,
+				Color = colors.GetValueOrDefault(UserId, PlayerColors.Master)
+			};
 			if (dto.CharacterId is { } characterId)
 			{
 				//	A roll for a character of this table, by someone who can play it (the owner, a master, a co-master)
@@ -254,6 +259,18 @@ namespace RealmForge.Api.Controllers
 				}
 				roll.CharacterId = characterId;
 				roll.CharacterName = character.Name.Length > 100 ? character.Name[..100] : character.Name;
+				roll.Roller = roll.CharacterName;
+			}
+			else
+			{
+				//	Without a character: the role for masters and co-masters, the nickname for a player
+				var nickname = (await PublicNames.LoadAsync(_context, new[] { UserId })).GetValueOrDefault(UserId, "•••");
+				roll.Roller = role switch
+				{
+					CampaignRole.Master => "Master",
+					CampaignRole.CoMaster => "Co-master",
+					_ => nickname.Length > 100 ? nickname[..100] : nickname
+				};
 			}
 
 			if (dto.Dice is { Count: > 0 } dice)
@@ -300,8 +317,7 @@ namespace RealmForge.Api.Controllers
 				await _context.SaveChangesAsync();
 			}
 
-			var names = await PublicNames.LoadAsync(_context, new[] { UserId });
-			return Ok(ToDto(roll, names));
+			return Ok(ToDto(roll));
 		}
 
 		//	DELETE: api/campaigns/{campaignId}/rolls — the master clears the log
@@ -320,8 +336,8 @@ namespace RealmForge.Api.Controllers
 			return NoContent();
 		}
 
-		private CampaignRollDto ToDto(CampaignRoll r, Dictionary<string, string> names) =>
-			new(r.Id, names.GetValueOrDefault(r.UserId, "•••"), r.CharacterName, r.Label, r.Expression, Read(r.Dice), r.Modifier, r.Total,
+		private CampaignRollDto ToDto(CampaignRoll r) =>
+			new(r.Id, string.IsNullOrEmpty(r.Roller) ? "•••" : r.Roller, r.Color, r.CharacterId is not null, r.Label, r.Expression, Read(r.Dice), r.Modifier, r.Total,
 				r.Note, r.Hidden, r.UserId == UserId, r.CreatedAt);
 
 		private static List<RollDieDto> Read(string json)
@@ -358,5 +374,25 @@ namespace RealmForge.Api.Controllers
 	{
 		public static async Task<CampaignRole?> RoleAsync(RealmForgeDbContext context, Guid campaignId, string userId) =>
 			await context.CampaignMembers.Where(m => m.CampaignId == campaignId && m.UserId == userId).Select(m => (CampaignRole?)m.Role).FirstOrDefaultAsync();
+
+		///	<summary>
+		///	Gives a colour to the members who have none yet (members from before the colours, a restored campaign) and
+		///	returns the colour shown for each member: orange for the masters.
+		///	</summary>
+		public static async Task<Dictionary<string, string>> EnsureColorsAsync(RealmForgeDbContext context, Guid campaignId)
+		{
+			var members = await context.CampaignMembers.Where(m => m.CampaignId == campaignId).OrderBy(m => m.JoinedAt).ToListAsync();
+			var changed = false;
+			foreach (var member in members.Where(m => string.IsNullOrEmpty(m.Color)))
+			{
+				member.Color = PlayerColors.Pick(members.Select(m => m.Color));
+				changed = true;
+			}
+			if (changed)
+			{
+				await context.SaveChangesAsync();
+			}
+			return members.ToDictionary(m => m.UserId, m => PlayerColors.Of(m.Role, m.Color));
+		}
 	}
 }

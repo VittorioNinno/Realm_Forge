@@ -7781,7 +7781,33 @@ textarea.rf-form-control {
     color: var(--rf-text-secondary);
 }
 
-.rf-roll.mine .rf-roll-name { color: var(--rf-orange-primary); }
+.rf-roll.mine .rf-roll-name { text-decoration: underline; text-underline-offset: 4px; }
+
+/* The colour of the person who rolled: a dot before the name, the name in the same colour */
+.rf-roll-swatch {
+    display: inline-block;
+    flex: 0 0 auto;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    align-self: center;
+    box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.4);
+}
+
+.rf-roll-as-fixed {
+    display: flex;
+    align-items: center;
+    color: var(--rf-text-secondary);
+}
+
+.rf-member-swatch {
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    margin-right: 8px;
+    border-radius: 50%;
+    vertical-align: middle;
+}
 
 .rf-roll-hidden {
     display: inline-flex;
