@@ -1094,13 +1094,13 @@
                     <div class="rf-card2-head"><span>@UiText.SheetFeaturesOf(info.Class.Name, info.Level, Lang)</span></div>
                     @foreach (var feature in detail.Features.Where(f => f.Level <= info.Level).OrderBy(f => f.Level).ThenBy(f => f.SortOrder))
                     {
-                        <FeatureBlock Title="@feature.Name" Text="@feature.Description" Level="feature.Level" Ruleset="Ruleset" />
+                        <FeatureBlock Title="@feature.Name" Text="@feature.Description" Level="feature.Level" Ruleset="Ruleset" Effects="feature.Effects" />
                     }
                     @if (detail.Subclasses.FirstOrDefault(s => s.Id == info.Subclass?.Id) is { } subclass)
                     {
                         @foreach (var feature in subclass.Features.Where(f => f.Level <= info.Level).OrderBy(f => f.Level).ThenBy(f => f.SortOrder))
                         {
-                            <FeatureBlock Title="@feature.Name" Text="@feature.Description" Level="feature.Level" Badge="@subclass.Name" Ruleset="Ruleset" />
+                            <FeatureBlock Title="@feature.Name" Text="@feature.Description" Level="feature.Level" Badge="@subclass.Name" Ruleset="Ruleset" Effects="feature.Effects" />
                         }
                     }
                 </section>

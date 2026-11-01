@@ -8198,3 +8198,18 @@ textarea.rf-form-control {
 .rf-stat-card-extra {
     border-color: var(--rf-orange-primary);
 }
+
+/* Effects of a Homebrew entry: what the sheet applies on its own */
+.rf-effect-box {
+    margin-top: 8px;
+    padding: 8px 16px;
+    border-radius: 8px;
+    border-left: 3px solid var(--rf-orange-primary);
+    background-color: var(--rf-bg-main);
+}
+
+.rf-effects-details > summary {
+    cursor: pointer;
+    font-size: .85rem;
+    color: var(--rf-orange-primary);
+}

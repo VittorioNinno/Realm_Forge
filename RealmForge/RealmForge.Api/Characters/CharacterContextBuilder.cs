@@ -65,8 +65,20 @@ namespace RealmForge.Api.Characters
 				.Where(m => listed.Contains(m.Id) || extra.Contains(m.Id))
 				.ToListAsync();
 			var contextModules = modules
-				.Select(m => new ContextModule(m.Id, m.Translations.Localize(lang)?.Name ?? string.Empty, RealmForge.Api.Controllers.RuleModulesController.Read(m.Effects)))
+				.Select(m => new ContextModule(m.Id, m.Translations.Localize(lang)?.Name ?? string.Empty, RuleEffectJson.Read(m.Effects)))
 				.OrderBy(m => m.Name, StringComparer.CurrentCultureIgnoreCase).ToList();
+
+			//	Rule effects of the Homebrew class and subclass features, from the level of the feature (class level)
+			var classIds = classes.Select(c => c.Id).Concat(classes.SelectMany(c => c.Subclasses).Select(x => x.Id)).ToList();
+			var featureEffects = (await _context.ClassFeatures.AsNoTracking()
+					.Where(f => !f.IsOfficialSRD && ((f.CharacterClassId != null && classIds.Contains(f.CharacterClassId.Value)) || (f.SubclassId != null && classIds.Contains(f.SubclassId.Value))))
+					.Select(f => new { f.CharacterClassId, f.SubclassId, f.Level, f.Effects })
+					.ToListAsync())
+				.Select(f => (Owner: f.SubclassId ?? f.CharacterClassId!.Value, Effects: RuleEffectJson.Read(f.Effects).Select(e => { e.Level = Math.Max(e.Level, f.Level); return e; }).ToList()))
+				.GroupBy(f => f.Owner)
+				.ToDictionary(g => g.Key, g => g.SelectMany(f => f.Effects).ToList());
+			List<RuleEffect>? FeatureEffects(Guid id) => featureEffects.TryGetValue(id, out var list) && list.Count > 0 ? list : null;
+			static List<RuleEffect>? Effects(string json, bool isBase) => isBase ? null : RuleEffectJson.Read(json) is { Count: > 0 } list ? list : null;
 
 			string? Key(Guid id, bool isBase) => isBase ? BaseContentKeys.Of(id) : null;
 
@@ -79,18 +91,20 @@ namespace RealmForge.Api.Characters
 					c.Id, local?.Name ?? string.Empty, key, c.HitDie, c.PrimaryAbilities, c.SavingThrows, c.SkillChoiceCount, c.SkillOptions,
 					c.CasterProgression, c.SpellcastingAbility, BaseClassKeys.SpellList(key), c.SubclassLevel, en?.ProgressionTable,
 					c.Subclasses.Where(s => _access.IsListed(s, user, shared, c))
-						.Select(s => new ContextSubclass(s.Id, s.Translations.Localize(lang)?.Name ?? string.Empty, Key(s.Id, s.IsOfficialSRD), s.CasterProgression, s.SpellcastingAbility))
+						.Select(s => new ContextSubclass(s.Id, s.Translations.Localize(lang)?.Name ?? string.Empty, Key(s.Id, s.IsOfficialSRD), s.CasterProgression, s.SpellcastingAbility, FeatureEffects(s.Id)))
 						.OrderBy(s => s.Name, StringComparer.CurrentCultureIgnoreCase)
 						.ToList(),
-					CharacterTextRules.Loadout(en?.StartingEquipment, local?.StartingEquipment, false, null, lang, matcher.Find));
+					CharacterTextRules.Loadout(en?.StartingEquipment, local?.StartingEquipment, false, null, lang, matcher.Find),
+					FeatureEffects(c.Id));
 			}).OrderBy(c => c.Name, StringComparer.CurrentCultureIgnoreCase).ToList();
 
 			var contextSpecies = species.Select(s => new ContextSpecies(
 				s.Id, s.Translations.Localize(lang)?.Name ?? string.Empty, Key(s.Id, s.IsOfficialSRD), s.AllowedSizes, s.BaseSpeedInFeet,
 				s.Subspecies.Where(x => _access.IsListed(x, user, shared, s))
-					.Select(x => new ContextSubspecies(x.Id, x.Translations.Localize(lang)?.Name ?? string.Empty, Key(x.Id, x.IsOfficialSRD), x.BaseSpeedOverrideInFeet))
+					.Select(x => new ContextSubspecies(x.Id, x.Translations.Localize(lang)?.Name ?? string.Empty, Key(x.Id, x.IsOfficialSRD), x.BaseSpeedOverrideInFeet, Effects(x.Effects, x.IsOfficialSRD)))
 					.OrderBy(x => x.Name, StringComparer.CurrentCultureIgnoreCase)
-					.ToList()))
+					.ToList(),
+				Effects(s.Effects, s.IsOfficialSRD)))
 				.OrderBy(s => s.Name, StringComparer.CurrentCultureIgnoreCase).ToList();
 
 			var contextBackgrounds = backgrounds.Select(b =>
@@ -108,7 +122,7 @@ namespace RealmForge.Api.Characters
 				var (increases, maximum) = CharacterTextRules.FeatIncreases(f.Translations.Localize(LanguageCode.En)?.Description);
 				return new ContextFeat(
 					f.Id, f.Translations.Localize(lang)?.Name ?? string.Empty, Key(f.Id, f.IsOfficialSRD), f.Category, f.PrerequisiteMinimumLevel,
-					f.PrerequisiteAbilities, f.PrerequisiteMinimumScore, f.PrerequisiteFeature, increases, maximum);
+					f.PrerequisiteAbilities, f.PrerequisiteMinimumScore, f.PrerequisiteFeature, increases, maximum, Effects(f.Effects, f.IsOfficialSRD));
 			}).OrderBy(f => f.Name, StringComparer.CurrentCultureIgnoreCase).ToList();
 
 			var contextSpells = spells

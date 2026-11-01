@@ -105,6 +105,7 @@ namespace RealmForge.Infrastructure.Persistence
 			//	Species configuration
 			modelBuilder.Entity<Species>(entity =>
 			{
+				entity.Property(s => s.Effects).IsRequired().HasColumnType("jsonb").HasDefaultValue("[]");
 				entity.HasKey(e => e.Id);
 				entity.Property(e => e.BaseSpeedInFeet).IsRequired();
 				entity.Property(e => e.CreatureType).IsRequired();
@@ -145,6 +146,7 @@ namespace RealmForge.Infrastructure.Persistence
 			//	Subspecies configuration
 			modelBuilder.Entity<Subspecies>(entity =>
 			{
+				entity.Property(s => s.Effects).IsRequired().HasColumnType("jsonb").HasDefaultValue("[]");
 				entity.HasKey(e => e.Id);
 				entity.Property(e => e.Ruleset).IsRequired();
 				entity.Property(e => e.IsOfficialSRD).IsRequired();
@@ -199,7 +201,6 @@ namespace RealmForge.Infrastructure.Persistence
 				entity.HasIndex(t => new { t.TraitId, t.Language }).IsUnique();
 			});
 
-			//	Feats configuration
 			//	Homebrew rule modules: effects as JSON, a translation per language
 			modelBuilder.Entity<RuleModule>(entity =>
 			{
@@ -220,8 +221,11 @@ namespace RealmForge.Infrastructure.Persistence
 				entity.HasIndex(t => new { t.RuleModuleId, t.Language }).IsUnique();
 			});
 
+			//	Feats configuration
 			modelBuilder.Entity<Feat>(entity =>
 			{
+				//	Rule effects of a Homebrew feat (JSON list of RuleEffect), empty for Base content
+				entity.Property(f => f.Effects).IsRequired().HasColumnType("jsonb").HasDefaultValue("[]");
 				entity.HasKey(f => f.Id);
 				entity.Property(f => f.Category).IsRequired();
 				entity.Property(f => f.Ruleset).IsRequired();
@@ -712,6 +716,7 @@ namespace RealmForge.Infrastructure.Persistence
 			//	Class features configuration: each feature belongs to exactly one class or one subclass
 			modelBuilder.Entity<ClassFeature>(entity =>
 			{
+				entity.Property(f => f.Effects).IsRequired().HasColumnType("jsonb").HasDefaultValue("[]");
 				entity.ToTable(t =>
 				{
 					t.HasCheckConstraint("CK_ClassFeatures_Level", "\"Level\" BETWEEN 1 AND 20");

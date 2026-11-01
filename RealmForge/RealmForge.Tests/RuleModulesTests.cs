@@ -157,4 +157,32 @@ public class RuleModulesTests
 		}));
 		Assert.Equal("Text", RuleEffectRules.Validate(new[] { new RuleEffect { Kind = RuleEffectKind.ArmorTraining, Text = "mithral" } }));
 	}
+
+	[Fact]
+	public void Homebrew_species_and_class_features_apply_their_effects_from_their_level()
+	{
+		var fighter = Fighter() with
+		{
+			Effects = new List<RuleEffect>
+			{
+				new() { Kind = RuleEffectKind.ArmorClass, Value = 1, Level = 1 },
+				new() { Kind = RuleEffectKind.Initiative, Value = 3, Level = 3 }
+			}
+		};
+		var context = Context(RulesetVersion.Dnd5e_2024, fighter, Fortuna());
+		context = context with
+		{
+			Species = new List<ContextSpecies> { context.Species[0] with { Effects = new List<RuleEffect> { new() { Kind = RuleEffectKind.Darkvision, Value = 60 } } } }
+		};
+
+		var first = CharacterCalculator.Compute(Input(RulesetVersion.Dnd5e_2024, context, 1, chooseModule: false), context);
+		var third = CharacterCalculator.Compute(Input(RulesetVersion.Dnd5e_2024, context, 3, chooseModule: false), context);
+		var plain = Context(RulesetVersion.Dnd5e_2024, Fighter(), Fortuna());
+		var baseline = CharacterCalculator.Compute(Input(RulesetVersion.Dnd5e_2024, plain, 3, chooseModule: false), plain);
+
+		Assert.Equal(60, first.Darkvision);
+		Assert.Equal(baseline.ArmorClass + 1, third.ArmorClass);
+		Assert.Equal(first.Initiative, baseline.Initiative);
+		Assert.Equal(baseline.Initiative + 3, third.Initiative);
+	}
 }

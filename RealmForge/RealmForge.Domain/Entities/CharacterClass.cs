@@ -93,6 +93,9 @@ namespace RealmForge.Domain.Entities
 	///	</summary>
 	public class ClassFeature : GameEntity
 	{
+		//	Homebrew rule effects (JSON list of RealmForge.Shared.Characters.RuleEffect) the sheet applies; "[]" for Base content
+		public string Effects { get; set; } = "[]";
+
 		public int Level { get; set; } = 1;
 
 		//	Order of the features gained at the same level
