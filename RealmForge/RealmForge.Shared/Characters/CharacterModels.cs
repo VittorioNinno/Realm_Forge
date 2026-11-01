@@ -26,6 +26,10 @@ public sealed class CharacterBuild
 	public FeatChoice SpeciesFeat { get; set; } = new();
 	public List<Guid> SpeciesCantrips { get; set; } = new();
 
+	//	Draconic ancestry (dragonborn) or giant ancestry (2024 goliath); the ability of the 2024 lineage / legacy spells
+	public string? SpeciesOption { get; set; }
+	public AbilityScore? SpeciesSpellAbility { get; set; }
+
 	//	Choices of the background's origin feat (2024), e.g. the spells of Magic Initiate
 	public FeatChoice OriginFeat { get; set; } = new();
 
@@ -69,6 +73,12 @@ public sealed class CharacterClassBuild
 
 	//	2024 cleric Divine Order / druid Primal Order
 	public string? Order { get; set; }
+
+	//	Choices of the subclass: skills (Lore, Knowledge, Nature, Battle Master, Fey Wanderer), a cantrip of another
+	//	list (2014 Nature Domain) and the land of the Circle of the Land
+	public List<Skill> SubclassSkills { get; set; } = new();
+	public List<Guid> SubclassCantrips { get; set; } = new();
+	public string? SubclassOption { get; set; }
 
 	public List<Guid> WeaponMasteries { get; set; } = new();
 }

@@ -30,6 +30,58 @@ namespace RealmForge.Domain.Entities
 		public ICollection<CampaignContent> Contents { get; set; } = new List<CampaignContent>();
 		public ICollection<CampaignNote> Notes { get; set; } = new List<CampaignNote>();
 		public ICollection<CampaignEncounter> Encounters { get; set; } = new List<CampaignEncounter>();
+		public ICollection<CampaignSession> Sessions { get; set; } = new List<CampaignSession>();
+		public ICollection<CampaignRoll> Rolls { get; set; } = new List<CampaignRoll>();
+	}
+
+	///	<summary>
+	///	A session of the campaign, numbered in order: its date, status, the plan the players read beforehand, the recap
+	///	afterwards and the notes of the masters (never sent to the players).
+	///	</summary>
+	public class CampaignSession
+	{
+		public Guid Id { get; set; } = Guid.NewGuid();
+		public Guid CampaignId { get; set; }
+		public Campaign Campaign { get; set; } = null!;
+		public int Number { get; set; }
+		public string Title { get; set; } = string.Empty;
+		public DateTimeOffset? ScheduledAt { get; set; }
+		public CampaignSessionStatus Status { get; set; } = CampaignSessionStatus.Planned;
+
+		//	Markdown
+		public string Plan { get; set; } = string.Empty;
+		public string Recap { get; set; } = string.Empty;
+		public string MasterNotes { get; set; } = string.Empty;
+
+		public string UpdatedById { get; set; } = string.Empty;
+		public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
+		public DateTimeOffset UpdatedAt { get; set; } = DateTimeOffset.UtcNow;
+	}
+
+	///	<summary>
+	///	A roll of the shared dice log: made on the campaign page (rolled by the server) or on a character sheet. Dice is
+	///	the JSON of the dice (sides, value, dropped). Only the last SessionRules.MaxRolls of a campaign are kept.
+	///	</summary>
+	public class CampaignRoll
+	{
+		public Guid Id { get; set; } = Guid.NewGuid();
+		public Guid CampaignId { get; set; }
+		public Campaign Campaign { get; set; } = null!;
+		public string UserId { get; set; } = string.Empty;
+		public Guid? CharacterId { get; set; }
+		public string? CharacterName { get; set; }
+
+		//	Name and colour shown for the roll, kept as they were when it was made (they survive the account)
+		public string Roller { get; set; } = string.Empty;
+		public string Color { get; set; } = PlayerColors.Master;
+		public string Label { get; set; } = string.Empty;
+		public string Expression { get; set; } = string.Empty;
+		public string Dice { get; set; } = "[]";
+		public int Modifier { get; set; }
+		public int Total { get; set; }
+		public string? Note { get; set; }
+		public bool Hidden { get; set; }
+		public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
 	}
 
 	///	<summary>
@@ -71,6 +123,9 @@ namespace RealmForge.Domain.Entities
 		public string UserId { get; set; } = string.Empty;
 		public CampaignRole Role { get; set; } = CampaignRole.Player;
 		public DateTimeOffset JoinedAt { get; set; } = DateTimeOffset.UtcNow;
+
+		//	Colour of the person's rolls (PlayerColors.Palette); a master is shown in orange whatever this says
+		public string? Color { get; set; }
 	}
 
 	///	<summary>

@@ -852,6 +852,7 @@ try {
   characterAudits.push(await overflowOf(page, 'sheet'));
   const sheetName = (await page.locator('[data-test=sheet-name]').innerText()).trim();
   const sheetAc = (await page.locator('[data-test=sheet-ac]').innerText()).trim();
+  const sheetSenses = (await page.locator('[data-test=sheet-senses]').innerText()).replace(/\s+/g, ' ').trim();
   const sheetHp = (await page.locator('[data-test=sheet-hp]').innerText()).trim();
   // Advancement type: chosen in the wizard only (no switch on the sheet); XP-based shows the bar, 300 XP make level 2 ready
   await page.locator('[data-test=sheet-xp]').waitFor({ timeout: 10000 });
@@ -1006,6 +1007,8 @@ try {
       await page.locator('[data-test=magic-template]').selectOption('ring-of-protection');
       await page.locator('[data-test=magic-save]').click();
       const ring = page.locator('[data-test=sheet-item]', { hasText: 'Anello di Protezione' });
+      // The dice tray of the earlier rolls floats over the bottom of the page: closed first
+      if (await page.locator('[data-test=sheet-last-roll]').count() > 0) await page.locator('[data-test=sheet-last-roll] .rf-dice-tray-close').click();
       await ring.locator('[data-test=sheet-item-equip]').click();
       await page.locator('[data-test=sheet-item]', { hasText: 'Anello di Protezione' }).locator('[data-test=sheet-item-attune]').click();
       tabs.ringAc = (await page.locator('[data-test=sheet-ac]').innerText()).trim();
@@ -1151,6 +1154,43 @@ try {
   for (let i = 0; i < 4; i++) await page.locator('[data-test=encounter-next]').click();
   await page.locator('[data-test=encounter-round]', { hasText: 'Round 2' }).waitFor({ timeout: 15000 });
   campaignUi.current = await page.locator('.rf-combatant.current').count();
+  // Sessions: the master plans the next one (date, plan, notes behind the screen); the overview shows it
+  await page.locator('[data-test=campaign-tab-sessions]').click();
+  await page.locator('[data-test=session-new]').click();
+  await page.locator('[data-test=session-title]').fill('La cripta');
+  const sessionDay = new Date(Date.now() + 3 * 86400000);
+  const pad = (n) => String(n).padStart(2, '0');
+  await page.locator('[data-test=session-when]').fill(`${sessionDay.getFullYear()}-${pad(sessionDay.getMonth() + 1)}-${pad(sessionDay.getDate())}T21:00`);
+  await page.locator('[data-test=session-plan]').fill('Portate i dadi e la mappa.');
+  await page.locator('[data-test=session-master-notes]').fill('Il lich è il sindaco.');
+  await page.locator('[data-test=session-save]').click();
+  await page.locator('[data-test=session]', { hasText: 'La cripta' }).waitFor({ timeout: 15000 });
+  campaignUi.session = (await page.locator('[data-test=session]').first().innerText()).replace(/\s+/g, ' ').trim();
+  await shot(page, 'campaign-sessions', 'main');
+  // The shared dice table: a roll of the roller, then one made on the sheet of the character at the table
+  await page.locator('[data-test=campaign-tab-rolls]').click();
+  await page.locator('[data-test=roll-expression]').fill('2d6+3');
+  await page.locator('[data-test=roll-label]').fill('Danni della spada');
+  await page.locator('[data-test=roll-go]').click();
+  await page.locator('[data-test=roll]', { hasText: 'Danni della spada' }).waitFor({ timeout: 15000 });
+  await page.goto(sheetUrl);
+  await page.locator('[data-test=sheet-initiative]').click();
+  campaignUi.sheetShared = await page.locator('[data-test=dice-shared]').count();
+  await page.waitForTimeout(1500);
+  await page.goto(campaignUrl);
+  await page.locator('[data-test=campaign-title]').waitFor({ timeout: 30000 });
+  campaignUi.nextSession = (await page.locator('[data-test=campaign-next-session]').innerText()).replace(/\s+/g, ' ').trim();
+  await shot(page, 'campaign-next-session', '[data-test=campaign-next-session]');
+  await page.locator('[data-test=campaign-tab-rolls]').click();
+  await page.locator('[data-test=roll]', { hasText: 'Iniziativa' }).waitFor({ timeout: 15000 });
+  campaignUi.rolls = (await page.locator('[data-test=roll] [data-test=roll-label-text]').allInnerTexts()).join(',');
+  campaignUi.rollers = (await page.locator('[data-test=roll-roller]').allInnerTexts()).join(',');
+  campaignUi.rollerColors = await page.locator('[data-test=roll-roller]').evaluateAll((els) => els.map((e) => getComputedStyle(e).color).join('|'));
+  await shot(page, 'campaign-rolls', 'main');
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.waitForTimeout(300);
+  await shot(page, 'phone-campaign-rolls', 'main');
+  await page.setViewportSize({ width: 1280, height: 900 });
   // From the sheet, the owner takes the character out of the campaign
   await page.goto(sheetUrl);
   await page.locator('[data-test=sheet-campaign]').click();
@@ -1190,7 +1230,10 @@ try {
   if (campaignUi.role !== 'Master' || !campaignUi.link || campaignUi.share !== 1 || campaignUi.notes !== 1
     || campaignUi.combatants !== 4 || campaignUi.goblins !== 3 || !campaignUi.hero || campaignUi.sheetLink !== 1 || !/^(Facile|Medio|Difficile|Mortale)$/.test(campaignUi.rating) || campaignUi.current !== 1
     || campaignUi.binKind !== 'CAMPAGNA' || !campaignUi.restored || !campaignUi.purged
-    || campaignUi.cardButtons !== 0 || !campaignUi.cardOpens || campaignUi.listActions !== 2 || !campaignUi.toggled || campaignUi.noteKinds !== 'Diario di viaggio,Personali,Per i master' || campaignUi.leftFromSheet !== 1) throw new Error(`unexpected campaign page: ${JSON.stringify(campaignUi)}`);
+    || campaignUi.cardButtons !== 0 || !campaignUi.cardOpens || campaignUi.listActions !== 2 || !campaignUi.toggled || campaignUi.noteKinds !== 'Diario di viaggio,Personali,Per i master' || campaignUi.leftFromSheet !== 1
+    || !/Prossima sessione/i.test(campaignUi.session) || !/tra 3 giorni/.test(campaignUi.session) || !/Il lich/.test(campaignUi.session)
+    || !/Sessione 1/i.test(campaignUi.nextSession) || !/21:00/.test(campaignUi.nextSession) || campaignUi.sheetShared !== 1
+    || campaignUi.rolls !== 'Iniziativa,Danni della spada' || campaignUi.rollers !== 'Eroe di prova,Master') throw new Error(`unexpected campaign page: ${JSON.stringify(campaignUi)}`);
   ok('campaigns: the creator is the master with an invite link, the character joins the table (the whole card opens the sheet, deactivated and activated again; its card in the list shows the campaign), a journal page, an encounter with three goblins run to round 2, the character leaves from its sheet, the campaign is deleted, restored from the bin, deleted again and purged');
   await page.goto(sheetUrl);
   await page.locator('[data-test=character-sheet]').waitFor({ timeout: 30000 });
@@ -1218,6 +1261,7 @@ try {
 
   results.push(`INFO character: steps 2014="${step2014}" 2024="${step2024}" | spells=${chosenSpells} | AC preview=${previewAc} summary=${summaryAc} sheet=${sheetAc} | HP summary=${summaryHp} sheet=${sheetHp} after 3 damage and reload=${afterReload} after long rest=${afterRest} | tabs=${JSON.stringify(tabs)} | pdf=${pdfHead.trim()} ${pdfSize} bytes | level up: ${classes} HP=${levelUpHp} | card: ${characterCard}`);
   if (!/razza/i.test(step2014) || !/classe/i.test(step2024)) throw new Error('the wizard steps do not follow the edition');
+  if (!/Scurovisione 36 m/.test(sheetSenses)) throw new Error(`dwarf darkvision missing on the sheet: ${sheetSenses}`);
   if (sheetName !== 'Eroe di prova' || sheetAc !== summaryAc || sheetHp !== summaryHp || previewAc !== summaryAc) throw new Error('the saved character does not match the wizard');
   if (Number(afterReload) !== Number(sheetHp) - 3 || afterRest !== sheetHp) throw new Error('damage or rest not applied and saved');
   if (tabs.spells !== chosenSpells || tabs.items < 4) throw new Error('spells or inventory missing on the sheet');
