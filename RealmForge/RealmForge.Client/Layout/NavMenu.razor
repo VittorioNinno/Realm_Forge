@@ -88,6 +88,9 @@
                     <NavLink class="nav-link" href="monsters">
                         <Icon Name="monsters" Class="rf-nav-icon" /> @UiText.MonstersTitle(LanguageState.CurrentLanguage)
                     </NavLink>
+                    <NavLink class="nav-link" href="npcs" data-test="nav-npcs">
+                        <Icon Name="npcs" Class="rf-nav-icon" /> @UiText.NpcsTitle(LanguageState.CurrentLanguage)
+                    </NavLink>
                     <NavLink class="nav-link" href="modules" data-test="nav-modules">
                         <Icon Name="modules" Class="rf-nav-icon" /> @UiText.ModulesTitle(LanguageState.CurrentLanguage)
                     </NavLink>
@@ -102,7 +105,7 @@
 </div>
 
 @code {
-    private static readonly string[] CompendiumRoutes = ["species", "subspecies", "backgrounds", "feats", "spells", "classes", "equipment", "magic-items", "monsters", "modules"];
+    private static readonly string[] CompendiumRoutes = ["species", "subspecies", "backgrounds", "feats", "spells", "classes", "equipment", "magic-items", "monsters", "npcs", "modules"];
 
     private bool collapseNavMenu = true;
     private bool compendiumOpen;

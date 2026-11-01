@@ -15,6 +15,13 @@ public static class MonsterSeeder
 {
 	public const string DataNamespace = "RealmForge.Infrastructure.Persistence.Seeding.MonstersData";
 
+	//	The nonplayer characters of the SRD (appendix "Nonplayer Characters"): listed on the NPC page, not with the monsters
+	public static readonly IReadOnlySet<string> NpcKeys = new HashSet<string>
+	{
+		"acolyte", "archmage", "assassin", "bandit", "bandit-captain", "berserker", "commoner", "cult-fanatic", "cultist", "druid",
+		"gladiator", "guard", "knight", "mage", "noble", "priest", "scout", "spy", "thug", "tribal-warrior", "veteran"
+	};
+
 	public static IReadOnlyList<Monster> GetDefinitions()
 	{
 		var definitions = typeof(MonsterSeeder).Assembly.GetTypes()
@@ -74,6 +81,7 @@ public static class MonsterSeeder
 			Xp = xp,
 			ProficiencyBonus = proficiency,
 			PassivePerception = passivePerception,
+			IsNpc = NpcKeys.Contains(key),
 			VariantOfId = variantOf is null ? null : DeterministicGuid.ForSrd(ruleset, "monster", variantOf),
 			Translations = new List<MonsterTranslation>
 			{
@@ -185,6 +193,7 @@ public static class MonsterSeeder
 			monster.ProficiencyBonus = definition.ProficiencyBonus;
 			monster.PassivePerception = definition.PassivePerception;
 			monster.VariantOfId = definition.VariantOfId;
+			monster.IsNpc = definition.IsNpc;
 
 			foreach (var source in definition.Translations)
 			{
