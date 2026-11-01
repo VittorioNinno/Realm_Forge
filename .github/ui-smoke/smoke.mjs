@@ -939,14 +939,9 @@ try {
       await page.locator('[data-test=magic-template]').selectOption('ring-of-protection');
       await page.locator('[data-test=magic-save]').click();
       const ring = page.locator('[data-test=sheet-item]', { hasText: 'Anello di Protezione' });
-      try {
-        await ring.locator('[data-test=sheet-item-equip]').click({ timeout: 10000 });
-      } catch (e) {
-        const alive = await Promise.race([page.evaluate(() => `alive y=${scrollY} h=${document.body.scrollHeight}`), new Promise((r) => setTimeout(() => r('main thread busy'), 3000))]);
-        const box = await ring.locator('[data-test=sheet-item-equip]').evaluate((el) => JSON.stringify(el.getBoundingClientRect())).catch(() => '?');
-        const err = await page.locator('#blazor-error-ui').isVisible().catch(() => '?');
-        throw new Error(`ring equip: ${alive} box=${box} errorbar=${err} | ${e.message.slice(0, 200)}`);
-      }
+      // The dice tray of the earlier rolls floats over the bottom of the page: closed first
+      if (await page.locator('[data-test=sheet-last-roll]').count() > 0) await page.locator('[data-test=sheet-last-roll] .rf-dice-tray-close').click();
+      await ring.locator('[data-test=sheet-item-equip]').click();
       await page.locator('[data-test=sheet-item]', { hasText: 'Anello di Protezione' }).locator('[data-test=sheet-item-attune]').click();
       tabs.ringAc = (await page.locator('[data-test=sheet-ac]').innerText()).trim();
       tabs.attunement = (await page.locator('[data-test=sheet-attunement]').innerText()).trim();
