@@ -47,11 +47,11 @@
     }
     <div class="rf-wizard-block-title">@UiText.LabelLanguages(Ruleset, Lang)</div>
     <div class="rf-wizard-text">@string.Join(", ", c.Languages.Select(l => CharacterLanguages.Name(Ruleset, l, Lang)))</div>
-    @if (c.Spellcasting.Count > 0)
+    @if (c.AllSpellSources().Any())
     {
         <div class="rf-wizard-block-title">@UiText.SheetSpells(Lang)</div>
         <div class="rf-wizard-text">
-            @string.Join(", ", c.Spellcasting.SelectMany(s => s.ChosenCantrips.Concat(s.ChosenSpells)).Distinct().Select(id => W.Spell(id)?.Name).Where(n => n is not null))
+            @string.Join(", ", c.AllSpellSources().SelectMany(s => s.Known).Distinct().Select(id => W.Spell(id)?.Name).Where(n => n is not null))
         </div>
     }
 </div>

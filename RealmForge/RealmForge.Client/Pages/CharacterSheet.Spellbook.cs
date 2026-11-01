@@ -39,7 +39,7 @@ namespace RealmForge.Client.Pages
 				return;
 			}
 			Sheet.SpellChanges.RemoveAll(g => g.FromLongRest);
-			foreach (var source in computed.Spellcasting.Where(s => s.Class is not null))
+			foreach (var source in computed.Spellcasting.Where(s => s.Class is not null && s.Source == "class"))
 			{
 				var rule = SpellChangeRules.For(Ruleset, source.Class!);
 				if (rule.LongRest is { } kind)
