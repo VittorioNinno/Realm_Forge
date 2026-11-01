@@ -451,7 +451,7 @@
 </div>
 
 <SpellDetailModal SpellId="spellDetailId" OnClose="CloseSpell" Actions="CastPanel()" />
-<DiceTray @ref="diceTray" />
+<DiceTray @ref="diceTray" OnRoll="ShareRollAsync" SharedNote="@(SharesRolls ? UiText.SheetRollShared(Lang) : null)" />
 @if (campaignOpen && character is not null)
 {
     <div class="rf-modal-backdrop" @onclick="() => campaignOpen = false">

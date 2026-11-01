@@ -1,0 +1,277 @@
+﻿@using RealmForge.Client.Localization
+@using RealmForge.Client.Services
+@using RealmForge.Shared.Campaigns
+@using RealmForge.Shared.DTOs
+@using RealmForge.Shared.Enums
+@inject CampaignDataService Campaigns
+@inject LanguageStateService LanguageState
+
+@* Sessions of a campaign: the next one on top with its date and plan, then the played ones with their recap; masters
+   and co-masters write them and keep their notes behind the screen *@
+<section data-test="campaign-sessions">
+    <div class="small mb-3" style="color: var(--rf-text-muted);">@UiText.SessionsHint(Manage, Lang)</div>
+
+    @if (Manage && editing is null)
+    {
+        <button type="button" class="btn btn-sm btn-rf-orange mb-3" @onclick="NewSession" data-test="session-new">+ @UiText.BtnNewSession(Lang)</button>
+    }
+
+    @if (editing is not null)
+    {
+        <div class="rf-card2 mb-3" data-test="session-form">
+            <div class="rf-mini-title">@(editing == Guid.Empty ? UiText.BtnNewSession(Lang) : UiText.SessionNumber(editingNumber, Lang))</div>
+            <div class="rf-session-form-grid">
+                <label class="d-block">
+                    <span class="rf-form-label">@UiText.SessionTitle(Lang)</span>
+                    <input class="rf-form-control" maxlength="120" @bind="draft.Title" data-test="session-title" />
+                </label>
+                <label class="d-block">
+                    <span class="rf-form-label">@UiText.SessionWhen(Lang)</span>
+                    <input class="rf-form-control" type="datetime-local" value="@WhenText" @onchange="e => WhenText = e.Value?.ToString()" data-test="session-when" />
+                </label>
+                <div data-test="session-status">
+                    <span class="rf-form-label">@UiText.SessionStatusLabel(Lang)</span>
+                    <RfSelect TValue="CampaignSessionStatus" @bind-Value="draft.Status" Options="StatusOptions" />
+                </div>
+            </div>
+            <label class="d-block mt-2">
+                <span class="rf-form-label">@UiText.SessionPlan(Lang)</span>
+                <textarea class="rf-form-control" rows="4" maxlength="8000" placeholder="@UiText.SessionPlanHint(Lang)" @bind="draft.Plan" data-test="session-plan"></textarea>
+            </label>
+            <label class="d-block mt-2">
+                <span class="rf-form-label">@UiText.SessionRecap(Lang)</span>
+                <textarea class="rf-form-control" rows="5" maxlength="8000" placeholder="@UiText.SessionRecapHint(Lang)" @bind="draft.Recap" data-test="session-recap"></textarea>
+            </label>
+            <label class="d-block mt-2">
+                <span class="rf-form-label"><Icon Name="eye-slash" /> @UiText.SessionMasterNotes(Lang)</span>
+                <textarea class="rf-form-control rf-session-secret" rows="4" maxlength="8000" placeholder="@UiText.SessionMasterNotesHint(Lang)" @bind="draft.MasterNotes" data-test="session-master-notes"></textarea>
+            </label>
+            @if (error is not null)
+            {
+                <div class="small text-warning mt-2">@error</div>
+            }
+            <div class="d-flex justify-content-end gap-2 mt-3">
+                <button type="button" class="btn btn-sm btn-rf-outline" @onclick="() => editing = null">@UiText.BtnCancel(Lang)</button>
+                <button type="button" class="btn btn-sm btn-rf-orange" disabled="@saving" @onclick="SaveAsync" data-test="session-save">@UiText.BtnConfirm(Lang)</button>
+            </div>
+        </div>
+    }
+
+    @if (sessions is null)
+    {
+        <div class="rf-card2 small" style="color: var(--rf-text-muted);">…</div>
+    }
+    else if (sessions.Count == 0)
+    {
+        <div class="rf-card2 small" style="color: var(--rf-text-muted);" data-test="sessions-empty">@UiText.SessionsEmpty(Lang)</div>
+    }
+    else
+    {
+        @foreach (var session in Ordered)
+        {
+            var s = session;
+            var isNext = s.Id == Next?.Id;
+            <article class="rf-session @(isNext ? "next" : null) @StatusClass(s.Status)" data-test="session" data-status="@s.Status.ToString().ToLowerInvariant()">
+                <header class="rf-session-head">
+                    <div>
+                        <div class="rf-session-number">
+                            @UiText.SessionNumber(s.Number, Lang)
+                            @if (isNext)
+                            {
+                                <span class="rf-session-badge next">@UiText.SessionNext(Lang)</span>
+                            }
+                            else
+                            {
+                                <span class="rf-session-badge">@UiText.SessionStatusName(s.Status, Lang)</span>
+                            }
+                        </div>
+                        @if (!string.IsNullOrWhiteSpace(s.Title))
+                        {
+                            <div class="rf-session-title" data-test="session-title-text">@s.Title</div>
+                        }
+                    </div>
+                    <div class="rf-session-when" data-test="session-when-text">
+                        <Icon Name="calendar-event" />
+                        @if (s.ScheduledAt is { } at)
+                        {
+                            <span>@UiText.FormatDateTime(at, Lang)</span>
+                            @if (s.Status == CampaignSessionStatus.Planned && UiText.SessionCountdown(at, Lang) is { Length: > 0 } countdown)
+                            {
+                                <span class="rf-session-countdown">· @countdown</span>
+                            }
+                        }
+                        else
+                        {
+                            <span>@UiText.SessionNoDate(Lang)</span>
+                        }
+                    </div>
+                </header>
+                @if (!string.IsNullOrWhiteSpace(s.Plan) && s.Status != CampaignSessionStatus.Played)
+                {
+                    <div class="rf-session-block">
+                        <div class="rf-mini-label">@UiText.SessionPlan(Lang)</div>
+                        <div class="rf-markdown-container" data-test="session-plan-text">@((MarkupString)MarkdownText.ToHtml(s.Plan, null))</div>
+                    </div>
+                }
+                @if (!string.IsNullOrWhiteSpace(s.Recap))
+                {
+                    <div class="rf-session-block">
+                        <div class="rf-mini-label">@UiText.SessionRecap(Lang)</div>
+                        <div class="rf-markdown-container" data-test="session-recap-text">@((MarkupString)MarkdownText.ToHtml(s.Recap, null))</div>
+                    </div>
+                }
+                @if (!string.IsNullOrWhiteSpace(s.MasterNotes))
+                {
+                    <div class="rf-session-block secret">
+                        <div class="rf-mini-label"><Icon Name="eye-slash" /> @UiText.SessionMasterNotes(Lang)</div>
+                        <div class="rf-markdown-container" data-test="session-master-notes-text">@((MarkupString)MarkdownText.ToHtml(s.MasterNotes, null))</div>
+                    </div>
+                }
+                <footer class="rf-session-foot">
+                    <span>@UiText.SessionUpdatedBy(s.UpdatedBy, s.UpdatedAt, Lang)</span>
+                    @if (s.CanEdit)
+                    {
+                        <span class="d-flex gap-2">
+                            <button type="button" class="btn btn-sm btn-rf-outline" @onclick="() => Edit(s)" data-test="session-edit">@UiText.Edit(Lang)</button>
+                            <button type="button" class="btn btn-sm btn-rf-outline" @onclick="() => removing = s" data-test="session-delete">@UiText.BtnRemove(Lang)</button>
+                        </span>
+                    }
+                </footer>
+            </article>
+        }
+    }
+</section>
+
+@if (removing is not null)
+{
+    <div class="rf-modal-backdrop" @onclick="() => removing = null">
+        <div class="rf-modal-dialog" style="max-width: 440px;" @onclick:stopPropagation="true" data-test="session-delete-confirm">
+            <h2 class="h4 mb-3 pb-2" style="border-bottom: 1px solid var(--rf-border-light); font-family: var(--rf-font-display);">@UiText.SessionNumber(removing.Number, Lang)</h2>
+            <p class="mb-3">@UiText.SessionDeleteConfirm(Lang)</p>
+            <div class="d-flex justify-content-end gap-2">
+                <button type="button" class="btn btn-sm btn-rf-outline" @onclick="() => removing = null">@UiText.BtnCancel(Lang)</button>
+                <button type="button" class="btn btn-sm btn-rf-orange" @onclick="DeleteAsync" data-test="session-delete-yes">@UiText.BtnRemove(Lang)</button>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter, EditorRequired] public Guid CampaignId { get; set; }
+    [Parameter] public CampaignRole Role { get; set; } = CampaignRole.Player;
+
+    //	Tells the campaign page that the sessions changed (the next session shown in the overview)
+    [Parameter] public EventCallback<List<CampaignSessionDto>> OnChanged { get; set; }
+
+    private LanguageCode Lang => LanguageState.CurrentLanguage;
+    private bool Manage => SessionRules.CanManageSessions(Role);
+    private List<CampaignSessionDto>? sessions;
+
+    //	Session being written: Guid.Empty for a new one, null when the form is closed
+    private Guid? editing;
+    private int editingNumber;
+    private SaveCampaignSessionDto draft = new();
+    private DateTime? when;
+
+    //	The browser gives and takes "2026-11-14T21:00" whatever the language: parsed by hand, not with the culture
+    private const string WhenFormat = "yyyy-MM-dd'T'HH':'mm";
+
+    private string? WhenText
+    {
+        get => when?.ToString(WhenFormat, System.Globalization.CultureInfo.InvariantCulture);
+        set => when = DateTime.TryParseExact(value?.Length > 16 ? value[..16] : value, WhenFormat, System.Globalization.CultureInfo.InvariantCulture,
+            System.Globalization.DateTimeStyles.None, out var parsed) ? parsed : null;
+    }
+    private string? error;
+    private bool saving;
+    private CampaignSessionDto? removing;
+
+    private CampaignSessionDto? Next => NextSession(sessions);
+
+    private List<RfSelect<CampaignSessionStatus>.OptionItem> StatusOptions => Enum.GetValues<CampaignSessionStatus>()
+        .Select(s => new RfSelect<CampaignSessionStatus>.OptionItem(s, UiText.SessionStatusName(s, Lang)))
+        .ToList();
+
+    //	The next session first, then the newest
+    private IEnumerable<CampaignSessionDto> Ordered => (sessions ?? new())
+        .OrderBy(s => s.Id == Next?.Id ? 0 : 1)
+        .ThenByDescending(s => s.Number);
+
+    ///	<summary>
+    ///	The first planned session that is not over yet (by date; the ones without a date after the dated ones).
+    ///	</summary>
+    public static CampaignSessionDto? NextSession(IEnumerable<CampaignSessionDto>? sessions) => sessions?
+        .Where(s => s.Status == CampaignSessionStatus.Planned && (s.ScheduledAt is null || s.ScheduledAt.Value.AddHours(12) >= DateTimeOffset.UtcNow))
+        .OrderBy(s => s.ScheduledAt is null ? 1 : 0)
+        .ThenBy(s => s.ScheduledAt)
+        .ThenBy(s => s.Number)
+        .FirstOrDefault();
+
+    private static string StatusClass(CampaignSessionStatus status) => status switch
+    {
+        CampaignSessionStatus.Played => "played",
+        CampaignSessionStatus.Cancelled => "cancelled",
+        _ => "planned"
+    };
+
+    protected override Task OnInitializedAsync() => LoadAsync();
+
+    private async Task LoadAsync()
+    {
+        sessions = await Campaigns.GetSessionsAsync(CampaignId) ?? new List<CampaignSessionDto>();
+        await OnChanged.InvokeAsync(sessions);
+    }
+
+    private void NewSession()
+    {
+        draft = new SaveCampaignSessionDto();
+        //	A week after the last dated session, at the same time: the usual rhythm of a table
+        var last = sessions?.Where(s => s.ScheduledAt is not null).MaxBy(s => s.ScheduledAt);
+        when = last?.ScheduledAt is { } previous ? previous.ToLocalTime().AddDays(7).DateTime : null;
+        error = null;
+        editing = Guid.Empty;
+        editingNumber = (sessions?.Select(s => s.Number).DefaultIfEmpty(0).Max() ?? 0) + 1;
+    }
+
+    private void Edit(CampaignSessionDto session)
+    {
+        draft = new SaveCampaignSessionDto
+        {
+            Title = session.Title,
+            Status = session.Status,
+            Plan = session.Plan,
+            Recap = session.Recap,
+            MasterNotes = session.MasterNotes ?? string.Empty
+        };
+        when = session.ScheduledAt?.ToLocalTime().DateTime;
+        error = null;
+        editing = session.Id;
+        editingNumber = session.Number;
+    }
+
+    private async Task SaveAsync()
+    {
+        saving = true;
+        draft.ScheduledAt = when is { } local
+            ? new DateTimeOffset(DateTime.SpecifyKind(local, DateTimeKind.Unspecified), TimeZoneInfo.Local.GetUtcOffset(local))
+            : null;
+        var result = await Campaigns.SaveSessionAsync(CampaignId, editing is { } id && id != Guid.Empty ? id : null, draft);
+        saving = false;
+        if (!result.Ok)
+        {
+            error = UiText.CampaignActionFailed(result.Status, Lang);
+            return;
+        }
+        editing = null;
+        await LoadAsync();
+    }
+
+    private async Task DeleteAsync()
+    {
+        if (removing is { } session && (await Campaigns.DeleteSessionAsync(CampaignId, session.Id)).Ok)
+        {
+            removing = null;
+            await LoadAsync();
+        }
+    }
+}

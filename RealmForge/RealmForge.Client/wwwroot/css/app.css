@@ -7591,3 +7591,363 @@ textarea.rf-form-control {
     font-weight: 600;
     color: #ffaa00;
 }
+
+/* ===== Campaign sessions ===== */
+.rf-session-form-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 2fr) minmax(0, 1.4fr) minmax(0, 1fr);
+    gap: 16px;
+}
+
+@media (max-width: 767.98px) {
+    .rf-session-form-grid { grid-template-columns: minmax(0, 1fr); gap: 8px; }
+}
+
+.rf-session-secret {
+    border-style: dashed !important;
+}
+
+.rf-session {
+    background-color: var(--rf-bg-card);
+    border: 1px solid var(--rf-border-subtle);
+    border-left: 3px solid var(--rf-border-light);
+    border-radius: 12px;
+    padding: 16px;
+    margin-bottom: 16px;
+}
+
+    .rf-session.next {
+        border-color: rgba(255, 140, 0, 0.45);
+        border-left-color: var(--rf-orange-primary);
+        box-shadow: 0 0 24px rgba(255, 140, 0, 0.08);
+    }
+
+    .rf-session.played { border-left-color: #4caf7a; }
+
+    .rf-session.cancelled { opacity: .6; }
+
+        .rf-session.cancelled .rf-session-title { text-decoration: line-through; }
+
+.rf-session-head {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 8px 16px;
+}
+
+.rf-session-number {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    font-family: var(--rf-font-display);
+    font-weight: 700;
+    color: var(--rf-orange-primary);
+    letter-spacing: .04em;
+}
+
+.rf-session-badge {
+    font-family: var(--rf-font-body);
+    font-size: .7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .06em;
+    padding: 0 8px;
+    border-radius: 999px;
+    border: 1px solid var(--rf-border-light);
+    color: var(--rf-text-secondary);
+}
+
+    .rf-session-badge.next {
+        border-color: var(--rf-orange-primary);
+        color: var(--rf-orange-primary);
+    }
+
+.rf-session.played .rf-session-badge { border-color: rgba(76, 175, 122, .6); color: #7fd3a5; }
+
+.rf-session-title {
+    margin-top: 0;
+    font-size: 1.05rem;
+    font-weight: 600;
+    color: var(--rf-text-primary);
+}
+
+.rf-session-when {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    color: var(--rf-text-secondary);
+    font-size: .9rem;
+}
+
+.rf-session-countdown {
+    color: var(--rf-orange-primary);
+    font-weight: 600;
+}
+
+.rf-session-block {
+    margin-top: 16px;
+}
+
+    .rf-session-block.secret {
+        padding: 8px 16px;
+        border: 1px dashed var(--rf-border-light);
+        border-radius: 8px;
+        background-color: var(--rf-bg-surface);
+    }
+
+.rf-session-foot {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+    margin-top: 16px;
+    padding-top: 8px;
+    border-top: 1px solid var(--rf-border-subtle);
+    font-size: .8rem;
+    color: var(--rf-text-muted);
+}
+
+/* The next session at the top of the campaign overview */
+.rf-next-session {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    width: 100%;
+    padding: 16px;
+    text-align: left;
+    color: var(--rf-text-primary);
+    background: linear-gradient(90deg, var(--rf-orange-dark), var(--rf-bg-card) 70%);
+    border: 1px solid rgba(255, 140, 0, 0.45);
+    border-radius: 12px;
+}
+
+    .rf-next-session:hover { border-color: var(--rf-orange-primary); }
+
+.rf-next-session-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 48px;
+    height: 48px;
+    border-radius: 50%;
+    font-size: 1.4rem;
+    color: var(--rf-orange-primary);
+    background-color: rgba(255, 140, 0, 0.12);
+}
+
+.rf-next-session-text {
+    display: flex;
+    flex-direction: column;
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+.rf-next-session-when {
+    font-size: 1.05rem;
+    font-weight: 600;
+}
+
+.rf-next-session-title {
+    color: var(--rf-text-secondary);
+}
+
+/* ===== Shared dice log ===== */
+.rf-roll-quick {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.rf-roll-die {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 16px;
+    font-weight: 700;
+    color: var(--rf-text-primary);
+    background-color: var(--rf-bg-surface);
+    border: 1px solid var(--rf-border-light);
+    border-radius: 8px;
+}
+
+    .rf-roll-die:hover:not(:disabled) {
+        border-color: var(--rf-orange-primary);
+        color: var(--rf-orange-primary);
+    }
+
+.rf-roll-form-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr);
+    gap: 16px;
+}
+
+@media (max-width: 767.98px) {
+    .rf-roll-form-grid { grid-template-columns: minmax(0, 1fr); gap: 8px; }
+}
+
+.rf-roll-log {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+.rf-roll {
+    padding: 8px 0;
+    border-bottom: 1px solid var(--rf-border-subtle);
+}
+
+    .rf-roll:last-child { border-bottom: 0; }
+
+    .rf-roll.fresh { animation: rf-roll-in .6s ease-out; }
+
+@keyframes rf-roll-in {
+    from { background-color: rgba(255, 140, 0, 0.16); }
+    to { background-color: transparent; }
+}
+
+.rf-roll-who {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 8px;
+    font-size: .8rem;
+    color: var(--rf-text-muted);
+}
+
+.rf-roll-name {
+    font-weight: 700;
+    color: var(--rf-text-secondary);
+}
+
+.rf-roll.mine .rf-roll-name { text-decoration: underline; text-underline-offset: 4px; }
+
+/* The colour of the person who rolled: a dot before the name, the name in the same colour */
+.rf-roll-swatch {
+    display: inline-block;
+    flex: 0 0 auto;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    align-self: center;
+    box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.4);
+}
+
+.rf-roll-name.removed { font-style: italic; font-weight: 600; }
+
+.rf-roll-as-fixed {
+    display: flex;
+    align-items: center;
+    color: var(--rf-text-secondary);
+}
+
+.rf-member-swatch {
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    margin-right: 8px;
+    border-radius: 50%;
+    vertical-align: middle;
+}
+
+.rf-roll-hidden {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    color: #c3a8ff;
+}
+
+.rf-roll-time { margin-left: auto; }
+
+.rf-roll-body {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+}
+
+.rf-roll-what {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+}
+
+.rf-roll-label {
+    font-weight: 600;
+    color: var(--rf-text-primary);
+    overflow-wrap: anywhere;
+}
+
+.rf-roll-dice {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    margin-top: 0;
+}
+
+.rf-roll-face {
+    min-width: 24px;
+    padding: 0 8px;
+    text-align: center;
+    font-size: .8rem;
+    font-weight: 700;
+    border: 1px solid var(--rf-border-light);
+    border-radius: 6px;
+    color: var(--rf-text-secondary);
+}
+
+    .rf-roll-face.dropped {
+        opacity: .4;
+        text-decoration: line-through;
+    }
+
+    .rf-roll-face.crit { border-color: var(--rf-orange-primary); color: var(--rf-orange-primary); }
+
+    .rf-roll-face.fumble { border-color: #dc3545; color: #ff6b78; }
+
+.rf-roll-mod {
+    font-size: .8rem;
+    font-weight: 700;
+    color: var(--rf-text-secondary);
+}
+
+.rf-roll-expr {
+    font-size: .75rem;
+    color: var(--rf-text-muted);
+}
+
+.rf-roll-note {
+    font-size: .8rem;
+    color: var(--rf-text-secondary);
+}
+
+.rf-roll-total {
+    flex: 0 0 auto;
+    min-width: 56px;
+    text-align: center;
+    font-family: var(--rf-font-display);
+    font-size: 1.6rem;
+    font-weight: 700;
+    color: var(--rf-text-primary);
+}
+
+.rf-roll.crit .rf-roll-total { color: var(--rf-orange-primary); text-shadow: 0 0 16px var(--rf-orange-glow); }
+
+.rf-roll.fumble .rf-roll-total { color: #ff6b78; }
+
+.rf-dice-shared {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 8px;
+    font-size: .75rem;
+    color: var(--rf-text-muted);
+}
+
+@media (max-width: 575.98px) {
+    .rf-roll-die { padding: 8px; gap: 8px; font-size: .85rem; }
+}
