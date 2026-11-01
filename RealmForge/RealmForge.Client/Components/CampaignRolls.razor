@@ -18,7 +18,7 @@
             @foreach (var sides in new[] { 4, 6, 8, 10, 12, 20, 100 })
             {
                 var die = sides;
-                <button type="button" class="rf-roll-die" disabled="@rolling" @onclick="() => RollAsync($"1d{die}")" data-test="@($"roll-d{die}")">
+                <button type="button" class="rf-roll-die" disabled="@rolling" @onclick="() => RollAsync(QuickDie(die))" data-test="@("roll-d" + die)">
                     <Icon Name="dice" /> d@(die)
                 </button>
             }
@@ -220,6 +220,8 @@
             await RollAsync(expression);
         }
     }
+
+    private static string QuickDie(int sides) => "1d" + sides;
 
     private async Task RollAsync(string dice, string? what = null)
     {
