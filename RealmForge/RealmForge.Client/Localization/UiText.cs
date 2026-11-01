@@ -268,6 +268,16 @@ namespace RealmForge.Client.Localization
 			("InvalidCredentials", false) => "Wrong email or password.",
 			("LockedOut", true) => "Account bloccato: troppi tentativi falliti o sospeso da un amministratore. Riprova più tardi.",
 			("LockedOut", false) => "Account locked: too many failed attempts or suspended by an administrator. Try again later.",
+			("PasskeyUnsupported", true) => "Questo browser o dispositivo non supporta le passkey.",
+			("PasskeyUnsupported", false) => "This browser or device does not support passkeys.",
+			("PasskeyCancelled", true) => "Operazione annullata o scaduta.",
+			("PasskeyCancelled", false) => "Cancelled or timed out.",
+			("PasskeyExists", true) => "Su questo dispositivo c'è già una passkey per il tuo account.",
+			("PasskeyExists", false) => "This device already has a passkey for your account.",
+			("PasskeyExpired", true) => "La richiesta è scaduta: riprova.",
+			("PasskeyExpired", false) => "The request expired: try again.",
+			("PasskeyFailed", true) => "Passkey non riconosciuta. Accedi con email e password e controlla le tue passkey nella pagina account.",
+			("PasskeyFailed", false) => "Passkey not recognised. Sign in with e-mail and password and check your passkeys on the account page.",
 			("MissingFields", true) => "Inserisci email e password.",
 			("MissingFields", false) => "Enter email and password.",
 			("Unreachable", true) => "Impossibile contattare il server.",
@@ -343,6 +353,20 @@ namespace RealmForge.Client.Localization
 			? "Non hai ancora creato contenuti: usa i pulsanti \"Forgia\" nelle pagine del Compendio."
 			: "You have not created any content yet: use the \"Forge\" buttons in the Compendium pages.";
 		public static string AccountSecurityTitle(LanguageCode lang) => lang == LanguageCode.It ? "Cambia password" : "Change password";
+		public static string BtnPasskeyLogin(LanguageCode lang) => lang == LanguageCode.It ? "Accedi con una passkey" : "Sign in with a passkey";
+		public static string LoginOr(LanguageCode lang) => lang == LanguageCode.It ? "oppure" : "or";
+		public static string PasskeysTitle(LanguageCode lang) => "Passkey";
+		public static string PasskeysHint(LanguageCode lang) => lang == LanguageCode.It
+			? "Accedi senza password con l'impronta, il volto o il PIN del dispositivo. Ogni dispositivo (o gestore di password) ha la sua passkey; la password resta valida."
+			: "Sign in without a password with your device's fingerprint, face or PIN. Each device (or password manager) has its own passkey; the password keeps working.";
+		public static string PasskeysEmpty(LanguageCode lang) => lang == LanguageCode.It ? "Nessuna passkey ancora." : "No passkeys yet.";
+		public static string PasskeyNamePlaceholder(LanguageCode lang) => lang == LanguageCode.It ? "Nome (es. Telefono, Portatile)" : "Name (e.g. Phone, Laptop)";
+		public static string BtnAddPasskey(LanguageCode lang) => lang == LanguageCode.It ? "Aggiungi passkey" : "Add passkey";
+		public static string PasskeyAdded(LanguageCode lang) => lang == LanguageCode.It ? "Passkey aggiunta: la prossima volta puoi accedere con questo dispositivo." : "Passkey added: next time you can sign in with this device.";
+		public static string PasskeyCreated(DateTimeOffset at, LanguageCode lang) => lang == LanguageCode.It ? $"aggiunta il {FormatDate(at.ToLocalTime(), lang)}" : $"added on {FormatDate(at.ToLocalTime(), lang)}";
+		public static string PasskeyRemoveConfirm(string name, LanguageCode lang) => lang == LanguageCode.It
+			? $"Rimuovere la passkey «{name}»? Ricordati di eliminarla anche dal dispositivo o dal gestore di password."
+			: $"Remove the passkey “{name}”? Remember to delete it from the device or password manager too.";
 		public static string AccountEmailTitle(LanguageCode lang) => lang == LanguageCode.It ? "Cambia email" : "Change e-mail";
 		public static string AccountEmailHint(LanguageCode lang) => lang == LanguageCode.It
 			? "Ti mandiamo un link al nuovo indirizzo: l'email cambia solo quando lo apri. Fino ad allora resta quella attuale."

@@ -17,8 +17,9 @@ namespace RealmForge.Client.Services
 
 		protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
 		{
-			//	Login/registration report their own errors in the account page
-			if (request.RequestUri?.AbsolutePath.Contains("/api/auth/") == true)
+			//	The account page reports its own errors (sign-in, registration, passkeys, nickname, account deletion)
+			var path = request.RequestUri?.AbsolutePath ?? string.Empty;
+			if (path.Contains("/api/auth/") || path.Contains("/api/passkeys") || path.EndsWith("/api/account") || path.Contains("/api/account/nickname"))
 			{
 				return await base.SendAsync(request, cancellationToken);
 			}

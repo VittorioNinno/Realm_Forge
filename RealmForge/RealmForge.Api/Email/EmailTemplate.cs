@@ -45,8 +45,39 @@ namespace RealmForge.Api.Email
 					</p>
 					""");
 
-			return Layout(preheader, content.ToString());
+			return Layout(preheader, content.ToString(), RequestFooter);
 		}
+
+		///	<summary>
+		///	Notice about the account (suspended, reactivated, deleted), in Italian and English; a button only when there is
+		///	somewhere to go (ButtonLabel and link set).
+		///	</summary>
+		public static string NoticeEmail(string preheader, Section italian, Section english, string? link = null)
+		{
+			var href = link is null ? null : WebUtility.HtmlEncode(link);
+			string Part(Section s) => Title(s.Title) + Paragraph(s.Text) + (href is not null && s.ButtonLabel.Length > 0 ? Button(s.ButtonLabel, href) : string.Empty);
+			return Layout(preheader, Part(italian) + Divider() + Part(english), NoticeFooter);
+		}
+
+		///	<summary>
+		///	Plain text of a notice.
+		///	</summary>
+		public static string NoticeText(Section italian, Section english, string? link = null) =>
+			$"""
+			{italian.Title}
+			{italian.Text}
+			{link}
+
+			{english.Title}
+			{english.Text}
+			{link}
+
+			Ricevi questa email perché riguarda il tuo account RealmForge. · You receive this e-mail because it concerns your RealmForge account.
+			RealmForge
+			""";
+
+		private const string RequestFooter = "Se non hai fatto tu questa richiesta, ignora questa email.<br>\n              If you did not ask for this, ignore this e-mail.";
+		private const string NoticeFooter = "Ricevi questa email perché riguarda il tuo account RealmForge.<br>\n              You receive this e-mail because it concerns your RealmForge account.";
 
 		///	<summary>
 		///	Plain-text alternative (shown by clients that do not render HTML; it also helps with spam filters).
@@ -93,7 +124,7 @@ namespace RealmForge.Api.Email
 			</table>
 			""";
 
-		private static string Layout(string preheader, string content) => $"""
+		private static string Layout(string preheader, string content, string footer) => $"""
 			<!DOCTYPE html>
 			<html lang="it">
 			<head>
@@ -123,8 +154,7 @@ namespace RealmForge.Api.Email
 			          </tr>
 			          <tr>
 			            <td align="center" style="padding:22px 10px 0;font-family:{FontBody};font-size:12px;line-height:18px;color:{TextMuted};">
-			              Se non hai fatto tu questa richiesta, ignora questa email.<br>
-			              If you did not ask for this, ignore this e-mail.<br><br>
+			              {footer}<br><br>
 			              <span style="font-family:{FontDisplay};letter-spacing:2px;color:{TextSecondary};">REALMFORGE</span> · TTRPG Suite
 			            </td>
 			          </tr>

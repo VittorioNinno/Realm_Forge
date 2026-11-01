@@ -691,6 +691,31 @@ try {
   await shot(page, 'account-danger', '[data-test=account-delete]');
   ok('account deletion: the dialog asks for the password, a wrong one is refused and nothing is deleted');
 
+  // Passkey with Chromium's virtual authenticator (fingerprint simulated): added on the account page, then used to sign in
+  const cdp = await context.newCDPSession(page);
+  await cdp.send('WebAuthn.enable');
+  const { authenticatorId } = await cdp.send('WebAuthn.addVirtualAuthenticator', { options: {
+    protocol: 'ctap2', transport: 'internal', hasResidentKey: true, hasUserVerification: true, isUserVerified: true, automaticPresenceSimulation: true } });
+  await page.locator('[data-test=account-passkey-name]').fill('Portatile CI');
+  await page.locator('[data-test=account-passkey-add]').click();
+  await page.locator('[data-test=account-passkey]', { hasText: 'Portatile CI' }).waitFor({ timeout: 15000 });
+  const passkeyMessage = (await page.locator('[data-test=account-passkey-message]').innerText()).trim();
+  await shot(page, 'account-passkeys', '[data-test=account-passkeys]');
+  // The same device again: the browser refuses a second passkey for the account
+  await page.locator('[data-test=account-passkey-add]').click();
+  await page.locator('[data-test=account-passkey-message]', { hasText: 'già una passkey' }).waitFor({ timeout: 15000 });
+  await page.locator('[data-test=account-logout]').click();
+  await page.locator('[data-test=auth-passkey]').waitFor({ timeout: 15000 });
+  await shot(page, 'login-passkey', 'main');
+  // The errors handled on the account page (wrong password of the deletion, a refused passkey) do not raise the page banner
+  const bannerOnLogin = await page.locator('[data-test=api-error]').count();
+  await page.locator('[data-test=auth-passkey]').click();
+  await page.locator('[data-test=account-area]', { hasText: email }).waitFor({ timeout: 30000 });
+  const credentials = (await cdp.send('WebAuthn.getCredentials', { authenticatorId })).credentials.length;
+  results.push(`INFO passkey: added='${passkeyMessage}' credentials on the device=${credentials}`);
+  if (!/aggiunta/i.test(passkeyMessage) || credentials !== 1 || bannerOnLogin !== 0) throw new Error(`unexpected passkey flow (banner=${bannerOnLogin})`);
+  ok('passkey: added from the account page with a (virtual) fingerprint, a second one on the same device refused, sign-out and sign-in with the passkey');
+
   // Administration (admin-ui@example.com is in Auth:AdminEmails in this job): figures, an account suspended,
   // reactivated and deleted, the Homebrew moderation; an ordinary account is turned away
   await page.goto(`${base}/admin`);

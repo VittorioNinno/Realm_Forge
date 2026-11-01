@@ -1109,6 +1109,50 @@ jobs:
           adcheck "deleted account" "$ad_deleted_login" "401"
           test "$adfail" = "0"
 
+          # Notices by e-mail (without a mail service the API logs them): suspended, reactivated, deleted by an
+          # administrator (erin), deleted by the person (dave2)
+          noticed() {
+            for i in $(seq 1 20); do
+              grep -rqE "for $1: notice:$2( |$)" --include='*.log' . && { echo yes; return 0; }
+              sleep 0.5
+            done
+            echo no
+          }
+          nt_suspended=$(noticed erin@example.com suspended)
+          nt_reactivated=$(noticed erin@example.com reactivated)
+          nt_admin_delete=$(noticed erin@example.com deleted-by-admin)
+          nt_self_delete=$(noticed dave2@example.com deleted)
+          echo "::notice title=notices::suspended=$nt_suspended reactivated=$nt_reactivated deleted by admin=$nt_admin_delete deleted by the person=$nt_self_delete"
+          test "$nt_suspended" = "yes" && test "$nt_reactivated" = "yes" && test "$nt_admin_delete" = "yes" && test "$nt_self_delete" = "yes"
+
+          # Passkeys: options for the client's domain, the state bound to its purpose, forged answers refused
+          # (the full ceremony with a virtual authenticator runs in the UI job)
+          pk_anon_list=$(code "$api/api/passkeys")
+          pk_req=$(curl -s -X POST "$api/api/passkeys/request-options" -H 'Origin: https://localhost:7171')
+          pk_req_shape=$(echo "$pk_req" | jq -c '.options | fromjson | {rpId, challenge: (.challenge | length > 30), uv: .userVerification}')
+          pk_create=$(curl -s -X POST "$api/api/passkeys/creation-options" -H "Authorization: Bearer $A")
+          pk_create_shape=$(echo "$pk_create" | jq -c '.options | fromjson | {rp: .rp.id, user: .user.name, display: .user.displayName}')
+          pk_create_anon=$(code -X POST "$api/api/passkeys/creation-options")
+          fake='{"id":"AAAA","rawId":"AAAA","type":"public-key","response":{"clientDataJSON":"e30","authenticatorData":"AAAA","signature":"AAAA"},"clientExtensionResults":{}}'
+          pk_forged=$(curl -s -X POST "$api/api/passkeys/sign-in" $json -d "$(jq -nc --arg c "$fake" --arg s "$(echo "$pk_req" | jq -r .state)" '{credential:$c, state:$s}')" | jq -r '.detail // "token"')
+          pk_bad_state=$(curl -s -X POST "$api/api/passkeys/sign-in" $json -d "$(jq -nc --arg c "$fake" '{credential:$c, state:"nope"}')" | jq -r '.detail // "token"')
+          pk_wrong_purpose=$(curl -s -X POST "$api/api/passkeys/sign-in" $json -d "$(jq -nc --arg c "$fake" --arg s "$(echo "$pk_create" | jq -r .state)" '{credential:$c, state:$s}')" | jq -r '.detail // "token"')
+          pk_forged_add=$(code -X POST "$api/api/passkeys" $json -H "Authorization: Bearer $A" -d "$(jq -nc --arg c "$fake" --arg s "$(echo "$pk_create" | jq -r .state)" '{credential:$c, state:$s, name:"Finta"}')")
+          pk_list=$(curl -s "$api/api/passkeys" -H "Authorization: Bearer $A" | jq length)
+          echo "::notice title=passkeys::anonymous list=$pk_anon_list | request=$pk_req_shape | creation=$pk_create_shape anonymous=$pk_create_anon | forged sign-in=$pk_forged bad state=$pk_bad_state wrong purpose=$pk_wrong_purpose forged add=$pk_forged_add | alice passkeys=$pk_list"
+          pkfail=0
+          pkcheck() { if [ "$2" != "$3" ]; then echo "::error title=passkeys::$1: got '$2', expected '$3'"; pkfail=1; fi; }
+          pkcheck "anonymous list" "$pk_anon_list" "401"
+          pkcheck "sign-in options" "$pk_req_shape" '{"rpId":"localhost","challenge":true,"uv":"required"}'
+          pkcheck "creation options" "$pk_create_shape" '{"rp":"localhost","user":"alice@example.com","display":"Alice"}'
+          pkcheck "creation options need an account" "$pk_create_anon" "401"
+          pkcheck "forged answer" "$pk_forged" "PasskeyFailed"
+          pkcheck "unreadable state" "$pk_bad_state" "PasskeyExpired"
+          pkcheck "state of another operation" "$pk_wrong_purpose" "PasskeyExpired"
+          pkcheck "forged passkey not added" "$pk_forged_add" "400"
+          pkcheck "no passkey saved" "$pk_list" "0"
+          test "$pkfail" = "0"
+
   ui:
     runs-on: ubuntu-24.04
     needs: build

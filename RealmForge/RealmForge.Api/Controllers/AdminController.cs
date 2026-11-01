@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using RealmForge.Api.Campaigns;
+using RealmForge.Api.Email;
 using RealmForge.Api.Security;
 using RealmForge.Infrastructure.Identity;
 using RealmForge.Infrastructure.Persistence;
@@ -100,7 +101,7 @@ namespace RealmForge.Api.Controllers
 
 		//	PUT: api/admin/users/{id}/lock — suspends the sign-in for some days (0 reactivates); never oneself or an administrator
 		[HttpPut("users/{id}/lock")]
-		public async Task<IActionResult> Lock(string id, [FromBody] AdminLockDto dto)
+		public async Task<IActionResult> Lock(string id, [FromBody] AdminLockDto dto, [FromServices] AccountNotices notices)
 		{
 			if (!_access.IsAdmin(User))
 			{
@@ -119,8 +120,10 @@ namespace RealmForge.Api.Controllers
 			{
 				return Problem(statusCode: StatusCodes.Status400BadRequest, title: $"From 0 to {MaxLockDays} days.");
 			}
+			var wasLocked = await _users.IsLockedOutAsync(user);
+			var until = DateTimeOffset.UtcNow.AddDays(dto.Days);
 			await _users.SetLockoutEnabledAsync(user, true);
-			await _users.SetLockoutEndDateAsync(user, dto.Days == 0 ? null : DateTimeOffset.UtcNow.AddDays(dto.Days));
+			await _users.SetLockoutEndDateAsync(user, dto.Days == 0 ? null : until);
 			if (dto.Days > 0)
 			{
 				//	The sessions already open can no longer be renewed
@@ -130,12 +133,25 @@ namespace RealmForge.Api.Controllers
 			{
 				await _users.ResetAccessFailedCountAsync(user);
 			}
+
+			//	The person is told by e-mail (a reactivation only when the account was blocked)
+			if (user.Email is { Length: > 0 } email)
+			{
+				if (dto.Days > 0)
+				{
+					await notices.SuspendedAsync(email, until);
+				}
+				else if (wasLocked)
+				{
+					await notices.ReactivatedAsync(email);
+				}
+			}
 			return NoContent();
 		}
 
 		//	DELETE: api/admin/users/{id} — the account and its data, as when the person deletes it
 		[HttpDelete("users/{id}")]
-		public async Task<ActionResult<AccountDeletedDto>> DeleteUser(string id, [FromServices] AccountDeletion deletion)
+		public async Task<ActionResult<AccountDeletedDto>> DeleteUser(string id, [FromServices] AccountDeletion deletion, [FromServices] AccountNotices notices)
 		{
 			if (!_access.IsAdmin(User))
 			{
@@ -150,11 +166,16 @@ namespace RealmForge.Api.Controllers
 			{
 				return Problem(statusCode: StatusCodes.Status400BadRequest, title: "An administrator cannot be deleted here.");
 			}
+			var email = user.Email;
 			var outcome = await deletion.RemoveDataAsync(user.Id);
 			var result = await _users.DeleteAsync(user);
 			if (!result.Succeeded)
 			{
 				return Problem(statusCode: StatusCodes.Status500InternalServerError, title: "The account could not be deleted.");
+			}
+			if (email is { Length: > 0 })
+			{
+				await notices.DeletedAsync(email, byAdministrator: true);
 			}
 			return Ok(new AccountDeletedDto(outcome.Characters, outcome.HomebrewDeleted, outcome.HomebrewKept, outcome.CampaignsDeleted, outcome.CampaignsHandedOver));
 		}
