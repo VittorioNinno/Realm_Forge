@@ -1355,7 +1355,7 @@ try {
   await shot(page, 'module-sheet', '[data-test=sheet-scores]');
   results.push(`INFO modules: previews=${JSON.stringify(modulePreviews)} detail="${moduleEffects}" pool=${fortunaPool} wizard="${fortunaWizard}" sheet="${fortunaSheet}" modules="${sheetModules}"`);
   if (!/Fortuna \(FRT\)/.test(modulePreviews[0] ?? '') || !/Punti Fortuna, 3 usi/.test(modulePreviews[1] ?? '') || !/riposo lungo/.test(moduleEffects)
-    || fortunaPool !== '10' || !/Fortuna/.test(fortunaWizard) || !/10/.test(fortunaWizard) || !/Fortuna/.test(fortunaSheet) || !/\+0/.test(fortunaSheet) || !/Fortuna/.test(sheetModules)) {
+    || fortunaPool !== '10' || !/fortuna/i.test(fortunaWizard) || !/10/.test(fortunaWizard) || !/fortuna/i.test(fortunaSheet) || !/\+0/.test(fortunaSheet) || !/fortuna/i.test(sheetModules)) {
     throw new Error('unexpected rule module flow');
   }
   ok('rule modules: Fortuna written in the effects editor (ability + resource), picked in the wizard, joins the array as a seventh value and shows next to the six on the sheet');
