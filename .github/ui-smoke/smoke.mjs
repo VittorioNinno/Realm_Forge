@@ -76,7 +76,7 @@ try {
 
   // Navigation: reference pages live in the collapsible "Compendio" group, opened on compendium routes
   const compendiumLinks = (await page.locator('[data-test=nav-compendium] a').allInnerTexts()).map((t) => t.trim());
-  if (compendiumLinks.join(',') !== 'Specie,Background,Talenti,Incantesimi,Classi,Equipaggiamento,Oggetti magici,Mostri') throw new Error(`unexpected compendium links: ${compendiumLinks.join(',')}`);
+  if (compendiumLinks.join(',') !== 'Specie,Background,Talenti,Incantesimi,Classi,Equipaggiamento,Oggetti magici,Mostri,Moduli di regole') throw new Error(`unexpected compendium links: ${compendiumLinks.join(',')}`);
   // The rules glossary is a menu entry of its own, next to the compendium group
   const rulesLink = (await page.locator('[data-test=nav-rules] a').innerText()).trim();
   if (rulesLink !== 'Glossario') throw new Error(`unexpected glossary menu entry: ${rulesLink}`);
