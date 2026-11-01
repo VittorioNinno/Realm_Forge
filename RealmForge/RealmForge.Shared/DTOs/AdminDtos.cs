@@ -1,3 +1,4 @@
+﻿using RealmForge.Shared.Characters;
 using RealmForge.Shared.Enums;
 
 namespace RealmForge.Shared.DTOs
@@ -65,5 +66,25 @@ namespace RealmForge.Shared.DTOs
 		string Link,
 		RulesetVersion Ruleset,
 		bool IsBase,
-		bool IsMine);
+		bool IsMine,
+		SearchDetailDto? Detail = null);
+
+	///	<summary>
+	///	What the client shows under a hit, by kind (the client words it): level and school of a spell, challenge and
+	///	type of a monster, rarity of a magic item, category of equipment, feats and glossary entries.
+	///	</summary>
+	public record SearchDetailDto(
+		int? SpellLevel = null,
+		SpellSchool? School = null,
+		decimal? Challenge = null,
+		CreatureType? Creature = null,
+		ItemRarity? Rarity = null,
+		EquipmentCategory? Equipment = null,
+		FeatCategory? Feat = null,
+		RuleCategory? Rule = null);
+
+	///	<summary>
+	///	Base content of a section of the compendium in each edition (the search page's index).
+	///	</summary>
+	public record CompendiumSectionCountDto(string Kind, int Edition2024, int Edition2014);
 }

@@ -66,11 +66,41 @@ namespace RealmForge.Client.Services
 		public Task<HttpStatusCode?> SetVisibilityAsync(Guid id, ContentVisibility visibility) =>
 			SendAsync(() => _http.PutAsJsonAsync($"api/admin/homebrew/{id}/visibility", new AdminVisibilityDto { Visibility = visibility }), "visibility");
 
-		public async Task<List<SearchResultDto>?> SearchAsync(string text, LanguageCode lang, CancellationToken token = default)
+		private static string KindsQuery(IReadOnlyCollection<string>? kinds) =>
+			kinds is { Count: > 0 } ? $"&kinds={Uri.EscapeDataString(string.Join(',', kinds))}" : string.Empty;
+
+		public async Task<SearchResultDto?> RandomAsync(LanguageCode lang, IReadOnlyCollection<string>? kinds = null)
 		{
 			try
 			{
-				return await _http.GetFromJsonAsync<List<SearchResultDto>>($"api/compendium/search?q={Uri.EscapeDataString(text.Trim())}&lang={(int)lang}", token);
+				return await _http.GetFromJsonAsync<SearchResultDto>($"api/compendium/random?lang={(int)lang}{KindsQuery(kinds)}");
+			}
+			catch (Exception ex)
+			{
+				_logger.LogError(ex, "Random entry failed");
+				return null;
+			}
+		}
+
+		public async Task<List<CompendiumSectionCountDto>?> CountsAsync()
+		{
+			try
+			{
+				return await _http.GetFromJsonAsync<List<CompendiumSectionCountDto>>("api/compendium/counts");
+			}
+			catch (Exception ex)
+			{
+				_logger.LogError(ex, "Compendium counts failed");
+				return null;
+			}
+		}
+
+		public async Task<List<SearchResultDto>?> SearchAsync(string text, LanguageCode lang, IReadOnlyCollection<string>? kinds = null, CancellationToken token = default)
+		{
+			try
+			{
+				return await _http.GetFromJsonAsync<List<SearchResultDto>>(
+					$"api/compendium/search?q={Uri.EscapeDataString(text.Trim())}&lang={(int)lang}{KindsQuery(kinds)}", token);
 			}
 			catch (OperationCanceledException)
 			{
