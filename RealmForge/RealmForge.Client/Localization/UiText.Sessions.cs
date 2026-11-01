@@ -77,8 +77,6 @@ namespace RealmForge.Client.Localization
 		public static string RollsEmpty(LanguageCode lang) => T(lang, "Ancora nessun tiro.", "No rolls yet.");
 		public static string BtnClearRolls(LanguageCode lang) => T(lang, "Svuota il registro", "Clear the log");
 		public static string RollsClearConfirm(LanguageCode lang) => T(lang, "Svuotare il registro dei tiri per tutti?", "Clear the dice log for everyone?");
-		public static string RollAdvantage(LanguageCode lang) => T(lang, "Vantaggio", "Advantage");
-		public static string RollDisadvantage(LanguageCode lang) => T(lang, "Svantaggio", "Disadvantage");
 		public static string RollTime(DateTimeOffset at, LanguageCode lang)
 		{
 			var local = at.ToLocalTime();
