@@ -8,6 +8,9 @@ namespace RealmForge.Domain.Entities
 	///	</summary>
 	public class Feat : GameEntity
 	{
+		//	Homebrew rule effects (JSON list of RealmForge.Shared.Characters.RuleEffect) the sheet applies; "[]" for Base content
+		public string Effects { get; set; } = "[]";
+
 		public FeatCategory Category { get; set; } = FeatCategory.General;
 
 		//	Structured prerequisites (localized text is generated, see FeatPrerequisiteFormatter)

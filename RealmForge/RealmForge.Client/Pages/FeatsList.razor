@@ -240,6 +240,7 @@
                 <div class="rf-markdown-container">
                     @((MarkupString)MarkdownText.ToHtml(SelectedFeat.Description, Terms(SelectedFeat.Ruleset)))
                 </div>
+                <EffectList Effects="SelectedFeat.Effects" />
             </div>
 
             <div class="d-flex justify-content-between align-items-center pt-3 mt-4" style="border-top: 1px solid var(--rf-border-light);">
@@ -407,6 +408,12 @@
                     </div>
                 </div>
 
+                <details class="rf-effects-details mb-3" data-test="feat-effects">
+                    <summary>@UiText.EffectsOnSheet(newEffects.Count, LanguageState.CurrentLanguage)</summary>
+                    <div class="small my-2" style="color: var(--rf-text-muted);">@UiText.EffectsOnSheetHint(LanguageState.CurrentLanguage)</div>
+                    <RuleEffectsEditor Effects="newEffects" OnChanged="StateHasChanged" />
+                </details>
+
                 <div class="d-flex justify-content-end gap-2 pt-2" style="border-top: 1px solid var(--rf-border-light);">
                     <button class="btn btn-rf-outline" @onclick="CloseCreateModal">
                         @UiText.BtnCancel(LanguageState.CurrentLanguage)
@@ -491,6 +498,7 @@
     private string descIt = "";
     private string nameEn = "";
     private string descEn = "";
+    private List<RealmForge.Shared.Characters.RuleEffect> newEffects = new();
 
     private bool isDeleteModalOpen = false;
     private Guid featToDeleteId;
@@ -648,6 +656,7 @@
         descIt = "";
         nameEn = "";
         descEn = "";
+        newEffects = new();
         isModalOpen = true;
     }
 
@@ -685,6 +694,7 @@
                 descIt = detailIt.Description;
                 nameEn = detailEn.Name;
                 descEn = detailEn.Description;
+                newEffects = detailIt.Effects ?? new();
             }
         }
         catch (Exception ex)
@@ -710,6 +720,12 @@
             return;
         }
 
+        if (RealmForge.Shared.Characters.RuleEffectRules.Validate(newEffects) is { } effectProblem)
+        {
+            formValidationMessage = UiText.ModuleError(effectProblem, LanguageState.CurrentLanguage);
+            return;
+        }
+
         isSaving = true;
         formValidationMessage = null;
         bool success;
@@ -723,6 +739,7 @@
                 Prerequisites = BuildPrerequisites(),
                 Ruleset = newRuleset,
                 Visibility = newVisibility,
+                Effects = newEffects,
                 Translations = new List<UpdateFeatTranslationDto>
                 {
                     new UpdateFeatTranslationDto { Language = LanguageCode.It, Name = nameIt.Trim(), Description = descIt?.Trim() ?? string.Empty, PrerequisiteNote = noteIt },
@@ -739,6 +756,7 @@
                 Prerequisites = BuildPrerequisites(),
                 Ruleset = newRuleset,
                 Visibility = newVisibility,
+                Effects = newEffects,
                 Translations = new List<CreateFeatTranslationDto>
                 {
                     new CreateFeatTranslationDto { Language = LanguageCode.It, Name = nameIt.Trim(), Description = descIt?.Trim() ?? string.Empty, PrerequisiteNote = noteIt },

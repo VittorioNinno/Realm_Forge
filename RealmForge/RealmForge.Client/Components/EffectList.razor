@@ -1,0 +1,22 @@
+﻿@using RealmForge.Client.Localization
+@using RealmForge.Client.Services
+@using RealmForge.Shared.Characters
+@inject LanguageStateService LanguageState
+
+@* The rule effects of a Homebrew entry, as sentences: what the sheet applies on its own *@
+@if (Effects is { Count: > 0 })
+{
+    <div class="rf-effect-box" data-test="effect-list">
+        <div class="rf-mini-label mb-2">@UiText.EffectsOnSheetTitle(LanguageState.CurrentLanguage)</div>
+        <ul class="rf-effect-list">
+            @foreach (var effect in Effects)
+            {
+                <li>@UiText.EffectText(effect, Effects, LanguageState.CurrentLanguage)</li>
+            }
+        </ul>
+    </div>
+}
+
+@code {
+    [Parameter] public List<RuleEffect>? Effects { get; set; }
+}

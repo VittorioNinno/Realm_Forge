@@ -53,10 +53,10 @@ namespace RealmForge.Api.Campaigns
 					entry.Kind, entry.Name, null, entry.Id));
 			}
 
-			//	Homebrew from another edition (it would not work with the campaign's rules)
+			//	Homebrew from another edition (it would not work with the campaign's rules; rule modules hold for both)
 			if (campaign.Ruleset is { } edition)
 			{
-				foreach (var entry in entries.Values.Where(e => !e.IsBase && e.Ruleset != edition && Available(e)))
+				foreach (var entry in entries.Values.Where(e => !e.IsBase && e.Kind != "module" && e.Ruleset != edition && Available(e)))
 				{
 					issues.Add(new CampaignCheckIssueDto(CampaignCheckIssue.HomebrewEdition, entry.Kind, entry.Name, entry.Ruleset, entry.Id));
 				}
@@ -105,6 +105,7 @@ namespace RealmForge.Api.Campaigns
 			AddChoice(build.SpeciesFeat);
 			AddChoice(build.OriginFeat);
 			AddAll(build.SpeciesCantrips);
+			AddAll(build.ModuleIds);
 			foreach (var entry in build.Classes)
 			{
 				Add(entry.ClassId);

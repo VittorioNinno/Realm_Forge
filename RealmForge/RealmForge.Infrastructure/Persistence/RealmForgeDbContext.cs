@@ -77,6 +77,8 @@ namespace RealmForge.Infrastructure.Persistence
 		public DbSet<TrashEntry> TrashEntries => Set<TrashEntry>();
 
 		//	Rules glossary
+		public DbSet<RuleModule> RuleModules => Set<RuleModule>();
+		public DbSet<RuleModuleTranslation> RuleModuleTranslations => Set<RuleModuleTranslation>();
 		public DbSet<RuleEntry> RuleEntries => Set<RuleEntry>();
 		public DbSet<RuleEntryTranslation> RuleEntryTranslations => Set<RuleEntryTranslation>();
 
@@ -103,6 +105,7 @@ namespace RealmForge.Infrastructure.Persistence
 			//	Species configuration
 			modelBuilder.Entity<Species>(entity =>
 			{
+				entity.Property(s => s.Effects).IsRequired().HasColumnType("jsonb").HasDefaultValue("[]");
 				entity.HasKey(e => e.Id);
 				entity.Property(e => e.BaseSpeedInFeet).IsRequired();
 				entity.Property(e => e.CreatureType).IsRequired();
@@ -143,6 +146,7 @@ namespace RealmForge.Infrastructure.Persistence
 			//	Subspecies configuration
 			modelBuilder.Entity<Subspecies>(entity =>
 			{
+				entity.Property(s => s.Effects).IsRequired().HasColumnType("jsonb").HasDefaultValue("[]");
 				entity.HasKey(e => e.Id);
 				entity.Property(e => e.Ruleset).IsRequired();
 				entity.Property(e => e.IsOfficialSRD).IsRequired();
@@ -197,9 +201,31 @@ namespace RealmForge.Infrastructure.Persistence
 				entity.HasIndex(t => new { t.TraitId, t.Language }).IsUnique();
 			});
 
+			//	Homebrew rule modules: effects as JSON, a translation per language
+			modelBuilder.Entity<RuleModule>(entity =>
+			{
+				entity.HasKey(m => m.Id);
+				entity.Property(m => m.Effects).IsRequired().HasColumnType("jsonb");
+				entity.HasIndex(m => m.AuthorId);
+				entity.HasMany(m => m.Translations)
+						.WithOne(t => t.RuleModule)
+						.HasForeignKey(t => t.RuleModuleId)
+						.OnDelete(DeleteBehavior.Cascade);
+			});
+
+			modelBuilder.Entity<RuleModuleTranslation>(entity =>
+			{
+				entity.HasKey(t => t.Id);
+				entity.Property(t => t.Name).IsRequired().HasMaxLength(100);
+				entity.Property(t => t.Description).IsRequired().HasMaxLength(8000);
+				entity.HasIndex(t => new { t.RuleModuleId, t.Language }).IsUnique();
+			});
+
 			//	Feats configuration
 			modelBuilder.Entity<Feat>(entity =>
 			{
+				//	Rule effects of a Homebrew feat (JSON list of RuleEffect), empty for Base content
+				entity.Property(f => f.Effects).IsRequired().HasColumnType("jsonb").HasDefaultValue("[]");
 				entity.HasKey(f => f.Id);
 				entity.Property(f => f.Category).IsRequired();
 				entity.Property(f => f.Ruleset).IsRequired();
@@ -690,6 +716,7 @@ namespace RealmForge.Infrastructure.Persistence
 			//	Class features configuration: each feature belongs to exactly one class or one subclass
 			modelBuilder.Entity<ClassFeature>(entity =>
 			{
+				entity.Property(f => f.Effects).IsRequired().HasColumnType("jsonb").HasDefaultValue("[]");
 				entity.ToTable(t =>
 				{
 					t.HasCheckConstraint("CK_ClassFeatures_Level", "\"Level\" BETWEEN 1 AND 20");

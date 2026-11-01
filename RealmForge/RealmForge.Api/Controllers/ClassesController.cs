@@ -6,6 +6,7 @@ using RealmForge.Api.Security;
 using RealmForge.Domain.Entities;
 using RealmForge.Infrastructure.Persistence;
 using RealmForge.Infrastructure.Persistence.Trash;
+using RealmForge.Shared.Characters;
 using RealmForge.Shared.DTOs;
 using RealmForge.Shared.Enums;
 using RealmForge.Shared.Text;
@@ -316,7 +317,7 @@ namespace RealmForge.Api.Controllers
 				.Select(f =>
 				{
 					var ftr = f.Translations.Localize(lang);
-					return new ClassFeatureDto(f.Id, f.Level, f.SortOrder, ftr?.Name ?? "Unknown", ftr?.Description ?? string.Empty);
+					return new ClassFeatureDto(f.Id, f.Level, f.SortOrder, ftr?.Name ?? "Unknown", ftr?.Description ?? string.Empty, RuleEffectJson.Read(f.Effects));
 				})
 				.ToList();
 
@@ -325,6 +326,7 @@ namespace RealmForge.Api.Controllers
 			{
 				Level = f.Level,
 				SortOrder = index,
+				Effects = RuleEffectJson.Write(f.Effects),
 				Ruleset = ruleset,
 				IsOfficialSRD = false,
 				AuthorId = authorId,
@@ -376,6 +378,12 @@ namespace RealmForge.Api.Controllers
 			if (features.Any(f => f.Level is < 1 or > 20))
 			{
 				return "Feature levels must be between 1 and 20.";
+			}
+
+			//	Effects of the features: the same checks as a rule module
+			if (features.Select(f => RuleEffectRules.Validate(f.Effects ?? new())).FirstOrDefault(e => e is not null) is { } effectError)
+			{
+				return $"Invalid effect: {effectError}";
 			}
 
 			if (features.Any(f => f.Translations.Count == 0 || f.Translations.Any(t => string.IsNullOrWhiteSpace(t.Name))

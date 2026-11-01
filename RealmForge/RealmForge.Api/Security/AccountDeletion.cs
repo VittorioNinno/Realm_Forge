@@ -63,6 +63,7 @@ namespace RealmForge.Api.Security
 			await Handle(_context.Equipment);
 			await Handle(_context.Monsters);
 			await Handle(_context.MagicItems);
+			await Handle(_context.RuleModules);
 
 			_context.ContentShares.RemoveRange(await _context.ContentShares.Where(s => s.UserId == userId || deleted.Contains(s.EntityId)).ToListAsync());
 			_context.CampaignContents.RemoveRange(await _context.CampaignContents.Where(c => deleted.Contains(c.EntityId)).ToListAsync());

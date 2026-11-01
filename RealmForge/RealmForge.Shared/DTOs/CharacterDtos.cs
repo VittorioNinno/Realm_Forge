@@ -83,7 +83,10 @@ namespace RealmForge.Shared.DTOs
 		string? LastEditedBy = null,
 
 		//	Campaigns the character takes part in (for its owner and the masters who opened it)
-		List<Guid>? Campaigns = null);
+		List<Guid>? Campaigns = null,
+
+		//	Rule modules the campaigns of the character make active for it (shared with the table and approved)
+		List<Guid>? CampaignModuleIds = null);
 
 	public record CharacterSavedDto(Guid Id, int MaxHitPoints, int ArmorClass, DateTimeOffset UpdatedAt, SheetVitalsDto? Vitals = null);
 

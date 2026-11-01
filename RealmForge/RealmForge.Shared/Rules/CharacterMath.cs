@@ -48,17 +48,24 @@ namespace RealmForge.Shared.Rules
 		///	Checks the six base scores against the method: the standard array in any order, a point buy that spends
 		///	at most 27 points, or rolled scores between 3 and 18.
 		///	</summary>
-		public static bool AreValidBaseScores(AbilityMethod method, IReadOnlyList<int> scores)
+		public static bool AreValidBaseScores(AbilityMethod method, IReadOnlyList<int> scores) =>
+			AreValidBaseScores(method, scores, Array.Empty<int>(), 0);
+
+		///	<summary>
+		///	Base scores with the abilities added by rule modules after the six: the standard array gets one value for each
+		///	of them (arrayValues), the point buy the extra points of the modules.
+		///	</summary>
+		public static bool AreValidBaseScores(AbilityMethod method, IReadOnlyList<int> scores, IReadOnlyList<int> arrayValues, int extraPoints)
 		{
-			if (scores.Count != 6)
+			if (scores.Count != 6 + arrayValues.Count)
 			{
 				return false;
 			}
 
 			return method switch
 			{
-				AbilityMethod.StandardArray => scores.OrderByDescending(s => s).SequenceEqual(StandardArray),
-				AbilityMethod.PointBuy => scores.All(s => PointBuyCost(s) is not null) && scores.Sum(s => PointBuyCost(s)!.Value) <= PointBuyBudget,
+				AbilityMethod.StandardArray => scores.OrderByDescending(s => s).SequenceEqual(StandardArray.Concat(arrayValues).OrderByDescending(v => v)),
+				AbilityMethod.PointBuy => scores.All(s => PointBuyCost(s) is not null) && scores.Sum(s => PointBuyCost(s)!.Value) <= PointBuyBudget + extraPoints,
 				AbilityMethod.Roll => scores.All(s => s is >= 3 and <= 18),
 				_ => false
 			};
