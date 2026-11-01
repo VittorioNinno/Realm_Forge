@@ -15,7 +15,8 @@ public sealed record CharacterContextDto(
 	List<ContextBackground> Backgrounds,
 	List<ContextFeat> Feats,
 	List<ContextSpell> Spells,
-	List<ContextItem> Items);
+	List<ContextItem> Items,
+	List<ContextModule>? Modules = null);
 
 public sealed record ContextClass(
 	Guid Id,

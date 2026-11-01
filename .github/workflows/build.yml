@@ -748,6 +748,57 @@ jobs:
           cp_review_read=$(code "$api/api/feats/$cp_feat" -H "Authorization: Bearer $B")
           cp_approve_player=$(code -X POST "$api/api/campaigns/$cp_id/contents/$cp_feat/approve" -H "Authorization: Bearer $A")
           cp_approve=$(code -X POST "$api/api/campaigns/$cp_id/contents/$cp_feat/approve" -H "Authorization: Bearer $B")
+          # Rule modules: alice writes "Fortuna" (an ability worth 10 in the array, points equal to its modifier + 1, +1 Stealth,
+          # fire resistance); bad effects are refused; a character that picks it gives Fortuna a value of the larger array;
+          # shared with the campaign and approved, it applies to her character there; removed from the table, then binned
+          fortuna='{"ruleset":2,"visibility":2,"translations":[{"language":2,"name":"Fortuna","description":"La sorte del personaggio."},{"language":1,"name":"Luck","description":""}],
+            "effects":[{"kind":40,"key":"fortuna","nameIt":"Fortuna","nameEn":"Luck","shortIt":"FRT","shortEn":"LCK","value":10,"points":3,"save":true},
+              {"kind":41,"nameIt":"Punti Fortuna","nameEn":"Luck Points","uses":2,"abilityKey":"fortuna","value":1,"reset":1},
+              {"kind":11,"skill":17,"value":1},{"kind":30,"damageType":4}]}'
+          md=$(curl -s -X POST "$api/api/modules?lang=2" $json -H "Authorization: Bearer $A" -d "$fortuna")
+          md_id=$(echo "$md" | jq -r .id)
+          md_created=$(echo "$md" | jq -c '{name, effects: (.effects | length), key: .effects[0].key, canEdit}')
+          md_bad=$(curl -s -X POST "$api/api/modules" $json -H "Authorization: Bearer $A" -d "$(echo "$fortuna" | jq -c '.effects += [.effects[0]]')" | jq -r .detail)
+          md_bob=$(code "$api/api/modules/$md_id" -H "Authorization: Bearer $B")
+          md_bob_put=$(code -X PUT "$api/api/modules/$md_id" $json -H "Authorization: Bearer $B" -d "$fortuna")
+          md_list=$(get "$api/api/modules?lang=1" -H "Authorization: Bearer $A" | jq -c '[.[] | {name, effectKinds}]')
+          md_ctx=$(get "$api/api/characters/context?ruleset=2&lang=2" -H "Authorization: Bearer $A" | jq -c '[.modules[] | {name, effects: (.effects | length)}]')
+          lucky=$(echo "$hero" | jq -c --arg m "$md_id" '.name = "Fortunato" | .build.moduleIds = [$m] | .build.extraScores = {"fortuna": 10}')
+          md_char=$(curl -s -X POST $api/api/characters $json -H "Authorization: Bearer $A" -d "$lucky")
+          md_char_id=$(echo "$md_char" | jq -r .id)
+          md_char_saved=$(echo "$md_char" | jq -c '{modules: .build.moduleIds | length, fortuna: .build.extraScores.fortuna}')
+          if [ "$md_char_id" = "null" ] || [ -z "$md_char_id" ]; then echo "::error title=modules::character refused: $(echo "$md_char" | head -c 600)"; fi
+          md_char_bad=$(post "$(echo "$lucky" | jq -c '.build.extraScores = {"fortuna": 16}')")
+          md_share=$(curl -s -X POST "$api/api/campaigns/$cp_id/contents" $json -H "Authorization: Bearer $A" -d "{\"entityId\":\"$md_id\"}")
+          md_approve=$(code -X POST "$api/api/campaigns/$cp_id/contents/$md_id/approve" -H "Authorization: Bearer $B")
+          md_campaign=$(get "$api/api/characters/$ch_id" -H "Authorization: Bearer $A" | jq -c --arg m "$md_id" '.campaignModuleIds == [$m]')
+          md_campaign_sheet=$(code -X PUT "$api/api/characters/$ch_id/sheet" $json -H "Authorization: Bearer $A" -d "$sheet")
+          md_unshare=$(code -X DELETE "$api/api/campaigns/$cp_id/contents/$md_id" -H "Authorization: Bearer $B")
+          md_campaign_after=$(get "$api/api/characters/$ch_id" -H "Authorization: Bearer $A" | jq -c '.campaignModuleIds | length')
+          md_char_delete=$(code -X DELETE "$api/api/characters/$md_char_id" -H "Authorization: Bearer $A")
+          md_delete=$(code -X DELETE "$api/api/modules/$md_id" -H "Authorization: Bearer $A")
+          md_bin=$(get "$api/api/trash?lang=2" -H "Authorization: Bearer $A" | jq -c '[.[] | select(.kind == "module") | .name]')
+          echo "::notice title=modules::created=$md_created bad=$md_bad bob GET=$md_bob PUT=$md_bob_put list=$md_list context=$md_ctx | character=$md_char_saved wrong Fortuna=$md_char_bad | campaign share=$md_share approve=$md_approve active=$md_campaign sheet=$md_campaign_sheet unshare=$md_unshare after=$md_campaign_after | delete=$md_delete bin=$md_bin"
+          mdfail=0
+          mdcheck() { if [ "$2" != "$3" ]; then echo "::error title=modules::$1: got '$2', expected '$3'"; mdfail=1; fi; }
+          mdcheck "created" "$md_created" '{"name":"Fortuna","effects":4,"key":"fortuna","canEdit":true}'
+          mdcheck "two abilities with one key" "$md_bad" "ExtraAbility"
+          mdcheck "private for bob" "$md_bob" "404"
+          mdcheck "bob cannot change it" "$md_bob_put" "403"
+          mdcheck "list" "$md_list" '[{"name":"Luck","effectKinds":[40,41,11,30]}]'
+          mdcheck "context" "$md_ctx" '[{"name":"Fortuna","effects":4}]'
+          mdcheck "character with Fortuna" "$md_char_saved" '{"modules":1,"fortuna":10}'
+          mdcheck "Fortuna outside the array" "$md_char_bad" "400"
+          mdcheck "player shares it" "$md_share" "1"
+          mdcheck "master approves it" "$md_approve" "204"
+          mdcheck "active for the campaign's character" "$md_campaign" "true"
+          mdcheck "sheet saved with the module" "$md_campaign_sheet" "200"
+          mdcheck "removed from the table" "$md_unshare" "204"
+          mdcheck "no longer active" "$md_campaign_after" "0"
+          mdcheck "character deleted" "$md_char_delete" "204"
+          mdcheck "module deleted" "$md_delete" "204"
+          mdcheck "module in the bin" "$md_bin" '["Fortuna"]'
+          test "$mdfail" = "0"
           # Encounters: the master prepares one (a goblin, a hidden goblin, alice's character); the player sees it only once it
           # is under way and shown, without the hidden goblin, the notes and the monsters' numbers, and cannot change it;
           # a save from an old version answers 409

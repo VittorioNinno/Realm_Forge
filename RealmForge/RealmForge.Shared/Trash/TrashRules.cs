@@ -12,7 +12,7 @@
 		//	The kinds of content that go through the bin
 		public static readonly IReadOnlyList<string> Kinds = new[]
 		{
-			"character", "campaign", "species", "subspecies", "class", "subclass", "background", "feat", "spell", "equipment", "monster", "magic-item"
+			"character", "campaign", "species", "subspecies", "class", "subclass", "background", "feat", "spell", "equipment", "monster", "magic-item", "module"
 		};
 	}
 }

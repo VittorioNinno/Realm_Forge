@@ -15,7 +15,7 @@ namespace RealmForge.Api.Campaigns
 
 	///	<summary>
 	///	Finds Homebrew entries by id across every content table (species, subspecies, classes, subclasses, backgrounds,
-	///	feats, spells, equipment, monsters) and lists the entries an account wrote.
+	///	feats, spells, equipment, monsters, rule modules) and lists the entries an account wrote.
 	///	</summary>
 	public class HomebrewLookup
 	{
@@ -77,6 +77,7 @@ namespace RealmForge.Api.Campaigns
 			entity ??= await _context.Equipment.FindAsync(id);
 			entity ??= await _context.Monsters.FindAsync(id);
 			entity ??= await _context.MagicItems.FindAsync(id);
+			entity ??= await _context.RuleModules.FindAsync(id);
 			return entity is { IsOfficialSRD: false } ? entity : null;
 		}
 
@@ -124,6 +125,10 @@ namespace RealmForge.Api.Campaigns
 			foreach (var e in await _context.MagicItems.AsNoTracking().Include(x => x.Translations).Where(Cast<RealmForge.Domain.Entities.MagicItem>(filter)).ToListAsync())
 			{
 				yield return Entry(e, "magic-item", e.Translations.Localize(lang)?.Name, $"magic-items?id={e.Id}");
+			}
+			foreach (var e in await _context.RuleModules.AsNoTracking().Include(x => x.Translations).Where(Cast<RealmForge.Domain.Entities.RuleModule>(filter)).ToListAsync())
+			{
+				yield return Entry(e, "module", e.Translations.Localize(lang)?.Name, $"modules?id={e.Id}");
 			}
 		}
 

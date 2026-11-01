@@ -197,9 +197,13 @@
                     {
                         <div class="rf-hero-prof"><span class="rf-mini-label">@UiText.SheetWeaponTraining(Lang)</span>@string.Join(", ", c.ExtraWeapons.Select(w => context?.Items.FirstOrDefault(i => string.Equals(i.EnglishName, w, StringComparison.OrdinalIgnoreCase))?.Name ?? w))</div>
                     }
-                    @if (!string.IsNullOrWhiteSpace(backgroundDetail?.ToolProficiencies))
+                    @if (!string.IsNullOrWhiteSpace(backgroundDetail?.ToolProficiencies) || c.ExtraTools.Count > 0)
                     {
-                        <div class="rf-hero-prof"><span class="rf-mini-label">@UiText.LabelTools(Lang)</span>@backgroundDetail.ToolProficiencies</div>
+                        <div class="rf-hero-prof"><span class="rf-mini-label">@UiText.LabelTools(Lang)</span>@string.Join(", ", new[] { backgroundDetail?.ToolProficiencies }.Concat(c.ExtraTools).Where(t => !string.IsNullOrWhiteSpace(t)))</div>
+                    }
+                    @if (c.Modules.Count > 0)
+                    {
+                        <div class="rf-hero-prof" data-test="sheet-modules"><span class="rf-mini-label">@UiText.SheetModulesTitle(Lang)</span>@string.Join(", ", c.Modules.Select(m => m.Name))</div>
                     }
                 </div>
             </section>
@@ -361,7 +365,7 @@
                     }
                 </div>
             </div>
-            <div class="rf-ability-grid" data-test="sheet-scores">
+            <div class="rf-ability-grid" style="--rf-abilities: @(6 + c.ExtraAbilities.Count);" data-test="sheet-scores">
                 @foreach (var ability in CharacterMath.Abilities)
                 {
                     var a = ability;
@@ -376,6 +380,29 @@
                         <button type="button" class="rf-ability-save rf-rollable @(proficient ? "proficient" : null)" @onclick="() => Roll(saveLabel, c.SaveBonus(a))" title="@UiText.SheetSaves(Lang)">
                             @UiText.SheetSaveShort(Lang) @CharacterMath.FormatModifier(c.SaveBonus(a))
                         </button>
+                    </div>
+                }
+                @* Abilities added by rule modules (Fortuna): rolled like the others, with their saving throw when they have one *@
+                @foreach (var extra in c.ExtraAbilities)
+                {
+                    var x = extra;
+                    var name = x.Definition.Name(Lang);
+                    <div class="rf-ability-card rf-ability-extra" title="@x.Module" data-test="sheet-extra-ability">
+                        <button type="button" class="rf-ability-main rf-rollable" @onclick="() => Roll(name, x.Modifier + c.CheckBonusAll)">
+                            <div class="rf-mini-label">@name</div>
+                            <div class="rf-ability-mod">@CharacterMath.FormatModifier(x.Modifier)</div>
+                            <div class="rf-ability-score">@x.Score</div>
+                        </button>
+                        @if (x.HasSave)
+                        {
+                            <button type="button" class="rf-ability-save rf-rollable @(x.SaveProficient ? "proficient" : null)" @onclick="() => Roll(UiText.SheetSaveShort(Lang) + " " + name, x.SaveBonus)" title="@UiText.SheetSaves(Lang)">
+                                @UiText.SheetSaveShort(Lang) @CharacterMath.FormatModifier(x.SaveBonus)
+                            </button>
+                        }
+                        else
+                        {
+                            <div class="rf-ability-save rf-ability-save-none">—</div>
+                        }
                     </div>
                 }
             </div>

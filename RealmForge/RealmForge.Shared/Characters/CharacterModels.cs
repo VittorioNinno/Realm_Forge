@@ -39,6 +39,11 @@ public sealed class CharacterBuild
 	public List<CharacterClassBuild> Classes { get; set; } = new();
 	public List<CharacterLevelBuild> Levels { get; set; } = new();
 
+	//	Homebrew rule modules chosen for this character (the campaign's modules apply on their own) and the base scores
+	//	of the abilities they add, by key (Fortuna: "luck")
+	public List<Guid> ModuleIds { get; set; } = new();
+	public Dictionary<string, int> ExtraScores { get; set; } = new();
+
 	//	Starting equipment (only when the character is created): "A"/"B" for the background, the kit letter or one
 	//	letter per line for the class ("" for fixed lines), and the specific items picked for "any simple weapon"
 	public string? BackgroundEquipment { get; set; }
@@ -92,8 +97,10 @@ public sealed class CharacterLevelBuild
 	public Guid ClassId { get; set; }
 	public int? HitPointRoll { get; set; }
 
-	//	2014 plain Ability Score Improvement: two entries (the same ability twice for +2)
+	//	2014 plain Ability Score Improvement: two entries (the same ability twice for +2); ExtraIncreases are the keys of
+	//	the abilities added by rule modules and count among the two
 	public List<AbilityScore> Increases { get; set; } = new();
+	public List<string> ExtraIncreases { get; set; } = new();
 
 	public Guid? FeatId { get; set; }
 	public FeatChoice Feat { get; set; } = new();
@@ -106,6 +113,9 @@ public sealed class CharacterLevelBuild
 public sealed class FeatChoice
 {
 	public List<AbilityScore> Increases { get; set; } = new();
+
+	//	Ability Score Improvement (2024): increases of abilities added by rule modules, among the two
+	public List<string> ExtraIncreases { get; set; } = new();
 	public List<Skill> Skills { get; set; } = new();
 	public List<Skill> Expertise { get; set; } = new();
 	public SpellcastingClass? SpellList { get; set; }
