@@ -619,15 +619,15 @@ try {
   // Global search: Italian and English names, results grouped by section with the edition
   await page.goto(`${base}/search?q=palla di fuoco`);
   await page.locator('[data-test=search-hit]').first().waitFor({ timeout: 30000 });
-  const fireball = (await page.locator('[data-test=search-group][data-kind=spell] [data-test=search-hit]').first().innerText()).replace(/\s+/g, ' ').trim();
+  const searchFireball = (await page.locator('[data-test=search-group][data-kind=spell] [data-test=search-hit]').first().innerText()).replace(/\s+/g, ' ').trim();
   await page.locator('[data-test=search-input]').fill('goblin');
   await page.locator('[data-test=search-group][data-kind=monster]').waitFor({ timeout: 15000 });
   const searchGroups = await page.locator('[data-test=search-group]').evaluateAll((els) => els.map((e) => e.getAttribute('data-kind')).join(','));
   await shot(page, 'search', 'main');
   await page.locator('[data-test=search-input]').fill('zzqqxx');
   await page.locator('[data-test=search-none]').waitFor({ timeout: 15000 });
-  results.push(`INFO search: fireball='${fireball}' goblin groups=${searchGroups}`);
-  if (!/Palla di Fuoco/i.test(fireball) || !/Fireball/.test(fireball) || !searchGroups.startsWith('monster')) throw new Error('unexpected global search results');
+  results.push(`INFO search: fireball='${searchFireball}' goblin groups=${searchGroups}`);
+  if (!/Palla di Fuoco/i.test(searchFireball) || !/Fireball/.test(searchFireball) || !searchGroups.startsWith('monster')) throw new Error('unexpected global search results');
   ok('global search: "palla di fuoco" finds the spell with its English name, "goblin" the monsters first, nothing for nonsense');
 
   // Account page: profile, Homebrew counts (the UI created one background) and password change

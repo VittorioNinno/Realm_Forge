@@ -1019,7 +1019,7 @@ jobs:
           adcheck "users" "$ad_users" '[{"email":"carol@example.com","isAdmin":true,"isMe":true},{"email":"erin@example.com","isAdmin":false,"isMe":false}]'
           adcheck "no self lock" "$ad_self" "400"
           adcheck "lock" "$ad_lock" "204"
-          adcheck "locked sign-in" "$ad_locked_login" "Lockedout"
+          adcheck "locked sign-in" "$ad_locked_login" "LockedOut"
           adcheck "lock listed" "$ad_listed" "true"
           adcheck "unlock" "$ad_unlock" "204"
           adcheck "sign-in again" "$ad_unlocked_login" "200"
