@@ -35,13 +35,20 @@
                 <span class="rf-form-label">@UiText.RollLabel(Lang)</span>
                 <input class="rf-form-control" maxlength="120" @bind="label" @onkeydown="OnKeyAsync" data-test="roll-label" />
             </label>
-            @if (Playable.Any())
-            {
-                <div data-test="roll-as">
-                    <span class="rf-form-label">@UiText.RollAs(Lang)</span>
+            <div data-test="roll-as">
+                <span class="rf-form-label">
+                    @UiText.RollAs(Lang)
+                    <span class="rf-roll-swatch ms-2" style="background-color: @MyColor;" title="@UiText.RollMyColor(Lang)" data-test="roll-my-color"></span>
+                </span>
+                @if (RollAsOptions.Count > 1)
+                {
                     <RfSelect TValue="Guid" @bind-Value="rollAs" Options="RollAsOptions" />
-                </div>
-            }
+                }
+                else
+                {
+                    <div class="rf-form-control rf-roll-as-fixed">@RollAsOptions[0].Label</div>
+                }
+            </div>
         </div>
         @if (invalid)
         {
@@ -77,11 +84,8 @@
                     var r = roll;
                     <li class="rf-roll @(r.IsMine ? "mine" : null) @(fresh.Contains(r.Id) ? "fresh" : null) @Outcome(r)" data-test="roll">
                         <div class="rf-roll-who">
-                            <span class="rf-roll-name">@(r.CharacterName ?? r.Roller)</span>
-                            @if (r.CharacterName is not null)
-                            {
-                                <span class="rf-roll-player">@r.Roller</span>
-                            }
+                            <span class="rf-roll-swatch" style="background-color: @r.Color;"></span>
+                            <span class="rf-roll-name" style="color: @r.Color;" data-test="roll-roller">@r.Roller</span>
                             @if (r.Hidden)
                             {
                                 <span class="rf-roll-hidden"><Icon Name="eye-slash" /> @UiText.RollHiddenBadge(Lang)</span>
@@ -144,6 +148,9 @@
     [Parameter] public CampaignRole Role { get; set; } = CampaignRole.Player;
     [Parameter] public IReadOnlyList<CampaignCharacterDto> Characters { get; set; } = Array.Empty<CampaignCharacterDto>();
 
+    //	My colour at this table (the colour of my rolls)
+    [Parameter] public string MyColor { get; set; } = PlayerColors.Master;
+
     private LanguageCode Lang => LanguageState.CurrentLanguage;
     private List<CampaignRollDto>? rolls;
     private readonly HashSet<Guid> fresh = new();
@@ -157,12 +164,41 @@
     private PeriodicTimer? timer;
     private CancellationTokenSource? stop;
 
-    //	The characters I can roll for: mine and, for masters and co-masters, everyone's
-    private IEnumerable<CampaignCharacterDto> Playable => Characters.Where(c => c.CanEdit && c.Active);
+    private bool RunsTheTable => CampaignRules.RunsTheTable(Role);
 
-    private List<RfSelect<Guid>.OptionItem> RollAsOptions => new[] { new RfSelect<Guid>.OptionItem(Guid.Empty, UiText.RollAsMe(Lang)) }
-        .Concat(Playable.Select(c => new RfSelect<Guid>.OptionItem(c.Character.Id, c.Character.Name)))
-        .ToList();
+    //	The characters I can roll for: a player's own; for masters and co-masters, everyone's
+    private IEnumerable<CampaignCharacterDto> Playable => Characters.Where(c => c.Active && (RunsTheTable ? c.CanEdit : c.IsMine));
+
+    //	A roll shows the character's name: masters roll as themselves ("Master") or for a character; a player rolls for
+    //	one of their characters, as themselves only without any
+    private List<RfSelect<Guid>.OptionItem> RollAsOptions
+    {
+        get
+        {
+            var characters = Playable.Select(c => new RfSelect<Guid>.OptionItem(c.Character.Id, c.Character.Name)).ToList();
+            if (RunsTheTable || characters.Count == 0)
+            {
+                var self = Role switch
+                {
+                    CampaignRole.Master => "Master",
+                    CampaignRole.CoMaster => "Co-master",
+                    _ => UiText.RollAsMe(Lang)
+                };
+                characters.Insert(0, new RfSelect<Guid>.OptionItem(Guid.Empty, self));
+            }
+            return characters;
+        }
+    }
+
+    protected override void OnParametersSet()
+    {
+        //	A player starts on their (first) character
+        var options = RollAsOptions;
+        if (options.All(o => o.Value != rollAs))
+        {
+            rollAs = options[0].Value;
+        }
+    }
 
     private static string? Outcome(CampaignRollDto r)
     {

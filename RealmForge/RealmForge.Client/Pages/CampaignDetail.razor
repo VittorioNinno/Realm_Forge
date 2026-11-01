@@ -142,7 +142,7 @@
                         var m = member;
                         <div class="rf-campaign-row" data-test="campaign-member">
                             <div class="rf-campaign-row-main">
-                                <span>@m.Name</span>
+                                <span><span class="rf-member-swatch" style="background-color: @m.Color;" title="@UiText.RollMyColor(Lang)"></span>@m.Name</span>
                                 @if (m.IsMe)
                                 {
                                     <span class="small" style="color: var(--rf-text-muted);">(@UiText.CampaignYou(Lang))</span>
@@ -340,7 +340,7 @@
                 break;
 
             case Tab.Rolls:
-                <CampaignRolls CampaignId="campaign.Id" Role="role" Characters="campaign.Characters" />
+                <CampaignRolls CampaignId="campaign.Id" Role="role" Characters="campaign.Characters" MyColor="@(campaign.Members.FirstOrDefault(m => m.IsMe)?.Color ?? PlayerColors.Master)" />
                 break;
         }
     }

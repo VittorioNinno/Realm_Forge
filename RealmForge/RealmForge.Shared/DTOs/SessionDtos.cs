@@ -35,13 +35,16 @@ namespace RealmForge.Shared.DTOs
 	public record RollDieDto(int Sides, int Value, bool Dropped = false);
 
 	///	<summary>
-	///	A roll in the dice log of the campaign: who rolled it (and for which character), what for, the dice and the total.
-	///	Hidden rolls are seen only by the masters and by whoever rolled them.
+	///	A roll in the dice log of the campaign: the name it is shown with (the character it was made for, "Master" for
+	///	a master rolling as such, the nickname of a player without a character) in the colour of the person who rolled,
+	///	what for, the dice and the total. Name and colour are kept as they were at the time of the roll. Hidden rolls are
+	///	seen only by the masters and by whoever rolled them.
 	///	</summary>
 	public record CampaignRollDto(
 		Guid Id,
 		string Roller,
-		string? CharacterName,
+		string Color,
+		bool IsCharacter,
 		string Label,
 		string Expression,
 		List<RollDieDto> Dice,

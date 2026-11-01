@@ -484,6 +484,7 @@ namespace RealmForge.Infrastructure.Persistence
 			{
 				entity.HasKey(m => m.Id);
 				entity.Property(m => m.UserId).IsRequired().HasMaxLength(450);
+				entity.Property(m => m.Color).HasMaxLength(9);
 				entity.HasIndex(m => new { m.CampaignId, m.UserId }).IsUnique();
 				entity.HasIndex(m => m.UserId);
 				entity.HasOne(m => m.Campaign).WithMany(c => c.Members).HasForeignKey(m => m.CampaignId).OnDelete(DeleteBehavior.Cascade);
@@ -558,6 +559,8 @@ namespace RealmForge.Infrastructure.Persistence
 				entity.HasKey(e => e.Id);
 				entity.Property(e => e.UserId).IsRequired().HasMaxLength(450);
 				entity.Property(e => e.CharacterName).HasMaxLength(100);
+				entity.Property(e => e.Roller).IsRequired().HasMaxLength(100);
+				entity.Property(e => e.Color).IsRequired().HasMaxLength(9);
 				entity.Property(e => e.Label).IsRequired().HasMaxLength(120);
 				entity.Property(e => e.Expression).IsRequired().HasMaxLength(80);
 				entity.Property(e => e.Dice).IsRequired().HasColumnType("jsonb");

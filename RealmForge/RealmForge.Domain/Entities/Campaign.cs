@@ -70,6 +70,10 @@ namespace RealmForge.Domain.Entities
 		public string UserId { get; set; } = string.Empty;
 		public Guid? CharacterId { get; set; }
 		public string? CharacterName { get; set; }
+
+		//	Name and colour shown for the roll, kept as they were when it was made (they survive the account)
+		public string Roller { get; set; } = string.Empty;
+		public string Color { get; set; } = PlayerColors.Master;
 		public string Label { get; set; } = string.Empty;
 		public string Expression { get; set; } = string.Empty;
 		public string Dice { get; set; } = "[]";
@@ -119,6 +123,9 @@ namespace RealmForge.Domain.Entities
 		public string UserId { get; set; } = string.Empty;
 		public CampaignRole Role { get; set; } = CampaignRole.Player;
 		public DateTimeOffset JoinedAt { get; set; } = DateTimeOffset.UtcNow;
+
+		//	Colour of the person's rolls (PlayerColors.Palette); a master is shown in orange whatever this says
+		public string? Color { get; set; }
 	}
 
 	///	<summary>
