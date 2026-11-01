@@ -100,7 +100,7 @@ namespace RealmForge.Api.Characters
 			}).OrderBy(f => f.Name, StringComparer.CurrentCultureIgnoreCase).ToList();
 
 			var contextSpells = spells
-				.Select(s => new ContextSpell(s.Id, s.Translations.Localize(lang)?.Name ?? string.Empty, s.Level, s.School, s.Classes, s.Ritual, s.Concentration))
+				.Select(s => new ContextSpell(s.Id, s.Translations.Localize(lang)?.Name ?? string.Empty, s.Level, s.School, s.Classes, s.Ritual, s.Concentration, Key(s.Id, s.IsOfficialSRD)))
 				.OrderBy(s => s.Level).ThenBy(s => s.Name, StringComparer.CurrentCultureIgnoreCase).ToList();
 
 			var contextItems = equipment.Select(e => new ContextItem(

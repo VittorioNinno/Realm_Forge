@@ -26,7 +26,10 @@ public enum UnarmoredDefense
 	DraconicBloodline = 3,
 
 	//	2024 Draconic Sorcery: 10 + Dex + Cha
-	DraconicSorcery = 4
+	DraconicSorcery = 4,
+
+	//	2024 College of Dance: 10 + Dex + Cha without armor and shield
+	Dance = 5
 }
 
 ///	<summary>

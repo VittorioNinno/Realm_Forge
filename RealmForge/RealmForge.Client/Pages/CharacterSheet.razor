@@ -181,6 +181,22 @@
                         <div class="rf-hero-prof"><span class="rf-mini-label">@UiText.SheetFeats(Lang)</span>@string.Join(", ", c.Feats.Select(f => f.Feat.Name))</div>
                     }
                     <div class="rf-hero-prof"><span class="rf-mini-label">@UiText.SheetArmorTraining(Lang)</span>@UiText.ArmorTrainingText(c.ArmorTraining, Lang)</div>
+                    @if (UiText.SensesText(c, Lang) is { Length: > 0 } senses)
+                    {
+                        <div class="rf-hero-prof" data-test="sheet-senses"><span class="rf-mini-label">@UiText.SheetSenses(Lang)</span>@senses</div>
+                    }
+                    @if (UiText.DefensesText(c, Lang) is { Length: > 0 } defenses)
+                    {
+                        <div class="rf-hero-prof" data-test="sheet-defenses"><span class="rf-mini-label">@UiText.SheetDefenses(Lang)</span>@defenses</div>
+                    }
+                    @if (c.Breath is { } breath)
+                    {
+                        <div class="rf-hero-prof" data-test="sheet-breath"><span class="rf-mini-label">@UiText.SheetBreath(Lang)</span>@UiText.BreathText(breath, Lang)</div>
+                    }
+                    @if (c.ExtraWeapons.Count > 0)
+                    {
+                        <div class="rf-hero-prof"><span class="rf-mini-label">@UiText.SheetWeaponTraining(Lang)</span>@string.Join(", ", c.ExtraWeapons.Select(w => context?.Items.FirstOrDefault(i => string.Equals(i.EnglishName, w, StringComparison.OrdinalIgnoreCase))?.Name ?? w))</div>
+                    }
                     @if (!string.IsNullOrWhiteSpace(backgroundDetail?.ToolProficiencies))
                     {
                         <div class="rf-hero-prof"><span class="rf-mini-label">@UiText.LabelTools(Lang)</span>@backgroundDetail.ToolProficiencies</div>
@@ -352,7 +368,7 @@
                     var proficient = c.SaveProficiencies.Contains(a);
                     var saveLabel = UiText.SheetSaveShort(Lang) + " " + FeatPrerequisiteFormatter.AbilityName(a, Lang);
                     <div class="rf-ability-card">
-                        <button type="button" class="rf-ability-main rf-rollable" @onclick="() => Roll(FeatPrerequisiteFormatter.AbilityName(a, Lang), c.Modifier(a))">
+                        <button type="button" class="rf-ability-main rf-rollable" @onclick="() => Roll(FeatPrerequisiteFormatter.AbilityName(a, Lang), c.AbilityCheck(a))">
                             <div class="rf-mini-label">@FeatPrerequisiteFormatter.AbilityName(a, Lang)</div>
                             <div class="rf-ability-mod">@CharacterMath.FormatModifier(c.Modifier(a))</div>
                             <div class="rf-ability-score">@c.Score(a)</div>
@@ -435,7 +451,7 @@
 </div>
 
 <SpellDetailModal SpellId="spellDetailId" OnClose="CloseSpell" Actions="CastPanel()" />
-<DiceTray @ref="diceTray" />
+<DiceTray @ref="diceTray" OnRoll="ShareRollAsync" SharedNote="@(SharesRolls ? UiText.SheetRollShared(Lang) : null)" />
 @if (campaignOpen && character is not null)
 {
     <div class="rf-modal-backdrop" @onclick="() => campaignOpen = false">
@@ -744,15 +760,15 @@
             </section>
         }
 
-        @if (c.Spellcasting.Count == 0)
+        @if (!c.AllSpellSources().Any())
         {
             <div class="small" style="color: var(--rf-text-muted);">@UiText.NoSpellsForClass(Lang)</div>
         }
-        @foreach (var source in c.Spellcasting)
+        @foreach (var source in c.AllSpellSources())
         {
-            var name = source.Class is { } cls ? (cls.Subclass is { } sub && cls.Class.CasterProgression == CasterProgression.None ? $"{cls.Class.Name} · {sub.Name}" : cls.Class.Name)
-                : source.Source == "species" ? UiText.SpellSourceSpecies(Ruleset, Lang) : source.Source;
-            var spells = source.ChosenCantrips.Concat(source.ChosenSpells).Select(id => context!.Spells.FirstOrDefault(s => s.Id == id)).Where(s => s is not null).Select(s => s!).ToList();
+            var name = source.Class is { } cls ? (source.Source == "subclass" || (cls.Subclass is not null && cls.Class.CasterProgression == CasterProgression.None) ? $"{cls.Class.Name} · {cls.Subclass?.Name}" : cls.Class.Name)
+                : source.Source == "species" ? UiText.SpellSourceSpecies(Ruleset, Lang) : source.Source == "subclass" ? UiText.SpellSourceSubclass(Lang) : source.Source;
+            var spells = source.Known.Select(id => context!.Spells.FirstOrDefault(s => s.Id == id)).Where(s => s is not null).Select(s => s!).ToList();
             var attackLabel = UiText.SheetSpellAttack(Lang);
             <section class="rf-card2 rf-casting" data-test="sheet-spellcasting">
                 @* Header: the class, how it casts (ability, save DC, attack, which rolls), the changes allowed and the editor *@
@@ -767,7 +783,7 @@
                             </button>
                         </div>
                     </div>
-                    @if (source.Class is not null && !ReadOnly)
+                    @if (source.Class is not null && source.Source == "class" && !ReadOnly)
                     {
                         var src = source;
                         <div class="rf-casting-right">
@@ -802,6 +818,10 @@
                                 var sp = spell;
                                 <a href="@($"spells?id={sp.Id}")" class="rf-casting-card @(Sheet.Concentration == sp.Id ? "concentrating" : null)" @onclick="() => OpenSpell(sp, source)" @onclick:preventDefault="true">
                                     <span class="rf-casting-card-name">@sp.Name</span>
+                                    @if (source.Always.Contains(sp.Id))
+                                    {
+                                        <span class="rf-casting-card-always" title="@UiText.SpellAlwaysPreparedTitle(Lang)" data-test="sheet-spell-always">@UiText.SpellAlwaysShort(Lang)</span>
+                                    }
                                     <span class="rf-casting-card-meta">
                                         <span class="rf-casting-card-school">@GameTerms.SchoolName(sp.School, Lang)</span>
                                         <span class="rf-casting-card-tags">
@@ -1320,7 +1340,7 @@
                         @TurnAttack(unarmedName, unarmedBonus, unarmedDamage)
                     </div>
                 </div>
-                @if (c.Spellcasting.Count > 0)
+                @if (c.AllSpellSources().Any())
                 {
                     <div class="rf-turn-group">
                         <div class="rf-turn-label">@(magicRule?.Name ?? "Magic")</div>

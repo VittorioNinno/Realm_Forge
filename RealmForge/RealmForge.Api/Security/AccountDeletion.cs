@@ -97,6 +97,24 @@ namespace RealmForge.Api.Security
 			_context.CampaignContents.RemoveRange(await _context.CampaignContents
 				.Where(c => c.SharedById == userId && c.Status == CampaignContentStatus.Pending).ToListAsync());
 
+			// ----- Dice logs -----
+			//	The hidden rolls (seen only by the masters and the person) go; the others stay in the history of the table,
+			//	grey, with the character's name, or "deleted account" instead of the nickname
+			_context.CampaignRolls.RemoveRange(await _context.CampaignRolls.Where(r => r.UserId == userId && r.Hidden).ToListAsync());
+			foreach (var roll in await _context.CampaignRolls.Where(r => r.UserId == userId).ToListAsync())
+			{
+				roll.UserId = string.Empty;
+				roll.Color = PlayerColors.Removed;
+				if (roll.CharacterId is null)
+				{
+					roll.Roller = string.Empty;
+				}
+			}
+			foreach (var session in await _context.CampaignSessions.Where(s => s.UpdatedById == userId).ToListAsync())
+			{
+				session.UpdatedById = string.Empty;
+			}
+
 			// ----- Bin -----
 			_context.TrashEntries.RemoveRange(await _context.TrashEntries.Where(t => t.UserId == userId).ToListAsync());
 

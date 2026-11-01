@@ -35,6 +35,30 @@
     </div>
 }
 
+@{
+    var ancestries = CharacterTraits.SpeciesOptions(Ruleset, species);
+}
+@if (ancestries.Count > 0)
+{
+    <div class="rf-wizard-row">
+        <div class="rf-wizard-label">@UiText.LabelSpeciesOption(species?.Key, Lang)</div>
+        <div class="rf-wizard-field">
+            <ForgeSelector TValue="string" Value="@(Build.SpeciesOption ?? string.Empty)" ValueChanged="v => { Build.SpeciesOption = string.IsNullOrEmpty(v) ? null : v; W.Update(); }"
+                           Options="@(ancestries.Select(a => new ForgeSelector<string>.Option(a.Key, UiText.SpeciesOptionName(a, Lang))).ToList())" DataTest="wizard-species-option" />
+        </div>
+    </div>
+}
+@if (CharacterTraits.SpeciesSpellAbilityChoice(Ruleset, species))
+{
+    <div class="rf-wizard-row">
+        <div class="rf-wizard-label">@UiText.LabelSpeciesSpellAbility(Lang)</div>
+        <div class="rf-wizard-field">
+            <ForgeSelector TValue="AbilityScore?" Value="Build.SpeciesSpellAbility" ValueChanged="v => { Build.SpeciesSpellAbility = v; W.Update(); }"
+                           Options="@(CharacterTraits.SpellAbilities.Select(a => new ForgeSelector<AbilityScore?>.Option(a, FeatPrerequisiteFormatter.AbilityName(a, Lang))).ToList())" DataTest="wizard-species-ability" />
+        </div>
+    </div>
+}
+
 @if (!Is2024)
 {
     @* 2014: racial increases, fixed by the race; the half-elf and the variant human choose two +1 *@

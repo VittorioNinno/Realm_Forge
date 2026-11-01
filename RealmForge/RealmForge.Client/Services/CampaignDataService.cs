@@ -158,5 +158,39 @@ namespace RealmForge.Client.Services
 
 		public Task<CampaignResult> RemoveContentAsync(Guid id, Guid entityId) =>
 			SendAsync(() => _http.DeleteAsync($"api/campaigns/{id}/contents/{entityId}"), "remove content");
+
+		// ===== Sessions =====
+
+		public Task<List<CampaignSessionDto>?> GetSessionsAsync(Guid id) => GetAsync<List<CampaignSessionDto>>($"api/campaigns/{id}/sessions");
+
+		public Task<CampaignResult> SaveSessionAsync(Guid id, Guid? sessionId, SaveCampaignSessionDto session) =>
+			SendAsync(() => sessionId is { } existing
+				? _http.PutAsJsonAsync($"api/campaigns/{id}/sessions/{existing}", session)
+				: _http.PostAsJsonAsync($"api/campaigns/{id}/sessions", session), "save session");
+
+		public Task<CampaignResult> DeleteSessionAsync(Guid id, Guid sessionId) =>
+			SendAsync(() => _http.DeleteAsync($"api/campaigns/{id}/sessions/{sessionId}"), "delete session");
+
+		// ===== Dice log =====
+
+		public Task<List<CampaignRollDto>?> GetRollsAsync(Guid id, DateTimeOffset? after = null) =>
+			GetAsync<List<CampaignRollDto>>($"api/campaigns/{id}/rolls" + (after is { } since ? $"?after={Uri.EscapeDataString(since.ToUniversalTime().ToString("O"))}" : string.Empty));
+
+		public async Task<(CampaignRollDto? Roll, HttpStatusCode? Status)> RollAsync(Guid id, NewCampaignRollDto roll)
+		{
+			try
+			{
+				var response = await _http.PostAsJsonAsync($"api/campaigns/{id}/rolls", roll);
+				return response.IsSuccessStatusCode ? (await response.Content.ReadFromJsonAsync<CampaignRollDto>(), null) : (null, response.StatusCode);
+			}
+			catch (Exception ex)
+			{
+				_logger.LogError(ex, "Rolling in campaign {CampaignId} failed", id);
+				return (null, null);
+			}
+		}
+
+		public Task<CampaignResult> ClearRollsAsync(Guid id) =>
+			SendAsync(() => _http.DeleteAsync($"api/campaigns/{id}/rolls"), "clear rolls");
 	}
 }

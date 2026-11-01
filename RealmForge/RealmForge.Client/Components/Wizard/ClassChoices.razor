@@ -11,9 +11,13 @@
     var hasStyle = styleLevel is { } sl && Info.Level >= sl;
     var orders = Is2024 ? CharacterRules.Orders2024(cls) : Array.Empty<RuleOption>();
     var masteries = CharacterRules.WeaponMasteries(cls, Ruleset, Info.Level);
+    var subKey = Info.Subclass?.Key;
+    var subSkills = CharacterTraits.SubclassSkills(Ruleset, cls, subKey, Info.Level);
+    var lands = SubclassSpells.Options(Ruleset, subKey);
+    var subCantrips = CharacterTraits.SubclassCantrips(Ruleset, subKey);
 }
 
-@if (multiSkills > 0 || expertise > 0 || hasStyle || orders.Count > 0 || masteries > 0)
+@if (multiSkills > 0 || expertise > 0 || hasStyle || orders.Count > 0 || masteries > 0 || subSkills is not null || lands.Count > 0 || subCantrips is not null)
 {
     <div class="rf-wizard-panel mt-3" data-test="wizard-class-choices">
         <div class="rf-wizard-block-title">@UiText.LabelClassChoices(cls.Name, Info.Level, Lang)</div>
@@ -22,6 +26,33 @@
         {
             <div class="rf-wizard-counter">@UiText.LabelMulticlassSkill(Lang)</div>
             <SkillPicker W="W" Chosen="entry.Skills" Count="multiSkills" Options="@(anySkill ? null : cls.SkillOptions)" DataTest="wizard-multiclass-skill" />
+        }
+
+        @if (subSkills is not null)
+        {
+            <div class="rf-wizard-counter">@UiText.LabelSubclassSkills(Info.Subclass!.Name, subSkills.Count, subSkills.Expertise, Lang)</div>
+            <SkillPicker W="W" Chosen="entry.SubclassSkills" Count="subSkills.Count" Options="subSkills.Options" DataTest="wizard-subclass-skill" />
+        }
+
+        @if (lands.Count > 0)
+        {
+            <div class="rf-wizard-row">
+                <div class="rf-wizard-label">@UiText.LabelLand(Lang)</div>
+                <div class="rf-wizard-field">
+                    <ForgeSelector TValue="string" Value="@(entry.SubclassOption ?? string.Empty)" ValueChanged="SetLand"
+                                   Options="@(lands.Select(l => new ForgeSelector<string>.Option(l, UiText.LandName(l, Lang))).ToList())" DataTest="wizard-land" />
+                </div>
+            </div>
+            @if (Is2024)
+            {
+                <div class="small mb-2" style="color: var(--rf-text-muted);">@UiText.HintLand2024(Lang)</div>
+            }
+        }
+
+        @if (subCantrips is { } extra)
+        {
+            <SpellPicker W="W" Title="@UiText.LabelSubclassCantrips(Info.Subclass!.Name, Lang)" Chosen="entry.SubclassCantrips" List="extra.List" Max="extra.Count"
+                         MinLevel="0" MaxLevel="0" DataTest="wizard-subclass-cantrip" />
         }
 
         @if (expertise > 0)
@@ -105,6 +136,12 @@
         entry.FightingStyle = value.StartsWith("style:") ? value["style:".Length..] : null;
         entry.FightingStyleFeatId = value.StartsWith("feat:") && Guid.TryParse(value["feat:".Length..], out var id) ? id : null;
         entry.StyleCantrips.Clear();
+        W.Update();
+    }
+
+    private void SetLand(string value)
+    {
+        Info.Build.SubclassOption = string.IsNullOrEmpty(value) ? null : value;
         W.Update();
     }
 

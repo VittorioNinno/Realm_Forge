@@ -25,7 +25,7 @@ namespace RealmForge.Shared.DTOs
 	///	<summary>
 	///	A member as the others see them: the nickname (never the e-mail address).
 	///	</summary>
-	public record CampaignMemberDto(string UserId, string Name, CampaignRole Role, bool IsMe, DateTimeOffset JoinedAt);
+	public record CampaignMemberDto(string UserId, string Name, CampaignRole Role, bool IsMe, DateTimeOffset JoinedAt, string Color = PlayerColors.Master);
 
 	///	<summary>
 	///	An invitation sent and not answered yet (shown to masters and co-masters).
