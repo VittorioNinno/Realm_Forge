@@ -516,7 +516,8 @@
         string.IsNullOrWhiteSpace(searchTerm)
             ? speciesList
             : speciesList.Where(s => s.Name.Contains(searchTerm.Trim(), StringComparison.OrdinalIgnoreCase)
-                                     || s.Description.Contains(searchTerm.Trim(), StringComparison.OrdinalIgnoreCase));
+                                     || s.Description.Contains(searchTerm.Trim(), StringComparison.OrdinalIgnoreCase))
+                                 .OrderBy(s => SearchRank.Of(searchTerm, s.Name));
     private bool isLoading = true;
     private string? errorMessage;
 
