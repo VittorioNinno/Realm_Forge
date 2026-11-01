@@ -147,6 +147,7 @@ jobs:
         env:
           ConnectionStrings__DefaultConnection: ${{ env.CONN }}
           ASPNETCORE_ENVIRONMENT: Development
+          Auth__AdminEmails__0: carol@example.com
           ASPNETCORE_URLS: http://localhost:5080
         run: |
           set -e
@@ -195,6 +196,7 @@ jobs:
         env:
           ConnectionStrings__DefaultConnection: ${{ env.CONN }}
           ASPNETCORE_ENVIRONMENT: Development
+          Auth__AdminEmails__0: carol@example.com
           ASPNETCORE_URLS: http://localhost:5080
         run: |
           set -e
@@ -1054,6 +1056,59 @@ jobs:
           accheck "empty campaign deleted" "$ac_solo_rows" "0"
           test "$acfail" = "0"
 
+          # Global search (both languages, the rule of the lists) and administration (carol is in Auth:AdminEmails)
+          C=$(curl -sf -X POST $api/api/auth/login $json -d "$(jq -nc --arg p "$NEWPW" '{email:"carol@example.com",password:$p}')" | jq -r .accessToken)
+          sr_secret=$(curl -sf -X POST "$api/api/feats?lang=2" $json -H "Authorization: Bearer $A" -d "$(echo "$feat" | jq '.translations[0].name = "Zzforge Secret" | .translations[1].name = "Zzforge Segreto"')" | jq -r .id)
+          sr_fireball=$(curl -s "$api/api/compendium/search?q=fireball&lang=2" | jq -c '[.[] | select(.kind == "spell")][0] | {name, otherName, isBase}')
+          sr_rule=$(curl -s "$api/api/compendium/search?q=prono&lang=2" | jq -c '[.[] | select(.kind == "rule")] | length > 0')
+          sr_short=$(code "$api/api/compendium/search?q=x")
+          sr_wild=$(curl -s "$api/api/compendium/search?q=%25%25&lang=2" | jq length)
+          sr_alice=$(curl -s "$api/api/compendium/search?q=zzforge&lang=2" -H "Authorization: Bearer $A" | jq -c '[.[] | {name, otherName, isMine}]')
+          sr_bob=$(curl -s "$api/api/compendium/search?q=zzforge&lang=2" -H "Authorization: Bearer $B" | jq length)
+          ad_bob=$(code "$api/api/admin/stats" -H "Authorization: Bearer $B")
+          ad_stats=$(curl -s "$api/api/admin/stats" -H "Authorization: Bearer $C" | jq -c '{users: (.users >= 4), homebrew: (.homebrew >= 1)}')
+          ad_users=$(curl -s "$api/api/admin/users?q=example.com" -H "Authorization: Bearer $C" | jq -c '[.[] | select(.email == "carol@example.com" or .email == "erin@example.com") | {email, isAdmin, isMe}] | sort_by(.email)')
+          erin_id=$(curl -s "$api/api/admin/users?q=erin" -H "Authorization: Bearer $C" | jq -r '.[0].id')
+          carol_id=$(curl -s "$api/api/admin/users?q=carol" -H "Authorization: Bearer $C" | jq -r '.[0].id')
+          ad_self=$(code -X PUT "$api/api/admin/users/$carol_id/lock" $json -H "Authorization: Bearer $C" -d '{"days":7}')
+          ad_lock=$(code -X PUT "$api/api/admin/users/$erin_id/lock" $json -H "Authorization: Bearer $C" -d '{"days":7}')
+          ad_locked_login=$(curl -s -X POST $api/api/auth/login $json -d "$(cred erin@example.com)" | jq -r '.detail // "token"')
+          ad_listed=$(curl -s "$api/api/admin/users?q=erin" -H "Authorization: Bearer $C" | jq -c '.[0].lockedUntil != null')
+          ad_unlock=$(code -X PUT "$api/api/admin/users/$erin_id/lock" $json -H "Authorization: Bearer $C" -d '{"days":0}')
+          ad_unlocked_login=$(code -X POST $api/api/auth/login $json -d "$(cred erin@example.com)")
+          ad_moderation=$(curl -s "$api/api/admin/homebrew?visibility=2&lang=2" -H "Authorization: Bearer $C" | jq -c --arg id "$sr_secret" '[.[] | select(.id == $id) | {name, author, visibility}]')
+          ad_public=$(code -X PUT "$api/api/admin/homebrew/$sr_secret/visibility" $json -H "Authorization: Bearer $C" -d '{"visibility":0}')
+          ad_bob_sees=$(curl -s "$api/api/compendium/search?q=zzforge&lang=2" -H "Authorization: Bearer $B" | jq length)
+          ad_srd=$(code -X PUT "$api/api/admin/homebrew/10000000-0000-0000-0000-000000000001/visibility" $json -H "Authorization: Bearer $C" -d '{"visibility":2}')
+          ad_delete=$(code -X DELETE "$api/api/admin/users/$erin_id" -H "Authorization: Bearer $C")
+          ad_deleted_login=$(code -X POST $api/api/auth/login $json -d "$(cred erin@example.com)")
+          echo "::notice title=search::fireball=$sr_fireball rule=$sr_rule short=$sr_short wildcards=$sr_wild | private: alice=$sr_alice bob=$sr_bob"
+          echo "::notice title=admin::bob=$ad_bob stats=$ad_stats users=$ad_users | self lock=$ad_self lock=$ad_lock login=$ad_locked_login listed=$ad_listed unlock=$ad_unlock login=$ad_unlocked_login | moderation=$ad_moderation public=$ad_public bob sees=$ad_bob_sees srd=$ad_srd | delete=$ad_delete login=$ad_deleted_login"
+          adfail=0
+          adcheck() { if [ "$2" != "$3" ]; then echo "::error title=admin::$1: got '$2', expected '$3'"; adfail=1; fi; }
+          adcheck "search in English, shown in Italian" "$sr_fireball" '{"name":"Palla di Fuoco","otherName":"Fireball","isBase":true}'
+          adcheck "glossary searched" "$sr_rule" "true"
+          adcheck "too short" "$sr_short" "400"
+          adcheck "wildcards are literal" "$sr_wild" "0"
+          adcheck "own private entry found" "$sr_alice" '[{"name":"Zzforge Segreto","otherName":"Zzforge Secret","isMine":true}]'
+          adcheck "someone else's private entry hidden" "$sr_bob" "0"
+          adcheck "not an administrator" "$ad_bob" "403"
+          adcheck "stats" "$ad_stats" '{"users":true,"homebrew":true}'
+          adcheck "users" "$ad_users" '[{"email":"carol@example.com","isAdmin":true,"isMe":true},{"email":"erin@example.com","isAdmin":false,"isMe":false}]'
+          adcheck "no self lock" "$ad_self" "400"
+          adcheck "lock" "$ad_lock" "204"
+          adcheck "locked sign-in" "$ad_locked_login" "LockedOut"
+          adcheck "lock listed" "$ad_listed" "true"
+          adcheck "unlock" "$ad_unlock" "204"
+          adcheck "sign-in again" "$ad_unlocked_login" "200"
+          adcheck "private entry in the moderation" "$ad_moderation" '[{"name":"Zzforge Segreto","author":"Alice","visibility":2}]'
+          adcheck "made public" "$ad_public" "204"
+          adcheck "public entry found by others" "$ad_bob_sees" "1"
+          adcheck "base content untouched" "$ad_srd" "404"
+          adcheck "account deleted" "$ad_delete" "200"
+          adcheck "deleted account" "$ad_deleted_login" "401"
+          test "$adfail" = "0"
+
   ui:
     runs-on: ubuntu-24.04
     needs: build
@@ -1088,6 +1143,7 @@ jobs:
         env:
           ConnectionStrings__DefaultConnection: Host=localhost;Port=5432;Database=realm_forge_ci;Username=postgres
           ASPNETCORE_ENVIRONMENT: Development
+          Auth__AdminEmails__0: admin-ui@example.com
         run: |
           # Point the client at the CI API (plain http)
           echo '{ "ApiBaseUrl": "http://localhost:5080/" }' > RealmForge/RealmForge.Client/wwwroot/appsettings.Development.json

@@ -1,0 +1,147 @@
+﻿@page "/search"
+@using RealmForge.Client.Localization
+@using RealmForge.Client.Services
+@using RealmForge.Shared.DTOs
+@using RealmForge.Shared.Enums
+@implements IDisposable
+@inject AdminDataService Data
+@inject LanguageStateService LanguageState
+@inject NavigationManager Navigation
+
+<PageTitle>RealmForge - @UiText.SearchTitle(Lang)</PageTitle>
+
+@* Global search: one box for every section of the compendium and the glossary, results grouped by section *@
+<div class="container-fluid px-0 py-4" style="max-width: 880px;" data-test="search-page">
+    <div class="mb-4 pb-3" style="border-bottom: 2px solid var(--rf-orange-primary);">
+        <h1 class="h3 fw-bold mb-2 rf-page-title">@UiText.SearchTitle(Lang)</h1>
+        <p class="mb-0 small" style="color: var(--rf-text-muted);">@UiText.SearchHint(Lang)</p>
+    </div>
+
+    <div class="rf-search-box mb-4">
+        <Icon Name="search" />
+        <input class="rf-form-control" type="search" placeholder="@UiText.SearchPlaceholder(Lang)" value="@text" @oninput="OnInput"
+               autofocus aria-label="@UiText.SearchTitle(Lang)" data-test="search-input" />
+    </div>
+
+    @if (text.Trim().Length is > 0 and < 2)
+    {
+        <div class="small" style="color: var(--rf-text-muted);">@UiText.SearchTooShort(Lang)</div>
+    }
+    else if (searching && results is null)
+    {
+        <div class="small" style="color: var(--rf-text-muted);">…</div>
+    }
+    else if (results is not null)
+    {
+        @if (results.Count == 0)
+        {
+            <div class="rf-account-card text-center" data-test="search-none">@UiText.SearchNone(searched, Lang)</div>
+        }
+        else
+        {
+            <div class="small mb-3" style="color: var(--rf-text-muted);" data-test="search-count">@UiText.SearchCount(results.Count, Lang)</div>
+            @foreach (var group in results.GroupBy(r => r.Kind).OrderBy(g => results.FindIndex(r => r.Kind == g.Key)))
+            {
+                <section class="mb-4" data-test="search-group" data-kind="@group.Key">
+                    <div class="rf-mini-title">@UiText.SearchKindName(group.Key, Lang)</div>
+                    <div class="rf-search-results">
+                        @foreach (var hit in group)
+                        {
+                            <a class="rf-search-hit" href="@hit.Link" data-test="search-hit">
+                                <span class="rf-search-hit-name">@hit.Name</span>
+                                @if (hit.OtherName is not null)
+                                {
+                                    <span class="rf-search-hit-other">@hit.OtherName</span>
+                                }
+                                <span class="rf-search-hit-tags">
+                                    <span class="badge @(hit.Ruleset == RulesetVersion.Dnd5e_2024 ? "badge-edition-2024" : "badge-edition-2014")">@(hit.Ruleset == RulesetVersion.Dnd5e_2024 ? "2024" : "2014")</span>
+                                    @if (!hit.IsBase)
+                                    {
+                                        <span class="badge badge-homebrew">@(hit.IsMine ? UiText.SearchMine(Lang) : "Homebrew")</span>
+                                    }
+                                </span>
+                            </a>
+                        }
+                    </div>
+                </section>
+            }
+        }
+    }
+</div>
+
+@code {
+    [SupplyParameterFromQuery(Name = "q")] public string? Query { get; set; }
+
+    private LanguageCode Lang => LanguageState.CurrentLanguage;
+    private string text = string.Empty;
+    private string searched = string.Empty;
+    private List<SearchResultDto>? results;
+    private bool searching;
+    private CancellationTokenSource? pending;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        //	The address changed (typing, back, a link): search what it says
+        var query = (Query ?? string.Empty).Trim();
+        if (query != searched || results is null)
+        {
+            if (query != text.Trim())
+            {
+                text = query;
+            }
+            await SearchAsync();
+        }
+    }
+
+    protected override void OnInitialized() => LanguageState.OnLanguageChanged += HandleLanguageChanged;
+
+    private async void HandleLanguageChanged()
+    {
+        await SearchAsync();
+        StateHasChanged();
+    }
+
+    //	Searches 300 ms after the last key, and keeps the text in the address (back and links work)
+    private async Task OnInput(ChangeEventArgs e)
+    {
+        text = e.Value?.ToString() ?? string.Empty;
+        pending?.Cancel();
+        var cts = pending = new CancellationTokenSource();
+        try
+        {
+            await Task.Delay(300, cts.Token);
+        }
+        catch (TaskCanceledException)
+        {
+            return;
+        }
+        Navigation.NavigateTo(Navigation.GetUriWithQueryParameter("q", string.IsNullOrWhiteSpace(text) ? null : text.Trim()), replace: true);
+    }
+
+    private async Task SearchAsync()
+    {
+        var query = text.Trim();
+        if (query.Length < 2)
+        {
+            results = null;
+            return;
+        }
+        pending?.Cancel();
+        var cts = pending = new CancellationTokenSource();
+        searching = true;
+        var found = await Data.SearchAsync(query, Lang, cts.Token);
+        if (cts.IsCancellationRequested)
+        {
+            return;
+        }
+        searching = false;
+        searched = query;
+        results = found ?? new List<SearchResultDto>();
+    }
+
+    public void Dispose()
+    {
+        pending?.Cancel();
+        LanguageState.OnLanguageChanged -= HandleLanguageChanged;
+    }
+}

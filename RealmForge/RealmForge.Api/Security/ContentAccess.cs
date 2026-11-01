@@ -23,11 +23,9 @@ namespace RealmForge.Api.Security
 		public static string? GetUserId(ClaimsPrincipal user) =>
 			user.FindFirstValue(ClaimTypes.NameIdentifier);
 
-		public bool IsAdmin(ClaimsPrincipal user)
-		{
-			var email = user.FindFirstValue(ClaimTypes.Email) ?? user.Identity?.Name;
-			return email is not null && _adminEmails.Contains(email);
-		}
+		public bool IsAdmin(ClaimsPrincipal user) => IsAdminEmail(user.FindFirstValue(ClaimTypes.Email) ?? user.Identity?.Name);
+
+		public bool IsAdminEmail(string? email) => email is not null && _adminEmails.Contains(email);
 
 		///	<summary>
 		///	Detail pages and share links: base content, public and link entries, plus the user's own (or any, for admins).
