@@ -326,19 +326,22 @@
         UpdateAddress();
     }
 
+    //	The chip goes through the address: OnParametersSetAsync sees the new filter and searches again
     private Task FilterAsync(string key)
     {
-        filter = key;
-        UpdateAddress();
+        UpdateAddress(key);
         return Task.CompletedTask;
     }
 
-    private void UpdateAddress() =>
+    private void UpdateAddress(string? kind = null)
+    {
+        kind ??= filter;
         Navigation.NavigateTo(Navigation.GetUriWithQueryParameters(new Dictionary<string, object?>
         {
             ["q"] = string.IsNullOrWhiteSpace(text) ? null : text.Trim(),
-            ["k"] = filter == "all" ? null : filter
+            ["k"] = kind == "all" ? null : kind
         }), replace: true);
+    }
 
     private async Task SearchAsync()
     {
