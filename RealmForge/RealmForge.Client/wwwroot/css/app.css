@@ -7877,3 +7877,7 @@ textarea.rf-form-control {
     font-size: .75rem;
     color: var(--rf-text-muted);
 }
+
+@media (max-width: 575.98px) {
+    .rf-roll-die { padding: 8px; gap: 8px; font-size: .85rem; }
+}

@@ -46,7 +46,7 @@ namespace RealmForge.Client.Localization
 		{
 			var local = utc.ToLocalTime();
 			var day = lang == LanguageCode.It ? DaysIt[(int)local.DayOfWeek] : DaysEn[(int)local.DayOfWeek];
-			return $"{day} {FormatDate(local, lang)}, {local:HH:mm}";
+			return $"{day} {FormatDate(local, lang)}, {local.ToString("HH':'mm", System.Globalization.CultureInfo.InvariantCulture)}";
 		}
 
 		public static string SessionCountdown(DateTimeOffset utc, LanguageCode lang)
@@ -80,7 +80,7 @@ namespace RealmForge.Client.Localization
 		public static string RollTime(DateTimeOffset at, LanguageCode lang)
 		{
 			var local = at.ToLocalTime();
-			return local.Date == DateTimeOffset.Now.Date ? $"{local:HH:mm}" : $"{FormatDate(local, lang)} {local:HH:mm}";
+			return local.Date == DateTimeOffset.Now.Date ? $"{local.ToString("HH':'mm", System.Globalization.CultureInfo.InvariantCulture)}" : $"{FormatDate(local, lang)} {local.ToString("HH':'mm", System.Globalization.CultureInfo.InvariantCulture)}";
 		}
 		public static string SheetRollShared(LanguageCode lang) => T(lang, "Condiviso con la campagna", "Shared with the campaign");
 	}
