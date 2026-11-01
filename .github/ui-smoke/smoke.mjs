@@ -1158,8 +1158,8 @@ try {
     || campaignUi.combatants !== 4 || campaignUi.goblins !== 3 || !campaignUi.hero || campaignUi.sheetLink !== 1 || !/^(Facile|Medio|Difficile|Mortale)$/.test(campaignUi.rating) || campaignUi.current !== 1
     || campaignUi.binKind !== 'CAMPAGNA' || !campaignUi.restored || !campaignUi.purged
     || campaignUi.cardButtons !== 0 || !campaignUi.cardOpens || campaignUi.listActions !== 2 || !campaignUi.toggled || campaignUi.noteKinds !== 'Diario di viaggio,Personali,Per i master' || campaignUi.leftFromSheet !== 1
-    || !/Prossima sessione/.test(campaignUi.session) || !/tra 3 giorni/.test(campaignUi.session) || !/Il lich/.test(campaignUi.session)
-    || !/Sessione 1/.test(campaignUi.nextSession) || !/21:00/.test(campaignUi.nextSession) || campaignUi.sheetShared !== 1
+    || !/Prossima sessione/i.test(campaignUi.session) || !/tra 3 giorni/.test(campaignUi.session) || !/Il lich/.test(campaignUi.session)
+    || !/Sessione 1/i.test(campaignUi.nextSession) || !/21:00/.test(campaignUi.nextSession) || campaignUi.sheetShared !== 1
     || campaignUi.rolls !== 'Iniziativa,Danni della spada') throw new Error(`unexpected campaign page: ${JSON.stringify(campaignUi)}`);
   ok('campaigns: the creator is the master with an invite link, the character joins the table (the whole card opens the sheet, deactivated and activated again; its card in the list shows the campaign), a journal page, an encounter with three goblins run to round 2, the character leaves from its sheet, the campaign is deleted, restored from the bin, deleted again and purged');
   await page.goto(sheetUrl);

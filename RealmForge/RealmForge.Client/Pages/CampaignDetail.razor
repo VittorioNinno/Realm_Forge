@@ -75,7 +75,7 @@
                                 @(next.ScheduledAt is { } at ? UiText.FormatDateTime(at, Lang) : UiText.SessionNoDate(Lang))
                                 @if (next.ScheduledAt is { } day && UiText.SessionCountdown(day, Lang) is { Length: > 0 } countdown)
                                 {
-                                    <span class="rf-session-countdown">· @countdown</span>
+                                    <span class="rf-session-countdown">&nbsp;· @countdown</span>
                                 }
                             </span>
                             @if (!string.IsNullOrWhiteSpace(next.Title))
