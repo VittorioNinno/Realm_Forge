@@ -1062,6 +1062,10 @@ jobs:
           sr_fireball=$(curl -s "$api/api/compendium/search?q=fireball&lang=2" | jq -c '[.[] | select(.kind == "spell")][0] | {name, otherName, isBase}')
           sr_rule=$(curl -s "$api/api/compendium/search?q=prono&lang=2" | jq -c '[.[] | select(.kind == "rule")] | length > 0')
           sr_short=$(code "$api/api/compendium/search?q=x")
+          sr_counts=$(curl -s "$api/api/compendium/counts" | jq -c '[.[] | select(.kind == "spell" or .kind == "rule")] | map({(.kind): [.edition2024, .edition2014]}) | add')
+          sr_random=$(curl -s "$api/api/compendium/random?kinds=rule&lang=2" | jq -c '{kind, base: .isBase, link: (.link | startswith("rules?id="))}')
+          sr_only_rules=$(curl -s "$api/api/compendium/search?q=fireball&kinds=rule&lang=2" | jq length)
+          sr_detail=$(curl -s "$api/api/compendium/search?q=fireball&kinds=spell&lang=2" | jq -c '.[0].detail | {spellLevel, school}')
           sr_wild=$(curl -s "$api/api/compendium/search?q=%25%25&lang=2" | jq length)
           sr_alice=$(curl -s "$api/api/compendium/search?q=zzforge&lang=2" -H "Authorization: Bearer $A" | jq -c '[.[] | {name, otherName, isMine}]')
           sr_bob=$(curl -s "$api/api/compendium/search?q=zzforge&lang=2" -H "Authorization: Bearer $B" | jq length)
@@ -1089,6 +1093,10 @@ jobs:
           adcheck "search in English, shown in Italian" "$sr_fireball" '{"name":"Palla di Fuoco","otherName":"Fireball","isBase":true}'
           adcheck "glossary searched" "$sr_rule" "true"
           adcheck "too short" "$sr_short" "400"
+          adcheck "counts per edition" "$sr_counts" '{"spell":[391,361],"rule":[155,88]}'
+          adcheck "random rule" "$sr_random" '{"kind":"rule","base":true,"link":true}'
+          adcheck "kinds filter" "$sr_only_rules" "0"
+          adcheck "spell detail" "$sr_detail" '{"spellLevel":3,"school":5}'
           adcheck "wildcards are literal" "$sr_wild" "0"
           adcheck "own private entry found" "$sr_alice" '[{"name":"Zzforge Segreto","otherName":"Zzforge Secret","isMine":true}]'
           adcheck "someone else's private entry hidden" "$sr_bob" "0"
@@ -1156,6 +1164,8 @@ jobs:
   ui:
     runs-on: ubuntu-24.04
     needs: build
+    permissions:
+      contents: write
     services:
       postgres:
         image: postgres:17
@@ -1211,6 +1221,16 @@ jobs:
           npm install playwright@1 >/dev/null
           npx playwright install --with-deps chromium >/dev/null
           node smoke.mjs
+
+      - name: TEMP push the screenshots to a review branch
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          cd .github/ui-smoke/shots || exit 0
+          git init -q -b shots . && git add -A
+          git -c user.name=ci -c user.email=ci@localhost commit -qm "shots ${GITHUB_SHA}"
+          git push -qf "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" shots:refs/heads/ci-shots/${GITHUB_SHA::8}
 
       - name: Keep the screenshots of the smoke test
         if: always()

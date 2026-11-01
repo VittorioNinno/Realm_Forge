@@ -626,6 +626,38 @@ try {
   if (infoCallsWhileTyping !== 0) throw new Error(`${infoCallsWhileTyping} account API calls while typing in the search`);
   ok('species search filters by text and explains when nothing matches');
 
+  // Search page before typing: the sections with their size, the conditions to look up, the entries opened lately
+  await page.goto(`${base}/search`);
+  await page.locator('[data-test=search-category] .rf-search-category-count').first().waitFor({ timeout: 30000 });
+  await page.locator('[data-test=search-quick-pill]').first().waitFor({ timeout: 30000 });
+  const hub = await page.evaluate(() => ({
+    categories: document.querySelectorAll('[data-test=search-category]').length,
+    spells: document.querySelector('[data-test=search-category][data-kind=spell] .rf-search-category-count')?.textContent.trim(),
+    pills: document.querySelectorAll('[data-test=search-quick-pill]').length,
+    highlight: [...document.querySelectorAll('[data-test=search-quick-pill].highlight')].map((p) => p.textContent.trim()).join(',')
+  }));
+  await page.locator('[data-test=search-edition-1]').click();
+  hub.spells2014 = (await page.locator('[data-test=search-category][data-kind=spell] .rf-search-category-count').innerText()).trim();
+  await page.locator('[data-test=search-edition-2]').click();
+  await shot(page, 'search-hub', 'main');
+  // "/" from anywhere on the page focuses the box
+  await page.locator('h1').click();
+  await page.keyboard.press('/');
+  hub.slash = await page.evaluate(() => document.activeElement?.getAttribute('data-test'));
+  // A condition from the quick reference opens its glossary entry and is remembered
+  await page.locator('[data-test=search-quick-pill]', { hasText: /^Prono$/ }).click();
+  await page.waitForURL(/\/rules\?id=/, { timeout: 15000 });
+  await page.goto(`${base}/search`);
+  await page.locator('[data-test=search-recent-item]').first().waitFor({ timeout: 15000 });
+  hub.recent = (await page.locator('[data-test=search-recent-item]').first().innerText()).replace(/\s+/g, ' ').trim();
+  // The random entry of the chosen chip
+  await page.locator('[data-test=search-chip-monster]').click();
+  await page.locator('[data-test=search-random]').click();
+  await page.waitForURL(/\/monsters\?id=/, { timeout: 15000 });
+  results.push(`INFO search hub: ${JSON.stringify(hub)}`);
+  if (hub.categories !== 8 || hub.spells !== '391' || hub.spells2014 !== '361' || hub.pills !== 17 || hub.slash !== 'search-input' || !/Prono/.test(hub.recent)) throw new Error(`unexpected search hub: ${JSON.stringify(hub)}`);
+  ok('search page: 8 sections with their base entries per edition, 17 quick rules (conditions, exhaustion, concentration, cover), "/" focuses the box, opened entries remembered, random monster from the chip');
+
   // Global search: Italian and English names, results grouped by section with the edition
   await page.goto(`${base}/search?q=palla di fuoco`);
   await page.locator('[data-test=search-hit]').first().waitFor({ timeout: 30000 });
@@ -634,6 +666,11 @@ try {
   await page.locator('[data-test=search-group][data-kind=monster]').waitFor({ timeout: 15000 });
   const searchGroups = await page.locator('[data-test=search-group]').evaluateAll((els) => els.map((e) => e.getAttribute('data-kind')).join(','));
   await shot(page, 'search', 'main');
+  // The "Regole" chip keeps only the glossary
+  await page.locator('[data-test=search-chip-rule]').click();
+  await page.locator('[data-test=search-none]').waitFor({ timeout: 15000 });
+  await page.locator('[data-test=search-chip-all]').click();
+  await page.locator('[data-test=search-group][data-kind=monster]').waitFor({ timeout: 15000 });
   await page.locator('[data-test=search-input]').fill('zzqqxx');
   await page.locator('[data-test=search-none]').waitFor({ timeout: 15000 });
   results.push(`INFO search: fireball='${searchFireball}' goblin groups=${searchGroups}`);
