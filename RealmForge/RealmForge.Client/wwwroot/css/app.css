@@ -738,6 +738,22 @@ select.rf-form-control {
     background: rgba(220, 53, 69, 0.12) !important;
 }
 
+/* The irreversible confirmation: solid red, never the orange of the ordinary actions */
+.rf-btn-danger-solid {
+    background-color: #dc3545;
+    border: 1px solid #dc3545;
+    color: #ffffff;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+}
+
+.rf-btn-danger-solid:hover:not(:disabled) {
+    background-color: #b02a37;
+    border-color: #b02a37;
+    color: #ffffff;
+}
+
 .rf-account-card {
     padding: 24px;
     border-radius: 6px;
