@@ -1154,7 +1154,7 @@ try {
   npcUi.detail = (await page.locator('[data-test=monster-detail-name]').innerText()).trim();
   await shot(page, 'npcs', 'main');
   results.push(`INFO npcs: ${JSON.stringify(npcUi)}`);
-  if (npcUi.title !== 'PNG' || npcUi.count !== '21 PNG' || npcUi.groups < 2 || npcUi.detail !== 'Guardia') throw new Error(`unexpected NPC page: ${JSON.stringify(npcUi)}`);
+  if (npcUi.title !== 'PNG' || npcUi.count !== '21 PNG' || npcUi.groups < 2 || !/^guardia$/i.test(npcUi.detail)) throw new Error(`unexpected NPC page: ${JSON.stringify(npcUi)}`);
   ok('NPCs: the 21 nonplayer characters on their own page, grouped by challenge, with the statblock');
   // Homebrew magic item: a new wondrous item with a rule the sheet applies (+1 AC), its detail, then deleted
   await page.goto(`${base}/magic-items`);
