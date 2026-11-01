@@ -216,6 +216,16 @@
             };
         })();
     </script>
+    <script>
+        // "/" anywhere (outside a text field) focuses the search box of the page, when it has one
+        document.addEventListener('keydown', (e) => {
+            if (e.key !== '/' || e.ctrlKey || e.metaKey || e.altKey) return;
+            const t = e.target;
+            if (t && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName))) return;
+            const box = document.querySelector('[data-search-focus]');
+            if (box) { e.preventDefault(); box.focus(); box.select(); }
+        });
+    </script>
     <script src="_framework/blazor.webassembly#[.{fingerprint}].js"></script>
 </body>
 
