@@ -725,6 +725,19 @@ select.rf-form-control {
     min-width: 0;
 }
 
+.rf-account-danger {
+    border-color: rgba(220, 53, 69, 0.45) !important;
+}
+
+.rf-btn-danger {
+    border-color: #dc3545 !important;
+    color: #dc3545 !important;
+}
+
+.rf-btn-danger:hover {
+    background: rgba(220, 53, 69, 0.12) !important;
+}
+
 .rf-account-card {
     padding: 24px;
     border-radius: 6px;

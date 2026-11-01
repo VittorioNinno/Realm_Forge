@@ -931,9 +931,56 @@ jobs:
           trcheck "anonymous" "$tr_anon" "401"
           test "$trfail" = "0"
 
+          # Account: change of e-mail (confirmed on the new address) and deletion of the account with its data;
+          # private Homebrew goes, public Homebrew stays without an author, the campaign passes to the other member
+          test "$(code -X POST $api/api/auth/register $json -d "$(cred dave@example.com)")" = "200"
+          test "$(code -X POST $api/api/auth/register $json -d "$(cred erin@example.com)")" = "200"
+          test "$(confirm dave@example.com)" = "200" && test "$(confirm erin@example.com)" = "200"
+          D=$(curl -sf -X POST $api/api/auth/login $json -d "$(cred dave@example.com)" | jq -r .accessToken)
+          E=$(curl -sf -X POST $api/api/auth/login $json -d "$(cred erin@example.com)" | jq -r .accessToken)
+          ac_email=$(code -X POST $api/api/auth/manage/info $json -H "Authorization: Bearer $D" -d '{"newEmail":"dave2@example.com"}')
+          sleep 1
+          ac_confirm=$(confirm dave2@example.com)
+          ac_info=$(curl -sf $api/api/auth/manage/info -H "Authorization: Bearer $D" | jq -r .email)
+          ac_login_old=$(code -X POST $api/api/auth/login $json -d "$(cred dave@example.com)")
+          D=$(curl -sf -X POST $api/api/auth/login $json -d "$(cred dave2@example.com)" | jq -r .accessToken)
+          ac_private=$(curl -sf -X POST "$api/api/feats?lang=2" $json -H "Authorization: Bearer $D" -d "$feat" | jq -r .id)
+          ac_public=$(curl -sf -X POST "$api/api/feats?lang=2" $json -H "Authorization: Bearer $D" -d "$(echo "$feat" | jq '.visibility = 0')" | jq -r .id)
+          ac_cp=$(curl -sf -X POST "$api/api/campaigns?lang=2" $json -H "Authorization: Bearer $D" -d '{"name":"Tavola di Dave","ruleset":2}' | jq -r .id)
+          code -X POST "$api/api/campaigns/$ac_cp/invites" $json -H "Authorization: Bearer $D" -d '{"email":"erin@example.com","role":3}' >/dev/null
+          ac_inv=$(curl -sf "$api/api/campaigns/invitations" -H "Authorization: Bearer $E" | jq -r '.[0].id')
+          code -X POST "$api/api/campaigns/invitations/$ac_inv/accept" -H "Authorization: Bearer $E" >/dev/null
+          ac_solo=$(curl -sf -X POST "$api/api/campaigns?lang=2" $json -H "Authorization: Bearer $D" -d '{"name":"Solo","ruleset":2}' | jq -r .id)
+          ac_wrong=$(code -X DELETE $api/api/account $json -H "Authorization: Bearer $D" -d '{"password":"wrong"}')
+          ac_delete=$(curl -s -X DELETE $api/api/account $json -H "Authorization: Bearer $D" -d "$(jq -nc --arg p "$PW" '{password:$p}')" | jq -c .)
+          ac_private_after=$(code "$api/api/feats/$ac_private")
+          ac_public_after=$(curl -s "$api/api/feats/$ac_public" -H "Authorization: Bearer $E" | jq -c '{canEdit, visibility}')
+          ac_cp_after=$(curl -s "$api/api/campaigns/$ac_cp?lang=2" -H "Authorization: Bearer $E" | jq -c '{role: .myRole, members: (.members | length)}')
+          ac_solo_rows=$(psql -h localhost -U postgres -d realm_forge_ci -tAc "SELECT count(*) FROM \"Campaigns\" WHERE \"Id\" = '$ac_solo'" 2>/dev/null || echo "?")
+          ac_login_after=$(code -X POST $api/api/auth/login $json -d "$(cred dave2@example.com)")
+          ac_token_after=$(code $api/api/account/summary -H "Authorization: Bearer $D")
+          echo "::notice title=account::change e-mail=$ac_email confirm=$ac_confirm now=$ac_info old login=$ac_login_old | delete wrong password=$ac_wrong ok=$ac_delete | private feat=$ac_private_after public feat=$ac_public_after | campaign for erin=$ac_cp_after solo rows=$ac_solo_rows | login after=$ac_login_after token after=$ac_token_after"
+          acfail=0
+          accheck() { if [ "$2" != "$3" ]; then echo "::error title=account::$1: got '$2', expected '$3'"; acfail=1; fi; }
+          accheck "change e-mail" "$ac_email" "200"
+          accheck "confirm new e-mail" "$ac_confirm" "200"
+          accheck "new e-mail in use" "$ac_info" "dave2@example.com"
+          accheck "old e-mail no longer signs in" "$ac_login_old" "401"
+          accheck "wrong password" "$ac_wrong" "400"
+          accheck "deleted" "$ac_delete" '{"characters":0,"homebrewDeleted":1,"homebrewKept":1,"campaignsDeleted":1,"campaignsHandedOver":1}'
+          accheck "private Homebrew gone" "$ac_private_after" "404"
+          accheck "public Homebrew kept, nobody edits it" "$ac_public_after" '{"canEdit":false,"visibility":0}'
+          accheck "campaign handed over" "$ac_cp_after" '{"role":1,"members":1}'
+          accheck "account gone" "$ac_login_after" "401"
+          accheck "old token refused" "$ac_token_after" "401"
+          accheck "empty campaign deleted" "$ac_solo_rows" "0"
+          test "$acfail" = "0"
+
   ui:
     runs-on: ubuntu-24.04
     needs: build
+    permissions:
+      contents: write
     services:
       postgres:
         image: postgres:17
@@ -988,6 +1035,16 @@ jobs:
           npm install playwright@1 >/dev/null
           npx playwright install --with-deps chromium >/dev/null
           node smoke.mjs
+
+      - name: TEMP push the screenshots to a review branch
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          cd .github/ui-smoke/shots || exit 0
+          git init -q -b shots . && git add -A
+          git -c user.name=ci -c user.email=ci@localhost commit -qm "shots ${GITHUB_SHA}"
+          git push -qf "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" shots:refs/heads/ci-shots/${GITHUB_SHA::8}
 
       - name: Keep the screenshots of the smoke test
         if: always()
@@ -1082,10 +1139,15 @@ jobs:
           start
           after_restart=$(curl -s -o /dev/null -w '%{http_code}' http://localhost:10000/api/auth/manage/info -H "Authorization: Bearer $token")
           scalar=$(curl -s -o /dev/null -w '%{http_code}' http://localhost:10000/scalar)
+          # Sign-in attempts are limited per address: after 10 wrong passwords in a minute the API answers 429
+          bad=$(jq -nc '{email:"prod@example.com",password:"wrong"}')
+          limited=$(for i in $(seq 1 12); do curl -s -o /dev/null -w '%{http_code}\n' -X POST http://localhost:10000/api/auth/login -H Content-Type:application/json -d "$bad"; done | sort | uniq -c | awk '{printf "%s×%s ", $2, $1}')
+          after_limit=$(curl -s -o /dev/null -w '%{http_code}' http://localhost:10000/api/feats)
 
-          echo "::notice title=container::health=$health | base feats=$feats | forwarded https=$scheme | cors=$cors | data protection keys=$keys | token after restart=$after_restart | API reference in production=$scalar | e-mail via Brevo=$brevo"
+          echo "::notice title=container::health=$health | base feats=$feats | forwarded https=$scheme | cors=$cors | data protection keys=$keys | token after restart=$after_restart | API reference in production=$scalar | e-mail via Brevo=$brevo | wrong sign-ins=$limited reads after=$after_limit"
           test "$health" = "Healthy" && test "$feats" = "117" && test "$scheme" = "200" && test "$cors" = "https://realmforge.example" \
-            && test "$keys" -ge 1 && test "$after_restart" = "200" && test "$scalar" = "404" && test "$brevo" = "true"
+            && test "$keys" -ge 1 && test "$after_restart" = "200" && test "$scalar" = "404" && test "$brevo" = "true" \
+            && echo "$limited" | grep -q "401×10" && echo "$limited" | grep -q "429×2" && test "$after_limit" = "200"
 
       - name: Back up the database as backup-db does and restore it
         shell: bash

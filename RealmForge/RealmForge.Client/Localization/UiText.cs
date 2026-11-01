@@ -260,6 +260,10 @@ namespace RealmForge.Client.Localization
 
 		public static string AuthError(string code, LanguageCode lang) => (code, lang == LanguageCode.It) switch
 		{
+			("TooManyRequests", true) => "Troppi tentativi ravvicinati: riprova tra un minuto.",
+			("TooManyRequests", false) => "Too many attempts in a short time: try again in a minute.",
+			("WrongPassword", true) => "Password non corretta.",
+			("WrongPassword", false) => "Wrong password.",
 			("InvalidCredentials", true) => "Email o password non corrette.",
 			("InvalidCredentials", false) => "Wrong email or password.",
 			("MissingFields", true) => "Inserisci email e password.",
@@ -337,6 +341,41 @@ namespace RealmForge.Client.Localization
 			? "Non hai ancora creato contenuti: usa i pulsanti \"Forgia\" nelle pagine del Compendio."
 			: "You have not created any content yet: use the \"Forge\" buttons in the Compendium pages.";
 		public static string AccountSecurityTitle(LanguageCode lang) => lang == LanguageCode.It ? "Cambia password" : "Change password";
+		public static string AccountEmailTitle(LanguageCode lang) => lang == LanguageCode.It ? "Cambia email" : "Change e-mail";
+		public static string AccountEmailHint(LanguageCode lang) => lang == LanguageCode.It
+			? "Ti mandiamo un link al nuovo indirizzo: l'email cambia solo quando lo apri. Fino ad allora resta quella attuale."
+			: "We send a link to the new address: the e-mail changes only when you open it. Until then the current one stays.";
+		public static string PlaceholderNewEmail(LanguageCode lang) => lang == LanguageCode.It ? "Nuovo indirizzo email" : "New e-mail address";
+		public static string BtnChangeEmail(LanguageCode lang) => lang == LanguageCode.It ? "Invia il link" : "Send the link";
+		public static string EmailChangeSent(string email, LanguageCode lang) => lang == LanguageCode.It
+			? $"Link inviato a {email}: aprilo per completare il cambio."
+			: $"Link sent to {email}: open it to complete the change.";
+		public static string AccountDeleteTitle(LanguageCode lang) => lang == LanguageCode.It ? "Elimina account" : "Delete account";
+		public static string AccountDeleteHint(LanguageCode lang) => lang == LanguageCode.It
+			? "Elimina l'account e i tuoi dati in modo definitivo: non passa dal cestino e non si può annullare."
+			: "Deletes the account and your data for good: it does not go through the bin and cannot be undone.";
+		public static string BtnDeleteAccount(LanguageCode lang) => lang == LanguageCode.It ? "Elimina account" : "Delete account";
+		public static string BtnDeleteAccountForever(LanguageCode lang) => lang == LanguageCode.It ? "Elimina per sempre" : "Delete for good";
+		public static IReadOnlyList<string> AccountDeleteEffects(LanguageCode lang) => lang == LanguageCode.It
+			? new[]
+			{
+				"I tuoi personaggi, il cestino, le note personali e le condivisioni vengono eliminati.",
+				"I contenuti Homebrew privati e mai condivisi vengono eliminati; quelli pubblici o condivisi restano senza autore, così i personaggi degli altri continuano a funzionare.",
+				"Nelle campagne in cui sei l'unico master il ruolo passa a un co-master (o al membro presente da più tempo); le campagne senza altri membri vengono eliminate.",
+				"Le pagine di diario e le note per i master che hai scritto restano nella campagna, senza autore."
+			}
+			: new[]
+			{
+				"Your characters, bin, personal notes and shares are deleted.",
+				"Private Homebrew never shared is deleted; public or shared Homebrew stays without an author, so the characters of others keep working.",
+				"In campaigns where you are the only master the role passes to a co-master (or to the longest-standing member); campaigns without other members are deleted.",
+				"The journal pages and masters' notes you wrote stay in the campaign, without an author."
+			};
+		public static string AccountDeletedTitle(LanguageCode lang) => lang == LanguageCode.It ? "Account eliminato" : "Account deleted";
+		public static string AccountDeletedText(LanguageCode lang) => lang == LanguageCode.It
+			? "Il tuo account e i tuoi dati sono stati eliminati. Grazie per aver forgiato con noi."
+			: "Your account and your data have been deleted. Thank you for forging with us.";
+		public static string BtnBackHome(LanguageCode lang) => lang == LanguageCode.It ? "Torna alla home" : "Back to home";
 		public static string LabelCurrentPassword(LanguageCode lang) => lang == LanguageCode.It ? "Password attuale" : "Current password";
 		public static string LabelNewPassword(LanguageCode lang) => lang == LanguageCode.It ? "Nuova password" : "New password";
 		public static string LabelRepeatPassword(LanguageCode lang) => lang == LanguageCode.It ? "Ripeti la nuova password" : "Repeat the new password";
