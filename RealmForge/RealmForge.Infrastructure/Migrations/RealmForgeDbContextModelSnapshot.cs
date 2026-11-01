@@ -938,6 +938,12 @@ namespace RealmForge.Infrastructure.Migrations
                     b.Property<Guid?>("CharacterClassId")
                         .HasColumnType("uuid");
 
+                    b.Property<string>("Effects")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("jsonb")
+                        .HasDefaultValue("[]");
+
                     b.Property<bool>("IsOfficialSRD")
                         .HasColumnType("boolean");
 
@@ -1187,6 +1193,12 @@ namespace RealmForge.Infrastructure.Migrations
 
                     b.Property<int>("Category")
                         .HasColumnType("integer");
+
+                    b.Property<string>("Effects")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("jsonb")
+                        .HasDefaultValue("[]");
 
                     b.Property<bool>("IsOfficialSRD")
                         .HasColumnType("boolean");
@@ -1689,6 +1701,12 @@ namespace RealmForge.Infrastructure.Migrations
                     b.Property<int>("CreatureType")
                         .HasColumnType("integer");
 
+                    b.Property<string>("Effects")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("jsonb")
+                        .HasDefaultValue("[]");
+
                     b.Property<bool>("IsOfficialSRD")
                         .HasColumnType("boolean");
 
@@ -1920,6 +1938,12 @@ namespace RealmForge.Infrastructure.Migrations
 
                     b.Property<int?>("BaseSpeedOverrideInFeet")
                         .HasColumnType("integer");
+
+                    b.Property<string>("Effects")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("jsonb")
+                        .HasDefaultValue("[]");
 
                     b.Property<bool>("IsOfficialSRD")
                         .HasColumnType("boolean");
