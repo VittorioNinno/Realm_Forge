@@ -1605,6 +1605,71 @@ namespace RealmForge.Infrastructure.Migrations
                     b.ToTable("RuleEntryTranslations");
                 });
 
+            modelBuilder.Entity("RealmForge.Domain.Entities.RuleModule", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("AuthorId")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Effects")
+                        .IsRequired()
+                        .HasColumnType("jsonb");
+
+                    b.Property<bool>("IsOfficialSRD")
+                        .HasColumnType("boolean");
+
+                    b.Property<int>("Ruleset")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("Source")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("Visibility")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AuthorId");
+
+                    b.ToTable("RuleModules");
+                });
+
+            modelBuilder.Entity("RealmForge.Domain.Entities.RuleModuleTranslation", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasMaxLength(8000)
+                        .HasColumnType("character varying(8000)");
+
+                    b.Property<int>("Language")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<Guid>("RuleModuleId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("RuleModuleId", "Language")
+                        .IsUnique();
+
+                    b.ToTable("RuleModuleTranslations");
+                });
+
             modelBuilder.Entity("RealmForge.Domain.Entities.Species", b =>
                 {
                     b.Property<Guid>("Id")
@@ -2484,6 +2549,17 @@ namespace RealmForge.Infrastructure.Migrations
                     b.Navigation("RuleEntry");
                 });
 
+            modelBuilder.Entity("RealmForge.Domain.Entities.RuleModuleTranslation", b =>
+                {
+                    b.HasOne("RealmForge.Domain.Entities.RuleModule", "RuleModule")
+                        .WithMany("Translations")
+                        .HasForeignKey("RuleModuleId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("RuleModule");
+                });
+
             modelBuilder.Entity("RealmForge.Domain.Entities.SpeciesTranslation", b =>
                 {
                     b.HasOne("RealmForge.Domain.Entities.Species", "Species")
@@ -2639,6 +2715,11 @@ namespace RealmForge.Infrastructure.Migrations
                 });
 
             modelBuilder.Entity("RealmForge.Domain.Entities.RuleEntry", b =>
+                {
+                    b.Navigation("Translations");
+                });
+
+            modelBuilder.Entity("RealmForge.Domain.Entities.RuleModule", b =>
                 {
                     b.Navigation("Translations");
                 });
