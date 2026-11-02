@@ -21,6 +21,28 @@ namespace RealmForge.Client.Localization
 			: (count == 1 ? "1 monster" : $"{count} monsters");
 		public static string PlaceholderSearchMonsters(LanguageCode lang) => T(lang, "Nome o tipo...", "Name or type...");
 		public static string BtnNewMonster(LanguageCode lang) => T(lang, "Nuovo mostro", "New monster");
+
+		// ===== Nonplayer characters (same statblocks, their own page) =====
+		public static string NpcsTitle(LanguageCode lang) => T(lang, "PNG", "NPCs");
+		public static string NpcsSubtitle(LanguageCode lang) => T(lang,
+			"Personaggi non giocanti pronti per il tavolo: guardie, maghi, nobili, banditi e i tuoi PNG Homebrew",
+			"Nonplayer characters ready for the table: guards, mages, nobles, bandits and your Homebrew NPCs");
+		public static string BtnNewNpc(LanguageCode lang) => T(lang, "Nuovo PNG", "New NPC");
+		public static string PlaceholderSearchNpcs(LanguageCode lang) => T(lang, "Nome o ruolo...", "Name or role...");
+		public static string NoNpcsFound(LanguageCode lang) => T(lang, "Nessun PNG trovato.", "No NPCs found.");
+		public static string NpcCount(int count, LanguageCode lang) => lang == LanguageCode.It
+			? count == 1 ? "1 PNG" : $"{count} PNG"
+			: count == 1 ? "1 NPC" : $"{count} NPCs";
+		public static string NpcBandName(int band, LanguageCode lang) => band switch
+		{
+			0 => T(lang, "Gente comune e reclute (GS 0–1)", "Commoners and recruits (CR 0–1)"),
+			1 => T(lang, "Professionisti (GS 2–4)", "Professionals (CR 2–4)"),
+			2 => T(lang, "Esperti (GS 5–10)", "Experts (CR 5–10)"),
+			_ => T(lang, "Leggende (GS 11+)", "Legends (CR 11+)")
+		};
+		public static string MonsterIsNpc(LanguageCode lang) => T(lang,
+			"Personaggio non giocante (compare nella pagina PNG invece che tra i mostri)",
+			"Nonplayer character (listed on the NPC page instead of the monsters)");
 		public static string BtnCreateVariant(LanguageCode lang) => T(lang, "Crea variante", "Create variant");
 		public static string BtnShowMore(int remaining, LanguageCode lang) => T(lang, $"Mostra altri ({remaining})", $"Show more ({remaining})");
 		public static string SortByName(LanguageCode lang) => T(lang, "Per nome", "By name");

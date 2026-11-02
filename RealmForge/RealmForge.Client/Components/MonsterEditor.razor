@@ -85,6 +85,11 @@
             }
         </div>
 
+        <label class="rf-checkbox-wrapper small mb-3">
+            <input type="checkbox" class="rf-checkbox" @bind="Model.IsNpc" data-test="monster-form-npc" />
+            <span>@UiText.MonsterIsNpc(Lang)</span>
+        </label>
+
         <VisibilityPicker @bind-Value="Model.Visibility" />
 
         <div class="rf-pill-group mb-2" role="tablist">
@@ -285,6 +290,7 @@
             ProficiencyBonus = Model.ProficiencyBonus,
             PassivePerception = Model.PassivePerception,
             VariantOfId = Model.VariantOfId,
+            IsNpc = Model.IsNpc,
             Translations = translations
         };
 

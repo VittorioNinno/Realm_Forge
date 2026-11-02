@@ -1385,6 +1385,9 @@ namespace RealmForge.Infrastructure.Migrations
                     b.Property<int>("Intelligence")
                         .HasColumnType("integer");
 
+                    b.Property<bool>("IsNpc")
+                        .HasColumnType("boolean");
+
                     b.Property<bool>("IsOfficialSRD")
                         .HasColumnType("boolean");
 
