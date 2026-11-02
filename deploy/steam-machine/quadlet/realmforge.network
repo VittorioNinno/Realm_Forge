@@ -1,0 +1,4 @@
+# Private network of the RealmForge containers: the API reaches the database by name, the tunnel reaches the API.
+# Nothing is published on the ports of the machine.
+[Network]
+NetworkName=realmforge
