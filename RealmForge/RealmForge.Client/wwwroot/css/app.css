@@ -149,7 +149,9 @@ h1, h2, h3, h4, h5, h6, .rf-page-title, .brand-title {
 .badge-edition-2014,
 .badge-srd,
 .badge-homebrew,
-.badge-visibility {
+.badge-visibility,
+.rf-npc-badge-mine,
+.rf-npc-badge-shared {
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -187,6 +189,19 @@ h1, h2, h3, h4, h5, h6, .rf-page-title, .brand-title {
 
 /* Origin: Homebrew - Arcane Amethyst */
 .badge-homebrew {
+    background: rgba(171, 71, 188, 0.15) !important;
+    color: #ce93d8 !important;
+    border: 1px solid rgba(171, 71, 188, 0.55) !important;
+}
+
+/* NPC origin: written by the account (Forge Amber, filled) or shared by someone else (Arcane Amethyst, as Homebrew) */
+.rf-npc-badge-mine {
+    background: rgba(255, 140, 0, 0.24) !important;
+    color: #ffb74d !important;
+    border: 1px solid var(--rf-orange-primary) !important;
+}
+
+.rf-npc-badge-shared {
     background: rgba(171, 71, 188, 0.15) !important;
     color: #ce93d8 !important;
     border: 1px solid rgba(171, 71, 188, 0.55) !important;
@@ -6666,7 +6681,7 @@ textarea.rf-form-control {
 .rf-pc-campaign a {
     position: relative;
     z-index: 1;
-    color: #4da3ff;
+    color: var(--rf-orange-primary);
     font-weight: 500;
 }
 
@@ -6676,7 +6691,7 @@ textarea.rf-form-control {
 
     .rf-pc-link:hover {
         text-decoration: underline;
-        color: #4da3ff;
+        color: var(--rf-orange-hover);
     }
 
 .rf-pc-stats {
@@ -8049,8 +8064,10 @@ textarea.rf-form-control {
 
 .rf-search-random {
     display: inline-flex;
+    flex: 0 0 auto;
     align-items: center;
     gap: 8px;
+    white-space: nowrap;
     padding: 8px 16px;
     font-size: .8rem;
     font-weight: 600;
@@ -8060,7 +8077,13 @@ textarea.rf-form-control {
     border-radius: 8px;
 }
 
-    .rf-search-random > svg { color: var(--rf-orange-primary); }
+    .rf-search-random > svg {
+        flex: 0 0 auto;
+        width: 16px;
+        height: 16px;
+        overflow: visible;
+        color: var(--rf-orange-primary);
+    }
 
     .rf-search-random:hover:not(:disabled) {
         color: var(--rf-text-primary);
@@ -8116,15 +8139,6 @@ textarea.rf-form-control {
     color: var(--rf-orange-hover);
     background-color: rgba(255, 140, 0, 0.12);
     border: 1px solid rgba(255, 140, 0, 0.3);
-    border-radius: 4px;
-}
-
-.rf-search-kbd {
-    padding: 0 8px;
-    font-size: .75rem;
-    color: var(--rf-text-secondary);
-    background-color: var(--rf-bg-card);
-    border: 1px solid var(--rf-border-light);
     border-radius: 4px;
 }
 
@@ -8592,4 +8606,442 @@ textarea.rf-form-control {
     cursor: pointer;
     font-size: .85rem;
     color: var(--rf-orange-primary);
+}
+
+/* ===== NPCs: list and sheet =====
+   Cards like the characters' (orange left edge, stats as pills, actions at the bottom) with the avatar, the challenge
+   as a square, the roleplay hook and a footer with the campaign or the archetype */
+.rf-npc-filters {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    padding: 16px;
+    border-radius: 8px;
+    background-color: var(--rf-bg-surface);
+    border: 1px solid var(--rf-border-light);
+}
+
+.rf-npc-filterbar {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+    padding-top: 16px;
+    border-top: 1px solid var(--rf-border-subtle);
+}
+
+.rf-npc-chips {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+}
+
+.rf-npc-chip {
+    min-height: 32px;
+    padding: 0 16px;
+    border-radius: 8px;
+    border: 1px solid var(--rf-border-light);
+    background-color: var(--rf-bg-card);
+    color: var(--rf-text-secondary);
+    font-size: .8rem;
+    font-weight: 600;
+}
+
+    .rf-npc-chip:hover {
+        color: var(--rf-text-primary);
+        border-color: var(--rf-text-muted);
+    }
+
+    .rf-npc-chip.active {
+        color: #ffb74d;
+        border-color: var(--rf-orange-primary);
+        background-color: rgba(255, 140, 0, .14);
+    }
+
+.rf-npc-chip-divider {
+    width: 1px;
+    height: 16px;
+    margin: 0 8px;
+    background-color: var(--rf-border-light);
+}
+
+.rf-npc-card.mine {
+    border-color: rgba(255, 140, 0, .55);
+    border-left-color: var(--rf-orange-primary);
+    box-shadow: 0 0 24px rgba(255, 140, 0, .08);
+}
+
+.rf-npc-body {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    padding: 16px;
+    flex: 1;
+}
+
+    .rf-npc-body.rf-card-linked:hover {
+        background-color: var(--rf-bg-card);
+    }
+
+.rf-npc-top {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+.rf-npc-avatar {
+    flex: 0 0 56px;
+    width: 56px;
+    height: 56px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    border-radius: 8px;
+    border: 1px solid var(--rf-border-light);
+    background-color: var(--rf-bg-main);
+    color: var(--rf-orange-primary);
+}
+
+    .rf-npc-avatar.empty {
+        color: var(--rf-text-muted);
+    }
+
+    .rf-npc-avatar.shared {
+        color: #ce93d8;
+    }
+
+    .rf-npc-avatar img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+
+    .rf-npc-avatar .rf-icon {
+        width: 24px;
+        height: 24px;
+    }
+
+.rf-npc-avatar-lg {
+    flex: 0 0 128px;
+    width: 128px;
+    height: 128px;
+}
+
+    .rf-npc-avatar-lg .rf-icon {
+        width: 48px;
+        height: 48px;
+    }
+
+.rf-npc-head {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.rf-npc-titlebar {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 8px;
+}
+
+.rf-npc-name {
+    flex: 1 1 128px;
+    font-family: var(--rf-font-display);
+    font-size: 1.15rem;
+    font-weight: 700;
+    line-height: 1.2;
+    color: var(--rf-orange-primary);
+    text-decoration: none;
+    overflow-wrap: anywhere;
+}
+
+    a.rf-npc-name:hover {
+        color: var(--rf-orange-hover);
+    }
+
+.rf-npc-role {
+    color: var(--rf-orange-primary);
+    font-weight: 600;
+}
+
+.rf-npc-cr {
+    display: inline-flex;
+    align-items: center;
+    min-height: 24px;
+    padding: 0 8px;
+    border-radius: 4px;
+    border: 1px solid rgba(255, 140, 0, .5);
+    background-color: rgba(255, 140, 0, .14);
+    color: #ff9d26;
+    font-size: .75rem;
+    font-weight: 800;
+    letter-spacing: .04em;
+}
+
+.rf-npc-excerpt {
+    flex: 1;
+    margin: 0;
+    font-size: .85rem;
+    line-height: 1.5;
+    color: var(--rf-text-secondary);
+}
+
+.rf-npc-foot {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+    padding-top: 8px;
+    border-top: 1px solid var(--rf-border-subtle);
+    font-size: .8rem;
+    color: var(--rf-text-muted);
+}
+
+.rf-npc-tag {
+    display: inline-flex;
+    align-items: center;
+    min-height: 24px;
+    padding: 0 8px;
+    border-radius: 4px;
+    border: 1px solid rgba(255, 140, 0, .45);
+    color: #ff9d26;
+    font-size: .7rem;
+    font-weight: 700;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+}
+
+.rf-pc-action.rf-npc-action-forge {
+    color: var(--rf-orange-primary);
+}
+
+/* Last card of the grid: a new NPC */
+.rf-npc-create {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    min-height: 240px;
+    padding: 24px 16px;
+    border-radius: 8px;
+    border: 1px dashed var(--rf-border-light);
+    background-color: var(--rf-bg-main);
+    text-align: center;
+    font-size: .85rem;
+    color: var(--rf-text-muted);
+}
+
+.rf-npc-create-plus {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    border: 1px solid var(--rf-orange-primary);
+    color: var(--rf-orange-primary);
+}
+
+    .rf-npc-create-plus .rf-icon {
+        width: 24px;
+        height: 24px;
+    }
+
+.rf-npc-create-title {
+    margin: 0;
+    font-size: .9rem;
+    font-weight: 800;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+    color: var(--rf-text-primary);
+}
+
+/* No NPC of the account yet */
+.rf-npc-empty {
+    display: grid;
+    grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
+    gap: 24px;
+    padding: 24px;
+    border-radius: 8px;
+    border: 1px solid var(--rf-border-light);
+    border-left: 4px solid var(--rf-orange-primary);
+    background-color: var(--rf-bg-surface);
+}
+
+.rf-npc-empty-text {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    font-size: .9rem;
+    color: var(--rf-text-secondary);
+}
+
+.rf-npc-empty-kicker {
+    font-size: .7rem;
+    font-weight: 800;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    color: var(--rf-orange-primary);
+}
+
+.rf-npc-empty-title {
+    margin: 0;
+    font-family: var(--rf-font-display);
+    font-size: 1.35rem;
+    color: var(--rf-text-primary);
+}
+
+.rf-npc-starters {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.rf-npc-starter {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 8px 16px;
+    border-radius: 8px;
+    border: 1px solid var(--rf-border-light);
+    border-left: 3px solid var(--rf-orange-primary);
+    background-color: var(--rf-bg-card);
+    font-size: .85rem;
+    color: var(--rf-text-primary);
+}
+
+.rf-npc-starter-meta {
+    font-size: .75rem;
+    color: var(--rf-text-muted);
+}
+
+.rf-npc-starter-btn {
+    align-self: flex-start;
+    padding: 0;
+    border: none;
+    background: none;
+    color: var(--rf-orange-primary);
+    font-size: .8rem;
+    font-weight: 700;
+}
+
+    .rf-npc-starter-btn:hover {
+        text-decoration: underline;
+    }
+
+@media (max-width: 991.98px) {
+    .rf-npc-empty {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* Sheet */
+.rf-npc-back {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 16px;
+    font-size: .8rem;
+    font-weight: 600;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+    text-decoration: none;
+}
+
+.rf-npc-hero {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    gap: 24px;
+    padding: 24px;
+    border-radius: 8px;
+    border: 1px solid var(--rf-border-subtle);
+    border-left: 4px solid var(--rf-orange-primary);
+    background-color: var(--rf-bg-surface);
+}
+
+    .rf-npc-hero.mine {
+        border-color: rgba(255, 140, 0, .55);
+        border-left-color: var(--rf-orange-primary);
+    }
+
+.rf-npc-hero-info {
+    flex: 1 1 320px;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.rf-npc-hero-name {
+    margin: 0;
+    font-family: var(--rf-font-display);
+    font-size: 2rem;
+    font-weight: 700;
+    color: var(--rf-orange-primary);
+    overflow-wrap: anywhere;
+}
+
+.rf-npc-hero-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.rf-npc-panel {
+    padding: 16px;
+    border-radius: 8px;
+    border: 1px solid var(--rf-border-subtle);
+    background-color: var(--rf-bg-surface);
+}
+
+.rf-npc-panel-title {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin: 0 0 16px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--rf-orange-primary);
+    font-size: .8rem;
+    font-weight: 800;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    color: var(--rf-orange-primary);
+}
+
+.rf-npc-panel-note {
+    margin-left: auto;
+    font-size: .7rem;
+    font-weight: 600;
+    letter-spacing: .04em;
+    text-transform: none;
+    color: var(--rf-text-muted);
+}
+
+.rf-npc-secrets {
+    border-style: dashed;
+}
+
+/* Editor: portrait and archetype above the statblock */
+.rf-npc-form-head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 16px;
+    padding: 16px;
+    border-radius: 8px;
+    background-color: var(--rf-bg-card);
+}
+
+.rf-npc-form-archetype {
+    flex: 1 1 240px;
 }

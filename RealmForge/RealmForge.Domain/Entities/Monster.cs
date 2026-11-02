@@ -10,6 +10,9 @@ namespace RealmForge.Domain.Entities
 	///	</summary>
 	public class Monster : GameEntity
 	{
+		//	A 256 px JPEG is about 40 KB as a data URL
+		public const int MaxPortraitLength = 200000;
+
 		public CreatureSize Size { get; set; } = CreatureSize.Medium;
 		public CreatureType Type { get; set; } = CreatureType.Humanoid;
 
@@ -37,6 +40,10 @@ namespace RealmForge.Domain.Entities
 
 		//	A nonplayer character (guard, mage, noble…): on the NPC page instead of the monsters
 		public bool IsNpc { get; set; }
+
+		//	NPC sheet: what the character does at the table, and its portrait (a square JPEG as a data URL), both optional
+		public NpcArchetype? Archetype { get; set; }
+		public string? Portrait { get; set; }
 
 		public Guid? VariantOfId { get; set; }
 		public Monster? VariantOf { get; set; }
@@ -75,5 +82,12 @@ namespace RealmForge.Domain.Entities
 		public string Reactions { get; set; } = string.Empty;
 		public string LegendaryActions { get; set; } = string.Empty;
 		public string Description { get; set; } = string.Empty;
+
+		//	NPC sheet: role ("Locandiere"), ancestry ("Nano delle colline"), personality and secrets (Markdown; the
+		//	secrets are read only by who can edit the character)
+		public string Role { get; set; } = string.Empty;
+		public string Ancestry { get; set; } = string.Empty;
+		public string Personality { get; set; } = string.Empty;
+		public string Secrets { get; set; } = string.Empty;
 	}
 }
