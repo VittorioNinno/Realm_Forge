@@ -1355,6 +1355,9 @@ namespace RealmForge.Infrastructure.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
+                    b.Property<int?>("Archetype")
+                        .HasColumnType("integer");
+
                     b.Property<int>("ArmorClass")
                         .HasColumnType("integer");
 
@@ -1393,6 +1396,10 @@ namespace RealmForge.Infrastructure.Migrations
 
                     b.Property<int>("PassivePerception")
                         .HasColumnType("integer");
+
+                    b.Property<string>("Portrait")
+                        .HasMaxLength(200000)
+                        .HasColumnType("character varying(200000)");
 
                     b.Property<int>("ProficiencyBonus")
                         .HasColumnType("integer");
@@ -1452,6 +1459,13 @@ namespace RealmForge.Infrastructure.Migrations
                         .HasMaxLength(150)
                         .HasColumnType("character varying(150)");
 
+                    b.Property<string>("Ancestry")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasDefaultValue("");
+
                     b.Property<string>("ArmorClass")
                         .IsRequired()
                         .HasMaxLength(300)
@@ -1505,14 +1519,33 @@ namespace RealmForge.Infrastructure.Migrations
                         .HasMaxLength(150)
                         .HasColumnType("character varying(150)");
 
+                    b.Property<string>("Personality")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("text")
+                        .HasDefaultValue("");
+
                     b.Property<string>("Reactions")
                         .IsRequired()
                         .HasColumnType("text");
+
+                    b.Property<string>("Role")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasDefaultValue("");
 
                     b.Property<string>("SavingThrows")
                         .IsRequired()
                         .HasMaxLength(300)
                         .HasColumnType("character varying(300)");
+
+                    b.Property<string>("Secrets")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("text")
+                        .HasDefaultValue("");
 
                     b.Property<string>("Senses")
                         .IsRequired()
