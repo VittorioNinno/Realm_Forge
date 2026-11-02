@@ -1051,6 +1051,22 @@ jobs:
           rl_bob_log=$(curl -s "$api/api/campaigns/$ss_cp/rolls" -H "Authorization: Bearer $B" | jq -c '[.[] | {label, hidden, roller, master: (.color == "#ff8c00")}]')
           rl_colors=$(curl -s "$api/api/campaigns/$ss_cp?lang=2" -H "Authorization: Bearer $A" | jq -c '[.members[] | {name, orange: (.color == "#ff8c00"), hex: (.color | test("^#[0-9a-f]{6}$"))}] | sort_by(.name)')
           rl_since=$(curl -s "$api/api/campaigns/$ss_cp/rolls?after=$(echo "$rl" | jq -r .createdAt | jq -Rr @uri)" -H "Authorization: Bearer $A" | jq length)
+          # Virtual tabletop: the master prepares a map, hides one token, shows the map; the player sees the visible token only
+          # and cannot create maps nor move a token that is not theirs
+          png="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=="
+          mp=$(curl -s -X POST "$api/api/campaigns/$ss_cp/maps" $json -H "Authorization: Bearer $B" -d "$(jq -nc --arg i "$png" '{name:"Cripta",image:$i,width:700,height:490,gridSize:70,gridOffsetX:0,gridOffsetY:0,shown:false}')" | jq -r .id)
+          mp_player_create=$(code -X POST "$api/api/campaigns/$ss_cp/maps" $json -H "Authorization: Bearer $A" -d "$(jq -nc --arg i "$png" '{name:"X",image:$i,width:70,height:70,gridSize:70}')")
+          mp_hidden_list=$(curl -s "$api/api/campaigns/$ss_cp/maps" -H "Authorization: Bearer $A" | jq length)
+          tk=$(curl -s -X POST "$api/api/campaigns/$ss_cp/maps/$mp/tokens" $json -H "Authorization: Bearer $B" -d '{"label":"Porta","kind":4,"color":"#aa5500","x":2,"y":1,"size":1}' | jq -r .id)
+          curl -s -X POST "$api/api/campaigns/$ss_cp/maps/$mp/tokens" $json -H "Authorization: Bearer $B" -d '{"label":"Lich","kind":3,"x":5,"y":3,"size":1,"hidden":true}' > /dev/null
+          mp_outside=$(code -X POST "$api/api/campaigns/$ss_cp/maps/$mp/tokens" $json -H "Authorization: Bearer $B" -d '{"label":"Fuori","kind":4,"x":50,"y":50,"size":1}')
+          curl -s -X PUT "$api/api/campaigns/$ss_cp/maps/$mp" $json -H "Authorization: Bearer $B" -d '{"name":"Cripta","width":700,"height":490,"gridSize":70,"gridOffsetX":0,"gridOffsetY":0,"shown":true}' > /dev/null
+          mp_player_state=$(curl -s "$api/api/campaigns/$ss_cp/maps/$mp/state" -H "Authorization: Bearer $A" | jq -c '{shown, tokens: [.tokens[] | {label, canMove}]}')
+          mp_player_move=$(code -X POST "$api/api/campaigns/$ss_cp/maps/$mp/tokens/$tk/move" $json -H "Authorization: Bearer $A" -d '{"x":3,"y":1}')
+          mp_master_move=$(code -X POST "$api/api/campaigns/$ss_cp/maps/$mp/tokens/$tk/move" $json -H "Authorization: Bearer $B" -d '{"x":3,"y":1}')
+          mp_master_state=$(curl -s "$api/api/campaigns/$ss_cp/maps/$mp/state" -H "Authorization: Bearer $B" | jq -c '[.tokens[] | {label, x, hidden}]')
+          mp_delete=$(code -X DELETE "$api/api/campaigns/$ss_cp/maps/$mp" -H "Authorization: Bearer $B")
+          echo "::notice title=maps::player create=$mp_player_create hidden list=$mp_hidden_list outside=$mp_outside | player state=$mp_player_state move=$mp_player_move | master move=$mp_master_move state=$mp_master_state | delete=$mp_delete"
           rl_clear_player=$(code -X DELETE "$api/api/campaigns/$ss_cp/rolls" -H "Authorization: Bearer $A")
           rl_clear=$(code -X DELETE "$api/api/campaigns/$ss_cp/rolls" -H "Authorization: Bearer $B")
           rl_after=$(curl -s "$api/api/campaigns/$ss_cp/rolls" -H "Authorization: Bearer $B" | jq length)
@@ -1078,6 +1094,14 @@ jobs:
           sscheck "master log" "$rl_bob_log" '[{"label":"Tabella incontri","hidden":true,"roller":"Master","master":true},{"label":"2d20kh1","hidden":false,"roller":"Alice","master":false},{"label":"Percezione","hidden":false,"roller":"Alice","master":false}]'
           sscheck "member colours" "$rl_colors" '[{"name":"Alice","orange":false,"hex":true},{"name":"Bob","orange":true,"hex":true}]'
           sscheck "rolls since" "$rl_since" "1"
+          sscheck "map by a player" "$mp_player_create" "403"
+          sscheck "map not shown to the player" "$mp_hidden_list" "0"
+          sscheck "token outside the map" "$mp_outside" "400"
+          sscheck "map shown to the player" "$mp_player_state" '{"shown":true,"tokens":[{"label":"Porta","canMove":false}]}'
+          sscheck "player moves a marker" "$mp_player_move" "403"
+          sscheck "master moves a marker" "$mp_master_move" "204"
+          sscheck "tokens for the master" "$mp_master_state" '[{"label":"Lich","x":5,"hidden":true},{"label":"Porta","x":3,"hidden":false}]'
+          sscheck "delete map" "$mp_delete" "204"
           sscheck "player clears" "$rl_clear_player" "403"
           sscheck "master clears" "$rl_clear" "204"
           sscheck "log empty" "$rl_after" "0"
