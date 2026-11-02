@@ -1,0 +1,663 @@
+﻿@using RealmForge.Client.Localization
+@using RealmForge.Client.Services
+@using RealmForge.Shared.Campaigns
+@using RealmForge.Shared.DTOs
+@using RealmForge.Shared.Enums
+@inject CampaignDataService Campaigns
+@inject MonsterDataService MonsterService
+@inject LanguageStateService LanguageState
+@inject IJSRuntime JS
+@implements IDisposable
+
+@* The virtual tabletop: a map with its grid and the tokens on it. The masters prepare the maps (picture, grid, shown or
+   not to the table) and place the tokens of characters, monsters and markers; everyone drags the tokens they can move
+   and sees the others move within a couple of seconds *@
+<section class="rf-vtt" data-test="campaign-map">
+    <div class="rf-vtt-bar">
+        @if (maps is { Count: > 0 })
+        {
+            <div class="rf-vtt-select" data-test="map-select">
+                <RfSelect TValue="Guid" Value="selectedId" ValueChanged="SelectAsync" Options="MapOptions" />
+            </div>
+        }
+        <div class="rf-vtt-zoom" role="group" aria-label="@UiText.MapZoom(Lang)">
+            <button type="button" @onclick="() => SetZoom(zoom - 0.25)" aria-label="−" data-test="map-zoom-out">−</button>
+            <span>@($"{zoom * 100:0}%")</span>
+            <button type="button" @onclick="() => SetZoom(zoom + 0.25)" aria-label="+" data-test="map-zoom-in">+</button>
+        </div>
+        @if (RunsTheTable)
+        {
+            <button type="button" class="btn btn-sm btn-rf-orange ms-auto" @onclick="OpenNewMap" data-test="map-new"><Icon Name="plus" /> @UiText.MapNew(Lang)</button>
+        }
+    </div>
+
+    @if (message is not null)
+    {
+        <div class="rf-cast-warning mb-3" role="alert" data-test="map-message">@message</div>
+    }
+
+    @if (maps is null)
+    {
+        <div class="small" style="color: var(--rf-text-muted);">…</div>
+    }
+    else if (map is null)
+    {
+        <div class="rf-vtt-empty" data-test="map-empty">
+            <Icon Name="map" />
+            <p class="mb-0">@(RunsTheTable ? UiText.MapEmptyMaster(Lang) : UiText.MapEmptyPlayer(Lang))</p>
+        </div>
+    }
+    else
+    {
+        <div class="rf-vtt-layout @(RunsTheTable ? "master" : null)">
+            <div class="rf-vtt-stage" data-test="map-stage">
+                <div class="rf-vtt-map" @ref="mapElement" style="@MapStyle" @onpointermove="DragAsync" @onpointerup="DropAsync" @onpointerleave="DropAsync">
+                    <img src="@map.Image" alt="@map.Name" draggable="false" />
+                    <svg class="rf-vtt-grid" width="@Px(map.Width)" height="@Px(map.Height)" aria-hidden="true">
+                        <defs>
+                            <pattern id="@GridId" width="@Px(grid)" height="@Px(grid)" x="@Px(offsetX)" y="@Px(offsetY)" patternUnits="userSpaceOnUse">
+                                <path d="@($"M {Px(grid)} 0 L 0 0 0 {Px(grid)}")" fill="none" stroke="rgba(255,255,255,.28)" stroke-width="1" />
+                            </pattern>
+                        </defs>
+                        <rect width="100%" height="100%" fill="@($"url(#{GridId})")" />
+                    </svg>
+                    @foreach (var token in tokens)
+                    {
+                        var t = token;
+                        var (left, top) = Position(t);
+                        var portrait = PortraitOf(t);
+                        <div class="rf-vtt-token @(t.Hidden ? "hidden-token" : null) @(t.CanMove ? "movable" : null) @(selectedToken == t.Id ? "selected" : null) @(drag?.TokenId == t.Id ? "dragging" : null)"
+                             style="@($"left: {left:0.#}px; top: {top:0.#}px; width: {Px(grid * t.Size)}px; height: {Px(grid * t.Size)}px; --rf-token: {t.Color};")"
+                             title="@t.Label" @onpointerdown="e => GrabAsync(e, t)" @onpointerdown:preventDefault="true" data-test="map-token" data-label="@t.Label">
+                            @if (portrait is not null)
+                            {
+                                <img src="@portrait" alt="" draggable="false" />
+                            }
+                            else
+                            {
+                                <span>@Initials(t.Label)</span>
+                            }
+                        </div>
+                    }
+                </div>
+            </div>
+
+            @if (RunsTheTable)
+            {
+                <aside class="rf-vtt-panel">
+                    <section class="rf-vtt-box" data-test="map-settings">
+                        <span class="rf-vtt-title">@UiText.MapSettings(Lang)</span>
+                        <label class="rf-dice-field">
+                            <span class="rf-dice-label">@UiText.MapName(Lang)</span>
+                            <input class="rf-form-control" maxlength="120" @bind="mapName" data-test="map-name" />
+                        </label>
+                        <div class="rf-vtt-grid-fields">
+                            <div class="rf-dice-field">
+                                <span class="rf-dice-label">@UiText.MapGrid(Lang)</span>
+                                <NumberStepper Value="grid" ValueChanged="v => grid = v" Min="MapRules.MinGrid" Max="MapRules.MaxGrid" AriaLabel="@UiText.MapGrid(Lang)" InputTest="map-grid" />
+                            </div>
+                            <div class="rf-dice-field">
+                                <span class="rf-dice-label">@UiText.MapOffsetX(Lang)</span>
+                                <NumberStepper Value="offsetX" ValueChanged="v => offsetX = v" Min="0" Max="@(grid - 1)" AriaLabel="@UiText.MapOffsetX(Lang)" />
+                            </div>
+                            <div class="rf-dice-field">
+                                <span class="rf-dice-label">@UiText.MapOffsetY(Lang)</span>
+                                <NumberStepper Value="offsetY" ValueChanged="v => offsetY = v" Min="0" Max="@(grid - 1)" AriaLabel="@UiText.MapOffsetY(Lang)" />
+                            </div>
+                        </div>
+                        <label class="rf-checkbox-wrapper small mb-0">
+                            <input type="checkbox" class="rf-checkbox" @bind="shown" data-test="map-shown" />
+                            <span>@UiText.MapShown(Lang)</span>
+                        </label>
+                        <div class="d-flex flex-wrap gap-2">
+                            <button type="button" class="btn btn-sm btn-rf-orange" @onclick="SaveMapAsync" data-test="map-save">@UiText.MapSave(Lang)</button>
+                            <button type="button" class="btn btn-sm btn-rf-outline" style="border-color: #dc3545; color: #dc3545;" @onclick="() => confirmDelete = true" data-test="map-delete">@UiText.Delete(Lang)</button>
+                        </div>
+                    </section>
+
+                    <section class="rf-vtt-box" data-test="map-add-tokens">
+                        <span class="rf-vtt-title">@UiText.MapAddTokens(Lang)</span>
+                        @if (FreeCharacters.Any())
+                        {
+                            <div class="rf-vtt-chips">
+                                @foreach (var c in FreeCharacters)
+                                {
+                                    var ch = c;
+                                    <button type="button" @onclick="() => AddCharacterAsync(ch)" data-test="map-add-character"><Icon Name="plus" /> @ch.Character.Name</button>
+                                }
+                            </div>
+                        }
+                        <div class="position-relative">
+                            <input class="rf-form-control" placeholder="@UiText.MapMonsterSearch(Lang)" value="@monsterSearch" @oninput="SearchMonstersAsync" data-test="map-monster-search" />
+                            @if (monsterResults.Count > 0)
+                            {
+                                <div class="rf-forge-selector-menu" style="left: 0; right: 0;">
+                                    @foreach (var m in monsterResults)
+                                    {
+                                        var monster = m;
+                                        <button type="button" class="rf-forge-selector-option" @onclick="() => AddMonsterAsync(monster)" data-test="map-monster-result">
+                                            @monster.Name <span class="small" style="color: var(--rf-text-muted);">· @UiText.MonsterChallengeShort(Lang) @RealmForge.Shared.Monsters.MonsterMath.FormatChallenge(monster.ChallengeRating)</span>
+                                        </button>
+                                    }
+                                </div>
+                            }
+                        </div>
+                        <div class="d-flex gap-2">
+                            <input class="rf-form-control" maxlength="100" placeholder="@UiText.MapMarkerHint(Lang)" @bind="markerLabel" data-test="map-marker-label" />
+                            <input type="color" class="rf-vtt-color" @bind="markerColor" aria-label="@UiText.MapColor(Lang)" />
+                            <button type="button" class="btn btn-sm btn-rf-outline" disabled="@string.IsNullOrWhiteSpace(markerLabel)" @onclick="AddMarkerAsync" data-test="map-add-marker"><Icon Name="plus" /></button>
+                        </div>
+                    </section>
+
+                    @if (SelectedToken is { } st)
+                    {
+                        <section class="rf-vtt-box" data-test="map-token-panel">
+                            <span class="rf-vtt-title">@st.Label</span>
+                            <div class="rf-dice-field">
+                                <span class="rf-dice-label">@UiText.MapTokenSize(Lang)</span>
+                                <NumberStepper Value="st.Size" ValueChanged="v => ResizeAsync(st, v)" Min="1" Max="MapRules.MaxTokenSize" AriaLabel="@UiText.MapTokenSize(Lang)" />
+                            </div>
+                            <label class="rf-checkbox-wrapper small mb-0">
+                                <input type="checkbox" class="rf-checkbox" checked="@st.Hidden" @onchange="() => ToggleHiddenAsync(st)" data-test="map-token-hidden" />
+                                <span>@UiText.MapTokenHidden(Lang)</span>
+                            </label>
+                            <button type="button" class="btn btn-sm btn-rf-outline" style="border-color: #dc3545; color: #dc3545;" @onclick="() => RemoveTokenAsync(st)" data-test="map-token-remove"><Icon Name="trash" /> @UiText.BtnRemove(Lang)</button>
+                        </section>
+                    }
+                    else
+                    {
+                        <p class="small mb-0" style="color: var(--rf-text-muted);">@UiText.MapTokenHint(Lang)</p>
+                    }
+                </aside>
+            }
+        </div>
+        @if (!RunsTheTable)
+        {
+            <p class="small mt-2 mb-0" style="color: var(--rf-text-muted);">@UiText.MapPlayerHint(Lang)</p>
+        }
+    }
+</section>
+
+@if (newMap is not null)
+{
+    <div class="rf-modal-backdrop" @onclick="() => newMap = null">
+        <div class="rf-modal-dialog" style="max-width: 520px;" @onclick:stopPropagation="true" data-test="map-new-dialog">
+            <h2 class="h5 mb-3" style="color: var(--rf-orange-primary); font-family: var(--rf-font-display);">@UiText.MapNew(Lang)</h2>
+            <label class="rf-dice-field mb-3">
+                <span class="rf-dice-label">@UiText.MapName(Lang)</span>
+                <input class="rf-form-control" maxlength="120" @bind="newMap.Name" data-test="map-new-name" />
+            </label>
+            <label class="btn btn-sm btn-rf-outline mb-2" data-test="map-new-image">
+                <InputFile OnChange="PickImageAsync" accept="image/*" class="d-none" />
+                <Icon Name="map" /> @UiText.MapPickImage(Lang)
+            </label>
+            @if (newMap.Image is { Length: > 0 } preview)
+            {
+                <img src="@preview" alt="" class="rf-vtt-preview mb-2" />
+                <div class="small mb-2" style="color: var(--rf-text-muted);">@newMap.Width × @newMap.Height px</div>
+            }
+            @if (imageError is not null)
+            {
+                <div class="small text-warning mb-2">@imageError</div>
+            }
+            <p class="small" style="color: var(--rf-text-muted);">@UiText.MapNewHint(Lang)</p>
+            <div class="d-flex justify-content-end gap-2">
+                <button type="button" class="btn btn-sm btn-rf-outline" @onclick="() => newMap = null">@UiText.BtnCancel(Lang)</button>
+                <button type="button" class="btn btn-sm btn-rf-orange" disabled="@(busy || string.IsNullOrEmpty(newMap.Image) || string.IsNullOrWhiteSpace(newMap.Name))" @onclick="CreateMapAsync" data-test="map-new-save">@UiText.MapSave(Lang)</button>
+            </div>
+        </div>
+    </div>
+}
+
+@if (confirmDelete && map is not null)
+{
+    <div class="rf-modal-backdrop" @onclick="() => confirmDelete = false">
+        <div class="rf-modal-dialog" style="max-width: 440px;" @onclick:stopPropagation="true">
+            <p class="mb-3">@UiText.MapDeleteConfirm(map.Name, Lang)</p>
+            <div class="d-flex justify-content-end gap-2">
+                <button type="button" class="btn btn-sm btn-rf-outline" @onclick="() => confirmDelete = false">@UiText.BtnCancel(Lang)</button>
+                <button type="button" class="btn btn-sm btn-rf-orange" style="background-color: #dc3545; border-color: #dc3545;" @onclick="DeleteMapAsync" data-test="map-delete-yes">@UiText.Delete(Lang)</button>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter, EditorRequired] public Guid CampaignId { get; set; }
+    [Parameter] public CampaignRole Role { get; set; } = CampaignRole.Player;
+    [Parameter] public IReadOnlyList<CampaignCharacterDto> Characters { get; set; } = Array.Empty<CampaignCharacterDto>();
+
+    private sealed record Drag(Guid TokenId, double GrabX, double GrabY, double Left, double Top);
+
+    private LanguageCode Lang => LanguageState.CurrentLanguage;
+    private bool RunsTheTable => CampaignRules.RunsTheTable(Role);
+
+    private List<CampaignMapSummaryDto>? maps;
+    private Guid selectedId;
+    private CampaignMapDto? map;
+    private List<MapTokenDto> tokens = new();
+    private double zoom = 1;
+    private string? message;
+    private bool busy;
+    private bool confirmDelete;
+
+    //	Map settings (the overlay follows them before they are saved)
+    private string mapName = string.Empty;
+    private int grid = 70;
+    private int offsetX;
+    private int offsetY;
+    private bool shown;
+
+    //	Tokens
+    private Guid? selectedToken;
+    private Drag? drag;
+    private double[] mapRect = new double[4];
+    private ElementReference mapElement;
+    private string monsterSearch = string.Empty;
+    private List<MonsterResponseDto> monsterResults = new();
+    private string? markerLabel;
+    private string markerColor = "#ff8c00";
+
+    //	New map
+    private SaveMapDto? newMap;
+    private string? imageError;
+
+    private PeriodicTimer? timer;
+    private CancellationTokenSource? stop;
+
+    private string GridId => $"rf-vtt-grid-{CampaignId:N}";
+
+    private List<RfSelect<Guid>.OptionItem> MapOptions => (maps ?? new())
+        .Select(m => new RfSelect<Guid>.OptionItem(m.Id, RunsTheTable && !m.Shown ? $"{m.Name} · {UiText.MapNotShown(Lang)}" : m.Name)).ToList();
+
+    private MapTokenDto? SelectedToken => tokens.FirstOrDefault(t => t.Id == selectedToken);
+
+    //	Characters of the table not yet on this map
+    private IEnumerable<CampaignCharacterDto> FreeCharacters => Characters.Where(c => c.Active && tokens.All(t => t.CharacterId != c.Character.Id));
+
+    private string MapStyle => map is null ? string.Empty : $"width: {Px(map.Width)}px; height: {Px(map.Height)}px;";
+
+    private string Px(double value) => (value * zoom).ToString("0.##", System.Globalization.CultureInfo.InvariantCulture);
+
+    private (double Left, double Top) Position(MapTokenDto t) => drag?.TokenId == t.Id
+        ? (drag.Left, drag.Top)
+        : ((offsetX + t.X * grid) * zoom, (offsetY + t.Y * grid) * zoom);
+
+    private string? PortraitOf(MapTokenDto t) => t.CharacterId is { } id ? Characters.FirstOrDefault(c => c.Character.Id == id)?.Character.Portrait : null;
+
+    private static string Initials(string label)
+    {
+        var words = label.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        var initials = words.Length switch
+        {
+            0 => "?",
+            1 => words[0][..Math.Min(2, words[0].Length)],
+            _ => $"{words[0][0]}{words[^1][0]}"
+        };
+        return initials.ToUpperInvariant();
+    }
+
+    private void SetZoom(double value) => zoom = Math.Clamp(Math.Round(value * 4) / 4, 0.25, 2);
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadMapsAsync();
+        stop = new CancellationTokenSource();
+        _ = PollAsync(stop.Token);
+    }
+
+    private async Task LoadMapsAsync(Guid? select = null)
+    {
+        maps = await Campaigns.GetMapsAsync(CampaignId) ?? new();
+        var id = select ?? (maps.Any(m => m.Id == selectedId) ? selectedId : maps.FirstOrDefault(m => m.Shown)?.Id ?? maps.FirstOrDefault()?.Id);
+        if (id is { } mapId)
+        {
+            await SelectAsync(mapId);
+        }
+        else
+        {
+            map = null;
+            tokens = new();
+        }
+    }
+
+    private async Task SelectAsync(Guid id)
+    {
+        selectedId = id;
+        selectedToken = null;
+        map = await Campaigns.GetMapAsync(CampaignId, id);
+        if (map is not null)
+        {
+            tokens = map.Tokens;
+            mapName = map.Name;
+            grid = map.GridSize;
+            offsetX = map.GridOffsetX;
+            offsetY = map.GridOffsetY;
+            shown = map.Shown;
+        }
+    }
+
+    //	Every 2 seconds what moved on the map (not while a token is dragged)
+    private async Task PollAsync(CancellationToken token)
+    {
+        timer = new PeriodicTimer(TimeSpan.FromSeconds(2));
+        try
+        {
+            while (await timer.WaitForNextTickAsync(token))
+            {
+                if (map is null)
+                {
+                    if (!RunsTheTable)
+                    {
+                        var list = await Campaigns.GetMapsAsync(CampaignId);
+                        if (list is { Count: > 0 })
+                        {
+                            maps = list;
+                            await SelectAsync(list[0].Id);
+                            await InvokeAsync(StateHasChanged);
+                        }
+                    }
+                    continue;
+                }
+                if (drag is not null)
+                {
+                    continue;
+                }
+                var state = await Campaigns.GetMapStateAsync(CampaignId, map.Id);
+                if (state is null)
+                {
+                    //	Hidden from the players again, or deleted
+                    await LoadMapsAsync();
+                    await InvokeAsync(StateHasChanged);
+                    continue;
+                }
+                if (state.UpdatedAt != map.UpdatedAt && drag is null)
+                {
+                    map = map with { UpdatedAt = state.UpdatedAt, GridSize = state.GridSize, GridOffsetX = state.GridOffsetX, GridOffsetY = state.GridOffsetY, Shown = state.Shown, Name = state.Name };
+                    tokens = state.Tokens;
+                    if (!RunsTheTable)
+                    {
+                        grid = state.GridSize;
+                        offsetX = state.GridOffsetX;
+                        offsetY = state.GridOffsetY;
+                    }
+                    await InvokeAsync(StateHasChanged);
+                }
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            //	Left the tab
+        }
+    }
+
+    // ===== Dragging =====
+
+    private async Task GrabAsync(PointerEventArgs e, MapTokenDto t)
+    {
+        selectedToken = t.Id;
+        if (!t.CanMove)
+        {
+            return;
+        }
+        mapRect = await JS.InvokeAsync<double[]>("rfRect", mapElement);
+        var (left, top) = Position(t);
+        drag = new Drag(t.Id, e.ClientX - mapRect[0] - left, e.ClientY - mapRect[1] - top, left, top);
+    }
+
+    private void DragAsync(PointerEventArgs e)
+    {
+        if (drag is null)
+        {
+            return;
+        }
+        drag = drag with { Left = e.ClientX - mapRect[0] - drag.GrabX, Top = e.ClientY - mapRect[1] - drag.GrabY };
+    }
+
+    //	The token lands on the nearest cell
+    private async Task DropAsync(PointerEventArgs e)
+    {
+        if (drag is not { } d || map is null)
+        {
+            return;
+        }
+        drag = null;
+        var t = tokens.FirstOrDefault(x => x.Id == d.TokenId);
+        if (t is null)
+        {
+            return;
+        }
+        var x = Math.Max(0, (int)Math.Round((d.Left / zoom - offsetX) / grid));
+        var y = Math.Max(0, (int)Math.Round((d.Top / zoom - offsetY) / grid));
+        x = Math.Min(x, MapRules.Columns(map.Width, grid, offsetX) - t.Size + 1);
+        y = Math.Min(y, MapRules.Rows(map.Height, grid, offsetY) - t.Size + 1);
+        if (x == t.X && y == t.Y)
+        {
+            return;
+        }
+        Replace(t with { X = x, Y = y });
+        var result = await Campaigns.MoveTokenAsync(CampaignId, map.Id, t.Id, x, y);
+        message = result.Ok ? null : UiText.MapMoveFailed(Lang);
+        if (!result.Ok)
+        {
+            Replace(t);
+        }
+    }
+
+    private void Replace(MapTokenDto token) => tokens = tokens.Select(x => x.Id == token.Id ? token : x).ToList();
+
+    // ===== Master: maps =====
+
+    private void OpenNewMap()
+    {
+        imageError = null;
+        newMap = new SaveMapDto { Name = UiText.MapDefaultName((maps?.Count ?? 0) + 1, Lang), GridSize = 70 };
+    }
+
+    private async Task PickImageAsync(InputFileChangeEventArgs e)
+    {
+        imageError = null;
+        try
+        {
+            await using var stream = e.File.OpenReadStream(maxAllowedSize: 20_000_000);
+            using var memory = new MemoryStream();
+            await stream.CopyToAsync(memory);
+            var source = $"data:{e.File.ContentType};base64,{Convert.ToBase64String(memory.ToArray())}";
+            var resized = await JS.InvokeAsync<ResizedImage>("rfResizeImage", source, 2048);
+            if (newMap is null || string.IsNullOrEmpty(resized.Url) || resized.Url.Length > MapRules.MaxImageLength)
+            {
+                imageError = UiText.MapImageTooLarge(Lang);
+                return;
+            }
+            newMap.Image = resized.Url;
+            newMap.Width = resized.Width;
+            newMap.Height = resized.Height;
+            if (string.IsNullOrWhiteSpace(newMap.Name) || newMap.Name.StartsWith(UiText.MapDefaultName(0, Lang)[..4], StringComparison.Ordinal))
+            {
+                newMap.Name = Path.GetFileNameWithoutExtension(e.File.Name);
+            }
+        }
+        catch (Exception)
+        {
+            imageError = UiText.MapImageTooLarge(Lang);
+        }
+    }
+
+    private sealed record ResizedImage(string Url, int Width, int Height);
+
+    private async Task CreateMapAsync()
+    {
+        if (newMap is null)
+        {
+            return;
+        }
+        busy = true;
+        newMap.Name = newMap.Name.Length > 120 ? newMap.Name[..120] : newMap.Name;
+        var created = await Campaigns.CreateMapAsync(CampaignId, newMap);
+        busy = false;
+        if (created is null)
+        {
+            imageError = UiText.MapSaveFailed(Lang);
+            return;
+        }
+        newMap = null;
+        await LoadMapsAsync(created.Id);
+    }
+
+    private async Task SaveMapAsync()
+    {
+        if (map is null)
+        {
+            return;
+        }
+        var result = await Campaigns.UpdateMapAsync(CampaignId, map.Id, new SaveMapDto
+        {
+            Name = string.IsNullOrWhiteSpace(mapName) ? map.Name : mapName.Trim(),
+            Width = map.Width,
+            Height = map.Height,
+            GridSize = grid,
+            GridOffsetX = Math.Min(offsetX, grid - 1),
+            GridOffsetY = Math.Min(offsetY, grid - 1),
+            Shown = shown
+        });
+        message = result.Ok ? null : UiText.MapSaveFailed(Lang);
+        if (result.Ok)
+        {
+            await LoadMapsAsync(map.Id);
+        }
+    }
+
+    private async Task DeleteMapAsync()
+    {
+        confirmDelete = false;
+        if (map is not null && (await Campaigns.DeleteMapAsync(CampaignId, map.Id)).Ok)
+        {
+            selectedId = Guid.Empty;
+            await LoadMapsAsync();
+        }
+    }
+
+    // ===== Master: tokens =====
+
+    //	New tokens go on the first free cell of the top rows
+    private (int X, int Y) FreeCell(int size)
+    {
+        var columns = map is null ? 10 : Math.Max(1, MapRules.Columns(map.Width, grid, offsetX) - size + 1);
+        for (var i = 0; i < 400; i++)
+        {
+            var (x, y) = (i % columns, i / columns);
+            if (tokens.All(t => x + size <= t.X || t.X + t.Size <= x || y + size <= t.Y || t.Y + t.Size <= y))
+            {
+                return (x, y);
+            }
+        }
+        return (0, 0);
+    }
+
+    private async Task AddAsync(SaveTokenDto dto)
+    {
+        if (map is null)
+        {
+            return;
+        }
+        (dto.X, dto.Y) = FreeCell(dto.Size);
+        var token = await Campaigns.AddTokenAsync(CampaignId, map.Id, dto);
+        message = token is null ? UiText.MapSaveFailed(Lang) : null;
+        if (token is not null)
+        {
+            tokens = tokens.Append(token).ToList();
+            selectedToken = token.Id;
+        }
+    }
+
+    private Task AddCharacterAsync(CampaignCharacterDto c) =>
+        AddAsync(new SaveTokenDto { Label = c.Character.Name, Kind = TokenKind.Character, CharacterId = c.Character.Id, Size = 1 });
+
+    private async Task AddMonsterAsync(MonsterResponseDto m)
+    {
+        monsterSearch = string.Empty;
+        monsterResults = new();
+        var same = tokens.Count(t => t.MonsterId == m.Id);
+        await AddAsync(new SaveTokenDto
+        {
+            Label = same == 0 ? m.Name : $"{m.Name} {same + 1}",
+            Kind = m.IsNpc ? TokenKind.Npc : TokenKind.Monster,
+            MonsterId = m.Id,
+            Color = m.IsNpc ? "#ab47bc" : "#dc3545",
+            Size = m.Size switch { CreatureSize.Large => 2, CreatureSize.Huge => 3, CreatureSize.Gargantuan => 4, _ => 1 }
+        });
+    }
+
+    private async Task AddMarkerAsync()
+    {
+        if (string.IsNullOrWhiteSpace(markerLabel))
+        {
+            return;
+        }
+        await AddAsync(new SaveTokenDto { Label = markerLabel.Trim(), Kind = TokenKind.Marker, Color = markerColor, Size = 1 });
+        markerLabel = null;
+    }
+
+    private async Task SearchMonstersAsync(ChangeEventArgs e)
+    {
+        monsterSearch = e.Value?.ToString() ?? string.Empty;
+        var term = monsterSearch.Trim();
+        if (term.Length < 2)
+        {
+            monsterResults = new();
+            return;
+        }
+        var all = await MonsterService.GetMonstersAsync(Lang);
+        monsterResults = all.Where(m => m.Name.Contains(term, StringComparison.OrdinalIgnoreCase))
+            .OrderBy(m => RealmForge.Shared.Text.SearchRank.Of(term, m.Name, new[] { m.Alias })).ThenBy(m => m.Name).Take(8).ToList();
+    }
+
+    private SaveTokenDto ToSave(MapTokenDto t) => new()
+    {
+        Label = t.Label, Color = t.Color, Kind = t.Kind, CharacterId = t.CharacterId, MonsterId = t.MonsterId, X = t.X, Y = t.Y, Size = t.Size, Hidden = t.Hidden
+    };
+
+    private async Task ResizeAsync(MapTokenDto t, int size)
+    {
+        if (map is null)
+        {
+            return;
+        }
+        var changed = t with { Size = size };
+        Replace(changed);
+        if (!(await Campaigns.UpdateTokenAsync(CampaignId, map.Id, t.Id, ToSave(changed))).Ok)
+        {
+            Replace(t);
+            message = UiText.MapSaveFailed(Lang);
+        }
+    }
+
+    private async Task ToggleHiddenAsync(MapTokenDto t)
+    {
+        if (map is null)
+        {
+            return;
+        }
+        var changed = t with { Hidden = !t.Hidden };
+        Replace(changed);
+        if (!(await Campaigns.UpdateTokenAsync(CampaignId, map.Id, t.Id, ToSave(changed))).Ok)
+        {
+            Replace(t);
+        }
+    }
+
+    private async Task RemoveTokenAsync(MapTokenDto t)
+    {
+        if (map is not null && (await Campaigns.DeleteTokenAsync(CampaignId, map.Id, t.Id)).Ok)
+        {
+            tokens = tokens.Where(x => x.Id != t.Id).ToList();
+            selectedToken = null;
+        }
+    }
+
+    public void Dispose()
+    {
+        stop?.Cancel();
+        timer?.Dispose();
+    }
+}

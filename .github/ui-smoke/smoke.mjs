@@ -1369,6 +1369,51 @@ try {
   await page.waitForTimeout(300);
   await shot(page, 'phone-campaign-rolls', 'main');
   await page.setViewportSize({ width: 1280, height: 900 });
+  // The virtual tabletop: a map from a picture, the character and a goblin on it, the character dragged two cells right,
+  // the map shown to the players
+  await page.locator('[data-test=campaign-tab-map]').click();
+  await page.locator('[data-test=map-empty]').waitFor({ timeout: 15000 });
+  await page.locator('[data-test=map-new]').click();
+  const mapPng = await page.evaluate(() => {
+    const canvas = document.createElement('canvas');
+    canvas.width = 700;
+    canvas.height = 490;
+    const ctx = canvas.getContext('2d');
+    ctx.fillStyle = '#2f4f3a';
+    ctx.fillRect(0, 0, 700, 490);
+    return canvas.toDataURL('image/png').split(',')[1];
+  });
+  await page.locator('[data-test=map-new-image] input[type=file]').setInputFiles({ name: 'cripta.png', mimeType: 'image/png', buffer: Buffer.from(mapPng, 'base64') });
+  await page.locator('[data-test=map-new-dialog] img').waitFor({ timeout: 15000 });
+  await page.locator('[data-test=map-new-save]').click();
+  await page.locator('[data-test=map-stage]').waitFor({ timeout: 15000 });
+  await page.locator('[data-test=map-add-character]').first().click();
+  await page.locator('[data-test=map-token]').first().waitFor({ timeout: 15000 });
+  await page.locator('[data-test=map-monster-search]').fill('goblin');
+  await page.locator('[data-test=map-monster-result]', { hasText: /^Goblin\b/ }).first().click();
+  await page.locator('[data-test=map-token][data-label=Goblin]').waitFor({ timeout: 15000 });
+  const hero = page.locator('[data-test=map-token]').first();
+  const box = await hero.boundingBox();
+  await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+  await page.mouse.down();
+  await page.waitForTimeout(300);
+  await page.mouse.move(box.x + box.width / 2 + 70, box.y + box.height / 2, { steps: 5 });
+  await page.mouse.move(box.x + box.width / 2 + 140, box.y + box.height / 2, { steps: 5 });
+  await page.mouse.up();
+  await page.waitForTimeout(800);
+  await page.locator('[data-test=map-shown]').check();
+  await page.locator('[data-test=map-save]').click();
+  await page.waitForTimeout(1000);
+  const mapUi = {
+    name: await page.locator('[data-test=map-name]').inputValue(),
+    tokens: await page.locator('[data-test=map-token]').count(),
+    heroLeft: await hero.evaluate((el) => el.style.left),
+    shown: await page.locator('[data-test=map-shown]').isChecked()
+  };
+  await shot(page, 'campaign-map', 'main');
+  results.push(`INFO map: ${JSON.stringify(mapUi)}`);
+  if (mapUi.name !== 'cripta' || mapUi.tokens !== 2 || mapUi.heroLeft !== '140px' || !mapUi.shown) throw new Error(`unexpected map: ${JSON.stringify(mapUi)}`);
+  ok('virtual tabletop: a map from a picture with its grid, the character and a goblin as tokens, the character dragged two cells, the map shown to the players');
   // From the sheet, the owner takes the character out of the campaign
   await page.goto(sheetUrl);
   await page.locator('[data-test=sheet-campaign]').click();
