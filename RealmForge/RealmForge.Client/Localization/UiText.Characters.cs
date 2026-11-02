@@ -960,6 +960,24 @@ namespace RealmForge.Client.Localization
 		public static string BtnDrink(LanguageCode lang) => T(lang, "Bevi", "Drink");
 		public static string NeedsAttunement(LanguageCode lang) => T(lang, "serve la sintonia", "needs attunement");
 		public static string NeedsEquip(LanguageCode lang) => T(lang, "funziona se equipaggiato", "works when equipped");
+
+		//	Why an item cannot be equipped next to what the character wears and holds
+		public static string EquipBlocked(Shared.Characters.EquipmentRules.Problem problem, string item, string other, LanguageCode lang) => problem switch
+		{
+			Shared.Characters.EquipmentRules.Problem.SecondArmor => T(lang,
+				$"Non puoi indossare «{item}»: hai già addosso «{other}». Si indossa una sola armatura alla volta: togli prima quella.",
+				$"You cannot wear “{item}”: you already wear “{other}”. Only one armor at a time: take that off first."),
+			Shared.Characters.EquipmentRules.Problem.SecondShield => T(lang,
+				$"Non puoi imbracciare «{item}»: hai già «{other}». Si usa un solo scudo alla volta.",
+				$"You cannot hold “{item}”: you already hold “{other}”. Only one shield at a time."),
+			Shared.Characters.EquipmentRules.Problem.HandsFull => T(lang,
+				$"Non hai mani libere per «{item}»: le mani sono occupate da {other}. Un'arma a due mani le occupa entrambe, un'arma a una mano o uno scudo una sola: rimetti nello zaino qualcosa prima.",
+				$"You have no free hand for “{item}”: your hands hold {other}. A two-handed weapon takes both hands, a one-handed weapon or a shield one: put something back in the backpack first."),
+			Shared.Characters.EquipmentRules.Problem.NotLight => T(lang,
+				$"Non puoi impugnare «{item}» nell'altra mano insieme a «{other}»: per combattere con due armi entrambe devono essere leggere (con il talento Combattente a Due Armi basta che siano a una mano).",
+				$"You cannot hold “{item}” in your other hand with “{other}”: to fight with two weapons both must be Light (with the Dual Wielder feat any one-handed weapons will do)."),
+			_ => string.Empty
+		};
 		public static string MagicNewTitle(LanguageCode lang) => T(lang, "Nuovo oggetto magico", "New magic item");
 		public static string MagicEditTitle(string name, LanguageCode lang) => T(lang, $"Proprietà magiche: {name}", $"Magic properties: {name}");
 		public static string MagicTemplate(LanguageCode lang) => T(lang, "Oggetto del manuale", "Item from the rules");

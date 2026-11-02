@@ -1084,6 +1084,18 @@ try {
       await page.locator('[data-test=sheet-item]', { hasText: 'Anello di Protezione' }).locator('[data-test=sheet-item-attune]').click();
       tabs.ringAc = (await page.locator('[data-test=sheet-ac]').innerText()).trim();
       tabs.attunement = (await page.locator('[data-test=sheet-attunement]').innerText()).trim();
+      // Two hands: with a greatsword in hand the shield does not fit, and the sheet says why
+      while (await page.locator('[data-test=sheet-item-equip].on').count() > 0) await page.locator('[data-test=sheet-item-equip].on').first().click();
+      const addItem = async (name) => {
+        await page.locator('[data-test=sheet-item-search]').fill(name);
+        await page.locator('[data-test=sheet-item-result]', { hasText: new RegExp(`^${name} ·`) }).first().click();
+      };
+      await addItem('Spadone');
+      await addItem('Scudo');
+      await page.locator('[data-test=sheet-item]', { hasText: /^Spadone/ }).locator('[data-test=sheet-item-equip]').click();
+      await page.locator('[data-test=sheet-item]', { hasText: /^Scudo/ }).locator('[data-test=sheet-item-equip]').click();
+      tabs.hands = (await page.locator('[data-test=sheet-equip-error]').innerText({ timeout: 5000 })).replace(/\s+/g, ' ').trim();
+      tabs.shieldOn = await page.locator('[data-test=sheet-item]', { hasText: /^Scudo/ }).locator('[data-test=sheet-item-equip].on').count();
     }
   }
   // Sharing the character: the dialog adds people by e-mail and says when no account has that address
@@ -1447,6 +1459,8 @@ try {
   if (!/cambiare tutti/.test(tabs.changes) || tabs.spellbook !== 'written') throw new Error(`spell changes after a long rest: "${tabs.changes}" spellbook=${tabs.spellbook}`);
   if (Number(tabs.ringAc) !== Number(sheetAc) + 1 || !/1\/3/.test(tabs.attunement)) throw new Error(`Ring of Protection: AC ${tabs.ringAc} (was ${sheetAc}), ${tabs.attunement}`);
   ok('magic items: a Ring of Protection worn and attuned adds 1 to AC (attunement 1/3); spells: the long rest opens the changes, the spellbook writes a free spell');
+  if (!/mani libere/.test(tabs.hands ?? '') || !/Spadone/.test(tabs.hands ?? '') || tabs.shieldOn !== 0) throw new Error(`two hands: "${tabs.hands}" shield on=${tabs.shieldOn}`);
+  ok('equipment: with a greatsword in hand the shield is refused, and the sheet explains the hands');
   if (!pdfHead.startsWith('%PDF') || pdfSize < 2000) throw new Error('the PDF download is not a PDF');
   if (!/Mago 1/.test(classes) || !/Guerriero 1/.test(classes) || Number(levelUpHp) <= Number(sheetHp)) throw new Error('the level up into fighter was not saved');
   if (!/Mago 1 \/ Guerriero 1/.test(characterCard)) throw new Error(`the list does not show the classes: ${characterCard}`);
