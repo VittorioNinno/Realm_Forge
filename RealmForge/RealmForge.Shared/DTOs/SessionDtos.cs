@@ -54,7 +54,10 @@ namespace RealmForge.Shared.DTOs
 		bool Hidden,
 		bool IsMine,
 		DateTimeOffset CreatedAt,
-		bool Removed = false);
+		bool Removed = false,
+
+		//	Made by a master or co-master of the table (the "Master" filter)
+		bool ByMaster = false);
 
 	///	<summary>
 	///	A new roll. With Expression and no Dice the server rolls it (the shared roller of the campaign page); a roll made on

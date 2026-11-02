@@ -190,6 +190,20 @@ namespace RealmForge.Client.Services
 			}
 		}
 
+		public async Task<CampaignRollDto?> RevealRollAsync(Guid id, Guid rollId)
+		{
+			try
+			{
+				var response = await _http.PostAsync($"api/campaigns/{id}/rolls/{rollId}/reveal", null);
+				return response.IsSuccessStatusCode ? await response.Content.ReadFromJsonAsync<CampaignRollDto>() : null;
+			}
+			catch (Exception ex)
+			{
+				_logger.LogError(ex, "Revealing roll {RollId} failed", rollId);
+				return null;
+			}
+		}
+
 		public Task<CampaignResult> ClearRollsAsync(Guid id) =>
 			SendAsync(() => _http.DeleteAsync($"api/campaigns/{id}/rolls"), "clear rolls");
 	}

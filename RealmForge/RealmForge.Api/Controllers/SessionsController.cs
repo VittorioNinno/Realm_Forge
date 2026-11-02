@@ -213,7 +213,9 @@ namespace RealmForge.Api.Controllers
 				query = query.Where(r => r.CreatedAt > utc);
 			}
 			var rows = await query.OrderByDescending(r => r.CreatedAt).Take(100).ToListAsync();
-			return Ok(rows.Select(ToDto).ToList());
+			var masters = (await _context.CampaignMembers.AsNoTracking().Where(m => m.CampaignId == campaignId).ToListAsync())
+				.Where(m => CampaignRules.RunsTheTable(m.Role)).Select(m => m.UserId).ToHashSet();
+			return Ok(rows.Select(r => ToDto(r, masters.Contains(r.UserId))).ToList());
 		}
 
 		//	POST: api/campaigns/{campaignId}/rolls
@@ -317,7 +319,31 @@ namespace RealmForge.Api.Controllers
 				await _context.SaveChangesAsync();
 			}
 
-			return Ok(ToDto(roll));
+			return Ok(ToDto(roll, CampaignRules.RunsTheTable(role)));
+		}
+
+		//	POST: api/campaigns/{campaignId}/rolls/{rollId}/reveal — a master shows a roll made behind the screen to the
+		//	table: it comes back at the top of the log, for everyone
+		[HttpPost("{rollId:guid}/reveal")]
+		public async Task<ActionResult<CampaignRollDto>> RevealRoll(Guid campaignId, Guid rollId)
+		{
+			if (await CampaignAccess.RoleAsync(_context, campaignId, UserId) is not { } role)
+			{
+				return NotFound();
+			}
+			if (!SessionRules.CanRollHidden(role))
+			{
+				return Forbid();
+			}
+			var roll = await _context.CampaignRolls.FirstOrDefaultAsync(r => r.Id == rollId && r.CampaignId == campaignId);
+			if (roll is null)
+			{
+				return NotFound();
+			}
+			roll.Hidden = false;
+			roll.CreatedAt = DateTimeOffset.UtcNow;
+			await _context.SaveChangesAsync();
+			return Ok(ToDto(roll, true));
 		}
 
 		//	DELETE: api/campaigns/{campaignId}/rolls — the master clears the log
@@ -336,9 +362,9 @@ namespace RealmForge.Api.Controllers
 			return NoContent();
 		}
 
-		private CampaignRollDto ToDto(CampaignRoll r) =>
+		private CampaignRollDto ToDto(CampaignRoll r, bool byMaster) =>
 			new(r.Id, r.Roller, r.Color, r.CharacterId is not null, r.Label, r.Expression, Read(r.Dice), r.Modifier, r.Total,
-				r.Note, r.Hidden, r.UserId == UserId, r.CreatedAt, string.IsNullOrEmpty(r.UserId));
+				r.Note, r.Hidden, r.UserId == UserId, r.CreatedAt, string.IsNullOrEmpty(r.UserId), byMaster);
 
 		private static List<RollDieDto> Read(string json)
 		{
