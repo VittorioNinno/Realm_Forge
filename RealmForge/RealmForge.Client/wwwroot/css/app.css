@@ -8608,10 +8608,20 @@ textarea.rf-form-control {
     color: var(--rf-orange-primary);
 }
 
-/* ===== NPCs: list and sheet =====
-   Cards like the characters' (orange left edge, stats as pills, actions at the bottom) with the avatar, the challenge
-   as a square, the roleplay hook and a footer with the campaign or the archetype */
-.rf-npc-filters {
+/* ===== NPCs: registry and dossier =====
+   Control deck (libraries, search, campaign, challenge, edition; the function at the table), dossier cards like the
+   characters' (orange edge for the account's NPCs, amethyst for the community's), the table hook, the context bar */
+.rf-npc-improvise {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+
+    .rf-npc-improvise .rf-icon {
+        color: var(--rf-orange-primary);
+    }
+
+.rf-npc-deck {
     display: flex;
     flex-direction: column;
     gap: 16px;
@@ -8621,27 +8631,138 @@ textarea.rf-form-control {
     border: 1px solid var(--rf-border-light);
 }
 
-.rf-npc-filterbar {
+.rf-npc-deck-top {
     display: flex;
     flex-wrap: wrap;
     justify-content: space-between;
     align-items: center;
+    gap: 16px;
+}
+
+.rf-npc-libraries {
+    display: inline-flex;
+    flex-wrap: wrap;
     gap: 8px;
+    padding: 4px;
+    border-radius: 8px;
+    border: 1px solid var(--rf-border-subtle);
+    background-color: var(--rf-bg-main);
+}
+
+.rf-npc-library {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    min-height: 32px;
+    padding: 0 16px;
+    border: none;
+    border-radius: 4px;
+    background: none;
+    color: var(--rf-text-muted);
+    font-size: .8rem;
+    font-weight: 600;
+}
+
+    .rf-npc-library:hover {
+        color: var(--rf-text-primary);
+    }
+
+    .rf-npc-library.active {
+        color: var(--rf-text-primary);
+        background-color: var(--rf-bg-card);
+        box-shadow: 0 1px 4px rgba(0, 0, 0, .4);
+    }
+
+.rf-npc-library-num {
+    min-width: 24px;
+    padding: 0 8px;
+    border-radius: 8px;
+    background-color: var(--rf-border-subtle);
+    color: var(--rf-text-secondary);
+    font-size: .7rem;
+    font-weight: 700;
+    text-align: center;
+}
+
+    .rf-npc-library-num.mine {
+        background-color: rgba(255, 140, 0, .2);
+        color: #ffb74d;
+    }
+
+    .rf-npc-library-num.community {
+        background-color: rgba(171, 71, 188, .2);
+        color: #ce93d8;
+    }
+
+.rf-npc-deck-search {
+    display: flex;
+    flex: 1 1 480px;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 8px;
+}
+
+.rf-npc-search {
+    display: flex;
+    flex: 1 1 240px;
+    align-items: center;
+    gap: 8px;
+    max-width: 360px;
+    padding: 0 16px;
+    border-radius: 8px;
+    border: 1px solid var(--rf-border-light);
+    background-color: var(--rf-bg-card);
+    color: var(--rf-text-muted);
+}
+
+    .rf-npc-search:focus-within {
+        border-color: var(--rf-orange-primary);
+    }
+
+    .rf-npc-search input {
+        width: 100%;
+        min-height: 40px;
+        border: none;
+        outline: none;
+        background: none;
+        color: var(--rf-text-primary);
+        font-size: .85rem;
+    }
+
+.rf-npc-deck-select {
+    flex: 0 1 200px;
+    min-width: 160px;
+}
+
+.rf-npc-deck-bottom {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px 16px;
     padding-top: 16px;
     border-top: 1px solid var(--rf-border-subtle);
 }
 
-.rf-npc-chips {
+.rf-npc-functions {
     display: flex;
     flex-wrap: wrap;
     align-items: center;
     gap: 8px;
 }
 
-.rf-npc-chip {
+.rf-npc-deck-label {
+    font-size: .7rem;
+    font-weight: 800;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+    color: var(--rf-orange-primary);
+}
+
+.rf-npc-fn {
     min-height: 32px;
     padding: 0 16px;
-    border-radius: 8px;
+    border-radius: 16px;
     border: 1px solid var(--rf-border-light);
     background-color: var(--rf-bg-card);
     color: var(--rf-text-secondary);
@@ -8649,28 +8770,24 @@ textarea.rf-form-control {
     font-weight: 600;
 }
 
-    .rf-npc-chip:hover {
+    .rf-npc-fn:hover {
         color: var(--rf-text-primary);
         border-color: var(--rf-text-muted);
     }
 
-    .rf-npc-chip.active {
+    .rf-npc-fn.active {
         color: #ffb74d;
         border-color: var(--rf-orange-primary);
         background-color: rgba(255, 140, 0, .14);
     }
 
-.rf-npc-chip-divider {
-    width: 1px;
-    height: 16px;
-    margin: 0 8px;
-    background-color: var(--rf-border-light);
-}
-
 .rf-npc-card.mine {
     border-color: rgba(255, 140, 0, .55);
     border-left-color: var(--rf-orange-primary);
-    box-shadow: 0 0 24px rgba(255, 140, 0, .08);
+}
+
+.rf-npc-card.community {
+    border-left-color: #ab47bc;
 }
 
 .rf-npc-body {
@@ -8687,14 +8804,14 @@ textarea.rf-form-control {
 
 .rf-npc-top {
     display: flex;
-    align-items: center;
+    align-items: flex-start;
     gap: 16px;
 }
 
 .rf-npc-avatar {
-    flex: 0 0 56px;
-    width: 56px;
-    height: 56px;
+    flex: 0 0 64px;
+    width: 64px;
+    height: 64px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -8704,10 +8821,6 @@ textarea.rf-form-control {
     background-color: var(--rf-bg-main);
     color: var(--rf-orange-primary);
 }
-
-    .rf-npc-avatar.empty {
-        color: var(--rf-text-muted);
-    }
 
     .rf-npc-avatar.shared {
         color: #ce93d8;
@@ -8724,15 +8837,27 @@ textarea.rf-form-control {
         height: 24px;
     }
 
+.rf-npc-initials {
+    font-family: var(--rf-font-display);
+    font-size: 1.25rem;
+    font-weight: 700;
+    letter-spacing: .04em;
+}
+
 .rf-npc-avatar-lg {
-    flex: 0 0 128px;
-    width: 128px;
-    height: 128px;
+    flex: 0 0 96px;
+    width: 96px;
+    height: 96px;
+    border-radius: 16px;
 }
 
     .rf-npc-avatar-lg .rf-icon {
         width: 48px;
         height: 48px;
+    }
+
+    .rf-npc-avatar-lg .rf-npc-initials {
+        font-size: 2rem;
     }
 
 .rf-npc-head {
@@ -8785,23 +8910,81 @@ textarea.rf-form-control {
     letter-spacing: .04em;
 }
 
-.rf-npc-excerpt {
-    flex: 1;
-    margin: 0;
-    font-size: .85rem;
-    line-height: 1.5;
-    color: var(--rf-text-secondary);
+/* Attitude: hostile in red, indifferent in amber, friendly in green */
+.rf-npc-attitude {
+    display: inline-flex;
+    align-items: center;
+    min-height: 24px;
+    padding: 0 8px;
+    border-radius: 4px;
+    font-size: .75rem;
+    font-weight: 700;
 }
 
-.rf-npc-foot {
+    .rf-npc-attitude.hostile {
+        color: #ff6b6b;
+        background-color: rgba(220, 53, 69, .12);
+        border: 1px solid rgba(220, 53, 69, .4);
+    }
+
+    .rf-npc-attitude.indifferent {
+        color: #fde047;
+        background-color: rgba(234, 179, 8, .12);
+        border: 1px solid rgba(234, 179, 8, .35);
+    }
+
+    .rf-npc-attitude.friendly {
+        color: #34d399;
+        background-color: rgba(16, 185, 129, .12);
+        border: 1px solid rgba(16, 185, 129, .35);
+    }
+
+.rf-npc-cue {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    gap: 8px;
+    padding: 8px 16px;
+    border-radius: 8px;
+    border: 1px solid var(--rf-border-subtle);
+    background-color: var(--rf-bg-card);
+}
+
+.rf-npc-cue-label {
+    font-size: .65rem;
+    font-weight: 800;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+    color: var(--rf-text-muted);
+}
+
+.rf-npc-cue-text {
+    margin: 0;
+    font-size: .85rem;
+    font-style: italic;
+    line-height: 1.5;
+    color: var(--rf-text-primary);
+}
+
+    .rf-npc-cue-text.empty {
+        color: var(--rf-text-muted);
+    }
+
+.rf-npc-context {
     display: flex;
     justify-content: space-between;
     align-items: center;
     gap: 8px;
-    padding-top: 8px;
+    min-height: 40px;
+    padding: 8px 16px;
     border-top: 1px solid var(--rf-border-subtle);
+    background-color: var(--rf-bg-card);
     font-size: .8rem;
+}
+
+.rf-npc-location {
     color: var(--rf-text-muted);
+    font-size: .8rem;
 }
 
 .rf-npc-tag {
@@ -8818,61 +9001,28 @@ textarea.rf-form-control {
     text-transform: uppercase;
 }
 
+/* Three actions in a narrow card: the label may wrap rather than be cut */
+.rf-npc-card .rf-pc-action {
+    gap: 8px;
+    padding: 8px;
+    font-size: .7rem;
+    white-space: normal;
+    text-align: center;
+}
+
 .rf-pc-action.rf-npc-action-forge {
     color: var(--rf-orange-primary);
 }
 
-/* Last card of the grid: a new NPC */
-.rf-npc-create {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
-    min-height: 240px;
-    padding: 24px 16px;
-    border-radius: 8px;
-    border: 1px dashed var(--rf-border-light);
-    background-color: var(--rf-bg-main);
-    text-align: center;
-    font-size: .85rem;
-    color: var(--rf-text-muted);
-}
-
-.rf-npc-create-plus {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 48px;
-    height: 48px;
-    border-radius: 50%;
-    border: 1px solid var(--rf-orange-primary);
-    color: var(--rf-orange-primary);
-}
-
-    .rf-npc-create-plus .rf-icon {
-        width: 24px;
-        height: 24px;
-    }
-
-.rf-npc-create-title {
-    margin: 0;
-    font-size: .9rem;
-    font-weight: 800;
-    letter-spacing: .06em;
-    text-transform: uppercase;
-    color: var(--rf-text-primary);
-}
-
-/* No NPC of the account yet */
+/* The account has no NPC yet */
 .rf-npc-empty {
     display: grid;
-    grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
+    grid-template-columns: minmax(0, 11fr) minmax(0, 9fr);
+    align-items: center;
     gap: 24px;
     padding: 24px;
     border-radius: 8px;
     border: 1px solid var(--rf-border-light);
-    border-left: 4px solid var(--rf-orange-primary);
     background-color: var(--rf-bg-surface);
 }
 
@@ -8881,6 +9031,7 @@ textarea.rf-form-control {
     flex-direction: column;
     gap: 8px;
     font-size: .9rem;
+    line-height: 1.55;
     color: var(--rf-text-secondary);
 }
 
@@ -8899,42 +9050,61 @@ textarea.rf-form-control {
     color: var(--rf-text-primary);
 }
 
-.rf-npc-starters {
+.rf-npc-quick {
     display: flex;
     flex-direction: column;
     gap: 8px;
+    padding: 16px;
+    border-radius: 8px;
+    border: 1px solid var(--rf-border-subtle);
+    background-color: var(--rf-bg-card);
 }
 
-.rf-npc-starter {
+.rf-npc-quick-row {
     display: flex;
-    flex-direction: column;
-    gap: 8px;
+    justify-content: space-between;
+    align-items: center;
+    gap: 16px;
     padding: 8px 16px;
     border-radius: 8px;
-    border: 1px solid var(--rf-border-light);
+    border: 1px solid var(--rf-border-subtle);
     border-left: 3px solid var(--rf-orange-primary);
-    background-color: var(--rf-bg-card);
-    font-size: .85rem;
-    color: var(--rf-text-primary);
+    background-color: var(--rf-bg-main);
 }
 
-.rf-npc-starter-meta {
+.rf-npc-quick-info {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    min-width: 0;
+}
+
+    .rf-npc-quick-info strong {
+        font-size: .85rem;
+        color: var(--rf-text-primary);
+    }
+
+    .rf-npc-quick-info span {
+        font-size: .75rem;
+        color: var(--rf-text-muted);
+    }
+
+.rf-npc-quick-btn {
+    flex: 0 0 auto;
+    min-height: 32px;
+    padding: 0 8px;
+    border-radius: 4px;
+    border: 1px solid rgba(255, 140, 0, .35);
+    background-color: rgba(255, 140, 0, .12);
+    color: #ffb74d;
     font-size: .75rem;
-    color: var(--rf-text-muted);
-}
-
-.rf-npc-starter-btn {
-    align-self: flex-start;
-    padding: 0;
-    border: none;
-    background: none;
-    color: var(--rf-orange-primary);
-    font-size: .8rem;
     font-weight: 700;
+    white-space: nowrap;
 }
 
-    .rf-npc-starter-btn:hover {
-        text-decoration: underline;
+    .rf-npc-quick-btn:hover {
+        background-color: rgba(255, 140, 0, .22);
+        color: var(--rf-text-primary);
     }
 
 @media (max-width: 991.98px) {
@@ -8943,92 +9113,731 @@ textarea.rf-form-control {
     }
 }
 
-/* Sheet */
-.rf-npc-back {
-    display: inline-flex;
+/* NPC sheet: one column like the character sheet; identity card, then the dossier and the combat views */
+.rf-npc-sheet {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    max-width: 920px;
+    margin: 0 auto;
+    padding: 24px 0 64px;
+}
+
+.rf-npc-topbar {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
     align-items: center;
-    gap: 8px;
-    margin-bottom: 16px;
+    gap: 8px 16px;
+}
+
+.rf-npc-back {
     font-size: .8rem;
     font-weight: 600;
-    letter-spacing: .06em;
-    text-transform: uppercase;
+    color: var(--rf-text-muted);
     text-decoration: none;
 }
 
-.rf-npc-hero {
+    .rf-npc-back:hover {
+        color: var(--rf-orange-primary);
+    }
+
+.rf-npc-topbar-actions {
     display: flex;
     flex-wrap: wrap;
-    align-items: flex-start;
-    gap: 24px;
-    padding: 24px;
+    align-items: center;
+    gap: 8px;
+}
+
+.rf-npc-top-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    min-height: 32px;
+    padding: 0 8px;
+    border: none;
+    background: none;
+    color: var(--rf-text-secondary);
+    font-size: .8rem;
+}
+
+    .rf-npc-top-btn:hover {
+        color: var(--rf-text-primary);
+    }
+
+    .rf-npc-top-btn.danger:hover {
+        color: #ff6b6b;
+    }
+
+.rf-npc-campaign-menu {
+    position: relative;
+}
+
+.rf-npc-campaign-list {
+    position: absolute;
+    top: 100%;
+    right: 0;
+    z-index: 20;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    min-width: 256px;
+    padding: 8px;
     border-radius: 8px;
+    border: 1px solid var(--rf-border-light);
+    background-color: var(--rf-bg-surface);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, .5);
+}
+
+.rf-npc-campaign-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+    min-height: 40px;
+    padding: 0 8px;
     border: 1px solid var(--rf-border-subtle);
-    border-left: 4px solid var(--rf-orange-primary);
+    border-radius: 4px;
+    background-color: var(--rf-bg-card);
+    color: var(--rf-text-primary);
+    font-size: .85rem;
+    text-align: left;
+}
+
+    .rf-npc-campaign-item:hover:not(:disabled) {
+        border-color: var(--rf-orange-primary);
+    }
+
+    .rf-npc-campaign-item:disabled {
+        opacity: 1;
+        color: var(--rf-text-muted);
+    }
+
+.rf-npc-campaign-done {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: .75rem;
+    color: #34d399;
+}
+
+.rf-npc-identity {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    padding: 24px;
+    border-radius: 16px;
+    border: 1px solid var(--rf-border-subtle);
     background-color: var(--rf-bg-surface);
 }
 
-    .rf-npc-hero.mine {
-        border-color: rgba(255, 140, 0, .55);
-        border-left-color: var(--rf-orange-primary);
-    }
+.rf-npc-identity-head {
+    display: flex;
+    align-items: center;
+    gap: 24px;
+}
 
-.rf-npc-hero-info {
-    flex: 1 1 320px;
+.rf-npc-identity-main {
+    flex: 1;
     min-width: 0;
     display: flex;
     flex-direction: column;
     gap: 8px;
 }
 
+.rf-npc-identity-title {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 8px 16px;
+}
+
 .rf-npc-hero-name {
-    margin: 0;
+    margin: 0 0 8px;
     font-family: var(--rf-font-display);
-    font-size: 2rem;
+    font-size: 1.75rem;
     font-weight: 700;
     color: var(--rf-orange-primary);
     overflow-wrap: anywhere;
 }
 
-.rf-npc-hero-actions {
+.rf-npc-identity-pills,
+.rf-npc-identity-badges,
+.rf-npc-pills {
     display: flex;
     flex-wrap: wrap;
+    align-items: center;
     gap: 8px;
 }
 
-.rf-npc-panel {
+.rf-npc-pill {
+    display: inline-flex;
+    align-items: center;
+    min-height: 32px;
+    padding: 0 16px;
+    border-radius: 16px;
+    border: 1px solid var(--rf-border-light);
+    background-color: var(--rf-bg-card);
+    font-size: .8rem;
+    font-weight: 600;
+    color: var(--rf-text-secondary);
+}
+
+    .rf-npc-pill.challenge {
+        color: #ffb74d;
+        border-color: rgba(255, 140, 0, .45);
+        background-color: rgba(255, 140, 0, .1);
+    }
+
+    .rf-npc-pill.hostile {
+        color: #ff6b6b;
+        border-color: rgba(220, 53, 69, .45);
+        background-color: rgba(220, 53, 69, .08);
+    }
+
+    .rf-npc-pill.indifferent {
+        color: #fde047;
+        border-color: rgba(234, 179, 8, .4);
+        background-color: rgba(234, 179, 8, .08);
+    }
+
+    .rf-npc-pill.friendly {
+        color: #34d399;
+        border-color: rgba(16, 185, 129, .4);
+        background-color: rgba(16, 185, 129, .08);
+    }
+
+.rf-npc-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    min-height: 24px;
+    padding: 0 8px;
+    border-radius: 4px;
+    border: 1px solid var(--rf-border-subtle);
+    background-color: var(--rf-bg-card);
+    font-size: .8rem;
+    color: var(--rf-text-muted);
+}
+
+    .rf-npc-chip a {
+        font-weight: 700;
+    }
+
+.rf-npc-meta-grid {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 16px;
     padding: 16px;
     border-radius: 8px;
     border: 1px solid var(--rf-border-subtle);
-    background-color: var(--rf-bg-surface);
+    background-color: var(--rf-bg-card);
 }
 
-.rf-npc-panel-title {
-    display: flex;
-    align-items: center;
-    flex-wrap: wrap;
-    gap: 8px;
-    margin: 0 0 16px;
-    padding-bottom: 8px;
-    border-bottom: 1px solid var(--rf-orange-primary);
-    font-size: .8rem;
+    .rf-npc-meta-grid > div {
+        display: flex;
+        flex-direction: column;
+        gap: 0;
+        min-width: 0;
+    }
+
+.rf-npc-label {
+    font-size: .65rem;
+    font-weight: 700;
+    letter-spacing: .07em;
+    text-transform: uppercase;
+    color: var(--rf-text-muted);
+}
+
+.rf-npc-value {
+    font-size: .85rem;
+    font-weight: 700;
+    color: var(--rf-text-primary);
+    overflow-wrap: anywhere;
+}
+
+.rf-npc-subtitle {
+    font-size: .7rem;
     font-weight: 800;
     letter-spacing: .08em;
     text-transform: uppercase;
     color: var(--rf-orange-primary);
 }
 
-.rf-npc-panel-note {
-    margin-left: auto;
-    font-size: .7rem;
+.rf-npc-trait {
+    display: inline-flex;
+    align-items: center;
+    min-height: 32px;
+    padding: 0 16px;
+    border-radius: 16px;
+    border: 1px solid var(--rf-border-light);
+    background-color: var(--rf-bg-card);
+    font-size: .8rem;
     font-weight: 600;
-    letter-spacing: .04em;
+    color: var(--rf-text-primary);
+}
+
+.rf-npc-boxes-3 {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 16px;
+    padding-top: 16px;
+    border-top: 1px solid var(--rf-border-subtle);
+}
+
+.rf-npc-mini {
+    padding: 8px 16px;
+    border-radius: 8px;
+    border: 1px solid var(--rf-border-subtle);
+    background-color: var(--rf-bg-card);
+}
+
+    .rf-npc-mini p {
+        margin: 8px 0 0;
+        font-size: .8rem;
+        line-height: 1.4;
+        color: var(--rf-text-secondary);
+    }
+
+    .rf-npc-mini strong {
+        color: #ffb74d;
+    }
+
+/* The two views */
+.rf-npc-tabs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    border-bottom: 2px solid var(--rf-orange-primary);
+}
+
+.rf-npc-tab {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    min-height: 40px;
+    padding: 0 24px;
+    border: 1px solid var(--rf-border-subtle);
+    border-bottom: none;
+    border-radius: 8px 8px 0 0;
+    background-color: var(--rf-bg-surface);
+    color: var(--rf-text-muted);
+    font-size: .75rem;
+    font-weight: 800;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+}
+
+    .rf-npc-tab:hover {
+        color: var(--rf-text-primary);
+    }
+
+    .rf-npc-tab.active {
+        border-color: var(--rf-orange-primary);
+        background-color: var(--rf-orange-primary);
+        color: #0a0a0a;
+    }
+
+.rf-npc-tab-summary {
+    padding: 0 8px;
+    border-radius: 8px;
+    background-color: rgba(255, 255, 255, .08);
+    font-size: .7rem;
+    letter-spacing: 0;
     text-transform: none;
+}
+
+.rf-npc-tab.active .rf-npc-tab-summary {
+    background-color: rgba(0, 0, 0, .2);
+}
+
+.rf-npc-grid-2 {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 16px;
+}
+
+.rf-npc-box {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    padding: 16px 24px;
+    border-radius: 16px;
+    border: 1px solid var(--rf-border-subtle);
+    background-color: var(--rf-bg-surface);
+}
+
+    .rf-npc-box.secret {
+        border-left: 4px solid var(--rf-orange-primary);
+        background-color: #13110e;
+    }
+
+.rf-npc-box-head {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+}
+
+.rf-npc-prose {
+    font-size: .9rem;
+    line-height: 1.55;
+    color: var(--rf-text-secondary);
+}
+
+    .rf-npc-prose p:last-child,
+    .rf-npc-inline p:last-child {
+        margin-bottom: 0;
+    }
+
+.rf-npc-dc {
+    padding: 0 8px;
+    min-height: 24px;
+    display: inline-flex;
+    align-items: center;
+    border-radius: 4px;
+    border: 1px solid var(--rf-border-light);
+    background-color: var(--rf-bg-card);
+    font-size: .75rem;
+    font-weight: 700;
+    color: #ffb74d;
+}
+
+.rf-npc-social {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 16px;
+}
+
+.rf-npc-social-card {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 8px 16px;
+    border-radius: 8px;
+    border: 1px solid var(--rf-border-subtle);
+    background-color: var(--rf-bg-card);
+}
+
+    .rf-npc-social-card.pos {
+        border-top: 2px solid #10b981;
+    }
+
+    .rf-npc-social-card.neu {
+        border-top: 2px solid var(--rf-orange-primary);
+    }
+
+    .rf-npc-social-card.neg {
+        border-top: 2px solid #ef4444;
+    }
+
+/* Combat view */
+.rf-npc-vitals {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 8px;
+}
+
+.rf-npc-vital {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0;
+    padding: 16px 8px;
+    border-radius: 8px;
+    border: 1px solid var(--rf-border-subtle);
+    background-color: var(--rf-bg-surface);
+    text-align: center;
+}
+
+    .rf-npc-vital strong {
+        font-size: 1.25rem;
+        font-weight: 800;
+        color: var(--rf-text-primary);
+    }
+
+.rf-npc-hp-top {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: center;
+    gap: 16px;
+}
+
+.rf-npc-heart {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    border: 1px solid rgba(239, 68, 68, .4);
+    background-color: rgba(239, 68, 68, .12);
+    color: #ef4444;
+}
+
+.rf-npc-hp-numbers strong {
+    font-size: 1.6rem;
+    font-weight: 800;
+    color: var(--rf-text-primary);
+}
+
+.rf-npc-hp-numbers span {
     color: var(--rf-text-muted);
 }
 
-.rf-npc-secrets {
-    border-style: dashed;
+.rf-npc-hp-numbers .rf-npc-hp-temp {
+    color: #81d4fa;
+    font-weight: 700;
+}
+
+.rf-npc-hp-controls {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+}
+
+.rf-npc-stepper {
+    display: inline-flex;
+    overflow: hidden;
+    border-radius: 8px;
+    border: 1px solid var(--rf-border-light);
+    background-color: var(--rf-bg-card);
+}
+
+    .rf-npc-stepper button {
+        width: 32px;
+        height: 32px;
+        border: none;
+        background: none;
+        color: var(--rf-text-secondary);
+        font-weight: 700;
+    }
+
+    .rf-npc-stepper input {
+        width: 40px;
+        border: none;
+        background: none;
+        color: var(--rf-text-primary);
+        font-weight: 700;
+        text-align: center;
+        -moz-appearance: textfield;
+    }
+
+        .rf-npc-stepper input::-webkit-outer-spin-button,
+        .rf-npc-stepper input::-webkit-inner-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+
+.rf-npc-hp-btn {
+    min-height: 32px;
+    padding: 0 16px;
+    border-radius: 8px;
+    background: none;
+    font-size: .75rem;
+    font-weight: 800;
+    text-transform: uppercase;
+}
+
+    .rf-npc-hp-btn.damage {
+        border: 1px solid #ef4444;
+        color: #fca5a5;
+    }
+
+    .rf-npc-hp-btn.heal {
+        border: 1px solid #10b981;
+        color: #6ee7b7;
+    }
+
+    .rf-npc-hp-btn.temp {
+        border: 1px solid rgba(79, 195, 247, .6);
+        color: #81d4fa;
+    }
+
+.rf-npc-hp-track {
+    height: 8px;
+    overflow: hidden;
+    border-radius: 4px;
+    background-color: var(--rf-bg-card);
+}
+
+.rf-npc-hp-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #b91c1c, #ef4444);
+}
+
+.rf-npc-abilities {
+    display: grid;
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    gap: 8px;
+}
+
+.rf-npc-ability {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    padding: 16px 8px;
+    border-radius: 8px;
+    border: 1px solid var(--rf-border-subtle);
+    background-color: var(--rf-bg-surface);
+    text-align: center;
+}
+
+    .rf-npc-ability strong {
+        font-size: 1.4rem;
+        font-weight: 800;
+        color: var(--rf-text-primary);
+    }
+
+.rf-npc-ability-score {
+    padding: 0 8px;
+    border-radius: 16px;
+    border: 1px solid var(--rf-border-light);
+    font-size: .7rem;
+    color: var(--rf-text-muted);
+}
+
+.rf-npc-save {
+    font-size: .7rem;
+    color: var(--rf-text-muted);
+}
+
+    .rf-npc-save.proficient {
+        color: var(--rf-orange-primary);
+        font-weight: 700;
+    }
+
+.rf-npc-turn-title {
+    font-size: .9rem;
+    font-weight: 800;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+    color: var(--rf-text-primary);
+}
+
+.rf-npc-move {
+    padding: 0 16px;
+    min-height: 24px;
+    display: inline-flex;
+    align-items: center;
+    border-radius: 16px;
+    border: 1px solid rgba(255, 140, 0, .4);
+    background-color: rgba(255, 140, 0, .12);
+    color: #ffb74d;
+    font-size: .75rem;
+    font-weight: 800;
+    text-transform: uppercase;
+}
+
+.rf-npc-turn {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    padding: 16px;
+    border-radius: 8px;
+    border: 1px solid var(--rf-border-subtle);
+    background-color: var(--rf-bg-card);
+}
+
+.rf-npc-turn-row {
+    display: grid;
+    grid-template-columns: 96px minmax(0, 1fr);
+    align-items: center;
+    gap: 16px;
+    padding-bottom: 16px;
+    border-bottom: 1px dashed var(--rf-border-subtle);
+}
+
+    .rf-npc-turn-row:last-child {
+        padding-bottom: 0;
+        border-bottom: none;
+    }
+
+.rf-npc-turn-label {
+    font-size: .8rem;
+    font-weight: 600;
+    color: var(--rf-text-muted);
+}
+
+.rf-npc-weapons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.rf-npc-weapon {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 4px 4px 4px 16px;
+    border-radius: 8px;
+    border: 1px solid var(--rf-border-light);
+    background-color: var(--rf-bg-main);
+    font-size: .8rem;
+}
+
+.rf-npc-weapon-name {
+    font-weight: 700;
+    color: var(--rf-text-primary);
+}
+
+.rf-npc-weapon-hit,
+.rf-npc-weapon-dmg {
+    padding: 0 8px;
+    border-radius: 4px;
+    font-weight: 700;
+}
+
+.rf-npc-weapon-hit {
+    border: 1px solid rgba(255, 140, 0, .45);
+    background-color: rgba(255, 140, 0, .14);
+    color: #ffb74d;
+}
+
+.rf-npc-weapon-dmg {
+    border: 1px solid var(--rf-border-light);
+    background-color: var(--rf-bg-card);
+    color: var(--rf-text-primary);
+}
+
+.rf-npc-inline {
+    font-size: .85rem;
+    line-height: 1.45;
+    color: var(--rf-text-secondary);
+}
+
+    .rf-npc-inline strong {
+        color: var(--rf-text-primary);
+    }
+
+.rf-npc-lines {
+    font-size: .85rem;
+}
+
+@media (max-width: 767.98px) {
+    .rf-npc-meta-grid,
+    .rf-npc-vitals {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .rf-npc-abilities {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    .rf-npc-boxes-3,
+    .rf-npc-social {
+        grid-template-columns: 1fr;
+    }
+
+    .rf-npc-identity-head {
+        flex-direction: column;
+        align-items: flex-start;
+    }
 }
 
 /* Editor: portrait and archetype above the statblock */
@@ -9044,4 +9853,8 @@ textarea.rf-form-control {
 
 .rf-npc-form-archetype {
     flex: 1 1 240px;
+}
+
+.rf-npc-form-dc {
+    flex: 0 0 96px;
 }

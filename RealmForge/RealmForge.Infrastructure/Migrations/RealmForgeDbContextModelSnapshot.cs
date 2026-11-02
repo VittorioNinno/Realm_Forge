@@ -1361,6 +1361,9 @@ namespace RealmForge.Infrastructure.Migrations
                     b.Property<int>("ArmorClass")
                         .HasColumnType("integer");
 
+                    b.Property<int?>("Attitude")
+                        .HasColumnType("integer");
+
                     b.Property<string>("AuthorId")
                         .HasColumnType("text");
 
@@ -1408,6 +1411,9 @@ namespace RealmForge.Infrastructure.Migrations
                         .HasColumnType("integer");
 
                     b.Property<int>("Size")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("SocialDc")
                         .HasColumnType("integer");
 
                     b.Property<int?>("Source")
@@ -1466,6 +1472,12 @@ namespace RealmForge.Infrastructure.Migrations
                         .HasColumnType("character varying(100)")
                         .HasDefaultValue("");
 
+                    b.Property<string>("Appearance")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("text")
+                        .HasDefaultValue("");
+
                     b.Property<string>("ArmorClass")
                         .IsRequired()
                         .HasMaxLength(300)
@@ -1474,6 +1486,13 @@ namespace RealmForge.Infrastructure.Migrations
                     b.Property<string>("BonusActions")
                         .IsRequired()
                         .HasColumnType("text");
+
+                    b.Property<string>("Coins")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasDefaultValue("");
 
                     b.Property<string>("ConditionImmunities")
                         .IsRequired()
@@ -1499,6 +1518,32 @@ namespace RealmForge.Infrastructure.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
+                    b.Property<string>("Equipment")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(300)
+                        .HasColumnType("character varying(300)")
+                        .HasDefaultValue("");
+
+                    b.Property<string>("Faction")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasDefaultValue("");
+
+                    b.Property<string>("Gear")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("text")
+                        .HasDefaultValue("");
+
+                    b.Property<string>("Goal")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("text")
+                        .HasDefaultValue("");
+
                     b.Property<int>("Language")
                         .HasColumnType("integer");
 
@@ -1511,6 +1556,19 @@ namespace RealmForge.Infrastructure.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
+                    b.Property<string>("Leverage")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("text")
+                        .HasDefaultValue("");
+
+                    b.Property<string>("Location")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasDefaultValue("");
+
                     b.Property<Guid>("MonsterId")
                         .HasColumnType("uuid");
 
@@ -1520,6 +1578,12 @@ namespace RealmForge.Infrastructure.Migrations
                         .HasColumnType("character varying(150)");
 
                     b.Property<string>("Personality")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("text")
+                        .HasDefaultValue("");
+
+                    b.Property<string>("Reaction")
                         .IsRequired()
                         .ValueGeneratedOnAdd()
                         .HasColumnType("text")
@@ -1566,6 +1630,12 @@ namespace RealmForge.Infrastructure.Migrations
                         .IsRequired()
                         .HasMaxLength(300)
                         .HasColumnType("character varying(300)");
+
+                    b.Property<string>("Tactics")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("text")
+                        .HasDefaultValue("");
 
                     b.Property<string>("Traits")
                         .IsRequired()

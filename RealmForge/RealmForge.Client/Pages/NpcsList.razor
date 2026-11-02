@@ -10,59 +10,67 @@
 @inject LanguageStateService LanguageState
 @inject NavigationManager Navigation
 
-<PageTitle>RealmForge - @UiText.NpcsTitle(Lang)</PageTitle>
+<PageTitle>RealmForge - @UiText.NpcsRegistry(Lang)</PageTitle>
 
+@* The NPC registry: only the NPCs written by users (the base statblocks are monsters, an NPC is built on one of them) *@
 <div class="container-fluid px-0 py-4">
     <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4 pb-3" style="border-bottom: 2px solid var(--rf-orange-primary);">
         <div>
-            <h1 class="h3 fw-bold mb-2 rf-page-title" data-test="npc-page-title">@UiText.NpcsTitle(Lang)</h1>
+            <h1 class="h3 fw-bold mb-2 rf-page-title" data-test="npc-page-title">@UiText.NpcsRegistry(Lang)</h1>
             <p class="mb-0 small" style="color: var(--rf-text-muted); letter-spacing: 1px; text-transform: uppercase;">@UiText.NpcsSubtitle(Lang)</p>
         </div>
-        <div>
-            <ForgeAction>
-                <button class="btn btn-rf-orange text-uppercase" @onclick="OpenCreate" data-test="npc-new">@UiText.BtnNewNpc(Lang)</button>
-            </ForgeAction>
-        </div>
+        <ForgeAction>
+            <div class="d-flex flex-wrap gap-2">
+                <button type="button" class="btn btn-rf-outline rf-npc-improvise" title="@UiText.NpcImproviseHint(Lang)" disabled="@busy" @onclick="OpenRandomAsync" data-test="npc-improvise">
+                    <Icon Name="dice" /> @UiText.NpcImprovise(Lang)
+                </button>
+                <button type="button" class="btn btn-rf-orange text-uppercase" @onclick="OpenCreate" data-test="npc-new">@UiText.NpcForge(Lang)</button>
+            </div>
+        </ForgeAction>
     </div>
 
-    @* Filters: the edition reloads from the API, the rest filters the loaded list; the chips repeat the origin and add the challenge *@
-    <div class="rf-npc-filters mb-4" data-test="npc-filters">
-        <div class="row g-3">
-            <div class="col-lg-3 col-md-6">
-                <label class="rf-form-label small text-uppercase" style="letter-spacing: 0.5px;">@UiText.LabelSearchNpc(Lang)</label>
-                <input type="text" class="rf-form-control" placeholder="@UiText.PlaceholderSearchNpcs(Lang)"
-                       @bind="SearchTerm" @bind:event="oninput" data-test="npc-search" />
-            </div>
-            <div class="col-lg-3 col-md-6" data-test="npc-ruleset">
-                <label class="rf-form-label small text-uppercase" style="letter-spacing: 0.5px;">@UiText.LabelRuleset(Lang)</label>
-                <RfSelect TValue="RulesetVersion?" @bind-Value="SelectedRuleset" OnChange="LoadAsync" Options="RulesetOptions" />
-            </div>
-            <div class="col-lg-3 col-md-6" data-test="npc-origin">
-                <label class="rf-form-label small text-uppercase" style="letter-spacing: 0.5px;">@UiText.LabelOrigin(Lang)</label>
-                <RfSelect TValue="string" @bind-Value="OriginFilter" Options="OriginOptions" />
-            </div>
-            <div class="col-lg-3 col-md-6" data-test="npc-archetype">
-                <label class="rf-form-label small text-uppercase" style="letter-spacing: 0.5px;">@UiText.LabelNpcArchetype(Lang)</label>
-                <RfSelect TValue="NpcArchetype?" @bind-Value="ArchetypeFilter" Options="ArchetypeOptions" />
-            </div>
-        </div>
-        <div class="rf-npc-filterbar">
-            <div class="rf-npc-chips" data-test="npc-chips">
-                @foreach (var (key, label) in OriginChips)
+    @* Control deck: library, search, campaign, challenge, edition; the function of the NPC at the table *@
+    <section class="rf-npc-deck mb-4" data-test="npc-filters">
+        <div class="rf-npc-deck-top">
+            <div class="rf-npc-libraries" role="tablist" data-test="npc-libraries">
+                @foreach (var (key, label, count) in Libraries)
                 {
                     var current = key;
-                    <button type="button" class="rf-npc-chip @(OriginFilter == current ? "active" : null)" @onclick="() => OriginFilter = current" data-test="@($"npc-chip-{(current.Length == 0 ? "all" : current)}")">@label</button>
-                }
-                <span class="rf-npc-chip-divider" aria-hidden="true"></span>
-                @for (var b = 0; b < 3; b++)
-                {
-                    var band = b;
-                    <button type="button" class="rf-npc-chip @(BandFilter == band ? "active" : null)" @onclick="() => BandFilter = BandFilter == band ? null : band" data-test="@($"npc-band-{band}")">@UiText.NpcBand(band, Lang)</button>
+                    <button type="button" role="tab" class="rf-npc-library @(library == current ? "active" : null)" @onclick="() => library = current" data-test="@($"npc-library-{current}")">
+                        <span>@label</span>
+                        <span class="rf-npc-library-num @(current)">@count</span>
+                    </button>
                 }
             </div>
-            <span class="small" style="color: var(--rf-text-muted);" data-test="npc-count">@UiText.NpcCount(Filtered.Count, Lang)</span>
+            <div class="rf-npc-deck-search">
+                <div class="rf-npc-search">
+                    <Icon Name="search" />
+                    <input type="text" placeholder="@UiText.PlaceholderSearchNpcs(Lang)" @bind="SearchTerm" @bind:event="oninput" aria-label="@UiText.PlaceholderSearchNpcs(Lang)" data-test="npc-search" />
+                </div>
+                <div class="rf-npc-deck-select" data-test="npc-campaign">
+                    <RfSelect TValue="string" @bind-Value="CampaignFilter" Options="CampaignOptions" />
+                </div>
+                <div class="rf-npc-deck-select" data-test="npc-cr">
+                    <RfSelect TValue="int?" @bind-Value="BandFilter" Options="BandOptions" />
+                </div>
+                <div class="rf-npc-deck-select" data-test="npc-ruleset">
+                    <RfSelect TValue="RulesetVersion?" @bind-Value="SelectedRuleset" Options="RulesetOptions" />
+                </div>
+            </div>
         </div>
-    </div>
+        <div class="rf-npc-deck-bottom">
+            <div class="rf-npc-functions" data-test="npc-functions">
+                <span class="rf-npc-deck-label">@UiText.NpcFunctionLabel(Lang)</span>
+                <button type="button" class="rf-npc-fn @(ArchetypeFilter is null ? "active" : null)" @onclick="() => ArchetypeFilter = null" data-test="npc-fn-all">@UiText.NpcFunctionAll(Lang)</button>
+                @foreach (var archetype in Enum.GetValues<NpcArchetype>())
+                {
+                    var current = archetype;
+                    <button type="button" class="rf-npc-fn @(ArchetypeFilter == current ? "active" : null)" @onclick="() => ArchetypeFilter = current" data-test="@($"npc-fn-{(int)current}")">@UiText.FormatNpcArchetype(current, Lang)</button>
+                }
+            </div>
+            <span class="small" style="color: var(--rf-text-muted);" data-test="npc-count">@UiText.NpcStatus(Filtered.Count, SelectedRuleset, Lang)</span>
+        </div>
+    </section>
 
     @if (IsLoading)
     {
@@ -73,36 +81,34 @@
     }
     else
     {
-        @if (!All.Any(m => m.IsNpc && m.IsMine))
+        @if (!Npcs.Any(m => m.IsMine) && library != "community")
         {
-            @* No NPC of the account yet: what the page is for, and three base archetypes to start from *@
+            @* No NPC of the account yet: forge one, or name one built on a monster statblock *@
             <section class="rf-npc-empty mb-4" data-test="npc-empty-state">
                 <div class="rf-npc-empty-text">
                     <span class="rf-npc-empty-kicker">@UiText.NpcEmptyKicker(Lang)</span>
                     <h2 class="rf-npc-empty-title">@UiText.NpcEmptyTitle(Lang)</h2>
                     <p class="mb-0">@UiText.NpcEmptyText(Lang)</p>
-                    <div class="d-flex flex-wrap gap-2 mt-2">
-                        <ForgeAction>
-                            <button type="button" class="btn btn-rf-orange text-uppercase" @onclick="OpenCreate">@UiText.NpcEmptyNew(Lang)</button>
-                        </ForgeAction>
-                        <button type="button" class="btn btn-rf-outline text-uppercase" @onclick="ShowBase" data-test="npc-show-base">@UiText.NpcEmptyShowBase(Lang)</button>
-                    </div>
+                    <ForgeAction>
+                        <div class="d-flex flex-wrap gap-2 mt-2">
+                            <button type="button" class="btn btn-rf-orange text-uppercase" @onclick="OpenCreate" data-test="npc-empty-new">@UiText.NpcEmptyNew(Lang)</button>
+                            <button type="button" class="btn btn-rf-outline rf-npc-improvise" disabled="@busy" @onclick="OpenRandomAsync" data-test="npc-empty-random"><Icon Name="dice" /> @UiText.NpcEmptyRandom(Lang)</button>
+                        </div>
+                    </ForgeAction>
                 </div>
-                <div class="rf-npc-starters">
+                <div class="rf-npc-quick">
+                    <span class="rf-npc-deck-label">@UiText.NpcQuickLabel(Lang)</span>
                     @foreach (var (key, starter) in Starters)
                     {
                         var s = starter;
-                        <div class="rf-npc-starter" data-test="npc-starter">
-                            <div class="d-flex justify-content-between align-items-center gap-2">
+                        <div class="rf-npc-quick-row" data-test="npc-starter">
+                            <div class="rf-npc-quick-info">
                                 <strong>@UiText.NpcStarterName(key, Lang)</strong>
-                                <span class="badge badge-srd">@UiText.BadgeBase(Lang)</span>
+                                <span>@UiText.MonsterChallengeShort(Lang) @MonsterMath.FormatChallenge(s.ChallengeRating) • @UiText.MonsterArmorClassShort(Lang) @s.ArmorClass • @UiText.MonsterHitPointsShort(Lang) @s.HitPoints • @UiText.NpcStarterUse(key, Lang)</span>
                             </div>
-                            <span class="rf-npc-starter-meta">
-                                @UiText.MonsterChallengeShort(Lang) @MonsterMath.FormatChallenge(s.ChallengeRating) • @UiText.MonsterArmorClassShort(Lang) @s.ArmorClass • @UiText.MonsterHitPointsShort(Lang) @s.HitPoints • @UiText.NpcStarterUse(key, Lang)
-                            </span>
                             @if (signedIn)
                             {
-                                <button type="button" class="rf-npc-starter-btn" @onclick="() => OpenCloneAsync(s)" data-test="npc-starter-clone">@UiText.NpcStarterClone(Lang)</button>
+                                <button type="button" class="rf-npc-quick-btn" @onclick="() => OpenFromAsync(s)" data-test="npc-starter-clone">@UiText.NpcStarterClone(Lang)</button>
                             }
                         </div>
                     }
@@ -112,54 +118,55 @@
 
         @if (Filtered.Count == 0)
         {
-            <div class="p-4 mb-3 rounded text-center" style="background-color: var(--rf-bg-surface); border: 1px solid var(--rf-border-light);" data-test="npc-none">
-                <p class="mb-0" style="color: var(--rf-text-muted);">@UiText.NoNpcsFound(Lang)</p>
-            </div>
-        }
-
-        <div class="row row-cols-1 row-cols-md-2 row-cols-xl-3 g-3" data-test="npc-grid">
-            @foreach (var npc in Filtered)
+            @if (Npcs.Count > 0)
             {
-                var n = npc;
-                <div class="col">
-                    <div class="rf-pc-card rf-npc-card h-100 @(n.IsMine ? "mine" : null)" data-test="npc-card">
-                        <div class="rf-npc-body rf-card-linked">
-                            <div class="rf-npc-top">
-                                <NpcAvatar Portrait="@n.Portrait" Archetype="n.Archetype" Shared="IsShared(n)" />
-                                <div class="rf-npc-head">
-                                    <div class="rf-npc-titlebar">
-                                        <a class="rf-npc-name rf-card-link" href="@($"npcs/{n.Id}")" data-test="npc-card-name">@n.Name</a>
-                                        <div class="d-flex gap-2 flex-shrink-0 align-items-start">
-                                            <span class="badge @(n.Ruleset == RulesetVersion.Dnd5e_2024 ? "badge-edition-2024" : "badge-edition-2014")">@UiText.FormatRuleset(n.Ruleset, Lang)</span>
+                <div class="p-4 mb-3 rounded text-center" style="background-color: var(--rf-bg-surface); border: 1px solid var(--rf-border-light);" data-test="npc-none">
+                    <p class="mb-0" style="color: var(--rf-text-muted);">@UiText.NoNpcsFound(Lang)</p>
+                </div>
+            }
+        }
+        else
+        {
+            <div class="row row-cols-1 row-cols-md-2 row-cols-xl-3 g-3" data-test="npc-grid">
+                @foreach (var npc in Filtered)
+                {
+                    var n = npc;
+                    <div class="col">
+                        <article class="rf-pc-card rf-npc-card h-100 @(n.IsMine ? "mine" : "community")" data-test="npc-card">
+                            <div class="rf-npc-body rf-card-linked">
+                                <div class="rf-npc-top">
+                                    <NpcAvatar Portrait="@n.Portrait" Name="@n.Name" Shared="!n.IsMine" />
+                                    <div class="rf-npc-head">
+                                        <div class="rf-npc-titlebar">
+                                            <a class="rf-npc-name rf-card-link" href="@($"npcs/{n.Id}")" data-test="npc-card-name">@n.Name</a>
                                             <NpcOriginBadge Npc="n" />
                                         </div>
-                                    </div>
-                                    <div class="rf-pc-meta">
-                                        <span>@(string.IsNullOrWhiteSpace(n.Ancestry) ? UiText.NpcAnyAncestry(Lang) : n.Ancestry)</span>
-                                        <span class="rf-pc-dot">•</span>
-                                        <span>@UiText.FormatCreatureType(n.Type, Lang) @UiText.FormatSizeSingle(n.Size, Lang)</span>
-                                        @if (!string.IsNullOrWhiteSpace(n.Role))
-                                        {
+                                        <div class="rf-pc-meta">
+                                            <span>@UiText.MonsterChallengeShort(Lang) @MonsterMath.FormatChallenge(n.ChallengeRating)</span>
                                             <span class="rf-pc-dot">•</span>
-                                            <span class="rf-npc-role">@n.Role</span>
-                                        }
+                                            <span>@(string.IsNullOrWhiteSpace(n.Ancestry) ? UiText.FormatCreatureType(n.Type, Lang) : n.Ancestry)</span>
+                                            @if (!string.IsNullOrWhiteSpace(n.Role))
+                                            {
+                                                <span class="rf-pc-dot">•</span>
+                                                <span class="rf-npc-role">@n.Role</span>
+                                            }
+                                        </div>
+                                        <div class="rf-pc-stats">
+                                            <span class="rf-pc-stat"><span>@UiText.MonsterArmorClassShort(Lang)</span>@n.ArmorClass</span>
+                                            <span class="rf-pc-stat"><span>@UiText.MonsterHitPointsShort(Lang)</span>@n.HitPoints / @n.HitPoints</span>
+                                            @if (n.Attitude is { } attitude)
+                                            {
+                                                <span class="rf-npc-attitude @attitude.ToString().ToLowerInvariant()" data-test="npc-card-attitude">@UiText.FormatNpcAttitude(attitude, Lang)</span>
+                                            }
+                                        </div>
                                     </div>
                                 </div>
+                                <div class="rf-npc-cue">
+                                    <span class="rf-npc-cue-label">@UiText.NpcCue(Lang)</span>
+                                    <p class="rf-npc-cue-text @(string.IsNullOrWhiteSpace(n.Personality) ? "empty" : null)">@(string.IsNullOrWhiteSpace(n.Personality) ? UiText.NpcNoCue(Lang) : n.Personality)</p>
+                                </div>
                             </div>
-                            <div class="rf-pc-stats">
-                                <span class="rf-npc-cr" data-test="npc-card-cr">@UiText.MonsterChallengeShort(Lang) @MonsterMath.FormatChallenge(n.ChallengeRating)</span>
-                                <span class="rf-pc-stat"><span>@UiText.SheetArmorClass(Lang)</span>@n.ArmorClass</span>
-                                <span class="rf-pc-stat"><span>@UiText.SheetHitPoints(Lang)</span>@n.HitPoints / @n.HitPoints</span>
-                            </div>
-                            @if (!string.IsNullOrWhiteSpace(n.Personality))
-                            {
-                                <p class="rf-npc-excerpt">@n.Personality</p>
-                            }
-                            else if (!string.IsNullOrWhiteSpace(n.Subtitle))
-                            {
-                                <p class="rf-npc-excerpt fst-italic">@n.Subtitle</p>
-                            }
-                            <div class="rf-npc-foot">
+                            <div class="rf-npc-context">
                                 @if (n.CampaignId is { } campaignId && n.CampaignName is not null)
                                 {
                                     <span class="rf-pc-campaign">
@@ -167,65 +174,45 @@
                                         <a href="@($"campaigns/{campaignId}")">@n.CampaignName</a>
                                     </span>
                                 }
-                                else if (n.Archetype is { } archetype)
+                                else if (n.VariantOfName is not null && n.VariantOfId is { } originalId)
                                 {
-                                    <span class="rf-npc-tag">@UiText.FormatNpcArchetype(archetype, Lang)</span>
+                                    <span class="rf-pc-campaign">
+                                        <span class="rf-pc-campaign-label">@UiText.NpcBasedOn(Lang)</span>
+                                        <a href="@($"monsters?id={originalId}")">@n.VariantOfName</a>
+                                    </span>
                                 }
                                 else
                                 {
                                     <span></span>
                                 }
-                                <span>@UiText.NpcXp(n.Xp, Lang)</span>
-                            </div>
-                        </div>
-                        <div class="rf-pc-actions">
-                            @if (n.CanEdit && !n.IsOfficialSRD)
-                            {
-                                <button type="button" class="rf-pc-action" @onclick="() => OpenEditAsync(n)" data-test="npc-edit"><Icon Name="edit" /> @UiText.Edit(Lang)</button>
-                                <button type="button" class="rf-pc-action danger" @onclick="() => deleting = n" data-test="npc-delete"><Icon Name="trash" /> @UiText.Delete(Lang)</button>
-                            }
-                            else
-                            {
-                                <a class="rf-pc-action" href="@($"npcs/{n.Id}")" data-test="npc-open"><Icon Name="eye" /> @UiText.NpcOpenSheet(Lang)</a>
-                                @if (signedIn)
+                                @if (!string.IsNullOrWhiteSpace(n.Location))
                                 {
-                                    <button type="button" class="rf-pc-action rf-npc-action-forge" @onclick="() => OpenCloneAsync(n)" data-test="npc-clone">
-                                        @if (n.IsOfficialSRD)
-                                        {
-                                            <Icon Name="plus" /> @UiText.NpcClone(Lang)
-                                        }
-                                        else
-                                        {
-                                            <Icon Name="download" /> @UiText.NpcSave(Lang)
-                                        }
-                                    </button>
+                                    <span class="rf-npc-location" data-test="npc-card-location">@n.Location</span>
                                 }
-                            }
-                        </div>
+                            </div>
+                            <div class="rf-pc-actions">
+                                <a class="rf-pc-action" href="@($"npcs/{n.Id}")" data-test="npc-open"><Icon Name="eye" /> @UiText.NpcOpenDossier(Lang)</a>
+                                @if (n.CanEdit && n.IsMine)
+                                {
+                                    <button type="button" class="rf-pc-action" @onclick="() => OpenEditAsync(n)" data-test="npc-edit"><Icon Name="edit" /> @UiText.Edit(Lang)</button>
+                                    <button type="button" class="rf-pc-action danger" @onclick="() => deleting = n" data-test="npc-delete"><Icon Name="trash" /> @UiText.Delete(Lang)</button>
+                                }
+                                else if (signedIn)
+                                {
+                                    <button type="button" class="rf-pc-action rf-npc-action-forge" @onclick="() => OpenFromAsync(n)" data-test="npc-clone">@UiText.NpcAddToCast(Lang)</button>
+                                }
+                            </div>
+                        </article>
                     </div>
-                </div>
-            }
-            <div class="col">
-                @* Always last: a new NPC from scratch or at random *@
-                <div class="rf-npc-create h-100" data-test="npc-create-slot">
-                    <span class="rf-npc-create-plus" aria-hidden="true"><Icon Name="plus" /></span>
-                    <h3 class="rf-npc-create-title">@UiText.NpcForgeTitle(Lang)</h3>
-                    <p class="mb-0">@UiText.NpcForgeText(Lang)</p>
-                    <ForgeAction>
-                        <div class="d-flex flex-wrap justify-content-center gap-2">
-                            <button type="button" class="btn btn-rf-orange btn-sm text-uppercase" @onclick="OpenCreate" data-test="npc-create-blank">@UiText.NpcCreateBlank(Lang)</button>
-                            <button type="button" class="btn btn-rf-outline btn-sm text-uppercase" disabled="@busy" @onclick="OpenRandomAsync" data-test="npc-create-random"><Icon Name="dice" /> @UiText.NpcGenerateRandom(Lang)</button>
-                        </div>
-                    </ForgeAction>
-                </div>
+                }
             </div>
-        </div>
+        }
     }
 </div>
 
 @if (editor is not null)
 {
-    <MonsterEditor Model="editor" EditingId="editingId" Title="@editorTitle" VariantOfName="@editorVariantOf" OnSaved="SavedAsync" OnCancel="() => editor = null" />
+    <MonsterEditor Model="editor" EditingId="editingId" Title="@editorTitle" VariantOfName="@editorVariantOf" OnSaved="Saved" OnCancel="() => editor = null" />
 }
 
 @if (deleting is { } victim)
@@ -252,15 +239,17 @@
 
     private LanguageCode Lang => LanguageState.CurrentLanguage;
 
+    //	Every statblock of every edition (the edition filters here; the base NPC statblocks feed the starters and the random NPC)
     private List<MonsterResponseDto> All { get; set; } = new();
     private bool IsLoading { get; set; } = true;
     private bool signedIn;
     private bool busy;
 
     //	Filters
+    private string library = "all";
     private RulesetVersion? SelectedRuleset { get; set; }
     private string SearchTerm { get; set; } = string.Empty;
-    private string OriginFilter { get; set; } = string.Empty;
+    private string CampaignFilter { get; set; } = string.Empty;
     private NpcArchetype? ArchetypeFilter { get; set; }
     private int? BandFilter { get; set; }
 
@@ -271,58 +260,76 @@
     private string? editorVariantOf;
     private MonsterResponseDto? deleting;
 
-    private static bool IsShared(MonsterResponseDto m) => !m.IsOfficialSRD && !m.IsMine;
+    //	The NPCs written by users: the account's and the shared ones
+    private List<MonsterResponseDto> Npcs => All.Where(m => m.IsNpc && !m.IsOfficialSRD).ToList();
 
-    private static int Band(decimal challenge) => challenge switch { <= 1 => 0, <= 4 => 1, _ => 2 };
+    private static int Band(decimal challenge) => challenge switch { 0 => 0, <= 1 => 1, <= 4 => 2, _ => 3 };
 
     private int Rank(MonsterResponseDto m) => SearchRank.Of(SearchTerm, m.Name, new[] { m.Alias, m.Role });
+
+    private List<(string Key, string Label, int Count)> Libraries
+    {
+        get
+        {
+            var npcs = Npcs.Where(m => SelectedRuleset is null || m.Ruleset == SelectedRuleset).ToList();
+            return new()
+            {
+                ("all", UiText.NpcLibraryAll(Lang), npcs.Count),
+                ("mine", UiText.NpcLibraryMine(Lang), npcs.Count(m => m.IsMine)),
+                ("community", UiText.NpcLibraryCommunity(Lang), npcs.Count(m => !m.IsMine))
+            };
+        }
+    }
 
     private List<MonsterResponseDto> Filtered
     {
         get
         {
             var term = SearchTerm.Trim();
-            return All
-                .Where(m => m.IsNpc)
-                .Where(m => OriginFilter switch { "base" => m.IsOfficialSRD, "mine" => m.IsMine, "shared" => IsShared(m), _ => true })
+            bool Has(string? value) => value?.Contains(term, StringComparison.OrdinalIgnoreCase) ?? false;
+            return Npcs
+                .Where(m => library switch { "mine" => m.IsMine, "community" => !m.IsMine, _ => true })
+                .Where(m => SelectedRuleset is null || m.Ruleset == SelectedRuleset)
                 .Where(m => ArchetypeFilter is null || m.Archetype == ArchetypeFilter)
                 .Where(m => BandFilter is null || Band(m.ChallengeRating) == BandFilter)
-                .Where(m => term.Length == 0
-                            || m.Name.Contains(term, StringComparison.OrdinalIgnoreCase)
-                            || (m.Alias?.Contains(term, StringComparison.OrdinalIgnoreCase) ?? false)
-                            || m.Role.Contains(term, StringComparison.OrdinalIgnoreCase)
-                            || m.Ancestry.Contains(term, StringComparison.OrdinalIgnoreCase)
-                            || m.Subtitle.Contains(term, StringComparison.OrdinalIgnoreCase))
-                //	The named one first, then mine, the shared ones and the base ones, by name
+                .Where(m => CampaignFilter switch { "" => true, "none" => m.CampaignId is null, var id => m.CampaignId?.ToString() == id })
+                .Where(m => term.Length == 0 || Has(m.Name) || Has(m.Alias) || Has(m.Role) || Has(m.Ancestry) || Has(m.Location) || Has(m.CampaignName))
+                //	The named one first, then mine and the community's, by name
                 .OrderBy(Rank)
-                .ThenBy(m => m.IsMine ? 0 : m.IsOfficialSRD ? 2 : 1)
+                .ThenBy(m => m.IsMine ? 0 : 1)
                 .ThenBy(m => m.Name, StringComparer.CurrentCultureIgnoreCase)
                 .ToList();
         }
     }
 
-    //	Three base archetypes to clone when the account has no NPC: the commoner, the guard (CR 1/8 with the shield) and the spy
+    //	Three monster statblocks to start from: the commoner, the veteran and the spy
     private IEnumerable<(string Key, MonsterResponseDto Npc)> Starters
     {
         get
         {
             var bases = All.Where(m => m.IsNpc && m.IsOfficialSRD).ToList();
-            var commoner = bases.FirstOrDefault(m => m.Archetype == NpcArchetype.Commoner);
-            var guard = bases.Where(m => m.Archetype == NpcArchetype.Combatant && m.ChallengeRating == 0.125m).OrderByDescending(m => m.ArmorClass).FirstOrDefault();
-            var spy = bases.FirstOrDefault(m => m.Archetype == NpcArchetype.Rogue && m.ChallengeRating == 1);
+            var commoner = bases.FirstOrDefault(m => m.Archetype == NpcArchetype.Merchant && m.ChallengeRating == 0);
+            var veteran = bases.FirstOrDefault(m => m.Archetype == NpcArchetype.Ally && m.ChallengeRating == 3 && m.ArmorClass == 17);
+            var spy = bases.FirstOrDefault(m => m.Archetype == NpcArchetype.Contact && m.ChallengeRating == 1);
             if (commoner is not null) yield return ("commoner", commoner);
-            if (guard is not null) yield return ("guard", guard);
+            if (veteran is not null) yield return ("veteran", veteran);
             if (spy is not null) yield return ("spy", spy);
         }
     }
 
-    private List<(string Key, string Label)> OriginChips => new()
-    {
-        ("", UiText.NpcChipAll(Lang)),
-        ("mine", UiText.NpcChipMine(Lang)),
-        ("base", UiText.NpcChipBase(Lang)),
-        ("shared", UiText.NpcChipShared(Lang))
-    };
+    private List<RfSelect<string>.OptionItem> CampaignOptions =>
+        new List<RfSelect<string>.OptionItem> { new("", UiText.NpcCampaignAll(Lang)) }
+            .Concat(Npcs.Where(m => m.CampaignId is not null && m.CampaignName is not null)
+                .GroupBy(m => m.CampaignId!.Value)
+                .Select(g => new RfSelect<string>.OptionItem(g.Key.ToString(), g.First().CampaignName!))
+                .OrderBy(o => o.Label, StringComparer.CurrentCultureIgnoreCase))
+            .Append(new("none", UiText.NpcCampaignNone(Lang)))
+            .ToList();
+
+    private List<RfSelect<int?>.OptionItem> BandOptions =>
+        new List<RfSelect<int?>.OptionItem> { new(null, UiText.NpcChallengeAny(Lang)) }
+            .Concat(Enumerable.Range(0, 4).Select(b => new RfSelect<int?>.OptionItem(b, UiText.NpcChallengeBand(b, Lang))))
+            .ToList();
 
     private List<RfSelect<RulesetVersion?>.OptionItem> RulesetOptions => new()
     {
@@ -331,22 +338,9 @@
         new(RulesetVersion.Dnd5e_2014, UiText.FormatRuleset(RulesetVersion.Dnd5e_2014, Lang))
     };
 
-    private List<RfSelect<string>.OptionItem> OriginOptions => new()
-    {
-        new("", UiText.NpcOriginAll(Lang)),
-        new("base", UiText.NpcOriginBase(Lang)),
-        new("mine", UiText.NpcOriginMine(Lang)),
-        new("shared", UiText.NpcOriginShared(Lang))
-    };
-
-    private List<RfSelect<NpcArchetype?>.OptionItem> ArchetypeOptions =>
-        new List<RfSelect<NpcArchetype?>.OptionItem> { new(null, UiText.NpcArchetypeAll(Lang)) }
-            .Concat(Enum.GetValues<NpcArchetype>().Select(a => new RfSelect<NpcArchetype?>.OptionItem(a, UiText.FormatNpcArchetype(a, Lang))))
-            .ToList();
-
     protected override async Task OnInitializedAsync()
     {
-        //	Old links (npcs?id=…) open the sheet
+        //	Old links (npcs?id=…) open the dossier
         if (QueryId is { } id)
         {
             Navigation.NavigateTo($"npcs/{id}", replace: true);
@@ -369,16 +363,8 @@
     private async Task LoadAsync()
     {
         IsLoading = true;
-        All = await MonsterService.GetMonstersAsync(Lang, SelectedRuleset);
+        All = await MonsterService.GetMonstersAsync(Lang, null);
         IsLoading = false;
-    }
-
-    private void ShowBase()
-    {
-        OriginFilter = "base";
-        SearchTerm = string.Empty;
-        ArchetypeFilter = null;
-        BandFilter = null;
     }
 
     // ===== Editor =====
@@ -387,7 +373,7 @@
     {
         editingId = null;
         editorVariantOf = null;
-        editorTitle = UiText.NpcsTitle(Lang) + " · " + UiText.NpcCreateBlank(Lang).TrimStart('+', ' ');
+        editorTitle = UiText.NpcForge(Lang).TrimStart('+', ' ');
         editor = new SaveMonsterDto
         {
             IsNpc = true,
@@ -398,7 +384,8 @@
             ProficiencyBonus = 2,
             ArmorClass = 12,
             HitPoints = 11,
-            HitDice = "2d8 + 2"
+            HitDice = "2d8 + 2",
+            Archetype = ArchetypeFilter
         };
     }
 
@@ -415,15 +402,16 @@
         editor = model;
     }
 
-    private async Task OpenCloneAsync(MonsterResponseDto npc)
+    //	A new NPC of the account built on a statblock (a monster, or a community NPC)
+    private async Task OpenFromAsync(MonsterResponseDto source)
     {
-        var model = await NpcModels.CloneAsync(MonsterService, npc.Id);
+        var model = await NpcModels.CloneAsync(MonsterService, source.Id);
         if (model is null)
         {
             return;
         }
         editingId = null;
-        editorVariantOf = npc.Name;
+        editorVariantOf = source.Name;
         editorTitle = UiText.NpcCloneTitle(Lang);
         editor = model;
     }
@@ -431,20 +419,19 @@
     private async Task OpenRandomAsync()
     {
         busy = true;
-        var bases = await MonsterService.GetMonstersAsync(Lang, null);
-        var model = await NpcModels.RandomAsync(MonsterService, bases, ArchetypeFilter);
+        var model = await NpcModels.RandomAsync(MonsterService, All, ArchetypeFilter);
         busy = false;
         if (model is null)
         {
             return;
         }
         editingId = null;
-        editorVariantOf = bases.FirstOrDefault(m => m.Id == model.VariantOfId)?.Name;
-        editorTitle = UiText.NpcGenerateRandom(Lang);
+        editorVariantOf = All.FirstOrDefault(m => m.Id == model.VariantOfId)?.Name;
+        editorTitle = UiText.NpcImprovise(Lang);
         editor = model;
     }
 
-    private void SavedAsync(Guid id)
+    private void Saved(Guid id)
     {
         editor = null;
         Navigation.NavigateTo($"npcs/{id}");

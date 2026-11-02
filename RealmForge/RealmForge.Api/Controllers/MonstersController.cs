@@ -77,7 +77,15 @@ namespace RealmForge.Api.Controllers
 
 			var monsters = await query.AsSplitQuery().ToListAsync();
 			var userId = User.Identity?.IsAuthenticated == true ? ContentAccess.GetUserId(User) : null;
-			var campaigns = await CampaignsAsync(monsters.Where(m => m.IsNpc && !m.IsOfficialSRD).Select(m => m.Id));
+			var npcs = monsters.Where(m => m.IsNpc && !m.IsOfficialSRD).ToList();
+			var campaigns = await CampaignsAsync(npcs.Select(m => m.Id));
+
+			//	The statblock each Homebrew NPC is made from, by name
+			var originalIds = npcs.Where(m => m.VariantOfId is not null).Select(m => m.VariantOfId!.Value).Distinct().ToList();
+			var originals = originalIds.Count == 0 ? new Dictionary<Guid, string>() : (await _context.MonsterTranslations.AsNoTracking()
+					.Where(t => originalIds.Contains(t.MonsterId)).ToListAsync())
+				.GroupBy(t => t.MonsterId)
+				.ToDictionary(g => g.Key, g => g.Localize(lang)?.Name ?? string.Empty);
 			return Ok(monsters
 				.Select(m =>
 				{
@@ -87,7 +95,9 @@ namespace RealmForge.Api.Controllers
 						tr?.Subtitle ?? string.Empty, m.ArmorClass, m.HitPoints, m.HitDice, Plain(m.ChallengeRating), m.Xp, m.Dexterity,
 						m.VariantOfId, _access.CanModify(m, User), m.Source, m.Visibility, m.IsNpc,
 						m.Archetype, m.Portrait, tr?.Role ?? string.Empty, tr?.Ancestry ?? string.Empty, Excerpt(tr?.Personality),
-						userId is not null && !m.IsOfficialSRD && m.AuthorId == userId, campaign?.Id, campaign?.Name);
+						userId is not null && !m.IsOfficialSRD && m.AuthorId == userId, campaign?.Id, campaign?.Name,
+						m.Attitude, tr?.Location ?? string.Empty,
+						m.IsNpc && m.VariantOfId is { } originalId ? originals.GetValueOrDefault(originalId) : null);
 				})
 				.OrderBy(m => m.Name, StringComparer.CurrentCultureIgnoreCase)
 				.ToList());
@@ -118,7 +128,8 @@ namespace RealmForge.Api.Controllers
 				: null;
 
 			var campaigns = monster.IsNpc && !monster.IsOfficialSRD ? (await CampaignsAsync(new[] { monster.Id })).GetValueOrDefault(monster.Id) : null;
-			return Ok(ToDetail(monster, lang, original, author, campaigns));
+			var originalIsNpc = original is not null && monster.VariantOf is { IsNpc: true, IsOfficialSRD: false };
+			return Ok(ToDetail(monster, lang, original, author, campaigns, originalIsNpc));
 		}
 
 		//	The campaigns of the account each NPC is shared with (approved, or proposed by the account itself)
@@ -184,7 +195,7 @@ namespace RealmForge.Api.Controllers
 			_context.Monsters.Add(monster);
 			await _context.SaveChangesAsync();
 
-			return CreatedAtAction(nameof(GetMonster), new { id = monster.Id }, ToDetail(monster, lang, null, null, null));
+			return CreatedAtAction(nameof(GetMonster), new { id = monster.Id }, ToDetail(monster, lang, null, null, null, false));
 		}
 
 		//	PUT: api/monsters/{id}
@@ -297,10 +308,20 @@ namespace RealmForge.Api.Controllers
 			Role = tr?.Role ?? string.Empty,
 			Ancestry = tr?.Ancestry ?? string.Empty,
 			Personality = tr?.Personality ?? string.Empty,
-			Secrets = tr?.Secrets ?? string.Empty
+			Secrets = tr?.Secrets ?? string.Empty,
+			Location = tr?.Location ?? string.Empty,
+			Faction = tr?.Faction ?? string.Empty,
+			Equipment = tr?.Equipment ?? string.Empty,
+			Coins = tr?.Coins ?? string.Empty,
+			Appearance = tr?.Appearance ?? string.Empty,
+			Gear = tr?.Gear ?? string.Empty,
+			Leverage = tr?.Leverage ?? string.Empty,
+			Goal = tr?.Goal ?? string.Empty,
+			Reaction = tr?.Reaction ?? string.Empty,
+			Tactics = tr?.Tactics ?? string.Empty
 		};
 
-		private MonsterDetailDto ToDetail(Monster m, LanguageCode lang, string? original, string? author, List<NpcCampaignDto>? campaigns)
+		private MonsterDetailDto ToDetail(Monster m, LanguageCode lang, string? original, string? author, List<NpcCampaignDto>? campaigns, bool originalIsNpc)
 		{
 			var canEdit = _access.CanModify(m, User);
 			var text = ToText(m.Translations.Localize(lang), lang);
@@ -316,7 +337,7 @@ namespace RealmForge.Api.Controllers
 				new List<int> { m.Strength, m.Dexterity, m.Constitution, m.Intelligence, m.Wisdom, m.Charisma },
 				Plain(m.ChallengeRating), m.Xp, m.ProficiencyBonus, m.PassivePerception, m.VariantOfId, original,
 				text, canEdit, m.Source, m.Visibility, author, m.IsNpc, m.Archetype, m.Portrait,
-				userId is not null && !m.IsOfficialSRD && m.AuthorId == userId, campaigns ?? new());
+				userId is not null && !m.IsOfficialSRD && m.AuthorId == userId, campaigns ?? new(), m.Attitude, m.SocialDc, originalIsNpc);
 		}
 
 		private static void Apply(Monster m, SaveMonsterDto dto)
@@ -343,6 +364,8 @@ namespace RealmForge.Api.Controllers
 			m.PassivePerception = dto.PassivePerception;
 			m.IsNpc = dto.IsNpc;
 			m.Archetype = dto.Archetype;
+			m.Attitude = dto.Attitude;
+			m.SocialDc = dto.SocialDc;
 			m.Portrait = string.IsNullOrWhiteSpace(dto.Portrait) ? null : dto.Portrait.Trim();
 		}
 
@@ -373,6 +396,16 @@ namespace RealmForge.Api.Controllers
 			target.Ancestry = Clean(t.Ancestry);
 			target.Personality = Clean(t.Personality);
 			target.Secrets = Clean(t.Secrets);
+			target.Location = Clean(t.Location);
+			target.Faction = Clean(t.Faction);
+			target.Equipment = Clean(t.Equipment);
+			target.Coins = Clean(t.Coins);
+			target.Appearance = Clean(t.Appearance);
+			target.Gear = Clean(t.Gear);
+			target.Leverage = Clean(t.Leverage);
+			target.Goal = Clean(t.Goal);
+			target.Reaction = Clean(t.Reaction);
+			target.Tactics = Clean(t.Tactics);
 			return target;
 		}
 
@@ -425,9 +458,13 @@ namespace RealmForge.Api.Controllers
 			{
 				return "Proficiency bonus (0-12) or passive Perception (0-50) out of range.";
 			}
-			if (dto.Archetype is { } archetype && !Enum.IsDefined(archetype))
+			if ((dto.Archetype is { } archetype && !Enum.IsDefined(archetype)) || (dto.Attitude is { } attitude && !Enum.IsDefined(attitude)))
 			{
-				return "Unknown NPC archetype.";
+				return "Unknown NPC function or attitude.";
+			}
+			if (dto.SocialDc is < 1 or > 40)
+			{
+				return "Social DC between 1 and 40.";
 			}
 			if (!string.IsNullOrWhiteSpace(dto.Portrait) && (dto.Portrait.Trim().Length > Monster.MaxPortraitLength
 				|| !(dto.Portrait.StartsWith("data:image/jpeg;base64,", StringComparison.Ordinal) || dto.Portrait.StartsWith("data:image/png;base64,", StringComparison.Ordinal)
@@ -447,10 +484,11 @@ namespace RealmForge.Api.Controllers
 				}
 				var lines = new[] { t.Subtitle, t.ArmorClass, t.Speed, t.SavingThrows };
 				var longLines = new[] { t.Skills, t.DamageVulnerabilities, t.DamageResistances, t.DamageImmunities, t.ConditionImmunities, t.Senses, t.Languages };
-				var blocks = new[] { t.Traits, t.Actions, t.BonusActions, t.Reactions, t.LegendaryActions, t.Description, t.Personality, t.Secrets };
-				if ((t.Role?.Trim().Length ?? 0) > 100 || (t.Ancestry?.Trim().Length ?? 0) > 100)
+				var blocks = new[] { t.Traits, t.Actions, t.BonusActions, t.Reactions, t.LegendaryActions, t.Description, t.Personality, t.Secrets, t.Appearance, t.Gear, t.Leverage, t.Goal, t.Reaction, t.Tactics };
+				if ((t.Role?.Trim().Length ?? 0) > 100 || (t.Ancestry?.Trim().Length ?? 0) > 100 || (t.Location?.Trim().Length ?? 0) > 100
+					|| (t.Faction?.Trim().Length ?? 0) > 100 || (t.Coins?.Trim().Length ?? 0) > 100 || (t.Equipment?.Trim().Length ?? 0) > 300)
 				{
-					return "Role and ancestry: at most 100 characters.";
+					return "Role, ancestry, place, faction or coins (100 characters) or equipment (300) too long.";
 				}
 				if (lines.Any(l => (l?.Trim().Length ?? 0) > MaxLineLength) || longLines.Any(l => (l?.Trim().Length ?? 0) > MaxLongLineLength)
 					|| blocks.Any(b => (b?.Trim().Length ?? 0) > MaxMarkdownLength))
