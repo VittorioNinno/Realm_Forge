@@ -454,6 +454,11 @@ namespace RealmForge.Infrastructure.Persistence
 				entity.Property(t => t.Ancestry).IsRequired().HasMaxLength(100).HasDefaultValue("");
 				entity.Property(t => t.Personality).IsRequired().HasDefaultValue("");
 				entity.Property(t => t.Secrets).IsRequired().HasDefaultValue("");
+				entity.Property(t => t.Location).IsRequired().HasMaxLength(100).HasDefaultValue("");
+				entity.Property(t => t.AdventureRole).IsRequired().HasDefaultValue("");
+				entity.Property(t => t.Tactics).IsRequired().HasDefaultValue("");
+				entity.Property(t => t.Gear).IsRequired().HasDefaultValue("");
+				entity.Property(t => t.Social).IsRequired().HasDefaultValue("");
 
 				//	Unique index: a monster cannot have two translations for the same language
 				entity.HasIndex(t => new { t.MonsterId, t.Language }).IsUnique();

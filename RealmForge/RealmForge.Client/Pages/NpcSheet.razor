@@ -13,17 +13,19 @@
 
 <PageTitle>RealmForge - @(Npc?.Text.Name ?? UiText.NpcsTitle(Lang))</PageTitle>
 
+@* The NPC dossier: who it is and the numbers of the table on top, what to say and do on the left, the statblock as
+   ready-to-use panels on the right (abilities, traits, attacks with their rolls) *@
 <div class="container-fluid px-0 py-4" data-test="npc-sheet">
-    <a class="rf-npc-back" href="npcs" data-test="npc-back"><Icon Name="chevron-left" /> @UiText.NpcBack(Lang)</a>
-
     @if (loading)
     {
+        <a class="rf-npc-back" href="npcs" data-test="npc-back"><Icon Name="chevron-left" /> @UiText.NpcBack(Lang)</a>
         <div class="text-center my-5 py-5">
             <div class="spinner-border" style="color: var(--rf-orange-primary);" role="status"></div>
         </div>
     }
     else if (Npc is not { } npc)
     {
+        <a class="rf-npc-back" href="npcs" data-test="npc-back"><Icon Name="chevron-left" /> @UiText.NpcBack(Lang)</a>
         <div class="p-4 mt-3 rounded text-center" style="background-color: var(--rf-bg-surface); border: 1px solid var(--rf-border-light);" data-test="npc-missing">
             <p class="mb-0" style="color: var(--rf-text-muted);">@UiText.NpcNotFound(Lang)</p>
         </div>
@@ -31,58 +33,11 @@
     else
     {
         var text = npc.Text;
-        @* Hero: portrait, name, edition and origin, who the character is, the numbers of the table and the actions *@
-        <section class="rf-npc-hero @(npc.IsMine ? "mine" : null)" data-test="npc-hero">
-            <NpcAvatar Portrait="@npc.Portrait" Archetype="npc.Archetype" Shared="!npc.IsOfficialSRD && !npc.IsMine" Large="true" />
-            <div class="rf-npc-hero-info">
-                <div class="d-flex flex-wrap align-items-center gap-2">
-                    <h1 class="rf-npc-hero-name" data-test="npc-sheet-name">@text.Name</h1>
-                    <span class="badge @(npc.Ruleset == RulesetVersion.Dnd5e_2024 ? "badge-edition-2024" : "badge-edition-2014")">@UiText.FormatRuleset(npc.Ruleset, Lang)</span>
-                    <NpcOriginBadge Base="npc.IsOfficialSRD" Mine="npc.IsMine" />
-                    @if (npc.Archetype is { } archetype)
-                    {
-                        <span class="rf-npc-tag" data-test="npc-sheet-archetype">@UiText.FormatNpcArchetype(archetype, Lang)</span>
-                    }
-                </div>
-                <div class="rf-pc-meta">
-                    <span>@(string.IsNullOrWhiteSpace(text.Ancestry) ? UiText.NpcAnyAncestry(Lang) : text.Ancestry)</span>
-                    <span class="rf-pc-dot">•</span>
-                    <span>@UiText.FormatCreatureType(npc.Type, Lang) @UiText.FormatSizeSingle(npc.Size, Lang)</span>
-                    @if (!string.IsNullOrWhiteSpace(text.Role))
-                    {
-                        <span class="rf-pc-dot">•</span>
-                        <span class="rf-npc-role" data-test="npc-sheet-role">@text.Role</span>
-                    }
-                </div>
-                <div class="rf-pc-stats">
-                    <span class="rf-npc-cr">@UiText.MonsterChallengeShort(Lang) @MonsterMath.FormatChallenge(npc.ChallengeRating)</span>
-                    <span class="rf-pc-stat"><span>@UiText.SheetArmorClass(Lang)</span>@npc.ArmorClass</span>
-                    <span class="rf-pc-stat"><span>@UiText.SheetHitPoints(Lang)</span>@npc.HitPoints (@npc.HitDice)</span>
-                    <span class="rf-pc-stat"><span>@UiText.MonsterXpShort(Lang)</span>@npc.Xp.ToString("N0")</span>
-                </div>
-                @if (npc.Campaigns is { Count: > 0 } campaigns)
-                {
-                    <div class="rf-pc-campaign" data-test="npc-sheet-campaigns">
-                        <span class="rf-pc-campaign-label">@UiText.NpcCampaigns(Lang):</span>
-                        @foreach (var campaign in campaigns)
-                        {
-                            <a href="@($"campaigns/{campaign.Id}")">@campaign.Name</a>
-                        }
-                    </div>
-                }
-                @if (npc.VariantOfId is { } originalId && npc.VariantOfName is not null)
-                {
-                    <div class="small" style="color: var(--rf-text-muted);" data-test="npc-sheet-variant-of">
-                        @UiText.MagicVariantOf(Lang): <a class="rf-pc-link" href="@($"npcs/{originalId}")">@npc.VariantOfName</a>
-                    </div>
-                }
-                @if (!npc.IsOfficialSRD && !npc.IsMine && npc.AuthorName is not null)
-                {
-                    <div class="small" style="color: var(--rf-text-muted);">@UiText.MonsterAuthor(npc.AuthorName, Lang)</div>
-                }
-            </div>
-            <div class="rf-npc-hero-actions">
-                @if (npc.CanEdit && !npc.IsOfficialSRD)
+        var mine = npc.CanEdit && !npc.IsOfficialSRD;
+        <nav class="rf-npc-topbar">
+            <a class="rf-npc-back" href="npcs" data-test="npc-back"><Icon Name="chevron-left" /> @UiText.NpcBack(Lang)</a>
+            <div class="d-flex flex-wrap gap-2">
+                @if (mine)
                 {
                     <button type="button" class="btn btn-rf-orange btn-sm text-uppercase" @onclick="OpenEditAsync" data-test="npc-sheet-edit"><Icon Name="edit" /> @UiText.Edit(Lang)</button>
                     <button type="button" class="btn btn-rf-outline btn-sm text-uppercase" style="border-color: #dc3545; color: #dc3545;" @onclick="() => deleting = true" data-test="npc-sheet-delete"><Icon Name="trash" /> @UiText.Delete(Lang)</button>
@@ -90,13 +45,112 @@
                 else
                 {
                     <ForgeAction>
-                        <button type="button" class="btn btn-rf-orange btn-sm text-uppercase" @onclick="OpenCloneAsync" data-test="npc-sheet-clone">
-                            @(npc.IsOfficialSRD ? UiText.NpcClone(Lang) : UiText.NpcSave(Lang))
-                        </button>
+                        <button type="button" class="btn btn-rf-orange btn-sm text-uppercase" @onclick="OpenCloneAsync" data-test="npc-sheet-clone">@UiText.NpcAddToCast(Lang)</button>
                     </ForgeAction>
                 }
             </div>
-        </section>
+        </nav>
+
+        <header class="rf-npc-hero @(npc.IsMine ? "mine" : "community")" data-test="npc-hero">
+            <div class="rf-npc-hero-main">
+                <NpcAvatar Portrait="@npc.Portrait" Name="@text.Name" Shared="!npc.IsMine" Large="true" />
+                <div class="rf-npc-hero-info">
+                    <div class="d-flex flex-wrap align-items-center gap-2">
+                        <span class="badge @(npc.Ruleset == RulesetVersion.Dnd5e_2024 ? "badge-edition-2024" : "badge-edition-2014")">@UiText.FormatRuleset(npc.Ruleset, Lang)</span>
+                        <NpcOriginBadge Base="npc.IsOfficialSRD" Mine="npc.IsMine" />
+                        @if (npc.Archetype is { } archetype)
+                        {
+                            <span class="rf-npc-tag" data-test="npc-sheet-archetype">@UiText.FormatNpcArchetype(archetype, Lang)</span>
+                        }
+                        @if (npc.Attitude is { } attitude)
+                        {
+                            <span class="rf-npc-attitude @attitude.ToString().ToLowerInvariant()" data-test="npc-sheet-attitude">@UiText.FormatNpcAttitude(attitude, Lang)</span>
+                        }
+                    </div>
+                    <h1 class="rf-npc-hero-name" data-test="npc-sheet-name">@text.Name</h1>
+                    <div class="rf-pc-meta">
+                        @if (!string.IsNullOrWhiteSpace(text.Ancestry))
+                        {
+                            <span>@text.Ancestry</span>
+                            <span class="rf-pc-dot">•</span>
+                        }
+                        <span>@(string.IsNullOrWhiteSpace(text.Subtitle) ? $"{UiText.FormatCreatureType(npc.Type, Lang)} {UiText.FormatSizeSingle(npc.Size, Lang)}" : text.Subtitle)</span>
+                        @if (!string.IsNullOrWhiteSpace(text.Role))
+                        {
+                            <span class="rf-pc-dot">•</span>
+                            <span class="rf-npc-role" data-test="npc-sheet-role">@text.Role</span>
+                        }
+                    </div>
+                    <div class="rf-npc-hero-context">
+                        @if (!string.IsNullOrWhiteSpace(text.Location))
+                        {
+                            <span class="rf-npc-location" data-test="npc-sheet-location"><Icon Name="map" /> @text.Location</span>
+                        }
+                        @if (!string.IsNullOrWhiteSpace(text.Languages))
+                        {
+                            <span class="rf-npc-location">@UiText.NpcLanguages(Lang) @text.Languages</span>
+                        }
+                        @if (npc.Campaigns is { Count: > 0 } campaigns)
+                        {
+                            <span class="rf-pc-campaign" data-test="npc-sheet-campaigns">
+                                <span class="rf-pc-campaign-label">@UiText.NpcCampaigns(Lang):</span>
+                                @foreach (var campaign in campaigns)
+                                {
+                                    <a href="@($"campaigns/{campaign.Id}")">@campaign.Name</a>
+                                }
+                            </span>
+                        }
+                        @if (npc.VariantOfId is { } originalId && npc.VariantOfName is not null)
+                        {
+                            <span class="rf-pc-campaign" data-test="npc-sheet-variant-of">
+                                <span class="rf-pc-campaign-label">@UiText.NpcBasedOn(Lang)</span>
+                                <a href="@(npc.VariantOfIsNpc ? $"npcs/{originalId}" : $"monsters?id={originalId}")">@npc.VariantOfName</a>
+                            </span>
+                        }
+                        @if (!npc.IsOfficialSRD && !npc.IsMine && npc.AuthorName is not null)
+                        {
+                            <span class="rf-npc-location">@UiText.MonsterAuthor(npc.AuthorName, Lang)</span>
+                        }
+                    </div>
+                </div>
+            </div>
+
+            @* The numbers used at the table; the hit points count down here, for the session (not saved) *@
+            <div class="rf-npc-vitals" data-test="npc-vitals">
+                <div class="rf-npc-vital">
+                    <span class="rf-npc-vital-label">@UiText.NpcVitalChallenge(Lang)</span>
+                    <strong class="rf-npc-vital-value accent">@MonsterMath.FormatChallenge(npc.ChallengeRating)</strong>
+                    <small>@UiText.NpcXpAndProficiency(npc.Xp, npc.ProficiencyBonus, Lang)</small>
+                </div>
+                <div class="rf-npc-vital">
+                    <span class="rf-npc-vital-label">@UiText.NpcVitalAc(Lang)</span>
+                    <strong class="rf-npc-vital-value">@npc.ArmorClass</strong>
+                    <small>@ArmorNote(text.ArmorClass)</small>
+                </div>
+                <div class="rf-npc-vital" title="@UiText.NpcVitalHpHint(Lang)">
+                    <span class="rf-npc-vital-label">@UiText.NpcVitalHp(npc.HitDice, Lang)</span>
+                    <div class="rf-npc-hp">
+                        <button type="button" class="rf-npc-hp-btn" @onclick="() => ChangeHp(-1)" aria-label="-1" data-test="npc-hp-down">−</button>
+                        <strong class="rf-npc-vital-value" data-test="npc-hp">@hp / @npc.HitPoints</strong>
+                        <button type="button" class="rf-npc-hp-btn" @onclick="() => ChangeHp(1)" aria-label="+1" data-test="npc-hp-up">+</button>
+                    </div>
+                    <small>@UiText.NpcVitalHpHint(Lang)</small>
+                </div>
+                <div class="rf-npc-vital">
+                    <span class="rf-npc-vital-label">@UiText.NpcVitalSpeed(Lang)</span>
+                    <strong class="rf-npc-vital-value">@(string.IsNullOrWhiteSpace(text.Speed) ? $"{npc.Speed} ft." : text.Speed)</strong>
+                </div>
+                <div class="rf-npc-vital">
+                    <span class="rf-npc-vital-label">@UiText.NpcVitalInitiative(Lang)</span>
+                    <strong class="rf-npc-vital-value">@MonsterMath.Signed(Mod(1))</strong>
+                    <small>@UiText.NpcInitiativeFixed(10 + Mod(1), Lang)</small>
+                </div>
+                <div class="rf-npc-vital">
+                    <span class="rf-npc-vital-label">@UiText.NpcVitalPassive(Lang)</span>
+                    <strong class="rf-npc-vital-value">@npc.PassivePerception</strong>
+                </div>
+            </div>
+        </header>
 
         @if (!npc.IsOfficialSRD)
         {
@@ -106,32 +160,99 @@
         }
 
         <div class="row g-3 mt-1">
-            @* Roleplay first: personality and hooks, the secrets (only for the author), the lore *@
-            <div class="col-lg-5">
-                <section class="rf-npc-panel" data-test="npc-roleplay">
+            <div class="col-lg-6 d-flex flex-column gap-3">
+                <section class="rf-npc-panel highlight" data-test="npc-roleplay">
                     <h2 class="rf-npc-panel-title">@UiText.NpcRoleplay(Lang)</h2>
                     @if (!string.IsNullOrWhiteSpace(text.Personality))
                     {
-                        <div class="rf-markdown-container" data-test="npc-personality">@((MarkupString)MarkdownText.ToHtml(text.Personality, Terms))</div>
+                        <div class="rf-markdown-container" data-test="npc-personality">@Markdown(text.Personality)</div>
                     }
                     else
                     {
-                        <p class="small mb-0" style="color: var(--rf-text-muted);">@UiText.NpcNoRoleplay(Lang)</p>
+                        <p class="small mb-0" style="color: var(--rf-text-muted);">@(mine ? UiText.NpcNoCue(Lang) : UiText.NpcNoRoleplay(Lang))</p>
                     }
                 </section>
                 @if (npc.CanEdit && !string.IsNullOrWhiteSpace(text.Secrets))
                 {
-                    <section class="rf-npc-panel rf-npc-secrets mt-3" data-test="npc-secrets">
+                    <section class="rf-npc-panel rf-npc-secrets" data-test="npc-secrets">
                         <h2 class="rf-npc-panel-title"><Icon Name="eye-slash" /> @UiText.NpcSecretsTitle(Lang) <span class="rf-npc-panel-note">@UiText.NpcSecretsOnlyYou(Lang)</span></h2>
-                        <div class="rf-markdown-container">@((MarkupString)MarkdownText.ToHtml(text.Secrets, Terms))</div>
+                        <div class="rf-markdown-container">@Markdown(text.Secrets)</div>
+                    </section>
+                }
+                <section class="rf-npc-panel" data-test="npc-guide">
+                    <h2 class="rf-npc-panel-title">@UiText.NpcGuide(Lang)</h2>
+                    @{
+                        var guide = new[]
+                        {
+                            (UiText.NpcAdventureRole(Lang), text.AdventureRole), (UiText.NpcTactics(Lang), text.Tactics),
+                            (UiText.NpcGear(Lang), text.Gear), (UiText.NpcSocial(Lang), text.Social)
+                        }.Where(g => !string.IsNullOrWhiteSpace(g.Item2)).ToList();
+                    }
+                    @if (guide.Count == 0)
+                    {
+                        <p class="small mb-0" style="color: var(--rf-text-muted);">@(mine ? UiText.NpcGuideEmpty(Lang) : UiText.NpcNoRoleplay(Lang))</p>
+                    }
+                    else
+                    {
+                        <div class="rf-npc-guide">
+                            @foreach (var (label, body) in guide)
+                            {
+                                <div class="rf-npc-guide-box" data-test="npc-guide-box">
+                                    <span class="rf-npc-guide-label">@label</span>
+                                    <div class="rf-markdown-container">@Markdown(body)</div>
+                                </div>
+                            }
+                        </div>
+                    }
+                </section>
+                @if (!string.IsNullOrWhiteSpace(text.Description))
+                {
+                    <section class="rf-npc-panel">
+                        <h2 class="rf-npc-panel-title">@UiText.MonsterDescription(Lang)</h2>
+                        <div class="rf-markdown-container">@Markdown(text.Description)</div>
                     </section>
                 }
             </div>
-            <div class="col-lg-7">
-                <section class="rf-npc-panel" data-test="npc-statblock">
-                    <h2 class="rf-npc-panel-title">@UiText.NpcStatblock(Lang)</h2>
-                    <MonsterStatBlock Monster="npc" ShowName="false" />
+
+            <div class="col-lg-6 d-flex flex-column gap-3" data-test="npc-statblock">
+                <section class="rf-npc-panel">
+                    <h2 class="rf-npc-panel-title">@UiText.NpcAbilities(Lang)</h2>
+                    <div class="rf-npc-abilities">
+                        @for (var i = 0; i < 6; i++)
+                        {
+                            var score = npc.Abilities.ElementAtOrDefault(i);
+                            <div class="rf-npc-ability @(score == npc.Abilities.Max() ? "prime" : null)">
+                                <span class="rf-npc-ability-name">@UiText.AbilityShort((AbilityScore)(i + 1), Lang)</span>
+                                <strong>@MonsterMath.Signed(MonsterMath.Modifier(score))</strong>
+                                <span class="rf-npc-ability-score">@score</span>
+                            </div>
+                        }
+                    </div>
+                    @if (Skills(text.Skills) is { Count: > 0 } skills)
+                    {
+                        <div class="rf-npc-skills" data-test="npc-skills">
+                            <span class="rf-npc-guide-label">@UiText.NpcSkills(Lang)</span>
+                            @foreach (var (skill, bonus) in skills)
+                            {
+                                <span class="rf-npc-skill">@skill @if (bonus is not null) { <strong>@bonus</strong> }</span>
+                            }
+                        </div>
+                    }
+                    <div class="rf-npc-lines">
+                        @Line(UiText.MonsterArmorClass(Lang), text.ArmorClass)
+                        @Line(UiText.MonsterSavingThrows(Lang), text.SavingThrows)
+                        @Line(UiText.MonsterVulnerabilities(Lang), text.DamageVulnerabilities)
+                        @Line(UiText.MonsterResistances(Lang), text.DamageResistances)
+                        @Line(UiText.MonsterImmunities(Lang), text.DamageImmunities)
+                        @Line(UiText.MonsterConditionImmunities(Lang), text.ConditionImmunities)
+                        @Line(UiText.MonsterSenses(Lang), text.Senses)
+                    </div>
                 </section>
+                @Entries(UiText.MonsterTraits(Lang), null, text.Traits, "traits")
+                @Entries(UiText.MonsterActions(Lang), UiText.NpcOnItsTurn(Lang), text.Actions, "actions")
+                @Entries(UiText.MonsterBonusActions(Lang), null, text.BonusActions, "bonus")
+                @Entries(UiText.MonsterReactions(Lang), null, text.Reactions, "reactions")
+                @Entries(UiText.MonsterLegendaryActions(Lang), null, text.LegendaryActions, "legendary")
             </div>
         </div>
     }
@@ -166,6 +287,7 @@
     private Guid? loadedId;
     private bool loading = true;
     private bool deleting;
+    private int hp;
 
     private SaveMonsterDto? editor;
     private Guid? editingId;
@@ -173,6 +295,88 @@
     private string? editorVariantOf;
 
     private RealmForge.Shared.Text.GlossaryLinker? Terms => Npc is null ? null : Glossary.Linker(Lang, Npc.Ruleset);
+
+    private MarkupString Markdown(string markdown) => (MarkupString)MarkdownText.ToHtml(markdown, Terms);
+
+    private int Mod(int ability) => MonsterMath.Modifier(Npc?.Abilities.ElementAtOrDefault(ability) ?? 10);
+
+    private void ChangeHp(int delta) => hp = Math.Clamp(hp + delta, 0, Npc?.HitPoints ?? 0);
+
+    //	"15 (giaco di maglia, scudo)" → "giaco di maglia, scudo"
+    private static string? ArmorNote(string? line)
+    {
+        if (string.IsNullOrWhiteSpace(line))
+        {
+            return null;
+        }
+        var open = line.IndexOf('(');
+        var close = line.LastIndexOf(')');
+        return open >= 0 && close > open ? line[(open + 1)..close] : null;
+    }
+
+    //	"Medicina +4, Religione +2" → chips with the bonus apart
+    private static List<(string Skill, string? Bonus)> Skills(string? line) =>
+        (line ?? string.Empty).Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .Select(part =>
+            {
+                var space = part.LastIndexOf(' ');
+                return space > 0 && (part[(space + 1)..].StartsWith('+') || part[(space + 1)..].StartsWith('-'))
+                    ? (part[..space], (string?)part[(space + 1)..])
+                    : (part, null);
+            })
+            .ToList();
+
+    private RenderFragment Line(string label, string? value) => __builder =>
+    {
+        if (!string.IsNullOrWhiteSpace(value))
+        {
+            <div class="rf-statblock-line"><strong>@label</strong> @value</div>
+        }
+    };
+
+    //	A statblock section as cards, attacks with their roll and damage apart
+    private RenderFragment Entries(string title, string? kicker, string? markdown, string key) => __builder =>
+    {
+        var entries = StatblockEntries.Parse(markdown);
+        if (entries.Count == 0)
+        {
+            return;
+        }
+        <section class="rf-npc-panel" data-test="@($"npc-{key}")">
+            @if (kicker is not null)
+            {
+                <span class="rf-npc-panel-kicker">@kicker</span>
+            }
+            <h2 class="rf-npc-panel-title">@title</h2>
+            <div class="d-flex flex-column gap-2">
+                @foreach (var entry in entries)
+                {
+                    <div class="rf-npc-entry" data-test="npc-entry">
+                        <div class="rf-npc-entry-text">
+                            @if (entry.Name.Length > 0)
+                            {
+                                <strong class="rf-npc-entry-name">@entry.Name</strong>
+                            }
+                            <div class="rf-markdown-container">@Markdown(entry.Body)</div>
+                        </div>
+                        @if (entry.ToHit is not null || entry.Damage is not null)
+                        {
+                            <div class="rf-npc-rolls">
+                                @if (entry.ToHit is not null)
+                                {
+                                    <div class="rf-npc-roll hit"><span>@UiText.NpcToHit(Lang)</span><strong>@entry.ToHit</strong></div>
+                                }
+                                @if (entry.Damage is not null)
+                                {
+                                    <div class="rf-npc-roll"><span>@UiText.NpcDamage(Lang)</span><strong>@entry.Damage</strong></div>
+                                }
+                            </div>
+                        }
+                    </div>
+                }
+            </div>
+        </section>
+    };
 
     protected override void OnInitialized() => LanguageState.OnLanguageChanged += HandleLanguageChanged;
 
@@ -183,6 +387,7 @@
         {
             loadedId = Id;
             await LoadAsync();
+            hp = Npc?.HitPoints ?? 0;
         }
     }
 
@@ -194,7 +399,7 @@
 
     private async Task LoadAsync()
     {
-        loading = true;
+        loading = Npc is null;
         await Glossary.EnsureLoadedAsync(Lang);
         Npc = await MonsterService.GetMonsterAsync(Id, Lang);
         loading = false;
@@ -232,6 +437,7 @@
         if (id == Id)
         {
             await LoadAsync();
+            hp = Math.Min(hp, Npc?.HitPoints ?? 0);
         }
         else
         {

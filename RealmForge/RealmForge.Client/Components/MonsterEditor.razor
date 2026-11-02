@@ -53,8 +53,12 @@
                     }
                 </div>
                 <div class="rf-npc-form-archetype" data-test="npc-form-archetype">
-                    <label class="rf-form-label">@UiText.LabelNpcArchetype(Lang)</label>
+                    <label class="rf-form-label">@UiText.NpcFunction(Lang)</label>
                     <RfSelect TValue="NpcArchetype?" @bind-Value="Model.Archetype" Options="ArchetypeOptions" />
+                </div>
+                <div class="rf-npc-form-archetype" data-test="npc-form-attitude">
+                    <label class="rf-form-label">@UiText.NpcAttitude(Lang)</label>
+                    <RfSelect TValue="NpcAttitude?" @bind-Value="Model.Attitude" Options="AttitudeOptions" />
                 </div>
             </div>
         }
@@ -155,9 +159,17 @@
                         <label class="rf-form-label">@UiText.NpcAncestry(Lang)</label>
                         <input class="rf-form-control" maxlength="100" placeholder="@UiText.NpcAncestryHint(tab)" @bind="text.Ancestry" data-test="npc-form-ancestry" />
                     </div>
+                    <div class="col-md-6">
+                        <label class="rf-form-label">@UiText.NpcLocation(Lang)</label>
+                        <input class="rf-form-control" maxlength="100" placeholder="@UiText.NpcLocationHint(tab)" @bind="text.Location" data-test="npc-form-location" />
+                    </div>
                     <div class="col-12">
                         @Block(UiText.NpcPersonality(Lang), () => text.Personality, v => text.Personality = v, "personality")
                         @Block(UiText.NpcSecrets(Lang), () => text.Secrets, v => text.Secrets = v, "secrets")
+                        @Block(UiText.NpcAdventureRole(Lang), () => text.AdventureRole, v => text.AdventureRole = v, "adventure")
+                        @Block(UiText.NpcTactics(Lang), () => text.Tactics, v => text.Tactics = v, "tactics")
+                        @Block(UiText.NpcGear(Lang), () => text.Gear, v => text.Gear = v, "gear")
+                        @Block(UiText.NpcSocial(Lang), () => text.Social, v => text.Social = v, "social")
                     </div>
                 }
                 <div class="col-md-6">
@@ -323,6 +335,11 @@
             .Concat(Enum.GetValues<NpcArchetype>().Select(a => new RfSelect<NpcArchetype?>.OptionItem(a, UiText.FormatNpcArchetype(a, Lang))))
             .ToList();
 
+    private List<RfSelect<NpcAttitude?>.OptionItem> AttitudeOptions =>
+        new List<RfSelect<NpcAttitude?>.OptionItem> { new(null, "—") }
+            .Concat(Enum.GetValues<NpcAttitude>().Select(a => new RfSelect<NpcAttitude?>.OptionItem(a, UiText.FormatNpcAttitude(a, Lang))))
+            .ToList();
+
     //	The picture becomes a 256 px square from its centre
     private async Task PortraitAsync(InputFileChangeEventArgs e)
     {
@@ -375,6 +392,7 @@
             VariantOfId = Model.VariantOfId,
             IsNpc = Model.IsNpc,
             Archetype = Model.IsNpc ? Model.Archetype : null,
+            Attitude = Model.IsNpc ? Model.Attitude : null,
             Portrait = Model.IsNpc ? Model.Portrait : null,
             Translations = translations
         };

@@ -25,11 +25,10 @@ namespace RealmForge.Client.Services
 
 		private static readonly Dictionary<NpcArchetype, (string It, string En)[]> Roles = new()
 		{
-			[NpcArchetype.Combatant] = [("Capitano della guardia", "Captain of the guard"), ("Mercenario", "Sellsword"), ("Cacciatore di taglie", "Bounty hunter"), ("Veterano in congedo", "Retired veteran")],
-			[NpcArchetype.Social] = [("Mercante di spezie", "Spice merchant"), ("Locandiere", "Innkeeper"), ("Diplomatico", "Envoy"), ("Nobile decaduto", "Fallen noble")],
-			[NpcArchetype.Rogue] = [("Informatore", "Informant"), ("Ricettatore", "Fence"), ("Borseggiatore", "Pickpocket"), ("Contrabbandiere", "Smuggler")],
-			[NpcArchetype.Caster] = [("Alchimista", "Alchemist"), ("Sacerdote del villaggio", "Village priest"), ("Erudito", "Scholar"), ("Veggente", "Seer")],
-			[NpcArchetype.Commoner] = [("Fabbro", "Blacksmith"), ("Barcaiolo", "Ferryman"), ("Guida locale", "Local guide"), ("Fornaio", "Baker")]
+			[NpcArchetype.Ally] = [("Mercenario fidato", "Trusted sellsword"), ("Guida locale", "Local guide"), ("Sacerdote del villaggio", "Village priest"), ("Veterano in congedo", "Retired veteran")],
+			[NpcArchetype.Merchant] = [("Mercante di spezie", "Spice merchant"), ("Locandiere", "Innkeeper"), ("Fabbro", "Blacksmith"), ("Alchimista", "Alchemist")],
+			[NpcArchetype.Contact] = [("Informatore", "Informant"), ("Nobile decaduto", "Fallen noble"), ("Erudito", "Scholar"), ("Ricettatore", "Fence")],
+			[NpcArchetype.Threat] = [("Capitano della guardia", "Captain of the guard"), ("Cacciatore di taglie", "Bounty hunter"), ("Contrabbandiere", "Smuggler"), ("Sicario", "Hired blade")]
 		};
 
 		private static readonly (string It, string En)[] Hooks =
@@ -52,11 +51,13 @@ namespace RealmForge.Client.Services
 				"Wants to leave town and looks for someone foolish enough to escort them past the hills.")
 		];
 
+		public static NpcAttitude Attitude(Random? random = null) => (NpcAttitude)(random ?? Random.Shared).Next(1, 4);
+
 		public static Idea For(NpcArchetype archetype, Random? random = null)
 		{
 			random ??= Random.Shared;
 			var ancestry = Ancestries[random.Next(Ancestries.Length)];
-			var roles = Roles.GetValueOrDefault(archetype) ?? Roles[NpcArchetype.Commoner];
+			var roles = Roles.GetValueOrDefault(archetype) ?? Roles[NpcArchetype.Merchant];
 			var role = roles[random.Next(roles.Length)];
 			var hook = Hooks[random.Next(Hooks.Length)];
 			return new Idea(Names[random.Next(Names.Length)], ancestry.It, ancestry.En, role.It, role.En, hook.It, hook.En);

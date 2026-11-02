@@ -22,17 +22,17 @@ public static class MonsterSeeder
 		"gladiator", "guard", "knight", "mage", "noble", "priest", "scout", "spy", "thug", "tribal-warrior", "veteran"
 	};
 
-	//	What each base NPC does at the table (the filter of the NPC page)
+	//	What an NPC made from each base statblock is usually for at the table (the starting function of a new NPC)
 	public static readonly IReadOnlyDictionary<string, NpcArchetype> NpcArchetypes = new Dictionary<string, NpcArchetype>
 	{
-		["bandit"] = NpcArchetype.Combatant, ["bandit-captain"] = NpcArchetype.Combatant, ["berserker"] = NpcArchetype.Combatant,
-		["gladiator"] = NpcArchetype.Combatant, ["guard"] = NpcArchetype.Combatant, ["knight"] = NpcArchetype.Combatant,
-		["thug"] = NpcArchetype.Combatant, ["tribal-warrior"] = NpcArchetype.Combatant, ["veteran"] = NpcArchetype.Combatant,
-		["assassin"] = NpcArchetype.Rogue, ["scout"] = NpcArchetype.Rogue, ["spy"] = NpcArchetype.Rogue,
-		["acolyte"] = NpcArchetype.Caster, ["archmage"] = NpcArchetype.Caster, ["cult-fanatic"] = NpcArchetype.Caster,
-		["cultist"] = NpcArchetype.Caster, ["druid"] = NpcArchetype.Caster, ["mage"] = NpcArchetype.Caster, ["priest"] = NpcArchetype.Caster,
-		["noble"] = NpcArchetype.Social,
-		["commoner"] = NpcArchetype.Commoner
+		["acolyte"] = NpcArchetype.Ally, ["priest"] = NpcArchetype.Ally, ["druid"] = NpcArchetype.Ally, ["scout"] = NpcArchetype.Ally,
+		["knight"] = NpcArchetype.Ally, ["veteran"] = NpcArchetype.Ally,
+		["commoner"] = NpcArchetype.Merchant,
+		["noble"] = NpcArchetype.Contact, ["spy"] = NpcArchetype.Contact, ["mage"] = NpcArchetype.Contact, ["archmage"] = NpcArchetype.Contact,
+		["bandit"] = NpcArchetype.Threat, ["bandit-captain"] = NpcArchetype.Threat, ["berserker"] = NpcArchetype.Threat,
+		["gladiator"] = NpcArchetype.Threat, ["guard"] = NpcArchetype.Threat, ["thug"] = NpcArchetype.Threat,
+		["tribal-warrior"] = NpcArchetype.Threat, ["assassin"] = NpcArchetype.Threat, ["cult-fanatic"] = NpcArchetype.Threat,
+		["cultist"] = NpcArchetype.Threat
 	};
 
 	public static IReadOnlyList<Monster> GetDefinitions()

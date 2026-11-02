@@ -45,6 +45,7 @@ namespace RealmForge.Client.Services
 				VariantOfId = source.VariantOfId,
 				IsNpc = true,
 				Archetype = source.Archetype,
+				Attitude = source.Attitude,
 				Portrait = source.Portrait,
 				Translations = texts
 			};
@@ -58,13 +59,20 @@ namespace RealmForge.Client.Services
 			{
 				return null;
 			}
-			model.VariantOfId = id;
+			//	Built on the same statblock: a community NPC copied keeps the monster it was made from
+			model.VariantOfId = model.VariantOfId is { } statblock && await IsHomebrewNpcAsync(monsters, id) ? statblock : id;
 			model.Visibility = ContentVisibility.Private;
 			foreach (var text in model.Translations)
 			{
 				text.Alias = null;
 			}
 			return model;
+		}
+
+		private static async Task<bool> IsHomebrewNpcAsync(MonsterDataService monsters, Guid id)
+		{
+			var detail = await monsters.GetMonsterAsync(id, LanguageCode.It);
+			return detail is { IsNpc: true, IsOfficialSRD: false };
 		}
 
 		//	A base NPC of the archetype with a random name, ancestry, role and hook
@@ -85,7 +93,9 @@ namespace RealmForge.Client.Services
 			{
 				return null;
 			}
-			var idea = NpcGenerator.For(basis.Archetype ?? archetype ?? NpcArchetype.Commoner);
+			var idea = NpcGenerator.For(archetype ?? basis.Archetype ?? NpcArchetype.Merchant);
+			model.Archetype = archetype ?? basis.Archetype;
+			model.Attitude = NpcGenerator.Attitude();
 			foreach (var language in new[] { LanguageCode.It, LanguageCode.En })
 			{
 				var text = model.Translations.FirstOrDefault(t => t.Language == language);
