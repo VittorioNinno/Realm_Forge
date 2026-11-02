@@ -87,21 +87,21 @@
                 <aside class="rf-vtt-panel">
                     <section class="rf-vtt-box" data-test="map-settings">
                         <span class="rf-vtt-title">@UiText.MapSettings(Lang)</span>
-                        <label class="rf-dice-field">
-                            <span class="rf-dice-label">@UiText.MapName(Lang)</span>
+                        <label class="rf-vtt-field">
+                            <span class="rf-vtt-label">@UiText.MapName(Lang)</span>
                             <input class="rf-form-control" maxlength="120" @bind="mapName" data-test="map-name" />
                         </label>
                         <div class="rf-vtt-grid-fields">
-                            <div class="rf-dice-field">
-                                <span class="rf-dice-label">@UiText.MapGrid(Lang)</span>
+                            <div class="rf-vtt-field">
+                                <span class="rf-vtt-label">@UiText.MapGrid(Lang)</span>
                                 <NumberStepper Value="grid" ValueChanged="v => grid = v" Min="MapRules.MinGrid" Max="MapRules.MaxGrid" AriaLabel="@UiText.MapGrid(Lang)" InputTest="map-grid" />
                             </div>
-                            <div class="rf-dice-field">
-                                <span class="rf-dice-label">@UiText.MapOffsetX(Lang)</span>
+                            <div class="rf-vtt-field">
+                                <span class="rf-vtt-label">@UiText.MapOffsetX(Lang)</span>
                                 <NumberStepper Value="offsetX" ValueChanged="v => offsetX = v" Min="0" Max="@(grid - 1)" AriaLabel="@UiText.MapOffsetX(Lang)" />
                             </div>
-                            <div class="rf-dice-field">
-                                <span class="rf-dice-label">@UiText.MapOffsetY(Lang)</span>
+                            <div class="rf-vtt-field">
+                                <span class="rf-vtt-label">@UiText.MapOffsetY(Lang)</span>
                                 <NumberStepper Value="offsetY" ValueChanged="v => offsetY = v" Min="0" Max="@(grid - 1)" AriaLabel="@UiText.MapOffsetY(Lang)" />
                             </div>
                         </div>
@@ -153,8 +153,8 @@
                     {
                         <section class="rf-vtt-box" data-test="map-token-panel">
                             <span class="rf-vtt-title">@st.Label</span>
-                            <div class="rf-dice-field">
-                                <span class="rf-dice-label">@UiText.MapTokenSize(Lang)</span>
+                            <div class="rf-vtt-field">
+                                <span class="rf-vtt-label">@UiText.MapTokenSize(Lang)</span>
                                 <NumberStepper Value="st.Size" ValueChanged="v => ResizeAsync(st, v)" Min="1" Max="MapRules.MaxTokenSize" AriaLabel="@UiText.MapTokenSize(Lang)" />
                             </div>
                             <label class="rf-checkbox-wrapper small mb-0">
@@ -183,8 +183,8 @@
     <div class="rf-modal-backdrop" @onclick="() => newMap = null">
         <div class="rf-modal-dialog" style="max-width: 520px;" @onclick:stopPropagation="true" data-test="map-new-dialog">
             <h2 class="h5 mb-3" style="color: var(--rf-orange-primary); font-family: var(--rf-font-display);">@UiText.MapNew(Lang)</h2>
-            <label class="rf-dice-field mb-3">
-                <span class="rf-dice-label">@UiText.MapName(Lang)</span>
+            <label class="rf-vtt-field mb-3">
+                <span class="rf-vtt-label">@UiText.MapName(Lang)</span>
                 <input class="rf-form-control" maxlength="120" @bind="newMap.Name" data-test="map-new-name" />
             </label>
             <label class="btn btn-sm btn-rf-outline mb-2" data-test="map-new-image">
