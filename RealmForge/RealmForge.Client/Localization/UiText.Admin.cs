@@ -14,7 +14,6 @@ namespace RealmForge.Client.Localization
 			"Search the compendium (e.g. Fireball, Palla di Fuoco, Goblin, Healer)…");
 		public static string SearchRandom(LanguageCode lang) => T(lang, "Voce casuale", "Random entry");
 		public static string SearchRandomHint(LanguageCode lang) => T(lang, "Apri una voce a caso del compendio (della categoria scelta)", "Open a random entry of the compendium (of the chosen kind)");
-		public static string SearchSlashHint(LanguageCode lang) => T(lang, "Premi / o Ctrl+K da qualsiasi pagina per cercare", "Press / or Ctrl+K on any page to search");
 		public static string SearchChipName(string key, LanguageCode lang) => (key, lang == LanguageCode.It) switch
 		{
 			("spell", true) => "Incantesimi", ("spell", false) => "Spells",
