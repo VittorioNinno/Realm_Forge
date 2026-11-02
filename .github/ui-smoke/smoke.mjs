@@ -1096,6 +1096,15 @@ try {
       await page.locator('[data-test=sheet-item]', { hasText: /^Scudo/ }).locator('[data-test=sheet-item-equip]').click();
       tabs.hands = (await page.locator('[data-test=sheet-equip-error]').innerText({ timeout: 5000 })).replace(/\s+/g, ' ').trim();
       tabs.shieldOn = await page.locator('[data-test=sheet-item]', { hasText: /^Scudo/ }).locator('[data-test=sheet-item-equip].on').count();
+      // Thirty greatswords: over the carrying capacity, a notice explains what it means; back to one, the warning goes
+      const greatsword = page.locator('[data-test=sheet-item]', { hasText: /^Spadone/ });
+      for (let i = 0; i < 29; i++) await greatsword.locator('button[aria-label="+1"]').click();
+      await page.locator('[data-test=sheet-encumbrance-notice]').waitFor({ timeout: 5000 });
+      tabs.overload = (await page.locator('[data-test=sheet-encumbrance-notice]').innerText()).replace(/\s+/g, ' ').trim();
+      await shot(page, 'sheet-encumbrance', 'main');
+      await page.locator('[data-test=sheet-encumbrance-close]').click();
+      for (let i = 0; i < 29; i++) await greatsword.locator('button[aria-label="−1"]').click();
+      tabs.overloadAfter = await page.locator('[data-test=sheet-encumbrance]').count();
       // A Wand of Magic Missiles worn: its spell appears among the spells and a cast spends a charge
       await page.locator('[data-test=sheet-magic-add]').click();
       await page.locator('[data-test=magic-template]').selectOption('wand-of-magic-missiles');
@@ -1471,6 +1480,8 @@ try {
   ok('magic items: a Ring of Protection worn and attuned adds 1 to AC (attunement 1/3); spells: the long rest opens the changes, the spellbook writes a free spell');
   if (!/mani libere/.test(tabs.hands ?? '') || !/Spadone/.test(tabs.hands ?? '') || tabs.shieldOn !== 0) throw new Error(`two hands: "${tabs.hands}" shield on=${tabs.shieldOn}`);
   ok('equipment: with a greatsword in hand the shield is refused, and the sheet explains the hands');
+  if (!/1,5 metri/.test(tabs.overload ?? '') || !/capacità di carico/.test(tabs.overload ?? '') || tabs.overloadAfter !== 0) throw new Error(`overload notice: "${tabs.overload}" after=${tabs.overloadAfter}`);
+  ok('inventory: over the carrying capacity a notice explains the speed of 1.5 m and the limits, and the warning goes once the load is back');
   if (tabs.wand !== '6') throw new Error(`Wand of Magic Missiles: ${tabs.wand} charges left after a cast`);
   ok('magic items: the spell of a wand worn is on the spells tab, and casting it spends a charge (7 → 6)');
   if (!pdfHead.startsWith('%PDF') || pdfSize < 2000) throw new Error('the PDF download is not a PDF');

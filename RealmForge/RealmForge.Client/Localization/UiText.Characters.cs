@@ -502,6 +502,26 @@ namespace RealmForge.Client.Localization
 		public static string SheetAttuned(LanguageCode lang) => T(lang, "Sintonia", "Attuned");
 		public static string SheetQuantity(LanguageCode lang) => T(lang, "Qtà", "Qty");
 		public static string SheetWeight(LanguageCode lang) => T(lang, "Peso", "Weight");
+		public static string EncumbranceTitle(LanguageCode lang) => T(lang, "Sovraccarico", "Overloaded");
+		public static string EncumbranceWeight(string total, string capacity, LanguageCode lang) => T(lang,
+			$"Stai trasportando {total}, oltre la tua capacità di carico di {capacity} (Forza × 7,5 kg, raddoppiata per le creature Grandi e dimezzata per le Minuscole).",
+			$"You carry {total}, over your carrying capacity of {capacity} (Strength × 15 lb., doubled for Large creatures and halved for Tiny ones).");
+		public static string[] EncumbranceEffects(string twice, LanguageCode lang) => lang == LanguageCode.It
+			? new[]
+			{
+				"La tua velocità scende a 1,5 metri: puoi solo spingere, trascinare o sollevare il carico, non viaggiare normalmente.",
+				$"Oltre il doppio della capacità ({twice}) non riesci più a spostarlo affatto.",
+				"Con la regola facoltativa dell'ingombro, già sopra un terzo della capacità la velocità cala di 3 m, e sopra due terzi di 6 m con svantaggio alle prove di caratteristica, ai tiri per colpire e ai tiri salvezza basati su Forza, Destrezza o Costituzione."
+			}
+			: new[]
+			{
+				"Your speed drops to 5 feet: you can only push, drag or lift the load, not travel normally.",
+				$"Beyond twice your capacity ({twice}) you cannot move it at all.",
+				"With the optional encumbrance rule, already above a third of the capacity your speed drops by 10 feet, and above two thirds by 20 feet with disadvantage on ability checks, attack rolls and saving throws that use Strength, Dexterity or Constitution."
+			};
+		public static string EncumbranceHint(LanguageCode lang) => T(lang,
+			"Lascia nello zaino del gruppo, su una cavalcatura o in un carro ciò che non ti serve, oppure vendilo.",
+			"Leave what you do not need with the party, on a mount or in a cart, or sell it.");
 		public static string SheetCarrying(string total, string capacity, LanguageCode lang) => T(lang, $"Peso trasportato: {total} su {capacity}", $"Carried weight: {total} of {capacity}");
 		public static string PlaceholderSearchItem(LanguageCode lang) => T(lang, "Cerca nel compendio o scrivi un oggetto", "Search the compendium or type an item");
 		public static string BtnAddFreeItem(string name, LanguageCode lang) => T(lang, $"Aggiungi \"{name}\"", $"Add \"{name}\"");
