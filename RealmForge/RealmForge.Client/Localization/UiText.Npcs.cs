@@ -108,7 +108,7 @@ namespace RealmForge.Client.Localization
 		public static string NpcAncestryHint(LanguageCode lang) => T(lang, "Es. Mezzelfo, Nano delle colline", "E.g. Half-elf, Hill dwarf");
 		public static string NpcLocation(LanguageCode lang) => T(lang, "Luogo", "Place");
 		public static string NpcLocationHint(LanguageCode lang) => T(lang, "Es. Locanda del Cervo", "E.g. The Stag Inn");
-		public static string NpcPersonality(LanguageCode lang) => T(lang, "Spunto al tavolo e personalità", "Table hook and personality");
+		public static string NpcPersonality(LanguageCode lang) => T(lang, "Voce, tono e manierismi (lo spunto al tavolo)", "Voice, tone and mannerisms (the table hook)");
 		public static string NpcSecrets(LanguageCode lang) => T(lang, "Segreti (visibili solo a te)", "Secrets (only you see them)");
 		public static string NpcCloneTitle(LanguageCode lang) => T(lang, "Aggiungi al mio cast", "Add to my cast");
 		public static string NpcCloneHint(string original, LanguageCode lang) => T(lang,
@@ -117,41 +117,70 @@ namespace RealmForge.Client.Localization
 		public static string NpcDeleteWarning(string name, LanguageCode lang) =>
 			T(lang, $"Eliminare «{name}»? Potrai recuperarlo dal cestino per 3 giorni.", $"Delete “{name}”? You can restore it from the bin for 3 days.");
 
-		public static string NpcAdventureRole(LanguageCode lang) => T(lang, "Ruolo nell'avventura", "Part in the adventure");
 		public static string NpcTactics(LanguageCode lang) => T(lang, "Tattica in combattimento", "Combat tactics");
-		public static string NpcGear(LanguageCode lang) => T(lang, "Cosa porta con sé (bottino / tasche)", "What it carries (loot / pockets)");
-		public static string NpcSocial(LanguageCode lang) => T(lang, "Interazione sociale", "Social interaction");
+		public static string NpcGear(LanguageCode lang) => T(lang, "Tasche, monete e oggetti chiave", "Pockets, coins and key items");
+		public static string NpcFaction(LanguageCode lang) => T(lang, "Fazione / gruppo", "Faction / group");
+		public static string NpcEquipment(LanguageCode lang) => T(lang, "Equipaggiamento visibile", "Visible equipment");
+		public static string NpcCoins(LanguageCode lang) => T(lang, "Monete", "Coins");
+		public static string NpcAppearance(LanguageCode lang) => T(lang, "Aspetto e prima impressione", "Appearance and first impression");
+		public static string NpcLeverage(LanguageCode lang) => T(lang, "Come ottenere vantaggio", "How to gain advantage");
+		public static string NpcGoal(LanguageCode lang) => T(lang, "Cosa vuole ottenere (obiettivo)", "What it wants (goal)");
+		public static string NpcReaction(LanguageCode lang) => T(lang, "Reazione a minacce o fallimento", "Reaction to threats or failure");
+		public static string NpcSocialDc(LanguageCode lang) => T(lang, "CD sociale", "Social DC");
 
-		public static string NpcGuide(LanguageCode lang) => T(lang, "Guida tattica, ambiente e dotazione", "Tactics, setting and gear");
-		public static string NpcGuideEmpty(LanguageCode lang) => T(lang,
-			"Con Modifica puoi aggiungere il ruolo nell'avventura, la tattica, cosa porta con sé e come trattarci.",
-			"With Edit you can add its part in the adventure, its tactics, what it carries and how to deal with it.");
-		public static string NpcAbilities(LanguageCode lang) => T(lang, "Caratteristiche e competenze", "Abilities and proficiencies");
-		public static string NpcSkills(LanguageCode lang) => T(lang, "Abilità competenti:", "Proficient skills:");
-		public static string NpcOnItsTurn(LanguageCode lang) => T(lang, "Nel suo turno", "On its turn");
-		public static string NpcToHit(LanguageCode lang) => T(lang, "Tiro per colpire", "To hit");
-		public static string NpcDamage(LanguageCode lang) => T(lang, "Danni", "Damage");
-		public static string NpcVitalChallenge(LanguageCode lang) => T(lang, "Grado sfida", "Challenge");
-		public static string NpcVitalAc(LanguageCode lang) => T(lang, "Classe armatura", "Armor class");
-		public static string NpcVitalHp(string dice, LanguageCode lang) => string.IsNullOrWhiteSpace(dice) ? T(lang, "Punti ferita", "Hit points") : T(lang, $"Punti ferita ({dice})", $"Hit points ({dice})");
-		public static string NpcVitalHpHint(LanguageCode lang) => T(lang, "Solo su questo schermo, per il tavolo", "Only on this screen, for the table");
-		public static string NpcVitalSpeed(LanguageCode lang) => T(lang, "Velocità", "Speed");
+		//	Sheet
+		public static string NpcBack(LanguageCode lang) => T(lang, "← Registro PNG", "← NPC registry");
+		public static string NpcCampaignButton(LanguageCode lang) => T(lang, "Campagna", "Campaign");
+		public static string NpcCampaignShareHint(LanguageCode lang) => T(lang, "Condividi il PNG con una tua campagna", "Share the NPC with one of your campaigns");
+		public static string NpcCampaignNoCampaigns(LanguageCode lang) => T(lang, "Non partecipi ancora a nessuna campagna.", "You are not in any campaign yet.");
+		public static string NpcCampaignShared(LanguageCode lang) => T(lang, "Condiviso", "Shared");
+		public static string NpcCampaignShareError(LanguageCode lang) => T(lang, "Non è stato possibile condividerlo con la campagna.", "It could not be shared with the campaign.");
+		public static string NpcCloneShort(LanguageCode lang) => T(lang, "Clona", "Clone");
+		public static string NpcAttitudeIs(NpcAttitude attitude, LanguageCode lang) => T(lang, $"Atteggiamento: {FormatNpcAttitude(attitude, lang)}", $"Attitude: {FormatNpcAttitude(attitude, lang)}");
+		public static string NpcChallengePill(string challenge, int xp, LanguageCode lang) => T(lang, $"GS {challenge} ({xp:N0} PE)", $"CR {challenge} ({xp:N0} XP)");
+		public static string NpcCampaignChip(LanguageCode lang) => T(lang, "Campagna:", "Campaign:");
+		public static string NpcMetaAlignment(LanguageCode lang) => T(lang, "Allineamento", "Alignment");
+		public static string NpcMetaSizeType(LanguageCode lang) => T(lang, "Taglia e tipo", "Size and type");
+		public static string NpcMetaEdition(LanguageCode lang) => T(lang, "Edizione", "Edition");
+		public static string NpcMetaPlace(LanguageCode lang) => T(lang, "Luogo abituale", "Usual place");
+		public static string NpcKeyTraits(LanguageCode lang) => T(lang, "Tratti chiave e percezione", "Key traits and perception");
+		public static string NpcPassivePerception(int value, LanguageCode lang) => T(lang, $"Percezione passiva {value}", $"Passive Perception {value}");
+		public static string NpcLanguagesSpoken(LanguageCode lang) => T(lang, "Lingue parlate", "Languages spoken");
+		public static string NpcMainSkills(LanguageCode lang) => T(lang, "Abilità principali", "Main skills");
+		public static string NpcTabDossier(LanguageCode lang) => T(lang, "Dossier e interpretazione", "Dossier and roleplay");
+		public static string NpcTabCombat(LanguageCode lang) => T(lang, "Statblock e combattimento", "Statblock and combat");
+		public static string NpcTabSummary(int ac, int hp, string challenge, LanguageCode lang) => T(lang, $"CA {ac} • PF {hp} • GS {challenge}", $"AC {ac} • HP {hp} • CR {challenge}");
+		public static string NpcVoice(LanguageCode lang) => T(lang, "Voce, tono e manierismi", "Voice, tone and mannerisms");
+		public static string NpcSocialTitle(LanguageCode lang) => T(lang, "Interazione sociale e prove di influenza", "Social interaction and influence checks");
+		public static string NpcSocialDcPill(int dc, LanguageCode lang) => T(lang, $"CD base: {dc} (Intuizione / Persuasione / Intimidire)", $"Base DC: {dc} (Insight / Persuasion / Intimidation)");
+		public static string NpcSecretsTitle(LanguageCode lang) => T(lang, "Segreto e agganci di trama (solo DM)", "Secret and plot hooks (DM only)");
+		public static string NpcEmptyDossier(LanguageCode lang) => T(lang,
+			"Il dossier è vuoto: con Modifica aggiungi aspetto, voce, obiettivi, segreti e tasche.",
+			"The dossier is empty: with Edit add appearance, voice, goals, secrets and pockets.");
+		public static string NpcEmptyDossierOther(LanguageCode lang) => T(lang,
+			"Chi l'ha creato non ha ancora scritto il dossier: clonalo per scriverne uno tuo.",
+			"Its author has not written the dossier yet: clone it to write your own.");
+		public static string NpcCombatAc(LanguageCode lang) => T(lang, "CA", "AC");
 		public static string NpcVitalInitiative(LanguageCode lang) => T(lang, "Iniziativa", "Initiative");
-		public static string NpcVitalPassive(LanguageCode lang) => T(lang, "Perc. passiva", "Passive Perc.");
-		public static string NpcXpAndProficiency(int xp, int proficiency, LanguageCode lang) => T(lang, $"{xp:N0} PE • Comp. +{proficiency}", $"{xp:N0} XP • Prof. +{proficiency}");
-		public static string NpcInitiativeFixed(int value, LanguageCode lang) => T(lang, $"{value} fisso", $"{value} fixed");
-		public static string NpcLanguages(LanguageCode lang) => T(lang, "Linguaggi:", "Languages:");
-
-		//	Dossier
-		public static string NpcBack(LanguageCode lang) => T(lang, "Torna al registro dei PNG", "Back to the NPC registry");
-		public static string NpcRoleplay(LanguageCode lang) => T(lang, "Spunto al tavolo", "At the table");
-		public static string NpcSecretsTitle(LanguageCode lang) => T(lang, "Segreti", "Secrets");
-		public static string NpcSecretsOnlyYou(LanguageCode lang) => T(lang, "Solo tu li vedi", "Only you see them");
-		public static string NpcStatblock(LanguageCode lang) => T(lang, "Statblock", "Statblock");
-		public static string NpcNoRoleplay(LanguageCode lang) => T(lang,
-			"Nessuna nota: aggiungi il PNG al tuo cast per scriverne di tue.",
-			"No notes: add the NPC to your cast to write your own.");
-		public static string NpcCampaigns(LanguageCode lang) => T(lang, "Campagne", "Campaigns");
+		public static string NpcVitalSpeed(LanguageCode lang) => T(lang, "Velocità", "Speed");
+		public static string NpcVitalProficiency(LanguageCode lang) => T(lang, "Competenza", "Proficiency");
+		public static string NpcVitalPassive(LanguageCode lang) => T(lang, "Percezione pass.", "Passive Perc.");
+		public static string NpcHp(string dice, LanguageCode lang) => string.IsNullOrWhiteSpace(dice) ? T(lang, "Punti ferita", "Hit points") : T(lang, $"Punti ferita ({dice})", $"Hit points ({dice})");
+		public static string NpcHpHint(LanguageCode lang) => T(lang, "Conteggio per il tavolo, non viene salvato", "Counted for the table, not saved");
+		public static string NpcHpDamage(LanguageCode lang) => T(lang, "Danno", "Damage");
+		public static string NpcHpHeal(LanguageCode lang) => T(lang, "Cura", "Heal");
+		public static string NpcHpTemp(LanguageCode lang) => T(lang, "PF temp", "Temp HP");
+		public static string NpcAbilitiesSaves(LanguageCode lang) => T(lang, "Caratteristiche e tiri salvezza", "Abilities and saving throws");
+		public static string NpcSave(string bonus, LanguageCode lang) => T(lang, $"TS {bonus}", $"Save {bonus}");
+		public static string NpcOnItsTurn(LanguageCode lang) => T(lang, "Nel suo turno", "On its turn");
+		public static string NpcMovement(string speed, LanguageCode lang) => T(lang, $"Movimento {speed}", $"Movement {speed}");
+		public static string NpcAction(LanguageCode lang) => T(lang, "Azione", "Action");
+		public static string NpcActionMultiattack(LanguageCode lang) => T(lang, "Azione (multiattacco)", "Action (multiattack)");
+		public static string NpcAttack(LanguageCode lang) => T(lang, "Attacco", "Attack");
+		public static string NpcOtherActions(LanguageCode lang) => T(lang, "Altre azioni", "Other actions");
+		public static string NpcPassiveTraits(LanguageCode lang) => T(lang, "Tratti passivi", "Passive traits");
+		public static string NpcBonusAction(LanguageCode lang) => T(lang, "Azione bonus", "Bonus action");
+		public static string NpcReactionTitle(LanguageCode lang) => T(lang, "Reazione", "Reaction");
 		public static string NpcNotFound(LanguageCode lang) => T(lang, "PNG non trovato.", "NPC not found.");
 	}
 }
