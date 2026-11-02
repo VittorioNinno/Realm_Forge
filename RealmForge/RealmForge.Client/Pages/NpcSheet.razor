@@ -174,7 +174,7 @@
                                 <span>@skill</span>
                                 @if (bonus is not null)
                                 {
-                                    <strong> @bonus</strong>
+                                    <strong>&nbsp;@bonus</strong>
                                 }
                                 @if (!last)
                                 {
@@ -370,7 +370,7 @@
                         }
                         @if (traits.Count > 0)
                         {
-                            <div class="rf-npc-turn-row last">
+                            <div class="rf-npc-turn-row">
                                 <span class="rf-npc-turn-label">@UiText.NpcPassiveTraits(Lang)</span>
                                 <div>@Inline(traits)</div>
                             </div>

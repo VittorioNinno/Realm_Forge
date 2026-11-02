@@ -9001,6 +9001,15 @@ textarea.rf-form-control {
     text-transform: uppercase;
 }
 
+/* Three actions in a narrow card: the label may wrap rather than be cut */
+.rf-npc-card .rf-pc-action {
+    gap: 8px;
+    padding: 8px;
+    font-size: .7rem;
+    white-space: normal;
+    text-align: center;
+}
+
 .rf-pc-action.rf-npc-action-forge {
     color: var(--rf-orange-primary);
 }
@@ -9744,7 +9753,7 @@ textarea.rf-form-control {
     border-bottom: 1px dashed var(--rf-border-subtle);
 }
 
-    .rf-npc-turn-row.last {
+    .rf-npc-turn-row:last-child {
         padding-bottom: 0;
         border-bottom: none;
     }
