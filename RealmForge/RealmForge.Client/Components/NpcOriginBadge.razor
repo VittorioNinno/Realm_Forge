@@ -1,0 +1,27 @@
+﻿@using RealmForge.Client.Localization
+@using RealmForge.Client.Services
+@using RealmForge.Shared.DTOs
+@inject LanguageStateService LanguageState
+
+@* Where an NPC comes from: Base, written by the account ("Mio PNG") or shared by someone else ("Condiviso") *@
+@if (IsBase)
+{
+    <span class="badge badge-srd" data-test="npc-origin-badge">@UiText.BadgeBase(LanguageState.CurrentLanguage)</span>
+}
+else if (IsMine)
+{
+    <span class="badge rf-npc-badge-mine" data-test="npc-origin-badge">@UiText.NpcBadgeMine(LanguageState.CurrentLanguage)</span>
+}
+else
+{
+    <span class="badge rf-npc-badge-shared" data-test="npc-origin-badge">@UiText.NpcBadgeShared(LanguageState.CurrentLanguage)</span>
+}
+
+@code {
+    [Parameter] public MonsterResponseDto? Npc { get; set; }
+    [Parameter] public bool? Base { get; set; }
+    [Parameter] public bool? Mine { get; set; }
+
+    private bool IsBase => Base ?? Npc?.IsOfficialSRD ?? false;
+    private bool IsMine => Mine ?? Npc?.IsMine ?? false;
+}

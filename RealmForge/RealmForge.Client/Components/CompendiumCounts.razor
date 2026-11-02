@@ -93,8 +93,8 @@
             Count("spells", (await spells).Select(s => (s.Ruleset, s.IsOfficialSRD))),
             Count("classes", (await classes).Select(c => (c.Ruleset, c.IsOfficialSRD))),
             Count("equipment", (await equipment).Select(e => (e.Ruleset, e.IsOfficialSRD))),
-            Count("monsters", (await monsters).Where(m => !m.IsNpc).Select(m => (m.Ruleset, m.IsOfficialSRD))),
-            Count("npcs", (await monsters).Where(m => m.IsNpc).Select(m => (m.Ruleset, m.IsOfficialSRD)))
+            //	Every base statblock (the NPCs have no Base content of their own: they are written by the users)
+            Count("monsters", (await monsters).Select(m => (m.Ruleset, m.IsOfficialSRD)))
         };
 
         //	No Base content at all is never a real state: the API could not be read

@@ -14,7 +14,6 @@ namespace RealmForge.Client.Localization
 			"Search the compendium (e.g. Fireball, Palla di Fuoco, Goblin, Healer)…");
 		public static string SearchRandom(LanguageCode lang) => T(lang, "Voce casuale", "Random entry");
 		public static string SearchRandomHint(LanguageCode lang) => T(lang, "Apri una voce a caso del compendio (della categoria scelta)", "Open a random entry of the compendium (of the chosen kind)");
-		public static string SearchSlashHint(LanguageCode lang) => T(lang, "Premi / o Ctrl+K da qualsiasi pagina per cercare", "Press / or Ctrl+K on any page to search");
 		public static string SearchChipName(string key, LanguageCode lang) => (key, lang == LanguageCode.It) switch
 		{
 			("spell", true) => "Incantesimi", ("spell", false) => "Spells",
@@ -49,8 +48,8 @@ namespace RealmForge.Client.Localization
 			("spell", false) => "Cantrips and spells up to 9th level for every class.",
 			("monster", true) => "Statistiche complete, grado di sfida, tratti e azioni leggendarie.",
 			("monster", false) => "Full stat blocks, challenge rating, traits and legendary actions.",
-			("npc", true) => "Guardie, maghi, nobili, banditi: personaggi non giocanti pronti per il tavolo.",
-			("npc", false) => "Guards, mages, nobles, bandits: nonplayer characters ready for the table.",
+			("npc", true) => "I personaggi non giocanti delle tue campagne: ritratto, ruolo, segreti e statblock.",
+			("npc", false) => "The nonplayer characters of your campaigns: portrait, role, secrets and statblock.",
 			("equipment", true) => "Armi, armature, strumenti, dotazioni e oggetti magici.",
 			("equipment", false) => "Weapons, armor, tools, packs and magic items.",
 			("class", true) => "Progressioni dal 1° al 20° livello, privilegi e tabelle di classe.",
@@ -69,7 +68,7 @@ namespace RealmForge.Client.Localization
 		{
 			("spell", true) => "Filtra per: livello • scuola • classe", ("spell", false) => "Filter by: level • school • class",
 			("monster", true) => "Filtra per: GS • tipo • taglia", ("monster", false) => "Filter by: CR • type • size",
-			("npc", true) => "Guardia • Mago • Nobile • Spia…", ("npc", false) => "Guard • Mage • Noble • Spy…",
+			("npc", true) => "Filtra per: ruolo • GS • origine", ("npc", false) => "Filter by: role • CR • origin",
 			("equipment", true) => "Filtra per: categoria • maestria • rarità", ("equipment", false) => "Filter by: category • mastery • rarity",
 			("class", true) => "Mago • Chierico • Guerriero • Druido…", ("class", false) => "Wizard • Cleric • Fighter • Druid…",
 			("species", true) => "Elfo • Nano • Tiefling • Umano…", ("species", false) => "Elf • Dwarf • Tiefling • Human…",

@@ -47,7 +47,17 @@ chmod 600 "$base"/config/*.env "$password_file"
 say "Script e unità di systemd"
 cp "$here"/scripts/*.sh "$base/scripts/"
 chmod 700 "$base"/scripts/*.sh
+cp "$here"/console/pannello.sh "$base/scripts/"
+chmod 700 "$base/scripts/pannello.sh"
 cp "$here"/quadlet/* "$quadlets/"
+
+say "Pannello di controllo (menu delle applicazioni e Desktop)"
+mkdir -p "$HOME/.local/share/applications"
+sed "s|/home/deck|$HOME|g" "$here/console/realmforge.desktop" > "$HOME/.local/share/applications/realmforge.desktop"
+if [ -d "$HOME/Desktop" ]; then
+  cp "$HOME/.local/share/applications/realmforge.desktop" "$HOME/Desktop/RealmForge.desktop"
+  chmod +x "$HOME/Desktop/RealmForge.desktop"
+fi
 cp "$here"/systemd/* "$units/"
 
 say "Avvio dei servizi anche senza sessione aperta (linger)"

@@ -6,6 +6,7 @@ using RealmForge.Api.Security;
 using RealmForge.Domain.Entities;
 using RealmForge.Infrastructure.Persistence;
 using RealmForge.Infrastructure.Persistence.Trash;
+using RealmForge.Shared.Campaigns;
 using RealmForge.Shared.DTOs;
 using RealmForge.Shared.Enums;
 using RealmForge.Shared.Monsters;
@@ -75,13 +76,28 @@ namespace RealmForge.Api.Controllers
 			query = ContentAccess.ListedFor(query, User, await _shares.SharedWithAsync(User));
 
 			var monsters = await query.AsSplitQuery().ToListAsync();
+			var userId = User.Identity?.IsAuthenticated == true ? ContentAccess.GetUserId(User) : null;
+			var npcs = monsters.Where(m => m.IsNpc && !m.IsOfficialSRD).ToList();
+			var campaigns = await CampaignsAsync(npcs.Select(m => m.Id));
+
+			//	The statblock each Homebrew NPC is made from, by name
+			var originalIds = npcs.Where(m => m.VariantOfId is not null).Select(m => m.VariantOfId!.Value).Distinct().ToList();
+			var originals = originalIds.Count == 0 ? new Dictionary<Guid, string>() : (await _context.MonsterTranslations.AsNoTracking()
+					.Where(t => originalIds.Contains(t.MonsterId)).ToListAsync())
+				.GroupBy(t => t.MonsterId)
+				.ToDictionary(g => g.Key, g => g.Localize(lang)?.Name ?? string.Empty);
 			return Ok(monsters
 				.Select(m =>
 				{
 					var tr = m.Translations.Localize(lang);
+					var campaign = campaigns.GetValueOrDefault(m.Id)?.FirstOrDefault();
 					return new MonsterResponseDto(m.Id, tr?.Name ?? "Unknown", tr?.Alias, m.Ruleset, m.IsOfficialSRD, m.Size, m.Type,
 						tr?.Subtitle ?? string.Empty, m.ArmorClass, m.HitPoints, m.HitDice, Plain(m.ChallengeRating), m.Xp, m.Dexterity,
-						m.VariantOfId, _access.CanModify(m, User), m.Source, m.Visibility, m.IsNpc);
+						m.VariantOfId, _access.CanModify(m, User), m.Source, m.Visibility, m.IsNpc,
+						m.Archetype, m.Portrait, tr?.Role ?? string.Empty, tr?.Ancestry ?? string.Empty, Excerpt(tr?.Personality),
+						userId is not null && !m.IsOfficialSRD && m.AuthorId == userId, campaign?.Id, campaign?.Name,
+						m.Attitude, tr?.Location ?? string.Empty,
+						m.IsNpc && m.VariantOfId is { } originalId ? originals.GetValueOrDefault(originalId) : null);
 				})
 				.OrderBy(m => m.Name, StringComparer.CurrentCultureIgnoreCase)
 				.ToList());
@@ -111,7 +127,35 @@ namespace RealmForge.Api.Controllers
 				? (await PublicNames.LoadAsync(_context, new[] { authorId })).GetValueOrDefault(authorId)
 				: null;
 
-			return Ok(ToDetail(monster, lang, original, author));
+			var campaigns = monster.IsNpc && !monster.IsOfficialSRD ? (await CampaignsAsync(new[] { monster.Id })).GetValueOrDefault(monster.Id) : null;
+			var originalIsNpc = original is not null && monster.VariantOf is { IsNpc: true, IsOfficialSRD: false };
+			return Ok(ToDetail(monster, lang, original, author, campaigns, originalIsNpc));
+		}
+
+		//	The campaigns of the account each NPC is shared with (approved, or proposed by the account itself)
+		private async Task<Dictionary<Guid, List<NpcCampaignDto>>> CampaignsAsync(IEnumerable<Guid> ids)
+		{
+			var userId = User.Identity?.IsAuthenticated == true ? ContentAccess.GetUserId(User) : null;
+			var list = ids.ToList();
+			if (userId is null || list.Count == 0)
+			{
+				return new();
+			}
+			var rows = await _context.CampaignContents.AsNoTracking()
+				.Where(c => list.Contains(c.EntityId) && (c.Status == CampaignContentStatus.Approved || c.SharedById == userId)
+					&& c.Campaign.Members.Any(m => m.UserId == userId))
+				.Select(c => new { c.EntityId, c.Campaign.Id, c.Campaign.Name })
+				.ToListAsync();
+			return rows.GroupBy(r => r.EntityId).ToDictionary(g => g.Key,
+				g => g.Select(r => new NpcCampaignDto(r.Id, r.Name)).OrderBy(c => c.Name, StringComparer.CurrentCultureIgnoreCase).ToList());
+		}
+
+		//	The start of the personality, as plain text, for the card
+		private static string Excerpt(string? markdown)
+		{
+			var text = string.Join(' ', (markdown ?? string.Empty).Replace("*", string.Empty).Replace("#", string.Empty).Replace("_", string.Empty)
+				.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries));
+			return text.Length <= 180 ? text : text[..177].TrimEnd() + "…";
 		}
 
 		//	POST: api/monsters
@@ -151,7 +195,7 @@ namespace RealmForge.Api.Controllers
 			_context.Monsters.Add(monster);
 			await _context.SaveChangesAsync();
 
-			return CreatedAtAction(nameof(GetMonster), new { id = monster.Id }, ToDetail(monster, lang, null, null));
+			return CreatedAtAction(nameof(GetMonster), new { id = monster.Id }, ToDetail(monster, lang, null, null, null, false));
 		}
 
 		//	PUT: api/monsters/{id}
@@ -260,14 +304,41 @@ namespace RealmForge.Api.Controllers
 			BonusActions = tr?.BonusActions ?? string.Empty,
 			Reactions = tr?.Reactions ?? string.Empty,
 			LegendaryActions = tr?.LegendaryActions ?? string.Empty,
-			Description = tr?.Description ?? string.Empty
+			Description = tr?.Description ?? string.Empty,
+			Role = tr?.Role ?? string.Empty,
+			Ancestry = tr?.Ancestry ?? string.Empty,
+			Personality = tr?.Personality ?? string.Empty,
+			Secrets = tr?.Secrets ?? string.Empty,
+			Location = tr?.Location ?? string.Empty,
+			Faction = tr?.Faction ?? string.Empty,
+			Equipment = tr?.Equipment ?? string.Empty,
+			Coins = tr?.Coins ?? string.Empty,
+			Appearance = tr?.Appearance ?? string.Empty,
+			Gear = tr?.Gear ?? string.Empty,
+			Leverage = tr?.Leverage ?? string.Empty,
+			Goal = tr?.Goal ?? string.Empty,
+			Reaction = tr?.Reaction ?? string.Empty,
+			Tactics = tr?.Tactics ?? string.Empty
 		};
 
-		private MonsterDetailDto ToDetail(Monster m, LanguageCode lang, string? original, string? author) => new(
-			m.Id, m.Ruleset, m.IsOfficialSRD, m.Size, m.Type, m.ArmorClass, m.HitPoints, m.HitDice, m.Speed,
-			new List<int> { m.Strength, m.Dexterity, m.Constitution, m.Intelligence, m.Wisdom, m.Charisma },
-			Plain(m.ChallengeRating), m.Xp, m.ProficiencyBonus, m.PassivePerception, m.VariantOfId, original,
-			ToText(m.Translations.Localize(lang), lang), _access.CanModify(m, User), m.Source, m.Visibility, author, m.IsNpc);
+		private MonsterDetailDto ToDetail(Monster m, LanguageCode lang, string? original, string? author, List<NpcCampaignDto>? campaigns, bool originalIsNpc)
+		{
+			var canEdit = _access.CanModify(m, User);
+			var text = ToText(m.Translations.Localize(lang), lang);
+
+			//	The secrets of a character are for who can edit it (its author)
+			if (!canEdit)
+			{
+				text.Secrets = string.Empty;
+			}
+			var userId = User.Identity?.IsAuthenticated == true ? ContentAccess.GetUserId(User) : null;
+			return new(
+				m.Id, m.Ruleset, m.IsOfficialSRD, m.Size, m.Type, m.ArmorClass, m.HitPoints, m.HitDice, m.Speed,
+				new List<int> { m.Strength, m.Dexterity, m.Constitution, m.Intelligence, m.Wisdom, m.Charisma },
+				Plain(m.ChallengeRating), m.Xp, m.ProficiencyBonus, m.PassivePerception, m.VariantOfId, original,
+				text, canEdit, m.Source, m.Visibility, author, m.IsNpc, m.Archetype, m.Portrait,
+				userId is not null && !m.IsOfficialSRD && m.AuthorId == userId, campaigns ?? new(), m.Attitude, m.SocialDc, originalIsNpc);
+		}
 
 		private static void Apply(Monster m, SaveMonsterDto dto)
 		{
@@ -292,6 +363,10 @@ namespace RealmForge.Api.Controllers
 			m.ProficiencyBonus = dto.ProficiencyBonus;
 			m.PassivePerception = dto.PassivePerception;
 			m.IsNpc = dto.IsNpc;
+			m.Archetype = dto.Archetype;
+			m.Attitude = dto.Attitude;
+			m.SocialDc = dto.SocialDc;
+			m.Portrait = string.IsNullOrWhiteSpace(dto.Portrait) ? null : dto.Portrait.Trim();
 		}
 
 		private static MonsterTranslation Translation(MonsterTranslation target, MonsterTextDto t)
@@ -317,6 +392,20 @@ namespace RealmForge.Api.Controllers
 			target.Reactions = Clean(t.Reactions);
 			target.LegendaryActions = Clean(t.LegendaryActions);
 			target.Description = Clean(t.Description);
+			target.Role = Clean(t.Role);
+			target.Ancestry = Clean(t.Ancestry);
+			target.Personality = Clean(t.Personality);
+			target.Secrets = Clean(t.Secrets);
+			target.Location = Clean(t.Location);
+			target.Faction = Clean(t.Faction);
+			target.Equipment = Clean(t.Equipment);
+			target.Coins = Clean(t.Coins);
+			target.Appearance = Clean(t.Appearance);
+			target.Gear = Clean(t.Gear);
+			target.Leverage = Clean(t.Leverage);
+			target.Goal = Clean(t.Goal);
+			target.Reaction = Clean(t.Reaction);
+			target.Tactics = Clean(t.Tactics);
 			return target;
 		}
 
@@ -369,6 +458,20 @@ namespace RealmForge.Api.Controllers
 			{
 				return "Proficiency bonus (0-12) or passive Perception (0-50) out of range.";
 			}
+			if ((dto.Archetype is { } archetype && !Enum.IsDefined(archetype)) || (dto.Attitude is { } attitude && !Enum.IsDefined(attitude)))
+			{
+				return "Unknown NPC function or attitude.";
+			}
+			if (dto.SocialDc is < 1 or > 40)
+			{
+				return "Social DC between 1 and 40.";
+			}
+			if (!string.IsNullOrWhiteSpace(dto.Portrait) && (dto.Portrait.Trim().Length > Monster.MaxPortraitLength
+				|| !(dto.Portrait.StartsWith("data:image/jpeg;base64,", StringComparison.Ordinal) || dto.Portrait.StartsWith("data:image/png;base64,", StringComparison.Ordinal)
+					|| dto.Portrait.StartsWith("data:image/webp;base64,", StringComparison.Ordinal))))
+			{
+				return "The portrait must be a JPEG, PNG or WebP image of at most 200 KB.";
+			}
 			if ((dto.HitDice ?? string.Empty).Trim().Length > 40)
 			{
 				return "Hit dice: at most 40 characters.";
@@ -381,7 +484,12 @@ namespace RealmForge.Api.Controllers
 				}
 				var lines = new[] { t.Subtitle, t.ArmorClass, t.Speed, t.SavingThrows };
 				var longLines = new[] { t.Skills, t.DamageVulnerabilities, t.DamageResistances, t.DamageImmunities, t.ConditionImmunities, t.Senses, t.Languages };
-				var blocks = new[] { t.Traits, t.Actions, t.BonusActions, t.Reactions, t.LegendaryActions, t.Description };
+				var blocks = new[] { t.Traits, t.Actions, t.BonusActions, t.Reactions, t.LegendaryActions, t.Description, t.Personality, t.Secrets, t.Appearance, t.Gear, t.Leverage, t.Goal, t.Reaction, t.Tactics };
+				if ((t.Role?.Trim().Length ?? 0) > 100 || (t.Ancestry?.Trim().Length ?? 0) > 100 || (t.Location?.Trim().Length ?? 0) > 100
+					|| (t.Faction?.Trim().Length ?? 0) > 100 || (t.Coins?.Trim().Length ?? 0) > 100 || (t.Equipment?.Trim().Length ?? 0) > 300)
+				{
+					return "Role, ancestry, place, faction or coins (100 characters) or equipment (300) too long.";
+				}
 				if (lines.Any(l => (l?.Trim().Length ?? 0) > MaxLineLength) || longLines.Any(l => (l?.Trim().Length ?? 0) > MaxLongLineLength)
 					|| blocks.Any(b => (b?.Trim().Length ?? 0) > MaxMarkdownLength))
 				{

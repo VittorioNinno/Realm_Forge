@@ -1,5 +1,4 @@
 ﻿@page "/monsters"
-@page "/npcs"
 @using RealmForge.Client.Components
 @using RealmForge.Client.Localization
 @using RealmForge.Client.Services
@@ -13,17 +12,17 @@
 @inject ApiErrorState ApiErrors
 @inject NavigationManager Navigation
 
-<PageTitle>RealmForge - @(Npc ? UiText.NpcsTitle(Lang) : UiText.MonstersTitle(Lang))</PageTitle>
+<PageTitle>RealmForge - @UiText.MonstersTitle(Lang)</PageTitle>
 
 <div class="container-fluid px-0 py-4">
     <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4 pb-3" style="border-bottom: 2px solid var(--rf-orange-primary);">
         <div>
-            <h1 class="h3 fw-bold mb-2 rf-page-title" data-test="monster-page-title">@(Npc ? UiText.NpcsTitle(Lang) : UiText.MonstersTitle(Lang))</h1>
-            <p class="mb-0 small" style="color: var(--rf-text-muted); letter-spacing: 1px; text-transform: uppercase;">@(Npc ? UiText.NpcsSubtitle(Lang) : UiText.MonstersSubtitle(Lang))</p>
+            <h1 class="h3 fw-bold mb-2 rf-page-title" data-test="monster-page-title">@UiText.MonstersTitle(Lang)</h1>
+            <p class="mb-0 small" style="color: var(--rf-text-muted); letter-spacing: 1px; text-transform: uppercase;">@UiText.MonstersSubtitle(Lang)</p>
         </div>
         <div>
             <ForgeAction>
-                <button class="btn btn-rf-orange" @onclick="OpenCreate" data-test="monster-new">@(Npc ? UiText.BtnNewNpc(Lang) : UiText.BtnNewMonster(Lang))</button>
+                <button class="btn btn-rf-orange" @onclick="OpenCreate" data-test="monster-new">@UiText.BtnNewMonster(Lang)</button>
             </ForgeAction>
         </div>
     </div>
@@ -32,7 +31,7 @@
     <div class="row g-3 mb-4 p-3 rounded" style="background-color: var(--rf-bg-surface); border: 1px solid var(--rf-border-light);" data-test="monster-filters">
         <div class="col-lg-4 col-md-6">
             <label class="rf-form-label small text-uppercase" style="letter-spacing: 0.5px;">@UiText.LabelSearchMagicItem(Lang)</label>
-            <input type="text" class="rf-form-control" placeholder="@(Npc ? UiText.PlaceholderSearchNpcs(Lang) : UiText.PlaceholderSearchMonsters(Lang))"
+            <input type="text" class="rf-form-control" placeholder="@UiText.PlaceholderSearchMonsters(Lang)"
                    @bind="SearchTerm" @bind:event="oninput" data-test="monster-search" />
         </div>
         <div class="col-lg-2 col-md-6" data-test="monster-ruleset">
@@ -64,7 +63,7 @@
                 <button type="button" class="rf-pill-btn @(SortByChallenge ? null : "active")" @onclick="() => SortByChallenge = false" data-test="monster-sort-name">@UiText.SortByName(Lang)</button>
                 <button type="button" class="rf-pill-btn @(SortByChallenge ? "active" : null)" @onclick="() => SortByChallenge = true" data-test="monster-sort-cr">@UiText.SortByChallenge(Lang)</button>
             </div>
-            <span class="ms-auto small" style="color: var(--rf-text-muted);" data-test="monster-count">@(Npc ? UiText.NpcCount(Filtered.Count, Lang) : UiText.MonsterCount(Filtered.Count, Lang))</span>
+            <span class="ms-auto small" style="color: var(--rf-text-muted);" data-test="monster-count">@UiText.MonsterCount(Filtered.Count, Lang)</span>
         </div>
     </div>
 
@@ -78,7 +77,7 @@
     else if (Filtered.Count == 0)
     {
         <div class="p-4 rounded text-center" style="background-color: var(--rf-bg-surface); border: 1px solid var(--rf-border-light);" data-test="monster-empty">
-            <p class="mb-0" style="color: var(--rf-text-muted);">@(Npc ? UiText.NoNpcsFound(Lang) : UiText.NoMonstersFound(Lang))</p>
+            <p class="mb-0" style="color: var(--rf-text-muted);">@UiText.NoMonstersFound(Lang)</p>
         </div>
     }
     else
@@ -181,6 +180,9 @@
                     <ForgeAction>
                         <button class="btn btn-sm btn-rf-orange" @onclick="() => OpenVariantAsync(detail)" data-test="monster-variant">@UiText.BtnCreateVariant(Lang)</button>
                     </ForgeAction>
+                    <ForgeAction>
+                        <button class="btn btn-sm btn-rf-outline text-uppercase" title="@UiText.NpcFromMonsterHint(Lang)" @onclick="() => OpenNpcAsync(detail)" data-test="monster-make-npc"><Icon Name="npcs" /> @UiText.NpcFromMonster(Lang)</button>
+                    </ForgeAction>
                     @if (detail.CanEdit)
                     {
                         <button class="btn btn-sm btn-rf-outline text-uppercase" @onclick="() => OpenEditAsync(detail)" data-test="monster-edit">@UiText.Edit(Lang)</button>
@@ -244,9 +246,7 @@
 
     private int Rank(MonsterResponseDto m) => SearchRank.Of(SearchTerm, m.Name, new[] { m.Alias });
 
-    //	The same page lists the nonplayer characters (/npcs) or the monsters (/monsters)
-    private bool Npc;
-    private string PagePath => Npc ? "npcs" : "monsters";
+    private const string PagePath = "monsters";
 
     private List<MonsterResponseDto> Filtered
     {
@@ -254,7 +254,8 @@
         {
             var term = SearchTerm.Trim();
             var list = All
-                .Where(m => m.IsNpc == Npc)
+                //	Every statblock: the base NPCs too (their NPC sheet is on the NPC page); the Homebrew NPCs only there
+                .Where(m => !m.IsNpc || m.IsOfficialSRD)
                 .Where(m => OriginFilter switch { "srd" => m.IsOfficialSRD, "homebrew" => !m.IsOfficialSRD, _ => true })
                 .Where(m => TypeFilter is null || m.Type == TypeFilter)
                 .Where(m => SizeFilter is null || m.Size == SizeFilter)
@@ -286,14 +287,9 @@
 
     private sealed record Group(string Key, string Label, List<MonsterResponseDto> Items);
 
-    //	Monsters by creature type; nonplayer characters (almost all humanoids) by challenge band
-    private List<Group> Groups => Npc
-        ? Filtered.GroupBy(m => NpcBand(m.ChallengeRating)).OrderBy(g => g.Min(Rank)).ThenBy(g => g.Key)
-            .Select(g => new Group(g.Key.ToString(), UiText.NpcBandName(g.Key, Lang), g.ToList())).ToList()
-        : Filtered.GroupBy(m => m.Type).OrderBy(g => g.Min(Rank)).ThenBy(g => UiText.FormatCreatureType(g.Key, Lang), StringComparer.CurrentCultureIgnoreCase)
+    //	Monsters by creature type
+    private List<Group> Groups => Filtered.GroupBy(m => m.Type).OrderBy(g => g.Min(Rank)).ThenBy(g => UiText.FormatCreatureType(g.Key, Lang), StringComparer.CurrentCultureIgnoreCase)
             .Select(g => new Group(g.Key.ToString(), UiText.FormatCreatureType(g.Key, Lang), g.ToList())).ToList();
-
-    private static int NpcBand(decimal challenge) => challenge switch { <= 1 => 0, <= 4 => 1, <= 10 => 2, _ => 3 };
 
     //	Open and closed groups: closed by default (the page reads as an index), open as soon as a filter or a search
     //	narrows the list; the user's toggles win until the filters change again
@@ -305,7 +301,7 @@
 
     private bool IsExpanded(string type)
     {
-        var filters = $"{TypeFilter}|{SizeFilter}|{MinChallenge}|{MaxChallenge}|{SearchTerm}|{OriginFilter}|{SelectedRuleset}|{Npc}";
+        var filters = $"{TypeFilter}|{SizeFilter}|{MinChallenge}|{MaxChallenge}|{SearchTerm}|{OriginFilter}|{SelectedRuleset}";
         if (filters != groupFilters)
         {
             groupFilters = filters;
@@ -342,11 +338,8 @@
             .Concat(MonsterMath.Challenges.Select(c => new RfSelect<decimal?>.OptionItem(c.Rating, MonsterMath.FormatChallenge(c.Rating))))
             .ToList();
 
-    private bool PathIsNpc() => Navigation.ToBaseRelativePath(Navigation.Uri).StartsWith("npcs", StringComparison.OrdinalIgnoreCase);
-
     protected override async Task OnInitializedAsync()
     {
-        Npc = PathIsNpc();
         LanguageState.OnLanguageChanged += HandleLanguageChanged;
         _ = Glossary.EnsureLoadedAsync(Lang);
         await LoadAsync();
@@ -364,14 +357,6 @@
     //	A link to another monster (monsters?id=…): same page, only the query changes
     protected override async Task OnParametersSetAsync()
     {
-        //	From the monsters to the NPC page (or back): same component, another list
-        if (PathIsNpc() != Npc)
-        {
-            Npc = PathIsNpc();
-            Selected = null;
-            SearchTerm = string.Empty;
-            TypeFilter = null;
-        }
         if (QueryId != openedQueryId)
         {
             openedQueryId = QueryId;
@@ -410,10 +395,9 @@
     {
         editingId = null;
         editorVariantOf = null;
-        editorTitle = Npc ? UiText.BtnNewNpc(Lang) : UiText.BtnNewMonster(Lang);
+        editorTitle = UiText.BtnNewMonster(Lang);
         editor = new SaveMonsterDto
         {
-            IsNpc = Npc,
             Ruleset = SelectedRuleset ?? RulesetVersion.Dnd5e_2014,
             ChallengeRating = 1,
             Xp = MonsterMath.XpFor(1),
@@ -485,6 +469,7 @@
         }
         model.VariantOfId = detail.Id;
         model.Visibility = ContentVisibility.Private;
+        model.IsNpc = false;
         foreach (var text in model.Translations)
         {
             text.Name = UiText.MonsterVariantName(text.Name, text.Language);
@@ -497,8 +482,29 @@
         editor = model;
     }
 
+    //	"Crea PNG": an NPC of the account with this statblock, opened on its sheet once saved
+    private async Task OpenNpcAsync(MonsterDetailDto detail)
+    {
+        var model = await NpcModels.CloneAsync(MonsterService, detail.Id);
+        if (model is null)
+        {
+            return;
+        }
+        editingId = null;
+        editorVariantOf = detail.Text.Name;
+        editorTitle = UiText.NpcFromMonster(Lang);
+        Selected = null;
+        editor = model;
+    }
+
     private async Task SavedAsync(Guid id)
     {
+        if (editor?.IsNpc == true && editingId is null)
+        {
+            editor = null;
+            Navigation.NavigateTo($"npcs/{id}");
+            return;
+        }
         editor = null;
         await LoadAsync();
         await OpenDetailAsync(id);
