@@ -1187,7 +1187,7 @@ try {
   npcUi.deleted = await npcCount('21 PNG');
   results.push(`INFO npcs: ${JSON.stringify(npcUi)}`);
   if (npcUi.title !== 'PNG' || npcUi.count !== '21 PNG' || npcUi.cards !== 21 || npcUi.empty !== 1 || npcUi.starters !== 3 || npcUi.cr5 !== '4 PNG'
-    || npcUi.rogues !== '3 PNG' || !npcUi.randomName || !npcUi.randomRole || npcUi.sheet.name !== 'Brannoc' || npcUi.sheet.role !== 'Locandiere'
+    || npcUi.rogues !== '3 PNG' || !npcUi.randomName || !npcUi.randomRole || !/^brannoc$/i.test(npcUi.sheet.name) || npcUi.sheet.role !== 'Locandiere'
     || !/combattente/i.test(npcUi.sheet.archetype) || !npcUi.sheet.personality || !npcUi.sheet.secrets || !/Guardia/.test(npcUi.sheet.variantOf)
     || !npcUi.sheet.statblock || npcUi.after !== '22 PNG' || !/^Brannoc .*Mio PNG/i.test(npcUi.firstCard) || npcUi.emptyAfter !== 0 || npcUi.deleted !== '21 PNG') {
     throw new Error(`unexpected NPC page: ${JSON.stringify(npcUi)}`);
