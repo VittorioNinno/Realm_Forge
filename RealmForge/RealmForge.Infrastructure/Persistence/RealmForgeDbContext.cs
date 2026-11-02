@@ -410,6 +410,7 @@ namespace RealmForge.Infrastructure.Persistence
 				entity.Property(e => e.IsOfficialSRD).IsRequired();
 				entity.Property(e => e.HitDice).IsRequired().HasMaxLength(40);
 				entity.Property(e => e.ChallengeRating).HasPrecision(6, 3);
+				entity.Property(e => e.Portrait).HasMaxLength(Monster.MaxPortraitLength);
 
 				//	The list filters by ruleset, type and challenge
 				entity.HasIndex(e => new { e.Ruleset, e.Type });
@@ -449,6 +450,20 @@ namespace RealmForge.Infrastructure.Persistence
 				entity.Property(t => t.Reactions).IsRequired();
 				entity.Property(t => t.LegendaryActions).IsRequired();
 				entity.Property(t => t.Description).IsRequired();
+				entity.Property(t => t.Role).IsRequired().HasMaxLength(100).HasDefaultValue("");
+				entity.Property(t => t.Ancestry).IsRequired().HasMaxLength(100).HasDefaultValue("");
+				entity.Property(t => t.Personality).IsRequired().HasDefaultValue("");
+				entity.Property(t => t.Secrets).IsRequired().HasDefaultValue("");
+				entity.Property(t => t.Location).IsRequired().HasMaxLength(100).HasDefaultValue("");
+				entity.Property(t => t.Faction).IsRequired().HasMaxLength(100).HasDefaultValue("");
+				entity.Property(t => t.Equipment).IsRequired().HasMaxLength(300).HasDefaultValue("");
+				entity.Property(t => t.Coins).IsRequired().HasMaxLength(100).HasDefaultValue("");
+				entity.Property(t => t.Appearance).IsRequired().HasDefaultValue("");
+				entity.Property(t => t.Gear).IsRequired().HasDefaultValue("");
+				entity.Property(t => t.Leverage).IsRequired().HasDefaultValue("");
+				entity.Property(t => t.Goal).IsRequired().HasDefaultValue("");
+				entity.Property(t => t.Reaction).IsRequired().HasDefaultValue("");
+				entity.Property(t => t.Tactics).IsRequired().HasDefaultValue("");
 
 				//	Unique index: a monster cannot have two translations for the same language
 				entity.HasIndex(t => new { t.MonsterId, t.Language }).IsUnique();

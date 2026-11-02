@@ -33,6 +33,27 @@ namespace RealmForge.Shared.DTOs
 
 		//	Description and lore (Markdown), shown under the statblock
 		public string Description { get; set; } = string.Empty;
+
+		//	NPC sheet: role ("Locandiere"), ancestry ("Nano delle colline"), personality (Markdown) and secrets (Markdown,
+		//	empty for who cannot edit the character)
+		public string Role { get; set; } = string.Empty;
+		public string Ancestry { get; set; } = string.Empty;
+		public string Personality { get; set; } = string.Empty;
+		public string Secrets { get; set; } = string.Empty;
+
+		//	NPC dossier, short lines: place, faction, visible equipment, coins
+		public string Location { get; set; } = string.Empty;
+		public string Faction { get; set; } = string.Empty;
+		public string Equipment { get; set; } = string.Empty;
+		public string Coins { get; set; } = string.Empty;
+
+		//	NPC dossier (Markdown): appearance, pockets, leverage, goal, reaction to threats, tactics
+		public string Appearance { get; set; } = string.Empty;
+		public string Gear { get; set; } = string.Empty;
+		public string Leverage { get; set; } = string.Empty;
+		public string Goal { get; set; } = string.Empty;
+		public string Reaction { get; set; } = string.Empty;
+		public string Tactics { get; set; } = string.Empty;
 	}
 
 	///	<summary>
@@ -57,7 +78,23 @@ namespace RealmForge.Shared.DTOs
 		bool CanEdit = false,
 		ContentSource? Source = null,
 		ContentVisibility Visibility = ContentVisibility.Public,
-		bool IsNpc = false
+		bool IsNpc = false,
+
+		//	NPC card: archetype, portrait (data URL), role, ancestry, the start of the personality, whether the account
+		//	wrote it, and the first campaign of the account it is shared with
+		NpcArchetype? Archetype = null,
+		string? Portrait = null,
+		string Role = "",
+		string Ancestry = "",
+		string Personality = "",
+		bool IsMine = false,
+		Guid? CampaignId = null,
+		string? CampaignName = null,
+		NpcAttitude? Attitude = null,
+		string Location = "",
+
+		//	The statblock it is made from (a monster, or the NPC it was copied from)
+		string? VariantOfName = null
 	);
 
 	///	<summary>
@@ -87,9 +124,25 @@ namespace RealmForge.Shared.DTOs
 		ContentVisibility Visibility = ContentVisibility.Public,
 		string? AuthorName = null,
 
-		//	A nonplayer character (the NPC page)
-		bool IsNpc = false
+		//	A nonplayer character (the NPC page), with its archetype and portrait
+		bool IsNpc = false,
+		NpcArchetype? Archetype = null,
+		string? Portrait = null,
+		bool IsMine = false,
+
+		//	The campaigns of the account the character is shared with
+		List<NpcCampaignDto>? Campaigns = null,
+		NpcAttitude? Attitude = null,
+		int? SocialDc = null,
+
+		//	The original is a Homebrew NPC (its sheet is on the NPC page) rather than a monster
+		bool VariantOfIsNpc = false
 	);
+
+	///	<summary>
+	///	A campaign an NPC is shared with (the link on its sheet).
+	///	</summary>
+	public record NpcCampaignDto(Guid Id, string Name);
 
 	///	<summary>
 	///	Homebrew monster on create and update (a variant of another monster carries its id in VariantOfId).
@@ -115,6 +168,12 @@ namespace RealmForge.Shared.DTOs
 
 		//	A nonplayer character: listed on the NPC page
 		public bool IsNpc { get; set; }
+		public NpcArchetype? Archetype { get; set; }
+		public NpcAttitude? Attitude { get; set; }
+		public int? SocialDc { get; set; }
+
+		//	Square JPEG as a data URL ("data:image/jpeg;base64,…"), null for none
+		public string? Portrait { get; set; }
 		public List<MonsterTextDto> Translations { get; set; } = new();
 	}
 }

@@ -5,6 +5,7 @@
 @using RealmForge.Shared.Monsters
 @inject MonsterDataService MonsterService
 @inject LanguageStateService LanguageState
+@inject IJSRuntime JS
 
 @* Homebrew statblock form: the numbers once, the texts per language (a language without a name is left out) *@
 <div class="rf-modal-backdrop" @onclick="Cancel">
@@ -12,12 +13,58 @@
         <h2 class="h4 mb-2 pb-2" style="border-bottom: 1px solid var(--rf-border-light); font-family: var(--rf-font-display);">@Title</h2>
         @if (VariantOfName is not null)
         {
-            <div class="small mb-3" style="color: var(--rf-text-muted);">@UiText.MonsterVariantHint(VariantOfName, Lang)</div>
+            <div class="small mb-3" style="color: var(--rf-text-muted);">@(Model.IsNpc ? UiText.NpcCloneHint(VariantOfName, Lang) : UiText.MonsterVariantHint(VariantOfName, Lang))</div>
         }
 
         @if (error is not null)
         {
             <div class="alert alert-warning bg-dark border-warning text-warning p-2 small mb-3" data-test="monster-form-error">@error</div>
+        }
+
+        @if (Model.IsNpc)
+        {
+            @* NPC: portrait (cropped square in the browser) and what the character does at the table *@
+            <div class="rf-npc-form-head mb-3" data-test="npc-form-head">
+                <div class="rf-npc-avatar rf-npc-avatar-lg">
+                    @if (Model.Portrait is { } portrait)
+                    {
+                        <img src="@portrait" alt="" data-test="npc-form-portrait" />
+                    }
+                    else
+                    {
+                        <Icon Name="npcs" />
+                    }
+                </div>
+                <div class="d-flex flex-column gap-2">
+                    <span class="rf-form-label mb-0">@UiText.NpcPortrait(Lang)</span>
+                    <div class="d-flex flex-wrap gap-2">
+                        <label class="btn btn-sm btn-rf-outline mb-0" data-test="npc-form-portrait-pick">
+                            <InputFile OnChange="PortraitAsync" accept="image/*" class="d-none" />
+                            <Icon Name="edit" /> @UiText.NpcPortraitPick(Lang)
+                        </label>
+                        @if (Model.Portrait is not null)
+                        {
+                            <button type="button" class="btn btn-sm btn-rf-outline" @onclick="() => Model.Portrait = null" data-test="npc-form-portrait-remove">@UiText.BtnRemove(Lang)</button>
+                        }
+                    </div>
+                    @if (portraitError is not null)
+                    {
+                        <span class="small text-warning">@portraitError</span>
+                    }
+                </div>
+                <div class="rf-npc-form-archetype" data-test="npc-form-archetype">
+                    <label class="rf-form-label">@UiText.NpcFunction(Lang)</label>
+                    <RfSelect TValue="NpcArchetype?" @bind-Value="Model.Archetype" Options="ArchetypeOptions" />
+                </div>
+                <div class="rf-npc-form-dc" data-test="npc-form-dc">
+                    <label class="rf-form-label">@UiText.NpcSocialDc(Lang)</label>
+                    <input type="number" class="rf-form-control" min="1" max="40" @bind="Model.SocialDc" />
+                </div>
+                <div class="rf-npc-form-archetype" data-test="npc-form-attitude">
+                    <label class="rf-form-label">@UiText.NpcAttitudeLabel(Lang)</label>
+                    <RfSelect TValue="NpcAttitude?" @bind-Value="Model.Attitude" Options="AttitudeOptions" />
+                </div>
+            </div>
         }
 
         <div class="row g-3 mb-3">
@@ -85,11 +132,6 @@
             }
         </div>
 
-        <label class="rf-checkbox-wrapper small mb-3">
-            <input type="checkbox" class="rf-checkbox" @bind="Model.IsNpc" data-test="monster-form-npc" />
-            <span>@UiText.MonsterIsNpc(Lang)</span>
-        </label>
-
         <VisibilityPicker @bind-Value="Model.Visibility" />
 
         <div class="rf-pill-group mb-2" role="tablist">
@@ -111,6 +153,43 @@
                     <label class="rf-form-label">@UiText.LabelName(Lang)</label>
                     <input class="rf-form-control" maxlength="150" @bind="text.Name" data-test="monster-form-name" />
                 </div>
+                @if (Model.IsNpc)
+                {
+                    <div class="col-md-3">
+                        <label class="rf-form-label">@UiText.NpcRole(Lang)</label>
+                        <input class="rf-form-control" maxlength="100" placeholder="@UiText.NpcRoleHint(tab)" @bind="text.Role" data-test="npc-form-role" />
+                    </div>
+                    <div class="col-md-3">
+                        <label class="rf-form-label">@UiText.NpcAncestry(Lang)</label>
+                        <input class="rf-form-control" maxlength="100" placeholder="@UiText.NpcAncestryHint(tab)" @bind="text.Ancestry" data-test="npc-form-ancestry" />
+                    </div>
+                    <div class="col-md-3">
+                        <label class="rf-form-label">@UiText.NpcLocation(Lang)</label>
+                        <input class="rf-form-control" maxlength="100" placeholder="@UiText.NpcLocationHint(tab)" @bind="text.Location" data-test="npc-form-location" />
+                    </div>
+                    <div class="col-md-3">
+                        <label class="rf-form-label">@UiText.NpcFaction(Lang)</label>
+                        <input class="rf-form-control" maxlength="100" @bind="text.Faction" data-test="npc-form-faction" />
+                    </div>
+                    <div class="col-md-4">
+                        <label class="rf-form-label">@UiText.NpcEquipment(Lang)</label>
+                        <input class="rf-form-control" maxlength="300" @bind="text.Equipment" data-test="npc-form-equipment" />
+                    </div>
+                    <div class="col-md-2">
+                        <label class="rf-form-label">@UiText.NpcCoins(Lang)</label>
+                        <input class="rf-form-control" maxlength="100" placeholder="35 mo" @bind="text.Coins" data-test="npc-form-coins" />
+                    </div>
+                    <div class="col-12">
+                        @Block(UiText.NpcPersonality(Lang), () => text.Personality, v => text.Personality = v, "personality")
+                        @Block(UiText.NpcAppearance(Lang), () => text.Appearance, v => text.Appearance = v, "appearance")
+                        @Block(UiText.NpcLeverage(Lang), () => text.Leverage, v => text.Leverage = v, "leverage")
+                        @Block(UiText.NpcGoal(Lang), () => text.Goal, v => text.Goal = v, "goal")
+                        @Block(UiText.NpcReaction(Lang), () => text.Reaction, v => text.Reaction = v, "reaction")
+                        @Block(UiText.NpcSecrets(Lang), () => text.Secrets, v => text.Secrets = v, "secrets")
+                        @Block(UiText.NpcGear(Lang), () => text.Gear, v => text.Gear = v, "gear")
+                        @Block(UiText.NpcTactics(Lang), () => text.Tactics, v => text.Tactics = v, "tactics")
+                    </div>
+                }
                 <div class="col-md-6">
                     <label class="rf-form-label">@UiText.MonsterAlias(Lang)</label>
                     <input class="rf-form-control" maxlength="150" @bind="text.Alias" />
@@ -265,6 +344,45 @@
 
     private Task Cancel() => OnCancel.InvokeAsync();
 
+    // ===== NPC =====
+
+    private string? portraitError;
+
+    private List<RfSelect<NpcArchetype?>.OptionItem> ArchetypeOptions =>
+        new List<RfSelect<NpcArchetype?>.OptionItem> { new(null, "—") }
+            .Concat(Enum.GetValues<NpcArchetype>().Select(a => new RfSelect<NpcArchetype?>.OptionItem(a, UiText.FormatNpcArchetype(a, Lang))))
+            .ToList();
+
+    private List<RfSelect<NpcAttitude?>.OptionItem> AttitudeOptions =>
+        new List<RfSelect<NpcAttitude?>.OptionItem> { new(null, "—") }
+            .Concat(Enum.GetValues<NpcAttitude>().Select(a => new RfSelect<NpcAttitude?>.OptionItem(a, UiText.FormatNpcAttitude(a, Lang))))
+            .ToList();
+
+    //	The picture becomes a 256 px square from its centre
+    private async Task PortraitAsync(InputFileChangeEventArgs e)
+    {
+        portraitError = null;
+        try
+        {
+            var image = await e.File.RequestImageFileAsync("image/jpeg", 1024, 1024);
+            await using var stream = image.OpenReadStream(maxAllowedSize: 5_000_000);
+            using var memory = new MemoryStream();
+            await stream.CopyToAsync(memory);
+            var url = $"data:image/jpeg;base64,{Convert.ToBase64String(memory.ToArray())}";
+            var cropped = await JS.InvokeAsync<string>("rfCropImage", url, 50, 50, 1.0, 256);
+            if (string.IsNullOrEmpty(cropped) || cropped.Length > 200_000)
+            {
+                portraitError = UiText.PortraitTooLarge(Lang);
+                return;
+            }
+            Model.Portrait = cropped;
+        }
+        catch (Exception)
+        {
+            portraitError = UiText.PortraitTooLarge(Lang);
+        }
+    }
+
     private async Task SaveAsync()
     {
         error = null;
@@ -291,6 +409,10 @@
             PassivePerception = Model.PassivePerception,
             VariantOfId = Model.VariantOfId,
             IsNpc = Model.IsNpc,
+            Archetype = Model.IsNpc ? Model.Archetype : null,
+            Attitude = Model.IsNpc ? Model.Attitude : null,
+            SocialDc = Model.IsNpc ? Model.SocialDc : null,
+            Portrait = Model.IsNpc ? Model.Portrait : null,
             Translations = translations
         };
 

@@ -1,0 +1,34 @@
+﻿@* The square picture of an NPC: its portrait, or its initials (orange for the account's, amethyst for the community's) *@
+<div class="rf-npc-avatar @(Large ? "rf-npc-avatar-lg" : null) @(Shared ? "shared" : null)" aria-hidden="true" data-test="npc-avatar">
+    @if (Portrait is { } src)
+    {
+        <img src="@src" alt="" />
+    }
+    else
+    {
+        <span class="rf-npc-initials">@Initials</span>
+    }
+</div>
+
+@code {
+    [Parameter] public string? Portrait { get; set; }
+    [Parameter] public string? Name { get; set; }
+    [Parameter] public bool Shared { get; set; }
+    [Parameter] public bool Large { get; set; }
+
+    //	"Vaelen Occhiogrigio" → "VO"; one word → its first two letters
+    private string Initials
+    {
+        get
+        {
+            var words = (Name ?? string.Empty).Split(' ', StringSplitOptions.RemoveEmptyEntries)
+                .Select(w => w.Trim('"', '«', '»', '“', '”', '(', ')')).Where(w => w.Length > 0).ToList();
+            return words.Count switch
+            {
+                0 => "?",
+                1 => words[0][..Math.Min(2, words[0].Length)].ToUpperInvariant(),
+                _ => $"{words[0][0]}{words[^1][0]}".ToUpperInvariant()
+            };
+        }
+    }
+}
