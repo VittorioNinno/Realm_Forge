@@ -9914,7 +9914,24 @@ textarea.rf-form-control {
 .rf-vtt-layout {
     display: grid;
     grid-template-columns: minmax(0, 1fr);
+    align-items: start;
     gap: 16px;
+}
+
+.rf-vtt-field {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    min-width: 0;
+    margin: 0;
+}
+
+.rf-vtt-label {
+    font-size: .65rem;
+    font-weight: 800;
+    letter-spacing: .07em;
+    text-transform: uppercase;
+    color: var(--rf-text-muted);
 }
 
     .rf-vtt-layout.master {
@@ -10026,7 +10043,7 @@ textarea.rf-form-control {
 
 .rf-vtt-grid-fields {
     display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: minmax(0, 1fr);
     gap: 8px;
 }
 
@@ -10073,6 +10090,6 @@ textarea.rf-form-control {
     }
 
     .rf-vtt-grid-fields {
-        grid-template-columns: repeat(3, minmax(0, 1fr));
+        grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
     }
 }
