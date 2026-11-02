@@ -111,7 +111,7 @@ Il primo avvio dell'API applica le migrazioni (già presenti nei dati importati)
 
 ## 7. Aggiornamenti
 
-A ogni release GitHub pubblica la nuova immagine dell'API. `podman-auto-update.timer` la scarica ogni giorno e riavvia il container. Per aggiornare subito:
+A ogni release (push sul ramo `release`) GitHub pubblica la nuova immagine dell'API in pochi minuti. `podman-auto-update.timer` controlla **ogni 15 minuti** (impostato da `install.sh`): se l'immagine è cambiata la scarica e riavvia il container; le migrazioni si applicano all'avvio. Una release arriva quindi online entro circa 20-30 minuti, senza fare nulla. Per vedere cosa ha fatto: `journalctl --user -u podman-auto-update -n 50`. Per aggiornare subito:
 ```bash
 podman auto-update
 ```
