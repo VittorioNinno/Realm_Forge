@@ -1,29 +1,34 @@
-﻿@using RealmForge.Shared.Enums
-
-@* The square picture of an NPC: its portrait, or the icon of what it does at the table *@
-<div class="rf-npc-avatar @(Large ? "rf-npc-avatar-lg" : null) @(Portrait is null ? (Shared ? "shared" : "empty") : null)" aria-hidden="true" data-test="npc-avatar">
+﻿@* The square picture of an NPC: its portrait, or its initials (orange for the account's, amethyst for the community's) *@
+<div class="rf-npc-avatar @(Large ? "rf-npc-avatar-lg" : null) @(Shared ? "shared" : null)" aria-hidden="true" data-test="npc-avatar">
     @if (Portrait is { } src)
     {
         <img src="@src" alt="" />
     }
     else
     {
-        <Icon Name="@IconName" />
+        <span class="rf-npc-initials">@Initials</span>
     }
 </div>
 
 @code {
     [Parameter] public string? Portrait { get; set; }
-    [Parameter] public NpcArchetype? Archetype { get; set; }
+    [Parameter] public string? Name { get; set; }
     [Parameter] public bool Shared { get; set; }
     [Parameter] public bool Large { get; set; }
 
-    private string IconName => Archetype switch
+    //	"Vaelen Occhiogrigio" → "VO"; one word → its first two letters
+    private string Initials
     {
-        NpcArchetype.Combatant => "shield",
-        NpcArchetype.Caster => "star",
-        NpcArchetype.Rogue => "eye-slash",
-        NpcArchetype.Social => "heart",
-        _ => "npcs"
-    };
+        get
+        {
+            var words = (Name ?? string.Empty).Split(' ', StringSplitOptions.RemoveEmptyEntries)
+                .Select(w => w.Trim('"', '«', '»', '“', '”', '(', ')')).Where(w => w.Length > 0).ToList();
+            return words.Count switch
+            {
+                0 => "?",
+                1 => words[0][..Math.Min(2, words[0].Length)].ToUpperInvariant(),
+                _ => $"{words[0][0]}{words[^1][0]}".ToUpperInvariant()
+            };
+        }
+    }
 }

@@ -454,6 +454,16 @@ namespace RealmForge.Infrastructure.Persistence
 				entity.Property(t => t.Ancestry).IsRequired().HasMaxLength(100).HasDefaultValue("");
 				entity.Property(t => t.Personality).IsRequired().HasDefaultValue("");
 				entity.Property(t => t.Secrets).IsRequired().HasDefaultValue("");
+				entity.Property(t => t.Location).IsRequired().HasMaxLength(100).HasDefaultValue("");
+				entity.Property(t => t.Faction).IsRequired().HasMaxLength(100).HasDefaultValue("");
+				entity.Property(t => t.Equipment).IsRequired().HasMaxLength(300).HasDefaultValue("");
+				entity.Property(t => t.Coins).IsRequired().HasMaxLength(100).HasDefaultValue("");
+				entity.Property(t => t.Appearance).IsRequired().HasDefaultValue("");
+				entity.Property(t => t.Gear).IsRequired().HasDefaultValue("");
+				entity.Property(t => t.Leverage).IsRequired().HasDefaultValue("");
+				entity.Property(t => t.Goal).IsRequired().HasDefaultValue("");
+				entity.Property(t => t.Reaction).IsRequired().HasDefaultValue("");
+				entity.Property(t => t.Tactics).IsRequired().HasDefaultValue("");
 
 				//	Unique index: a monster cannot have two translations for the same language
 				entity.HasIndex(t => new { t.MonsterId, t.Language }).IsUnique();

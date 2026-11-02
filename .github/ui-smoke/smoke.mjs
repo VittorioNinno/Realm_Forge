@@ -654,7 +654,7 @@ try {
   await page.waitForURL(/\/monsters\?id=/, { timeout: 15000 });
   results.push(`INFO search hub: ${JSON.stringify(hub)}`);
   if (hub.categories !== 8 || hub.spells !== '391' || hub.spells2014 !== '361' || hub.pills < 30 || hub.groups !== 'Condizioni,Azioni,Regole da tavolo'
-    || !/441 in/.test(hub.monsters ?? '') || !/21 in/.test(hub.npcs ?? '') || !/Prono/.test(hub.recent)) throw new Error(`unexpected search hub: ${JSON.stringify(hub)}`);
+    || !/441 in/.test(hub.monsters ?? '') || !['', '0'].includes(hub.npcs ?? '') || !/Prono/.test(hub.recent)) throw new Error(`unexpected search hub: ${JSON.stringify(hub)}`);
   ok('search page: 8 sections (every statblock among monsters, NPCs on their own, the other edition named when one has none), quick reference by family (conditions, actions, table rules), opened entries remembered, random monster from the chip');
 
   // Global search: Italian and English names, results grouped by section with the edition
@@ -690,7 +690,7 @@ try {
   const compendium = await page.evaluate(() => Object.fromEntries([...document.querySelectorAll('[data-test=account-compendium] tbody tr')]
     .map((tr) => [tr.getAttribute('data-test').replace('account-compendium-', ''), [...tr.querySelectorAll('td.rf-num')].map((td) => td.textContent.trim()).join('/')])));
   results.push(`INFO account compendium (2024/2014): ${JSON.stringify(compendium)}`);
-  if (JSON.stringify(compendium) !== JSON.stringify({ rules: '155/88', species: '10/9', backgrounds: '16/13', feats: '75/42', spells: '391/361', classes: '12/12', equipment: '208/242', monsters: '0/441', npcs: '0/21' })) throw new Error('unexpected compendium counts in the account');
+  if (JSON.stringify(compendium) !== JSON.stringify({ rules: '155/88', species: '10/9', backgrounds: '16/13', feats: '75/42', spells: '391/361', classes: '12/12', equipment: '208/242', monsters: '0/441' })) throw new Error('unexpected compendium counts in the account');
   ok('account: Base content per section and edition (glossary 155+88, species 10+9, backgrounds 16+13, feats 75+42, spells 391+361, classes 12+12, equipment 208+242)');
   const newCredential = ['Rf', crypto.randomUUID(), 'B!'].join('-');
   await page.locator('[data-test=pwd-current]').fill('wrong-password-1A!');
@@ -1127,42 +1127,44 @@ try {
   if (monsterUi.all !== '441 mostri' || monsterUi.dragons !== '46 mostri' || monsterUi.goblins !== '7 mostri' || monsterUi.statblock !== 4
     || !/Goblin/.test(monsterUi.variantOf) || !monsterUi.variantHp) throw new Error(`unexpected monsters page: ${JSON.stringify(monsterUi)}`);
   ok('monsters: 441 statblocks of 2014 (the 21 base NPCs included), 46 dragons, 7 goblinoids, the Goblin statblock, a Homebrew variant with its own hit points (then deleted)');
-  // NPCs: the 21 base NPCs as cards, the empty state of an account without NPCs, a base NPC cloned with a name, a role and
-  // secrets, its sheet, the card marked as the account's, then deleted
+  // NPC registry: only the NPCs written by users (the base statblocks stay among the monsters); an account without NPCs sees
+  // the empty cast with three statblocks to start from; the veteran becomes Brannoc (role, place, attitude, secrets,
+  // tactics), its dossier (vitals, hit points for the table, attacks with their rolls), its card and filters, then deleted;
+  // "Crea PNG" from a monster opens the NPC editor with that statblock
   await page.goto(`${base}/npcs`);
-  await page.locator('[data-test=npc-card]').first().waitFor({ timeout: 60000 });
+  await page.locator('[data-test=npc-empty-state]').waitFor({ timeout: 60000 });
   const npcCount = async (expected) => {
-    for (let i = 0; i < 100 && (await page.locator('[data-test=npc-count]').innerText()).trim() !== expected; i++) await page.waitForTimeout(100);
-    return (await page.locator('[data-test=npc-count]').innerText()).trim();
+    const read = async () => Number(((await page.locator('[data-test=npc-count]').innerText()).match(/\d+/) ?? ['-1'])[0]);
+    for (let i = 0; i < 100 && (await read()) !== expected; i++) await page.waitForTimeout(100);
+    return read();
   };
   const npcUi = {
     title: (await page.locator('[data-test=npc-page-title]').innerText()).trim(),
-    count: await npcCount('21 PNG'),
+    count: await npcCount(0),
     cards: await page.locator('[data-test=npc-card]').count(),
-    empty: await page.locator('[data-test=npc-empty-state]').count(),
     starters: await page.locator('[data-test=npc-starter]').count()
   };
-  await page.locator('[data-test=npc-band-2]').click();
-  npcUi.cr5 = await npcCount('4 PNG');
-  await page.locator('[data-test=npc-band-2]').click();
-  await pickOption('npc-archetype', 'Furfante / Spia');
-  npcUi.rogues = await npcCount('3 PNG');
-  await pickOption('npc-archetype', 'Tutti i ruoli');
   await shot(page, 'npcs-empty', 'main');
-  // "Genera casuale" fills the editor with a name, a role and a hook
-  await page.locator('[data-test=npc-create-random]').click();
+  // "Improvvisa PNG" fills the editor with a name, a trade, an attitude and a hook
+  await page.locator('[data-test=npc-improvise]').click();
   await page.locator('[data-test=monster-form]').waitFor({ timeout: 15000 });
   npcUi.randomName = (await page.locator('[data-test=monster-form-name]').inputValue()).length > 0;
   npcUi.randomRole = (await page.locator('[data-test=npc-form-role]').inputValue()).length > 0;
   await page.locator('[data-test=monster-form]').getByRole('button', { name: 'Annulla' }).click();
-  // The guard of the starters, cloned with a name
+  // The veteran of the starters, with a name and the dossier
   await page.locator('[data-test=npc-starter]').nth(1).locator('[data-test=npc-starter-clone]').click();
   await page.locator('[data-test=npc-form-head]').waitFor({ timeout: 15000 });
+  await pickOption('npc-form-attitude', 'Amichevole');
   await page.locator('[data-test=monster-form-name]').fill('Brannoc');
   await page.locator('[data-test=npc-form-role]').fill('Locandiere');
   await page.locator('[data-test=npc-form-ancestry]').fill('Nano delle colline');
+  await page.locator('[data-test=npc-form-location]').fill('Locanda del Cervo');
   await page.locator('[data-test=monster-form-personality]').fill('Parla poco e asciuga sempre lo stesso boccale.');
   await page.locator('[data-test=monster-form-secrets]').fill('Nasconde la chiave della cripta.');
+  await page.locator('[data-test=monster-form-tactics]').fill('Difende il bancone con lo spadone.');
+  await page.locator('[data-test=npc-form-faction]').fill('Rete del Cervo');
+  await page.locator('[data-test=npc-form-dc] input').fill('15');
+  await page.locator('[data-test=monster-form-goal]').fill('Saldare il debito con la gilda.');
   await page.locator('[data-test=monster-form-save]').click();
   await page.waitForURL(/\/npcs\/[0-9a-f-]{36}$/, { timeout: 15000 });
   await page.locator('[data-test=npc-sheet-name]').waitFor({ timeout: 15000 });
@@ -1170,29 +1172,68 @@ try {
     name: (await page.locator('[data-test=npc-sheet-name]').innerText()).trim(),
     role: (await page.locator('[data-test=npc-sheet-role]').innerText()).trim(),
     archetype: (await page.locator('[data-test=npc-sheet-archetype]').innerText()).trim(),
+    attitude: (await page.locator('[data-test=npc-sheet-attitude]').innerText()).trim(),
+    location: (await page.locator('[data-test=npc-sheet-location]').innerText()).trim(),
     personality: /boccale/.test(await page.locator('[data-test=npc-personality]').innerText()),
     secrets: /cripta/.test(await page.locator('[data-test=npc-secrets]').innerText()),
-    variantOf: (await page.locator('[data-test=npc-sheet-variant-of]').innerText()).replace(/\s+/g, ' ').trim(),
-    statblock: (await page.locator('[data-test=npc-statblock]').innerText()).includes('Classe Armatura 16')
+    faction: (await page.locator('[data-test=npc-sheet-faction]').innerText()).trim(),
+    social: (await page.locator('[data-test=npc-social]').innerText()).replace(/\s+/g, ' ').trim(),
+    basedOn: (await page.locator('[data-test=npc-sheet-variant-of]').innerText()).replace(/\s+/g, ' ').trim()
   };
   await shot(page, 'npc-sheet', 'main');
+  // The combat view: the veteran's weapons with their rolls, hit points counted for the table, the tactics
+  await page.locator('[data-test=npc-tab-combat]').click();
+  await page.locator('[data-test=npc-hp-tracker]').waitFor({ timeout: 10000 });
+  await page.locator('[data-test=npc-hp-damage]').click();
+  npcUi.sheet.weapons = await page.locator('[data-test=npc-weapon]').count();
+  npcUi.sheet.hp = (await page.locator('[data-test=npc-hp]').innerText()).trim();
+  npcUi.sheet.tactics = /spadone/.test(await page.locator('[data-test=npc-tactics]').innerText());
+  await shot(page, 'npc-combat', 'main');
   await page.locator('[data-test=npc-back]').click();
   await page.locator('[data-test=npc-card]').first().waitFor({ timeout: 30000 });
-  npcUi.after = await npcCount('22 PNG');
+  npcUi.after = await npcCount(1);
   npcUi.firstCard = (await page.locator('[data-test=npc-card]').first().innerText()).replace(/\s+/g, ' ').trim();
   npcUi.emptyAfter = await page.locator('[data-test=npc-empty-state]').count();
+  npcUi.mine = (await page.locator('[data-test=npc-library-mine]').innerText()).replace(/\s+/g, ' ').trim();
+  await pickOption('npc-cr', 'Alto (GS 5+)');
+  npcUi.high = await npcCount(0);
+  await pickOption('npc-cr', 'Medio (GS 2 – 4)');
+  npcUi.medium = await npcCount(1);
+  await pickOption('npc-cr', 'Qualsiasi GS');
+  await page.locator('[data-test=npc-fn-4]').click();
+  npcUi.threats = await npcCount(0);
+  await page.locator('[data-test=npc-fn-1]').click();
+  npcUi.allies = await npcCount(1);
+  await page.locator('[data-test=npc-fn-all]').click();
+  await page.locator('[data-test=npc-search]').fill('cervo');
+  npcUi.byPlace = await npcCount(1);
+  await page.locator('[data-test=npc-search]').fill('');
   await shot(page, 'npcs', 'main');
   await page.locator('[data-test=npc-card]').first().locator('[data-test=npc-delete]').click();
   await page.locator('[data-test=npc-delete-yes]').click();
-  npcUi.deleted = await npcCount('21 PNG');
+  npcUi.deleted = await npcCount(0);
+  // From the monsters: "Crea PNG" on the Goblin opens the NPC editor with its statblock
+  await page.goto(`${base}/monsters`);
+  await page.locator('[data-test=monster-group]').first().waitFor({ timeout: 60000 });
+  await page.locator('[data-test=monster-search]').fill('goblin');
+  await page.locator('[data-test=monster-card]').filter({ has: page.locator('.rf-card-title', { hasText: /^Goblin$/ }) }).click();
+  await page.locator('[data-test=monster-make-npc]').click();
+  await page.locator('[data-test=npc-form-head]').waitFor({ timeout: 15000 });
+  npcUi.fromMonster = await page.locator('[data-test=monster-form-name]').inputValue();
+  await page.locator('[data-test=monster-form]').getByRole('button', { name: 'Annulla' }).click();
   results.push(`INFO npcs: ${JSON.stringify(npcUi)}`);
-  if (npcUi.title !== 'PNG' || npcUi.count !== '21 PNG' || npcUi.cards !== 21 || npcUi.empty !== 1 || npcUi.starters !== 3 || npcUi.cr5 !== '4 PNG'
-    || npcUi.rogues !== '3 PNG' || !npcUi.randomName || !npcUi.randomRole || !/^brannoc$/i.test(npcUi.sheet.name) || npcUi.sheet.role !== 'Locandiere'
-    || !/combattente/i.test(npcUi.sheet.archetype) || !npcUi.sheet.personality || !npcUi.sheet.secrets || !/Guardia/.test(npcUi.sheet.variantOf)
-    || !npcUi.sheet.statblock || npcUi.after !== '22 PNG' || !/^Brannoc .*Mio PNG/i.test(npcUi.firstCard) || npcUi.emptyAfter !== 0 || npcUi.deleted !== '21 PNG') {
+  if (!/^registro dei png$/i.test(npcUi.title) || npcUi.count !== 0 || npcUi.cards !== 0 || npcUi.starters !== 3
+    || !npcUi.randomName || !npcUi.randomRole || !/^brannoc$/i.test(npcUi.sheet.name) || npcUi.sheet.role !== 'Locandiere'
+    || !/alleati/i.test(npcUi.sheet.archetype) || !/amichevole/i.test(npcUi.sheet.attitude) || !/Locanda del Cervo/.test(npcUi.sheet.location)
+    || !npcUi.sheet.personality || !npcUi.sheet.secrets || npcUi.sheet.faction !== 'Rete del Cervo' || !/CD base: 15/i.test(npcUi.sheet.social)
+    || !/gilda/.test(npcUi.sheet.social) || !/Veterano/.test(npcUi.sheet.basedOn)
+    || npcUi.sheet.weapons < 1 || npcUi.sheet.hp !== '57' || !npcUi.sheet.tactics
+    || npcUi.after !== 1 || !/Brannoc .*Mio PNG/i.test(npcUi.firstCard) || !/Locanda del Cervo/.test(npcUi.firstCard) || npcUi.emptyAfter !== 0
+    || !/1$/.test(npcUi.mine) || npcUi.high !== 0 || npcUi.medium !== 1 || npcUi.threats !== 0 || npcUi.allies !== 1 || npcUi.byPlace !== 1
+    || npcUi.deleted !== 0 || npcUi.fromMonster !== 'Goblin') {
     throw new Error(`unexpected NPC page: ${JSON.stringify(npcUi)}`);
   }
-  ok('NPCs: 21 base cards, empty state with 3 starters, challenge and role filters, random NPC, the guard cloned as Brannoc (role, secrets, statblock on its sheet), marked as mine, then deleted');
+  ok('NPC registry: no base statblock, empty cast with 3 statblocks, improvised NPC, the veteran made into Brannoc (sheet with dossier, social checks, secrets; combat view with weapons, table hit points, tactics), card with place and filters, deleted, "Crea PNG" from a monster');
   // Homebrew magic item: a new wondrous item with a rule the sheet applies (+1 AC), its detail, then deleted
   await page.goto(`${base}/magic-items`);
   await page.locator('[data-test=magic-group]').first().waitFor({ timeout: 60000 });
