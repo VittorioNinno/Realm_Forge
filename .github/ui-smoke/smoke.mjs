@@ -1096,14 +1096,14 @@ try {
       await page.locator('[data-test=sheet-item]', { hasText: /^Scudo/ }).locator('[data-test=sheet-item-equip]').click();
       tabs.hands = (await page.locator('[data-test=sheet-equip-error]').innerText({ timeout: 5000 })).replace(/\s+/g, ' ').trim();
       tabs.shieldOn = await page.locator('[data-test=sheet-item]', { hasText: /^Scudo/ }).locator('[data-test=sheet-item-equip].on').count();
-      // Thirty greatswords: over the carrying capacity, a notice explains what it means; back to one, the warning goes
+      // Forty greatswords: over the carrying capacity, a notice explains what it means; back to one, the warning goes
       const greatsword = page.locator('[data-test=sheet-item]', { hasText: /^Spadone/ });
-      for (let i = 0; i < 29; i++) await greatsword.locator('button[aria-label="+1"]').click();
+      for (let i = 0; i < 39; i++) await greatsword.locator('button[aria-label="+1"]').click();
       await page.locator('[data-test=sheet-encumbrance-notice]').waitFor({ timeout: 5000 });
       tabs.overload = (await page.locator('[data-test=sheet-encumbrance-notice]').innerText()).replace(/\s+/g, ' ').trim();
       await shot(page, 'sheet-encumbrance', 'main');
       await page.locator('[data-test=sheet-encumbrance-close]').click();
-      for (let i = 0; i < 29; i++) await greatsword.locator('button[aria-label="−1"]').click();
+      for (let i = 0; i < 39; i++) await greatsword.locator('button[aria-label="−1"]').click();
       tabs.overloadAfter = await page.locator('[data-test=sheet-encumbrance]').count();
       // A Wand of Magic Missiles worn: its spell appears among the spells and a cast spends a charge
       await page.locator('[data-test=sheet-magic-add]').click();
