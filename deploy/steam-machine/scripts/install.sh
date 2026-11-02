@@ -53,9 +53,14 @@ cp "$here"/systemd/* "$units/"
 say "Avvio dei servizi anche senza sessione aperta (linger)"
 loginctl enable-linger "$USER"
 
+say "Aggiornamenti automatici ogni 15 minuti (nuova release -> nuova immagine -> riavvio dell'API)"
+mkdir -p "$units/podman-auto-update.timer.d"
+printf '[Timer]\nOnCalendar=\nOnCalendar=*:0/15\nRandomizedDelaySec=60\n' > "$units/podman-auto-update.timer.d/realmforge.conf"
+
 systemctl --user daemon-reload
 systemctl --user enable --now realmforge-backup.timer
 systemctl --user enable --now podman-auto-update.timer
+systemctl --user restart podman-auto-update.timer
 
 cat <<MSG
 
