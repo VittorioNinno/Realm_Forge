@@ -44,6 +44,9 @@ namespace RealmForge.Domain.Entities
 		//	NPC sheet: what the character does at the table, and its portrait (a square JPEG as a data URL), both optional
 		public NpcArchetype? Archetype { get; set; }
 		public NpcAttitude? Attitude { get; set; }
+
+		//	Base DC of the social checks against the NPC (Insight, Persuasion, Intimidation)
+		public int? SocialDc { get; set; }
 		public string? Portrait { get; set; }
 
 		public Guid? VariantOfId { get; set; }
@@ -91,13 +94,19 @@ namespace RealmForge.Domain.Entities
 		public string Personality { get; set; } = string.Empty;
 		public string Secrets { get; set; } = string.Empty;
 
-		//	Where the party meets the NPC ("Locanda del Cervo")
+		//	NPC dossier, short lines: where the party meets it, its faction, what it visibly wears, its coins
 		public string Location { get; set; } = string.Empty;
+		public string Faction { get; set; } = string.Empty;
+		public string Equipment { get; set; } = string.Empty;
+		public string Coins { get; set; } = string.Empty;
 
-		//	NPC dossier (Markdown): its part in the adventure, how it fights, what it carries, how to deal with it
-		public string AdventureRole { get; set; } = string.Empty;
-		public string Tactics { get; set; } = string.Empty;
+		//	NPC dossier (Markdown): appearance, pockets and key items, how to gain advantage, its goal, its reaction to
+		//	threats, combat tactics
+		public string Appearance { get; set; } = string.Empty;
 		public string Gear { get; set; } = string.Empty;
-		public string Social { get; set; } = string.Empty;
+		public string Leverage { get; set; } = string.Empty;
+		public string Goal { get; set; } = string.Empty;
+		public string Reaction { get; set; } = string.Empty;
+		public string Tactics { get; set; } = string.Empty;
 	}
 }

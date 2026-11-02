@@ -310,10 +310,15 @@ namespace RealmForge.Api.Controllers
 			Personality = tr?.Personality ?? string.Empty,
 			Secrets = tr?.Secrets ?? string.Empty,
 			Location = tr?.Location ?? string.Empty,
-			AdventureRole = tr?.AdventureRole ?? string.Empty,
-			Tactics = tr?.Tactics ?? string.Empty,
+			Faction = tr?.Faction ?? string.Empty,
+			Equipment = tr?.Equipment ?? string.Empty,
+			Coins = tr?.Coins ?? string.Empty,
+			Appearance = tr?.Appearance ?? string.Empty,
 			Gear = tr?.Gear ?? string.Empty,
-			Social = tr?.Social ?? string.Empty
+			Leverage = tr?.Leverage ?? string.Empty,
+			Goal = tr?.Goal ?? string.Empty,
+			Reaction = tr?.Reaction ?? string.Empty,
+			Tactics = tr?.Tactics ?? string.Empty
 		};
 
 		private MonsterDetailDto ToDetail(Monster m, LanguageCode lang, string? original, string? author, List<NpcCampaignDto>? campaigns, bool originalIsNpc)
@@ -332,7 +337,7 @@ namespace RealmForge.Api.Controllers
 				new List<int> { m.Strength, m.Dexterity, m.Constitution, m.Intelligence, m.Wisdom, m.Charisma },
 				Plain(m.ChallengeRating), m.Xp, m.ProficiencyBonus, m.PassivePerception, m.VariantOfId, original,
 				text, canEdit, m.Source, m.Visibility, author, m.IsNpc, m.Archetype, m.Portrait,
-				userId is not null && !m.IsOfficialSRD && m.AuthorId == userId, campaigns ?? new(), m.Attitude, originalIsNpc);
+				userId is not null && !m.IsOfficialSRD && m.AuthorId == userId, campaigns ?? new(), m.Attitude, m.SocialDc, originalIsNpc);
 		}
 
 		private static void Apply(Monster m, SaveMonsterDto dto)
@@ -360,6 +365,7 @@ namespace RealmForge.Api.Controllers
 			m.IsNpc = dto.IsNpc;
 			m.Archetype = dto.Archetype;
 			m.Attitude = dto.Attitude;
+			m.SocialDc = dto.SocialDc;
 			m.Portrait = string.IsNullOrWhiteSpace(dto.Portrait) ? null : dto.Portrait.Trim();
 		}
 
@@ -391,10 +397,15 @@ namespace RealmForge.Api.Controllers
 			target.Personality = Clean(t.Personality);
 			target.Secrets = Clean(t.Secrets);
 			target.Location = Clean(t.Location);
-			target.AdventureRole = Clean(t.AdventureRole);
-			target.Tactics = Clean(t.Tactics);
+			target.Faction = Clean(t.Faction);
+			target.Equipment = Clean(t.Equipment);
+			target.Coins = Clean(t.Coins);
+			target.Appearance = Clean(t.Appearance);
 			target.Gear = Clean(t.Gear);
-			target.Social = Clean(t.Social);
+			target.Leverage = Clean(t.Leverage);
+			target.Goal = Clean(t.Goal);
+			target.Reaction = Clean(t.Reaction);
+			target.Tactics = Clean(t.Tactics);
 			return target;
 		}
 
@@ -451,6 +462,10 @@ namespace RealmForge.Api.Controllers
 			{
 				return "Unknown NPC function or attitude.";
 			}
+			if (dto.SocialDc is < 1 or > 40)
+			{
+				return "Social DC between 1 and 40.";
+			}
 			if (!string.IsNullOrWhiteSpace(dto.Portrait) && (dto.Portrait.Trim().Length > Monster.MaxPortraitLength
 				|| !(dto.Portrait.StartsWith("data:image/jpeg;base64,", StringComparison.Ordinal) || dto.Portrait.StartsWith("data:image/png;base64,", StringComparison.Ordinal)
 					|| dto.Portrait.StartsWith("data:image/webp;base64,", StringComparison.Ordinal))))
@@ -469,10 +484,11 @@ namespace RealmForge.Api.Controllers
 				}
 				var lines = new[] { t.Subtitle, t.ArmorClass, t.Speed, t.SavingThrows };
 				var longLines = new[] { t.Skills, t.DamageVulnerabilities, t.DamageResistances, t.DamageImmunities, t.ConditionImmunities, t.Senses, t.Languages };
-				var blocks = new[] { t.Traits, t.Actions, t.BonusActions, t.Reactions, t.LegendaryActions, t.Description, t.Personality, t.Secrets, t.AdventureRole, t.Tactics, t.Gear, t.Social };
-				if ((t.Role?.Trim().Length ?? 0) > 100 || (t.Ancestry?.Trim().Length ?? 0) > 100 || (t.Location?.Trim().Length ?? 0) > 100)
+				var blocks = new[] { t.Traits, t.Actions, t.BonusActions, t.Reactions, t.LegendaryActions, t.Description, t.Personality, t.Secrets, t.Appearance, t.Gear, t.Leverage, t.Goal, t.Reaction, t.Tactics };
+				if ((t.Role?.Trim().Length ?? 0) > 100 || (t.Ancestry?.Trim().Length ?? 0) > 100 || (t.Location?.Trim().Length ?? 0) > 100
+					|| (t.Faction?.Trim().Length ?? 0) > 100 || (t.Coins?.Trim().Length ?? 0) > 100 || (t.Equipment?.Trim().Length ?? 0) > 300)
 				{
-					return "Role, ancestry and location: at most 100 characters.";
+					return "Role, ancestry, place, faction or coins (100 characters) or equipment (300) too long.";
 				}
 				if (lines.Any(l => (l?.Trim().Length ?? 0) > MaxLineLength) || longLines.Any(l => (l?.Trim().Length ?? 0) > MaxLongLineLength)
 					|| blocks.Any(b => (b?.Trim().Length ?? 0) > MaxMarkdownLength))

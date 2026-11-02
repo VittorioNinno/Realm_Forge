@@ -56,6 +56,10 @@
                     <label class="rf-form-label">@UiText.NpcFunction(Lang)</label>
                     <RfSelect TValue="NpcArchetype?" @bind-Value="Model.Archetype" Options="ArchetypeOptions" />
                 </div>
+                <div class="rf-npc-form-dc" data-test="npc-form-dc">
+                    <label class="rf-form-label">@UiText.NpcSocialDc(Lang)</label>
+                    <input type="number" class="rf-form-control" min="1" max="40" @bind="Model.SocialDc" />
+                </div>
                 <div class="rf-npc-form-archetype" data-test="npc-form-attitude">
                     <label class="rf-form-label">@UiText.NpcAttitudeLabel(Lang)</label>
                     <RfSelect TValue="NpcAttitude?" @bind-Value="Model.Attitude" Options="AttitudeOptions" />
@@ -159,17 +163,31 @@
                         <label class="rf-form-label">@UiText.NpcAncestry(Lang)</label>
                         <input class="rf-form-control" maxlength="100" placeholder="@UiText.NpcAncestryHint(tab)" @bind="text.Ancestry" data-test="npc-form-ancestry" />
                     </div>
-                    <div class="col-md-6">
+                    <div class="col-md-3">
                         <label class="rf-form-label">@UiText.NpcLocation(Lang)</label>
                         <input class="rf-form-control" maxlength="100" placeholder="@UiText.NpcLocationHint(tab)" @bind="text.Location" data-test="npc-form-location" />
                     </div>
+                    <div class="col-md-3">
+                        <label class="rf-form-label">@UiText.NpcFaction(Lang)</label>
+                        <input class="rf-form-control" maxlength="100" @bind="text.Faction" data-test="npc-form-faction" />
+                    </div>
+                    <div class="col-md-4">
+                        <label class="rf-form-label">@UiText.NpcEquipment(Lang)</label>
+                        <input class="rf-form-control" maxlength="300" @bind="text.Equipment" data-test="npc-form-equipment" />
+                    </div>
+                    <div class="col-md-2">
+                        <label class="rf-form-label">@UiText.NpcCoins(Lang)</label>
+                        <input class="rf-form-control" maxlength="100" placeholder="35 mo" @bind="text.Coins" data-test="npc-form-coins" />
+                    </div>
                     <div class="col-12">
                         @Block(UiText.NpcPersonality(Lang), () => text.Personality, v => text.Personality = v, "personality")
+                        @Block(UiText.NpcAppearance(Lang), () => text.Appearance, v => text.Appearance = v, "appearance")
+                        @Block(UiText.NpcLeverage(Lang), () => text.Leverage, v => text.Leverage = v, "leverage")
+                        @Block(UiText.NpcGoal(Lang), () => text.Goal, v => text.Goal = v, "goal")
+                        @Block(UiText.NpcReaction(Lang), () => text.Reaction, v => text.Reaction = v, "reaction")
                         @Block(UiText.NpcSecrets(Lang), () => text.Secrets, v => text.Secrets = v, "secrets")
-                        @Block(UiText.NpcAdventureRole(Lang), () => text.AdventureRole, v => text.AdventureRole = v, "adventure")
-                        @Block(UiText.NpcTactics(Lang), () => text.Tactics, v => text.Tactics = v, "tactics")
                         @Block(UiText.NpcGear(Lang), () => text.Gear, v => text.Gear = v, "gear")
-                        @Block(UiText.NpcSocial(Lang), () => text.Social, v => text.Social = v, "social")
+                        @Block(UiText.NpcTactics(Lang), () => text.Tactics, v => text.Tactics = v, "tactics")
                     </div>
                 }
                 <div class="col-md-6">
@@ -393,6 +411,7 @@
             IsNpc = Model.IsNpc,
             Archetype = Model.IsNpc ? Model.Archetype : null,
             Attitude = Model.IsNpc ? Model.Attitude : null,
+            SocialDc = Model.IsNpc ? Model.SocialDc : null,
             Portrait = Model.IsNpc ? Model.Portrait : null,
             Translations = translations
         };
