@@ -217,14 +217,30 @@
         })();
     </script>
     <script>
-        // "/" anywhere (outside a text field) focuses the search box of the page, when it has one
-        document.addEventListener('keydown', (e) => {
-            if (e.key !== '/' || e.ctrlKey || e.metaKey || e.altKey) return;
-            const t = e.target;
-            if (t && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName))) return;
-            const box = document.querySelector('[data-search-focus]');
-            if (box) { e.preventDefault(); box.focus(); box.select(); }
-        });
+        // "/" (outside a text field) or Ctrl+K / Cmd+K anywhere: the search box of the search page, opened if needed.
+        // On the empty search box itself "/" is not typed (the box has the focus as soon as the page opens).
+        (() => {
+            const focusBox = (tries) => {
+                const box = document.querySelector('[data-search-focus]');
+                if (box) { box.focus(); box.select(); }
+                else if (tries > 0) setTimeout(() => focusBox(tries - 1), 100);
+            };
+            document.addEventListener('keydown', (e) => {
+                const k = (e.key || '').toLowerCase();
+                const palette = k === 'k' && (e.ctrlKey || e.metaKey) && !e.altKey && !e.shiftKey;
+                const slash = e.key === '/' && !e.ctrlKey && !e.metaKey && !e.altKey;
+                if (!palette && !slash) return;
+                const t = e.target;
+                const box = document.querySelector('[data-search-focus]');
+                if (slash && t && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName))) {
+                    if (t === box && box.value === '') e.preventDefault();
+                    return;
+                }
+                e.preventDefault();
+                if (box) { focusBox(0); return; }
+                if (window.Blazor && Blazor.navigateTo) { Blazor.navigateTo('search'); focusBox(30); }
+            });
+        })();
     </script>
     <script src="_framework/blazor.webassembly#[.{fingerprint}].js"></script>
 </body>

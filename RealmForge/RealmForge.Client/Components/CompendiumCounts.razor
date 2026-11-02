@@ -65,6 +65,7 @@
         "spells" => UiText.SpellsTitle(Lang),
         "classes" => UiText.ClassesTitle(Lang),
         "monsters" => UiText.MonstersTitle(Lang),
+        "npcs" => UiText.NpcsTitle(Lang),
         _ => UiText.EquipmentTitle(Lang)
     };
 
@@ -92,7 +93,8 @@
             Count("spells", (await spells).Select(s => (s.Ruleset, s.IsOfficialSRD))),
             Count("classes", (await classes).Select(c => (c.Ruleset, c.IsOfficialSRD))),
             Count("equipment", (await equipment).Select(e => (e.Ruleset, e.IsOfficialSRD))),
-            Count("monsters", (await monsters).Select(m => (m.Ruleset, m.IsOfficialSRD)))
+            Count("monsters", (await monsters).Where(m => !m.IsNpc).Select(m => (m.Ruleset, m.IsOfficialSRD))),
+            Count("npcs", (await monsters).Where(m => m.IsNpc).Select(m => (m.Ruleset, m.IsOfficialSRD)))
         };
 
         //	No Base content at all is never a real state: the API could not be read

@@ -76,7 +76,7 @@ try {
 
   // Navigation: reference pages live in the collapsible "Compendio" group, opened on compendium routes
   const compendiumLinks = (await page.locator('[data-test=nav-compendium] a').allInnerTexts()).map((t) => t.trim());
-  if (compendiumLinks.join(',') !== 'Specie,Background,Talenti,Incantesimi,Classi,Equipaggiamento,Oggetti magici,Mostri,Moduli di regole') throw new Error(`unexpected compendium links: ${compendiumLinks.join(',')}`);
+  if (compendiumLinks.join(',') !== 'Specie,Background,Talenti,Incantesimi,Classi,Equipaggiamento,Oggetti magici,Mostri,PNG,Moduli di regole') throw new Error(`unexpected compendium links: ${compendiumLinks.join(',')}`);
   // The rules glossary is a menu entry of its own, next to the compendium group
   const rulesLink = (await page.locator('[data-test=nav-rules] a').innerText()).trim();
   if (rulesLink !== 'Glossario') throw new Error(`unexpected glossary menu entry: ${rulesLink}`);
@@ -104,7 +104,7 @@ try {
     rules: document.querySelectorAll('[data-test=home-rules] dt').length,
   }));
   results.push(`INFO dashboard: ${JSON.stringify(home)}`);
-  if (home.links.join(',') !== 'rules,species,backgrounds,feats,spells,classes,equipment,magic-items,monsters' || home.figures !== 0 || home.how !== 4 || home.rules !== 6) throw new Error('unexpected dashboard');
+  if (home.links.join(',') !== 'rules,species,backgrounds,feats,spells,classes,equipment,magic-items,monsters,npcs' || home.figures !== 0 || home.how !== 4 || home.rules !== 6) throw new Error('unexpected dashboard');
   if (await page.locator('main a[href=account]', { hasText: 'Accedi per forgiare' }).count() !== 1) throw new Error('dashboard misses the sign-in call to action');
   ok('dashboard: welcome, links to the 8 sections without figures, how it works (4 points), house rules (6) and the sign-in call to action');
 
@@ -415,7 +415,7 @@ try {
     return { label: el.textContent.trim(), inset: Math.round(icon.left - el.getBoundingClientRect().left), left: Math.round(icon.left) };
   }));
   results.push(`INFO menu icons: ${iconGaps.map((g) => `${g.label}@${g.left}(+${g.inset})`).join(', ')}`);
-  if (iconGaps.length !== 15 || iconGaps.some((g) => g.inset < 8) || new Set(iconGaps.map((g) => g.left)).size !== 1) throw new Error('menu icons are not padded or not aligned');
+  if (iconGaps.length !== 16 || iconGaps.some((g) => g.inset < 8) || new Set(iconGaps.map((g) => g.left)).size !== 1) throw new Error('menu icons are not padded or not aligned');
   await page.locator('[data-test=nav-compendium] button').click();
   ok('"Compendio" menu group: Specie, Background, Talenti, Incantesimi, Classi, Equipaggiamento, and Glossario next to it; collapsed elsewhere and toggles on click; icons padded and aligned');
   await page.getByText('Non hai un account? Registrati').click();
@@ -634,16 +634,27 @@ try {
     categories: document.querySelectorAll('[data-test=search-category]').length,
     spells: document.querySelector('[data-test=search-category][data-kind=spell] .rf-search-category-count')?.textContent.trim(),
     pills: document.querySelectorAll('[data-test=search-quick-pill]').length,
-    highlight: [...document.querySelectorAll('[data-test=search-quick-pill].highlight')].map((p) => p.textContent.trim()).join(',')
+    groups: [...document.querySelectorAll('.rf-search-quick-label')].map((p) => p.textContent.trim()).join(','),
+    monsters: document.querySelector('[data-test=search-category][data-kind=monster] .rf-search-category-count')?.textContent.trim(),
+    npcs: document.querySelector('[data-test=search-category][data-kind=npc] .rf-search-category-count')?.textContent.trim()
   }));
   await page.locator('[data-test=search-edition-1]').click();
   hub.spells2014 = (await page.locator('[data-test=search-category][data-kind=spell] .rf-search-category-count').innerText()).trim();
   await page.locator('[data-test=search-edition-2]').click();
   await shot(page, 'search-hub', 'main');
-  // "/" from anywhere on the page focuses the box
+  // "/" from anywhere on the page focuses the box, and is not typed in the empty box; Ctrl+K from another page opens the search
   await page.locator('h1').click();
   await page.keyboard.press('/');
   hub.slash = await page.evaluate(() => document.activeElement?.getAttribute('data-test'));
+  await page.keyboard.press('/');
+  hub.typed = await page.locator('[data-test=search-input]').inputValue();
+  await page.goto(`${base}/rules`);
+  await page.locator('h1').first().waitFor({ timeout: 30000 });
+  await page.locator('h1').first().click();
+  await page.keyboard.press('Control+k');
+  await page.waitForURL(/\/search/, { timeout: 15000 });
+  await page.waitForFunction(() => document.activeElement?.getAttribute('data-test') === 'search-input', null, { timeout: 10000 });
+  hub.ctrlK = 'search-input';
   // A condition from the quick reference opens its glossary entry and is remembered
   await page.locator('[data-test=search-quick-pill]', { hasText: /^Prono$/ }).click();
   await page.waitForURL(/\/rules\?id=/, { timeout: 15000 });
@@ -655,8 +666,9 @@ try {
   await page.locator('[data-test=search-random]').click();
   await page.waitForURL(/\/monsters\?id=/, { timeout: 15000 });
   results.push(`INFO search hub: ${JSON.stringify(hub)}`);
-  if (hub.categories !== 8 || hub.spells !== '391' || hub.spells2014 !== '361' || hub.pills !== 17 || hub.slash !== 'search-input' || !/Prono/.test(hub.recent)) throw new Error(`unexpected search hub: ${JSON.stringify(hub)}`);
-  ok('search page: 8 sections with their base entries per edition, 17 quick rules (conditions, exhaustion, concentration, cover), "/" focuses the box, opened entries remembered, random monster from the chip');
+  if (hub.categories !== 8 || hub.spells !== '391' || hub.spells2014 !== '361' || hub.pills < 30 || hub.groups !== 'Condizioni,Azioni,Regole da tavolo'
+    || !/420 in/.test(hub.monsters ?? '') || !/21 in/.test(hub.npcs ?? '') || hub.slash !== 'search-input' || hub.typed !== '' || !/Prono/.test(hub.recent)) throw new Error(`unexpected search hub: ${JSON.stringify(hub)}`);
+  ok('search page: 8 sections (monsters and NPCs apart, the other edition named when one has none), quick reference by family (conditions, actions, table rules), "/" and Ctrl+K open and focus the box without typing, opened entries remembered, random monster from the chip');
 
   // Global search: Italian and English names, results grouped by section with the edition
   await page.goto(`${base}/search?q=palla di fuoco`);
@@ -691,7 +703,7 @@ try {
   const compendium = await page.evaluate(() => Object.fromEntries([...document.querySelectorAll('[data-test=account-compendium] tbody tr')]
     .map((tr) => [tr.getAttribute('data-test').replace('account-compendium-', ''), [...tr.querySelectorAll('td.rf-num')].map((td) => td.textContent.trim()).join('/')])));
   results.push(`INFO account compendium (2024/2014): ${JSON.stringify(compendium)}`);
-  if (JSON.stringify(compendium) !== JSON.stringify({ rules: '155/88', species: '10/9', backgrounds: '16/13', feats: '75/42', spells: '391/361', classes: '12/12', equipment: '208/242', monsters: '0/441' })) throw new Error('unexpected compendium counts in the account');
+  if (JSON.stringify(compendium) !== JSON.stringify({ rules: '155/88', species: '10/9', backgrounds: '16/13', feats: '75/42', spells: '391/361', classes: '12/12', equipment: '208/242', monsters: '0/420', npcs: '0/21' })) throw new Error('unexpected compendium counts in the account');
   ok('account: Base content per section and edition (glossary 155+88, species 10+9, backgrounds 16+13, feats 75+42, spells 391+361, classes 12+12, equipment 208+242)');
   const newCredential = ['Rf', crypto.randomUUID(), 'B!'].join('-');
   await page.locator('[data-test=pwd-current]').fill('wrong-password-1A!');
@@ -1103,7 +1115,7 @@ try {
     for (let i = 0; i < 100 && (await page.locator('[data-test=monster-count]').innerText()).trim() !== expected; i++) await page.waitForTimeout(100);
     return (await page.locator('[data-test=monster-count]').innerText()).trim();
   };
-  const monsterUi = { all: await monsterCount('441 mostri') };
+  const monsterUi = { all: await monsterCount('420 mostri') };
   await pickOption('monster-type', 'Drago');
   monsterUi.dragons = await monsterCount('46 mostri');
   await pickOption('monster-type', 'Tutti i tipi');
@@ -1125,9 +1137,25 @@ try {
   await page.locator('[data-test=monster-delete-yes]').click();
   await page.locator('[data-test=monster-detail]').waitFor({ state: 'detached', timeout: 15000 });
   results.push(`INFO monsters: ${JSON.stringify(monsterUi)}`);
-  if (monsterUi.all !== '441 mostri' || monsterUi.dragons !== '46 mostri' || monsterUi.goblins !== '7 mostri' || monsterUi.statblock !== 4
+  if (monsterUi.all !== '420 mostri' || monsterUi.dragons !== '46 mostri' || monsterUi.goblins !== '7 mostri' || monsterUi.statblock !== 4
     || !/Goblin/.test(monsterUi.variantOf) || !monsterUi.variantHp) throw new Error(`unexpected monsters page: ${JSON.stringify(monsterUi)}`);
-  ok('monsters: 441 statblocks of 2014, 46 dragons, 7 goblinoids, the Goblin statblock, a Homebrew variant with its own hit points (then deleted)');
+  ok('monsters: 420 statblocks of 2014 (the 21 NPCs on their own page), 46 dragons, 7 goblinoids, the Goblin statblock, a Homebrew variant with its own hit points (then deleted)');
+  // NPCs: the 21 nonplayer characters of the SRD on their own page, by challenge band, with the statblock
+  await page.goto(`${base}/npcs`);
+  for (let i = 0; i < 100 && (await page.locator('[data-test=monster-count]').innerText()).trim() !== '21 PNG'; i++) await page.waitForTimeout(100);
+  const npcUi = {
+    title: (await page.locator('[data-test=monster-page-title]').innerText()).trim(),
+    count: (await page.locator('[data-test=monster-count]').innerText()).trim(),
+    groups: await page.locator('[data-test=monster-group]').count()
+  };
+  await page.locator('[data-test=monster-search]').fill('Guardia');
+  await page.locator('[data-test=monster-card]', { hasText: 'Guardia' }).first().click();
+  await page.locator('[data-test=monster-detail]').waitFor({ timeout: 15000 });
+  npcUi.detail = (await page.locator('[data-test=monster-detail-name]').innerText()).trim();
+  await shot(page, 'npcs', 'main');
+  results.push(`INFO npcs: ${JSON.stringify(npcUi)}`);
+  if (npcUi.title !== 'PNG' || npcUi.count !== '21 PNG' || npcUi.groups < 2 || !/^guardia$/i.test(npcUi.detail)) throw new Error(`unexpected NPC page: ${JSON.stringify(npcUi)}`);
+  ok('NPCs: the 21 nonplayer characters on their own page, grouped by challenge, with the statblock');
   // Homebrew magic item: a new wondrous item with a rule the sheet applies (+1 AC), its detail, then deleted
   await page.goto(`${base}/magic-items`);
   await page.locator('[data-test=magic-group]').first().waitFor({ timeout: 60000 });

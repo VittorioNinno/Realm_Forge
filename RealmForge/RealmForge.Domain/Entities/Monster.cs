@@ -35,6 +35,9 @@ namespace RealmForge.Domain.Entities
 		public int ProficiencyBonus { get; set; } = 2;
 		public int PassivePerception { get; set; } = 10;
 
+		//	A nonplayer character (guard, mage, noble…): on the NPC page instead of the monsters
+		public bool IsNpc { get; set; }
+
 		public Guid? VariantOfId { get; set; }
 		public Monster? VariantOf { get; set; }
 

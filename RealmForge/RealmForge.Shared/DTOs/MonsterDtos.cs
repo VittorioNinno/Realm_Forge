@@ -56,7 +56,8 @@ namespace RealmForge.Shared.DTOs
 		Guid? VariantOfId,
 		bool CanEdit = false,
 		ContentSource? Source = null,
-		ContentVisibility Visibility = ContentVisibility.Public
+		ContentVisibility Visibility = ContentVisibility.Public,
+		bool IsNpc = false
 	);
 
 	///	<summary>
@@ -84,7 +85,10 @@ namespace RealmForge.Shared.DTOs
 		bool CanEdit = false,
 		ContentSource? Source = null,
 		ContentVisibility Visibility = ContentVisibility.Public,
-		string? AuthorName = null
+		string? AuthorName = null,
+
+		//	A nonplayer character (the NPC page)
+		bool IsNpc = false
 	);
 
 	///	<summary>
@@ -108,6 +112,9 @@ namespace RealmForge.Shared.DTOs
 		public int ProficiencyBonus { get; set; } = 2;
 		public int PassivePerception { get; set; } = 10;
 		public Guid? VariantOfId { get; set; }
+
+		//	A nonplayer character: listed on the NPC page
+		public bool IsNpc { get; set; }
 		public List<MonsterTextDto> Translations { get; set; } = new();
 	}
 }
