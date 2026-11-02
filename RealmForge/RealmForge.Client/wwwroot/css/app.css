@@ -9860,3 +9860,62 @@ textarea.rf-form-control {
 .rf-npc-form-dc {
     flex: 0 0 96px;
 }
+
+/* On-screen notice of the sheet (overloaded): bottom right, above the page, closed by hand */
+.rf-notice {
+    position: fixed;
+    right: 24px;
+    bottom: 24px;
+    z-index: 1050;
+    width: min(400px, calc(100vw - 32px));
+    padding: 16px;
+    border-radius: 8px;
+    border: 1px solid rgba(229, 89, 77, .6);
+    border-left: 4px solid #e5594d;
+    background-color: var(--rf-bg-surface);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, .6);
+    color: var(--rf-text-secondary);
+    font-size: .85rem;
+    animation: rf-notice-in .25s ease-out;
+}
+
+.rf-notice-head {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 8px;
+    color: #f08a80;
+}
+
+    .rf-notice-head strong {
+        text-transform: uppercase;
+        letter-spacing: .06em;
+    }
+
+.rf-notice-list {
+    margin: 0 0 8px;
+    padding-left: 16px;
+}
+
+    .rf-notice-list li + li {
+        margin-top: 8px;
+    }
+
+@keyframes rf-notice-in {
+    from {
+        opacity: 0;
+        transform: translateY(16px);
+    }
+
+    to {
+        opacity: 1;
+        transform: none;
+    }
+}
+
+@media (max-width: 575.98px) {
+    .rf-notice {
+        right: 16px;
+        bottom: 16px;
+    }
+}
