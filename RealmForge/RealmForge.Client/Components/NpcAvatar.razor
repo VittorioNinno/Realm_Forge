@@ -1,0 +1,29 @@
+﻿@using RealmForge.Shared.Enums
+
+@* The square picture of an NPC: its portrait, or the icon of what it does at the table *@
+<div class="rf-npc-avatar @(Large ? "rf-npc-avatar-lg" : null) @(Portrait is null ? (Shared ? "shared" : "empty") : null)" aria-hidden="true" data-test="npc-avatar">
+    @if (Portrait is { } src)
+    {
+        <img src="@src" alt="" />
+    }
+    else
+    {
+        <Icon Name="@IconName" />
+    }
+</div>
+
+@code {
+    [Parameter] public string? Portrait { get; set; }
+    [Parameter] public NpcArchetype? Archetype { get; set; }
+    [Parameter] public bool Shared { get; set; }
+    [Parameter] public bool Large { get; set; }
+
+    private string IconName => Archetype switch
+    {
+        NpcArchetype.Combatant => "shield",
+        NpcArchetype.Caster => "star",
+        NpcArchetype.Rogue => "eye-slash",
+        NpcArchetype.Social => "heart",
+        _ => "npcs"
+    };
+}

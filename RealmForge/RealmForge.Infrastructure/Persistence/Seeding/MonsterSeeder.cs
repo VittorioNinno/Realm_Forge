@@ -22,6 +22,19 @@ public static class MonsterSeeder
 		"gladiator", "guard", "knight", "mage", "noble", "priest", "scout", "spy", "thug", "tribal-warrior", "veteran"
 	};
 
+	//	What each base NPC does at the table (the filter of the NPC page)
+	public static readonly IReadOnlyDictionary<string, NpcArchetype> NpcArchetypes = new Dictionary<string, NpcArchetype>
+	{
+		["bandit"] = NpcArchetype.Combatant, ["bandit-captain"] = NpcArchetype.Combatant, ["berserker"] = NpcArchetype.Combatant,
+		["gladiator"] = NpcArchetype.Combatant, ["guard"] = NpcArchetype.Combatant, ["knight"] = NpcArchetype.Combatant,
+		["thug"] = NpcArchetype.Combatant, ["tribal-warrior"] = NpcArchetype.Combatant, ["veteran"] = NpcArchetype.Combatant,
+		["assassin"] = NpcArchetype.Rogue, ["scout"] = NpcArchetype.Rogue, ["spy"] = NpcArchetype.Rogue,
+		["acolyte"] = NpcArchetype.Caster, ["archmage"] = NpcArchetype.Caster, ["cult-fanatic"] = NpcArchetype.Caster,
+		["cultist"] = NpcArchetype.Caster, ["druid"] = NpcArchetype.Caster, ["mage"] = NpcArchetype.Caster, ["priest"] = NpcArchetype.Caster,
+		["noble"] = NpcArchetype.Social,
+		["commoner"] = NpcArchetype.Commoner
+	};
+
 	public static IReadOnlyList<Monster> GetDefinitions()
 	{
 		var definitions = typeof(MonsterSeeder).Assembly.GetTypes()
@@ -82,6 +95,7 @@ public static class MonsterSeeder
 			ProficiencyBonus = proficiency,
 			PassivePerception = passivePerception,
 			IsNpc = NpcKeys.Contains(key),
+			Archetype = NpcArchetypes.TryGetValue(key, out var archetype) ? archetype : null,
 			VariantOfId = variantOf is null ? null : DeterministicGuid.ForSrd(ruleset, "monster", variantOf),
 			Translations = new List<MonsterTranslation>
 			{
@@ -194,6 +208,7 @@ public static class MonsterSeeder
 			monster.PassivePerception = definition.PassivePerception;
 			monster.VariantOfId = definition.VariantOfId;
 			monster.IsNpc = definition.IsNpc;
+			monster.Archetype = definition.Archetype;
 
 			foreach (var source in definition.Translations)
 			{

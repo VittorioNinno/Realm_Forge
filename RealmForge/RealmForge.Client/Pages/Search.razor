@@ -28,11 +28,9 @@
         <div class="rf-search-bar">
             <Icon Name="search" />
             <input class="rf-search-input" type="search" placeholder="@UiText.SearchPlaceholder(Lang)" value="@text" @oninput="OnInput"
-                   autofocus aria-label="@UiText.SearchTitle(Lang)" data-search-focus data-test="search-input" />
+                   autofocus aria-label="@UiText.SearchTitle(Lang)" data-test="search-input" />
             <span class="rf-search-shortcuts" aria-hidden="true">
                 <span class="rf-search-lang">IT / EN</span>
-                <kbd class="rf-search-kbd" title="@UiText.SearchSlashHint(Lang)">/</kbd>
-                <kbd class="rf-search-kbd" title="@UiText.SearchSlashHint(Lang)">Ctrl K</kbd>
             </span>
         </div>
 
