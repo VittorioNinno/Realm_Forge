@@ -8618,6 +8618,8 @@ textarea.rf-form-control {
 }
 
     .rf-npc-improvise .rf-icon {
+        width: 16px;
+        height: 16px;
         color: var(--rf-orange-primary);
     }
 
