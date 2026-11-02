@@ -630,7 +630,7 @@ jobs:
           mocheck() { if [ "$2" != "$3" ]; then echo "::error title=monsters::$1: got '$2', expected '$3'"; mofail=1; fi; }
           mocheck "2014 counts" "$mo14" '{"total":441,"srd":322,"realmforge":119,"variants":13,"dragons":46}'
           mocheck "challenge filter" "$mo_cr" "17"
-          mocheck "nonplayer characters" "$mo_npc" '{"count":21,"guard":1,"isNpc":true,"archetypes":[1,2,3,4,5]}'
+          mocheck "nonplayer characters" "$mo_npc" '{"count":21,"guard":1,"isNpc":true,"archetypes":[1,2,3,4]}'
           mocheck "monsters without the NPCs" "$mo_not_npc" "420"
           mocheck "goblin" "$mo_goblin" '{"name":"Goblin","ac":15,"hp":7,"xp":50,"cr":0.25,"armor":"15 (armatura di cuoio, scudo)","speed":"9 m"}'
           mocheck "goblin EN" "$mo_goblin_en" '{"name":"Goblin","speed":"30 ft.","nimble":true}'

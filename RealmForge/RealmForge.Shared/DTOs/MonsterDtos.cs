@@ -40,6 +40,15 @@ namespace RealmForge.Shared.DTOs
 		public string Ancestry { get; set; } = string.Empty;
 		public string Personality { get; set; } = string.Empty;
 		public string Secrets { get; set; } = string.Empty;
+
+		//	Where the party meets the NPC
+		public string Location { get; set; } = string.Empty;
+
+		//	NPC dossier (Markdown): part in the adventure, tactics, gear, social interaction
+		public string AdventureRole { get; set; } = string.Empty;
+		public string Tactics { get; set; } = string.Empty;
+		public string Gear { get; set; } = string.Empty;
+		public string Social { get; set; } = string.Empty;
 	}
 
 	///	<summary>
@@ -75,7 +84,12 @@ namespace RealmForge.Shared.DTOs
 		string Personality = "",
 		bool IsMine = false,
 		Guid? CampaignId = null,
-		string? CampaignName = null
+		string? CampaignName = null,
+		NpcAttitude? Attitude = null,
+		string Location = "",
+
+		//	The statblock it is made from (a monster, or the NPC it was copied from)
+		string? VariantOfName = null
 	);
 
 	///	<summary>
@@ -112,7 +126,11 @@ namespace RealmForge.Shared.DTOs
 		bool IsMine = false,
 
 		//	The campaigns of the account the character is shared with
-		List<NpcCampaignDto>? Campaigns = null
+		List<NpcCampaignDto>? Campaigns = null,
+		NpcAttitude? Attitude = null,
+
+		//	The original is a Homebrew NPC (its sheet is on the NPC page) rather than a monster
+		bool VariantOfIsNpc = false
 	);
 
 	///	<summary>
@@ -145,6 +163,7 @@ namespace RealmForge.Shared.DTOs
 		//	A nonplayer character: listed on the NPC page
 		public bool IsNpc { get; set; }
 		public NpcArchetype? Archetype { get; set; }
+		public NpcAttitude? Attitude { get; set; }
 
 		//	Square JPEG as a data URL ("data:image/jpeg;base64,…"), null for none
 		public string? Portrait { get; set; }

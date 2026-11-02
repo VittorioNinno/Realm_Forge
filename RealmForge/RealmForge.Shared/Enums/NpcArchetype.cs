@@ -1,23 +1,30 @@
 ﻿namespace RealmForge.Shared.Enums
 {
 	///	<summary>
-	///	What a nonplayer character does at the table: the filter and the badge of the NPC page.
+	///	What a nonplayer character is for at the table: the "Funzione" filter of the NPC registry.
 	///	</summary>
 	public enum NpcArchetype
 	{
-		//	Fighter, guard, soldier
-		Combatant = 1,
+		//	Allies and followers
+		Ally = 1,
 
-		//	Social face, merchant, noble
-		Social = 2,
+		//	Merchants, innkeepers and craftsfolk
+		Merchant = 2,
 
-		//	Rogue, spy, scout
-		Rogue = 3,
+		//	Informants, nobles and contacts
+		Contact = 3,
 
-		//	Spellcaster, priest, cultist
-		Caster = 4,
+		//	Guards, rivals and assassins
+		Threat = 4
+	}
 
-		//	Commoner, villager
-		Commoner = 5
+	///	<summary>
+	///	How a nonplayer character feels about the party (friendly, indifferent, hostile).
+	///	</summary>
+	public enum NpcAttitude
+	{
+		Hostile = 1,
+		Indifferent = 2,
+		Friendly = 3
 	}
 }
