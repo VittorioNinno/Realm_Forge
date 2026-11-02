@@ -1,0 +1,8 @@
+[Unit]
+Description=RealmForge database backup (encrypted dump, rotation, off-site copy)
+Requires=realmforge-db.service
+After=realmforge-db.service
+
+[Service]
+Type=oneshot
+ExecStart=%h/realmforge/scripts/backup.sh

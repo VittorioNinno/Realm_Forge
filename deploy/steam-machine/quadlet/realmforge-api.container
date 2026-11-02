@@ -1,0 +1,22 @@
+# RealmForge API: the image published by GitHub at every release (publish-api-image.yml), updated by
+# podman-auto-update. Applies the migrations and synchronizes the Base content at startup.
+[Unit]
+Description=RealmForge API
+Requires=realmforge-db.service
+After=realmforge-db.service
+
+[Container]
+ContainerName=realmforge-api
+Image=ghcr.io/vittorioninno/realmforge-api:release
+AutoUpdate=registry
+Network=realmforge.network
+EnvironmentFile=%h/realmforge/config/api.env
+Environment=PORT=8080
+
+[Service]
+Restart=always
+RestartSec=10
+TimeoutStartSec=900
+
+[Install]
+WantedBy=default.target
