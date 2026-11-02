@@ -564,7 +564,7 @@ jobs:
           echo "::notice title=database::magic items Homebrew: edit=$mi_edit_view | variant=$mi_hb_view list=$mi_hb_list under ring=$mi_hb_under anonymous=$mi_hb_anon bob=$mi_hb_bob | dice=$mi_hb_dice effect=$mi_hb_effect | PUT=$mi_hb_put after=$mi_hb_after | base PUT=$mi_srd_put bob DELETE=$mi_bob_delete anonymous POST=$mi_anon_post account=$mi_acc | DELETE=$mi_delete bin=$mi_bin"
           mifail=0
           micheck() { if [ "$2" != "$3" ]; then echo "::error title=magic items::$1: got '$2', expected '$3'"; mifail=1; fi; }
-          micheck "2014 counts" "$mi14" '{"total":412,"items":276,"srd":366,"realmforge":46,"rules":145}'
+          micheck "2014 counts" "$mi14" '{"total":412,"items":276,"srd":366,"realmforge":46,"rules":150}'
           micheck "categories" "$mi_types" '{"1":20,"2":25,"3":22,"4":9,"5":2,"6":13,"7":14,"8":38,"9":133}'
           micheck "rings (filter)" "$mi_rings" "36"
           micheck "official names" "$mi_names" '["Anello di protezione","Armatura demoniaca","Guanti del potere orchesco","Lama nera"]'
