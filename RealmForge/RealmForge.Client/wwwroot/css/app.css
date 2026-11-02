@@ -8269,12 +8269,6 @@ textarea.rf-form-control {
     border-top: 1px dashed var(--rf-border-subtle);
 }
 
-.rf-search-panels {
-    display: grid;
-    grid-template-columns: minmax(0, 1.15fr) minmax(0, .85fr);
-    gap: 16px;
-}
-
 .rf-search-panel {
     padding: 16px 24px;
     background-color: var(--rf-bg-card);
@@ -8298,13 +8292,84 @@ textarea.rf-form-control {
     border-radius: 8px;
 }
 
-    .rf-search-pill:hover { color: var(--rf-text-primary); border-color: #555555; }
+    .rf-search-pill:hover { color: var(--rf-orange-hover); border-color: rgba(255, 140, 0, 0.45); }
 
-    .rf-search-pill.highlight {
-        color: var(--rf-orange-hover);
-        background-color: rgba(255, 140, 0, 0.08);
-        border-color: rgba(255, 140, 0, 0.35);
-    }
+/* Quick reference: one row of pills per family (conditions, actions, table rules) */
+.rf-search-quick-group + .rf-search-quick-group { margin-top: 16px; }
+
+.rf-search-quick-label {
+    margin-bottom: 8px;
+    font-size: .7rem;
+    font-weight: 700;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    color: var(--rf-text-muted);
+}
+
+/* Recently viewed: a row of chips under the filters, the random entry at its end */
+.rf-search-recentbar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px 16px;
+    margin-top: 16px;
+}
+
+.rf-search-recentbar-label {
+    font-size: .7rem;
+    font-weight: 700;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    color: var(--rf-text-muted);
+}
+
+.rf-search-recentbar-items {
+    display: flex;
+    flex: 1 1 320px;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+}
+
+.rf-search-recentbar-empty {
+    font-size: .8rem;
+    color: #666666;
+}
+
+.rf-search-recent-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    max-width: 240px;
+    padding: 0 16px 0 0;
+    overflow: hidden;
+    font-size: .8rem;
+    color: var(--rf-text-secondary);
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    text-decoration: none;
+    background-color: var(--rf-bg-surface);
+    border: 1px solid var(--rf-border-light);
+    border-radius: 999px;
+}
+
+    .rf-search-recent-chip:hover { color: var(--rf-text-primary); border-color: #555555; }
+
+.rf-search-recent-chip-kind {
+    padding: 8px;
+    font-size: .65rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    color: var(--rf-orange-hover);
+    background-color: rgba(255, 140, 0, 0.1);
+}
+
+.rf-search-category-count-other {
+    color: var(--rf-text-muted);
+    background-color: transparent;
+    border-color: var(--rf-border-light);
+}
 
 .rf-search-clear {
     padding: 0;
@@ -8317,60 +8382,8 @@ textarea.rf-form-control {
 
     .rf-search-clear:hover { color: var(--rf-text-secondary); }
 
-.rf-search-recent {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-}
-
-.rf-search-recent-item {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    gap: 16px;
-    padding: 8px 16px;
-    text-decoration: none;
-    background-color: var(--rf-bg-surface);
-    border: 1px solid var(--rf-border-subtle);
-    border-radius: 8px;
-}
-
-    .rf-search-recent-item:hover { border-color: #444444; }
-
-.rf-search-recent-left {
-    display: flex;
-    flex-direction: column;
-    min-width: 0;
-}
-
-.rf-search-recent-title {
-    overflow: hidden;
-    font-size: .85rem;
-    font-weight: 600;
-    color: var(--rf-text-primary);
-    white-space: nowrap;
-    text-overflow: ellipsis;
-}
-
-.rf-search-recent-sub {
-    font-size: .75rem;
-    color: var(--rf-text-muted);
-}
-
-.rf-search-recent-badge {
-    flex: 0 0 auto;
-    padding: 0 8px;
-    font-size: .7rem;
-    font-weight: 700;
-    color: var(--rf-text-secondary);
-    background-color: var(--rf-bg-card);
-    border: 1px solid var(--rf-border-light);
-    border-radius: 4px;
-}
-
 @media (max-width: 899.98px) {
     .rf-search-categories { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-    .rf-search-panels { grid-template-columns: minmax(0, 1fr); }
 }
 
 @media (max-width: 479.98px) {

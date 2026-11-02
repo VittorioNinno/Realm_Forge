@@ -120,7 +120,7 @@ namespace RealmForge.Api.Campaigns
 			}
 			foreach (var e in await _context.Monsters.AsNoTracking().Include(x => x.Translations).Where(Cast<RealmForge.Domain.Entities.Monster>(filter)).ToListAsync())
 			{
-				yield return Entry(e, "monster", e.Translations.Localize(lang)?.Name, $"monsters?id={e.Id}");
+				yield return Entry(e, "monster", e.Translations.Localize(lang)?.Name, e.IsNpc ? $"npcs?id={e.Id}" : $"monsters?id={e.Id}");
 			}
 			foreach (var e in await _context.MagicItems.AsNoTracking().Include(x => x.Translations).Where(Cast<RealmForge.Domain.Entities.MagicItem>(filter)).ToListAsync())
 			{
