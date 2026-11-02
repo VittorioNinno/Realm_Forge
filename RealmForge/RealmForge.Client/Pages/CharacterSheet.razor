@@ -788,7 +788,7 @@
             </section>
         }
 
-        @if (!c.AllSpellSources().Any())
+        @if (!c.AllSpellSources().Any() && ItemSpells.Count == 0)
         {
             <div class="small" style="color: var(--rf-text-muted);">@UiText.NoSpellsForClass(Lang)</div>
         }
@@ -872,6 +872,32 @@
                 {
                     <div class="rf-turn-none">@UiText.SheetNoSpellsChosen(Lang)</div>
                 }
+            </section>
+        }
+        @if (ItemSpells.Count > 0)
+        {
+            @* Spells of the magic items worn (and attuned when they need it): cast with the item's charges *@
+            <section class="rf-card2 rf-casting" data-test="sheet-item-spells">
+                <div class="rf-casting-head">
+                    <div class="rf-casting-left">
+                        <h2 class="rf-casting-title"><Icon Name="magic-items" /> @UiText.SheetItemSpells(Lang)</h2>
+                    </div>
+                </div>
+                <div class="rf-casting-grid">
+                    @foreach (var entry in ItemSpells)
+                    {
+                        var e = entry;
+                        <a href="@($"spells?id={e.Id}")" class="rf-casting-card" @onclick="() => OpenItemSpell(e)" @onclick:preventDefault="true" data-test="sheet-item-spell">
+                            <span class="rf-casting-card-name">@e.Name</span>
+                            <span class="rf-casting-card-meta">
+                                <span class="rf-casting-card-school">@ItemName(e.Item)</span>
+                                <span class="rf-casting-card-tags">
+                                    <span title="@UiText.MagicSpellCharges(Lang)">@(e.Spell.Charges == 0 ? UiText.ItemSpellNoCharge(Lang) : UiText.ItemSpellCharges(e.Spell.Charges, Lang))</span>
+                                </span>
+                            </span>
+                        </a>
+                    }
+                </div>
             </section>
         }
     </div>;
@@ -1502,7 +1528,27 @@
 
     // ===== Casting a spell from its details =====
     private RenderFragment CastPanel() => @<text>
-        @if (castSpell is { } sp && castSource is { } src && computed is { } c)
+        @if (castItem is { } fromItem)
+        {
+            var left = fromItem.Item.Magic!.Charges - fromItem.Item.Magic.ChargesUsed;
+            <div class="rf-cast" data-test="spell-cast">
+                @if (CannotAct)
+                {
+                    <div class="rf-cast-warning" data-test="spell-cast-blocked">@UiText.CastBlocked(Lang)</div>
+                }
+                else
+                {
+                    <div class="rf-mini-label mb-2">@UiText.CastWith(Lang)</div>
+                    <div class="rf-cast-options">
+                        <button type="button" class="rf-cast-option primary" disabled="@(!MagicItemRules.CanCast(fromItem.Item, fromItem.Spell))" @onclick="CastFromItem" data-test="spell-cast-item">
+                            <strong>@ItemName(fromItem.Item)</strong>
+                            <small>@UiText.ItemSpellCastHint(fromItem.Spell.Charges, left, fromItem.Spell.Level, fromItem.Spell.SaveDc, Lang)</small>
+                        </button>
+                    </div>
+                }
+            </div>
+        }
+        else if (castSpell is { } sp && castSource is { } src && computed is { } c)
         {
             <div class="rf-cast" data-test="spell-cast">
                 @if (CannotAct)
