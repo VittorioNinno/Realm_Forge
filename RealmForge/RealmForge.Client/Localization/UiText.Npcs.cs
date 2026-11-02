@@ -9,8 +9,8 @@ namespace RealmForge.Client.Localization
 	{
 		public static string NpcsTitle(LanguageCode lang) => T(lang, "PNG", "NPCs");
 		public static string NpcsSubtitle(LanguageCode lang) => T(lang,
-			"I personaggi non giocanti con statblock, tratti interpretativi, archetipi base e creazioni condivise",
-			"Nonplayer characters with statblock, roleplay traits, base archetypes and shared creations");
+			"I personaggi non giocanti delle tue campagne: statblock, tratti interpretativi, ritratti e creazioni condivise",
+			"The nonplayer characters of your campaigns: statblock, roleplay traits, portraits and shared creations");
 		public static string BtnNewNpc(LanguageCode lang) => T(lang, "+ Nuovo PNG", "+ New NPC");
 		public static string LabelSearchNpc(LanguageCode lang) => T(lang, "Cerca PNG", "Search NPCs");
 		public static string PlaceholderSearchNpcs(LanguageCode lang) => T(lang, "Es. Vaelen, Guardia, Locandiere...", "E.g. Vaelen, Guard, Innkeeper...");
@@ -23,12 +23,10 @@ namespace RealmForge.Client.Localization
 
 		//	Origin: the filter and the chips
 		public static string NpcOriginAll(LanguageCode lang) => T(lang, "Tutte le origini", "All origins");
-		public static string NpcOriginBase(LanguageCode lang) => T(lang, "Base (SRD)", "Base (SRD)");
 		public static string NpcOriginMine(LanguageCode lang) => T(lang, "Miei PNG (Homebrew)", "My NPCs (Homebrew)");
 		public static string NpcOriginShared(LanguageCode lang) => T(lang, "Condivisi dalla community", "Shared by the community");
 		public static string NpcChipAll(LanguageCode lang) => T(lang, "Tutti", "All");
 		public static string NpcChipMine(LanguageCode lang) => T(lang, "Miei PNG", "My NPCs");
-		public static string NpcChipBase(LanguageCode lang) => T(lang, "Base", "Base");
 		public static string NpcChipShared(LanguageCode lang) => T(lang, "Condivisi", "Shared");
 		public static string NpcBand(int band, LanguageCode lang) => band switch
 		{
@@ -63,8 +61,8 @@ namespace RealmForge.Client.Localization
 		//	Create slot
 		public static string NpcForgeTitle(LanguageCode lang) => T(lang, "Forgia un nuovo PNG", "Forge a new NPC");
 		public static string NpcForgeText(LanguageCode lang) => T(lang,
-			"Crea un personaggio non giocante per la tua campagna, oppure parti da uno generato a caso.",
-			"Create a nonplayer character for your campaign, or start from a random one.");
+			"Crea un personaggio non giocante per la tua campagna, oppure parti da uno generato a caso su uno statblock dei mostri.",
+			"Create a nonplayer character for your campaign, or start from a random one on a monster statblock.");
 		public static string NpcCreateBlank(LanguageCode lang) => T(lang, "+ Crea da zero", "+ Create from scratch");
 		public static string NpcGenerateRandom(LanguageCode lang) => T(lang, "Genera casuale", "Generate random");
 
@@ -72,10 +70,12 @@ namespace RealmForge.Client.Localization
 		public static string NpcEmptyKicker(LanguageCode lang) => T(lang, "Nessun PNG personalizzato presente", "No custom NPC yet");
 		public static string NpcEmptyTitle(LanguageCode lang) => T(lang, "La tua galleria di personaggi non giocanti è ancora vuota", "Your gallery of nonplayer characters is still empty");
 		public static string NpcEmptyText(LanguageCode lang) => T(lang,
-			"Crea da zero i volti della tua campagna (locandieri, alleati, rivali, boss) oppure clona uno degli archetipi base qui accanto per dargli un nome, un ritratto e dei segreti in pochi secondi.",
-			"Create the faces of your campaign from scratch (innkeepers, allies, rivals, bosses) or clone one of the base archetypes next to this to give it a name, a portrait and secrets in a few seconds.");
+			"Crea da zero i volti della tua campagna (locandieri, alleati, rivali, boss) oppure parti da uno statblock dei mostri qui accanto per dargli un nome, un ritratto e dei segreti in pochi secondi. Da ogni mostro puoi anche creare un PNG.",
+			"Create the faces of your campaign from scratch (innkeepers, allies, rivals, bosses) or start from one of the monster statblocks next to this to give it a name, a portrait and secrets in a few seconds. You can also make an NPC from any monster.");
 		public static string NpcEmptyNew(LanguageCode lang) => T(lang, "+ Nuovo PNG da zero", "+ New NPC from scratch");
-		public static string NpcEmptyShowBase(LanguageCode lang) => T(lang, "Mostra tutti i PNG base", "Show all base NPCs");
+		public static string NpcEmptyShowMonsters(LanguageCode lang) => T(lang, "Scegli uno statblock tra i mostri", "Pick a statblock among the monsters");
+		public static string NpcFromMonster(LanguageCode lang) => T(lang, "Crea PNG", "Make NPC");
+		public static string NpcFromMonsterHint(LanguageCode lang) => T(lang, "Un PNG tuo con questo statblock: nome, ritratto, ruolo e segreti", "An NPC of yours with this statblock: name, portrait, role and secrets");
 		public static string NpcStarterClone(LanguageCode lang) => T(lang, "Clona e dai un nome →", "Clone and name it →");
 		public static string NpcStarterName(string key, LanguageCode lang) => key switch
 		{

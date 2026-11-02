@@ -10,6 +10,7 @@
 @inject LanguageStateService LanguageState
 @inject GlossaryService Glossary
 @inject ApiErrorState ApiErrors
+@inject NavigationManager Navigation
 
 <PageTitle>RealmForge - @UiText.MonstersTitle(Lang)</PageTitle>
 
@@ -178,6 +179,9 @@
                 <div class="d-flex flex-wrap gap-2">
                     <ForgeAction>
                         <button class="btn btn-sm btn-rf-orange" @onclick="() => OpenVariantAsync(detail)" data-test="monster-variant">@UiText.BtnCreateVariant(Lang)</button>
+                    </ForgeAction>
+                    <ForgeAction>
+                        <button class="btn btn-sm btn-rf-outline text-uppercase" title="@UiText.NpcFromMonsterHint(Lang)" @onclick="() => OpenNpcAsync(detail)" data-test="monster-make-npc"><Icon Name="npcs" /> @UiText.NpcFromMonster(Lang)</button>
                     </ForgeAction>
                     @if (detail.CanEdit)
                     {
@@ -478,8 +482,29 @@
         editor = model;
     }
 
+    //	"Crea PNG": an NPC of the account with this statblock, opened on its sheet once saved
+    private async Task OpenNpcAsync(MonsterDetailDto detail)
+    {
+        var model = await NpcModels.CloneAsync(MonsterService, detail.Id);
+        if (model is null)
+        {
+            return;
+        }
+        editingId = null;
+        editorVariantOf = detail.Text.Name;
+        editorTitle = UiText.NpcFromMonster(Lang);
+        Selected = null;
+        editor = model;
+    }
+
     private async Task SavedAsync(Guid id)
     {
+        if (editor?.IsNpc == true && editingId is null)
+        {
+            editor = null;
+            Navigation.NavigateTo($"npcs/{id}");
+            return;
+        }
         editor = null;
         await LoadAsync();
         await OpenDetailAsync(id);
