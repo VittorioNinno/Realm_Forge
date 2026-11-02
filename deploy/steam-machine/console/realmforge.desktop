@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=RealmForge
+Comment=Stato, avvio, log e backup di RealmForge
+Icon=applications-games
+Exec=/home/deck/realmforge/scripts/pannello.sh
+Terminal=false
+Categories=Utility;

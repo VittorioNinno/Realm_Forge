@@ -117,7 +117,11 @@ podman auto-update
 ```
 Le migrazioni del database si applicano da sole all'avvio, come su Render. Anche `cloudflared` si aggiorna allo stesso modo. Per PostgreSQL, gli aggiornamenti dentro la versione 18 arrivano con `podman pull docker.io/library/postgres:18`. Un passaggio a una versione nuova (19) va fatto con un backup e un ripristino, mai cambiando solo il numero.
 
-## 8. Comandi utili
+## 8. Pannello di controllo
+
+`install.sh` mette sul Desktop (e nel menu delle applicazioni) l'icona **RealmForge**: una finestra con lo stato di database, API, tunnel e ultimo backup, e le azioni più comuni: avvia, ferma, riavvia l'API, log in diretta, backup adesso, ripristino di un backup, aggiornamento immediato, cartelle di backup e configurazione, ricopia da Neon. Si apre anche da terminale con `~/realmforge/scripts/pannello.sh`.
+
+## 9. Comandi utili
 
 | Cosa | Comando |
 |---|---|
@@ -128,7 +132,7 @@ Le migrazioni del database si applicano da sole all'avvio, come su Render. Anche
 | Fermare tutto | `systemctl --user stop realmforge-tunnel realmforge-api realmforge-db` |
 | Console SQL | `podman exec -it realmforge-db psql -U realmforge` |
 
-## 9. Problemi comuni
+## 10. Problemi comuni
 
 - **`status.sh` dice 502 o 530**: il tunnel è su, ma l'API no (sta partendo, o è in errore): guarda `journalctl --user -u realmforge-api -n 200`.
 - **Dopo il riavvio della macchina non riparte nulla**: controlla che il linger sia attivo (`loginctl show-user $USER | grep Linger` deve dire `yes`).
