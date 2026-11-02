@@ -101,7 +101,7 @@ namespace RealmForge.Client.Localization
 		public static string NpcPortrait(LanguageCode lang) => T(lang, "Ritratto", "Portrait");
 		public static string NpcPortraitPick(LanguageCode lang) => T(lang, "Scegli immagine", "Choose image");
 		public static string NpcFunction(LanguageCode lang) => T(lang, "Funzione al tavolo", "Function at the table");
-		public static string NpcAttitude(LanguageCode lang) => T(lang, "Atteggiamento", "Attitude");
+		public static string NpcAttitudeLabel(LanguageCode lang) => T(lang, "Atteggiamento", "Attitude");
 		public static string NpcRole(LanguageCode lang) => T(lang, "Mestiere / ruolo", "Trade / role");
 		public static string NpcRoleHint(LanguageCode lang) => T(lang, "Es. Locandiere, Informatore", "E.g. Innkeeper, Informant");
 		public static string NpcAncestry(LanguageCode lang) => T(lang, "Specie / origine", "Species / ancestry");
