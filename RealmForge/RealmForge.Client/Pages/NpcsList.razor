@@ -85,7 +85,7 @@
                         <ForgeAction>
                             <button type="button" class="btn btn-rf-orange text-uppercase" @onclick="OpenCreate">@UiText.NpcEmptyNew(Lang)</button>
                         </ForgeAction>
-                        <button type="button" class="btn btn-rf-outline text-uppercase" @onclick="ShowBase" data-test="npc-show-base">@UiText.NpcEmptyShowBase(Lang)</button>
+                        <a class="btn btn-rf-outline text-uppercase" href="monsters" data-test="npc-show-monsters">@UiText.NpcEmptyShowMonsters(Lang)</a>
                     </div>
                 </div>
                 <div class="rf-npc-starters">
@@ -110,7 +110,7 @@
             </section>
         }
 
-        @if (Filtered.Count == 0)
+        @if (Filtered.Count == 0 && All.Any(m => m.IsNpc && !m.IsOfficialSRD))
         {
             <div class="p-4 mb-3 rounded text-center" style="background-color: var(--rf-bg-surface); border: 1px solid var(--rf-border-light);" data-test="npc-none">
                 <p class="mb-0" style="color: var(--rf-text-muted);">@UiText.NoNpcsFound(Lang)</p>
@@ -283,8 +283,9 @@
         {
             var term = SearchTerm.Trim();
             return All
-                .Where(m => m.IsNpc)
-                .Where(m => OriginFilter switch { "base" => m.IsOfficialSRD, "mine" => m.IsMine, "shared" => IsShared(m), _ => true })
+                //	Only the NPCs written by someone: the base statblocks stay among the monsters
+                .Where(m => m.IsNpc && !m.IsOfficialSRD)
+                .Where(m => OriginFilter switch { "mine" => m.IsMine, "shared" => IsShared(m), _ => true })
                 .Where(m => ArchetypeFilter is null || m.Archetype == ArchetypeFilter)
                 .Where(m => BandFilter is null || Band(m.ChallengeRating) == BandFilter)
                 .Where(m => term.Length == 0
@@ -293,15 +294,15 @@
                             || m.Role.Contains(term, StringComparison.OrdinalIgnoreCase)
                             || m.Ancestry.Contains(term, StringComparison.OrdinalIgnoreCase)
                             || m.Subtitle.Contains(term, StringComparison.OrdinalIgnoreCase))
-                //	The named one first, then mine, the shared ones and the base ones, by name
+                //	The named one first, then mine and the shared ones, by name
                 .OrderBy(Rank)
-                .ThenBy(m => m.IsMine ? 0 : m.IsOfficialSRD ? 2 : 1)
+                .ThenBy(m => m.IsMine ? 0 : 1)
                 .ThenBy(m => m.Name, StringComparer.CurrentCultureIgnoreCase)
                 .ToList();
         }
     }
 
-    //	Three base archetypes to clone when the account has no NPC: the commoner, the guard (CR 1/8 with the shield) and the spy
+    //	Three monster statblocks to start from when the account has no NPC: the commoner, the guard (CR 1/8 with the shield) and the spy
     private IEnumerable<(string Key, MonsterResponseDto Npc)> Starters
     {
         get
@@ -320,7 +321,6 @@
     {
         ("", UiText.NpcChipAll(Lang)),
         ("mine", UiText.NpcChipMine(Lang)),
-        ("base", UiText.NpcChipBase(Lang)),
         ("shared", UiText.NpcChipShared(Lang))
     };
 
@@ -334,7 +334,6 @@
     private List<RfSelect<string>.OptionItem> OriginOptions => new()
     {
         new("", UiText.NpcOriginAll(Lang)),
-        new("base", UiText.NpcOriginBase(Lang)),
         new("mine", UiText.NpcOriginMine(Lang)),
         new("shared", UiText.NpcOriginShared(Lang))
     };
@@ -371,14 +370,6 @@
         IsLoading = true;
         All = await MonsterService.GetMonstersAsync(Lang, SelectedRuleset);
         IsLoading = false;
-    }
-
-    private void ShowBase()
-    {
-        OriginFilter = "base";
-        SearchTerm = string.Empty;
-        ArchetypeFilter = null;
-        BandFilter = null;
     }
 
     // ===== Editor =====
