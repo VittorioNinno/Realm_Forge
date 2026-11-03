@@ -214,7 +214,7 @@
     </div>
 </section>
 
-<DiceTray @ref="tray" />
+<DiceTray @ref="tray" AutoHideMs="1800" ShowHistory="false" />
 
 @if (clearing)
 {
@@ -480,7 +480,9 @@
         if (roll is not null)
         {
             Merge(new[] { roll });
-            label = null;
+
+            //	Ready for the next roll: dice, modifier, d20 mode and reason start over (who rolls and the visibility stay)
+            ResetPool();
             if (tray is not null)
             {
                 await tray.ShowAsync(new DiceRollResult(roll.Label, roll.Dice.Select(d => new DieFace(d.Sides, d.Value, d.Dropped)).ToList(), roll.Modifier, roll.Total, roll.Note));
