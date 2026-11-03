@@ -1392,9 +1392,12 @@ try {
   await page.locator('[data-test=roll-hidden]').click();
   await page.locator('[data-test=roll-label]').fill('Trappola');
   await page.locator('[data-test=roll-go]').click();
+  campaignUi.tray = await page.locator('[data-test=sheet-last-roll]').waitFor({ timeout: 8000 }).then(() => 1, () => 0);
   const trap = page.locator('[data-test=roll]', { hasText: 'Trappola' });
   await trap.locator('[data-test=roll-reveal]').waitFor({ timeout: 15000 });
-  campaignUi.tray = await page.locator('[data-test=sheet-last-roll]').count();
+  // The popup closes on its own once the dice land, and the console starts over
+  await page.locator('[data-test=sheet-last-roll]').waitFor({ state: 'detached', timeout: 8000 });
+  campaignUi.afterRoll = `${await page.locator('[data-test=roll-expression]').inputValue()}|${await page.locator('[data-test=roll-modifier]').innerText()}|${await page.locator('.rf-dice-pick-btn.selected').count()}`;
   campaignUi.trapDice = await trap.locator('.rf-dice-chip').count();
   await shot(page, 'campaign-roll-hidden', 'main');
   await trap.locator('[data-test=roll-reveal]').click();
@@ -1632,7 +1635,7 @@ try {
     || !/Prossima sessione/i.test(campaignUi.session) || !/tra 3 giorni/.test(campaignUi.session) || !/Il lich/.test(campaignUi.session)
     || !/Sessione 1/i.test(campaignUi.nextSession) || !/21:00/.test(campaignUi.nextSession) || campaignUi.sheetShared !== 1
     || campaignUi.rolls !== 'Iniziativa,Trappola,Danni della spada' || campaignUi.rollers !== 'Eroe di prova,Master,Master'
-    || campaignUi.formula !== '2d20kh1 + 1d6' || campaignUi.tray !== 1 || campaignUi.trapDice !== 3 || campaignUi.revealed !== 0) throw new Error(`unexpected campaign page: ${JSON.stringify(campaignUi)}`);
+    || campaignUi.formula !== '2d20kh1 + 1d6' || campaignUi.afterRoll !== '1d20|+0|0' || campaignUi.tray !== 1 || campaignUi.trapDice !== 3 || campaignUi.revealed !== 0) throw new Error(`unexpected campaign page: ${JSON.stringify(campaignUi)}`);
   ok('campaigns: the creator is the master with an invite link, the character joins the table (the whole card opens the sheet, deactivated and activated again; its card in the list shows the campaign), a journal page, an encounter with three goblins run to round 2, the dice console (d20 with advantage + d6 behind the screen, shown in the tray, then revealed), the character leaves from its sheet, the campaign is deleted, restored from the bin, deleted again and purged');
   await page.goto(sheetUrl);
   await page.locator('[data-test=character-sheet]').waitFor({ timeout: 30000 });
