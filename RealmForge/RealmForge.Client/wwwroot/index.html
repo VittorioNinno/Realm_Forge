@@ -201,6 +201,53 @@
                 return (Math.abs(dq) + Math.abs(dr) + Math.abs(dq + dr)) / 2;
             };
 
+            // The areas of spells, as MapAreas in the app: the outline and the cells whose centre is inside
+            const areaOutline = (kind, ox, oy, tx, ty, length, c) => {
+                if (kind === 'sphere') return null;
+                const d = Math.hypot(tx - ox, ty - oy);
+                const [dx, dy] = d < 0.001 ? [1, 0] : [(tx - ox) / d, (ty - oy) / d];
+                const [nx, ny] = [-dy, dx];
+                const reach = length + c / 2;
+                const half = kind === 'line' ? c / 2 : kind === 'cube' ? length / 2 : reach / 2;
+                const [ex, ey] = [ox + dx * reach, oy + dy * reach];
+                if (kind === 'cone') return [[ox, oy], [ex + nx * half, ey + ny * half], [ex - nx * half, ey - ny * half]];
+                const [sx, sy] = [ox + dx * c / 2, oy + dy * c / 2];
+                return [[sx + nx * half, sy + ny * half], [ex + nx * half, ey + ny * half], [ex - nx * half, ey - ny * half], [sx - nx * half, sy - ny * half]];
+            };
+            const segDist = (a, b, x, y) => {
+                const vx = b[0] - a[0], vy = b[1] - a[1], l2 = vx * vx + vy * vy;
+                const t = l2 < 1e-9 ? 0 : Math.max(0, Math.min(1, ((x - a[0]) * vx + (y - a[1]) * vy) / l2));
+                return Math.hypot(a[0] + t * vx - x, a[1] + t * vy - y);
+            };
+            const inPolygon = (poly, x, y) => {
+                for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) if (segDist(poly[j], poly[i], x, y) <= 0.5) return true;
+                let inside = false;
+                for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
+                    const [xi, yi] = poly[i], [xj, yj] = poly[j];
+                    if ((yi > y) !== (yj > y) && x < (xj - xi) * (y - yi) / (yj - yi) + xi) inside = !inside;
+                }
+                return inside;
+            };
+            const corners = (t, g, ox, oy, c, r) => {
+                const [cx, cy] = center(t, g, ox, oy, c, r);
+                if (t === 0) return [[cx - g / 2, cy - g / 2], [cx + g / 2, cy - g / 2], [cx + g / 2, cy + g / 2], [cx - g / 2, cy + g / 2]];
+                const [w, h] = cell(t, g), rad = t === 1 ? h / 2 : w / 2, start = t === 1 ? -90 : 0;
+                return [0, 1, 2, 3, 4, 5].map(i => [cx + rad * Math.cos((start + 60 * i) * Math.PI / 180), cy + rad * Math.sin((start + 60 * i) * Math.PI / 180)]);
+            };
+            const areaCells = (t, g, gx, gy, kind, ox, oy, tx, ty, size) => {
+                const length = size * g, poly = areaOutline(kind, ox, oy, tx, ty, length, g);
+                const xs = poly ? poly.map(p => p[0]) : [ox - length, ox + length], ys = poly ? poly.map(p => p[1]) : [oy - length, oy + length];
+                const a = nearest(t, g, gx, gy, Math.min(...xs), Math.min(...ys)), b = nearest(t, g, gx, gy, Math.max(...xs), Math.max(...ys));
+                const o = nearest(t, g, gx, gy, ox, oy), out = [];
+                for (let c = Math.max(0, a[0] - 1); c <= b[0] + 1; c++) for (let r = Math.max(0, a[1] - 1); r <= b[1] + 1; r++) {
+                    if (kind !== 'sphere' && c === o[0] && r === o[1]) continue;
+                    const [x, y] = center(t, g, gx, gy, c, r);
+                    if (x < 0 || y < 0) continue;
+                    if (kind === 'sphere' ? (x - ox) ** 2 + (y - oy) ** 2 <= length * length + 0.01 : inPolygon(poly, x, y)) out.push([c, r]);
+                }
+                return out;
+            };
+
             function attach(stage, dotnet, options) {
                 detach(stage);
                 const st = { dotnet, options, tool: 'select', drag: null, pan: null, ruler: null };
@@ -232,6 +279,35 @@
                         + `<g transform="translate(${x2 + pad * 2} ${y2 - pad * 2})"><rect x="0" y="${-fs - pad}" width="${(label.length * 0.62 * fs) + pad * 2}" height="${fs + pad * 2}" rx="${4 / z}" fill="rgba(10,10,10,.85)" stroke="#ff8c00" stroke-width="${1 / z}"/>`
                         + `<text x="${pad}" y="0" font-size="${fs}" font-weight="700" fill="#ffffff" data-test="map-ruler-label">${label}</text></g>`;
                 };
+                const layer = () => board()?.querySelector('[data-ruler]');
+                const drawStroke = () => {
+                    const svg = layer();
+                    if (!svg) return;
+                    if (!st.stroke) { svg.innerHTML = ''; return; }
+                    const g = grid()[1];
+                    svg.innerHTML = `<polyline points="${st.stroke.map(p => p.join(',')).join(' ')}" fill="none" stroke="${st.options.color || '#ff8c00'}" stroke-width="${Math.max(2, g / 14)}" stroke-linecap="round" stroke-linejoin="round"/>`;
+                };
+                // The size of an area being drawn, in whole cells (a sphere by its radius)
+                const areaSize = (a) => {
+                    const g = grid()[1];
+                    return Math.min(40, Math.round(Math.hypot(a.to[0] - a.from[0], a.to[1] - a.from[1]) / g));
+                };
+                const drawArea = () => {
+                    const svg = layer();
+                    if (!svg) return;
+                    if (!st.area) { svg.innerHTML = ''; return; }
+                    const [t, g, ox, oy] = grid(), z = zoom(), kind = st.options.area || 'cone', a = st.area, size = Math.max(1, areaSize(a));
+                    const color = st.options.color || '#ff8c00';
+                    const cells = areaCells(t, g, ox, oy, kind, a.from[0], a.from[1], a.to[0], a.to[1], size)
+                        .map(([c, r]) => `<polygon points="${corners(t, g, ox, oy, c, r).map(p => p.join(',')).join(' ')}" fill="${color}" fill-opacity=".3"/>`).join('');
+                    const poly = areaOutline(kind, a.from[0], a.from[1], a.to[0], a.to[1], size * g, g);
+                    const shape = poly
+                        ? `<polygon points="${poly.map(p => p.join(',')).join(' ')}" fill="${color}" fill-opacity=".12" stroke="${color}" stroke-width="${2 / z}"/>`
+                        : `<circle cx="${a.from[0]}" cy="${a.from[1]}" r="${size * g}" fill="${color}" fill-opacity=".12" stroke="${color}" stroke-width="${2 / z}"/>`;
+                    const label = `${(size * st.options.perCell).toLocaleString(st.options.locale)} ${st.options.unit}`;
+                    const fs = 14 / z, pad = 8 / z;
+                    svg.innerHTML = cells + shape + `<g transform="translate(${a.to[0] + pad * 2} ${a.to[1] - pad * 2})"><rect x="0" y="${-fs - pad}" width="${label.length * 0.62 * fs + pad * 2}" height="${fs + pad * 2}" rx="${4 / z}" fill="rgba(10,10,10,.85)" stroke="${color}" stroke-width="${1 / z}"/><text x="${pad}" y="0" font-size="${fs}" font-weight="700" fill="#ffffff" data-test="map-area-label">${label}</text></g>`;
+                };
                 // Aligning the grid: the box drawn over one cell of the picture
                 const drawBox = () => {
                     const svg = board()?.querySelector('[data-ruler]');
@@ -259,6 +335,35 @@
                         e.preventDefault();
                         return;
                     }
+                    if (st.tool === 'erase') {
+                        const shape = e.target.closest('[data-shape]');
+                        if (shape) {
+                            e.preventDefault();
+                            dotnet.invokeMethodAsync('ShapeErased', shape.dataset.shape);
+                            return;
+                        }
+                    }
+                    if (st.tool === 'draw') {
+                        st.stroke = [toMap(e)];
+                        drawStroke();
+                        e.preventDefault();
+                        return;
+                    }
+                    if (st.tool === 'text') {
+                        const p = toMap(e);
+                        e.preventDefault();
+                        dotnet.invokeMethodAsync('TextAt', p[0], p[1]);
+                        return;
+                    }
+                    if (st.tool === 'area') {
+                        const [t, g, ox, oy] = grid();
+                        const p = toMap(e), o = nearest(t, g, ox, oy, p[0], p[1]);
+                        const c = center(t, g, ox, oy, o[0], o[1]);
+                        st.area = { from: c, to: c };
+                        drawArea();
+                        e.preventDefault();
+                        return;
+                    }
                     if (st.tool === 'select' && token) {
                         e.preventDefault();
                         st.drag = { el: token, id: token.dataset.token, x: e.clientX, y: e.clientY, moved: false, movable: token.dataset.movable === '1' };
@@ -283,6 +388,15 @@
                         st.pan.moved = true;
                         stage.scrollLeft = st.pan.left - (e.clientX - st.pan.x);
                         stage.scrollTop = st.pan.top - (e.clientY - st.pan.y);
+                    } else if (st.stroke) {
+                        const p = toMap(e), last = st.stroke[st.stroke.length - 1];
+                        if (Math.hypot(p[0] - last[0], p[1] - last[1]) * zoom() >= 4 && st.stroke.length < 1000) {
+                            st.stroke.push(p);
+                            drawStroke();
+                        }
+                    } else if (st.area) {
+                        st.area.to = toMap(e);
+                        drawArea();
                     } else if (st.box) {
                         st.box.to = toMap(e);
                         drawBox();
@@ -314,6 +428,17 @@
                         st.pan = null;
                         stage.classList.remove('panning');
                         if (!moved && st.tool === 'select') dotnet.invokeMethodAsync('BoardClicked');
+                    } else if (st.stroke) {
+                        const points = st.stroke.flat().map(v => Math.round(v * 10) / 10);
+                        st.stroke = null;
+                        if (points.length >= 4) await dotnet.invokeMethodAsync('Drawn', points);
+                        drawStroke();
+                    } else if (st.area) {
+                        const a = st.area;
+                        st.area = null;
+                        const size = areaSize(a);
+                        if (size > 0) await dotnet.invokeMethodAsync('AreaDrawn', st.options.area || 'cone', a.from[0], a.from[1], a.to[0], a.to[1], size);
+                        drawArea();
                     } else if (st.box) {
                         const b = st.box;
                         st.box = null;
@@ -355,10 +480,13 @@
                 boards.delete(stage);
             }
 
-            function tool(stage, name) {
+            function tool(stage, name, extra) {
                 const st = boards.get(stage);
                 if (!st) return;
+                if (extra) Object.assign(st.options, extra);
                 st.tool = name;
+                st.stroke = null;
+                st.area = null;
                 if (name !== 'ruler') st.ruler = null;
                 st.box = null;
                 st.drawRuler();

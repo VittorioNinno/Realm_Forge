@@ -92,5 +92,27 @@ namespace RealmForge.Client.Localization
 				"Drag a box exactly over one cell drawn on the map, then save.")
 			: T(lang, "Trascina un riquadro attorno a un esagono disegnato sulla mappa (da lato piatto a lato piatto), poi salva.",
 				"Drag a box around one hexagon drawn on the map (flat side to flat side), then save.");
+		public static string VttToolArea(LanguageCode lang) => T(lang, "Area di un incantesimo", "Spell area");
+		public static string VttToolDraw(LanguageCode lang) => T(lang, "Disegna", "Draw");
+		public static string VttToolText(LanguageCode lang) => T(lang, "Testo e note", "Text and notes");
+		public static string VttToolErase(LanguageCode lang) => T(lang, "Cancella", "Erase");
+		public static string AreaName(ShapeKind kind, LanguageCode lang) => kind switch
+		{
+			ShapeKind.Sphere => T(lang, "Sfera", "Sphere"),
+			ShapeKind.Line => T(lang, "Linea", "Line"),
+			ShapeKind.Cube => T(lang, "Cubo", "Cube"),
+			_ => T(lang, "Cono", "Cone")
+		};
+		public static string VttAreaHint(LanguageCode lang) => T(lang,
+			"Trascina dalla casella di chi lancia verso il bersaglio: le caselle colpite si colorano.",
+			"Drag from the caster's cell towards the target: the cells hit light up.");
+		public static string VttDrawHint(LanguageCode lang) => T(lang, "Trascina sulla mappa per disegnare.", "Drag on the map to draw.");
+		public static string VttTextPlace(LanguageCode lang) => T(lang, "Fai clic sulla mappa dove scrivere.", "Click on the map where to write.");
+		public static string VttTextHint(LanguageCode lang) => T(lang, "Testo…", "Text…");
+		public static string VttMasterNote(LanguageCode lang) => T(lang, "Nota solo per i master", "Note for the masters only");
+		public static string VttEraseHint(LanguageCode lang) => T(lang, "Fai clic su un disegno, un testo o un'area per toglierlo.", "Click a drawing, a text or an area to remove it.");
+		public static string VttClearAll(LanguageCode lang) => T(lang, "Cancella tutti i disegni", "Clear all drawings");
+		public static string VttClearMine(LanguageCode lang) => T(lang, "Cancella i miei disegni", "Clear my drawings");
+		public static string MapTokenBelow(LanguageCode lang) => T(lang, "Sotto gli altri segnalini", "Under the other tokens");
 	}
 }

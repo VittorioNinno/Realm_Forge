@@ -1544,8 +1544,49 @@ try {
   await shot(page, 'phone-vtt-table', null);
   await page.setViewportSize({ width: 1280, height: 900 });
   results.push(`INFO vtt: ${JSON.stringify(vttUi)}`);
-  if (vttUi.ruler !== '3 · 4,5 m' || vttUi.displayed !== 1 || vttUi.zoom === '100%' || vttUi.tools !== 5 || vttUi.phoneZoom === vttUi.zoom) throw new Error(`unexpected virtual tabletop: ${JSON.stringify(vttUi)}`);
+  if (vttUi.ruler !== '3 · 4,5 m' || vttUi.displayed !== 1 || vttUi.zoom === '100%' || vttUi.tools !== 9 || vttUi.phoneZoom === vttUi.zoom) throw new Error(`unexpected virtual tabletop: ${JSON.stringify(vttUi)}`);
   ok('virtual tabletop: the table on the whole window with the map shown to the players, fitted to the screen, the tools on the left, the ruler measuring three cells (4,5 m), the map fitted again on a phone');
+  // A sphere of 1 cell (1,5 m) around the hero: its cell and the three around it on the map; a stroke, then erased;
+  // a note for the masters
+  await page.waitForTimeout(800);
+  const hb2 = await tableHero.boundingBox();
+  const cellPx = hb2.width;
+  const hx = hb2.x + hb2.width / 2, hy = hb2.y + hb2.height / 2;
+  await page.locator('[data-test=vtt-tool-area]').click();
+  await page.locator('[data-test=vtt-area-sphere]').click();
+  await page.mouse.move(hx, hy);
+  await page.mouse.down();
+  await page.mouse.move(hx + cellPx * 0.5, hy + cellPx * 0.6, { steps: 3 });
+  await page.mouse.move(hx, hy + cellPx * 1.1, { steps: 3 });
+  await page.mouse.up();
+  await page.locator('[data-test=map-shape][data-kind=sphere]').waitFor({ timeout: 15000 });
+  await page.locator('[data-test=vtt-tool-draw]').click();
+  await page.mouse.move(hx - cellPx, hy + cellPx * 4);
+  await page.mouse.down();
+  await page.mouse.move(hx, hy + cellPx * 4, { steps: 5 });
+  await page.mouse.move(hx + cellPx * 2, hy + cellPx * 4, { steps: 5 });
+  await page.mouse.up();
+  await page.locator('[data-test=map-shape][data-kind=freehand]').waitFor({ timeout: 15000 });
+  await page.locator('[data-test=vtt-tool-text]').click();
+  await page.mouse.click(hx + cellPx * 3, hy + cellPx * 2.5);
+  await page.locator('[data-test=vtt-text-input]').fill('Porta segreta');
+  await page.locator('[data-test=vtt-text-master]').check();
+  await page.locator('[data-test=vtt-text-add]').click();
+  await page.locator('[data-test=map-shape][data-kind=note]').waitFor({ timeout: 15000 });
+  const drawUi = {
+    sphereCells: await page.locator('[data-test=map-shape][data-kind=sphere] [data-test=map-area-cell]').count(),
+    note: (await page.locator('[data-test=map-shape][data-kind=note]').textContent()).trim()
+  };
+  await shot(page, 'vtt-drawings', null);
+  await page.locator('[data-test=vtt-tool-erase]').click();
+  await page.mouse.click(hx, hy + cellPx * 4);
+  await page.locator('[data-test=map-shape][data-kind=freehand]').waitFor({ state: 'detached', timeout: 15000 });
+  await page.locator('[data-test=vtt-clear-shapes]').click();
+  await page.locator('[data-test=map-shape][data-kind=sphere]').waitFor({ state: 'detached', timeout: 15000 });
+  drawUi.left = (await page.locator('[data-test=map-shape]').evaluateAll((els) => els.map((e) => e.dataset.kind))).join(',');
+  results.push(`INFO vtt drawings: ${JSON.stringify(drawUi)}`);
+  if (drawUi.sphereCells !== 4 || drawUi.note !== '✎ Porta segreta' || drawUi.left !== 'note') throw new Error(`unexpected drawings: ${JSON.stringify(drawUi)}`);
+  ok('virtual tabletop drawings: a sphere of 1,5 m lighting up the hero\'s cell and the three around it, a stroke erased with a click, a note for the masters kept when the drawings are cleared');
   await page.locator('[data-test=vtt-back]').click();
   await page.locator('[data-test=campaign-title]').waitFor({ timeout: 30000 });
   // From the sheet, the owner takes the character out of the campaign
