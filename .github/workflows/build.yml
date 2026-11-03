@@ -1075,6 +1075,11 @@ jobs:
           mp_hex_out=$(code -X POST "$api/api/campaigns/$ss_cp/maps/$mp2/tokens" $json -H "Authorization: Bearer $B" -d '{"label":"Fuori","kind":4,"x":0,"y":8,"size":1}')
           mp_bad_grid=$(code -X PUT "$api/api/campaigns/$ss_cp/maps/$mp2" $json -H "Authorization: Bearer $B" -d '{"name":"Foresta","width":700,"height":490,"gridType":7,"gridSize":70}')
           echo "::notice title=maps::display player=$mp_display_player master=$mp_display seen=$mp_after_display hex=$mp_hex in=$mp_hex_in out=$mp_hex_out bad grid=$mp_bad_grid"
+          mp_dup_player=$(code -X POST "$api/api/campaigns/$ss_cp/maps/$mp2/duplicate" -H "Authorization: Bearer $A")
+          mp_dup=$(curl -s -X POST "$api/api/campaigns/$ss_cp/maps/$mp2/duplicate?name=Foresta%202" -H "Authorization: Bearer $B")
+          mp_dup_state=$(curl -s "$api/api/campaigns/$ss_cp/maps/$(echo "$mp_dup" | jq -r .id)/state" -H "Authorization: Bearer $B" | jq -c '{name, gridType, shown, tokens: (.tokens | length)}')
+          echo "::notice title=maps::duplicate player=$mp_dup_player copy=$mp_dup_state"
+          code -X DELETE "$api/api/campaigns/$ss_cp/maps/$(echo "$mp_dup" | jq -r .id)" -H "Authorization: Bearer $B" > /dev/null
           code -X DELETE "$api/api/campaigns/$ss_cp/maps/$mp2" -H "Authorization: Bearer $B" > /dev/null
           mp_delete=$(code -X DELETE "$api/api/campaigns/$ss_cp/maps/$mp" -H "Authorization: Bearer $B")
           echo "::notice title=maps::player create=$mp_player_create hidden list=$mp_hidden_list outside=$mp_outside | player state=$mp_player_state move=$mp_player_move | master move=$mp_master_move state=$mp_master_state | delete=$mp_delete"
@@ -1125,6 +1130,8 @@ jobs:
           sscheck "token on the last hex" "$mp_hex_in" "200"
           sscheck "token beyond the hexes" "$mp_hex_out" "400"
           sscheck "unknown grid" "$mp_bad_grid" "400"
+          sscheck "player duplicates a map" "$mp_dup_player" "403"
+          sscheck "copy of a map" "$mp_dup_state" '{"name":"Foresta 2","gridType":1,"shown":false,"tokens":1}'
           sscheck "reveal by a player" "$rl_reveal_player" "403"
           sscheck "reveal by the master" "$rl_reveal" '{"label":"Segreto","hidden":false,"byMaster":true}'
           sscheck "revealed roll for the player" "$rl_revealed" '{"label":"Segreto","byMaster":true}'

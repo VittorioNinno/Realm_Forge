@@ -232,9 +232,26 @@
                         + `<g transform="translate(${x2 + pad * 2} ${y2 - pad * 2})"><rect x="0" y="${-fs - pad}" width="${(label.length * 0.62 * fs) + pad * 2}" height="${fs + pad * 2}" rx="${4 / z}" fill="rgba(10,10,10,.85)" stroke="#ff8c00" stroke-width="${1 / z}"/>`
                         + `<text x="${pad}" y="0" font-size="${fs}" font-weight="700" fill="#ffffff" data-test="map-ruler-label">${label}</text></g>`;
                 };
+                // Aligning the grid: the box drawn over one cell of the picture
+                const drawBox = () => {
+                    const svg = board()?.querySelector('[data-ruler]');
+                    if (!svg) return;
+                    if (!st.box) { svg.innerHTML = ''; return; }
+                    const z = zoom();
+                    const x = Math.min(st.box.from[0], st.box.to[0]), y = Math.min(st.box.from[1], st.box.to[1]);
+                    const w = Math.abs(st.box.to[0] - st.box.from[0]), h = Math.abs(st.box.to[1] - st.box.from[1]);
+                    svg.innerHTML = `<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="rgba(255,140,0,.18)" stroke="#ff8c00" stroke-width="${2 / z}" stroke-dasharray="${6 / z} ${4 / z}"/>`;
+                };
                 st.down = (e) => {
                     if (e.button !== 0 || !board()) return;
                     const token = e.target.closest('[data-token]');
+                    if (st.tool === 'calibrate') {
+                        const p = toMap(e);
+                        st.box = { from: p, to: p };
+                        drawBox();
+                        e.preventDefault();
+                        return;
+                    }
                     if (st.tool === 'ruler') {
                         const p = toMap(e);
                         st.ruler = { from: p, to: p, active: true };
@@ -266,6 +283,9 @@
                         st.pan.moved = true;
                         stage.scrollLeft = st.pan.left - (e.clientX - st.pan.x);
                         stage.scrollTop = st.pan.top - (e.clientY - st.pan.y);
+                    } else if (st.box) {
+                        st.box.to = toMap(e);
+                        drawBox();
                     } else if (st.ruler?.active) {
                         st.ruler.to = toMap(e);
                         drawRuler();
@@ -294,6 +314,12 @@
                         st.pan = null;
                         stage.classList.remove('panning');
                         if (!moved && st.tool === 'select') dotnet.invokeMethodAsync('BoardClicked');
+                    } else if (st.box) {
+                        const b = st.box;
+                        st.box = null;
+                        drawBox();
+                        const x = Math.min(b.from[0], b.to[0]), y = Math.min(b.from[1], b.to[1]);
+                        await dotnet.invokeMethodAsync('Calibrated', x, y, Math.abs(b.to[0] - b.from[0]), Math.abs(b.to[1] - b.from[1]));
                     } else if (st.ruler?.active) {
                         st.ruler.active = false;
                     }
@@ -307,6 +333,13 @@
                 window.addEventListener('pointermove', st.move);
                 window.addEventListener('pointerup', st.up);
                 stage.addEventListener('wheel', st.wheel, { passive: false });
+                // A bigger or smaller window: the app may fit the map again
+                let resizeTimer = 0;
+                st.observer = new ResizeObserver(() => {
+                    clearTimeout(resizeTimer);
+                    resizeTimer = setTimeout(() => dotnet.invokeMethodAsync('Resized').catch(() => { }), 150);
+                });
+                st.observer.observe(stage);
                 st.drawRuler = drawRuler;
                 boards.set(stage, st);
             }
@@ -318,6 +351,7 @@
                 window.removeEventListener('pointermove', st.move);
                 window.removeEventListener('pointerup', st.up);
                 stage.removeEventListener('wheel', st.wheel);
+                st.observer?.disconnect();
                 boards.delete(stage);
             }
 
@@ -326,6 +360,7 @@
                 if (!st) return;
                 st.tool = name;
                 if (name !== 'ruler') st.ruler = null;
+                st.box = null;
                 st.drawRuler();
             }
 

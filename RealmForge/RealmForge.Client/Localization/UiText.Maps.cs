@@ -84,5 +84,13 @@ namespace RealmForge.Client.Localization
 		public static string VttPrepare(LanguageCode lang) => T(lang, "Prepara le mappe", "Prepare maps");
 		public static string VttUnit(LanguageCode lang) => T(lang, "m", "ft");
 		public static double VttPerCell(LanguageCode lang) => lang == LanguageCode.It ? 1.5 : 5;
+		public static string MapDuplicate(LanguageCode lang) => T(lang, "Duplica", "Duplicate");
+		public static string MapCopyName(string name, LanguageCode lang) => T(lang, $"{name} (copia)", $"{name} (copy)");
+		public static string MapCalibrate(LanguageCode lang) => T(lang, "Allinea la griglia", "Align the grid");
+		public static string MapCalibrateHint(GridType type, LanguageCode lang) => type == GridType.Square
+			? T(lang, "Trascina un riquadro esattamente sopra una casella disegnata sulla mappa, poi salva.",
+				"Drag a box exactly over one cell drawn on the map, then save.")
+			: T(lang, "Trascina un riquadro attorno a un esagono disegnato sulla mappa (da lato piatto a lato piatto), poi salva.",
+				"Drag a box around one hexagon drawn on the map (flat side to flat side), then save.");
 	}
 }
