@@ -479,6 +479,26 @@
 </div>
 
 <SpellDetailModal SpellId="spellDetailId" OnClose="CloseSpell" Actions="CastPanel()" />
+
+@if (encumbranceNotice)
+{
+    @* The weight just went over the carrying capacity: what it means at the table *@
+    <div class="rf-notice" role="alert" data-test="sheet-encumbrance-notice">
+        <div class="rf-notice-head">
+            <span class="rf-notice-icon"><Icon Name="info" /></span>
+            <strong>@UiText.EncumbranceTitle(Lang)</strong>
+            <button type="button" class="rf-mini-btn ms-auto" @onclick="() => encumbranceNotice = false" aria-label="@UiText.BtnClose(Lang)" data-test="sheet-encumbrance-close"><Icon Name="close" /></button>
+        </div>
+        <p class="mb-2">@UiText.EncumbranceWeight(UiText.FormatWeight(CarriedWeight, Lang), UiText.FormatWeight(CarryingCapacity, Lang), Lang)</p>
+        <ul class="rf-notice-list">
+            @foreach (var line in UiText.EncumbranceEffects(UiText.FormatWeight(CarryingCapacity * 2, Lang), Lang))
+            {
+                <li>@line</li>
+            }
+        </ul>
+        <p class="small mb-0" style="color: var(--rf-text-muted);">@UiText.EncumbranceHint(Lang)</p>
+    </div>
+}
 <DiceTray @ref="diceTray" OnRoll="ShareRollAsync" SharedNote="@(SharesRolls ? UiText.SheetRollShared(Lang) : null)" />
 @if (campaignOpen && character is not null)
 {
@@ -1040,6 +1060,13 @@
                 }
             }
         </div>
+        @if (Overloaded)
+        {
+            <div class="rf-cast-warning mt-2" data-test="sheet-encumbrance">
+                <strong>@UiText.EncumbranceTitle(Lang):</strong>
+                @string.Join(" ", UiText.EncumbranceEffects(UiText.FormatWeight(CarryingCapacity * 2, Lang), Lang))
+            </div>
+        }
         <div class="small mt-2 @(CarriedWeight > CarryingCapacity ? "text-warning" : null)" style="color: var(--rf-text-muted);">
             @UiText.SheetCarrying(UiText.FormatWeight(CarriedWeight, Lang), UiText.FormatWeight(CarryingCapacity, Lang), Lang)
         </div>
