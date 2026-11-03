@@ -12,6 +12,122 @@ public enum TokenKind
 }
 
 ///	<summary>
+///	The grid of a map: squares, or hexagons in rows (pointy top, odd rows shifted right) or in columns (flat top, odd
+///	columns shifted down).
+///	</summary>
+public enum GridType
+{
+	Square = 0,
+	HexRows = 1,
+	HexColumns = 2
+}
+
+///	<summary>
+///	Where the cells of a grid are, in pixels of the map picture. The grid size is the side of a square, or the distance
+///	between two opposite sides of a hexagon; the offset moves the whole grid. A token stands on a cell (col, row): its
+///	centre is the centre of the cell (a square token of size n covers n × n squares from there).
+///	</summary>
+public static class MapGeometry
+{
+	private const double Sqrt3 = 1.7320508075688772;
+
+	public static (double Width, double Height) Cell(GridType type, int grid) => type switch
+	{
+		GridType.HexRows => (grid, 2 * grid / Sqrt3),
+		GridType.HexColumns => (2 * grid / Sqrt3, grid),
+		_ => (grid, grid)
+	};
+
+	public static (double X, double Y) Center(GridType type, int grid, int offsetX, int offsetY, int col, int row, int size = 1)
+	{
+		var (w, h) = Cell(type, grid);
+		return type switch
+		{
+			GridType.HexRows => (offsetX + w / 2 + col * w + ((row & 1) == 1 ? w / 2 : 0), offsetY + h / 2 + row * 0.75 * h),
+			GridType.HexColumns => (offsetX + w / 2 + col * 0.75 * w, offsetY + h / 2 + row * h + ((col & 1) == 1 ? h / 2 : 0)),
+			_ => (offsetX + (col + size / 2.0) * grid, offsetY + (row + size / 2.0) * grid)
+		};
+	}
+
+	///	<summary>
+	///	The cell whose centre is nearest to a point (the centre of a token being dropped).
+	///	</summary>
+	public static (int Col, int Row) Nearest(GridType type, int grid, int offsetX, int offsetY, double x, double y, int size = 1)
+	{
+		if (type == GridType.Square)
+		{
+			return (Math.Max(0, (int)Math.Round((x - offsetX) / grid - size / 2.0)), Math.Max(0, (int)Math.Round((y - offsetY) / grid - size / 2.0)));
+		}
+		var (w, h) = Cell(type, grid);
+		int guessCol, guessRow;
+		if (type == GridType.HexRows)
+		{
+			guessRow = (int)Math.Round((y - offsetY - h / 2) / (0.75 * h));
+			guessCol = (int)Math.Round((x - offsetX - w / 2) / w);
+		}
+		else
+		{
+			guessCol = (int)Math.Round((x - offsetX - w / 2) / (0.75 * w));
+			guessRow = (int)Math.Round((y - offsetY - h / 2) / h);
+		}
+		var best = (Col: Math.Max(0, guessCol), Row: Math.Max(0, guessRow));
+		var bestDistance = double.MaxValue;
+		for (var dc = -1; dc <= 1; dc++)
+		{
+			for (var dr = -1; dr <= 1; dr++)
+			{
+				var (c, r) = (guessCol + dc, guessRow + dr);
+				if (c < 0 || r < 0)
+				{
+					continue;
+				}
+				var (cx, cy) = Center(type, grid, offsetX, offsetY, c, r);
+				var distance = (cx - x) * (cx - x) + (cy - y) * (cy - y);
+				if (distance < bestDistance)
+				{
+					bestDistance = distance;
+					best = (c, r);
+				}
+			}
+		}
+		return best;
+	}
+
+	///	<summary>
+	///	A token on the map: on a cell of the grid with its centre inside the picture.
+	///	</summary>
+	public static bool Inside(GridType type, int grid, int offsetX, int offsetY, int col, int row, int size, int width, int height)
+	{
+		if (col < 0 || row < 0)
+		{
+			return false;
+		}
+		var (x, y) = Center(type, grid, offsetX, offsetY, col, row, size);
+		return x >= 0 && y >= 0 && x <= width && y <= height;
+	}
+
+	///	<summary>
+	///	Cells between two cells, as the rules count them: squares by the longest side (every diagonal square counts 1),
+	///	hexagons by the steps between them.
+	///	</summary>
+	public static int Distance(GridType type, int col1, int row1, int col2, int row2)
+	{
+		if (type == GridType.Square)
+		{
+			return Math.Max(Math.Abs(col1 - col2), Math.Abs(row1 - row2));
+		}
+		var (q1, r1) = Axial(type, col1, row1);
+		var (q2, r2) = Axial(type, col2, row2);
+		var (dq, dr) = (q1 - q2, r1 - r2);
+		return (Math.Abs(dq) + Math.Abs(dr) + Math.Abs(dq + dr)) / 2;
+	}
+
+	private static (int Q, int R) Axial(GridType type, int col, int row) => type == GridType.HexRows
+		? (col - (row - (row & 1)) / 2, row)
+		: (col, row - (col - (col & 1)) / 2);
+}
+
+///	<summary>
 ///	Limits of the virtual tabletop: maps per campaign, tokens per map, the picture (a JPEG data URL), the grid.
 ///	</summary>
 public static class MapRules
