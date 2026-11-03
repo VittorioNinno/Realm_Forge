@@ -5,6 +5,7 @@
 @using RealmForge.Shared.Localization
 @using RealmForge.Shared.Rules
 @inject LanguageStateService LanguageState
+@inject SpellDataService SpellService
 
 @* The rules of a magic item that the sheet applies on its own: effects, charges and how they come back, healing.
    Used by the inventory editor and by the Homebrew magic item form *@
@@ -70,6 +71,38 @@
             }
         </div>
 
+        @* Spells cast from the item: the spell, the charges a cast takes, its level and the DC of the item *@
+        <div class="rf-mini-title">@UiText.MagicSpells(Lang)</div>
+        @foreach (var spell in Draft.Spells.ToList())
+        {
+            var s = spell;
+            <div class="rf-magic-effect" data-test="magic-spell">
+                <span class="rf-magic-spell-name">@SpellName(s)</span>
+                <label class="rf-mini-label mb-0">@UiText.MagicSpellCharges(Lang)</label>
+                <NumberStepper Value="s.Charges" ValueChanged="v => s.Charges = v" Min="0" Max="99" AriaLabel="@UiText.MagicSpellCharges(Lang)" />
+                <label class="rf-mini-label mb-0">@UiText.MagicSpellLevel(Lang)</label>
+                <NumberStepper Value="s.Level ?? 0" ValueChanged="v => s.Level = v == 0 ? null : v" Min="0" Max="9" AriaLabel="@UiText.MagicSpellLevel(Lang)" />
+                <label class="rf-mini-label mb-0">@UiText.MagicSpellDc(Lang)</label>
+                <NumberStepper Value="s.SaveDc ?? 0" ValueChanged="v => s.SaveDc = v == 0 ? null : v" Min="0" Max="30" AriaLabel="@UiText.MagicSpellDc(Lang)" />
+                <button type="button" class="rf-mini-btn" @onclick="() => Draft.Spells.Remove(s)" aria-label="@UiText.BtnRemove(Lang)"><Icon Name="close" /></button>
+            </div>
+        }
+        <div class="position-relative mb-2">
+            <input class="rf-wizard-input" placeholder="@UiText.MagicSpellSearch(Lang)" value="@spellSearch" @oninput="SearchSpellsAsync" data-test="magic-spell-search" />
+            @if (spellResults.Count > 0)
+            {
+                <div class="rf-forge-selector-menu" style="left: 0; right: 0;">
+                    @foreach (var result in spellResults)
+                    {
+                        var r = result;
+                        <button type="button" class="rf-forge-selector-option" @onclick="() => AddSpell(r)" data-test="magic-spell-result">
+                            @r.Name <span class="small" style="color: var(--rf-text-muted);">· @UiText.SpellLevelShort(r.Level, Lang) · @UiText.FormatRuleset(r.Ruleset, Lang)</span>
+                        </button>
+                    }
+                </div>
+            }
+        </div>
+
         <div class="rf-magic-field">
             <label class="rf-mini-label" for="magic-heal">@UiText.MagicHealDice(Lang)</label>
             <input id="magic-heal" class="rf-wizard-input" maxlength="10" placeholder="2d4+2" value="@Draft.HealDice" @onchange="e => Draft.HealDice = Dice(e.Value?.ToString())" data-test="magic-heal" />
@@ -82,6 +115,43 @@
     [Parameter] public MagicTemplateKind? Kind { get; set; }
 
     private LanguageCode Lang => LanguageState.CurrentLanguage;
+
+    //	Spells: all of them once, then filtered while typing
+    private string spellSearch = string.Empty;
+    private List<RealmForge.Shared.DTOs.SpellResponseDto>? allSpells;
+    private List<RealmForge.Shared.DTOs.SpellResponseDto> spellResults = new();
+
+    private string SpellName(MagicItemSpell spell) =>
+        allSpells?.FirstOrDefault(s => s.Id == spell.SpellId)?.Name ?? spell.Name ?? spell.SpellKey ?? "?";
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (Draft.Spells.Count > 0)
+        {
+            allSpells = await SpellService.GetSpellsAsync(Lang);
+        }
+    }
+
+    private async Task SearchSpellsAsync(ChangeEventArgs e)
+    {
+        spellSearch = e.Value?.ToString() ?? string.Empty;
+        var term = spellSearch.Trim();
+        if (term.Length < 2)
+        {
+            spellResults = new();
+            return;
+        }
+        allSpells ??= await SpellService.GetSpellsAsync(Lang);
+        spellResults = allSpells.Where(s => s.Name.Contains(term, StringComparison.OrdinalIgnoreCase))
+            .OrderBy(s => SearchRank.Of(term, s.Name, Array.Empty<string?>())).ThenBy(s => s.Name).Take(8).ToList();
+    }
+
+    private void AddSpell(RealmForge.Shared.DTOs.SpellResponseDto spell)
+    {
+        Draft.Spells.Add(new MagicItemSpell { SpellId = spell.Id, Name = spell.Name, Charges = Draft.Charges > 0 ? 1 : 0, Level = spell.Level == 0 ? null : spell.Level });
+        spellSearch = string.Empty;
+        spellResults = new();
+    }
 
     private void AddEffect() => Draft.Effects.Add(new MagicEffect { Kind = Kind == MagicTemplateKind.Weapon ? MagicEffectKind.AttackAndDamage : MagicEffectKind.ArmorClass, Value = 1 });
 

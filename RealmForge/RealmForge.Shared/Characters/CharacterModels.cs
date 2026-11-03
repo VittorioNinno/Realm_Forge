@@ -295,6 +295,25 @@ public sealed class MagicItemProperties
 
 	//	Template it was made from (MagicItemCatalog), to show its rules text in our own words
 	public string? Template { get; set; }
+
+	//	Spells cast from the item (Wand of Fireballs, Staff of Healing…), listed on the sheet while it works
+	public List<MagicItemSpell> Spells { get; set; } = new();
+}
+
+///	<summary>
+///	A spell cast from a magic item: the spell (by id, or by the key of a Base spell so it fits either edition), the
+///	charges it takes (0: no charge), the level it is cast at and the save DC of the item (null: the caster's own).
+///	</summary>
+public sealed class MagicItemSpell
+{
+	public Guid? SpellId { get; set; }
+	public string? SpellKey { get; set; }
+
+	//	Shown when the spell is not in the character's edition
+	public string? Name { get; set; }
+	public int Charges { get; set; }
+	public int? Level { get; set; }
+	public int? SaveDc { get; set; }
 }
 
 public sealed class CoinPurse

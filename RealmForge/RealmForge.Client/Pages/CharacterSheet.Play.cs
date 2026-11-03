@@ -95,28 +95,25 @@ namespace RealmForge.Client.Pages
 			(ItemOf(item) is { } info && (info.ArmorCategory is not null || info.Category == EquipmentCategory.Weapon))
 			|| (item.Magic is { } magic && magic.HealDice is null);
 
-		//	Worn: one body armor, one shield; a two-handed weapon and a shield do not go together
+		//	Why the last item could not be equipped (one body armor, one shield, two hands), until the next change
+		private string? equipError;
+
+		//	Worn and held: one body armor, one shield, two hands (EquipmentRules); what does not fit is explained, not swapped
 		private void Equip(InventoryItem item)
 		{
-			var info = ItemOf(item);
-			if (!item.Equipped && info is not null)
+			equipError = null;
+			if (!item.Equipped)
 			{
-				var twoHanded = info.WeaponProperties.Contains(WeaponProperty.TwoHanded);
-				var shield = info.ArmorCategory == ArmorCategory.Shield;
-				foreach (var other in Sheet.Inventory.Where(i => i != item && i.Equipped))
+				var dualWielder = computed?.Feats.Any(f => f.Feat.Key == "dual-wielder") == true;
+				var check = EquipmentRules.CanEquip(item, Sheet.Inventory, ItemOf, ItemName, dualWielder);
+				if (!check.Ok)
 				{
-					var o = ItemOf(other);
-					if (o is null)
-					{
-						continue;
-					}
-					if ((twoHanded && o.ArmorCategory == ArmorCategory.Shield) || (shield && o.WeaponProperties.Contains(WeaponProperty.TwoHanded)))
-					{
-						other.Equipped = false;
-					}
+					equipError = UiText.EquipBlocked(check.Problem, ItemName(item), check.Other ?? string.Empty, Lang);
+					return;
 				}
 			}
-			ToggleEquipped(item);
+			item.Equipped = !item.Equipped;
+			Changed();
 		}
 
 		private void ChangeQuantity(InventoryItem item, int delta)
