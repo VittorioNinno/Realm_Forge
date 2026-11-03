@@ -536,6 +536,9 @@ namespace RealmForge.Infrastructure.Migrations
                     b.Property<int>("GridSize")
                         .HasColumnType("integer");
 
+                    b.Property<int>("GridType")
+                        .HasColumnType("integer");
+
                     b.Property<int>("Height")
                         .HasColumnType("integer");
 
