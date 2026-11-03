@@ -527,6 +527,9 @@ namespace RealmForge.Infrastructure.Migrations
                     b.Property<DateTimeOffset>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<Guid?>("EncounterId")
+                        .HasColumnType("uuid");
+
                     b.Property<DateTimeOffset?>("FocusAt")
                         .HasColumnType("timestamp with time zone");
 
@@ -856,6 +859,13 @@ namespace RealmForge.Infrastructure.Migrations
                         .IsRequired()
                         .HasMaxLength(9)
                         .HasColumnType("character varying(9)");
+
+                    b.Property<Guid?>("CombatantId")
+                        .HasColumnType("uuid");
+
+                    b.PrimitiveCollection<List<string>>("Conditions")
+                        .IsRequired()
+                        .HasColumnType("text[]");
 
                     b.Property<bool>("Hidden")
                         .HasColumnType("boolean");
