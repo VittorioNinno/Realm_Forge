@@ -282,6 +282,7 @@ namespace RealmForge.Client.Pages
 			spellDetailId = null;
 			castSpell = null;
 			castSource = null;
+			castItem = null;
 		}
 
 		private bool CannotAct => Sheet.Conditions.Contains("incapacitated") || IsImplied("incapacitated") || CurrentHp == 0;

@@ -515,6 +515,55 @@ namespace RealmForge.Infrastructure.Migrations
                     b.ToTable("CampaignInvites");
                 });
 
+            modelBuilder.Entity("RealmForge.Domain.Entities.CampaignMap", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("CampaignId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("GridOffsetX")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("GridOffsetY")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("GridSize")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("Height")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Image")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("character varying(120)");
+
+                    b.Property<bool>("Shown")
+                        .HasColumnType("boolean");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("Width")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CampaignId");
+
+                    b.ToTable("CampaignMaps");
+                });
+
             modelBuilder.Entity("RealmForge.Domain.Entities.CampaignMember", b =>
                 {
                     b.Property<Guid>("Id")
@@ -711,6 +760,56 @@ namespace RealmForge.Infrastructure.Migrations
                     b.HasIndex("CampaignId", "Number");
 
                     b.ToTable("CampaignSessions");
+                });
+
+            modelBuilder.Entity("RealmForge.Domain.Entities.CampaignToken", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("CharacterId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Color")
+                        .IsRequired()
+                        .HasMaxLength(9)
+                        .HasColumnType("character varying(9)");
+
+                    b.Property<bool>("Hidden")
+                        .HasColumnType("boolean");
+
+                    b.Property<int>("Kind")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Label")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<Guid>("MapId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("MonsterId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("Size")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("X")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("Y")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("MapId");
+
+                    b.ToTable("CampaignTokens");
                 });
 
             modelBuilder.Entity("RealmForge.Domain.Entities.Character", b =>
@@ -2476,6 +2575,17 @@ namespace RealmForge.Infrastructure.Migrations
                     b.Navigation("Campaign");
                 });
 
+            modelBuilder.Entity("RealmForge.Domain.Entities.CampaignMap", b =>
+                {
+                    b.HasOne("RealmForge.Domain.Entities.Campaign", "Campaign")
+                        .WithMany("Maps")
+                        .HasForeignKey("CampaignId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Campaign");
+                });
+
             modelBuilder.Entity("RealmForge.Domain.Entities.CampaignMember", b =>
                 {
                     b.HasOne("RealmForge.Domain.Entities.Campaign", "Campaign")
@@ -2518,6 +2628,17 @@ namespace RealmForge.Infrastructure.Migrations
                         .IsRequired();
 
                     b.Navigation("Campaign");
+                });
+
+            modelBuilder.Entity("RealmForge.Domain.Entities.CampaignToken", b =>
+                {
+                    b.HasOne("RealmForge.Domain.Entities.CampaignMap", "Map")
+                        .WithMany("Tokens")
+                        .HasForeignKey("MapId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Map");
                 });
 
             modelBuilder.Entity("RealmForge.Domain.Entities.Character", b =>
@@ -2799,6 +2920,8 @@ namespace RealmForge.Infrastructure.Migrations
 
                     b.Navigation("Invites");
 
+                    b.Navigation("Maps");
+
                     b.Navigation("Members");
 
                     b.Navigation("Notes");
@@ -2806,6 +2929,11 @@ namespace RealmForge.Infrastructure.Migrations
                     b.Navigation("Rolls");
 
                     b.Navigation("Sessions");
+                });
+
+            modelBuilder.Entity("RealmForge.Domain.Entities.CampaignMap", b =>
+                {
+                    b.Navigation("Tokens");
                 });
 
             modelBuilder.Entity("RealmForge.Domain.Entities.CharacterClass", b =>

@@ -48,7 +48,7 @@
         @* Sections of the campaign: folder tabs like the sheet's, so that the pills inside a section (the kinds of notes)
            read as a second level *@
         <div class="rf-sheet-tabs mb-3" role="tablist" data-test="campaign-tabs">
-            @foreach (var t in new[] { Tab.Overview, Tab.Sessions, Tab.Members, Tab.Characters, Tab.Encounters, Tab.Rolls, Tab.Content, Tab.Notes })
+            @foreach (var t in new[] { Tab.Overview, Tab.Sessions, Tab.Members, Tab.Characters, Tab.Encounters, Tab.Map, Tab.Rolls, Tab.Content, Tab.Notes })
             {
                 var current = t;
                 <button type="button" role="tab" class="rf-sheet-tab @(tab == current ? "active" : null)" aria-selected="@(tab == current)"
@@ -339,6 +339,9 @@
                 <CampaignSessions CampaignId="campaign.Id" Role="role" OnChanged="s => sessions = s" />
                 break;
 
+            case Tab.Map:
+                <CampaignMap CampaignId="campaign.Id" Role="role" Characters="campaign.Characters" />
+                break;
             case Tab.Rolls:
                 <CampaignRolls CampaignId="campaign.Id" Role="role" Characters="campaign.Characters" MyColor="@(campaign.Members.FirstOrDefault(m => m.IsMe)?.Color ?? PlayerColors.Master)" />
                 break;
@@ -395,7 +398,7 @@
 @code {
     [Parameter] public Guid Id { get; set; }
 
-    private enum Tab { Overview, Sessions, Members, Characters, Encounters, Rolls, Content, Notes }
+    private enum Tab { Overview, Sessions, Members, Characters, Encounters, Map, Rolls, Content, Notes }
     private enum Confirm { None, Leave, Delete }
 
     private LanguageCode Lang => LanguageState.CurrentLanguage;
@@ -432,6 +435,7 @@
         Tab.Encounters => UiText.CampaignTabEncounters(Lang),
         Tab.Sessions => UiText.CampaignTabSessions(Lang),
         Tab.Rolls => UiText.CampaignTabRolls(Lang),
+        Tab.Map => UiText.CampaignTabMap(Lang),
         _ => UiText.CampaignTabNotes(Lang)
     };
 

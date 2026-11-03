@@ -190,6 +190,71 @@ namespace RealmForge.Client.Services
 			}
 		}
 
+		public async Task<CampaignRollDto?> RevealRollAsync(Guid id, Guid rollId)
+		{
+			try
+			{
+				var response = await _http.PostAsync($"api/campaigns/{id}/rolls/{rollId}/reveal", null);
+				return response.IsSuccessStatusCode ? await response.Content.ReadFromJsonAsync<CampaignRollDto>() : null;
+			}
+			catch (Exception ex)
+			{
+				_logger.LogError(ex, "Revealing roll {RollId} failed", rollId);
+				return null;
+			}
+		}
+
+		// ===== Virtual tabletop =====
+
+		public Task<List<CampaignMapSummaryDto>?> GetMapsAsync(Guid id) => GetAsync<List<CampaignMapSummaryDto>>($"api/campaigns/{id}/maps");
+
+		public Task<CampaignMapDto?> GetMapAsync(Guid id, Guid mapId) => GetAsync<CampaignMapDto>($"api/campaigns/{id}/maps/{mapId}");
+
+		public Task<MapStateDto?> GetMapStateAsync(Guid id, Guid mapId) => GetAsync<MapStateDto>($"api/campaigns/{id}/maps/{mapId}/state");
+
+		public async Task<CampaignMapSummaryDto?> CreateMapAsync(Guid id, SaveMapDto map)
+		{
+			try
+			{
+				var response = await _http.PostAsJsonAsync($"api/campaigns/{id}/maps", map);
+				return response.IsSuccessStatusCode ? await response.Content.ReadFromJsonAsync<CampaignMapSummaryDto>() : null;
+			}
+			catch (Exception ex)
+			{
+				_logger.LogError(ex, "Creating a map in campaign {CampaignId} failed", id);
+				return null;
+			}
+		}
+
+		public Task<CampaignResult> UpdateMapAsync(Guid id, Guid mapId, SaveMapDto map) =>
+			SendAsync(() => _http.PutAsJsonAsync($"api/campaigns/{id}/maps/{mapId}", map), "update map");
+
+		public Task<CampaignResult> DeleteMapAsync(Guid id, Guid mapId) =>
+			SendAsync(() => _http.DeleteAsync($"api/campaigns/{id}/maps/{mapId}"), "delete map");
+
+		public async Task<MapTokenDto?> AddTokenAsync(Guid id, Guid mapId, SaveTokenDto token)
+		{
+			try
+			{
+				var response = await _http.PostAsJsonAsync($"api/campaigns/{id}/maps/{mapId}/tokens", token);
+				return response.IsSuccessStatusCode ? await response.Content.ReadFromJsonAsync<MapTokenDto>() : null;
+			}
+			catch (Exception ex)
+			{
+				_logger.LogError(ex, "Adding a token to map {MapId} failed", mapId);
+				return null;
+			}
+		}
+
+		public Task<CampaignResult> UpdateTokenAsync(Guid id, Guid mapId, Guid tokenId, SaveTokenDto token) =>
+			SendAsync(() => _http.PutAsJsonAsync($"api/campaigns/{id}/maps/{mapId}/tokens/{tokenId}", token), "update token");
+
+		public Task<CampaignResult> MoveTokenAsync(Guid id, Guid mapId, Guid tokenId, int x, int y) =>
+			SendAsync(() => _http.PostAsJsonAsync($"api/campaigns/{id}/maps/{mapId}/tokens/{tokenId}/move", new MoveTokenDto { X = x, Y = y }), "move token");
+
+		public Task<CampaignResult> DeleteTokenAsync(Guid id, Guid mapId, Guid tokenId) =>
+			SendAsync(() => _http.DeleteAsync($"api/campaigns/{id}/maps/{mapId}/tokens/{tokenId}"), "delete token");
+
 		public Task<CampaignResult> ClearRollsAsync(Guid id) =>
 			SendAsync(() => _http.DeleteAsync($"api/campaigns/{id}/rolls"), "clear rolls");
 	}

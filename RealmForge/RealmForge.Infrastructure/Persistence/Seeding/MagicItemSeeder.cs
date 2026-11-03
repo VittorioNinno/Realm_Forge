@@ -49,6 +49,11 @@ public static class MagicItemSeeder
 	{
 		var ruleset = RulesetVersion.Dnd5e_2014;
 		var id = DeterministicGuid.ForSrd(ruleset, "magic-item", key);
+		if (ItemSpells.TryGetValue(key, out var spells))
+		{
+			mechanics ??= new MagicItemProperties();
+			mechanics.Spells = spells.Select(s => new MagicItemSpell { SpellKey = s.Spell, Charges = s.Charges, Level = s.Level, SaveDc = s.Dc }).ToList();
+		}
 		return new MagicItem
 		{
 			Id = id,
@@ -84,6 +89,32 @@ public static class MagicItemSeeder
 			}
 		};
 	}
+
+	///	<summary>
+	///	Spells the sheet lists for the items that cast them: the Base spell key, the charges a cast takes (0: none, the
+	///	item says how often), the level and the save DC of the item (null: the caster's own).
+	///	</summary>
+	public static readonly IReadOnlyDictionary<string, (string Spell, int Charges, int? Level, int? Dc)[]> ItemSpells =
+		new Dictionary<string, (string, int, int?, int?)[]>
+		{
+			["wand-of-fireballs"] = new[] { ("fireball", 1, (int?)3, (int?)15) },
+			["wand-of-lightning-bolts"] = new[] { ("lightning-bolt", 1, (int?)3, (int?)15) },
+			["wand-of-magic-missiles"] = new[] { ("magic-missile", 1, (int?)1, (int?)null) },
+			["wand-of-web"] = new[] { ("web", 1, (int?)2, (int?)15) },
+			["wand-of-binding"] = new[] { ("hold-monster", 5, (int?)5, (int?)17), ("hold-person", 2, (int?)2, (int?)17) },
+			["wand-of-polymorph"] = new[] { ("polymorph", 1, (int?)4, (int?)15) },
+			["staff-of-healing"] = new[] { ("cure-wounds", 1, (int?)1, (int?)null), ("lesser-restoration", 2, (int?)2, (int?)null), ("mass-cure-wounds", 5, (int?)5, (int?)null) },
+			["staff-of-fire"] = new[] { ("burning-hands", 1, (int?)1, (int?)null), ("fireball", 3, (int?)3, (int?)null), ("wall-of-fire", 4, (int?)4, (int?)null) },
+			["staff-of-frost"] = new[] { ("cone-of-cold", 5, (int?)5, (int?)null), ("fog-cloud", 1, (int?)1, (int?)null), ("ice-storm", 4, (int?)4, (int?)null), ("wall-of-ice", 4, (int?)6, (int?)null) },
+			["staff-of-charming"] = new[] { ("charm-person", 1, (int?)1, (int?)null), ("command", 1, (int?)1, (int?)null), ("comprehend-languages", 1, (int?)1, (int?)null) },
+			["staff-of-the-woodlands"] = new[] { ("animal-friendship", 1, (int?)1, (int?)null), ("awaken", 5, (int?)5, (int?)null), ("barkskin", 2, (int?)2, (int?)null), ("locate-animals-or-plants", 2, (int?)2, (int?)null), ("speak-with-animals", 1, (int?)1, (int?)null), ("speak-with-plants", 3, (int?)3, (int?)null), ("wall-of-thorns", 6, (int?)6, (int?)null), ("pass-without-trace", 0, (int?)2, (int?)null) },
+			["hat-of-disguise"] = new[] { ("disguise-self", 0, (int?)1, (int?)null) },
+			["helm-of-comprehending-languages"] = new[] { ("comprehend-languages", 0, (int?)1, (int?)null) },
+			["ring-of-jumping"] = new[] { ("jump", 0, (int?)1, (int?)null) },
+			["medallion-of-thoughts"] = new[] { ("detect-thoughts", 1, (int?)2, (int?)13) },
+			["cape-of-the-mountebank"] = new[] { ("dimension-door", 0, (int?)4, (int?)null) },
+			["boots-of-levitation"] = new[] { ("levitate", 0, (int?)2, (int?)null) },
+		};
 
 	//	Short builders for the data files
 	public static MagicItemProperties Magic(params MagicEffect[] effects) => new() { Effects = effects.ToList() };

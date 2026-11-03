@@ -168,6 +168,8 @@ namespace RealmForge.Client.Pages
 				Sheet = character.Sheet,
 				CampaignModuleIds = character.CampaignModuleIds ?? new()
 			}, context);
+
+			CheckEncumbrance();
 		}
 
 		// ===== Changes of the play state =====
@@ -523,24 +525,6 @@ namespace RealmForge.Client.Pages
 			}
 		}
 
-		//	One body armor and one shield at a time
-		private void ToggleEquipped(InventoryItem item)
-		{
-			item.Equipped = !item.Equipped;
-			if (item.Equipped && ItemOf(item)?.ArmorCategory is { } category)
-			{
-				var shield = category == ArmorCategory.Shield;
-				foreach (var other in Sheet.Inventory.Where(i => i != item && i.Equipped))
-				{
-					if (ItemOf(other)?.ArmorCategory is { } otherCategory && (otherCategory == ArmorCategory.Shield) == shield)
-					{
-						other.Equipped = false;
-					}
-				}
-			}
-			Changed();
-		}
-
 		//	At most three attuned items (both editions)
 		private void ToggleAttuned(InventoryItem item)
 		{
@@ -558,6 +542,26 @@ namespace RealmForge.Client.Pages
 			item.EquipmentId is { } id ? context?.Items.FirstOrDefault(i => i.Id == id) : null;
 
 		private string ItemName(InventoryItem item) => ItemOf(item)?.Name ?? item.Name ?? string.Empty;
+
+		//	Over the carrying capacity: a notice the first time the weight goes over it (then the inventory keeps a warning)
+		private bool? wasOverloaded;
+		private bool encumbranceNotice;
+
+		private bool Overloaded => computed is not null && CarriedWeight > CarryingCapacity;
+
+		private void CheckEncumbrance()
+		{
+			var over = Overloaded;
+			if (wasOverloaded == false && over)
+			{
+				encumbranceNotice = true;
+			}
+			if (!over)
+			{
+				encumbranceNotice = false;
+			}
+			wasOverloaded = over;
+		}
 
 		private decimal CarriedWeight => Sheet.Inventory.Sum(i => (ItemOf(i)?.WeightInPounds ?? 0) * i.Quantity)
 			+ (Sheet.Coins.Cp + Sheet.Coins.Sp + Sheet.Coins.Ep + Sheet.Coins.Gp + Sheet.Coins.Pp) / 50m;
