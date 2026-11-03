@@ -23,7 +23,32 @@ namespace RealmForge.Shared.DTOs
 		bool Hidden,
 		bool CanMove,
 		string? Portrait = null,
-		TokenLayer Layer = TokenLayer.Tokens);
+		TokenLayer Layer = TokenLayer.Tokens,
+		Guid? CombatantId = null,
+		List<string>? Conditions = null,
+
+		//	Hit points of a monster in the fight, for the masters; its health, for the players
+		int? Hp = null,
+		int? MaxHp = null,
+		CombatantHealth? Health = null);
+
+	///	<summary>
+	///	The fight on a map: the encounter, the round, whose turn it is and the initiative order (what the players see of it).
+	///	</summary>
+	public record MapCombatDto(Guid EncounterId, string Name, int Round, Guid? CurrentId, List<MapCombatantDto> Order);
+
+	public record MapCombatantDto(Guid Id, string Name, CombatantKind Kind, int? Initiative, Guid? TokenId, bool Hidden);
+
+	public class StartCombatDto
+	{
+		public Guid EncounterId { get; set; }
+	}
+
+	public class TokenStateDto
+	{
+		public List<string> Conditions { get; set; } = new();
+		public int? Hp { get; set; }
+	}
 
 	///	<summary>
 	///	Something drawn on a map (see CampaignMapShape); CanDelete: the author or a master.
@@ -58,13 +83,15 @@ namespace RealmForge.Shared.DTOs
 		List<MapTokenDto> Tokens,
 		GridType GridType = GridType.Square,
 		List<MapShapeDto>? Shapes = null,
-		MapTableDto? Table = null);
+		MapTableDto? Table = null,
+		MapCombatDto? Combat = null);
 
 	///	<summary>
 	///	What the table polls every few seconds: the grid and the tokens, without the picture.
 	///	</summary>
 	public record MapStateDto(Guid Id, string Name, int GridSize, int GridOffsetX, int GridOffsetY, bool Shown, DateTimeOffset UpdatedAt, List<MapTokenDto> Tokens,
-		GridType GridType = GridType.Square, List<MapShapeDto>? Shapes = null, MapTableDto? Table = null);
+		GridType GridType = GridType.Square, List<MapShapeDto>? Shapes = null, MapTableDto? Table = null,
+		MapCombatDto? Combat = null);
 
 	///	<summary>
 	///	The fog of war (see MapFog), the last ping and the last view the masters brought the table to.
