@@ -16,6 +16,49 @@ namespace RealmForge.Client.Pages
 		private InventoryItem? magicTarget;
 		private string? attuneError;
 
+		// ===== Spells of the items =====
+
+		public sealed record ItemSpellEntry(InventoryItem Item, MagicItemSpell Spell, Guid Id, string Name, ContextSpell? Context);
+
+		//	Open while casting a spell from an item (the cast panel spends its charges)
+		private ItemSpellEntry? castItem;
+
+		//	The spell of the character's edition (by id, or by the key of a Base spell), or the name saved with the item
+		private List<ItemSpellEntry> ItemSpells => MagicItemRules.Spells(Sheet)
+			.Select(x =>
+			{
+				var spell = context?.Spells.FirstOrDefault(s => (x.Spell.SpellId is { } id && s.Id == id) || (x.Spell.SpellKey is { } key && s.Key == key));
+				var id = spell?.Id ?? x.Spell.SpellId;
+				return id is null ? null : new ItemSpellEntry(x.Item, x.Spell, id.Value, spell?.Name ?? x.Spell.Name ?? x.Spell.SpellKey ?? "?", spell);
+			})
+			.Where(e => e is not null)
+			.Select(e => e!)
+			.ToList();
+
+		private void OpenItemSpell(ItemSpellEntry entry)
+		{
+			castSpell = null;
+			castSource = null;
+			castItem = entry;
+			spellDetailId = entry.Id;
+		}
+
+		private void CastFromItem()
+		{
+			if (castItem is not { } entry || !MagicItemRules.CanCast(entry.Item, entry.Spell))
+			{
+				return;
+			}
+			entry.Item.Magic!.ChargesUsed += entry.Spell.Charges;
+			if (entry.Context?.Concentration == true)
+			{
+				Sheet.Concentration = entry.Context.Id;
+			}
+			lastCast = $"{entry.Name} · {ItemName(entry.Item)}";
+			CloseSpell();
+			Changed();
+		}
+
 		private void OpenMagic(InventoryItem item)
 		{
 			magicTarget = item;

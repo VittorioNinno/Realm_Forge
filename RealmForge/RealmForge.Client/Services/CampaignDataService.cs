@@ -190,6 +190,20 @@ namespace RealmForge.Client.Services
 			}
 		}
 
+		public async Task<CampaignRollDto?> RevealRollAsync(Guid id, Guid rollId)
+		{
+			try
+			{
+				var response = await _http.PostAsync($"api/campaigns/{id}/rolls/{rollId}/reveal", null);
+				return response.IsSuccessStatusCode ? await response.Content.ReadFromJsonAsync<CampaignRollDto>() : null;
+			}
+			catch (Exception ex)
+			{
+				_logger.LogError(ex, "Revealing roll {RollId} failed", rollId);
+				return null;
+			}
+		}
+
 		// ===== Virtual tabletop =====
 
 		public Task<List<CampaignMapSummaryDto>?> GetMapsAsync(Guid id) => GetAsync<List<CampaignMapSummaryDto>>($"api/campaigns/{id}/maps");
