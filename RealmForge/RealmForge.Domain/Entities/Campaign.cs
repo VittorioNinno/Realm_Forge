@@ -48,15 +48,54 @@ namespace RealmForge.Domain.Entities
 		public string Image { get; set; } = string.Empty;
 		public int Width { get; set; }
 		public int Height { get; set; }
+		public GridType GridType { get; set; } = GridType.Square;
 		public int GridSize { get; set; } = 70;
 		public int GridOffsetX { get; set; }
 		public int GridOffsetY { get; set; }
 		public bool Shown { get; set; }
+
+		//	Fog of war: what the players do not see yet. Fog: groups of 5 numbers (MapFog), applied in order on a map all
+		//	covered
+		public bool FogEnabled { get; set; }
+
+		//	The encounter being fought on this map: its initiative order runs over the tokens
+		public Guid? EncounterId { get; set; }
+		public List<double> Fog { get; set; } = new();
+
+		//	The last ping (a point the table should look at) and the last view the masters brought everyone to
+		public double? PingX { get; set; }
+		public double? PingY { get; set; }
+		public string? PingColor { get; set; }
+		public DateTimeOffset? PingAt { get; set; }
+		public double? FocusX { get; set; }
+		public double? FocusY { get; set; }
+		public double? FocusZoom { get; set; }
+		public DateTimeOffset? FocusAt { get; set; }
 		public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
 
 		//	Changes with the map and with every token, so that the tables refresh what moved
 		public DateTimeOffset UpdatedAt { get; set; } = DateTimeOffset.UtcNow;
 		public ICollection<CampaignToken> Tokens { get; set; } = new List<CampaignToken>();
+		public ICollection<CampaignMapShape> Shapes { get; set; } = new List<CampaignMapShape>();
+	}
+
+	///	<summary>
+	///	Something drawn on a map: a stroke, a text, a note for the masters only, the area of a spell. Points in pixels of the
+	///	picture; Size is the length of an area in cells.
+	///	</summary>
+	public class CampaignMapShape
+	{
+		public Guid Id { get; set; } = Guid.NewGuid();
+		public Guid MapId { get; set; }
+		public CampaignMap Map { get; set; } = null!;
+		public string OwnerId { get; set; } = string.Empty;
+		public ShapeKind Kind { get; set; } = ShapeKind.Freehand;
+		public List<double> Points { get; set; } = new();
+		public string Color { get; set; } = PlayerColors.Master;
+		public string? Text { get; set; }
+		public int Size { get; set; }
+		public bool MasterOnly { get; set; }
+		public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
 	}
 
 	///	<summary>
@@ -77,6 +116,13 @@ namespace RealmForge.Domain.Entities
 		public int Y { get; set; }
 		public int Size { get; set; } = 1;
 		public bool Hidden { get; set; }
+
+		//	Props under the other tokens (a chest, a cart)
+		public TokenLayer Layer { get; set; } = TokenLayer.Tokens;
+
+		//	The combatant of the map's encounter this token is; the conditions of a token outside any fight
+		public Guid? CombatantId { get; set; }
+		public List<string> Conditions { get; set; } = new();
 		public DateTimeOffset UpdatedAt { get; set; } = DateTimeOffset.UtcNow;
 	}
 

@@ -1,4 +1,5 @@
-﻿using RealmForge.Shared.Enums;
+﻿using RealmForge.Shared.Campaigns;
+using RealmForge.Shared.Enums;
 
 namespace RealmForge.Client.Localization
 {
@@ -7,7 +8,6 @@ namespace RealmForge.Client.Localization
 	///	</summary>
 	public static partial class UiText
 	{
-		public static string CampaignTabMap(LanguageCode lang) => T(lang, "Mappa", "Map");
 		public static string MapSave(LanguageCode lang) => T(lang, "Salva", "Save");
 		public static string MapZoom(LanguageCode lang) => T(lang, "Zoom", "Zoom");
 		public static string MapNew(LanguageCode lang) => T(lang, "Nuova mappa", "New map");
@@ -46,5 +46,97 @@ namespace RealmForge.Client.Localization
 		public static string MapMoveFailed(LanguageCode lang) => T(lang, "Spostamento non riuscito: il segnalino torna dov'era.", "Move failed: the token goes back.");
 		public static string MapDeleteConfirm(string name, LanguageCode lang) => T(lang,
 			$"Eliminare la mappa «{name}» con tutti i suoi segnalini?", $"Delete the map “{name}” with all its tokens?");
+		public static string CampaignTabMaps(LanguageCode lang) => T(lang, "Mappe", "Maps");
+		public static string MapGridType(LanguageCode lang) => T(lang, "Griglia", "Grid");
+		public static string MapGridTypeName(GridType type, LanguageCode lang) => type switch
+		{
+			GridType.HexRows => T(lang, "Esagoni (a righe)", "Hexes (in rows)"),
+			GridType.HexColumns => T(lang, "Esagoni (a colonne)", "Hexes (in columns)"),
+			_ => T(lang, "Quadrati", "Squares")
+		};
+		public static string MapPrepHint(LanguageCode lang) => T(lang,
+			"Qui prepari mappe e segnalini lontano dagli occhi dei giocatori. Al tavolo virtuale scegli quale mappa mostrare.",
+			"Here you prepare maps and tokens away from the players' eyes. At the virtual tabletop you choose which map to show.");
+		public static string TokenKindName(TokenKind kind, LanguageCode lang) => kind switch
+		{
+			TokenKind.Character => T(lang, "Personaggio", "Character"),
+			TokenKind.Npc => T(lang, "PNG", "NPC"),
+			TokenKind.Monster => T(lang, "Mostro", "Monster"),
+			_ => T(lang, "Segnalino", "Marker")
+		};
+		public static string TokenArmorClass(int value, LanguageCode lang) => T(lang, $"CA {value}", $"AC {value}");
+		public static string TokenHitPoints(int current, int max, LanguageCode lang) => T(lang, $"PF {current}/{max}", $"HP {current}/{max}");
+		public static string TokenHitPointsMax(int max, LanguageCode lang) => T(lang, $"PF {max}", $"HP {max}");
+		public static string TokenLevel(int level, string classLine, LanguageCode lang) => T(lang, $"Liv. {level} · {classLine}", $"Lv. {level} · {classLine}");
+		public static string TokenOpenSheet(LanguageCode lang) => T(lang, "Apri la scheda", "Open the sheet");
+		public static string TokenOpenMonster(LanguageCode lang) => T(lang, "Apri la scheda del mostro", "Open the monster's page");
+		public static string TokenClose(LanguageCode lang) => T(lang, "Chiudi", "Close");
+		public static string VttTitle(LanguageCode lang) => T(lang, "Tavolo virtuale", "Virtual tabletop");
+		public static string VttBack(LanguageCode lang) => T(lang, "Torna alla campagna", "Back to the campaign");
+		public static string VttToolSelect(LanguageCode lang) => T(lang, "Seleziona e sposta i segnalini", "Select and move tokens");
+		public static string VttToolPan(LanguageCode lang) => T(lang, "Sposta la vista", "Move the view");
+		public static string VttToolRuler(LanguageCode lang) => T(lang, "Righello", "Ruler");
+		public static string VttToolTokens(LanguageCode lang) => T(lang, "Segnalini e mappa", "Tokens and map");
+		public static string VttFullscreen(LanguageCode lang) => T(lang, "Schermo intero", "Full screen");
+		public static string VttFit(LanguageCode lang) => T(lang, "Adatta allo schermo", "Fit to screen");
+		public static string VttDisplay(LanguageCode lang) => T(lang, "Mostra ai giocatori", "Show to the players");
+		public static string VttDisplayed(LanguageCode lang) => T(lang, "Visibile ai giocatori", "Visible to the players");
+		public static string VttPrepare(LanguageCode lang) => T(lang, "Prepara le mappe", "Prepare maps");
+		public static string VttUnit(LanguageCode lang) => T(lang, "m", "ft");
+		public static double VttPerCell(LanguageCode lang) => lang == LanguageCode.It ? 1.5 : 5;
+		public static string MapDuplicate(LanguageCode lang) => T(lang, "Duplica", "Duplicate");
+		public static string MapCopyName(string name, LanguageCode lang) => T(lang, $"{name} (copia)", $"{name} (copy)");
+		public static string MapCalibrate(LanguageCode lang) => T(lang, "Allinea la griglia", "Align the grid");
+		public static string MapCalibrateHint(GridType type, LanguageCode lang) => type == GridType.Square
+			? T(lang, "Trascina un riquadro esattamente sopra una casella disegnata sulla mappa, poi salva.",
+				"Drag a box exactly over one cell drawn on the map, then save.")
+			: T(lang, "Trascina un riquadro attorno a un esagono disegnato sulla mappa (da lato piatto a lato piatto), poi salva.",
+				"Drag a box around one hexagon drawn on the map (flat side to flat side), then save.");
+		public static string VttToolArea(LanguageCode lang) => T(lang, "Area di un incantesimo", "Spell area");
+		public static string VttToolDraw(LanguageCode lang) => T(lang, "Disegna", "Draw");
+		public static string VttToolText(LanguageCode lang) => T(lang, "Testo e note", "Text and notes");
+		public static string VttToolErase(LanguageCode lang) => T(lang, "Cancella", "Erase");
+		public static string AreaName(ShapeKind kind, LanguageCode lang) => kind switch
+		{
+			ShapeKind.Sphere => T(lang, "Sfera", "Sphere"),
+			ShapeKind.Line => T(lang, "Linea", "Line"),
+			ShapeKind.Cube => T(lang, "Cubo", "Cube"),
+			_ => T(lang, "Cono", "Cone")
+		};
+		public static string VttAreaHint(LanguageCode lang) => T(lang,
+			"Trascina dalla casella di chi lancia verso il bersaglio: le caselle colpite si colorano.",
+			"Drag from the caster's cell towards the target: the cells hit light up.");
+		public static string VttDrawHint(LanguageCode lang) => T(lang, "Trascina sulla mappa per disegnare.", "Drag on the map to draw.");
+		public static string VttTextPlace(LanguageCode lang) => T(lang, "Fai clic sulla mappa dove scrivere.", "Click on the map where to write.");
+		public static string VttTextHint(LanguageCode lang) => T(lang, "Testo…", "Text…");
+		public static string VttMasterNote(LanguageCode lang) => T(lang, "Nota solo per i master", "Note for the masters only");
+		public static string VttEraseHint(LanguageCode lang) => T(lang, "Fai clic su un disegno, un testo o un'area per toglierlo.", "Click a drawing, a text or an area to remove it.");
+		public static string VttClearAll(LanguageCode lang) => T(lang, "Cancella tutti i disegni", "Clear all drawings");
+		public static string VttClearMine(LanguageCode lang) => T(lang, "Cancella i miei disegni", "Clear my drawings");
+		public static string MapTokenBelow(LanguageCode lang) => T(lang, "Sotto gli altri segnalini", "Under the other tokens");
+		public static string VttToolFog(LanguageCode lang) => T(lang, "Nebbia di guerra", "Fog of war");
+		public static string VttFogOn(LanguageCode lang) => T(lang, "Nebbia attiva", "Fog on");
+		public static string VttFogReveal(LanguageCode lang) => T(lang, "Rivela", "Reveal");
+		public static string VttFogCover(LanguageCode lang) => T(lang, "Copri", "Cover");
+		public static string VttFogRect(LanguageCode lang) => T(lang, "Riquadro", "Box");
+		public static string VttFogBrush(LanguageCode lang) => T(lang, "Pennello", "Brush");
+		public static string VttFogRevealAll(LanguageCode lang) => T(lang, "Rivela tutto", "Reveal all");
+		public static string VttFogCoverAll(LanguageCode lang) => T(lang, "Copri tutto", "Cover all");
+		public static string VttFocus(LanguageCode lang) => T(lang, "Porta qui la vista dei giocatori", "Bring the players' view here");
+		public static string VttCombat(LanguageCode lang) => T(lang, "Combattimento", "Combat");
+		public static string VttNoEncounters(LanguageCode lang) => T(lang,
+			"Prepara un incontro nella scheda Incontri della campagna per avviarlo qui.", "Prepare an encounter in the campaign's Encounters tab to start it here.");
+		public static string VttStartCombat(LanguageCode lang) => T(lang, "Avvia sulla mappa", "Start on the map");
+		public static string VttRound(int round, LanguageCode lang) => T(lang, $"Round {round}", $"Round {round}");
+		public static string VttNextTurn(LanguageCode lang) => T(lang, "Turno successivo", "Next turn");
+		public static string VttEndCombat(LanguageCode lang) => T(lang, "Termina", "End");
+		public static string TokenHp(int max, LanguageCode lang) => T(lang, $"Punti ferita (max {max})", $"Hit points (max {max})");
+		public static string TokenConditions(LanguageCode lang) => T(lang, "Condizioni", "Conditions");
+		public static string TokenRolls(LanguageCode lang) => T(lang, "Tiri", "Rolls");
+		public static string RollInitiative(LanguageCode lang) => T(lang, "Iniziativa", "Initiative");
+		public static string RollAttack(string weapon, LanguageCode lang) => T(lang, $"{weapon}: attacco", $"{weapon}: attack");
+		public static string RollDamage(string weapon, LanguageCode lang) => T(lang, $"{weapon}: danni", $"{weapon}: damage");
+		public static string RollSave(string ability, LanguageCode lang) => T(lang, $"TS {ability}", $"{ability} save");
+		public static string RollCheck(string ability, LanguageCode lang) => T(lang, $"Prova {ability}", $"{ability} check");
 	}
 }
