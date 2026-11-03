@@ -921,6 +921,13 @@
         {
             <div class="rf-cast-warning soft mb-2" data-test="sheet-attune-error">@attuneError</div>
         }
+        @if (equipError is not null)
+        {
+            <div class="rf-cast-warning soft mb-2 d-flex justify-content-between align-items-start gap-2" role="alert" data-test="sheet-equip-error">
+                <span>@equipError</span>
+                <button type="button" class="rf-mini-btn" @onclick="() => equipError = null" aria-label="@UiText.BtnClose(Lang)"><Icon Name="close" /></button>
+            </div>
+        }
 
         <div data-test="sheet-inventory">
             @foreach (var group in new[] { true, false })

@@ -523,24 +523,6 @@ namespace RealmForge.Client.Pages
 			}
 		}
 
-		//	One body armor and one shield at a time
-		private void ToggleEquipped(InventoryItem item)
-		{
-			item.Equipped = !item.Equipped;
-			if (item.Equipped && ItemOf(item)?.ArmorCategory is { } category)
-			{
-				var shield = category == ArmorCategory.Shield;
-				foreach (var other in Sheet.Inventory.Where(i => i != item && i.Equipped))
-				{
-					if (ItemOf(other)?.ArmorCategory is { } otherCategory && (otherCategory == ArmorCategory.Shield) == shield)
-					{
-						other.Equipped = false;
-					}
-				}
-			}
-			Changed();
-		}
-
 		//	At most three attuned items (both editions)
 		private void ToggleAttuned(InventoryItem item)
 		{
