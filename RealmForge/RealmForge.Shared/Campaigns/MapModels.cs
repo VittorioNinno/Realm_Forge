@@ -190,6 +190,33 @@ public static class MapGeometry
 		return (grid, Math.Min(offsetX, grid - 1), Math.Min(offsetY, grid - 1));
 	}
 
+	///	<summary>
+	///	The first free cell from the top left for a token of a size, or (0, 0) when the map is full.
+	///	</summary>
+	public static (int X, int Y) FreeCell(GridType type, int grid, int offsetX, int offsetY, int size, int width, int height,
+		IEnumerable<(int X, int Y, int Size)> taken)
+	{
+		var others = taken.ToList();
+		for (var row = 0; row < 64; row++)
+		{
+			for (var col = 0; col < 64; col++)
+			{
+				if (!Inside(type, grid, offsetX, offsetY, col, row, size, width, height))
+				{
+					continue;
+				}
+				var free = type == GridType.Square
+					? others.All(t => col + size <= t.X || t.X + t.Size <= col || row + size <= t.Y || t.Y + t.Size <= row)
+					: others.All(t => t.X != col || t.Y != row);
+				if (free)
+				{
+					return (col, row);
+				}
+			}
+		}
+		return (0, 0);
+	}
+
 	private static int Modulo(int value, int by) => by <= 0 ? 0 : ((value % by) + by) % by;
 
 	private static (int Q, int R) Axial(GridType type, int col, int row) => type == GridType.HexRows

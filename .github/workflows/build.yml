@@ -1107,6 +1107,21 @@ jobs:
           focus=$(code -X POST "$api/api/campaigns/$ss_cp/maps/$mp2/focus" $json -H "Authorization: Bearer $B" -d '{"x":350,"y":245,"zoom":1.5}')
           focus_seen=$(curl -s "$api/api/campaigns/$ss_cp/maps/$mp2/state" -H "Authorization: Bearer $A" | jq -c '.table.focus | {x, y, zoom}')
           echo "::notice title=maps::fog player=$fog_player bad=$fog_bad covered=$fog_covered master=$fog_master revealed=$fog_revealed | ping player=$ping_player seen=$ping_seen | focus player=$focus_player master=$focus seen=$focus_seen"
+          # A fight on the map: started by the master only, a token for the trap, the order and the trap's health seen by the
+          # player, its hit points and conditions set from the map, the next turn, the end
+          fe=$(curl -s -X POST "$api/api/campaigns/$ss_cp/encounters" $json -H "Authorization: Bearer $B" -d '{"name":"Trappola","combatants":[{"kind":3,"name":"Lame rotanti","maxHp":10,"hp":10,"initiative":20},{"kind":3,"name":"Ombra","maxHp":5,"hp":5,"initiative":5,"hidden":true}]}' | jq -r .id)
+          fight_player=$(code -X POST "$api/api/campaigns/$ss_cp/maps/$mp2/combat" $json -H "Authorization: Bearer $A" -d "{\"encounterId\":\"$fe\"}")
+          fight=$(code -X POST "$api/api/campaigns/$ss_cp/maps/$mp2/combat" $json -H "Authorization: Bearer $B" -d "{\"encounterId\":\"$fe\"}")
+          fight_seen=$(curl -s "$api/api/campaigns/$ss_cp/maps/$mp2/state" -H "Authorization: Bearer $A" | jq -c '{order: [.combat.order[] | .name], round: .combat.round, blades: [.tokens[] | select(.label == "Lame rotanti") | {health, hp}]}')
+          blade=$(curl -s "$api/api/campaigns/$ss_cp/maps/$mp2/state" -H "Authorization: Bearer $B" | jq -r '.tokens[] | select(.label == "Lame rotanti") | .id')
+          fight_state_player=$(code -X PUT "$api/api/campaigns/$ss_cp/maps/$mp2/tokens/$blade/state" $json -H "Authorization: Bearer $A" -d '{"conditions":["prone"],"hp":4}')
+          fight_state=$(code -X PUT "$api/api/campaigns/$ss_cp/maps/$mp2/tokens/$blade/state" $json -H "Authorization: Bearer $B" -d '{"conditions":["prone","flying"],"hp":4}')
+          fight_next=$(code -X POST "$api/api/campaigns/$ss_cp/maps/$mp2/combat/next" -H "Authorization: Bearer $B")
+          fight_after=$(curl -s "$api/api/campaigns/$ss_cp/maps/$mp2/state" -H "Authorization: Bearer $A" | jq -c '{blades: [.tokens[] | select(.label == "Lame rotanti") | {health, conditions}], current: ([.combat.order[] | select(.id == $c.combat.currentId)] | length)}' --argjson c "$(curl -s "$api/api/campaigns/$ss_cp/maps/$mp2/state" -H "Authorization: Bearer $B")")
+          fight_master=$(curl -s "$api/api/campaigns/$ss_cp/maps/$mp2/state" -H "Authorization: Bearer $B" | jq -c '{round: .combat.round, blades: [.tokens[] | select(.label == "Lame rotanti") | {hp, maxHp}]}')
+          fight_end=$(code -X POST "$api/api/campaigns/$ss_cp/maps/$mp2/combat/end" -H "Authorization: Bearer $B")
+          fight_done=$(curl -s "$api/api/campaigns/$ss_cp/encounters/$fe" -H "Authorization: Bearer $B" | jq -c '{status, hp: .combatants[0].hp, conditions: .combatants[0].conditions}')
+          echo "::notice title=maps::fight player=$fight_player master=$fight seen=$fight_seen | state player=$fight_state_player master=$fight_state next=$fight_next after=$fight_after master=$fight_master | end=$fight_end done=$fight_done"
           code -X DELETE "$api/api/campaigns/$ss_cp/maps/$mp2" -H "Authorization: Bearer $B" > /dev/null
           mp_delete=$(code -X DELETE "$api/api/campaigns/$ss_cp/maps/$mp" -H "Authorization: Bearer $B")
           echo "::notice title=maps::player create=$mp_player_create hidden list=$mp_hidden_list outside=$mp_outside | player state=$mp_player_state move=$mp_player_move | master move=$mp_master_move state=$mp_master_state | delete=$mp_delete"
@@ -1157,6 +1172,16 @@ jobs:
           sscheck "token on the last hex" "$mp_hex_in" "200"
           sscheck "token beyond the hexes" "$mp_hex_out" "400"
           sscheck "unknown grid" "$mp_bad_grid" "400"
+          sscheck "player starts a fight" "$fight_player" "403"
+          sscheck "master starts a fight" "$fight" "204"
+          sscheck "fight seen by the player" "$fight_seen" '{"order":["Lame rotanti"],"round":1,"blades":[{"health":1,"hp":null}]}'
+          sscheck "player hurts a token" "$fight_state_player" "403"
+          sscheck "master hurts a token" "$fight_state" "204"
+          sscheck "next turn" "$fight_next" "204"
+          sscheck "hurt token seen by the player" "$fight_after" '{"blades":[{"health":3,"conditions":["prone"]}],"current":0}'
+          sscheck "hurt token seen by the master" "$fight_master" '{"round":1,"blades":[{"hp":4,"maxHp":10}]}'
+          sscheck "fight ended" "$fight_end" "204"
+          sscheck "encounter after the fight" "$fight_done" '{"status":3,"hp":4,"conditions":["prone"]}'
           sscheck "player sets the fog" "$fog_player" "403"
           sscheck "unknown fog step" "$fog_bad" "400"
           sscheck "marker under the fog" "$fog_covered" '{"tokens":[],"fog":true}'

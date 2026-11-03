@@ -57,6 +57,9 @@ namespace RealmForge.Domain.Entities
 		//	Fog of war: what the players do not see yet. Fog: groups of 5 numbers (MapFog), applied in order on a map all
 		//	covered
 		public bool FogEnabled { get; set; }
+
+		//	The encounter being fought on this map: its initiative order runs over the tokens
+		public Guid? EncounterId { get; set; }
 		public List<double> Fog { get; set; } = new();
 
 		//	The last ping (a point the table should look at) and the last view the masters brought everyone to
@@ -116,6 +119,10 @@ namespace RealmForge.Domain.Entities
 
 		//	Props under the other tokens (a chest, a cart)
 		public TokenLayer Layer { get; set; } = TokenLayer.Tokens;
+
+		//	The combatant of the map's encounter this token is; the conditions of a token outside any fight
+		public Guid? CombatantId { get; set; }
+		public List<string> Conditions { get; set; } = new();
 		public DateTimeOffset UpdatedAt { get; set; } = DateTimeOffset.UtcNow;
 	}
 

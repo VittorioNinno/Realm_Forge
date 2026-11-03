@@ -280,6 +280,26 @@
                         + `<text x="${pad}" y="0" font-size="${fs}" font-weight="700" fill="#ffffff" data-test="map-ruler-label">${label}</text></g>`;
                 };
                 const layer = () => board()?.querySelector('[data-ruler]');
+                // A token being dragged: the cells it covers from where it was, against its speed (and what it already
+                // moved in this turn)
+                const drawMove = (el, dx, dy) => {
+                    const svg = layer();
+                    if (!svg) return;
+                    if (!el) { svg.innerHTML = ''; return; }
+                    const [t, g, ox, oy] = grid(), z = zoom();
+                    const x1 = parseFloat(el.dataset.cx), y1 = parseFloat(el.dataset.cy);
+                    const a = nearest(t, g, ox, oy, x1, y1), b = nearest(t, g, ox, oy, x1 + dx, y1 + dy);
+                    const cells = distance(t, a, b) + parseInt(el.dataset.moved || '0', 10);
+                    const speed = parseInt(el.dataset.speed || '0', 10);
+                    const per = st.options.perCell, fmt = (n) => (n * per).toLocaleString(st.options.locale);
+                    const label = speed > 0 ? `${fmt(cells)} / ${fmt(speed)} ${st.options.unit}` : `${fmt(cells)} ${st.options.unit}`;
+                    const over = speed > 0 && cells > speed, color = over ? '#ef4444' : '#ff8c00';
+                    const [cx2, cy2] = center(t, g, ox, oy, b[0], b[1]);
+                    const fs = 14 / z, pad = 8 / z;
+                    svg.innerHTML = `<line x1="${x1}" y1="${y1}" x2="${cx2}" y2="${cy2}" stroke="${color}" stroke-width="${3 / z}" stroke-dasharray="${8 / z} ${6 / z}"/>`
+                        + `<g transform="translate(${x1 + dx + pad * 3} ${y1 + dy - pad * 3})"><rect x="0" y="${-fs - pad}" width="${label.length * 0.62 * fs + pad * 2}" height="${fs + pad * 2}" rx="${4 / z}" fill="rgba(10,10,10,.85)" stroke="${color}" stroke-width="${1 / z}"/>`
+                        + `<text x="${pad}" y="0" font-size="${fs}" font-weight="700" fill="#ffffff" data-test="map-move-label">${label}</text></g>`;
+                };
                 const drawFog = () => {
                     const svg = layer();
                     if (!svg) return;
@@ -418,6 +438,7 @@
                         if (st.drag.movable) {
                             st.drag.el.style.transform = `translate(${dx}px, ${dy}px)`;
                             st.drag.el.classList.add('dragging');
+                            drawMove(st.drag.el, dx, dy);
                         }
                     } else if (st.pan) {
                         if (!st.pan.moved && Math.hypot(e.clientX - st.pan.x, e.clientY - st.pan.y) < 4) return;
@@ -470,6 +491,7 @@
                         const z = zoom();
                         const cx = parseFloat(d.el.dataset.cx) + (e.clientX - d.x) / z;
                         const cy = parseFloat(d.el.dataset.cy) + (e.clientY - d.y) / z;
+                        drawMove(null);
                         try {
                             await dotnet.invokeMethodAsync('TokenDropped', d.id, cx, cy);
                         } finally {

@@ -1613,6 +1613,52 @@ try {
   results.push(`INFO vtt fog: ${JSON.stringify(fogUi)}`);
   if (fogUi.revealed !== 2 || fogUi.ping !== 1 || fogUi.message !== 0) throw new Error(`unexpected fog: ${JSON.stringify(fogUi)}`);
   ok('virtual tabletop fog of war: turned on over the whole map, a box revealed around the hero, a ping with Alt+click, the players\' view brought to the master\'s, fog turned off');
+  // The fight on the map: the encounter with three goblins starts here (their tokens placed, the hero's reused), the
+  // turn goes on, a goblin is knocked prone and hurt, it rolls its initiative from its card; the hero's move shows
+  // the metres against its speed
+  await page.locator('[data-test=vtt-tool-select]').click();
+  await page.locator('[data-test=vtt-tool-tokens]').click();
+  await page.locator('[data-test=vtt-start-combat]').click();
+  await page.locator('[data-test=vtt-initiative]').waitFor({ timeout: 15000 });
+  await page.locator('[data-test=vtt-tool-tokens]').click();
+  await page.waitForTimeout(800);
+  const combatUi = {
+    combatants: await page.locator('[data-test=vtt-combatant]').count(),
+    tokens: await page.locator('[data-test=vtt] [data-test=map-token]').count(),
+    current: await page.locator('.rf-vtt-token.current').count(),
+    round: (await page.locator('[data-test=vtt-round]').innerText()).trim()
+  };
+  const firstCurrent = await page.locator('[data-test=vtt-combatant][data-current="1"]').innerText();
+  await page.locator('[data-test=vtt-next-turn]').click();
+  await page.waitForTimeout(800);
+  combatUi.turnMoved = firstCurrent !== await page.locator('[data-test=vtt-combatant][data-current="1"]').innerText();
+  const goblin1 = page.locator('[data-test=vtt] [data-test=map-token][data-label="Goblin 1"]');
+  await goblin1.click();
+  await page.locator('[data-test=map-token-card]').waitFor({ timeout: 15000 });
+  await page.locator('[data-test=map-token-condition][data-key=prone]').click();
+  await page.locator('[data-test=map-token-hp-input]').fill('2');
+  await page.locator('[data-test=map-token-hp-input]').press('Tab');
+  await page.locator('[data-test=map-token-roll]').first().waitFor({ timeout: 30000 });
+  await page.locator('[data-test=map-token-roll]').first().click();
+  combatUi.rollTray = await page.locator('[data-test=sheet-last-roll]').waitFor({ timeout: 8000 }).then(() => 1, () => 0);
+  await page.waitForTimeout(600);
+  combatUi.goblinConditions = (await goblin1.locator('[data-test=map-token-conditions]').textContent()).trim();
+  combatUi.goblinRing = await goblin1.locator('[data-test=map-token-hp-ring] circle').getAttribute('stroke-dasharray');
+  await shot(page, 'vtt-combat', null);
+  await page.locator('.rf-vtt-card-close').click();
+  await page.locator('[data-test=vtt-end-combat]').click();
+  await page.locator('[data-test=vtt-initiative]').waitFor({ state: 'detached', timeout: 15000 });
+  const moving = await page.locator('[data-test=vtt] [data-test=map-token][data-label="Eroe di prova"]').boundingBox();
+  await page.mouse.move(moving.x + moving.width / 2, moving.y + moving.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(moving.x + moving.width / 2, moving.y + moving.height * 1.5, { steps: 4 });
+  await page.mouse.move(moving.x + moving.width / 2, moving.y + moving.height * 2.5, { steps: 4 });
+  combatUi.moveLabel = (await page.locator('[data-test=map-move-label]').textContent())?.trim();
+  await page.mouse.up();
+  results.push(`INFO vtt combat: ${JSON.stringify(combatUi)}`);
+  if (combatUi.combatants !== 4 || combatUi.tokens !== 5 || combatUi.current !== 1 || !/^Round \d+$/.test(combatUi.round) || !combatUi.turnMoved
+    || combatUi.rollTray !== 1 || combatUi.goblinConditions !== 'Pr' || combatUi.goblinRing !== '28.57 100' || !/^3 \/ \d+(,\d)? m$/.test(combatUi.moveLabel ?? '')) throw new Error(`unexpected combat: ${JSON.stringify(combatUi)}`);
+  ok('virtual tabletop combat: the encounter started on the map (four in the initiative order, tokens for the goblins), the turn passed on, a goblin knocked prone and down to 2 hit points with its initiative rolled from its card, the fight ended, the hero\'s move showing 3 m against its speed');
   await page.locator('[data-test=vtt-back]').click();
   await page.locator('[data-test=campaign-title]').waitFor({ timeout: 30000 });
   // From the sheet, the owner takes the character out of the campaign

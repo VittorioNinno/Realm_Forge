@@ -302,6 +302,18 @@ namespace RealmForge.Client.Services
 		public Task<CampaignResult> FocusAsync(Guid id, Guid mapId, double x, double y, double zoom) =>
 			SendAsync(() => _http.PostAsJsonAsync($"api/campaigns/{id}/maps/{mapId}/focus", new MapPointDto { X = x, Y = y, Zoom = zoom }), "focus");
 
+		public Task<CampaignResult> StartCombatAsync(Guid id, Guid mapId, Guid encounterId) =>
+			SendAsync(() => _http.PostAsJsonAsync($"api/campaigns/{id}/maps/{mapId}/combat", new StartCombatDto { EncounterId = encounterId }), "start combat");
+
+		public Task<CampaignResult> NextTurnAsync(Guid id, Guid mapId) =>
+			SendAsync(() => _http.PostAsync($"api/campaigns/{id}/maps/{mapId}/combat/next", null), "next turn");
+
+		public Task<CampaignResult> EndCombatAsync(Guid id, Guid mapId) =>
+			SendAsync(() => _http.PostAsync($"api/campaigns/{id}/maps/{mapId}/combat/end", null), "end combat");
+
+		public Task<CampaignResult> SetTokenStateAsync(Guid id, Guid mapId, Guid tokenId, List<string> conditions, int? hp) =>
+			SendAsync(() => _http.PutAsJsonAsync($"api/campaigns/{id}/maps/{mapId}/tokens/{tokenId}/state", new TokenStateDto { Conditions = conditions, Hp = hp }), "token state");
+
 		public Task<CampaignResult> ClearRollsAsync(Guid id) =>
 			SendAsync(() => _http.DeleteAsync($"api/campaigns/{id}/rolls"), "clear rolls");
 	}
