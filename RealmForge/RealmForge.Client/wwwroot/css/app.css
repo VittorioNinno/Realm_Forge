@@ -9950,3 +9950,591 @@ textarea.rf-form-control {
     font-size: .8rem;
     color: var(--rf-text-muted);
 }
+
+/* ===== Campaign dice table: console on the left, log on the right, same height ===== */
+.rf-dice-lead {
+    margin-bottom: 16px;
+    font-size: .85rem;
+    color: var(--rf-text-muted);
+}
+
+.rf-dice-workspace {
+    display: grid;
+    grid-template-columns: 464px minmax(0, 1fr);
+    align-items: stretch;
+    gap: 24px;
+}
+
+.rf-dice-kicker {
+    font-size: .7rem;
+    font-weight: 800;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    color: var(--rf-orange-primary);
+}
+
+.rf-dice-label {
+    display: inline-flex;
+    align-items: center;
+    font-size: .65rem;
+    font-weight: 800;
+    letter-spacing: .07em;
+    text-transform: uppercase;
+    color: var(--rf-text-muted);
+}
+
+.rf-dice-console,
+.rf-dice-log {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    padding: 24px;
+    border-radius: 16px;
+    border: 1px solid var(--rf-border-subtle);
+    background-color: var(--rf-bg-surface);
+    min-width: 0;
+}
+
+.rf-dice-console-head,
+.rf-dice-log-head {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px 16px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid var(--rf-border-subtle);
+}
+
+.rf-dice-reset {
+    padding: 0;
+    border: none;
+    background: none;
+    color: var(--rf-text-muted);
+    font-size: .8rem;
+    text-decoration: underline;
+}
+
+    .rf-dice-reset:hover {
+        color: var(--rf-text-primary);
+    }
+
+.rf-dice-actor {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.35fr);
+    align-items: end;
+    gap: 16px;
+}
+
+.rf-dice-field {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    min-width: 0;
+    margin: 0;
+}
+
+.rf-dice-privacy,
+.rf-dice-modes {
+    display: grid;
+    grid-auto-flow: column;
+    grid-auto-columns: 1fr;
+    gap: 4px;
+    padding: 4px;
+    border-radius: 8px;
+    border: 1px solid var(--rf-border-subtle);
+    background-color: var(--rf-bg-main);
+}
+
+    .rf-dice-privacy button,
+    .rf-dice-modes button {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        min-height: 32px;
+        padding: 0 8px;
+        border: none;
+        border-radius: 4px;
+        background: none;
+        color: var(--rf-text-muted);
+        font-size: .8rem;
+        font-weight: 700;
+        white-space: nowrap;
+    }
+
+        .rf-dice-privacy button.active,
+        .rf-dice-modes button.active {
+            background-color: var(--rf-bg-card);
+            color: var(--rf-text-primary);
+            box-shadow: 0 1px 4px rgba(0, 0, 0, .4);
+        }
+
+        .rf-dice-privacy button.secret.active {
+            background-color: rgba(139, 92, 246, .18);
+            color: #c4b5fd;
+        }
+
+        .rf-dice-modes button.adv.active {
+            background-color: rgba(16, 185, 129, .16);
+            color: #34d399;
+        }
+
+        .rf-dice-modes button.dis.active {
+            background-color: rgba(220, 53, 69, .16);
+            color: #ff8a8a;
+        }
+
+.rf-dice-tray-pick {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    padding: 16px;
+    border-radius: 8px;
+    border: 1px solid var(--rf-border-subtle);
+    background-color: var(--rf-bg-card);
+}
+
+.rf-dice-pick-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+}
+
+.rf-dice-mod {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: .75rem;
+    color: var(--rf-text-muted);
+}
+
+    .rf-dice-mod button {
+        width: 32px;
+        height: 32px;
+        border-radius: 4px;
+        border: 1px solid var(--rf-border-light);
+        background-color: var(--rf-bg-main);
+        color: var(--rf-text-primary);
+        font-weight: 700;
+    }
+
+    .rf-dice-mod strong {
+        min-width: 32px;
+        text-align: center;
+        color: var(--rf-orange-primary);
+        font-size: .95rem;
+    }
+
+.rf-dice-pick {
+    display: grid;
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+    gap: 8px;
+}
+
+.rf-dice-pick-btn {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    padding: 8px 0;
+    border-radius: 8px;
+    border: 1px solid var(--rf-border-light);
+    background-color: var(--rf-bg-main);
+    color: var(--rf-text-secondary);
+    font-size: .7rem;
+    font-weight: 700;
+}
+
+    .rf-dice-pick-btn svg {
+        width: 24px;
+        height: 24px;
+    }
+
+    .rf-dice-pick-btn:hover {
+        border-color: var(--rf-text-muted);
+        color: var(--rf-text-primary);
+    }
+
+    .rf-dice-pick-btn.selected {
+        border-color: var(--rf-orange-primary);
+        background-color: rgba(255, 140, 0, .12);
+        color: #ffb74d;
+    }
+
+.rf-dice-pick-count {
+    position: absolute;
+    top: -8px;
+    right: -4px;
+    min-width: 24px;
+    padding: 0 4px;
+    border-radius: 8px;
+    background-color: var(--rf-orange-primary);
+    color: #0a0a0a;
+    font-size: .65rem;
+    font-weight: 900;
+    line-height: 16px;
+}
+
+.rf-dice-formula {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    margin-top: auto;
+}
+
+.rf-dice-formula-input {
+    font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+    font-weight: 700;
+    color: #ffb74d;
+}
+
+.rf-dice-reasons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: -8px;
+}
+
+    .rf-dice-reasons button {
+        min-height: 24px;
+        padding: 0 8px;
+        border-radius: 4px;
+        border: 1px solid var(--rf-border-subtle);
+        background-color: var(--rf-bg-card);
+        color: var(--rf-text-muted);
+        font-size: .75rem;
+    }
+
+        .rf-dice-reasons button:hover {
+            color: var(--rf-text-primary);
+        }
+
+.rf-dice-go {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    min-height: 48px;
+    border: none;
+    border-radius: 8px;
+    background-color: var(--rf-orange-primary);
+    color: #0a0a0a;
+    font-size: .85rem;
+    font-weight: 900;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+}
+
+    .rf-dice-go:hover:not(:disabled) {
+        background-color: var(--rf-orange-hover);
+    }
+
+    .rf-dice-go:disabled {
+        opacity: .6;
+    }
+
+    .rf-dice-go.secret {
+        background-color: #8b5cf6;
+        color: #ffffff;
+    }
+
+    .rf-dice-go .rf-icon {
+        width: 16px;
+        height: 16px;
+    }
+
+.rf-dice-filters {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+    .rf-dice-filters button {
+        min-height: 32px;
+        padding: 0 16px;
+        border-radius: 16px;
+        border: 1px solid var(--rf-border-light);
+        background-color: var(--rf-bg-card);
+        color: var(--rf-text-secondary);
+        font-size: .8rem;
+        font-weight: 600;
+    }
+
+        .rf-dice-filters button.active {
+            border-color: var(--rf-orange-primary);
+            background-color: rgba(255, 140, 0, .14);
+            color: #ffb74d;
+        }
+
+        .rf-dice-filters button.secret.active {
+            border-color: #8b5cf6;
+            background-color: rgba(139, 92, 246, .14);
+            color: #c4b5fd;
+        }
+
+.rf-dice-clear {
+    min-height: 32px;
+    padding: 0 16px;
+    border-radius: 8px;
+    border: 1px solid var(--rf-border-light);
+    background: none;
+    color: var(--rf-text-muted);
+    font-size: .75rem;
+    font-weight: 800;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+}
+
+    .rf-dice-clear:hover {
+        color: #ff6b6b;
+        border-color: rgba(220, 53, 69, .5);
+    }
+
+.rf-dice-empty {
+    padding: 24px;
+    text-align: center;
+    color: var(--rf-text-muted);
+}
+
+.rf-dice-feed {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    max-height: 720px;
+    margin: 0;
+    padding: 0;
+    overflow-y: auto;
+    list-style: none;
+}
+
+.rf-dice-card {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 16px;
+    padding: 16px;
+    border-radius: 8px;
+    border: 1px solid var(--rf-border-subtle);
+    border-left: 4px solid var(--rf-roller, var(--rf-border-light));
+    background-color: var(--rf-bg-card);
+}
+
+    .rf-dice-card.fresh {
+        animation: rf-notice-in .3s ease-out;
+    }
+
+    .rf-dice-card.secret {
+        border: 1px dashed rgba(139, 92, 246, .45);
+        border-left: 4px solid #8b5cf6;
+        background-color: rgba(139, 92, 246, .05);
+    }
+
+    .rf-dice-card.crit {
+        border-color: rgba(255, 140, 0, .45);
+        border-left-color: var(--rf-orange-primary);
+        background-color: rgba(255, 140, 0, .05);
+    }
+
+.rf-dice-card-main {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    min-width: 0;
+}
+
+.rf-dice-card-who,
+.rf-dice-card-what,
+.rf-dice-card-dice {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+}
+
+.rf-dice-card-who {
+    font-size: .8rem;
+}
+
+.rf-dice-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    min-height: 24px;
+    padding: 0 8px;
+    border-radius: 4px;
+    font-size: .65rem;
+    font-weight: 800;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+}
+
+    .rf-dice-badge.secret {
+        border: 1px solid rgba(139, 92, 246, .45);
+        background-color: rgba(139, 92, 246, .12);
+        color: #c4b5fd;
+    }
+
+    .rf-dice-badge.adv {
+        border: 1px solid rgba(16, 185, 129, .4);
+        background-color: rgba(16, 185, 129, .12);
+        color: #34d399;
+    }
+
+    .rf-dice-badge.dis {
+        border: 1px solid rgba(220, 53, 69, .4);
+        background-color: rgba(220, 53, 69, .12);
+        color: #ff8a8a;
+    }
+
+    .rf-dice-badge.crit {
+        border: 1px solid var(--rf-orange-primary);
+        background-color: rgba(255, 140, 0, .18);
+        color: #ffb74d;
+    }
+
+    .rf-dice-badge.fumble {
+        border: 1px solid rgba(220, 53, 69, .5);
+        color: #ff8a8a;
+    }
+
+.rf-dice-formula-tag {
+    padding: 0 8px;
+    border-radius: 4px;
+    background-color: var(--rf-bg-main);
+    color: var(--rf-text-muted);
+    font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+    font-size: .75rem;
+}
+
+.rf-dice-chip {
+    display: inline-flex;
+    align-items: center;
+    height: 24px;
+    padding: 0 8px;
+    border-radius: 4px;
+    border: 1px solid var(--rf-border-light);
+    background-color: var(--rf-bg-main);
+    color: var(--rf-text-primary);
+    font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+    font-size: .75rem;
+    font-weight: 700;
+}
+
+    .rf-dice-chip.dropped {
+        color: #666666;
+        text-decoration: line-through;
+        border-color: var(--rf-border-subtle);
+    }
+
+    .rf-dice-chip.crit {
+        border-color: var(--rf-orange-primary);
+        background-color: rgba(255, 140, 0, .18);
+        color: #ffb74d;
+    }
+
+    .rf-dice-chip.fumble {
+        border-color: rgba(220, 53, 69, .6);
+        color: #ff8a8a;
+    }
+
+.rf-dice-op,
+.rf-dice-modchip {
+    color: var(--rf-text-muted);
+    font-size: .8rem;
+    font-weight: 700;
+}
+
+.rf-dice-card-side {
+    display: flex;
+    flex: 0 0 auto;
+    align-items: center;
+    gap: 16px;
+}
+
+.rf-dice-card-actions {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 8px;
+}
+
+    .rf-dice-card-actions button {
+        min-height: 32px;
+        padding: 0 8px;
+        border-radius: 8px;
+        border: 1px solid var(--rf-border-light);
+        background-color: var(--rf-bg-main);
+        color: var(--rf-text-muted);
+        font-size: .7rem;
+        font-weight: 700;
+    }
+
+        .rf-dice-card-actions button:hover:not(:disabled) {
+            color: var(--rf-text-primary);
+        }
+
+        .rf-dice-card-actions button.reveal {
+            border-color: rgba(139, 92, 246, .45);
+            background-color: rgba(139, 92, 246, .12);
+            color: #c4b5fd;
+        }
+
+.rf-dice-card-total {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 56px;
+    height: 48px;
+    padding: 0 16px;
+    border-radius: 8px;
+    border: 1px solid var(--rf-border-light);
+    background-color: var(--rf-bg-main);
+    font-family: var(--rf-font-display);
+    font-size: 1.4rem;
+    font-weight: 900;
+    color: var(--rf-text-primary);
+}
+
+    .rf-dice-card-total.crit {
+        border-color: var(--rf-orange-primary);
+        background-color: rgba(255, 140, 0, .16);
+        color: #ffb74d;
+        box-shadow: 0 0 16px rgba(255, 140, 0, .2);
+    }
+
+    .rf-dice-card-total.fumble {
+        color: #ff6b78;
+    }
+
+@media (max-width: 1199.98px) {
+    .rf-dice-workspace {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 575.98px) {
+    .rf-dice-console,
+    .rf-dice-log {
+        padding: 16px;
+    }
+
+    .rf-dice-actor {
+        grid-template-columns: 1fr;
+    }
+
+    .rf-dice-pick {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+
+    .rf-dice-card {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .rf-dice-card-side {
+        justify-content: space-between;
+    }
+}
