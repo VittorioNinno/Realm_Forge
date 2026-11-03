@@ -1118,7 +1118,7 @@ jobs:
           sscheck "master moves a marker" "$mp_master_move" "204"
           sscheck "tokens for the master" "$mp_master_state" '[{"label":"Lich","x":5,"hidden":true},{"label":"Porta","x":3,"hidden":false}]'
           sscheck "delete map" "$mp_delete" "204"
-          sscheck "player displays a map" "$mp_display_player" "403"
+          sscheck "player displays a hidden map (not even seen)" "$mp_display_player" "404"
           sscheck "master displays a map" "$mp_display" "204"
           sscheck "only the displayed map at the table" "$mp_after_display" '["Foresta"]'
           sscheck "hex map" "$mp_hex" '{"gridType":1,"shown":true}'
@@ -1289,8 +1289,6 @@ jobs:
   ui:
     runs-on: ubuntu-24.04
     needs: build
-    permissions:
-      contents: write
     services:
       postgres:
         image: postgres:17
@@ -1346,16 +1344,6 @@ jobs:
           npm install playwright@1 >/dev/null
           npx playwright install --with-deps chromium >/dev/null
           node smoke.mjs
-
-      - name: TEMP push the screenshots to a review branch
-        if: always()
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          cd .github/ui-smoke/shots || exit 0
-          git init -q -b shots . && git add -A
-          git -c user.name=ci -c user.email=ci@localhost commit -qm "shots ${GITHUB_SHA}"
-          git push -qf "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" shots:refs/heads/ci-shots/${GITHUB_SHA::8}
 
       - name: Keep the screenshots of the smoke test
         if: always()
