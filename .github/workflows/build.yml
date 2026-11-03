@@ -1065,6 +1065,64 @@ jobs:
           mp_player_move=$(code -X POST "$api/api/campaigns/$ss_cp/maps/$mp/tokens/$tk/move" $json -H "Authorization: Bearer $A" -d '{"x":3,"y":1}')
           mp_master_move=$(code -X POST "$api/api/campaigns/$ss_cp/maps/$mp/tokens/$tk/move" $json -H "Authorization: Bearer $B" -d '{"x":3,"y":1}')
           mp_master_state=$(curl -s "$api/api/campaigns/$ss_cp/maps/$mp/state" -H "Authorization: Bearer $B" | jq -c '[.tokens[] | {label, x, hidden}]')
+          # A hex map displayed at the table puts the first one away; a player cannot display maps; a token beyond the last hex is refused
+          mp2=$(curl -s -X POST "$api/api/campaigns/$ss_cp/maps" $json -H "Authorization: Bearer $B" -d "$(jq -nc --arg i "$png" '{name:"Foresta",image:$i,width:700,height:490,gridType:1,gridSize:70,gridOffsetX:0,gridOffsetY:0,shown:false}')" | jq -r .id)
+          mp_display_player=$(code -X POST "$api/api/campaigns/$ss_cp/maps/$mp2/display" -H "Authorization: Bearer $A")
+          mp_display=$(code -X POST "$api/api/campaigns/$ss_cp/maps/$mp2/display" -H "Authorization: Bearer $B")
+          mp_after_display=$(curl -s "$api/api/campaigns/$ss_cp/maps" -H "Authorization: Bearer $A" | jq -c '[.[] | .name]')
+          mp_hex=$(curl -s "$api/api/campaigns/$ss_cp/maps/$mp2/state" -H "Authorization: Bearer $A" | jq -c '{gridType, shown}')
+          mp_hex_in=$(code -X POST "$api/api/campaigns/$ss_cp/maps/$mp2/tokens" $json -H "Authorization: Bearer $B" -d '{"label":"Albero","kind":4,"x":9,"y":6,"size":1}')
+          mp_hex_out=$(code -X POST "$api/api/campaigns/$ss_cp/maps/$mp2/tokens" $json -H "Authorization: Bearer $B" -d '{"label":"Fuori","kind":4,"x":0,"y":8,"size":1}')
+          mp_bad_grid=$(code -X PUT "$api/api/campaigns/$ss_cp/maps/$mp2" $json -H "Authorization: Bearer $B" -d '{"name":"Foresta","width":700,"height":490,"gridType":7,"gridSize":70}')
+          echo "::notice title=maps::display player=$mp_display_player master=$mp_display seen=$mp_after_display hex=$mp_hex in=$mp_hex_in out=$mp_hex_out bad grid=$mp_bad_grid"
+          mp_dup_player=$(code -X POST "$api/api/campaigns/$ss_cp/maps/$mp2/duplicate" -H "Authorization: Bearer $A")
+          mp_dup=$(curl -s -X POST "$api/api/campaigns/$ss_cp/maps/$mp2/duplicate?name=Foresta%202" -H "Authorization: Bearer $B")
+          mp_dup_state=$(curl -s "$api/api/campaigns/$ss_cp/maps/$(echo "$mp_dup" | jq -r .id)/state" -H "Authorization: Bearer $B" | jq -c '{name, gridType, shown, tokens: (.tokens | length)}')
+          echo "::notice title=maps::duplicate player=$mp_dup_player copy=$mp_dup_state"
+          code -X DELETE "$api/api/campaigns/$ss_cp/maps/$(echo "$mp_dup" | jq -r .id)" -H "Authorization: Bearer $B" > /dev/null
+          # Drawings: a player draws and clears their own, cannot write notes for the masters nor erase the masters' drawings;
+          # the masters' note never reaches the players
+          sh_note=$(curl -s -X POST "$api/api/campaigns/$ss_cp/maps/$mp2/shapes" $json -H "Authorization: Bearer $B" -d '{"kind":2,"points":[100,100],"text":"Trappola","masterOnly":true}' | jq -r .id)
+          sh_cone=$(curl -s -X POST "$api/api/campaigns/$ss_cp/maps/$mp2/shapes" $json -H "Authorization: Bearer $B" -d '{"kind":3,"points":[105,105,300,105],"size":3}' | jq -r .id)
+          sh_player=$(curl -s -X POST "$api/api/campaigns/$ss_cp/maps/$mp2/shapes" $json -H "Authorization: Bearer $A" -d '{"kind":1,"points":[10,10,50,50,90,10]}' | jq -c '{kind, canDelete, hex: (.color | test("^#[0-9a-f]{6}$"))}')
+          sh_player_note=$(code -X POST "$api/api/campaigns/$ss_cp/maps/$mp2/shapes" $json -H "Authorization: Bearer $A" -d '{"kind":2,"points":[1,1],"text":"x","masterOnly":true}')
+          sh_bad=$(code -X POST "$api/api/campaigns/$ss_cp/maps/$mp2/shapes" $json -H "Authorization: Bearer $A" -d '{"kind":4,"points":[1,1,2,2],"size":0}')
+          sh_player_seen=$(curl -s "$api/api/campaigns/$ss_cp/maps/$mp2/state" -H "Authorization: Bearer $A" | jq -c '[.shapes[] | {kind, canDelete}]')
+          sh_player_erase=$(code -X DELETE "$api/api/campaigns/$ss_cp/maps/$mp2/shapes/$sh_cone" -H "Authorization: Bearer $A")
+          sh_player_note_erase=$(code -X DELETE "$api/api/campaigns/$ss_cp/maps/$mp2/shapes/$sh_note" -H "Authorization: Bearer $A")
+          sh_player_clear=$(code -X DELETE "$api/api/campaigns/$ss_cp/maps/$mp2/shapes" -H "Authorization: Bearer $A")
+          sh_master_seen=$(curl -s "$api/api/campaigns/$ss_cp/maps/$mp2/state" -H "Authorization: Bearer $B" | jq -c '[.shapes[] | .kind]')
+          echo "::notice title=maps::shapes player=$sh_player note by player=$sh_player_note bad=$sh_bad player sees=$sh_player_seen erase=$sh_player_erase/$sh_player_note_erase clear=$sh_player_clear master sees=$sh_master_seen"
+          # Fog of war: the marker under the fog disappears for the player, comes back once revealed; pings and the view
+          fog_player=$(code -X PUT "$api/api/campaigns/$ss_cp/maps/$mp2/fog" $json -H "Authorization: Bearer $A" -d '{"enabled":true,"fog":[]}')
+          fog_bad=$(code -X PUT "$api/api/campaigns/$ss_cp/maps/$mp2/fog" $json -H "Authorization: Bearer $B" -d '{"enabled":true,"fog":[9,0,0,1,1]}')
+          curl -s -X PUT "$api/api/campaigns/$ss_cp/maps/$mp2/fog" $json -H "Authorization: Bearer $B" -d '{"enabled":true,"fog":[1,0,0,300,300]}' > /dev/null
+          fog_covered=$(curl -s "$api/api/campaigns/$ss_cp/maps/$mp2/state" -H "Authorization: Bearer $A" | jq -c '{tokens: [.tokens[] | .label], fog: .table.fogEnabled}')
+          fog_master=$(curl -s "$api/api/campaigns/$ss_cp/maps/$mp2/state" -H "Authorization: Bearer $B" | jq -c '[.tokens[] | .label]')
+          curl -s -X PUT "$api/api/campaigns/$ss_cp/maps/$mp2/fog" $json -H "Authorization: Bearer $B" -d '{"enabled":true,"fog":[1,0,0,700,490]}' > /dev/null
+          fog_revealed=$(curl -s "$api/api/campaigns/$ss_cp/maps/$mp2/state" -H "Authorization: Bearer $A" | jq -c '[.tokens[] | .label]')
+          ping_player=$(code -X POST "$api/api/campaigns/$ss_cp/maps/$mp2/ping" $json -H "Authorization: Bearer $A" -d '{"x":120,"y":80}')
+          ping_seen=$(curl -s "$api/api/campaigns/$ss_cp/maps/$mp2/state" -H "Authorization: Bearer $B" | jq -c '.table.ping | {x, y, master: (.color == "#ff8c00")}')
+          focus_player=$(code -X POST "$api/api/campaigns/$ss_cp/maps/$mp2/focus" $json -H "Authorization: Bearer $A" -d '{"x":1,"y":1,"zoom":1}')
+          focus=$(code -X POST "$api/api/campaigns/$ss_cp/maps/$mp2/focus" $json -H "Authorization: Bearer $B" -d '{"x":350,"y":245,"zoom":1.5}')
+          focus_seen=$(curl -s "$api/api/campaigns/$ss_cp/maps/$mp2/state" -H "Authorization: Bearer $A" | jq -c '.table.focus | {x, y, zoom}')
+          echo "::notice title=maps::fog player=$fog_player bad=$fog_bad covered=$fog_covered master=$fog_master revealed=$fog_revealed | ping player=$ping_player seen=$ping_seen | focus player=$focus_player master=$focus seen=$focus_seen"
+          # A fight on the map: started by the master only, a token for the trap, the order and the trap's health seen by the
+          # player, its hit points and conditions set from the map, the next turn, the end
+          fe=$(curl -s -X POST "$api/api/campaigns/$ss_cp/encounters" $json -H "Authorization: Bearer $B" -d '{"name":"Trappola","combatants":[{"kind":3,"name":"Lame rotanti","maxHp":10,"hp":10,"initiative":20},{"kind":3,"name":"Ombra","maxHp":5,"hp":5,"initiative":5,"hidden":true}]}' | jq -r .id)
+          fight_player=$(code -X POST "$api/api/campaigns/$ss_cp/maps/$mp2/combat" $json -H "Authorization: Bearer $A" -d "{\"encounterId\":\"$fe\"}")
+          fight=$(code -X POST "$api/api/campaigns/$ss_cp/maps/$mp2/combat" $json -H "Authorization: Bearer $B" -d "{\"encounterId\":\"$fe\"}")
+          fight_seen=$(curl -s "$api/api/campaigns/$ss_cp/maps/$mp2/state" -H "Authorization: Bearer $A" | jq -c '{order: [.combat.order[] | .name], round: .combat.round, blades: [.tokens[] | select(.label == "Lame rotanti") | {health, hp}]}')
+          blade=$(curl -s "$api/api/campaigns/$ss_cp/maps/$mp2/state" -H "Authorization: Bearer $B" | jq -r '.tokens[] | select(.label == "Lame rotanti") | .id')
+          fight_state_player=$(code -X PUT "$api/api/campaigns/$ss_cp/maps/$mp2/tokens/$blade/state" $json -H "Authorization: Bearer $A" -d '{"conditions":["prone"],"hp":4}')
+          fight_state=$(code -X PUT "$api/api/campaigns/$ss_cp/maps/$mp2/tokens/$blade/state" $json -H "Authorization: Bearer $B" -d '{"conditions":["prone","flying"],"hp":4}')
+          fight_next=$(code -X POST "$api/api/campaigns/$ss_cp/maps/$mp2/combat/next" -H "Authorization: Bearer $B")
+          fight_after=$(curl -s "$api/api/campaigns/$ss_cp/maps/$mp2/state" -H "Authorization: Bearer $A" | jq -c '{blades: [.tokens[] | select(.label == "Lame rotanti") | {health, conditions}], current: ([.combat.order[] | select(.id == $c.combat.currentId)] | length)}' --argjson c "$(curl -s "$api/api/campaigns/$ss_cp/maps/$mp2/state" -H "Authorization: Bearer $B")")
+          fight_master=$(curl -s "$api/api/campaigns/$ss_cp/maps/$mp2/state" -H "Authorization: Bearer $B" | jq -c '{round: .combat.round, blades: [.tokens[] | select(.label == "Lame rotanti") | {hp, maxHp}]}')
+          fight_end=$(code -X POST "$api/api/campaigns/$ss_cp/maps/$mp2/combat/end" -H "Authorization: Bearer $B")
+          fight_done=$(curl -s "$api/api/campaigns/$ss_cp/encounters/$fe" -H "Authorization: Bearer $B" | jq -c '{status, hp: .combatants[0].hp, conditions: .combatants[0].conditions}')
+          echo "::notice title=maps::fight player=$fight_player master=$fight seen=$fight_seen | state player=$fight_state_player master=$fight_state next=$fight_next after=$fight_after master=$fight_master | end=$fight_end done=$fight_done"
+          code -X DELETE "$api/api/campaigns/$ss_cp/maps/$mp2" -H "Authorization: Bearer $B" > /dev/null
           mp_delete=$(code -X DELETE "$api/api/campaigns/$ss_cp/maps/$mp" -H "Authorization: Bearer $B")
           echo "::notice title=maps::player create=$mp_player_create hidden list=$mp_hidden_list outside=$mp_outside | player state=$mp_player_state move=$mp_player_move | master move=$mp_master_move state=$mp_master_state | delete=$mp_delete"
           # A roll behind the screen shown to the table by the master: back at the top, for the players too
@@ -1107,6 +1165,43 @@ jobs:
           sscheck "master moves a marker" "$mp_master_move" "204"
           sscheck "tokens for the master" "$mp_master_state" '[{"label":"Lich","x":5,"hidden":true},{"label":"Porta","x":3,"hidden":false}]'
           sscheck "delete map" "$mp_delete" "204"
+          sscheck "player displays a hidden map (not even seen)" "$mp_display_player" "404"
+          sscheck "master displays a map" "$mp_display" "204"
+          sscheck "only the displayed map at the table" "$mp_after_display" '["Foresta"]'
+          sscheck "hex map" "$mp_hex" '{"gridType":1,"shown":true}'
+          sscheck "token on the last hex" "$mp_hex_in" "200"
+          sscheck "token beyond the hexes" "$mp_hex_out" "400"
+          sscheck "unknown grid" "$mp_bad_grid" "400"
+          sscheck "player starts a fight" "$fight_player" "403"
+          sscheck "master starts a fight" "$fight" "204"
+          sscheck "fight seen by the player" "$fight_seen" '{"order":["Lame rotanti"],"round":1,"blades":[{"health":1,"hp":null}]}'
+          sscheck "player hurts a token" "$fight_state_player" "403"
+          sscheck "master hurts a token" "$fight_state" "204"
+          sscheck "next turn" "$fight_next" "204"
+          sscheck "hurt token seen by the player" "$fight_after" '{"blades":[{"health":3,"conditions":["prone"]}],"current":0}'
+          sscheck "hurt token seen by the master" "$fight_master" '{"round":1,"blades":[{"hp":4,"maxHp":10}]}'
+          sscheck "fight ended" "$fight_end" "204"
+          sscheck "encounter after the fight" "$fight_done" '{"status":3,"hp":4,"conditions":["prone"]}'
+          sscheck "player sets the fog" "$fog_player" "403"
+          sscheck "unknown fog step" "$fog_bad" "400"
+          sscheck "marker under the fog" "$fog_covered" '{"tokens":[],"fog":true}'
+          sscheck "master sees under the fog" "$fog_master" '["Albero"]'
+          sscheck "marker revealed" "$fog_revealed" '["Albero"]'
+          sscheck "player pings" "$ping_player" "204"
+          sscheck "ping seen by the master" "$ping_seen" '{"x":120,"y":80,"master":false}'
+          sscheck "player moves the view" "$focus_player" "403"
+          sscheck "master moves the view" "$focus" "204"
+          sscheck "view seen by the player" "$focus_seen" '{"x":350,"y":245,"zoom":1.5}'
+          sscheck "player draws" "$sh_player" '{"kind":1,"canDelete":true,"hex":true}'
+          sscheck "player writes a masters' note" "$sh_player_note" "403"
+          sscheck "sphere of no size" "$sh_bad" "400"
+          sscheck "drawings seen by the player" "$sh_player_seen" '[{"kind":3,"canDelete":false},{"kind":1,"canDelete":true}]'
+          sscheck "player erases the master's area" "$sh_player_erase" "403"
+          sscheck "player erases the masters' note" "$sh_player_note_erase" "404"
+          sscheck "player clears their drawings" "$sh_player_clear" "204"
+          sscheck "drawings left" "$sh_master_seen" '[2,3]'
+          sscheck "player duplicates a map" "$mp_dup_player" "403"
+          sscheck "copy of a map" "$mp_dup_state" '{"name":"Foresta 2","gridType":1,"shown":false,"tokens":1}'
           sscheck "reveal by a player" "$rl_reveal_player" "403"
           sscheck "reveal by the master" "$rl_reveal" '{"label":"Segreto","hidden":false,"byMaster":true}'
           sscheck "revealed roll for the player" "$rl_revealed" '{"label":"Segreto","byMaster":true}'

@@ -229,6 +229,24 @@ namespace RealmForge.Client.Services
 		public Task<CampaignResult> UpdateMapAsync(Guid id, Guid mapId, SaveMapDto map) =>
 			SendAsync(() => _http.PutAsJsonAsync($"api/campaigns/{id}/maps/{mapId}", map), "update map");
 
+		public async Task<CampaignMapSummaryDto?> DuplicateMapAsync(Guid id, Guid mapId, string name)
+		{
+			try
+			{
+				var response = await _http.PostAsync($"api/campaigns/{id}/maps/{mapId}/duplicate?name={Uri.EscapeDataString(name)}", null);
+				return response.IsSuccessStatusCode ? await response.Content.ReadFromJsonAsync<CampaignMapSummaryDto>() : null;
+			}
+			catch (Exception ex)
+			{
+				_logger.LogError(ex, "Duplicating map {MapId} failed", mapId);
+				return null;
+			}
+		}
+
+		//	The map the players see at the table (the others are hidden from them)
+		public Task<CampaignResult> DisplayMapAsync(Guid id, Guid mapId) =>
+			SendAsync(() => _http.PostAsync($"api/campaigns/{id}/maps/{mapId}/display", null), "display map");
+
 		public Task<CampaignResult> DeleteMapAsync(Guid id, Guid mapId) =>
 			SendAsync(() => _http.DeleteAsync($"api/campaigns/{id}/maps/{mapId}"), "delete map");
 
@@ -254,6 +272,47 @@ namespace RealmForge.Client.Services
 
 		public Task<CampaignResult> DeleteTokenAsync(Guid id, Guid mapId, Guid tokenId) =>
 			SendAsync(() => _http.DeleteAsync($"api/campaigns/{id}/maps/{mapId}/tokens/{tokenId}"), "delete token");
+
+		public async Task<MapShapeDto?> AddShapeAsync(Guid id, Guid mapId, SaveShapeDto shape)
+		{
+			try
+			{
+				var response = await _http.PostAsJsonAsync($"api/campaigns/{id}/maps/{mapId}/shapes", shape);
+				return response.IsSuccessStatusCode ? await response.Content.ReadFromJsonAsync<MapShapeDto>() : null;
+			}
+			catch (Exception ex)
+			{
+				_logger.LogError(ex, "Drawing on map {MapId} failed", mapId);
+				return null;
+			}
+		}
+
+		public Task<CampaignResult> DeleteShapeAsync(Guid id, Guid mapId, Guid shapeId) =>
+			SendAsync(() => _http.DeleteAsync($"api/campaigns/{id}/maps/{mapId}/shapes/{shapeId}"), "delete shape");
+
+		public Task<CampaignResult> ClearShapesAsync(Guid id, Guid mapId) =>
+			SendAsync(() => _http.DeleteAsync($"api/campaigns/{id}/maps/{mapId}/shapes"), "clear shapes");
+
+		public Task<CampaignResult> SaveFogAsync(Guid id, Guid mapId, bool enabled, List<double> fog) =>
+			SendAsync(() => _http.PutAsJsonAsync($"api/campaigns/{id}/maps/{mapId}/fog", new SaveFogDto { Enabled = enabled, Fog = fog }), "save fog");
+
+		public Task<CampaignResult> PingAsync(Guid id, Guid mapId, double x, double y) =>
+			SendAsync(() => _http.PostAsJsonAsync($"api/campaigns/{id}/maps/{mapId}/ping", new MapPointDto { X = x, Y = y }), "ping");
+
+		public Task<CampaignResult> FocusAsync(Guid id, Guid mapId, double x, double y, double zoom) =>
+			SendAsync(() => _http.PostAsJsonAsync($"api/campaigns/{id}/maps/{mapId}/focus", new MapPointDto { X = x, Y = y, Zoom = zoom }), "focus");
+
+		public Task<CampaignResult> StartCombatAsync(Guid id, Guid mapId, Guid encounterId) =>
+			SendAsync(() => _http.PostAsJsonAsync($"api/campaigns/{id}/maps/{mapId}/combat", new StartCombatDto { EncounterId = encounterId }), "start combat");
+
+		public Task<CampaignResult> NextTurnAsync(Guid id, Guid mapId) =>
+			SendAsync(() => _http.PostAsync($"api/campaigns/{id}/maps/{mapId}/combat/next", null), "next turn");
+
+		public Task<CampaignResult> EndCombatAsync(Guid id, Guid mapId) =>
+			SendAsync(() => _http.PostAsync($"api/campaigns/{id}/maps/{mapId}/combat/end", null), "end combat");
+
+		public Task<CampaignResult> SetTokenStateAsync(Guid id, Guid mapId, Guid tokenId, List<string> conditions, int? hp) =>
+			SendAsync(() => _http.PutAsJsonAsync($"api/campaigns/{id}/maps/{mapId}/tokens/{tokenId}/state", new TokenStateDto { Conditions = conditions, Hp = hp }), "token state");
 
 		public Task<CampaignResult> ClearRollsAsync(Guid id) =>
 			SendAsync(() => _http.DeleteAsync($"api/campaigns/{id}/rolls"), "clear rolls");

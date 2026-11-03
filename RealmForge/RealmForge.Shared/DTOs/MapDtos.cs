@@ -22,7 +22,48 @@ namespace RealmForge.Shared.DTOs
 		int Size,
 		bool Hidden,
 		bool CanMove,
-		string? Portrait = null);
+		string? Portrait = null,
+		TokenLayer Layer = TokenLayer.Tokens,
+		Guid? CombatantId = null,
+		List<string>? Conditions = null,
+
+		//	Hit points of a monster in the fight, for the masters; its health, for the players
+		int? Hp = null,
+		int? MaxHp = null,
+		CombatantHealth? Health = null);
+
+	///	<summary>
+	///	The fight on a map: the encounter, the round, whose turn it is and the initiative order (what the players see of it).
+	///	</summary>
+	public record MapCombatDto(Guid EncounterId, string Name, int Round, Guid? CurrentId, List<MapCombatantDto> Order);
+
+	public record MapCombatantDto(Guid Id, string Name, CombatantKind Kind, int? Initiative, Guid? TokenId, bool Hidden);
+
+	public class StartCombatDto
+	{
+		public Guid EncounterId { get; set; }
+	}
+
+	public class TokenStateDto
+	{
+		public List<string> Conditions { get; set; } = new();
+		public int? Hp { get; set; }
+	}
+
+	///	<summary>
+	///	Something drawn on a map (see CampaignMapShape); CanDelete: the author or a master.
+	///	</summary>
+	public record MapShapeDto(Guid Id, ShapeKind Kind, List<double> Points, string Color, string? Text, int Size, bool MasterOnly, bool CanDelete);
+
+	public class SaveShapeDto
+	{
+		public ShapeKind Kind { get; set; } = ShapeKind.Freehand;
+		public List<double> Points { get; set; } = new();
+		public string? Color { get; set; }
+		public string? Text { get; set; }
+		public int Size { get; set; }
+		public bool MasterOnly { get; set; }
+	}
 
 	///	<summary>
 	///	A map with its picture, its grid and its tokens (the hidden ones only for the masters).
@@ -39,12 +80,40 @@ namespace RealmForge.Shared.DTOs
 		bool Shown,
 		bool CanEdit,
 		DateTimeOffset UpdatedAt,
-		List<MapTokenDto> Tokens);
+		List<MapTokenDto> Tokens,
+		GridType GridType = GridType.Square,
+		List<MapShapeDto>? Shapes = null,
+		MapTableDto? Table = null,
+		MapCombatDto? Combat = null);
 
 	///	<summary>
 	///	What the table polls every few seconds: the grid and the tokens, without the picture.
 	///	</summary>
-	public record MapStateDto(Guid Id, string Name, int GridSize, int GridOffsetX, int GridOffsetY, bool Shown, DateTimeOffset UpdatedAt, List<MapTokenDto> Tokens);
+	public record MapStateDto(Guid Id, string Name, int GridSize, int GridOffsetX, int GridOffsetY, bool Shown, DateTimeOffset UpdatedAt, List<MapTokenDto> Tokens,
+		GridType GridType = GridType.Square, List<MapShapeDto>? Shapes = null, MapTableDto? Table = null,
+		MapCombatDto? Combat = null);
+
+	///	<summary>
+	///	The fog of war (see MapFog), the last ping and the last view the masters brought the table to.
+	///	</summary>
+	public record MapTableDto(bool FogEnabled, List<double> Fog, MapPingDto? Ping, MapFocusDto? Focus);
+
+	public record MapPingDto(double X, double Y, string Color, DateTimeOffset At);
+
+	public record MapFocusDto(double X, double Y, double Zoom, DateTimeOffset At);
+
+	public class SaveFogDto
+	{
+		public bool Enabled { get; set; }
+		public List<double> Fog { get; set; } = new();
+	}
+
+	public class MapPointDto
+	{
+		public double X { get; set; }
+		public double Y { get; set; }
+		public double Zoom { get; set; } = 1;
+	}
 
 	///	<summary>
 	///	A new map, or its changes (Image null keeps the picture).
@@ -55,6 +124,7 @@ namespace RealmForge.Shared.DTOs
 		public string? Image { get; set; }
 		public int Width { get; set; }
 		public int Height { get; set; }
+		public GridType GridType { get; set; } = GridType.Square;
 		public int GridSize { get; set; } = 70;
 		public int GridOffsetX { get; set; }
 		public int GridOffsetY { get; set; }
@@ -75,6 +145,7 @@ namespace RealmForge.Shared.DTOs
 		public int Y { get; set; }
 		public int Size { get; set; } = 1;
 		public bool Hidden { get; set; }
+		public TokenLayer Layer { get; set; } = TokenLayer.Tokens;
 	}
 
 	public class MoveTokenDto
