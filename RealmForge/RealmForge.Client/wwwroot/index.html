@@ -559,7 +559,7 @@
                 return [(stage.scrollLeft + stage.clientWidth / 2) / z, (stage.scrollTop + stage.clientHeight / 2) / z];
             }
 
-            function center(stage, x, y) {
+            function centerOn(stage, x, y) {
                 const z = parseFloat(stage.querySelector('[data-board]')?.dataset.zoom || '1');
                 stage.scrollTo({ left: x * z - stage.clientWidth / 2, top: y * z - stage.clientHeight / 2, behavior: 'smooth' });
             }
@@ -569,7 +569,7 @@
                 return el.requestFullscreen?.();
             }
 
-            return { attach, detach, tool, fit, fullscreen, view, center };
+            return { attach, detach, tool, fit, fullscreen, view, center: centerOn };
         })();
         window.rfCropImage = (src, x, y, zoom, size) => new Promise((resolve) => {
             const img = new Image();
