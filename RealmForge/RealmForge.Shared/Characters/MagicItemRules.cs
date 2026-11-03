@@ -26,6 +26,15 @@ public static class MagicItemRules
 		? item.Magic!.Effects.Where(e => e.Kind == MagicEffectKind.AttackAndDamage).Sum(e => e.Value)
 		: 0;
 
+	//	Spells of every working item, with the item they come from
+	public static IEnumerable<(InventoryItem Item, MagicItemSpell Spell)> Spells(CharacterSheetState sheet) => sheet.Inventory
+		.Where(Works)
+		.SelectMany(i => i.Magic!.Spells.Select(s => (i, s)));
+
+	//	Charges left on the item for one more cast of the spell
+	public static bool CanCast(InventoryItem item, MagicItemSpell spell) =>
+		Works(item) && (spell.Charges == 0 || item.Magic!.Charges - item.Magic.ChargesUsed >= spell.Charges);
+
 	public static int AttunedCount(CharacterSheetState sheet) =>
 		sheet.Inventory.Count(i => i.Attuned && i.Magic?.RequiresAttunement == true);
 
