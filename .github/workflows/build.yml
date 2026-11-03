@@ -1065,6 +1065,17 @@ jobs:
           mp_player_move=$(code -X POST "$api/api/campaigns/$ss_cp/maps/$mp/tokens/$tk/move" $json -H "Authorization: Bearer $A" -d '{"x":3,"y":1}')
           mp_master_move=$(code -X POST "$api/api/campaigns/$ss_cp/maps/$mp/tokens/$tk/move" $json -H "Authorization: Bearer $B" -d '{"x":3,"y":1}')
           mp_master_state=$(curl -s "$api/api/campaigns/$ss_cp/maps/$mp/state" -H "Authorization: Bearer $B" | jq -c '[.tokens[] | {label, x, hidden}]')
+          # A hex map displayed at the table puts the first one away; a player cannot display maps; a token beyond the last hex is refused
+          mp2=$(curl -s -X POST "$api/api/campaigns/$ss_cp/maps" $json -H "Authorization: Bearer $B" -d "$(jq -nc --arg i "$png" '{name:"Foresta",image:$i,width:700,height:490,gridType:1,gridSize:70,gridOffsetX:0,gridOffsetY:0,shown:false}')" | jq -r .id)
+          mp_display_player=$(code -X POST "$api/api/campaigns/$ss_cp/maps/$mp2/display" -H "Authorization: Bearer $A")
+          mp_display=$(code -X POST "$api/api/campaigns/$ss_cp/maps/$mp2/display" -H "Authorization: Bearer $B")
+          mp_after_display=$(curl -s "$api/api/campaigns/$ss_cp/maps" -H "Authorization: Bearer $A" | jq -c '[.[] | .name]')
+          mp_hex=$(curl -s "$api/api/campaigns/$ss_cp/maps/$mp2/state" -H "Authorization: Bearer $A" | jq -c '{gridType, shown}')
+          mp_hex_in=$(code -X POST "$api/api/campaigns/$ss_cp/maps/$mp2/tokens" $json -H "Authorization: Bearer $B" -d '{"label":"Albero","kind":4,"x":9,"y":6,"size":1}')
+          mp_hex_out=$(code -X POST "$api/api/campaigns/$ss_cp/maps/$mp2/tokens" $json -H "Authorization: Bearer $B" -d '{"label":"Fuori","kind":4,"x":0,"y":8,"size":1}')
+          mp_bad_grid=$(code -X PUT "$api/api/campaigns/$ss_cp/maps/$mp2" $json -H "Authorization: Bearer $B" -d '{"name":"Foresta","width":700,"height":490,"gridType":7,"gridSize":70}')
+          echo "::notice title=maps::display player=$mp_display_player master=$mp_display seen=$mp_after_display hex=$mp_hex in=$mp_hex_in out=$mp_hex_out bad grid=$mp_bad_grid"
+          code -X DELETE "$api/api/campaigns/$ss_cp/maps/$mp2" -H "Authorization: Bearer $B" > /dev/null
           mp_delete=$(code -X DELETE "$api/api/campaigns/$ss_cp/maps/$mp" -H "Authorization: Bearer $B")
           echo "::notice title=maps::player create=$mp_player_create hidden list=$mp_hidden_list outside=$mp_outside | player state=$mp_player_state move=$mp_player_move | master move=$mp_master_move state=$mp_master_state | delete=$mp_delete"
           # A roll behind the screen shown to the table by the master: back at the top, for the players too
@@ -1107,6 +1118,13 @@ jobs:
           sscheck "master moves a marker" "$mp_master_move" "204"
           sscheck "tokens for the master" "$mp_master_state" '[{"label":"Lich","x":5,"hidden":true},{"label":"Porta","x":3,"hidden":false}]'
           sscheck "delete map" "$mp_delete" "204"
+          sscheck "player displays a map" "$mp_display_player" "403"
+          sscheck "master displays a map" "$mp_display" "204"
+          sscheck "only the displayed map at the table" "$mp_after_display" '["Foresta"]'
+          sscheck "hex map" "$mp_hex" '{"gridType":1,"shown":true}'
+          sscheck "token on the last hex" "$mp_hex_in" "200"
+          sscheck "token beyond the hexes" "$mp_hex_out" "400"
+          sscheck "unknown grid" "$mp_bad_grid" "400"
           sscheck "reveal by a player" "$rl_reveal_player" "403"
           sscheck "reveal by the master" "$rl_reveal" '{"label":"Segreto","hidden":false,"byMaster":true}'
           sscheck "revealed roll for the player" "$rl_revealed" '{"label":"Segreto","byMaster":true}'

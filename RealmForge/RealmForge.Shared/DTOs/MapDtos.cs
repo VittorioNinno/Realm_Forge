@@ -39,12 +39,14 @@ namespace RealmForge.Shared.DTOs
 		bool Shown,
 		bool CanEdit,
 		DateTimeOffset UpdatedAt,
-		List<MapTokenDto> Tokens);
+		List<MapTokenDto> Tokens,
+		GridType GridType = GridType.Square);
 
 	///	<summary>
 	///	What the table polls every few seconds: the grid and the tokens, without the picture.
 	///	</summary>
-	public record MapStateDto(Guid Id, string Name, int GridSize, int GridOffsetX, int GridOffsetY, bool Shown, DateTimeOffset UpdatedAt, List<MapTokenDto> Tokens);
+	public record MapStateDto(Guid Id, string Name, int GridSize, int GridOffsetX, int GridOffsetY, bool Shown, DateTimeOffset UpdatedAt, List<MapTokenDto> Tokens,
+		GridType GridType = GridType.Square);
 
 	///	<summary>
 	///	A new map, or its changes (Image null keeps the picture).
@@ -55,6 +57,7 @@ namespace RealmForge.Shared.DTOs
 		public string? Image { get; set; }
 		public int Width { get; set; }
 		public int Height { get; set; }
+		public GridType GridType { get; set; } = GridType.Square;
 		public int GridSize { get; set; } = 70;
 		public int GridOffsetX { get; set; }
 		public int GridOffsetY { get; set; }

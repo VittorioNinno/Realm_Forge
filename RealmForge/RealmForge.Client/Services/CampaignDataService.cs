@@ -229,6 +229,10 @@ namespace RealmForge.Client.Services
 		public Task<CampaignResult> UpdateMapAsync(Guid id, Guid mapId, SaveMapDto map) =>
 			SendAsync(() => _http.PutAsJsonAsync($"api/campaigns/{id}/maps/{mapId}", map), "update map");
 
+		//	The map the players see at the table (the others are hidden from them)
+		public Task<CampaignResult> DisplayMapAsync(Guid id, Guid mapId) =>
+			SendAsync(() => _http.PostAsync($"api/campaigns/{id}/maps/{mapId}/display", null), "display map");
+
 		public Task<CampaignResult> DeleteMapAsync(Guid id, Guid mapId) =>
 			SendAsync(() => _http.DeleteAsync($"api/campaigns/{id}/maps/{mapId}"), "delete map");
 
