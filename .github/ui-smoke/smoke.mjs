@@ -1479,7 +1479,7 @@ try {
   const calibrate = async (x1, y1, x2, y2) => {
     await page.locator('[data-test=map-calibrate]').click();
     await page.locator('[data-test=map-calibrate-hint]').waitFor({ timeout: 15000 });
-    const o = await page.locator('[data-test=map-grid]').boundingBox();
+    const o = await page.locator('svg[data-test=map-grid]').boundingBox();
     await page.mouse.move(o.x + x1, o.y + y1);
     await page.mouse.down();
     await page.mouse.move(o.x + (x1 + x2) / 2, o.y + (y1 + y2) / 2, { steps: 3 });
