@@ -1,4 +1,5 @@
-﻿@using RealmForge.Client.Localization
+﻿@using System.Globalization
+@using RealmForge.Client.Localization
 @using RealmForge.Client.Services
 @using RealmForge.Shared.Campaigns
 @using RealmForge.Shared.DTOs
@@ -7,83 +8,115 @@
 @inject MonsterDataService MonsterService
 @inject LanguageStateService LanguageState
 @inject IJSRuntime JS
-@implements IDisposable
+@implements IAsyncDisposable
 
-@* The virtual tabletop: a map with its grid and the tokens on it. The masters prepare the maps (picture, grid, shown or
-   not to the table) and place the tokens of characters, monsters and markers; everyone drags the tokens they can move
-   and sees the others move within a couple of seconds *@
-<section class="rf-vtt" data-test="campaign-map">
-    <div class="rf-vtt-bar">
-        @if (maps is { Count: > 0 })
-        {
-            <div class="rf-vtt-select" data-test="map-select">
-                <RfSelect TValue="Guid" Value="selectedId" ValueChanged="SelectAsync" Options="MapOptions" />
-            </div>
-        }
-        <div class="rf-vtt-zoom" role="group" aria-label="@UiText.MapZoom(Lang)">
-            <button type="button" @onclick="() => SetZoom(zoom - 0.25)" aria-label="−" data-test="map-zoom-out">−</button>
-            <span>@($"{zoom * 100:0}%")</span>
-            <button type="button" @onclick="() => SetZoom(zoom + 0.25)" aria-label="+" data-test="map-zoom-in">+</button>
-        </div>
-        @if (RunsTheTable)
-        {
-            <button type="button" class="btn btn-sm btn-rf-orange ms-auto" @onclick="OpenNewMap" data-test="map-new"><Icon Name="plus" /> @UiText.MapNew(Lang)</button>
-        }
-    </div>
-
-    @if (message is not null)
-    {
-        <div class="rf-cast-warning mb-3" role="alert" data-test="map-message">@message</div>
-    }
-
-    @if (maps is null)
-    {
-        <div class="small" style="color: var(--rf-text-muted);">…</div>
-    }
-    else if (map is null)
-    {
-        <div class="rf-vtt-empty" data-test="map-empty">
-            <Icon Name="map" />
-            <p class="mb-0">@(RunsTheTable ? UiText.MapEmptyMaster(Lang) : UiText.MapEmptyPlayer(Lang))</p>
-        </div>
-    }
-    else
-    {
-        <div class="rf-vtt-layout @(RunsTheTable ? "master" : null)">
-            <div class="rf-vtt-stage" data-test="map-stage">
-                <div class="rf-vtt-map" @ref="mapElement" style="@MapStyle" @onpointermove="DragAsync" @onpointerup="DropAsync" @onpointerleave="DropAsync">
-                    <img src="@map.Image" alt="@map.Name" draggable="false" />
-                    <svg class="rf-vtt-grid" width="@Px(map.Width)" height="@Px(map.Height)" aria-hidden="true">
-                        <defs>
-                            <pattern id="@GridId" width="@Px(grid)" height="@Px(grid)" x="@Px(offsetX)" y="@Px(offsetY)" patternUnits="userSpaceOnUse">
-                                <path d="@($"M {Px(grid)} 0 L 0 0 0 {Px(grid)}")" fill="none" stroke="rgba(255,255,255,.28)" stroke-width="1" />
-                            </pattern>
-                        </defs>
-                        <rect width="100%" height="100%" fill="@($"url(#{GridId})")" />
-                    </svg>
-                    @foreach (var token in tokens)
-                    {
-                        var t = token;
-                        var (left, top) = Position(t);
-                        var portrait = PortraitOf(t);
-                        <div class="rf-vtt-token @(t.Hidden ? "hidden-token" : null) @(t.CanMove ? "movable" : null) @(selectedToken == t.Id ? "selected" : null) @(drag?.TokenId == t.Id ? "dragging" : null)"
-                             style="@($"left: {left:0.#}px; top: {top:0.#}px; width: {Px(grid * t.Size)}px; height: {Px(grid * t.Size)}px; --rf-token: {t.Color};")"
-                             title="@t.Label" @onpointerdown="e => GrabAsync(e, t)" @onpointerdown:preventDefault="true" data-test="map-token" data-label="@t.Label">
-                            @if (portrait is not null)
-                            {
-                                <img src="@portrait" alt="" draggable="false" />
-                            }
-                            else
-                            {
-                                <span>@Initials(t.Label)</span>
-                            }
-                        </div>
-                    }
-                </div>
-            </div>
-
-            @if (RunsTheTable)
+@* The virtual tabletop. Two faces of the same board: the masters' preparation (Table = false, in the campaign's Maps tab:
+   the picture, the grid, the tokens, away from the players) and the table (Table = true, a page of its own: a tool bar on
+   the left, the map in the middle, the zoom in the corner; the players see the map shown to them and move their tokens).
+   The browser moves a dragged token and the view; the app picks the cell where the token lands *@
+@if (Table)
+{
+    <div class="rf-vtt-table" @ref="tableElement" data-test="vtt">
+        <header class="rf-vtt-top">
+            <a href="@BackHref" class="rf-vtt-back" data-test="vtt-back"><Icon Name="left" /> <span>@UiText.VttBack(Lang)</span></a>
+            @if (maps is { Count: > 0 })
             {
+                <div class="rf-vtt-select" data-test="map-select">
+                    <RfSelect TValue="Guid" Value="selectedId" ValueChanged="SelectAsync" Options="MapOptions" />
+                </div>
+            }
+            <div class="rf-vtt-top-actions">
+                @if (RunsTheTable && map is not null)
+                {
+                    @if (map.Shown)
+                    {
+                        <span class="rf-vtt-live" data-test="vtt-displayed"><Icon Name="eye" /> @UiText.VttDisplayed(Lang)</span>
+                    }
+                    else
+                    {
+                        <button type="button" class="btn btn-sm btn-rf-orange" @onclick="DisplayAsync" data-test="vtt-display"><Icon Name="eye" /> @UiText.VttDisplay(Lang)</button>
+                    }
+                }
+            </div>
+        </header>
+        <div class="rf-vtt-body">
+            <nav class="rf-vtt-tools" aria-label="@UiText.VttTitle(Lang)">
+                <button type="button" class="@ToolButton("select")" title="@UiText.VttToolSelect(Lang)" aria-label="@UiText.VttToolSelect(Lang)" @onclick="@(() => SetToolAsync("select"))" data-test="vtt-tool-select"><Icon Name="cursor" /></button>
+                <button type="button" class="@ToolButton("pan")" title="@UiText.VttToolPan(Lang)" aria-label="@UiText.VttToolPan(Lang)" @onclick="@(() => SetToolAsync("pan"))" data-test="vtt-tool-pan"><Icon Name="arrows-move" /></button>
+                <button type="button" class="@ToolButton("ruler")" title="@UiText.VttToolRuler(Lang)" aria-label="@UiText.VttToolRuler(Lang)" @onclick="@(() => SetToolAsync("ruler"))" data-test="vtt-tool-ruler"><Icon Name="rulers" /></button>
+                @if (RunsTheTable)
+                {
+                    <span class="rf-vtt-tools-sep"></span>
+                    <button type="button" class="rf-vtt-tool @(drawer ? "active" : null)" title="@UiText.VttToolTokens(Lang)" aria-label="@UiText.VttToolTokens(Lang)" @onclick="() => drawer = !drawer" data-test="vtt-tool-tokens"><Icon Name="people" /></button>
+                }
+                <span class="rf-vtt-tools-sep"></span>
+                <button type="button" class="rf-vtt-tool" title="@UiText.VttFullscreen(Lang)" aria-label="@UiText.VttFullscreen(Lang)" @onclick="FullscreenAsync" data-test="vtt-fullscreen"><Icon Name="fullscreen" /></button>
+            </nav>
+            <div class="rf-vtt-viewport">
+                @Board
+                @if (map is not null)
+                {
+                    <div class="rf-vtt-corner" role="group" aria-label="@UiText.MapZoom(Lang)">
+                        <button type="button" @onclick="() => Zoom(-1)" aria-label="−" data-test="map-zoom-out">−</button>
+                        <span data-test="map-zoom">@($"{zoom * 100:0}%")</span>
+                        <button type="button" @onclick="() => Zoom(1)" aria-label="+" data-test="map-zoom-in">+</button>
+                        <button type="button" @onclick="FitAsync" title="@UiText.VttFit(Lang)" aria-label="@UiText.VttFit(Lang)" data-test="map-fit"><Icon Name="aspect-ratio" /></button>
+                    </div>
+                }
+            </div>
+            @if (RunsTheTable && drawer)
+            {
+                <aside class="rf-vtt-drawer" data-test="vtt-drawer">
+                    <button type="button" class="btn btn-sm btn-rf-orange" @onclick="OpenNewMap" data-test="map-new"><Icon Name="plus" /> @UiText.MapNew(Lang)</button>
+                    @if (map is not null)
+                    {
+                        @AddTokens
+                    }
+                </aside>
+            }
+        </div>
+    </div>
+}
+else
+{
+    <section class="rf-vtt" data-test="campaign-map">
+        <div class="rf-vtt-bar">
+            @if (maps is { Count: > 0 })
+            {
+                <div class="rf-vtt-select" data-test="map-select">
+                    <RfSelect TValue="Guid" Value="selectedId" ValueChanged="SelectAsync" Options="MapOptions" />
+                </div>
+            }
+            @if (map is not null)
+            {
+                <div class="rf-vtt-zoom" role="group" aria-label="@UiText.MapZoom(Lang)">
+                    <button type="button" @onclick="() => Zoom(-1)" aria-label="−" data-test="map-zoom-out">−</button>
+                    <span>@($"{zoom * 100:0}%")</span>
+                    <button type="button" @onclick="() => Zoom(1)" aria-label="+" data-test="map-zoom-in">+</button>
+                </div>
+            }
+            <div class="d-flex flex-wrap gap-2 ms-auto">
+                <a href="@($"campaigns/{CampaignId}/vtt")" class="btn btn-sm btn-rf-outline" data-test="map-open-vtt"><Icon Name="map" /> @UiText.VttTitle(Lang)</a>
+                <button type="button" class="btn btn-sm btn-rf-orange" @onclick="OpenNewMap" data-test="map-new"><Icon Name="plus" /> @UiText.MapNew(Lang)</button>
+            </div>
+        </div>
+        <p class="small mb-3" style="color: var(--rf-text-muted);">@UiText.MapPrepHint(Lang)</p>
+
+        @if (message is not null)
+        {
+            <div class="rf-cast-warning mb-3" role="alert" data-test="map-message">@message</div>
+        }
+
+        @if (map is null)
+        {
+            @Board
+        }
+        else
+        {
+            <div class="rf-vtt-layout master">
+                <div class="rf-vtt-viewport prep">
+                    @Board
+                </div>
                 <aside class="rf-vtt-panel">
                     <section class="rf-vtt-box" data-test="map-settings">
                         <span class="rf-vtt-title">@UiText.MapSettings(Lang)</span>
@@ -91,6 +124,12 @@
                             <span class="rf-vtt-label">@UiText.MapName(Lang)</span>
                             <input class="rf-form-control" maxlength="120" @bind="mapName" data-test="map-name" />
                         </label>
+                        <div class="rf-vtt-field">
+                            <span class="rf-vtt-label">@UiText.MapGridType(Lang)</span>
+                            <div data-test="map-grid-type">
+                                <RfSelect TValue="GridType" Value="gridType" ValueChanged="v => gridType = v" Options="GridOptions" />
+                            </div>
+                        </div>
                         <div class="rf-vtt-grid-fields">
                             <div class="rf-vtt-field">
                                 <span class="rf-vtt-label">@UiText.MapGrid(Lang)</span>
@@ -114,69 +153,13 @@
                             <button type="button" class="btn btn-sm btn-rf-outline" style="border-color: #dc3545; color: #dc3545;" @onclick="() => confirmDelete = true" data-test="map-delete">@UiText.Delete(Lang)</button>
                         </div>
                     </section>
-
-                    <section class="rf-vtt-box" data-test="map-add-tokens">
-                        <span class="rf-vtt-title">@UiText.MapAddTokens(Lang)</span>
-                        @if (FreeCharacters.Any())
-                        {
-                            <div class="rf-vtt-chips">
-                                @foreach (var c in FreeCharacters)
-                                {
-                                    var ch = c;
-                                    <button type="button" @onclick="() => AddCharacterAsync(ch)" data-test="map-add-character"><Icon Name="plus" /> @ch.Character.Name</button>
-                                }
-                            </div>
-                        }
-                        <div class="position-relative">
-                            <input class="rf-form-control" placeholder="@UiText.MapMonsterSearch(Lang)" value="@monsterSearch" @oninput="SearchMonstersAsync" data-test="map-monster-search" />
-                            @if (monsterResults.Count > 0)
-                            {
-                                <div class="rf-forge-selector-menu" style="left: 0; right: 0;">
-                                    @foreach (var m in monsterResults)
-                                    {
-                                        var monster = m;
-                                        <button type="button" class="rf-forge-selector-option" @onclick="() => AddMonsterAsync(monster)" data-test="map-monster-result">
-                                            @monster.Name <span class="small" style="color: var(--rf-text-muted);">· @UiText.MonsterChallengeShort(Lang) @RealmForge.Shared.Monsters.MonsterMath.FormatChallenge(monster.ChallengeRating)</span>
-                                        </button>
-                                    }
-                                </div>
-                            }
-                        </div>
-                        <div class="d-flex gap-2">
-                            <input class="rf-form-control" maxlength="100" placeholder="@UiText.MapMarkerHint(Lang)" @bind="markerLabel" data-test="map-marker-label" />
-                            <input type="color" class="rf-vtt-color" @bind="markerColor" aria-label="@UiText.MapColor(Lang)" />
-                            <button type="button" class="btn btn-sm btn-rf-outline" disabled="@string.IsNullOrWhiteSpace(markerLabel)" @onclick="AddMarkerAsync" data-test="map-add-marker"><Icon Name="plus" /></button>
-                        </div>
-                    </section>
-
-                    @if (SelectedToken is { } st)
-                    {
-                        <section class="rf-vtt-box" data-test="map-token-panel">
-                            <span class="rf-vtt-title">@st.Label</span>
-                            <div class="rf-vtt-field">
-                                <span class="rf-vtt-label">@UiText.MapTokenSize(Lang)</span>
-                                <NumberStepper Value="st.Size" ValueChanged="v => ResizeAsync(st, v)" Min="1" Max="MapRules.MaxTokenSize" AriaLabel="@UiText.MapTokenSize(Lang)" />
-                            </div>
-                            <label class="rf-checkbox-wrapper small mb-0">
-                                <input type="checkbox" class="rf-checkbox" checked="@st.Hidden" @onchange="() => ToggleHiddenAsync(st)" data-test="map-token-hidden" />
-                                <span>@UiText.MapTokenHidden(Lang)</span>
-                            </label>
-                            <button type="button" class="btn btn-sm btn-rf-outline" style="border-color: #dc3545; color: #dc3545;" @onclick="() => RemoveTokenAsync(st)" data-test="map-token-remove"><Icon Name="trash" /> @UiText.BtnRemove(Lang)</button>
-                        </section>
-                    }
-                    else
-                    {
-                        <p class="small mb-0" style="color: var(--rf-text-muted);">@UiText.MapTokenHint(Lang)</p>
-                    }
+                    @AddTokens
+                    <p class="small mb-0" style="color: var(--rf-text-muted);">@UiText.MapTokenHint(Lang)</p>
                 </aside>
-            }
-        </div>
-        @if (!RunsTheTable)
-        {
-            <p class="small mt-2 mb-0" style="color: var(--rf-text-muted);">@UiText.MapPlayerHint(Lang)</p>
+            </div>
         }
-    }
-</section>
+    </section>
+}
 
 @if (newMap is not null)
 {
@@ -187,6 +170,10 @@
                 <span class="rf-vtt-label">@UiText.MapName(Lang)</span>
                 <input class="rf-form-control" maxlength="120" @bind="newMap.Name" data-test="map-new-name" />
             </label>
+            <div class="rf-vtt-field mb-3">
+                <span class="rf-vtt-label">@UiText.MapGridType(Lang)</span>
+                <RfSelect TValue="GridType" Value="newMap.GridType" ValueChanged="v => newMap.GridType = v" Options="GridOptions" />
+            </div>
             <label class="btn btn-sm btn-rf-outline mb-2" data-test="map-new-image">
                 <InputFile OnChange="PickImageAsync" accept="image/*" class="d-none" />
                 <Icon Name="map" /> @UiText.MapPickImage(Lang)
@@ -226,8 +213,8 @@
     [Parameter, EditorRequired] public Guid CampaignId { get; set; }
     [Parameter] public CampaignRole Role { get; set; } = CampaignRole.Player;
     [Parameter] public IReadOnlyList<CampaignCharacterDto> Characters { get; set; } = Array.Empty<CampaignCharacterDto>();
-
-    private sealed record Drag(Guid TokenId, double GrabX, double GrabY, double Left, double Top);
+    [Parameter] public bool Table { get; set; }
+    [Parameter] public string BackHref { get; set; } = "campaigns";
 
     private LanguageCode Lang => LanguageState.CurrentLanguage;
     private bool RunsTheTable => CampaignRules.RunsTheTable(Role);
@@ -237,22 +224,25 @@
     private CampaignMapDto? map;
     private List<MapTokenDto> tokens = new();
     private double zoom = 1;
+    private bool fitPending;
     private string? message;
     private bool busy;
     private bool confirmDelete;
+    private bool drawer;
+    private string tool = "select";
 
-    //	Map settings (the overlay follows them before they are saved)
+    //	Map settings (the board follows them before they are saved)
     private string mapName = string.Empty;
+    private GridType gridType;
     private int grid = 70;
     private int offsetX;
     private int offsetY;
     private bool shown;
 
-    //	Tokens
-    private Guid? selectedToken;
-    private Drag? drag;
-    private double[] mapRect = new double[4];
-    private ElementReference mapElement;
+    //	Tokens: the one whose card is open, one being dragged (no polling meanwhile), the monsters' statistics
+    private Guid? infoToken;
+    private bool grabbing;
+    private Dictionary<Guid, MonsterResponseDto> monsters = new();
     private string monsterSearch = string.Empty;
     private List<MonsterResponseDto> monsterResults = new();
     private string? markerLabel;
@@ -262,28 +252,34 @@
     private SaveMapDto? newMap;
     private string? imageError;
 
+    //	The board in the browser
+    private ElementReference stageElement;
+    private ElementReference tableElement;
+    private string? attachedTo;
+    private DotNetObjectReference<CampaignMap>? self;
+
     private PeriodicTimer? timer;
     private CancellationTokenSource? stop;
-
-    private string GridId => $"rf-vtt-grid-{CampaignId:N}";
+    private readonly string patternId = $"rf-vtt-grid-{Guid.NewGuid():N}";
 
     private List<RfSelect<Guid>.OptionItem> MapOptions => (maps ?? new())
         .Select(m => new RfSelect<Guid>.OptionItem(m.Id, RunsTheTable && !m.Shown ? $"{m.Name} · {UiText.MapNotShown(Lang)}" : m.Name)).ToList();
 
-    private MapTokenDto? SelectedToken => tokens.FirstOrDefault(t => t.Id == selectedToken);
+    private List<RfSelect<GridType>.OptionItem> GridOptions => Enum.GetValues<GridType>()
+        .Select(t => new RfSelect<GridType>.OptionItem(t, UiText.MapGridTypeName(t, Lang))).ToList();
+
+    private MapTokenDto? InfoToken => tokens.FirstOrDefault(t => t.Id == infoToken);
 
     //	Characters of the table not yet on this map
     private IEnumerable<CampaignCharacterDto> FreeCharacters => Characters.Where(c => c.Active && tokens.All(t => t.CharacterId != c.Character.Id));
 
-    private string MapStyle => map is null ? string.Empty : $"width: {Px(map.Width)}px; height: {Px(map.Height)}px;";
+    private string ToolButton(string name) => tool == name ? "rf-vtt-tool active" : "rf-vtt-tool";
 
-    private string Px(double value) => (value * zoom).ToString("0.##", System.Globalization.CultureInfo.InvariantCulture);
+    private static string N(double value) => value.ToString("0.##", CultureInfo.InvariantCulture);
 
-    private (double Left, double Top) Position(MapTokenDto t) => drag?.TokenId == t.Id
-        ? (drag.Left, drag.Top)
-        : ((offsetX + t.X * grid) * zoom, (offsetY + t.Y * grid) * zoom);
+    private CampaignCharacterDto? CharacterOf(MapTokenDto t) => t.CharacterId is { } id ? Characters.FirstOrDefault(c => c.Character.Id == id) : null;
 
-    private string? PortraitOf(MapTokenDto t) => t.CharacterId is { } id ? Characters.FirstOrDefault(c => c.Character.Id == id)?.Character.Portrait : null;
+    private string? PortraitOf(MapTokenDto t) => t.Portrait ?? CharacterOf(t)?.Character.Portrait;
 
     private static string Initials(string label)
     {
@@ -297,13 +293,231 @@
         return initials.ToUpperInvariant();
     }
 
-    private void SetZoom(double value) => zoom = Math.Clamp(Math.Round(value * 4) / 4, 0.25, 2);
+    //	The short line under a token's name: level and class of a character, the numbers of a monster (for the masters)
+    private string? Summary(MapTokenDto t)
+    {
+        if (CharacterOf(t) is { } c)
+        {
+            var ch = c.Character;
+            return $"{UiText.TokenHitPoints(ch.CurrentHitPoints, ch.MaxHitPoints, Lang)} · {UiText.TokenArmorClass(ch.ArmorClass, Lang)}";
+        }
+        if (RunsTheTable && t.MonsterId is { } id && monsters.TryGetValue(id, out var m))
+        {
+            return $"{UiText.TokenHitPointsMax(m.HitPoints, Lang)} · {UiText.TokenArmorClass(m.ArmorClass, Lang)} · {UiText.MonsterChallengeShort(Lang)} {RealmForge.Shared.Monsters.MonsterMath.FormatChallenge(m.ChallengeRating)}";
+        }
+        return null;
+    }
+
+    // ===== The board =====
+
+    private (double Width, double Height, string Path) Pattern()
+    {
+        var (w, h) = MapGeometry.Cell(gridType, grid);
+        return gridType switch
+        {
+            GridType.HexRows => (w, 1.5 * h,
+                $"M {N(w / 2)},0 L {N(w)},{N(h / 4)} L {N(w)},{N(3 * h / 4)} L {N(w / 2)},{N(h)} L 0,{N(3 * h / 4)} L 0,{N(h / 4)} Z M {N(w / 2)},{N(h)} L {N(w / 2)},{N(1.5 * h)}"),
+            GridType.HexColumns => (1.5 * w, h,
+                $"M 0,{N(h / 2)} L {N(w / 4)},0 L {N(3 * w / 4)},0 L {N(w)},{N(h / 2)} L {N(3 * w / 4)},{N(h)} L {N(w / 4)},{N(h)} Z M {N(w)},{N(h / 2)} L {N(1.5 * w)},{N(h / 2)}"),
+            _ => (grid, grid, $"M {grid} 0 L 0 0 0 {grid}")
+        };
+    }
+
+    private RenderFragment Board => __builder =>
+    {
+        if (maps is null)
+        {
+            <div class="small p-3" style="color: var(--rf-text-muted);">…</div>
+            return;
+        }
+        if (map is null)
+        {
+            <div class="rf-vtt-empty" data-test="map-empty">
+                <Icon Name="map" />
+                <p class="mb-0">@(RunsTheTable ? UiText.MapEmptyMaster(Lang) : UiText.MapEmptyPlayer(Lang))</p>
+            </div>
+            return;
+        }
+        var (pw, ph, path) = Pattern();
+        var z = N(zoom);
+        <div class="rf-vtt-stage tool-@tool" @ref="stageElement" data-test="map-stage">
+            <div class="rf-vtt-map" style="width: @(N(map.Width * zoom))px; height: @(N(map.Height * zoom))px;">
+                <div class="rf-vtt-board" data-board data-zoom="@z" data-grid-type="@((int)gridType)" data-grid="@grid" data-ox="@offsetX" data-oy="@offsetY"
+                     style="width: @(map.Width)px; height: @(map.Height)px; transform: scale(@z); --rf-zoom: @z;">
+                    <img src="@map.Image" alt="@map.Name" draggable="false" width="@map.Width" height="@map.Height" />
+                    <svg class="rf-vtt-grid" width="@map.Width" height="@map.Height" viewBox="0 0 @map.Width @map.Height" aria-hidden="true" data-test="map-grid" data-grid-type="@gridType">
+                        <defs>
+                            <pattern id="@patternId" width="@N(pw)" height="@N(ph)" x="@offsetX" y="@offsetY" patternUnits="userSpaceOnUse">
+                                <path d="@path" fill="none" stroke="rgba(255,255,255,.4)" stroke-width="@N(1.25 / zoom)" />
+                            </pattern>
+                        </defs>
+                        <rect width="@map.Width" height="@map.Height" fill="@($"url(#{patternId})")" />
+                    </svg>
+                    @foreach (var t in tokens)
+                    {
+                        var (cx, cy) = MapGeometry.Center(gridType, grid, offsetX, offsetY, t.X, t.Y, t.Size);
+                        var side = grid * t.Size;
+                        var portrait = PortraitOf(t);
+                        var summary = Summary(t);
+                        <div class="rf-vtt-token @(t.Hidden ? "hidden-token" : null) @(t.CanMove ? "movable" : null) @(infoToken == t.Id ? "selected" : null)"
+                             style="left: @(N(cx - side / 2.0))px; top: @(N(cy - side / 2.0))px; width: @(side)px; height: @(side)px; --rf-token: @t.Color;"
+                             data-token="@t.Id" data-movable="@(t.CanMove ? "1" : "0")" data-cx="@N(cx)" data-cy="@N(cy)" data-test="map-token" data-label="@t.Label">
+                            <span class="rf-vtt-token-face">
+                                @if (portrait is not null)
+                                {
+                                    <img src="@portrait" alt="" draggable="false" />
+                                }
+                                else
+                                {
+                                    <span>@Initials(t.Label)</span>
+                                }
+                            </span>
+                            <span class="rf-vtt-tip" role="tooltip" data-test="map-token-tip">
+                                <strong>@t.Label</strong>
+                                <span>@UiText.TokenKindName(t.Kind, Lang)@(summary is null ? null : $" · {summary}")</span>
+                            </span>
+                        </div>
+                    }
+                    <svg class="rf-vtt-ruler" width="@map.Width" height="@map.Height" viewBox="0 0 @map.Width @map.Height" data-ruler aria-hidden="true"></svg>
+                </div>
+            </div>
+        </div>
+        @if (InfoToken is { } it)
+        {
+            var character = CharacterOf(it);
+            MonsterResponseDto? monster = RunsTheTable && it.MonsterId is { } mid && monsters.TryGetValue(mid, out var found) ? found : null;
+            <section class="rf-vtt-card" style="--rf-token: @it.Color;" data-test="map-token-card">
+                <header>
+                    <span class="rf-vtt-card-dot"></span>
+                    <div class="rf-vtt-card-title">
+                        <strong data-test="map-token-card-name">@it.Label</strong>
+                        <span>@UiText.TokenKindName(it.Kind, Lang)@(it.Hidden ? $" · {UiText.MapTokenHidden(Lang)}" : null)</span>
+                    </div>
+                    <button type="button" class="rf-vtt-card-close" @onclick="() => infoToken = null" aria-label="@UiText.TokenClose(Lang)"><Icon Name="close" /></button>
+                </header>
+                @if (character is not null)
+                {
+                    var ch = character.Character;
+                    <div class="rf-vtt-card-sub">@UiText.TokenLevel(ch.Level, ch.ClassLine, Lang)</div>
+                    <div class="rf-vtt-card-stats" data-test="map-token-card-stats">
+                        <span>@UiText.TokenHitPoints(ch.CurrentHitPoints, ch.MaxHitPoints, Lang)</span>
+                        <span>@UiText.TokenArmorClass(ch.ArmorClass, Lang)</span>
+                    </div>
+                    @if (character.CanOpen)
+                    {
+                        <a href="@($"characters/{ch.Id}")" class="rf-vtt-card-link"><Icon Name="external" /> @UiText.TokenOpenSheet(Lang)</a>
+                    }
+                }
+                else if (monster is not null)
+                {
+                    <div class="rf-vtt-card-sub">@monster.Subtitle</div>
+                    <div class="rf-vtt-card-stats" data-test="map-token-card-stats">
+                        <span>@UiText.TokenHitPointsMax(monster.HitPoints, Lang)</span>
+                        <span>@UiText.TokenArmorClass(monster.ArmorClass, Lang)</span>
+                        <span>@UiText.MonsterChallengeShort(Lang) @RealmForge.Shared.Monsters.MonsterMath.FormatChallenge(monster.ChallengeRating)</span>
+                    </div>
+                    <a href="@(it.Kind == TokenKind.Npc ? $"npcs/{monster.Id}" : $"monsters?id={monster.Id}")" class="rf-vtt-card-link" target="_blank"><Icon Name="external" /> @UiText.TokenOpenMonster(Lang)</a>
+                }
+                @if (RunsTheTable)
+                {
+                    <div class="rf-vtt-card-actions">
+                        <div class="rf-vtt-field">
+                            <span class="rf-vtt-label">@UiText.MapTokenSize(Lang)</span>
+                            <NumberStepper Value="it.Size" ValueChanged="v => ResizeAsync(it, v)" Min="1" Max="MapRules.MaxTokenSize" AriaLabel="@UiText.MapTokenSize(Lang)" />
+                        </div>
+                        <label class="rf-checkbox-wrapper small mb-0">
+                            <input type="checkbox" class="rf-checkbox" checked="@it.Hidden" @onchange="() => ToggleHiddenAsync(it)" data-test="map-token-hidden" />
+                            <span>@UiText.MapTokenHidden(Lang)</span>
+                        </label>
+                        <button type="button" class="btn btn-sm btn-rf-outline" style="border-color: #dc3545; color: #dc3545;" @onclick="() => RemoveTokenAsync(it)" data-test="map-token-remove"><Icon Name="trash" /> @UiText.BtnRemove(Lang)</button>
+                    </div>
+                }
+            </section>
+        }
+    };
+
+    private RenderFragment AddTokens => __builder =>
+    {
+        <section class="rf-vtt-box" data-test="map-add-tokens">
+            <span class="rf-vtt-title">@UiText.MapAddTokens(Lang)</span>
+            @if (FreeCharacters.Any())
+            {
+                <div class="rf-vtt-chips">
+                    @foreach (var c in FreeCharacters)
+                    {
+                        var ch = c;
+                        <button type="button" @onclick="() => AddCharacterAsync(ch)" data-test="map-add-character"><Icon Name="plus" /> @ch.Character.Name</button>
+                    }
+                </div>
+            }
+            <div class="position-relative">
+                <input class="rf-form-control" placeholder="@UiText.MapMonsterSearch(Lang)" value="@monsterSearch" @oninput="SearchMonstersAsync" data-test="map-monster-search" />
+                @if (monsterResults.Count > 0)
+                {
+                    <div class="rf-forge-selector-menu" style="left: 0; right: 0;">
+                        @foreach (var m in monsterResults)
+                        {
+                            var monster = m;
+                            <button type="button" class="rf-forge-selector-option" @onclick="() => AddMonsterAsync(monster)" data-test="map-monster-result">
+                                @monster.Name <span class="small" style="color: var(--rf-text-muted);">· @UiText.MonsterChallengeShort(Lang) @RealmForge.Shared.Monsters.MonsterMath.FormatChallenge(monster.ChallengeRating)</span>
+                            </button>
+                        }
+                    </div>
+                }
+            </div>
+            <div class="d-flex gap-2">
+                <input class="rf-form-control" maxlength="100" placeholder="@UiText.MapMarkerHint(Lang)" @bind="markerLabel" data-test="map-marker-label" />
+                <input type="color" class="rf-vtt-color" @bind="markerColor" aria-label="@UiText.MapColor(Lang)" />
+                <button type="button" class="btn btn-sm btn-rf-outline" disabled="@string.IsNullOrWhiteSpace(markerLabel)" @onclick="AddMarkerAsync" data-test="map-add-marker"><Icon Name="plus" /></button>
+            </div>
+        </section>
+    };
+
+    // ===== Loading and polling =====
 
     protected override async Task OnInitializedAsync()
     {
+        self = DotNetObjectReference.Create(this);
+        if (RunsTheTable)
+        {
+            _ = LoadMonstersAsync();
+        }
         await LoadMapsAsync();
         stop = new CancellationTokenSource();
         _ = PollAsync(stop.Token);
+    }
+
+    private async Task LoadMonstersAsync()
+    {
+        try
+        {
+            var all = await MonsterService.GetMonstersAsync(Lang);
+            monsters = all.GroupBy(m => m.Id).ToDictionary(g => g.Key, g => g.First());
+            await InvokeAsync(StateHasChanged);
+        }
+        catch (Exception)
+        {
+            //	The cards show the names only
+        }
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (map is null || self is null || string.IsNullOrEmpty(stageElement.Id))
+        {
+            return;
+        }
+        if (attachedTo != stageElement.Id)
+        {
+            attachedTo = stageElement.Id;
+            await JS.InvokeVoidAsync("rfVtt.attach", stageElement, self, new { wheelZoom = Table, perCell = UiText.VttPerCell(Lang), unit = UiText.VttUnit(Lang), locale = Lang == LanguageCode.It ? "it-IT" : "en-GB" });
+            await JS.InvokeVoidAsync("rfVtt.tool", stageElement, tool);
+        }
+        if (fitPending)
+        {
+            fitPending = false;
+            await FitAsync();
+        }
     }
 
     private async Task LoadMapsAsync(Guid? select = null)
@@ -323,47 +537,60 @@
 
     private async Task SelectAsync(Guid id)
     {
+        var other = id != selectedId || map is null;
         selectedId = id;
-        selectedToken = null;
+        infoToken = null;
         map = await Campaigns.GetMapAsync(CampaignId, id);
         if (map is not null)
         {
             tokens = map.Tokens;
             mapName = map.Name;
+            gridType = map.GridType;
             grid = map.GridSize;
             offsetX = map.GridOffsetX;
             offsetY = map.GridOffsetY;
             shown = map.Shown;
+            fitPending = Table && other;
         }
     }
 
-    //	Every 2 seconds what moved on the map (not while a token is dragged)
+    //	Every 2 seconds what moved on the map (not while a token is dragged); the players also follow the map shown to them
     private async Task PollAsync(CancellationToken token)
     {
         timer = new PeriodicTimer(TimeSpan.FromSeconds(2));
+        var tick = 0;
         try
         {
             while (await timer.WaitForNextTickAsync(token))
             {
-                if (map is null)
+                tick++;
+                if (grabbing)
                 {
-                    if (!RunsTheTable)
-                    {
-                        var list = await Campaigns.GetMapsAsync(CampaignId);
-                        if (list is { Count: > 0 })
-                        {
-                            maps = list;
-                            await SelectAsync(list[0].Id);
-                            await InvokeAsync(StateHasChanged);
-                        }
-                    }
                     continue;
                 }
-                if (drag is not null)
+                if (!RunsTheTable && (map is null || tick % 3 == 0))
+                {
+                    var list = await Campaigns.GetMapsAsync(CampaignId) ?? new();
+                    if (list.Count != (maps?.Count ?? 0) || list.Any(m => maps!.All(x => x.Id != m.Id)))
+                    {
+                        maps = list;
+                        if (list.All(m => m.Id != selectedId) || map is null)
+                        {
+                            await LoadMapsAsync(list.FirstOrDefault()?.Id);
+                        }
+                        await InvokeAsync(StateHasChanged);
+                        continue;
+                    }
+                }
+                if (map is null)
                 {
                     continue;
                 }
                 var state = await Campaigns.GetMapStateAsync(CampaignId, map.Id);
+                if (grabbing)
+                {
+                    continue;
+                }
                 if (state is null)
                 {
                     //	Hidden from the players again, or deleted
@@ -371,15 +598,17 @@
                     await InvokeAsync(StateHasChanged);
                     continue;
                 }
-                if (state.UpdatedAt != map.UpdatedAt && drag is null)
+                if (state.UpdatedAt != map.UpdatedAt)
                 {
-                    map = map with { UpdatedAt = state.UpdatedAt, GridSize = state.GridSize, GridOffsetX = state.GridOffsetX, GridOffsetY = state.GridOffsetY, Shown = state.Shown, Name = state.Name };
+                    map = map with { UpdatedAt = state.UpdatedAt, GridType = state.GridType, GridSize = state.GridSize, GridOffsetX = state.GridOffsetX, GridOffsetY = state.GridOffsetY, Shown = state.Shown, Name = state.Name };
                     tokens = state.Tokens;
-                    if (!RunsTheTable)
+                    if (!RunsTheTable || Table)
                     {
+                        gridType = state.GridType;
                         grid = state.GridSize;
                         offsetX = state.GridOffsetX;
                         offsetY = state.GridOffsetY;
+                        shown = state.Shown;
                     }
                     await InvokeAsync(StateHasChanged);
                 }
@@ -387,64 +616,106 @@
         }
         catch (OperationCanceledException)
         {
-            //	Left the tab
+            //	Left the page
         }
     }
 
-    // ===== Dragging =====
+    // ===== From the browser =====
 
-    private async Task GrabAsync(PointerEventArgs e, MapTokenDto t)
+    [JSInvokable]
+    public void TokenGrabbed() => grabbing = true;
+
+    [JSInvokable]
+    public void TokenClicked(string id)
     {
-        selectedToken = t.Id;
-        if (!t.CanMove)
-        {
-            return;
-        }
-        mapRect = await JS.InvokeAsync<double[]>("rfRect", mapElement);
-        var (left, top) = Position(t);
-        drag = new Drag(t.Id, e.ClientX - mapRect[0] - left, e.ClientY - mapRect[1] - top, left, top);
+        grabbing = false;
+        infoToken = Guid.TryParse(id, out var tokenId) && infoToken != tokenId ? tokenId : null;
+        StateHasChanged();
     }
 
-    private void DragAsync(PointerEventArgs e)
+    [JSInvokable]
+    public void BoardClicked()
     {
-        if (drag is null)
+        if (infoToken is not null)
         {
-            return;
+            infoToken = null;
+            StateHasChanged();
         }
-        drag = drag with { Left = e.ClientX - mapRect[0] - drag.GrabX, Top = e.ClientY - mapRect[1] - drag.GrabY };
     }
 
-    //	The token lands on the nearest cell
-    private async Task DropAsync(PointerEventArgs e)
+    [JSInvokable]
+    public void Wheel(int direction)
     {
-        if (drag is not { } d || map is null)
+        Zoom(direction);
+        StateHasChanged();
+    }
+
+    //	A token released at (x, y) on the map: it lands on the nearest cell, if that is on the map
+    [JSInvokable]
+    public async Task TokenDropped(string id, double x, double y)
+    {
+        grabbing = false;
+        var t = map is null || !Guid.TryParse(id, out var tokenId) ? null : tokens.FirstOrDefault(k => k.Id == tokenId);
+        if (t is null || map is null)
         {
             return;
         }
-        drag = null;
-        var t = tokens.FirstOrDefault(x => x.Id == d.TokenId);
-        if (t is null)
+        var (col, row) = MapGeometry.Nearest(gridType, grid, offsetX, offsetY, x, y, t.Size);
+        if ((col == t.X && row == t.Y) || !MapGeometry.Inside(gridType, grid, offsetX, offsetY, col, row, t.Size, map.Width, map.Height))
         {
             return;
         }
-        var x = Math.Max(0, (int)Math.Round((d.Left / zoom - offsetX) / grid));
-        var y = Math.Max(0, (int)Math.Round((d.Top / zoom - offsetY) / grid));
-        x = Math.Min(x, MapRules.Columns(map.Width, grid, offsetX) - t.Size + 1);
-        y = Math.Min(y, MapRules.Rows(map.Height, grid, offsetY) - t.Size + 1);
-        if (x == t.X && y == t.Y)
-        {
-            return;
-        }
-        Replace(t with { X = x, Y = y });
-        var result = await Campaigns.MoveTokenAsync(CampaignId, map.Id, t.Id, x, y);
+        Replace(t with { X = col, Y = row });
+        StateHasChanged();
+        var result = await Campaigns.MoveTokenAsync(CampaignId, map.Id, t.Id, col, row);
         message = result.Ok ? null : UiText.MapMoveFailed(Lang);
         if (!result.Ok)
         {
             Replace(t);
+            StateHasChanged();
         }
     }
 
     private void Replace(MapTokenDto token) => tokens = tokens.Select(x => x.Id == token.Id ? token : x).ToList();
+
+    // ===== View =====
+
+    private void Zoom(int direction) => zoom = Math.Clamp(Math.Round((direction > 0 ? zoom * 1.25 : zoom / 1.25) * 100) / 100, 0.1, 3);
+
+    private async Task FitAsync()
+    {
+        if (map is null || string.IsNullOrEmpty(stageElement.Id))
+        {
+            return;
+        }
+        var fit = await JS.InvokeAsync<double>("rfVtt.fit", stageElement, map.Width, map.Height);
+        if (fit > 0)
+        {
+            zoom = Math.Clamp(Math.Floor(fit * 100) / 100, 0.1, 3);
+            StateHasChanged();
+        }
+    }
+
+    private async Task SetToolAsync(string name)
+    {
+        tool = name;
+        if (!string.IsNullOrEmpty(stageElement.Id))
+        {
+            await JS.InvokeVoidAsync("rfVtt.tool", stageElement, name);
+        }
+    }
+
+    private async Task FullscreenAsync()
+    {
+        try
+        {
+            await JS.InvokeVoidAsync("rfVtt.fullscreen", tableElement);
+        }
+        catch (JSException)
+        {
+            //	Not allowed by the browser
+        }
+    }
 
     // ===== Master: maps =====
 
@@ -515,6 +786,7 @@
             Name = string.IsNullOrWhiteSpace(mapName) ? map.Name : mapName.Trim(),
             Width = map.Width,
             Height = map.Height,
+            GridType = gridType,
             GridSize = grid,
             GridOffsetX = Math.Min(offsetX, grid - 1),
             GridOffsetY = Math.Min(offsetY, grid - 1),
@@ -522,6 +794,15 @@
         });
         message = result.Ok ? null : UiText.MapSaveFailed(Lang);
         if (result.Ok)
+        {
+            await LoadMapsAsync(map.Id);
+        }
+    }
+
+    //	At the table: this map in front of the players, the others put away
+    private async Task DisplayAsync()
+    {
+        if (map is not null && (await Campaigns.DisplayMapAsync(CampaignId, map.Id)).Ok)
         {
             await LoadMapsAsync(map.Id);
         }
@@ -539,16 +820,28 @@
 
     // ===== Master: tokens =====
 
-    //	New tokens go on the first free cell of the top rows
+    //	New tokens go on the first free cell from the top left
     private (int X, int Y) FreeCell(int size)
     {
-        var columns = map is null ? 10 : Math.Max(1, MapRules.Columns(map.Width, grid, offsetX) - size + 1);
-        for (var i = 0; i < 400; i++)
+        if (map is null)
         {
-            var (x, y) = (i % columns, i / columns);
-            if (tokens.All(t => x + size <= t.X || t.X + t.Size <= x || y + size <= t.Y || t.Y + t.Size <= y))
+            return (0, 0);
+        }
+        for (var row = 0; row < 64; row++)
+        {
+            for (var col = 0; col < 64; col++)
             {
-                return (x, y);
+                if (!MapGeometry.Inside(gridType, grid, offsetX, offsetY, col, row, size, map.Width, map.Height))
+                {
+                    continue;
+                }
+                var free = gridType == GridType.Square
+                    ? tokens.All(t => col + size <= t.X || t.X + t.Size <= col || row + size <= t.Y || t.Y + t.Size <= row)
+                    : tokens.All(t => t.X != col || t.Y != row);
+                if (free)
+                {
+                    return (col, row);
+                }
             }
         }
         return (0, 0);
@@ -566,7 +859,6 @@
         if (token is not null)
         {
             tokens = tokens.Append(token).ToList();
-            selectedToken = token.Id;
         }
     }
 
@@ -577,6 +869,7 @@
     {
         monsterSearch = string.Empty;
         monsterResults = new();
+        monsters.TryAdd(m.Id, m);
         var same = tokens.Count(t => t.MonsterId == m.Id);
         await AddAsync(new SaveTokenDto
         {
@@ -651,13 +944,25 @@
         if (map is not null && (await Campaigns.DeleteTokenAsync(CampaignId, map.Id, t.Id)).Ok)
         {
             tokens = tokens.Where(x => x.Id != t.Id).ToList();
-            selectedToken = null;
+            infoToken = null;
         }
     }
 
-    public void Dispose()
+    public async ValueTask DisposeAsync()
     {
         stop?.Cancel();
         timer?.Dispose();
+        try
+        {
+            if (!string.IsNullOrEmpty(stageElement.Id))
+            {
+                await JS.InvokeVoidAsync("rfVtt.detach", stageElement);
+            }
+        }
+        catch (Exception)
+        {
+            //	The page is going away
+        }
+        self?.Dispose();
     }
 }

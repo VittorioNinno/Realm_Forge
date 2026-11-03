@@ -48,6 +48,7 @@ namespace RealmForge.Domain.Entities
 		public string Image { get; set; } = string.Empty;
 		public int Width { get; set; }
 		public int Height { get; set; }
+		public GridType GridType { get; set; } = GridType.Square;
 		public int GridSize { get; set; } = 70;
 		public int GridOffsetX { get; set; }
 		public int GridOffsetY { get; set; }

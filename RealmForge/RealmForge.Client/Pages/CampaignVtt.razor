@@ -1,0 +1,40 @@
+﻿@page "/campaigns/{Id:guid}/vtt"
+@using RealmForge.Client.Localization
+@using RealmForge.Client.Services
+@using RealmForge.Shared.DTOs
+@using RealmForge.Shared.Enums
+@inject CampaignDataService Campaigns
+@inject LanguageStateService LanguageState
+
+@* The virtual tabletop of a campaign, on the whole window: the masters show a map and run it, the players play on it *@
+<PageTitle>RealmForge - @UiText.VttTitle(Lang)@(campaign is null ? null : $" · {campaign.Name}")</PageTitle>
+
+@if (loading)
+{
+    <div class="small py-4" style="color: var(--rf-text-muted);">@UiText.LoadingCampaigns(Lang)</div>
+}
+else if (campaign is null)
+{
+    <div class="rf-account-card text-center my-4" data-test="campaign-missing">
+        <p class="mb-3" style="color: var(--rf-text-secondary);">@UiText.CampaignNotFound(Lang)</p>
+        <a href="campaigns" class="btn btn-rf-outline">@UiText.CampaignsTitle(Lang)</a>
+    </div>
+}
+else
+{
+    <CampaignMap CampaignId="campaign.Id" Role="campaign.MyRole" Characters="campaign.Characters" Table="true" BackHref="@($"campaigns/{campaign.Id}")" />
+}
+
+@code {
+    [Parameter] public Guid Id { get; set; }
+
+    private LanguageCode Lang => LanguageState.CurrentLanguage;
+    private CampaignDetailDto? campaign;
+    private bool loading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        campaign = await Campaigns.GetCampaignAsync(Id, Lang);
+        loading = false;
+    }
+}
