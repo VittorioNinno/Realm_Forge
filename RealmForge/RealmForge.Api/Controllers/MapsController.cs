@@ -530,7 +530,8 @@ namespace RealmForge.Api.Controllers
 				var owner = c.CharacterId is { } ownedId
 					? await _context.Characters.AsNoTracking().Where(ch => ch.Id == ownedId).Select(ch => ch.OwnerId).FirstOrDefaultAsync()
 					: null;
-				map.Tokens.Add(new CampaignToken
+				//	Added to the context: a new token with its id already set would otherwise be taken for an existing one
+				var added = new CampaignToken
 				{
 					MapId = map.Id,
 					Label = c.Name.Length > 100 ? c.Name[..100] : c.Name,
@@ -550,7 +551,9 @@ namespace RealmForge.Api.Controllers
 					Y = y,
 					Size = size,
 					Hidden = c.Hidden
-				});
+				};
+				_context.CampaignTokens.Add(added);
+				map.Tokens.Add(added);
 			}
 			var order = EncounterRules.Order(combatants);
 			encounter.Status = EncounterStatus.Running;
