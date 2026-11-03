@@ -527,6 +527,25 @@ namespace RealmForge.Infrastructure.Migrations
                     b.Property<DateTimeOffset>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<DateTimeOffset?>("FocusAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<double?>("FocusX")
+                        .HasColumnType("double precision");
+
+                    b.Property<double?>("FocusY")
+                        .HasColumnType("double precision");
+
+                    b.Property<double?>("FocusZoom")
+                        .HasColumnType("double precision");
+
+                    b.PrimitiveCollection<List<double>>("Fog")
+                        .IsRequired()
+                        .HasColumnType("double precision[]");
+
+                    b.Property<bool>("FogEnabled")
+                        .HasColumnType("boolean");
+
                     b.Property<int>("GridOffsetX")
                         .HasColumnType("integer");
 
@@ -550,6 +569,19 @@ namespace RealmForge.Infrastructure.Migrations
                         .IsRequired()
                         .HasMaxLength(120)
                         .HasColumnType("character varying(120)");
+
+                    b.Property<DateTimeOffset?>("PingAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("PingColor")
+                        .HasMaxLength(9)
+                        .HasColumnType("character varying(9)");
+
+                    b.Property<double?>("PingX")
+                        .HasColumnType("double precision");
+
+                    b.Property<double?>("PingY")
+                        .HasColumnType("double precision");
 
                     b.Property<bool>("Shown")
                         .HasColumnType("boolean");
