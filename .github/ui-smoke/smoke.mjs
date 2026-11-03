@@ -1096,6 +1096,16 @@ try {
       await page.locator('[data-test=sheet-item]', { hasText: /^Scudo/ }).locator('[data-test=sheet-item-equip]').click();
       tabs.hands = (await page.locator('[data-test=sheet-equip-error]').innerText({ timeout: 5000 })).replace(/\s+/g, ' ').trim();
       tabs.shieldOn = await page.locator('[data-test=sheet-item]', { hasText: /^Scudo/ }).locator('[data-test=sheet-item-equip].on').count();
+      // A Wand of Magic Missiles worn: its spell appears among the spells and a cast spends a charge
+      await page.locator('[data-test=sheet-magic-add]').click();
+      await page.locator('[data-test=magic-template]').selectOption('wand-of-magic-missiles');
+      await page.locator('[data-test=magic-save]').click();
+      await page.locator('[data-test=sheet-item]', { hasText: /missili magici/i }).locator('[data-test=sheet-item-equip]').click();
+      await page.locator('[data-test=sheet-tab-spells]').click();
+      await page.locator('[data-test=sheet-item-spell]').first().click();
+      await page.locator('[data-test=spell-cast-item]').click();
+      await page.locator('[data-test=sheet-tab-inventory]').click();
+      tabs.wand = `${await page.locator('[data-test=sheet-item]', { hasText: /missili magici/i }).locator('.rf-slot-dot.full').count()}`;
     }
   }
   // Sharing the character: the dialog adds people by e-mail and says when no account has that address
@@ -1461,6 +1471,8 @@ try {
   ok('magic items: a Ring of Protection worn and attuned adds 1 to AC (attunement 1/3); spells: the long rest opens the changes, the spellbook writes a free spell');
   if (!/mani libere/.test(tabs.hands ?? '') || !/Spadone/.test(tabs.hands ?? '') || tabs.shieldOn !== 0) throw new Error(`two hands: "${tabs.hands}" shield on=${tabs.shieldOn}`);
   ok('equipment: with a greatsword in hand the shield is refused, and the sheet explains the hands');
+  if (tabs.wand !== '6') throw new Error(`Wand of Magic Missiles: ${tabs.wand} charges left after a cast`);
+  ok('magic items: the spell of a wand worn is on the spells tab, and casting it spends a charge (7 → 6)');
   if (!pdfHead.startsWith('%PDF') || pdfSize < 2000) throw new Error('the PDF download is not a PDF');
   if (!/Mago 1/.test(classes) || !/Guerriero 1/.test(classes) || Number(levelUpHp) <= Number(sheetHp)) throw new Error('the level up into fighter was not saved');
   if (!/Mago 1 \/ Guerriero 1/.test(characterCard)) throw new Error(`the list does not show the classes: ${characterCard}`);

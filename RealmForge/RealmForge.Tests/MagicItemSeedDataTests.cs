@@ -126,4 +126,22 @@ public class MagicItemSeedDataTests
 		Assert.Equal("Zainetto pratico di Heward", Tr(ByEnglishName("Handy Haversack"), LanguageCode.It).Alias);
 		Assert.Equal(15, Items.Count(i => Tr(i, LanguageCode.It).Alias is not null));
 	}
+
+	[Fact]
+	public void Items_that_cast_spells_list_Base_spells_the_sheet_can_find()
+	{
+		var spellKeys = BaseContentKeys.All.Values.ToHashSet();
+		foreach (var (key, spells) in MagicItemSeeder.ItemSpells)
+		{
+			var item = Items.SingleOrDefault(i => i.Id == DeterministicGuid.ForSrd(RulesetVersion.Dnd5e_2014, "magic-item", key));
+			Assert.True(item is not null, $"no magic item {key}");
+			var mechanics = Mechanics(item!);
+			Assert.NotNull(mechanics);
+			Assert.Equal(spells.Length, mechanics!.Spells.Count);
+			Assert.All(mechanics.Spells, s => Assert.True(spellKeys.Contains(s.SpellKey!), $"{key}: unknown spell {s.SpellKey}"));
+			Assert.All(mechanics.Spells, s => Assert.True(s.Charges <= mechanics.Charges, $"{key}: {s.SpellKey} takes more charges than the item has"));
+		}
+		var fireballs = Mechanics(ByEnglishName("Wand of Fireballs"))!;
+		Assert.Equal(("fireball", 1, 3, 15), (fireballs.Spells[0].SpellKey, fireballs.Spells[0].Charges, fireballs.Spells[0].Level, fireballs.Spells[0].SaveDc));
+	}
 }

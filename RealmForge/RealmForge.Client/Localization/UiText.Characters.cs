@@ -993,6 +993,36 @@ namespace RealmForge.Client.Localization
 		public static string MagicChargesMax(LanguageCode lang) => T(lang, "Cariche massime", "Maximum charges");
 		public static string MagicRecharge(LanguageCode lang) => T(lang, "Si ricarica", "Recharges");
 		public static string MagicRechargeDice(LanguageCode lang) => T(lang, "Cariche recuperate (vuoto: tutte)", "Charges regained (empty: all)");
+		public static string MagicSpells(LanguageCode lang) => T(lang, "Incantesimi dell'oggetto", "Spells of the item");
+		public static string MagicSpellCharges(LanguageCode lang) => T(lang, "Cariche", "Charges");
+		public static string MagicSpellLevel(LanguageCode lang) => T(lang, "Livello", "Level");
+		public static string MagicSpellDc(LanguageCode lang) => T(lang, "CD", "DC");
+		public static string MagicSpellSearch(LanguageCode lang) => T(lang, "Aggiungi un incantesimo (es. Palla di fuoco)…", "Add a spell (e.g. Fireball)…");
+		public static string SpellLevelShort(int level, LanguageCode lang) => level == 0 ? T(lang, "trucchetto", "cantrip") : T(lang, $"{level}° liv.", $"level {level}");
+		public static string SheetItemSpells(LanguageCode lang) => T(lang, "Dagli oggetti magici", "From magic items");
+		public static string ItemSpellNoCharge(LanguageCode lang) => T(lang, "senza cariche", "no charge");
+		public static string ItemSpellCharges(int charges, LanguageCode lang) => charges == 1 ? T(lang, "1 carica", "1 charge") : T(lang, $"{charges} cariche", $"{charges} charges");
+		public static string ItemSpellCastHint(int cost, int left, int? level, int? dc, LanguageCode lang)
+		{
+			var parts = new List<string>();
+			if (cost > 0)
+			{
+				parts.Add(T(lang, $"{ItemSpellCharges(cost, lang)} (ne restano {left})", $"{ItemSpellCharges(cost, lang)} ({left} left)"));
+			}
+			else
+			{
+				parts.Add(ItemSpellNoCharge(lang));
+			}
+			if (level is { } l)
+			{
+				parts.Add(T(lang, $"{l}° livello", $"level {l}"));
+			}
+			if (dc is { } d)
+			{
+				parts.Add(T(lang, $"CD {d}", $"DC {d}"));
+			}
+			return string.Join(" · ", parts);
+		}
 		public static string MagicHealDice(LanguageCode lang) => T(lang, "Consumabile che cura (es. 2d4+2)", "Consumable that heals (e.g. 2d4+2)");
 		public static string MagicRemove(LanguageCode lang) => T(lang, "Togli la magia", "Remove the magic");
 			// ===== Changing spells and the spellbook =====

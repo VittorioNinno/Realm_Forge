@@ -29,7 +29,8 @@ namespace RealmForge.Client.Services
 		int Charges = 0,
 		ItemRecharge Recharge = ItemRecharge.None,
 		string? RechargeDice = null,
-		string? HealDice = null)
+		string? HealDice = null,
+		string? SpellKey = null)
 	{
 		public string Name(LanguageCode lang) => lang == LanguageCode.It ? NameIt : NameEn;
 
@@ -44,7 +45,8 @@ namespace RealmForge.Client.Services
 			Recharge = Recharge,
 			RechargeDice = RechargeDice,
 			HealDice = HealDice,
-			Template = Key
+			Template = Key,
+			Spells = SpellKey is null ? new() : new() { new MagicItemSpell { SpellKey = SpellKey, Charges = 1, Level = 1 } }
 		};
 	}
 
@@ -108,7 +110,7 @@ namespace RealmForge.Client.Services
 				Array.Empty<MagicEffect>(),
 				"7 cariche per lanciare Dardo Incantato (1 carica per il 1° livello, +1 per ogni livello in più); recupera 1d6+1 cariche ogni alba.",
 				"7 charges to cast Magic Missile (1 charge for level 1, +1 per extra level); regains 1d6+1 charges each dawn.",
-				Charges: 7, Recharge: ItemRecharge.LongRest, RechargeDice: "1d6+1"));
+				Charges: 7, Recharge: ItemRecharge.LongRest, RechargeDice: "1d6+1", SpellKey: "magic-missile"));
 			for (var n = 1; n <= 3; n++)
 			{
 				list.Add(new MagicItemTemplate($"wand-of-the-war-mage-{n}", $"Bacchetta del mago da guerra +{n}", $"Wand of the War Mage +{n}", MagicTemplateKind.Wondrous,
