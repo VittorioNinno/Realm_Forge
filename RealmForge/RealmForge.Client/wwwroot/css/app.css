@@ -9919,3 +9919,34 @@ textarea.rf-form-control {
         bottom: 16px;
     }
 }
+
+/* Attack options before rolling */
+.rf-attack-dialog {
+    max-width: 560px;
+}
+
+.rf-rider {
+    padding: 8px 16px;
+    border-radius: 8px;
+    border: 1px solid var(--rf-border-subtle);
+    background-color: var(--rf-bg-card);
+}
+
+    .rf-rider.on {
+        border-color: rgba(255, 140, 0, .55);
+        background-color: rgba(255, 140, 0, .06);
+    }
+
+.rf-rider-value {
+    margin-left: 8px;
+    font-size: .8rem;
+    font-weight: 700;
+    color: var(--rf-orange-primary);
+}
+
+.rf-rider-when {
+    margin-top: 0;
+    padding-left: 32px;
+    font-size: .8rem;
+    color: var(--rf-text-muted);
+}
