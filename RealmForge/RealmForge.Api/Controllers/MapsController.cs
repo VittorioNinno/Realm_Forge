@@ -121,6 +121,50 @@ namespace RealmForge.Api.Controllers
 			return NoContent();
 		}
 
+		//	POST: api/campaigns/{campaignId}/maps/{mapId}/duplicate — a copy with its tokens, put away from the players
+		[HttpPost("{mapId:guid}/duplicate")]
+		public async Task<ActionResult<CampaignMapSummaryDto>> DuplicateMap(Guid campaignId, Guid mapId, [FromQuery] string? name)
+		{
+			var (map, role) = await LoadAsync(campaignId, mapId, withTokens: true);
+			if (map is null || role is null)
+			{
+				return NotFound();
+			}
+			if (!CampaignRules.RunsTheTable(role.Value))
+			{
+				return Forbid();
+			}
+			if (await _context.CampaignMaps.CountAsync(m => m.CampaignId == campaignId) >= MapRules.MaxMaps)
+			{
+				return Problem(statusCode: StatusCodes.Status400BadRequest, title: $"At most {MapRules.MaxMaps} maps per campaign.");
+			}
+			var title = string.IsNullOrWhiteSpace(name) ? $"{map.Name} (2)" : name.Trim();
+			var copy = new CampaignMap
+			{
+				CampaignId = campaignId,
+				Name = title.Length > 120 ? title[..120] : title,
+				Image = map.Image,
+				Width = map.Width,
+				Height = map.Height,
+				GridType = map.GridType,
+				GridSize = map.GridSize,
+				GridOffsetX = map.GridOffsetX,
+				GridOffsetY = map.GridOffsetY,
+				Shown = false
+			};
+			foreach (var t in map.Tokens)
+			{
+				copy.Tokens.Add(new CampaignToken
+				{
+					Label = t.Label, Color = t.Color, Kind = t.Kind, CharacterId = t.CharacterId, MonsterId = t.MonsterId,
+					X = t.X, Y = t.Y, Size = t.Size, Hidden = t.Hidden
+				});
+			}
+			_context.CampaignMaps.Add(copy);
+			await _context.SaveChangesAsync();
+			return Ok(new CampaignMapSummaryDto(copy.Id, copy.Name, copy.Shown, copy.Width, copy.Height, copy.UpdatedAt));
+		}
+
 		//	POST: api/campaigns/{campaignId}/maps/{mapId}/display — the map on the players' table; the others are put away
 		[HttpPost("{mapId:guid}/display")]
 		public async Task<IActionResult> DisplayMap(Guid campaignId, Guid mapId)

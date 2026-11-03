@@ -229,6 +229,20 @@ namespace RealmForge.Client.Services
 		public Task<CampaignResult> UpdateMapAsync(Guid id, Guid mapId, SaveMapDto map) =>
 			SendAsync(() => _http.PutAsJsonAsync($"api/campaigns/{id}/maps/{mapId}", map), "update map");
 
+		public async Task<CampaignMapSummaryDto?> DuplicateMapAsync(Guid id, Guid mapId, string name)
+		{
+			try
+			{
+				var response = await _http.PostAsync($"api/campaigns/{id}/maps/{mapId}/duplicate?name={Uri.EscapeDataString(name)}", null);
+				return response.IsSuccessStatusCode ? await response.Content.ReadFromJsonAsync<CampaignMapSummaryDto>() : null;
+			}
+			catch (Exception ex)
+			{
+				_logger.LogError(ex, "Duplicating map {MapId} failed", mapId);
+				return null;
+			}
+		}
+
 		//	The map the players see at the table (the others are hidden from them)
 		public Task<CampaignResult> DisplayMapAsync(Guid id, Guid mapId) =>
 			SendAsync(() => _http.PostAsync($"api/campaigns/{id}/maps/{mapId}/display", null), "display map");

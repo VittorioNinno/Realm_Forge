@@ -1478,6 +1478,20 @@ try {
   await shot(page, 'campaign-map-hex', '[data-test=map-stage]');
   await page.locator('[data-test=map-grid-type] .rf-custom-select-trigger').click();
   await page.locator('[data-test=map-grid-type] .rf-custom-select-option', { hasText: 'Quadrati' }).click();
+  // Aligning the grid: a box over two cells of the picture gives 140 px cells, a box over one gives 70 px back
+  const calibrate = async (x1, y1, x2, y2) => {
+    await page.locator('[data-test=map-calibrate]').click();
+    await page.locator('[data-test=map-calibrate-hint]').waitFor({ timeout: 15000 });
+    const o = await page.locator('svg[data-test=map-grid]').boundingBox();
+    await page.mouse.move(o.x + x1, o.y + y1);
+    await page.mouse.down();
+    await page.mouse.move(o.x + (x1 + x2) / 2, o.y + (y1 + y2) / 2, { steps: 3 });
+    await page.mouse.move(o.x + x2, o.y + y2, { steps: 3 });
+    await page.mouse.up();
+    await page.waitForTimeout(300);
+    return page.locator('[data-test=map-grid] pattern').evaluate((p) => `${p.getAttribute('width')}|${p.getAttribute('x')}|${p.getAttribute('y')}`);
+  };
+  const calibrated = [await calibrate(140, 210, 280, 350), await calibrate(210, 140, 280, 210)];
   await page.locator('[data-test=map-shown]').check();
   await page.locator('[data-test=map-save]').click();
   await page.waitForTimeout(1000);
@@ -1486,13 +1500,25 @@ try {
     tokens: await page.locator('[data-test=map-token]').count(),
     heroLeft: await hero.evaluate((el) => el.style.left),
     shown: await page.locator('[data-test=map-shown]').isChecked(),
-    goblinTip, tipVisible, goblinCard, cellBox, hexBox
+    goblinTip, tipVisible, goblinCard, cellBox, hexBox, calibrated
   };
   await shot(page, 'campaign-map', 'main');
   results.push(`INFO map: ${JSON.stringify(mapUi)}`);
   if (mapUi.name !== 'cripta' || mapUi.tokens !== 2 || mapUi.heroLeft !== '140px' || !mapUi.shown || !/^Goblin Mostro · PF \d+ · CA \d+ · GS/.test(mapUi.goblinTip)
-    || !mapUi.tipVisible || !/CA \d+/.test(mapUi.goblinCard) || mapUi.cellBox !== '70x70' || mapUi.hexBox !== '70x121.24') throw new Error(`unexpected map: ${JSON.stringify(mapUi)}`);
-  ok('virtual tabletop prep: a map from a picture with its square grid lined up, the character and a goblin as tokens, the character dragged two cells, the goblin\'s numbers on hover and its card on click, a hex grid, the map shown to the players');
+    || !mapUi.tipVisible || !/CA \d+/.test(mapUi.goblinCard) || mapUi.cellBox !== '70x70' || mapUi.hexBox !== '70x121.24'
+    || mapUi.calibrated.join(',') !== '140|0|70,70|0|0') throw new Error(`unexpected map: ${JSON.stringify(mapUi)}`);
+  // A copy of the map with its tokens, then deleted
+  await page.locator('[data-test=map-duplicate]').click();
+  await page.locator('[data-test=map-select]', { hasText: 'cripta (copia)' }).waitFor({ timeout: 15000 });
+  mapUi.copyTokens = await page.locator('[data-test=map-token]').count();
+  mapUi.copyShown = await page.locator('[data-test=map-shown]').isChecked();
+  await page.locator('[data-test=map-delete]').click();
+  await page.locator('[data-test=map-delete-yes]').click();
+  await page.locator('[data-test=map-select]', { hasText: 'cripta' }).waitFor({ timeout: 15000 });
+  await page.waitForTimeout(500);
+  results.push(`INFO map copy: ${mapUi.copyTokens} tokens, shown=${mapUi.copyShown}, back on ${await page.locator('[data-test=map-name]').inputValue()}`);
+  if (mapUi.copyTokens !== 2 || mapUi.copyShown || await page.locator('[data-test=map-name]').inputValue() !== 'cripta') throw new Error('unexpected map copy');
+  ok('virtual tabletop prep: a map from a picture with its square grid lined up, the character and a goblin as tokens, the character dragged two cells, the goblin\'s numbers on hover and its card on click, a hex grid, the grid aligned on a box drawn over the picture, the map shown to the players and duplicated');
   // The table on the whole window: the map shown, the tools on the left, the ruler three cells long
   await page.locator('[data-test=map-open-vtt]').click();
   await page.locator('[data-test=vtt] [data-test=map-token]').first().waitFor({ timeout: 30000 });
@@ -1516,12 +1542,13 @@ try {
   await shot(page, 'vtt-table', null);
   await page.locator('[data-test=vtt-tool-tokens]').click();
   await page.setViewportSize({ width: 390, height: 844 });
-  await page.waitForTimeout(300);
+  await page.waitForTimeout(800);
+  vttUi.phoneZoom = (await page.locator('[data-test=vtt] [data-test=map-zoom]').innerText()).trim();
   await shot(page, 'phone-vtt-table', null);
   await page.setViewportSize({ width: 1280, height: 900 });
   results.push(`INFO vtt: ${JSON.stringify(vttUi)}`);
-  if (vttUi.ruler !== '3 · 4,5 m' || vttUi.displayed !== 1 || vttUi.zoom === '100%' || vttUi.tools !== 5) throw new Error(`unexpected virtual tabletop: ${JSON.stringify(vttUi)}`);
-  ok('virtual tabletop: the table on the whole window with the map shown to the players, fitted to the screen, the tools on the left, the ruler measuring three cells (4,5 m)');
+  if (vttUi.ruler !== '3 · 4,5 m' || vttUi.displayed !== 1 || vttUi.zoom === '100%' || vttUi.tools !== 5 || vttUi.phoneZoom === vttUi.zoom) throw new Error(`unexpected virtual tabletop: ${JSON.stringify(vttUi)}`);
+  ok('virtual tabletop: the table on the whole window with the map shown to the players, fitted to the screen, the tools on the left, the ruler measuring three cells (4,5 m), the map fitted again on a phone');
   await page.locator('[data-test=vtt-back]').click();
   await page.locator('[data-test=campaign-title]').waitFor({ timeout: 30000 });
   // From the sheet, the owner takes the character out of the campaign

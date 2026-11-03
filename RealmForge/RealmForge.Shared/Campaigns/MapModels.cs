@@ -122,6 +122,56 @@ public static class MapGeometry
 		return (Math.Abs(dq) + Math.Abs(dr) + Math.Abs(dq + dr)) / 2;
 	}
 
+	///	<summary>
+	///	The grid that puts a cell exactly on a box drawn over one cell of the picture: the size (the side of a square, the
+	///	distance between opposite flat sides of a hexagon) and the offsets, the smallest that place a cell there.
+	///	</summary>
+	public static (int Grid, int OffsetX, int OffsetY) Calibrate(GridType type, double x, double y, double width, double height)
+	{
+		var grid = (int)Math.Round(type switch
+		{
+			GridType.HexRows => width,
+			GridType.HexColumns => height,
+			_ => (width + height) / 2
+		});
+		grid = Math.Clamp(grid, MapRules.MinGrid, MapRules.MaxGrid);
+		var (w, h) = Cell(type, grid);
+		double ox, oy;
+		if (type == GridType.Square)
+		{
+			(ox, oy) = (x, y);
+		}
+		else
+		{
+			//	As if the hexagon in the box were the first one, then back by whole rows (or columns) towards the corner
+			ox = x + width / 2 - w / 2;
+			oy = y + height / 2 - h / 2;
+			if (type == GridType.HexRows)
+			{
+				var rows = (int)Math.Floor(oy / (0.75 * h));
+				oy -= rows * 0.75 * h;
+				if ((rows & 1) == 1)
+				{
+					ox -= w / 2;
+				}
+			}
+			else
+			{
+				var cols = (int)Math.Floor(ox / (0.75 * w));
+				ox -= cols * 0.75 * w;
+				if ((cols & 1) == 1)
+				{
+					oy -= h / 2;
+				}
+			}
+		}
+		var offsetX = Modulo((int)Math.Round(ox), type == GridType.HexColumns ? (int)Math.Round(0.75 * w) : grid);
+		var offsetY = Modulo((int)Math.Round(oy), type == GridType.HexRows ? (int)Math.Round(0.75 * h) : grid);
+		return (grid, Math.Min(offsetX, grid - 1), Math.Min(offsetY, grid - 1));
+	}
+
+	private static int Modulo(int value, int by) => by <= 0 ? 0 : ((value % by) + by) % by;
+
 	private static (int Q, int R) Axial(GridType type, int col, int row) => type == GridType.HexRows
 		? (col - (row - (row & 1)) / 2, row)
 		: (col, row - (col - (col & 1)) / 2);
