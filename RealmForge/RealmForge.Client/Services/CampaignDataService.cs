@@ -293,6 +293,15 @@ namespace RealmForge.Client.Services
 		public Task<CampaignResult> ClearShapesAsync(Guid id, Guid mapId) =>
 			SendAsync(() => _http.DeleteAsync($"api/campaigns/{id}/maps/{mapId}/shapes"), "clear shapes");
 
+		public Task<CampaignResult> SaveFogAsync(Guid id, Guid mapId, bool enabled, List<double> fog) =>
+			SendAsync(() => _http.PutAsJsonAsync($"api/campaigns/{id}/maps/{mapId}/fog", new SaveFogDto { Enabled = enabled, Fog = fog }), "save fog");
+
+		public Task<CampaignResult> PingAsync(Guid id, Guid mapId, double x, double y) =>
+			SendAsync(() => _http.PostAsJsonAsync($"api/campaigns/{id}/maps/{mapId}/ping", new MapPointDto { X = x, Y = y }), "ping");
+
+		public Task<CampaignResult> FocusAsync(Guid id, Guid mapId, double x, double y, double zoom) =>
+			SendAsync(() => _http.PostAsJsonAsync($"api/campaigns/{id}/maps/{mapId}/focus", new MapPointDto { X = x, Y = y, Zoom = zoom }), "focus");
+
 		public Task<CampaignResult> ClearRollsAsync(Guid id) =>
 			SendAsync(() => _http.DeleteAsync($"api/campaigns/{id}/rolls"), "clear rolls");
 	}

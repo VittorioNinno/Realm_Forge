@@ -56,7 +56,7 @@ namespace RealmForge.Api.Controllers
 			}
 			var tokens = await TokensAsync(map, role.Value);
 			return Ok(new CampaignMapDto(map.Id, map.Name, map.Image, map.Width, map.Height, map.GridSize, map.GridOffsetX, map.GridOffsetY,
-				map.Shown, CampaignRules.RunsTheTable(role.Value), map.UpdatedAt, tokens, map.GridType, ShapesOf(map, role.Value)));
+				map.Shown, CampaignRules.RunsTheTable(role.Value), map.UpdatedAt, tokens, map.GridType, ShapesOf(map, role.Value), TableOf(map, role.Value)));
 		}
 
 		//	GET: api/campaigns/{campaignId}/maps/{mapId}/state — what the table polls: the grid and the tokens
@@ -69,7 +69,7 @@ namespace RealmForge.Api.Controllers
 				return NotFound();
 			}
 			return Ok(new MapStateDto(map.Id, map.Name, map.GridSize, map.GridOffsetX, map.GridOffsetY, map.Shown, map.UpdatedAt,
-				await TokensAsync(map, role.Value), map.GridType, ShapesOf(map, role.Value)));
+				await TokensAsync(map, role.Value), map.GridType, ShapesOf(map, role.Value), TableOf(map, role.Value)));
 		}
 
 		//	POST: api/campaigns/{campaignId}/maps — masters and co-masters
@@ -150,7 +150,9 @@ namespace RealmForge.Api.Controllers
 				GridSize = map.GridSize,
 				GridOffsetX = map.GridOffsetX,
 				GridOffsetY = map.GridOffsetY,
-				Shown = false
+				Shown = false,
+				FogEnabled = map.FogEnabled,
+				Fog = map.Fog.ToList()
 			};
 			foreach (var t in map.Tokens)
 			{
@@ -405,6 +407,79 @@ namespace RealmForge.Api.Controllers
 			return NoContent();
 		}
 
+		// ===== Fog of war, pings, the view =====
+
+		//	PUT: api/campaigns/{campaignId}/maps/{mapId}/fog — masters and co-masters
+		[HttpPut("{mapId:guid}/fog")]
+		public async Task<IActionResult> SaveFog(Guid campaignId, Guid mapId, [FromBody] SaveFogDto dto)
+		{
+			var (map, role) = await LoadAsync(campaignId, mapId, withTokens: false);
+			if (map is null || role is null)
+			{
+				return NotFound();
+			}
+			if (!CampaignRules.RunsTheTable(role.Value))
+			{
+				return Forbid();
+			}
+			if (!MapFog.Valid(dto.Fog))
+			{
+				return Problem(statusCode: StatusCodes.Status400BadRequest, title: "Fog steps out of range.");
+			}
+			map.FogEnabled = dto.Enabled;
+			map.Fog = dto.Fog.Select(v => Math.Round(v, 1)).ToList();
+			map.UpdatedAt = DateTimeOffset.UtcNow;
+			await _context.SaveChangesAsync();
+			return NoContent();
+		}
+
+		//	POST: api/campaigns/{campaignId}/maps/{mapId}/ping — anyone at the table points at something
+		[HttpPost("{mapId:guid}/ping")]
+		public async Task<IActionResult> Ping(Guid campaignId, Guid mapId, [FromBody] MapPointDto dto)
+		{
+			var (map, role) = await LoadAsync(campaignId, mapId, withTokens: false);
+			if (map is null || role is null)
+			{
+				return NotFound();
+			}
+			if (dto.X < 0 || dto.Y < 0 || dto.X > map.Width || dto.Y > map.Height)
+			{
+				return Problem(statusCode: StatusCodes.Status400BadRequest, title: "The point is outside the map.");
+			}
+			var colors = await CampaignAccess.EnsureColorsAsync(_context, campaignId);
+			map.PingX = Math.Round(dto.X, 1);
+			map.PingY = Math.Round(dto.Y, 1);
+			map.PingColor = CampaignRules.RunsTheTable(role.Value) ? PlayerColors.Master : colors.TryGetValue(UserId, out var mine) ? mine : PlayerColors.Master;
+			map.PingAt = map.UpdatedAt = DateTimeOffset.UtcNow;
+			await _context.SaveChangesAsync();
+			return NoContent();
+		}
+
+		//	POST: api/campaigns/{campaignId}/maps/{mapId}/focus — the masters bring every player's view to a point
+		[HttpPost("{mapId:guid}/focus")]
+		public async Task<IActionResult> Focus(Guid campaignId, Guid mapId, [FromBody] MapPointDto dto)
+		{
+			var (map, role) = await LoadAsync(campaignId, mapId, withTokens: false);
+			if (map is null || role is null)
+			{
+				return NotFound();
+			}
+			if (!CampaignRules.RunsTheTable(role.Value))
+			{
+				return Forbid();
+			}
+			if (dto.X < 0 || dto.Y < 0 || dto.X > map.Width || dto.Y > map.Height || dto.Zoom is < 0.1 or > 3)
+			{
+				return Problem(statusCode: StatusCodes.Status400BadRequest, title: "The point is outside the map.");
+			}
+			map.FocusX = Math.Round(dto.X, 1);
+			map.FocusY = Math.Round(dto.Y, 1);
+			map.FocusZoom = Math.Round(dto.Zoom, 2);
+			map.FocusAt = map.UpdatedAt = DateTimeOffset.UtcNow;
+			await _context.SaveChangesAsync();
+			return NoContent();
+		}
+
 		// ===== Helpers =====
 
 		//	The map and the role of the account; a player only reaches the maps shown
@@ -435,6 +510,7 @@ namespace RealmForge.Api.Controllers
 				.Where(c => characterIds.Contains(c.Id) && c.OwnerId == UserId).Select(c => c.Id).ToListAsync()).ToHashSet();
 			return map.Tokens
 				.Where(t => runs || !t.Hidden)
+				.Where(t => runs || !map.FogEnabled || (t.CharacterId is { } own && mine.Contains(own)) || !UnderFog(map, t))
 				.OrderBy(t => t.Kind).ThenBy(t => t.Label)
 				.Select(t => ToDto(t, MapRules.CanMove(role, t.CharacterId is { } id && mine.Contains(id), map.Shown, t.Hidden)
 					&& (runs || t.Layer == TokenLayer.Tokens)))
@@ -446,6 +522,18 @@ namespace RealmForge.Api.Controllers
 
 		private static MapTokenDto ToDto(CampaignToken t, bool canMove) =>
 			new(t.Id, t.Label, t.Color, t.Kind, t.CharacterId, t.MonsterId, t.X, t.Y, t.Size, t.Hidden, canMove, null, t.Layer);
+
+		private static bool UnderFog(CampaignMap map, CampaignToken t)
+		{
+			var (x, y) = MapGeometry.Center(map.GridType, map.GridSize, map.GridOffsetX, map.GridOffsetY, t.X, t.Y, t.Size);
+			return MapFog.Covered(map.Fog, x, y);
+		}
+
+		private static MapTableDto TableOf(CampaignMap map, CampaignRole role) => new(
+			map.FogEnabled,
+			map.FogEnabled || CampaignRules.RunsTheTable(role) ? map.Fog : new List<double>(),
+			map.PingAt is { } pingAt ? new MapPingDto(map.PingX ?? 0, map.PingY ?? 0, map.PingColor ?? PlayerColors.Master, pingAt) : null,
+			map.FocusAt is { } focusAt ? new MapFocusDto(map.FocusX ?? 0, map.FocusY ?? 0, map.FocusZoom ?? 1, focusAt) : null);
 
 		//	The players do not see the masters' notes
 		private List<MapShapeDto> ShapesOf(CampaignMap map, CampaignRole role)

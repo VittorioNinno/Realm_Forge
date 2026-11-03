@@ -1544,7 +1544,7 @@ try {
   await shot(page, 'phone-vtt-table', null);
   await page.setViewportSize({ width: 1280, height: 900 });
   results.push(`INFO vtt: ${JSON.stringify(vttUi)}`);
-  if (vttUi.ruler !== '3 · 4,5 m' || vttUi.displayed !== 1 || vttUi.zoom === '100%' || vttUi.tools !== 9 || vttUi.phoneZoom === vttUi.zoom) throw new Error(`unexpected virtual tabletop: ${JSON.stringify(vttUi)}`);
+  if (vttUi.ruler !== '3 · 4,5 m' || vttUi.displayed !== 1 || vttUi.zoom === '100%' || vttUi.tools !== 10 || vttUi.phoneZoom === vttUi.zoom) throw new Error(`unexpected virtual tabletop: ${JSON.stringify(vttUi)}`);
   ok('virtual tabletop: the table on the whole window with the map shown to the players, fitted to the screen, the tools on the left, the ruler measuring three cells (4,5 m), the map fitted again on a phone');
   // A sphere of 1 cell (1,5 m) around the hero: its cell and the three around it on the map; a stroke, then erased;
   // a note for the masters
@@ -1587,6 +1587,32 @@ try {
   results.push(`INFO vtt drawings: ${JSON.stringify(drawUi)}`);
   if (drawUi.sphereCells !== 4 || drawUi.note !== '✎ Porta segreta' || drawUi.left !== 'note') throw new Error(`unexpected drawings: ${JSON.stringify(drawUi)}`);
   ok('virtual tabletop drawings: a sphere of 1,5 m lighting up the hero\'s cell and the three around it, a stroke erased with a click, a note for the masters kept when the drawings are cleared');
+  // Fog of war: on, a box revealed around the hero; a ping with Alt+click; the players' view brought here
+  await page.locator('[data-test=vtt-tool-fog]').click();
+  await page.locator('[data-test=vtt-fog-enabled]').check();
+  await page.locator('[data-test=map-fog]').waitFor({ timeout: 15000 });
+  await page.mouse.move(hx - cellPx * 1.5, hy - cellPx * 0.4);
+  await page.mouse.down();
+  await page.mouse.move(hx, hy + cellPx, { steps: 3 });
+  await page.mouse.move(hx + cellPx * 1.5, hy + cellPx * 1.5, { steps: 3 });
+  await page.mouse.up();
+  await page.waitForTimeout(500);
+  const fogUi = { revealed: await page.locator('[data-test=map-fog] mask rect').count() };
+  await page.locator('[data-test=vtt-tool-select]').click();
+  await page.keyboard.down('Alt');
+  await page.mouse.click(hx + cellPx * 3, hy + cellPx * 3);
+  await page.keyboard.up('Alt');
+  fogUi.ping = await page.locator('[data-test=map-ping]').count();
+  await shot(page, 'vtt-fog', null);
+  await page.locator('[data-test=vtt-focus]').click();
+  await page.waitForTimeout(500);
+  fogUi.message = await page.locator('[data-test=map-message]').count();
+  await page.locator('[data-test=vtt-tool-fog]').click();
+  await page.locator('[data-test=vtt-fog-enabled]').uncheck();
+  await page.locator('[data-test=map-fog]').waitFor({ state: 'detached', timeout: 15000 });
+  results.push(`INFO vtt fog: ${JSON.stringify(fogUi)}`);
+  if (fogUi.revealed !== 2 || fogUi.ping !== 1 || fogUi.message !== 0) throw new Error(`unexpected fog: ${JSON.stringify(fogUi)}`);
+  ok('virtual tabletop fog of war: turned on over the whole map, a box revealed around the hero, a ping with Alt+click, the players\' view brought to the master\'s, fog turned off');
   await page.locator('[data-test=vtt-back]').click();
   await page.locator('[data-test=campaign-title]').waitFor({ timeout: 30000 });
   // From the sheet, the owner takes the character out of the campaign

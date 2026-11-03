@@ -114,5 +114,14 @@ namespace RealmForge.Client.Localization
 		public static string VttClearAll(LanguageCode lang) => T(lang, "Cancella tutti i disegni", "Clear all drawings");
 		public static string VttClearMine(LanguageCode lang) => T(lang, "Cancella i miei disegni", "Clear my drawings");
 		public static string MapTokenBelow(LanguageCode lang) => T(lang, "Sotto gli altri segnalini", "Under the other tokens");
+		public static string VttToolFog(LanguageCode lang) => T(lang, "Nebbia di guerra", "Fog of war");
+		public static string VttFogOn(LanguageCode lang) => T(lang, "Nebbia attiva", "Fog on");
+		public static string VttFogReveal(LanguageCode lang) => T(lang, "Rivela", "Reveal");
+		public static string VttFogCover(LanguageCode lang) => T(lang, "Copri", "Cover");
+		public static string VttFogRect(LanguageCode lang) => T(lang, "Riquadro", "Box");
+		public static string VttFogBrush(LanguageCode lang) => T(lang, "Pennello", "Brush");
+		public static string VttFogRevealAll(LanguageCode lang) => T(lang, "Rivela tutto", "Reveal all");
+		public static string VttFogCoverAll(LanguageCode lang) => T(lang, "Copri tutto", "Cover all");
+		public static string VttFocus(LanguageCode lang) => T(lang, "Porta qui la vista dei giocatori", "Bring the players' view here");
 	}
 }

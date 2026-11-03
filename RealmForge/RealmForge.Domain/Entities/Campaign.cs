@@ -53,6 +53,21 @@ namespace RealmForge.Domain.Entities
 		public int GridOffsetX { get; set; }
 		public int GridOffsetY { get; set; }
 		public bool Shown { get; set; }
+
+		//	Fog of war: what the players do not see yet. Fog: groups of 5 numbers (MapFog), applied in order on a map all
+		//	covered
+		public bool FogEnabled { get; set; }
+		public List<double> Fog { get; set; } = new();
+
+		//	The last ping (a point the table should look at) and the last view the masters brought everyone to
+		public double? PingX { get; set; }
+		public double? PingY { get; set; }
+		public string? PingColor { get; set; }
+		public DateTimeOffset? PingAt { get; set; }
+		public double? FocusX { get; set; }
+		public double? FocusY { get; set; }
+		public double? FocusZoom { get; set; }
+		public DateTimeOffset? FocusAt { get; set; }
 		public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
 
 		//	Changes with the map and with every token, so that the tables refresh what moved

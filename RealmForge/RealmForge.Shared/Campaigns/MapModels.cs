@@ -314,6 +314,42 @@ public static class MapAreas
 }
 
 ///	<summary>
+///	Fog of war. Each step is 5 numbers: the kind (1 reveal a rectangle, 2 cover a rectangle, 3 reveal a circle, 4 cover a
+///	circle), then x, y and width, height (a rectangle) or radius, 0 (a circle), in pixels of the picture. The map starts
+///	all covered and the steps apply in order.
+///	</summary>
+public static class MapFog
+{
+	public const int Reveal = 1;
+	public const int Cover = 2;
+	public const int RevealCircle = 3;
+	public const int CoverCircle = 4;
+	public const int MaxSteps = 2000;
+
+	public static bool Covered(IReadOnlyList<double> fog, double x, double y)
+	{
+		var covered = true;
+		for (var i = 0; i + 4 < fog.Count; i += 5)
+		{
+			var kind = (int)fog[i];
+			var inside = kind is RevealCircle or CoverCircle
+				? (x - fog[i + 1]) * (x - fog[i + 1]) + (y - fog[i + 2]) * (y - fog[i + 2]) <= fog[i + 3] * fog[i + 3]
+				: x >= fog[i + 1] && y >= fog[i + 2] && x <= fog[i + 1] + fog[i + 3] && y <= fog[i + 2] + fog[i + 4];
+			if (inside)
+			{
+				covered = kind is Cover or CoverCircle;
+			}
+		}
+		return covered;
+	}
+
+	public static bool Valid(IReadOnlyList<double> fog) =>
+		fog.Count % 5 == 0 && fog.Count / 5 <= MaxSteps
+		&& Enumerable.Range(0, fog.Count / 5).All(i => fog[5 * i] is Reveal or Cover or RevealCircle or CoverCircle)
+		&& fog.All(v => !double.IsNaN(v) && !double.IsInfinity(v) && Math.Abs(v) < 100_000);
+}
+
+///	<summary>
 ///	Limits of the virtual tabletop: maps per campaign, tokens per map, the picture (a JPEG data URL), the grid.
 ///	</summary>
 public static class MapRules
