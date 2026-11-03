@@ -564,7 +564,7 @@ jobs:
           echo "::notice title=database::magic items Homebrew: edit=$mi_edit_view | variant=$mi_hb_view list=$mi_hb_list under ring=$mi_hb_under anonymous=$mi_hb_anon bob=$mi_hb_bob | dice=$mi_hb_dice effect=$mi_hb_effect | PUT=$mi_hb_put after=$mi_hb_after | base PUT=$mi_srd_put bob DELETE=$mi_bob_delete anonymous POST=$mi_anon_post account=$mi_acc | DELETE=$mi_delete bin=$mi_bin"
           mifail=0
           micheck() { if [ "$2" != "$3" ]; then echo "::error title=magic items::$1: got '$2', expected '$3'"; mifail=1; fi; }
-          micheck "2014 counts" "$mi14" '{"total":412,"items":276,"srd":366,"realmforge":46,"rules":145}'
+          micheck "2014 counts" "$mi14" '{"total":412,"items":276,"srd":366,"realmforge":46,"rules":150}'
           micheck "categories" "$mi_types" '{"1":20,"2":25,"3":22,"4":9,"5":2,"6":13,"7":14,"8":38,"9":133}'
           micheck "rings (filter)" "$mi_rings" "36"
           micheck "official names" "$mi_names" '["Anello di protezione","Armatura demoniaca","Guanti del potere orchesco","Lama nera"]'
@@ -1067,11 +1067,16 @@ jobs:
           mp_master_state=$(curl -s "$api/api/campaigns/$ss_cp/maps/$mp/state" -H "Authorization: Bearer $B" | jq -c '[.tokens[] | {label, x, hidden}]')
           mp_delete=$(code -X DELETE "$api/api/campaigns/$ss_cp/maps/$mp" -H "Authorization: Bearer $B")
           echo "::notice title=maps::player create=$mp_player_create hidden list=$mp_hidden_list outside=$mp_outside | player state=$mp_player_state move=$mp_player_move | master move=$mp_master_move state=$mp_master_state | delete=$mp_delete"
+          # A roll behind the screen shown to the table by the master: back at the top, for the players too
+          rl_secret=$(curl -s -X POST "$api/api/campaigns/$ss_cp/rolls" $json -H "Authorization: Bearer $B" -d '{"expression":"1d4","label":"Segreto","hidden":true}' | jq -r .id)
+          rl_reveal_player=$(code -X POST "$api/api/campaigns/$ss_cp/rolls/$rl_secret/reveal" -H "Authorization: Bearer $A")
+          rl_reveal=$(curl -s -X POST "$api/api/campaigns/$ss_cp/rolls/$rl_secret/reveal" -H "Authorization: Bearer $B" | jq -c '{label, hidden, byMaster}')
+          rl_revealed=$(curl -s "$api/api/campaigns/$ss_cp/rolls" -H "Authorization: Bearer $A" | jq -c '.[0] | {label, byMaster}')
           rl_clear_player=$(code -X DELETE "$api/api/campaigns/$ss_cp/rolls" -H "Authorization: Bearer $A")
           rl_clear=$(code -X DELETE "$api/api/campaigns/$ss_cp/rolls" -H "Authorization: Bearer $B")
           rl_after=$(curl -s "$api/api/campaigns/$ss_cp/rolls" -H "Authorization: Bearer $B" | jq length)
           echo "::notice title=sessions::player add=$ss_player_add bad=$ss_bad | first=$ss_first | played=$ss_put | player PUT=$ss_player_put list=$ss_player_list | outsider=$ss_outsider | delete player=$ss_player_delete master=$ss_delete"
-          echo "::notice title=rolls::alice=$rl_alice advantage=$rl_adv | bad=$rl_bad hidden player=$rl_hidden_player master=$rl_hidden | foreign character=$rl_foreign cheat=$rl_cheat | alice log=$rl_alice_log bob log=$rl_bob_log since=$rl_since | clear player=$rl_clear_player master=$rl_clear after=$rl_after"
+          echo "::notice title=rolls::alice=$rl_alice advantage=$rl_adv | bad=$rl_bad hidden player=$rl_hidden_player master=$rl_hidden | foreign character=$rl_foreign cheat=$rl_cheat | alice log=$rl_alice_log bob log=$rl_bob_log since=$rl_since | reveal player=$rl_reveal_player master=$rl_reveal seen=$rl_revealed | clear player=$rl_clear_player master=$rl_clear after=$rl_after"
           ssfail=0
           sscheck() { if [ "$2" != "$3" ]; then echo "::error title=sessions::$1: got '$2', expected '$3'"; ssfail=1; fi; }
           sscheck "player adds a session" "$ss_player_add" "403"
@@ -1102,6 +1107,9 @@ jobs:
           sscheck "master moves a marker" "$mp_master_move" "204"
           sscheck "tokens for the master" "$mp_master_state" '[{"label":"Lich","x":5,"hidden":true},{"label":"Porta","x":3,"hidden":false}]'
           sscheck "delete map" "$mp_delete" "204"
+          sscheck "reveal by a player" "$rl_reveal_player" "403"
+          sscheck "reveal by the master" "$rl_reveal" '{"label":"Segreto","hidden":false,"byMaster":true}'
+          sscheck "revealed roll for the player" "$rl_revealed" '{"label":"Segreto","byMaster":true}'
           sscheck "player clears" "$rl_clear_player" "403"
           sscheck "master clears" "$rl_clear" "204"
           sscheck "log empty" "$rl_after" "0"
