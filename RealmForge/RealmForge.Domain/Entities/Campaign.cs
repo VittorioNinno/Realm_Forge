@@ -32,6 +32,52 @@ namespace RealmForge.Domain.Entities
 		public ICollection<CampaignEncounter> Encounters { get; set; } = new List<CampaignEncounter>();
 		public ICollection<CampaignSession> Sessions { get; set; } = new List<CampaignSession>();
 		public ICollection<CampaignRoll> Rolls { get; set; } = new List<CampaignRoll>();
+		public ICollection<CampaignMap> Maps { get; set; } = new List<CampaignMap>();
+	}
+
+	///	<summary>
+	///	A map of the virtual tabletop: the picture (a JPEG as a data URL, its size in pixels) with a square grid (cell size
+	///	and offset in pixels of the picture), and the tokens on it. Shown makes it visible to the players.
+	///	</summary>
+	public class CampaignMap
+	{
+		public Guid Id { get; set; } = Guid.NewGuid();
+		public Guid CampaignId { get; set; }
+		public Campaign Campaign { get; set; } = null!;
+		public string Name { get; set; } = string.Empty;
+		public string Image { get; set; } = string.Empty;
+		public int Width { get; set; }
+		public int Height { get; set; }
+		public int GridSize { get; set; } = 70;
+		public int GridOffsetX { get; set; }
+		public int GridOffsetY { get; set; }
+		public bool Shown { get; set; }
+		public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
+
+		//	Changes with the map and with every token, so that the tables refresh what moved
+		public DateTimeOffset UpdatedAt { get; set; } = DateTimeOffset.UtcNow;
+		public ICollection<CampaignToken> Tokens { get; set; } = new List<CampaignToken>();
+	}
+
+	///	<summary>
+	///	A token on a map, on a cell of the grid (X, Y from the top left), Size cells wide: a character of the table (its
+	///	owner can move it), a monster, an NPC or a marker. Hidden tokens are seen by the masters only.
+	///	</summary>
+	public class CampaignToken
+	{
+		public Guid Id { get; set; } = Guid.NewGuid();
+		public Guid MapId { get; set; }
+		public CampaignMap Map { get; set; } = null!;
+		public string Label { get; set; } = string.Empty;
+		public string Color { get; set; } = PlayerColors.Master;
+		public TokenKind Kind { get; set; } = TokenKind.Marker;
+		public Guid? CharacterId { get; set; }
+		public Guid? MonsterId { get; set; }
+		public int X { get; set; }
+		public int Y { get; set; }
+		public int Size { get; set; } = 1;
+		public bool Hidden { get; set; }
+		public DateTimeOffset UpdatedAt { get; set; } = DateTimeOffset.UtcNow;
 	}
 
 	///	<summary>

@@ -479,6 +479,78 @@
 </div>
 
 <SpellDetailModal SpellId="spellDetailId" OnClose="CloseSpell" Actions="CastPanel()" />
+
+@if (attackDraft is { } draft)
+{
+    @* Before rolling: which of the features that can join this attack apply now *@
+    <div class="rf-modal-backdrop" @onclick="() => attackDraft = null">
+        <div class="rf-modal-dialog rf-attack-dialog" @onclick:stopPropagation="true" role="dialog" aria-modal="true" data-test="attack-options">
+            <h2 class="h5 mb-1" style="color: var(--rf-orange-primary); font-family: var(--rf-font-display);">@draft.Name</h2>
+            <p class="small mb-3" style="color: var(--rf-text-muted);">@UiText.AttackOptionsHint(Lang)</p>
+            <div class="d-flex flex-column gap-2 mb-3">
+                @foreach (var rider in draft.Riders)
+                {
+                    var r = rider;
+                    <div class="rf-rider @(r.Automatic || draft.Chosen.Contains(r.Key) ? "on" : null)" data-test="attack-rider" data-key="@r.Key">
+                        <label class="rf-checkbox-wrapper mb-0">
+                            <input type="checkbox" class="rf-checkbox" checked="@(r.Automatic || draft.Chosen.Contains(r.Key))" disabled="@(r.Automatic || (r.Kind == AttackRiders.Kind.SlotDice && SmiteLevels.Count == 0))"
+                                   @onchange="() => ToggleRider(r.Key)" data-test="@($"attack-rider-{r.Key}")" />
+                            <span>
+                                <strong>@UiText.RiderName(r.Key, Lang)</strong>
+                                <span class="rf-rider-value">@UiText.RiderValue(r, Lang)</span>
+                            </span>
+                        </label>
+                        <div class="rf-rider-when">@(r.Automatic ? UiText.RiderAutomatic(Lang) : UiText.RiderCondition(r.Key, Lang))@(r.OncePerTurn ? $" {UiText.RiderOncePerTurn(Lang)}" : null)</div>
+                        @if (r.Kind == AttackRiders.Kind.SlotDice && draft.Chosen.Contains(r.Key))
+                        {
+                            <div class="d-flex flex-wrap align-items-center gap-2 mt-2">
+                                <span class="rf-mini-label mb-0">@UiText.RiderSlot(Lang)</span>
+                                @foreach (var level in SmiteLevels.Where(l => l <= 5))
+                                {
+                                    var lv = level;
+                                    <button type="button" class="rf-pill-btn @(draft.SmiteLevel == lv ? "active" : null)" @onclick="() => draft.SmiteLevel = lv" data-test="attack-smite-level">@GameTerms.SpellLevel(lv, Lang) · @AttackRiders.SmiteDice(lv, draft.UndeadOrFiend)</button>
+                                }
+                                <label class="rf-checkbox-wrapper mb-0 small">
+                                    <input type="checkbox" class="rf-checkbox" checked="@draft.UndeadOrFiend" @onchange="() => draft.UndeadOrFiend = !draft.UndeadOrFiend" />
+                                    <span>@UiText.RiderUndead(Lang)</span>
+                                </label>
+                            </div>
+                        }
+                    </div>
+                }
+                <label class="rf-checkbox-wrapper mb-0 small">
+                    <input type="checkbox" class="rf-checkbox" checked="@draft.Critical" @onchange="() => draft.Critical = !draft.Critical" data-test="attack-critical" />
+                    <span>@UiText.RiderCritical(Lang)</span>
+                </label>
+            </div>
+            <div class="d-flex flex-wrap justify-content-end gap-2">
+                <button type="button" class="btn btn-rf-outline" @onclick="() => attackDraft = null">@UiText.BtnCancel(Lang)</button>
+                <button type="button" class="btn btn-rf-outline" @onclick="RollDraftHit" data-test="attack-roll-hit">@UiText.LabelToHit(Lang) @CharacterMath.FormatModifier(draft.Bonus + (PowerAttack ? -5 : 0))</button>
+                <button type="button" class="btn btn-rf-orange" @onclick="RollDraftDamage" data-test="attack-roll-damage">@UiText.AttackRollDamage(Lang)</button>
+            </div>
+        </div>
+    </div>
+}
+
+@if (encumbranceNotice)
+{
+    @* The weight just went over the carrying capacity: what it means at the table *@
+    <div class="rf-notice" role="alert" data-test="sheet-encumbrance-notice">
+        <div class="rf-notice-head">
+            <span class="rf-notice-icon"><Icon Name="info" /></span>
+            <strong>@UiText.EncumbranceTitle(Lang)</strong>
+            <button type="button" class="rf-mini-btn ms-auto" @onclick="() => encumbranceNotice = false" aria-label="@UiText.BtnClose(Lang)" data-test="sheet-encumbrance-close"><Icon Name="close" /></button>
+        </div>
+        <p class="mb-2">@UiText.EncumbranceWeight(UiText.FormatWeight(CarriedWeight, Lang), UiText.FormatWeight(CarryingCapacity, Lang), Lang)</p>
+        <ul class="rf-notice-list">
+            @foreach (var line in UiText.EncumbranceEffects(UiText.FormatWeight(CarryingCapacity * 2, Lang), Lang))
+            {
+                <li>@line</li>
+            }
+        </ul>
+        <p class="small mb-0" style="color: var(--rf-text-muted);">@UiText.EncumbranceHint(Lang)</p>
+    </div>
+}
 <DiceTray @ref="diceTray" OnRoll="ShareRollAsync" SharedNote="@(SharesRolls ? UiText.SheetRollShared(Lang) : null)" />
 @if (campaignOpen && character is not null)
 {
@@ -788,7 +860,7 @@
             </section>
         }
 
-        @if (!c.AllSpellSources().Any())
+        @if (!c.AllSpellSources().Any() && ItemSpells.Count == 0)
         {
             <div class="small" style="color: var(--rf-text-muted);">@UiText.NoSpellsForClass(Lang)</div>
         }
@@ -874,6 +946,32 @@
                 }
             </section>
         }
+        @if (ItemSpells.Count > 0)
+        {
+            @* Spells of the magic items worn (and attuned when they need it): cast with the item's charges *@
+            <section class="rf-card2 rf-casting" data-test="sheet-item-spells">
+                <div class="rf-casting-head">
+                    <div class="rf-casting-left">
+                        <h2 class="rf-casting-title"><Icon Name="magic-items" /> @UiText.SheetItemSpells(Lang)</h2>
+                    </div>
+                </div>
+                <div class="rf-casting-grid">
+                    @foreach (var entry in ItemSpells)
+                    {
+                        var e = entry;
+                        <a href="@($"spells?id={e.Id}")" class="rf-casting-card" @onclick="() => OpenItemSpell(e)" @onclick:preventDefault="true" data-test="sheet-item-spell">
+                            <span class="rf-casting-card-name">@e.Name</span>
+                            <span class="rf-casting-card-meta">
+                                <span class="rf-casting-card-school">@ItemName(e.Item)</span>
+                                <span class="rf-casting-card-tags">
+                                    <span title="@UiText.MagicSpellCharges(Lang)">@(e.Spell.Charges == 0 ? UiText.ItemSpellNoCharge(Lang) : UiText.ItemSpellCharges(e.Spell.Charges, Lang))</span>
+                                </span>
+                            </span>
+                        </a>
+                    }
+                </div>
+            </section>
+        }
     </div>;
 
     // ===== Inventory: coins, worn items, backpack =====
@@ -920,6 +1018,13 @@
         @if (attuneError is not null)
         {
             <div class="rf-cast-warning soft mb-2" data-test="sheet-attune-error">@attuneError</div>
+        }
+        @if (equipError is not null)
+        {
+            <div class="rf-cast-warning soft mb-2 d-flex justify-content-between align-items-start gap-2" role="alert" data-test="sheet-equip-error">
+                <span>@equipError</span>
+                <button type="button" class="rf-mini-btn" @onclick="() => equipError = null" aria-label="@UiText.BtnClose(Lang)"><Icon Name="close" /></button>
+            </div>
         }
 
         <div data-test="sheet-inventory">
@@ -1007,6 +1112,13 @@
                 }
             }
         </div>
+        @if (Overloaded)
+        {
+            <div class="rf-cast-warning mt-2" data-test="sheet-encumbrance">
+                <strong>@UiText.EncumbranceTitle(Lang):</strong>
+                @string.Join(" ", UiText.EncumbranceEffects(UiText.FormatWeight(CarryingCapacity * 2, Lang), Lang))
+            </div>
+        }
         <div class="small mt-2 @(CarriedWeight > CarryingCapacity ? "text-warning" : null)" style="color: var(--rf-text-muted);">
             @UiText.SheetCarrying(UiText.FormatWeight(CarriedWeight, Lang), UiText.FormatWeight(CarryingCapacity, Lang), Lang)
         </div>
@@ -1267,15 +1379,15 @@
             <small>@AttackDetail(at)</small>
         </div>
         <div class="rf-attack-rolls">
-            <button type="button" class="rf-attack-btn" @onclick="() => Roll(at.Item.Name, at.AttackBonus)" data-test="sheet-attack-hit">
+            <button type="button" class="rf-attack-btn" @onclick="() => AttackHit(at.Item.Name, at.AttackBonus, at.Damage, at.Item)" data-test="sheet-attack-hit">
                 <span class="rf-attack-btn-label">@UiText.LabelToHit(Lang)</span><span class="rf-attack-btn-value">@CharacterMath.FormatModifier(at.AttackBonus)</span>
             </button>
-            <button type="button" class="rf-attack-btn damage" @onclick="() => RollDamage(at.Item.Name, at.Damage)" data-test="sheet-attack-damage">
+            <button type="button" class="rf-attack-btn damage" @onclick="() => AttackDamage(at.Item.Name, at.AttackBonus, at.Damage, at.Item)" data-test="sheet-attack-damage">
                 <span class="rf-attack-btn-label">@UiText.LabelDamage(Lang)</span><span class="rf-attack-btn-value">@at.Damage @(at.DamageType is { } dt ? EquipmentTerms.DamageTypeName(dt, Lang) : null)</span>
             </button>
             @if (at.VersatileDamage is { } versatile)
             {
-                <button type="button" class="rf-attack-btn damage" @onclick="() => RollDamage(at.Item.Name, versatile)">
+                <button type="button" class="rf-attack-btn damage" @onclick="() => AttackDamage(at.Item.Name, at.AttackBonus, versatile, at.Item)">
                     <span class="rf-attack-btn-label">@UiText.LabelTwoHands(Lang)</span><span class="rf-attack-btn-value">@versatile</span>
                 </button>
             }
@@ -1292,10 +1404,10 @@
                 <small>@UiText.UnarmedDetail(Lang)</small>
             </div>
             <div class="rf-attack-rolls">
-                <button type="button" class="rf-attack-btn" @onclick="() => Roll(name, bonus)">
+                <button type="button" class="rf-attack-btn" @onclick="() => AttackHit(name, bonus, damage, null)">
                     <span class="rf-attack-btn-label">@UiText.LabelToHit(Lang)</span><span class="rf-attack-btn-value">@CharacterMath.FormatModifier(bonus)</span>
                 </button>
-                <button type="button" class="rf-attack-btn damage" @onclick="() => RollDamage(name, damage)">
+                <button type="button" class="rf-attack-btn damage" @onclick="() => AttackDamage(name, bonus, damage, null)">
                     <span class="rf-attack-btn-label">@UiText.LabelDamage(Lang)</span><span class="rf-attack-btn-value">@damage @EquipmentTerms.DamageTypeName(DamageType.Bludgeoning, Lang)</span>
                 </button>
             </div>
@@ -1363,9 +1475,9 @@
                         @foreach (var attack in c.Attacks)
                         {
                             var at = attack;
-                            @TurnAttack(at.Item.Name, at.AttackBonus, at.Damage)
+                            @TurnAttack(at.Item.Name, at.AttackBonus, at.Damage, at.Item)
                         }
-                        @TurnAttack(unarmedName, unarmedBonus, unarmedDamage)
+                        @TurnAttack(unarmedName, unarmedBonus, unarmedDamage, null)
                     </div>
                 </div>
                 @if (c.AllSpellSources().Any())
@@ -1423,7 +1535,7 @@
                         @foreach (var attack in offHand)
                         {
                             var at = attack;
-                            @TurnAttack($"{at.Item.Name} · {UiText.TurnOffHand(Lang)}", at.AttackBonus, OffHandDamage(at))
+                            @TurnAttack($"{at.Item.Name} · {UiText.TurnOffHand(Lang)}", at.AttackBonus, OffHandDamage(at), at.Item)
                         }
                         @FeatureChipList(features.Where(f => f.Slot == TurnSlot.BonusAction))
                         @foreach (var (spell, source) in bonusSpells)
@@ -1466,10 +1578,10 @@
         </section>;
     }
 
-    private RenderFragment TurnAttack(string name, int bonus, string damage) => @<span class="rf-turn-weapon">
+    private RenderFragment TurnAttack(string name, int bonus, string damage, ContextItem? item) => @<span class="rf-turn-weapon">
         <span class="rf-turn-weapon-name">@name</span>
-        <button type="button" class="hit" @onclick="() => Roll(name, bonus)" title="@UiText.LabelToHit(Lang)">@CharacterMath.FormatModifier(bonus)</button>
-        <button type="button" class="dmg" @onclick="() => RollDamage(name, damage)" title="@UiText.LabelDamage(Lang)">@damage</button>
+        <button type="button" class="hit" @onclick="() => AttackHit(name, bonus, damage, item)" title="@UiText.LabelToHit(Lang)">@CharacterMath.FormatModifier(bonus)</button>
+        <button type="button" class="dmg" @onclick="() => AttackDamage(name, bonus, damage, item)" title="@UiText.LabelDamage(Lang)">@damage</button>
     </span>;
 
     private RenderFragment FeatureChipList(IEnumerable<TurnFeature> features) => @<text>
@@ -1495,7 +1607,27 @@
 
     // ===== Casting a spell from its details =====
     private RenderFragment CastPanel() => @<text>
-        @if (castSpell is { } sp && castSource is { } src && computed is { } c)
+        @if (castItem is { } fromItem)
+        {
+            var left = fromItem.Item.Magic!.Charges - fromItem.Item.Magic.ChargesUsed;
+            <div class="rf-cast" data-test="spell-cast">
+                @if (CannotAct)
+                {
+                    <div class="rf-cast-warning" data-test="spell-cast-blocked">@UiText.CastBlocked(Lang)</div>
+                }
+                else
+                {
+                    <div class="rf-mini-label mb-2">@UiText.CastWith(Lang)</div>
+                    <div class="rf-cast-options">
+                        <button type="button" class="rf-cast-option primary" disabled="@(!MagicItemRules.CanCast(fromItem.Item, fromItem.Spell))" @onclick="CastFromItem" data-test="spell-cast-item">
+                            <strong>@ItemName(fromItem.Item)</strong>
+                            <small>@UiText.ItemSpellCastHint(fromItem.Spell.Charges, left, fromItem.Spell.Level, fromItem.Spell.SaveDc, Lang)</small>
+                        </button>
+                    </div>
+                }
+            </div>
+        }
+        else if (castSpell is { } sp && castSource is { } src && computed is { } c)
         {
             <div class="rf-cast" data-test="spell-cast">
                 @if (CannotAct)

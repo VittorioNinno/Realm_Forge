@@ -502,6 +502,26 @@ namespace RealmForge.Client.Localization
 		public static string SheetAttuned(LanguageCode lang) => T(lang, "Sintonia", "Attuned");
 		public static string SheetQuantity(LanguageCode lang) => T(lang, "Qtà", "Qty");
 		public static string SheetWeight(LanguageCode lang) => T(lang, "Peso", "Weight");
+		public static string EncumbranceTitle(LanguageCode lang) => T(lang, "Sovraccarico", "Overloaded");
+		public static string EncumbranceWeight(string total, string capacity, LanguageCode lang) => T(lang,
+			$"Stai trasportando {total}, oltre la tua capacità di carico di {capacity} (Forza × 7,5 kg, raddoppiata per le creature Grandi e dimezzata per le Minuscole).",
+			$"You carry {total}, over your carrying capacity of {capacity} (Strength × 15 lb., doubled for Large creatures and halved for Tiny ones).");
+		public static string[] EncumbranceEffects(string twice, LanguageCode lang) => lang == LanguageCode.It
+			? new[]
+			{
+				"La tua velocità scende a 1,5 metri: puoi solo spingere, trascinare o sollevare il carico, non viaggiare normalmente.",
+				$"Oltre il doppio della capacità ({twice}) non riesci più a spostarlo affatto.",
+				"Con la regola facoltativa dell'ingombro, già sopra un terzo della capacità la velocità cala di 3 m, e sopra due terzi di 6 m con svantaggio alle prove di caratteristica, ai tiri per colpire e ai tiri salvezza basati su Forza, Destrezza o Costituzione."
+			}
+			: new[]
+			{
+				"Your speed drops to 5 feet: you can only push, drag or lift the load, not travel normally.",
+				$"Beyond twice your capacity ({twice}) you cannot move it at all.",
+				"With the optional encumbrance rule, already above a third of the capacity your speed drops by 10 feet, and above two thirds by 20 feet with disadvantage on ability checks, attack rolls and saving throws that use Strength, Dexterity or Constitution."
+			};
+		public static string EncumbranceHint(LanguageCode lang) => T(lang,
+			"Lascia nello zaino del gruppo, su una cavalcatura o in un carro ciò che non ti serve, oppure vendilo.",
+			"Leave what you do not need with the party, on a mount or in a cart, or sell it.");
 		public static string SheetCarrying(string total, string capacity, LanguageCode lang) => T(lang, $"Peso trasportato: {total} su {capacity}", $"Carried weight: {total} of {capacity}");
 		public static string PlaceholderSearchItem(LanguageCode lang) => T(lang, "Cerca nel compendio o scrivi un oggetto", "Search the compendium or type an item");
 		public static string BtnAddFreeItem(string name, LanguageCode lang) => T(lang, $"Aggiungi \"{name}\"", $"Add \"{name}\"");
@@ -960,6 +980,24 @@ namespace RealmForge.Client.Localization
 		public static string BtnDrink(LanguageCode lang) => T(lang, "Bevi", "Drink");
 		public static string NeedsAttunement(LanguageCode lang) => T(lang, "serve la sintonia", "needs attunement");
 		public static string NeedsEquip(LanguageCode lang) => T(lang, "funziona se equipaggiato", "works when equipped");
+
+		//	Why an item cannot be equipped next to what the character wears and holds
+		public static string EquipBlocked(Shared.Characters.EquipmentRules.Problem problem, string item, string other, LanguageCode lang) => problem switch
+		{
+			Shared.Characters.EquipmentRules.Problem.SecondArmor => T(lang,
+				$"Non puoi indossare «{item}»: hai già addosso «{other}». Si indossa una sola armatura alla volta: togli prima quella.",
+				$"You cannot wear “{item}”: you already wear “{other}”. Only one armor at a time: take that off first."),
+			Shared.Characters.EquipmentRules.Problem.SecondShield => T(lang,
+				$"Non puoi imbracciare «{item}»: hai già «{other}». Si usa un solo scudo alla volta.",
+				$"You cannot hold “{item}”: you already hold “{other}”. Only one shield at a time."),
+			Shared.Characters.EquipmentRules.Problem.HandsFull => T(lang,
+				$"Non hai mani libere per «{item}»: le mani sono occupate da {other}. Un'arma a due mani le occupa entrambe, un'arma a una mano o uno scudo una sola: rimetti nello zaino qualcosa prima.",
+				$"You have no free hand for “{item}”: your hands hold {other}. A two-handed weapon takes both hands, a one-handed weapon or a shield one: put something back in the backpack first."),
+			Shared.Characters.EquipmentRules.Problem.NotLight => T(lang,
+				$"Non puoi impugnare «{item}» nell'altra mano insieme a «{other}»: per combattere con due armi entrambe devono essere leggere (con il talento Combattente a Due Armi basta che siano a una mano).",
+				$"You cannot hold “{item}” in your other hand with “{other}”: to fight with two weapons both must be Light (with the Dual Wielder feat any one-handed weapons will do)."),
+			_ => string.Empty
+		};
 		public static string MagicNewTitle(LanguageCode lang) => T(lang, "Nuovo oggetto magico", "New magic item");
 		public static string MagicEditTitle(string name, LanguageCode lang) => T(lang, $"Proprietà magiche: {name}", $"Magic properties: {name}");
 		public static string MagicTemplate(LanguageCode lang) => T(lang, "Oggetto del manuale", "Item from the rules");
@@ -975,6 +1013,36 @@ namespace RealmForge.Client.Localization
 		public static string MagicChargesMax(LanguageCode lang) => T(lang, "Cariche massime", "Maximum charges");
 		public static string MagicRecharge(LanguageCode lang) => T(lang, "Si ricarica", "Recharges");
 		public static string MagicRechargeDice(LanguageCode lang) => T(lang, "Cariche recuperate (vuoto: tutte)", "Charges regained (empty: all)");
+		public static string MagicSpells(LanguageCode lang) => T(lang, "Incantesimi dell'oggetto", "Spells of the item");
+		public static string MagicSpellCharges(LanguageCode lang) => T(lang, "Cariche", "Charges");
+		public static string MagicSpellLevel(LanguageCode lang) => T(lang, "Livello", "Level");
+		public static string MagicSpellDc(LanguageCode lang) => T(lang, "CD", "DC");
+		public static string MagicSpellSearch(LanguageCode lang) => T(lang, "Aggiungi un incantesimo (es. Palla di fuoco)…", "Add a spell (e.g. Fireball)…");
+		public static string SpellLevelShort(int level, LanguageCode lang) => level == 0 ? T(lang, "trucchetto", "cantrip") : T(lang, $"{level}° liv.", $"level {level}");
+		public static string SheetItemSpells(LanguageCode lang) => T(lang, "Dagli oggetti magici", "From magic items");
+		public static string ItemSpellNoCharge(LanguageCode lang) => T(lang, "senza cariche", "no charge");
+		public static string ItemSpellCharges(int charges, LanguageCode lang) => charges == 1 ? T(lang, "1 carica", "1 charge") : T(lang, $"{charges} cariche", $"{charges} charges");
+		public static string ItemSpellCastHint(int cost, int left, int? level, int? dc, LanguageCode lang)
+		{
+			var parts = new List<string>();
+			if (cost > 0)
+			{
+				parts.Add(T(lang, $"{ItemSpellCharges(cost, lang)} (ne restano {left})", $"{ItemSpellCharges(cost, lang)} ({left} left)"));
+			}
+			else
+			{
+				parts.Add(ItemSpellNoCharge(lang));
+			}
+			if (level is { } l)
+			{
+				parts.Add(T(lang, $"{l}° livello", $"level {l}"));
+			}
+			if (dc is { } d)
+			{
+				parts.Add(T(lang, $"CD {d}", $"DC {d}"));
+			}
+			return string.Join(" · ", parts);
+		}
 		public static string MagicHealDice(LanguageCode lang) => T(lang, "Consumabile che cura (es. 2d4+2)", "Consumable that heals (e.g. 2d4+2)");
 		public static string MagicRemove(LanguageCode lang) => T(lang, "Togli la magia", "Remove the magic");
 			// ===== Changing spells and the spellbook =====
