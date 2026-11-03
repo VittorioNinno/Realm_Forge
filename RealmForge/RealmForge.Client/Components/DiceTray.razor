@@ -40,7 +40,7 @@
         {
             <div class="rf-dice-shared" data-test="dice-shared"><Icon Name="share" /> @shared</div>
         }
-        @if (history.Count > 1)
+        @if (ShowHistory && history.Count > 1)
         {
             <ul class="rf-dice-history">
                 @foreach (var past in history.Skip(1))
@@ -60,6 +60,12 @@
 
     //	Shown under the result when the rolls go to a shared log
     [Parameter] public string? SharedNote { get; set; }
+
+    //	Closes on its own this long after the dice land (the campaign table: the log keeps the roll); 0 keeps it open
+    [Parameter] public int AutoHideMs { get; set; }
+
+    //	The last rolls under the result (the campaign table has its log instead)
+    [Parameter] public bool ShowHistory { get; set; } = true;
 
     private DiceRollResult? current;
     private readonly List<DiceRollResult> history = new();
@@ -106,6 +112,19 @@
         }
         rolling = false;
         StateHasChanged();
+        if (AutoHideMs > 0)
+        {
+            try
+            {
+                await Task.Delay(AutoHideMs, cts.Token);
+            }
+            catch (TaskCanceledException)
+            {
+                return;
+            }
+            current = null;
+            StateHasChanged();
+        }
     }
 
     private void Close()
