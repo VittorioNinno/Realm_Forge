@@ -1659,7 +1659,7 @@ try {
   combatUi.moveLabel = (await page.locator('[data-test=map-move-label]').textContent())?.trim();
   await page.mouse.up();
   results.push(`INFO vtt combat: ${JSON.stringify(combatUi)}`);
-  if (combatUi.combatants !== 4 || combatUi.tokens !== 5 || combatUi.current !== 1 || !/^Round \d+$/.test(combatUi.round) || !combatUi.turnMoved
+  if (combatUi.combatants !== 4 || combatUi.tokens !== 5 || combatUi.current !== 1 || !/^Round \d+$/i.test(combatUi.round) || !combatUi.turnMoved
     || combatUi.rollTray !== 1 || combatUi.goblinConditions !== 'Pr' || combatUi.goblinRing !== '28.57 100' || !/^3 \/ \d+(,\d)? m$/.test(combatUi.moveLabel ?? '')) throw new Error(`unexpected combat: ${JSON.stringify(combatUi)}`);
   ok('virtual tabletop combat: the encounter started on the map (four in the initiative order, tokens for the goblins), the turn passed on, a goblin knocked prone and down to 2 hit points with its initiative rolled from its card, the fight ended, the hero\'s move showing 3 m against its speed');
   await page.locator('[data-test=vtt-back]').click();

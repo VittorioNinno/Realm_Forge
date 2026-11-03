@@ -772,7 +772,7 @@ namespace RealmForge.Api.Controllers
 			characterId is { } id && await _context.Characters.AnyAsync(c => c.Id == id && c.OwnerId == UserId);
 
 		private static MapTokenDto ToDto(CampaignToken t, bool canMove) =>
-			new(t.Id, t.Label, t.Color, t.Kind, t.CharacterId, t.MonsterId, t.X, t.Y, t.Size, t.Hidden, canMove, null, t.Layer);
+			new(t.Id, t.Label, t.Color, t.Kind, t.CharacterId, t.MonsterId, t.X, t.Y, t.Size, t.Hidden, canMove, null, t.Layer, t.CombatantId);
 
 		private static bool UnderFog(CampaignMap map, CampaignToken t)
 		{
