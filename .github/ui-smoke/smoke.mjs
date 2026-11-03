@@ -1559,20 +1559,20 @@ try {
   await page.mouse.move(hx + cellPx * 0.5, hy + cellPx * 0.6, { steps: 3 });
   await page.mouse.move(hx, hy + cellPx * 1.1, { steps: 3 });
   await page.mouse.up();
-  await page.locator('[data-test=map-shape][data-kind=sphere]').waitFor({ timeout: 15000 });
+  await page.locator('[data-test=map-shape][data-kind=sphere]').waitFor({ state: 'attached', timeout: 15000 });
   await page.locator('[data-test=vtt-tool-draw]').click();
   await page.mouse.move(hx - cellPx, hy + cellPx * 4);
   await page.mouse.down();
   await page.mouse.move(hx, hy + cellPx * 4, { steps: 5 });
   await page.mouse.move(hx + cellPx * 2, hy + cellPx * 4, { steps: 5 });
   await page.mouse.up();
-  await page.locator('[data-test=map-shape][data-kind=freehand]').waitFor({ timeout: 15000 });
+  await page.locator('[data-test=map-shape][data-kind=freehand]').waitFor({ state: 'attached', timeout: 15000 });
   await page.locator('[data-test=vtt-tool-text]').click();
   await page.mouse.click(hx + cellPx * 3, hy + cellPx * 2.5);
   await page.locator('[data-test=vtt-text-input]').fill('Porta segreta');
   await page.locator('[data-test=vtt-text-master]').check();
   await page.locator('[data-test=vtt-text-add]').click();
-  await page.locator('[data-test=map-shape][data-kind=note]').waitFor({ timeout: 15000 });
+  await page.locator('[data-test=map-shape][data-kind=note]').waitFor({ state: 'attached', timeout: 15000 });
   const drawUi = {
     sphereCells: await page.locator('[data-test=map-shape][data-kind=sphere] [data-test=map-area-cell]').count(),
     note: (await page.locator('[data-test=map-shape][data-kind=note]').textContent()).trim()
