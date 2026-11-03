@@ -864,9 +864,7 @@ else
                           class="@erasable" data-shape="@sh.Id" data-test="map-shape" data-kind="freehand" />
                 break;
             case ShapeKind.Text:
-                var size = Math.Max(12, grid * 0.35);
-                <text x="@N(sh.Points[0])" y="@N(sh.Points[1])" font-size="@N(size)" font-weight="700" class="rf-vtt-text @(sh.MasterOnly ? "master" : null) @erasable"
-                      fill="@(sh.MasterOnly ? "#c4b5fd" : "#ffffff")" stroke="#0a0a0a" stroke-width="@N(size / 6)" paint-order="stroke" data-shape="@sh.Id" data-test="map-shape" data-kind="@(sh.MasterOnly ? "note" : "text")">@(sh.MasterOnly ? $"✎ {sh.Text}" : sh.Text)</text>
+                @TextMarkup(sh, erasable)
                 break;
             default:
                 var (ox, oy, tx, ty) = (sh.Points[0], sh.Points[1], sh.Points[2], sh.Points[3]);
@@ -888,6 +886,16 @@ else
                 break;
         }
     };
+
+    //	An SVG text written by hand: Razor keeps <text> for itself
+    private MarkupString TextMarkup(MapShapeDto sh, string? erasable)
+    {
+        var size = Math.Max(12, grid * 0.35);
+        var label = System.Net.WebUtility.HtmlEncode(sh.MasterOnly ? $"✎ {sh.Text}" : sh.Text ?? string.Empty);
+        return new MarkupString($"<text x=\"{N(sh.Points[0])}\" y=\"{N(sh.Points[1])}\" font-size=\"{N(size)}\" font-weight=\"700\" class=\"rf-vtt-text {(sh.MasterOnly ? "master" : "")} {erasable}\" "
+            + $"fill=\"{(sh.MasterOnly ? "#c4b5fd" : "#ffffff")}\" stroke=\"#0a0a0a\" stroke-width=\"{N(size / 6)}\" paint-order=\"stroke\" data-shape=\"{sh.Id}\" data-test=\"map-shape\" "
+            + $"data-kind=\"{(sh.MasterOnly ? "note" : "text")}\">{label}</text>");
+    }
 
     private static string PointList(IReadOnlyList<double> values) =>
         string.Join(' ', Enumerable.Range(0, values.Count / 2).Select(i => $"{N(values[2 * i])},{N(values[2 * i + 1])}"));
