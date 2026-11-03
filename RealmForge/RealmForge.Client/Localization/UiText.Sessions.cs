@@ -84,6 +84,32 @@ namespace RealmForge.Client.Localization
 			var local = at.ToLocalTime();
 			return local.Date == DateTimeOffset.Now.Date ? $"{local.ToString("HH':'mm", System.Globalization.CultureInfo.InvariantCulture)}" : $"{FormatDate(local, lang)} {local.ToString("HH':'mm", System.Globalization.CultureInfo.InvariantCulture)}";
 		}
+		public static string DiceConsole(LanguageCode lang) => T(lang, "Console di lancio", "Roller");
+		public static string DiceReset(LanguageCode lang) => T(lang, "Azzera selezione", "Clear selection");
+		public static string DiceVisibility(LanguageCode lang) => T(lang, "Visibilità del tiro", "Roll visibility");
+		public static string DicePublic(LanguageCode lang) => T(lang, "Pubblico", "Public");
+		public static string DicePick(LanguageCode lang) => T(lang, "Seleziona i dadi", "Pick the dice");
+		public static string DicePickHint(LanguageCode lang) => T(lang, "Clic per aggiungere un dado, clic destro per toglierlo", "Click to add a die, right click to remove one");
+		public static string DiceModifier(LanguageCode lang) => T(lang, "Modificatore", "Modifier");
+		public static string DiceModifierShort(LanguageCode lang) => T(lang, "Mod", "Mod");
+		public static string DiceMode(LanguageCode lang) => T(lang, "Modalità del d20", "d20 mode");
+		public static string DiceFormula(LanguageCode lang) => T(lang, "Formula (modificabile)", "Formula (editable)");
+		public static string DiceReasonHint(LanguageCode lang) => T(lang, "Es. Percezione, Iniziativa, Tiro salvezza…", "E.g. Perception, Initiative, Saving throw…");
+		public static string[] DiceQuickReasons(LanguageCode lang) => lang == LanguageCode.It
+			? new[] { "Iniziativa", "Percezione", "Tiro salvezza", "Attacco", "Danni" }
+			: new[] { "Initiative", "Perception", "Saving throw", "Attack", "Damage" };
+		public static string DiceRollButton(string expression, bool hidden, LanguageCode lang) =>
+			T(lang, $"Lancia {expression}", $"Roll {expression}") + (hidden ? T(lang, " (nascosto)", " (hidden)") : string.Empty);
+		public static string DiceLogTitle(LanguageCode lang) => T(lang, "Cronologia dei tiri al tavolo", "Rolls at the table");
+		public static string DiceFilterAll(int count, LanguageCode lang) => T(lang, $"Tutti ({count})", $"All ({count})");
+		public static string DiceFilterPlayers(LanguageCode lang) => T(lang, "Giocatori", "Players");
+		public static string DiceFilterMaster(LanguageCode lang) => T(lang, "Master", "Master");
+		public static string DiceFilterHidden(int count, LanguageCode lang) => T(lang, $"Solo nascosti ({count})", $"Hidden only ({count})");
+		public static string DiceHiddenBadge(LanguageCode lang) => T(lang, "Nascosto dietro lo schermo", "Hidden behind the screen");
+		public static string DiceNatural20(LanguageCode lang) => T(lang, "20 naturale", "Natural 20");
+		public static string DiceNatural1(LanguageCode lang) => T(lang, "1 naturale", "Natural 1");
+		public static string DiceReveal(LanguageCode lang) => T(lang, "Rivela al tavolo", "Show to the table");
+		public static string DiceReroll(LanguageCode lang) => T(lang, "Ritira", "Roll again");
 		public static string SheetRollShared(LanguageCode lang) => T(lang, "Condiviso con la campagna", "Shared with the campaign");
 	}
 }
