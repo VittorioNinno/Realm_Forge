@@ -50,4 +50,16 @@ public class MapGeometryTests
 		Assert.False(MapGeometry.Inside(GridType.Square, 70, 0, 0, 10, 6, 1, 700, 490));
 		Assert.False(MapGeometry.Inside(GridType.HexRows, 70, 0, 0, -1, 0, 1, 700, 490));
 	}
+
+	[Fact]
+	public void A_box_over_one_cell_aligns_the_grid()
+	{
+		Assert.Equal((70, 10, 10), MapGeometry.Calibrate(GridType.Square, 150, 80, 69, 71));
+		foreach (var type in new[] { GridType.HexRows, GridType.HexColumns })
+		{
+			var (w, h) = MapGeometry.Cell(type, 60);
+			var (cx, cy) = MapGeometry.Center(type, 60, 12, 7, 3, 5);
+			Assert.Equal((60, 12, 7), MapGeometry.Calibrate(type, cx - w / 2, cy - h / 2, w, h));
+		}
+	}
 }

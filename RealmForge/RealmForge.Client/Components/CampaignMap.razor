@@ -57,10 +57,10 @@
                 @if (map is not null)
                 {
                     <div class="rf-vtt-corner" role="group" aria-label="@UiText.MapZoom(Lang)">
-                        <button type="button" @onclick="() => Zoom(-1)" aria-label="−" data-test="map-zoom-out">−</button>
+                        <button type="button" @onclick="() => ZoomByHand(-1)" aria-label="−" data-test="map-zoom-out">−</button>
                         <span data-test="map-zoom">@($"{zoom * 100:0}%")</span>
-                        <button type="button" @onclick="() => Zoom(1)" aria-label="+" data-test="map-zoom-in">+</button>
-                        <button type="button" @onclick="FitAsync" title="@UiText.VttFit(Lang)" aria-label="@UiText.VttFit(Lang)" data-test="map-fit"><Icon Name="aspect-ratio" /></button>
+                        <button type="button" @onclick="() => ZoomByHand(1)" aria-label="+" data-test="map-zoom-in">+</button>
+                        <button type="button" @onclick="FitByHand" title="@UiText.VttFit(Lang)" aria-label="@UiText.VttFit(Lang)" data-test="map-fit"><Icon Name="aspect-ratio" /></button>
                     </div>
                 }
             </div>
@@ -90,9 +90,9 @@ else
             @if (map is not null)
             {
                 <div class="rf-vtt-zoom" role="group" aria-label="@UiText.MapZoom(Lang)">
-                    <button type="button" @onclick="() => Zoom(-1)" aria-label="−" data-test="map-zoom-out">−</button>
+                    <button type="button" @onclick="() => ZoomByHand(-1)" aria-label="−" data-test="map-zoom-out">−</button>
                     <span>@($"{zoom * 100:0}%")</span>
-                    <button type="button" @onclick="() => Zoom(1)" aria-label="+" data-test="map-zoom-in">+</button>
+                    <button type="button" @onclick="() => ZoomByHand(1)" aria-label="+" data-test="map-zoom-in">+</button>
                 </div>
             }
             <div class="d-flex flex-wrap gap-2 ms-auto">
@@ -144,12 +144,18 @@ else
                                 <NumberStepper Value="offsetY" ValueChanged="v => offsetY = v" Min="0" Max="@(grid - 1)" AriaLabel="@UiText.MapOffsetY(Lang)" />
                             </div>
                         </div>
+                        <button type="button" class="btn btn-sm btn-rf-outline @(tool == "calibrate" ? "active" : null)" @onclick="ToggleCalibrateAsync" data-test="map-calibrate"><Icon Name="aspect-ratio" /> @UiText.MapCalibrate(Lang)</button>
+                        @if (tool == "calibrate")
+                        {
+                            <p class="small mb-0" style="color: var(--rf-orange-primary);" data-test="map-calibrate-hint">@UiText.MapCalibrateHint(gridType, Lang)</p>
+                        }
                         <label class="rf-checkbox-wrapper small mb-0">
                             <input type="checkbox" class="rf-checkbox" @bind="shown" data-test="map-shown" />
                             <span>@UiText.MapShown(Lang)</span>
                         </label>
                         <div class="d-flex flex-wrap gap-2">
                             <button type="button" class="btn btn-sm btn-rf-orange" @onclick="SaveMapAsync" data-test="map-save">@UiText.MapSave(Lang)</button>
+                            <button type="button" class="btn btn-sm btn-rf-outline" @onclick="DuplicateAsync" data-test="map-duplicate">@UiText.MapDuplicate(Lang)</button>
                             <button type="button" class="btn btn-sm btn-rf-outline" style="border-color: #dc3545; color: #dc3545;" @onclick="() => confirmDelete = true" data-test="map-delete">@UiText.Delete(Lang)</button>
                         </div>
                     </section>
@@ -225,6 +231,9 @@ else
     private List<MapTokenDto> tokens = new();
     private double zoom = 1;
     private bool fitPending;
+
+    //	At the table the map follows the window until the zoom is changed by hand
+    private bool autoFit;
     private string? message;
     private bool busy;
     private bool confirmDelete;
@@ -551,6 +560,7 @@ else
             offsetY = map.GridOffsetY;
             shown = map.Shown;
             fitPending = Table && other;
+            autoFit = autoFit || fitPending;
         }
     }
 
@@ -644,8 +654,32 @@ else
     }
 
     [JSInvokable]
+    public async Task Resized()
+    {
+        if (Table && autoFit)
+        {
+            await FitAsync();
+        }
+    }
+
+    //	The box drawn over one cell of the picture: the cell size and the offsets that put a cell exactly there
+    [JSInvokable]
+    public async Task Calibrated(double x, double y, double width, double height)
+    {
+        await SetToolAsync("select");
+        if (width < 8 || height < 8)
+        {
+            StateHasChanged();
+            return;
+        }
+        (grid, offsetX, offsetY) = MapGeometry.Calibrate(gridType, x, y, width, height);
+        StateHasChanged();
+    }
+
+    [JSInvokable]
     public void Wheel(int direction)
     {
+        autoFit = false;
         Zoom(direction);
         StateHasChanged();
     }
@@ -681,6 +715,35 @@ else
     // ===== View =====
 
     private void Zoom(int direction) => zoom = Math.Clamp(Math.Round((direction > 0 ? zoom * 1.25 : zoom / 1.25) * 100) / 100, 0.1, 3);
+
+    private Task ZoomByHand(int direction)
+    {
+        autoFit = false;
+        Zoom(direction);
+        return Task.CompletedTask;
+    }
+
+    private Task FitByHand()
+    {
+        autoFit = true;
+        return FitAsync();
+    }
+
+    private async Task ToggleCalibrateAsync() => await SetToolAsync(tool == "calibrate" ? "select" : "calibrate");
+
+    private async Task DuplicateAsync()
+    {
+        if (map is null)
+        {
+            return;
+        }
+        var copy = await Campaigns.DuplicateMapAsync(CampaignId, map.Id, UiText.MapCopyName(map.Name, Lang));
+        message = copy is null ? UiText.MapSaveFailed(Lang) : null;
+        if (copy is not null)
+        {
+            await LoadMapsAsync(copy.Id);
+        }
+    }
 
     private async Task FitAsync()
     {
