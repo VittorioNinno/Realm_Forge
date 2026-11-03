@@ -10538,3 +10538,236 @@ textarea.rf-form-control {
         justify-content: space-between;
     }
 }
+
+/* ===== Campaign virtual tabletop: the map with its grid and tokens, the master's panel on the right ===== */
+.rf-vtt-bar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px 16px;
+    margin-bottom: 16px;
+}
+
+.rf-vtt-select {
+    flex: 0 1 320px;
+    min-width: 200px;
+}
+
+.rf-vtt-zoom {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: .8rem;
+    color: var(--rf-text-muted);
+}
+
+    .rf-vtt-zoom button {
+        width: 32px;
+        height: 32px;
+        border-radius: 4px;
+        border: 1px solid var(--rf-border-light);
+        background-color: var(--rf-bg-card);
+        color: var(--rf-text-primary);
+        font-weight: 700;
+    }
+
+.rf-vtt-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    padding: 48px 24px;
+    border-radius: 16px;
+    border: 1px dashed var(--rf-border-light);
+    color: var(--rf-text-muted);
+    text-align: center;
+}
+
+    .rf-vtt-empty .rf-icon {
+        width: 32px;
+        height: 32px;
+        color: var(--rf-orange-primary);
+    }
+
+.rf-vtt-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    align-items: start;
+    gap: 16px;
+}
+
+.rf-vtt-field {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    min-width: 0;
+    margin: 0;
+}
+
+.rf-vtt-label {
+    font-size: .65rem;
+    font-weight: 800;
+    letter-spacing: .07em;
+    text-transform: uppercase;
+    color: var(--rf-text-muted);
+}
+
+    .rf-vtt-layout.master {
+        grid-template-columns: minmax(0, 1fr) 320px;
+    }
+
+.rf-vtt-stage {
+    overflow: auto;
+    max-height: 75vh;
+    border-radius: 8px;
+    border: 1px solid var(--rf-border-subtle);
+    background-color: #050505;
+}
+
+.rf-vtt-map {
+    position: relative;
+    touch-action: none;
+    user-select: none;
+}
+
+    .rf-vtt-map > img {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        pointer-events: none;
+    }
+
+.rf-vtt-grid {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+}
+
+.rf-vtt-token {
+    position: absolute;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    padding: 4px;
+    border-radius: 50%;
+    background-clip: content-box;
+    background-color: var(--rf-token, var(--rf-orange-primary));
+    box-shadow: 0 0 0 2px var(--rf-token, var(--rf-orange-primary)), 0 4px 12px rgba(0, 0, 0, .6);
+    color: #0a0a0a;
+    font-weight: 900;
+    font-size: .8rem;
+    transition: left .15s ease, top .15s ease;
+}
+
+    .rf-vtt-token img {
+        width: 100%;
+        height: 100%;
+        border-radius: 50%;
+        object-fit: cover;
+        pointer-events: none;
+    }
+
+    .rf-vtt-token span {
+        pointer-events: none;
+    }
+
+    .rf-vtt-token.movable {
+        cursor: grab;
+    }
+
+    .rf-vtt-token.dragging {
+        z-index: 10;
+        cursor: grabbing;
+        transition: none;
+        opacity: .9;
+    }
+
+    .rf-vtt-token.selected {
+        box-shadow: 0 0 0 2px var(--rf-token, var(--rf-orange-primary)), 0 0 0 4px #ffffff, 0 4px 12px rgba(0, 0, 0, .6);
+    }
+
+    .rf-vtt-token.hidden-token {
+        opacity: .5;
+        outline: 2px dashed #c4b5fd;
+        outline-offset: 2px;
+    }
+
+.rf-vtt-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.rf-vtt-box {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 16px;
+    border-radius: 8px;
+    border: 1px solid var(--rf-border-subtle);
+    background-color: var(--rf-bg-surface);
+}
+
+.rf-vtt-title {
+    font-size: .7rem;
+    font-weight: 800;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    color: var(--rf-orange-primary);
+    overflow-wrap: anywhere;
+}
+
+.rf-vtt-grid-fields {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 8px;
+}
+
+.rf-vtt-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+    .rf-vtt-chips button {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        min-height: 32px;
+        padding: 0 8px;
+        border-radius: 8px;
+        border: 1px solid var(--rf-border-light);
+        background-color: var(--rf-bg-card);
+        color: var(--rf-text-primary);
+        font-size: .8rem;
+    }
+
+.rf-vtt-color {
+    width: 40px;
+    min-width: 40px;
+    height: 40px;
+    padding: 4px;
+    border-radius: 8px;
+    border: 1px solid var(--rf-border-light);
+    background-color: var(--rf-bg-card);
+}
+
+.rf-vtt-preview {
+    display: block;
+    max-width: 100%;
+    max-height: 240px;
+    border-radius: 8px;
+    border: 1px solid var(--rf-border-subtle);
+}
+
+@media (max-width: 1199.98px) {
+    .rf-vtt-layout.master {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .rf-vtt-grid-fields {
+        grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    }
+}

@@ -72,6 +72,8 @@ namespace RealmForge.Infrastructure.Persistence
 		public DbSet<CampaignEncounter> CampaignEncounters => Set<CampaignEncounter>();
 		public DbSet<CampaignSession> CampaignSessions => Set<CampaignSession>();
 		public DbSet<CampaignRoll> CampaignRolls => Set<CampaignRoll>();
+		public DbSet<CampaignMap> CampaignMaps => Set<CampaignMap>();
+		public DbSet<CampaignToken> CampaignTokens => Set<CampaignToken>();
 
 		//	The bin: deleted characters, campaigns and Homebrew, restorable for a few days
 		public DbSet<TrashEntry> TrashEntries => Set<TrashEntry>();
@@ -593,6 +595,25 @@ namespace RealmForge.Infrastructure.Persistence
 				entity.Property(e => e.UpdatedById).IsRequired().HasMaxLength(450);
 				entity.HasIndex(e => new { e.CampaignId, e.Number });
 				entity.HasOne(e => e.Campaign).WithMany(c => c.Sessions).HasForeignKey(e => e.CampaignId).OnDelete(DeleteBehavior.Cascade);
+			});
+
+			//	Virtual tabletop: maps with their picture, tokens on them
+			modelBuilder.Entity<CampaignMap>(entity =>
+			{
+				entity.HasKey(e => e.Id);
+				entity.Property(e => e.Name).IsRequired().HasMaxLength(120);
+				entity.Property(e => e.Image).IsRequired();
+				entity.HasIndex(e => e.CampaignId);
+				entity.HasOne(e => e.Campaign).WithMany(c => c.Maps).HasForeignKey(e => e.CampaignId).OnDelete(DeleteBehavior.Cascade);
+				entity.HasMany(e => e.Tokens).WithOne(t => t.Map).HasForeignKey(t => t.MapId).OnDelete(DeleteBehavior.Cascade);
+			});
+
+			modelBuilder.Entity<CampaignToken>(entity =>
+			{
+				entity.HasKey(e => e.Id);
+				entity.Property(e => e.Label).IsRequired().HasMaxLength(100);
+				entity.Property(e => e.Color).IsRequired().HasMaxLength(9);
+				entity.HasIndex(e => e.MapId);
 			});
 
 			modelBuilder.Entity<CampaignRoll>(entity =>

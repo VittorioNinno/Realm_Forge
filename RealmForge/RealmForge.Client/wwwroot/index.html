@@ -146,6 +146,28 @@
             img.onerror = () => resolve([0, 0]);
             img.src = src;
         });
+        // The virtual tabletop: where an element is on screen, and a map picture scaled down to max px on its longer side
+        window.rfRect = (el) => {
+            const r = el.getBoundingClientRect();
+            return [r.left, r.top, r.width, r.height];
+        };
+        window.rfResizeImage = (src, max) => new Promise((resolve) => {
+            const img = new Image();
+            img.onload = () => {
+                const scale = Math.min(1, max / Math.max(img.naturalWidth, img.naturalHeight));
+                const width = Math.max(1, Math.round(img.naturalWidth * scale));
+                const height = Math.max(1, Math.round(img.naturalHeight * scale));
+                const canvas = document.createElement('canvas');
+                canvas.width = width;
+                canvas.height = height;
+                const ctx = canvas.getContext('2d');
+                ctx.imageSmoothingQuality = 'high';
+                ctx.drawImage(img, 0, 0, width, height);
+                resolve({ url: canvas.toDataURL('image/jpeg', 0.82), width, height });
+            };
+            img.onerror = () => resolve({ url: '', width: 0, height: 0 });
+            img.src = src;
+        });
         window.rfCropImage = (src, x, y, zoom, size) => new Promise((resolve) => {
             const img = new Image();
             img.onload = () => {
