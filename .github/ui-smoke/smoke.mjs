@@ -1392,9 +1392,9 @@ try {
   await page.locator('[data-test=roll-hidden]').click();
   await page.locator('[data-test=roll-label]').fill('Trappola');
   await page.locator('[data-test=roll-go]').click();
+  campaignUi.tray = await page.locator('[data-test=sheet-last-roll]').waitFor({ timeout: 8000 }).then(() => 1, () => 0);
   const trap = page.locator('[data-test=roll]', { hasText: 'Trappola' });
   await trap.locator('[data-test=roll-reveal]').waitFor({ timeout: 15000 });
-  campaignUi.tray = await page.locator('[data-test=sheet-last-roll]').count();
   // The popup closes on its own once the dice land, and the console starts over
   await page.locator('[data-test=sheet-last-roll]').waitFor({ state: 'detached', timeout: 8000 });
   campaignUi.afterRoll = `${await page.locator('[data-test=roll-expression]').inputValue()}|${await page.locator('[data-test=roll-modifier]').innerText()}|${await page.locator('.rf-dice-pick-btn.selected').count()}`;
