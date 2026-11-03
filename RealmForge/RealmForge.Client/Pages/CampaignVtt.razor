@@ -1,6 +1,7 @@
 ﻿@page "/campaigns/{Id:guid}/vtt"
 @using RealmForge.Client.Localization
 @using RealmForge.Client.Services
+@using RealmForge.Shared.Campaigns
 @using RealmForge.Shared.DTOs
 @using RealmForge.Shared.Enums
 @inject CampaignDataService Campaigns
@@ -22,7 +23,7 @@ else if (campaign is null)
 }
 else
 {
-    <CampaignMap CampaignId="campaign.Id" Role="campaign.MyRole" Characters="campaign.Characters" Table="true" BackHref="@($"campaigns/{campaign.Id}")" />
+    <CampaignMap CampaignId="campaign.Id" Role="campaign.MyRole" Characters="campaign.Characters" Table="true" MyColor="@(campaign.Members.FirstOrDefault(m => m.IsMe)?.Color ?? PlayerColors.Master)" BackHref="@($"campaigns/{campaign.Id}")" />
 }
 
 @code {

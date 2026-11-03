@@ -6,6 +6,8 @@
 @using RealmForge.Shared.Enums
 @inject CampaignDataService Campaigns
 @inject MonsterDataService MonsterService
+@inject EncounterDataService Encounters
+@inject CharacterDataService CharacterService
 @inject LanguageStateService LanguageState
 @inject IJSRuntime JS
 @implements IAsyncDisposable
@@ -17,6 +19,7 @@
 @if (Table)
 {
     <div class="rf-vtt-table" @ref="tableElement" data-test="vtt">
+        <DiceTray @ref="tray" AutoHideMs="1800" ShowHistory="false" />
         <header class="rf-vtt-top">
             <a href="@BackHref" class="rf-vtt-back" data-test="vtt-back"><Icon Name="left" /> <span>@UiText.VttBack(Lang)</span></a>
             @if (maps is { Count: > 0 })
@@ -44,16 +47,100 @@
                 <button type="button" class="@ToolButton("select")" title="@UiText.VttToolSelect(Lang)" aria-label="@UiText.VttToolSelect(Lang)" @onclick="@(() => SetToolAsync("select"))" data-test="vtt-tool-select"><Icon Name="cursor" /></button>
                 <button type="button" class="@ToolButton("pan")" title="@UiText.VttToolPan(Lang)" aria-label="@UiText.VttToolPan(Lang)" @onclick="@(() => SetToolAsync("pan"))" data-test="vtt-tool-pan"><Icon Name="arrows-move" /></button>
                 <button type="button" class="@ToolButton("ruler")" title="@UiText.VttToolRuler(Lang)" aria-label="@UiText.VttToolRuler(Lang)" @onclick="@(() => SetToolAsync("ruler"))" data-test="vtt-tool-ruler"><Icon Name="rulers" /></button>
+                <button type="button" class="@ToolButton("area")" title="@UiText.VttToolArea(Lang)" aria-label="@UiText.VttToolArea(Lang)" @onclick="@(() => SetToolAsync("area"))" data-test="vtt-tool-area"><Icon Name="bullseye" /></button>
+                <button type="button" class="@ToolButton("draw")" title="@UiText.VttToolDraw(Lang)" aria-label="@UiText.VttToolDraw(Lang)" @onclick="@(() => SetToolAsync("draw"))" data-test="vtt-tool-draw"><Icon Name="edit" /></button>
+                <button type="button" class="@ToolButton("text")" title="@UiText.VttToolText(Lang)" aria-label="@UiText.VttToolText(Lang)" @onclick="@(() => SetToolAsync("text"))" data-test="vtt-tool-text"><Icon Name="type" /></button>
+                <button type="button" class="@ToolButton("erase")" title="@UiText.VttToolErase(Lang)" aria-label="@UiText.VttToolErase(Lang)" @onclick="@(() => SetToolAsync("erase"))" data-test="vtt-tool-erase"><Icon Name="eraser" /></button>
                 @if (RunsTheTable)
                 {
+                    <button type="button" class="@ToolButton("fog")" title="@UiText.VttToolFog(Lang)" aria-label="@UiText.VttToolFog(Lang)" @onclick="@(() => SetToolAsync("fog"))" data-test="vtt-tool-fog"><Icon Name="eye-slash" /></button>
                     <span class="rf-vtt-tools-sep"></span>
                     <button type="button" class="rf-vtt-tool @(drawer ? "active" : null)" title="@UiText.VttToolTokens(Lang)" aria-label="@UiText.VttToolTokens(Lang)" @onclick="() => drawer = !drawer" data-test="vtt-tool-tokens"><Icon Name="people" /></button>
                 }
                 <span class="rf-vtt-tools-sep"></span>
                 <button type="button" class="rf-vtt-tool" title="@UiText.VttFullscreen(Lang)" aria-label="@UiText.VttFullscreen(Lang)" @onclick="FullscreenAsync" data-test="vtt-fullscreen"><Icon Name="fullscreen" /></button>
             </nav>
-            <div class="rf-vtt-viewport">
+            <div class="rf-vtt-viewport @(combat is not null ? "has-combat" : null)">
+                @if (Table && combat is not null)
+                {
+                    <div class="rf-vtt-initiative" data-test="vtt-initiative">
+                        <span class="rf-vtt-round" data-test="vtt-round">@UiText.VttRound(combat.Round, Lang)</span>
+                        <div class="rf-vtt-order">
+                            @foreach (var c in combat.Order)
+                            {
+                                var who = c;
+                                var token = who.TokenId is { } tid ? tokens.FirstOrDefault(t => t.Id == tid) : null;
+                                <button type="button" class="rf-vtt-combatant @(combat.CurrentId == who.Id ? "current" : null) @(who.Hidden ? "hidden-token" : null)"
+                                        style="--rf-token: @(token?.Color ?? "#9e9e9e");" @onclick="() => FocusTokenAsync(token)" data-test="vtt-combatant" data-current="@(combat.CurrentId == who.Id ? "1" : "0")">
+                                    <span class="rf-vtt-combatant-init">@(who.Initiative?.ToString() ?? "–")</span>
+                                    <span class="rf-vtt-combatant-name">@who.Name</span>
+                                </button>
+                            }
+                        </div>
+                        @if (RunsTheTable)
+                        {
+                            <button type="button" class="btn btn-sm btn-rf-orange" disabled="@busy" @onclick="NextTurnAsync" data-test="vtt-next-turn">@UiText.VttNextTurn(Lang)</button>
+                            <button type="button" class="btn btn-sm btn-rf-outline" disabled="@busy" @onclick="EndCombatAsync" data-test="vtt-end-combat">@UiText.VttEndCombat(Lang)</button>
+                        }
+                    </div>
+                }
                 @Board
+                @if (map is not null && tool is "area" or "draw" or "text" or "erase" or "fog")
+                {
+                    <div class="rf-vtt-options" data-test="vtt-options">
+                        @if (tool == "area")
+                        {
+                            @foreach (var kind in new[] { ShapeKind.Cone, ShapeKind.Sphere, ShapeKind.Line, ShapeKind.Cube })
+                            {
+                                var k = kind;
+                                <button type="button" class="rf-vtt-chip @(areaKind == k ? "active" : null)" @onclick="() => SetAreaAsync(k)" data-test="vtt-area-@k.ToString().ToLowerInvariant()">@UiText.AreaName(k, Lang)</button>
+                            }
+                            <span class="rf-vtt-options-hint">@UiText.VttAreaHint(Lang)</span>
+                        }
+                        else if (tool == "draw")
+                        {
+                            <input type="color" class="rf-vtt-color small" value="@drawColor" @onchange="SetColorAsync" aria-label="@UiText.MapColor(Lang)" />
+                            <span class="rf-vtt-options-hint">@UiText.VttDrawHint(Lang)</span>
+                        }
+                        else if (tool == "text")
+                        {
+                            @if (textAt is not null)
+                            {
+                                <input class="rf-form-control rf-vtt-text-input" maxlength="@MapRules.MaxShapeText" placeholder="@UiText.VttTextHint(Lang)" @bind="textValue" @bind:event="oninput" @onkeydown="TextKeyAsync" data-test="vtt-text-input" />
+                                <button type="button" class="btn btn-sm btn-rf-orange" disabled="@string.IsNullOrWhiteSpace(textValue)" @onclick="AddTextAsync" data-test="vtt-text-add">@UiText.MapSave(Lang)</button>
+                            }
+                            else
+                            {
+                                <span class="rf-vtt-options-hint">@UiText.VttTextPlace(Lang)</span>
+                            }
+                            @if (RunsTheTable)
+                            {
+                                <label class="rf-checkbox-wrapper small mb-0">
+                                    <input type="checkbox" class="rf-checkbox" @bind="textMasterOnly" data-test="vtt-text-master" />
+                                    <span>@UiText.VttMasterNote(Lang)</span>
+                                </label>
+                            }
+                        }
+                        else if (tool == "fog")
+                        {
+                            <label class="rf-checkbox-wrapper small mb-0">
+                                <input type="checkbox" class="rf-checkbox" checked="@fogEnabled" @onchange="ToggleFogAsync" data-test="vtt-fog-enabled" />
+                                <span>@UiText.VttFogOn(Lang)</span>
+                            </label>
+                            <button type="button" class="rf-vtt-chip @(fogCover ? null : "active")" @onclick="() => SetFogAsync(false, fogBrush)" data-test="vtt-fog-reveal">@UiText.VttFogReveal(Lang)</button>
+                            <button type="button" class="rf-vtt-chip @(fogCover ? "active" : null)" @onclick="() => SetFogAsync(true, fogBrush)" data-test="vtt-fog-cover">@UiText.VttFogCover(Lang)</button>
+                            <button type="button" class="rf-vtt-chip @(fogBrush ? null : "active")" @onclick="() => SetFogAsync(fogCover, false)" data-test="vtt-fog-rect">@UiText.VttFogRect(Lang)</button>
+                            <button type="button" class="rf-vtt-chip @(fogBrush ? "active" : null)" @onclick="() => SetFogAsync(fogCover, true)" data-test="vtt-fog-brush">@UiText.VttFogBrush(Lang)</button>
+                            <button type="button" class="btn btn-sm btn-rf-outline" @onclick="() => FogAllAsync(false)" data-test="vtt-fog-reveal-all">@UiText.VttFogRevealAll(Lang)</button>
+                            <button type="button" class="btn btn-sm btn-rf-outline" @onclick="() => FogAllAsync(true)" data-test="vtt-fog-cover-all">@UiText.VttFogCoverAll(Lang)</button>
+                        }
+                        else
+                        {
+                            <span class="rf-vtt-options-hint">@UiText.VttEraseHint(Lang)</span>
+                            <button type="button" class="btn btn-sm btn-rf-outline" @onclick="ClearShapesAsync" data-test="vtt-clear-shapes">@(RunsTheTable ? UiText.VttClearAll(Lang) : UiText.VttClearMine(Lang))</button>
+                        }
+                    </div>
+                }
                 @if (map is not null)
                 {
                     <div class="rf-vtt-corner" role="group" aria-label="@UiText.MapZoom(Lang)">
@@ -61,6 +148,10 @@
                         <span data-test="map-zoom">@($"{zoom * 100:0}%")</span>
                         <button type="button" @onclick="() => ZoomByHand(1)" aria-label="+" data-test="map-zoom-in">+</button>
                         <button type="button" @onclick="FitByHand" title="@UiText.VttFit(Lang)" aria-label="@UiText.VttFit(Lang)" data-test="map-fit"><Icon Name="aspect-ratio" /></button>
+                        @if (RunsTheTable)
+                        {
+                            <button type="button" @onclick="FocusAsync" title="@UiText.VttFocus(Lang)" aria-label="@UiText.VttFocus(Lang)" data-test="vtt-focus"><Icon Name="crosshair" /></button>
+                        }
                     </div>
                 }
             </div>
@@ -70,6 +161,23 @@
                     <button type="button" class="btn btn-sm btn-rf-orange" @onclick="OpenNewMap" data-test="map-new"><Icon Name="plus" /> @UiText.MapNew(Lang)</button>
                     @if (map is not null)
                     {
+                        @if (combat is null)
+                        {
+                            <section class="rf-vtt-box" data-test="vtt-combat-box">
+                                <span class="rf-vtt-title">@UiText.VttCombat(Lang)</span>
+                                @if (EncounterOptions.Count == 0)
+                                {
+                                    <p class="small mb-0" style="color: var(--rf-text-muted);">@UiText.VttNoEncounters(Lang)</p>
+                                }
+                                else
+                                {
+                                    <div data-test="vtt-encounter">
+                                        <RfSelect TValue="Guid?" @bind-Value="encounterId" Options="EncounterOptions" />
+                                    </div>
+                                    <button type="button" class="btn btn-sm btn-rf-orange" disabled="@(encounterId is null || busy)" @onclick="StartCombatAsync" data-test="vtt-start-combat"><Icon Name="play" /> @UiText.VttStartCombat(Lang)</button>
+                                }
+                            </section>
+                        }
                         @AddTokens
                     }
                 </aside>
@@ -221,6 +329,7 @@ else
     [Parameter] public IReadOnlyList<CampaignCharacterDto> Characters { get; set; } = Array.Empty<CampaignCharacterDto>();
     [Parameter] public bool Table { get; set; }
     [Parameter] public string BackHref { get; set; } = "campaigns";
+    [Parameter] public string MyColor { get; set; } = PlayerColors.Master;
 
     private LanguageCode Lang => LanguageState.CurrentLanguage;
     private bool RunsTheTable => CampaignRules.RunsTheTable(Role);
@@ -239,6 +348,37 @@ else
     private bool confirmDelete;
     private bool drawer;
     private string tool = "select";
+
+    //	Drawings, texts, notes and areas
+    private List<MapShapeDto> shapes = new();
+    private ShapeKind areaKind = ShapeKind.Cone;
+    private string? drawColorChoice;
+    private string drawColor => drawColorChoice ?? MyColor;
+    private (double X, double Y)? textAt;
+    private string? textValue;
+    private bool textMasterOnly;
+
+    //	The fight: the initiative order, the encounters a master can start, the cells moved in the current turn
+    private MapCombatDto? combat;
+    private List<EncounterSummaryDto> encounters = new();
+    private Guid? encounterId;
+    private Dictionary<Guid, int> moved = new();
+    private Guid? movedTurn;
+    private DiceTray? tray;
+
+    //	What a token can roll and how far it moves, read from the sheet or the statblock
+    private sealed record TokenRoll(string Label, string Bonus, string Expression, bool Hidden);
+    private sealed record TokenStats(int? SpeedFeet, List<TokenRoll> Rolls);
+    private readonly Dictionary<string, TokenStats?> stats = new();
+
+    //	Fog of war, pings, the view the masters bring everyone to
+    private bool fogEnabled;
+    private List<double> fog = new();
+    private bool fogCover;
+    private bool fogBrush;
+    private MapPingDto? pingShown;
+    private DateTimeOffset? pingSeen;
+    private DateTimeOffset? focusSeen;
 
     //	Map settings (the board follows them before they are saved)
     private string mapName = string.Empty;
@@ -362,15 +502,21 @@ else
                         </defs>
                         <rect width="@map.Width" height="@map.Height" fill="@($"url(#{patternId})")" />
                     </svg>
-                    @foreach (var t in tokens)
+                    <svg class="rf-vtt-shapes" width="@map.Width" height="@map.Height" viewBox="0 0 @map.Width @map.Height" data-test="map-shapes">
+                        @foreach (var sh in shapes)
+                        {
+                            @ShapeMarkup(sh)
+                        }
+                    </svg>
+                    @foreach (var t in tokens.OrderBy(t => t.Layer == TokenLayer.Below ? 0 : 1))
                     {
                         var (cx, cy) = MapGeometry.Center(gridType, grid, offsetX, offsetY, t.X, t.Y, t.Size);
                         var side = grid * t.Size;
                         var portrait = PortraitOf(t);
                         var summary = Summary(t);
-                        <div class="rf-vtt-token @(t.Hidden ? "hidden-token" : null) @(t.CanMove ? "movable" : null) @(infoToken == t.Id ? "selected" : null)"
+                        <div class="rf-vtt-token @(t.Hidden ? "hidden-token" : null) @(t.Layer == TokenLayer.Below ? "below" : null) @(t.CanMove ? "movable" : null) @(infoToken == t.Id ? "selected" : null) @(IsCurrent(t) ? "current" : null) @(t.Health is { } hl ? $"health-{hl.ToString().ToLowerInvariant()}" : null)"
                              style="left: @(N(cx - side / 2.0))px; top: @(N(cy - side / 2.0))px; width: @(side)px; height: @(side)px; --rf-token: @t.Color;"
-                             data-token="@t.Id" data-movable="@(t.CanMove ? "1" : "0")" data-cx="@N(cx)" data-cy="@N(cy)" data-test="map-token" data-label="@t.Label">
+                             data-token="@t.Id" data-movable="@(t.CanMove ? "1" : "0")" data-cx="@N(cx)" data-cy="@N(cy)" data-speed="@SpeedCells(t)" data-moved="@(moved.GetValueOrDefault(t.Id))" data-size="@t.Size" data-test="map-token" data-label="@t.Label">
                             <span class="rf-vtt-token-face">
                                 @if (portrait is not null)
                                 {
@@ -381,11 +527,67 @@ else
                                     <span>@Initials(t.Label)</span>
                                 }
                             </span>
+                            @if (RunsTheTable && t.Hp is { } hp && t.MaxHp is { } max && max > 0)
+                            {
+                                var share = Math.Clamp(hp / (double)max, 0, 1);
+                                <svg class="rf-vtt-hp" viewBox="0 0 100 100" aria-hidden="true" data-test="map-token-hp-ring">
+                                    <circle cx="50" cy="50" r="47" pathLength="100" stroke-dasharray="@($"{N(share * 100)} 100")" stroke="@HpColor(share)" />
+                                </svg>
+                            }
+                            @if (t.Conditions is { Count: > 0 } conditions)
+                            {
+                                <span class="rf-vtt-conds" data-test="map-token-conditions">
+                                    @foreach (var key in conditions.Take(4))
+                                    {
+                                        <span title="@UiText.ConditionName(key, Lang)">@ConditionShort(key)</span>
+                                    }
+                                    @if (conditions.Count > 4)
+                                    {
+                                        <span>+@(conditions.Count - 4)</span>
+                                    }
+                                </span>
+                            }
                             <span class="rf-vtt-tip" role="tooltip" data-test="map-token-tip">
                                 <strong>@t.Label</strong>
                                 <span>@UiText.TokenKindName(t.Kind, Lang)@(summary is null ? null : $" · {summary}")</span>
+                                @if (t.Conditions is { Count: > 0 } named)
+                                {
+                                    <span>@string.Join(", ", named.Select(k => UiText.ConditionName(k, Lang)))</span>
+                                }
+                                @if (t.Health is { } health)
+                                {
+                                    <span>@UiText.HealthName(health, Lang)</span>
+                                }
                             </span>
                         </div>
+                    }
+                    @if (fogEnabled)
+                    {
+                        <svg class="rf-vtt-fog @(RunsTheTable ? "master" : null)" width="@map.Width" height="@map.Height" viewBox="0 0 @map.Width @map.Height" aria-hidden="true" data-test="map-fog">
+                            <defs>
+                                <mask id="@($"{patternId}-fog")" maskUnits="userSpaceOnUse" x="0" y="0" width="@map.Width" height="@map.Height">
+                                    <rect width="@map.Width" height="@map.Height" fill="#ffffff" />
+                                    @for (var i = 0; i + 4 < fog.Count; i += 5)
+                                    {
+                                        var kind = (int)fog[i];
+                                        var paint = kind is MapFog.Reveal or MapFog.RevealCircle ? "#000000" : "#ffffff";
+                                        if (kind is MapFog.RevealCircle or MapFog.CoverCircle)
+                                        {
+                                            <circle cx="@N(fog[i + 1])" cy="@N(fog[i + 2])" r="@N(fog[i + 3])" fill="@paint" />
+                                        }
+                                        else
+                                        {
+                                            <rect x="@N(fog[i + 1])" y="@N(fog[i + 2])" width="@N(fog[i + 3])" height="@N(fog[i + 4])" fill="@paint" />
+                                        }
+                                    }
+                                </mask>
+                            </defs>
+                            <rect width="@map.Width" height="@map.Height" fill="#0b0b0b" mask="@($"url(#{patternId}-fog)")" />
+                        </svg>
+                    }
+                    @if (pingShown is { } pg)
+                    {
+                        <span class="rf-vtt-ping" @key="pg.At" style="left: @(N(pg.X))px; top: @(N(pg.Y))px; --rf-token: @pg.Color;" data-test="map-ping"></span>
                     }
                     <svg class="rf-vtt-ruler" width="@map.Width" height="@map.Height" viewBox="0 0 @map.Width @map.Height" data-ruler aria-hidden="true"></svg>
                 </div>
@@ -427,6 +629,51 @@ else
                     </div>
                     <a href="@(it.Kind == TokenKind.Npc ? $"npcs/{monster.Id}" : $"monsters?id={monster.Id}")" class="rf-vtt-card-link" target="_blank"><Icon Name="external" /> @UiText.TokenOpenMonster(Lang)</a>
                 }
+                @if (RunsTheTable && it.Hp is { } itHp)
+                {
+                    <div class="rf-vtt-field" data-test="map-token-hp">
+                        <span class="rf-vtt-label">@UiText.TokenHp(it.MaxHp ?? 0, Lang)</span>
+                        <NumberStepper Value="itHp" ValueChanged="v => SetHpAsync(it, v)" Min="0" Max="@((it.MaxHp ?? 0) + 1000)" AriaLabel="@UiText.TokenHp(it.MaxHp ?? 0, Lang)" InputTest="map-token-hp-input" />
+                    </div>
+                }
+                @if (RunsTheTable && it.CharacterId is null)
+                {
+                    <div class="rf-vtt-field">
+                        <span class="rf-vtt-label">@UiText.TokenConditions(Lang)</span>
+                        <div class="rf-vtt-chips small" data-test="map-token-condition-list">
+                            @foreach (var key in EncounterRules.Conditions)
+                            {
+                                var k = key;
+                                var on = it.Conditions?.Contains(k) == true;
+                                <button type="button" class="rf-vtt-chip @(on ? "active" : null)" @onclick="() => ToggleConditionAsync(it, k)" data-test="map-token-condition" data-key="@k">@UiText.ConditionName(k, Lang)</button>
+                            }
+                        </div>
+                    </div>
+                }
+                else if (it.Conditions is { Count: > 0 } shownConditions)
+                {
+                    <div class="rf-vtt-card-sub">@UiText.TokenConditions(Lang): @string.Join(", ", shownConditions.Select(k => UiText.ConditionName(k, Lang)))</div>
+                }
+                @if (CanRoll(it))
+                {
+                    <div class="rf-vtt-field" data-test="map-token-rolls">
+                        <span class="rf-vtt-label">@UiText.TokenRolls(Lang)</span>
+                        @if (StatsOf(it) is { } stats)
+                        {
+                            <div class="rf-vtt-chips small">
+                                @foreach (var r in stats.Rolls)
+                                {
+                                    var roll = r;
+                                    <button type="button" class="rf-vtt-chip" disabled="@busy" @onclick="() => RollAsync(it, roll)" data-test="map-token-roll">@roll.Label <strong>@roll.Bonus</strong></button>
+                                }
+                            </div>
+                        }
+                        else
+                        {
+                            <span class="small" style="color: var(--rf-text-muted);">…</span>
+                        }
+                    </div>
+                }
                 @if (RunsTheTable)
                 {
                     <div class="rf-vtt-card-actions">
@@ -437,6 +684,10 @@ else
                         <label class="rf-checkbox-wrapper small mb-0">
                             <input type="checkbox" class="rf-checkbox" checked="@it.Hidden" @onchange="() => ToggleHiddenAsync(it)" data-test="map-token-hidden" />
                             <span>@UiText.MapTokenHidden(Lang)</span>
+                        </label>
+                        <label class="rf-checkbox-wrapper small mb-0">
+                            <input type="checkbox" class="rf-checkbox" checked="@(it.Layer == TokenLayer.Below)" @onchange="() => ToggleLayerAsync(it)" data-test="map-token-below" />
+                            <span>@UiText.MapTokenBelow(Lang)</span>
                         </label>
                         <button type="button" class="btn btn-sm btn-rf-outline" style="border-color: #dc3545; color: #dc3545;" @onclick="() => RemoveTokenAsync(it)" data-test="map-token-remove"><Icon Name="trash" /> @UiText.BtnRemove(Lang)</button>
                     </div>
@@ -490,6 +741,7 @@ else
         if (RunsTheTable)
         {
             _ = LoadMonstersAsync();
+            _ = LoadEncountersAsync();
         }
         await LoadMapsAsync();
         stop = new CancellationTokenSource();
@@ -520,12 +772,17 @@ else
         {
             attachedTo = stageElement.Id;
             await JS.InvokeVoidAsync("rfVtt.attach", stageElement, self, new { wheelZoom = Table, perCell = UiText.VttPerCell(Lang), unit = UiText.VttUnit(Lang), locale = Lang == LanguageCode.It ? "it-IT" : "en-GB" });
-            await JS.InvokeVoidAsync("rfVtt.tool", stageElement, tool);
+            await JS.InvokeVoidAsync("rfVtt.tool", stageElement, tool, ToolOptions);
         }
         if (fitPending)
         {
             fitPending = false;
             await FitAsync();
+        }
+        if (pendingFocus is { } at)
+        {
+            pendingFocus = null;
+            await JS.InvokeVoidAsync("rfVtt.center", stageElement, at.X, at.Y);
         }
     }
 
@@ -553,6 +810,10 @@ else
         if (map is not null)
         {
             tokens = map.Tokens;
+            shapes = map.Shapes ?? new();
+            ApplyTable(map.Table, first: true);
+            ApplyCombat(map.Combat);
+            _ = PreloadStatsAsync();
             mapName = map.Name;
             gridType = map.GridType;
             grid = map.GridSize;
@@ -612,6 +873,9 @@ else
                 {
                     map = map with { UpdatedAt = state.UpdatedAt, GridType = state.GridType, GridSize = state.GridSize, GridOffsetX = state.GridOffsetX, GridOffsetY = state.GridOffsetY, Shown = state.Shown, Name = state.Name };
                     tokens = state.Tokens;
+                    shapes = state.Shapes ?? new();
+                    ApplyTable(state.Table, first: false);
+                    ApplyCombat(state.Combat);
                     if (!RunsTheTable || Table)
                     {
                         gridType = state.GridType;
@@ -640,6 +904,10 @@ else
     {
         grabbing = false;
         infoToken = Guid.TryParse(id, out var tokenId) && infoToken != tokenId ? tokenId : null;
+        if (InfoToken is { } t && CanRoll(t))
+        {
+            _ = LoadStatsAsync(t);
+        }
         StateHasChanged();
     }
 
@@ -701,6 +969,10 @@ else
         }
         Replace(t with { X = col, Y = row });
         StateHasChanged();
+        if (combat is not null)
+        {
+            moved[t.Id] = moved.GetValueOrDefault(t.Id) + MapGeometry.Distance(gridType, t.X, t.Y, col, row);
+        }
         var result = await Campaigns.MoveTokenAsync(CampaignId, map.Id, t.Id, col, row);
         message = result.Ok ? null : UiText.MapMoveFailed(Lang);
         if (!result.Ok)
@@ -762,9 +1034,536 @@ else
     private async Task SetToolAsync(string name)
     {
         tool = name;
+        textAt = null;
         if (!string.IsNullOrEmpty(stageElement.Id))
         {
-            await JS.InvokeVoidAsync("rfVtt.tool", stageElement, name);
+            await JS.InvokeVoidAsync("rfVtt.tool", stageElement, name, ToolOptions);
+        }
+    }
+
+    private object ToolOptions => new
+    {
+        color = drawColor,
+        area = areaKind.ToString().ToLowerInvariant(),
+        fogMode = fogCover ? "cover" : "reveal",
+        fogShape = fogBrush ? "brush" : "rect",
+        fogBrush = 1
+    };
+
+    // ===== Fog of war, pings, the view =====
+
+    //	What the polling brought: the fog; a new ping is shown for three seconds; the players follow a new view of the masters
+    // ===== The fight =====
+
+    private List<RfSelect<Guid?>.OptionItem> EncounterOptions => encounters
+        .Where(e => e.Status != EncounterStatus.Finished)
+        .Select(e => new RfSelect<Guid?>.OptionItem(e.Id, e.Name)).ToList();
+
+    private bool IsCurrent(MapTokenDto t) => combat?.CurrentId is { } current && t.CombatantId == current;
+
+    private void ApplyCombat(MapCombatDto? fight)
+    {
+        combat = fight;
+        //	A new turn: the cells moved start again
+        if (fight?.CurrentId != movedTurn)
+        {
+            movedTurn = fight?.CurrentId;
+            moved.Clear();
+        }
+    }
+
+    private async Task LoadEncountersAsync()
+    {
+        if (RunsTheTable && Table)
+        {
+            encounters = await Encounters.GetEncountersAsync(CampaignId) ?? new();
+            encounterId ??= EncounterOptions.FirstOrDefault()?.Value;
+        }
+    }
+
+    private async Task StartCombatAsync()
+    {
+        if (map is null || encounterId is not { } id)
+        {
+            return;
+        }
+        busy = true;
+        var result = await Campaigns.StartCombatAsync(CampaignId, map.Id, id);
+        busy = false;
+        message = result.Ok ? null : UiText.MapSaveFailed(Lang);
+        if (result.Ok)
+        {
+            await SelectAsync(map.Id);
+        }
+    }
+
+    private async Task NextTurnAsync()
+    {
+        if (map is null)
+        {
+            return;
+        }
+        busy = true;
+        await Campaigns.NextTurnAsync(CampaignId, map.Id);
+        await RefreshAsync();
+        busy = false;
+    }
+
+    private async Task EndCombatAsync()
+    {
+        if (map is null)
+        {
+            return;
+        }
+        busy = true;
+        await Campaigns.EndCombatAsync(CampaignId, map.Id);
+        combat = null;
+        await LoadEncountersAsync();
+        await RefreshAsync();
+        busy = false;
+    }
+
+    //	The state of the map now, without waiting for the next poll
+    private async Task RefreshAsync()
+    {
+        if (map is null || await Campaigns.GetMapStateAsync(CampaignId, map.Id) is not { } state)
+        {
+            return;
+        }
+        map = map with { UpdatedAt = state.UpdatedAt };
+        tokens = state.Tokens;
+        shapes = state.Shapes ?? new();
+        ApplyTable(state.Table, first: false);
+        ApplyCombat(state.Combat);
+    }
+
+    private async Task FocusTokenAsync(MapTokenDto? t)
+    {
+        if (t is null || string.IsNullOrEmpty(stageElement.Id))
+        {
+            return;
+        }
+        var (x, y) = MapGeometry.Center(gridType, grid, offsetX, offsetY, t.X, t.Y, t.Size);
+        await JS.InvokeVoidAsync("rfVtt.center", stageElement, x, y);
+    }
+
+    private static string HpColor(double share) => share > 0.5 ? "#22c55e" : share > 0.25 ? "#f59e0b" : "#ef4444";
+
+    private string ConditionShort(string key)
+    {
+        var name = UiText.ConditionName(key, Lang);
+        return name.Length <= 2 ? name : name[..2];
+    }
+
+    private async Task SetStateAsync(MapTokenDto t, List<string> conditions, int? hp)
+    {
+        if (map is null)
+        {
+            return;
+        }
+        var changed = t with { Conditions = conditions, Hp = hp ?? t.Hp };
+        Replace(changed);
+        if (!(await Campaigns.SetTokenStateAsync(CampaignId, map.Id, t.Id, conditions, hp)).Ok)
+        {
+            Replace(t);
+            message = UiText.MapSaveFailed(Lang);
+        }
+    }
+
+    private Task ToggleConditionAsync(MapTokenDto t, string key)
+    {
+        var list = (t.Conditions ?? new()).ToList();
+        if (!list.Remove(key))
+        {
+            list.Add(key);
+        }
+        return SetStateAsync(t, list, null);
+    }
+
+    private Task SetHpAsync(MapTokenDto t, int hp) => SetStateAsync(t, (t.Conditions ?? new()).ToList(), hp);
+
+    // ===== Rolls and speed from the sheet or the statblock =====
+
+    private static string StatsKey(MapTokenDto t) => t.CharacterId is { } c ? $"c:{c}" : t.MonsterId is { } m ? $"m:{m}" : string.Empty;
+
+    private TokenStats? StatsOf(MapTokenDto t) => stats.TryGetValue(StatsKey(t), out var found) ? found : null;
+
+    //	My characters roll from the map; the masters roll for the monsters (behind the screen)
+    private bool CanRoll(MapTokenDto t) =>
+        (t.CharacterId is not null && CharacterOf(t)?.IsMine == true) || (RunsTheTable && t.MonsterId is not null && t.CharacterId is null);
+
+    private int? SpeedCells(MapTokenDto t) => StatsOf(t)?.SpeedFeet is { } feet && feet > 0 ? feet / 5 : null;
+
+    private async Task PreloadStatsAsync()
+    {
+        foreach (var t in tokens.Where(t => t.CanMove && (t.CharacterId is not null || t.MonsterId is not null)).DistinctBy(StatsKey).Take(12).ToList())
+        {
+            await LoadStatsAsync(t);
+        }
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task LoadStatsAsync(MapTokenDto t)
+    {
+        var key = StatsKey(t);
+        if (key.Length == 0 || stats.ContainsKey(key))
+        {
+            return;
+        }
+        stats[key] = null;
+        try
+        {
+            stats[key] = t.CharacterId is { } characterId ? await CharacterStatsAsync(characterId) : await MonsterStatsAsync(t.MonsterId!.Value);
+        }
+        catch (Exception)
+        {
+            stats.Remove(key);
+        }
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private static string Bonus(int value) => value >= 0 ? $"+{value}" : value.ToString(CultureInfo.InvariantCulture);
+
+    private static string D20(int bonus) => bonus == 0 ? "1d20" : $"1d20{Bonus(bonus)}";
+
+    private async Task<TokenStats?> CharacterStatsAsync(Guid id)
+    {
+        var character = await CharacterService.GetCharacterAsync(id);
+        if (character is null)
+        {
+            return null;
+        }
+        var context = character.IsOwner && !character.ReadOnly
+            ? await CharacterService.GetContextAsync(character.Ruleset, Lang)
+            : await CharacterService.GetCharacterContextAsync(id, character.Ruleset, Lang);
+        if (context is null)
+        {
+            return null;
+        }
+        var computed = RealmForge.Shared.Characters.CharacterCalculator.Compute(new RealmForge.Shared.Characters.CharacterInput
+        {
+            Name = character.Name,
+            Ruleset = character.Ruleset,
+            SpeciesId = character.SpeciesId,
+            SubspeciesId = character.SubspeciesId,
+            BackgroundId = character.BackgroundId,
+            Build = character.Build,
+            Sheet = character.Sheet,
+            CampaignModuleIds = character.CampaignModuleIds ?? new()
+        }, context);
+        var rolls = new List<TokenRoll> { new(UiText.RollInitiative(Lang), Bonus(computed.Initiative), D20(computed.Initiative), false) };
+        foreach (var attack in computed.Attacks.Take(3))
+        {
+            rolls.Add(new(UiText.RollAttack(attack.Item.Name, Lang), Bonus(attack.AttackBonus), D20(attack.AttackBonus), false));
+            var damage = attack.Damage.Replace(" ", string.Empty);
+            if (System.Text.RegularExpressions.Regex.IsMatch(damage, @"^\d*d\d+([+-]\d+)?$"))
+            {
+                rolls.Add(new(UiText.RollDamage(attack.Item.Name, Lang), damage, damage, false));
+            }
+        }
+        foreach (var ability in Enum.GetValues<AbilityScore>())
+        {
+            rolls.Add(new(UiText.RollSave(UiText.AbilityShort(ability, Lang), Lang), Bonus(computed.SaveBonus(ability)), D20(computed.SaveBonus(ability)), false));
+        }
+        return new TokenStats(computed.Speed, rolls);
+    }
+
+    private async Task<TokenStats?> MonsterStatsAsync(Guid id)
+    {
+        var monster = await MonsterService.GetMonsterAsync(id, Lang);
+        if (monster is null || monster.Abilities.Count < 6)
+        {
+            return null;
+        }
+        int Mod(int score) => (int)Math.Floor((score - 10) / 2.0);
+        var dex = Mod(monster.Abilities[1]);
+        var rolls = new List<TokenRoll> { new(UiText.RollInitiative(Lang), Bonus(dex), D20(dex), true) };
+        foreach (var ability in Enum.GetValues<AbilityScore>())
+        {
+            var mod = Mod(monster.Abilities[(int)ability - 1]);
+            rolls.Add(new(UiText.RollCheck(UiText.AbilityShort(ability, Lang), Lang), Bonus(mod), D20(mod), true));
+        }
+        return new TokenStats(monster.Speed, rolls);
+    }
+
+    private async Task RollAsync(MapTokenDto t, TokenRoll roll)
+    {
+        busy = true;
+        var (result, _) = await Campaigns.RollAsync(CampaignId, new NewCampaignRollDto
+        {
+            Expression = roll.Expression,
+            Label = $"{t.Label}: {roll.Label}",
+            CharacterId = t.CharacterId,
+            Hidden = roll.Hidden
+        });
+        busy = false;
+        message = result is null ? UiText.MapSaveFailed(Lang) : null;
+        if (result is not null && tray is not null)
+        {
+            await tray.ShowAsync(new DiceRollResult(result.Label, result.Dice.Select(d => new DieFace(d.Sides, d.Value, d.Dropped)).ToList(), result.Modifier, result.Total, result.Note));
+        }
+    }
+
+    private void ApplyTable(MapTableDto? table, bool first)
+    {
+        if (table is null)
+        {
+            return;
+        }
+        fogEnabled = table.FogEnabled;
+        fog = table.Fog;
+        if (table.Ping is { } ping && ping.At != pingSeen)
+        {
+            pingSeen = ping.At;
+            if (!first)
+            {
+                ShowPing(ping);
+            }
+        }
+        if (table.Focus is { } focus && focus.At != focusSeen)
+        {
+            focusSeen = focus.At;
+            if (!first && Table && !RunsTheTable)
+            {
+                autoFit = false;
+                zoom = focus.Zoom;
+                pendingFocus = (focus.X, focus.Y);
+            }
+        }
+    }
+
+    private (double X, double Y)? pendingFocus;
+
+    private void ShowPing(MapPingDto ping)
+    {
+        pingShown = ping;
+        _ = Task.Delay(3000).ContinueWith(_ => InvokeAsync(() =>
+        {
+            if (pingShown == ping)
+            {
+                pingShown = null;
+                StateHasChanged();
+            }
+        }));
+    }
+
+    [JSInvokable]
+    public async Task Pinged(double x, double y)
+    {
+        if (map is null)
+        {
+            return;
+        }
+        ShowPing(new MapPingDto(x, y, RunsTheTable ? PlayerColors.Master : MyColor, DateTimeOffset.UtcNow));
+        StateHasChanged();
+        await Campaigns.PingAsync(CampaignId, map.Id, x, y);
+    }
+
+    private async Task FocusAsync()
+    {
+        if (map is null || string.IsNullOrEmpty(stageElement.Id))
+        {
+            return;
+        }
+        var centre = await JS.InvokeAsync<double[]>("rfVtt.view", stageElement);
+        var ok = (await Campaigns.FocusAsync(CampaignId, map.Id, Math.Clamp(centre[0], 0, map.Width), Math.Clamp(centre[1], 0, map.Height), zoom)).Ok;
+        message = ok ? null : UiText.MapSaveFailed(Lang);
+        StateHasChanged();
+    }
+
+    private Task SetFogAsync(bool cover, bool brush)
+    {
+        fogCover = cover;
+        fogBrush = brush;
+        return SetToolAsync("fog");
+    }
+
+    private async Task SaveFogAsync()
+    {
+        if (map is not null)
+        {
+            message = (await Campaigns.SaveFogAsync(CampaignId, map.Id, fogEnabled, fog)).Ok ? null : UiText.MapSaveFailed(Lang);
+        }
+    }
+
+    private async Task ToggleFogAsync()
+    {
+        fogEnabled = !fogEnabled;
+        await SaveFogAsync();
+    }
+
+    private async Task FogAllAsync(bool cover)
+    {
+        fog = cover || map is null ? new() : new() { MapFog.Reveal, 0, 0, map.Width, map.Height };
+        fogEnabled = true;
+        await SaveFogAsync();
+    }
+
+    //	A box (x, y, width, height) or the centres of a brush stroke, revealed or covered
+    [JSInvokable]
+    public async Task FogDrawn(bool brush, double[] numbers)
+    {
+        if (map is null)
+        {
+            return;
+        }
+        var steps = new List<double>();
+        if (brush)
+        {
+            for (var i = 0; i + 1 < numbers.Length; i += 2)
+            {
+                steps.AddRange(new[] { fogCover ? MapFog.CoverCircle : MapFog.RevealCircle, numbers[i], numbers[i + 1], grid, 0 });
+            }
+        }
+        else if (numbers.Length == 4)
+        {
+            steps.AddRange(new[] { fogCover ? MapFog.Cover : MapFog.Reveal, numbers[0], numbers[1], numbers[2], numbers[3] });
+        }
+        if (steps.Count == 0 || (fog.Count + steps.Count) / 5 > MapFog.MaxSteps)
+        {
+            return;
+        }
+        fog = fog.Concat(steps).ToList();
+        fogEnabled = true;
+        StateHasChanged();
+        await SaveFogAsync();
+    }
+
+    private Task SetAreaAsync(ShapeKind kind)
+    {
+        areaKind = kind;
+        return SetToolAsync("area");
+    }
+
+    private Task SetColorAsync(ChangeEventArgs e)
+    {
+        drawColorChoice = e.Value?.ToString();
+        return SetToolAsync("draw");
+    }
+
+    // ===== Drawings, texts, notes, areas =====
+
+    private RenderFragment ShapeMarkup(MapShapeDto sh) => __builder =>
+    {
+        var erasable = sh.CanDelete ? "erasable" : null;
+        switch (sh.Kind)
+        {
+            case ShapeKind.Freehand:
+                <polyline points="@PointList(sh.Points)" fill="none" stroke="@sh.Color" stroke-width="@N(Math.Max(2, grid / 14.0))" stroke-linecap="round" stroke-linejoin="round"
+                          class="@erasable" data-shape="@sh.Id" data-test="map-shape" data-kind="freehand" />
+                break;
+            case ShapeKind.Text:
+                @TextMarkup(sh, erasable)
+                break;
+            default:
+                var (ox, oy, tx, ty) = (sh.Points[0], sh.Points[1], sh.Points[2], sh.Points[3]);
+                var outline = MapAreas.Outline(sh.Kind, ox, oy, tx, ty, sh.Size * (double)grid, grid);
+                <g class="@erasable" data-shape="@sh.Id" data-test="map-shape" data-kind="@sh.Kind.ToString().ToLowerInvariant()">
+                    @foreach (var (c, r) in MapAreas.Cells(gridType, grid, offsetX, offsetY, sh.Kind, ox, oy, tx, ty, sh.Size, map!.Width, map.Height))
+                    {
+                        <polygon points="@PointList(MapAreas.Corners(gridType, grid, offsetX, offsetY, c, r))" fill="@sh.Color" fill-opacity=".28" data-test="map-area-cell" />
+                    }
+                    @if (sh.Kind == ShapeKind.Sphere)
+                    {
+                        <circle cx="@N(ox)" cy="@N(oy)" r="@N(sh.Size * (double)grid)" fill="@sh.Color" fill-opacity=".1" stroke="@sh.Color" stroke-width="@N(2 / zoom)" />
+                    }
+                    else
+                    {
+                        <polygon points="@PointList(outline)" fill="@sh.Color" fill-opacity=".1" stroke="@sh.Color" stroke-width="@N(2 / zoom)" />
+                    }
+                </g>
+                break;
+        }
+    };
+
+    //	An SVG text written by hand: Razor keeps <text> for itself
+    private MarkupString TextMarkup(MapShapeDto sh, string? erasable)
+    {
+        var size = Math.Max(12, grid * 0.35);
+        var label = System.Net.WebUtility.HtmlEncode(sh.MasterOnly ? $"✎ {sh.Text}" : sh.Text ?? string.Empty);
+        return new MarkupString($"<text x=\"{N(sh.Points[0])}\" y=\"{N(sh.Points[1])}\" font-size=\"{N(size)}\" font-weight=\"700\" class=\"rf-vtt-text {(sh.MasterOnly ? "master" : "")} {erasable}\" "
+            + $"fill=\"{(sh.MasterOnly ? "#c4b5fd" : "#ffffff")}\" stroke=\"#0a0a0a\" stroke-width=\"{N(size / 6)}\" paint-order=\"stroke\" data-shape=\"{sh.Id}\" data-test=\"map-shape\" "
+            + $"data-kind=\"{(sh.MasterOnly ? "note" : "text")}\">{label}</text>");
+    }
+
+    private static string PointList(IReadOnlyList<double> values) =>
+        string.Join(' ', Enumerable.Range(0, values.Count / 2).Select(i => $"{N(values[2 * i])},{N(values[2 * i + 1])}"));
+
+    private static string PointList(IReadOnlyList<(double X, double Y)> points) => string.Join(' ', points.Select(p => $"{N(p.X)},{N(p.Y)}"));
+
+    private async Task AddShapeAsync(SaveShapeDto dto)
+    {
+        if (map is null)
+        {
+            return;
+        }
+        var shape = await Campaigns.AddShapeAsync(CampaignId, map.Id, dto);
+        message = shape is null ? UiText.MapSaveFailed(Lang) : null;
+        if (shape is not null)
+        {
+            shapes = shapes.Append(shape).ToList();
+        }
+        StateHasChanged();
+    }
+
+    [JSInvokable]
+    public Task Drawn(double[] points) => AddShapeAsync(new SaveShapeDto { Kind = ShapeKind.Freehand, Points = points.ToList(), Color = drawColorChoice });
+
+    [JSInvokable]
+    public Task AreaDrawn(string kind, double ox, double oy, double tx, double ty, int size) =>
+        Enum.TryParse<ShapeKind>(kind, true, out var k) && MapRules.IsArea(k)
+            ? AddShapeAsync(new SaveShapeDto { Kind = k, Points = new() { ox, oy, tx, ty }, Size = size, Color = drawColorChoice })
+            : Task.CompletedTask;
+
+    [JSInvokable]
+    public void TextAt(double x, double y)
+    {
+        textAt = (x, y);
+        StateHasChanged();
+    }
+
+    private async Task AddTextAsync()
+    {
+        if (textAt is not { } at || string.IsNullOrWhiteSpace(textValue))
+        {
+            return;
+        }
+        await AddShapeAsync(new SaveShapeDto { Kind = ShapeKind.Text, Points = new() { at.X, at.Y }, Text = textValue.Trim(), MasterOnly = RunsTheTable && textMasterOnly });
+        textAt = null;
+        textValue = null;
+    }
+
+    private async Task TextKeyAsync(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
+        {
+            await AddTextAsync();
+        }
+        else if (e.Key == "Escape")
+        {
+            textAt = null;
+        }
+    }
+
+    [JSInvokable]
+    public async Task ShapeErased(string id)
+    {
+        if (map is null || !Guid.TryParse(id, out var shapeId))
+        {
+            return;
+        }
+        if ((await Campaigns.DeleteShapeAsync(CampaignId, map.Id, shapeId)).Ok)
+        {
+            shapes = shapes.Where(x => x.Id != shapeId).ToList();
+            StateHasChanged();
+        }
+    }
+
+    private async Task ClearShapesAsync()
+    {
+        if (map is not null && (await Campaigns.ClearShapesAsync(CampaignId, map.Id)).Ok)
+        {
+            shapes = RunsTheTable ? shapes.Where(x => x.MasterOnly).ToList() : shapes.Where(x => !x.CanDelete || x.MasterOnly).ToList();
         }
     }
 
@@ -970,7 +1769,7 @@ else
 
     private SaveTokenDto ToSave(MapTokenDto t) => new()
     {
-        Label = t.Label, Color = t.Color, Kind = t.Kind, CharacterId = t.CharacterId, MonsterId = t.MonsterId, X = t.X, Y = t.Y, Size = t.Size, Hidden = t.Hidden
+        Label = t.Label, Color = t.Color, Kind = t.Kind, CharacterId = t.CharacterId, MonsterId = t.MonsterId, X = t.X, Y = t.Y, Size = t.Size, Hidden = t.Hidden, Layer = t.Layer
     };
 
     private async Task ResizeAsync(MapTokenDto t, int size)
@@ -995,6 +1794,20 @@ else
             return;
         }
         var changed = t with { Hidden = !t.Hidden };
+        Replace(changed);
+        if (!(await Campaigns.UpdateTokenAsync(CampaignId, map.Id, t.Id, ToSave(changed))).Ok)
+        {
+            Replace(t);
+        }
+    }
+
+    private async Task ToggleLayerAsync(MapTokenDto t)
+    {
+        if (map is null)
+        {
+            return;
+        }
+        var changed = t with { Layer = t.Layer == TokenLayer.Below ? TokenLayer.Tokens : TokenLayer.Below };
         Replace(changed);
         if (!(await Campaigns.UpdateTokenAsync(CampaignId, map.Id, t.Id, ToSave(changed))).Ok)
         {

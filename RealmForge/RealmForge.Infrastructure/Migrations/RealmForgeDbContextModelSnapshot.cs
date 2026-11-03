@@ -527,6 +527,28 @@ namespace RealmForge.Infrastructure.Migrations
                     b.Property<DateTimeOffset>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<Guid?>("EncounterId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset?>("FocusAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<double?>("FocusX")
+                        .HasColumnType("double precision");
+
+                    b.Property<double?>("FocusY")
+                        .HasColumnType("double precision");
+
+                    b.Property<double?>("FocusZoom")
+                        .HasColumnType("double precision");
+
+                    b.PrimitiveCollection<List<double>>("Fog")
+                        .IsRequired()
+                        .HasColumnType("double precision[]");
+
+                    b.Property<bool>("FogEnabled")
+                        .HasColumnType("boolean");
+
                     b.Property<int>("GridOffsetX")
                         .HasColumnType("integer");
 
@@ -551,6 +573,19 @@ namespace RealmForge.Infrastructure.Migrations
                         .HasMaxLength(120)
                         .HasColumnType("character varying(120)");
 
+                    b.Property<DateTimeOffset?>("PingAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("PingColor")
+                        .HasMaxLength(9)
+                        .HasColumnType("character varying(9)");
+
+                    b.Property<double?>("PingX")
+                        .HasColumnType("double precision");
+
+                    b.Property<double?>("PingY")
+                        .HasColumnType("double precision");
+
                     b.Property<bool>("Shown")
                         .HasColumnType("boolean");
 
@@ -565,6 +600,52 @@ namespace RealmForge.Infrastructure.Migrations
                     b.HasIndex("CampaignId");
 
                     b.ToTable("CampaignMaps");
+                });
+
+            modelBuilder.Entity("RealmForge.Domain.Entities.CampaignMapShape", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Color")
+                        .IsRequired()
+                        .HasMaxLength(9)
+                        .HasColumnType("character varying(9)");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("Kind")
+                        .HasColumnType("integer");
+
+                    b.Property<Guid>("MapId")
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("MasterOnly")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("OwnerId")
+                        .IsRequired()
+                        .HasMaxLength(450)
+                        .HasColumnType("character varying(450)");
+
+                    b.PrimitiveCollection<List<double>>("Points")
+                        .IsRequired()
+                        .HasColumnType("double precision[]");
+
+                    b.Property<int>("Size")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Text")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("MapId");
+
+                    b.ToTable("CampaignMapShapes");
                 });
 
             modelBuilder.Entity("RealmForge.Domain.Entities.CampaignMember", b =>
@@ -779,6 +860,13 @@ namespace RealmForge.Infrastructure.Migrations
                         .HasMaxLength(9)
                         .HasColumnType("character varying(9)");
 
+                    b.Property<Guid?>("CombatantId")
+                        .HasColumnType("uuid");
+
+                    b.PrimitiveCollection<List<string>>("Conditions")
+                        .IsRequired()
+                        .HasColumnType("text[]");
+
                     b.Property<bool>("Hidden")
                         .HasColumnType("boolean");
 
@@ -789,6 +877,9 @@ namespace RealmForge.Infrastructure.Migrations
                         .IsRequired()
                         .HasMaxLength(100)
                         .HasColumnType("character varying(100)");
+
+                    b.Property<int>("Layer")
+                        .HasColumnType("integer");
 
                     b.Property<Guid>("MapId")
                         .HasColumnType("uuid");
@@ -2589,6 +2680,17 @@ namespace RealmForge.Infrastructure.Migrations
                     b.Navigation("Campaign");
                 });
 
+            modelBuilder.Entity("RealmForge.Domain.Entities.CampaignMapShape", b =>
+                {
+                    b.HasOne("RealmForge.Domain.Entities.CampaignMap", "Map")
+                        .WithMany("Shapes")
+                        .HasForeignKey("MapId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Map");
+                });
+
             modelBuilder.Entity("RealmForge.Domain.Entities.CampaignMember", b =>
                 {
                     b.HasOne("RealmForge.Domain.Entities.Campaign", "Campaign")
@@ -2936,6 +3038,8 @@ namespace RealmForge.Infrastructure.Migrations
 
             modelBuilder.Entity("RealmForge.Domain.Entities.CampaignMap", b =>
                 {
+                    b.Navigation("Shapes");
+
                     b.Navigation("Tokens");
                 });
 

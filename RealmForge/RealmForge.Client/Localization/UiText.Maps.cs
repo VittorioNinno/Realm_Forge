@@ -92,5 +92,51 @@ namespace RealmForge.Client.Localization
 				"Drag a box exactly over one cell drawn on the map, then save.")
 			: T(lang, "Trascina un riquadro attorno a un esagono disegnato sulla mappa (da lato piatto a lato piatto), poi salva.",
 				"Drag a box around one hexagon drawn on the map (flat side to flat side), then save.");
+		public static string VttToolArea(LanguageCode lang) => T(lang, "Area di un incantesimo", "Spell area");
+		public static string VttToolDraw(LanguageCode lang) => T(lang, "Disegna", "Draw");
+		public static string VttToolText(LanguageCode lang) => T(lang, "Testo e note", "Text and notes");
+		public static string VttToolErase(LanguageCode lang) => T(lang, "Cancella", "Erase");
+		public static string AreaName(ShapeKind kind, LanguageCode lang) => kind switch
+		{
+			ShapeKind.Sphere => T(lang, "Sfera", "Sphere"),
+			ShapeKind.Line => T(lang, "Linea", "Line"),
+			ShapeKind.Cube => T(lang, "Cubo", "Cube"),
+			_ => T(lang, "Cono", "Cone")
+		};
+		public static string VttAreaHint(LanguageCode lang) => T(lang,
+			"Trascina dalla casella di chi lancia verso il bersaglio: le caselle colpite si colorano.",
+			"Drag from the caster's cell towards the target: the cells hit light up.");
+		public static string VttDrawHint(LanguageCode lang) => T(lang, "Trascina sulla mappa per disegnare.", "Drag on the map to draw.");
+		public static string VttTextPlace(LanguageCode lang) => T(lang, "Fai clic sulla mappa dove scrivere.", "Click on the map where to write.");
+		public static string VttTextHint(LanguageCode lang) => T(lang, "Testo…", "Text…");
+		public static string VttMasterNote(LanguageCode lang) => T(lang, "Nota solo per i master", "Note for the masters only");
+		public static string VttEraseHint(LanguageCode lang) => T(lang, "Fai clic su un disegno, un testo o un'area per toglierlo.", "Click a drawing, a text or an area to remove it.");
+		public static string VttClearAll(LanguageCode lang) => T(lang, "Cancella tutti i disegni", "Clear all drawings");
+		public static string VttClearMine(LanguageCode lang) => T(lang, "Cancella i miei disegni", "Clear my drawings");
+		public static string MapTokenBelow(LanguageCode lang) => T(lang, "Sotto gli altri segnalini", "Under the other tokens");
+		public static string VttToolFog(LanguageCode lang) => T(lang, "Nebbia di guerra", "Fog of war");
+		public static string VttFogOn(LanguageCode lang) => T(lang, "Nebbia attiva", "Fog on");
+		public static string VttFogReveal(LanguageCode lang) => T(lang, "Rivela", "Reveal");
+		public static string VttFogCover(LanguageCode lang) => T(lang, "Copri", "Cover");
+		public static string VttFogRect(LanguageCode lang) => T(lang, "Riquadro", "Box");
+		public static string VttFogBrush(LanguageCode lang) => T(lang, "Pennello", "Brush");
+		public static string VttFogRevealAll(LanguageCode lang) => T(lang, "Rivela tutto", "Reveal all");
+		public static string VttFogCoverAll(LanguageCode lang) => T(lang, "Copri tutto", "Cover all");
+		public static string VttFocus(LanguageCode lang) => T(lang, "Porta qui la vista dei giocatori", "Bring the players' view here");
+		public static string VttCombat(LanguageCode lang) => T(lang, "Combattimento", "Combat");
+		public static string VttNoEncounters(LanguageCode lang) => T(lang,
+			"Prepara un incontro nella scheda Incontri della campagna per avviarlo qui.", "Prepare an encounter in the campaign's Encounters tab to start it here.");
+		public static string VttStartCombat(LanguageCode lang) => T(lang, "Avvia sulla mappa", "Start on the map");
+		public static string VttRound(int round, LanguageCode lang) => T(lang, $"Round {round}", $"Round {round}");
+		public static string VttNextTurn(LanguageCode lang) => T(lang, "Turno successivo", "Next turn");
+		public static string VttEndCombat(LanguageCode lang) => T(lang, "Termina", "End");
+		public static string TokenHp(int max, LanguageCode lang) => T(lang, $"Punti ferita (max {max})", $"Hit points (max {max})");
+		public static string TokenConditions(LanguageCode lang) => T(lang, "Condizioni", "Conditions");
+		public static string TokenRolls(LanguageCode lang) => T(lang, "Tiri", "Rolls");
+		public static string RollInitiative(LanguageCode lang) => T(lang, "Iniziativa", "Initiative");
+		public static string RollAttack(string weapon, LanguageCode lang) => T(lang, $"{weapon}: attacco", $"{weapon}: attack");
+		public static string RollDamage(string weapon, LanguageCode lang) => T(lang, $"{weapon}: danni", $"{weapon}: damage");
+		public static string RollSave(string ability, LanguageCode lang) => T(lang, $"TS {ability}", $"{ability} save");
+		public static string RollCheck(string ability, LanguageCode lang) => T(lang, $"Prova {ability}", $"{ability} check");
 	}
 }
