@@ -62,4 +62,18 @@ public class MapGeometryTests
 			Assert.Equal((60, 12, 7), MapGeometry.Calibrate(type, cx - w / 2, cy - h / 2, w, h));
 		}
 	}
+
+	[Fact]
+	public void Spell_areas_cover_the_cells_of_the_rules()
+	{
+		//	A sphere of 1 cell around a square: the cell and its four sides; a line of 3 cells: the next three; a cube of 3:
+		//	three by three in front; a cone of 3: one, then three, then three
+		int Count(ShapeKind kind, double tx, double ty, int size) =>
+			MapAreas.Cells(GridType.Square, 70, 0, 0, kind, 175, 175, tx, ty, size, 1400, 1400).Count;
+		Assert.Equal(5, Count(ShapeKind.Sphere, 175, 175, 1));
+		Assert.Equal(new[] { (3, 2), (4, 2), (5, 2) }, MapAreas.Cells(GridType.Square, 70, 0, 0, ShapeKind.Line, 175, 175, 500, 175, 3, 1400, 1400).OrderBy(c => c.Col));
+		Assert.Equal(9, Count(ShapeKind.Cube, 500, 175, 3));
+		Assert.Equal(7, Count(ShapeKind.Cone, 500, 175, 3));
+		Assert.Equal(6, MapAreas.Corners(GridType.HexRows, 60, 0, 0, 2, 3).Count);
+	}
 }

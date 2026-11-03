@@ -273,6 +273,26 @@ namespace RealmForge.Client.Services
 		public Task<CampaignResult> DeleteTokenAsync(Guid id, Guid mapId, Guid tokenId) =>
 			SendAsync(() => _http.DeleteAsync($"api/campaigns/{id}/maps/{mapId}/tokens/{tokenId}"), "delete token");
 
+		public async Task<MapShapeDto?> AddShapeAsync(Guid id, Guid mapId, SaveShapeDto shape)
+		{
+			try
+			{
+				var response = await _http.PostAsJsonAsync($"api/campaigns/{id}/maps/{mapId}/shapes", shape);
+				return response.IsSuccessStatusCode ? await response.Content.ReadFromJsonAsync<MapShapeDto>() : null;
+			}
+			catch (Exception ex)
+			{
+				_logger.LogError(ex, "Drawing on map {MapId} failed", mapId);
+				return null;
+			}
+		}
+
+		public Task<CampaignResult> DeleteShapeAsync(Guid id, Guid mapId, Guid shapeId) =>
+			SendAsync(() => _http.DeleteAsync($"api/campaigns/{id}/maps/{mapId}/shapes/{shapeId}"), "delete shape");
+
+		public Task<CampaignResult> ClearShapesAsync(Guid id, Guid mapId) =>
+			SendAsync(() => _http.DeleteAsync($"api/campaigns/{id}/maps/{mapId}/shapes"), "clear shapes");
+
 		public Task<CampaignResult> ClearRollsAsync(Guid id) =>
 			SendAsync(() => _http.DeleteAsync($"api/campaigns/{id}/rolls"), "clear rolls");
 	}

@@ -22,7 +22,23 @@ namespace RealmForge.Shared.DTOs
 		int Size,
 		bool Hidden,
 		bool CanMove,
-		string? Portrait = null);
+		string? Portrait = null,
+		TokenLayer Layer = TokenLayer.Tokens);
+
+	///	<summary>
+	///	Something drawn on a map (see CampaignMapShape); CanDelete: the author or a master.
+	///	</summary>
+	public record MapShapeDto(Guid Id, ShapeKind Kind, List<double> Points, string Color, string? Text, int Size, bool MasterOnly, bool CanDelete);
+
+	public class SaveShapeDto
+	{
+		public ShapeKind Kind { get; set; } = ShapeKind.Freehand;
+		public List<double> Points { get; set; } = new();
+		public string? Color { get; set; }
+		public string? Text { get; set; }
+		public int Size { get; set; }
+		public bool MasterOnly { get; set; }
+	}
 
 	///	<summary>
 	///	A map with its picture, its grid and its tokens (the hidden ones only for the masters).
@@ -40,13 +56,14 @@ namespace RealmForge.Shared.DTOs
 		bool CanEdit,
 		DateTimeOffset UpdatedAt,
 		List<MapTokenDto> Tokens,
-		GridType GridType = GridType.Square);
+		GridType GridType = GridType.Square,
+		List<MapShapeDto>? Shapes = null);
 
 	///	<summary>
 	///	What the table polls every few seconds: the grid and the tokens, without the picture.
 	///	</summary>
 	public record MapStateDto(Guid Id, string Name, int GridSize, int GridOffsetX, int GridOffsetY, bool Shown, DateTimeOffset UpdatedAt, List<MapTokenDto> Tokens,
-		GridType GridType = GridType.Square);
+		GridType GridType = GridType.Square, List<MapShapeDto>? Shapes = null);
 
 	///	<summary>
 	///	A new map, or its changes (Image null keeps the picture).
@@ -78,6 +95,7 @@ namespace RealmForge.Shared.DTOs
 		public int Y { get; set; }
 		public int Size { get; set; } = 1;
 		public bool Hidden { get; set; }
+		public TokenLayer Layer { get; set; } = TokenLayer.Tokens;
 	}
 
 	public class MoveTokenDto

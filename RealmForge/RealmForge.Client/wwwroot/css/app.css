@@ -10677,6 +10677,100 @@ textarea.rf-form-control {
     z-index: 30;
 }
 
+/* Drawings, texts, notes and areas: under the tokens; with the eraser they can be clicked */
+.rf-vtt-shapes {
+    position: absolute;
+    top: 0;
+    left: 0;
+    max-width: none;
+    overflow: visible;
+    pointer-events: none;
+}
+
+.rf-vtt-text {
+    font-family: var(--rf-font-display, inherit);
+}
+
+.rf-vtt-stage.tool-erase .rf-vtt-shapes .erasable {
+    pointer-events: visiblePainted;
+    cursor: pointer;
+}
+
+    .rf-vtt-stage.tool-erase .rf-vtt-shapes .erasable:hover {
+        opacity: .6;
+    }
+
+.rf-vtt-stage.tool-erase .rf-vtt-token,
+.rf-vtt-stage.tool-draw .rf-vtt-token,
+.rf-vtt-stage.tool-text .rf-vtt-token,
+.rf-vtt-stage.tool-area .rf-vtt-token {
+    pointer-events: none;
+}
+
+.rf-vtt-stage.tool-draw,
+.rf-vtt-stage.tool-text,
+.rf-vtt-stage.tool-area {
+    cursor: crosshair;
+}
+
+.rf-vtt-token.below {
+    z-index: 0;
+}
+
+    .rf-vtt-token.below .rf-vtt-token-face {
+        border-radius: 8px;
+        box-shadow: 0 0 0 2px var(--rf-token, var(--rf-orange-primary));
+    }
+
+/* The options of the tool in use, over the top of the view */
+.rf-vtt-options {
+    position: absolute;
+    bottom: 16px;
+    left: 16px;
+    z-index: 40;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    max-width: calc(100% - 256px);
+    padding: 8px;
+    border-radius: 8px;
+    border: 1px solid var(--rf-border-light);
+    background-color: rgba(18, 18, 18, .94);
+}
+
+.rf-vtt-options-hint {
+    font-size: .75rem;
+    color: var(--rf-text-muted);
+}
+
+.rf-vtt-chip {
+    min-height: 32px;
+    padding: 0 8px;
+    border-radius: 8px;
+    border: 1px solid var(--rf-border-light);
+    background-color: var(--rf-bg-card);
+    color: var(--rf-text-primary);
+    font-size: .8rem;
+}
+
+    .rf-vtt-chip.active {
+        border-color: var(--rf-orange-primary);
+        color: var(--rf-orange-primary);
+    }
+
+.rf-vtt-color.small {
+    width: 32px;
+    min-width: 32px;
+    height: 32px;
+    padding: 2px;
+}
+
+.rf-vtt-text-input {
+    width: 240px;
+    max-width: 100%;
+}
+
 .rf-vtt-token {
     position: absolute;
     display: flex;

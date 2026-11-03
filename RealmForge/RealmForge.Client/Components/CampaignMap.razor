@@ -44,6 +44,10 @@
                 <button type="button" class="@ToolButton("select")" title="@UiText.VttToolSelect(Lang)" aria-label="@UiText.VttToolSelect(Lang)" @onclick="@(() => SetToolAsync("select"))" data-test="vtt-tool-select"><Icon Name="cursor" /></button>
                 <button type="button" class="@ToolButton("pan")" title="@UiText.VttToolPan(Lang)" aria-label="@UiText.VttToolPan(Lang)" @onclick="@(() => SetToolAsync("pan"))" data-test="vtt-tool-pan"><Icon Name="arrows-move" /></button>
                 <button type="button" class="@ToolButton("ruler")" title="@UiText.VttToolRuler(Lang)" aria-label="@UiText.VttToolRuler(Lang)" @onclick="@(() => SetToolAsync("ruler"))" data-test="vtt-tool-ruler"><Icon Name="rulers" /></button>
+                <button type="button" class="@ToolButton("area")" title="@UiText.VttToolArea(Lang)" aria-label="@UiText.VttToolArea(Lang)" @onclick="@(() => SetToolAsync("area"))" data-test="vtt-tool-area"><Icon Name="bullseye" /></button>
+                <button type="button" class="@ToolButton("draw")" title="@UiText.VttToolDraw(Lang)" aria-label="@UiText.VttToolDraw(Lang)" @onclick="@(() => SetToolAsync("draw"))" data-test="vtt-tool-draw"><Icon Name="edit" /></button>
+                <button type="button" class="@ToolButton("text")" title="@UiText.VttToolText(Lang)" aria-label="@UiText.VttToolText(Lang)" @onclick="@(() => SetToolAsync("text"))" data-test="vtt-tool-text"><Icon Name="type" /></button>
+                <button type="button" class="@ToolButton("erase")" title="@UiText.VttToolErase(Lang)" aria-label="@UiText.VttToolErase(Lang)" @onclick="@(() => SetToolAsync("erase"))" data-test="vtt-tool-erase"><Icon Name="eraser" /></button>
                 @if (RunsTheTable)
                 {
                     <span class="rf-vtt-tools-sep"></span>
@@ -54,6 +58,49 @@
             </nav>
             <div class="rf-vtt-viewport">
                 @Board
+                @if (map is not null && tool is "area" or "draw" or "text" or "erase")
+                {
+                    <div class="rf-vtt-options" data-test="vtt-options">
+                        @if (tool == "area")
+                        {
+                            @foreach (var kind in new[] { ShapeKind.Cone, ShapeKind.Sphere, ShapeKind.Line, ShapeKind.Cube })
+                            {
+                                var k = kind;
+                                <button type="button" class="rf-vtt-chip @(areaKind == k ? "active" : null)" @onclick="() => SetAreaAsync(k)" data-test="vtt-area-@k.ToString().ToLowerInvariant()">@UiText.AreaName(k, Lang)</button>
+                            }
+                            <span class="rf-vtt-options-hint">@UiText.VttAreaHint(Lang)</span>
+                        }
+                        else if (tool == "draw")
+                        {
+                            <input type="color" class="rf-vtt-color small" value="@drawColor" @onchange="SetColorAsync" aria-label="@UiText.MapColor(Lang)" />
+                            <span class="rf-vtt-options-hint">@UiText.VttDrawHint(Lang)</span>
+                        }
+                        else if (tool == "text")
+                        {
+                            @if (textAt is not null)
+                            {
+                                <input class="rf-form-control rf-vtt-text-input" maxlength="@MapRules.MaxShapeText" placeholder="@UiText.VttTextHint(Lang)" @bind="textValue" @bind:event="oninput" @onkeydown="TextKeyAsync" data-test="vtt-text-input" />
+                                <button type="button" class="btn btn-sm btn-rf-orange" disabled="@string.IsNullOrWhiteSpace(textValue)" @onclick="AddTextAsync" data-test="vtt-text-add">@UiText.MapSave(Lang)</button>
+                            }
+                            else
+                            {
+                                <span class="rf-vtt-options-hint">@UiText.VttTextPlace(Lang)</span>
+                            }
+                            @if (RunsTheTable)
+                            {
+                                <label class="rf-checkbox-wrapper small mb-0">
+                                    <input type="checkbox" class="rf-checkbox" @bind="textMasterOnly" data-test="vtt-text-master" />
+                                    <span>@UiText.VttMasterNote(Lang)</span>
+                                </label>
+                            }
+                        }
+                        else
+                        {
+                            <span class="rf-vtt-options-hint">@UiText.VttEraseHint(Lang)</span>
+                            <button type="button" class="btn btn-sm btn-rf-outline" @onclick="ClearShapesAsync" data-test="vtt-clear-shapes">@(RunsTheTable ? UiText.VttClearAll(Lang) : UiText.VttClearMine(Lang))</button>
+                        }
+                    </div>
+                }
                 @if (map is not null)
                 {
                     <div class="rf-vtt-corner" role="group" aria-label="@UiText.MapZoom(Lang)">
@@ -221,6 +268,7 @@ else
     [Parameter] public IReadOnlyList<CampaignCharacterDto> Characters { get; set; } = Array.Empty<CampaignCharacterDto>();
     [Parameter] public bool Table { get; set; }
     [Parameter] public string BackHref { get; set; } = "campaigns";
+    [Parameter] public string MyColor { get; set; } = PlayerColors.Master;
 
     private LanguageCode Lang => LanguageState.CurrentLanguage;
     private bool RunsTheTable => CampaignRules.RunsTheTable(Role);
@@ -239,6 +287,15 @@ else
     private bool confirmDelete;
     private bool drawer;
     private string tool = "select";
+
+    //	Drawings, texts, notes and areas
+    private List<MapShapeDto> shapes = new();
+    private ShapeKind areaKind = ShapeKind.Cone;
+    private string? drawColorChoice;
+    private string drawColor => drawColorChoice ?? MyColor;
+    private (double X, double Y)? textAt;
+    private string? textValue;
+    private bool textMasterOnly;
 
     //	Map settings (the board follows them before they are saved)
     private string mapName = string.Empty;
@@ -362,13 +419,19 @@ else
                         </defs>
                         <rect width="@map.Width" height="@map.Height" fill="@($"url(#{patternId})")" />
                     </svg>
-                    @foreach (var t in tokens)
+                    <svg class="rf-vtt-shapes" width="@map.Width" height="@map.Height" viewBox="0 0 @map.Width @map.Height" data-test="map-shapes">
+                        @foreach (var sh in shapes)
+                        {
+                            @ShapeMarkup(sh)
+                        }
+                    </svg>
+                    @foreach (var t in tokens.OrderBy(t => t.Layer == TokenLayer.Below ? 0 : 1))
                     {
                         var (cx, cy) = MapGeometry.Center(gridType, grid, offsetX, offsetY, t.X, t.Y, t.Size);
                         var side = grid * t.Size;
                         var portrait = PortraitOf(t);
                         var summary = Summary(t);
-                        <div class="rf-vtt-token @(t.Hidden ? "hidden-token" : null) @(t.CanMove ? "movable" : null) @(infoToken == t.Id ? "selected" : null)"
+                        <div class="rf-vtt-token @(t.Hidden ? "hidden-token" : null) @(t.Layer == TokenLayer.Below ? "below" : null) @(t.CanMove ? "movable" : null) @(infoToken == t.Id ? "selected" : null)"
                              style="left: @(N(cx - side / 2.0))px; top: @(N(cy - side / 2.0))px; width: @(side)px; height: @(side)px; --rf-token: @t.Color;"
                              data-token="@t.Id" data-movable="@(t.CanMove ? "1" : "0")" data-cx="@N(cx)" data-cy="@N(cy)" data-test="map-token" data-label="@t.Label">
                             <span class="rf-vtt-token-face">
@@ -437,6 +500,10 @@ else
                         <label class="rf-checkbox-wrapper small mb-0">
                             <input type="checkbox" class="rf-checkbox" checked="@it.Hidden" @onchange="() => ToggleHiddenAsync(it)" data-test="map-token-hidden" />
                             <span>@UiText.MapTokenHidden(Lang)</span>
+                        </label>
+                        <label class="rf-checkbox-wrapper small mb-0">
+                            <input type="checkbox" class="rf-checkbox" checked="@(it.Layer == TokenLayer.Below)" @onchange="() => ToggleLayerAsync(it)" data-test="map-token-below" />
+                            <span>@UiText.MapTokenBelow(Lang)</span>
                         </label>
                         <button type="button" class="btn btn-sm btn-rf-outline" style="border-color: #dc3545; color: #dc3545;" @onclick="() => RemoveTokenAsync(it)" data-test="map-token-remove"><Icon Name="trash" /> @UiText.BtnRemove(Lang)</button>
                     </div>
@@ -520,7 +587,7 @@ else
         {
             attachedTo = stageElement.Id;
             await JS.InvokeVoidAsync("rfVtt.attach", stageElement, self, new { wheelZoom = Table, perCell = UiText.VttPerCell(Lang), unit = UiText.VttUnit(Lang), locale = Lang == LanguageCode.It ? "it-IT" : "en-GB" });
-            await JS.InvokeVoidAsync("rfVtt.tool", stageElement, tool);
+            await JS.InvokeVoidAsync("rfVtt.tool", stageElement, tool, ToolOptions);
         }
         if (fitPending)
         {
@@ -553,6 +620,7 @@ else
         if (map is not null)
         {
             tokens = map.Tokens;
+            shapes = map.Shapes ?? new();
             mapName = map.Name;
             gridType = map.GridType;
             grid = map.GridSize;
@@ -612,6 +680,7 @@ else
                 {
                     map = map with { UpdatedAt = state.UpdatedAt, GridType = state.GridType, GridSize = state.GridSize, GridOffsetX = state.GridOffsetX, GridOffsetY = state.GridOffsetY, Shown = state.Shown, Name = state.Name };
                     tokens = state.Tokens;
+                    shapes = state.Shapes ?? new();
                     if (!RunsTheTable || Table)
                     {
                         gridType = state.GridType;
@@ -762,9 +831,142 @@ else
     private async Task SetToolAsync(string name)
     {
         tool = name;
+        textAt = null;
         if (!string.IsNullOrEmpty(stageElement.Id))
         {
-            await JS.InvokeVoidAsync("rfVtt.tool", stageElement, name);
+            await JS.InvokeVoidAsync("rfVtt.tool", stageElement, name, ToolOptions);
+        }
+    }
+
+    private object ToolOptions => new { color = drawColor, area = areaKind.ToString().ToLowerInvariant() };
+
+    private Task SetAreaAsync(ShapeKind kind)
+    {
+        areaKind = kind;
+        return SetToolAsync("area");
+    }
+
+    private Task SetColorAsync(ChangeEventArgs e)
+    {
+        drawColorChoice = e.Value?.ToString();
+        return SetToolAsync("draw");
+    }
+
+    // ===== Drawings, texts, notes, areas =====
+
+    private RenderFragment ShapeMarkup(MapShapeDto sh) => __builder =>
+    {
+        var erasable = sh.CanDelete ? "erasable" : null;
+        switch (sh.Kind)
+        {
+            case ShapeKind.Freehand:
+                <polyline points="@PointList(sh.Points)" fill="none" stroke="@sh.Color" stroke-width="@N(Math.Max(2, grid / 14.0))" stroke-linecap="round" stroke-linejoin="round"
+                          class="@erasable" data-shape="@sh.Id" data-test="map-shape" data-kind="freehand" />
+                break;
+            case ShapeKind.Text:
+                var size = Math.Max(12, grid * 0.35);
+                <text x="@N(sh.Points[0])" y="@N(sh.Points[1])" font-size="@N(size)" font-weight="700" class="rf-vtt-text @(sh.MasterOnly ? "master" : null) @erasable"
+                      fill="@(sh.MasterOnly ? "#c4b5fd" : "#ffffff")" stroke="#0a0a0a" stroke-width="@N(size / 6)" paint-order="stroke" data-shape="@sh.Id" data-test="map-shape" data-kind="@(sh.MasterOnly ? "note" : "text")">@(sh.MasterOnly ? $"✎ {sh.Text}" : sh.Text)</text>
+                break;
+            default:
+                var (ox, oy, tx, ty) = (sh.Points[0], sh.Points[1], sh.Points[2], sh.Points[3]);
+                var outline = MapAreas.Outline(sh.Kind, ox, oy, tx, ty, sh.Size * (double)grid, grid);
+                <g class="@erasable" data-shape="@sh.Id" data-test="map-shape" data-kind="@sh.Kind.ToString().ToLowerInvariant()">
+                    @foreach (var (c, r) in MapAreas.Cells(gridType, grid, offsetX, offsetY, sh.Kind, ox, oy, tx, ty, sh.Size, map!.Width, map.Height))
+                    {
+                        <polygon points="@PointList(MapAreas.Corners(gridType, grid, offsetX, offsetY, c, r))" fill="@sh.Color" fill-opacity=".28" data-test="map-area-cell" />
+                    }
+                    @if (sh.Kind == ShapeKind.Sphere)
+                    {
+                        <circle cx="@N(ox)" cy="@N(oy)" r="@N(sh.Size * (double)grid)" fill="@sh.Color" fill-opacity=".1" stroke="@sh.Color" stroke-width="@N(2 / zoom)" />
+                    }
+                    else
+                    {
+                        <polygon points="@PointList(outline)" fill="@sh.Color" fill-opacity=".1" stroke="@sh.Color" stroke-width="@N(2 / zoom)" />
+                    }
+                </g>
+                break;
+        }
+    };
+
+    private static string PointList(IReadOnlyList<double> values) =>
+        string.Join(' ', Enumerable.Range(0, values.Count / 2).Select(i => $"{N(values[2 * i])},{N(values[2 * i + 1])}"));
+
+    private static string PointList(IReadOnlyList<(double X, double Y)> points) => string.Join(' ', points.Select(p => $"{N(p.X)},{N(p.Y)}"));
+
+    private async Task AddShapeAsync(SaveShapeDto dto)
+    {
+        if (map is null)
+        {
+            return;
+        }
+        var shape = await Campaigns.AddShapeAsync(CampaignId, map.Id, dto);
+        message = shape is null ? UiText.MapSaveFailed(Lang) : null;
+        if (shape is not null)
+        {
+            shapes = shapes.Append(shape).ToList();
+        }
+        StateHasChanged();
+    }
+
+    [JSInvokable]
+    public Task Drawn(double[] points) => AddShapeAsync(new SaveShapeDto { Kind = ShapeKind.Freehand, Points = points.ToList(), Color = drawColorChoice });
+
+    [JSInvokable]
+    public Task AreaDrawn(string kind, double ox, double oy, double tx, double ty, int size) =>
+        Enum.TryParse<ShapeKind>(kind, true, out var k) && MapRules.IsArea(k)
+            ? AddShapeAsync(new SaveShapeDto { Kind = k, Points = new() { ox, oy, tx, ty }, Size = size, Color = drawColorChoice })
+            : Task.CompletedTask;
+
+    [JSInvokable]
+    public void TextAt(double x, double y)
+    {
+        textAt = (x, y);
+        StateHasChanged();
+    }
+
+    private async Task AddTextAsync()
+    {
+        if (textAt is not { } at || string.IsNullOrWhiteSpace(textValue))
+        {
+            return;
+        }
+        await AddShapeAsync(new SaveShapeDto { Kind = ShapeKind.Text, Points = new() { at.X, at.Y }, Text = textValue.Trim(), MasterOnly = RunsTheTable && textMasterOnly });
+        textAt = null;
+        textValue = null;
+    }
+
+    private async Task TextKeyAsync(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
+        {
+            await AddTextAsync();
+        }
+        else if (e.Key == "Escape")
+        {
+            textAt = null;
+        }
+    }
+
+    [JSInvokable]
+    public async Task ShapeErased(string id)
+    {
+        if (map is null || !Guid.TryParse(id, out var shapeId))
+        {
+            return;
+        }
+        if ((await Campaigns.DeleteShapeAsync(CampaignId, map.Id, shapeId)).Ok)
+        {
+            shapes = shapes.Where(x => x.Id != shapeId).ToList();
+            StateHasChanged();
+        }
+    }
+
+    private async Task ClearShapesAsync()
+    {
+        if (map is not null && (await Campaigns.ClearShapesAsync(CampaignId, map.Id)).Ok)
+        {
+            shapes = RunsTheTable ? shapes.Where(x => x.MasterOnly).ToList() : shapes.Where(x => !x.CanDelete || x.MasterOnly).ToList();
         }
     }
 
@@ -970,7 +1172,7 @@ else
 
     private SaveTokenDto ToSave(MapTokenDto t) => new()
     {
-        Label = t.Label, Color = t.Color, Kind = t.Kind, CharacterId = t.CharacterId, MonsterId = t.MonsterId, X = t.X, Y = t.Y, Size = t.Size, Hidden = t.Hidden
+        Label = t.Label, Color = t.Color, Kind = t.Kind, CharacterId = t.CharacterId, MonsterId = t.MonsterId, X = t.X, Y = t.Y, Size = t.Size, Hidden = t.Hidden, Layer = t.Layer
     };
 
     private async Task ResizeAsync(MapTokenDto t, int size)
@@ -995,6 +1197,20 @@ else
             return;
         }
         var changed = t with { Hidden = !t.Hidden };
+        Replace(changed);
+        if (!(await Campaigns.UpdateTokenAsync(CampaignId, map.Id, t.Id, ToSave(changed))).Ok)
+        {
+            Replace(t);
+        }
+    }
+
+    private async Task ToggleLayerAsync(MapTokenDto t)
+    {
+        if (map is null)
+        {
+            return;
+        }
+        var changed = t with { Layer = t.Layer == TokenLayer.Below ? TokenLayer.Tokens : TokenLayer.Below };
         Replace(changed);
         if (!(await Campaigns.UpdateTokenAsync(CampaignId, map.Id, t.Id, ToSave(changed))).Ok)
         {

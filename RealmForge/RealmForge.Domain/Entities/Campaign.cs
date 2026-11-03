@@ -58,6 +58,26 @@ namespace RealmForge.Domain.Entities
 		//	Changes with the map and with every token, so that the tables refresh what moved
 		public DateTimeOffset UpdatedAt { get; set; } = DateTimeOffset.UtcNow;
 		public ICollection<CampaignToken> Tokens { get; set; } = new List<CampaignToken>();
+		public ICollection<CampaignMapShape> Shapes { get; set; } = new List<CampaignMapShape>();
+	}
+
+	///	<summary>
+	///	Something drawn on a map: a stroke, a text, a note for the masters only, the area of a spell. Points in pixels of the
+	///	picture; Size is the length of an area in cells.
+	///	</summary>
+	public class CampaignMapShape
+	{
+		public Guid Id { get; set; } = Guid.NewGuid();
+		public Guid MapId { get; set; }
+		public CampaignMap Map { get; set; } = null!;
+		public string OwnerId { get; set; } = string.Empty;
+		public ShapeKind Kind { get; set; } = ShapeKind.Freehand;
+		public List<double> Points { get; set; } = new();
+		public string Color { get; set; } = PlayerColors.Master;
+		public string? Text { get; set; }
+		public int Size { get; set; }
+		public bool MasterOnly { get; set; }
+		public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
 	}
 
 	///	<summary>
@@ -78,6 +98,9 @@ namespace RealmForge.Domain.Entities
 		public int Y { get; set; }
 		public int Size { get; set; } = 1;
 		public bool Hidden { get; set; }
+
+		//	Props under the other tokens (a chest, a cart)
+		public TokenLayer Layer { get; set; } = TokenLayer.Tokens;
 		public DateTimeOffset UpdatedAt { get; set; } = DateTimeOffset.UtcNow;
 	}
 

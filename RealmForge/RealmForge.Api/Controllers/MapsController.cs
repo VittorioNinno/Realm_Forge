@@ -56,7 +56,7 @@ namespace RealmForge.Api.Controllers
 			}
 			var tokens = await TokensAsync(map, role.Value);
 			return Ok(new CampaignMapDto(map.Id, map.Name, map.Image, map.Width, map.Height, map.GridSize, map.GridOffsetX, map.GridOffsetY,
-				map.Shown, CampaignRules.RunsTheTable(role.Value), map.UpdatedAt, tokens, map.GridType));
+				map.Shown, CampaignRules.RunsTheTable(role.Value), map.UpdatedAt, tokens, map.GridType, ShapesOf(map, role.Value)));
 		}
 
 		//	GET: api/campaigns/{campaignId}/maps/{mapId}/state — what the table polls: the grid and the tokens
@@ -69,7 +69,7 @@ namespace RealmForge.Api.Controllers
 				return NotFound();
 			}
 			return Ok(new MapStateDto(map.Id, map.Name, map.GridSize, map.GridOffsetX, map.GridOffsetY, map.Shown, map.UpdatedAt,
-				await TokensAsync(map, role.Value), map.GridType));
+				await TokensAsync(map, role.Value), map.GridType, ShapesOf(map, role.Value)));
 		}
 
 		//	POST: api/campaigns/{campaignId}/maps — masters and co-masters
@@ -157,7 +157,15 @@ namespace RealmForge.Api.Controllers
 				copy.Tokens.Add(new CampaignToken
 				{
 					Label = t.Label, Color = t.Color, Kind = t.Kind, CharacterId = t.CharacterId, MonsterId = t.MonsterId,
-					X = t.X, Y = t.Y, Size = t.Size, Hidden = t.Hidden
+					X = t.X, Y = t.Y, Size = t.Size, Hidden = t.Hidden, Layer = t.Layer
+				});
+			}
+			foreach (var shape in map.Shapes)
+			{
+				copy.Shapes.Add(new CampaignMapShape
+				{
+					OwnerId = shape.OwnerId, Kind = shape.Kind, Points = shape.Points.ToList(), Color = shape.Color, Text = shape.Text,
+					Size = shape.Size, MasterOnly = shape.MasterOnly
 				});
 			}
 			_context.CampaignMaps.Add(copy);
@@ -306,6 +314,97 @@ namespace RealmForge.Api.Controllers
 			return NoContent();
 		}
 
+		// ===== Drawings, texts, notes, areas =====
+
+		//	POST: api/campaigns/{campaignId}/maps/{mapId}/shapes — everyone at the table draws; only the masters write notes
+		//	for themselves
+		[HttpPost("{mapId:guid}/shapes")]
+		public async Task<ActionResult<MapShapeDto>> AddShape(Guid campaignId, Guid mapId, [FromBody] SaveShapeDto dto)
+		{
+			var (map, role) = await LoadAsync(campaignId, mapId, withTokens: true);
+			if (map is null || role is null)
+			{
+				return NotFound();
+			}
+			var runs = CampaignRules.RunsTheTable(role.Value);
+			if (dto.MasterOnly && !runs)
+			{
+				return Forbid();
+			}
+			var needed = dto.Kind switch
+			{
+				ShapeKind.Freehand => 4,
+				ShapeKind.Text => 2,
+				_ => 4
+			};
+			if (!Enum.IsDefined(dto.Kind) || dto.Points.Count < needed || dto.Points.Count > MapRules.MaxShapePoints || dto.Points.Count % 2 == 1
+				|| dto.Points.Any(v => double.IsNaN(v) || double.IsInfinity(v) || v < -map.Width - map.Height || v > 2 * (map.Width + map.Height))
+				|| (dto.Kind == ShapeKind.Text && (string.IsNullOrWhiteSpace(dto.Text) || dto.Text.Trim().Length > MapRules.MaxShapeText))
+				|| (MapRules.IsArea(dto.Kind) && dto.Size is < 1 or > MapRules.MaxAreaSize)
+				|| (dto.Color is { } color && !System.Text.RegularExpressions.Regex.IsMatch(color, "^#[0-9a-fA-F]{6}$")))
+			{
+				return Problem(statusCode: StatusCodes.Status400BadRequest, title: "Kind, points, text, size or colour out of range.");
+			}
+			if (map.Shapes.Count >= MapRules.MaxShapes)
+			{
+				return Problem(statusCode: StatusCodes.Status400BadRequest, title: $"At most {MapRules.MaxShapes} drawings per map.");
+			}
+			var colors = await CampaignAccess.EnsureColorsAsync(_context, campaignId);
+			var shape = new CampaignMapShape
+			{
+				MapId = map.Id,
+				OwnerId = UserId,
+				Kind = dto.Kind,
+				Points = dto.Points.Select(v => Math.Round(v, 1)).ToList(),
+				Color = dto.Color ?? (runs ? PlayerColors.Master : colors.TryGetValue(UserId, out var mine) ? mine : PlayerColors.Master),
+				Text = dto.Kind == ShapeKind.Text ? dto.Text!.Trim() : null,
+				Size = MapRules.IsArea(dto.Kind) ? dto.Size : 0,
+				MasterOnly = dto.MasterOnly
+			};
+			_context.CampaignMapShapes.Add(shape);
+			map.UpdatedAt = DateTimeOffset.UtcNow;
+			await _context.SaveChangesAsync();
+			return Ok(new MapShapeDto(shape.Id, shape.Kind, shape.Points, shape.Color, shape.Text, shape.Size, shape.MasterOnly, true));
+		}
+
+		//	DELETE: api/campaigns/{campaignId}/maps/{mapId}/shapes/{shapeId} — its author or a master
+		[HttpDelete("{mapId:guid}/shapes/{shapeId:guid}")]
+		public async Task<IActionResult> DeleteShape(Guid campaignId, Guid mapId, Guid shapeId)
+		{
+			var (map, role) = await LoadAsync(campaignId, mapId, withTokens: true);
+			var shape = map?.Shapes.FirstOrDefault(s => s.Id == shapeId);
+			if (map is null || role is null || shape is null || (shape.MasterOnly && !CampaignRules.RunsTheTable(role.Value)))
+			{
+				return NotFound();
+			}
+			if (!CampaignRules.RunsTheTable(role.Value) && shape.OwnerId != UserId)
+			{
+				return Forbid();
+			}
+			_context.CampaignMapShapes.Remove(shape);
+			map.UpdatedAt = DateTimeOffset.UtcNow;
+			await _context.SaveChangesAsync();
+			return NoContent();
+		}
+
+		//	DELETE: api/campaigns/{campaignId}/maps/{mapId}/shapes — clears the drawings and areas: a master all of them, a
+		//	player their own (the masters' notes stay)
+		[HttpDelete("{mapId:guid}/shapes")]
+		public async Task<IActionResult> ClearShapes(Guid campaignId, Guid mapId)
+		{
+			var (map, role) = await LoadAsync(campaignId, mapId, withTokens: true);
+			if (map is null || role is null)
+			{
+				return NotFound();
+			}
+			var runs = CampaignRules.RunsTheTable(role.Value);
+			var gone = map.Shapes.Where(s => !s.MasterOnly && (runs || s.OwnerId == UserId)).ToList();
+			_context.CampaignMapShapes.RemoveRange(gone);
+			map.UpdatedAt = DateTimeOffset.UtcNow;
+			await _context.SaveChangesAsync();
+			return NoContent();
+		}
+
 		// ===== Helpers =====
 
 		//	The map and the role of the account; a player only reaches the maps shown
@@ -318,7 +417,7 @@ namespace RealmForge.Api.Controllers
 			var query = _context.CampaignMaps.Where(m => m.Id == mapId && m.CampaignId == campaignId);
 			if (withTokens)
 			{
-				query = query.Include(m => m.Tokens);
+				query = query.Include(m => m.Tokens).Include(m => m.Shapes);
 			}
 			var map = await query.FirstOrDefaultAsync();
 			if (map is null || (!CampaignRules.RunsTheTable(role) && !map.Shown))
@@ -337,7 +436,8 @@ namespace RealmForge.Api.Controllers
 			return map.Tokens
 				.Where(t => runs || !t.Hidden)
 				.OrderBy(t => t.Kind).ThenBy(t => t.Label)
-				.Select(t => ToDto(t, MapRules.CanMove(role, t.CharacterId is { } id && mine.Contains(id), map.Shown, t.Hidden)))
+				.Select(t => ToDto(t, MapRules.CanMove(role, t.CharacterId is { } id && mine.Contains(id), map.Shown, t.Hidden)
+					&& (runs || t.Layer == TokenLayer.Tokens)))
 				.ToList();
 		}
 
@@ -345,7 +445,18 @@ namespace RealmForge.Api.Controllers
 			characterId is { } id && await _context.Characters.AnyAsync(c => c.Id == id && c.OwnerId == UserId);
 
 		private static MapTokenDto ToDto(CampaignToken t, bool canMove) =>
-			new(t.Id, t.Label, t.Color, t.Kind, t.CharacterId, t.MonsterId, t.X, t.Y, t.Size, t.Hidden, canMove);
+			new(t.Id, t.Label, t.Color, t.Kind, t.CharacterId, t.MonsterId, t.X, t.Y, t.Size, t.Hidden, canMove, null, t.Layer);
+
+		//	The players do not see the masters' notes
+		private List<MapShapeDto> ShapesOf(CampaignMap map, CampaignRole role)
+		{
+			var runs = CampaignRules.RunsTheTable(role);
+			return map.Shapes
+				.Where(s => runs || !s.MasterOnly)
+				.OrderBy(s => s.CreatedAt)
+				.Select(s => new MapShapeDto(s.Id, s.Kind, s.Points, s.Color, s.Text, s.Size, s.MasterOnly, runs || s.OwnerId == UserId))
+				.ToList();
+		}
 
 		private static bool OnMap(CampaignMap map, int x, int y, int size) =>
 			MapGeometry.Inside(map.GridType, map.GridSize, map.GridOffsetX, map.GridOffsetY, x, y, size, map.Width, map.Height);
@@ -401,7 +512,7 @@ namespace RealmForge.Api.Controllers
 			{
 				return "A label of at most 100 characters is required.";
 			}
-			if (!Enum.IsDefined(dto.Kind) || dto.Size is < 1 or > MapRules.MaxTokenSize || !OnMap(map, dto.X, dto.Y, dto.Size))
+			if (!Enum.IsDefined(dto.Kind) || !Enum.IsDefined(dto.Layer) || dto.Size is < 1 or > MapRules.MaxTokenSize || !OnMap(map, dto.X, dto.Y, dto.Size))
 			{
 				return "Unknown kind, size out of range or outside the map.";
 			}
@@ -428,6 +539,7 @@ namespace RealmForge.Api.Controllers
 			token.Y = dto.Y;
 			token.Size = dto.Size;
 			token.Hidden = dto.Hidden;
+			token.Layer = dto.Layer;
 			token.UpdatedAt = DateTimeOffset.UtcNow;
 			token.Color = dto.Color ?? PlayerColors.Master;
 			if (dto.CharacterId is { } characterId && dto.Color is null)

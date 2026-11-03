@@ -1080,6 +1080,19 @@ jobs:
           mp_dup_state=$(curl -s "$api/api/campaigns/$ss_cp/maps/$(echo "$mp_dup" | jq -r .id)/state" -H "Authorization: Bearer $B" | jq -c '{name, gridType, shown, tokens: (.tokens | length)}')
           echo "::notice title=maps::duplicate player=$mp_dup_player copy=$mp_dup_state"
           code -X DELETE "$api/api/campaigns/$ss_cp/maps/$(echo "$mp_dup" | jq -r .id)" -H "Authorization: Bearer $B" > /dev/null
+          # Drawings: a player draws and clears their own, cannot write notes for the masters nor erase the masters' drawings;
+          # the masters' note never reaches the players
+          sh_note=$(curl -s -X POST "$api/api/campaigns/$ss_cp/maps/$mp2/shapes" $json -H "Authorization: Bearer $B" -d '{"kind":2,"points":[100,100],"text":"Trappola","masterOnly":true}' | jq -r .id)
+          sh_cone=$(curl -s -X POST "$api/api/campaigns/$ss_cp/maps/$mp2/shapes" $json -H "Authorization: Bearer $B" -d '{"kind":3,"points":[105,105,300,105],"size":3}' | jq -r .id)
+          sh_player=$(curl -s -X POST "$api/api/campaigns/$ss_cp/maps/$mp2/shapes" $json -H "Authorization: Bearer $A" -d '{"kind":1,"points":[10,10,50,50,90,10]}' | jq -c '{kind, canDelete, hex: (.color | test("^#[0-9a-f]{6}$"))}')
+          sh_player_note=$(code -X POST "$api/api/campaigns/$ss_cp/maps/$mp2/shapes" $json -H "Authorization: Bearer $A" -d '{"kind":2,"points":[1,1],"text":"x","masterOnly":true}')
+          sh_bad=$(code -X POST "$api/api/campaigns/$ss_cp/maps/$mp2/shapes" $json -H "Authorization: Bearer $A" -d '{"kind":4,"points":[1,1,2,2],"size":0}')
+          sh_player_seen=$(curl -s "$api/api/campaigns/$ss_cp/maps/$mp2/state" -H "Authorization: Bearer $A" | jq -c '[.shapes[] | {kind, canDelete}]')
+          sh_player_erase=$(code -X DELETE "$api/api/campaigns/$ss_cp/maps/$mp2/shapes/$sh_cone" -H "Authorization: Bearer $A")
+          sh_player_note_erase=$(code -X DELETE "$api/api/campaigns/$ss_cp/maps/$mp2/shapes/$sh_note" -H "Authorization: Bearer $A")
+          sh_player_clear=$(code -X DELETE "$api/api/campaigns/$ss_cp/maps/$mp2/shapes" -H "Authorization: Bearer $A")
+          sh_master_seen=$(curl -s "$api/api/campaigns/$ss_cp/maps/$mp2/state" -H "Authorization: Bearer $B" | jq -c '[.shapes[] | .kind]')
+          echo "::notice title=maps::shapes player=$sh_player note by player=$sh_player_note bad=$sh_bad player sees=$sh_player_seen erase=$sh_player_erase/$sh_player_note_erase clear=$sh_player_clear master sees=$sh_master_seen"
           code -X DELETE "$api/api/campaigns/$ss_cp/maps/$mp2" -H "Authorization: Bearer $B" > /dev/null
           mp_delete=$(code -X DELETE "$api/api/campaigns/$ss_cp/maps/$mp" -H "Authorization: Bearer $B")
           echo "::notice title=maps::player create=$mp_player_create hidden list=$mp_hidden_list outside=$mp_outside | player state=$mp_player_state move=$mp_player_move | master move=$mp_master_move state=$mp_master_state | delete=$mp_delete"
@@ -1130,6 +1143,14 @@ jobs:
           sscheck "token on the last hex" "$mp_hex_in" "200"
           sscheck "token beyond the hexes" "$mp_hex_out" "400"
           sscheck "unknown grid" "$mp_bad_grid" "400"
+          sscheck "player draws" "$sh_player" '{"kind":1,"canDelete":true,"hex":true}'
+          sscheck "player writes a masters' note" "$sh_player_note" "403"
+          sscheck "sphere of no size" "$sh_bad" "400"
+          sscheck "drawings seen by the player" "$sh_player_seen" '[{"kind":3,"canDelete":false},{"kind":1,"canDelete":true}]'
+          sscheck "player erases the master's area" "$sh_player_erase" "403"
+          sscheck "player erases the masters' note" "$sh_player_note_erase" "404"
+          sscheck "player clears their drawings" "$sh_player_clear" "204"
+          sscheck "drawings left" "$sh_master_seen" '[2,3]'
           sscheck "player duplicates a map" "$mp_dup_player" "403"
           sscheck "copy of a map" "$mp_dup_state" '{"name":"Foresta 2","gridType":1,"shown":false,"tokens":1}'
           sscheck "reveal by a player" "$rl_reveal_player" "403"

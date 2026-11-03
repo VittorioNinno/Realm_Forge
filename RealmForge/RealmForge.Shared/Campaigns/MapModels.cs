@@ -3,6 +3,26 @@
 ///	<summary>
 ///	What a token on the virtual tabletop stands for.
 ///	</summary>
+public enum TokenLayer
+{
+	Tokens = 0,
+
+	//	Props under the other tokens
+	Below = 1
+}
+
+public enum ShapeKind
+{
+	Freehand = 1,
+	Text = 2,
+
+	//	Areas of spells
+	Cone = 3,
+	Sphere = 4,
+	Line = 5,
+	Cube = 6
+}
+
 public enum TokenKind
 {
 	Character = 1,
@@ -178,6 +198,122 @@ public static class MapGeometry
 }
 
 ///	<summary>
+///	The areas of spells on the grid: a cone (as wide at its end as it is long), a sphere (by its radius), a line one cell
+///	wide, a cube; all but the sphere start at the edge of the caster's cell and point towards a target. A cell is in the
+///	area when its centre is (on the border included); the caster's own cell is not, except for a sphere.
+///	</summary>
+public static class MapAreas
+{
+	public static IReadOnlyList<(double X, double Y)> Outline(ShapeKind kind, double ox, double oy, double tx, double ty, double length, double cell)
+	{
+		if (kind == ShapeKind.Sphere)
+		{
+			return Array.Empty<(double, double)>();
+		}
+		var distance = Math.Sqrt((tx - ox) * (tx - ox) + (ty - oy) * (ty - oy));
+		var (dx, dy) = distance < 0.001 ? (1.0, 0.0) : ((tx - ox) / distance, (ty - oy) / distance);
+		var (nx, ny) = (-dy, dx);
+		var reach = length + cell / 2;
+		var half = kind switch
+		{
+			ShapeKind.Line => cell / 2,
+			ShapeKind.Cube => length / 2,
+			_ => reach / 2
+		};
+		var (ex, ey) = (ox + dx * reach, oy + dy * reach);
+		if (kind == ShapeKind.Cone)
+		{
+			return new[] { (ox, oy), (ex + nx * half, ey + ny * half), (ex - nx * half, ey - ny * half) };
+		}
+		//	A line and a cube start at the edge of the caster's cell
+		var (sx, sy) = (ox + dx * cell / 2, oy + dy * cell / 2);
+		return new[] { (sx + nx * half, sy + ny * half), (ex + nx * half, ey + ny * half), (ex - nx * half, ey - ny * half), (sx - nx * half, sy - ny * half) };
+	}
+
+	public static List<(int Col, int Row)> Cells(GridType type, int grid, int offsetX, int offsetY, ShapeKind kind,
+		double ox, double oy, double tx, double ty, int size, int width, int height)
+	{
+		var length = size * (double)grid;
+		var outline = Outline(kind, ox, oy, tx, ty, length, grid);
+		var (minX, minY, maxX, maxY) = kind == ShapeKind.Sphere
+			? (ox - length, oy - length, ox + length, oy + length)
+			: (outline.Min(p => p.X), outline.Min(p => p.Y), outline.Max(p => p.X), outline.Max(p => p.Y));
+		var (c1, r1) = MapGeometry.Nearest(type, grid, offsetX, offsetY, minX, minY);
+		var (c2, r2) = MapGeometry.Nearest(type, grid, offsetX, offsetY, maxX, maxY);
+		var origin = MapGeometry.Nearest(type, grid, offsetX, offsetY, ox, oy);
+		var cells = new List<(int, int)>();
+		for (var col = Math.Max(0, c1 - 1); col <= c2 + 1; col++)
+		{
+			for (var row = Math.Max(0, r1 - 1); row <= r2 + 1; row++)
+			{
+				var (x, y) = MapGeometry.Center(type, grid, offsetX, offsetY, col, row);
+				if (x < 0 || y < 0 || x > width || y > height || (kind != ShapeKind.Sphere && (col, row) == origin))
+				{
+					continue;
+				}
+				var inside = kind == ShapeKind.Sphere
+					? (x - ox) * (x - ox) + (y - oy) * (y - oy) <= length * length + 0.01
+					: Contains(outline, x, y);
+				if (inside)
+				{
+					cells.Add((col, row));
+				}
+			}
+		}
+		return cells;
+	}
+
+	//	The corners of a cell, to draw it
+	public static IReadOnlyList<(double X, double Y)> Corners(GridType type, int grid, int offsetX, int offsetY, int col, int row)
+	{
+		var (cx, cy) = MapGeometry.Center(type, grid, offsetX, offsetY, col, row);
+		if (type == GridType.Square)
+		{
+			var h = grid / 2.0;
+			return new[] { (cx - h, cy - h), (cx + h, cy - h), (cx + h, cy + h), (cx - h, cy + h) };
+		}
+		var (w, hh) = MapGeometry.Cell(type, grid);
+		var radius = type == GridType.HexRows ? hh / 2 : w / 2;
+		var start = type == GridType.HexRows ? -90 : 0;
+		return Enumerable.Range(0, 6)
+			.Select(i => (cx + radius * Math.Cos((start + 60 * i) * Math.PI / 180), cy + radius * Math.Sin((start + 60 * i) * Math.PI / 180)))
+			.ToArray();
+	}
+
+	private static bool Contains(IReadOnlyList<(double X, double Y)> polygon, double x, double y)
+	{
+		const double border = 0.5;
+		for (int i = 0, j = polygon.Count - 1; i < polygon.Count; j = i++)
+		{
+			if (SegmentDistance(polygon[j], polygon[i], x, y) <= border)
+			{
+				return true;
+			}
+		}
+		var inside = false;
+		for (int i = 0, j = polygon.Count - 1; i < polygon.Count; j = i++)
+		{
+			var (xi, yi) = polygon[i];
+			var (xj, yj) = polygon[j];
+			if ((yi > y) != (yj > y) && x < (xj - xi) * (y - yi) / (yj - yi) + xi)
+			{
+				inside = !inside;
+			}
+		}
+		return inside;
+	}
+
+	private static double SegmentDistance((double X, double Y) a, (double X, double Y) b, double x, double y)
+	{
+		var (vx, vy) = (b.X - a.X, b.Y - a.Y);
+		var lengthSquared = vx * vx + vy * vy;
+		var t = lengthSquared < 1e-9 ? 0 : Math.Clamp(((x - a.X) * vx + (y - a.Y) * vy) / lengthSquared, 0, 1);
+		var (px, py) = (a.X + t * vx - x, a.Y + t * vy - y);
+		return Math.Sqrt(px * px + py * py);
+	}
+}
+
+///	<summary>
 ///	Limits of the virtual tabletop: maps per campaign, tokens per map, the picture (a JPEG data URL), the grid.
 ///	</summary>
 public static class MapRules
@@ -189,6 +325,12 @@ public static class MapRules
 	public const int MinGrid = 16;
 	public const int MaxGrid = 300;
 	public const int MaxTokenSize = 6;
+	public const int MaxShapes = 300;
+	public const int MaxShapePoints = 2000;
+	public const int MaxShapeText = 200;
+	public const int MaxAreaSize = 40;
+
+	public static bool IsArea(ShapeKind kind) => kind is ShapeKind.Cone or ShapeKind.Sphere or ShapeKind.Line or ShapeKind.Cube;
 
 	//	Cells across a map: the picture over the grid, at least one
 	public static int Columns(int width, int grid, int offset) => Math.Max(1, (width - offset + grid - 1) / grid);
