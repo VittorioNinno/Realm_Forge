@@ -56,7 +56,7 @@ namespace RealmForge.Api.Controllers
 			}
 			var tokens = await TokensAsync(map, role.Value);
 			return Ok(new CampaignMapDto(map.Id, map.Name, map.Image, map.Width, map.Height, map.GridSize, map.GridOffsetX, map.GridOffsetY,
-				map.Shown, CampaignRules.RunsTheTable(role.Value), map.UpdatedAt, tokens));
+				map.Shown, CampaignRules.RunsTheTable(role.Value), map.UpdatedAt, tokens, map.GridType));
 		}
 
 		//	GET: api/campaigns/{campaignId}/maps/{mapId}/state — what the table polls: the grid and the tokens
@@ -69,7 +69,7 @@ namespace RealmForge.Api.Controllers
 				return NotFound();
 			}
 			return Ok(new MapStateDto(map.Id, map.Name, map.GridSize, map.GridOffsetX, map.GridOffsetY, map.Shown, map.UpdatedAt,
-				await TokensAsync(map, role.Value)));
+				await TokensAsync(map, role.Value), map.GridType));
 		}
 
 		//	POST: api/campaigns/{campaignId}/maps — masters and co-masters
@@ -117,6 +117,31 @@ namespace RealmForge.Api.Controllers
 				return Problem(statusCode: StatusCodes.Status400BadRequest, title: error);
 			}
 			Apply(map, dto);
+			await _context.SaveChangesAsync();
+			return NoContent();
+		}
+
+		//	POST: api/campaigns/{campaignId}/maps/{mapId}/display — the map on the players' table; the others are put away
+		[HttpPost("{mapId:guid}/display")]
+		public async Task<IActionResult> DisplayMap(Guid campaignId, Guid mapId)
+		{
+			var (map, role) = await LoadAsync(campaignId, mapId, withTokens: false);
+			if (map is null || role is null)
+			{
+				return NotFound();
+			}
+			if (!CampaignRules.RunsTheTable(role.Value))
+			{
+				return Forbid();
+			}
+			var now = DateTimeOffset.UtcNow;
+			foreach (var other in await _context.CampaignMaps.Where(m => m.CampaignId == campaignId && m.Id != mapId && m.Shown).ToListAsync())
+			{
+				other.Shown = false;
+				other.UpdatedAt = now;
+			}
+			map.Shown = true;
+			map.UpdatedAt = now;
 			await _context.SaveChangesAsync();
 			return NoContent();
 		}
@@ -279,9 +304,7 @@ namespace RealmForge.Api.Controllers
 			new(t.Id, t.Label, t.Color, t.Kind, t.CharacterId, t.MonsterId, t.X, t.Y, t.Size, t.Hidden, canMove);
 
 		private static bool OnMap(CampaignMap map, int x, int y, int size) =>
-			x >= 0 && y >= 0
-			&& x + size <= MapRules.Columns(map.Width, map.GridSize, map.GridOffsetX) + 1
-			&& y + size <= MapRules.Rows(map.Height, map.GridSize, map.GridOffsetY) + 1;
+			MapGeometry.Inside(map.GridType, map.GridSize, map.GridOffsetX, map.GridOffsetY, x, y, size, map.Width, map.Height);
 
 		private static string? Validate(SaveMapDto dto, bool requireImage)
 		{
@@ -303,7 +326,7 @@ namespace RealmForge.Api.Controllers
 			{
 				return "Picture size out of range.";
 			}
-			if (dto.GridSize is < MapRules.MinGrid or > MapRules.MaxGrid || dto.GridOffsetX < 0 || dto.GridOffsetY < 0
+			if (!Enum.IsDefined(dto.GridType) || dto.GridSize is < MapRules.MinGrid or > MapRules.MaxGrid || dto.GridOffsetX < 0 || dto.GridOffsetY < 0
 				|| dto.GridOffsetX >= dto.GridSize || dto.GridOffsetY >= dto.GridSize)
 			{
 				return "Grid out of range.";
@@ -320,6 +343,7 @@ namespace RealmForge.Api.Controllers
 			}
 			map.Width = dto.Width;
 			map.Height = dto.Height;
+			map.GridType = dto.GridType;
 			map.GridSize = dto.GridSize;
 			map.GridOffsetX = dto.GridOffsetX;
 			map.GridOffsetY = dto.GridOffsetY;

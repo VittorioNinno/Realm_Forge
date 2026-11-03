@@ -168,6 +168,180 @@
             img.onerror = () => resolve({ url: '', width: 0, height: 0 });
             img.src = src;
         });
+        // The virtual tabletop board: dragging tokens (moved by the browser, the cell chosen by the app on release),
+        // panning the view, the ruler. The board ([data-board]) is in map pixels, scaled by its data-zoom
+        window.rfVtt = (() => {
+            const boards = new WeakMap();
+            const S3 = Math.sqrt(3);
+            const cell = (t, g) => t === 1 ? [g, 2 * g / S3] : t === 2 ? [2 * g / S3, g] : [g, g];
+            const center = (t, g, ox, oy, c, r) => {
+                const [w, h] = cell(t, g);
+                if (t === 1) return [ox + w / 2 + c * w + (r & 1 ? w / 2 : 0), oy + h / 2 + r * 0.75 * h];
+                if (t === 2) return [ox + w / 2 + c * 0.75 * w, oy + h / 2 + r * h + (c & 1 ? h / 2 : 0)];
+                return [ox + (c + 0.5) * g, oy + (r + 0.5) * g];
+            };
+            const nearest = (t, g, ox, oy, x, y) => {
+                if (t === 0) return [Math.floor((x - ox) / g), Math.floor((y - oy) / g)];
+                const [w, h] = cell(t, g);
+                const gc = Math.round(t === 1 ? (x - ox - w / 2) / w : (x - ox - w / 2) / (0.75 * w));
+                const gr = Math.round(t === 1 ? (y - oy - h / 2) / (0.75 * h) : (y - oy - h / 2) / h);
+                let best = [gc, gr], bd = Infinity;
+                for (let dc = -1; dc <= 1; dc++) for (let dr = -1; dr <= 1; dr++) {
+                    const [cx, cy] = center(t, g, ox, oy, gc + dc, gr + dr);
+                    const d = (cx - x) ** 2 + (cy - y) ** 2;
+                    if (d < bd) { bd = d; best = [gc + dc, gr + dr]; }
+                }
+                return best;
+            };
+            const axial = (t, c, r) => t === 1 ? [c - (r - (r & 1)) / 2, r] : [c, r - (c - (c & 1)) / 2];
+            const distance = (t, a, b) => {
+                if (t === 0) return Math.max(Math.abs(a[0] - b[0]), Math.abs(a[1] - b[1]));
+                const [q1, r1] = axial(t, a[0], a[1]), [q2, r2] = axial(t, b[0], b[1]);
+                const dq = q1 - q2, dr = r1 - r2;
+                return (Math.abs(dq) + Math.abs(dr) + Math.abs(dq + dr)) / 2;
+            };
+
+            function attach(stage, dotnet, options) {
+                detach(stage);
+                const st = { dotnet, options, tool: 'select', drag: null, pan: null, ruler: null };
+                const board = () => stage.querySelector('[data-board]');
+                const zoom = () => parseFloat(board()?.dataset.zoom || '1');
+                const toMap = (e) => {
+                    const r = board().getBoundingClientRect(), z = zoom();
+                    return [(e.clientX - r.left) / z, (e.clientY - r.top) / z];
+                };
+                const grid = () => {
+                    const d = board().dataset;
+                    return [parseInt(d.gridType, 10), parseFloat(d.grid), parseFloat(d.ox), parseFloat(d.oy)];
+                };
+                const drawRuler = () => {
+                    const svg = board()?.querySelector('[data-ruler]');
+                    if (!svg) return;
+                    if (!st.ruler) { svg.innerHTML = ''; return; }
+                    const [t, g, ox, oy] = grid();
+                    const a = nearest(t, g, ox, oy, st.ruler.from[0], st.ruler.from[1]);
+                    const b = nearest(t, g, ox, oy, st.ruler.to[0], st.ruler.to[1]);
+                    const [x1, y1] = center(t, g, ox, oy, a[0], a[1]);
+                    const [x2, y2] = center(t, g, ox, oy, b[0], b[1]);
+                    const cells = distance(t, a, b);
+                    const z = zoom();
+                    const label = `${cells} · ${(cells * st.options.perCell).toLocaleString(st.options.locale)} ${st.options.unit}`;
+                    const fs = 14 / z, pad = 8 / z;
+                    svg.innerHTML = `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="#ff8c00" stroke-width="${3 / z}" stroke-dasharray="${8 / z} ${6 / z}" stroke-linecap="round"/>`
+                        + `<circle cx="${x1}" cy="${y1}" r="${5 / z}" fill="#ff8c00"/><circle cx="${x2}" cy="${y2}" r="${5 / z}" fill="#ff8c00"/>`
+                        + `<g transform="translate(${x2 + pad * 2} ${y2 - pad * 2})"><rect x="0" y="${-fs - pad}" width="${(label.length * 0.62 * fs) + pad * 2}" height="${fs + pad * 2}" rx="${4 / z}" fill="rgba(10,10,10,.85)" stroke="#ff8c00" stroke-width="${1 / z}"/>`
+                        + `<text x="${pad}" y="0" font-size="${fs}" font-weight="700" fill="#ffffff" data-test="map-ruler-label">${label}</text></g>`;
+                };
+                st.down = (e) => {
+                    if (e.button !== 0 || !board()) return;
+                    const token = e.target.closest('[data-token]');
+                    if (st.tool === 'ruler') {
+                        const p = toMap(e);
+                        st.ruler = { from: p, to: p, active: true };
+                        drawRuler();
+                        e.preventDefault();
+                        return;
+                    }
+                    if (st.tool === 'select' && token) {
+                        e.preventDefault();
+                        st.drag = { el: token, id: token.dataset.token, x: e.clientX, y: e.clientY, moved: false, movable: token.dataset.movable === '1' };
+                        if (st.drag.movable) dotnet.invokeMethodAsync('TokenGrabbed');
+                        return;
+                    }
+                    if (e.target.closest('[data-board]') || e.target === stage) {
+                        st.pan = { x: e.clientX, y: e.clientY, left: stage.scrollLeft, top: stage.scrollTop, moved: false };
+                        stage.classList.add('panning');
+                    }
+                };
+                st.move = (e) => {
+                    if (st.drag) {
+                        const z = zoom(), dx = (e.clientX - st.drag.x) / z, dy = (e.clientY - st.drag.y) / z;
+                        if (!st.drag.moved && Math.hypot(e.clientX - st.drag.x, e.clientY - st.drag.y) < 4) return;
+                        st.drag.moved = true;
+                        if (st.drag.movable) {
+                            st.drag.el.style.transform = `translate(${dx}px, ${dy}px)`;
+                            st.drag.el.classList.add('dragging');
+                        }
+                    } else if (st.pan) {
+                        st.pan.moved = true;
+                        stage.scrollLeft = st.pan.left - (e.clientX - st.pan.x);
+                        stage.scrollTop = st.pan.top - (e.clientY - st.pan.y);
+                    } else if (st.ruler?.active) {
+                        st.ruler.to = toMap(e);
+                        drawRuler();
+                    }
+                };
+                st.up = async (e) => {
+                    if (st.drag) {
+                        const d = st.drag;
+                        st.drag = null;
+                        if (!d.moved) {
+                            await dotnet.invokeMethodAsync('TokenClicked', d.id);
+                            return;
+                        }
+                        if (!d.movable) return;
+                        const z = zoom();
+                        const cx = parseFloat(d.el.dataset.cx) + (e.clientX - d.x) / z;
+                        const cy = parseFloat(d.el.dataset.cy) + (e.clientY - d.y) / z;
+                        try {
+                            await dotnet.invokeMethodAsync('TokenDropped', d.id, cx, cy);
+                        } finally {
+                            d.el.style.transform = '';
+                            d.el.classList.remove('dragging');
+                        }
+                    } else if (st.pan) {
+                        const moved = st.pan.moved;
+                        st.pan = null;
+                        stage.classList.remove('panning');
+                        if (!moved && st.tool === 'select') dotnet.invokeMethodAsync('BoardClicked');
+                    } else if (st.ruler?.active) {
+                        st.ruler.active = false;
+                    }
+                };
+                st.wheel = (e) => {
+                    if (!st.options.wheelZoom && !e.ctrlKey) return;
+                    e.preventDefault();
+                    dotnet.invokeMethodAsync('Wheel', e.deltaY < 0 ? 1 : -1);
+                };
+                stage.addEventListener('pointerdown', st.down);
+                window.addEventListener('pointermove', st.move);
+                window.addEventListener('pointerup', st.up);
+                stage.addEventListener('wheel', st.wheel, { passive: false });
+                st.drawRuler = drawRuler;
+                boards.set(stage, st);
+            }
+
+            function detach(stage) {
+                const st = stage && boards.get(stage);
+                if (!st) return;
+                stage.removeEventListener('pointerdown', st.down);
+                window.removeEventListener('pointermove', st.move);
+                window.removeEventListener('pointerup', st.up);
+                stage.removeEventListener('wheel', st.wheel);
+                boards.delete(stage);
+            }
+
+            function tool(stage, name) {
+                const st = boards.get(stage);
+                if (!st) return;
+                st.tool = name;
+                if (name !== 'ruler') st.ruler = null;
+                st.drawRuler();
+            }
+
+            // The zoom that fits the whole map in the stage
+            function fit(stage, width, height) {
+                const r = stage.getBoundingClientRect();
+                return Math.min((r.width - 16) / width, (r.height - 16) / height);
+            }
+
+            function fullscreen(el) {
+                if (document.fullscreenElement) return document.exitFullscreen();
+                return el.requestFullscreen?.();
+            }
+
+            return { attach, detach, tool, fit, fullscreen };
+        })();
         window.rfCropImage = (src, x, y, zoom, size) => new Promise((resolve) => {
             const img = new Image();
             img.onload = () => {

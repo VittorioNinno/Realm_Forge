@@ -38,6 +38,7 @@
                     <span>· @UiText.CampaignMembersCount(campaign.Members.Count, Lang)</span>
                 </div>
             </div>
+            <a href="@($"campaigns/{campaign.Id}/vtt")" class="btn btn-rf-orange" data-test="campaign-open-vtt"><Icon Name="map" /> @UiText.VttTitle(Lang)</a>
         </div>
 
         @if (message is not null)
@@ -48,7 +49,7 @@
         @* Sections of the campaign: folder tabs like the sheet's, so that the pills inside a section (the kinds of notes)
            read as a second level *@
         <div class="rf-sheet-tabs mb-3" role="tablist" data-test="campaign-tabs">
-            @foreach (var t in new[] { Tab.Overview, Tab.Sessions, Tab.Members, Tab.Characters, Tab.Encounters, Tab.Map, Tab.Rolls, Tab.Content, Tab.Notes })
+            @foreach (var t in VisibleTabs(role))
             {
                 var current = t;
                 <button type="button" role="tab" class="rf-sheet-tab @(tab == current ? "active" : null)" aria-selected="@(tab == current)"
@@ -327,7 +328,7 @@
                 </section>
                 break;
 
-            case Tab.Encounters:
+            case Tab.Encounters when CampaignRules.RunsTheTable(role):
                 <CampaignEncounters Campaign="campaign" />
                 break;
 
@@ -339,7 +340,7 @@
                 <CampaignSessions CampaignId="campaign.Id" Role="role" OnChanged="s => sessions = s" />
                 break;
 
-            case Tab.Map:
+            case Tab.Map when CampaignRules.RunsTheTable(role):
                 <CampaignMap CampaignId="campaign.Id" Role="role" Characters="campaign.Characters" />
                 break;
             case Tab.Rolls:
@@ -435,9 +436,14 @@
         Tab.Encounters => UiText.CampaignTabEncounters(Lang),
         Tab.Sessions => UiText.CampaignTabSessions(Lang),
         Tab.Rolls => UiText.CampaignTabRolls(Lang),
-        Tab.Map => UiText.CampaignTabMap(Lang),
+        Tab.Map => UiText.CampaignTabMaps(Lang),
         _ => UiText.CampaignTabNotes(Lang)
     };
+
+    //	Maps and encounters are the masters' preparation: the players meet them at the virtual tabletop
+    private static IEnumerable<Tab> VisibleTabs(CampaignRole role) =>
+        new[] { Tab.Overview, Tab.Sessions, Tab.Members, Tab.Characters, Tab.Encounters, Tab.Map, Tab.Rolls, Tab.Content, Tab.Notes }
+            .Where(t => CampaignRules.RunsTheTable(role) || (t != Tab.Encounters && t != Tab.Map));
 
     //	My characters not yet at the table, of the campaign's edition
     private List<CharacterSummaryDto> Bringable => campaign is null ? new() : myCharacters
