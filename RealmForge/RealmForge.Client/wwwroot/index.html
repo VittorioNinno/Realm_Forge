@@ -280,6 +280,19 @@
                         + `<text x="${pad}" y="0" font-size="${fs}" font-weight="700" fill="#ffffff" data-test="map-ruler-label">${label}</text></g>`;
                 };
                 const layer = () => board()?.querySelector('[data-ruler]');
+                const drawFog = () => {
+                    const svg = layer();
+                    if (!svg) return;
+                    if (!st.fog) { svg.innerHTML = ''; return; }
+                    const z = zoom(), reveal = st.options.fogMode !== 'cover', color = reveal ? '#7dd3fc' : '#0b0b0b';
+                    if (st.options.fogShape === 'brush') {
+                        const r = grid()[1] * (st.options.fogBrush || 1);
+                        svg.innerHTML = st.fog.dots.map(([x, y]) => `<circle cx="${x}" cy="${y}" r="${r}" fill="${color}" fill-opacity=".35"/>`).join('');
+                    } else {
+                        const f = st.fog, x = Math.min(f.from[0], f.to[0]), y = Math.min(f.from[1], f.to[1]);
+                        svg.innerHTML = `<rect x="${x}" y="${y}" width="${Math.abs(f.to[0] - f.from[0])}" height="${Math.abs(f.to[1] - f.from[1])}" fill="${color}" fill-opacity=".35" stroke="#7dd3fc" stroke-width="${2 / z}" stroke-dasharray="${6 / z} ${4 / z}"/>`;
+                    }
+                };
                 const drawStroke = () => {
                     const svg = layer();
                     if (!svg) return;
@@ -321,6 +334,19 @@
                 st.down = (e) => {
                     if (e.button !== 0 || !board()) return;
                     const token = e.target.closest('[data-token]');
+                    if (e.altKey) {
+                        const p = toMap(e);
+                        e.preventDefault();
+                        dotnet.invokeMethodAsync('Pinged', p[0], p[1]);
+                        return;
+                    }
+                    if (st.tool === 'fog') {
+                        const p = toMap(e);
+                        st.fog = { from: p, to: p, dots: [p] };
+                        drawFog();
+                        e.preventDefault();
+                        return;
+                    }
                     if (st.tool === 'calibrate') {
                         const p = toMap(e);
                         st.box = { from: p, to: p };
@@ -371,8 +397,17 @@
                         return;
                     }
                     if (e.target.closest('[data-board]') || e.target === stage) {
+                        const p = toMap(e);
                         st.pan = { x: e.clientX, y: e.clientY, left: stage.scrollLeft, top: stage.scrollTop, moved: false };
                         stage.classList.add('panning');
+                        // Holding still for half a second: a ping for the whole table
+                        st.pan.timer = setTimeout(() => {
+                            if (st.pan && !st.pan.moved) {
+                                st.pan = null;
+                                stage.classList.remove('panning');
+                                dotnet.invokeMethodAsync('Pinged', p[0], p[1]);
+                            }
+                        }, 500);
                     }
                 };
                 st.move = (e) => {
@@ -385,9 +420,16 @@
                             st.drag.el.classList.add('dragging');
                         }
                     } else if (st.pan) {
+                        if (!st.pan.moved && Math.hypot(e.clientX - st.pan.x, e.clientY - st.pan.y) < 4) return;
                         st.pan.moved = true;
                         stage.scrollLeft = st.pan.left - (e.clientX - st.pan.x);
                         stage.scrollTop = st.pan.top - (e.clientY - st.pan.y);
+                    } else if (st.fog) {
+                        const p = toMap(e), r = grid()[1] * (st.options.fogBrush || 1);
+                        st.fog.to = p;
+                        const last = st.fog.dots[st.fog.dots.length - 1];
+                        if (Math.hypot(p[0] - last[0], p[1] - last[1]) >= r / 2 && st.fog.dots.length < 200) st.fog.dots.push(p);
+                        drawFog();
                     } else if (st.stroke) {
                         const p = toMap(e), last = st.stroke[st.stroke.length - 1];
                         if (Math.hypot(p[0] - last[0], p[1] - last[1]) * zoom() >= 4 && st.stroke.length < 1000) {
@@ -406,6 +448,17 @@
                     }
                 };
                 st.up = async (e) => {
+                    if (st.fog) {
+                        const f = st.fog;
+                        st.fog = null;
+                        drawFog();
+                        const brush = st.options.fogShape === 'brush';
+                        const numbers = brush
+                            ? f.dots.flat()
+                            : [Math.min(f.from[0], f.to[0]), Math.min(f.from[1], f.to[1]), Math.abs(f.to[0] - f.from[0]), Math.abs(f.to[1] - f.from[1])];
+                        if (brush || (numbers[2] > 4 && numbers[3] > 4)) await dotnet.invokeMethodAsync('FogDrawn', brush, numbers.map(v => Math.round(v * 10) / 10));
+                        return;
+                    }
                     if (st.drag) {
                         const d = st.drag;
                         st.drag = null;
@@ -424,6 +477,7 @@
                             d.el.classList.remove('dragging');
                         }
                     } else if (st.pan) {
+                        clearTimeout(st.pan.timer);
                         const moved = st.pan.moved;
                         st.pan = null;
                         stage.classList.remove('panning');
@@ -487,6 +541,7 @@
                 st.tool = name;
                 st.stroke = null;
                 st.area = null;
+                st.fog = null;
                 if (name !== 'ruler') st.ruler = null;
                 st.box = null;
                 st.drawRuler();
@@ -498,12 +553,23 @@
                 return Math.min((r.width - 16) / width, (r.height - 16) / height);
             }
 
+            // The centre of what the stage shows, in pixels of the map; and the stage moved to show a point in its centre
+            function view(stage) {
+                const z = parseFloat(stage.querySelector('[data-board]')?.dataset.zoom || '1');
+                return [(stage.scrollLeft + stage.clientWidth / 2) / z, (stage.scrollTop + stage.clientHeight / 2) / z];
+            }
+
+            function center(stage, x, y) {
+                const z = parseFloat(stage.querySelector('[data-board]')?.dataset.zoom || '1');
+                stage.scrollTo({ left: x * z - stage.clientWidth / 2, top: y * z - stage.clientHeight / 2, behavior: 'smooth' });
+            }
+
             function fullscreen(el) {
                 if (document.fullscreenElement) return document.exitFullscreen();
                 return el.requestFullscreen?.();
             }
 
-            return { attach, detach, tool, fit, fullscreen };
+            return { attach, detach, tool, fit, fullscreen, view, center };
         })();
         window.rfCropImage = (src, x, y, zoom, size) => new Promise((resolve) => {
             const img = new Image();

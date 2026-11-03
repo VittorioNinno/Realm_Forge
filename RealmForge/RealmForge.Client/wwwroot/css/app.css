@@ -10677,6 +10677,67 @@ textarea.rf-form-control {
     z-index: 30;
 }
 
+/* Fog of war: black for the players, see-through for the masters who keep working under it */
+.rf-vtt-fog {
+    position: absolute;
+    top: 0;
+    left: 0;
+    z-index: 28;
+    max-width: none;
+    pointer-events: none;
+}
+
+    .rf-vtt-fog.master {
+        opacity: .55;
+    }
+
+.rf-vtt-stage.tool-fog {
+    cursor: crosshair;
+}
+
+.rf-vtt-stage.tool-fog .rf-vtt-token {
+    pointer-events: none;
+}
+
+/* A ping: rings growing from a point, the same size at any zoom */
+.rf-vtt-ping {
+    position: absolute;
+    z-index: 29;
+    width: 0;
+    height: 0;
+    pointer-events: none;
+}
+
+    .rf-vtt-ping::before,
+    .rf-vtt-ping::after {
+        content: "";
+        position: absolute;
+        top: -24px;
+        left: -24px;
+        width: 48px;
+        height: 48px;
+        border-radius: 50%;
+        border: 3px solid var(--rf-token, var(--rf-orange-primary));
+        transform: scale(calc(1 / var(--rf-zoom, 1)));
+        animation: rf-vtt-ping 1s ease-out infinite;
+    }
+
+    .rf-vtt-ping::after {
+        animation-delay: .5s;
+    }
+
+@keyframes rf-vtt-ping {
+    from {
+        opacity: 1;
+        transform: scale(calc(.2 / var(--rf-zoom, 1)));
+    }
+
+    to {
+        opacity: 0;
+        transform: scale(calc(1.6 / var(--rf-zoom, 1)));
+    }
+}
+
 /* Drawings, texts, notes and areas: under the tokens; with the eraser they can be clicked */
 .rf-vtt-shapes {
     position: absolute;

@@ -50,6 +50,7 @@
                 <button type="button" class="@ToolButton("erase")" title="@UiText.VttToolErase(Lang)" aria-label="@UiText.VttToolErase(Lang)" @onclick="@(() => SetToolAsync("erase"))" data-test="vtt-tool-erase"><Icon Name="eraser" /></button>
                 @if (RunsTheTable)
                 {
+                    <button type="button" class="@ToolButton("fog")" title="@UiText.VttToolFog(Lang)" aria-label="@UiText.VttToolFog(Lang)" @onclick="@(() => SetToolAsync("fog"))" data-test="vtt-tool-fog"><Icon Name="eye-slash" /></button>
                     <span class="rf-vtt-tools-sep"></span>
                     <button type="button" class="rf-vtt-tool @(drawer ? "active" : null)" title="@UiText.VttToolTokens(Lang)" aria-label="@UiText.VttToolTokens(Lang)" @onclick="() => drawer = !drawer" data-test="vtt-tool-tokens"><Icon Name="people" /></button>
                 }
@@ -58,7 +59,7 @@
             </nav>
             <div class="rf-vtt-viewport">
                 @Board
-                @if (map is not null && tool is "area" or "draw" or "text" or "erase")
+                @if (map is not null && tool is "area" or "draw" or "text" or "erase" or "fog")
                 {
                     <div class="rf-vtt-options" data-test="vtt-options">
                         @if (tool == "area")
@@ -94,6 +95,19 @@
                                 </label>
                             }
                         }
+                        else if (tool == "fog")
+                        {
+                            <label class="rf-checkbox-wrapper small mb-0">
+                                <input type="checkbox" class="rf-checkbox" checked="@fogEnabled" @onchange="ToggleFogAsync" data-test="vtt-fog-enabled" />
+                                <span>@UiText.VttFogOn(Lang)</span>
+                            </label>
+                            <button type="button" class="rf-vtt-chip @(fogCover ? null : "active")" @onclick="() => SetFogAsync(false, fogBrush)" data-test="vtt-fog-reveal">@UiText.VttFogReveal(Lang)</button>
+                            <button type="button" class="rf-vtt-chip @(fogCover ? "active" : null)" @onclick="() => SetFogAsync(true, fogBrush)" data-test="vtt-fog-cover">@UiText.VttFogCover(Lang)</button>
+                            <button type="button" class="rf-vtt-chip @(fogBrush ? null : "active")" @onclick="() => SetFogAsync(fogCover, false)" data-test="vtt-fog-rect">@UiText.VttFogRect(Lang)</button>
+                            <button type="button" class="rf-vtt-chip @(fogBrush ? "active" : null)" @onclick="() => SetFogAsync(fogCover, true)" data-test="vtt-fog-brush">@UiText.VttFogBrush(Lang)</button>
+                            <button type="button" class="btn btn-sm btn-rf-outline" @onclick="() => FogAllAsync(false)" data-test="vtt-fog-reveal-all">@UiText.VttFogRevealAll(Lang)</button>
+                            <button type="button" class="btn btn-sm btn-rf-outline" @onclick="() => FogAllAsync(true)" data-test="vtt-fog-cover-all">@UiText.VttFogCoverAll(Lang)</button>
+                        }
                         else
                         {
                             <span class="rf-vtt-options-hint">@UiText.VttEraseHint(Lang)</span>
@@ -108,6 +122,10 @@
                         <span data-test="map-zoom">@($"{zoom * 100:0}%")</span>
                         <button type="button" @onclick="() => ZoomByHand(1)" aria-label="+" data-test="map-zoom-in">+</button>
                         <button type="button" @onclick="FitByHand" title="@UiText.VttFit(Lang)" aria-label="@UiText.VttFit(Lang)" data-test="map-fit"><Icon Name="aspect-ratio" /></button>
+                        @if (RunsTheTable)
+                        {
+                            <button type="button" @onclick="FocusAsync" title="@UiText.VttFocus(Lang)" aria-label="@UiText.VttFocus(Lang)" data-test="vtt-focus"><Icon Name="crosshair" /></button>
+                        }
                     </div>
                 }
             </div>
@@ -297,6 +315,15 @@ else
     private string? textValue;
     private bool textMasterOnly;
 
+    //	Fog of war, pings, the view the masters bring everyone to
+    private bool fogEnabled;
+    private List<double> fog = new();
+    private bool fogCover;
+    private bool fogBrush;
+    private MapPingDto? pingShown;
+    private DateTimeOffset? pingSeen;
+    private DateTimeOffset? focusSeen;
+
     //	Map settings (the board follows them before they are saved)
     private string mapName = string.Empty;
     private GridType gridType;
@@ -450,6 +477,34 @@ else
                             </span>
                         </div>
                     }
+                    @if (fogEnabled)
+                    {
+                        <svg class="rf-vtt-fog @(RunsTheTable ? "master" : null)" width="@map.Width" height="@map.Height" viewBox="0 0 @map.Width @map.Height" aria-hidden="true" data-test="map-fog">
+                            <defs>
+                                <mask id="@($"{patternId}-fog")" maskUnits="userSpaceOnUse" x="0" y="0" width="@map.Width" height="@map.Height">
+                                    <rect width="@map.Width" height="@map.Height" fill="#ffffff" />
+                                    @for (var i = 0; i + 4 < fog.Count; i += 5)
+                                    {
+                                        var kind = (int)fog[i];
+                                        var paint = kind is MapFog.Reveal or MapFog.RevealCircle ? "#000000" : "#ffffff";
+                                        if (kind is MapFog.RevealCircle or MapFog.CoverCircle)
+                                        {
+                                            <circle cx="@N(fog[i + 1])" cy="@N(fog[i + 2])" r="@N(fog[i + 3])" fill="@paint" />
+                                        }
+                                        else
+                                        {
+                                            <rect x="@N(fog[i + 1])" y="@N(fog[i + 2])" width="@N(fog[i + 3])" height="@N(fog[i + 4])" fill="@paint" />
+                                        }
+                                    }
+                                </mask>
+                            </defs>
+                            <rect width="@map.Width" height="@map.Height" fill="#0b0b0b" mask="@($"url(#{patternId}-fog)")" />
+                        </svg>
+                    }
+                    @if (pingShown is { } pg)
+                    {
+                        <span class="rf-vtt-ping" @key="pg.At" style="left: @(N(pg.X))px; top: @(N(pg.Y))px; --rf-token: @pg.Color;" data-test="map-ping"></span>
+                    }
                     <svg class="rf-vtt-ruler" width="@map.Width" height="@map.Height" viewBox="0 0 @map.Width @map.Height" data-ruler aria-hidden="true"></svg>
                 </div>
             </div>
@@ -594,6 +649,11 @@ else
             fitPending = false;
             await FitAsync();
         }
+        if (pendingFocus is { } at)
+        {
+            pendingFocus = null;
+            await JS.InvokeVoidAsync("rfVtt.center", stageElement, at.X, at.Y);
+        }
     }
 
     private async Task LoadMapsAsync(Guid? select = null)
@@ -621,6 +681,7 @@ else
         {
             tokens = map.Tokens;
             shapes = map.Shapes ?? new();
+            ApplyTable(map.Table, first: true);
             mapName = map.Name;
             gridType = map.GridType;
             grid = map.GridSize;
@@ -681,6 +742,7 @@ else
                     map = map with { UpdatedAt = state.UpdatedAt, GridType = state.GridType, GridSize = state.GridSize, GridOffsetX = state.GridOffsetX, GridOffsetY = state.GridOffsetY, Shown = state.Shown, Name = state.Name };
                     tokens = state.Tokens;
                     shapes = state.Shapes ?? new();
+                    ApplyTable(state.Table, first: false);
                     if (!RunsTheTable || Table)
                     {
                         gridType = state.GridType;
@@ -838,7 +900,142 @@ else
         }
     }
 
-    private object ToolOptions => new { color = drawColor, area = areaKind.ToString().ToLowerInvariant() };
+    private object ToolOptions => new
+    {
+        color = drawColor,
+        area = areaKind.ToString().ToLowerInvariant(),
+        fogMode = fogCover ? "cover" : "reveal",
+        fogShape = fogBrush ? "brush" : "rect",
+        fogBrush = 1
+    };
+
+    // ===== Fog of war, pings, the view =====
+
+    //	What the polling brought: the fog; a new ping is shown for three seconds; the players follow a new view of the masters
+    private void ApplyTable(MapTableDto? table, bool first)
+    {
+        if (table is null)
+        {
+            return;
+        }
+        fogEnabled = table.FogEnabled;
+        fog = table.Fog;
+        if (table.Ping is { } ping && ping.At != pingSeen)
+        {
+            pingSeen = ping.At;
+            if (!first)
+            {
+                ShowPing(ping);
+            }
+        }
+        if (table.Focus is { } focus && focus.At != focusSeen)
+        {
+            focusSeen = focus.At;
+            if (!first && Table && !RunsTheTable)
+            {
+                autoFit = false;
+                zoom = focus.Zoom;
+                pendingFocus = (focus.X, focus.Y);
+            }
+        }
+    }
+
+    private (double X, double Y)? pendingFocus;
+
+    private void ShowPing(MapPingDto ping)
+    {
+        pingShown = ping;
+        _ = Task.Delay(3000).ContinueWith(_ => InvokeAsync(() =>
+        {
+            if (pingShown == ping)
+            {
+                pingShown = null;
+                StateHasChanged();
+            }
+        }));
+    }
+
+    [JSInvokable]
+    public async Task Pinged(double x, double y)
+    {
+        if (map is null)
+        {
+            return;
+        }
+        ShowPing(new MapPingDto(x, y, RunsTheTable ? PlayerColors.Master : MyColor, DateTimeOffset.UtcNow));
+        StateHasChanged();
+        await Campaigns.PingAsync(CampaignId, map.Id, x, y);
+    }
+
+    private async Task FocusAsync()
+    {
+        if (map is null || string.IsNullOrEmpty(stageElement.Id))
+        {
+            return;
+        }
+        var centre = await JS.InvokeAsync<double[]>("rfVtt.view", stageElement);
+        var ok = (await Campaigns.FocusAsync(CampaignId, map.Id, Math.Clamp(centre[0], 0, map.Width), Math.Clamp(centre[1], 0, map.Height), zoom)).Ok;
+        message = ok ? null : UiText.MapSaveFailed(Lang);
+        StateHasChanged();
+    }
+
+    private Task SetFogAsync(bool cover, bool brush)
+    {
+        fogCover = cover;
+        fogBrush = brush;
+        return SetToolAsync("fog");
+    }
+
+    private async Task SaveFogAsync()
+    {
+        if (map is not null)
+        {
+            message = (await Campaigns.SaveFogAsync(CampaignId, map.Id, fogEnabled, fog)).Ok ? null : UiText.MapSaveFailed(Lang);
+        }
+    }
+
+    private async Task ToggleFogAsync()
+    {
+        fogEnabled = !fogEnabled;
+        await SaveFogAsync();
+    }
+
+    private async Task FogAllAsync(bool cover)
+    {
+        fog = cover || map is null ? new() : new() { MapFog.Reveal, 0, 0, map.Width, map.Height };
+        fogEnabled = true;
+        await SaveFogAsync();
+    }
+
+    //	A box (x, y, width, height) or the centres of a brush stroke, revealed or covered
+    [JSInvokable]
+    public async Task FogDrawn(bool brush, double[] numbers)
+    {
+        if (map is null)
+        {
+            return;
+        }
+        var steps = new List<double>();
+        if (brush)
+        {
+            for (var i = 0; i + 1 < numbers.Length; i += 2)
+            {
+                steps.AddRange(new[] { fogCover ? MapFog.CoverCircle : MapFog.RevealCircle, numbers[i], numbers[i + 1], grid, 0 });
+            }
+        }
+        else if (numbers.Length == 4)
+        {
+            steps.AddRange(new[] { fogCover ? MapFog.Cover : MapFog.Reveal, numbers[0], numbers[1], numbers[2], numbers[3] });
+        }
+        if (steps.Count == 0 || (fog.Count + steps.Count) / 5 > MapFog.MaxSteps)
+        {
+            return;
+        }
+        fog = fog.Concat(steps).ToList();
+        fogEnabled = true;
+        StateHasChanged();
+        await SaveFogAsync();
+    }
 
     private Task SetAreaAsync(ShapeKind kind)
     {

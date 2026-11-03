@@ -57,13 +57,36 @@ namespace RealmForge.Shared.DTOs
 		DateTimeOffset UpdatedAt,
 		List<MapTokenDto> Tokens,
 		GridType GridType = GridType.Square,
-		List<MapShapeDto>? Shapes = null);
+		List<MapShapeDto>? Shapes = null,
+		MapTableDto? Table = null);
 
 	///	<summary>
 	///	What the table polls every few seconds: the grid and the tokens, without the picture.
 	///	</summary>
 	public record MapStateDto(Guid Id, string Name, int GridSize, int GridOffsetX, int GridOffsetY, bool Shown, DateTimeOffset UpdatedAt, List<MapTokenDto> Tokens,
-		GridType GridType = GridType.Square, List<MapShapeDto>? Shapes = null);
+		GridType GridType = GridType.Square, List<MapShapeDto>? Shapes = null, MapTableDto? Table = null);
+
+	///	<summary>
+	///	The fog of war (see MapFog), the last ping and the last view the masters brought the table to.
+	///	</summary>
+	public record MapTableDto(bool FogEnabled, List<double> Fog, MapPingDto? Ping, MapFocusDto? Focus);
+
+	public record MapPingDto(double X, double Y, string Color, DateTimeOffset At);
+
+	public record MapFocusDto(double X, double Y, double Zoom, DateTimeOffset At);
+
+	public class SaveFogDto
+	{
+		public bool Enabled { get; set; }
+		public List<double> Fog { get; set; } = new();
+	}
+
+	public class MapPointDto
+	{
+		public double X { get; set; }
+		public double Y { get; set; }
+		public double Zoom { get; set; } = 1;
+	}
 
 	///	<summary>
 	///	A new map, or its changes (Image null keeps the picture).
