@@ -1,0 +1,13 @@
+[Unit]
+Description=RealmForge on the phone: alerts and commands through ntfy
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/env python3 %h/realmforge/scripts/ntfy-bot.py
+Restart=always
+RestartSec=30
+
+[Install]
+WantedBy=default.target

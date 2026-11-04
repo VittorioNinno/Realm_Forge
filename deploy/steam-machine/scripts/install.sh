@@ -42,11 +42,20 @@ for name in db api tunnel backup; do
     echo "creato $target"
   fi
 done
+ntfy_file="$base/config/ntfy.env"
+if [ ! -e "$ntfy_file" ]; then
+  # Random topics and PIN: whoever knows a topic can read it or write to it
+  random() { head -c 64 /dev/urandom | base64 | tr -dc 'a-zA-Z0-9' | tr 'A-Z' 'a-z' | head -c "$1"; }
+  pin="$(head -c 64 /dev/urandom | od -An -tu1 | tr -dc '0-9' | head -c 6)"
+  sed -e "s/__NTFY_TOPIC__/realmforge-$(random 20)/" -e "s/__NTFY_CMD_TOPIC__/realmforge-cmd-$(random 20)/" -e "s/__NTFY_PIN__/$pin/" \
+    "$here/config/ntfy.env.example" > "$ntfy_file"
+  echo "creato $ntfy_file"
+fi
 chmod 600 "$base"/config/*.env "$password_file"
 
 say "Script e unità di systemd"
-cp "$here"/scripts/*.sh "$base/scripts/"
-chmod 700 "$base"/scripts/*.sh
+cp "$here"/scripts/*.sh "$here"/scripts/*.py "$base/scripts/"
+chmod 700 "$base"/scripts/*.sh "$base"/scripts/*.py
 cp "$here"/console/pannello.sh "$base/scripts/"
 chmod 700 "$base/scripts/pannello.sh"
 cp "$here"/quadlet/* "$quadlets/"
@@ -71,6 +80,18 @@ systemctl --user daemon-reload
 systemctl --user enable --now realmforge-backup.timer
 systemctl --user enable --now podman-auto-update.timer
 systemctl --user restart podman-auto-update.timer
+
+say "Notifiche e comandi sul telefono (ntfy)"
+if command -v python3 >/dev/null; then
+  systemctl --user enable realmforge-ntfy.service
+  systemctl --user restart realmforge-ntfy.service
+  . "$ntfy_file"
+  echo "Nell'app ntfy iscriviti a:  $NTFY_TOPIC   (avvisi e risposte)"
+  echo "e aggiungi anche:          $NTFY_CMD_TOPIC   (per scrivere i comandi)"
+  echo "PIN dei comandi:           $NTFY_PIN   (es. \"stato $NTFY_PIN\")"
+else
+  echo "python3 non trovato: le notifiche ntfy restano spente."
+fi
 
 cat <<MSG
 

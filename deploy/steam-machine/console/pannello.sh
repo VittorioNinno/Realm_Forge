@@ -49,6 +49,7 @@ while true; do
     config   "⚙️  Apri la cartella della configurazione" \
     neon     "🚚  Ricopia i dati da Neon (trasloco)" \
     site     "🌐  Apri il sito" \
+    ntfy     "📱  Notifiche sul telefono (ntfy)" \
     2>/dev/null) || exit 0
 
   case "$choice" in
@@ -81,5 +82,21 @@ while true; do
       kdialog --title "$title" --warningyesno "Il database della Steam Machine verrà sostituito con i dati di Neon. Serve solo durante il trasloco. Continuare?" \
         && in_terminal "'$scripts/migrate-from-neon.sh' && systemctl --user start realmforge-api && echo 'API riavviata.'" ;;
     site) xdg-open "https://myrealmforge.com" >/dev/null 2>&1 & ;;
+    ntfy)
+      # shellcheck disable=SC1091
+      . "$base/config/ntfy.env"
+      kdialog --title "$title — ntfy" --yesno "Nell'app ntfy (Android, iOS) iscriviti a questi due topic:
+
+Avvisi e risposte:  $NTFY_TOPIC
+Comandi:            $NTFY_CMD_TOPIC
+
+PIN dei comandi: $NTFY_PIN
+Esempi da scrivere sul topic dei comandi: \"stato $NTFY_PIN\", \"riavvia $NTFY_PIN\".
+
+Servizio: $(state realmforge-ntfy)
+
+Mandare una notifica di prova?" 2>/dev/null \
+        && python3 "$scripts/ntfy-bot.py" --test \
+        && kdialog --title "$title" --passivepopup "Notifica di prova inviata." 5 ;;
   esac
 done

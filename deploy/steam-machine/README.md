@@ -121,6 +121,34 @@ Le migrazioni del database si applicano da sole all'avvio, come su Render. Anche
 
 `install.sh` mette sul Desktop (e nel menu delle applicazioni) l'icona **RealmForge**: una finestra con lo stato di database, API, tunnel e ultimo backup, e le azioni più comuni: avvia, ferma, riavvia l'API, log in diretta, backup adesso, ripristino di un backup, aggiornamento immediato, cartelle di backup e configurazione, ricopia da Neon. Si apre anche da terminale con `~/realmforge/scripts/pannello.sh`.
 
+## 8b. Notifiche e comandi sul telefono (ntfy)
+
+Per sapere fuori casa se RealmForge funziona, e riavviarlo, si usa [ntfy](https://ntfy.sh): un'app gratuita (Android e iOS), senza account. `install.sh` crea `config/ntfy.env` con due topic dai nomi casuali e un PIN, e avvia il servizio `realmforge-ntfy`. Li trovi nel pannello (📱 Notifiche sul telefono) o con `cat ~/realmforge/config/ntfy.env`.
+
+1. Installa **ntfy** sul telefono e iscriviti al topic **`NTFY_TOPIC`**: lì arrivano avvisi e risposte.
+2. Aggiungi anche il topic **`NTFY_CMD_TOPIC`**: lì scrivi i comandi, sempre con il PIN (per esempio `stato 123456`).
+3. Dal pannello manda una **notifica di prova**.
+
+**Avvisi automatici** (controllo ogni 5 minuti):
+- qualcosa resta giù per due controlli di fila (database, API, tunnel o `https://api.myrealmforge.com/health`), e poi quando torna tutto online;
+- servizio avviato, utile per sapere che la macchina si è riaccesa dopo un riavvio o un calo di corrente;
+- nessun backup da più di 36 ore.
+
+Gli avvisi hanno i pulsanti **Stato**, **Riavvia l'API** e **Log**, che aggiungono il PIN da soli.
+
+| Comando | Cosa fa |
+|---|---|
+| `stato` | stato di database, API, tunnel, sito e ultimo backup |
+| `riavvia` | riavvia l'API |
+| `riavvia tutto` | riavvia database, API e tunnel |
+| `avvia` / `ferma` | avvia o ferma tutto (con `ferma` gli avvisi tacciono fino ad `avvia`) |
+| `aggiorna` | cerca subito una nuova immagine dell'API |
+| `backup` | fa un backup adesso |
+| `log` | le ultime righe del log dell'API |
+| `aiuto` | l'elenco dei comandi |
+
+Chi conosce i nomi dei topic può leggerli o scriverci: trattali come password. Senza il PIN i comandi vengono rifiutati. Per cambiarli, modifica `ntfy.env` e lancia `systemctl --user restart realmforge-ntfy`.
+
 ## 9. Comandi utili
 
 | Cosa | Comando |
@@ -131,6 +159,8 @@ Le migrazioni del database si applicano da sole all'avvio, come su Render. Anche
 | Riavviare l'API | `systemctl --user restart realmforge-api` |
 | Fermare tutto | `systemctl --user stop realmforge-tunnel realmforge-api realmforge-db` |
 | Console SQL | `podman exec -it realmforge-db psql -U realmforge` |
+| Log delle notifiche ntfy | `journalctl --user -u realmforge-ntfy -n 50` |
+| Notifica di prova | `python3 ~/realmforge/scripts/ntfy-bot.py --test` |
 
 ## 10. Problemi comuni
 
