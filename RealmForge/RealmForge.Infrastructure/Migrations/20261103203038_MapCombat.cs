@@ -22,7 +22,8 @@ namespace RealmForge.Infrastructure.Migrations
                 name: "Conditions",
                 table: "CampaignTokens",
                 type: "text[]",
-                nullable: false);
+                nullable: false,
+                defaultValueSql: "'{}'");
 
             migrationBuilder.AddColumn<Guid>(
                 name: "EncounterId",
