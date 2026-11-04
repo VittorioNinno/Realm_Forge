@@ -40,7 +40,8 @@ namespace RealmForge.Infrastructure.Migrations
                 name: "Fog",
                 table: "CampaignMaps",
                 type: "double precision[]",
-                nullable: false);
+                nullable: false,
+                defaultValueSql: "'{}'");
 
             migrationBuilder.AddColumn<bool>(
                 name: "FogEnabled",
