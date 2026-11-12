@@ -1198,13 +1198,14 @@ else
                     continue;
                 }
                 var waitingFor = map.Id;
+                var editsBefore = localEdits;
                 var (state, reached) = await Campaigns.WaitMapStateAsync(CampaignId, map.Id, map.UpdatedAt, token);
                 if (!reached)
                 {
                     await Task.Delay(3000, token);
                     continue;
                 }
-                if (grabbing || map is null || map.Id != waitingFor)
+                if (grabbing || map is null || map.Id != waitingFor || localEdits != editsBefore)
                 {
                     continue;
                 }
@@ -1362,7 +1363,14 @@ else
         }
     }
 
-    private void Replace(MapTokenDto token) => tokens = tokens.Select(x => x.Id == token.Id ? token : x).ToList();
+    private void Replace(MapTokenDto token)
+    {
+        tokens = tokens.Select(x => x.Id == token.Id ? token : x).ToList();
+        localEdits++;
+    }
+
+    //	Changes made here since a wait for the API began: its answer may predate them, so it is not shown
+    private int localEdits;
 
     // ===== View =====
 
@@ -1666,6 +1674,7 @@ else
     private async Task CombatCallAsync(Func<Task<CampaignResult>> call)
     {
         busy = true;
+        localEdits++;
         var result = await call();
         busy = false;
         message = result.Ok ? null : UiText.MapSaveFailed(Lang);
@@ -1722,6 +1731,7 @@ else
             return;
         }
         map = map with { UpdatedAt = state.UpdatedAt };
+        localEdits++;
         tokens = state.Tokens;
         shapes = state.Shapes ?? new();
         ApplyTable(state.Table, first: false);
@@ -2315,6 +2325,7 @@ else
         if (token is not null)
         {
             tokens = tokens.Append(token).ToList();
+            localEdits++;
         }
     }
 
@@ -2436,6 +2447,7 @@ else
         if (map is not null && (await Campaigns.DeleteTokenAsync(CampaignId, map.Id, t.Id)).Ok)
         {
             tokens = tokens.Where(x => x.Id != t.Id).ToList();
+            localEdits++;
             infoToken = null;
         }
     }
