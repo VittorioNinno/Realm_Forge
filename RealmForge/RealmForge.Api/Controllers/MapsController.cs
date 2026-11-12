@@ -171,7 +171,7 @@ namespace RealmForge.Api.Controllers
 					Label = t.Label, Color = t.Color, Kind = t.Kind, CharacterId = t.CharacterId, MonsterId = t.MonsterId,
 					X = t.X, Y = t.Y, Size = t.Size, Hidden = t.Hidden, Layer = t.Layer,
 					ControlledBy = t.ControlledBy.ToList(), Hp = t.Hp, MaxHp = t.MaxHp, Conditions = t.Conditions.ToList(),
-					PropType = t.PropType, PropState = t.PropState, PlayersInteract = t.PlayersInteract
+					PropType = t.PropType, PropState = t.PropState, PlayersInteract = t.PlayersInteract, ImageId = t.ImageId
 				});
 			}
 			foreach (var shape in map.Shapes)
@@ -1055,7 +1055,7 @@ namespace RealmForge.Api.Controllers
 
 		private static MapTokenDto ToDto(CampaignToken t, bool canMove) =>
 			new(t.Id, t.Label, t.Color, t.Kind, t.CharacterId, t.MonsterId, t.X, t.Y, t.Size, t.Hidden, canMove, null, t.Layer, t.CombatantId,
-				PropType: t.PropType, PropState: t.PropState, PlayersInteract: t.PlayersInteract);
+				PropType: t.PropType, PropState: t.PropState, PlayersInteract: t.PlayersInteract, ImageId: t.ImageId);
 
 		private static bool UnderFog(CampaignMap map, CampaignToken t)
 		{
@@ -1142,6 +1142,10 @@ namespace RealmForge.Api.Controllers
 			{
 				return "The colour must be #rrggbb.";
 			}
+			if (dto.ImageId is { } imageId && !await _context.UserImages.AnyAsync(i => i.Id == imageId))
+			{
+				return "Unknown image.";
+			}
 			if (dto.Kind == TokenKind.Prop && (dto.PropType is not { } propType || !Enum.IsDefined(propType) || !PropRules.Valid(propType, dto.PropState)))
 			{
 				return "An object needs a kind and one of its states.";
@@ -1175,6 +1179,7 @@ namespace RealmForge.Api.Controllers
 			token.Hidden = dto.Hidden;
 			token.Layer = dto.Layer;
 			token.ControlledBy = dto.ControlledBy.Distinct().Take(MapRules.MaxControllers).ToList();
+			token.ImageId = dto.ImageId;
 			token.PropType = dto.Kind == TokenKind.Prop ? dto.PropType : null;
 			token.PropState = dto.Kind == TokenKind.Prop ? dto.PropState : PropState.Closed;
 			token.PlayersInteract = dto.Kind == TokenKind.Prop && dto.PlayersInteract;

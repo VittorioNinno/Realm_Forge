@@ -173,6 +173,9 @@
                 <ShareLink Visibility="detail.Visibility" CanEdit="detail.CanEdit" EntityId="detail.Id" Path="@($"{PagePath}?id={detail.Id}")" />
             }
 
+            <div class="mb-3">
+                <MonsterPicture MonsterId="detail.Id" Portrait="@detail.Portrait" Name="@detail.Text.Name" Large="true" ShowPicker="true" />
+            </div>
             <MonsterStatBlock Monster="detail" ShowName="false" />
 
             <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 pt-3 mt-3" style="border-top: 1px solid var(--rf-border-light);">
