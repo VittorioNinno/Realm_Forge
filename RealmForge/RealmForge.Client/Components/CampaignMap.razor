@@ -51,11 +51,14 @@
                 <button type="button" class="@ToolButton("draw")" title="@UiText.VttToolDraw(Lang)" aria-label="@UiText.VttToolDraw(Lang)" @onclick="@(() => SetToolAsync("draw"))" data-test="vtt-tool-draw"><Icon Name="edit" /></button>
                 <button type="button" class="@ToolButton("text")" title="@UiText.VttToolText(Lang)" aria-label="@UiText.VttToolText(Lang)" @onclick="@(() => SetToolAsync("text"))" data-test="vtt-tool-text"><Icon Name="type" /></button>
                 <button type="button" class="@ToolButton("erase")" title="@UiText.VttToolErase(Lang)" aria-label="@UiText.VttToolErase(Lang)" @onclick="@(() => SetToolAsync("erase"))" data-test="vtt-tool-erase"><Icon Name="eraser" /></button>
+                <span class="rf-vtt-tools-sep"></span>
+                <button type="button" class="rf-vtt-tool @(panel == "initiative" ? "active" : null)" title="@UiText.VttInitiative(Lang)" aria-label="@UiText.VttInitiative(Lang)" @onclick="@(() => TogglePanel("initiative"))" data-test="vtt-tool-initiative"><Icon Name="shield" /></button>
+                <button type="button" class="rf-vtt-tool @(panel == "dice" ? "active" : null)" title="@UiText.VttDice(Lang)" aria-label="@UiText.VttDice(Lang)" @onclick="@(() => TogglePanel("dice"))" data-test="vtt-tool-dice"><Icon Name="dice" /></button>
                 @if (RunsTheTable)
                 {
                     <button type="button" class="@ToolButton("fog")" title="@UiText.VttToolFog(Lang)" aria-label="@UiText.VttToolFog(Lang)" @onclick="@(() => SetToolAsync("fog"))" data-test="vtt-tool-fog"><Icon Name="eye-slash" /></button>
                     <span class="rf-vtt-tools-sep"></span>
-                    <button type="button" class="rf-vtt-tool @(drawer ? "active" : null)" title="@UiText.VttToolTokens(Lang)" aria-label="@UiText.VttToolTokens(Lang)" @onclick="() => drawer = !drawer" data-test="vtt-tool-tokens"><Icon Name="people" /></button>
+                    <button type="button" class="rf-vtt-tool @(panel == "tokens" ? "active" : null)" title="@UiText.VttToolTokens(Lang)" aria-label="@UiText.VttToolTokens(Lang)" @onclick="@(() => TogglePanel("tokens"))" data-test="vtt-tool-tokens"><Icon Name="people" /></button>
                 }
                 <span class="rf-vtt-tools-sep"></span>
                 <button type="button" class="rf-vtt-tool" title="@UiText.VttFullscreen(Lang)" aria-label="@UiText.VttFullscreen(Lang)" @onclick="FullscreenAsync" data-test="vtt-fullscreen"><Icon Name="fullscreen" /></button>
@@ -155,30 +158,33 @@
                     </div>
                 }
             </div>
-            @if (RunsTheTable && drawer)
+            @if (panel is not null)
             {
                 <aside class="rf-vtt-drawer" data-test="vtt-drawer">
-                    <button type="button" class="btn btn-sm btn-rf-orange" @onclick="OpenNewMap" data-test="map-new"><Icon Name="plus" /> @UiText.MapNew(Lang)</button>
-                    @if (map is not null)
-                    {
-                        @if (combat is null)
+                    <nav class="rf-vtt-panel-tabs">
+                        <button type="button" class="@(panel == "initiative" ? "active" : null)" @onclick="@(() => panel = "initiative")">@UiText.VttInitiative(Lang)</button>
+                        <button type="button" class="@(panel == "dice" ? "active" : null)" @onclick="@(() => panel = "dice")">@UiText.VttDice(Lang)</button>
+                        @if (RunsTheTable)
                         {
-                            <section class="rf-vtt-box" data-test="vtt-combat-box">
-                                <span class="rf-vtt-title">@UiText.VttCombat(Lang)</span>
-                                @if (EncounterOptions.Count == 0)
-                                {
-                                    <p class="small mb-0" style="color: var(--rf-text-muted);">@UiText.VttNoEncounters(Lang)</p>
-                                }
-                                else
-                                {
-                                    <div data-test="vtt-encounter">
-                                        <RfSelect TValue="Guid?" @bind-Value="encounterId" Options="EncounterOptions" />
-                                    </div>
-                                    <button type="button" class="btn btn-sm btn-rf-orange" disabled="@(encounterId is null || busy)" @onclick="StartCombatAsync" data-test="vtt-start-combat"><Icon Name="play" /> @UiText.VttStartCombat(Lang)</button>
-                                }
-                            </section>
+                            <button type="button" class="@(panel == "tokens" ? "active" : null)" @onclick="@(() => panel = "tokens")">@UiText.VttToolTokens(Lang)</button>
                         }
-                        @AddTokens
+                        <button type="button" class="rf-vtt-icon-button ms-auto" @onclick="() => panel = null" aria-label="@UiText.TokenClose(Lang)"><Icon Name="close" /></button>
+                    </nav>
+                    @switch (panel)
+                    {
+                        case "initiative":
+                            @InitiativePanel
+                            break;
+                        case "dice":
+                            <CampaignRolls CampaignId="CampaignId" Role="Role" Characters="Characters" MyColor="@MyColor" Compact="true" />
+                            break;
+                        case "tokens" when RunsTheTable:
+                            <button type="button" class="btn btn-sm btn-rf-orange" @onclick="OpenNewMap" data-test="map-new"><Icon Name="plus" /> @UiText.MapNew(Lang)</button>
+                            @if (map is not null)
+                            {
+                                @AddTokens
+                            }
+                            break;
                     }
                 </aside>
             }
@@ -347,7 +353,10 @@ else
     private string? message;
     private bool busy;
     private bool confirmDelete;
-    private bool drawer;
+    //	The panel on the right of the table: initiative, dice, tokens (masters)
+    private string? panel;
+
+    private void TogglePanel(string name) => panel = panel == name ? null : name;
     private string tool = "select";
 
     //	Drawings, texts, notes and areas
@@ -658,6 +667,13 @@ else
                 @if (it.Hp is not null || (RunsTheTable && it.CharacterId is null))
                 {
                     @TabButton("hp", "heart", UiText.ToolHp(Lang), "map-token-tab-hp")
+                }
+                @if (RunsTheTable && Table && it.Kind != TokenKind.Marker)
+                {
+                    <button type="button" class="rf-vtt-toolbar-tab @(InFight(it) ? "active" : null)" disabled="@busy" @onclick="() => ToggleFightAsync(it)" data-test="map-token-fight"
+                            title="@(InFight(it) ? UiText.VttLeaveFight(Lang) : combat is null ? UiText.VttFightAlone(Lang) : UiText.VttJoinFight(Lang))">
+                        <Icon Name="shield" /><span>@(InFight(it) ? UiText.ToolOut(Lang) : UiText.ToolAdd(Lang))</span>
+                    </button>
                 }
                 @if (CanRoll(it))
                 {
@@ -1360,6 +1376,218 @@ else
         }
     }
 
+    // ===== The initiative panel =====
+
+    //	Tokens a quick fight can start with: on the map, not markers nor props
+    private IEnumerable<MapTokenDto> FightableTokens => tokens.Where(t => t.Kind != TokenKind.Marker && t.Layer == TokenLayer.Tokens);
+    private readonly HashSet<Guid> quickLeftOut = new();
+    private Guid? addTokenId;
+
+    private RenderFragment InitiativePanel => __builder =>
+    {
+        <section class="rf-vtt-initiative-panel" data-test="vtt-initiative-panel">
+            @if (map is null)
+            {
+                <p class="small mb-0" style="color: var(--rf-text-muted);">@UiText.MapEmptyPlayer(Lang)</p>
+            }
+            else if (combat is null)
+            {
+                @if (RunsTheTable)
+                {
+                    <section class="rf-vtt-box" data-test="vtt-combat-box">
+                        <span class="rf-vtt-title">@UiText.VttQuickCombat(Lang)</span>
+                        @if (!FightableTokens.Any())
+                        {
+                            <p class="small mb-0" style="color: var(--rf-text-muted);">@UiText.VttQuickCombatEmpty(Lang)</p>
+                        }
+                        else
+                        {
+                            @foreach (var t in FightableTokens)
+                            {
+                                var token = t;
+                                <label class="rf-checkbox-wrapper small mb-0">
+                                    <input type="checkbox" class="rf-checkbox" checked="@(!quickLeftOut.Contains(token.Id))" @onchange="() => ToggleQuick(token.Id)" data-test="vtt-quick-token" />
+                                    <span style="color: @token.Color;">@token.Label</span>
+                                </label>
+                            }
+                            <button type="button" class="btn btn-sm btn-rf-orange" disabled="@busy" @onclick="QuickCombatAsync" data-test="vtt-quick-combat"><Icon Name="play" /> @UiText.VttQuickCombatStart(Lang)</button>
+                        }
+                    </section>
+                    <section class="rf-vtt-box">
+                        <span class="rf-vtt-title">@UiText.VttCombat(Lang)</span>
+                        @if (EncounterOptions.Count == 0)
+                        {
+                            <p class="small mb-0" style="color: var(--rf-text-muted);">@UiText.VttNoEncounters(Lang)</p>
+                        }
+                        else
+                        {
+                            <div data-test="vtt-encounter">
+                                <RfSelect TValue="Guid?" @bind-Value="encounterId" Options="EncounterOptions" />
+                            </div>
+                            <button type="button" class="btn btn-sm btn-rf-outline" disabled="@(encounterId is null || busy)" @onclick="StartCombatAsync" data-test="vtt-start-combat"><Icon Name="play" /> @UiText.VttStartCombat(Lang)</button>
+                        }
+                    </section>
+                }
+                else
+                {
+                    <p class="small mb-0" style="color: var(--rf-text-muted);" data-test="vtt-no-combat">@UiText.VttNoCombat(Lang)</p>
+                }
+            }
+            else
+            {
+                <div class="rf-vtt-initiative-head">
+                    <strong>@combat.Name</strong>
+                    <span class="rf-vtt-round">@UiText.VttRound(combat.Round, Lang)</span>
+                </div>
+                <ol class="rf-vtt-initiative-list">
+                    @foreach (var c in combat.Order)
+                    {
+                        var who = c;
+                        var token = who.TokenId is { } tid ? tokens.FirstOrDefault(t => t.Id == tid) : null;
+                        var mine = token?.CharacterId is not null && CharacterOf(token)?.IsMine == true;
+                        <li class="@(combat.CurrentId == who.Id ? "current" : null) @(who.Hidden ? "hidden-token" : null)" style="--rf-token: @(token?.Color ?? "#9e9e9e");" data-test="vtt-initiative-row">
+                            @if (RunsTheTable)
+                            {
+                                <input type="number" class="rf-form-control rf-vtt-init-input" value="@who.Initiative" @onchange="e => SetInitiativeAsync(who.Id, e.Value?.ToString())" aria-label="@UiText.RollInitiative(Lang)" data-test="vtt-init-input" />
+                            }
+                            else
+                            {
+                                <span class="rf-vtt-init-value">@(who.Initiative?.ToString() ?? "–")</span>
+                            }
+                            <button type="button" class="rf-vtt-initiative-name" @onclick="() => FocusTokenAsync(token)">
+                                <span>@who.Name</span>
+                                <small>@InitiativeLine(token)</small>
+                            </button>
+                            @if (mine && token is not null)
+                            {
+                                <button type="button" class="rf-vtt-chip" disabled="@busy" @onclick="() => RollInitiativeAsync(token, who.Id)" data-test="vtt-roll-init"><Icon Name="dice" /></button>
+                            }
+                            @if (RunsTheTable && token is not null)
+                            {
+                                <button type="button" class="rf-vtt-icon-button" title="@UiText.VttLeaveFight(Lang)" aria-label="@UiText.VttLeaveFight(Lang)" @onclick="() => LeaveFightAsync(token)" data-test="vtt-remove-combatant"><Icon Name="close" /></button>
+                            }
+                        </li>
+                    }
+                </ol>
+                @if (RunsTheTable)
+                {
+                    <div class="d-flex flex-wrap gap-2">
+                        <button type="button" class="btn btn-sm btn-rf-orange" disabled="@busy" @onclick="NextTurnAsync">@UiText.VttNextTurn(Lang)</button>
+                        <button type="button" class="btn btn-sm btn-rf-outline" disabled="@busy" @onclick="EndCombatAsync">@UiText.VttEndCombat(Lang)</button>
+                    </div>
+                    @if (FightableTokens.Where(t => t.CombatantId is null || combat.Order.All(o => o.Id != t.CombatantId)).ToList() is { Count: > 0 } outside)
+                    {
+                        <div class="rf-vtt-field">
+                            <span class="rf-vtt-label">@UiText.VttJoinFight(Lang)</span>
+                            <div class="d-flex gap-2" data-test="vtt-add-combatant">
+                                <RfSelect TValue="Guid?" @bind-Value="addTokenId" Options="@(outside.Select(t => new RfSelect<Guid?>.OptionItem(t.Id, t.Label)).ToList())" />
+                                <button type="button" class="btn btn-sm btn-rf-outline" disabled="@(addTokenId is null || busy)" @onclick="JoinFightAsync" data-test="vtt-add-combatant-go"><Icon Name="plus" /></button>
+                            </div>
+                        </div>
+                    }
+                }
+            }
+        </section>
+    };
+
+    private string InitiativeLine(MapTokenDto? t)
+    {
+        if (t is null)
+        {
+            return string.Empty;
+        }
+        if (CharacterOf(t) is { } c)
+        {
+            return UiText.TokenHitPoints(c.Character.CurrentHitPoints, c.Character.MaxHitPoints, Lang);
+        }
+        if (RunsTheTable && t.Hp is { } hp && t.MaxHp is { } max)
+        {
+            return $"{hp}/{max}";
+        }
+        return t.Health is { } health ? UiText.HealthName(health, Lang) : string.Empty;
+    }
+
+    private void ToggleQuick(Guid id)
+    {
+        if (!quickLeftOut.Remove(id))
+        {
+            quickLeftOut.Add(id);
+        }
+    }
+
+    private async Task QuickCombatAsync()
+    {
+        if (map is null)
+        {
+            return;
+        }
+        var chosen = FightableTokens.Where(t => !quickLeftOut.Contains(t.Id)).Select(t => t.Id).ToList();
+        if (chosen.Count == 0)
+        {
+            return;
+        }
+        await CombatCallAsync(() => Campaigns.QuickCombatAsync(CampaignId, map.Id, chosen));
+    }
+
+    private async Task JoinFightAsync()
+    {
+        if (map is not null && addTokenId is { } id)
+        {
+            addTokenId = null;
+            await CombatCallAsync(() => Campaigns.JoinFightAsync(CampaignId, map.Id, id));
+        }
+    }
+
+    private Task LeaveFightAsync(MapTokenDto t) => map is null ? Task.CompletedTask : CombatCallAsync(() => Campaigns.LeaveFightAsync(CampaignId, map.Id, t.Id));
+
+    //	From the token's toolbar: into the fight, out of it, or a fight with this token alone
+    private Task ToggleFightAsync(MapTokenDto t)
+    {
+        if (map is null)
+        {
+            return Task.CompletedTask;
+        }
+        if (combat is null)
+        {
+            return CombatCallAsync(() => Campaigns.QuickCombatAsync(CampaignId, map.Id, new List<Guid> { t.Id }));
+        }
+        return InFight(t) ? LeaveFightAsync(t) : CombatCallAsync(() => Campaigns.JoinFightAsync(CampaignId, map.Id, t.Id));
+    }
+
+    private bool InFight(MapTokenDto t) => combat is not null && t.CombatantId is { } id && combat.Order.Any(o => o.Id == id);
+
+    private async Task SetInitiativeAsync(Guid combatantId, string? value)
+    {
+        if (map is not null && int.TryParse(value, out var initiative))
+        {
+            await CombatCallAsync(() => Campaigns.SetInitiativeAsync(CampaignId, map.Id, combatantId, Math.Clamp(initiative, -10, 99)));
+        }
+    }
+
+    //	A player rolls the initiative of their character from the sheet's bonus, and it takes its place in the order
+    private async Task RollInitiativeAsync(MapTokenDto t, Guid combatantId)
+    {
+        await LoadStatsAsync(t);
+        if (StatsOf(t)?.Rolls.FirstOrDefault() is not { } roll || map is null)
+        {
+            return;
+        }
+        if (await RollForAsync(t, roll) is { } result)
+        {
+            await CombatCallAsync(() => Campaigns.SetInitiativeAsync(CampaignId, map.Id, combatantId, result.Total));
+        }
+    }
+
+    private async Task CombatCallAsync(Func<Task<CampaignResult>> call)
+    {
+        busy = true;
+        localEdits++;
+        var result = await call();
+        busy = false;
+        message = result.Ok ? null : UiText.MapSaveFailed(Lang);
+        await RefreshAsync();
+    }
+
     private async Task StartCombatAsync()
     {
         if (map is null || encounterId is not { } id)
@@ -1566,7 +1794,9 @@ else
         return new TokenStats(monster.Speed, rolls);
     }
 
-    private async Task RollAsync(MapTokenDto t, TokenRoll roll)
+    private async Task RollAsync(MapTokenDto t, TokenRoll roll) => await RollForAsync(t, roll);
+
+    private async Task<CampaignRollDto?> RollForAsync(MapTokenDto t, TokenRoll roll)
     {
         busy = true;
         var (result, _) = await Campaigns.RollAsync(CampaignId, new NewCampaignRollDto
@@ -1582,6 +1812,7 @@ else
         {
             await tray.ShowAsync(new DiceRollResult(result.Label, result.Dice.Select(d => new DieFace(d.Sides, d.Value, d.Dropped)).ToList(), result.Modifier, result.Total, result.Note));
         }
+        return result;
     }
 
     private void ApplyTable(MapTableDto? table, bool first)

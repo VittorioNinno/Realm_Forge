@@ -47,6 +47,17 @@ namespace RealmForge.Shared.DTOs
 		public Guid EncounterId { get; set; }
 	}
 
+	public class QuickCombatDto
+	{
+		public List<Guid> TokenIds { get; set; } = new();
+	}
+
+	public class SetInitiativeDto
+	{
+		public Guid CombatantId { get; set; }
+		public int Initiative { get; set; }
+	}
+
 	public class TokenStateDto
 	{
 		public List<string> Conditions { get; set; } = new();

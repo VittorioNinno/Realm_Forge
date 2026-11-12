@@ -1138,6 +1138,19 @@ jobs:
           wait $lp_pid
           lp_result=$(jq -c '[.tokens[] | select(.label == "Albero") | {x, y}]' "$lp_out")
           lp_fast=$(awk -v t="$(cat "$lp_out.time")" 'BEGIN { print (t >= 1.5 && t < 8) ? "yes" : "no (" t ")" }')
+          # A quick fight with the marker: its initiative rolled, set by the master only, the marker leaves, the fight ends
+          qf=$(code -X POST "$api/api/campaigns/$ss_cp/maps/$mp2/combat/quick" $json -H "Authorization: Bearer $B" -d "{\"tokenIds\":[\"$ctl_tree\"]}")
+          qf_again=$(code -X POST "$api/api/campaigns/$ss_cp/maps/$mp2/combat/quick" $json -H "Authorization: Bearer $B" -d "{\"tokenIds\":[\"$ctl_tree\"]}")
+          qf_state=$(curl -s "$api/api/campaigns/$ss_cp/maps/$mp2/state" -H "Authorization: Bearer $B")
+          qf_order=$(echo "$qf_state" | jq -c '[.combat.order[] | {name, rolled: (.initiative != null)}]')
+          qf_cid=$(echo "$qf_state" | jq -r '.combat.order[0].id')
+          qf_init_player=$(code -X PUT "$api/api/campaigns/$ss_cp/maps/$mp2/combat/initiative" $json -H "Authorization: Bearer $A" -d "{\"combatantId\":\"$qf_cid\",\"initiative\":30}")
+          qf_init=$(code -X PUT "$api/api/campaigns/$ss_cp/maps/$mp2/combat/initiative" $json -H "Authorization: Bearer $B" -d "{\"combatantId\":\"$qf_cid\",\"initiative\":15}")
+          qf_seen=$(curl -s "$api/api/campaigns/$ss_cp/maps/$mp2/state" -H "Authorization: Bearer $A" | jq -c '[.combat.order[] | .initiative]')
+          qf_leave=$(code -X DELETE "$api/api/campaigns/$ss_cp/maps/$mp2/combat/tokens/$ctl_tree" -H "Authorization: Bearer $B")
+          qf_left=$(curl -s "$api/api/campaigns/$ss_cp/maps/$mp2/state" -H "Authorization: Bearer $B" | jq -c '{order: (.combat.order | length), hp: [.tokens[] | select(.label == "Albero") | .hp]}')
+          qf_end=$(code -X POST "$api/api/campaigns/$ss_cp/maps/$mp2/combat/end" -H "Authorization: Bearer $B")
+          echo "::notice title=maps::quick fight=$qf again=$qf_again order=$qf_order init player=$qf_init_player master=$qf_init seen=$qf_seen leave=$qf_leave left=$qf_left end=$qf_end"
           echo "::notice title=maps::control before=$ctl_before bad=$ctl_bad assign=$ctl_assign seen=$ctl_seen master=$ctl_master after=$ctl_after | long poll=$lp_result fast=$lp_fast"
           echo "::notice title=maps::fight player=$fight_player master=$fight seen=$fight_seen | state player=$fight_state_player master=$fight_state next=$fight_next after=$fight_after master=$fight_master | end=$fight_end done=$fight_done"
           code -X DELETE "$api/api/campaigns/$ss_cp/maps/$mp2" -H "Authorization: Bearer $B" > /dev/null
@@ -1208,6 +1221,15 @@ jobs:
           sscheck "player moves the assigned marker" "$ctl_after" "204"
           sscheck "table told of the move" "$lp_result" '[{"x":8,"y":6}]'
           sscheck "told at once, not at the next poll" "$lp_fast" "yes"
+          sscheck "quick fight" "$qf" "204"
+          sscheck "second fight on the same map" "$qf_again" "400"
+          sscheck "quick fight order" "$qf_order" '[{"name":"Albero","rolled":true}]'
+          sscheck "player sets another initiative" "$qf_init_player" "403"
+          sscheck "master sets an initiative" "$qf_init" "204"
+          sscheck "initiative seen by the player" "$qf_seen" '[15]'
+          sscheck "token leaves the fight" "$qf_leave" "204"
+          sscheck "fight without the token" "$qf_left" '{"order":0,"hp":[5]}'
+          sscheck "quick fight ended" "$qf_end" "204"
           sscheck "player sets the fog" "$fog_player" "403"
           sscheck "unknown fog step" "$fog_bad" "400"
           sscheck "marker under the fog" "$fog_covered" '{"tokens":[],"fog":true}'
