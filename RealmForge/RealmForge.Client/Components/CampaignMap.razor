@@ -662,20 +662,23 @@ else
                     }
                     <span class="rf-vtt-toolbar-sub" data-test="map-token-card-stats">@ToolbarLine(it, character, monster)</span>
                 </div>
-                <button type="button" class="rf-vtt-toolbar-conditions" @onclick="@(() => Tab("conditions"))" data-test="map-token-conditions-tab">
-                    @if (it.Conditions is { Count: > 0 } conditionList)
-                    {
-                        <span>@string.Join(" · ", conditionList.Take(3).Select(k => UiText.ConditionName(k, Lang)))@(conditionList.Count > 3 ? " …" : null)</span>
-                    }
-                    else
-                    {
-                        <span>@UiText.TokenConditions(Lang)</span>
-                    }
-                    @if (RunsTheTable && it.CharacterId is null)
-                    {
-                        <Icon Name="plus" />
-                    }
-                </button>
+                @if (it.PropType is null)
+                {
+                    <button type="button" class="rf-vtt-toolbar-conditions" @onclick="@(() => Tab("conditions"))" data-test="map-token-conditions-tab">
+                        @if (it.Conditions is { Count: > 0 } conditionList)
+                        {
+                            <span>@string.Join(" · ", conditionList.Take(3).Select(k => UiText.ConditionName(k, Lang)))@(conditionList.Count > 3 ? " …" : null)</span>
+                        }
+                        else
+                        {
+                            <span>@UiText.TokenConditions(Lang)</span>
+                        }
+                        @if (RunsTheTable && it.CharacterId is null)
+                        {
+                            <Icon Name="plus" />
+                        }
+                    </button>
+                }
                 <button type="button" class="rf-vtt-card-close rf-vtt-icon-button" @onclick="CloseToolbar" aria-label="@UiText.TokenClose(Lang)"><Icon Name="close" /></button>
             </header>
             @if (it.PropType is { } usedType)
