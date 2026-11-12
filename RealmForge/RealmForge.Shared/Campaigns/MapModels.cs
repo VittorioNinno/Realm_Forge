@@ -404,6 +404,12 @@ public static class MapRules
 	///	Who moves a token: the masters any token; a player only the token of a character they own, on a map shown to the
 	///	table, when the token is not hidden.
 	///	</summary>
-	public static bool CanMove(CampaignRole role, bool ownsCharacter, bool mapShown, bool hidden) =>
-		CampaignRules.RunsTheTable(role) || (ownsCharacter && mapShown && !hidden);
+	///	<summary>
+	///	A master moves any token; a player only the tokens they control (their own characters, and those a master assigned
+	///	them), on a map shown to the players and not hidden.
+	///	</summary>
+	public static bool CanMove(CampaignRole role, bool controls, bool mapShown, bool hidden) =>
+		CampaignRules.RunsTheTable(role) || (controls && mapShown && !hidden);
+
+	public const int MaxControllers = 12;
 }

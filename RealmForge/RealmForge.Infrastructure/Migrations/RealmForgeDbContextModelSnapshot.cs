@@ -867,8 +867,17 @@ namespace RealmForge.Infrastructure.Migrations
                         .IsRequired()
                         .HasColumnType("text[]");
 
+                    b.PrimitiveCollection<List<string>>("ControlledBy")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("text[]")
+                        .HasDefaultValueSql("'{}'");
+
                     b.Property<bool>("Hidden")
                         .HasColumnType("boolean");
+
+                    b.Property<int?>("Hp")
+                        .HasColumnType("integer");
 
                     b.Property<int>("Kind")
                         .HasColumnType("integer");
@@ -883,6 +892,9 @@ namespace RealmForge.Infrastructure.Migrations
 
                     b.Property<Guid>("MapId")
                         .HasColumnType("uuid");
+
+                    b.Property<int?>("MaxHp")
+                        .HasColumnType("integer");
 
                     b.Property<Guid?>("MonsterId")
                         .HasColumnType("uuid");

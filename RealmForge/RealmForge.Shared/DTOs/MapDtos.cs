@@ -30,7 +30,10 @@ namespace RealmForge.Shared.DTOs
 		//	Hit points of a monster in the fight, for the masters; its health, for the players
 		int? Hp = null,
 		int? MaxHp = null,
-		CombatantHealth? Health = null);
+		CombatantHealth? Health = null,
+
+		//	The players a master lets move it (sent to the masters only)
+		List<string>? ControlledBy = null);
 
 	///	<summary>
 	///	The fight on a map: the encounter, the round, whose turn it is and the initiative order (what the players see of it).
@@ -146,6 +149,9 @@ namespace RealmForge.Shared.DTOs
 		public int Size { get; set; } = 1;
 		public bool Hidden { get; set; }
 		public TokenLayer Layer { get; set; } = TokenLayer.Tokens;
+		public List<string> ControlledBy { get; set; } = new();
+		public int? Hp { get; set; }
+		public int? MaxHp { get; set; }
 	}
 
 	public class MoveTokenDto
