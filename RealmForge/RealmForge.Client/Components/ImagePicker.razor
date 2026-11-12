@@ -1,0 +1,67 @@
+﻿@using RealmForge.Client.Localization
+@using RealmForge.Client.Services
+@using RealmForge.Shared.DTOs
+@using RealmForge.Shared.Enums
+@inject ImageDataService Images
+@inject LanguageStateService LanguageState
+@inject IJSRuntime JS
+
+@* A choice among the account's images (with one more uploaded on the spot), for a token, a monster or an NPC *@
+<div class="rf-image-picker" data-test="image-picker">
+    <div class="rf-image-grid">
+        <button type="button" class="rf-image-tile none @(Selected is null ? "active" : null)" @onclick="() => PickAsync(null)" data-test="image-none">
+            <span>@UiText.ImageNone(Lang)</span>
+        </button>
+        @foreach (var image in images ?? new())
+        {
+            var item = image;
+            <button type="button" class="rf-image-tile @(Selected == item.Id ? "active" : null)" title="@item.Name" @onclick="() => PickAsync(item.Id)" data-test="image-tile">
+                <img src="@Images.FileUrl(item.Id)" alt="@item.Name" loading="lazy" />
+            </button>
+        }
+        <label class="rf-image-tile upload" title="@UiText.ImageUpload(Lang)" data-test="image-upload">
+            <InputFile OnChange="UploadAsync" accept="image/*" class="d-none" />
+            <Icon Name="plus" />
+        </label>
+    </div>
+    @if (error is not null)
+    {
+        <span class="small text-warning">@error</span>
+    }
+    @if (uploading)
+    {
+        <span class="small" style="color: var(--rf-text-muted);">…</span>
+    }
+</div>
+
+@code {
+    [Parameter] public Guid? Selected { get; set; }
+    [Parameter] public EventCallback<Guid?> OnPick { get; set; }
+
+    //	The name for a picture uploaded here, when the file has none worth keeping
+    [Parameter] public string? Name { get; set; }
+
+    private LanguageCode Lang => LanguageState.CurrentLanguage;
+    private List<UserImageDto>? images;
+    private string? error;
+    private bool uploading;
+
+    protected override async Task OnInitializedAsync() => images = await Images.GetImagesAsync();
+
+    private Task PickAsync(Guid? id) => OnPick.InvokeAsync(id);
+
+    private async Task UploadAsync(InputFileChangeEventArgs e)
+    {
+        error = null;
+        uploading = true;
+        var uploaded = await ImageUpload.SendAsync(Images, JS, e.File, Name);
+        uploading = false;
+        if (uploaded is null)
+        {
+            error = UiText.ImageTooLarge(Lang);
+            return;
+        }
+        images = await Images.GetImagesAsync();
+        await PickAsync(uploaded.Id);
+    }
+}

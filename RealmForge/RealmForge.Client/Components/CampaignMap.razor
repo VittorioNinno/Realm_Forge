@@ -6,6 +6,7 @@
 @using RealmForge.Shared.Enums
 @inject CampaignDataService Campaigns
 @inject MonsterDataService MonsterService
+@inject ImageDataService Images
 @inject EncounterDataService Encounters
 @inject CharacterDataService CharacterService
 @inject LanguageStateService LanguageState
@@ -438,7 +439,8 @@ else
 
     private CampaignCharacterDto? CharacterOf(MapTokenDto t) => t.CharacterId is { } id ? Characters.FirstOrDefault(c => c.Character.Id == id) : null;
 
-    private string? PortraitOf(MapTokenDto t) => t.Portrait ?? CharacterOf(t)?.Character.Portrait;
+    private string? PortraitOf(MapTokenDto t) =>
+        t.Portrait ?? CharacterOf(t)?.Character.Portrait ?? (t.ImageId is { } imageId ? Images.FileUrl(imageId) : null);
 
     private static string Initials(string label)
     {
@@ -724,6 +726,10 @@ else
                     <button type="button" class="rf-vtt-toolbar-tab @(it.Hidden ? "active" : null)" aria-pressed="@(it.Hidden ? "true" : "false")" @onclick="() => ToggleHiddenAsync(it)" data-test="map-token-hidden">
                         <Icon Name="@(it.Hidden ? "eye-slash" : "eye")" /><span>@UiText.ToolHide(Lang)</span>
                     </button>
+                    @if (it.CharacterId is null && it.PropType is null)
+                    {
+                        @TabButton("art", "images", UiText.ToolArt(Lang), "map-token-tab-art")
+                    }
                     @TabButton("ring", "circle", UiText.ToolRing(Lang), "map-token-tab-ring")
                     @TabButton("size", "aspect-ratio", UiText.ToolSize(Lang), "map-token-tab-size")
                 }
@@ -810,6 +816,11 @@ else
                         {
                             <span class="small" style="color: var(--rf-text-muted);">…</span>
                         }
+                    </div>
+                    break;
+                case "art":
+                    <div class="rf-vtt-toolbar-panel">
+                        <ImagePicker Selected="it.ImageId" Name="@it.Label" OnPick="id => SaveTokenAsync(it, it with { ImageId = id })" />
                     </div>
                     break;
                 case "ring":
@@ -2348,6 +2359,7 @@ else
             MonsterId = m.Id,
             Color = m.IsNpc ? "#ab47bc" : "#dc3545",
             Size = m.Size switch { CreatureSize.Large => 2, CreatureSize.Huge => 3, CreatureSize.Gargantuan => 4, _ => 1 },
+            ImageId = (await Images.GetChoicesAsync()).TryGetValue(m.Id, out var chosenImage) ? chosenImage : null,
             MaxHp = m.HitPoints > 0 ? m.HitPoints : null,
             Hp = m.HitPoints > 0 ? m.HitPoints : null
         });
@@ -2399,7 +2411,7 @@ else
     {
         Label = t.Label, Color = t.Color, Kind = t.Kind, CharacterId = t.CharacterId, MonsterId = t.MonsterId, X = t.X, Y = t.Y, Size = t.Size, Hidden = t.Hidden, Layer = t.Layer,
         ControlledBy = t.ControlledBy?.ToList() ?? new(), Hp = t.CombatantId is null ? t.Hp : null, MaxHp = t.CombatantId is null ? t.MaxHp : null,
-        PropType = t.PropType, PropState = t.PropState, PlayersInteract = t.PlayersInteract
+        PropType = t.PropType, PropState = t.PropState, PlayersInteract = t.PlayersInteract, ImageId = t.ImageId
     };
 
     private async Task ResizeAsync(MapTokenDto t, int size)
