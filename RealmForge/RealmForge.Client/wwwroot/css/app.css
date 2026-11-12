@@ -11615,6 +11615,10 @@ textarea.rf-form-control {
     gap: 16px;
 }
 
+.rf-dice-table.compact .rf-dice-actor {
+    grid-template-columns: 1fr;
+}
+
 .rf-vtt-drawer:has(.rf-dice-table) {
     width: 400px;
 }
