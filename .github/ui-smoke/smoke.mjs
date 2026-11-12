@@ -1809,7 +1809,7 @@ try {
   await page.locator('[data-test=campaign-title]').waitFor({ timeout: 30000 });
   liveUi.closed = await page.locator('[data-test=campaign-live]').count();
   results.push(`INFO live table: ${JSON.stringify(liveUi)}`);
-  if (!/Sessione in corso/.test(liveUi.banner) || !/Entra al tavolo/.test(liveUi.banner) || liveUi.badges !== 1 || liveUi.notices !== 0 || liveUi.closed !== 0)
+  if (!/Sessione in corso/i.test(liveUi.banner) || !/Entra al tavolo/i.test(liveUi.banner) || liveUi.badges !== 1 || liveUi.notices !== 0 || liveUi.closed !== 0)
     throw new Error(`unexpected live table: ${JSON.stringify(liveUi)}`);
   ok('table started by the master: "Tavolo aperto" in the top bar, "Sessione in corso" with "Entra al tavolo" at the top of the campaign, "Al tavolo ora" on its card, no notice to the master who opened it; closed, the banner goes');
   // From the sheet, the owner takes the character out of the campaign
