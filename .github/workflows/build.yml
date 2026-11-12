@@ -1082,17 +1082,39 @@ jobs:
           code -X DELETE "$api/api/campaigns/$ss_cp/maps/$(echo "$mp_dup" | jq -r .id)" -H "Authorization: Bearer $B" > /dev/null
           # Drawings: a player draws and clears their own, cannot write notes for the masters nor erase the masters' drawings;
           # the masters' note never reaches the players
-          sh_note=$(curl -s -X POST "$api/api/campaigns/$ss_cp/maps/$mp2/shapes" $json -H "Authorization: Bearer $B" -d '{"kind":2,"points":[100,100],"text":"Trappola","masterOnly":true}' | jq -r .id)
+          # Drawings stay with their author: the master's note and stroke are not seen by the player, nor the player's by
+          # the master; a text the master shares and the areas are for everyone; texts are moved by who may
+          sh_note=$(curl -s -X POST "$api/api/campaigns/$ss_cp/maps/$mp2/shapes" $json -H "Authorization: Bearer $B" -d '{"kind":2,"points":[100,100],"text":"Trappola"}' | jq -r .id)
+          sh_shared=$(curl -s -X POST "$api/api/campaigns/$ss_cp/maps/$mp2/shapes" $json -H "Authorization: Bearer $B" -d '{"kind":2,"points":[200,200],"text":"Ingresso","shared":true}' | jq -r .id)
+          sh_mdraw=$(code -X POST "$api/api/campaigns/$ss_cp/maps/$mp2/shapes" $json -H "Authorization: Bearer $B" -d '{"kind":1,"points":[20,20,60,60]}')
           sh_cone=$(curl -s -X POST "$api/api/campaigns/$ss_cp/maps/$mp2/shapes" $json -H "Authorization: Bearer $B" -d '{"kind":3,"points":[105,105,300,105],"size":3}' | jq -r .id)
           sh_player=$(curl -s -X POST "$api/api/campaigns/$ss_cp/maps/$mp2/shapes" $json -H "Authorization: Bearer $A" -d '{"kind":1,"points":[10,10,50,50,90,10]}' | jq -c '{kind, canDelete, hex: (.color | test("^#[0-9a-f]{6}$"))}')
-          sh_player_note=$(code -X POST "$api/api/campaigns/$ss_cp/maps/$mp2/shapes" $json -H "Authorization: Bearer $A" -d '{"kind":2,"points":[1,1],"text":"x","masterOnly":true}')
+          sh_player_text=$(curl -s -X POST "$api/api/campaigns/$ss_cp/maps/$mp2/shapes" $json -H "Authorization: Bearer $A" -d '{"kind":2,"points":[1,1],"text":"x","shared":true}')
+          sh_player_text_id=$(echo "$sh_player_text" | jq -r .id)
+          sh_player_note=$(echo "$sh_player_text" | jq -c '{private, canMove}')
           sh_bad=$(code -X POST "$api/api/campaigns/$ss_cp/maps/$mp2/shapes" $json -H "Authorization: Bearer $A" -d '{"kind":4,"points":[1,1,2,2],"size":0}')
-          sh_player_seen=$(curl -s "$api/api/campaigns/$ss_cp/maps/$mp2/state" -H "Authorization: Bearer $A" | jq -c '[.shapes[] | {kind, canDelete}]')
+          sh_player_seen=$(curl -s "$api/api/campaigns/$ss_cp/maps/$mp2/state" -H "Authorization: Bearer $A" | jq -c '[.shapes[] | {kind, private, canDelete, canMove}]')
           sh_player_erase=$(code -X DELETE "$api/api/campaigns/$ss_cp/maps/$mp2/shapes/$sh_cone" -H "Authorization: Bearer $A")
           sh_player_note_erase=$(code -X DELETE "$api/api/campaigns/$ss_cp/maps/$mp2/shapes/$sh_note" -H "Authorization: Bearer $A")
+          sh_player_move=$(code -X PUT "$api/api/campaigns/$ss_cp/maps/$mp2/shapes/$sh_shared/move" $json -H "Authorization: Bearer $A" -d '{"points":[5,5]}')
+          sh_player_move_own=$(curl -s -X PUT "$api/api/campaigns/$ss_cp/maps/$mp2/shapes/$sh_player_text_id/move" $json -H "Authorization: Bearer $A" -d '{"points":[40,30]}' | jq -c .points)
+          sh_master_move=$(curl -s -X PUT "$api/api/campaigns/$ss_cp/maps/$mp2/shapes/$sh_shared/move" $json -H "Authorization: Bearer $B" -d '{"points":[250,210]}' | jq -c .points)
+          sh_move_off=$(code -X PUT "$api/api/campaigns/$ss_cp/maps/$mp2/shapes/$sh_shared/move" $json -H "Authorization: Bearer $B" -d '{"points":[-5,10]}')
+          sh_master_sees=$(curl -s "$api/api/campaigns/$ss_cp/maps/$mp2/state" -H "Authorization: Bearer $B" | jq -c '[.shapes[] | .kind]')
           sh_player_clear=$(code -X DELETE "$api/api/campaigns/$ss_cp/maps/$mp2/shapes" -H "Authorization: Bearer $A")
           sh_master_seen=$(curl -s "$api/api/campaigns/$ss_cp/maps/$mp2/state" -H "Authorization: Bearer $B" | jq -c '[.shapes[] | .kind]')
-          echo "::notice title=maps::shapes player=$sh_player note by player=$sh_player_note bad=$sh_bad player sees=$sh_player_seen erase=$sh_player_erase/$sh_player_note_erase clear=$sh_player_clear master sees=$sh_master_seen"
+          sh_player_left=$(curl -s "$api/api/campaigns/$ss_cp/maps/$mp2/state" -H "Authorization: Bearer $A" | jq -c '[.shapes[] | .kind]')
+          # The table opened by the master: the player is told (not the master), the campaign shows it, closed it goes
+          lt_player=$(code -X POST "$api/api/campaigns/$ss_cp/table" -H "Authorization: Bearer $A")
+          lt_open=$(curl -s -X POST "$api/api/campaigns/$ss_cp/table" -H "Authorization: Bearer $B" | jq -c '{mine}')
+          lt_player_live=$(curl -s "$api/api/campaigns/live" -H "Authorization: Bearer $A" | jq -c "[.[] | select(.campaignId == \"$ss_cp\") | {mine, named: (.openedBy | length > 0)}]")
+          lt_detail=$(curl -s "$api/api/campaigns/$ss_cp" -H "Authorization: Bearer $A" | jq -c '.table | {mine}')
+          lt_list=$(curl -s "$api/api/campaigns" -H "Authorization: Bearer $A" | jq -c "[.[] | select(.id == \"$ss_cp\") | (.tableOpenedAt != null)]")
+          lt_close_player=$(code -X DELETE "$api/api/campaigns/$ss_cp/table" -H "Authorization: Bearer $A")
+          lt_close=$(code -X DELETE "$api/api/campaigns/$ss_cp/table" -H "Authorization: Bearer $B")
+          lt_after=$(curl -s "$api/api/campaigns/live" -H "Authorization: Bearer $A" | jq -c "[.[] | select(.campaignId == \"$ss_cp\")] | length")
+          echo "::notice title=maps::live table player opens=$lt_player master=$lt_open player live=$lt_player_live detail=$lt_detail list=$lt_list close=$lt_close_player/$lt_close after=$lt_after"
+          echo "::notice title=maps::shapes player=$sh_player player text=$sh_player_note bad=$sh_bad player sees=$sh_player_seen erase=$sh_player_erase/$sh_player_note_erase move=$sh_player_move/$sh_player_move_own/$sh_master_move/$sh_move_off master sees=$sh_master_sees clear=$sh_player_clear master after=$sh_master_seen player after=$sh_player_left"
           # Fog of war: the marker under the fog disappears for the player, comes back once revealed; pings and the view
           fog_player=$(code -X PUT "$api/api/campaigns/$ss_cp/maps/$mp2/fog" $json -H "Authorization: Bearer $A" -d '{"enabled":true,"fog":[]}')
           fog_bad=$(code -X PUT "$api/api/campaigns/$ss_cp/maps/$mp2/fog" $json -H "Authorization: Bearer $B" -d '{"enabled":true,"fog":[9,0,0,1,1]}')
@@ -1292,13 +1314,28 @@ jobs:
           sscheck "master moves the view" "$focus" "204"
           sscheck "view seen by the player" "$focus_seen" '{"x":350,"y":245,"zoom":1.5}'
           sscheck "player draws" "$sh_player" '{"kind":1,"canDelete":true,"hex":true}'
-          sscheck "player writes a masters' note" "$sh_player_note" "403"
+          sscheck "master's stroke" "$sh_mdraw" "200"
+          sscheck "player's text stays private" "$sh_player_note" '{"private":true,"canMove":true}'
           sscheck "sphere of no size" "$sh_bad" "400"
-          sscheck "drawings seen by the player" "$sh_player_seen" '[{"kind":3,"canDelete":false},{"kind":1,"canDelete":true}]'
+          sscheck "drawings seen by the player" "$sh_player_seen" '[{"kind":2,"private":false,"canDelete":false,"canMove":false},{"kind":3,"private":false,"canDelete":false,"canMove":false},{"kind":1,"private":true,"canDelete":true,"canMove":false},{"kind":2,"private":true,"canDelete":true,"canMove":true}]'
           sscheck "player erases the master's area" "$sh_player_erase" "403"
-          sscheck "player erases the masters' note" "$sh_player_note_erase" "404"
+          sscheck "player erases the master's own note" "$sh_player_note_erase" "404"
+          sscheck "player moves the master's text" "$sh_player_move" "403"
+          sscheck "player moves their text" "$sh_player_move_own" "[40,30]"
+          sscheck "master moves the shared text" "$sh_master_move" "[250,210]"
+          sscheck "text moved off the map" "$sh_move_off" "400"
+          sscheck "drawings seen by the master" "$sh_master_sees" "[2,2,1,3]"
           sscheck "player clears their drawings" "$sh_player_clear" "204"
-          sscheck "drawings left" "$sh_master_seen" '[2,3]'
+          sscheck "master's drawings left" "$sh_master_seen" "[2,2,1,3]"
+          sscheck "player's drawings left" "$sh_player_left" "[2,3]"
+          sscheck "player opens the table" "$lt_player" "403"
+          sscheck "master opens the table" "$lt_open" '{"mine":true}'
+          sscheck "open table told to the player" "$lt_player_live" '[{"mine":false,"named":true}]'
+          sscheck "open table on the campaign" "$lt_detail" '{"mine":false}'
+          sscheck "open table in the list" "$lt_list" "[true]"
+          sscheck "player closes the table" "$lt_close_player" "403"
+          sscheck "master closes the table" "$lt_close" "204"
+          sscheck "table closed" "$lt_after" "0"
           sscheck "player duplicates a map" "$mp_dup_player" "403"
           sscheck "copy of a map" "$mp_dup_state" '{"name":"Foresta 2","gridType":1,"shown":false,"tokens":1}'
           sscheck "reveal by a player" "$rl_reveal_player" "403"
