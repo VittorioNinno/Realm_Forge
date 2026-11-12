@@ -350,6 +350,25 @@ namespace RealmForge.Client.Services
 		public Task<CampaignResult> SetInitiativeAsync(Guid id, Guid mapId, Guid combatantId, int initiative) =>
 			SendAsync(() => _http.PutAsJsonAsync($"api/campaigns/{id}/maps/{mapId}/combat/initiative", new SetInitiativeDto { CombatantId = combatantId, Initiative = initiative }), "initiative");
 
+		//	Opens or closes an object; Stuck: it is locked or barred
+		public async Task<(MapTokenDto? Token, bool Stuck)> InteractAsync(Guid id, Guid mapId, Guid tokenId)
+		{
+			try
+			{
+				var response = await _http.PostAsync($"api/campaigns/{id}/maps/{mapId}/tokens/{tokenId}/interact", null);
+				if (response.StatusCode == System.Net.HttpStatusCode.Conflict)
+				{
+					return (null, true);
+				}
+				return response.IsSuccessStatusCode ? (await response.Content.ReadFromJsonAsync<MapTokenDto>(), false) : (null, false);
+			}
+			catch (Exception ex)
+			{
+				_logger.LogError(ex, "Using object {TokenId} failed", tokenId);
+				return (null, false);
+			}
+		}
+
 		public Task<CampaignResult> ClearRollsAsync(Guid id) =>
 			SendAsync(() => _http.DeleteAsync($"api/campaigns/{id}/rolls"), "clear rolls");
 	}

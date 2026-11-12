@@ -170,7 +170,8 @@ namespace RealmForge.Api.Controllers
 				{
 					Label = t.Label, Color = t.Color, Kind = t.Kind, CharacterId = t.CharacterId, MonsterId = t.MonsterId,
 					X = t.X, Y = t.Y, Size = t.Size, Hidden = t.Hidden, Layer = t.Layer,
-					ControlledBy = t.ControlledBy.ToList(), Hp = t.Hp, MaxHp = t.MaxHp, Conditions = t.Conditions.ToList()
+					ControlledBy = t.ControlledBy.ToList(), Hp = t.Hp, MaxHp = t.MaxHp, Conditions = t.Conditions.ToList(),
+					PropType = t.PropType, PropState = t.PropState, PlayersInteract = t.PlayersInteract
 				});
 			}
 			foreach (var shape in map.Shapes)
@@ -280,6 +281,32 @@ namespace RealmForge.Api.Controllers
 			map.UpdatedAt = DateTimeOffset.UtcNow;
 			await _context.SaveChangesAsync();
 			return NoContent();
+		}
+
+		//	POST: api/campaigns/{campaignId}/maps/{mapId}/tokens/{tokenId}/interact — a player opens or closes an object the
+		//	masters let them use (a locked or barred one stays as it is: 409); a master toggles any
+		[HttpPost("{mapId:guid}/tokens/{tokenId:guid}/interact")]
+		public async Task<ActionResult<MapTokenDto>> Interact(Guid campaignId, Guid mapId, Guid tokenId)
+		{
+			var (map, role) = await LoadAsync(campaignId, mapId, withTokens: true);
+			var token = map?.Tokens.FirstOrDefault(t => t.Id == tokenId);
+			var runs = role is { } r && CampaignRules.RunsTheTable(r);
+			if (map is null || role is null || token is null || token.Kind != TokenKind.Prop || (!runs && token.Hidden))
+			{
+				return NotFound();
+			}
+			if (!runs && (!token.PlayersInteract || !map.Shown || (map.FogEnabled && UnderFog(map, token))))
+			{
+				return Forbid();
+			}
+			if (PropRules.Toggle(token.PropState) is not { } next)
+			{
+				return Problem(statusCode: StatusCodes.Status409Conflict, title: "It does not move.", detail: token.PropState.ToString());
+			}
+			token.PropState = next;
+			token.UpdatedAt = map.UpdatedAt = DateTimeOffset.UtcNow;
+			await _context.SaveChangesAsync();
+			return Ok(ToDto(token, runs));
 		}
 
 		//	POST: api/campaigns/{campaignId}/maps/{mapId}/tokens/{tokenId}/move — a master any token, a player their own
@@ -1027,7 +1054,8 @@ namespace RealmForge.Api.Controllers
 			characterId is { } id && await _context.Characters.AnyAsync(c => c.Id == id && c.OwnerId == UserId);
 
 		private static MapTokenDto ToDto(CampaignToken t, bool canMove) =>
-			new(t.Id, t.Label, t.Color, t.Kind, t.CharacterId, t.MonsterId, t.X, t.Y, t.Size, t.Hidden, canMove, null, t.Layer, t.CombatantId);
+			new(t.Id, t.Label, t.Color, t.Kind, t.CharacterId, t.MonsterId, t.X, t.Y, t.Size, t.Hidden, canMove, null, t.Layer, t.CombatantId,
+				PropType: t.PropType, PropState: t.PropState, PlayersInteract: t.PlayersInteract);
 
 		private static bool UnderFog(CampaignMap map, CampaignToken t)
 		{
@@ -1114,6 +1142,10 @@ namespace RealmForge.Api.Controllers
 			{
 				return "The colour must be #rrggbb.";
 			}
+			if (dto.Kind == TokenKind.Prop && (dto.PropType is not { } propType || !Enum.IsDefined(propType) || !PropRules.Valid(propType, dto.PropState)))
+			{
+				return "An object needs a kind and one of its states.";
+			}
 			if (dto.ControlledBy.Count > 0)
 			{
 				var members = await _context.CampaignMembers.AsNoTracking().Where(m => m.CampaignId == campaignId).Select(m => m.UserId).ToListAsync();
@@ -1143,6 +1175,9 @@ namespace RealmForge.Api.Controllers
 			token.Hidden = dto.Hidden;
 			token.Layer = dto.Layer;
 			token.ControlledBy = dto.ControlledBy.Distinct().Take(MapRules.MaxControllers).ToList();
+			token.PropType = dto.Kind == TokenKind.Prop ? dto.PropType : null;
+			token.PropState = dto.Kind == TokenKind.Prop ? dto.PropState : PropState.Closed;
+			token.PlayersInteract = dto.Kind == TokenKind.Prop && dto.PlayersInteract;
 			token.MaxHp = dto.MaxHp is { } max && max > 0 ? Math.Min(max, 100_000) : null;
 			token.Hp = token.MaxHp is null ? null : Math.Clamp(dto.Hp ?? token.MaxHp.Value, 0, token.MaxHp.Value + 1000);
 			token.UpdatedAt = DateTimeOffset.UtcNow;
