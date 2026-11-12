@@ -76,7 +76,7 @@ try {
 
   // Navigation: reference pages live in the collapsible "Compendio" group, opened on compendium routes
   const compendiumLinks = (await page.locator('[data-test=nav-compendium] a').allInnerTexts()).map((t) => t.trim());
-  if (compendiumLinks.join(',') !== 'Specie,Background,Talenti,Incantesimi,Classi,Equipaggiamento,Oggetti magici,Mostri,PNG,Moduli di regole') throw new Error(`unexpected compendium links: ${compendiumLinks.join(',')}`);
+  if (compendiumLinks.join(',') !== 'Specie,Background,Talenti,Incantesimi,Classi,Equipaggiamento,Oggetti magici,Mostri,PNG,Immagini,Moduli di regole') throw new Error(`unexpected compendium links: ${compendiumLinks.join(',')}`);
   // The rules glossary is a menu entry of its own, next to the compendium group
   const rulesLink = (await page.locator('[data-test=nav-rules] a').innerText()).trim();
   if (rulesLink !== 'Glossario') throw new Error(`unexpected glossary menu entry: ${rulesLink}`);
@@ -415,7 +415,7 @@ try {
     return { label: el.textContent.trim(), inset: Math.round(icon.left - el.getBoundingClientRect().left), left: Math.round(icon.left) };
   }));
   results.push(`INFO menu icons: ${iconGaps.map((g) => `${g.label}@${g.left}(+${g.inset})`).join(', ')}`);
-  if (iconGaps.length !== 16 || iconGaps.some((g) => g.inset < 8) || new Set(iconGaps.map((g) => g.left)).size !== 1) throw new Error('menu icons are not padded or not aligned');
+  if (iconGaps.length !== 17 || iconGaps.some((g) => g.inset < 8) || new Set(iconGaps.map((g) => g.left)).size !== 1) throw new Error('menu icons are not padded or not aligned');
   await page.locator('[data-test=nav-compendium] button').click();
   ok('"Compendio" menu group: Specie, Background, Talenti, Incantesimi, Classi, Equipaggiamento, and Glossario next to it; collapsed elsewhere and toggles on click; icons padded and aligned');
   await page.getByText('Non hai un account? Registrati').click();
@@ -1421,6 +1421,27 @@ try {
   await page.waitForTimeout(300);
   await shot(page, 'phone-campaign-rolls', 'main');
   await page.setViewportSize({ width: 1280, height: 900 });
+  // Images: one uploaded on the images page and chosen as the goblin's picture (the goblin's tokens show it)
+  const art = await page.screenshot({ clip: { x: 0, y: 0, width: 320, height: 320 } });
+  await page.goto(new URL('/images', campaignUrl).toString());
+  await page.locator('[data-test=images-empty]').waitFor({ timeout: 30000 });
+  await page.locator('[data-test=images-upload] input[type=file]').setInputFiles({ name: 'goblin.png', mimeType: 'image/png', buffer: art });
+  await page.locator('[data-test=image-card]').waitFor({ timeout: 15000 });
+  await page.locator('[data-test=image-assign]').fill('Goblin');
+  await page.locator('[data-test=image-assign-result]').filter({ hasText: /^\s*Goblin\s*·/ }).first().click();
+  await page.locator('[data-test=image-use]').waitFor({ timeout: 15000 });
+  const imagesUi = {
+    cards: await page.locator('[data-test=image-card]').count(),
+    name: await page.locator('[data-test=image-name]').inputValue(),
+    use: (await page.locator('[data-test=image-use]').innerText()).trim(),
+    loaded: await page.locator('[data-test=image-card] img').evaluate((img) => img.complete && img.naturalWidth > 0)
+  };
+  await shot(page, 'images', 'main');
+  results.push(`INFO images: ${JSON.stringify(imagesUi)}`);
+  if (imagesUi.cards !== 1 || imagesUi.name !== 'goblin' || imagesUi.use !== 'Goblin' || !imagesUi.loaded) throw new Error(`unexpected images: ${JSON.stringify(imagesUi)}`);
+  ok('images: a picture uploaded on the images page, served to the browser, chosen as the goblin\'s portrait');
+  await page.goto(campaignUrl);
+  await page.locator('[data-test=campaign-title]').waitFor({ timeout: 30000 });
   // The virtual tabletop: a map from a picture, the character and a goblin on it, the character dragged two cells right,
   // the map shown to the players
   await page.locator('[data-test=campaign-tab-map]').click();
@@ -1517,13 +1538,14 @@ try {
     heroLeft: await hero.evaluate((el) => el.style.left),
     shown: await page.locator('[data-test=map-shown]').isChecked(),
     goblinTip, tipVisible, goblinCard, cellBox, hexBox, calibrated, keyMoves: keyMoves.join(','), goblinTabs,
-    names: await page.locator('[data-test=map-token-name]').count()
+    names: await page.locator('[data-test=map-token-name]').count(),
+    goblinArt: await goblin.locator('.rf-vtt-token-face img').count()
   };
   await shot(page, 'campaign-map', 'main');
   results.push(`INFO map: ${JSON.stringify(mapUi)}`);
   if (mapUi.name !== 'cripta' || mapUi.tokens !== 2 || mapUi.heroLeft !== '140px' || !mapUi.shown || !/^Goblin Mostro · PF \d+ · CA \d+ · GS/.test(mapUi.goblinTip)
     || !mapUi.tipVisible || !/CA \d+/.test(mapUi.goblinCard) || mapUi.cellBox !== '70x70' || mapUi.hexBox !== '70x121.24'
-    || mapUi.calibrated.join(',') !== '140|0|70,70|0|0' || mapUi.keyMoves !== '0px,70px,0px' || mapUi.goblinTabs !== 6 || mapUi.names !== 2
+    || mapUi.calibrated.join(',') !== '140|0|70,70|0|0' || mapUi.keyMoves !== '0px,70px,0px' || mapUi.goblinTabs !== 7 || mapUi.names !== 2 || mapUi.goblinArt !== 1
     || !/^7\/7 · CA \d+ · GS/.test(mapUi.goblinCard)) throw new Error(`unexpected map: ${JSON.stringify(mapUi)}`);
   // A copy of the map with its tokens, then deleted
   await page.locator('[data-test=map-duplicate]').click();

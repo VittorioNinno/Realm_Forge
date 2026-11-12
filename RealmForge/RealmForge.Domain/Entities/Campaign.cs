@@ -133,6 +133,9 @@ namespace RealmForge.Domain.Entities
 
 		//	An object (Kind Prop): what it is, how it is, whether the players open and close it themselves
 		public PropType? PropType { get; set; }
+
+		//	The picture of the token, from an account's images (UserImage); a character shows its portrait
+		public Guid? ImageId { get; set; }
 		public PropState PropState { get; set; } = PropState.Closed;
 		public bool PlayersInteract { get; set; }
 		public DateTimeOffset UpdatedAt { get; set; } = DateTimeOffset.UtcNow;

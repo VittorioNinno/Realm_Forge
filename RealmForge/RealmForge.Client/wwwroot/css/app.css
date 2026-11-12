@@ -11779,3 +11779,130 @@ textarea.rf-form-control {
         grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
     }
 }
+
+/* ===== Images: the account's pictures, the picker of a token, a monster or an NPC ===== */
+.rf-images {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    gap: 16px;
+}
+
+.rf-image-card {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    border-radius: 8px;
+    border: 1px solid var(--rf-border-light);
+    background-color: var(--rf-bg-card);
+}
+
+    .rf-image-card > img {
+        width: 100%;
+        aspect-ratio: 1;
+        object-fit: cover;
+        background-color: #050505;
+    }
+
+.rf-image-card-body {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 16px;
+}
+
+.rf-image-uses {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.rf-image-use {
+    display: inline-flex;
+    align-items: center;
+    gap: 0;
+    padding-left: 8px;
+    border-radius: 8px;
+    border: 1px solid var(--rf-border-light);
+    font-size: .75rem;
+}
+
+.rf-image-picker {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.rf-image-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(56px, 1fr));
+    gap: 8px;
+    max-height: 240px;
+    overflow-y: auto;
+}
+
+.rf-image-tile {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    aspect-ratio: 1;
+    overflow: hidden;
+    padding: 0;
+    border-radius: 8px;
+    border: 2px solid var(--rf-border-light);
+    background-color: #050505;
+    color: var(--rf-text-muted);
+    font-size: .65rem;
+    cursor: pointer;
+}
+
+    .rf-image-tile img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+
+    .rf-image-tile.active {
+        border-color: var(--rf-orange-primary);
+    }
+
+    .rf-image-tile.upload:hover,
+    .rf-image-tile:hover {
+        color: var(--rf-orange-primary);
+    }
+
+.rf-picture-head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    gap: 16px;
+    margin-bottom: 16px;
+}
+
+    .rf-picture-head > img {
+        width: 128px;
+        height: 128px;
+        border-radius: 8px;
+        border: 1px solid var(--rf-border-light);
+        object-fit: cover;
+    }
+
+.rf-picture-pick {
+    flex: 1;
+    min-width: 240px;
+}
+
+.rf-monster-picture {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+}
+
+.rf-monster-picture-picker {
+    width: 280px;
+    max-width: 80vw;
+    padding: 8px;
+    border-radius: 8px;
+    border: 1px solid var(--rf-border-light);
+    background-color: var(--rf-bg-card);
+}

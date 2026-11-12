@@ -1,0 +1,69 @@
+﻿@using RealmForge.Client.Localization
+@using RealmForge.Client.Services
+@using RealmForge.Shared.Enums
+@implements IDisposable
+@inject ImageDataService Images
+@inject LanguageStateService LanguageState
+
+@* The picture of a monster or an NPC: the one the account chose among its images, else its own portrait, else its
+   initials; with ShowPicker, the account chooses it here *@
+<div class="rf-monster-picture" data-test="monster-picture">
+    <NpcAvatar Portrait="@picture" Name="@Name" Shared="Shared" Large="Large" />
+    @if (ShowPicker && signedIn)
+    {
+        <button type="button" class="btn btn-sm btn-rf-outline" @onclick="() => picking = !picking" data-test="monster-picture-pick"><Icon Name="images" /> @UiText.ImagePick(Lang)</button>
+        @if (picking)
+        {
+            <div class="rf-monster-picture-picker">
+                <ImagePicker Selected="chosen" Name="@Name" OnPick="PickAsync" />
+            </div>
+        }
+    }
+</div>
+
+@code {
+    [CascadingParameter] private Task<AuthenticationState>? AuthState { get; set; }
+
+    [Parameter, EditorRequired] public Guid MonsterId { get; set; }
+    [Parameter] public string? Portrait { get; set; }
+    [Parameter] public string? Name { get; set; }
+    [Parameter] public bool Shared { get; set; }
+    [Parameter] public bool Large { get; set; }
+    [Parameter] public bool ShowPicker { get; set; }
+
+    private LanguageCode Lang => LanguageState.CurrentLanguage;
+    private bool signedIn;
+    private bool picking;
+    private Guid? chosen;
+    private string? picture;
+
+    protected override async Task OnInitializedAsync()
+    {
+        Images.Changed += Refresh;
+        signedIn = AuthState is not null && (await AuthState).User.Identity?.IsAuthenticated == true;
+        await ResolveAsync();
+    }
+
+    protected override async Task OnParametersSetAsync() => await ResolveAsync();
+
+    private async Task ResolveAsync()
+    {
+        chosen = signedIn && (await Images.GetChoicesAsync()).TryGetValue(MonsterId, out var id) ? id : null;
+        picture = chosen is { } imageId ? Images.FileUrl(imageId) : Portrait;
+    }
+
+    private async Task PickAsync(Guid? imageId)
+    {
+        picking = false;
+        await Images.ChooseAsync(MonsterId, imageId);
+        await ResolveAsync();
+    }
+
+    private void Refresh() => _ = InvokeAsync(async () =>
+    {
+        await ResolveAsync();
+        StateHasChanged();
+    });
+
+    public void Dispose() => Images.Changed -= Refresh;
+}

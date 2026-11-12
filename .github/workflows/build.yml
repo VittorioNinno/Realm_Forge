@@ -1163,6 +1163,25 @@ jobs:
           chest_barred=$(code -X POST "$api/api/campaigns/$ss_cp/maps/$mp2/tokens" $json -H "Authorization: Bearer $B" -d '{"label":"Forziere","kind":5,"propType":4,"propState":4,"x":3,"y":2,"size":1}')
           door_seen=$(curl -s "$api/api/campaigns/$ss_cp/maps/$mp2/state" -H "Authorization: Bearer $A" | jq -c '[.tokens[] | select(.kind == 5) | {propType, propState, playersInteract, canMove}]')
           echo "::notice title=maps::door open=$door_open locked=$door_locked off=$door_closed_off master=$door_master chest barred=$chest_barred seen=$door_seen"
+          # Images: uploaded, served to anyone with the link (cached), chosen for a monster and a token, renamed, deleted
+          png='data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg=='
+          img=$(curl -s -X POST "$api/api/images" $json -H "Authorization: Bearer $B" -d "{\"name\":\"Lupo\",\"image\":\"$png\",\"width\":1,\"height\":1}" | jq -r .id)
+          img_bad=$(code -X POST "$api/api/images" $json -H "Authorization: Bearer $B" -d '{"name":"x","image":"data:text/html;base64,PGI+","width":1,"height":1}')
+          img_file=$(curl -s -o /dev/null -w '%{http_code}|%{content_type}' "$api/api/images/$img/file")
+          img_cache=$(curl -s -D - -o /dev/null "$api/api/images/$img/file" | grep -i '^cache-control' | tr -d '\r' | cut -d' ' -f2-)
+          img_other=$(code "$api/api/images" -H "Authorization: Bearer $A")
+          img_monster=$(curl -s "$api/api/monsters?ruleset=1&lang=2" -H "Authorization: Bearer $B" | jq -r '[.[] | select(.isNpc | not)][0].id')
+          img_choose=$(code -X PUT "$api/api/images/monsters/$img_monster" $json -H "Authorization: Bearer $B" -d "{\"imageId\":\"$img\"}")
+          img_steal=$(code -X PUT "$api/api/images/monsters/$img_monster" $json -H "Authorization: Bearer $A" -d "{\"imageId\":\"$img\"}")
+          img_choices=$(curl -s "$api/api/images/monsters" -H "Authorization: Bearer $B" | jq -c --arg m "$img_monster" --arg i "$img" '.[$m] == $i')
+          img_token=$(code -X PUT "$api/api/campaigns/$ss_cp/maps/$mp2/tokens/$ctl_tree" $json -H "Authorization: Bearer $B" -d "{\"label\":\"Albero\",\"kind\":4,\"x\":8,\"y\":6,\"size\":1,\"imageId\":\"$img\"}")
+          img_seen=$(curl -s "$api/api/campaigns/$ss_cp/maps/$mp2/state" -H "Authorization: Bearer $A" | jq -c --arg i "$img" '[.tokens[] | select(.label == "Albero") | .imageId == $i]')
+          img_rename=$(code -X PUT "$api/api/images/$img" $json -H "Authorization: Bearer $B" -d '{"name":"Lupo grigio"}')
+          img_list=$(curl -s "$api/api/images" -H "Authorization: Bearer $B" | jq -c '[.[] | {name, uses: (.monsters | length)}]')
+          img_delete=$(code -X DELETE "$api/api/images/$img" -H "Authorization: Bearer $B")
+          img_after=$(curl -s "$api/api/campaigns/$ss_cp/maps/$mp2/state" -H "Authorization: Bearer $B" | jq -c '[.tokens[] | select(.label == "Albero") | .imageId]')
+          img_gone=$(code "$api/api/images/$img/file")
+          echo "::notice title=maps::images bad=$img_bad file=$img_file cache=$img_cache other=$img_other choose=$img_choose steal=$img_steal choices=$img_choices token=$img_token seen=$img_seen rename=$img_rename list=$img_list delete=$img_delete after=$img_after gone=$img_gone"
           echo "::notice title=maps::control before=$ctl_before bad=$ctl_bad assign=$ctl_assign seen=$ctl_seen master=$ctl_master after=$ctl_after | long poll=$lp_result fast=$lp_fast"
           echo "::notice title=maps::fight player=$fight_player master=$fight seen=$fight_seen | state player=$fight_state_player master=$fight_state next=$fight_next after=$fight_after master=$fight_master | end=$fight_end done=$fight_done"
           code -X DELETE "$api/api/campaigns/$ss_cp/maps/$mp2" -H "Authorization: Bearer $B" > /dev/null
@@ -1233,6 +1252,20 @@ jobs:
           sscheck "player moves the assigned marker" "$ctl_after" "204"
           sscheck "table told of the move" "$lp_result" '[{"x":8,"y":6}]'
           sscheck "told at once, not at the next poll" "$lp_fast" "yes"
+          sscheck "image of another type" "$img_bad" "400"
+          sscheck "image file" "$img_file" "200|image/png"
+          sscheck "image file cached" "$img_cache" "public, max-age=31536000, immutable"
+          sscheck "images of another account" "$img_other" "200"
+          sscheck "picture of a monster" "$img_choose" "204"
+          sscheck "someone else's image for a monster" "$img_steal" "404"
+          sscheck "monster pictures" "$img_choices" "true"
+          sscheck "token picture" "$img_token" "204"
+          sscheck "token picture seen by the player" "$img_seen" "[true]"
+          sscheck "image renamed" "$img_rename" "204"
+          sscheck "images listed" "$img_list" '[{"name":"Lupo grigio","uses":1}]'
+          sscheck "image deleted" "$img_delete" "204"
+          sscheck "token after the image is deleted" "$img_after" "[null]"
+          sscheck "deleted image file" "$img_gone" "404"
           sscheck "player opens a door" "$door_open" '{"propState":1}'
           sscheck "player opens a locked door" "$door_locked" "409"
           sscheck "player uses a door kept for the masters" "$door_closed_off" "403"
