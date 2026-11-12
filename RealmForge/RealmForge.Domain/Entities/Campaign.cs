@@ -130,6 +130,11 @@ namespace RealmForge.Domain.Entities
 		//	Hit points of a token outside a fight (a monster placed by hand); in a fight its combatant's count
 		public int? Hp { get; set; }
 		public int? MaxHp { get; set; }
+
+		//	An object (Kind Prop): what it is, how it is, whether the players open and close it themselves
+		public PropType? PropType { get; set; }
+		public PropState PropState { get; set; } = PropState.Closed;
+		public bool PlayersInteract { get; set; }
 		public DateTimeOffset UpdatedAt { get; set; } = DateTimeOffset.UtcNow;
 	}
 
