@@ -11505,6 +11505,120 @@ textarea.rf-form-control {
     background-color: var(--rf-bg-surface);
 }
 
+/* The side panel of the table: initiative, dice, tokens */
+.rf-vtt-panel-tabs {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: -16px -16px 0;
+    padding: 8px 16px;
+    border-bottom: 1px solid var(--rf-border-subtle);
+}
+
+    .rf-vtt-panel-tabs > button:not(.rf-vtt-icon-button) {
+        padding: 4px 8px;
+        border-radius: 8px;
+        border: 1px solid transparent;
+        background: none;
+        color: var(--rf-text-secondary);
+        font-size: .75rem;
+        font-weight: 800;
+        letter-spacing: .04em;
+        text-transform: uppercase;
+    }
+
+        .rf-vtt-panel-tabs > button.active {
+            border-color: var(--rf-orange-primary);
+            color: var(--rf-orange-primary);
+        }
+
+.rf-vtt-initiative-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.rf-vtt-initiative-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 8px;
+}
+
+.rf-vtt-initiative-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+    .rf-vtt-initiative-list li {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px;
+        border-radius: 8px;
+        border: 1px solid var(--rf-border-light);
+        border-left: 3px solid var(--rf-token, #9e9e9e);
+        background-color: var(--rf-bg-card);
+    }
+
+        .rf-vtt-initiative-list li.current {
+            border-color: #facc15;
+            box-shadow: 0 0 0 1px #facc15;
+        }
+
+        .rf-vtt-initiative-list li.hidden-token {
+            opacity: .6;
+            border-style: dashed;
+        }
+
+.rf-vtt-init-input {
+    flex: none;
+    width: 56px;
+    height: 32px;
+    padding: 0 8px;
+    text-align: center;
+}
+
+.rf-vtt-init-value {
+    flex: none;
+    width: 32px;
+    font-weight: 800;
+    text-align: center;
+    color: var(--rf-orange-primary);
+}
+
+.rf-vtt-initiative-name {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    align-items: flex-start;
+    min-width: 0;
+    padding: 0;
+    border: 0;
+    background: none;
+    color: var(--rf-text-primary);
+    text-align: left;
+}
+
+    .rf-vtt-initiative-name small {
+        font-size: .7rem;
+        color: var(--rf-text-muted);
+    }
+
+/* The dice table inside the side panel: one column */
+.rf-dice-table.compact .rf-dice-workspace {
+    grid-template-columns: 1fr;
+    gap: 16px;
+}
+
+.rf-vtt-drawer:has(.rf-dice-table) {
+    width: 400px;
+}
+
 @media (max-width: 767.98px) {
     .rf-vtt-top {
         flex-wrap: wrap;

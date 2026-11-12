@@ -576,6 +576,189 @@ namespace RealmForge.Api.Controllers
 			return NoContent();
 		}
 
+		//	POST: api/campaigns/{campaignId}/maps/{mapId}/combat/quick — a fight with tokens on the map, without a prepared
+		//	encounter: an encounter is made for it, the initiative of the monsters is rolled, the players roll their own
+		[HttpPost("{mapId:guid}/combat/quick")]
+		public async Task<IActionResult> QuickCombat(Guid campaignId, Guid mapId, [FromBody] QuickCombatDto dto)
+		{
+			var (map, role) = await LoadAsync(campaignId, mapId, withTokens: true);
+			if (map is null || role is null)
+			{
+				return NotFound();
+			}
+			if (!CampaignRules.RunsTheTable(role.Value))
+			{
+				return Forbid();
+			}
+			var chosen = map.Tokens.Where(t => dto.TokenIds.Contains(t.Id)).ToList();
+			if (chosen.Count == 0 || await FightAsync(map) is not null)
+			{
+				return Problem(statusCode: StatusCodes.Status400BadRequest, title: "Choose tokens of this map, with no fight already under way.");
+			}
+			var combatants = new List<EncounterCombatant>();
+			foreach (var token in chosen)
+			{
+				combatants.Add(await CombatantOfAsync(token));
+			}
+			var encounter = new CampaignEncounter
+			{
+				CampaignId = campaignId,
+				Name = map.Name.Length > 100 ? map.Name[..100] : map.Name,
+				Status = EncounterStatus.Running,
+				Shown = true,
+				Round = 1,
+				CreatedById = UserId
+			};
+			encounter.CurrentId = EncounterRules.Order(combatants).FirstOrDefault()?.Id;
+			encounter.Combatants = System.Text.Json.JsonSerializer.Serialize(combatants, new System.Text.Json.JsonSerializerOptions(System.Text.Json.JsonSerializerDefaults.Web));
+			_context.CampaignEncounters.Add(encounter);
+			map.EncounterId = encounter.Id;
+			map.UpdatedAt = DateTimeOffset.UtcNow;
+			await _context.SaveChangesAsync();
+			return NoContent();
+		}
+
+		//	POST: api/campaigns/{campaignId}/maps/{mapId}/combat/tokens/{tokenId} — a token joins the fight
+		[HttpPost("{mapId:guid}/combat/tokens/{tokenId:guid}")]
+		public async Task<IActionResult> JoinFight(Guid campaignId, Guid mapId, Guid tokenId)
+		{
+			var (map, role) = await LoadAsync(campaignId, mapId, withTokens: true);
+			var token = map?.Tokens.FirstOrDefault(t => t.Id == tokenId);
+			if (map is null || role is null || token is null)
+			{
+				return NotFound();
+			}
+			if (!CampaignRules.RunsTheTable(role.Value))
+			{
+				return Forbid();
+			}
+			if (await FightAsync(map, track: true) is not { } fight)
+			{
+				return NotFound();
+			}
+			if (token.CombatantId is { } existing && fight.Combatants.Any(c => c.Id == existing))
+			{
+				return NoContent();
+			}
+			var combatant = await CombatantOfAsync(token);
+			fight.Combatants.Add(combatant);
+			fight.Encounter.CurrentId ??= combatant.Id;
+			Save(fight, fight.Combatants);
+			map.UpdatedAt = DateTimeOffset.UtcNow;
+			await _context.SaveChangesAsync();
+			return NoContent();
+		}
+
+		//	DELETE: api/campaigns/{campaignId}/maps/{mapId}/combat/tokens/{tokenId} — a token leaves the fight (it keeps its
+		//	hit points and conditions)
+		[HttpDelete("{mapId:guid}/combat/tokens/{tokenId:guid}")]
+		public async Task<IActionResult> LeaveFight(Guid campaignId, Guid mapId, Guid tokenId)
+		{
+			var (map, role) = await LoadAsync(campaignId, mapId, withTokens: true);
+			var token = map?.Tokens.FirstOrDefault(t => t.Id == tokenId);
+			if (map is null || role is null || token is null)
+			{
+				return NotFound();
+			}
+			if (!CampaignRules.RunsTheTable(role.Value))
+			{
+				return Forbid();
+			}
+			if (await FightAsync(map, track: true) is { } fight && token.CombatantId is { } id && fight.Combatants.FirstOrDefault(c => c.Id == id) is { } combatant)
+			{
+				if (fight.Encounter.CurrentId == id)
+				{
+					var order = EncounterRules.Order(fight.Combatants);
+					var next = order.SkipWhile(c => c.Id != id).Skip(1).FirstOrDefault() ?? order.FirstOrDefault(c => c.Id != id);
+					fight.Encounter.CurrentId = next?.Id;
+				}
+				fight.Combatants.Remove(combatant);
+				KeepState(token, combatant);
+				Save(fight, fight.Combatants);
+			}
+			token.CombatantId = null;
+			map.UpdatedAt = DateTimeOffset.UtcNow;
+			await _context.SaveChangesAsync();
+			return NoContent();
+		}
+
+		//	PUT: api/campaigns/{campaignId}/maps/{mapId}/combat/initiative — a master any combatant, a player their character
+		[HttpPut("{mapId:guid}/combat/initiative")]
+		public async Task<IActionResult> SetInitiative(Guid campaignId, Guid mapId, [FromBody] SetInitiativeDto dto)
+		{
+			var (map, role) = await LoadAsync(campaignId, mapId, withTokens: false);
+			if (map is null || role is null)
+			{
+				return NotFound();
+			}
+			if (await FightAsync(map, track: true) is not { } fight || fight.Combatants.FirstOrDefault(c => c.Id == dto.CombatantId) is not { } combatant)
+			{
+				return NotFound();
+			}
+			if (!CampaignRules.RunsTheTable(role.Value) && !await OwnsAsync(combatant.CharacterId))
+			{
+				return Forbid();
+			}
+			combatant.Initiative = Math.Clamp(dto.Initiative, -10, 99);
+			Save(fight, fight.Combatants);
+			await _context.SaveChangesAsync();
+			return NoContent();
+		}
+
+		//	A combatant made from a token: a character (its initiative rolled by its player), a monster with its statblock
+		//	and the token's hit points, any other token
+		private async Task<EncounterCombatant> CombatantOfAsync(CampaignToken token)
+		{
+			var monster = token.MonsterId is { } monsterId
+				? await _context.Monsters.AsNoTracking().Where(m => m.Id == monsterId)
+					.Select(m => new { m.ArmorClass, m.HitPoints, m.Dexterity, m.Xp, m.ChallengeRating }).FirstOrDefaultAsync()
+				: null;
+			var combatant = new EncounterCombatant
+			{
+				Kind = token.CharacterId is not null ? CombatantKind.Character : monster is not null ? CombatantKind.Monster : CombatantKind.Other,
+				CharacterId = token.CharacterId,
+				MonsterId = token.CharacterId is null ? token.MonsterId : null,
+				Name = token.Label,
+				Hidden = token.Hidden,
+				Conditions = token.CharacterId is null ? token.Conditions.ToList() : new()
+			};
+			if (monster is not null && token.CharacterId is null)
+			{
+				combatant.ArmorClass = monster.ArmorClass;
+				combatant.MaxHp = token.MaxHp ?? monster.HitPoints;
+				combatant.Hp = token.Hp ?? combatant.MaxHp;
+				combatant.InitiativeBonus = (int)Math.Floor((monster.Dexterity - 10) / 2.0);
+				combatant.Xp = monster.Xp;
+				combatant.ChallengeRating = monster.ChallengeRating;
+			}
+			else if (token.CharacterId is null)
+			{
+				combatant.MaxHp = token.MaxHp ?? 0;
+				combatant.Hp = token.Hp ?? combatant.MaxHp;
+			}
+			if (combatant.Kind != CombatantKind.Character)
+			{
+				combatant.Initiative = Random.Shared.Next(1, 21) + combatant.InitiativeBonus;
+			}
+			token.CombatantId = combatant.Id;
+			return combatant;
+		}
+
+		//	What a token keeps of its combatant when the fight is over for it
+		private static void KeepState(CampaignToken token, EncounterCombatant combatant)
+		{
+			if (combatant.Kind == CombatantKind.Character)
+			{
+				return;
+			}
+			if (combatant.MaxHp > 0)
+			{
+				token.MaxHp = combatant.MaxHp;
+				token.Hp = combatant.Hp;
+			}
+			token.Conditions = combatant.Conditions.ToList();
+		}
+
 		//	POST: api/campaigns/{campaignId}/maps/{mapId}/combat/next — the next turn (a new round after the last one); the
 		//	monsters at 0 hit points are skipped
 		[HttpPost("{mapId:guid}/combat/next")]
@@ -628,6 +811,14 @@ namespace RealmForge.Api.Controllers
 			}
 			if (await FightAsync(map, track: true) is { } fight)
 			{
+				foreach (var token in await _context.CampaignTokens.Where(t => t.MapId == map.Id && t.CombatantId != null).ToListAsync())
+				{
+					if (fight.Combatants.FirstOrDefault(c => c.Id == token.CombatantId) is { } combatant)
+					{
+						KeepState(token, combatant);
+					}
+					token.CombatantId = null;
+				}
 				fight.Encounter.Status = EncounterStatus.Finished;
 				fight.Encounter.Version++;
 				fight.Encounter.UpdatedAt = DateTimeOffset.UtcNow;

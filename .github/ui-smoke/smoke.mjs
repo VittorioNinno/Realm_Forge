@@ -1559,7 +1559,7 @@ try {
   await shot(page, 'phone-vtt-table', null);
   await page.setViewportSize({ width: 1280, height: 900 });
   results.push(`INFO vtt: ${JSON.stringify(vttUi)}`);
-  if (vttUi.ruler !== '3 · 4,5 m' || vttUi.displayed !== 1 || vttUi.zoom === '100%' || vttUi.tools !== 10 || vttUi.phoneZoom === vttUi.zoom) throw new Error(`unexpected virtual tabletop: ${JSON.stringify(vttUi)}`);
+  if (vttUi.ruler !== '3 · 4,5 m' || vttUi.displayed !== 1 || vttUi.zoom === '100%' || vttUi.tools !== 12 || vttUi.phoneZoom === vttUi.zoom) throw new Error(`unexpected virtual tabletop: ${JSON.stringify(vttUi)}`);
   ok('virtual tabletop: the table on the whole window with the map shown to the players, fitted to the screen, the tools on the left, the ruler measuring three cells (4,5 m), the map fitted again on a phone');
   // A sphere of 1 cell (1,5 m) around the hero: its cell and the three around it on the map; a stroke, then erased;
   // a note for the masters
@@ -1632,10 +1632,10 @@ try {
   // turn goes on, a goblin is knocked prone and hurt, it rolls its initiative from its card; the hero's move shows
   // the metres against its speed
   await page.locator('[data-test=vtt-tool-select]').click();
-  await page.locator('[data-test=vtt-tool-tokens]').click();
+  await page.locator('[data-test=vtt-tool-initiative]').click();
   await page.locator('[data-test=vtt-start-combat]').click();
   await page.locator('[data-test=vtt-initiative]').waitFor({ timeout: 15000 });
-  await page.locator('[data-test=vtt-tool-tokens]').click();
+  await page.locator('[data-test=vtt-tool-initiative]').click();
   await page.waitForTimeout(800);
   const combatUi = {
     combatants: await page.locator('[data-test=vtt-combatant]').count(),
@@ -1677,6 +1677,34 @@ try {
   if (combatUi.combatants !== 4 || combatUi.tokens !== 5 || combatUi.current !== 1 || !/^Round \d+$/i.test(combatUi.round) || !combatUi.turnMoved
     || combatUi.rollTray !== 1 || combatUi.goblinConditions !== 'Pr' || combatUi.goblinRing !== '28.57 100' || !/^3 \/ \d+(,\d)? m$/.test(combatUi.moveLabel ?? '')) throw new Error(`unexpected combat: ${JSON.stringify(combatUi)}`);
   ok('virtual tabletop combat: the encounter started on the map (four in the initiative order, tokens for the goblins), the turn passed on, a goblin knocked prone and down to 2 hit points with its initiative rolled from its card, the fight ended, the hero\'s move showing 3 m against its speed');
+  // The initiative panel: a fight with the tokens on the map, the hero rolls its own initiative, a goblin leaves the
+  // fight from its toolbar; then the dice table in the side panel
+  await page.locator('[data-test=vtt-tool-initiative]').click();
+  const quickTokens = await page.locator('[data-test=vtt-quick-token]').count();
+  await page.locator('[data-test=vtt-quick-combat]').click();
+  await page.locator('[data-test=vtt-initiative-row]').first().waitFor({ timeout: 15000 });
+  const initUi = { quickTokens, rows: await page.locator('[data-test=vtt-initiative-row]').count() };
+  const heroRow = page.locator('[data-test=vtt-initiative-row]', { hasText: 'Eroe di prova' });
+  await heroRow.locator('[data-test=vtt-roll-init]').click();
+  await page.waitForTimeout(1500);
+  initUi.heroInit = await heroRow.locator('[data-test=vtt-init-input]').inputValue();
+  await shot(page, 'vtt-initiative', null);
+  await page.locator('[data-test=vtt] [data-test=map-token][data-label="Goblin 2"]').click();
+  await page.locator('[data-test=map-token-fight]').click();
+  await page.waitForTimeout(1500);
+  initUi.afterLeave = await page.locator('[data-test=vtt-initiative-row]').count();
+  await page.locator('.rf-vtt-card-close').click();
+  await page.locator('[data-test=vtt-drawer] button', { hasText: /^Termina$/ }).click();
+  await page.locator('[data-test=vtt-quick-combat]').waitFor({ timeout: 15000 });
+  await page.locator('[data-test=vtt-tool-dice]').click();
+  await page.locator('[data-test=vtt-drawer] [data-test=roll-go]').click();
+  initUi.diceTray = await page.locator('[data-test=sheet-last-roll]').waitFor({ timeout: 8000 }).then(() => 1, () => 0);
+  await page.waitForTimeout(500);
+  await shot(page, 'vtt-dice', null);
+  await page.locator('[data-test=vtt-tool-dice]').click();
+  results.push(`INFO vtt initiative: ${JSON.stringify(initUi)}`);
+  if (initUi.quickTokens !== 5 || initUi.rows !== 5 || !/^\d+$/.test(initUi.heroInit) || initUi.afterLeave !== 4 || initUi.diceTray !== 1) throw new Error(`unexpected initiative: ${JSON.stringify(initUi)}`);
+  ok('virtual tabletop initiative: a fight with the five tokens on the map, the hero rolling its own initiative into the order, a goblin leaving from its toolbar, the dice table in the side panel');
   await page.locator('[data-test=vtt-back]').click();
   await page.locator('[data-test=campaign-title]').waitFor({ timeout: 30000 });
   // From the sheet, the owner takes the character out of the campaign
