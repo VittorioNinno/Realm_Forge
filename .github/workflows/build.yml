@@ -1121,6 +1121,24 @@ jobs:
           fight_master=$(curl -s "$api/api/campaigns/$ss_cp/maps/$mp2/state" -H "Authorization: Bearer $B" | jq -c '{round: .combat.round, blades: [.tokens[] | select(.label == "Lame rotanti") | {hp, maxHp}]}')
           fight_end=$(code -X POST "$api/api/campaigns/$ss_cp/maps/$mp2/combat/end" -H "Authorization: Bearer $B")
           fight_done=$(curl -s "$api/api/campaigns/$ss_cp/encounters/$fe" -H "Authorization: Bearer $B" | jq -c '{status, hp: .combatants[0].hp, conditions: .combatants[0].conditions}')
+          # Control: a player moves a marker only once a master assigns it; the table waits for a change and gets it at once
+          ctl_user=$(curl -s "$api/api/campaigns/$ss_cp" -H "Authorization: Bearer $A" | jq -r '.members[] | select(.isMe) | .userId')
+          ctl_tree=$(curl -s "$api/api/campaigns/$ss_cp/maps/$mp2/state" -H "Authorization: Bearer $B" | jq -r '.tokens[] | select(.label == "Albero") | .id')
+          ctl_before=$(code -X POST "$api/api/campaigns/$ss_cp/maps/$mp2/tokens/$ctl_tree/move" $json -H "Authorization: Bearer $A" -d '{"x":8,"y":6}')
+          ctl_bad=$(code -X PUT "$api/api/campaigns/$ss_cp/maps/$mp2/tokens/$ctl_tree" $json -H "Authorization: Bearer $B" -d '{"label":"Albero","kind":4,"x":9,"y":6,"size":1,"controlledBy":["nobody"]}')
+          ctl_assign=$(code -X PUT "$api/api/campaigns/$ss_cp/maps/$mp2/tokens/$ctl_tree" $json -H "Authorization: Bearer $B" -d "{\"label\":\"Albero\",\"kind\":4,\"x\":9,\"y\":6,\"size\":1,\"maxHp\":12,\"hp\":5,\"controlledBy\":[\"$ctl_user\"]}")
+          ctl_seen=$(curl -s "$api/api/campaigns/$ss_cp/maps/$mp2/state" -H "Authorization: Bearer $A" | jq -c '[.tokens[] | select(.label == "Albero") | {canMove, health, controlledBy}]')
+          ctl_master=$(curl -s "$api/api/campaigns/$ss_cp/maps/$mp2/state" -H "Authorization: Bearer $B" | jq -c '[.tokens[] | select(.label == "Albero") | {hp, maxHp, n: (.controlledBy | length)}]')
+          lp_since=$(curl -s "$api/api/campaigns/$ss_cp/maps/$mp2/state" -H "Authorization: Bearer $A" | jq -r .updatedAt)
+          lp_out=$(mktemp)
+          curl -s -o "$lp_out" -w '%{time_total}' "$api/api/campaigns/$ss_cp/maps/$mp2/state?after=$(jq -rn --arg v "$lp_since" '$v|@uri')" -H "Authorization: Bearer $A" > "$lp_out.time" &
+          lp_pid=$!
+          sleep 2
+          ctl_after=$(code -X POST "$api/api/campaigns/$ss_cp/maps/$mp2/tokens/$ctl_tree/move" $json -H "Authorization: Bearer $A" -d '{"x":8,"y":6}')
+          wait $lp_pid
+          lp_result=$(jq -c '[.tokens[] | select(.label == "Albero") | {x, y}]' "$lp_out")
+          lp_fast=$(awk -v t="$(cat "$lp_out.time")" 'BEGIN { print (t >= 1.5 && t < 8) ? "yes" : "no (" t ")" }')
+          echo "::notice title=maps::control before=$ctl_before bad=$ctl_bad assign=$ctl_assign seen=$ctl_seen master=$ctl_master after=$ctl_after | long poll=$lp_result fast=$lp_fast"
           echo "::notice title=maps::fight player=$fight_player master=$fight seen=$fight_seen | state player=$fight_state_player master=$fight_state next=$fight_next after=$fight_after master=$fight_master | end=$fight_end done=$fight_done"
           code -X DELETE "$api/api/campaigns/$ss_cp/maps/$mp2" -H "Authorization: Bearer $B" > /dev/null
           mp_delete=$(code -X DELETE "$api/api/campaigns/$ss_cp/maps/$mp" -H "Authorization: Bearer $B")
@@ -1182,6 +1200,14 @@ jobs:
           sscheck "hurt token seen by the master" "$fight_master" '{"round":1,"blades":[{"hp":4,"maxHp":10}]}'
           sscheck "fight ended" "$fight_end" "204"
           sscheck "encounter after the fight" "$fight_done" '{"status":3,"hp":4,"conditions":["prone"]}'
+          sscheck "player moves a marker not assigned" "$ctl_before" "403"
+          sscheck "marker assigned to a stranger" "$ctl_bad" "400"
+          sscheck "master assigns a marker" "$ctl_assign" "204"
+          sscheck "assigned marker seen by the player" "$ctl_seen" '[{"canMove":true,"health":3,"controlledBy":null}]'
+          sscheck "assigned marker seen by the master" "$ctl_master" '[{"hp":5,"maxHp":12,"n":1}]'
+          sscheck "player moves the assigned marker" "$ctl_after" "204"
+          sscheck "table told of the move" "$lp_result" '[{"x":8,"y":6}]'
+          sscheck "told at once, not at the next poll" "$lp_fast" "yes"
           sscheck "player sets the fog" "$fog_player" "403"
           sscheck "unknown fog step" "$fog_bad" "400"
           sscheck "marker under the fog" "$fog_covered" '{"tokens":[],"fog":true}'
