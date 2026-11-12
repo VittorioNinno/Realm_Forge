@@ -92,6 +92,10 @@
                             {
                                 <div class="small mt-2 rf-campaign-pending" data-test="campaign-pending">@UiText.CampaignPendingCount(campaign.PendingContents, Lang)</div>
                             }
+                            @if (campaign.TableOpenedAt is not null)
+                            {
+                                <div class="mt-2"><span class="rf-live-badge" data-test="campaign-card-live"><span class="rf-live-dot"></span> @UiText.TableLiveNow(Lang)</span></div>
+                            }
                         </a>
                     }
                 </div>

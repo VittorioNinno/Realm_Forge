@@ -60,6 +60,7 @@ namespace RealmForge.Client
 			builder.Services.AddScoped<RuleModuleDataService>();
 			builder.Services.AddScoped<EncounterDataService>();
 			builder.Services.AddScoped<CampaignDataService>();
+			builder.Services.AddScoped<LiveTableService>();
 			builder.Services.AddScoped<TrashDataService>();
 			builder.Services.AddScoped<CharacterDataService>();
 			builder.Services.AddScoped<ShareDataService>();
