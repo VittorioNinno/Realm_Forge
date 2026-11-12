@@ -1686,7 +1686,10 @@ try {
   const initUi = { quickTokens, rows: await page.locator('[data-test=vtt-initiative-row]').count() };
   const heroRow = page.locator('[data-test=vtt-initiative-row]', { hasText: 'Eroe di prova' });
   await heroRow.locator('[data-test=vtt-roll-init]').click();
-  await page.waitForTimeout(1500);
+  await page.waitForFunction(() => {
+    const row = [...document.querySelectorAll('[data-test=vtt-initiative-row]')].find((r) => r.textContent.includes('Eroe di prova'));
+    return row && row.querySelector('[data-test=vtt-init-input]').value !== '';
+  }, null, { timeout: 15000 }).catch(() => {});
   initUi.heroInit = await heroRow.locator('[data-test=vtt-init-input]').inputValue();
   await shot(page, 'vtt-initiative', null);
   await page.locator('[data-test=vtt] [data-test=map-token][data-label="Goblin 2"]').click();
