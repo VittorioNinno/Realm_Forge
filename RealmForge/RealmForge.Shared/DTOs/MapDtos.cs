@@ -33,7 +33,10 @@ namespace RealmForge.Shared.DTOs
 		CombatantHealth? Health = null,
 
 		//	The players a master lets move it (sent to the masters only)
-		List<string>? ControlledBy = null);
+		List<string>? ControlledBy = null,
+		PropType? PropType = null,
+		PropState PropState = PropState.Closed,
+		bool PlayersInteract = false);
 
 	///	<summary>
 	///	The fight on a map: the encounter, the round, whose turn it is and the initiative order (what the players see of it).
@@ -163,6 +166,9 @@ namespace RealmForge.Shared.DTOs
 		public List<string> ControlledBy { get; set; } = new();
 		public int? Hp { get; set; }
 		public int? MaxHp { get; set; }
+		public PropType? PropType { get; set; }
+		public PropState PropState { get; set; } = PropState.Closed;
+		public bool PlayersInteract { get; set; }
 	}
 
 	public class MoveTokenDto

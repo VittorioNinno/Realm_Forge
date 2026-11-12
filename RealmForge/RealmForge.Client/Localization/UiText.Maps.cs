@@ -170,5 +170,42 @@ namespace RealmForge.Client.Localization
 		public static string VttFightAlone(LanguageCode lang) => T(lang, "Inizia un combattimento con questo segnalino", "Start a fight with this token");
 		public static string ToolAdd(LanguageCode lang) => T(lang, "Iniziativa", "Initiative");
 		public static string ToolOut(LanguageCode lang) => T(lang, "Fuori", "Out");
+		public static string PropTypeName(PropType type, LanguageCode lang) => type switch
+		{
+			PropType.Gate => T(lang, "Cancello", "Gate"),
+			PropType.Window => T(lang, "Finestra", "Window"),
+			PropType.Chest => T(lang, "Forziere", "Chest"),
+			PropType.Lever => T(lang, "Leva", "Lever"),
+			PropType.Trap => T(lang, "Trappola", "Trap"),
+			PropType.Secret => T(lang, "Passaggio segreto", "Secret passage"),
+			_ => T(lang, "Porta", "Door")
+		};
+		public static string PropStateName(PropType type, PropState state, LanguageCode lang) => (type, state) switch
+		{
+			(PropType.Lever, PropState.Open) => T(lang, "Alzata", "Up"),
+			(PropType.Lever, PropState.Closed) => T(lang, "Abbassata", "Down"),
+			(PropType.Trap, PropState.Closed) => T(lang, "Armata", "Armed"),
+			(PropType.Trap, PropState.Open) => T(lang, "Scattata", "Sprung"),
+			(PropType.Trap, PropState.Broken) => T(lang, "Disinnescata", "Disarmed"),
+			(_, PropState.Open) => T(lang, "Aperto", "Open"),
+			(_, PropState.Ajar) => T(lang, "Socchiuso", "Ajar"),
+			(_, PropState.Locked) => T(lang, "Chiuso a chiave", "Locked"),
+			(_, PropState.Barred) => T(lang, "Sbarrato", "Barred"),
+			(_, PropState.Broken) => T(lang, "Rotto", "Broken"),
+			(_, PropState.Empty) => T(lang, "Vuoto", "Empty"),
+			_ => T(lang, "Chiuso", "Closed")
+		};
+		public static string PropAction(PropType type, PropState state, LanguageCode lang) => (type, state) switch
+		{
+			(PropType.Lever, PropState.Open) => T(lang, "Abbassa", "Pull down"),
+			(PropType.Lever, _) => T(lang, "Alza", "Pull up"),
+			(_, PropState.Open) => T(lang, "Chiudi", "Close"),
+			_ => T(lang, "Apri", "Open")
+		};
+		public static string PropStuck(PropType type, PropState state, LanguageCode lang) =>
+			T(lang, $"Non si muove: {PropStateName(type, state, lang).ToLowerInvariant()}.", $"It does not move: {PropStateName(type, state, lang).ToLowerInvariant()}.");
+		public static string PropPlayers(LanguageCode lang) => T(lang, "I giocatori possono usarlo", "The players can use it");
+		public static string PropAdd(LanguageCode lang) => T(lang, "Oggetti", "Objects");
+		public static string ToolState(LanguageCode lang) => T(lang, "Stato", "State");
 	}
 }

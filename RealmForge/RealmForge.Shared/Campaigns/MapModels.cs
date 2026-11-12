@@ -28,7 +28,58 @@ public enum TokenKind
 	Character = 1,
 	Npc = 2,
 	Monster = 3,
-	Marker = 4
+	Marker = 4,
+
+	//	Something on the map the table interacts with: a door, a chest, a lever…
+	Prop = 5
+}
+
+public enum PropType
+{
+	Door = 1,
+	Gate = 2,
+	Window = 3,
+	Chest = 4,
+	Lever = 5,
+	Trap = 6,
+	Secret = 7
+}
+
+public enum PropState
+{
+	Closed = 0,
+	Open = 1,
+	Ajar = 2,
+	Locked = 3,
+	Barred = 4,
+	Broken = 5,
+	Empty = 6
+}
+
+///	<summary>
+///	The states each kind of object can be in, and what a player's interaction does: open what is closed or ajar,
+///	close what is open; a locked or barred object does not move (a master unlocks it).
+///	</summary>
+public static class PropRules
+{
+	public static IReadOnlyList<PropState> States(PropType type) => type switch
+	{
+		PropType.Chest => new[] { PropState.Closed, PropState.Open, PropState.Locked, PropState.Empty, PropState.Broken },
+		PropType.Lever => new[] { PropState.Closed, PropState.Open, PropState.Broken },
+		PropType.Trap => new[] { PropState.Closed, PropState.Open, PropState.Broken },
+		PropType.Window => new[] { PropState.Closed, PropState.Open, PropState.Ajar, PropState.Locked, PropState.Broken },
+		_ => new[] { PropState.Closed, PropState.Open, PropState.Ajar, PropState.Locked, PropState.Barred, PropState.Broken }
+	};
+
+	public static bool Valid(PropType type, PropState state) => States(type).Contains(state);
+
+	//	null: it does not move
+	public static PropState? Toggle(PropState state) => state switch
+	{
+		PropState.Closed or PropState.Ajar => PropState.Open,
+		PropState.Open => PropState.Closed,
+		_ => null
+	};
 }
 
 ///	<summary>
