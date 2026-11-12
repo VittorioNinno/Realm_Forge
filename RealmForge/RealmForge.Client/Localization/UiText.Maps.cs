@@ -138,5 +138,74 @@ namespace RealmForge.Client.Localization
 		public static string RollDamage(string weapon, LanguageCode lang) => T(lang, $"{weapon}: danni", $"{weapon}: damage");
 		public static string RollSave(string ability, LanguageCode lang) => T(lang, $"TS {ability}", $"{ability} save");
 		public static string RollCheck(string ability, LanguageCode lang) => T(lang, $"Prova {ability}", $"{ability} check");
+		public static string TokenRename(LanguageCode lang) => T(lang, "Rinomina", "Rename");
+		public static string ToolHp(LanguageCode lang) => T(lang, "PF", "HP");
+		public static string ToolHpMax(LanguageCode lang) => T(lang, "PF massimi", "Max HP");
+		public static string ToolHpOnSheet(LanguageCode lang) => T(lang, "si cambiano dalla scheda", "changed from the sheet");
+		public static string ToolHide(LanguageCode lang) => T(lang, "Nascondi", "Hide");
+		public static string ToolRing(LanguageCode lang) => T(lang, "Anello", "Ring");
+		public static string ToolSize(LanguageCode lang) => T(lang, "Taglia", "Size");
+		public static string ToolMore(LanguageCode lang) => T(lang, "Altro", "More");
+		public static string ToolNoConditions(LanguageCode lang) => T(lang, "Nessuna condizione.", "No conditions.");
+		public static string ToolSizeName(int cells, LanguageCode lang) => cells switch
+		{
+			1 => T(lang, "Media (1)", "Medium (1)"),
+			2 => T(lang, "Grande (2)", "Large (2)"),
+			3 => T(lang, "Enorme (3)", "Huge (3)"),
+			4 => T(lang, "Mastodontica (4)", "Gargantuan (4)"),
+			_ => $"{cells}×{cells}"
+		};
+		public static string ToolControlledBy(LanguageCode lang) => T(lang, "Possono muoverlo anche", "Can also be moved by");
+		public static string ToolDuplicate(LanguageCode lang) => T(lang, "Duplica", "Duplicate");
+		public static string ToolMoveHint(LanguageCode lang) => T(lang,
+			"Trascinalo sulla mappa, oppure usa le frecce della tastiera.", "Drag it on the map, or use the arrow keys.");
+		public static string VttInitiative(LanguageCode lang) => T(lang, "Iniziativa", "Initiative");
+		public static string VttDice(LanguageCode lang) => T(lang, "Dadi", "Dice");
+		public static string VttQuickCombat(LanguageCode lang) => T(lang, "Combattimento con i segnalini", "Fight with the tokens");
+		public static string VttQuickCombatEmpty(LanguageCode lang) => T(lang, "Metti sulla mappa personaggi e mostri per combattere.", "Put characters and monsters on the map to fight.");
+		public static string VttQuickCombatStart(LanguageCode lang) => T(lang, "Tira l'iniziativa e inizia", "Roll initiative and start");
+		public static string VttNoCombat(LanguageCode lang) => T(lang, "Nessun combattimento in corso.", "No fight under way.");
+		public static string VttJoinFight(LanguageCode lang) => T(lang, "Aggiungi all'iniziativa", "Add to the initiative");
+		public static string VttLeaveFight(LanguageCode lang) => T(lang, "Togli dall'iniziativa", "Remove from the initiative");
+		public static string VttFightAlone(LanguageCode lang) => T(lang, "Inizia un combattimento con questo segnalino", "Start a fight with this token");
+		public static string ToolAdd(LanguageCode lang) => T(lang, "Iniziativa", "Initiative");
+		public static string ToolOut(LanguageCode lang) => T(lang, "Fuori", "Out");
+		public static string PropTypeName(PropType type, LanguageCode lang) => type switch
+		{
+			PropType.Gate => T(lang, "Cancello", "Gate"),
+			PropType.Window => T(lang, "Finestra", "Window"),
+			PropType.Chest => T(lang, "Forziere", "Chest"),
+			PropType.Lever => T(lang, "Leva", "Lever"),
+			PropType.Trap => T(lang, "Trappola", "Trap"),
+			PropType.Secret => T(lang, "Passaggio segreto", "Secret passage"),
+			_ => T(lang, "Porta", "Door")
+		};
+		public static string PropStateName(PropType type, PropState state, LanguageCode lang) => (type, state) switch
+		{
+			(PropType.Lever, PropState.Open) => T(lang, "Alzata", "Up"),
+			(PropType.Lever, PropState.Closed) => T(lang, "Abbassata", "Down"),
+			(PropType.Trap, PropState.Closed) => T(lang, "Armata", "Armed"),
+			(PropType.Trap, PropState.Open) => T(lang, "Scattata", "Sprung"),
+			(PropType.Trap, PropState.Broken) => T(lang, "Disinnescata", "Disarmed"),
+			(_, PropState.Open) => T(lang, "Aperto", "Open"),
+			(_, PropState.Ajar) => T(lang, "Socchiuso", "Ajar"),
+			(_, PropState.Locked) => T(lang, "Chiuso a chiave", "Locked"),
+			(_, PropState.Barred) => T(lang, "Sbarrato", "Barred"),
+			(_, PropState.Broken) => T(lang, "Rotto", "Broken"),
+			(_, PropState.Empty) => T(lang, "Vuoto", "Empty"),
+			_ => T(lang, "Chiuso", "Closed")
+		};
+		public static string PropAction(PropType type, PropState state, LanguageCode lang) => (type, state) switch
+		{
+			(PropType.Lever, PropState.Open) => T(lang, "Abbassa", "Pull down"),
+			(PropType.Lever, _) => T(lang, "Alza", "Pull up"),
+			(_, PropState.Open) => T(lang, "Chiudi", "Close"),
+			_ => T(lang, "Apri", "Open")
+		};
+		public static string PropStuck(PropType type, PropState state, LanguageCode lang) =>
+			T(lang, $"Non si muove: {PropStateName(type, state, lang).ToLowerInvariant()}.", $"It does not move: {PropStateName(type, state, lang).ToLowerInvariant()}.");
+		public static string PropPlayers(LanguageCode lang) => T(lang, "I giocatori possono usarlo", "The players can use it");
+		public static string PropAdd(LanguageCode lang) => T(lang, "Oggetti", "Objects");
+		public static string ToolState(LanguageCode lang) => T(lang, "Stato", "State");
 	}
 }

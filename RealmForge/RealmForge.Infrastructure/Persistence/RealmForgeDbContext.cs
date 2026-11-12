@@ -75,6 +75,8 @@ namespace RealmForge.Infrastructure.Persistence
 		public DbSet<CampaignMap> CampaignMaps => Set<CampaignMap>();
 		public DbSet<CampaignToken> CampaignTokens => Set<CampaignToken>();
 		public DbSet<CampaignMapShape> CampaignMapShapes => Set<CampaignMapShape>();
+		public DbSet<UserImage> UserImages => Set<UserImage>();
+		public DbSet<MonsterImageChoice> MonsterImageChoices => Set<MonsterImageChoice>();
 
 		//	The bin: deleted characters, campaigns and Homebrew, restorable for a few days
 		public DbSet<TrashEntry> TrashEntries => Set<TrashEntry>();
@@ -611,6 +613,22 @@ namespace RealmForge.Infrastructure.Persistence
 				entity.HasMany(e => e.Shapes).WithOne(t => t.Map).HasForeignKey(t => t.MapId).OnDelete(DeleteBehavior.Cascade);
 			});
 
+			modelBuilder.Entity<UserImage>(entity =>
+			{
+				entity.HasKey(e => e.Id);
+				entity.Property(e => e.OwnerId).IsRequired().HasMaxLength(450);
+				entity.Property(e => e.Name).IsRequired().HasMaxLength(100);
+				entity.Property(e => e.Image).IsRequired();
+				entity.HasIndex(e => e.OwnerId);
+			});
+
+			modelBuilder.Entity<MonsterImageChoice>(entity =>
+			{
+				entity.HasKey(e => new { e.OwnerId, e.MonsterId });
+				entity.Property(e => e.OwnerId).HasMaxLength(450);
+				entity.HasOne(e => e.Image).WithMany().HasForeignKey(e => e.ImageId).OnDelete(DeleteBehavior.Cascade);
+			});
+
 			modelBuilder.Entity<CampaignMapShape>(entity =>
 			{
 				entity.HasKey(e => e.Id);
@@ -625,6 +643,7 @@ namespace RealmForge.Infrastructure.Persistence
 				entity.HasKey(e => e.Id);
 				entity.Property(e => e.Label).IsRequired().HasMaxLength(100);
 				entity.Property(e => e.Color).IsRequired().HasMaxLength(9);
+				entity.Property(e => e.ControlledBy).HasDefaultValueSql("'{}'");
 				entity.HasIndex(e => e.MapId);
 			});
 
