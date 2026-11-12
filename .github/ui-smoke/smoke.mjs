@@ -1450,6 +1450,8 @@ try {
   await page.locator('[data-test=map-monster-result]', { hasText: /^Goblin\b/ }).first().click();
   await page.locator('[data-test=map-token][data-label=Goblin]').waitFor({ timeout: 15000 });
   const hero = page.locator('[data-test=map-token]').first();
+  // Adding tokens from the panel may scroll the page: the drag needs the map in view
+  await page.locator('[data-test=map-stage]').scrollIntoViewIfNeeded();
   const box = await hero.boundingBox();
   await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
   await page.mouse.down();
@@ -1492,6 +1494,7 @@ try {
   const calibrate = async (x1, y1, x2, y2) => {
     await page.locator('[data-test=map-calibrate]').click();
     await page.locator('[data-test=map-calibrate-hint]').waitFor({ timeout: 15000 });
+    await page.locator('[data-test=map-stage]').scrollIntoViewIfNeeded();
     const o = await page.locator('svg[data-test=map-grid]').boundingBox();
     await page.mouse.move(o.x + x1, o.y + y1);
     await page.mouse.down();
