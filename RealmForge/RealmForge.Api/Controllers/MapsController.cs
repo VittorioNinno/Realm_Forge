@@ -356,8 +356,8 @@ namespace RealmForge.Api.Controllers
 
 		// ===== Drawings, texts, notes, areas =====
 
-		//	POST: api/campaigns/{campaignId}/maps/{mapId}/shapes — everyone at the table draws; only the masters write notes
-		//	for themselves
+		//	POST: api/campaigns/{campaignId}/maps/{mapId}/shapes — everyone at the table draws for themselves (MapRules.IsPrivate);
+		//	the areas of spells, and the masters' texts they share, are for the whole table
 		[HttpPost("{mapId:guid}/shapes")]
 		public async Task<ActionResult<MapShapeDto>> AddShape(Guid campaignId, Guid mapId, [FromBody] SaveShapeDto dto)
 		{
@@ -367,10 +367,6 @@ namespace RealmForge.Api.Controllers
 				return NotFound();
 			}
 			var runs = CampaignRules.RunsTheTable(role.Value);
-			if (dto.MasterOnly && !runs)
-			{
-				return Forbid();
-			}
 			var needed = dto.Kind switch
 			{
 				ShapeKind.Freehand => 4,
@@ -399,25 +395,52 @@ namespace RealmForge.Api.Controllers
 				Color = dto.Color ?? (runs ? PlayerColors.Master : colors.TryGetValue(UserId, out var mine) ? mine : PlayerColors.Master),
 				Text = dto.Kind == ShapeKind.Text ? dto.Text!.Trim() : null,
 				Size = MapRules.IsArea(dto.Kind) ? dto.Size : 0,
-				MasterOnly = dto.MasterOnly
+				MasterOnly = MapRules.IsPrivate(dto.Kind, runs, dto.Shared)
 			};
 			_context.CampaignMapShapes.Add(shape);
 			map.UpdatedAt = DateTimeOffset.UtcNow;
 			await _context.SaveChangesAsync();
-			return Ok(new MapShapeDto(shape.Id, shape.Kind, shape.Points, shape.Color, shape.Text, shape.Size, shape.MasterOnly, true));
+			return Ok(ShapeDto(shape, runs));
 		}
 
-		//	DELETE: api/campaigns/{campaignId}/maps/{mapId}/shapes/{shapeId} — its author or a master
+		//	PUT: api/campaigns/{campaignId}/maps/{mapId}/shapes/{shapeId}/move — a text somewhere else: its author, or a master
+		//	for a text the table sees
+		[HttpPut("{mapId:guid}/shapes/{shapeId:guid}/move")]
+		public async Task<ActionResult<MapShapeDto>> MoveShape(Guid campaignId, Guid mapId, Guid shapeId, [FromBody] MoveShapeDto dto)
+		{
+			var (map, role) = await LoadAsync(campaignId, mapId, withTokens: true);
+			var shape = map?.Shapes.FirstOrDefault(s => s.Id == shapeId);
+			if (map is null || role is null || shape is null || !MapRules.Sees(shape.Kind, shape.MasterOnly, shape.OwnerId == UserId))
+			{
+				return NotFound();
+			}
+			var runs = CampaignRules.RunsTheTable(role.Value);
+			if (!MapRules.CanMoveShape(shape.Kind, shape.MasterOnly, shape.OwnerId == UserId, runs))
+			{
+				return Forbid();
+			}
+			if (dto.Points.Count != 2 || dto.Points.Any(v => double.IsNaN(v) || double.IsInfinity(v))
+				|| dto.Points[0] < 0 || dto.Points[1] < 0 || dto.Points[0] > map.Width || dto.Points[1] > map.Height)
+			{
+				return Problem(statusCode: StatusCodes.Status400BadRequest, title: "The text must stay on the map.");
+			}
+			shape.Points = dto.Points.Select(v => Math.Round(v, 1)).ToList();
+			map.UpdatedAt = DateTimeOffset.UtcNow;
+			await _context.SaveChangesAsync();
+			return Ok(ShapeDto(shape, runs));
+		}
+
+		//	DELETE: api/campaigns/{campaignId}/maps/{mapId}/shapes/{shapeId} — its author, or a master for what the table sees
 		[HttpDelete("{mapId:guid}/shapes/{shapeId:guid}")]
 		public async Task<IActionResult> DeleteShape(Guid campaignId, Guid mapId, Guid shapeId)
 		{
 			var (map, role) = await LoadAsync(campaignId, mapId, withTokens: true);
 			var shape = map?.Shapes.FirstOrDefault(s => s.Id == shapeId);
-			if (map is null || role is null || shape is null || (shape.MasterOnly && !CampaignRules.RunsTheTable(role.Value)))
+			if (map is null || role is null || shape is null || !MapRules.Sees(shape.Kind, shape.MasterOnly, shape.OwnerId == UserId))
 			{
 				return NotFound();
 			}
-			if (!CampaignRules.RunsTheTable(role.Value) && shape.OwnerId != UserId)
+			if (!MapRules.CanDeleteShape(shape.Kind, shape.MasterOnly, shape.OwnerId == UserId, CampaignRules.RunsTheTable(role.Value)))
 			{
 				return Forbid();
 			}
@@ -427,8 +450,8 @@ namespace RealmForge.Api.Controllers
 			return NoContent();
 		}
 
-		//	DELETE: api/campaigns/{campaignId}/maps/{mapId}/shapes — clears the drawings and areas: a master all of them, a
-		//	player their own (the masters' notes stay)
+		//	DELETE: api/campaigns/{campaignId}/maps/{mapId}/shapes — clears the drawings, texts and areas: a player their own, a
+		//	master also everything the table sees (never what the others keep for themselves)
 		[HttpDelete("{mapId:guid}/shapes")]
 		public async Task<IActionResult> ClearShapes(Guid campaignId, Guid mapId)
 		{
@@ -438,7 +461,8 @@ namespace RealmForge.Api.Controllers
 				return NotFound();
 			}
 			var runs = CampaignRules.RunsTheTable(role.Value);
-			var gone = map.Shapes.Where(s => !s.MasterOnly && (runs || s.OwnerId == UserId)).ToList();
+			var gone = map.Shapes.Where(s => MapRules.Sees(s.Kind, s.MasterOnly, s.OwnerId == UserId)
+				&& MapRules.CanDeleteShape(s.Kind, s.MasterOnly, s.OwnerId == UserId, runs)).ToList();
 			_context.CampaignMapShapes.RemoveRange(gone);
 			map.UpdatedAt = DateTimeOffset.UtcNow;
 			await _context.SaveChangesAsync();
@@ -1069,15 +1093,22 @@ namespace RealmForge.Api.Controllers
 			map.PingAt is { } pingAt ? new MapPingDto(map.PingX ?? 0, map.PingY ?? 0, map.PingColor ?? PlayerColors.Master, pingAt) : null,
 			map.FocusAt is { } focusAt ? new MapFocusDto(map.FocusX ?? 0, map.FocusY ?? 0, map.FocusZoom ?? 1, focusAt) : null);
 
-		//	The players do not see the masters' notes
+		//	Everyone sees their own drawings and what is for the whole table (MapRules.Sees)
 		private List<MapShapeDto> ShapesOf(CampaignMap map, CampaignRole role)
 		{
 			var runs = CampaignRules.RunsTheTable(role);
 			return map.Shapes
-				.Where(s => runs || !s.MasterOnly)
+				.Where(s => MapRules.Sees(s.Kind, s.MasterOnly, s.OwnerId == UserId))
 				.OrderBy(s => s.CreatedAt)
-				.Select(s => new MapShapeDto(s.Id, s.Kind, s.Points, s.Color, s.Text, s.Size, s.MasterOnly, runs || s.OwnerId == UserId))
+				.Select(s => ShapeDto(s, runs))
 				.ToList();
+		}
+
+		private MapShapeDto ShapeDto(CampaignMapShape s, bool runs)
+		{
+			var mine = s.OwnerId == UserId;
+			return new MapShapeDto(s.Id, s.Kind, s.Points, s.Color, s.Text, s.Size, s.MasterOnly || s.Kind == ShapeKind.Freehand,
+				MapRules.CanDeleteShape(s.Kind, s.MasterOnly, mine, runs), MapRules.CanMoveShape(s.Kind, s.MasterOnly, mine, runs));
 		}
 
 		private static bool OnMap(CampaignMap map, int x, int y, int size) =>

@@ -1,0 +1,173 @@
+﻿@using RealmForge.Client.Localization
+@using RealmForge.Client.Services
+@using RealmForge.Shared.DTOs
+@using RealmForge.Shared.Enums
+@implements IAsyncDisposable
+@inject LiveTableService Live
+@inject LanguageStateService LanguageState
+@inject NavigationManager Navigation
+@inject IJSRuntime JS
+
+@* A master or co-master opened the virtual tabletop: the other members get a notice, wherever they are in the app, with
+   the way in (and a browser notice too when they allowed it and the tab is in the background). Each opening is told once
+   per browser. *@
+@if (notices.Count > 0)
+{
+    <div class="rf-live-notices" role="status" aria-live="polite" data-test="live-notices">
+        @foreach (var n in notices)
+        {
+            var notice = n;
+            <div class="rf-live-notice" data-test="live-notice">
+                <span class="rf-live-notice-icon"><Icon Name="broadcast" /></span>
+                <div class="rf-live-notice-text">
+                    <div class="rf-live-notice-title">@UiText.TableLiveTitle(notice.CampaignName, Lang)</div>
+                    <div class="rf-live-notice-by">@UiText.TableOpenedBy(notice.OpenedBy, notice.OpenedAt, Lang)</div>
+                    <div class="d-flex flex-wrap gap-2 mt-2">
+                        <button type="button" class="btn btn-sm btn-rf-orange" @onclick="() => JoinAsync(notice)" data-test="live-notice-join">@UiText.TableJoin(Lang)</button>
+                        @if (permission == "default")
+                        {
+                            <button type="button" class="btn btn-sm btn-rf-outline" @onclick="AskPermissionAsync" data-test="live-notice-permission"><Icon Name="bell" /> @UiText.TableNotifyMe(Lang)</button>
+                        }
+                    </div>
+                </div>
+                <button type="button" class="rf-live-notice-close" aria-label="@UiText.TableDismiss(Lang)" title="@UiText.TableDismiss(Lang)" @onclick="() => DismissAsync(notice)" data-test="live-notice-close"><Icon Name="close" /></button>
+            </div>
+        }
+    </div>
+}
+
+@code {
+    private const string SeenKey = "rf-live-seen";
+    private static readonly TimeSpan Every = TimeSpan.FromSeconds(30);
+
+    private LanguageCode Lang => LanguageState.CurrentLanguage;
+    private readonly List<CampaignLiveTableDto> notices = new();
+    private HashSet<string> seen = new();
+    private string permission = "unsupported";
+    private readonly CancellationTokenSource stop = new();
+
+    private static string Key(CampaignLiveTableDto t) => $"{t.CampaignId:N}:{t.OpenedAt.UtcTicks}";
+
+    protected override void OnInitialized()
+    {
+        Live.Changed += OnChanged;
+        LanguageState.OnLanguageChanged += Refresh;
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender)
+        {
+            return;
+        }
+        try
+        {
+            var saved = await JS.InvokeAsync<string?>("localStorage.getItem", SeenKey);
+            seen = string.IsNullOrEmpty(saved) ? new() : System.Text.Json.JsonSerializer.Deserialize<HashSet<string>>(saved) ?? new();
+            permission = await JS.InvokeAsync<string>("rfLive.permission");
+        }
+        catch (Exception)
+        {
+            //	Without the browser's storage every opening is new: at worst a notice comes twice
+        }
+        _ = LoopAsync();
+    }
+
+    private async Task LoopAsync()
+    {
+        try
+        {
+            await Task.Delay(TimeSpan.FromSeconds(2), stop.Token);
+            using var timer = new PeriodicTimer(Every);
+            do
+            {
+                await Live.RefreshAsync();
+            }
+            while (await timer.WaitForNextTickAsync(stop.Token));
+        }
+        catch (OperationCanceledException)
+        {
+        }
+    }
+
+    private void OnChanged() => _ = InvokeAsync(ShowAsync);
+
+    private void Refresh() => _ = InvokeAsync(StateHasChanged);
+
+    private async Task ShowAsync()
+    {
+        //	Closed tables take their notice away
+        notices.RemoveAll(n => !Live.Tables.Any(t => Key(t) == Key(n)));
+        var here = Navigation.ToBaseRelativePath(Navigation.Uri);
+        foreach (var table in Live.Tables.Where(t => !t.Mine && !seen.Contains(Key(t)) && !notices.Any(n => Key(n) == Key(t))))
+        {
+            //	Already at that table: nothing to tell
+            if (here.StartsWith($"campaigns/{table.CampaignId}/vtt", StringComparison.OrdinalIgnoreCase))
+            {
+                await MarkSeenAsync(table);
+                continue;
+            }
+            notices.Add(table);
+            try
+            {
+                await JS.InvokeVoidAsync("rfLive.notify", UiText.TableLiveTitle(table.CampaignName, Lang),
+                    UiText.TableOpenedBy(table.OpenedBy, table.OpenedAt, Lang), $"campaigns/{table.CampaignId}/vtt", Key(table));
+            }
+            catch (Exception)
+            {
+                //	The notice in the page is enough
+            }
+        }
+        StateHasChanged();
+    }
+
+    private async Task JoinAsync(CampaignLiveTableDto table)
+    {
+        await DismissAsync(table);
+        Navigation.NavigateTo($"campaigns/{table.CampaignId}/vtt");
+    }
+
+    private async Task DismissAsync(CampaignLiveTableDto table)
+    {
+        notices.RemoveAll(n => Key(n) == Key(table));
+        await MarkSeenAsync(table);
+    }
+
+    private async Task MarkSeenAsync(CampaignLiveTableDto table)
+    {
+        seen.Add(Key(table));
+        //	Only the openings of the last days are worth remembering
+        if (seen.Count > 50)
+        {
+            seen = seen.Skip(seen.Count - 50).ToHashSet();
+        }
+        try
+        {
+            await JS.InvokeVoidAsync("localStorage.setItem", SeenKey, System.Text.Json.JsonSerializer.Serialize(seen));
+        }
+        catch (Exception)
+        {
+        }
+    }
+
+    private async Task AskPermissionAsync()
+    {
+        try
+        {
+            permission = await JS.InvokeAsync<string>("rfLive.ask");
+        }
+        catch (Exception)
+        {
+            permission = "unsupported";
+        }
+    }
+
+    public ValueTask DisposeAsync()
+    {
+        stop.Cancel();
+        stop.Dispose();
+        Live.Changed -= OnChanged;
+        LanguageState.OnLanguageChanged -= Refresh;
+        return ValueTask.CompletedTask;
+    }
+}

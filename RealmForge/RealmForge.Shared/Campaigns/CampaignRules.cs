@@ -63,6 +63,12 @@ public static class CampaignRules
 	//	Masters and co-masters run the table: they see and edit every character, approve and remove content
 	public static bool RunsTheTable(CampaignRole role) => role is CampaignRole.Master or CampaignRole.CoMaster;
 
+	//	An open table closes on its own after a long session, in case nobody closed it
+	public const int TableOpenHours = 12;
+
+	public static bool IsTableOpen(DateTimeOffset? openedAt, DateTimeOffset now) =>
+		openedAt is { } at && at <= now.AddMinutes(1) && now - at < TimeSpan.FromHours(TableOpenHours);
+
 	public static bool CanEditCampaign(CampaignRole role) => IsMaster(role);
 
 	public static bool CanDeleteCampaign(CampaignRole role) => IsMaster(role);

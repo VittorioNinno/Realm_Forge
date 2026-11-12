@@ -291,11 +291,13 @@
 
             <div class="mb-3">
                 <label class="rf-form-label">Email</label>
-                <input type="email" class="rf-form-control" autocomplete="username" @bind="email" />
+                <input type="email" class="rf-form-control" autocomplete="username" @bind="email" @bind:event="oninput"
+                       @ref="emailInput" @onkeydown="AuthKeyDownAsync" data-test="auth-email" />
             </div>
             <div class="mb-4">
                 <label class="rf-form-label">@UiText.LabelPassword(LanguageState.CurrentLanguage)</label>
-                <PasswordInput @bind-Value="password" Autocomplete="@(isRegisterMode ? "new-password" : "current-password")" DataTest="auth-password" />
+                <PasswordInput @ref="passwordInput" @bind-Value="password" Autocomplete="@(isRegisterMode ? "new-password" : "current-password")" DataTest="auth-password"
+                               OnEnter="EnterAsync" />
                 @if (isRegisterMode)
                 {
                     <div class="small mt-2" style="color: var(--rf-text-muted);">@UiText.PasswordHint(LanguageState.CurrentLanguage)</div>
@@ -581,6 +583,27 @@
     {
         isRegisterMode = !isRegisterMode;
         errors.Clear();
+    }
+
+    private ElementReference emailInput;
+    private PasswordInput? passwordInput;
+
+    private Task AuthKeyDownAsync(KeyboardEventArgs e) => e.Key == "Enter" ? EnterAsync() : Task.CompletedTask;
+
+    //	Enter in the sign-in form: with both fields filled it signs in (or registers), otherwise it moves to the empty field
+    private async Task EnterAsync()
+    {
+        if (isBusy)
+            return;
+        if (string.IsNullOrWhiteSpace(email))
+            await emailInput.FocusAsync();
+        else if (string.IsNullOrWhiteSpace(password))
+        {
+            if (passwordInput is not null)
+                await passwordInput.FocusAsync();
+        }
+        else
+            await SubmitAsync();
     }
 
     private async Task SubmitAsync()

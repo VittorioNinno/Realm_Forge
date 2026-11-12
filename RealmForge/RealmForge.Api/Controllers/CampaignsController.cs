@@ -67,12 +67,15 @@ namespace RealmForge.Api.Controllers
 					Members = m.Campaign.Members.Count,
 					Characters = m.Campaign.Characters.Count,
 					Pending = m.Campaign.Contents.Count(c => c.Status == CampaignContentStatus.Pending),
-					m.Campaign.UpdatedAt
+					m.Campaign.UpdatedAt,
+					m.Campaign.TableOpenedAt
 				})
 				.ToListAsync();
+			var now = DateTimeOffset.UtcNow;
 			return Ok(rows
 				.Select(r => new CampaignSummaryDto(r.Id, r.Name, r.Ruleset, r.Role, r.Members, r.Characters,
-					CampaignRules.CanReview(r.Role) ? r.Pending : 0, r.UpdatedAt))
+					CampaignRules.CanReview(r.Role) ? r.Pending : 0, r.UpdatedAt,
+					CampaignRules.IsTableOpen(r.TableOpenedAt, now) ? r.TableOpenedAt : null))
 				.OrderByDescending(r => r.UpdatedAt)
 				.ToList());
 		}
@@ -110,6 +113,66 @@ namespace RealmForge.Api.Controllers
 		{
 			var detail = await DetailAsync(id, lang);
 			return detail is null ? NotFound() : Ok(detail);
+		}
+
+		// ===== The table open now =====
+
+		//	GET: api/campaigns/live — the campaigns I play whose virtual tabletop is open: the app tells the players
+		[HttpGet("live")]
+		public async Task<ActionResult<List<CampaignLiveTableDto>>> GetLiveTables()
+		{
+			var since = DateTimeOffset.UtcNow.AddHours(-CampaignRules.TableOpenHours);
+			var rows = await _context.CampaignMembers.AsNoTracking()
+				.Where(m => m.UserId == UserId && m.Campaign.TableOpenedAt != null && m.Campaign.TableOpenedAt > since)
+				.Select(m => new { m.Campaign.Id, m.Campaign.Name, OpenedAt = m.Campaign.TableOpenedAt!.Value, By = m.Campaign.TableOpenedById ?? string.Empty })
+				.ToListAsync();
+			var names = await NamesAsync(rows.Select(r => r.By).Distinct());
+			return Ok(rows
+				.OrderByDescending(r => r.OpenedAt)
+				.Select(r => new CampaignLiveTableDto(r.Id, r.Name, r.OpenedAt, names.GetValueOrDefault(r.By, string.Empty), r.By == UserId))
+				.ToList());
+		}
+
+		//	POST: api/campaigns/{id}/table — a master or co-master opens the table for a session (again: a new call to the
+		//	players)
+		[HttpPost("{id:guid}/table")]
+		public async Task<ActionResult<CampaignLiveTableDto>> OpenTable(Guid id)
+		{
+			var campaign = await _context.Campaigns.FirstOrDefaultAsync(c => c.Id == id);
+			var me = campaign is null ? null : await _context.CampaignMembers.AsNoTracking().FirstOrDefaultAsync(m => m.CampaignId == id && m.UserId == UserId);
+			if (campaign is null || me is null)
+			{
+				return NotFound();
+			}
+			if (!CampaignRules.RunsTheTable(me.Role))
+			{
+				return Forbid();
+			}
+			campaign.TableOpenedAt = DateTimeOffset.UtcNow;
+			campaign.TableOpenedById = UserId;
+			await _context.SaveChangesAsync();
+			var names = await NamesAsync(new[] { UserId });
+			return Ok(new CampaignLiveTableDto(campaign.Id, campaign.Name, campaign.TableOpenedAt.Value, names.GetValueOrDefault(UserId, string.Empty), true));
+		}
+
+		//	DELETE: api/campaigns/{id}/table — the session is over
+		[HttpDelete("{id:guid}/table")]
+		public async Task<IActionResult> CloseTable(Guid id)
+		{
+			var campaign = await _context.Campaigns.FirstOrDefaultAsync(c => c.Id == id);
+			var me = campaign is null ? null : await _context.CampaignMembers.AsNoTracking().FirstOrDefaultAsync(m => m.CampaignId == id && m.UserId == UserId);
+			if (campaign is null || me is null)
+			{
+				return NotFound();
+			}
+			if (!CampaignRules.RunsTheTable(me.Role))
+			{
+				return Forbid();
+			}
+			campaign.TableOpenedAt = null;
+			campaign.TableOpenedById = null;
+			await _context.SaveChangesAsync();
+			return NoContent();
 		}
 
 		//	PUT: api/campaigns/{id} — name, description and edition (masters)
@@ -837,7 +900,8 @@ namespace RealmForge.Api.Controllers
 			var emails = await NamesAsync(campaign.Members.Select(m => m.UserId)
 				.Concat(campaign.Invites.SelectMany(i => new[] { i.UserId, i.InvitedById }))
 				.Concat(campaign.Contents.Select(c => c.SharedById))
-				.Concat(characters.Select(c => c.OwnerId)));
+				.Concat(characters.Select(c => c.OwnerId))
+				.Concat(campaign.TableOpenedById is { } opener ? new[] { opener } : Array.Empty<string>()));
 
 			//	Players see the approved entries and their own pending ones; masters and co-masters see everything
 			var visible = campaign.Contents.Where(c => c.Status == CampaignContentStatus.Approved || runs || c.SharedById == UserId).ToList();
@@ -878,7 +942,11 @@ namespace RealmForge.Api.Controllers
 							c.Status == CampaignContentStatus.Pending && CampaignRules.CanReview(me.Role));
 					}).ToList(),
 				campaign.CreatedAt,
-				campaign.UpdatedAt);
+				campaign.UpdatedAt,
+				CampaignRules.IsTableOpen(campaign.TableOpenedAt, DateTimeOffset.UtcNow)
+					? new CampaignLiveTableDto(campaign.Id, campaign.Name, campaign.TableOpenedAt!.Value,
+						emails.GetValueOrDefault(campaign.TableOpenedById ?? string.Empty, string.Empty), campaign.TableOpenedById == UserId)
+					: null);
 		}
 	}
 }
