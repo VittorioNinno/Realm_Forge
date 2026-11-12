@@ -1151,6 +1151,18 @@ jobs:
           qf_left=$(curl -s "$api/api/campaigns/$ss_cp/maps/$mp2/state" -H "Authorization: Bearer $B" | jq -c '{order: (.combat.order | length), hp: [.tokens[] | select(.label == "Albero") | .hp]}')
           qf_end=$(code -X POST "$api/api/campaigns/$ss_cp/maps/$mp2/combat/end" -H "Authorization: Bearer $B")
           echo "::notice title=maps::quick fight=$qf again=$qf_again order=$qf_order init player=$qf_init_player master=$qf_init seen=$qf_seen leave=$qf_leave left=$qf_left end=$qf_end"
+          # Objects: a door the player opens; once locked it stays shut (409); not usable when the master says so; a chest
+          # cannot be barred
+          door=$(curl -s -X POST "$api/api/campaigns/$ss_cp/maps/$mp2/tokens" $json -H "Authorization: Bearer $B" -d '{"label":"Porta","kind":5,"propType":1,"propState":0,"playersInteract":true,"x":2,"y":2,"size":1,"layer":1}' | jq -r .id)
+          door_open=$(curl -s -X POST "$api/api/campaigns/$ss_cp/maps/$mp2/tokens/$door/interact" -H "Authorization: Bearer $A" | jq -c '{propState}')
+          code -X PUT "$api/api/campaigns/$ss_cp/maps/$mp2/tokens/$door" $json -H "Authorization: Bearer $B" -d '{"label":"Porta","kind":5,"propType":1,"propState":3,"playersInteract":true,"x":2,"y":2,"size":1,"layer":1}' > /dev/null
+          door_locked=$(code -X POST "$api/api/campaigns/$ss_cp/maps/$mp2/tokens/$door/interact" -H "Authorization: Bearer $A")
+          code -X PUT "$api/api/campaigns/$ss_cp/maps/$mp2/tokens/$door" $json -H "Authorization: Bearer $B" -d '{"label":"Porta","kind":5,"propType":1,"propState":0,"playersInteract":false,"x":2,"y":2,"size":1,"layer":1}' > /dev/null
+          door_closed_off=$(code -X POST "$api/api/campaigns/$ss_cp/maps/$mp2/tokens/$door/interact" -H "Authorization: Bearer $A")
+          door_master=$(curl -s -X POST "$api/api/campaigns/$ss_cp/maps/$mp2/tokens/$door/interact" -H "Authorization: Bearer $B" | jq -c '{propState}')
+          chest_barred=$(code -X POST "$api/api/campaigns/$ss_cp/maps/$mp2/tokens" $json -H "Authorization: Bearer $B" -d '{"label":"Forziere","kind":5,"propType":4,"propState":4,"x":3,"y":2,"size":1}')
+          door_seen=$(curl -s "$api/api/campaigns/$ss_cp/maps/$mp2/state" -H "Authorization: Bearer $A" | jq -c '[.tokens[] | select(.kind == 5) | {propType, propState, playersInteract, canMove}]')
+          echo "::notice title=maps::door open=$door_open locked=$door_locked off=$door_closed_off master=$door_master chest barred=$chest_barred seen=$door_seen"
           echo "::notice title=maps::control before=$ctl_before bad=$ctl_bad assign=$ctl_assign seen=$ctl_seen master=$ctl_master after=$ctl_after | long poll=$lp_result fast=$lp_fast"
           echo "::notice title=maps::fight player=$fight_player master=$fight seen=$fight_seen | state player=$fight_state_player master=$fight_state next=$fight_next after=$fight_after master=$fight_master | end=$fight_end done=$fight_done"
           code -X DELETE "$api/api/campaigns/$ss_cp/maps/$mp2" -H "Authorization: Bearer $B" > /dev/null
@@ -1221,6 +1233,12 @@ jobs:
           sscheck "player moves the assigned marker" "$ctl_after" "204"
           sscheck "table told of the move" "$lp_result" '[{"x":8,"y":6}]'
           sscheck "told at once, not at the next poll" "$lp_fast" "yes"
+          sscheck "player opens a door" "$door_open" '{"propState":1}'
+          sscheck "player opens a locked door" "$door_locked" "409"
+          sscheck "player uses a door kept for the masters" "$door_closed_off" "403"
+          sscheck "master opens it" "$door_master" '{"propState":1}'
+          sscheck "barred chest" "$chest_barred" "400"
+          sscheck "door seen by the player" "$door_seen" '[{"propType":1,"propState":1,"playersInteract":false,"canMove":false}]'
           sscheck "quick fight" "$qf" "204"
           sscheck "second fight on the same map" "$qf_again" "400"
           sscheck "quick fight order" "$qf_order" '[{"name":"Albero","rolled":true}]'

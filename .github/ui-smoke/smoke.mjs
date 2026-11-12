@@ -1705,6 +1705,27 @@ try {
   results.push(`INFO vtt initiative: ${JSON.stringify(initUi)}`);
   if (initUi.quickTokens !== 5 || initUi.rows !== 5 || !/^\d+$/.test(initUi.heroInit) || initUi.afterLeave !== 4 || initUi.diceTray !== 1) throw new Error(`unexpected initiative: ${JSON.stringify(initUi)}`);
   ok('virtual tabletop initiative: a fight with the five tokens on the map, the hero rolling its own initiative into the order, a goblin leaving from its toolbar, the dice table in the side panel');
+  // Objects: a door placed from the tokens panel, opened from its toolbar, then locked (it no longer opens)
+  await page.locator('[data-test=vtt-tool-tokens]').click();
+  await page.locator('[data-test=map-add-prop][data-type=Door]').click();
+  const door = page.locator('[data-test=vtt] [data-test=map-token]:has([data-test=map-prop])');
+  await door.waitFor({ timeout: 15000 });
+  await page.locator('[data-test=vtt-tool-tokens]').click();
+  await door.click();
+  const propUi = { before: await door.locator('[data-test=map-prop]').getAttribute('data-state') };
+  await page.locator('[data-test=map-prop-use]').click();
+  await page.waitForTimeout(800);
+  propUi.opened = await door.locator('[data-test=map-prop]').getAttribute('data-state');
+  await page.locator('[data-test=map-token-tab-state]').click();
+  await page.locator('[data-test=map-prop-state][data-state=Locked]').click();
+  await page.waitForTimeout(800);
+  propUi.locked = await door.locator('[data-test=map-prop]').getAttribute('data-state');
+  propUi.stuck = await page.locator('[data-test=map-prop-stuck]').count();
+  await shot(page, 'vtt-door', null);
+  await page.locator('.rf-vtt-card-close').click();
+  results.push(`INFO vtt objects: ${JSON.stringify(propUi)}`);
+  if (propUi.before !== 'Closed' || propUi.opened !== 'Open' || propUi.locked !== 'Locked' || propUi.stuck !== 1) throw new Error(`unexpected objects: ${JSON.stringify(propUi)}`);
+  ok('virtual tabletop objects: a door placed from the tokens panel, opened from its toolbar, then locked so it no longer opens');
   await page.locator('[data-test=vtt-back]').click();
   await page.locator('[data-test=campaign-title]').waitFor({ timeout: 30000 });
   // From the sheet, the owner takes the character out of the campaign

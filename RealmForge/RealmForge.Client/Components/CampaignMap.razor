@@ -524,9 +524,21 @@ else
                         var side = grid * t.Size;
                         var portrait = PortraitOf(t);
                         var summary = Summary(t);
-                        <div class="rf-vtt-token @(t.Hidden ? "hidden-token" : null) @(t.Layer == TokenLayer.Below ? "below" : null) @(t.CanMove ? "movable" : null) @(infoToken == t.Id ? "selected" : null) @(IsCurrent(t) ? "current" : null) @(t.Health is { } hl ? $"health-{hl.ToString().ToLowerInvariant()}" : null)"
+                        <div class="rf-vtt-token @(t.Hidden ? "hidden-token" : null) @(t.Layer == TokenLayer.Below ? "below" : null) @(t.CanMove ? "movable" : null) @(infoToken == t.Id ? "selected" : null) @(IsCurrent(t) ? "current" : null) @(t.Kind == TokenKind.Prop ? $"prop state-{t.PropState.ToString().ToLowerInvariant()}" : null) @(t.Health is { } hl ? $"health-{hl.ToString().ToLowerInvariant()}" : null)"
                              style="left: @(N(cx - side / 2.0))px; top: @(N(cy - side / 2.0))px; width: @(side)px; height: @(side)px; --rf-token: @t.Color;"
                              data-token="@t.Id" data-movable="@(t.CanMove ? "1" : "0")" data-cx="@N(cx)" data-cy="@N(cy)" data-speed="@SpeedCells(t)" data-moved="@(moved.GetValueOrDefault(t.Id))" data-size="@t.Size" data-test="map-token" data-label="@t.Label">
+                            @if (t.Kind == TokenKind.Prop && t.PropType is { } propType)
+                            {
+                                <span class="rf-vtt-token-face" data-test="map-prop" data-state="@t.PropState">
+                                    <Icon Name="@PropIcon(propType, t.PropState)" />
+                                </span>
+                                @if (t.PropState is PropState.Locked or PropState.Barred)
+                                {
+                                    <span class="rf-vtt-prop-badge"><Icon Name="lock" /></span>
+                                }
+                            }
+                            else
+                            {
                             <span class="rf-vtt-token-face">
                                 @if (portrait is not null)
                                 {
@@ -537,6 +549,7 @@ else
                                     <span>@Initials(t.Label)</span>
                                 }
                             </span>
+                            }
                             @if (RunsTheTable && t.Hp is { } hp && t.MaxHp is { } max && max > 0)
                             {
                                 var share = Math.Clamp(hp / (double)max, 0, 1);
@@ -563,7 +576,7 @@ else
                             }
                             <span class="rf-vtt-tip" role="tooltip" data-test="map-token-tip">
                                 <strong>@t.Label</strong>
-                                <span>@UiText.TokenKindName(t.Kind, Lang)@(summary is null ? null : $" · {summary}")</span>
+                                <span>@(t.PropType is { } tipType ? $"{UiText.PropTypeName(tipType, Lang)} · {UiText.PropStateName(tipType, t.PropState, Lang)}" : UiText.TokenKindName(t.Kind, Lang))@(summary is null ? null : $" · {summary}")</span>
                                 @if (t.Conditions is { Count: > 0 } named)
                                 {
                                     <span>@string.Join(", ", named.Select(k => UiText.ConditionName(k, Lang)))</span>
@@ -631,7 +644,7 @@ else
         <section class="rf-vtt-toolbar" data-ui style="left: @(N(cx + side / 2.0 + 4 / zoom))px; top: @(N(cy - side / 2.0))px; --rf-token: @it.Color;" data-test="map-token-card"
                  @onkeydown:stopPropagation="true">
             <header class="rf-vtt-toolbar-head">
-                <span class="rf-vtt-toolbar-kind"><Icon Name="@KindIcon(it.Kind)" /></span>
+                <span class="rf-vtt-toolbar-kind"><Icon Name="@(it.PropType is { } headType ? PropIcon(headType, it.PropState) : KindIcon(it.Kind))" /></span>
                 <div class="rf-vtt-toolbar-title">
                     @if (toolTab == "rename")
                     {
@@ -663,12 +676,36 @@ else
                 </button>
                 <button type="button" class="rf-vtt-card-close rf-vtt-icon-button" @onclick="CloseToolbar" aria-label="@UiText.TokenClose(Lang)"><Icon Name="close" /></button>
             </header>
+            @if (it.PropType is { } usedType)
+            {
+                <div class="rf-vtt-toolbar-panel rf-vtt-prop-use">
+                    @if (RunsTheTable || it.PlayersInteract)
+                    {
+                        @if (PropRules.Toggle(it.PropState) is not null)
+                        {
+                            <button type="button" class="btn btn-sm btn-rf-orange" disabled="@busy" @onclick="() => InteractAsync(it)" data-test="map-prop-use">@UiText.PropAction(usedType, it.PropState, Lang)</button>
+                        }
+                        else
+                        {
+                            <span class="small" style="color: #f59e0b;" data-test="map-prop-stuck">@UiText.PropStuck(usedType, it.PropState, Lang)</span>
+                        }
+                    }
+                    @if (propMessage is not null)
+                    {
+                        <span class="small" style="color: #f59e0b;" data-test="map-prop-message">@propMessage</span>
+                    }
+                </div>
+            }
             <nav class="rf-vtt-toolbar-tabs">
-                @if (it.Hp is not null || (RunsTheTable && it.CharacterId is null))
+                @if (RunsTheTable && it.PropType is not null)
+                {
+                    @TabButton("state", "key", UiText.ToolState(Lang), "map-token-tab-state")
+                }
+                @if (it.PropType is null && (it.Hp is not null || (RunsTheTable && it.CharacterId is null)))
                 {
                     @TabButton("hp", "heart", UiText.ToolHp(Lang), "map-token-tab-hp")
                 }
-                @if (RunsTheTable && Table && it.Kind != TokenKind.Marker)
+                @if (RunsTheTable && Table && it.Kind is not (TokenKind.Marker or TokenKind.Prop))
                 {
                     <button type="button" class="rf-vtt-toolbar-tab @(InFight(it) ? "active" : null)" disabled="@busy" @onclick="() => ToggleFightAsync(it)" data-test="map-token-fight"
                             title="@(InFight(it) ? UiText.VttLeaveFight(Lang) : combat is null ? UiText.VttFightAlone(Lang) : UiText.VttJoinFight(Lang))">
@@ -691,6 +728,21 @@ else
             </nav>
             @switch (toolTab)
             {
+                case "state" when it.PropType is { } stateType:
+                    <div class="rf-vtt-toolbar-panel">
+                        <div class="rf-vtt-chips small">
+                            @foreach (var st in PropRules.States(stateType))
+                            {
+                                var state = st;
+                                <button type="button" class="rf-vtt-chip @(it.PropState == state ? "active" : null)" @onclick="() => SaveTokenAsync(it, it with { PropState = state })" data-test="map-prop-state" data-state="@state">@UiText.PropStateName(stateType, state, Lang)</button>
+                            }
+                        </div>
+                        <label class="rf-checkbox-wrapper small mb-0">
+                            <input type="checkbox" class="rf-checkbox" checked="@it.PlayersInteract" @onchange="() => SaveTokenAsync(it, it with { PlayersInteract = !it.PlayersInteract })" data-test="map-prop-players" />
+                            <span>@UiText.PropPlayers(Lang)</span>
+                        </label>
+                    </div>
+                    break;
                 case "hp":
                     <div class="rf-vtt-toolbar-panel" data-test="map-token-hp">
                         @if (character is not null)
@@ -834,8 +886,37 @@ else
 
     private void CloseToolbar()
     {
+        propMessage = null;
         infoToken = null;
         toolTab = null;
+    }
+
+    private static string PropIcon(PropType type, PropState state) => type switch
+    {
+        PropType.Chest => "box",
+        PropType.Window => "window",
+        PropType.Trap => "warning",
+        PropType.Lever => state == PropState.Open ? "toggle-on" : "toggle-off",
+        _ => state is PropState.Open or PropState.Ajar or PropState.Broken ? "door-open" : "door-closed"
+    };
+
+    private string? propMessage;
+
+    //	Opens or closes an object; a locked one says so
+    private async Task InteractAsync(MapTokenDto t)
+    {
+        if (map is null)
+        {
+            return;
+        }
+        busy = true;
+        var (changed, stuck) = await Campaigns.InteractAsync(CampaignId, map.Id, t.Id);
+        busy = false;
+        propMessage = stuck && t.PropType is { } type ? UiText.PropStuck(type, t.PropState, Lang) : changed is null ? UiText.MapSaveFailed(Lang) : null;
+        if (changed is not null)
+        {
+            Replace(t with { PropState = changed.PropState });
+        }
     }
 
     private static string KindIcon(TokenKind kind) => kind switch
@@ -849,6 +930,10 @@ else
     //	The line under the name: hit points and armour class of a character, of a monster (masters), its health (players)
     private string ToolbarLine(MapTokenDto it, CampaignCharacterDto? character, MonsterResponseDto? monster)
     {
+        if (it.PropType is { } propType)
+        {
+            return $"{UiText.PropTypeName(propType, Lang)} · {UiText.PropStateName(propType, it.PropState, Lang)}{(it.Hidden ? $" · {UiText.MapTokenHidden(Lang)}" : null)}";
+        }
         if (character is not null)
         {
             var ch = character.Character;
@@ -973,6 +1058,14 @@ else
                 <input class="rf-form-control" maxlength="100" placeholder="@UiText.MapMarkerHint(Lang)" @bind="markerLabel" data-test="map-marker-label" />
                 <input type="color" class="rf-vtt-color" @bind="markerColor" aria-label="@UiText.MapColor(Lang)" />
                 <button type="button" class="btn btn-sm btn-rf-outline" disabled="@string.IsNullOrWhiteSpace(markerLabel)" @onclick="AddMarkerAsync" data-test="map-add-marker"><Icon Name="plus" /></button>
+            </div>
+            <span class="rf-vtt-label">@UiText.PropAdd(Lang)</span>
+            <div class="rf-vtt-chips" data-test="map-add-props">
+                @foreach (var type in Enum.GetValues<PropType>())
+                {
+                    var propType = type;
+                    <button type="button" @onclick="() => AddPropAsync(propType)" data-test="map-add-prop" data-type="@propType"><Icon Name="@PropIcon(propType, PropState.Closed)" /> @UiText.PropTypeName(propType, Lang)</button>
+                }
             </div>
         </section>
     };
@@ -1371,7 +1464,7 @@ else
     // ===== The initiative panel =====
 
     //	Tokens a quick fight can start with: on the map, not markers nor props
-    private IEnumerable<MapTokenDto> FightableTokens => tokens.Where(t => t.Kind != TokenKind.Marker && t.Layer == TokenLayer.Tokens);
+    private IEnumerable<MapTokenDto> FightableTokens => tokens.Where(t => t.Kind is not (TokenKind.Marker or TokenKind.Prop) && t.Layer == TokenLayer.Tokens);
     private readonly HashSet<Guid> quickLeftOut = new();
     private Guid? addTokenId;
 
@@ -2246,6 +2339,24 @@ else
         });
     }
 
+    //	A door, a chest…: closed, under the other tokens, usable by the players (a trap or a secret passage hidden)
+    private Task AddPropAsync(PropType type)
+    {
+        var secret = type is PropType.Trap or PropType.Secret;
+        return AddAsync(new SaveTokenDto
+        {
+            Label = UiText.PropTypeName(type, Lang),
+            Kind = TokenKind.Prop,
+            PropType = type,
+            PropState = PropState.Closed,
+            PlayersInteract = !secret,
+            Hidden = secret,
+            Color = "#8b5e3c",
+            Size = 1,
+            Layer = TokenLayer.Below
+        });
+    }
+
     private async Task AddMarkerAsync()
     {
         if (string.IsNullOrWhiteSpace(markerLabel))
@@ -2273,7 +2384,8 @@ else
     private SaveTokenDto ToSave(MapTokenDto t) => new()
     {
         Label = t.Label, Color = t.Color, Kind = t.Kind, CharacterId = t.CharacterId, MonsterId = t.MonsterId, X = t.X, Y = t.Y, Size = t.Size, Hidden = t.Hidden, Layer = t.Layer,
-        ControlledBy = t.ControlledBy?.ToList() ?? new(), Hp = t.CombatantId is null ? t.Hp : null, MaxHp = t.CombatantId is null ? t.MaxHp : null
+        ControlledBy = t.ControlledBy?.ToList() ?? new(), Hp = t.CombatantId is null ? t.Hp : null, MaxHp = t.CombatantId is null ? t.MaxHp : null,
+        PropType = t.PropType, PropState = t.PropState, PlayersInteract = t.PlayersInteract
     };
 
     private async Task ResizeAsync(MapTokenDto t, int size)

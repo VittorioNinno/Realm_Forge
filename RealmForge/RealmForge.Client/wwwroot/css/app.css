@@ -11059,6 +11059,61 @@ textarea.rf-form-control {
     display: none;
 }
 
+/* Objects: square, the state in the colour (open green, ajar amber, locked or barred red, broken or empty grey) */
+.rf-vtt-token.prop .rf-vtt-token-face,
+.rf-vtt-token.prop.below .rf-vtt-token-face {
+    border-radius: 8px;
+    background-color: rgba(30, 22, 14, .92);
+    color: #e7d3b5;
+    box-shadow: 0 0 0 2px var(--rf-prop, #8b5e3c), 0 4px 12px rgba(0, 0, 0, .6);
+}
+
+    .rf-vtt-token.prop .rf-vtt-token-face svg {
+        width: 55%;
+        height: 55%;
+    }
+
+.rf-vtt-token.prop.state-open { --rf-prop: #22c55e; }
+.rf-vtt-token.prop.state-ajar { --rf-prop: #f59e0b; }
+.rf-vtt-token.prop.state-locked,
+.rf-vtt-token.prop.state-barred { --rf-prop: #ef4444; }
+.rf-vtt-token.prop.state-broken,
+.rf-vtt-token.prop.state-empty { --rf-prop: #6b7280; }
+
+.rf-vtt-token.prop.movable,
+.rf-vtt-token.prop {
+    cursor: pointer;
+}
+
+.rf-vtt-prop-badge {
+    position: absolute;
+    top: -4px;
+    right: -4px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background-color: #ef4444;
+    color: #ffffff;
+    transform: scale(calc(1 / var(--rf-zoom, 1)));
+    transform-origin: 100% 0;
+}
+
+    .rf-vtt-prop-badge svg {
+        width: 10px;
+        height: 10px;
+    }
+
+.rf-vtt-prop-use {
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+    border-top: 0;
+    padding-top: 0;
+}
+
 /* The name under a token, the same size at any zoom */
 .rf-vtt-token-name {
     position: absolute;
