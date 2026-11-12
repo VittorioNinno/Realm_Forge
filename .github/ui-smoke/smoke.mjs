@@ -1467,6 +1467,16 @@ try {
   await goblin.click();
   await page.locator('[data-test=map-token-card]').waitFor({ timeout: 15000 });
   const goblinCard = (await page.locator('[data-test=map-token-card-stats]').innerText()).replace(/\s+/g, ' ').trim();
+  // The arrows move the token whose toolbar is open, one cell at a time
+  const goblinTop = async () => goblin.evaluate((el) => el.style.top);
+  const keyMoves = [await goblinTop()];
+  await page.keyboard.press('ArrowDown');
+  await page.waitForTimeout(600);
+  keyMoves.push(await goblinTop());
+  await page.keyboard.press('ArrowUp');
+  await page.waitForTimeout(600);
+  keyMoves.push(await goblinTop());
+  const goblinTabs = await page.locator('[data-test=map-token-card] .rf-vtt-toolbar-tab').count();
   await shot(page, 'campaign-map-card', '[data-test=map-stage]');
   await page.locator('.rf-vtt-card-close').click();
   // The cells of the overlay are squares (70 × 70 on the picture), then hexagons
@@ -1500,13 +1510,15 @@ try {
     tokens: await page.locator('[data-test=map-token]').count(),
     heroLeft: await hero.evaluate((el) => el.style.left),
     shown: await page.locator('[data-test=map-shown]').isChecked(),
-    goblinTip, tipVisible, goblinCard, cellBox, hexBox, calibrated
+    goblinTip, tipVisible, goblinCard, cellBox, hexBox, calibrated, keyMoves: keyMoves.join(','), goblinTabs,
+    names: await page.locator('[data-test=map-token-name]').count()
   };
   await shot(page, 'campaign-map', 'main');
   results.push(`INFO map: ${JSON.stringify(mapUi)}`);
   if (mapUi.name !== 'cripta' || mapUi.tokens !== 2 || mapUi.heroLeft !== '140px' || !mapUi.shown || !/^Goblin Mostro · PF \d+ · CA \d+ · GS/.test(mapUi.goblinTip)
     || !mapUi.tipVisible || !/CA \d+/.test(mapUi.goblinCard) || mapUi.cellBox !== '70x70' || mapUi.hexBox !== '70x121.24'
-    || mapUi.calibrated.join(',') !== '140|0|70,70|0|0') throw new Error(`unexpected map: ${JSON.stringify(mapUi)}`);
+    || mapUi.calibrated.join(',') !== '140|0|70,70|0|0' || mapUi.keyMoves !== '0px,70px,0px' || mapUi.goblinTabs !== 6 || mapUi.names !== 2
+    || !/^7\/7 · CA \d+ · GS/.test(mapUi.goblinCard)) throw new Error(`unexpected map: ${JSON.stringify(mapUi)}`);
   // A copy of the map with its tokens, then deleted
   await page.locator('[data-test=map-duplicate]').click();
   await page.locator('[data-test=map-select]', { hasText: 'cripta (copia)' }).waitFor({ timeout: 15000 });
@@ -1638,9 +1650,12 @@ try {
   const goblin1 = page.locator('[data-test=vtt] [data-test=map-token][data-label="Goblin 1"]');
   await goblin1.click();
   await page.locator('[data-test=map-token-card]').waitFor({ timeout: 15000 });
+  await page.locator('[data-test=map-token-conditions-tab]').click();
   await page.locator('[data-test=map-token-condition][data-key=prone]').click();
+  await page.locator('[data-test=map-token-tab-hp]').click();
   await page.locator('[data-test=map-token-hp-input]').fill('2');
   await page.locator('[data-test=map-token-hp-input]').press('Tab');
+  await page.locator('[data-test=map-token-tab-rolls]').click();
   await page.locator('[data-test=map-token-roll]').first().waitFor({ timeout: 30000 });
   await page.locator('[data-test=map-token-roll]').first().click();
   combatUi.rollTray = await page.locator('[data-test=sheet-last-roll]').waitFor({ timeout: 8000 }).then(() => 1, () => 0);

@@ -63,9 +63,15 @@ namespace RealmForge.Api.Controllers
 		}
 
 		//	GET: api/campaigns/{campaignId}/maps/{mapId}/state — what the table polls: the grid and the tokens
+		//	With after: the answer waits (up to 20 seconds) for something to change after that moment, so that the table
+		//	sees a move as soon as it happens instead of at the next poll
 		[HttpGet("{mapId:guid}/state")]
-		public async Task<ActionResult<MapStateDto>> GetState(Guid campaignId, Guid mapId)
+		public async Task<ActionResult<MapStateDto>> GetState(Guid campaignId, Guid mapId, [FromQuery] DateTimeOffset? after)
 		{
+			if (after is { } since)
+			{
+				await WaitForChangeAsync(campaignId, mapId, since, HttpContext.RequestAborted);
+			}
 			var (map, role) = await LoadAsync(campaignId, mapId, withTokens: true);
 			if (map is null || role is null)
 			{
@@ -163,7 +169,8 @@ namespace RealmForge.Api.Controllers
 				copy.Tokens.Add(new CampaignToken
 				{
 					Label = t.Label, Color = t.Color, Kind = t.Kind, CharacterId = t.CharacterId, MonsterId = t.MonsterId,
-					X = t.X, Y = t.Y, Size = t.Size, Hidden = t.Hidden, Layer = t.Layer
+					X = t.X, Y = t.Y, Size = t.Size, Hidden = t.Hidden, Layer = t.Layer,
+					ControlledBy = t.ControlledBy.ToList(), Hp = t.Hp, MaxHp = t.MaxHp, Conditions = t.Conditions.ToList()
 				});
 			}
 			foreach (var shape in map.Shapes)
@@ -285,7 +292,7 @@ namespace RealmForge.Api.Controllers
 			{
 				return NotFound();
 			}
-			if (!MapRules.CanMove(role.Value, await OwnsAsync(token.CharacterId), map.Shown, token.Hidden))
+			if (!MapRules.CanMove(role.Value, await ControlsAsync(token), map.Shown, token.Hidden))
 			{
 				return Forbid();
 			}
@@ -665,6 +672,10 @@ namespace RealmForge.Api.Controllers
 			else
 			{
 				token.Conditions = conditions;
+				if (dto.Hp is { } tokenHp && token.MaxHp is { } tokenMax)
+				{
+					token.Hp = Math.Clamp(tokenHp, 0, tokenMax + 1000);
+				}
 			}
 			token.UpdatedAt = map.UpdatedAt = DateTimeOffset.UtcNow;
 			await _context.SaveChangesAsync();
@@ -709,13 +720,24 @@ namespace RealmForge.Api.Controllers
 				.OrderBy(t => t.Kind).ThenBy(t => t.Label)
 				.Select(t =>
 				{
-					var dto = ToDto(t, MapRules.CanMove(role, t.CharacterId is { } id && mine.Contains(id), map.Shown, t.Hidden)
-						&& (runs || t.Layer == TokenLayer.Tokens));
+					var controls = (t.CharacterId is { } id && mine.Contains(id)) || t.ControlledBy.Contains(UserId);
+					var dto = ToDto(t, MapRules.CanMove(role, controls, map.Shown, t.Hidden) && (runs || t.Layer == TokenLayer.Tokens));
+					if (runs)
+					{
+						dto = dto with { ControlledBy = t.ControlledBy.ToList() };
+					}
 					var combatant = t.CombatantId is { } cid ? fight?.Combatants.FirstOrDefault(c => c.Id == cid) : null;
 					var conditions = t.CharacterId is { } characterId && sheetConditions.TryGetValue(characterId, out var fromSheet) ? fromSheet
 						: combatant is not null ? combatant.Conditions
 						: t.Conditions;
 					dto = dto with { Conditions = conditions.ToList() };
+					if (combatant is null && t.CharacterId is null && t.MaxHp is { } tokenMax && tokenMax > 0)
+					{
+						var tokenHp = t.Hp ?? tokenMax;
+						dto = runs
+							? dto with { Hp = tokenHp, MaxHp = tokenMax }
+							: dto with { Health = EncounterRules.HealthOf(tokenHp, tokenMax) };
+					}
 					if (combatant is not null && combatant.Kind != CombatantKind.Character)
 					{
 						dto = runs
@@ -767,6 +789,48 @@ namespace RealmForge.Api.Controllers
 			fight.Encounter.Version++;
 			fight.Encounter.UpdatedAt = DateTimeOffset.UtcNow;
 		}
+
+		private async Task WaitForChangeAsync(Guid campaignId, Guid mapId, DateTimeOffset since, CancellationToken aborted)
+		{
+			var until = DateTimeOffset.UtcNow.AddSeconds(20);
+			try
+			{
+				while (DateTimeOffset.UtcNow < until)
+				{
+					var stamp = await _context.CampaignMaps.AsNoTracking()
+						.Where(m => m.Id == mapId && m.CampaignId == campaignId)
+						.Select(m => new { m.UpdatedAt, m.EncounterId })
+						.FirstOrDefaultAsync(aborted);
+					if (stamp is null)
+					{
+						return;
+					}
+					var latest = stamp.UpdatedAt;
+					if (stamp.EncounterId is { } encounterId)
+					{
+						var fought = await _context.CampaignEncounters.AsNoTracking().Where(e => e.Id == encounterId).Select(e => (DateTimeOffset?)e.UpdatedAt).FirstOrDefaultAsync(aborted);
+						if (fought is { } at && at > latest)
+						{
+							latest = at;
+						}
+					}
+					//	The database keeps microseconds
+					if (latest.UtcTicks / 10 != since.UtcTicks / 10)
+					{
+						return;
+					}
+					await Task.Delay(400, aborted);
+				}
+			}
+			catch (OperationCanceledException)
+			{
+				//	The table was closed
+			}
+		}
+
+		//	Whether the account moves this token besides being a master: its character, or assigned by a master
+		private async Task<bool> ControlsAsync(CampaignToken token) =>
+			token.ControlledBy.Contains(UserId) || await OwnsAsync(token.CharacterId);
 
 		private async Task<bool> OwnsAsync(Guid? characterId) =>
 			characterId is { } id && await _context.Characters.AnyAsync(c => c.Id == id && c.OwnerId == UserId);
@@ -859,6 +923,14 @@ namespace RealmForge.Api.Controllers
 			{
 				return "The colour must be #rrggbb.";
 			}
+			if (dto.ControlledBy.Count > 0)
+			{
+				var members = await _context.CampaignMembers.AsNoTracking().Where(m => m.CampaignId == campaignId).Select(m => m.UserId).ToListAsync();
+				if (dto.ControlledBy.Any(id => !members.Contains(id)))
+				{
+					return "Tokens can be assigned only to members of the campaign.";
+				}
+			}
 			if (dto.CharacterId is { } characterId
 				&& !await _context.CampaignCharacters.AnyAsync(cc => cc.CampaignId == campaignId && cc.CharacterId == characterId))
 			{
@@ -879,6 +951,9 @@ namespace RealmForge.Api.Controllers
 			token.Size = dto.Size;
 			token.Hidden = dto.Hidden;
 			token.Layer = dto.Layer;
+			token.ControlledBy = dto.ControlledBy.Distinct().Take(MapRules.MaxControllers).ToList();
+			token.MaxHp = dto.MaxHp is { } max && max > 0 ? Math.Min(max, 100_000) : null;
+			token.Hp = token.MaxHp is null ? null : Math.Clamp(dto.Hp ?? token.MaxHp.Value, 0, token.MaxHp.Value + 1000);
 			token.UpdatedAt = DateTimeOffset.UtcNow;
 			token.Color = dto.Color ?? PlayerColors.Master;
 			if (dto.CharacterId is { } characterId && dto.Color is null)

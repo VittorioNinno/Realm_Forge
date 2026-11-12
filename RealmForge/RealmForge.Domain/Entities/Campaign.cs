@@ -123,6 +123,13 @@ namespace RealmForge.Domain.Entities
 		//	The combatant of the map's encounter this token is; the conditions of a token outside any fight
 		public Guid? CombatantId { get; set; }
 		public List<string> Conditions { get; set; } = new();
+
+		//	The players (user ids) a master lets move this token, besides the owner of its character
+		public List<string> ControlledBy { get; set; } = new();
+
+		//	Hit points of a token outside a fight (a monster placed by hand); in a fight its combatant's count
+		public int? Hp { get; set; }
+		public int? MaxHp { get; set; }
 		public DateTimeOffset UpdatedAt { get; set; } = DateTimeOffset.UtcNow;
 	}
 

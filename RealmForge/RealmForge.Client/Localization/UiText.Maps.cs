@@ -138,5 +138,26 @@ namespace RealmForge.Client.Localization
 		public static string RollDamage(string weapon, LanguageCode lang) => T(lang, $"{weapon}: danni", $"{weapon}: damage");
 		public static string RollSave(string ability, LanguageCode lang) => T(lang, $"TS {ability}", $"{ability} save");
 		public static string RollCheck(string ability, LanguageCode lang) => T(lang, $"Prova {ability}", $"{ability} check");
+		public static string TokenRename(LanguageCode lang) => T(lang, "Rinomina", "Rename");
+		public static string ToolHp(LanguageCode lang) => T(lang, "PF", "HP");
+		public static string ToolHpMax(LanguageCode lang) => T(lang, "PF massimi", "Max HP");
+		public static string ToolHpOnSheet(LanguageCode lang) => T(lang, "si cambiano dalla scheda", "changed from the sheet");
+		public static string ToolHide(LanguageCode lang) => T(lang, "Nascondi", "Hide");
+		public static string ToolRing(LanguageCode lang) => T(lang, "Anello", "Ring");
+		public static string ToolSize(LanguageCode lang) => T(lang, "Taglia", "Size");
+		public static string ToolMore(LanguageCode lang) => T(lang, "Altro", "More");
+		public static string ToolNoConditions(LanguageCode lang) => T(lang, "Nessuna condizione.", "No conditions.");
+		public static string ToolSizeName(int cells, LanguageCode lang) => cells switch
+		{
+			1 => T(lang, "Media (1)", "Medium (1)"),
+			2 => T(lang, "Grande (2)", "Large (2)"),
+			3 => T(lang, "Enorme (3)", "Huge (3)"),
+			4 => T(lang, "Mastodontica (4)", "Gargantuan (4)"),
+			_ => $"{cells}×{cells}"
+		};
+		public static string ToolControlledBy(LanguageCode lang) => T(lang, "Possono muoverlo anche", "Can also be moved by");
+		public static string ToolDuplicate(LanguageCode lang) => T(lang, "Duplica", "Duplicate");
+		public static string ToolMoveHint(LanguageCode lang) => T(lang,
+			"Trascinalo sulla mappa, oppure usa le frecce della tastiera.", "Drag it on the map, or use the arrow keys.");
 	}
 }
