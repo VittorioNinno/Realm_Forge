@@ -11087,8 +11087,8 @@ textarea.rf-form-control {
     display: flex;
     flex-direction: column;
     width: max-content;
-    min-width: 280px;
-    max-width: 400px;
+    min-width: 320px;
+    max-width: 520px;
     border-radius: 8px;
     border: 1px solid var(--rf-token, var(--rf-orange-primary));
     background-color: rgba(18, 18, 18, .97);
@@ -11177,7 +11177,7 @@ textarea.rf-form-control {
 
 .rf-vtt-toolbar-tab {
     display: flex;
-    flex: 1;
+    flex: 1 0 auto;
     flex-direction: column;
     align-items: center;
     gap: 0;
@@ -11192,6 +11192,11 @@ textarea.rf-form-control {
     letter-spacing: .04em;
     text-transform: uppercase;
 }
+
+    .rf-vtt-toolbar-tab span {
+        padding: 0 4px;
+        white-space: nowrap;
+    }
 
     .rf-vtt-toolbar-tab:last-child {
         border-right: 0;
