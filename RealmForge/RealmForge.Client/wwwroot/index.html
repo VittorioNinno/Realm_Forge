@@ -353,6 +353,8 @@
                 };
                 st.down = (e) => {
                     if (e.button !== 0 || !board()) return;
+                    // The token's toolbar and the other controls drawn on the map work as a normal page
+                    if (e.target.closest('[data-ui]')) return;
                     const token = e.target.closest('[data-token]');
                     if (e.altKey) {
                         const p = toMap(e);
@@ -534,6 +536,15 @@
                 window.addEventListener('pointermove', st.move);
                 window.addEventListener('pointerup', st.up);
                 stage.addEventListener('wheel', st.wheel, { passive: false });
+                // Arrows and Esc for the token whose toolbar is open (not while typing)
+                st.key = (e) => {
+                    if (!stage.isConnected || !['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Escape'].includes(e.key)) return;
+                    if (e.target.closest && e.target.closest('input, textarea, select, [contenteditable]')) return;
+                    if (!board()?.querySelector('.rf-vtt-toolbar')) return;
+                    e.preventDefault();
+                    dotnet.invokeMethodAsync('KeyPressed', e.key);
+                };
+                document.addEventListener('keydown', st.key);
                 // A bigger or smaller window: the app may fit the map again
                 let resizeTimer = 0;
                 st.observer = new ResizeObserver(() => {
@@ -552,6 +563,7 @@
                 window.removeEventListener('pointermove', st.move);
                 window.removeEventListener('pointerup', st.up);
                 stage.removeEventListener('wheel', st.wheel);
+                document.removeEventListener('keydown', st.key);
                 st.observer?.disconnect();
                 boards.delete(stage);
             }

@@ -625,6 +625,7 @@ namespace RealmForge.Infrastructure.Persistence
 				entity.HasKey(e => e.Id);
 				entity.Property(e => e.Label).IsRequired().HasMaxLength(100);
 				entity.Property(e => e.Color).IsRequired().HasMaxLength(9);
+				entity.Property(e => e.ControlledBy).HasDefaultValueSql("'{}'");
 				entity.HasIndex(e => e.MapId);
 			});
 

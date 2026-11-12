@@ -212,6 +212,30 @@ namespace RealmForge.Client.Services
 
 		public Task<MapStateDto?> GetMapStateAsync(Guid id, Guid mapId) => GetAsync<MapStateDto>($"api/campaigns/{id}/maps/{mapId}/state");
 
+		//	The state of a map as soon as it changes after a moment (the API waits up to 20 seconds). Reached false: the
+		//	API did not answer (try again a bit later); a null state that was reached: the map is gone or hidden.
+		public async Task<(MapStateDto? State, bool Reached)> WaitMapStateAsync(Guid id, Guid mapId, DateTimeOffset after, CancellationToken cancel)
+		{
+			try
+			{
+				var response = await _http.GetAsync($"api/campaigns/{id}/maps/{mapId}/state?after={Uri.EscapeDataString(after.ToString("O"))}", cancel);
+				if (response.StatusCode is System.Net.HttpStatusCode.NotFound or System.Net.HttpStatusCode.Forbidden)
+				{
+					return (null, true);
+				}
+				return response.IsSuccessStatusCode ? (await response.Content.ReadFromJsonAsync<MapStateDto>(cancel), true) : (null, false);
+			}
+			catch (OperationCanceledException)
+			{
+				throw;
+			}
+			catch (Exception ex)
+			{
+				_logger.LogWarning(ex, "Waiting for map {MapId} failed", mapId);
+				return (null, false);
+			}
+		}
+
 		public async Task<CampaignMapSummaryDto?> CreateMapAsync(Guid id, SaveMapDto map)
 		{
 			try

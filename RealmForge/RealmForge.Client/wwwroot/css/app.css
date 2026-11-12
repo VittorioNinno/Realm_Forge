@@ -11059,6 +11059,190 @@ textarea.rf-form-control {
     display: none;
 }
 
+/* The name under a token, the same size at any zoom */
+.rf-vtt-token-name {
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    max-width: 160px;
+    overflow: hidden;
+    padding: 0 8px;
+    border-radius: 8px;
+    background-color: rgba(10, 10, 10, .7);
+    color: #ffffff;
+    font-size: .7rem;
+    font-weight: 700;
+    line-height: 18px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    pointer-events: none;
+    transform: translateX(-50%) scale(calc(1 / var(--rf-zoom, 1)));
+    transform-origin: 50% 0;
+}
+
+/* Clicking a token: its toolbar next to it (name, hit points, conditions, then the actions), the same size at any zoom */
+.rf-vtt-toolbar {
+    position: absolute;
+    z-index: 35;
+    display: flex;
+    flex-direction: column;
+    width: max-content;
+    min-width: 280px;
+    max-width: 400px;
+    border-radius: 8px;
+    border: 1px solid var(--rf-token, var(--rf-orange-primary));
+    background-color: rgba(18, 18, 18, .97);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, .6);
+    color: var(--rf-text-primary);
+    transform: scale(calc(1 / var(--rf-zoom, 1)));
+    transform-origin: 0 0;
+    cursor: default;
+}
+
+.rf-vtt-toolbar-head {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px;
+}
+
+.rf-vtt-toolbar-kind {
+    display: inline-flex;
+    flex: none;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    border-radius: 8px;
+    border: 1px solid var(--rf-border-light);
+    color: var(--rf-token, var(--rf-orange-primary));
+}
+
+.rf-vtt-toolbar-title {
+    display: flex;
+    flex: 1;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0 8px;
+    min-width: 0;
+}
+
+    .rf-vtt-toolbar-title strong {
+        overflow-wrap: anywhere;
+    }
+
+.rf-vtt-toolbar-sub {
+    flex-basis: 100%;
+    font-size: .75rem;
+    color: var(--rf-text-muted);
+}
+
+.rf-vtt-toolbar-conditions {
+    display: inline-flex;
+    flex: none;
+    align-items: center;
+    gap: 8px;
+    max-width: 140px;
+    padding: 0;
+    border: 0;
+    background: none;
+    color: #facc15;
+    font-size: .7rem;
+    font-weight: 800;
+    letter-spacing: .04em;
+    text-align: right;
+    text-transform: uppercase;
+}
+
+.rf-vtt-icon-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    padding: 0;
+    border: 0;
+    background: none;
+    color: var(--rf-text-muted);
+}
+
+    .rf-vtt-icon-button:hover {
+        color: var(--rf-text-primary);
+    }
+
+.rf-vtt-toolbar-tabs {
+    display: flex;
+    border-top: 1px solid var(--rf-border-subtle);
+}
+
+.rf-vtt-toolbar-tab {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    align-items: center;
+    gap: 0;
+    min-width: 48px;
+    padding: 8px 4px;
+    border: 0;
+    border-right: 1px solid var(--rf-border-subtle);
+    background: none;
+    color: var(--rf-text-secondary);
+    font-size: .65rem;
+    font-weight: 800;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+}
+
+    .rf-vtt-toolbar-tab:last-child {
+        border-right: 0;
+    }
+
+    .rf-vtt-toolbar-tab:hover,
+    .rf-vtt-toolbar-tab.active {
+        background-color: rgba(255, 140, 0, .12);
+        color: var(--rf-orange-primary);
+    }
+
+.rf-vtt-toolbar-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    max-height: 320px;
+    overflow-y: auto;
+    padding: 8px;
+    border-top: 1px solid var(--rf-border-subtle);
+}
+
+.rf-vtt-hp-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+}
+
+.rf-vtt-swatches {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.rf-vtt-swatch {
+    width: 24px;
+    height: 24px;
+    padding: 0;
+    border-radius: 50%;
+    border: 2px solid transparent;
+}
+
+    .rf-vtt-swatch.active {
+        border-color: #ffffff;
+        box-shadow: 0 0 0 2px var(--rf-orange-primary);
+    }
+
+.rf-vtt-rename {
+    height: 32px;
+}
+
 /* Clicking a token: its card in the corner of the view */
 .rf-vtt-card {
     position: absolute;
