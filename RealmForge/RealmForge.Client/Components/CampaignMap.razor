@@ -1581,6 +1581,7 @@ else
     private async Task CombatCallAsync(Func<Task<CampaignResult>> call)
     {
         busy = true;
+        localEdits++;
         var result = await call();
         busy = false;
         message = result.Ok ? null : UiText.MapSaveFailed(Lang);
