@@ -30,7 +30,14 @@ namespace RealmForge.Shared.DTOs
 		//	Hit points of a monster in the fight, for the masters; its health, for the players
 		int? Hp = null,
 		int? MaxHp = null,
-		CombatantHealth? Health = null);
+		CombatantHealth? Health = null,
+
+		//	The players a master lets move it (sent to the masters only)
+		List<string>? ControlledBy = null,
+		PropType? PropType = null,
+		PropState PropState = PropState.Closed,
+		bool PlayersInteract = false,
+		Guid? ImageId = null);
 
 	///	<summary>
 	///	The fight on a map: the encounter, the round, whose turn it is and the initiative order (what the players see of it).
@@ -42,6 +49,17 @@ namespace RealmForge.Shared.DTOs
 	public class StartCombatDto
 	{
 		public Guid EncounterId { get; set; }
+	}
+
+	public class QuickCombatDto
+	{
+		public List<Guid> TokenIds { get; set; } = new();
+	}
+
+	public class SetInitiativeDto
+	{
+		public Guid CombatantId { get; set; }
+		public int Initiative { get; set; }
 	}
 
 	public class TokenStateDto
@@ -146,6 +164,13 @@ namespace RealmForge.Shared.DTOs
 		public int Size { get; set; } = 1;
 		public bool Hidden { get; set; }
 		public TokenLayer Layer { get; set; } = TokenLayer.Tokens;
+		public List<string> ControlledBy { get; set; } = new();
+		public int? Hp { get; set; }
+		public int? MaxHp { get; set; }
+		public PropType? PropType { get; set; }
+		public PropState PropState { get; set; } = PropState.Closed;
+		public bool PlayersInteract { get; set; }
+		public Guid? ImageId { get; set; }
 	}
 
 	public class MoveTokenDto

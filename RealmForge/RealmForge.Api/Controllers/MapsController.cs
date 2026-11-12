@@ -63,9 +63,15 @@ namespace RealmForge.Api.Controllers
 		}
 
 		//	GET: api/campaigns/{campaignId}/maps/{mapId}/state — what the table polls: the grid and the tokens
+		//	With after: the answer waits (up to 20 seconds) for something to change after that moment, so that the table
+		//	sees a move as soon as it happens instead of at the next poll
 		[HttpGet("{mapId:guid}/state")]
-		public async Task<ActionResult<MapStateDto>> GetState(Guid campaignId, Guid mapId)
+		public async Task<ActionResult<MapStateDto>> GetState(Guid campaignId, Guid mapId, [FromQuery] DateTimeOffset? after)
 		{
+			if (after is { } since)
+			{
+				await WaitForChangeAsync(campaignId, mapId, since, HttpContext.RequestAborted);
+			}
 			var (map, role) = await LoadAsync(campaignId, mapId, withTokens: true);
 			if (map is null || role is null)
 			{
@@ -163,7 +169,9 @@ namespace RealmForge.Api.Controllers
 				copy.Tokens.Add(new CampaignToken
 				{
 					Label = t.Label, Color = t.Color, Kind = t.Kind, CharacterId = t.CharacterId, MonsterId = t.MonsterId,
-					X = t.X, Y = t.Y, Size = t.Size, Hidden = t.Hidden, Layer = t.Layer
+					X = t.X, Y = t.Y, Size = t.Size, Hidden = t.Hidden, Layer = t.Layer,
+					ControlledBy = t.ControlledBy.ToList(), Hp = t.Hp, MaxHp = t.MaxHp, Conditions = t.Conditions.ToList(),
+					PropType = t.PropType, PropState = t.PropState, PlayersInteract = t.PlayersInteract, ImageId = t.ImageId
 				});
 			}
 			foreach (var shape in map.Shapes)
@@ -275,6 +283,32 @@ namespace RealmForge.Api.Controllers
 			return NoContent();
 		}
 
+		//	POST: api/campaigns/{campaignId}/maps/{mapId}/tokens/{tokenId}/interact — a player opens or closes an object the
+		//	masters let them use (a locked or barred one stays as it is: 409); a master toggles any
+		[HttpPost("{mapId:guid}/tokens/{tokenId:guid}/interact")]
+		public async Task<ActionResult<MapTokenDto>> Interact(Guid campaignId, Guid mapId, Guid tokenId)
+		{
+			var (map, role) = await LoadAsync(campaignId, mapId, withTokens: true);
+			var token = map?.Tokens.FirstOrDefault(t => t.Id == tokenId);
+			var runs = role is { } r && CampaignRules.RunsTheTable(r);
+			if (map is null || role is null || token is null || token.Kind != TokenKind.Prop || (!runs && token.Hidden))
+			{
+				return NotFound();
+			}
+			if (!runs && (!token.PlayersInteract || !map.Shown || (map.FogEnabled && UnderFog(map, token))))
+			{
+				return Forbid();
+			}
+			if (PropRules.Toggle(token.PropState) is not { } next)
+			{
+				return Problem(statusCode: StatusCodes.Status409Conflict, title: "It does not move.", detail: token.PropState.ToString());
+			}
+			token.PropState = next;
+			token.UpdatedAt = map.UpdatedAt = DateTimeOffset.UtcNow;
+			await _context.SaveChangesAsync();
+			return Ok(ToDto(token, runs));
+		}
+
 		//	POST: api/campaigns/{campaignId}/maps/{mapId}/tokens/{tokenId}/move — a master any token, a player their own
 		[HttpPost("{mapId:guid}/tokens/{tokenId:guid}/move")]
 		public async Task<IActionResult> MoveToken(Guid campaignId, Guid mapId, Guid tokenId, [FromBody] MoveTokenDto dto)
@@ -285,7 +319,7 @@ namespace RealmForge.Api.Controllers
 			{
 				return NotFound();
 			}
-			if (!MapRules.CanMove(role.Value, await OwnsAsync(token.CharacterId), map.Shown, token.Hidden))
+			if (!MapRules.CanMove(role.Value, await ControlsAsync(token), map.Shown, token.Hidden))
 			{
 				return Forbid();
 			}
@@ -569,6 +603,189 @@ namespace RealmForge.Api.Controllers
 			return NoContent();
 		}
 
+		//	POST: api/campaigns/{campaignId}/maps/{mapId}/combat/quick — a fight with tokens on the map, without a prepared
+		//	encounter: an encounter is made for it, the initiative of the monsters is rolled, the players roll their own
+		[HttpPost("{mapId:guid}/combat/quick")]
+		public async Task<IActionResult> QuickCombat(Guid campaignId, Guid mapId, [FromBody] QuickCombatDto dto)
+		{
+			var (map, role) = await LoadAsync(campaignId, mapId, withTokens: true);
+			if (map is null || role is null)
+			{
+				return NotFound();
+			}
+			if (!CampaignRules.RunsTheTable(role.Value))
+			{
+				return Forbid();
+			}
+			var chosen = map.Tokens.Where(t => dto.TokenIds.Contains(t.Id)).ToList();
+			if (chosen.Count == 0 || await FightAsync(map) is not null)
+			{
+				return Problem(statusCode: StatusCodes.Status400BadRequest, title: "Choose tokens of this map, with no fight already under way.");
+			}
+			var combatants = new List<EncounterCombatant>();
+			foreach (var token in chosen)
+			{
+				combatants.Add(await CombatantOfAsync(token));
+			}
+			var encounter = new CampaignEncounter
+			{
+				CampaignId = campaignId,
+				Name = map.Name.Length > 100 ? map.Name[..100] : map.Name,
+				Status = EncounterStatus.Running,
+				Shown = true,
+				Round = 1,
+				CreatedById = UserId
+			};
+			encounter.CurrentId = EncounterRules.Order(combatants).FirstOrDefault()?.Id;
+			encounter.Combatants = System.Text.Json.JsonSerializer.Serialize(combatants, new System.Text.Json.JsonSerializerOptions(System.Text.Json.JsonSerializerDefaults.Web));
+			_context.CampaignEncounters.Add(encounter);
+			map.EncounterId = encounter.Id;
+			map.UpdatedAt = DateTimeOffset.UtcNow;
+			await _context.SaveChangesAsync();
+			return NoContent();
+		}
+
+		//	POST: api/campaigns/{campaignId}/maps/{mapId}/combat/tokens/{tokenId} — a token joins the fight
+		[HttpPost("{mapId:guid}/combat/tokens/{tokenId:guid}")]
+		public async Task<IActionResult> JoinFight(Guid campaignId, Guid mapId, Guid tokenId)
+		{
+			var (map, role) = await LoadAsync(campaignId, mapId, withTokens: true);
+			var token = map?.Tokens.FirstOrDefault(t => t.Id == tokenId);
+			if (map is null || role is null || token is null)
+			{
+				return NotFound();
+			}
+			if (!CampaignRules.RunsTheTable(role.Value))
+			{
+				return Forbid();
+			}
+			if (await FightAsync(map, track: true) is not { } fight)
+			{
+				return NotFound();
+			}
+			if (token.CombatantId is { } existing && fight.Combatants.Any(c => c.Id == existing))
+			{
+				return NoContent();
+			}
+			var combatant = await CombatantOfAsync(token);
+			fight.Combatants.Add(combatant);
+			fight.Encounter.CurrentId ??= combatant.Id;
+			Save(fight, fight.Combatants);
+			map.UpdatedAt = DateTimeOffset.UtcNow;
+			await _context.SaveChangesAsync();
+			return NoContent();
+		}
+
+		//	DELETE: api/campaigns/{campaignId}/maps/{mapId}/combat/tokens/{tokenId} — a token leaves the fight (it keeps its
+		//	hit points and conditions)
+		[HttpDelete("{mapId:guid}/combat/tokens/{tokenId:guid}")]
+		public async Task<IActionResult> LeaveFight(Guid campaignId, Guid mapId, Guid tokenId)
+		{
+			var (map, role) = await LoadAsync(campaignId, mapId, withTokens: true);
+			var token = map?.Tokens.FirstOrDefault(t => t.Id == tokenId);
+			if (map is null || role is null || token is null)
+			{
+				return NotFound();
+			}
+			if (!CampaignRules.RunsTheTable(role.Value))
+			{
+				return Forbid();
+			}
+			if (await FightAsync(map, track: true) is { } fight && token.CombatantId is { } id && fight.Combatants.FirstOrDefault(c => c.Id == id) is { } combatant)
+			{
+				if (fight.Encounter.CurrentId == id)
+				{
+					var order = EncounterRules.Order(fight.Combatants);
+					var next = order.SkipWhile(c => c.Id != id).Skip(1).FirstOrDefault() ?? order.FirstOrDefault(c => c.Id != id);
+					fight.Encounter.CurrentId = next?.Id;
+				}
+				fight.Combatants.Remove(combatant);
+				KeepState(token, combatant);
+				Save(fight, fight.Combatants);
+			}
+			token.CombatantId = null;
+			map.UpdatedAt = DateTimeOffset.UtcNow;
+			await _context.SaveChangesAsync();
+			return NoContent();
+		}
+
+		//	PUT: api/campaigns/{campaignId}/maps/{mapId}/combat/initiative — a master any combatant, a player their character
+		[HttpPut("{mapId:guid}/combat/initiative")]
+		public async Task<IActionResult> SetInitiative(Guid campaignId, Guid mapId, [FromBody] SetInitiativeDto dto)
+		{
+			var (map, role) = await LoadAsync(campaignId, mapId, withTokens: false);
+			if (map is null || role is null)
+			{
+				return NotFound();
+			}
+			if (await FightAsync(map, track: true) is not { } fight || fight.Combatants.FirstOrDefault(c => c.Id == dto.CombatantId) is not { } combatant)
+			{
+				return NotFound();
+			}
+			if (!CampaignRules.RunsTheTable(role.Value) && !await OwnsAsync(combatant.CharacterId))
+			{
+				return Forbid();
+			}
+			combatant.Initiative = Math.Clamp(dto.Initiative, -10, 99);
+			Save(fight, fight.Combatants);
+			await _context.SaveChangesAsync();
+			return NoContent();
+		}
+
+		//	A combatant made from a token: a character (its initiative rolled by its player), a monster with its statblock
+		//	and the token's hit points, any other token
+		private async Task<EncounterCombatant> CombatantOfAsync(CampaignToken token)
+		{
+			var monster = token.MonsterId is { } monsterId
+				? await _context.Monsters.AsNoTracking().Where(m => m.Id == monsterId)
+					.Select(m => new { m.ArmorClass, m.HitPoints, m.Dexterity, m.Xp, m.ChallengeRating }).FirstOrDefaultAsync()
+				: null;
+			var combatant = new EncounterCombatant
+			{
+				Kind = token.CharacterId is not null ? CombatantKind.Character : monster is not null ? CombatantKind.Monster : CombatantKind.Other,
+				CharacterId = token.CharacterId,
+				MonsterId = token.CharacterId is null ? token.MonsterId : null,
+				Name = token.Label,
+				Hidden = token.Hidden,
+				Conditions = token.CharacterId is null ? token.Conditions.ToList() : new()
+			};
+			if (monster is not null && token.CharacterId is null)
+			{
+				combatant.ArmorClass = monster.ArmorClass;
+				combatant.MaxHp = token.MaxHp ?? monster.HitPoints;
+				combatant.Hp = token.Hp ?? combatant.MaxHp;
+				combatant.InitiativeBonus = (int)Math.Floor((monster.Dexterity - 10) / 2.0);
+				combatant.Xp = monster.Xp;
+				combatant.ChallengeRating = monster.ChallengeRating;
+			}
+			else if (token.CharacterId is null)
+			{
+				combatant.MaxHp = token.MaxHp ?? 0;
+				combatant.Hp = token.Hp ?? combatant.MaxHp;
+			}
+			if (combatant.Kind != CombatantKind.Character)
+			{
+				combatant.Initiative = Random.Shared.Next(1, 21) + combatant.InitiativeBonus;
+			}
+			token.CombatantId = combatant.Id;
+			return combatant;
+		}
+
+		//	What a token keeps of its combatant when the fight is over for it
+		private static void KeepState(CampaignToken token, EncounterCombatant combatant)
+		{
+			if (combatant.Kind == CombatantKind.Character)
+			{
+				return;
+			}
+			if (combatant.MaxHp > 0)
+			{
+				token.MaxHp = combatant.MaxHp;
+				token.Hp = combatant.Hp;
+			}
+			token.Conditions = combatant.Conditions.ToList();
+		}
+
 		//	POST: api/campaigns/{campaignId}/maps/{mapId}/combat/next — the next turn (a new round after the last one); the
 		//	monsters at 0 hit points are skipped
 		[HttpPost("{mapId:guid}/combat/next")]
@@ -621,6 +838,14 @@ namespace RealmForge.Api.Controllers
 			}
 			if (await FightAsync(map, track: true) is { } fight)
 			{
+				foreach (var token in await _context.CampaignTokens.Where(t => t.MapId == map.Id && t.CombatantId != null).ToListAsync())
+				{
+					if (fight.Combatants.FirstOrDefault(c => c.Id == token.CombatantId) is { } combatant)
+					{
+						KeepState(token, combatant);
+					}
+					token.CombatantId = null;
+				}
 				fight.Encounter.Status = EncounterStatus.Finished;
 				fight.Encounter.Version++;
 				fight.Encounter.UpdatedAt = DateTimeOffset.UtcNow;
@@ -665,6 +890,10 @@ namespace RealmForge.Api.Controllers
 			else
 			{
 				token.Conditions = conditions;
+				if (dto.Hp is { } tokenHp && token.MaxHp is { } tokenMax)
+				{
+					token.Hp = Math.Clamp(tokenHp, 0, tokenMax + 1000);
+				}
 			}
 			token.UpdatedAt = map.UpdatedAt = DateTimeOffset.UtcNow;
 			await _context.SaveChangesAsync();
@@ -709,13 +938,24 @@ namespace RealmForge.Api.Controllers
 				.OrderBy(t => t.Kind).ThenBy(t => t.Label)
 				.Select(t =>
 				{
-					var dto = ToDto(t, MapRules.CanMove(role, t.CharacterId is { } id && mine.Contains(id), map.Shown, t.Hidden)
-						&& (runs || t.Layer == TokenLayer.Tokens));
+					var controls = (t.CharacterId is { } id && mine.Contains(id)) || t.ControlledBy.Contains(UserId);
+					var dto = ToDto(t, MapRules.CanMove(role, controls, map.Shown, t.Hidden) && (runs || t.Layer == TokenLayer.Tokens));
+					if (runs)
+					{
+						dto = dto with { ControlledBy = t.ControlledBy.ToList() };
+					}
 					var combatant = t.CombatantId is { } cid ? fight?.Combatants.FirstOrDefault(c => c.Id == cid) : null;
 					var conditions = t.CharacterId is { } characterId && sheetConditions.TryGetValue(characterId, out var fromSheet) ? fromSheet
 						: combatant is not null ? combatant.Conditions
 						: t.Conditions;
 					dto = dto with { Conditions = conditions.ToList() };
+					if (combatant is null && t.CharacterId is null && t.MaxHp is { } tokenMax && tokenMax > 0)
+					{
+						var tokenHp = t.Hp ?? tokenMax;
+						dto = runs
+							? dto with { Hp = tokenHp, MaxHp = tokenMax }
+							: dto with { Health = EncounterRules.HealthOf(tokenHp, tokenMax) };
+					}
 					if (combatant is not null && combatant.Kind != CombatantKind.Character)
 					{
 						dto = runs
@@ -768,11 +1008,54 @@ namespace RealmForge.Api.Controllers
 			fight.Encounter.UpdatedAt = DateTimeOffset.UtcNow;
 		}
 
+		private async Task WaitForChangeAsync(Guid campaignId, Guid mapId, DateTimeOffset since, CancellationToken aborted)
+		{
+			var until = DateTimeOffset.UtcNow.AddSeconds(20);
+			try
+			{
+				while (DateTimeOffset.UtcNow < until)
+				{
+					var stamp = await _context.CampaignMaps.AsNoTracking()
+						.Where(m => m.Id == mapId && m.CampaignId == campaignId)
+						.Select(m => new { m.UpdatedAt, m.EncounterId })
+						.FirstOrDefaultAsync(aborted);
+					if (stamp is null)
+					{
+						return;
+					}
+					var latest = stamp.UpdatedAt;
+					if (stamp.EncounterId is { } encounterId)
+					{
+						var fought = await _context.CampaignEncounters.AsNoTracking().Where(e => e.Id == encounterId).Select(e => (DateTimeOffset?)e.UpdatedAt).FirstOrDefaultAsync(aborted);
+						if (fought is { } at && at > latest)
+						{
+							latest = at;
+						}
+					}
+					//	The database keeps microseconds
+					if (latest.UtcTicks / 10 != since.UtcTicks / 10)
+					{
+						return;
+					}
+					await Task.Delay(400, aborted);
+				}
+			}
+			catch (OperationCanceledException)
+			{
+				//	The table was closed
+			}
+		}
+
+		//	Whether the account moves this token besides being a master: its character, or assigned by a master
+		private async Task<bool> ControlsAsync(CampaignToken token) =>
+			token.ControlledBy.Contains(UserId) || await OwnsAsync(token.CharacterId);
+
 		private async Task<bool> OwnsAsync(Guid? characterId) =>
 			characterId is { } id && await _context.Characters.AnyAsync(c => c.Id == id && c.OwnerId == UserId);
 
 		private static MapTokenDto ToDto(CampaignToken t, bool canMove) =>
-			new(t.Id, t.Label, t.Color, t.Kind, t.CharacterId, t.MonsterId, t.X, t.Y, t.Size, t.Hidden, canMove, null, t.Layer, t.CombatantId);
+			new(t.Id, t.Label, t.Color, t.Kind, t.CharacterId, t.MonsterId, t.X, t.Y, t.Size, t.Hidden, canMove, null, t.Layer, t.CombatantId,
+				PropType: t.PropType, PropState: t.PropState, PlayersInteract: t.PlayersInteract, ImageId: t.ImageId);
 
 		private static bool UnderFog(CampaignMap map, CampaignToken t)
 		{
@@ -859,6 +1142,22 @@ namespace RealmForge.Api.Controllers
 			{
 				return "The colour must be #rrggbb.";
 			}
+			if (dto.ImageId is { } imageId && !await _context.UserImages.AnyAsync(i => i.Id == imageId))
+			{
+				return "Unknown image.";
+			}
+			if (dto.Kind == TokenKind.Prop && (dto.PropType is not { } propType || !Enum.IsDefined(propType) || !PropRules.Valid(propType, dto.PropState)))
+			{
+				return "An object needs a kind and one of its states.";
+			}
+			if (dto.ControlledBy.Count > 0)
+			{
+				var members = await _context.CampaignMembers.AsNoTracking().Where(m => m.CampaignId == campaignId).Select(m => m.UserId).ToListAsync();
+				if (dto.ControlledBy.Any(id => !members.Contains(id)))
+				{
+					return "Tokens can be assigned only to members of the campaign.";
+				}
+			}
 			if (dto.CharacterId is { } characterId
 				&& !await _context.CampaignCharacters.AnyAsync(cc => cc.CampaignId == campaignId && cc.CharacterId == characterId))
 			{
@@ -879,6 +1178,13 @@ namespace RealmForge.Api.Controllers
 			token.Size = dto.Size;
 			token.Hidden = dto.Hidden;
 			token.Layer = dto.Layer;
+			token.ControlledBy = dto.ControlledBy.Distinct().Take(MapRules.MaxControllers).ToList();
+			token.ImageId = dto.ImageId;
+			token.PropType = dto.Kind == TokenKind.Prop ? dto.PropType : null;
+			token.PropState = dto.Kind == TokenKind.Prop ? dto.PropState : PropState.Closed;
+			token.PlayersInteract = dto.Kind == TokenKind.Prop && dto.PlayersInteract;
+			token.MaxHp = dto.MaxHp is { } max && max > 0 ? Math.Min(max, 100_000) : null;
+			token.Hp = token.MaxHp is null ? null : Math.Clamp(dto.Hp ?? token.MaxHp.Value, 0, token.MaxHp.Value + 1000);
 			token.UpdatedAt = DateTimeOffset.UtcNow;
 			token.Color = dto.Color ?? PlayerColors.Master;
 			if (dto.CharacterId is { } characterId && dto.Color is null)

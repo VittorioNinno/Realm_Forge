@@ -867,8 +867,20 @@ namespace RealmForge.Infrastructure.Migrations
                         .IsRequired()
                         .HasColumnType("text[]");
 
+                    b.PrimitiveCollection<List<string>>("ControlledBy")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("text[]")
+                        .HasDefaultValueSql("'{}'");
+
                     b.Property<bool>("Hidden")
                         .HasColumnType("boolean");
+
+                    b.Property<int?>("Hp")
+                        .HasColumnType("integer");
+
+                    b.Property<Guid?>("ImageId")
+                        .HasColumnType("uuid");
 
                     b.Property<int>("Kind")
                         .HasColumnType("integer");
@@ -884,8 +896,20 @@ namespace RealmForge.Infrastructure.Migrations
                     b.Property<Guid>("MapId")
                         .HasColumnType("uuid");
 
+                    b.Property<int?>("MaxHp")
+                        .HasColumnType("integer");
+
                     b.Property<Guid?>("MonsterId")
                         .HasColumnType("uuid");
+
+                    b.Property<bool>("PlayersInteract")
+                        .HasColumnType("boolean");
+
+                    b.Property<int>("PropState")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("PropType")
+                        .HasColumnType("integer");
 
                     b.Property<int>("Size")
                         .HasColumnType("integer");
@@ -1642,6 +1666,25 @@ namespace RealmForge.Infrastructure.Migrations
                     b.HasIndex("Ruleset", "Type");
 
                     b.ToTable("Monsters", (string)null);
+                });
+
+            modelBuilder.Entity("RealmForge.Domain.Entities.MonsterImageChoice", b =>
+                {
+                    b.Property<string>("OwnerId")
+                        .HasMaxLength(450)
+                        .HasColumnType("character varying(450)");
+
+                    b.Property<Guid>("MonsterId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("ImageId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("OwnerId", "MonsterId");
+
+                    b.HasIndex("ImageId");
+
+                    b.ToTable("MonsterImageChoices");
                 });
 
             modelBuilder.Entity("RealmForge.Domain.Entities.MonsterTranslation", b =>
@@ -2415,6 +2458,42 @@ namespace RealmForge.Infrastructure.Migrations
                     b.ToTable("TrashEntries");
                 });
 
+            modelBuilder.Entity("RealmForge.Domain.Entities.UserImage", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("Height")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Image")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("OwnerId")
+                        .IsRequired()
+                        .HasMaxLength(450)
+                        .HasColumnType("character varying(450)");
+
+                    b.Property<int>("Width")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("OwnerId");
+
+                    b.ToTable("UserImages");
+                });
+
             modelBuilder.Entity("RealmForge.Infrastructure.Identity.ApplicationUser", b =>
                 {
                     b.Property<string>("Id")
@@ -2881,6 +2960,17 @@ namespace RealmForge.Infrastructure.Migrations
                         .OnDelete(DeleteBehavior.SetNull);
 
                     b.Navigation("VariantOf");
+                });
+
+            modelBuilder.Entity("RealmForge.Domain.Entities.MonsterImageChoice", b =>
+                {
+                    b.HasOne("RealmForge.Domain.Entities.UserImage", "Image")
+                        .WithMany()
+                        .HasForeignKey("ImageId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Image");
                 });
 
             modelBuilder.Entity("RealmForge.Domain.Entities.MonsterTranslation", b =>

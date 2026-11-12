@@ -11059,6 +11059,250 @@ textarea.rf-form-control {
     display: none;
 }
 
+/* Objects: square, the state in the colour (open green, ajar amber, locked or barred red, broken or empty grey) */
+.rf-vtt-token.prop .rf-vtt-token-face,
+.rf-vtt-token.prop.below .rf-vtt-token-face {
+    border-radius: 8px;
+    background-color: rgba(30, 22, 14, .92);
+    color: #e7d3b5;
+    box-shadow: 0 0 0 2px var(--rf-prop, #8b5e3c), 0 4px 12px rgba(0, 0, 0, .6);
+}
+
+    .rf-vtt-token.prop .rf-vtt-token-face svg {
+        width: 55%;
+        height: 55%;
+    }
+
+.rf-vtt-token.prop.state-open { --rf-prop: #22c55e; }
+.rf-vtt-token.prop.state-ajar { --rf-prop: #f59e0b; }
+.rf-vtt-token.prop.state-locked,
+.rf-vtt-token.prop.state-barred { --rf-prop: #ef4444; }
+.rf-vtt-token.prop.state-broken,
+.rf-vtt-token.prop.state-empty { --rf-prop: #6b7280; }
+
+.rf-vtt-token.prop.movable,
+.rf-vtt-token.prop {
+    cursor: pointer;
+}
+
+.rf-vtt-prop-badge {
+    position: absolute;
+    top: -4px;
+    right: -4px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background-color: #ef4444;
+    color: #ffffff;
+    transform: scale(calc(1 / var(--rf-zoom, 1)));
+    transform-origin: 100% 0;
+}
+
+    .rf-vtt-prop-badge svg {
+        width: 10px;
+        height: 10px;
+    }
+
+.rf-vtt-prop-use {
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+    border-top: 0;
+    padding-top: 0;
+}
+
+/* The name under a token, the same size at any zoom */
+.rf-vtt-token-name {
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    max-width: 160px;
+    overflow: hidden;
+    padding: 0 8px;
+    border-radius: 8px;
+    background-color: rgba(10, 10, 10, .7);
+    color: #ffffff;
+    font-size: .7rem;
+    font-weight: 700;
+    line-height: 18px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    pointer-events: none;
+    transform: translateX(-50%) scale(calc(1 / var(--rf-zoom, 1)));
+    transform-origin: 50% 0;
+}
+
+/* Clicking a token: its toolbar next to it (name, hit points, conditions, then the actions), the same size at any zoom */
+.rf-vtt-toolbar {
+    position: absolute;
+    z-index: 35;
+    display: flex;
+    flex-direction: column;
+    width: max-content;
+    min-width: 320px;
+    max-width: 520px;
+    border-radius: 8px;
+    border: 1px solid var(--rf-token, var(--rf-orange-primary));
+    background-color: rgba(18, 18, 18, .97);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, .6);
+    color: var(--rf-text-primary);
+    transform: scale(calc(1 / var(--rf-zoom, 1)));
+    transform-origin: 0 0;
+    cursor: default;
+}
+
+.rf-vtt-toolbar-head {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px;
+}
+
+.rf-vtt-toolbar-kind {
+    display: inline-flex;
+    flex: none;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    border-radius: 8px;
+    border: 1px solid var(--rf-border-light);
+    color: var(--rf-token, var(--rf-orange-primary));
+}
+
+.rf-vtt-toolbar-title {
+    display: flex;
+    flex: 1;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0 8px;
+    min-width: 0;
+}
+
+    .rf-vtt-toolbar-title strong {
+        overflow-wrap: anywhere;
+    }
+
+.rf-vtt-toolbar-sub {
+    flex-basis: 100%;
+    font-size: .75rem;
+    color: var(--rf-text-muted);
+}
+
+.rf-vtt-toolbar-conditions {
+    display: inline-flex;
+    flex: none;
+    align-items: center;
+    gap: 8px;
+    max-width: 140px;
+    padding: 0;
+    border: 0;
+    background: none;
+    color: #facc15;
+    font-size: .7rem;
+    font-weight: 800;
+    letter-spacing: .04em;
+    text-align: right;
+    text-transform: uppercase;
+}
+
+.rf-vtt-icon-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    padding: 0;
+    border: 0;
+    background: none;
+    color: var(--rf-text-muted);
+}
+
+    .rf-vtt-icon-button:hover {
+        color: var(--rf-text-primary);
+    }
+
+.rf-vtt-toolbar-tabs {
+    display: flex;
+    border-top: 1px solid var(--rf-border-subtle);
+}
+
+.rf-vtt-toolbar-tab {
+    display: flex;
+    flex: 1 0 auto;
+    flex-direction: column;
+    align-items: center;
+    gap: 0;
+    min-width: 48px;
+    padding: 8px 4px;
+    border: 0;
+    border-right: 1px solid var(--rf-border-subtle);
+    background: none;
+    color: var(--rf-text-secondary);
+    font-size: .65rem;
+    font-weight: 800;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+}
+
+    .rf-vtt-toolbar-tab span {
+        padding: 0 4px;
+        white-space: nowrap;
+    }
+
+    .rf-vtt-toolbar-tab:last-child {
+        border-right: 0;
+    }
+
+    .rf-vtt-toolbar-tab:hover,
+    .rf-vtt-toolbar-tab.active {
+        background-color: rgba(255, 140, 0, .12);
+        color: var(--rf-orange-primary);
+    }
+
+.rf-vtt-toolbar-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    max-height: 320px;
+    overflow-y: auto;
+    padding: 8px;
+    border-top: 1px solid var(--rf-border-subtle);
+}
+
+.rf-vtt-hp-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+}
+
+.rf-vtt-swatches {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.rf-vtt-swatch {
+    width: 24px;
+    height: 24px;
+    padding: 0;
+    border-radius: 50%;
+    border: 2px solid transparent;
+}
+
+    .rf-vtt-swatch.active {
+        border-color: #ffffff;
+        box-shadow: 0 0 0 2px var(--rf-orange-primary);
+    }
+
+.rf-vtt-rename {
+    height: 32px;
+}
+
 /* Clicking a token: its card in the corner of the view */
 .rf-vtt-card {
     position: absolute;
@@ -11321,6 +11565,124 @@ textarea.rf-form-control {
     background-color: var(--rf-bg-surface);
 }
 
+/* The side panel of the table: initiative, dice, tokens */
+.rf-vtt-panel-tabs {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: -16px -16px 0;
+    padding: 8px 16px;
+    border-bottom: 1px solid var(--rf-border-subtle);
+}
+
+    .rf-vtt-panel-tabs > button:not(.rf-vtt-icon-button) {
+        padding: 4px 8px;
+        border-radius: 8px;
+        border: 1px solid transparent;
+        background: none;
+        color: var(--rf-text-secondary);
+        font-size: .75rem;
+        font-weight: 800;
+        letter-spacing: .04em;
+        text-transform: uppercase;
+    }
+
+        .rf-vtt-panel-tabs > button.active {
+            border-color: var(--rf-orange-primary);
+            color: var(--rf-orange-primary);
+        }
+
+.rf-vtt-initiative-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.rf-vtt-initiative-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 8px;
+}
+
+.rf-vtt-initiative-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+    .rf-vtt-initiative-list li {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px;
+        border-radius: 8px;
+        border: 1px solid var(--rf-border-light);
+        border-left: 3px solid var(--rf-token, #9e9e9e);
+        background-color: var(--rf-bg-card);
+    }
+
+        .rf-vtt-initiative-list li.current {
+            border-color: #facc15;
+            box-shadow: 0 0 0 1px #facc15;
+        }
+
+        .rf-vtt-initiative-list li.hidden-token {
+            opacity: .6;
+            border-style: dashed;
+        }
+
+.rf-vtt-init-input {
+    flex: none;
+    width: 56px;
+    height: 32px;
+    padding: 0 8px;
+    text-align: center;
+}
+
+.rf-vtt-init-value {
+    flex: none;
+    width: 32px;
+    font-weight: 800;
+    text-align: center;
+    color: var(--rf-orange-primary);
+}
+
+.rf-vtt-initiative-name {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    align-items: flex-start;
+    min-width: 0;
+    padding: 0;
+    border: 0;
+    background: none;
+    color: var(--rf-text-primary);
+    text-align: left;
+}
+
+    .rf-vtt-initiative-name small {
+        font-size: .7rem;
+        color: var(--rf-text-muted);
+    }
+
+/* The dice table inside the side panel: one column */
+.rf-dice-table.compact .rf-dice-workspace {
+    grid-template-columns: 1fr;
+    gap: 16px;
+}
+
+.rf-dice-table.compact .rf-dice-actor {
+    grid-template-columns: 1fr;
+}
+
+.rf-vtt-drawer:has(.rf-dice-table) {
+    width: 400px;
+}
+
 @media (max-width: 767.98px) {
     .rf-vtt-top {
         flex-wrap: wrap;
@@ -11416,4 +11778,131 @@ textarea.rf-form-control {
     .rf-vtt-grid-fields {
         grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
     }
+}
+
+/* ===== Images: the account's pictures, the picker of a token, a monster or an NPC ===== */
+.rf-images {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    gap: 16px;
+}
+
+.rf-image-card {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    border-radius: 8px;
+    border: 1px solid var(--rf-border-light);
+    background-color: var(--rf-bg-card);
+}
+
+    .rf-image-card > img {
+        width: 100%;
+        aspect-ratio: 1;
+        object-fit: cover;
+        background-color: #050505;
+    }
+
+.rf-image-card-body {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 16px;
+}
+
+.rf-image-uses {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.rf-image-use {
+    display: inline-flex;
+    align-items: center;
+    gap: 0;
+    padding-left: 8px;
+    border-radius: 8px;
+    border: 1px solid var(--rf-border-light);
+    font-size: .75rem;
+}
+
+.rf-image-picker {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.rf-image-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(56px, 1fr));
+    gap: 8px;
+    max-height: 240px;
+    overflow-y: auto;
+}
+
+.rf-image-tile {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    aspect-ratio: 1;
+    overflow: hidden;
+    padding: 0;
+    border-radius: 8px;
+    border: 2px solid var(--rf-border-light);
+    background-color: #050505;
+    color: var(--rf-text-muted);
+    font-size: .65rem;
+    cursor: pointer;
+}
+
+    .rf-image-tile img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+
+    .rf-image-tile.active {
+        border-color: var(--rf-orange-primary);
+    }
+
+    .rf-image-tile.upload:hover,
+    .rf-image-tile:hover {
+        color: var(--rf-orange-primary);
+    }
+
+.rf-picture-head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    gap: 16px;
+    margin-bottom: 16px;
+}
+
+    .rf-picture-head > img {
+        width: 128px;
+        height: 128px;
+        border-radius: 8px;
+        border: 1px solid var(--rf-border-light);
+        object-fit: cover;
+    }
+
+.rf-picture-pick {
+    flex: 1;
+    min-width: 240px;
+}
+
+.rf-monster-picture {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+}
+
+.rf-monster-picture-picker {
+    width: 280px;
+    max-width: 80vw;
+    padding: 8px;
+    border-radius: 8px;
+    border: 1px solid var(--rf-border-light);
+    background-color: var(--rf-bg-card);
 }

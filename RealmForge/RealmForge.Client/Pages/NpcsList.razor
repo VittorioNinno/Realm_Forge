@@ -135,7 +135,7 @@
                         <article class="rf-pc-card rf-npc-card h-100 @(n.IsMine ? "mine" : "community")" data-test="npc-card">
                             <div class="rf-npc-body rf-card-linked">
                                 <div class="rf-npc-top">
-                                    <NpcAvatar Portrait="@n.Portrait" Name="@n.Name" Shared="!n.IsMine" />
+                                    <MonsterPicture MonsterId="n.Id" Portrait="@n.Portrait" Name="@n.Name" Shared="!n.IsMine" />
                                     <div class="rf-npc-head">
                                         <div class="rf-npc-titlebar">
                                             <a class="rf-npc-name rf-card-link" href="@($"npcs/{n.Id}")" data-test="npc-card-name">@n.Name</a>

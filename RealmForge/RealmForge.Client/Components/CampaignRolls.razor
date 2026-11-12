@@ -12,8 +12,11 @@
    picked one by one with the modifier and the d20 mode, the formula that stays editable, what for) and the log of
    everyone's rolls on the right, including the ones made on the sheets; the server rolls, so nobody picks the numbers.
    My rolls land in the dice tray with the animation; the log refreshes every few seconds *@
-<section class="rf-dice-table" data-test="campaign-rolls">
-    <p class="rf-dice-lead">@UiText.RollsHint(Lang)</p>
+<section class="rf-dice-table @(Compact ? "compact" : null)" data-test="campaign-rolls">
+    @if (!Compact)
+    {
+        <p class="rf-dice-lead">@UiText.RollsHint(Lang)</p>
+    }
 
     <div class="rf-dice-workspace">
         <aside class="rf-dice-console" data-test="roll-form">
@@ -236,6 +239,9 @@
 
     //	My colour at this table (the colour of my rolls)
     [Parameter] public string MyColor { get; set; } = PlayerColors.Master;
+
+    //	In the side panel of the virtual tabletop: the console above the log, in a narrow column
+    [Parameter] public bool Compact { get; set; }
 
     private static readonly int[] Sides = { 4, 6, 8, 10, 12, 20, 100 };
 

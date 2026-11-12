@@ -76,7 +76,7 @@ try {
 
   // Navigation: reference pages live in the collapsible "Compendio" group, opened on compendium routes
   const compendiumLinks = (await page.locator('[data-test=nav-compendium] a').allInnerTexts()).map((t) => t.trim());
-  if (compendiumLinks.join(',') !== 'Specie,Background,Talenti,Incantesimi,Classi,Equipaggiamento,Oggetti magici,Mostri,PNG,Moduli di regole') throw new Error(`unexpected compendium links: ${compendiumLinks.join(',')}`);
+  if (compendiumLinks.join(',') !== 'Specie,Background,Talenti,Incantesimi,Classi,Equipaggiamento,Oggetti magici,Mostri,PNG,Immagini,Moduli di regole') throw new Error(`unexpected compendium links: ${compendiumLinks.join(',')}`);
   // The rules glossary is a menu entry of its own, next to the compendium group
   const rulesLink = (await page.locator('[data-test=nav-rules] a').innerText()).trim();
   if (rulesLink !== 'Glossario') throw new Error(`unexpected glossary menu entry: ${rulesLink}`);
@@ -415,7 +415,7 @@ try {
     return { label: el.textContent.trim(), inset: Math.round(icon.left - el.getBoundingClientRect().left), left: Math.round(icon.left) };
   }));
   results.push(`INFO menu icons: ${iconGaps.map((g) => `${g.label}@${g.left}(+${g.inset})`).join(', ')}`);
-  if (iconGaps.length !== 16 || iconGaps.some((g) => g.inset < 8) || new Set(iconGaps.map((g) => g.left)).size !== 1) throw new Error('menu icons are not padded or not aligned');
+  if (iconGaps.length !== 17 || iconGaps.some((g) => g.inset < 8) || new Set(iconGaps.map((g) => g.left)).size !== 1) throw new Error('menu icons are not padded or not aligned');
   await page.locator('[data-test=nav-compendium] button').click();
   ok('"Compendio" menu group: Specie, Background, Talenti, Incantesimi, Classi, Equipaggiamento, and Glossario next to it; collapsed elsewhere and toggles on click; icons padded and aligned');
   await page.getByText('Non hai un account? Registrati').click();
@@ -1421,6 +1421,27 @@ try {
   await page.waitForTimeout(300);
   await shot(page, 'phone-campaign-rolls', 'main');
   await page.setViewportSize({ width: 1280, height: 900 });
+  // Images: one uploaded on the images page and chosen as the goblin's picture (the goblin's tokens show it)
+  const art = await page.screenshot({ clip: { x: 0, y: 0, width: 320, height: 320 } });
+  await page.goto(new URL('/images', campaignUrl).toString());
+  await page.locator('[data-test=images-empty]').waitFor({ timeout: 30000 });
+  await page.locator('[data-test=images-upload] input[type=file]').setInputFiles({ name: 'goblin.png', mimeType: 'image/png', buffer: art });
+  await page.locator('[data-test=image-card]').waitFor({ timeout: 15000 });
+  await page.locator('[data-test=image-assign]').fill('Goblin');
+  await page.locator('[data-test=image-assign-result]').filter({ hasText: /^\s*Goblin\s*·/ }).first().click();
+  await page.locator('[data-test=image-use]').waitFor({ timeout: 15000 });
+  const imagesUi = {
+    cards: await page.locator('[data-test=image-card]').count(),
+    name: await page.locator('[data-test=image-name]').inputValue(),
+    use: (await page.locator('[data-test=image-use]').innerText()).trim(),
+    loaded: await page.locator('[data-test=image-card] img').evaluate((img) => img.complete && img.naturalWidth > 0)
+  };
+  await shot(page, 'images', 'main');
+  results.push(`INFO images: ${JSON.stringify(imagesUi)}`);
+  if (imagesUi.cards !== 1 || imagesUi.name !== 'goblin' || imagesUi.use !== 'Goblin' || !imagesUi.loaded) throw new Error(`unexpected images: ${JSON.stringify(imagesUi)}`);
+  ok('images: a picture uploaded on the images page, served to the browser, chosen as the goblin\'s portrait');
+  await page.goto(campaignUrl);
+  await page.locator('[data-test=campaign-title]').waitFor({ timeout: 30000 });
   // The virtual tabletop: a map from a picture, the character and a goblin on it, the character dragged two cells right,
   // the map shown to the players
   await page.locator('[data-test=campaign-tab-map]').click();
@@ -1450,6 +1471,10 @@ try {
   await page.locator('[data-test=map-monster-result]', { hasText: /^Goblin\b/ }).first().click();
   await page.locator('[data-test=map-token][data-label=Goblin]').waitFor({ timeout: 15000 });
   const hero = page.locator('[data-test=map-token]').first();
+  // Adding tokens from the panel may scroll the page: the drag needs the map in view
+  await page.evaluate(() => window.scrollTo(0, 0));
+  await hero.scrollIntoViewIfNeeded();
+  await page.waitForTimeout(300);
   const box = await hero.boundingBox();
   await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
   await page.mouse.down();
@@ -1467,6 +1492,16 @@ try {
   await goblin.click();
   await page.locator('[data-test=map-token-card]').waitFor({ timeout: 15000 });
   const goblinCard = (await page.locator('[data-test=map-token-card-stats]').innerText()).replace(/\s+/g, ' ').trim();
+  // The arrows move the token whose toolbar is open, one cell at a time
+  const goblinTop = async () => goblin.evaluate((el) => el.style.top);
+  const keyMoves = [await goblinTop()];
+  await page.keyboard.press('ArrowDown');
+  await page.waitForTimeout(600);
+  keyMoves.push(await goblinTop());
+  await page.keyboard.press('ArrowUp');
+  await page.waitForTimeout(600);
+  keyMoves.push(await goblinTop());
+  const goblinTabs = await page.locator('[data-test=map-token-card] .rf-vtt-toolbar-tab').count();
   await shot(page, 'campaign-map-card', '[data-test=map-stage]');
   await page.locator('.rf-vtt-card-close').click();
   // The cells of the overlay are squares (70 × 70 on the picture), then hexagons
@@ -1482,6 +1517,8 @@ try {
   const calibrate = async (x1, y1, x2, y2) => {
     await page.locator('[data-test=map-calibrate]').click();
     await page.locator('[data-test=map-calibrate-hint]').waitFor({ timeout: 15000 });
+    await page.evaluate(() => window.scrollTo(0, 0));
+    await page.waitForTimeout(200);
     const o = await page.locator('svg[data-test=map-grid]').boundingBox();
     await page.mouse.move(o.x + x1, o.y + y1);
     await page.mouse.down();
@@ -1500,13 +1537,16 @@ try {
     tokens: await page.locator('[data-test=map-token]').count(),
     heroLeft: await hero.evaluate((el) => el.style.left),
     shown: await page.locator('[data-test=map-shown]').isChecked(),
-    goblinTip, tipVisible, goblinCard, cellBox, hexBox, calibrated
+    goblinTip, tipVisible, goblinCard, cellBox, hexBox, calibrated, keyMoves: keyMoves.join(','), goblinTabs,
+    names: await page.locator('[data-test=map-token-name]').count(),
+    goblinArt: await goblin.locator('.rf-vtt-token-face img').count()
   };
   await shot(page, 'campaign-map', 'main');
   results.push(`INFO map: ${JSON.stringify(mapUi)}`);
   if (mapUi.name !== 'cripta' || mapUi.tokens !== 2 || mapUi.heroLeft !== '140px' || !mapUi.shown || !/^Goblin Mostro · PF \d+ · CA \d+ · GS/.test(mapUi.goblinTip)
     || !mapUi.tipVisible || !/CA \d+/.test(mapUi.goblinCard) || mapUi.cellBox !== '70x70' || mapUi.hexBox !== '70x121.24'
-    || mapUi.calibrated.join(',') !== '140|0|70,70|0|0') throw new Error(`unexpected map: ${JSON.stringify(mapUi)}`);
+    || mapUi.calibrated.join(',') !== '140|0|70,70|0|0' || mapUi.keyMoves !== '0px,70px,0px' || mapUi.goblinTabs !== 7 || mapUi.names !== 2 || mapUi.goblinArt !== 1
+    || !/^7\/7 · CA \d+ · GS/.test(mapUi.goblinCard)) throw new Error(`unexpected map: ${JSON.stringify(mapUi)}`);
   // A copy of the map with its tokens, then deleted
   await page.locator('[data-test=map-duplicate]').click();
   await page.locator('[data-test=map-select]', { hasText: 'cripta (copia)' }).waitFor({ timeout: 15000 });
@@ -1547,7 +1587,7 @@ try {
   await shot(page, 'phone-vtt-table', null);
   await page.setViewportSize({ width: 1280, height: 900 });
   results.push(`INFO vtt: ${JSON.stringify(vttUi)}`);
-  if (vttUi.ruler !== '3 · 4,5 m' || vttUi.displayed !== 1 || vttUi.zoom === '100%' || vttUi.tools !== 10 || vttUi.phoneZoom === vttUi.zoom) throw new Error(`unexpected virtual tabletop: ${JSON.stringify(vttUi)}`);
+  if (vttUi.ruler !== '3 · 4,5 m' || vttUi.displayed !== 1 || vttUi.zoom === '100%' || vttUi.tools !== 12 || vttUi.phoneZoom === vttUi.zoom) throw new Error(`unexpected virtual tabletop: ${JSON.stringify(vttUi)}`);
   ok('virtual tabletop: the table on the whole window with the map shown to the players, fitted to the screen, the tools on the left, the ruler measuring three cells (4,5 m), the map fitted again on a phone');
   // A sphere of 1 cell (1,5 m) around the hero: its cell and the three around it on the map; a stroke, then erased;
   // a note for the masters
@@ -1620,10 +1660,10 @@ try {
   // turn goes on, a goblin is knocked prone and hurt, it rolls its initiative from its card; the hero's move shows
   // the metres against its speed
   await page.locator('[data-test=vtt-tool-select]').click();
-  await page.locator('[data-test=vtt-tool-tokens]').click();
+  await page.locator('[data-test=vtt-tool-initiative]').click();
   await page.locator('[data-test=vtt-start-combat]').click();
   await page.locator('[data-test=vtt-initiative]').waitFor({ timeout: 15000 });
-  await page.locator('[data-test=vtt-tool-tokens]').click();
+  await page.locator('[data-test=vtt-tool-initiative]').click();
   await page.waitForTimeout(800);
   const combatUi = {
     combatants: await page.locator('[data-test=vtt-combatant]').count(),
@@ -1638,9 +1678,12 @@ try {
   const goblin1 = page.locator('[data-test=vtt] [data-test=map-token][data-label="Goblin 1"]');
   await goblin1.click();
   await page.locator('[data-test=map-token-card]').waitFor({ timeout: 15000 });
+  await page.locator('[data-test=map-token-conditions-tab]').click();
   await page.locator('[data-test=map-token-condition][data-key=prone]').click();
+  await page.locator('[data-test=map-token-tab-hp]').click();
   await page.locator('[data-test=map-token-hp-input]').fill('2');
   await page.locator('[data-test=map-token-hp-input]').press('Tab');
+  await page.locator('[data-test=map-token-tab-rolls]').click();
   await page.locator('[data-test=map-token-roll]').first().waitFor({ timeout: 30000 });
   await page.locator('[data-test=map-token-roll]').first().click();
   combatUi.rollTray = await page.locator('[data-test=sheet-last-roll]').waitFor({ timeout: 8000 }).then(() => 1, () => 0);
@@ -1662,6 +1705,58 @@ try {
   if (combatUi.combatants !== 4 || combatUi.tokens !== 5 || combatUi.current !== 1 || !/^Round \d+$/i.test(combatUi.round) || !combatUi.turnMoved
     || combatUi.rollTray !== 1 || combatUi.goblinConditions !== 'Pr' || combatUi.goblinRing !== '28.57 100' || !/^3 \/ \d+(,\d)? m$/.test(combatUi.moveLabel ?? '')) throw new Error(`unexpected combat: ${JSON.stringify(combatUi)}`);
   ok('virtual tabletop combat: the encounter started on the map (four in the initiative order, tokens for the goblins), the turn passed on, a goblin knocked prone and down to 2 hit points with its initiative rolled from its card, the fight ended, the hero\'s move showing 3 m against its speed');
+  // The initiative panel: a fight with the tokens on the map, the hero rolls its own initiative, a goblin leaves the
+  // fight from its toolbar; then the dice table in the side panel
+  await page.locator('[data-test=vtt-tool-initiative]').click();
+  const quickTokens = await page.locator('[data-test=vtt-quick-token]').count();
+  await page.locator('[data-test=vtt-quick-combat]').click();
+  await page.locator('[data-test=vtt-initiative-row]').first().waitFor({ timeout: 15000 });
+  const initUi = { quickTokens, rows: await page.locator('[data-test=vtt-initiative-row]').count() };
+  const heroRow = page.locator('[data-test=vtt-initiative-row]', { hasText: 'Eroe di prova' });
+  await heroRow.locator('[data-test=vtt-roll-init]').click();
+  await page.waitForFunction(() => {
+    const row = [...document.querySelectorAll('[data-test=vtt-initiative-row]')].find((r) => r.textContent.includes('Eroe di prova'));
+    return row && row.querySelector('[data-test=vtt-init-input]').value !== '';
+  }, null, { timeout: 15000 }).catch(() => {});
+  initUi.heroInit = await heroRow.locator('[data-test=vtt-init-input]').inputValue();
+  await shot(page, 'vtt-initiative', null);
+  await page.locator('[data-test=vtt] [data-test=map-token][data-label="Goblin 2"]').click();
+  await page.locator('[data-test=map-token-fight]').click();
+  await page.waitForTimeout(1500);
+  initUi.afterLeave = await page.locator('[data-test=vtt-initiative-row]').count();
+  await page.locator('.rf-vtt-card-close').click();
+  await page.locator('[data-test=vtt-drawer] button', { hasText: /^Termina$/ }).click();
+  await page.locator('[data-test=vtt-quick-combat]').waitFor({ timeout: 15000 });
+  await page.locator('[data-test=vtt-tool-dice]').click();
+  await page.locator('[data-test=vtt-drawer] [data-test=roll-go]').click();
+  initUi.diceTray = await page.locator('[data-test=sheet-last-roll]').waitFor({ timeout: 8000 }).then(() => 1, () => 0);
+  await page.waitForTimeout(500);
+  await shot(page, 'vtt-dice', null);
+  await page.locator('[data-test=vtt-tool-dice]').click();
+  results.push(`INFO vtt initiative: ${JSON.stringify(initUi)}`);
+  if (initUi.quickTokens !== 5 || initUi.rows !== 5 || !/^\d+$/.test(initUi.heroInit) || initUi.afterLeave !== 4 || initUi.diceTray !== 1) throw new Error(`unexpected initiative: ${JSON.stringify(initUi)}`);
+  ok('virtual tabletop initiative: a fight with the five tokens on the map, the hero rolling its own initiative into the order, a goblin leaving from its toolbar, the dice table in the side panel');
+  // Objects: a door placed from the tokens panel, opened from its toolbar, then locked (it no longer opens)
+  await page.locator('[data-test=vtt-tool-tokens]').click();
+  await page.locator('[data-test=map-add-prop][data-type=Door]').click();
+  const door = page.locator('[data-test=vtt] [data-test=map-token]:has([data-test=map-prop])');
+  await door.waitFor({ timeout: 15000 });
+  await page.locator('[data-test=vtt-tool-tokens]').click();
+  await door.click();
+  const propUi = { before: await door.locator('[data-test=map-prop]').getAttribute('data-state') };
+  await page.locator('[data-test=map-prop-use]').click();
+  await page.waitForTimeout(800);
+  propUi.opened = await door.locator('[data-test=map-prop]').getAttribute('data-state');
+  await page.locator('[data-test=map-token-tab-state]').click();
+  await page.locator('[data-test=map-prop-state][data-state=Locked]').click();
+  await page.waitForTimeout(800);
+  propUi.locked = await door.locator('[data-test=map-prop]').getAttribute('data-state');
+  propUi.stuck = await page.locator('[data-test=map-prop-stuck]').count();
+  await shot(page, 'vtt-door', null);
+  await page.locator('.rf-vtt-card-close').click();
+  results.push(`INFO vtt objects: ${JSON.stringify(propUi)}`);
+  if (propUi.before !== 'Closed' || propUi.opened !== 'Open' || propUi.locked !== 'Locked' || propUi.stuck !== 1) throw new Error(`unexpected objects: ${JSON.stringify(propUi)}`);
+  ok('virtual tabletop objects: a door placed from the tokens panel, opened from its toolbar, then locked so it no longer opens');
   await page.locator('[data-test=vtt-back]').click();
   await page.locator('[data-test=campaign-title]').waitFor({ timeout: 30000 });
   // From the sheet, the owner takes the character out of the campaign

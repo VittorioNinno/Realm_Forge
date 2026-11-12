@@ -212,6 +212,30 @@ namespace RealmForge.Client.Services
 
 		public Task<MapStateDto?> GetMapStateAsync(Guid id, Guid mapId) => GetAsync<MapStateDto>($"api/campaigns/{id}/maps/{mapId}/state");
 
+		//	The state of a map as soon as it changes after a moment (the API waits up to 20 seconds). Reached false: the
+		//	API did not answer (try again a bit later); a null state that was reached: the map is gone or hidden.
+		public async Task<(MapStateDto? State, bool Reached)> WaitMapStateAsync(Guid id, Guid mapId, DateTimeOffset after, CancellationToken cancel)
+		{
+			try
+			{
+				var response = await _http.GetAsync($"api/campaigns/{id}/maps/{mapId}/state?after={Uri.EscapeDataString(after.ToString("O"))}", cancel);
+				if (response.StatusCode is System.Net.HttpStatusCode.NotFound or System.Net.HttpStatusCode.Forbidden)
+				{
+					return (null, true);
+				}
+				return response.IsSuccessStatusCode ? (await response.Content.ReadFromJsonAsync<MapStateDto>(cancel), true) : (null, false);
+			}
+			catch (OperationCanceledException)
+			{
+				throw;
+			}
+			catch (Exception ex)
+			{
+				_logger.LogWarning(ex, "Waiting for map {MapId} failed", mapId);
+				return (null, false);
+			}
+		}
+
 		public async Task<CampaignMapSummaryDto?> CreateMapAsync(Guid id, SaveMapDto map)
 		{
 			try
@@ -313,6 +337,37 @@ namespace RealmForge.Client.Services
 
 		public Task<CampaignResult> SetTokenStateAsync(Guid id, Guid mapId, Guid tokenId, List<string> conditions, int? hp) =>
 			SendAsync(() => _http.PutAsJsonAsync($"api/campaigns/{id}/maps/{mapId}/tokens/{tokenId}/state", new TokenStateDto { Conditions = conditions, Hp = hp }), "token state");
+
+		public Task<CampaignResult> QuickCombatAsync(Guid id, Guid mapId, List<Guid> tokenIds) =>
+			SendAsync(() => _http.PostAsJsonAsync($"api/campaigns/{id}/maps/{mapId}/combat/quick", new QuickCombatDto { TokenIds = tokenIds }), "quick combat");
+
+		public Task<CampaignResult> JoinFightAsync(Guid id, Guid mapId, Guid tokenId) =>
+			SendAsync(() => _http.PostAsync($"api/campaigns/{id}/maps/{mapId}/combat/tokens/{tokenId}", null), "join fight");
+
+		public Task<CampaignResult> LeaveFightAsync(Guid id, Guid mapId, Guid tokenId) =>
+			SendAsync(() => _http.DeleteAsync($"api/campaigns/{id}/maps/{mapId}/combat/tokens/{tokenId}"), "leave fight");
+
+		public Task<CampaignResult> SetInitiativeAsync(Guid id, Guid mapId, Guid combatantId, int initiative) =>
+			SendAsync(() => _http.PutAsJsonAsync($"api/campaigns/{id}/maps/{mapId}/combat/initiative", new SetInitiativeDto { CombatantId = combatantId, Initiative = initiative }), "initiative");
+
+		//	Opens or closes an object; Stuck: it is locked or barred
+		public async Task<(MapTokenDto? Token, bool Stuck)> InteractAsync(Guid id, Guid mapId, Guid tokenId)
+		{
+			try
+			{
+				var response = await _http.PostAsync($"api/campaigns/{id}/maps/{mapId}/tokens/{tokenId}/interact", null);
+				if (response.StatusCode == System.Net.HttpStatusCode.Conflict)
+				{
+					return (null, true);
+				}
+				return response.IsSuccessStatusCode ? (await response.Content.ReadFromJsonAsync<MapTokenDto>(), false) : (null, false);
+			}
+			catch (Exception ex)
+			{
+				_logger.LogError(ex, "Using object {TokenId} failed", tokenId);
+				return (null, false);
+			}
+		}
 
 		public Task<CampaignResult> ClearRollsAsync(Guid id) =>
 			SendAsync(() => _http.DeleteAsync($"api/campaigns/{id}/rolls"), "clear rolls");
