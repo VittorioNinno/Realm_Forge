@@ -1517,7 +1517,7 @@ try {
   results.push(`INFO map: ${JSON.stringify(mapUi)}`);
   if (mapUi.name !== 'cripta' || mapUi.tokens !== 2 || mapUi.heroLeft !== '140px' || !mapUi.shown || !/^Goblin Mostro · PF \d+ · CA \d+ · GS/.test(mapUi.goblinTip)
     || !mapUi.tipVisible || !/CA \d+/.test(mapUi.goblinCard) || mapUi.cellBox !== '70x70' || mapUi.hexBox !== '70x121.24'
-    || mapUi.calibrated.join(',') !== '140|0|70,70|0|0' || mapUi.keyMoves !== '0px,70px,0px' || mapUi.goblinTabs !== 5 || mapUi.names !== 2
+    || mapUi.calibrated.join(',') !== '140|0|70,70|0|0' || mapUi.keyMoves !== '0px,70px,0px' || mapUi.goblinTabs !== 6 || mapUi.names !== 2
     || !/^7\/7 · CA \d+ · GS/.test(mapUi.goblinCard)) throw new Error(`unexpected map: ${JSON.stringify(mapUi)}`);
   // A copy of the map with its tokens, then deleted
   await page.locator('[data-test=map-duplicate]').click();
