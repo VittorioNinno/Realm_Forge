@@ -899,6 +899,15 @@ namespace RealmForge.Infrastructure.Migrations
                     b.Property<Guid?>("MonsterId")
                         .HasColumnType("uuid");
 
+                    b.Property<bool>("PlayersInteract")
+                        .HasColumnType("boolean");
+
+                    b.Property<int>("PropState")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("PropType")
+                        .HasColumnType("integer");
+
                     b.Property<int>("Size")
                         .HasColumnType("integer");
 
