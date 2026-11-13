@@ -125,8 +125,7 @@
 }
 
 ::deep .sb-item,
-.sb-section-trigger,
-.sb-footer-collapse {
+.sb-section-trigger {
     position: relative;
     display: flex;
     align-items: center;
@@ -144,8 +143,7 @@
 }
 
     ::deep .sb-item:hover,
-    .sb-section-trigger:hover,
-    .sb-footer-collapse:hover {
+    .sb-section-trigger:hover {
         background-color: #161616;
         color: #ffffff;
     }
@@ -221,7 +219,7 @@
         transform: rotate(180deg);
     }
 
-/* ===== Foot: the account and the fold button ===== */
+/* ===== Foot: the account ===== */
 
 .sb-footer {
     display: flex;
@@ -235,20 +233,6 @@
     .sb-footer ::deep .rf-account {
         padding: 0;
         border-top: 0;
-    }
-
-.sb-footer-collapse {
-    color: #888888;
-}
-
-    .sb-footer-collapse:hover {
-        color: #ffb74d;
-    }
-
-    .sb-footer-collapse ::deep svg {
-        width: 16px;
-        height: 16px;
-        transition: transform .2s ease;
     }
 
 /* ===== Folded: the icons only, each name as a tooltip on the right; the head button becomes a tab on the edge ===== */
@@ -278,8 +262,7 @@
     box-shadow: 4px 0 12px rgba(0, 0, 0, .6);
 }
 
-    .rf-sidebar.is-collapsed .sb-toggle-btn ::deep svg,
-    .rf-sidebar.is-collapsed .sb-footer-collapse ::deep svg {
+    .rf-sidebar.is-collapsed .sb-toggle-btn ::deep svg {
         transform: rotate(180deg);
     }
 
@@ -333,8 +316,7 @@
 /* ===== Phones: a bar with the menu button, the entries under it when opened ===== */
 
 @media (max-width: 640.98px) {
-    .sb-toggle-btn,
-    .sb-footer-collapse {
+    .sb-toggle-btn {
         display: none;
     }
 
