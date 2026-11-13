@@ -58,6 +58,14 @@ namespace RealmForge.Api.Controllers
 				&& (m.Role == CampaignRole.Master || m.Role == CampaignRole.CoMaster)))
 			.Select(cc => cc.CharacterId);
 
+		//	Characters of the tokens a master gave me to play (ControlledBy) in a campaign of mine: I read them and keep their
+		//	play state, as at the table
+		private IQueryable<Guid> GivenToMe => _context.CampaignTokens
+			.Where(t => t.CharacterId != null && t.ControlledBy.Contains(UserId)
+				&& _context.CampaignMembers.Any(m => m.CampaignId == t.Map.CampaignId && m.UserId == UserId)
+				&& _context.CampaignCharacters.Any(cc => cc.CharacterId == t.CharacterId && cc.CampaignId == t.Map.CampaignId))
+			.Select(t => t.CharacterId!.Value);
+
 		//	Rule modules shared with the campaigns of a character and approved: active for it
 		private Task<List<Guid>> CampaignModulesAsync(Guid characterId) => _context.CampaignContents.AsNoTracking()
 			.Where(c => c.Status == CampaignContentStatus.Approved
@@ -87,7 +95,7 @@ namespace RealmForge.Api.Controllers
 			{
 				var owner = await _context.Characters.AsNoTracking()
 					.Where(c => c.Id == characterId && (c.OwnerId == UserId || _context.CharacterShares.Any(s => s.CharacterId == c.Id && s.UserId == UserId)
-						|| RunByMe.Contains(c.Id)))
+						|| RunByMe.Contains(c.Id) || GivenToMe.Contains(c.Id)))
 					.Select(c => c.OwnerId)
 					.FirstOrDefaultAsync();
 				if (owner is null || UserId.Length == 0)
@@ -247,7 +255,7 @@ namespace RealmForge.Api.Controllers
 		{
 			var character = await _context.Characters.AsNoTracking()
 				.FirstOrDefaultAsync(c => c.Id == id && (c.OwnerId == UserId || _context.CharacterShares.Any(s => s.CharacterId == c.Id && s.UserId == UserId)
-					|| RunByMe.Contains(c.Id)));
+					|| RunByMe.Contains(c.Id) || GivenToMe.Contains(c.Id)));
 			if (character is null)
 			{
 				return NotFound();
@@ -351,7 +359,7 @@ namespace RealmForge.Api.Controllers
 		[HttpPut("{id:guid}/sheet")]
 		public async Task<ActionResult<CharacterSavedDto>> UpdateSheet(Guid id, [FromBody] CharacterSheetState sheet)
 		{
-			var character = await _context.Characters.FirstOrDefaultAsync(c => c.Id == id && (c.OwnerId == UserId || RunByMe.Contains(c.Id)));
+			var character = await _context.Characters.FirstOrDefaultAsync(c => c.Id == id && (c.OwnerId == UserId || RunByMe.Contains(c.Id) || GivenToMe.Contains(c.Id)));
 			if (character is null)
 			{
 				return NotFound();
@@ -405,7 +413,7 @@ namespace RealmForge.Api.Controllers
 		{
 			var character = await _context.Characters.AsNoTracking()
 				.Where(c => c.Id == id && (c.OwnerId == UserId || _context.CharacterShares.Any(s => s.CharacterId == c.Id && s.UserId == UserId)
-					|| RunByMe.Contains(c.Id)))
+					|| RunByMe.Contains(c.Id) || GivenToMe.Contains(c.Id)))
 				.Select(c => new { c.Sheet, c.MaxHitPoints, c.UpdatedAt, c.UpdatedById })
 				.FirstOrDefaultAsync();
 			if (character is null)
