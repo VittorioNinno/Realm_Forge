@@ -120,11 +120,17 @@ public class MapGeometryTests
 	}
 
 	[Fact]
-	public void An_open_table_closes_on_its_own_after_a_long_session()
+	public void An_open_table_closes_on_its_own_only_when_nothing_happens_at_it()
 	{
 		var now = new DateTimeOffset(2026, 11, 12, 21, 0, 0, TimeSpan.Zero);
-		Assert.True(CampaignRules.IsTableOpen(now.AddHours(-1), now));
-		Assert.False(CampaignRules.IsTableOpen(now.AddHours(-CampaignRules.TableOpenHours), now));
-		Assert.False(CampaignRules.IsTableOpen(null, now));
+		var idle = CampaignRules.TableIdleHours;
+		Assert.True(CampaignRules.IsTableOpen(now.AddHours(-1), null, now));
+		//	A session of 20 hours with a token moved ten minutes ago stays open
+		Assert.True(CampaignRules.IsTableOpen(now.AddHours(-20), now.AddMinutes(-10), now));
+		//	Opened long ago with nothing done since (or only before the opening): closed
+		Assert.False(CampaignRules.IsTableOpen(now.AddHours(-idle), null, now));
+		Assert.False(CampaignRules.IsTableOpen(now.AddHours(-idle - 1), now.AddHours(-idle - 5), now));
+		Assert.False(CampaignRules.IsTableOpen(now.AddHours(-20), now.AddHours(-idle - 1), now));
+		Assert.False(CampaignRules.IsTableOpen(null, now, now));
 	}
 }
