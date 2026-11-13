@@ -257,7 +257,7 @@ namespace RealmForge.Client.Pages
 		//	Two light weapons in hand: one more attack as a bonus action, without the positive ability modifier to damage
 		private List<AttackInfo> OffHandAttacks(ComputedCharacter c)
 		{
-			var light = c.Attacks.Where(a => a.Item.WeaponProperties.Contains(WeaponProperty.Light) && a.Item.WeaponRange != WeaponRange.Ranged).ToList();
+			var light = c.Attacks.Where(a => a.InHand && a.Item.WeaponProperties.Contains(WeaponProperty.Light) && a.Item.WeaponRange != WeaponRange.Ranged).ToList();
 			return light.Count >= 2 ? light : new List<AttackInfo>();
 		}
 

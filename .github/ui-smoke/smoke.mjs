@@ -76,7 +76,7 @@ try {
 
   // Navigation: reference pages live in the collapsible "Compendio" group, opened on compendium routes
   const compendiumLinks = (await page.locator('[data-test=nav-compendium] a').allInnerTexts()).map((t) => t.trim());
-  if (compendiumLinks.join(',') !== 'Specie,Background,Talenti,Incantesimi,Classi,Equipaggiamento,Oggetti magici,Mostri,PNG,Immagini,Moduli di regole') throw new Error(`unexpected compendium links: ${compendiumLinks.join(',')}`);
+  if (compendiumLinks.join(',') !== 'Specie,Background,Talenti,Incantesimi,Classi,Equipaggiamento,Oggetti magici,Mostri,PNG,Moduli di regole') throw new Error(`unexpected compendium links: ${compendiumLinks.join(',')}`);
   // The rules glossary is a menu entry of its own, next to the compendium group
   const rulesLink = (await page.locator('[data-test=nav-rules] a').innerText()).trim();
   if (rulesLink !== 'Glossario') throw new Error(`unexpected glossary menu entry: ${rulesLink}`);
@@ -415,7 +415,7 @@ try {
     return { label: el.textContent.trim(), inset: Math.round(icon.left - el.getBoundingClientRect().left), left: Math.round(icon.left) };
   }));
   results.push(`INFO menu icons: ${iconGaps.map((g) => `${g.label}@${g.left}(+${g.inset})`).join(', ')}`);
-  if (iconGaps.length !== 17 || iconGaps.some((g) => g.inset < 8) || new Set(iconGaps.map((g) => g.left)).size !== 1) throw new Error('menu icons are not padded or not aligned');
+  if (iconGaps.length !== 16 || iconGaps.some((g) => g.inset < 8) || new Set(iconGaps.map((g) => g.left)).size !== 1) throw new Error('menu icons are not padded or not aligned');
   await page.locator('[data-test=nav-compendium] button').click();
   ok('"Compendio" menu group: Specie, Background, Talenti, Incantesimi, Classi, Equipaggiamento, and Glossario next to it; collapsed elsewhere and toggles on click; icons padded and aligned');
   await page.getByText('Non hai un account? Registrati').click();
@@ -1086,10 +1086,26 @@ try {
       tabs.attunement = (await page.locator('[data-test=sheet-attunement]').innerText()).trim();
       // Two hands: with a greatsword in hand the shield does not fit, and the sheet says why
       while (await page.locator('[data-test=sheet-item-equip].on').count() > 0) await page.locator('[data-test=sheet-item-equip].on').first().click();
-      const addItem = async (name) => {
+      // Adding from the compendium asks whether to buy it: given for free here
+      const addItem = async (name, buy = false) => {
         await page.locator('[data-test=sheet-item-search]').fill(name);
         await page.locator('[data-test=sheet-item-result]', { hasText: new RegExp(`^${name} ·`) }).first().click();
+        await page.locator('[data-test=sheet-purchase]').waitFor({ timeout: 5000 });
+        if (!buy) await page.locator('[data-test=sheet-purchase-buy]').uncheck();
+        await page.locator('[data-test=sheet-purchase-confirm]').click();
       };
+      // A torch bought from the purse (its price paid, change included), then used up
+      const purse = async () => {
+        const v = async (c) => Number(await page.locator(`[data-test=sheet-coin-${c}]`).inputValue());
+        return (await v('cp')) + 10 * (await v('sp')) + 50 * (await v('ep')) + 100 * (await v('gp')) + 1000 * (await v('pp'));
+      };
+      const purseBefore = await purse();
+      await addItem('Torcia', true);
+      tabs.torchPaid = purseBefore - await purse();
+      const torch = page.locator('[data-test=sheet-item]', { hasText: /^Torcia/ });
+      tabs.torchUse = await torch.locator('[data-test=sheet-item-use]').count();
+      await torch.locator('[data-test=sheet-item-use]').click();
+      tabs.torchLeft = await page.locator('[data-test=sheet-item]', { hasText: /^Torcia/ }).count();
       await addItem('Spadone');
       await addItem('Scudo');
       await page.locator('[data-test=sheet-item]', { hasText: /^Spadone/ }).locator('[data-test=sheet-item-equip]').click();
@@ -1143,14 +1159,14 @@ try {
   await page.locator('[data-test=monster-card]').filter({ has: page.locator('.rf-card-title', { hasText: /^Goblin$/ }) }).click();
   await page.locator('[data-test=monster-statblock]').waitFor({ timeout: 15000 });
   const goblinBlock = (await page.locator('[data-test=monster-statblock]').innerText()).replace(/\s+/g, ' ');
-  monsterUi.statblock = ['Classe Armatura 15 (armatura di cuoio, scudo)', 'Punti Ferita 7 (2d6)', 'Sfida 1/4 (50 PE)', 'Fuga agile'].filter((t) => goblinBlock.includes(t)).length;
+  monsterUi.statblock = ['Classe Armatura 15 (armatura di cuoio, scudo)', 'Punti Ferita 7 (2d6)', 'Sfida 1/4 50 PE', 'Fuga agile'].filter((t) => goblinBlock.includes(t)).length;
   await page.locator('[data-test=monster-variant]').click();
   await page.locator('[data-test=monster-form]').waitFor({ timeout: 15000 });
   await page.locator('[data-test=monster-form-hp]').fill('12');
   await page.locator('[data-test=monster-form-save]').click();
   await page.locator('[data-test=monster-detail-name]', { hasText: 'Goblin (variante)' }).waitFor({ timeout: 15000 });
   monsterUi.variantOf = (await page.locator('[data-test=monster-variant-of]').innerText()).trim();
-  monsterUi.variantHp = (await page.locator('[data-test=monster-statblock]').innerText()).includes('Punti Ferita 12');
+  monsterUi.variantHp = (await page.locator('[data-test=monster-statblock]').innerText()).replace(/\s+/g, ' ').includes('Punti Ferita 12');
   await page.locator('[data-test=monster-delete]').click();
   await page.locator('[data-test=monster-delete-yes]').click();
   await page.locator('[data-test=monster-detail]').waitFor({ state: 'detached', timeout: 15000 });
@@ -1421,25 +1437,24 @@ try {
   await page.waitForTimeout(300);
   await shot(page, 'phone-campaign-rolls', 'main');
   await page.setViewportSize({ width: 1280, height: 900 });
-  // Images: one uploaded on the images page and chosen as the goblin's picture (the goblin's tokens show it)
+  // Images: uploaded from the goblin's card in the compendium and chosen as its picture (the goblin's tokens show it);
+  // there is no images page of its own
   const art = await page.screenshot({ clip: { x: 0, y: 0, width: 320, height: 320 } });
-  await page.goto(new URL('/images', campaignUrl).toString());
-  await page.locator('[data-test=images-empty]').waitFor({ timeout: 30000 });
-  await page.locator('[data-test=images-upload] input[type=file]').setInputFiles({ name: 'goblin.png', mimeType: 'image/png', buffer: art });
-  await page.locator('[data-test=image-card]').waitFor({ timeout: 15000 });
-  await page.locator('[data-test=image-assign]').fill('Goblin');
-  await page.locator('[data-test=image-assign-result]').filter({ hasText: /^\s*Goblin\s*·/ }).first().click();
-  await page.locator('[data-test=image-use]').waitFor({ timeout: 15000 });
+  await page.goto(`${base}/monsters`);
+  await page.locator('[data-test=monster-group]').first().waitFor({ timeout: 60000 });
+  await page.locator('[data-test=monster-search]').fill('goblin');
+  await page.locator('[data-test=monster-card]').filter({ has: page.locator('.rf-card-title', { hasText: /^Goblin$/ }) }).click();
+  await page.locator('[data-test=monster-picture-pick]').click();
+  await page.locator('[data-test=image-upload] input[type=file]').setInputFiles({ name: 'goblin.png', mimeType: 'image/png', buffer: art });
+  await page.locator('[data-test=monster-picture] img').waitFor({ timeout: 15000 });
   const imagesUi = {
-    cards: await page.locator('[data-test=image-card]').count(),
-    name: await page.locator('[data-test=image-name]').inputValue(),
-    use: (await page.locator('[data-test=image-use]').innerText()).trim(),
-    loaded: await page.locator('[data-test=image-card] img').evaluate((img) => img.complete && img.naturalWidth > 0)
+    loaded: await page.locator('[data-test=monster-picture] img').evaluate((img) => img.complete && img.naturalWidth > 0),
+    nav: await page.locator('[data-test=nav-images]').count()
   };
-  await shot(page, 'images', 'main');
+  await shot(page, 'images', '[data-test=monster-detail]');
   results.push(`INFO images: ${JSON.stringify(imagesUi)}`);
-  if (imagesUi.cards !== 1 || imagesUi.name !== 'goblin' || imagesUi.use !== 'Goblin' || !imagesUi.loaded) throw new Error(`unexpected images: ${JSON.stringify(imagesUi)}`);
-  ok('images: a picture uploaded on the images page, served to the browser, chosen as the goblin\'s portrait');
+  if (!imagesUi.loaded || imagesUi.nav !== 0) throw new Error(`unexpected images: ${JSON.stringify(imagesUi)}`);
+  ok('images: a picture uploaded from the goblin\'s card and chosen as its portrait; no images page in the menu');
   await page.goto(campaignUrl);
   await page.locator('[data-test=campaign-title]').waitFor({ timeout: 30000 });
   // The virtual tabletop: a map from a picture, the character and a goblin on it, the character dragged two cells right,
@@ -1992,6 +2007,7 @@ try {
   if (Number(tabs.ringAc) !== Number(sheetAc) + 1 || !/1\/3/.test(tabs.attunement)) throw new Error(`Ring of Protection: AC ${tabs.ringAc} (was ${sheetAc}), ${tabs.attunement}`);
   ok('magic items: a Ring of Protection worn and attuned adds 1 to AC (attunement 1/3); spells: the long rest opens the changes, the spellbook writes a free spell');
   if (!/mani libere/.test(tabs.hands ?? '') || !/Spadone/.test(tabs.hands ?? '') || tabs.shieldOn !== 0) throw new Error(`two hands: "${tabs.hands}" shield on=${tabs.shieldOn}`);
+  if (tabs.torchPaid !== 1 || tabs.torchUse !== 1 || tabs.torchLeft !== 0) throw new Error(`buying and using: paid=${tabs.torchPaid} use=${tabs.torchUse} left=${tabs.torchLeft}`);
   ok('equipment: with a greatsword in hand the shield is refused, and the sheet explains the hands');
   if (!/1,5 metri/.test(tabs.overload ?? '') || !/capacità di carico/.test(tabs.overload ?? '') || tabs.overloadAfter !== 0) throw new Error(`overload notice: "${tabs.overload}" after=${tabs.overloadAfter}`);
   ok('inventory: over the carrying capacity a notice explains the speed of 1.5 m and the limits, and the warning goes once the load is back');

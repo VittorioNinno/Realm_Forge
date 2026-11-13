@@ -74,7 +74,10 @@ public sealed record SpellcastingInfo(
 ///	</summary>
 public sealed record InnateSpellInfo(string Source, ContextSpell Spell, AbilityScore Ability, int SaveDc, int AttackBonus);
 
-public sealed record AttackInfo(Guid InventoryId, ContextItem Item, int AttackBonus, string Damage, DamageType? DamageType, bool Proficient, string? VersatileDamage);
+//	InHand: the weapon is in hand now (false: carried ready, swapped with a bonus action); VersatileDamage only when the
+//	other hand is free
+public sealed record AttackInfo(Guid InventoryId, ContextItem Item, int AttackBonus, string Damage, DamageType? DamageType, bool Proficient, string? VersatileDamage,
+	bool InHand = true);
 
 public sealed class ComputedCharacter
 {

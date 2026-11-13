@@ -138,62 +138,49 @@
 @if (Selected is { } detail)
 {
     <div class="rf-modal-backdrop" @onclick="CloseDetail">
-        <div class="rf-modal-dialog" style="max-width: 780px;" @onclick:stopPropagation="true" data-test="monster-detail">
-            <div class="d-flex justify-content-between align-items-start mb-3 pb-2" style="border-bottom: 2px solid var(--rf-orange-primary);">
-                <div>
-                    <h2 class="h3 mb-2" style="color: var(--rf-orange-primary); font-family: var(--rf-font-display);" data-test="monster-detail-name">@detail.Text.Name</h2>
-                    <div class="d-flex flex-wrap gap-2">
-                        <span class="badge @(detail.Ruleset == RulesetVersion.Dnd5e_2024 ? "badge-edition-2024" : "badge-edition-2014")">@UiText.FormatRuleset(detail.Ruleset, Lang)</span>
-                        <ContentBadge IsBase="detail.IsOfficialSRD" Source="detail.Source" Visibility="detail.Visibility" ShowSource="true" />
-                    </div>
-                </div>
-                <button class="btn btn-sm btn-rf-outline" @onclick="CloseDetail"><Icon Name="close" /></button>
-            </div>
-
-            @if (detail.VariantOfId is { } originalId && detail.VariantOfName is not null)
-            {
-                <div class="small mb-2" data-test="monster-variant-of">
-                    <strong class="text-uppercase" style="color: var(--rf-text-muted); letter-spacing: 0.5px;">@UiText.MagicVariantOf(Lang):</strong>
-                    <a href="@($"{PagePath}?id={originalId}")">@detail.VariantOfName</a>
-                </div>
-            }
-            @if (!string.IsNullOrWhiteSpace(detail.Text.Alias))
-            {
-                <div class="small mb-2" data-test="monster-alias">
-                    <strong class="text-uppercase" style="color: var(--rf-text-muted); letter-spacing: 0.5px;">@UiText.MagicAlsoKnownAs(Lang):</strong>
-                    <span style="color: #ffffff;">@detail.Text.Alias</span>
-                </div>
-            }
-            @if (!detail.IsOfficialSRD && detail.AuthorName is not null)
-            {
-                <div class="small mb-2" style="color: var(--rf-text-muted);">@UiText.MonsterAuthor(detail.AuthorName, Lang)</div>
-            }
-            @if (!detail.IsOfficialSRD)
-            {
-                <ShareLink Visibility="detail.Visibility" CanEdit="detail.CanEdit" EntityId="detail.Id" Path="@($"{PagePath}?id={detail.Id}")" />
-            }
-
-            <div class="mb-3">
-                <MonsterPicture MonsterId="detail.Id" Portrait="@detail.Portrait" Name="@detail.Text.Name" Large="true" ShowPicker="true" />
-            </div>
-            <MonsterStatBlock Monster="detail" ShowName="false" />
-
-            <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 pt-3 mt-3" style="border-top: 1px solid var(--rf-border-light);">
-                <div class="d-flex flex-wrap gap-2">
-                    <ForgeAction>
-                        <button class="btn btn-sm btn-rf-orange" @onclick="() => OpenVariantAsync(detail)" data-test="monster-variant">@UiText.BtnCreateVariant(Lang)</button>
-                    </ForgeAction>
-                    <ForgeAction>
-                        <button class="btn btn-sm btn-rf-outline text-uppercase" title="@UiText.NpcFromMonsterHint(Lang)" @onclick="() => OpenNpcAsync(detail)" data-test="monster-make-npc"><Icon Name="npcs" /> @UiText.NpcFromMonster(Lang)</button>
-                    </ForgeAction>
-                    @if (detail.CanEdit)
+        <div class="rf-modal-dialog mm-dialog" @onclick:stopPropagation="true" data-test="monster-detail">
+            <MonsterSheetCard Monster="detail" OnClose="CloseDetail">
+                <Extra>
+                    @if (detail.VariantOfId is { } originalId && detail.VariantOfName is not null)
                     {
-                        <button class="btn btn-sm btn-rf-outline text-uppercase" @onclick="() => OpenEditAsync(detail)" data-test="monster-edit">@UiText.Edit(Lang)</button>
-                        <button class="btn btn-sm btn-rf-outline text-uppercase" style="border-color: #dc3545; color: #dc3545;" @onclick="() => deleting = detail" data-test="monster-delete">@UiText.Delete(Lang)</button>
+                        <div class="small" data-test="monster-variant-of">
+                            <strong class="text-uppercase" style="color: var(--rf-text-muted); letter-spacing: 0.5px;">@UiText.MagicVariantOf(Lang):</strong>
+                            <a href="@($"{PagePath}?id={originalId}")">@detail.VariantOfName</a>
+                        </div>
                     }
-                </div>
-                <button class="btn btn-rf-outline text-uppercase" style="letter-spacing: 1px;" @onclick="CloseDetail">@UiText.BtnClose(Lang)</button>
-            </div>
+                    @if (!string.IsNullOrWhiteSpace(detail.Text.Alias))
+                    {
+                        <div class="small" data-test="monster-alias">
+                            <strong class="text-uppercase" style="color: var(--rf-text-muted); letter-spacing: 0.5px;">@UiText.MagicAlsoKnownAs(Lang):</strong>
+                            <span style="color: #ffffff;">@detail.Text.Alias</span>
+                        </div>
+                    }
+                    @if (!detail.IsOfficialSRD && detail.AuthorName is not null)
+                    {
+                        <div class="small" style="color: var(--rf-text-muted);">@UiText.MonsterAuthor(detail.AuthorName, Lang)</div>
+                    }
+                    @if (!detail.IsOfficialSRD)
+                    {
+                        <ShareLink Visibility="detail.Visibility" CanEdit="detail.CanEdit" EntityId="detail.Id" Path="@($"{PagePath}?id={detail.Id}")" />
+                    }
+                </Extra>
+                <Buttons>
+                    <div class="d-flex flex-wrap gap-2">
+                        <ForgeAction>
+                            <button class="btn btn-sm btn-rf-orange" @onclick="() => OpenVariantAsync(detail)" data-test="monster-variant">@UiText.BtnCreateVariant(Lang)</button>
+                        </ForgeAction>
+                        <ForgeAction>
+                            <button class="btn btn-sm btn-rf-outline text-uppercase" title="@UiText.NpcFromMonsterHint(Lang)" @onclick="() => OpenNpcAsync(detail)" data-test="monster-make-npc"><Icon Name="npcs" /> @UiText.NpcFromMonster(Lang)</button>
+                        </ForgeAction>
+                        @if (detail.CanEdit)
+                        {
+                            <button class="btn btn-sm btn-rf-outline text-uppercase" @onclick="() => OpenEditAsync(detail)" data-test="monster-edit">@UiText.Edit(Lang)</button>
+                            <button class="btn btn-sm btn-rf-outline text-uppercase" style="border-color: #dc3545; color: #dc3545;" @onclick="() => deleting = detail" data-test="monster-delete">@UiText.Delete(Lang)</button>
+                        }
+                    </div>
+                    <button class="btn btn-sm btn-rf-outline text-uppercase" style="letter-spacing: 1px;" @onclick="CloseDetail">@UiText.BtnClose(Lang)</button>
+                </Buttons>
+            </MonsterSheetCard>
         </div>
     </div>
 }

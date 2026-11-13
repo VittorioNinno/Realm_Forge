@@ -216,6 +216,10 @@ public sealed class CharacterSheetState
 	public List<AbilityScore> ExtraSaves { get; set; } = new();
 	public string? OtherProficiencies { get; set; }
 	public string? FeatureNotes { get; set; }
+
+	//	Weapons in hand: the ranged ones (true) or the melee ones and the shield; the others are carried ready, swapped with
+	//	a bonus action (EquipmentRules)
+	public bool RangedReady { get; set; }
 }
 
 public sealed class InventoryItem
