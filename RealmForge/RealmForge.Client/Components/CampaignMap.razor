@@ -1318,8 +1318,8 @@ else
     {
         if (CharacterOf(t) is { } c && c.Character.MaxHitPoints > 0)
         {
-            var (now, max) = hpAfterRest.TryGetValue(c.Character.Id, out var rested) ? rested : (c.Character.CurrentHitPoints, c.Character.MaxHitPoints);
-            return new Life(Math.Clamp((double)now / Math.Max(1, max), 0, 1), $"{now}/{max}");
+            var (current, top) = hpAfterRest.TryGetValue(c.Character.Id, out var rested) ? rested : (c.Character.CurrentHitPoints, c.Character.MaxHitPoints);
+            return new Life(Math.Clamp((double)current / Math.Max(1, top), 0, 1), $"{current}/{top}");
         }
         if (RunsTheTable && t.Hp is { } hp && t.MaxHp is { } max && max > 0)
         {
