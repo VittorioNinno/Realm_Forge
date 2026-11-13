@@ -1166,7 +1166,7 @@ try {
   await page.locator('[data-test=monster-form-save]').click();
   await page.locator('[data-test=monster-detail-name]', { hasText: 'Goblin (variante)' }).waitFor({ timeout: 15000 });
   monsterUi.variantOf = (await page.locator('[data-test=monster-variant-of]').innerText()).trim();
-  monsterUi.variantHp = (await page.locator('[data-test=monster-statblock]').innerText()).includes('Punti Ferita 12');
+  monsterUi.variantHp = (await page.locator('[data-test=monster-statblock]').innerText()).replace(/\s+/g, ' ').includes('Punti Ferita 12');
   await page.locator('[data-test=monster-delete]').click();
   await page.locator('[data-test=monster-delete-yes]').click();
   await page.locator('[data-test=monster-detail]').waitFor({ state: 'detached', timeout: 15000 });
