@@ -37,14 +37,34 @@ namespace RealmForge.Shared.DTOs
 		PropType? PropType = null,
 		PropState PropState = PropState.Closed,
 		bool PlayersInteract = false,
-		Guid? ImageId = null);
+		Guid? ImageId = null,
+
+		//	Temporary hit points (to the masters and to whoever controls the token)
+		int? TempHp = null,
+
+		//	The account controls it (its character, or given by a master): hit points, ring and sheet are theirs too
+		bool Controlled = false);
 
 	///	<summary>
 	///	The fight on a map: the encounter, the round, whose turn it is and the initiative order (what the players see of it).
 	///	</summary>
-	public record MapCombatDto(Guid EncounterId, string Name, int Round, Guid? CurrentId, List<MapCombatantDto> Order);
+	public record MapCombatDto(Guid EncounterId, string Name, int Round, Guid? CurrentId, List<MapCombatantDto> Order, bool ShowHealth = false);
 
-	public record MapCombatantDto(Guid Id, string Name, CombatantKind Kind, int? Initiative, Guid? TokenId, bool Hidden);
+	public record MapCombatantDto(Guid Id, string Name, CombatantKind Kind, int? Initiative, Guid? TokenId, bool Hidden, int InitiativeBonus = 0);
+
+	public class CombatHealthDto
+	{
+		public bool Show { get; set; }
+	}
+
+	//	A box of the map (pixels of the picture): what is erased in it
+	public class EraseAreaDto
+	{
+		public double X { get; set; }
+		public double Y { get; set; }
+		public double Width { get; set; }
+		public double Height { get; set; }
+	}
 
 	public class StartCombatDto
 	{
@@ -66,6 +86,10 @@ namespace RealmForge.Shared.DTOs
 	{
 		public List<string> Conditions { get; set; } = new();
 		public int? Hp { get; set; }
+		public int? TempHp { get; set; }
+
+		//	A new maximum (a token outside a fight)
+		public int? MaxHp { get; set; }
 	}
 
 	///	<summary>

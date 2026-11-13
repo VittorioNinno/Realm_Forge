@@ -85,6 +85,12 @@ namespace RealmForge.Client.Localization
 			return local.Date == DateTimeOffset.Now.Date ? $"{local.ToString("HH':'mm", System.Globalization.CultureInfo.InvariantCulture)}" : $"{FormatDate(local, lang)} {local.ToString("HH':'mm", System.Globalization.CultureInfo.InvariantCulture)}";
 		}
 		public static string DiceConsole(LanguageCode lang) => T(lang, "Console di lancio", "Roller");
+		public static string DiceHiddenShort(LanguageCode lang) => T(lang, "Nascosto", "Hidden");
+		public static string DiceResetShort(LanguageCode lang) => T(lang, "Azzera", "Reset");
+		public static string DiceSynced(LanguageCode lang) => T(lang, "Sincronizzato in tempo reale", "Synced in real time");
+		public static string BtnClearAll(LanguageCode lang) => T(lang, "Svuota tutto", "Clear all");
+		public static string CardMinimize(LanguageCode lang) => T(lang, "Riduci", "Minimize");
+		public static string CardExpand(LanguageCode lang) => T(lang, "Espandi", "Expand");
 		public static string DiceReset(LanguageCode lang) => T(lang, "Azzera selezione", "Clear selection");
 		public static string DiceVisibility(LanguageCode lang) => T(lang, "Visibilità del tiro", "Roll visibility");
 		public static string DicePublic(LanguageCode lang) => T(lang, "Pubblico", "Public");

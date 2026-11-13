@@ -1113,7 +1113,10 @@ jobs:
           lt_close_player=$(code -X DELETE "$api/api/campaigns/$ss_cp/table" -H "Authorization: Bearer $A")
           lt_close=$(code -X DELETE "$api/api/campaigns/$ss_cp/table" -H "Authorization: Bearer $B")
           lt_after=$(curl -s "$api/api/campaigns/live" -H "Authorization: Bearer $A" | jq -c "[.[] | select(.campaignId == \"$ss_cp\")] | length")
-          echo "::notice title=maps::live table player opens=$lt_player master=$lt_open player live=$lt_player_live detail=$lt_detail list=$lt_list close=$lt_close_player/$lt_close after=$lt_after"
+          # Closing the table hides its maps from the players again; the master shows the map once more for what follows
+          lt_hidden=$(code "$api/api/campaigns/$ss_cp/maps/$mp2/state" -H "Authorization: Bearer $A")
+          code -X POST "$api/api/campaigns/$ss_cp/maps/$mp2/display" -H "Authorization: Bearer $B" > /dev/null
+          echo "::notice title=maps::live table player opens=$lt_player master=$lt_open player live=$lt_player_live detail=$lt_detail list=$lt_list close=$lt_close_player/$lt_close after=$lt_after hidden=$lt_hidden"
           echo "::notice title=maps::shapes player=$sh_player player text=$sh_player_note bad=$sh_bad player sees=$sh_player_seen erase=$sh_player_erase/$sh_player_note_erase move=$sh_player_move/$sh_player_move_own/$sh_master_move/$sh_move_off master sees=$sh_master_sees clear=$sh_player_clear master after=$sh_master_seen player after=$sh_player_left"
           # Fog of war: the marker under the fog disappears for the player, comes back once revealed; pings and the view
           fog_player=$(code -X PUT "$api/api/campaigns/$ss_cp/maps/$mp2/fog" $json -H "Authorization: Bearer $A" -d '{"enabled":true,"fog":[]}')
@@ -1138,6 +1141,8 @@ jobs:
           blade=$(curl -s "$api/api/campaigns/$ss_cp/maps/$mp2/state" -H "Authorization: Bearer $B" | jq -r '.tokens[] | select(.label == "Lame rotanti") | .id')
           fight_state_player=$(code -X PUT "$api/api/campaigns/$ss_cp/maps/$mp2/tokens/$blade/state" $json -H "Authorization: Bearer $A" -d '{"conditions":["prone"],"hp":4}')
           fight_state=$(code -X PUT "$api/api/campaigns/$ss_cp/maps/$mp2/tokens/$blade/state" $json -H "Authorization: Bearer $B" -d '{"conditions":["prone","flying"],"hp":4}')
+          fight_begin_player=$(code -X POST "$api/api/campaigns/$ss_cp/maps/$mp2/combat/begin" -H "Authorization: Bearer $A")
+          fight_begin=$(code -X POST "$api/api/campaigns/$ss_cp/maps/$mp2/combat/begin" -H "Authorization: Bearer $B")
           fight_next=$(code -X POST "$api/api/campaigns/$ss_cp/maps/$mp2/combat/next" -H "Authorization: Bearer $B")
           fight_after=$(curl -s "$api/api/campaigns/$ss_cp/maps/$mp2/state" -H "Authorization: Bearer $A" | jq -c '{blades: [.tokens[] | select(.label == "Lame rotanti") | {health, conditions}], current: ([.combat.order[] | select(.id == $c.combat.currentId)] | length)}' --argjson c "$(curl -s "$api/api/campaigns/$ss_cp/maps/$mp2/state" -H "Authorization: Bearer $B")")
           fight_master=$(curl -s "$api/api/campaigns/$ss_cp/maps/$mp2/state" -H "Authorization: Bearer $B" | jq -c '{round: .combat.round, blades: [.tokens[] | select(.label == "Lame rotanti") | {hp, maxHp}]}')
@@ -1149,7 +1154,7 @@ jobs:
           ctl_before=$(code -X POST "$api/api/campaigns/$ss_cp/maps/$mp2/tokens/$ctl_tree/move" $json -H "Authorization: Bearer $A" -d '{"x":8,"y":6}')
           ctl_bad=$(code -X PUT "$api/api/campaigns/$ss_cp/maps/$mp2/tokens/$ctl_tree" $json -H "Authorization: Bearer $B" -d '{"label":"Albero","kind":4,"x":9,"y":6,"size":1,"controlledBy":["nobody"]}')
           ctl_assign=$(code -X PUT "$api/api/campaigns/$ss_cp/maps/$mp2/tokens/$ctl_tree" $json -H "Authorization: Bearer $B" -d "{\"label\":\"Albero\",\"kind\":4,\"x\":9,\"y\":6,\"size\":1,\"maxHp\":12,\"hp\":5,\"controlledBy\":[\"$ctl_user\"]}")
-          ctl_seen=$(curl -s "$api/api/campaigns/$ss_cp/maps/$mp2/state" -H "Authorization: Bearer $A" | jq -c '[.tokens[] | select(.label == "Albero") | {canMove, health, controlledBy}]')
+          ctl_seen=$(curl -s "$api/api/campaigns/$ss_cp/maps/$mp2/state" -H "Authorization: Bearer $A" | jq -c '[.tokens[] | select(.label == "Albero") | {canMove, hp, maxHp, controlled, controlledBy}]')
           ctl_master=$(curl -s "$api/api/campaigns/$ss_cp/maps/$mp2/state" -H "Authorization: Bearer $B" | jq -c '[.tokens[] | select(.label == "Albero") | {hp, maxHp, n: (.controlledBy | length)}]')
           lp_since=$(curl -s "$api/api/campaigns/$ss_cp/maps/$mp2/state" -H "Authorization: Bearer $A" | jq -r .updatedAt)
           lp_out=$(mktemp)
@@ -1205,7 +1210,7 @@ jobs:
           img_gone=$(code "$api/api/images/$img/file")
           echo "::notice title=maps::images bad=$img_bad file=$img_file cache=$img_cache other=$img_other choose=$img_choose steal=$img_steal choices=$img_choices token=$img_token seen=$img_seen rename=$img_rename list=$img_list delete=$img_delete after=$img_after gone=$img_gone"
           echo "::notice title=maps::control before=$ctl_before bad=$ctl_bad assign=$ctl_assign seen=$ctl_seen master=$ctl_master after=$ctl_after | long poll=$lp_result fast=$lp_fast"
-          echo "::notice title=maps::fight player=$fight_player master=$fight seen=$fight_seen | state player=$fight_state_player master=$fight_state next=$fight_next after=$fight_after master=$fight_master | end=$fight_end done=$fight_done"
+          echo "::notice title=maps::fight player=$fight_player master=$fight seen=$fight_seen | state player=$fight_state_player master=$fight_state begin player=$fight_begin_player master=$fight_begin next=$fight_next after=$fight_after master=$fight_master | end=$fight_end done=$fight_done"
           code -X DELETE "$api/api/campaigns/$ss_cp/maps/$mp2" -H "Authorization: Bearer $B" > /dev/null
           mp_delete=$(code -X DELETE "$api/api/campaigns/$ss_cp/maps/$mp" -H "Authorization: Bearer $B")
           echo "::notice title=maps::player create=$mp_player_create hidden list=$mp_hidden_list outside=$mp_outside | player state=$mp_player_state move=$mp_player_move | master move=$mp_master_move state=$mp_master_state | delete=$mp_delete"
@@ -1258,9 +1263,11 @@ jobs:
           sscheck "unknown grid" "$mp_bad_grid" "400"
           sscheck "player starts a fight" "$fight_player" "403"
           sscheck "master starts a fight" "$fight" "204"
-          sscheck "fight seen by the player" "$fight_seen" '{"order":["Lame rotanti"],"round":1,"blades":[{"health":1,"hp":null}]}'
+          sscheck "fight seen by the player (initiative phase)" "$fight_seen" '{"order":["Lame rotanti"],"round":0,"blades":[{"health":1,"hp":null}]}'
           sscheck "player hurts a token" "$fight_state_player" "403"
           sscheck "master hurts a token" "$fight_state" "204"
+          sscheck "player starts the first round" "$fight_begin_player" "403"
+          sscheck "master starts the first round" "$fight_begin" "204"
           sscheck "next turn" "$fight_next" "204"
           sscheck "hurt token seen by the player" "$fight_after" '{"blades":[{"health":3,"conditions":["prone"]}],"current":0}'
           sscheck "hurt token seen by the master" "$fight_master" '{"round":1,"blades":[{"hp":4,"maxHp":10}]}'
@@ -1269,7 +1276,7 @@ jobs:
           sscheck "player moves a marker not assigned" "$ctl_before" "403"
           sscheck "marker assigned to a stranger" "$ctl_bad" "400"
           sscheck "master assigns a marker" "$ctl_assign" "204"
-          sscheck "assigned marker seen by the player" "$ctl_seen" '[{"canMove":true,"health":3,"controlledBy":null}]'
+          sscheck "assigned marker seen by the player (its hit points too)" "$ctl_seen" '[{"canMove":true,"hp":5,"maxHp":12,"controlled":true,"controlledBy":null}]'
           sscheck "assigned marker seen by the master" "$ctl_master" '[{"hp":5,"maxHp":12,"n":1}]'
           sscheck "player moves the assigned marker" "$ctl_after" "204"
           sscheck "table told of the move" "$lp_result" '[{"x":8,"y":6}]'
@@ -1296,8 +1303,8 @@ jobs:
           sscheck "door seen by the player" "$door_seen" '[{"propType":1,"propState":1,"playersInteract":false,"canMove":false}]'
           sscheck "quick fight" "$qf" "204"
           sscheck "second fight on the same map" "$qf_again" "400"
-          sscheck "quick fight order" "$qf_order" '[{"name":"Albero","rolled":true}]'
-          sscheck "player sets another initiative" "$qf_init_player" "403"
+          sscheck "quick fight order (nobody rolled yet)" "$qf_order" '[{"name":"Albero","rolled":false}]'
+          sscheck "player sets the initiative of the token given to them" "$qf_init_player" "204"
           sscheck "master sets an initiative" "$qf_init" "204"
           sscheck "initiative seen by the player" "$qf_seen" '[15]'
           sscheck "token leaves the fight" "$qf_leave" "204"
@@ -1336,6 +1343,7 @@ jobs:
           sscheck "player closes the table" "$lt_close_player" "403"
           sscheck "master closes the table" "$lt_close" "204"
           sscheck "table closed" "$lt_after" "0"
+          sscheck "map hidden from the players when the table closes" "$lt_hidden" "404"
           sscheck "player duplicates a map" "$mp_dup_player" "403"
           sscheck "copy of a map" "$mp_dup_state" '{"name":"Foresta 2","gridType":1,"shown":false,"tokens":1}'
           sscheck "reveal by a player" "$rl_reveal_player" "403"

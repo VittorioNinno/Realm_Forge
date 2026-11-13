@@ -185,6 +185,14 @@ namespace RealmForge.Api.Controllers
 			}
 			campaign.TableOpenedAt = null;
 			campaign.TableOpenedById = null;
+
+			//	The players leave the table: the map shown goes back to the masters
+			var now = DateTimeOffset.UtcNow;
+			foreach (var shown in await _context.CampaignMaps.Where(m => m.CampaignId == id && m.Shown).ToListAsync())
+			{
+				shown.Shown = false;
+				shown.UpdatedAt = now;
+			}
 			await _context.SaveChangesAsync();
 			return NoContent();
 		}

@@ -255,7 +255,9 @@ namespace RealmForge.Api.Controllers
 				{
 					return Problem(statusCode: StatusCodes.Status400BadRequest, title: "The character is not at this table.");
 				}
-				if (!CampaignRules.CanEditCharacter(role, character.OwnerId == UserId))
+				//	...or by the player the master gave its token to
+				if (!CampaignRules.CanEditCharacter(role, character.OwnerId == UserId)
+					&& !await _context.CampaignTokens.AnyAsync(t => t.CharacterId == characterId && t.Map.CampaignId == campaignId && t.ControlledBy.Contains(UserId)))
 				{
 					return Forbid();
 				}
