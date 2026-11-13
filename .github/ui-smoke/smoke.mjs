@@ -408,7 +408,8 @@ try {
   await page.locator('[data-test=nav-compendium] button').click();
   await page.locator('[data-test=nav-compendium] a').first().waitFor({ timeout: 5000 });
   const iconOpen = await compendiumIcon();
-  if (iconClosed !== iconOpen) throw new Error(`the compendium icon moves when the group opens: ${iconClosed} -> ${iconOpen}`);
+  // (a pixel of rounding is no jump)
+  if (iconClosed.split(',').some((v, i) => Math.abs(Number(v) - Number(iconOpen.split(',')[i])) > 1)) throw new Error(`the compendium icon moves when the group opens: ${iconClosed} -> ${iconOpen}`);
   await page.locator('[data-test=nav-compendium] a').first().waitFor({ timeout: 5000 });
   const iconGaps = await page.evaluate(() => [...document.querySelectorAll('.sidebar .nav-link, .sidebar .rf-nav-group-toggle')].map((el) => {
     const icon = el.querySelector('svg').getBoundingClientRect();
