@@ -74,6 +74,42 @@ namespace RealmForge.Client.Localization
 			WizardStep.Details => T(lang, "Allineamento e dettagli", "Alignment and details"),
 			_ => T(lang, "Riepilogo", "Summary")
 		};
+		public static string RecapTitle(LanguageCode lang) => T(lang, "Resoconto eroe", "Hero recap");
+		public static string RecapNoName(LanguageCode lang) => T(lang, "Eroe senza nome", "Nameless hero");
+		public static string RecapToChoose(RulesetVersion ruleset, LanguageCode lang) => Is2014(ruleset)
+			? T(lang, "Razza, classe e background da scegliere", "Race, class and background to choose")
+			: T(lang, "Classe, specie e background da scegliere", "Class, species and background to choose");
+		public static string RecapLevel(int level, LanguageCode lang) => T(lang, $"Livello {level}", $"Level {level}");
+		public static string RecapAdvancement(AdvancementType type, LanguageCode lang) => type == AdvancementType.Milestone
+			? T(lang, "Avanzamento narrativo", "Story advancement")
+			: T(lang, "Avanzamento: PE", "Advancement: XP");
+		public static string RecapArmor(LanguageCode lang) => T(lang, "CA", "AC");
+		public static string RecapHitPoints(LanguageCode lang) => T(lang, "PF", "HP");
+		public static string RecapInitiative(LanguageCode lang) => T(lang, "Iniz", "Init");
+		public static string RecapProficiency(LanguageCode lang) => T(lang, "Comp", "Prof");
+		public static string RecapSteps(LanguageCode lang) => T(lang, "Riepilogo passaggi", "Steps");
+		public static string RecapNow(LanguageCode lang) => T(lang, "In corso", "Now");
+		public static string RecapEdit(LanguageCode lang) => T(lang, "Modifica", "Edit");
+		public static string RecapSaves(LanguageCode lang) => T(lang, "TS", "Saves");
+		public static string RecapDarkvision(LanguageCode lang) => T(lang, "Scurovisione", "Darkvision");
+		public static string RecapItems(int count, LanguageCode lang) => T(lang, count == 1 ? "1 oggetto" : $"{count} oggetti", count == 1 ? "1 item" : $"{count} items");
+		public static string RecapSpells(int count, LanguageCode lang) => count == 0 ? T(lang, "Nessun incantesimo", "No spells") : T(lang, count == 1 ? "1 incantesimo" : $"{count} incantesimi", count == 1 ? "1 spell" : $"{count} spells");
+		public static string RecapReady(LanguageCode lang) => T(lang, "Pronto da forgiare", "Ready to forge");
+		public static string RecapNotReady(LanguageCode lang) => T(lang, "Ci sono scelte da completare", "Some choices are missing");
+		public static string RecapStepHint(WizardStep step, RulesetVersion ruleset, LanguageCode lang) => step switch
+		{
+			WizardStep.Identity => T(lang, "Edizione, nome, livello", "Edition, name, level"),
+			WizardStep.Class => T(lang, "Classe di partenza e abilità", "Starting class and skills"),
+			WizardStep.Background => Is2014(ruleset) ? T(lang, "Competenze e privilegio", "Proficiencies and feature") : T(lang, "Incrementi e talento di origine", "Increases and origin feat"),
+			WizardStep.Species => T(lang, "Taglia, velocità e tratti", "Size, speed and traits"),
+			WizardStep.Abilities => T(lang, "Serie standard, acquisto a punti o tiri", "Standard array, point buy or rolls"),
+			WizardStep.Progression => T(lang, "Livelli, sottoclassi e scelte di classe", "Levels, subclasses and class choices"),
+			WizardStep.Languages => T(lang, "Lingue conosciute", "Known languages"),
+			WizardStep.Equipment => T(lang, "Dotazione, oro e cosa indossare", "Gear, gold and what to wear"),
+			WizardStep.Spells => T(lang, "Trucchetti e incantesimi", "Cantrips and spells"),
+			WizardStep.Details => T(lang, "Allineamento, tratti e storia", "Alignment, traits and story"),
+			_ => T(lang, "Controllo e creazione della scheda", "Check and create the sheet")
+		};
 		public static string WizardStepOf(int step, int total, LanguageCode lang) => T(lang, $"Passo {step} di {total} · ", $"Step {step} of {total} · ");
 		public static string BtnWizardNext(LanguageCode lang) => T(lang, "Avanti", "Next");
 		public static string BtnWizardBack(LanguageCode lang) => T(lang, "Indietro", "Back");
@@ -209,6 +245,70 @@ namespace RealmForge.Client.Localization
 		public static string LabelExpertise(int count, LanguageCode lang) => T(lang, $"Maestria (scegli {count} abilità con competenza)", $"Expertise (choose {count} proficient skills)");
 		public static string LabelFightingStyle(LanguageCode lang) => T(lang, "Stile di combattimento", "Fighting Style");
 		public static string LabelOrder(string? classKey, LanguageCode lang) => classKey == "druid" ? T(lang, "Ordine primordiale", "Primal Order") : T(lang, "Ordine divino", "Divine Order");
+		public static string LabelQuantity(LanguageCode lang) => T(lang, "Quantità", "Quantity");
+		public static string RollAutoFail(string causes, LanguageCode lang) => T(lang, $"Fallito in automatico ({causes})", $"Failed automatically ({causes})");
+		public static string RollConditions(string causes, int penalty, LanguageCode lang) => penalty > 0
+			? T(lang, $"{causes}: −{penalty}", $"{causes}: −{penalty}")
+			: T(lang, $"per {causes}", $"from {causes}");
+		public static string WeaponReserve(LanguageCode lang) => T(lang, "Scorta", "Ready");
+		public static string WeaponReserveHint(LanguageCode lang) => T(lang, "Equipaggiata ma non in mano: si impugna con un'azione bonus", "Equipped but not in hand: drawn with a bonus action");
+		public static string BtnSwapWeapons(LanguageCode lang) => T(lang, "Impugna (azione bonus)", "Draw (bonus action)");
+		public static string SwapDone(LanguageCode lang) => T(lang, "Armi scambiate: azione bonus usata", "Weapons swapped: bonus action used");
+		public static string AmmoNone(string weapon, LanguageCode lang) => T(lang, $"Nessuna munizione per «{weapon}»: aggiungila all'inventario prima di tirare.", $"No ammunition for “{weapon}”: add some to the inventory before shooting.");
+		public static string AmmoLast(string ammo, LanguageCode lang) => T(lang, $"Ultimo colpo: «{ammo}» finite.", $"Last shot: no “{ammo}” left.");
+		public static string AmmoLow(string ammo, int left, LanguageCode lang) => T(lang, $"Restano {left} «{ammo}».", $"{left} “{ammo}” left.");
+		public static string ItemUsed(string item, int left, LanguageCode lang) => left == 0
+			? T(lang, $"Usato: {item} (finito)", $"Used: {item} (none left)")
+			: T(lang, $"Usato: {item} (ne restano {left})", $"Used: {item} ({left} left)");
+		public static string FeatureHealed(int amount, LanguageCode lang) => T(lang, $"+{amount} PF", $"+{amount} HP");
+		public static string PurchaseListPrice(string price, LanguageCode lang) => T(lang, $"Prezzo di listino: {price} l'uno", $"List price: {price} each");
+		public static string PurchaseBuy(LanguageCode lang) => T(lang, "Acquista (paga dalle monete)", "Buy (pay from the coins)");
+		public static string PurchasePrice(LanguageCode lang) => T(lang, "Prezzo totale (mo)", "Total price (gp)");
+		public static string PurchaseConfirmBuy(LanguageCode lang) => T(lang, "Acquista", "Buy");
+		public static string PurchaseConfirmAdd(LanguageCode lang) => T(lang, "Aggiungi", "Add");
+		public static string PurchaseNoMoney(LanguageCode lang) => T(lang, "Monete insufficienti per questo prezzo.", "Not enough coins for this price.");
+		public static string PurchaseDone(string item, int quantity, string price, LanguageCode lang) => T(lang, $"Acquistato: {item} ×{quantity} per {price} mo", $"Bought: {item} ×{quantity} for {price} gp");
+		public static string SpellClassLists(LanguageCode lang) => T(lang, "Liste delle classi:", "Class lists:");
+		public static string SpellFootNote(LanguageCode lang) => T(lang, "Dettaglio dell'incantesimo", "Spell details");
+		public static string HintEquipStart(LanguageCode lang) => T(lang, "Scegli cosa indossare e impugnare: una sola armatura, uno scudo e due mani (un'arma a due mani le occupa entrambe). Il resto va nello zaino.", "Choose what to wear and hold: one armour, one shield and two hands (a two-handed weapon takes both). The rest goes in the backpack.");
+		public static string LabelHands(LanguageCode lang) => T(lang, "Mani", "Hands");
+		public static string BtnWear(LanguageCode lang) => T(lang, "Indossa", "Wear");
+		public static string BtnHold(LanguageCode lang) => T(lang, "Impugna", "Hold");
+		public static string MasteryChosen(int have, int max, LanguageCode lang) => T(lang, $"Scelte: {have} / {max}", $"Chosen: {have} / {max}");
+		public static string MasteryAll(LanguageCode lang) => T(lang, "Tutte", "All");
+		public static string MasteryGroupShort(WeaponCategory category, WeaponRange range, LanguageCode lang) => (category, range) switch
+		{
+			(WeaponCategory.Simple, WeaponRange.Melee) => T(lang, "Semplici mischia", "Simple melee"),
+			(WeaponCategory.Simple, _) => T(lang, "Semplici distanza", "Simple ranged"),
+			(_, WeaponRange.Melee) => T(lang, "Guerra mischia", "Martial melee"),
+			_ => T(lang, "Guerra distanza", "Martial ranged")
+		};
+		public static string MasteryRangeShort(WeaponRange range, LanguageCode lang) => range == WeaponRange.Melee ? T(lang, "Mischia", "Melee") : T(lang, "Distanza", "Ranged");
+		public static string MasteryShowCompare(LanguageCode lang) => T(lang, "Compara armi (A/B)", "Compare weapons (A/B)");
+		public static string MasteryHideCompare(LanguageCode lang) => T(lang, "Nascondi comparatore", "Hide the comparator");
+		public static string MasteryComparator(LanguageCode lang) => T(lang, "Comparatore armi", "Weapon comparator");
+		public static string MasterySlot(string slot, LanguageCode lang) => T(lang, $"Metti nel comparatore come arma {slot}", $"Put in the comparator as weapon {slot}");
+		public static string MasteryWeaponSlot(string slot, LanguageCode lang) => T(lang, $"Arma {slot}", $"Weapon {slot}");
+		public static string MasteryDetails(LanguageCode lang) => T(lang, "Dettagli", "Details");
+		public static string MasterySwap(LanguageCode lang) => T(lang, "Inverti A/B", "Swap A/B");
+		public static string MasteryDamage(LanguageCode lang) => T(lang, "Danni", "Damage");
+		public static string MasteryAverage(string average, LanguageCode lang) => T(lang, $"Media {average}", $"Average {average}");
+		public static string MasteryCategory(LanguageCode lang) => T(lang, "Categoria", "Category");
+		public static string MasteryHands(LanguageCode lang) => T(lang, "Impugnatura", "Grip");
+		public static string MasteryReach(LanguageCode lang) => T(lang, "Portata / gittata", "Reach / range");
+		public static string MasteryWeight(LanguageCode lang) => T(lang, "Peso", "Weight");
+		public static string MasteryCost(LanguageCode lang) => T(lang, "Costo", "Cost");
+		public static string MasteryOneHand(LanguageCode lang) => T(lang, "Una mano", "One hand");
+		public static string MasteryTwoHands(LanguageCode lang) => T(lang, "Due mani", "Two hands");
+		public static string MasteryVersatile(LanguageCode lang) => T(lang, "Una mano (versatile)", "One hand (versatile)");
+		public static string MasteryProperties(string side, LanguageCode lang) => T(lang, $"Proprietà {side}", $"Properties {side}");
+		public static string MasteryPropertiesLabel(LanguageCode lang) => T(lang, "Proprietà:", "Properties:");
+		public static string MasteryRuleCompare(LanguageCode lang) => T(lang, "Confronto maestria", "Mastery compared");
+		public static string MasteryPick(string name, LanguageCode lang) => T(lang, $"+ Scegli {name}", $"+ Choose {name}");
+		public static string MasteryPicked(string name, LanguageCode lang) => T(lang, $"✓ {name} scelta", $"✓ {name} chosen");
+		public static string MasteryTag(LanguageCode lang) => T(lang, "Maestria", "Mastery");
+		public static string MasteryFootNote(LanguageCode lang) => T(lang, "Dettaglio dell'arma", "Weapon details");
+		public static string MasteryOpenCard(LanguageCode lang) => T(lang, "Apri la scheda dell'arma", "Open the weapon's page");
 		public static string LabelWeaponMastery(int count, LanguageCode lang) => T(lang, $"Maestria nelle armi (scegline {count})", $"Weapon Mastery (choose {count})");
 		public static string LabelStyleCantrips(LanguageCode lang) => T(lang, "Trucchetti dello stile", "Style cantrips");
 		public static string MulticlassNeeds(string abilities, LanguageCode lang) => T(lang, $"Richiede 13 in {abilities}", $"Requires 13 in {abilities}");

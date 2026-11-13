@@ -644,6 +644,7 @@ namespace RealmForge.Infrastructure.Persistence
 				entity.Property(e => e.Label).IsRequired().HasMaxLength(100);
 				entity.Property(e => e.Color).IsRequired().HasMaxLength(9);
 				entity.Property(e => e.ControlledBy).HasDefaultValueSql("'{}'");
+				entity.Property(e => e.Gear).IsRequired().HasColumnType("jsonb").HasDefaultValue("{}");
 				entity.HasIndex(e => e.MapId);
 			});
 

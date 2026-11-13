@@ -928,7 +928,8 @@ public static class CharacterCalculator
 		}
 
 		total += result.ModuleSum(RuleEffectKind.MaxHitPoints) + result.Level * result.ModuleSum(RuleEffectKind.MaxHitPointsPerLevel);
-		result.MaxHitPoints = Math.Max(1, total + MagicItemRules.Sum(input.Sheet, MagicEffectKind.MaxHitPoints) + input.Sheet.MaxHitPointsAdjustment);
+		result.MaxHitPoints = ConditionRules.MaxHitPoints(result.Ruleset, input.Sheet,
+			Math.Max(1, total + MagicItemRules.Sum(input.Sheet, MagicEffectKind.MaxHitPoints) + input.Sheet.MaxHitPointsAdjustment));
 
 		foreach (var group in result.Plan.GroupBy(p => p.HitDie).OrderByDescending(g => g.Key))
 		{
@@ -1505,7 +1506,8 @@ public static class CharacterCalculator
 		{
 			speed -= 10;
 		}
-		result.Speed = speed + MagicItemRules.Sum(input.Sheet, MagicEffectKind.Speed) + result.ModuleSum(RuleEffectKind.Speed) + input.Sheet.SpeedAdjustment;
+		result.Speed = ConditionRules.Speed(result.Ruleset, input.Sheet,
+			speed + MagicItemRules.Sum(input.Sheet, MagicEffectKind.Speed) + result.ModuleSum(RuleEffectKind.Speed) + input.Sheet.SpeedAdjustment);
 
 		//	Climb and Swim Speed of Roving, Climb Speed of the 2024 Athlete, Draconic Flight
 		if (roving)
@@ -1548,9 +1550,14 @@ public static class CharacterCalculator
 		//	Dueling: +2 damage with a one-handed melee weapon and no other weapon; Thrown Weapon Fighting: +2 thrown
 		var dueling = result.Classes.Any(c => c.Build.FightingStyle == "dueling") || result.Feats.Any(f => f.Feat.Key == "dueling");
 		var thrown = result.Feats.Any(f => f.Feat.Key == "thrown-weapon-fighting");
-		var weaponCount = equipped.Count(e => e.Item.Category == EquipmentCategory.Weapon && e.Item.DamageDice is not null);
-		foreach (var (entry, item) in equipped.Where(e => e.Item.Category == EquipmentCategory.Weapon && e.Item.DamageDice is not null))
+		//	One set in hand (melee weapons and shield, or the ranged weapons), the other carried ready
+		var worn = equipped.Select(e => (ContextItem?)e.Item).ToList();
+		var inHand = equipped.Where(e => EquipmentRules.Hands(e.Item) > 0 && EquipmentRules.InHand(e.Item, worn, input.Sheet.RangedReady)).ToList();
+		var weaponCount = inHand.Count(e => e.Item.Category == EquipmentCategory.Weapon && e.Item.DamageDice is not null);
+		foreach (var (entry, item) in equipped.Where(e => e.Item.Category == EquipmentCategory.Weapon && e.Item.DamageDice is not null)
+			.OrderByDescending(e => EquipmentRules.InHand(e.Item, worn, input.Sheet.RangedReady)))
 		{
+			var held = EquipmentRules.InHand(item, worn, input.Sheet.RangedReady);
 			var str = result.Modifier(AbilityScore.Strength);
 			var ranged = item.WeaponRange == WeaponRange.Ranged;
 			var mod = item.WeaponProperties.Contains(WeaponProperty.Finesse) ? Math.Max(str, dex) : ranged ? dex : str;
@@ -1560,8 +1567,10 @@ public static class CharacterCalculator
 			var styleDamage = (dueling && !ranged && weaponCount == 1 && !item.WeaponProperties.Contains(WeaponProperty.TwoHanded) ? 2 : 0)
 				+ (thrown && item.WeaponProperties.Contains(WeaponProperty.Thrown) ? 2 : 0);
 			var damage = $"{item.DamageDice}{FormatBonus(mod + magic + styleDamage)}";
-			var versatile = item.VersatileDamageDice is { } v ? $"{v}{FormatBonus(mod + magic)}" : null;
-			result.Attacks.Add(new AttackInfo(entry.Id, item, bonus, damage, item.DamageType, proficient, versatile));
+			//	Two hands on a versatile weapon: nothing else in hand
+			var bothHands = held && inHand.All(e => e.Entry == entry);
+			var versatile = item.VersatileDamageDice is { } v && bothHands ? $"{v}{FormatBonus(mod + magic)}" : null;
+			result.Attacks.Add(new AttackInfo(entry.Id, item, bonus, damage, item.DamageType, proficient, versatile, held));
 		}
 	}
 

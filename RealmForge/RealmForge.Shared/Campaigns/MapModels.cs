@@ -42,7 +42,10 @@ public enum PropType
 	Chest = 4,
 	Lever = 5,
 	Trap = 6,
-	Secret = 7
+	Secret = 7,
+
+	//	Something lying on the ground (a dropped weapon): taken by a token next to it
+	Item = 8
 }
 
 public enum PropState
@@ -67,6 +70,7 @@ public static class PropRules
 		PropType.Chest => new[] { PropState.Closed, PropState.Open, PropState.Locked, PropState.Empty, PropState.Broken },
 		PropType.Lever => new[] { PropState.Closed, PropState.Open, PropState.Broken },
 		PropType.Trap => new[] { PropState.Closed, PropState.Open, PropState.Broken },
+		PropType.Item => new[] { PropState.Closed },
 		PropType.Window => new[] { PropState.Closed, PropState.Open, PropState.Ajar, PropState.Locked, PropState.Broken },
 		_ => new[] { PropState.Closed, PropState.Open, PropState.Ajar, PropState.Locked, PropState.Barred, PropState.Broken }
 	};

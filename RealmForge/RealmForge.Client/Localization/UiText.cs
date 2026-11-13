@@ -439,6 +439,9 @@ namespace RealmForge.Client.Localization
 		public static string LabelRuleset(LanguageCode lang) =>
 			lang == LanguageCode.It ? "Regolamento / Edizione" : "Ruleset / Edition";
 
+		public static string SidebarCollapse(LanguageCode lang) => lang == LanguageCode.It ? "Riduci il menu" : "Collapse the menu";
+		public static string SidebarExpand(LanguageCode lang) => lang == LanguageCode.It ? "Espandi il menu" : "Expand the menu";
+
 		public static string FormatRuleset(RulesetVersion ruleset, LanguageCode lang) => (ruleset, lang) switch
 		{
 			(RulesetVersion.Dnd5e_2014, LanguageCode.It) => "5e (2014)",
