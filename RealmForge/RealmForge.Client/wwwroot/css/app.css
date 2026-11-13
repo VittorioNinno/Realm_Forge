@@ -13519,3 +13519,27 @@ textarea.rf-form-control {
     .rf-vtt-table .rf-vtt-panel-tabs > button {
         flex: none;
     }
+
+/* Rests from the quick sheet */
+.rf-qs-rests {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+}
+
+.rf-qs-rest {
+    height: 32px;
+    border-radius: 8px;
+    border: 1px solid #2e2e2e;
+    background-color: #161616;
+    color: #e4e4e7;
+    font-size: .7rem;
+    font-weight: 800;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+}
+
+    .rf-qs-rest:hover:not(:disabled) {
+        border-color: var(--rf-orange-primary);
+        color: #ffb74d;
+    }

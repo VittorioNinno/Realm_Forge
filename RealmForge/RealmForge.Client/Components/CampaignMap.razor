@@ -223,6 +223,7 @@
                 }
             </aside>
         </div>
+        @RestDialog
     </div>
 }
 else
@@ -1317,8 +1318,8 @@ else
     {
         if (CharacterOf(t) is { } c && c.Character.MaxHitPoints > 0)
         {
-            var ch = c.Character;
-            return new Life(Math.Clamp((double)ch.CurrentHitPoints / ch.MaxHitPoints, 0, 1), $"{ch.CurrentHitPoints}/{ch.MaxHitPoints}");
+            var (now, max) = hpAfterRest.TryGetValue(c.Character.Id, out var rested) ? rested : (c.Character.CurrentHitPoints, c.Character.MaxHitPoints);
+            return new Life(Math.Clamp((double)now / Math.Max(1, max), 0, 1), $"{now}/{max}");
         }
         if (RunsTheTable && t.Hp is { } hp && t.MaxHp is { } max && max > 0)
         {
@@ -1386,6 +1387,13 @@ else
                             <span>@v.Bottom</span>
                         </div>
                     }
+                </div>
+            }
+            @if (CanRest(t))
+            {
+                <div class="rf-qs-rests">
+                    <button type="button" class="rf-qs-rest" disabled="@restBusy" @onclick="@(() => OpenRestAsync(t, false))" data-test="map-token-short-rest">@UiText.BtnShortRest(Lang)</button>
+                    <button type="button" class="rf-qs-rest" disabled="@restBusy" @onclick="@(() => OpenRestAsync(t, true))" data-test="map-token-long-rest">@UiText.BtnLongRest(Lang)</button>
                 </div>
             }
             <div class="rf-qs-abilities">
@@ -1463,6 +1471,178 @@ else
                 </section>
             }
         </section>
+    };
+
+    // ===== Rests from the quick sheet: the same as the sheet's, saved on the character =====
+
+    //	Hit points after a rest taken here, until the campaign reads the characters again
+    private readonly Dictionary<Guid, (int Now, int Max)> hpAfterRest = new();
+
+    private sealed class RestState
+    {
+        public required Guid TokenId { get; init; }
+        public required bool Long { get; init; }
+        public required CharacterDto Character { get; init; }
+        public required RealmForge.Shared.Characters.ComputedCharacter Computed { get; init; }
+        public List<string> Log { get; } = new();
+    }
+
+    private RestState? rest;
+    private bool restBusy;
+
+    //	The owner of the character, or a master of the campaign (the sheets of the table are theirs to keep)
+    private bool CanRest(MapTokenDto t) => CharacterOf(t) is { } c && (c.IsMine || (RunsTheTable && c.CanEdit));
+
+    private int RestMax => Math.Max(1, rest?.Computed.MaxHitPoints ?? 1);
+    private int RestHp => rest is null ? 0 : Math.Clamp(rest.Character.Sheet.CurrentHitPoints ?? RestMax, 0, RestMax);
+
+    //	The sheet is read again first, so the rest starts from what it holds now (damage taken in a fight included)
+    private async Task OpenRestAsync(MapTokenDto t, bool longRest)
+    {
+        if (t.CharacterId is not { } id)
+        {
+            return;
+        }
+        restBusy = true;
+        var loaded = await ComputeCharacterAsync(id);
+        restBusy = false;
+        if (loaded is null)
+        {
+            message = UiText.MapSaveFailed(Lang);
+            return;
+        }
+        var (character, computed) = loaded.Value;
+        rest = new RestState { TokenId = t.Id, Long = longRest, Character = character, Computed = computed };
+    }
+
+    private async Task SpendRestDieAsync(int die)
+    {
+        if (rest is null || RealmForge.Shared.Characters.CharacterRests.SpendHitDie(rest.Character.Sheet, rest.Computed, die, size => Random.Shared.Next(1, size + 1)) is not { } spent)
+        {
+            return;
+        }
+        var con = rest.Computed.Modifier(AbilityScore.Constitution);
+        rest.Log.Add(UiText.HitDieSpentLine(die, spent.Roll, con, spent.Healed, Lang));
+        if (tray is not null)
+        {
+            await tray.ShowAsync(new DiceRollResult(UiText.BtnSpendHitDie(die, Lang), new List<DieFace> { new(die, spent.Roll) }, con, spent.Healed));
+        }
+        await SaveRestAsync(close: false);
+    }
+
+    private async Task FinishRestAsync()
+    {
+        if (rest is null)
+        {
+            return;
+        }
+        var sheet = rest.Character.Sheet;
+        RealmForge.Shared.Characters.CharacterRests.RechargeItems(sheet, rest.Long, (_, dice) => RollTotal(dice));
+        if (rest.Long)
+        {
+            RealmForge.Shared.Characters.CharacterRests.LongRest(sheet, rest.Computed, rest.Character.Ruleset);
+        }
+        else
+        {
+            RealmForge.Shared.Characters.CharacterRests.FinishShortRest(sheet, RealmForge.Shared.Characters.CharacterResources.For(rest.Computed, Lang));
+        }
+        await SaveRestAsync(close: true);
+    }
+
+    private async Task SaveRestAsync(bool close)
+    {
+        if (rest is null)
+        {
+            return;
+        }
+        restBusy = true;
+        var saved = await CharacterService.SaveSheetAsync(rest.Character.Id, rest.Character.Sheet);
+        restBusy = false;
+        if (saved is null)
+        {
+            message = UiText.MapSaveFailed(Lang);
+            return;
+        }
+        var max = Math.Max(1, saved.MaxHitPoints);
+        var now = saved.Vitals?.CurrentHitPoints ?? rest.Character.Sheet.CurrentHitPoints ?? max;
+        hpAfterRest[rest.Character.Id] = (Math.Clamp(now, 0, max), max);
+        //	The numbers of the quick sheet are worked out again from the sheet just saved
+        stats.Remove($"c:{rest.Character.Id}");
+        if (tokens.FirstOrDefault(x => x.Id == rest.TokenId) is { } token)
+        {
+            _ = LoadStatsAsync(token);
+        }
+        if (close)
+        {
+            rest = null;
+        }
+    }
+
+    //	"1d6+1": the charges an item gets back
+    private static int? RollTotal(string formula)
+    {
+        var match = System.Text.RegularExpressions.Regex.Match(formula.Replace('−', '-').Replace(" ", string.Empty), @"^(\d+)d(\d+)([+-]\d+)?$");
+        if (!match.Success)
+        {
+            return null;
+        }
+        var count = Math.Min(20, int.Parse(match.Groups[1].Value, CultureInfo.InvariantCulture));
+        var size = int.Parse(match.Groups[2].Value, CultureInfo.InvariantCulture);
+        var bonus = match.Groups[3].Success ? int.Parse(match.Groups[3].Value, CultureInfo.InvariantCulture) : 0;
+        return Math.Max(0, Enumerable.Range(0, count).Sum(_ => Random.Shared.Next(1, size + 1)) + bonus);
+    }
+
+    private RenderFragment RestDialog => __builder =>
+    {
+        if (rest is null)
+        {
+            return;
+        }
+        <div class="rf-modal-backdrop" @onclick="() => rest = null">
+            <div class="rf-modal-dialog" style="max-width: 460px;" @onclick:stopPropagation="true" data-test="vtt-rest-dialog">
+                <h2 class="h5 mb-2" style="color: var(--rf-orange-primary);">@(rest.Long ? UiText.BtnLongRest(Lang) : UiText.BtnShortRest(Lang)) · @rest.Character.Name</h2>
+                @if (rest.Long)
+                {
+                    <p style="color: var(--rf-text-secondary);">@UiText.LongRestText(rest.Character.Ruleset, Lang)</p>
+                }
+                else
+                {
+                    <p class="small" style="color: var(--rf-text-secondary);">@UiText.ShortRestIntro(Lang)</p>
+                    <div class="rf-rest-hp">
+                        <span class="rf-mini-label">@UiText.SheetHitPoints(Lang)</span>
+                        <strong data-test="vtt-rest-hp">@RestHp / @RestMax</strong>
+                    </div>
+                    @if (RestHp >= RestMax)
+                    {
+                        <div class="small mb-2" style="color: var(--rf-text-muted);">@UiText.ShortRestFull(Lang)</div>
+                    }
+                    <div class="rf-rest-dice">
+                        @foreach (var (die, count) in rest.Computed.HitDice)
+                        {
+                            var d = die;
+                            var left = count - RealmForge.Shared.Characters.CharacterRests.HitDiceSpent(rest.Character.Sheet, d);
+                            <div class="rf-rest-die">
+                                <span>@UiText.HitDiceLeft(d, left, count, Lang)</span>
+                                <button type="button" class="rf-slot-use" disabled="@(left <= 0 || RestHp >= RestMax || restBusy)" @onclick="() => SpendRestDieAsync(d)" data-test="vtt-rest-spend">@UiText.BtnSpendOne(d, Lang)</button>
+                            </div>
+                        }
+                    </div>
+                    @if (rest.Log.Count > 0)
+                    {
+                        <ul class="rf-rest-log">
+                            @foreach (var line in rest.Log)
+                            {
+                                <li>@line</li>
+                            }
+                        </ul>
+                    }
+                }
+                <div class="d-flex justify-content-end gap-2">
+                    <button type="button" class="btn btn-rf-outline" @onclick="() => rest = null">@UiText.BtnCancel(Lang)</button>
+                    <button type="button" class="btn btn-rf-orange" disabled="@restBusy" @onclick="FinishRestAsync" data-test="vtt-rest-done">@UiText.BtnConfirm(Lang)</button>
+                </div>
+            </div>
+        </div>
     };
 
     //	The tokens on the map (masters): who they are, where; a click brings the view to them
@@ -2334,7 +2514,8 @@ else
 
     private static string D20(int bonus) => bonus == 0 ? "1d20" : $"1d20{Bonus(bonus)}";
 
-    private async Task<TokenStats?> CharacterStatsAsync(Guid id)
+    //	A character read now, with its numbers worked out as the sheet does
+    private async Task<(CharacterDto Character, RealmForge.Shared.Characters.ComputedCharacter Computed)?> ComputeCharacterAsync(Guid id)
     {
         var character = await CharacterService.GetCharacterAsync(id);
         if (character is null)
@@ -2359,6 +2540,17 @@ else
             Sheet = character.Sheet,
             CampaignModuleIds = character.CampaignModuleIds ?? new()
         }, context);
+        return (character, computed);
+    }
+
+    private async Task<TokenStats?> CharacterStatsAsync(Guid id)
+    {
+        var loaded = await ComputeCharacterAsync(id);
+        if (loaded is null)
+        {
+            return null;
+        }
+        var (character, computed) = loaded.Value;
         var rolls = new List<TokenRoll> { new(UiText.RollInitiative(Lang), Bonus(computed.Initiative), D20(computed.Initiative), false) };
         var attacks = new List<SheetLine>();
         foreach (var attack in computed.Attacks.Take(4))
