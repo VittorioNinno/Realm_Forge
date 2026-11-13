@@ -16256,3 +16256,200 @@ textarea.rf-form-control {
         padding-right: 16px;
     }
 }
+
+/* ===== Fighting on the map: aiming, casting, items on the ground, loot ===== */
+
+.rf-vtt-combatbar {
+    border-color: rgba(255, 140, 0, .55);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, .5);
+}
+
+.rf-vtt-combatbar-what {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: .85rem;
+    color: var(--rf-text-primary);
+}
+
+    .rf-vtt-combatbar-what .rf-icon,
+    .rf-vtt-combatbar-what svg {
+        color: var(--rf-orange-primary);
+    }
+
+    .rf-vtt-combatbar-what span {
+        font-size: .75rem;
+        color: var(--rf-text-secondary);
+    }
+
+.rf-vtt-combatbar-select {
+    width: auto;
+    min-height: 32px;
+    padding: 0 8px;
+    font-size: .8rem;
+}
+
+.rf-vtt-stage.tool-cast,
+.rf-vtt-stage.tool-cast .rf-vtt-token {
+    cursor: crosshair;
+}
+
+.rf-vtt-token.aim-in,
+.rf-vtt-token.aim-far {
+    cursor: crosshair;
+}
+
+    .rf-vtt-token.aim-in .rf-vtt-token-face {
+        box-shadow: 0 0 0 3px #22c55e, 0 0 16px rgba(34, 197, 94, .7);
+    }
+
+    .rf-vtt-token.aim-far .rf-vtt-token-face {
+        box-shadow: 0 0 0 3px #f59e0b, 0 0 16px rgba(245, 158, 11, .6);
+    }
+
+    .rf-vtt-token.aim-out,
+    .rf-vtt-token.aim-none {
+        opacity: .45;
+    }
+
+    .rf-vtt-token.aim-self .rf-vtt-token-face {
+        box-shadow: 0 0 0 3px var(--rf-orange-primary);
+    }
+
+.rf-vtt-token.item .rf-vtt-token-face {
+    transform: scale(.7);
+    border-style: dashed;
+}
+
+.rf-qs-attack-damage.aim.active {
+    border-color: var(--rf-orange-primary);
+    background-color: var(--rf-orange-dark);
+    color: var(--rf-orange-primary);
+}
+
+button.rf-qs-spell {
+    cursor: pointer;
+}
+
+    button.rf-qs-spell:hover,
+    button.rf-qs-spell.active {
+        border-color: var(--rf-orange-primary);
+        color: var(--rf-orange-hover);
+    }
+
+.rf-qs-cast {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-top: 8px;
+    padding: 8px;
+    border-radius: 8px;
+    border: 1px solid rgba(255, 140, 0, .45);
+    background-color: rgba(255, 140, 0, .06);
+}
+
+.rf-qs-cast-title {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    font-size: .85rem;
+}
+
+.rf-qs-cast-slots {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.rf-qs-cast-slot {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    min-height: 32px;
+    padding: 0 8px;
+    border-radius: 8px;
+    border: 1px solid #2c2c2c;
+    background-color: #1a1a1a;
+    color: var(--rf-text-primary);
+    font-size: .75rem;
+}
+
+    .rf-qs-cast-slot:hover:not(:disabled) {
+        border-color: var(--rf-orange-primary);
+        color: var(--rf-orange-hover);
+    }
+
+    .rf-qs-cast-slot.pact {
+        border-color: rgba(186, 104, 200, .5);
+    }
+
+    .rf-qs-cast-slot small {
+        color: var(--rf-text-muted);
+    }
+
+.rf-qs-loot {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin: 0 0 8px;
+    padding: 0;
+    list-style: none;
+}
+
+    .rf-qs-loot li {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) 72px 32px;
+        align-items: center;
+        gap: 8px;
+        font-size: .8rem;
+    }
+
+.rf-qs-loot-add {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 72px 40px;
+    gap: 8px;
+    margin-bottom: 8px;
+}
+
+.rf-qs-loot-coins {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 8px;
+    font-size: .8rem;
+    color: var(--rf-text-secondary);
+}
+
+    .rf-qs-loot-coins input {
+        width: 96px;
+    }
+
+.rf-hud-take {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 8px 0 0;
+}
+
+.rf-hud-take-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+    .rf-hud-take-list li {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+        font-size: .8rem;
+    }
+
+.rf-hud-take-cost {
+    color: var(--rf-text-muted);
+}
