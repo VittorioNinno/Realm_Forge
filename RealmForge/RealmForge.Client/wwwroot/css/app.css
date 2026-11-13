@@ -13497,3 +13497,14 @@ textarea.rf-form-control {
         margin: 8px 8px 0 56px;
     }
 }
+
+/* The map keeps clear of the floating tools (left) and of the dock (bottom) */
+.rf-vtt-table .rf-vtt-stage {
+    padding: 16px 16px 80px 80px;
+}
+
+@media (max-width: 767.98px) {
+    .rf-vtt-table .rf-vtt-stage {
+        padding: 8px 8px 72px 56px;
+    }
+}
