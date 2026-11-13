@@ -1781,7 +1781,7 @@ try {
   combatUi.goblinConditions = (await goblin1.locator('[data-test=map-token-conditions]').textContent()).trim();
   combatUi.goblinRing = await goblin1.locator('[data-test=map-token-hp-ring] circle').getAttribute('stroke-dasharray');
   await shot(page, 'vtt-combat', null);
-  await page.locator('.rf-vtt-card-close').click();
+  if (await page.locator('.rf-vtt-card-close').count()) await page.locator('.rf-vtt-card-close').click();
   await page.locator('[data-test=vtt-end-combat]').click();
   await page.locator('[data-test=vtt-init-idle]').waitFor({ timeout: 15000 });
   const moving = await page.locator('[data-test=vtt] [data-test=map-token][data-label="Eroe di prova"]').boundingBox();
