@@ -24,28 +24,14 @@
     <div class="rf-vtt-table" @ref="tableElement" data-test="vtt">
         <DiceTray @ref="tray" AutoHideMs="1800" ShowHistory="false" />
         <header class="rf-vtt-top">
-            <div class="rf-vtt-top-left">
-                <a href="@BackHref" class="rf-vtt-back" data-test="vtt-back"><Icon Name="left" /> <span>@UiText.VttBack(Lang)</span></a>
-                @if (maps is { Count: > 0 })
-                {
-                    <div class="rf-vtt-map-pill" data-test="map-select">
-                        <span class="rf-vtt-map-dot @(map?.Shown == true ? "shown" : null)"></span>
-                        <RfSelect TValue="Guid" Value="selectedId" ValueChanged="SelectAsync" Options="MapOptions" />
-                    </div>
-                }
-            </div>
+            <a href="@BackHref" class="rf-vtt-back" data-test="vtt-back"><Icon Name="left" /> <span>@UiText.VttBack(Lang)</span></a>
+            @if (maps is { Count: > 0 })
+            {
+                <div class="rf-vtt-select" data-test="map-select">
+                    <RfSelect TValue="Guid" Value="selectedId" ValueChanged="SelectAsync" Options="MapOptions" />
+                </div>
+            }
             <div class="rf-vtt-top-actions">
-                @if (RunsTheTable && map is not null)
-                {
-                    @if (map.Shown)
-                    {
-                        <span class="rf-vtt-status" data-test="vtt-displayed"><span class="rf-vtt-status-dot"></span> @UiText.VttDisplayed(Lang)</span>
-                    }
-                    else
-                    {
-                        <button type="button" class="btn btn-sm btn-rf-outline" @onclick="DisplayAsync" data-test="vtt-display"><Icon Name="eye" /> @UiText.VttDisplay(Lang)</button>
-                    }
-                }
                 @if (RunsTheTable)
                 {
                     @if (liveTable is not null)
@@ -58,35 +44,45 @@
                         <button type="button" class="btn btn-sm btn-rf-orange" disabled="@tableBusy" title="@UiText.TableOpenHint(Lang)" @onclick="OpenTableAsync" data-test="vtt-table-start"><Icon Name="broadcast" /> @UiText.TableOpen(Lang)</button>
                     }
                 }
-                <button type="button" class="rf-vtt-top-icon" title="@UiText.VttFullscreen(Lang)" aria-label="@UiText.VttFullscreen(Lang)" @onclick="FullscreenAsync" data-test="vtt-fullscreen"><Icon Name="fullscreen" /></button>
+                @if (RunsTheTable && map is not null)
+                {
+                    @if (map.Shown)
+                    {
+                        <span class="rf-vtt-live" data-test="vtt-displayed"><Icon Name="eye" /> @UiText.VttDisplayed(Lang)</span>
+                    }
+                    else
+                    {
+                        <button type="button" class="btn btn-sm btn-rf-orange" @onclick="DisplayAsync" data-test="vtt-display"><Icon Name="eye" /> @UiText.VttDisplay(Lang)</button>
+                    }
+                }
             </div>
         </header>
         <div class="rf-vtt-body">
-            <div class="rf-vtt-viewport @(combat is not null ? "has-combat" : null)">
-                @Board
-
-                @* The tools, floating over the map on the left *@
-                <nav class="rf-vtt-tools" aria-label="@UiText.VttTitle(Lang)">
-                    <button type="button" class="@ToolButton("select")" title="@UiText.VttToolSelect(Lang)" aria-label="@UiText.VttToolSelect(Lang)" @onclick="@(() => SetToolAsync("select"))" data-test="vtt-tool-select"><Icon Name="cursor" /></button>
-                    <button type="button" class="@ToolButton("pan")" title="@UiText.VttToolPan(Lang)" aria-label="@UiText.VttToolPan(Lang)" @onclick="@(() => SetToolAsync("pan"))" data-test="vtt-tool-pan"><Icon Name="arrows-move" /></button>
-                    <span class="rf-vtt-tools-sep"></span>
-                    <button type="button" class="@ToolButton("ruler")" title="@UiText.VttToolRuler(Lang)" aria-label="@UiText.VttToolRuler(Lang)" @onclick="@(() => SetToolAsync("ruler"))" data-test="vtt-tool-ruler"><Icon Name="rulers" /></button>
-                    <button type="button" class="@ToolButton("area")" title="@UiText.VttToolArea(Lang)" aria-label="@UiText.VttToolArea(Lang)" @onclick="@(() => SetToolAsync("area"))" data-test="vtt-tool-area"><Icon Name="bullseye" /></button>
-                    @if (RunsTheTable)
-                    {
-                        <button type="button" class="@ToolButton("fog")" title="@UiText.VttToolFog(Lang)" aria-label="@UiText.VttToolFog(Lang)" @onclick="@(() => SetToolAsync("fog"))" data-test="vtt-tool-fog"><Icon Name="eye-slash" /></button>
-                    }
-                    <span class="rf-vtt-tools-sep"></span>
-                    <button type="button" class="@ToolButton("draw")" title="@UiText.VttToolDraw(Lang)" aria-label="@UiText.VttToolDraw(Lang)" @onclick="@(() => SetToolAsync("draw"))" data-test="vtt-tool-draw"><Icon Name="edit" /></button>
-                    <button type="button" class="@ToolButton("text")" title="@UiText.VttToolText(Lang)" aria-label="@UiText.VttToolText(Lang)" @onclick="@(() => SetToolAsync("text"))" data-test="vtt-tool-text"><Icon Name="type" /></button>
-                    <button type="button" class="@ToolButton("erase")" title="@UiText.VttToolErase(Lang)" aria-label="@UiText.VttToolErase(Lang)" @onclick="@(() => SetToolAsync("erase"))" data-test="vtt-tool-erase"><Icon Name="eraser" /></button>
-                </nav>
-
-                @* The fight: round, the order with hit points, the turn (masters) *@
-                @if (combat is not null)
+            <nav class="rf-vtt-tools" aria-label="@UiText.VttTitle(Lang)">
+                <button type="button" class="@ToolButton("select")" title="@UiText.VttToolSelect(Lang)" aria-label="@UiText.VttToolSelect(Lang)" @onclick="@(() => SetToolAsync("select"))" data-test="vtt-tool-select"><Icon Name="cursor" /></button>
+                <button type="button" class="@ToolButton("pan")" title="@UiText.VttToolPan(Lang)" aria-label="@UiText.VttToolPan(Lang)" @onclick="@(() => SetToolAsync("pan"))" data-test="vtt-tool-pan"><Icon Name="arrows-move" /></button>
+                <button type="button" class="@ToolButton("ruler")" title="@UiText.VttToolRuler(Lang)" aria-label="@UiText.VttToolRuler(Lang)" @onclick="@(() => SetToolAsync("ruler"))" data-test="vtt-tool-ruler"><Icon Name="rulers" /></button>
+                <button type="button" class="@ToolButton("area")" title="@UiText.VttToolArea(Lang)" aria-label="@UiText.VttToolArea(Lang)" @onclick="@(() => SetToolAsync("area"))" data-test="vtt-tool-area"><Icon Name="bullseye" /></button>
+                <button type="button" class="@ToolButton("draw")" title="@UiText.VttToolDraw(Lang)" aria-label="@UiText.VttToolDraw(Lang)" @onclick="@(() => SetToolAsync("draw"))" data-test="vtt-tool-draw"><Icon Name="edit" /></button>
+                <button type="button" class="@ToolButton("text")" title="@UiText.VttToolText(Lang)" aria-label="@UiText.VttToolText(Lang)" @onclick="@(() => SetToolAsync("text"))" data-test="vtt-tool-text"><Icon Name="type" /></button>
+                <button type="button" class="@ToolButton("erase")" title="@UiText.VttToolErase(Lang)" aria-label="@UiText.VttToolErase(Lang)" @onclick="@(() => SetToolAsync("erase"))" data-test="vtt-tool-erase"><Icon Name="eraser" /></button>
+                <span class="rf-vtt-tools-sep"></span>
+                <button type="button" class="rf-vtt-tool @(panel == "initiative" ? "active" : null)" title="@UiText.VttInitiative(Lang)" aria-label="@UiText.VttInitiative(Lang)" @onclick="@(() => TogglePanel("initiative"))" data-test="vtt-tool-initiative"><Icon Name="shield" /></button>
+                <button type="button" class="rf-vtt-tool @(panel == "dice" ? "active" : null)" title="@UiText.VttDice(Lang)" aria-label="@UiText.VttDice(Lang)" @onclick="@(() => TogglePanel("dice"))" data-test="vtt-tool-dice"><Icon Name="dice" /></button>
+                @if (RunsTheTable)
                 {
-                    <section class="rf-vtt-initiative" data-test="vtt-initiative">
-                        <span class="rf-vtt-round" data-test="vtt-round"><span class="rf-vtt-round-kicker">@UiText.VttRoundWord(Lang)</span> <strong>@combat.Round</strong></span>
+                    <button type="button" class="@ToolButton("fog")" title="@UiText.VttToolFog(Lang)" aria-label="@UiText.VttToolFog(Lang)" @onclick="@(() => SetToolAsync("fog"))" data-test="vtt-tool-fog"><Icon Name="eye-slash" /></button>
+                    <span class="rf-vtt-tools-sep"></span>
+                    <button type="button" class="rf-vtt-tool @(panel == "tokens" ? "active" : null)" title="@UiText.VttToolTokens(Lang)" aria-label="@UiText.VttToolTokens(Lang)" @onclick="@(() => TogglePanel("tokens"))" data-test="vtt-tool-tokens"><Icon Name="people" /></button>
+                }
+                <span class="rf-vtt-tools-sep"></span>
+                <button type="button" class="rf-vtt-tool" title="@UiText.VttFullscreen(Lang)" aria-label="@UiText.VttFullscreen(Lang)" @onclick="FullscreenAsync" data-test="vtt-fullscreen"><Icon Name="fullscreen" /></button>
+            </nav>
+            <div class="rf-vtt-viewport @(combat is not null ? "has-combat" : null)">
+                @if (Table && combat is not null)
+                {
+                    <div class="rf-vtt-initiative" data-test="vtt-initiative">
+                        <span class="rf-vtt-round" data-test="vtt-round">@UiText.VttRound(combat.Round, Lang)</span>
                         <div class="rf-vtt-order">
                             @foreach (var c in combat.Order)
                             {
@@ -122,106 +118,68 @@
                         </div>
                         @if (RunsTheTable)
                         {
-                            <div class="rf-vtt-initiative-actions">
-                                <button type="button" class="rf-vtt-next" disabled="@busy" @onclick="NextTurnAsync" data-test="vtt-next-turn"><span>@UiText.VttNextTurn(Lang)</span> <Icon Name="right" /></button>
-                                <button type="button" class="rf-vtt-end" disabled="@busy" @onclick="EndCombatAsync" title="@UiText.VttEndCombat(Lang)" aria-label="@UiText.VttEndCombat(Lang)" data-test="vtt-end-combat"><Icon Name="close" /></button>
-                            </div>
+                            <button type="button" class="btn btn-sm btn-rf-orange" disabled="@busy" @onclick="NextTurnAsync" data-test="vtt-next-turn">@UiText.VttNextTurn(Lang)</button>
+                            <button type="button" class="btn btn-sm btn-rf-outline" disabled="@busy" @onclick="EndCombatAsync" data-test="vtt-end-combat">@UiText.VttEndCombat(Lang)</button>
                         }
-                    </section>
+                    </div>
                 }
-
+                @Board
                 @if (map is not null && tool is "area" or "draw" or "text" or "erase" or "fog")
                 {
                     @ToolOptionsBar
                 }
-
-                @* The dice console, over the map above the dock; it keeps the dice picked while closed *@
-                <section class="rf-vtt-dice @(diceOpen ? null : "closed")" aria-hidden="@(diceOpen ? "false" : "true")" data-test="vtt-dice-console">
-                    <button type="button" class="rf-vtt-dice-close rf-vtt-icon-button" @onclick="() => diceOpen = false" aria-label="@UiText.TokenClose(Lang)"><Icon Name="close" /></button>
-                    <CampaignRolls CampaignId="CampaignId" Role="Role" Characters="Characters" MyColor="@MyColor" Compact="true" Part="console" OnRolled="RolledAsync" />
-                </section>
-
-                @* Bottom right: the zoom, then what opens the dice and the side panel *@
-                <div class="rf-vtt-dock">
-                    @if (map is not null)
-                    {
-                        <div class="rf-vtt-dock-box" role="group" aria-label="@UiText.MapZoom(Lang)">
-                            <button type="button" class="rf-vtt-dock-step" @onclick="() => ZoomByHand(-1)" aria-label="−" data-test="map-zoom-out">−</button>
-                            <span class="rf-vtt-dock-zoom" data-test="map-zoom">@($"{zoom * 100:0}%")</span>
-                            <button type="button" class="rf-vtt-dock-step" @onclick="() => ZoomByHand(1)" aria-label="+" data-test="map-zoom-in">+</button>
-                            <span class="rf-vtt-dock-sep"></span>
-                            <button type="button" class="rf-vtt-dock-step" @onclick="FitByHand" title="@UiText.VttFit(Lang)" aria-label="@UiText.VttFit(Lang)" data-test="map-fit"><Icon Name="aspect-ratio" /></button>
-                            @if (RunsTheTable)
-                            {
-                                <button type="button" class="rf-vtt-dock-step" @onclick="FocusAsync" title="@UiText.VttFocus(Lang)" aria-label="@UiText.VttFocus(Lang)" data-test="vtt-focus"><Icon Name="crosshair" /></button>
-                            }
-                        </div>
-                    }
-                    <div class="rf-vtt-dock-box">
-                        <button type="button" class="rf-vtt-dock-trigger @(diceOpen ? "lit" : null)" title="@UiText.VttDice(Lang)" @onclick="() => diceOpen = !diceOpen" data-test="vtt-tool-dice"><Icon Name="dice" /><span>@UiText.VttDiceShort(Lang)</span></button>
-                        <button type="button" class="rf-vtt-dock-trigger @(PanelShown("log") ? "active" : null)" title="@UiText.VttRollLog(Lang)" @onclick="@(() => TogglePanel("log"))" data-test="vtt-tool-log">
-                            <Icon Name="chat" /><span>@UiText.VttRollLog(Lang)</span>
-                            @if (unreadRolls > 0)
-                            {
-                                <span class="rf-vtt-dock-count" data-test="vtt-unread-rolls">@unreadRolls</span>
-                            }
-                        </button>
+                @if (map is not null)
+                {
+                    <div class="rf-vtt-corner" role="group" aria-label="@UiText.MapZoom(Lang)">
+                        <button type="button" @onclick="() => ZoomByHand(-1)" aria-label="−" data-test="map-zoom-out">−</button>
+                        <span data-test="map-zoom">@($"{zoom * 100:0}%")</span>
+                        <button type="button" @onclick="() => ZoomByHand(1)" aria-label="+" data-test="map-zoom-in">+</button>
+                        <button type="button" @onclick="FitByHand" title="@UiText.VttFit(Lang)" aria-label="@UiText.VttFit(Lang)" data-test="map-fit"><Icon Name="aspect-ratio" /></button>
                         @if (RunsTheTable)
                         {
-                            <button type="button" class="rf-vtt-dock-trigger @(PanelShown("tokens") ? "active" : null)" title="@UiText.VttTokensMap(Lang)" @onclick="@(() => TogglePanel("tokens"))" data-test="vtt-tool-tokens"><Icon Name="people" /><span>@UiText.VttTokensShort(Lang)</span></button>
+                            <button type="button" @onclick="FocusAsync" title="@UiText.VttFocus(Lang)" aria-label="@UiText.VttFocus(Lang)" data-test="vtt-focus"><Icon Name="crosshair" /></button>
                         }
-                        <button type="button" class="rf-vtt-dock-trigger @(PanelShown("initiative") ? "active" : null)" title="@UiText.VttInitiative(Lang)" @onclick="@(() => TogglePanel("initiative"))" data-test="vtt-tool-initiative"><Icon Name="list" /><span>@UiText.VttInitiative(Lang)</span></button>
-                        <span class="rf-vtt-dock-sep"></span>
-                        <button type="button" class="rf-vtt-dock-collapse" title="@(drawerOpen ? UiText.VttPanelHide(Lang) : UiText.VttPanelShow(Lang))" aria-label="@(drawerOpen ? UiText.VttPanelHide(Lang) : UiText.VttPanelShow(Lang))"
-                                @onclick="ToggleDrawer" data-test="vtt-drawer-toggle"><Icon Name="@(drawerOpen ? "chevron-double-right" : "chevron-double-left")" /></button>
                     </div>
-                </div>
+                }
             </div>
-
-            @* The side panel: the log of the rolls (always kept, so it counts what comes while closed), the tokens and
-               the map (masters), the initiative, the quick sheet of a token *@
-            <aside class="rf-vtt-drawer @(drawerOpen ? null : "collapsed")" aria-hidden="@(drawerOpen ? "false" : "true")" data-test="@(drawerOpen ? "vtt-drawer" : null)">
-                <header class="rf-vtt-drawer-top">
+            @if (panel is not null)
+            {
+                <aside class="rf-vtt-drawer" data-test="vtt-drawer">
                     <nav class="rf-vtt-panel-tabs">
-                        <button type="button" class="@(panel == "log" ? "active" : null)" @onclick="@(() => ShowPanel("log"))" data-test="vtt-tab-log">@UiText.VttTabRolls(Lang)</button>
+                        <button type="button" class="@(panel == "initiative" ? "active" : null)" @onclick="@(() => panel = "initiative")">@UiText.VttInitiative(Lang)</button>
+                        <button type="button" class="@(panel == "dice" ? "active" : null)" @onclick="@(() => panel = "dice")">@UiText.VttDice(Lang)</button>
                         @if (RunsTheTable)
                         {
-                            <button type="button" class="@(panel == "tokens" ? "active" : null)" @onclick="@(() => ShowPanel("tokens"))" data-test="vtt-tab-tokens">@UiText.VttTokensShort(Lang)</button>
+                            <button type="button" class="@(panel == "tokens" ? "active" : null)" @onclick="@(() => panel = "tokens")">@UiText.VttTokensShort(Lang)</button>
                         }
-                        <button type="button" class="@(panel == "initiative" ? "active" : null)" @onclick="@(() => ShowPanel("initiative"))" data-test="vtt-tab-initiative">@UiText.VttInitiative(Lang)</button>
                         @if (SheetToken is not null)
                         {
-                            <button type="button" class="@(panel == "sheet" ? "active" : null)" @onclick="@(() => ShowPanel("sheet"))" data-test="vtt-tab-sheet">@UiText.VttQuickSheet(Lang)</button>
+                            <button type="button" class="@(panel == "sheet" ? "active" : null)" @onclick="@(() => panel = "sheet")" data-test="vtt-tab-sheet">@UiText.VttQuickSheet(Lang)</button>
                         }
+                        <button type="button" class="rf-vtt-icon-button ms-auto" @onclick="() => panel = null" aria-label="@UiText.TokenClose(Lang)"><Icon Name="close" /></button>
                     </nav>
-                    <button type="button" class="rf-vtt-icon-button" @onclick="CloseDrawer" aria-label="@UiText.VttPanelHide(Lang)" title="@UiText.VttPanelHide(Lang)"><Icon Name="close" /></button>
-                </header>
-                <div class="rf-vtt-drawer-page rf-vtt-drawer-log @(panel == "log" ? "active" : null)">
-                    <CampaignRolls @ref="rollLog" CampaignId="CampaignId" Role="Role" Characters="Characters" MyColor="@MyColor" Compact="true" Part="log" OnNews="RollsArrived" />
-                    <div class="rf-vtt-drawer-foot">
-                        <button type="button" class="btn btn-sm btn-rf-orange" @onclick="() => diceOpen = true" data-test="vtt-open-dice"><Icon Name="dice" /> @UiText.VttOpenDice(Lang)</button>
-                    </div>
-                </div>
-                @switch (panel)
-                {
-                    case "initiative":
-                        <div class="rf-vtt-drawer-page active">@InitiativePanel</div>
-                        break;
-                    case "tokens" when RunsTheTable:
-                        <div class="rf-vtt-drawer-page active">
-                            <button type="button" class="btn btn-sm btn-rf-orange align-self-start" @onclick="OpenNewMap" data-test="map-new"><Icon Name="plus" /> @UiText.MapNew(Lang)</button>
+                    @switch (panel)
+                    {
+                        case "initiative":
+                            @InitiativePanel
+                            break;
+                        case "dice":
+                            <CampaignRolls @ref="rollLog" CampaignId="CampaignId" Role="Role" Characters="Characters" MyColor="@MyColor" Compact="true" />
+                            break;
+                        case "tokens" when RunsTheTable:
+                            <button type="button" class="btn btn-sm btn-rf-orange" @onclick="OpenNewMap" data-test="map-new"><Icon Name="plus" /> @UiText.MapNew(Lang)</button>
                             @if (map is not null)
                             {
                                 @OnMapList
                                 @AddTokens
                             }
-                        </div>
-                        break;
-                    case "sheet" when SheetToken is { } sheetToken:
-                        <div class="rf-vtt-drawer-page active">@QuickSheetPanel(sheetToken)</div>
-                        break;
-                }
-            </aside>
+                            break;
+                        case "sheet" when SheetToken is { } sheetToken:
+                            @QuickSheetPanel(sheetToken)
+                            break;
+                    }
+                </aside>
+            }
         </div>
         @RestDialog
     </div>
@@ -421,68 +379,16 @@ else
     private string? message;
     private bool busy;
     private bool confirmDelete;
-    //	The side panel of the table: the log of the rolls, the tokens and the map (masters), the initiative, the quick
-    //	sheet of a token; out or tucked away. The dice console floats over the map
-    private string panel = "log";
-    private bool drawerOpen;
-    private bool diceOpen;
-    private int unreadRolls;
+    //	The panel on the right of the table: initiative, dice, tokens (masters), the quick sheet of a token
+    private string? panel;
     private CampaignRolls? rollLog;
 
-    private bool PanelShown(string name) => drawerOpen && panel == name;
+    private void TogglePanel(string name) => panel = panel == name ? null : name;
 
-    //	From the dock: the page, or the panel away when it is the page already shown
-    private void TogglePanel(string name)
-    {
-        if (PanelShown(name))
-        {
-            CloseDrawer();
-        }
-        else
-        {
-            ShowPanel(name);
-        }
-    }
+    private bool PanelShown(string name) => panel == name;
 
-    private void ShowPanel(string name)
-    {
-        panel = name;
-        drawerOpen = true;
-        if (name == "log")
-        {
-            unreadRolls = 0;
-        }
-    }
+    private void ShowPanel(string name) => panel = name;
 
-    private void CloseDrawer() => drawerOpen = false;
-
-    private void ToggleDrawer()
-    {
-        if (drawerOpen)
-        {
-            CloseDrawer();
-        }
-        else
-        {
-            ShowPanel(panel == "sheet" && SheetToken is null ? "log" : panel);
-        }
-    }
-
-    //	A roll from the console or a token's sheet: on top of the log at once
-    private Task RolledAsync(CampaignRollDto roll)
-    {
-        rollLog?.Add(roll);
-        return Task.CompletedTask;
-    }
-
-    //	Others' rolls while the log is not in view: a count on its button
-    private void RollsArrived(int count)
-    {
-        if (!PanelShown("log"))
-        {
-            unreadRolls = Math.Min(unreadRolls + count, 99);
-        }
-    }
     private string tool = "select";
 
     //	Drawings, texts, notes and areas
@@ -1768,21 +1674,6 @@ else
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        if (firstRender && Table)
-        {
-            try
-            {
-                if (await JS.InvokeAsync<bool>("rfVtt.wide"))
-                {
-                    ShowPanel("log");
-                    StateHasChanged();
-                }
-            }
-            catch (JSException)
-            {
-                //	The panel stays in
-            }
-        }
         if (map is null || self is null || string.IsNullOrEmpty(stageElement.Id))
         {
             return;
