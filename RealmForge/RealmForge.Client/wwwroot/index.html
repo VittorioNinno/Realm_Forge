@@ -710,12 +710,34 @@
                 stage.scrollTo({ left: x * z + ox - stage.clientWidth / 2, top: y * z + oy - stage.clientHeight / 2, behavior: instant ? 'instant' : 'smooth' });
             }
 
+            // A token's pop-up kept inside the visible part of the stage: to the left of the token when it does not fit on
+            // its right, up when it would go under the bottom (the dock lives there), down when it starts above the top
+            function keepVisible(stage) {
+                const card = stage.querySelector('.rf-vtt-toolbar');
+                if (!card) return;
+                const z = parseFloat(stage.querySelector('[data-board]')?.dataset.zoom || '1');
+                card.style.translate = '';
+                const s = stage.getBoundingClientRect(), c = card.getBoundingClientRect();
+                const pad = 8, bottomRoom = 72;
+                let dx = 0, dy = 0;
+                if (c.right > s.right - pad) {
+                    const token = stage.querySelector(`[data-token="${card.dataset.tokenId || ''}"]`);
+                    const t = token?.getBoundingClientRect();
+                    // Flipped to the left of the token if there is room, else just pulled back in
+                    dx = t && t.left - pad - c.width >= s.left + pad ? (t.left - pad - c.width) - c.left : (s.right - pad) - c.right;
+                }
+                if (c.left + dx < s.left + pad) dx = (s.left + pad) - c.left;
+                if (c.bottom > s.bottom - bottomRoom) dy = (s.bottom - bottomRoom) - c.bottom;
+                if (c.top + dy < s.top + pad) dy = (s.top + pad) - c.top;
+                if (dx || dy) card.style.translate = `${dx / z}px ${dy / z}px`;
+            }
+
             function fullscreen(el) {
                 if (document.fullscreenElement) return document.exitFullscreen();
                 return el.requestFullscreen?.();
             }
 
-            return { attach, detach, tool, fit, fullscreen, view, center: centerOn };
+            return { attach, detach, tool, fit, fullscreen, view, center: centerOn, keepVisible };
         })();
         window.rfCropImage = (src, x, y, zoom, size) => new Promise((resolve) => {
             const img = new Image();
