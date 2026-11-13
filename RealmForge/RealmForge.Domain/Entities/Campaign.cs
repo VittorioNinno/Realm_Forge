@@ -25,7 +25,8 @@ namespace RealmForge.Domain.Entities
 		public DateTimeOffset UpdatedAt { get; set; } = DateTimeOffset.UtcNow;
 
 		//	The virtual tabletop opened by a master or co-master for a session: the players are told and the campaign page
-		//	shows the way in. Closed by hand, or on its own after CampaignRules.TableOpenHours
+		//	shows the way in. Closed by hand, or on its own after CampaignRules.TableIdleHours
+		//	with nothing happening at the table
 		public DateTimeOffset? TableOpenedAt { get; set; }
 		public string? TableOpenedById { get; set; }
 

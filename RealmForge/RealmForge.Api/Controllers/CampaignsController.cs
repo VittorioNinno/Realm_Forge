@@ -68,14 +68,17 @@ namespace RealmForge.Api.Controllers
 					Characters = m.Campaign.Characters.Count,
 					Pending = m.Campaign.Contents.Count(c => c.Status == CampaignContentStatus.Pending),
 					m.Campaign.UpdatedAt,
-					m.Campaign.TableOpenedAt
+					m.Campaign.TableOpenedAt,
+					MapsAt = m.Campaign.Maps.Max(x => (DateTimeOffset?)x.UpdatedAt),
+					EncountersAt = m.Campaign.Encounters.Max(x => (DateTimeOffset?)x.UpdatedAt),
+					RollsAt = m.Campaign.Rolls.Max(x => (DateTimeOffset?)x.CreatedAt)
 				})
 				.ToListAsync();
 			var now = DateTimeOffset.UtcNow;
 			return Ok(rows
 				.Select(r => new CampaignSummaryDto(r.Id, r.Name, r.Ruleset, r.Role, r.Members, r.Characters,
 					CampaignRules.CanReview(r.Role) ? r.Pending : 0, r.UpdatedAt,
-					CampaignRules.IsTableOpen(r.TableOpenedAt, now) ? r.TableOpenedAt : null))
+					CampaignRules.IsTableOpen(r.TableOpenedAt, Latest(r.MapsAt, r.EncountersAt, r.RollsAt), now) ? r.TableOpenedAt : null))
 				.OrderByDescending(r => r.UpdatedAt)
 				.ToList());
 		}
@@ -121,11 +124,22 @@ namespace RealmForge.Api.Controllers
 		[HttpGet("live")]
 		public async Task<ActionResult<List<CampaignLiveTableDto>>> GetLiveTables()
 		{
-			var since = DateTimeOffset.UtcNow.AddHours(-CampaignRules.TableOpenHours);
-			var rows = await _context.CampaignMembers.AsNoTracking()
-				.Where(m => m.UserId == UserId && m.Campaign.TableOpenedAt != null && m.Campaign.TableOpenedAt > since)
-				.Select(m => new { m.Campaign.Id, m.Campaign.Name, OpenedAt = m.Campaign.TableOpenedAt!.Value, By = m.Campaign.TableOpenedById ?? string.Empty })
-				.ToListAsync();
+			var now = DateTimeOffset.UtcNow;
+			var rows = (await _context.CampaignMembers.AsNoTracking()
+				.Where(m => m.UserId == UserId && m.Campaign.TableOpenedAt != null)
+				.Select(m => new
+				{
+					m.Campaign.Id,
+					m.Campaign.Name,
+					OpenedAt = m.Campaign.TableOpenedAt!.Value,
+					By = m.Campaign.TableOpenedById ?? string.Empty,
+					MapsAt = m.Campaign.Maps.Max(x => (DateTimeOffset?)x.UpdatedAt),
+					EncountersAt = m.Campaign.Encounters.Max(x => (DateTimeOffset?)x.UpdatedAt),
+					RollsAt = m.Campaign.Rolls.Max(x => (DateTimeOffset?)x.CreatedAt)
+				})
+				.ToListAsync())
+				.Where(r => CampaignRules.IsTableOpen(r.OpenedAt, Latest(r.MapsAt, r.EncountersAt, r.RollsAt), now))
+				.ToList();
 			var names = await NamesAsync(rows.Select(r => r.By).Distinct());
 			return Ok(rows
 				.OrderByDescending(r => r.OpenedAt)
@@ -864,6 +878,21 @@ namespace RealmForge.Api.Controllers
 			return null;
 		}
 
+		//	The latest change at the table: a map (tokens, drawings, fog), an encounter (the fight), a roll
+		private static DateTimeOffset? Latest(params DateTimeOffset?[] times) => times.Max();
+
+		private async Task<DateTimeOffset?> TableActivityAsync(Campaign campaign)
+		{
+			if (campaign.TableOpenedAt is null)
+			{
+				return null;
+			}
+			var maps = await _context.CampaignMaps.Where(x => x.CampaignId == campaign.Id).MaxAsync(x => (DateTimeOffset?)x.UpdatedAt);
+			var encounters = await _context.CampaignEncounters.Where(x => x.CampaignId == campaign.Id).MaxAsync(x => (DateTimeOffset?)x.UpdatedAt);
+			var rolls = await _context.CampaignRolls.Where(x => x.CampaignId == campaign.Id).MaxAsync(x => (DateTimeOffset?)x.CreatedAt);
+			return Latest(maps, encounters, rolls);
+		}
+
 		private async Task<CampaignDetailDto?> DetailAsync(Guid id, LanguageCode lang)
 		{
 			if (!await _context.CampaignMembers.AnyAsync(m => m.CampaignId == id && m.UserId == UserId))
@@ -943,7 +972,7 @@ namespace RealmForge.Api.Controllers
 					}).ToList(),
 				campaign.CreatedAt,
 				campaign.UpdatedAt,
-				CampaignRules.IsTableOpen(campaign.TableOpenedAt, DateTimeOffset.UtcNow)
+				CampaignRules.IsTableOpen(campaign.TableOpenedAt, await TableActivityAsync(campaign), DateTimeOffset.UtcNow)
 					? new CampaignLiveTableDto(campaign.Id, campaign.Name, campaign.TableOpenedAt!.Value,
 						emails.GetValueOrDefault(campaign.TableOpenedById ?? string.Empty, string.Empty), campaign.TableOpenedById == UserId)
 					: null);

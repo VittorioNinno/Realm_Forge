@@ -63,11 +63,20 @@ public static class CampaignRules
 	//	Masters and co-masters run the table: they see and edit every character, approve and remove content
 	public static bool RunsTheTable(CampaignRole role) => role is CampaignRole.Master or CampaignRole.CoMaster;
 
-	//	An open table closes on its own after a long session, in case nobody closed it
-	public const int TableOpenHours = 12;
+	//	An open table closes on its own only after hours with nothing happening at it (no token moved, nothing drawn, no
+	//	dice rolled, no fight changed), in case nobody closed it: a long session stays open however long it lasts
+	public const int TableIdleHours = 12;
 
-	public static bool IsTableOpen(DateTimeOffset? openedAt, DateTimeOffset now) =>
-		openedAt is { } at && at <= now.AddMinutes(1) && now - at < TimeSpan.FromHours(TableOpenHours);
+	//	lastActivity: the latest change at the table (maps, encounters, rolls); the opening counts as the first one
+	public static bool IsTableOpen(DateTimeOffset? openedAt, DateTimeOffset? lastActivity, DateTimeOffset now)
+	{
+		if (openedAt is not { } at || at > now.AddMinutes(1))
+		{
+			return false;
+		}
+		var last = lastActivity is { } active && active > at ? active : at;
+		return now - last < TimeSpan.FromHours(TableIdleHours);
+	}
 
 	public static bool CanEditCampaign(CampaignRole role) => IsMaster(role);
 
