@@ -138,6 +138,9 @@ namespace RealmForge.Domain.Entities
 		public int? Hp { get; set; }
 		public int? MaxHp { get; set; }
 
+		//	Temporary hit points of a token (outside a fight, or of a monster in it: its combatant keeps them too)
+		public int? TempHp { get; set; }
+
 		//	An object (Kind Prop): what it is, how it is, whether the players open and close it themselves
 		public PropType? PropType { get; set; }
 
@@ -215,6 +218,9 @@ namespace RealmForge.Domain.Entities
 		//	The combatant whose turn it is
 		public Guid? CurrentId { get; set; }
 		public bool Shown { get; set; }
+
+		//	The players see how hurt the enemies are in the initiative bar of the table (a master's choice; off at first)
+		public bool ShowHealth { get; set; }
 
 		//	JSON array of EncounterCombatant
 		public string Combatants { get; set; } = "[]";

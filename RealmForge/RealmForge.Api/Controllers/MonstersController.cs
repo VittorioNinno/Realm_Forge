@@ -115,8 +115,9 @@ namespace RealmForge.Api.Controllers
 
 			var shared = await _shares.SharedWithAsync(User);
 
-			//	Private entries of other users answer 404, as if they did not exist
-			if (monster is null || !_access.CanView(monster, User, shared))
+			//	Private entries of other users answer 404, as if they did not exist; a creature whose token a master gave me to
+			//	play in a campaign of mine is read too (without its secrets: they stay with its author)
+			if (monster is null || (!_access.CanView(monster, User, shared) && !await GivenToMeAsync(monster.Id)))
 			{
 				return NotFound();
 			}
@@ -320,6 +321,13 @@ namespace RealmForge.Api.Controllers
 			Reaction = tr?.Reaction ?? string.Empty,
 			Tactics = tr?.Tactics ?? string.Empty
 		};
+
+		private async Task<bool> GivenToMeAsync(Guid monsterId)
+		{
+			var userId = ContentAccess.GetUserId(User);
+			return userId is not null && await _context.CampaignTokens.AnyAsync(t => t.MonsterId == monsterId && t.ControlledBy.Contains(userId)
+				&& _context.CampaignMembers.Any(m => m.CampaignId == t.Map.CampaignId && m.UserId == userId));
+		}
 
 		private MonsterDetailDto ToDetail(Monster m, LanguageCode lang, string? original, string? author, List<NpcCampaignDto>? campaigns, bool originalIsNpc)
 		{
