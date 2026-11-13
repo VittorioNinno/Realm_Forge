@@ -623,9 +623,15 @@ namespace RealmForge.Api.Controllers
 				return NotFound();
 			}
 			var combatants = EncountersController.Read(encounter.Combatants);
-			foreach (var c in combatants.Where(c => c.Initiative is null))
+			//	A fight never started opens on the initiative phase (everyone rolls or the master writes the values); one
+			//	under way goes on, with the initiative rolled for whoever has none
+			var rolling = encounter.Round <= 0;
+			if (!rolling)
 			{
-				c.Initiative = Random.Shared.Next(1, 21) + c.InitiativeBonus;
+				foreach (var c in combatants.Where(c => c.Initiative is null))
+				{
+					c.Initiative = Random.Shared.Next(1, 21) + c.InitiativeBonus;
+				}
 			}
 			var monsterIds = combatants.Where(c => c.MonsterId is not null).Select(c => c.MonsterId!.Value).Distinct().ToList();
 			var sizes = await _context.Monsters.AsNoTracking().Where(m => monsterIds.Contains(m.Id)).ToDictionaryAsync(m => m.Id, m => new { m.Size, m.IsNpc });
@@ -674,8 +680,8 @@ namespace RealmForge.Api.Controllers
 			var order = EncounterRules.Order(combatants);
 			encounter.Status = EncounterStatus.Running;
 			encounter.Shown = true;
-			encounter.Round = Math.Max(1, encounter.Round);
-			encounter.CurrentId = encounter.CurrentId is { } current && combatants.Any(c => c.Id == current) ? current : order.FirstOrDefault()?.Id;
+			encounter.Round = rolling ? 0 : encounter.Round;
+			encounter.CurrentId = rolling ? null : encounter.CurrentId is { } current && combatants.Any(c => c.Id == current) ? current : order.FirstOrDefault()?.Id;
 			encounter.Combatants = System.Text.Json.JsonSerializer.Serialize(combatants, new System.Text.Json.JsonSerializerOptions(System.Text.Json.JsonSerializerDefaults.Web));
 			encounter.Version++;
 			encounter.UpdatedAt = DateTimeOffset.UtcNow;
@@ -707,7 +713,7 @@ namespace RealmForge.Api.Controllers
 			var combatants = new List<EncounterCombatant>();
 			foreach (var token in chosen)
 			{
-				combatants.Add(await CombatantOfAsync(token));
+				combatants.Add(await CombatantOfAsync(token, roll: false));
 			}
 			var encounter = new CampaignEncounter
 			{
@@ -715,10 +721,9 @@ namespace RealmForge.Api.Controllers
 				Name = map.Name.Length > 100 ? map.Name[..100] : map.Name,
 				Status = EncounterStatus.Running,
 				Shown = true,
-				Round = 1,
+				Round = 0,
 				CreatedById = UserId
 			};
-			encounter.CurrentId = EncounterRules.Order(combatants).FirstOrDefault()?.Id;
 			encounter.Combatants = System.Text.Json.JsonSerializer.Serialize(combatants, new System.Text.Json.JsonSerializerOptions(System.Text.Json.JsonSerializerDefaults.Web));
 			_context.CampaignEncounters.Add(encounter);
 			map.EncounterId = encounter.Id;
@@ -749,9 +754,13 @@ namespace RealmForge.Api.Controllers
 			{
 				return NoContent();
 			}
-			var combatant = await CombatantOfAsync(token);
+			var rolling = fight.Encounter.Round <= 0;
+			var combatant = await CombatantOfAsync(token, roll: !rolling);
 			fight.Combatants.Add(combatant);
-			fight.Encounter.CurrentId ??= combatant.Id;
+			if (!rolling)
+			{
+				fight.Encounter.CurrentId ??= combatant.Id;
+			}
 			Save(fight, fight.Combatants);
 			map.UpdatedAt = DateTimeOffset.UtcNow;
 			await _context.SaveChangesAsync();
@@ -795,7 +804,7 @@ namespace RealmForge.Api.Controllers
 		[HttpPut("{mapId:guid}/combat/initiative")]
 		public async Task<IActionResult> SetInitiative(Guid campaignId, Guid mapId, [FromBody] SetInitiativeDto dto)
 		{
-			var (map, role) = await LoadAsync(campaignId, mapId, withTokens: false);
+			var (map, role) = await LoadAsync(campaignId, mapId, withTokens: true);
 			if (map is null || role is null)
 			{
 				return NotFound();
@@ -804,7 +813,8 @@ namespace RealmForge.Api.Controllers
 			{
 				return NotFound();
 			}
-			if (!CampaignRules.RunsTheTable(role.Value) && !await OwnsAsync(combatant.CharacterId))
+			if (!CampaignRules.RunsTheTable(role.Value) && !await OwnsAsync(combatant.CharacterId)
+				&& !(map.Tokens.FirstOrDefault(t => t.CombatantId == combatant.Id) is { } token && await ControlsAsync(token)))
 			{
 				return Forbid();
 			}
@@ -816,7 +826,7 @@ namespace RealmForge.Api.Controllers
 
 		//	A combatant made from a token: a character (its initiative rolled by its player), a monster with its statblock
 		//	and the token's hit points, any other token
-		private async Task<EncounterCombatant> CombatantOfAsync(CampaignToken token)
+		private async Task<EncounterCombatant> CombatantOfAsync(CampaignToken token, bool roll = true)
 		{
 			var monster = token.MonsterId is { } monsterId
 				? await _context.Monsters.AsNoTracking().Where(m => m.Id == monsterId)
@@ -845,7 +855,7 @@ namespace RealmForge.Api.Controllers
 				combatant.MaxHp = token.MaxHp ?? 0;
 				combatant.Hp = token.Hp ?? combatant.MaxHp;
 			}
-			if (combatant.Kind != CombatantKind.Character)
+			if (roll && combatant.Kind != CombatantKind.Character)
 			{
 				combatant.Initiative = Random.Shared.Next(1, 21) + combatant.InitiativeBonus;
 			}
@@ -866,6 +876,36 @@ namespace RealmForge.Api.Controllers
 				token.Hp = combatant.Hp;
 			}
 			token.Conditions = combatant.Conditions.ToList();
+		}
+
+		//	POST: api/campaigns/{campaignId}/maps/{mapId}/combat/begin — the initiative phase is over: whoever has not rolled
+		//	gets a roll, and the first round starts from the top of the order
+		[HttpPost("{mapId:guid}/combat/begin")]
+		public async Task<IActionResult> BeginCombat(Guid campaignId, Guid mapId)
+		{
+			var (map, role) = await LoadAsync(campaignId, mapId, withTokens: false);
+			if (map is null || role is null)
+			{
+				return NotFound();
+			}
+			if (!CampaignRules.RunsTheTable(role.Value))
+			{
+				return Forbid();
+			}
+			if (await FightAsync(map, track: true) is not { } fight)
+			{
+				return NotFound();
+			}
+			foreach (var c in fight.Combatants.Where(c => c.Initiative is null))
+			{
+				c.Initiative = Random.Shared.Next(1, 21) + c.InitiativeBonus;
+			}
+			fight.Encounter.Round = Math.Max(1, fight.Encounter.Round);
+			fight.Encounter.CurrentId = EncounterRules.Order(fight.Combatants).FirstOrDefault()?.Id;
+			Save(fight, fight.Combatants);
+			map.UpdatedAt = DateTimeOffset.UtcNow;
+			await _context.SaveChangesAsync();
+			return NoContent();
 		}
 
 		//	POST: api/campaigns/{campaignId}/maps/{mapId}/combat/next — the next turn (a new round after the last one); the
@@ -891,6 +931,7 @@ namespace RealmForge.Api.Controllers
 			{
 				return NoContent();
 			}
+			fight.Encounter.Round = Math.Max(1, fight.Encounter.Round);
 			var index = order.FindIndex(c => c.Id == fight.Encounter.CurrentId);
 			var next = index + 1;
 			if (next >= order.Count)
