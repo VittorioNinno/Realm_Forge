@@ -16260,6 +16260,8 @@ textarea.rf-form-control {
 /* ===== Fighting on the map: aiming, casting, items on the ground, loot ===== */
 
 .rf-vtt-combatbar {
+    bottom: 72px;
+    max-width: min(640px, calc(100% - 32px));
     border-color: rgba(255, 140, 0, .55);
     box-shadow: 0 8px 24px rgba(0, 0, 0, .5);
 }

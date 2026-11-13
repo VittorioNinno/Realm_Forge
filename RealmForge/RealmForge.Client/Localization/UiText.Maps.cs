@@ -141,6 +141,7 @@ namespace RealmForge.Client.Localization
 			"spells" => T(lang, "Incantesimi", "Spells"),
 			"features" => T(lang, "Privilegi", "Features"),
 			"notes" => T(lang, "Note", "Notes"),
+			"loot" => T(lang, "Bottino", "Loot"),
 			_ => T(lang, "Generale", "General")
 		};
 		public static string VttSpellLevelName(int level, LanguageCode lang) => level == 0 ? T(lang, "Trucchetti", "Cantrips") : T(lang, $"{level}° livello", $"Level {level}");
