@@ -10,6 +10,7 @@
 @inject EncounterDataService Encounters
 @inject CharacterDataService CharacterService
 @inject LanguageStateService LanguageState
+@inject LiveTableService Live
 @inject IJSRuntime JS
 @implements IAsyncDisposable
 
@@ -30,6 +31,18 @@
                 </div>
             }
             <div class="rf-vtt-top-actions">
+                @if (RunsTheTable)
+                {
+                    @if (liveTable is not null)
+                    {
+                        <span class="rf-vtt-live rf-vtt-live-on" title="@UiText.TableOpenedBy(liveTable.OpenedBy, liveTable.OpenedAt, Lang)" data-test="vtt-table-open"><span class="rf-live-dot"></span> @UiText.TableLive(Lang)</span>
+                        <button type="button" class="btn btn-sm btn-rf-outline" disabled="@tableBusy" @onclick="CloseTableAsync" data-test="vtt-table-close">@UiText.TableClose(Lang)</button>
+                    }
+                    else
+                    {
+                        <button type="button" class="btn btn-sm btn-rf-orange" disabled="@tableBusy" title="@UiText.TableOpenHint(Lang)" @onclick="OpenTableAsync" data-test="vtt-table-start"><Icon Name="broadcast" /> @UiText.TableOpen(Lang)</button>
+                    }
+                }
                 @if (RunsTheTable && map is not null)
                 {
                     @if (map.Shown)
@@ -104,7 +117,7 @@
                         else if (tool == "draw")
                         {
                             <input type="color" class="rf-vtt-color small" value="@drawColor" @onchange="SetColorAsync" aria-label="@UiText.MapColor(Lang)" />
-                            <span class="rf-vtt-options-hint">@UiText.VttDrawHint(Lang)</span>
+                            <span class="rf-vtt-options-hint">@UiText.VttDrawHint(Lang) @UiText.VttOnlyYou(Lang)</span>
                         }
                         else if (tool == "text")
                         {
@@ -120,9 +133,13 @@
                             @if (RunsTheTable)
                             {
                                 <label class="rf-checkbox-wrapper small mb-0">
-                                    <input type="checkbox" class="rf-checkbox" @bind="textMasterOnly" data-test="vtt-text-master" />
-                                    <span>@UiText.VttMasterNote(Lang)</span>
+                                    <input type="checkbox" class="rf-checkbox" @bind="textShared" data-test="vtt-text-shared" />
+                                    <span>@UiText.VttTextShared(Lang)</span>
                                 </label>
+                            }
+                            else
+                            {
+                                <span class="rf-vtt-options-hint">@UiText.VttOnlyYou(Lang)</span>
                             }
                         }
                         else if (tool == "fog")
@@ -135,6 +152,17 @@
                             <button type="button" class="rf-vtt-chip @(fogCover ? "active" : null)" @onclick="() => SetFogAsync(true, fogBrush)" data-test="vtt-fog-cover">@UiText.VttFogCover(Lang)</button>
                             <button type="button" class="rf-vtt-chip @(fogBrush ? null : "active")" @onclick="() => SetFogAsync(fogCover, false)" data-test="vtt-fog-rect">@UiText.VttFogRect(Lang)</button>
                             <button type="button" class="rf-vtt-chip @(fogBrush ? "active" : null)" @onclick="() => SetFogAsync(fogCover, true)" data-test="vtt-fog-brush">@UiText.VttFogBrush(Lang)</button>
+                            @if (fogBrush)
+                            {
+                                <span class="rf-vtt-chips" role="group" aria-label="@UiText.VttFogBrushSize(Lang)" data-test="vtt-fog-sizes">
+                                    @for (var n = 1; n <= MaxFogBrush; n++)
+                                    {
+                                        var size = n;
+                                        <button type="button" class="rf-vtt-chip @(fogBrushSize == size ? "active" : null)" title="@UiText.VttFogBrushSize(Lang)"
+                                                @onclick="() => SetFogBrushSizeAsync(size)" data-test="vtt-fog-size-@size">@FogBrushLabel(size)</button>
+                                    }
+                                </span>
+                            }
                             <button type="button" class="btn btn-sm btn-rf-outline" @onclick="() => FogAllAsync(false)" data-test="vtt-fog-reveal-all">@UiText.VttFogRevealAll(Lang)</button>
                             <button type="button" class="btn btn-sm btn-rf-outline" @onclick="() => FogAllAsync(true)" data-test="vtt-fog-cover-all">@UiText.VttFogCoverAll(Lang)</button>
                         }
@@ -339,6 +367,39 @@ else
     [Parameter] public string MyColor { get; set; } = PlayerColors.Master;
     [Parameter] public IReadOnlyList<CampaignMemberDto> Members { get; set; } = Array.Empty<CampaignMemberDto>();
 
+    //	The table open now (null: closed); the masters open and close it from the top bar
+    [Parameter] public CampaignLiveTableDto? LiveTable { get; set; }
+
+    private CampaignLiveTableDto? liveTable;
+    private bool liveTableSet;
+    private bool tableBusy;
+
+    private async Task OpenTableAsync()
+    {
+        tableBusy = true;
+        var opened = await Campaigns.OpenTableAsync(CampaignId);
+        tableBusy = false;
+        message = opened is null ? UiText.MapSaveFailed(Lang) : null;
+        liveTable = opened ?? liveTable;
+        if (opened is not null)
+        {
+            Live.Update(CampaignId, opened);
+        }
+    }
+
+    private async Task CloseTableAsync()
+    {
+        tableBusy = true;
+        var ok = (await Campaigns.CloseTableAsync(CampaignId)).Ok;
+        tableBusy = false;
+        message = ok ? null : UiText.MapSaveFailed(Lang);
+        if (ok)
+        {
+            liveTable = null;
+            Live.Update(CampaignId, null);
+        }
+    }
+
     private LanguageCode Lang => LanguageState.CurrentLanguage;
     private bool RunsTheTable => CampaignRules.RunsTheTable(Role);
 
@@ -367,7 +428,7 @@ else
     private string drawColor => drawColorChoice ?? MyColor;
     private (double X, double Y)? textAt;
     private string? textValue;
-    private bool textMasterOnly;
+    private bool textShared;
 
     //	The fight: the initiative order, the encounters a master can start, the cells moved in the current turn
     private MapCombatDto? combat;
@@ -387,6 +448,10 @@ else
     private List<double> fog = new();
     private bool fogCover;
     private bool fogBrush;
+
+    //	The brush paints whole cells: 1 the cell under the pointer, 2 that one and the ring around it, and so on
+    private const int MaxFogBrush = 4;
+    private int fogBrushSize = 1;
     private MapPingDto? pingShown;
     private DateTimeOffset? pingSeen;
     private DateTimeOffset? focusSeen;
@@ -599,10 +664,14 @@ else
                                     @for (var i = 0; i + 4 < fog.Count; i += 5)
                                     {
                                         var kind = (int)fog[i];
-                                        var paint = kind is MapFog.Reveal or MapFog.RevealCircle ? "#000000" : "#ffffff";
+                                        var paint = MapFog.Reveals(kind) ? "#000000" : "#ffffff";
                                         if (kind is MapFog.RevealCircle or MapFog.CoverCircle)
                                         {
                                             <circle cx="@N(fog[i + 1])" cy="@N(fog[i + 2])" r="@N(fog[i + 3])" fill="@paint" />
+                                        }
+                                        else if (kind is MapFog.RevealHex or MapFog.CoverHex)
+                                        {
+                                            <polygon points="@HexPoints(fog[i + 1], fog[i + 2], fog[i + 3], (int)fog[i + 4])" fill="@paint" />
                                         }
                                         else
                                         {
@@ -1086,6 +1155,15 @@ else
 
     // ===== Loading and polling =====
 
+    protected override void OnParametersSet()
+    {
+        if (!liveTableSet)
+        {
+            liveTable = LiveTable;
+            liveTableSet = true;
+        }
+    }
+
     protected override async Task OnInitializedAsync()
     {
         self = DotNetObjectReference.Create(this);
@@ -1449,7 +1527,7 @@ else
         area = areaKind.ToString().ToLowerInvariant(),
         fogMode = fogCover ? "cover" : "reveal",
         fogShape = fogBrush ? "brush" : "rect",
-        fogBrush = 1
+        fogBrush = fogBrushSize
     };
 
     // ===== Fog of war, pings, the view =====
@@ -1989,6 +2067,19 @@ else
         StateHasChanged();
     }
 
+    //	Square grid: 1×1, 3×3, 5×5…; hexagons: 1, 7, 19… cells
+    private string FogBrushLabel(int size)
+    {
+        var ring = size - 1;
+        return gridType == GridType.Square ? $"{2 * ring + 1}×{2 * ring + 1}" : (1 + 3 * ring * (ring + 1)).ToString(CultureInfo.InvariantCulture);
+    }
+
+    private Task SetFogBrushSizeAsync(int size)
+    {
+        fogBrushSize = Math.Clamp(size, 1, MaxFogBrush);
+        return SetToolAsync("fog");
+    }
+
     private Task SetFogAsync(bool cover, bool brush)
     {
         fogCover = cover;
@@ -2017,7 +2108,7 @@ else
         await SaveFogAsync();
     }
 
-    //	A box (x, y, width, height) or the centres of a brush stroke, revealed or covered
+    //	A box (x, y, width, height), or the cells a brush stroke went over (column, row pairs), revealed or covered
     [JSInvokable]
     public async Task FogDrawn(bool brush, double[] numbers)
     {
@@ -2025,26 +2116,77 @@ else
         {
             return;
         }
-        var steps = new List<double>();
-        if (brush)
+        var steps = brush
+            ? FogCells(numbers)
+            : numbers.Length == 4 ? new List<double> { fogCover ? MapFog.Cover : MapFog.Reveal, numbers[0], numbers[1], numbers[2], numbers[3] } : new();
+        if (steps.Count == 0)
         {
-            for (var i = 0; i + 1 < numbers.Length; i += 2)
-            {
-                steps.AddRange(new[] { fogCover ? MapFog.CoverCircle : MapFog.RevealCircle, numbers[i], numbers[i + 1], grid, 0 });
-            }
+            return;
         }
-        else if (numbers.Length == 4)
+        if ((fog.Count + steps.Count) / 5 > MapFog.MaxSteps)
         {
-            steps.AddRange(new[] { fogCover ? MapFog.Cover : MapFog.Reveal, numbers[0], numbers[1], numbers[2], numbers[3] });
-        }
-        if (steps.Count == 0 || (fog.Count + steps.Count) / 5 > MapFog.MaxSteps)
-        {
+            message = UiText.VttFogFull(Lang);
             return;
         }
         fog = fog.Concat(steps).ToList();
         fogEnabled = true;
         StateHasChanged();
         await SaveFogAsync();
+    }
+
+    //	The cells of a brush stroke as steps of the fog: only those that change; squares in runs along a row, hexagons one by one
+    private List<double> FogCells(double[] cells)
+    {
+        var steps = new List<double>();
+        var changed = new List<(int Col, int Row)>();
+        for (var i = 0; i + 1 < cells.Length; i += 2)
+        {
+            var (col, row) = ((int)cells[i], (int)cells[i + 1]);
+            var (x, y) = MapGeometry.Center(gridType, grid, offsetX, offsetY, col, row);
+            if (col >= 0 && row >= 0 && x <= map!.Width + grid && y <= map.Height + grid && MapFog.Covered(fog, x, y) != fogCover)
+            {
+                changed.Add((col, row));
+            }
+        }
+        if (gridType == GridType.Square)
+        {
+            foreach (var line in changed.Distinct().GroupBy(c => c.Row))
+            {
+                var cols = line.Select(c => c.Col).OrderBy(c => c).ToList();
+                for (var start = 0; start < cols.Count;)
+                {
+                    var end = start;
+                    while (end + 1 < cols.Count && cols[end + 1] == cols[end] + 1)
+                    {
+                        end++;
+                    }
+                    steps.AddRange(new double[] { fogCover ? MapFog.Cover : MapFog.Reveal, offsetX + cols[start] * grid, offsetY + line.Key * grid, (end - start + 1) * grid, grid });
+                    start = end + 1;
+                }
+            }
+        }
+        else
+        {
+            var radius = grid / Math.Sqrt(3);
+            foreach (var (col, row) in changed.Distinct())
+            {
+                var (x, y) = MapGeometry.Center(gridType, grid, offsetX, offsetY, col, row);
+                steps.AddRange(new[] { fogCover ? MapFog.CoverHex : MapFog.RevealHex, Math.Round(x, 1), Math.Round(y, 1), Math.Round(radius, 2), (int)gridType });
+            }
+        }
+        return steps;
+    }
+
+    //	A cell of the fog, a hair bigger than the grid's so that two cells side by side leave no seam
+    private static string HexPoints(double cx, double cy, double radius, int type)
+    {
+        var r = radius + 0.75;
+        var start = type == 2 ? 0 : -90;
+        return string.Join(' ', Enumerable.Range(0, 6).Select(i =>
+        {
+            var a = (start + 60 * i) * Math.PI / 180;
+            return $"{N(cx + r * Math.Cos(a))},{N(cy + r * Math.Sin(a))}";
+        }));
     }
 
     private Task SetAreaAsync(ShapeKind kind)
@@ -2098,10 +2240,11 @@ else
     private MarkupString TextMarkup(MapShapeDto sh, string? erasable)
     {
         var size = Math.Max(12, grid * 0.35);
-        var label = System.Net.WebUtility.HtmlEncode(sh.MasterOnly ? $"✎ {sh.Text}" : sh.Text ?? string.Empty);
-        return new MarkupString($"<text x=\"{N(sh.Points[0])}\" y=\"{N(sh.Points[1])}\" font-size=\"{N(size)}\" font-weight=\"700\" class=\"rf-vtt-text {(sh.MasterOnly ? "master" : "")} {erasable}\" "
-            + $"fill=\"{(sh.MasterOnly ? "#c4b5fd" : "#ffffff")}\" stroke=\"#0a0a0a\" stroke-width=\"{N(size / 6)}\" paint-order=\"stroke\" data-shape=\"{sh.Id}\" data-test=\"map-shape\" "
-            + $"data-kind=\"{(sh.MasterOnly ? "note" : "text")}\">{label}</text>");
+        //	What only I see is marked with a pencil and drawn in lilac
+        var label = System.Net.WebUtility.HtmlEncode(sh.Private ? $"✎ {sh.Text}" : sh.Text ?? string.Empty);
+        return new MarkupString($"<text x=\"{N(sh.Points[0])}\" y=\"{N(sh.Points[1])}\" font-size=\"{N(size)}\" font-weight=\"700\" class=\"rf-vtt-text {(sh.Private ? "master" : "")} {erasable} {(sh.CanMove ? "movable" : "")}\" "
+            + $"fill=\"{(sh.Private ? "#c4b5fd" : "#ffffff")}\" stroke=\"#0a0a0a\" stroke-width=\"{N(size / 6)}\" paint-order=\"stroke\" data-shape=\"{sh.Id}\" data-movable=\"{(sh.CanMove ? "1" : "0")}\" data-test=\"map-shape\" "
+            + $"data-kind=\"{(sh.Private ? "note" : "text")}\">{label}</text>");
     }
 
     private static string PointList(IReadOnlyList<double> values) =>
@@ -2146,7 +2289,7 @@ else
         {
             return;
         }
-        await AddShapeAsync(new SaveShapeDto { Kind = ShapeKind.Text, Points = new() { at.X, at.Y }, Text = textValue.Trim(), MasterOnly = RunsTheTable && textMasterOnly });
+        await AddShapeAsync(new SaveShapeDto { Kind = ShapeKind.Text, Points = new() { at.X, at.Y }, Text = textValue.Trim(), Shared = RunsTheTable && textShared });
         textAt = null;
         textValue = null;
     }
@@ -2160,6 +2303,27 @@ else
         else if (e.Key == "Escape")
         {
             textAt = null;
+        }
+    }
+
+    //	A text dragged somewhere else on the map
+    [JSInvokable]
+    public async Task ShapeMoved(string id, double x, double y)
+    {
+        if (map is null || !Guid.TryParse(id, out var shapeId) || shapes.FirstOrDefault(sh => sh.Id == shapeId) is not { } shape || !shape.CanMove)
+        {
+            return;
+        }
+        var point = new List<double> { Math.Round(Math.Clamp(x, 0, map.Width), 1), Math.Round(Math.Clamp(y, 0, map.Height), 1) };
+        shapes = shapes.Select(sh => sh.Id == shapeId ? sh with { Points = point } : sh).ToList();
+        localEdits++;
+        StateHasChanged();
+        var moved = await Campaigns.MoveShapeAsync(CampaignId, map.Id, shapeId, point);
+        message = moved is null ? UiText.MapSaveFailed(Lang) : null;
+        if (moved is null)
+        {
+            shapes = shapes.Select(sh => sh.Id == shapeId ? shape : sh).ToList();
+            StateHasChanged();
         }
     }
 
@@ -2181,7 +2345,7 @@ else
     {
         if (map is not null && (await Campaigns.ClearShapesAsync(CampaignId, map.Id)).Ok)
         {
-            shapes = RunsTheTable ? shapes.Where(x => x.MasterOnly).ToList() : shapes.Where(x => !x.CanDelete || x.MasterOnly).ToList();
+            shapes = shapes.Where(x => !x.CanDelete).ToList();
         }
     }
 

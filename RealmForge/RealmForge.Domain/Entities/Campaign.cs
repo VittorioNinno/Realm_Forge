@@ -24,6 +24,12 @@ namespace RealmForge.Domain.Entities
 		public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
 		public DateTimeOffset UpdatedAt { get; set; } = DateTimeOffset.UtcNow;
 
+		//	The virtual tabletop opened by a master or co-master for a session: the players are told and the campaign page
+		//	shows the way in. Closed by hand, or on its own after CampaignRules.TableIdleHours
+		//	with nothing happening at the table
+		public DateTimeOffset? TableOpenedAt { get; set; }
+		public string? TableOpenedById { get; set; }
+
 		public ICollection<CampaignMember> Members { get; set; } = new List<CampaignMember>();
 		public ICollection<CampaignInvite> Invites { get; set; } = new List<CampaignInvite>();
 		public ICollection<CampaignCharacter> Characters { get; set; } = new List<CampaignCharacter>();
@@ -80,8 +86,9 @@ namespace RealmForge.Domain.Entities
 	}
 
 	///	<summary>
-	///	Something drawn on a map: a stroke, a text, a note for the masters only, the area of a spell. Points in pixels of the
-	///	picture; Size is the length of an area in cells.
+	///	Something drawn on a map: a stroke, a text, the area of a spell. Points in pixels of the picture; Size is the length
+	///	of an area in cells. MasterOnly marks what only its author sees (see MapRules.Sees): every stroke, the players'
+	///	texts and the masters' texts not shared with the table.
 	///	</summary>
 	public class CampaignMapShape
 	{

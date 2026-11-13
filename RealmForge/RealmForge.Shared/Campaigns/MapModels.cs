@@ -402,7 +402,13 @@ public static class MapFog
 	public const int Cover = 2;
 	public const int RevealCircle = 3;
 	public const int CoverCircle = 4;
-	public const int MaxSteps = 2000;
+
+	//	A hexagon of the grid: centre, radius (centre to corner) and the grid's type (1 rows, pointy top; 2 columns, flat top)
+	public const int RevealHex = 5;
+	public const int CoverHex = 6;
+	public const int MaxSteps = 6000;
+
+	public static bool Reveals(int kind) => kind is Reveal or RevealCircle or RevealHex;
 
 	public static bool Covered(IReadOnlyList<double> fog, double x, double y)
 	{
@@ -410,20 +416,31 @@ public static class MapFog
 		for (var i = 0; i + 4 < fog.Count; i += 5)
 		{
 			var kind = (int)fog[i];
-			var inside = kind is RevealCircle or CoverCircle
-				? (x - fog[i + 1]) * (x - fog[i + 1]) + (y - fog[i + 2]) * (y - fog[i + 2]) <= fog[i + 3] * fog[i + 3]
-				: x >= fog[i + 1] && y >= fog[i + 2] && x <= fog[i + 1] + fog[i + 3] && y <= fog[i + 2] + fog[i + 4];
+			var inside = kind switch
+			{
+				RevealCircle or CoverCircle => (x - fog[i + 1]) * (x - fog[i + 1]) + (y - fog[i + 2]) * (y - fog[i + 2]) <= fog[i + 3] * fog[i + 3],
+				RevealHex or CoverHex => InHex(fog[i + 1], fog[i + 2], fog[i + 3], (int)fog[i + 4], x, y),
+				_ => x >= fog[i + 1] && y >= fog[i + 2] && x <= fog[i + 1] + fog[i + 3] && y <= fog[i + 2] + fog[i + 4]
+			};
 			if (inside)
 			{
-				covered = kind is Cover or CoverCircle;
+				covered = !Reveals(kind);
 			}
 		}
 		return covered;
 	}
 
+	//	Inside a regular hexagon (with a hair of margin, so that the shared sides of two cells belong to both)
+	public static bool InHex(double cx, double cy, double radius, int type, double x, double y)
+	{
+		var (along, across) = type == 2 ? (Math.Abs(y - cy), Math.Abs(x - cx)) : (Math.Abs(x - cx), Math.Abs(y - cy));
+		var r = radius + 0.01;
+		return along <= r * Math.Sqrt(3) / 2 && across <= r - along / Math.Sqrt(3);
+	}
+
 	public static bool Valid(IReadOnlyList<double> fog) =>
 		fog.Count % 5 == 0 && fog.Count / 5 <= MaxSteps
-		&& Enumerable.Range(0, fog.Count / 5).All(i => fog[5 * i] is Reveal or Cover or RevealCircle or CoverCircle)
+		&& Enumerable.Range(0, fog.Count / 5).All(i => fog[5 * i] is Reveal or Cover or RevealCircle or CoverCircle or RevealHex or CoverHex)
 		&& fog.All(v => !double.IsNaN(v) && !double.IsInfinity(v) && Math.Abs(v) < 100_000);
 }
 
@@ -445,6 +462,22 @@ public static class MapRules
 	public const int MaxAreaSize = 40;
 
 	public static bool IsArea(ShapeKind kind) => kind is ShapeKind.Cone or ShapeKind.Sphere or ShapeKind.Line or ShapeKind.Cube;
+
+	///	<summary>
+	///	Drawings stay with whoever drew them: every stroke and the players' texts are seen by their author only; a master
+	///	chooses whether a text is for the whole table. The areas of spells are for everyone.
+	///	</summary>
+	public static bool IsPrivate(ShapeKind kind, bool runsTheTable, bool shared) =>
+		kind == ShapeKind.Freehand || (kind == ShapeKind.Text && !(runsTheTable && shared));
+
+	//	Strokes drawn before they became private (Private false) stay with their author too
+	public static bool Sees(ShapeKind kind, bool isPrivate, bool mine) => mine || (!isPrivate && kind != ShapeKind.Freehand);
+
+	public static bool CanDeleteShape(ShapeKind kind, bool isPrivate, bool mine, bool runsTheTable) =>
+		mine || (runsTheTable && Sees(kind, isPrivate, mine));
+
+	public static bool CanMoveShape(ShapeKind kind, bool isPrivate, bool mine, bool runsTheTable) =>
+		kind == ShapeKind.Text && (mine || (runsTheTable && !isPrivate));
 
 	//	Cells across a map: the picture over the grid, at least one
 	public static int Columns(int width, int grid, int offset) => Math.Max(1, (width - offset + grid - 1) / grid);

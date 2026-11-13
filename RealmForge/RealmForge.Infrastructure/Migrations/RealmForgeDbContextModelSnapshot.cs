@@ -339,6 +339,12 @@ namespace RealmForge.Infrastructure.Migrations
                     b.Property<int?>("Ruleset")
                         .HasColumnType("integer");
 
+                    b.Property<DateTimeOffset?>("TableOpenedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("TableOpenedById")
+                        .HasColumnType("text");
+
                     b.Property<DateTimeOffset>("UpdatedAt")
                         .HasColumnType("timestamp with time zone");
 
