@@ -81,6 +81,10 @@ public class EncounterCombatant
 	//	given back when its turn starts
 	public string? ActionSpent { get; set; }
 	public bool ReactionUsed { get; set; }
+
+	//	The cell it starts the fight on, on the encounter's map (null: the first free one)
+	public int? X { get; set; }
+	public int? Y { get; set; }
 }
 
 ///	<summary>

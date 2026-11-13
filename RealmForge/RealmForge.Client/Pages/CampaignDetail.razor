@@ -358,7 +358,7 @@
                 <CampaignMap CampaignId="campaign.Id" Role="role" Characters="campaign.Characters" Members="campaign.Members" />
                 break;
             case Tab.Rolls:
-                <CampaignRolls CampaignId="campaign.Id" Role="role" Characters="campaign.Characters" MyColor="@(campaign.Members.FirstOrDefault(m => m.IsMe)?.Color ?? PlayerColors.Master)" />
+                <CampaignRolls CampaignId="campaign.Id" Role="role" Characters="campaign.Characters" MyColor="@(campaign.Members.FirstOrDefault(m => m.IsMe)?.Color ?? PlayerColors.Master)" Docked="true" />
                 break;
         }
     }
