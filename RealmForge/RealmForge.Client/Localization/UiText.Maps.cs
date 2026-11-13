@@ -153,7 +153,6 @@ namespace RealmForge.Client.Localization
 		public static string VttPreviousTurn(LanguageCode lang) => T(lang, "Turno precedente", "Previous turn");
 		public static string VttShowHealth(LanguageCode lang) => T(lang, "Mostra ai giocatori la salute dei nemici", "Show the enemies' health to the players");
 		public static string VttHideHealth(LanguageCode lang) => T(lang, "Nascondi ai giocatori la salute dei nemici", "Hide the enemies' health from the players");
-		public static string VttRollLog(LanguageCode lang) => T(lang, "Log tiri", "Roll log");
 		public static string VttNextTurn(LanguageCode lang) => T(lang, "Turno successivo", "Next turn");
 		public static string VttEndCombat(LanguageCode lang) => T(lang, "Termina", "End");
 		public static string TokenHp(int max, LanguageCode lang) => T(lang, $"Punti ferita (max {max})", $"Hit points (max {max})");
