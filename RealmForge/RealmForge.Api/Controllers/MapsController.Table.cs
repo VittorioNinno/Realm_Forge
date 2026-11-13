@@ -439,7 +439,11 @@ namespace RealmForge.Api.Controllers
 
 		private static (int X, int Y) NextTo(CampaignMap map, CampaignToken token)
 		{
-			var taken = map.Tokens.Where(t => t.PropType == PropType.Item).Select(t => (t.X, t.Y)).ToHashSet();
+			//	Free: no other token on it (an item on the ground is seen and clicked only there)
+			var taken = map.Tokens.Where(t => t.Id != token.Id)
+				.SelectMany(t => Enumerable.Range(0, map.GridType == GridType.Square ? t.Size : 1)
+					.SelectMany(dx => Enumerable.Range(0, map.GridType == GridType.Square ? t.Size : 1).Select(dy => (t.X + dx, t.Y + dy))))
+				.ToHashSet();
 			for (var ring = 1; ring <= 3; ring++)
 			{
 				for (var dy = -ring; dy <= ring + token.Size - 1; dy++)
