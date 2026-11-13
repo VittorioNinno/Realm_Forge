@@ -1113,7 +1113,10 @@ jobs:
           lt_close_player=$(code -X DELETE "$api/api/campaigns/$ss_cp/table" -H "Authorization: Bearer $A")
           lt_close=$(code -X DELETE "$api/api/campaigns/$ss_cp/table" -H "Authorization: Bearer $B")
           lt_after=$(curl -s "$api/api/campaigns/live" -H "Authorization: Bearer $A" | jq -c "[.[] | select(.campaignId == \"$ss_cp\")] | length")
-          echo "::notice title=maps::live table player opens=$lt_player master=$lt_open player live=$lt_player_live detail=$lt_detail list=$lt_list close=$lt_close_player/$lt_close after=$lt_after"
+          # Closing the table hides its maps from the players again; the master shows the map once more for what follows
+          lt_hidden=$(code "$api/api/campaigns/$ss_cp/maps/$mp2/state" -H "Authorization: Bearer $A")
+          code -X POST "$api/api/campaigns/$ss_cp/maps/$mp2/display" -H "Authorization: Bearer $B" > /dev/null
+          echo "::notice title=maps::live table player opens=$lt_player master=$lt_open player live=$lt_player_live detail=$lt_detail list=$lt_list close=$lt_close_player/$lt_close after=$lt_after hidden=$lt_hidden"
           echo "::notice title=maps::shapes player=$sh_player player text=$sh_player_note bad=$sh_bad player sees=$sh_player_seen erase=$sh_player_erase/$sh_player_note_erase move=$sh_player_move/$sh_player_move_own/$sh_master_move/$sh_move_off master sees=$sh_master_sees clear=$sh_player_clear master after=$sh_master_seen player after=$sh_player_left"
           # Fog of war: the marker under the fog disappears for the player, comes back once revealed; pings and the view
           fog_player=$(code -X PUT "$api/api/campaigns/$ss_cp/maps/$mp2/fog" $json -H "Authorization: Bearer $A" -d '{"enabled":true,"fog":[]}')
@@ -1340,6 +1343,7 @@ jobs:
           sscheck "player closes the table" "$lt_close_player" "403"
           sscheck "master closes the table" "$lt_close" "204"
           sscheck "table closed" "$lt_after" "0"
+          sscheck "map hidden from the players when the table closes" "$lt_hidden" "404"
           sscheck "player duplicates a map" "$mp_dup_player" "403"
           sscheck "copy of a map" "$mp_dup_state" '{"name":"Foresta 2","gridType":1,"shown":false,"tokens":1}'
           sscheck "reveal by a player" "$rl_reveal_player" "403"
