@@ -245,6 +245,29 @@ namespace RealmForge.Client.Localization
 		public static string LabelExpertise(int count, LanguageCode lang) => T(lang, $"Maestria (scegli {count} abilità con competenza)", $"Expertise (choose {count} proficient skills)");
 		public static string LabelFightingStyle(LanguageCode lang) => T(lang, "Stile di combattimento", "Fighting Style");
 		public static string LabelOrder(string? classKey, LanguageCode lang) => classKey == "druid" ? T(lang, "Ordine primordiale", "Primal Order") : T(lang, "Ordine divino", "Divine Order");
+		public static string LabelQuantity(LanguageCode lang) => T(lang, "Quantità", "Quantity");
+		public static string RollAutoFail(string causes, LanguageCode lang) => T(lang, $"Fallito in automatico ({causes})", $"Failed automatically ({causes})");
+		public static string RollConditions(string causes, int penalty, LanguageCode lang) => penalty > 0
+			? T(lang, $"{causes}: −{penalty}", $"{causes}: −{penalty}")
+			: T(lang, $"per {causes}", $"from {causes}");
+		public static string WeaponReserve(LanguageCode lang) => T(lang, "Scorta", "Ready");
+		public static string WeaponReserveHint(LanguageCode lang) => T(lang, "Equipaggiata ma non in mano: si impugna con un'azione bonus", "Equipped but not in hand: drawn with a bonus action");
+		public static string BtnSwapWeapons(LanguageCode lang) => T(lang, "Impugna (azione bonus)", "Draw (bonus action)");
+		public static string SwapDone(LanguageCode lang) => T(lang, "Armi scambiate: azione bonus usata", "Weapons swapped: bonus action used");
+		public static string AmmoNone(string weapon, LanguageCode lang) => T(lang, $"Nessuna munizione per «{weapon}»: aggiungila all'inventario prima di tirare.", $"No ammunition for “{weapon}”: add some to the inventory before shooting.");
+		public static string AmmoLast(string ammo, LanguageCode lang) => T(lang, $"Ultimo colpo: «{ammo}» finite.", $"Last shot: no “{ammo}” left.");
+		public static string AmmoLow(string ammo, int left, LanguageCode lang) => T(lang, $"Restano {left} «{ammo}».", $"{left} “{ammo}” left.");
+		public static string ItemUsed(string item, int left, LanguageCode lang) => left == 0
+			? T(lang, $"Usato: {item} (finito)", $"Used: {item} (none left)")
+			: T(lang, $"Usato: {item} (ne restano {left})", $"Used: {item} ({left} left)");
+		public static string FeatureHealed(int amount, LanguageCode lang) => T(lang, $"+{amount} PF", $"+{amount} HP");
+		public static string PurchaseListPrice(string price, LanguageCode lang) => T(lang, $"Prezzo di listino: {price} l'uno", $"List price: {price} each");
+		public static string PurchaseBuy(LanguageCode lang) => T(lang, "Acquista (paga dalle monete)", "Buy (pay from the coins)");
+		public static string PurchasePrice(LanguageCode lang) => T(lang, "Prezzo totale (mo)", "Total price (gp)");
+		public static string PurchaseConfirmBuy(LanguageCode lang) => T(lang, "Acquista", "Buy");
+		public static string PurchaseConfirmAdd(LanguageCode lang) => T(lang, "Aggiungi", "Add");
+		public static string PurchaseNoMoney(LanguageCode lang) => T(lang, "Monete insufficienti per questo prezzo.", "Not enough coins for this price.");
+		public static string PurchaseDone(string item, int quantity, string price, LanguageCode lang) => T(lang, $"Acquistato: {item} ×{quantity} per {price} mo", $"Bought: {item} ×{quantity} for {price} gp");
 		public static string SpellClassLists(LanguageCode lang) => T(lang, "Liste delle classi:", "Class lists:");
 		public static string SpellFootNote(LanguageCode lang) => T(lang, "Dettaglio dell'incantesimo", "Spell details");
 		public static string HintEquipStart(LanguageCode lang) => T(lang, "Scegli cosa indossare e impugnare: una sola armatura, uno scudo e due mani (un'arma a due mani le occupa entrambe). Il resto va nello zaino.", "Choose what to wear and hold: one armour, one shield and two hands (a two-handed weapon takes both). The rest goes in the backpack.");

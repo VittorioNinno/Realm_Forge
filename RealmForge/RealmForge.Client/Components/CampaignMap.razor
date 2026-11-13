@@ -3061,7 +3061,8 @@ else
         (t.CharacterId is not null && (CharacterOf(t)?.IsMine == true || t.Controlled))
         || ((RunsTheTable || t.Controlled) && (t.MonsterId is not null || t.SheetCharacterId is not null) && t.CharacterId is null);
 
-    private int? SpeedCells(MapTokenDto t) => StatsOf(t)?.SpeedFeet is { } feet && feet > 0 ? feet / 5 : null;
+    //	A speed of 0 (grappled, restrained…) keeps the token where it is
+    private int? SpeedCells(MapTokenDto t) => StatsOf(t)?.SpeedFeet is { } feet ? feet / 5 : null;
 
     private async Task PreloadStatsAsync()
     {
@@ -3138,7 +3139,7 @@ else
         var (character, computed) = loaded.Value;
         var rolls = new List<TokenRoll> { new(UiText.RollInitiative(Lang), Bonus(computed.Initiative), D20(computed.Initiative), false) };
         var attacks = new List<SheetLine>();
-        foreach (var attack in computed.Attacks.Take(4))
+        foreach (var attack in computed.Attacks.Where(a => a.InHand).Take(4))
         {
             var hit = new TokenRoll(UiText.RollAttack(attack.Item.Name, Lang), Bonus(attack.AttackBonus), D20(attack.AttackBonus), false);
             var damage = attack.Damage.Replace(" ", string.Empty);

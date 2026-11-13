@@ -18,6 +18,7 @@ namespace RealmForge.Client.Pages
 			public required int Bonus { get; init; }
 			public required string Damage { get; init; }
 			public required List<AttackRiders.Rider> Riders { get; init; }
+			public ContextItem? Item { get; init; }
 			public HashSet<string> Chosen { get; } = new();
 			public int SmiteLevel { get; set; } = 1;
 			public bool UndeadOrFiend { get; set; }
@@ -41,15 +42,19 @@ namespace RealmForge.Client.Pages
 			.Where(l => computed.SpellSlots[l - 1] - SpentSlots(l) > 0)
 			.ToList();
 
+		//	The attack roll: a shot spends its ammunition first (none: no attack), the conditions weigh on it
 		private void AttackHit(string name, int bonus, string damage, ContextItem? item)
 		{
 			var riders = RidersFor(item);
 			if (riders.Any(r => !r.Automatic))
 			{
-				OpenAttack(name, bonus, damage, riders);
+				OpenAttack(name, bonus, damage, riders, item);
 				return;
 			}
-			Roll(name, bonus);
+			if (SpendAmmunition(item))
+			{
+				RollTest(name, bonus, ConditionRules.Test.Attack);
+			}
 		}
 
 		private void AttackDamage(string name, int bonus, string damage, ContextItem? item)
@@ -57,15 +62,15 @@ namespace RealmForge.Client.Pages
 			var riders = RidersFor(item);
 			if (riders.Any(r => !r.Automatic))
 			{
-				OpenAttack(name, bonus, damage, riders);
+				OpenAttack(name, bonus, damage, riders, item);
 				return;
 			}
 			RollAttackDamage(name, damage, riders.Where(r => r.Automatic).ToList(), 0, false, false);
 		}
 
-		private void OpenAttack(string name, int bonus, string damage, List<AttackRiders.Rider> riders)
+		private void OpenAttack(string name, int bonus, string damage, List<AttackRiders.Rider> riders, ContextItem? item = null)
 		{
-			attackDraft = new AttackDraft { Name = name, Bonus = bonus, Damage = damage, Riders = riders };
+			attackDraft = new AttackDraft { Name = name, Bonus = bonus, Damage = damage, Riders = riders, Item = item };
 			if (SmiteLevels.FirstOrDefault() is > 0 and var lowest)
 			{
 				attackDraft.SmiteLevel = lowest;
@@ -93,8 +98,13 @@ namespace RealmForge.Client.Pages
 			{
 				return;
 			}
-			var penalty = PowerAttack ? -5 : 0;
-			var (die, dice) = RollD20();
+			if (!SpendAmmunition(draft.Item))
+			{
+				return;
+			}
+			var effect = ConditionRules.For(Ruleset, Sheet, ConditionRules.Test.Attack);
+			var penalty = (PowerAttack ? -5 : 0) - effect.Penalty;
+			var (die, dice) = RollD20(ModeWith(effect));
 			var critical = die == 20;
 			var note = critical ? UiText.RollCritical(Lang) : die == 1 ? UiText.RollFumble(Lang) : null;
 			draft.Critical = critical;

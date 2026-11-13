@@ -48,6 +48,29 @@ public static class EquipmentRules
 	private static bool IsWeapon(ContextItem? item) => item?.Category == EquipmentCategory.Weapon;
 
 	///	<summary>
+	///	Ranged weapons (bows, crossbows, slings: Ammunition) form a set of their own: worn ready next to the melee weapons and
+	///	the shield, one set in hand at a time; swapping takes a bonus action.
+	///	</summary>
+	public static bool IsRangedSet(ContextItem? item) => item?.Category == EquipmentCategory.Weapon && item.WeaponRange == WeaponRange.Ranged;
+
+	///	<summary>
+	///	Whether an equipped item is in hand right now (false: carried ready, "scorta"): a ranged weapon when the ranged set is
+	///	in hand, a melee weapon or a shield when it is not, or whichever set is the only one worn.
+	///	</summary>
+	public static bool InHand(ContextItem? item, IEnumerable<ContextItem?> equipped, bool rangedReady)
+	{
+		if (Hands(item) == 0)
+		{
+			return true;
+		}
+		var list = equipped.Where(i => Hands(i) > 0).ToList();
+		var hasRanged = list.Any(IsRangedSet);
+		var hasMelee = list.Any(i => !IsRangedSet(i));
+		var ranged = rangedReady ? hasRanged || !hasMelee : !hasMelee && hasRanged;
+		return IsRangedSet(item) == ranged;
+	}
+
+	///	<summary>
 	///	Whether <paramref name="item"/> can be equipped next to what the character already wears and holds.
 	///	</summary>
 	public static Check CanEquip(InventoryItem item, IEnumerable<InventoryItem> inventory, Func<InventoryItem, ContextItem?> lookup,
@@ -74,7 +97,8 @@ public static class EquipmentRules
 		{
 			return new Check(Problem.None);
 		}
-		var held = worn.Where(w => Hands(w.Info) > 0).ToList();
+		//	The ranged set and the melee set (with the shield) each fill the two hands on their own
+		var held = worn.Where(w => Hands(w.Info) > 0 && IsRangedSet(w.Info) == IsRangedSet(info)).ToList();
 		if (held.Sum(w => Hands(w.Info)) + hands > 2)
 		{
 			return new Check(Problem.HandsFull, string.Join(", ", held.Select(w => name(w.Item))));
