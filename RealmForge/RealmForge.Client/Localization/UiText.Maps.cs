@@ -111,6 +111,39 @@ namespace RealmForge.Client.Localization
 		public static string VttTextHint(LanguageCode lang) => T(lang, "Testo…", "Text…");
 		public static string VttTextShared(LanguageCode lang) => T(lang, "Visibile ai giocatori", "Shown to the players");
 		public static string VttOnlyYou(LanguageCode lang) => T(lang, "Lo vedi solo tu.", "Only you see it.");
+		public static string VttToolPing(LanguageCode lang) => T(lang, "Segnala un punto (ping)", "Ping a spot");
+		public static string VttLockPlayers(LanguageCode lang) => T(lang, "Blocca aree e ping dei giocatori", "Stop the players' areas and pings");
+		public static string VttUnlockPlayers(LanguageCode lang) => T(lang, "Aree e ping dei giocatori bloccati: clic per sbloccarli", "The players' areas and pings are stopped: click to allow them");
+		public static string VttTurnSlot(int slot, LanguageCode lang) => slot switch
+		{
+			1 => T(lang, "Azioni", "Actions"),
+			2 => T(lang, "Azioni bonus", "Bonus actions"),
+			_ => T(lang, "Reazioni", "Reactions")
+		};
+		public static string VttPactSlots(int left, int max, int level, LanguageCode lang) => T(lang, $"Patto ({level}°): {left}/{max}", $"Pact ({level}): {left}/{max}");
+		public static string VttSpellAttack(LanguageCode lang) => T(lang, "Attacco con incantesimo", "Spell attack");
+		public static string VttSpellNumbers(int dc, string attack, LanguageCode lang) => T(lang, $"CD {dc} · Attacco {attack}", $"DC {dc} · Attack {attack}");
+		public static string VttInnateSpells(LanguageCode lang) => T(lang, "Incantesimi innati", "Innate spells");
+		public static string VttResources(LanguageCode lang) => T(lang, "Usi rimasti", "Uses left");
+		public static string VttFeats(LanguageCode lang) => T(lang, "Talenti", "Feats");
+		public static string VttFeatureLevel(int level, LanguageCode lang) => T(lang, $"Liv. {level}", $"Lv. {level}");
+		public static string VttMonsterDetails(LanguageCode lang) => T(lang, "Caratteristiche", "Details");
+		public static string VttMonsterSkills(LanguageCode lang) => T(lang, "Abilità", "Skills");
+		public static string VttMonsterVulnerable(LanguageCode lang) => T(lang, "Vulnerabilità", "Vulnerabilities");
+		public static string VttMonsterResistant(LanguageCode lang) => T(lang, "Resistenze", "Resistances");
+		public static string VttMonsterImmune(LanguageCode lang) => T(lang, "Immunità ai danni", "Damage immunities");
+		public static string VttMonsterConditionImmune(LanguageCode lang) => T(lang, "Immunità alle condizioni", "Condition immunities");
+		public static string VttMonsterSenses(LanguageCode lang) => T(lang, "Sensi", "Senses");
+		public static string VttMonsterLanguages(LanguageCode lang) => T(lang, "Linguaggi", "Languages");
+		public static string VttSheetTab(string key, LanguageCode lang) => key switch
+		{
+			"actions" => T(lang, "Azioni", "Actions"),
+			"spells" => T(lang, "Incantesimi", "Spells"),
+			"features" => T(lang, "Privilegi", "Features"),
+			"notes" => T(lang, "Note", "Notes"),
+			_ => T(lang, "Generale", "General")
+		};
+		public static string VttSpellLevelName(int level, LanguageCode lang) => level == 0 ? T(lang, "Trucchetti", "Cantrips") : T(lang, $"{level}° livello", $"Level {level}");
 		public static string VttHideHint(LanguageCode lang) => T(lang, "I giocatori vedono questa mappa: clic per nasconderla.", "The players see this map: click to hide it.");
 		public static string VttEraseClick(LanguageCode lang) => T(lang, "Clic", "Click");
 		public static string VttEraseArea(LanguageCode lang) => T(lang, "Area", "Area");
@@ -275,6 +308,10 @@ namespace RealmForge.Client.Localization
 		public static string ToolHeal(LanguageCode lang) => T(lang, "Cura", "Heal");
 		public static string ToolDamage(LanguageCode lang) => T(lang, "Danno", "Damage");
 		public static string ToolHpAmount(LanguageCode lang) => T(lang, "Quantità", "Amount");
+		public static string ToolArmorClass(LanguageCode lang) => T(lang, "Classe armatura", "Armour class");
+		public static string ToolHpShown(LanguageCode lang) => T(lang, "PF visibili ai giocatori", "Hit points shown to the players");
+		public static string ToolHpHidden(LanguageCode lang) => T(lang, "PF nascosti ai giocatori", "Hit points hidden from the players");
+		public static string TokenCopyName(string name, LanguageCode lang) => T(lang, $"{name} (copia)", $"{name} (copy)");
 		public static string ToolTempHp(LanguageCode lang) => T(lang, "PF temporanei", "Temporary HP");
 		public static string ToolHpMaxEdit(LanguageCode lang) => T(lang, "Modifica PF max", "Change max HP");
 		public static string ToolHpNow(LanguageCode lang) => T(lang, "PF attuali", "Current HP");

@@ -412,6 +412,11 @@ namespace RealmForge.Api.Controllers
 			{
 				return Problem(statusCode: StatusCodes.Status400BadRequest, title: "Kind, points, text, size or colour out of range.");
 			}
+			//	Locked by the masters: the players keep only what they draw for themselves
+			if (!runs && map.PlayersLocked && !MapRules.IsPrivate(dto.Kind, false, dto.Shared))
+			{
+				return Forbid();
+			}
 			if (map.Shapes.Count >= MapRules.MaxShapes)
 			{
 				return Problem(statusCode: StatusCodes.Status400BadRequest, title: $"At most {MapRules.MaxShapes} drawings per map.");
@@ -566,11 +571,51 @@ namespace RealmForge.Api.Controllers
 			{
 				return Problem(statusCode: StatusCodes.Status400BadRequest, title: "The point is outside the map.");
 			}
+			//	A player: not while the masters keep the pings for themselves, and one every few seconds
+			if (!CampaignRules.RunsTheTable(role.Value))
+			{
+				if (map.PlayersLocked)
+				{
+					return Forbid();
+				}
+				var now = DateTimeOffset.UtcNow;
+				var key = $"{UserId}:{map.Id}";
+				if (LastPings.TryGetValue(key, out var last) && now - last < MapRules.PingEvery)
+				{
+					return Problem(statusCode: StatusCodes.Status429TooManyRequests, title: "One ping every few seconds.");
+				}
+				LastPings[key] = now;
+				if (LastPings.Count > 5000)
+				{
+					LastPings.Clear();
+				}
+			}
 			var colors = await CampaignAccess.EnsureColorsAsync(_context, campaignId);
 			map.PingX = Math.Round(dto.X, 1);
 			map.PingY = Math.Round(dto.Y, 1);
 			map.PingColor = CampaignRules.RunsTheTable(role.Value) ? PlayerColors.Master : colors.TryGetValue(UserId, out var mine) ? mine : PlayerColors.Master;
 			map.PingAt = map.UpdatedAt = DateTimeOffset.UtcNow;
+			await _context.SaveChangesAsync();
+			return NoContent();
+		}
+
+		private static readonly System.Collections.Concurrent.ConcurrentDictionary<string, DateTimeOffset> LastPings = new();
+
+		//	PUT: api/campaigns/{campaignId}/maps/{mapId}/lock — the masters stop (or allow again) the players' areas and pings
+		[HttpPut("{mapId:guid}/lock")]
+		public async Task<IActionResult> LockPlayers(Guid campaignId, Guid mapId, [FromBody] PlayersLockDto dto)
+		{
+			var (map, role) = await LoadAsync(campaignId, mapId, withTokens: false);
+			if (map is null || role is null)
+			{
+				return NotFound();
+			}
+			if (!CampaignRules.RunsTheTable(role.Value))
+			{
+				return Forbid();
+			}
+			map.PlayersLocked = dto.Locked;
+			map.UpdatedAt = DateTimeOffset.UtcNow;
 			await _context.SaveChangesAsync();
 			return NoContent();
 		}
@@ -1074,6 +1119,18 @@ namespace RealmForge.Api.Controllers
 			{
 				token.TempHp = temp > 0 ? Math.Min(temp, 10_000) : null;
 			}
+			if (runs && dto.ShowHp is { } showHp)
+			{
+				token.ShowHp = showHp;
+			}
+			if (runs && dto.ArmorClass is { } armor)
+			{
+				token.ArmorClass = armor > 0 ? Math.Min(armor, 50) : null;
+				if (combatant is not null && armor > 0)
+				{
+					combatant.ArmorClass = token.ArmorClass ?? armor;
+				}
+			}
 			if (fight is not null && combatant is not null)
 			{
 				combatant.Conditions = conditions;
@@ -1137,6 +1194,9 @@ namespace RealmForge.Api.Controllers
 				.Where(c => characterIds.Contains(c.Id)).Select(c => new { c.Id, c.OwnerId, c.Sheet }).ToListAsync();
 			var mine = characters.Where(c => c.OwnerId == UserId).Select(c => c.Id).ToHashSet();
 			var sheetConditions = characters.ToDictionary(c => c.Id, c => EncounterSheetSync.ConditionsOf(CharactersController.ReadSheet(c.Sheet)));
+			var monsterIds = map.Tokens.Where(t => t.MonsterId is not null).Select(t => t.MonsterId!.Value).Distinct().ToList();
+			var creatures = await _context.Monsters.AsNoTracking().Where(m => monsterIds.Contains(m.Id))
+				.Select(m => new { m.Id, m.Size, m.Type }).ToDictionaryAsync(m => m.Id);
 			return map.Tokens
 				.Where(t => runs || !t.Hidden)
 				.Where(t => runs || !map.FogEnabled || (t.CharacterId is { } own && mine.Contains(own)) || !UnderFog(map, t))
@@ -1145,8 +1205,13 @@ namespace RealmForge.Api.Controllers
 				{
 					var controls = (t.CharacterId is { } id && mine.Contains(id)) || t.ControlledBy.Contains(UserId);
 					var dto = ToDto(t, MapRules.CanMove(role, controls, map.Shown, t.Hidden) && (runs || t.Layer == TokenLayer.Tokens)) with { Controlled = controls };
-					//	The masters and whoever controls it know its numbers; the others how hurt it looks
-					var knows = runs || controls;
+					if (t.MonsterId is { } monsterId && creatures.TryGetValue(monsterId, out var creature))
+					{
+						dto = dto with { CreatureSize = creature.Size, CreatureType = creature.Type };
+					}
+					//	The masters and whoever controls it know its numbers (the others too when a master shows them); the
+					//	others how hurt it looks
+					var knows = runs || controls || t.ShowHp;
 					if (knows)
 					{
 						dto = dto with { TempHp = t.TempHp };
@@ -1266,7 +1331,8 @@ namespace RealmForge.Api.Controllers
 
 		private static MapTokenDto ToDto(CampaignToken t, bool canMove) =>
 			new(t.Id, t.Label, t.Color, t.Kind, t.CharacterId, t.MonsterId, t.X, t.Y, t.Size, t.Hidden, canMove, null, t.Layer, t.CombatantId,
-				PropType: t.PropType, PropState: t.PropState, PlayersInteract: t.PlayersInteract, ImageId: t.ImageId);
+				PropType: t.PropType, PropState: t.PropState, PlayersInteract: t.PlayersInteract, ImageId: t.ImageId,
+				SheetCharacterId: t.SheetCharacterId, ShowHp: t.ShowHp, ArmorClass: t.ArmorClass);
 
 		private static bool UnderFog(CampaignMap map, CampaignToken t)
 		{
@@ -1278,7 +1344,8 @@ namespace RealmForge.Api.Controllers
 			map.FogEnabled,
 			map.FogEnabled || CampaignRules.RunsTheTable(role) ? map.Fog : new List<double>(),
 			map.PingAt is { } pingAt ? new MapPingDto(map.PingX ?? 0, map.PingY ?? 0, map.PingColor ?? PlayerColors.Master, pingAt) : null,
-			map.FocusAt is { } focusAt ? new MapFocusDto(map.FocusX ?? 0, map.FocusY ?? 0, map.FocusZoom ?? 1, focusAt) : null);
+			map.FocusAt is { } focusAt ? new MapFocusDto(map.FocusX ?? 0, map.FocusY ?? 0, map.FocusZoom ?? 1, focusAt) : null,
+			map.PlayersLocked);
 
 		//	Everyone sees their own drawings and what is for the whole table (MapRules.Sees)
 		private List<MapShapeDto> ShapesOf(CampaignMap map, CampaignRole role)
@@ -1381,6 +1448,11 @@ namespace RealmForge.Api.Controllers
 			{
 				return "The character is not at this table.";
 			}
+			if (dto.SheetCharacterId is { } sheetId
+				&& !await _context.CampaignCharacters.AnyAsync(cc => cc.CampaignId == campaignId && cc.CharacterId == sheetId))
+			{
+				return "The character is not at this table.";
+			}
 			return null;
 		}
 
@@ -1391,6 +1463,7 @@ namespace RealmForge.Api.Controllers
 			token.Kind = dto.Kind;
 			token.CharacterId = dto.CharacterId;
 			token.MonsterId = dto.MonsterId;
+			token.SheetCharacterId = dto.CharacterId is null ? dto.SheetCharacterId : null;
 			token.X = dto.X;
 			token.Y = dto.Y;
 			token.Size = dto.Size;

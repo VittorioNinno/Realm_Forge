@@ -509,4 +509,7 @@ public static class MapRules
 		CampaignRules.RunsTheTable(role) || (controls && mapShown && !hidden);
 
 	public const int MaxControllers = 12;
+
+	//	A player pings at most once in this time (the others are not flooded)
+	public static readonly TimeSpan PingEvery = TimeSpan.FromSeconds(3);
 }
