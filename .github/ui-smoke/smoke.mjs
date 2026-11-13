@@ -1733,8 +1733,8 @@ try {
   await page.locator('[data-test=map-token-conditions-tab]').click();
   await page.locator('[data-test=map-token-condition][data-key=prone]').click();
   await page.locator('[data-test=map-token-tab-hp]').click();
-  await page.locator('[data-test=map-token-hp-input]').fill('2');
-  await page.locator('[data-test=map-token-hp-input]').press('Tab');
+  await page.locator('[data-test=map-token-hp-amount]').fill('5');
+  await page.locator('[data-test=map-token-damage]').click();
   // Its quick sheet on the side: the hit points just set, a check rolled from an ability
   await page.locator('[data-test=map-token-sheet]').click();
   await page.locator('[data-test=vtt-quick-sheet] [data-test=map-token-roll]').first().waitFor({ timeout: 30000 });
