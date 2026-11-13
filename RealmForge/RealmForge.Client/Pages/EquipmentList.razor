@@ -276,99 +276,27 @@
 
 @if (SelectedItem is { } detail)
 {
-    var s = detail.Stats;
-    <div class="rf-modal-backdrop" @onclick="CloseDetail">
-        <div class="rf-modal-dialog" style="max-width: 680px;" @onclick:stopPropagation="true" data-test="equipment-detail">
-            <div class="d-flex justify-content-between align-items-start mb-3 pb-2" style="border-bottom: 2px solid var(--rf-orange-primary);">
-                <div>
-                    <h2 class="h3 mb-2" style="color: var(--rf-orange-primary); font-family: var(--rf-font-display);" data-test="equipment-name">@detail.Name</h2>
-                    <div class="fst-italic small mb-2" style="color: var(--rf-text-secondary);" data-test="equipment-subtitle">@Subtitle(s)</div>
-                    <div class="d-flex flex-wrap gap-2">
-                        <span class="badge @(detail.Ruleset == RulesetVersion.Dnd5e_2024 ? "badge-edition-2024" : "badge-edition-2014")">
-                            @UiText.FormatRuleset(detail.Ruleset, Lang)
-                        </span>
-                        <ContentBadge IsBase="detail.IsOfficialSRD" Source="detail.Source" Visibility="detail.Visibility" ShowSource="true" />
-                    </div>
-                </div>
-                <button class="btn btn-sm btn-rf-outline" @onclick="CloseDetail"><Icon Name="close" /></button>
-            </div>
-
+    <EquipmentInfoModal Item="detail" OnClose="CloseDetail">
+        <Extra>
             @if (!detail.IsOfficialSRD)
             {
                 <ShareLink Visibility="detail.Visibility" CanEdit="detail.CanEdit" EntityId="detail.Id" Path="@($"equipment?id={detail.Id}")" />
             }
-
-            <dl class="rf-spell-stats mb-3" data-test="equipment-stats">
-                <div><dt>@UiText.ColCost(Lang)</dt><dd>@EquipmentTerms.FormatCost(s.CostInCopper, Lang)</dd></div>
-                <div><dt>@UiText.ColWeight(Lang)</dt><dd>@EquipmentTerms.FormatWeight(s.WeightInPounds, Lang)</dd></div>
-                @if (s.Quantity > 1)
-                {
-                    <div><dt>@UiText.ColQuantity(Lang)</dt><dd>@s.Quantity</dd></div>
-                }
-                @if (s.Category == EquipmentCategory.Weapon)
-                {
-                    <div><dt>@UiText.ColDamage(Lang)</dt><dd>@EquipmentTerms.FormatDamage(s.DamageDice, s.DamageType, Lang)</dd></div>
-                    <div class="rf-stat-wide"><dt>@UiText.ColProperties(Lang)</dt><dd data-test="equipment-properties">@EquipmentTerms.FormatProperties(s.WeaponProperties, s.NormalRange, s.LongRange, s.VersatileDamageDice, Lang)</dd></div>
-                    @if (s.Mastery is { } mastery)
-                    {
-                        <div class="rf-stat-wide"><dt>@UiText.LabelMastery(Lang)</dt><dd data-test="equipment-mastery-value"><strong>@EquipmentTerms.MasteryName(mastery, Lang).</strong> @EquipmentTerms.MasteryRule(mastery, Lang)</dd></div>
-                    }
-                }
-                @if (s.Category == EquipmentCategory.Armor)
-                {
-                    <div><dt>@UiText.ColArmorClass(Lang)</dt><dd data-test="equipment-ac">@EquipmentTerms.FormatArmorClass(s.ArmorCategory, s.ArmorClass, s.ArmorAddsDexterity, s.ArmorMaxDexterityBonus, Lang)</dd></div>
-                    <div><dt>@UiText.ColStrength(Lang)</dt><dd>@(s.StrengthRequirement is { } str ? UiText.StrengthRequirement(str, Lang) : "—")</dd></div>
-                    <div><dt>@UiText.ColStealth(Lang)</dt><dd>@(s.StealthDisadvantage ? UiText.StealthDisadvantage(Lang) : "—")</dd></div>
-                }
-                @if (s.ToolAbility is { } ability)
-                {
-                    <div><dt>@UiText.ColAbility(Lang)</dt><dd>@FeatPrerequisiteFormatter.AbilityName(ability, Lang)</dd></div>
-                }
-                @if (s.SpeedInFeet is { } speed)
-                {
-                    <div><dt>@UiText.ColSpeed(Lang)</dt><dd>@EquipmentTerms.FormatDistance(speed, Lang)</dd></div>
-                }
-                @if (s.SpeedInMilesPerHour is { } mph)
-                {
-                    <div><dt>@UiText.ColSpeed(Lang)</dt><dd>@EquipmentTerms.FormatShipSpeed(mph, Lang)</dd></div>
-                }
-                @if (s.CarryingCapacityInPounds is { } capacity)
-                {
-                    <div><dt>@UiText.ColCapacity(Lang)</dt><dd>@EquipmentTerms.FormatCapacity(capacity, Lang)</dd></div>
-                }
-            </dl>
-
-            @if (!string.IsNullOrWhiteSpace(detail.Description))
+        </Extra>
+        <Actions>
+            @if (detail.CanEdit)
             {
-                <div class="mb-3 p-3 rounded" style="background-color: var(--rf-bg-main); border-left: 3px solid var(--rf-border-light);">
-                    <div class="rf-markdown-container" data-test="equipment-description">
-                        @((MarkupString)MarkdownText.ToHtml(detail.Description, Terms(detail.Ruleset)))
-                    </div>
-                </div>
+                <button class="btn btn-sm btn-rf-outline text-uppercase" style="letter-spacing: 1px;"
+                        @onclick="async () => { var id = detail.Id; CloseDetail(); await OpenEditModalAsync(id); }">
+                    @UiText.Edit(Lang)
+                </button>
+                <button class="btn btn-sm btn-rf-outline text-uppercase px-3" style="border-color: #dc3545; color: #dc3545;"
+                        @onclick="() => { var id = detail.Id; var name = detail.Name; CloseDetail(); OpenDeleteModal(id, name); }">
+                    @UiText.Delete(Lang)
+                </button>
             }
-
-            <div class="d-flex justify-content-between align-items-center pt-3 mt-3" style="border-top: 1px solid var(--rf-border-light);">
-                @if (detail.CanEdit)
-                {
-                    <div class="d-flex gap-3">
-                        <button class="btn btn-sm btn-rf-outline text-uppercase" style="letter-spacing: 1px;"
-                                @onclick="async () => { var id = detail.Id; CloseDetail(); await OpenEditModalAsync(id); }">
-                            @UiText.Edit(Lang)
-                        </button>
-                        <button class="btn btn-sm btn-rf-outline text-uppercase px-3" style="border-color: #dc3545; color: #dc3545;"
-                                @onclick="() => { var id = detail.Id; var name = detail.Name; CloseDetail(); OpenDeleteModal(id, name); }">
-                            @UiText.Delete(Lang)
-                        </button>
-                    </div>
-                }
-                else
-                {
-                    <div></div>
-                }
-                <button class="btn btn-rf-outline text-uppercase" style="letter-spacing: 1px;" @onclick="CloseDetail">@UiText.BtnClose(Lang)</button>
-            </div>
-        </div>
-    </div>
+        </Actions>
+    </EquipmentInfoModal>
 }
 
 @if (isModalOpen)
