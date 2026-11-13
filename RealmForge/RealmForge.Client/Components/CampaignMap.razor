@@ -1112,7 +1112,7 @@ else
     }
 
     //	A character's sheet read now, changed and saved (the same as from the sheet itself)
-    private async Task ChangeCharacterAsync(MapTokenDto t, Action<CharacterSheetState, RealmForge.Shared.Characters.ComputedCharacter> change)
+    private async Task ChangeCharacterAsync(MapTokenDto t, Action<RealmForge.Shared.Characters.CharacterSheetState, RealmForge.Shared.Characters.ComputedCharacter> change)
     {
         if (t.CharacterId is not { } id)
         {
