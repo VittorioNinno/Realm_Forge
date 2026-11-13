@@ -212,6 +212,50 @@ namespace RealmForge.Client.Localization
 		public static string PropAdd(LanguageCode lang) => T(lang, "Oggetti", "Objects");
 		public static string ToolState(LanguageCode lang) => T(lang, "Stato", "State");
 
+		// ===== The layout of the table: dock, side panel, quick sheet =====
+		public static string VttRoundWord(LanguageCode lang) => "Round";
+		public static string VttDiceShort(LanguageCode lang) => T(lang, "Dadi", "Dice");
+		public static string VttTokensShort(LanguageCode lang) => T(lang, "Segnalini", "Tokens");
+		public static string VttTabRolls(LanguageCode lang) => T(lang, "Tiri", "Rolls");
+		public static string VttRollLog(LanguageCode lang) => T(lang, "Log dei tiri", "Roll log");
+		public static string VttTokensMap(LanguageCode lang) => T(lang, "Segnalini e mappa", "Tokens and map");
+		public static string VttPanelHide(LanguageCode lang) => T(lang, "Nascondi il pannello", "Hide the panel");
+		public static string VttPanelShow(LanguageCode lang) => T(lang, "Mostra il pannello", "Show the panel");
+		public static string VttOpenDice(LanguageCode lang) => T(lang, "Apri la console dei dadi", "Open the dice console");
+		public static string VttQuickSheet(LanguageCode lang) => T(lang, "Scheda", "Sheet");
+		public static string VttQuickSheetOpen(LanguageCode lang) => T(lang, "Scheda rapida a lato", "Quick sheet on the side");
+		public static string VttQuickSheetFull(LanguageCode lang) => T(lang, "Apri la scheda completa", "Open the full sheet");
+		public static string VttHitPointsShort(LanguageCode lang) => T(lang, "Punti ferita", "Hit points");
+		public static string VttSaves(LanguageCode lang) => T(lang, "Tiri salvezza", "Saving throws");
+		public static string VttPassives(LanguageCode lang) => T(lang, "Sensi passivi", "Passive senses");
+		public static string VttQuickAttacks(LanguageCode lang) => T(lang, "Attacchi", "Attacks");
+		public static string VttOnMap(int count, LanguageCode lang) => T(lang, $"Sulla mappa ({count})", $"On the map ({count})");
+		public static string VttOnMapEmpty(LanguageCode lang) => T(lang, "Nessun segnalino sulla mappa.", "No tokens on the map.");
+		public static string VttCenter(LanguageCode lang) => T(lang, "Centra", "Center");
+		public static string VttProficiency(LanguageCode lang) => T(lang, "Competenza", "Proficiency");
+		public static string VttBonus(LanguageCode lang) => "Bonus";
+		public static string VttWalk(LanguageCode lang) => T(lang, "Camminata", "Walking");
+		public static string VttSpeed(LanguageCode lang) => T(lang, "Velocità", "Speed");
+		public static string VttArmor(LanguageCode lang) => T(lang, "Armatura", "Armor");
+		public static string VttArmorClass(LanguageCode lang) => T(lang, "Classe (CA)", "Class (AC)");
+		public static string VttPassivePerception(LanguageCode lang) => T(lang, "Percezione", "Perception");
+		public static string VttPassiveInvestigation(LanguageCode lang) => T(lang, "Indagare", "Investigation");
+		public static string VttPassiveInsight(LanguageCode lang) => T(lang, "Intuizione", "Insight");
+		public static string VttNpcPersonality(LanguageCode lang) => T(lang, "Al tavolo", "At the table");
+		public static string VttNpcSecrets(LanguageCode lang) => T(lang, "Segreti", "Secrets");
+		public static string VttTraits(LanguageCode lang) => T(lang, "Tratti", "Traits");
+		public static string VttActions(LanguageCode lang) => T(lang, "Azioni", "Actions");
+		public static string VttBonusActions(LanguageCode lang) => T(lang, "Azioni bonus", "Bonus actions");
+		public static string VttReactions(LanguageCode lang) => T(lang, "Reazioni", "Reactions");
+		public static string VttLegendary(LanguageCode lang) => T(lang, "Azioni leggendarie", "Legendary actions");
+		public static string ToolBelow(LanguageCode lang) => T(lang, "Sotto", "Below");
+		public static string ToolAssign(LanguageCode lang) => T(lang, "Assegna", "Assign");
+		public static string ToolBack(LanguageCode lang) => T(lang, "Indietro", "Back");
+		public static string ToolHeal(LanguageCode lang) => T(lang, "Cura", "Heal");
+		public static string ToolDamage(LanguageCode lang) => T(lang, "Danno", "Damage");
+		public static string ToolHpAmount(LanguageCode lang) => T(lang, "Quantità", "Amount");
+		public static string ToolHpNow(LanguageCode lang) => T(lang, "PF attuali", "Current HP");
+
 		// ===== The table open now =====
 		public static string TableOpen(LanguageCode lang) => T(lang, "Avvia il tavolo", "Start the table");
 		public static string TableOpenHint(LanguageCode lang) => T(lang,
