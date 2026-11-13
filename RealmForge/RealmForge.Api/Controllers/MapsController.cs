@@ -685,15 +685,23 @@ namespace RealmForge.Api.Controllers
 			{
 				var token = map.Tokens.FirstOrDefault(t => t.CombatantId == c.Id)
 					?? (c.CharacterId is { } characterId ? map.Tokens.FirstOrDefault(t => t.CharacterId == characterId) : null);
+				//	The starting cell chosen in the encounter, when it is fought on this map and the cell is on it
+				(int X, int Y)? placed = encounter.MapId == map.Id && c.X is { } px && c.Y is { } py ? (px, py) : null;
 				if (token is not null)
 				{
 					token.CombatantId = c.Id;
+					if (rolling && placed is { } at && MapGeometry.Inside(map.GridType, map.GridSize, map.GridOffsetX, map.GridOffsetY, at.X, at.Y, token.Size, map.Width, map.Height))
+					{
+						(token.X, token.Y) = at;
+					}
 					continue;
 				}
 				var info = c.MonsterId is { } monsterId && sizes.TryGetValue(monsterId, out var found) ? found : null;
 				var size = info?.Size switch { CreatureSize.Large => 2, CreatureSize.Huge => 3, CreatureSize.Gargantuan => 4, _ => 1 };
-				var (x, y) = MapGeometry.FreeCell(map.GridType, map.GridSize, map.GridOffsetX, map.GridOffsetY, size, map.Width, map.Height,
-					map.Tokens.Select(t => (t.X, t.Y, t.Size)));
+				var (x, y) = placed is { } cell && MapGeometry.Inside(map.GridType, map.GridSize, map.GridOffsetX, map.GridOffsetY, cell.X, cell.Y, size, map.Width, map.Height)
+					? cell
+					: MapGeometry.FreeCell(map.GridType, map.GridSize, map.GridOffsetX, map.GridOffsetY, size, map.Width, map.Height,
+						map.Tokens.Select(t => (t.X, t.Y, t.Size)));
 				var owner = c.CharacterId is { } ownedId
 					? await _context.Characters.AsNoTracking().Where(ch => ch.Id == ownedId).Select(ch => ch.OwnerId).FirstOrDefaultAsync()
 					: null;

@@ -111,3 +111,10 @@ main {
         width: 64px;
     }
 }
+
+/* Folded, the menu's tab sticks out over the top bar: the version notice moves a little further away */
+@media (min-width: 641px) {
+    .page.sidebar-collapsed .top-row {
+        padding-left: 48px !important;
+    }
+}

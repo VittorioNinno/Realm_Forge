@@ -26,6 +26,7 @@
 {
     <div class="rf-vtt-table" @ref="tableElement" data-test="vtt">
         <DiceTray @ref="tray" AutoHideMs="1800" ShowHistory="false" />
+        <EquipmentInfoModal Item="groundInfo" OnClose="() => groundInfo = null" />
         <header class="rf-vtt-top">
             <a href="@BackHref" class="rf-vtt-back" data-test="vtt-back"><Icon Name="left" /> <span>@UiText.VttBack(Lang)</span></a>
             @if (RunsTheTable && maps is { Count: > 0 })
@@ -207,6 +208,14 @@ else
                         {
                             <p class="small mb-0" style="color: var(--rf-orange-primary);" data-test="map-calibrate-hint">@UiText.MapCalibrateHint(gridType, Lang)</p>
                         }
+                        <label class="btn btn-sm btn-rf-outline rf-vtt-replace @(replacingImage ? "disabled" : null)" data-test="map-replace-image">
+                            <Icon Name="images" /> @UiText.MapReplaceImage(Lang)
+                            <InputFile OnChange="ReplaceImageAsync" accept="image/png,image/jpeg,image/webp" class="d-none" />
+                        </label>
+                        @if (imageError is not null && newMap is null)
+                        {
+                            <p class="small mb-0" style="color: #ef4444;">@imageError</p>
+                        }
                         <label class="rf-checkbox-wrapper small mb-0">
                             <input type="checkbox" class="rf-checkbox" @bind="shown" data-test="map-shown" />
                             <span>@UiText.MapShown(Lang)</span>
@@ -278,6 +287,9 @@ else
     [Parameter] public CampaignRole Role { get; set; } = CampaignRole.Player;
     [Parameter] public IReadOnlyList<CampaignCharacterDto> Characters { get; set; } = Array.Empty<CampaignCharacterDto>();
     [Parameter] public bool Table { get; set; }
+
+    //	An encounter to start at once (from its page): chosen in the initiative bar, on its map
+    [Parameter] public Guid? StartEncounter { get; set; }
     [Parameter] public string BackHref { get; set; } = "campaigns";
     [Parameter] public string MyColor { get; set; } = PlayerColors.Master;
     [Parameter] public IReadOnlyList<CampaignMemberDto> Members { get; set; } = Array.Empty<CampaignMemberDto>();
@@ -711,11 +723,16 @@ else
     //	two rows (the second behind "Altro"); under it, the drawer of the item chosen
     private RenderFragment Toolbar(MapTokenDto it) => __builder =>
     {
+        if (it.PropType == PropType.Item)
+        {
+            @GroundPopup(it)
+            return;
+        }
         var character = CharacterOf(it);
         MonsterResponseDto? monster = it.MonsterId is { } mid && monsters.TryGetValue(mid, out var found) ? found : null;
         var (cx, cy) = MapGeometry.Center(gridType, grid, offsetX, offsetY, it.X, it.Y, it.Size);
         var side = grid * it.Size;
-        var hasSheet = HasSheet(it);
+        var hasSheet = HasSheet(it) || PeekSheet(it);
         <section class="rf-vtt-toolbar rf-hud" data-ui style="left: @(N(cx + side / 2.0 + 4 / zoom))px; top: @(N(cy - side / 2.0))px; --rf-token: @it.Color;" data-token-id="@it.Id" data-test="map-token-card"
                  @onkeydown:stopPropagation="true">
             <header class="rf-hud-top">
@@ -761,6 +778,13 @@ else
                         {
                             <span class="rf-hud-stuck" data-test="map-prop-stuck"><Icon Name="lock" /> @UiText.PropStuck(usedType, it.PropState, Lang)</span>
                         }
+                    }
+                }
+                else if (it.PropType is null && !RunsTheTable && !CanChangeConditions(it, character))
+                {
+                    @if (it.Conditions is { Count: > 0 } shownConditions)
+                    {
+                        <span class="rf-hud-conditions static" data-test="map-token-conditions-static">@string.Join(" · ", shownConditions.Select(k => UiText.ConditionName(k, Lang)))</span>
                     }
                 }
                 else if (it.PropType is null)
@@ -815,7 +839,7 @@ else
                     {
                         @DockButton("state", "key", UiText.ToolState(Lang), "map-token-tab-state")
                     }
-                    @if (it.PropType is null && (RunsTheTable || CanChangeHp(it, character) || character is not null || it.ShowHp))
+                    @if (it.PropType is null && (RunsTheTable || CanChangeHp(it, character)))
                     {
                         @DockButton("hp", "heart", UiText.ToolHp(Lang), "map-token-tab-hp")
                     }
@@ -1033,6 +1057,117 @@ else
         </section>
     };
 
+    //	An item lying on the ground: what it is (its numbers from the compendium, its card behind "i"), and who can take
+    //	it: into the pack or in hand, from a token next to it (the action of the turn in a fight), or how far mine is
+    private RenderFragment GroundPopup(MapTokenDto it) => __builder =>
+    {
+        var (cx, cy) = MapGeometry.Center(gridType, grid, offsetX, offsetY, it.X, it.Y, it.Size);
+        var side = grid * it.Size;
+        var item = it.Gear?.Items.FirstOrDefault();
+        var detail = item is null ? null : GroundItemOf(item);
+        var st = detail?.Stats;
+        var takers = Takers(it);
+        var taker = takers.FirstOrDefault(k => k.Id == groundTaker) ?? takers.FirstOrDefault();
+        var (nearest, distance) = NearestMine(it);
+        <section class="rf-vtt-toolbar rf-ground-pop" data-ui style="left: @(N(cx + side / 2.0 + 4 / zoom))px; top: @(N(cy - side / 2.0))px;" data-token-id="@it.Id" data-test="map-token-card"
+                 @onkeydown:stopPropagation="true">
+            <header class="gip-header">
+                <div class="gip-identity">
+                    <span class="gip-icon-box"><Icon Name="hammer" /></span>
+                    <div class="gip-title-group">
+                        <div class="gip-name-row">
+                            <h3 class="gip-name" data-test="map-token-card-name">@(item?.Name ?? it.Label)@(item is { Quantity: > 1 } many ? $" ×{many.Quantity}" : null)</h3>
+                            @if (detail is not null)
+                            {
+                                <button type="button" class="rf-info-i" title="@UiText.VttGroundInfo(Lang)" aria-label="@UiText.VttGroundInfo(Lang)" @onclick="() => groundInfo = detail" data-test="map-ground-info">i</button>
+                            }
+                        </div>
+                        <div class="gip-sub-row">
+                            <span class="gip-status">@UiText.PropStateName(PropType.Item, it.PropState, Lang)</span>
+                            @if (st is not null)
+                            {
+                                <span class="gip-dot">•</span>
+                                <span class="gip-cat">@EquipmentInfoModal.SubtitleOf(st, Lang)</span>
+                            }
+                        </div>
+                    </div>
+                </div>
+                <button type="button" class="rf-vtt-card-close rf-vtt-icon-button" @onclick="CloseToolbar" aria-label="@UiText.TokenClose(Lang)" title="@UiText.TokenClose(Lang)"><Icon Name="close" /></button>
+            </header>
+            @if (st is not null)
+            {
+                <div class="gip-stats" data-test="map-ground-stats">
+                    @if (st.Category == EquipmentCategory.Weapon)
+                    {
+                        <div class="g-chip dmg"><span>@UiText.ColDamage(Lang)</span><strong>@EquipmentTerms.FormatDamage(st.DamageDice, st.DamageType, Lang)</strong></div>
+                        @if (st.WeaponProperties.Count > 0)
+                        {
+                            <div class="g-chip"><span>@UiText.ColProperties(Lang)</span><strong>@EquipmentTerms.FormatProperties(st.WeaponProperties, st.NormalRange, st.LongRange, st.VersatileDamageDice, Lang)</strong></div>
+                        }
+                        @if (st.Mastery is { } mastery)
+                        {
+                            <div class="g-chip mastery"><span>@UiText.LabelMastery(Lang)</span><strong>@EquipmentTerms.MasteryName(mastery, Lang)</strong></div>
+                        }
+                    }
+                    else if (st.Category == EquipmentCategory.Armor)
+                    {
+                        <div class="g-chip dmg"><span>@UiText.ColArmorClass(Lang)</span><strong>@EquipmentTerms.FormatArmorClass(st.ArmorCategory, st.ArmorClass, st.ArmorAddsDexterity, st.ArmorMaxDexterityBonus, Lang)</strong></div>
+                    }
+                    <div class="g-chip"><span>@UiText.ColWeight(Lang)</span><strong>@EquipmentTerms.FormatWeight(st.WeightInPounds, Lang)</strong></div>
+                </div>
+            }
+            @if (item is null)
+            {
+                <p class="gip-note">@UiText.VttLootEmpty(Lang)</p>
+            }
+            else if (taker is not null)
+            {
+                <footer class="gip-footer" data-test="map-token-take">
+                    <div class="gip-range">
+                        <span class="gip-who"><span class="gip-dot-ok"></span>@((MarkupString)UiText.VttGroundNext(System.Net.WebUtility.HtmlEncode(taker.Label), Lang))</span>
+                        @if (combat is not null)
+                        {
+                            <span class="gip-cost">@UiText.VttGroundCost(Lang)</span>
+                        }
+                    </div>
+                    @if (takers.Count > 1)
+                    {
+                        <div class="rf-hud-pills" role="group" aria-label="@UiText.VttGroundWho(Lang)">
+                            @foreach (var tk in takers)
+                            {
+                                var choice = tk;
+                                <button type="button" class="rf-hud-pill @(choice.Id == taker.Id ? "active" : null)" @onclick="() => groundTaker = choice.Id">@choice.Label</button>
+                            }
+                        </div>
+                    }
+                    <div class="gip-buttons">
+                        <button type="button" class="gip-pack" disabled="@busy" @onclick="() => TakeAsync(it, taker, item.Index, false)" data-test="map-token-take-item"><Icon Name="backpack2" /> @UiText.VttGroundPack(Lang)</button>
+                        <button type="button" class="gip-wield" disabled="@busy" @onclick="() => TakeAsync(it, taker, item.Index, true)" data-test="map-token-take-wield"><Icon Name="hand-index" /> @UiText.VttGroundWield(Lang)</button>
+                    </div>
+                    @if (gearNote is not null)
+                    {
+                        <p class="gip-note" data-test="map-token-take-note">@gearNote</p>
+                    }
+                </footer>
+            }
+            else
+            {
+                <footer class="gip-footer">
+                    <div class="gip-far" data-test="map-token-take-far">
+                        <Icon Name="warning" />
+                        <div>
+                            <strong>@(nearest is null ? UiText.VttGroundNobody(Lang) : UiText.VttGroundFar(distance, Lang))</strong>
+                            <span>@UiText.VttGroundFarHint(Lang)</span>
+                        </div>
+                    </div>
+                </footer>
+            }
+        </section>
+    };
+
+    //	The token that takes an item on the ground, when more of mine are next to it
+    private Guid? groundTaker;
+
     private RenderFragment DockButton(string name, string icon, string label, string test) => __builder =>
     {
         <button type="button" class="rf-hud-dock-item @(toolTab == name ? "active" : null)" aria-expanded="@(toolTab == name ? "true" : "false")" @onclick="() => Tab(name)" data-test="@test">
@@ -1053,7 +1188,7 @@ else
 
     //	The players see the simple pop-up of what is not theirs: nothing to open under it
     private bool HasDock(MapTokenDto t, CampaignCharacterDto? character) =>
-        RunsTheTable || (t.PropType is null && (CanChangeHp(t, character) || character is not null || t.ShowHp || t.Controlled || HasLoot(t)));
+        RunsTheTable || (t.PropType is null && (CanChangeHp(t, character) || t.Controlled || HasLoot(t) || (Table && CanDrop(t)) || character?.CanOpen == true));
 
     //	Conditions: the masters any token; a character's (on its sheet) also its owner and whoever has it
     private bool CanChangeConditions(MapTokenDto t, CampaignCharacterDto? character) => t.PropType is null && (character is not null
@@ -1491,6 +1626,12 @@ else
     }
 
     //	My characters (all of them for a master) and, for the masters, the monsters and NPCs
+    //	A player reads the quick sheet of an ally (another character at the table, a friendly NPC) without touching it
+    private bool PeekSheet(MapTokenDto t) => !RunsTheTable && !HasSheet(t) && IsAlly(t);
+
+    private bool IsAlly(MapTokenDto t) => !t.Hidden && t.PropType is null
+        && (t.CharacterId is not null || (t.Kind == TokenKind.Npc && t.MonsterId is { } id && monsters.TryGetValue(id, out var m) && m.Attitude == NpcAttitude.Friendly));
+
     private bool HasSheet(MapTokenDto t) =>
         t.CharacterId is not null ? CharacterOf(t) is { } c && (c.IsMine || RunsTheTable || t.Controlled)
         : (RunsTheTable || t.Controlled) && (t.MonsterId is not null || t.SheetCharacterId is not null);
@@ -1544,6 +1685,10 @@ else
         <section class="rf-qs kind-@KindClass(t)" data-test="vtt-quick-sheet">
             <header class="rf-qs-top">
                 <h2 class="rf-qs-title">@t.Label</h2>
+                @if (PeekSheet(t))
+                {
+                    <span class="rf-qs-readonly" title="@UiText.VttSheetReadOnlyHint(Lang)" data-test="vtt-quick-sheet-readonly"><Icon Name="eye" /> @UiText.VttSheetReadOnly(Lang)</span>
+                }
                 @if (sheet?.Link is { } link)
                 {
                     <a href="@link" class="rf-vtt-icon-button" target="_blank" title="@UiText.VttQuickSheetFull(Lang)" aria-label="@UiText.VttQuickSheetFull(Lang)" data-test="vtt-quick-sheet-full"><Icon Name="external" /></a>
@@ -1599,6 +1744,11 @@ else
                 if (RunsTheTable && t.CharacterId is null && t.PropType is null)
                 {
                     tabs.Add("loot");
+                }
+                if (PeekSheet(t))
+                {
+                    //	An ally's notes stay with its owner and the masters
+                    tabs.Remove("notes");
                 }
                 var current = qsTabs.GetValueOrDefault(t.Id) is { } chosen && tabs.Contains(chosen) ? chosen : "general";
             }
@@ -2302,12 +2452,16 @@ else
         self = DotNetObjectReference.Create(this);
         sawLive = LiveTable is not null || Live.Of(CampaignId) is not null;
         Live.Changed += OnLiveChanged;
-        if (RunsTheTable)
+        if (RunsTheTable || Table)
         {
+            //	The players too: which NPCs are friendly (their sheets are read only)
             _ = LoadMonstersAsync();
-            _ = LoadEncountersAsync();
         }
         await LoadMapsAsync();
+        if (RunsTheTable)
+        {
+            _ = LoadEncountersAsync();
+        }
         stop = new CancellationTokenSource();
         _ = PollAsync(stop.Token);
     }
@@ -2522,7 +2676,13 @@ else
         moreDock = false;
         hpAmount = null;
         propMessage = null;
-        if (InfoToken is { } t && (CanRoll(t) || HasSheet(t)))
+        if (InfoToken is { PropType: PropType.Item } ground)
+        {
+            gearNote = null;
+            groundTaker = null;
+            _ = LoadGroundItemAsync(ground);
+        }
+        if (InfoToken is { } t && (CanRoll(t) || HasSheet(t) || PeekSheet(t)))
         {
             _ = LoadStatsAsync(t);
         }
@@ -2803,6 +2963,17 @@ else
         {
             encounters = await Encounters.GetEncountersAsync(CampaignId) ?? new();
             encounterId ??= EncounterOptions.FirstOrDefault()?.Value;
+            if (StartEncounter is { } wanted && encounters.FirstOrDefault(e => e.Id == wanted && e.Status != EncounterStatus.Finished) is { } chosen)
+            {
+                StartEncounter = null;
+                encounterId = chosen.Id;
+                encounterPick = true;
+                if (chosen.MapId is { } mapId && mapId != selectedId && maps?.Any(m => m.Id == mapId) == true)
+                {
+                    await SelectAsync(mapId);
+                }
+                await InvokeAsync(StateHasChanged);
+            }
         }
     }
 
@@ -2950,7 +3121,7 @@ else
                                         @if (life is { } l)
                                         {
                                             <span class="rf-init-hp" data-test="vtt-combatant-life">
-                                                <span class="rf-vtt-bar"><span class="@(l.Fraction <= .5 ? "low" : "ok")" style="width: @N(l.Fraction * 100)%;"></span></span>
+                                                <span class="rf-vtt-hpbar"><span class="@(l.Fraction <= .5 ? "low" : "ok")" style="width: @N(l.Fraction * 100)%;"></span></span>
                                                 <span>@l.Text</span>
                                             </span>
                                         }
@@ -3840,11 +4011,14 @@ else
         return SetToolAsync("fog");
     }
 
+    //	A poll that began before the change would bring the old fog back: its answer is set aside
     private async Task SaveFogAsync()
     {
         if (map is not null)
         {
+            localEdits++;
             message = (await Campaigns.SaveFogAsync(CampaignId, map.Id, fogEnabled, fog)).Ok ? null : UiText.MapSaveFailed(Lang);
+            localEdits++;
         }
     }
 
@@ -4154,6 +4328,58 @@ else
     }
 
     private sealed record ResizedImage(string Url, int Width, int Height);
+
+    //	A new picture for the map: the grid and the tokens stay, the size follows the picture
+    private bool replacingImage;
+
+    private async Task ReplaceImageAsync(InputFileChangeEventArgs e)
+    {
+        if (map is null)
+        {
+            return;
+        }
+        imageError = null;
+        replacingImage = true;
+        try
+        {
+            await using var stream = e.File.OpenReadStream(maxAllowedSize: 20_000_000);
+            using var memory = new MemoryStream();
+            await stream.CopyToAsync(memory);
+            var source = $"data:{e.File.ContentType};base64,{Convert.ToBase64String(memory.ToArray())}";
+            var resized = await JS.InvokeAsync<ResizedImage>("rfResizeImage", source, 2048);
+            if (string.IsNullOrEmpty(resized.Url) || resized.Url.Length > MapRules.MaxImageLength)
+            {
+                imageError = UiText.MapImageTooLarge(Lang);
+                return;
+            }
+            var result = await Campaigns.UpdateMapAsync(CampaignId, map.Id, new SaveMapDto
+            {
+                Name = string.IsNullOrWhiteSpace(mapName) ? map.Name : mapName.Trim(),
+                Image = resized.Url,
+                Width = resized.Width,
+                Height = resized.Height,
+                GridType = gridType,
+                GridSize = grid,
+                GridOffsetX = Math.Min(offsetX, grid - 1),
+                GridOffsetY = Math.Min(offsetY, grid - 1),
+                Shown = shown
+            });
+            message = result.Ok ? null : UiText.MapSaveFailed(Lang);
+            if (result.Ok)
+            {
+                await LoadMapsAsync(map.Id);
+                fitPending = true;
+            }
+        }
+        catch (Exception)
+        {
+            imageError = UiText.MapImageTooLarge(Lang);
+        }
+        finally
+        {
+            replacingImage = false;
+        }
+    }
 
     private async Task CreateMapAsync()
     {

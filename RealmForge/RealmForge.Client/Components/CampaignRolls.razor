@@ -12,7 +12,7 @@
    picked one by one with the modifier and the d20 mode, the formula that stays editable, what for) and the log of
    everyone's rolls on the right, including the ones made on the sheets; the server rolls, so nobody picks the numbers.
    My rolls land in the dice tray with the animation; the log refreshes every few seconds *@
-<section class="rf-dice-table @(Compact ? "compact" : null) @(Floating ? "floating" : null) @(Minimized ? "minimized" : null) part-@Part" data-test="campaign-rolls">
+<section class="rf-dice-table @(Compact ? "compact" : null) @(Cards ? "floating" : null) @(Docked ? "docked" : null) @(Minimized ? "minimized" : null) part-@Part" data-test="campaign-rolls">
     @if (!Compact)
     {
         <p class="rf-dice-lead">@UiText.RollsHint(Lang)</p>
@@ -56,7 +56,7 @@
                         <span class="rf-dice-label">@UiText.DiceVisibility(Lang)</span>
                         <div class="rf-dice-privacy" role="group">
                             <button type="button" class="@(hidden ? null : "active")" @onclick="() => hidden = false" data-test="roll-public">@UiText.DicePublic(Lang)</button>
-                            <button type="button" class="secret @(hidden ? "active" : null)" @onclick="() => hidden = true" data-test="roll-hidden"><Icon Name="eye-slash" /> @(Floating ? UiText.DiceHiddenShort(Lang) : UiText.RollHidden(Lang))</button>
+                            <button type="button" class="secret @(hidden ? "active" : null)" @onclick="() => hidden = true" data-test="roll-hidden"><Icon Name="eye-slash" /> @(Cards ? UiText.DiceHiddenShort(Lang) : UiText.RollHidden(Lang))</button>
                         </div>
                     </div>
                 }
@@ -72,7 +72,7 @@
                         <button type="button" @onclick="() => SetModifier(modifier + 1)" aria-label="+1">+</button>
                     </div>
                 </div>
-                @if (Floating)
+                @if (Cards)
                 {
                     @* Four big dice above, three below *@
                     <div class="rf-dice-pick rows-4">
@@ -132,7 +132,7 @@
                     }
                 </div>
                 <div class="rf-dice-cta">
-                    @if (Floating)
+                    @if (Cards)
                     {
                         <button type="button" class="rf-dice-cta-reset" @onclick="ResetPool">@UiText.DiceResetShort(Lang)</button>
                     }
@@ -169,7 +169,7 @@
                     </div>
                     }
                 </div>
-                @if (!Floating && SessionRules.CanClearRolls(Role) && rolls is { Count: > 0 })
+                @if (!Cards && SessionRules.CanClearRolls(Role) && rolls is { Count: > 0 })
                 {
                     <button type="button" class="rf-dice-clear" @onclick="() => clearing = true" data-test="rolls-clear">@UiText.BtnClearRolls(Lang)</button>
                 }
@@ -200,7 +200,7 @@
                                     <strong class="rf-roll-name @(r.Removed ? "removed" : null)" style="color: @r.Color;" data-test="roll-roller">@(r.Removed && !r.IsCharacter ? UiText.RollDeletedAccount(Lang) : r.Roller)</strong>
                                     @if (r.Hidden)
                                     {
-                                        <span class="rf-dice-badge secret"><Icon Name="eye-slash" /> @(Floating ? UiText.DiceHiddenShort(Lang) : UiText.DiceHiddenBadge(Lang))</span>
+                                        <span class="rf-dice-badge secret"><Icon Name="eye-slash" /> @(Cards ? UiText.DiceHiddenShort(Lang) : UiText.DiceHiddenBadge(Lang))</span>
                                     }
                                     @if (ModeOf(r) is { } m)
                                     {
@@ -256,7 +256,7 @@
                     }
                 </ol>
             }
-            @if (Floating && !Minimized)
+            @if (Cards && !Minimized)
             {
                 <div class="rf-dice-log-foot">
                     <span class="rf-dice-synced"><span class="rf-live-dot"></span> @UiText.DiceSynced(Lang)</span>
@@ -303,6 +303,11 @@
 
     //	On the virtual tabletop: a card floating over the map, with the buttons to shrink it to its title and to close it
     [Parameter] public bool Floating { get; set; }
+
+    //	The campaign's Rolls tab: the same cards as at the table, side by side in the page
+    [Parameter] public bool Docked { get; set; }
+
+    private bool Cards => Floating || Docked;
     [Parameter] public bool Minimized { get; set; }
     [Parameter] public EventCallback OnMinimize { get; set; }
     [Parameter] public EventCallback OnClose { get; set; }

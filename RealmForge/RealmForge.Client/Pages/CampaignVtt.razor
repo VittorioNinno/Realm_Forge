@@ -23,11 +23,14 @@ else if (campaign is null)
 }
 else
 {
-    <CampaignMap CampaignId="campaign.Id" Role="campaign.MyRole" Characters="campaign.Characters" Members="campaign.Members" LiveTable="campaign.Table" Table="true" MyColor="@(campaign.Members.FirstOrDefault(m => m.IsMe)?.Color ?? PlayerColors.Master)" BackHref="@($"campaigns/{campaign.Id}")" />
+    <CampaignMap CampaignId="campaign.Id" Role="campaign.MyRole" Characters="campaign.Characters" Members="campaign.Members" LiveTable="campaign.Table" Table="true" MyColor="@(campaign.Members.FirstOrDefault(m => m.IsMe)?.Color ?? PlayerColors.Master)" BackHref="@($"campaigns/{campaign.Id}")" StartEncounter="Encounter" />
 }
 
 @code {
     [Parameter] public Guid Id { get; set; }
+
+    //	?encounter=…: the encounter to start, from its page
+    [SupplyParameterFromQuery(Name = "encounter")] public Guid? Encounter { get; set; }
 
     private LanguageCode Lang => LanguageState.CurrentLanguage;
     private CampaignDetailDto? campaign;

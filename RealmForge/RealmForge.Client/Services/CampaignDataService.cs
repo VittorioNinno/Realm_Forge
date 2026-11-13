@@ -395,8 +395,8 @@ namespace RealmForge.Client.Services
 		public Task<(MapTokenDto? Value, string? Error)> DropItemAsync(Guid id, Guid mapId, Guid tokenId, DropItemDto dto) =>
 			TableAsync<MapTokenDto>(() => _http.PostAsJsonAsync($"api/campaigns/{id}/maps/{mapId}/tokens/{tokenId}/drop", dto), "drop item");
 
-		public async Task<string?> TakeItemAsync(Guid id, Guid mapId, Guid tokenId, Guid byTokenId, int index, LanguageCode lang) =>
-			(await TableAsync<bool>(() => _http.PostAsJsonAsync($"api/campaigns/{id}/maps/{mapId}/tokens/{tokenId}/take?lang={(int)lang}", new TakeItemDto { ByTokenId = byTokenId, Index = index }), "take item")).Error;
+		public async Task<string?> TakeItemAsync(Guid id, Guid mapId, Guid tokenId, Guid byTokenId, int index, LanguageCode lang, bool equip = false) =>
+			(await TableAsync<bool>(() => _http.PostAsJsonAsync($"api/campaigns/{id}/maps/{mapId}/tokens/{tokenId}/take?lang={(int)lang}", new TakeItemDto { ByTokenId = byTokenId, Index = index, Equip = equip }), "take item")).Error;
 
 		public Task<CampaignResult> SaveLootAsync(Guid id, Guid mapId, Guid tokenId, SaveLootDto dto) =>
 			SendAsync(() => _http.PutAsJsonAsync($"api/campaigns/{id}/maps/{mapId}/tokens/{tokenId}/loot", dto), "save loot");
