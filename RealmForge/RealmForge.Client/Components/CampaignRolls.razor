@@ -56,7 +56,7 @@
                         <span class="rf-dice-label">@UiText.DiceVisibility(Lang)</span>
                         <div class="rf-dice-privacy" role="group">
                             <button type="button" class="@(hidden ? null : "active")" @onclick="() => hidden = false" data-test="roll-public">@UiText.DicePublic(Lang)</button>
-                            <button type="button" class="secret @(hidden ? "active" : null)" @onclick="() => hidden = true" data-test="roll-hidden"><Icon Name="eye-slash" /> @UiText.RollHidden(Lang)</button>
+                            <button type="button" class="secret @(hidden ? "active" : null)" @onclick="() => hidden = true" data-test="roll-hidden"><Icon Name="eye-slash" /> @(Floating ? UiText.DiceHiddenShort(Lang) : UiText.RollHidden(Lang))</button>
                         </div>
                     </div>
                 }
@@ -200,7 +200,7 @@
                                     <strong class="rf-roll-name @(r.Removed ? "removed" : null)" style="color: @r.Color;" data-test="roll-roller">@(r.Removed && !r.IsCharacter ? UiText.RollDeletedAccount(Lang) : r.Roller)</strong>
                                     @if (r.Hidden)
                                     {
-                                        <span class="rf-dice-badge secret"><Icon Name="eye-slash" /> @UiText.DiceHiddenBadge(Lang)</span>
+                                        <span class="rf-dice-badge secret"><Icon Name="eye-slash" /> @(Floating ? UiText.DiceHiddenShort(Lang) : UiText.DiceHiddenBadge(Lang))</span>
                                     }
                                     @if (ModeOf(r) is { } m)
                                     {

@@ -85,6 +85,7 @@ namespace RealmForge.Client.Localization
 			return local.Date == DateTimeOffset.Now.Date ? $"{local.ToString("HH':'mm", System.Globalization.CultureInfo.InvariantCulture)}" : $"{FormatDate(local, lang)} {local.ToString("HH':'mm", System.Globalization.CultureInfo.InvariantCulture)}";
 		}
 		public static string DiceConsole(LanguageCode lang) => T(lang, "Console di lancio", "Roller");
+		public static string DiceHiddenShort(LanguageCode lang) => T(lang, "Nascosto", "Hidden");
 		public static string DiceResetShort(LanguageCode lang) => T(lang, "Azzera", "Reset");
 		public static string DiceSynced(LanguageCode lang) => T(lang, "Sincronizzato in tempo reale", "Synced in real time");
 		public static string BtnClearAll(LanguageCode lang) => T(lang, "Svuota tutto", "Clear all");
