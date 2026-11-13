@@ -69,9 +69,11 @@ namespace RealmForge.Shared.DTOs
 	}
 
 	///	<summary>
-	///	Something drawn on a map (see CampaignMapShape); CanDelete: the author or a master.
+	///	Something drawn on a map (see CampaignMapShape). Private: only its author sees it; CanDelete: the author, or a master
+	///	for what the whole table sees; CanMove: a text its author (or a master, when shared) drags somewhere else.
 	///	</summary>
-	public record MapShapeDto(Guid Id, ShapeKind Kind, List<double> Points, string Color, string? Text, int Size, bool MasterOnly, bool CanDelete);
+	public record MapShapeDto(Guid Id, ShapeKind Kind, List<double> Points, string Color, string? Text, int Size, bool Private, bool CanDelete,
+		bool CanMove = false);
 
 	public class SaveShapeDto
 	{
@@ -80,7 +82,14 @@ namespace RealmForge.Shared.DTOs
 		public string? Color { get; set; }
 		public string? Text { get; set; }
 		public int Size { get; set; }
-		public bool MasterOnly { get; set; }
+
+		//	A master's text for the whole table (the players' texts and every stroke stay with their author)
+		public bool Shared { get; set; }
+	}
+
+	public class MoveShapeDto
+	{
+		public List<double> Points { get; set; } = new();
 	}
 
 	///	<summary>

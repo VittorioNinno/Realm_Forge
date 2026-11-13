@@ -1613,12 +1613,28 @@ try {
   await page.locator('[data-test=vtt-tool-text]').click();
   await page.mouse.click(hx + cellPx * 3, hy + cellPx * 2.5);
   await page.locator('[data-test=vtt-text-input]').fill('Porta segreta');
-  await page.locator('[data-test=vtt-text-master]').check();
   await page.locator('[data-test=vtt-text-add]').click();
   await page.locator('[data-test=map-shape][data-kind=note]').waitFor({ state: 'attached', timeout: 15000 });
+  // A text for the whole table, then dragged two cells to the right with the selection
+  await page.mouse.click(hx + cellPx * 3, hy + cellPx * 5.5);
+  await page.locator('[data-test=vtt-text-input]').fill('Ingresso');
+  await page.locator('[data-test=vtt-text-shared]').check();
+  await page.locator('[data-test=vtt-text-add]').click();
+  const sharedText = page.locator('[data-test=map-shape][data-kind=text]');
+  await sharedText.waitFor({ state: 'attached', timeout: 15000 });
+  const textX = await sharedText.getAttribute('x');
+  await page.locator('[data-test=vtt-tool-select]').click();
+  const tb = await sharedText.boundingBox();
+  await page.mouse.move(tb.x + tb.width / 2, tb.y + tb.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(tb.x + tb.width / 2 + cellPx, tb.y + tb.height / 2, { steps: 4 });
+  await page.mouse.move(tb.x + tb.width / 2 + cellPx * 2, tb.y + tb.height / 2, { steps: 4 });
+  await page.mouse.up();
+  await page.waitForFunction((old) => document.querySelector('[data-test=map-shape][data-kind=text]')?.getAttribute('x') !== old, textX, { timeout: 15000 });
   const drawUi = {
     sphereCells: await page.locator('[data-test=map-shape][data-kind=sphere] [data-test=map-area-cell]').count(),
-    note: (await page.locator('[data-test=map-shape][data-kind=note]').textContent()).trim()
+    note: (await page.locator('[data-test=map-shape][data-kind=note]').textContent()).trim(),
+    textMoved: Math.round(parseFloat(await sharedText.getAttribute('x')) - parseFloat(textX))
   };
   await shot(page, 'vtt-drawings', null);
   await page.locator('[data-test=vtt-tool-erase]').click();
@@ -1628,8 +1644,8 @@ try {
   await page.locator('[data-test=map-shape][data-kind=sphere]').waitFor({ state: 'detached', timeout: 15000 });
   drawUi.left = (await page.locator('[data-test=map-shape]').evaluateAll((els) => els.map((e) => e.dataset.kind))).join(',');
   results.push(`INFO vtt drawings: ${JSON.stringify(drawUi)}`);
-  if (drawUi.sphereCells !== 4 || drawUi.note !== '✎ Porta segreta' || drawUi.left !== 'note') throw new Error(`unexpected drawings: ${JSON.stringify(drawUi)}`);
-  ok('virtual tabletop drawings: a sphere of 1,5 m lighting up the hero\'s cell and the three around it, a stroke erased with a click, a note for the masters kept when the drawings are cleared');
+  if (drawUi.sphereCells !== 4 || drawUi.note !== '✎ Porta segreta' || drawUi.textMoved < 100 || drawUi.left !== '') throw new Error(`unexpected drawings: ${JSON.stringify(drawUi)}`);
+  ok('virtual tabletop drawings: a sphere of 1,5 m lighting up the hero\'s cell and the three around it, a stroke erased with a click, a text only for the master (marked ✎), a text for the table dragged two cells, all removed with the button');
   // Fog of war: on, a box revealed around the hero; a ping with Alt+click; the players' view brought here
   await page.locator('[data-test=vtt-tool-fog]').click();
   await page.locator('[data-test=vtt-fog-enabled]').check();
@@ -1641,6 +1657,20 @@ try {
   await page.mouse.up();
   await page.waitForTimeout(500);
   const fogUi = { revealed: await page.locator('[data-test=map-fog] mask rect').count() };
+  // The brush covers whole cells: 3×3 around the pointer, along a stroke of two cells; no circles
+  await page.locator('[data-test=vtt-fog-cover]').click();
+  await page.locator('[data-test=vtt-fog-brush]').click();
+  await page.locator('[data-test=vtt-fog-size-2]').click();
+  fogUi.sizes = (await page.locator('[data-test=vtt-fog-sizes] button').allInnerTexts()).map((t) => t.trim()).join(',');
+  await page.mouse.move(hx - cellPx, hy);
+  await page.mouse.down();
+  await page.mouse.move(hx + cellPx, hy, { steps: 6 });
+  fogUi.preview = await page.locator('[data-ruler] path').count();
+  await page.mouse.up();
+  await page.waitForTimeout(500);
+  fogUi.brushRects = await page.locator('[data-test=map-fog] mask rect').count() - fogUi.revealed;
+  fogUi.circles = await page.locator('[data-test=map-fog] mask circle').count();
+  await shot(page, 'vtt-fog-brush', null);
   await page.locator('[data-test=vtt-tool-select]').click();
   await page.keyboard.down('Alt');
   await page.mouse.click(hx + cellPx * 3, hy + cellPx * 3);
@@ -1654,8 +1684,9 @@ try {
   await page.locator('[data-test=vtt-fog-enabled]').uncheck();
   await page.locator('[data-test=map-fog]').waitFor({ state: 'detached', timeout: 15000 });
   results.push(`INFO vtt fog: ${JSON.stringify(fogUi)}`);
-  if (fogUi.revealed !== 2 || fogUi.ping !== 1 || fogUi.message !== 0) throw new Error(`unexpected fog: ${JSON.stringify(fogUi)}`);
-  ok('virtual tabletop fog of war: turned on over the whole map, a box revealed around the hero, a ping with Alt+click, the players\' view brought to the master\'s, fog turned off');
+  if (fogUi.revealed !== 2 || fogUi.sizes !== '1×1,3×3,5×5,7×7' || fogUi.preview !== 1 || fogUi.brushRects < 1 || fogUi.circles !== 0
+    || fogUi.ping !== 1 || fogUi.message !== 0) throw new Error(`unexpected fog: ${JSON.stringify(fogUi)}`);
+  ok('virtual tabletop fog of war: turned on over the whole map, a box revealed around the hero, the brush covering whole cells (3×3) along a stroke, a ping with Alt+click, the players\' view brought to the master\'s, fog turned off');
   // The fight on the map: the encounter with three goblins starts here (their tokens placed, the hero's reused), the
   // turn goes on, a goblin is knocked prone and hurt, it rolls its initiative from its card; the hero's move shows
   // the metres against its speed
@@ -1757,8 +1788,30 @@ try {
   results.push(`INFO vtt objects: ${JSON.stringify(propUi)}`);
   if (propUi.before !== 'Closed' || propUi.opened !== 'Open' || propUi.locked !== 'Locked' || propUi.stuck !== 1) throw new Error(`unexpected objects: ${JSON.stringify(propUi)}`);
   ok('virtual tabletop objects: a door placed from the tokens panel, opened from its toolbar, then locked so it no longer opens');
+  // The master starts the table: the top bar says it is open, the campaign shows the way in first, the list marks it
+  await page.locator('[data-test=vtt-table-start]').click();
+  await page.locator('[data-test=vtt-table-open]').waitFor({ timeout: 15000 });
   await page.locator('[data-test=vtt-back]').click();
   await page.locator('[data-test=campaign-title]').waitFor({ timeout: 30000 });
+  await page.locator('[data-test=campaign-live]').waitFor({ timeout: 15000 });
+  const liveUi = { banner: (await page.locator('[data-test=campaign-live]').innerText()).replace(/\s+/g, ' ').trim() };
+  await shot(page, 'campaign-live', null);
+  await page.goto(`${base}/campaigns`);
+  await page.locator('[data-test=campaign-card]').first().waitFor({ timeout: 30000 });
+  liveUi.badges = await page.locator('[data-test=campaign-card-live]').count();
+  // Opened by me: no notice for myself
+  liveUi.notices = await page.locator('[data-test=live-notice]').count();
+  await page.goto(campaignUrl);
+  await page.locator('[data-test=campaign-live-join]').click();
+  await page.locator('[data-test=vtt-table-close]').click();
+  await page.locator('[data-test=vtt-table-start]').waitFor({ timeout: 15000 });
+  await page.locator('[data-test=vtt-back]').click();
+  await page.locator('[data-test=campaign-title]').waitFor({ timeout: 30000 });
+  liveUi.closed = await page.locator('[data-test=campaign-live]').count();
+  results.push(`INFO live table: ${JSON.stringify(liveUi)}`);
+  if (!/Sessione in corso/i.test(liveUi.banner) || !/Entra al tavolo/i.test(liveUi.banner) || liveUi.badges !== 1 || liveUi.notices !== 0 || liveUi.closed !== 0)
+    throw new Error(`unexpected live table: ${JSON.stringify(liveUi)}`);
+  ok('table started by the master: "Tavolo aperto" in the top bar, "Sessione in corso" with "Entra al tavolo" at the top of the campaign, "Al tavolo ora" on its card, no notice to the master who opened it; closed, the banner goes');
   // From the sheet, the owner takes the character out of the campaign
   await page.goto(sheetUrl);
   await page.locator('[data-test=sheet-campaign]').click();
@@ -1938,13 +1991,18 @@ try {
   await page.locator('[data-test=reset-submit]').click();
   await page.locator('[data-test=reset-password-done]').waitFor({ timeout: 15000 });
   await page.goto(`${base}/account`);
-  await page.locator('input[type=email]').fill(email);
+  // Enter: with a field still empty it moves there, with both filled it signs in
   await page.locator('input[type=password]').fill(resetCredential);
-  await page.getByRole('button', { name: 'Accedi', exact: true }).click();
+  await page.locator('input[type=password]').press('Enter');
+  await page.waitForTimeout(300);
+  const enterFocus = await page.evaluate(() => document.activeElement?.getAttribute('type'));
+  await page.keyboard.type(email);
+  await page.keyboard.press('Enter');
   await page.locator('[data-test=account-area]', { hasText: email }).waitFor({ timeout: 30000 });
+  if (enterFocus !== 'email') throw new Error(`Enter with the e-mail empty did not move to it: ${enterFocus}`);
   await page.locator('[data-test=account-area]').getByRole('button', { name: 'Esci' }).click();
   await page.locator('[data-test=account-area]', { hasText: 'Accedi' }).waitFor({ timeout: 15000 });
-  ok('password recovery: link on the sign-in form, e-mail link to /reset-password, mismatch rejected, new password signs in');
+  ok('password recovery: link on the sign-in form, e-mail link to /reset-password, mismatch rejected, new password signs in with Enter (the first Enter moving to the empty e-mail field)');
   await page.goto(`${base}/backgrounds`);
   await page.getByText('Accedi per forgiare').first().waitFor({ timeout: 30000 });
 

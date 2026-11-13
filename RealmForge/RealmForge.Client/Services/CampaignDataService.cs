@@ -311,6 +311,41 @@ namespace RealmForge.Client.Services
 			}
 		}
 
+		public async Task<MapShapeDto?> MoveShapeAsync(Guid id, Guid mapId, Guid shapeId, List<double> points)
+		{
+			try
+			{
+				var response = await _http.PutAsJsonAsync($"api/campaigns/{id}/maps/{mapId}/shapes/{shapeId}/move", new MoveShapeDto { Points = points });
+				return response.IsSuccessStatusCode ? await response.Content.ReadFromJsonAsync<MapShapeDto>() : null;
+			}
+			catch (Exception ex)
+			{
+				_logger.LogError(ex, "Moving a text on map {MapId} failed", mapId);
+				return null;
+			}
+		}
+
+		// ===== The table open now =====
+
+		public Task<List<CampaignLiveTableDto>?> GetLiveTablesAsync() => GetAsync<List<CampaignLiveTableDto>>("api/campaigns/live");
+
+		public async Task<CampaignLiveTableDto?> OpenTableAsync(Guid id)
+		{
+			try
+			{
+				var response = await _http.PostAsync($"api/campaigns/{id}/table", null);
+				return response.IsSuccessStatusCode ? await response.Content.ReadFromJsonAsync<CampaignLiveTableDto>() : null;
+			}
+			catch (Exception ex)
+			{
+				_logger.LogError(ex, "Opening the table of campaign {CampaignId} failed", id);
+				return null;
+			}
+		}
+
+		public Task<CampaignResult> CloseTableAsync(Guid id) =>
+			SendAsync(() => _http.DeleteAsync($"api/campaigns/{id}/table"), "close table");
+
 		public Task<CampaignResult> DeleteShapeAsync(Guid id, Guid mapId, Guid shapeId) =>
 			SendAsync(() => _http.DeleteAsync($"api/campaigns/{id}/maps/{mapId}/shapes/{shapeId}"), "delete shape");
 
