@@ -16042,6 +16042,7 @@ textarea.rf-form-control {
 }
 
     .mm-prop .chip strong {
+        margin-left: 0.25em;
         color: var(--rf-text-primary);
     }
 
