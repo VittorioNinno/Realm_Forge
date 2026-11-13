@@ -1,0 +1,46 @@
+﻿@using RealmForge.Client.Localization
+@* A weapon's card over the wizard: damage, cost, weight, properties and its mastery *@
+@inherits ComponentBase
+@inject LanguageStateService LanguageState
+@if (Weapon is { } w)
+{
+    <div class="rf-modal-backdrop rf-info-backdrop" @onclick="() => OnClose.InvokeAsync()">
+        <aside class="rf-info-modal" @onclick:stopPropagation="true" data-test="weapon-detail-modal">
+            <header class="rf-info-head">
+                <div>
+                    <span class="rf-info-kicker">@EquipmentTerms.WeaponCategoryName(w.WeaponCategory ?? WeaponCategory.Simple, w.WeaponRange ?? WeaponRange.Melee, Lang)</span>
+                    <h3 class="rf-info-title">@w.Name</h3>
+                </div>
+                <div class="rf-info-head-right">
+                    <span class="rf-info-badge">@UiText.FormatRuleset(Ruleset, Lang)</span>
+                    <button type="button" class="rf-info-close" aria-label="@UiText.BtnClose(Lang)" @onclick="() => OnClose.InvokeAsync()" data-test="weapon-detail-close"><Icon Name="close" /></button>
+                </div>
+            </header>
+            <div class="rf-info-stats cols-3">
+                <div class="rf-info-stat highlight"><span>@UiText.MasteryDamage(Lang)</span><strong>@w.DamageDice @(w.DamageType is { } t ? EquipmentTerms.DamageTypeName(t, Lang).ToLowerInvariant() : null)</strong></div>
+                <div class="rf-info-stat"><span>@UiText.MasteryCost(Lang)</span><strong>@EquipmentTerms.FormatCost(w.CostInCopper, Lang)</strong></div>
+                <div class="rf-info-stat"><span>@UiText.MasteryWeight(Lang)</span><strong>@EquipmentTerms.FormatWeight(w.WeightInPounds, Lang)</strong></div>
+            </div>
+            <div class="rf-info-row"><span>@UiText.MasteryPropertiesLabel(Lang)</span><strong>@EquipmentTerms.FormatProperties(w.WeaponProperties, w.NormalRange, w.LongRange, w.VersatileDamageDice, Lang)</strong></div>
+            @if (w.Mastery is { } m)
+            {
+                <div class="rf-info-highlight">
+                    <div class="head"><span class="pill">@UiText.MasteryTag(Lang)</span><strong>@EquipmentTerms.MasteryName(m, Lang)</strong></div>
+                    <p>@EquipmentTerms.MasteryRule(m, Lang)</p>
+                </div>
+            }
+            <footer class="rf-info-foot">
+                <span>@UiText.MasteryFootNote(Lang)</span>
+                <a href="@($"equipment?id={w.Id}")" target="_blank" rel="noopener">@UiText.MasteryOpenCard(Lang) <Icon Name="external" /></a>
+            </footer>
+        </aside>
+    </div>
+}
+
+@code {
+    [Parameter] public ContextItem? Weapon { get; set; }
+    [Parameter] public RulesetVersion Ruleset { get; set; }
+    [Parameter] public EventCallback OnClose { get; set; }
+
+    private LanguageCode Lang => LanguageState.CurrentLanguage;
+}

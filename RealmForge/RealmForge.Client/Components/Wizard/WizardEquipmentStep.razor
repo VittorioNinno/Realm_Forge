@@ -62,14 +62,31 @@
 
 <div class="rf-wizard-panel" data-test="wizard-equipment">
     <div class="rf-wizard-block-title">@UiText.LabelYourEquipment(Lang)</div>
-    <ul class="rf-sheet-list">
+    <p class="rf-wizard-small mb-2">@UiText.HintEquipStart(Lang)</p>
+    <div class="rf-equip-hands" data-test="wizard-hands">
+        <span>@UiText.LabelHands(Lang)</span>
+        @for (var h = 0; h < 2; h++)
+        {
+            <span class="rf-equip-hand @(h < HandsUsed ? "busy" : null)"></span>
+        }
+        <strong>@HandsUsed / 2</strong>
+    </div>
+    @if (equipError is not null)
+    {
+        <div class="rf-wizard-error mb-2" data-test="wizard-equip-error">@equipError</div>
+    }
+    <ul class="rf-sheet-list rf-equip-list">
         @foreach (var item in W.PreviewInventory)
         {
-            <li class="d-flex justify-content-between gap-2">
-                <span>@W.ItemName(item)@(item.Quantity > 1 ? $" ×{item.Quantity}" : null)</span>
-                @if (item.Equipped)
+            var it = item;
+            var info = Info(it);
+            <li class="rf-equip-row @(it.Equipped ? "on" : null)">
+                <span>@W.ItemName(it)@(it.Quantity > 1 ? $" ×{it.Quantity}" : null)</span>
+                @if (StartingEquipment.Wearable(info))
                 {
-                    <span class="small" style="color: var(--rf-orange-primary);">@UiText.SheetEquipped(Lang)</span>
+                    <button type="button" class="rf-equip-toggle @(it.Equipped ? "on" : null)" aria-pressed="@(it.Equipped ? "true" : "false")" @onclick="() => ToggleEquip(it)" data-test="wizard-equip">
+                        @(it.Equipped ? UiText.SheetEquipped(Lang) : info!.Category == EquipmentCategory.Weapon || info.ArmorCategory == ArmorCategory.Shield ? UiText.BtnHold(Lang) : UiText.BtnWear(Lang))
+                    </button>
                 }
             </li>
         }
@@ -86,6 +103,39 @@
 </div>
 
 @code {
+    private string? equipError;
+
+    private ContextItem? Info(InventoryItem item) => item.EquipmentId is { } id ? Context.Items.FirstOrDefault(i => i.Id == id) : null;
+
+    private int HandsUsed => W.PreviewInventory.Where(i => i.Equipped).Sum(i => EquipmentRules.Hands(Info(i)));
+
+    //	Worn and held as on the sheet: one body armour, one shield, two hands; what does not fit is explained
+    private void ToggleEquip(InventoryItem item)
+    {
+        equipError = null;
+        var chosen = Build.EquippedItems ?? W.PreviewInventory.Where(i => i.Equipped && i.EquipmentId is not null).Select(i => i.EquipmentId!.Value).ToList();
+        if (item.EquipmentId is not { } id)
+        {
+            return;
+        }
+        if (item.Equipped)
+        {
+            chosen.Remove(id);
+        }
+        else
+        {
+            var check = EquipmentRules.CanEquip(item, W.PreviewInventory, Info, W.ItemName, false);
+            if (!check.Ok)
+            {
+                equipError = UiText.EquipBlocked(check.Problem, W.ItemName(item), check.Other ?? string.Empty, Lang);
+                return;
+            }
+            chosen.Add(id);
+        }
+        Build.EquippedItems = chosen.Distinct().ToList();
+        W.Update();
+    }
+
     private List<string> BackgroundChoice => Build.BackgroundEquipment is null ? new List<string>() : new List<string> { Build.BackgroundEquipment };
 
     private static string Summary(ContextLoadoutOption option) =>
@@ -102,6 +152,7 @@
     private void SetBackgroundOption(string letter)
     {
         Build.BackgroundEquipment = letter;
+        Build.EquippedItems = null;
         Build.EquipmentPicks.RemoveAll(p => p.Slot.StartsWith("background/"));
         W.Update();
     }
@@ -111,6 +162,7 @@
         if (index < Build.ClassEquipment.Count)
         {
             Build.ClassEquipment[index] = letter;
+            Build.EquippedItems = null;
             Build.EquipmentPicks.RemoveAll(p => p.Slot.StartsWith($"class/{(W.StartingClass?.Equipment.Kits.Count > 0 ? 0 : index)}/"));
             W.Update();
         }

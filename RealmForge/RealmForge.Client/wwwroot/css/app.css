@@ -14290,3 +14290,1419 @@ textarea.rf-form-control {
     opacity: .3;
     pointer-events: none;
 }
+
+/* ===== The character wizard with its recap at the side ===== */
+.rf-wizard-workspace.with-recap {
+    display: grid;
+    grid-template-columns: minmax(0, 864px) 360px;
+    justify-content: center;
+    align-items: start;
+    gap: 24px;
+}
+
+    .rf-wizard-workspace.with-recap > .rf-wizard {
+        width: 100%;
+        min-width: 0;
+        margin: 0;
+    }
+
+@media (max-width: 1199.98px) {
+    .rf-wizard-workspace.with-recap {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+        .rf-wizard-workspace.with-recap > .rf-wizard {
+            max-width: 864px;
+            margin: 0 auto;
+        }
+
+    .rf-recap {
+        position: static !important;
+        width: 100%;
+        max-width: 864px;
+        margin: 0 auto;
+    }
+}
+
+.rf-recap {
+    position: sticky;
+    top: 72px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    min-width: 0;
+    max-height: calc(100vh - 96px);
+    overflow-y: auto;
+    padding: 24px;
+    border-radius: 16px;
+    border: 1px solid #262626;
+    border-top: 2px solid var(--rf-orange-primary);
+    background-color: #0c0c0c;
+}
+
+.rf-recap-head {
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--rf-orange-primary);
+}
+
+.rf-recap-kicker {
+    font-size: .7rem;
+    font-weight: 800;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    color: var(--rf-orange-primary);
+}
+
+.rf-recap-hero {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    padding: 16px;
+    border-radius: 12px;
+    border: 1px solid #242424;
+    border-left: 3px solid var(--rf-orange-primary);
+    background-color: #121212;
+}
+
+.rf-recap-hero-top {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    min-width: 0;
+}
+
+.rf-recap-avatar {
+    display: flex;
+    flex: none;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    border-radius: 8px;
+    border: 1px solid rgba(255, 140, 0, .45);
+    background-color: #1a1a1a;
+    color: var(--rf-orange-primary);
+    font-weight: 900;
+}
+
+.rf-recap-hero-info {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    min-width: 0;
+}
+
+.rf-recap-name {
+    margin: 0;
+    overflow: hidden;
+    font-size: 1rem;
+    font-weight: 800;
+    color: #ffffff;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.rf-recap-sub {
+    margin: 0;
+    font-size: .75rem;
+    color: #a1a1aa;
+}
+
+.rf-recap-badges {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.rf-recap-badge {
+    padding: 0 8px;
+    border-radius: 4px;
+    border: 1px solid #2e2e2e;
+    background-color: #1a1a1a;
+    color: #d4d4d8;
+    font-size: .65rem;
+    font-weight: 800;
+    line-height: 20px;
+}
+
+    .rf-recap-badge.accent {
+        border-color: rgba(255, 140, 0, .45);
+        background-color: rgba(255, 140, 0, .14);
+        color: #ffb74d;
+    }
+
+.rf-recap-stats {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 8px;
+}
+
+.rf-recap-stat {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 8px;
+    border-radius: 6px;
+    border: 1px solid #262626;
+    background-color: #181818;
+    font-size: .75rem;
+}
+
+    .rf-recap-stat span {
+        font-size: .6rem;
+        font-weight: 800;
+        text-transform: uppercase;
+        color: var(--rf-orange-primary);
+    }
+
+    .rf-recap-stat strong {
+        color: #ffffff;
+    }
+
+.rf-recap-abilities {
+    display: grid;
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    gap: 4px;
+}
+
+.rf-recap-ability {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: 4px 2px;
+    border-radius: 6px;
+    border: 1px solid #222;
+    background-color: #161616;
+    text-align: center;
+}
+
+    .rf-recap-ability span {
+        font-size: .55rem;
+        font-weight: 800;
+        color: #71717a;
+    }
+
+    .rf-recap-ability strong {
+        font-size: .62rem;
+        font-weight: 800;
+        color: #52525b;
+        white-space: nowrap;
+    }
+
+    .rf-recap-ability.filled strong {
+        color: #e4e4e7;
+    }
+
+    .rf-recap-ability.prime {
+        border-color: rgba(255, 140, 0, .4);
+        background-color: rgba(255, 140, 0, .06);
+    }
+
+        .rf-recap-ability.prime span,
+        .rf-recap-ability.prime strong {
+            color: #ffb74d;
+        }
+
+.rf-recap-steps-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.rf-recap-counter {
+    font-size: .7rem;
+    font-weight: 800;
+    color: #888;
+}
+
+.rf-recap-timeline {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.rf-recap-step {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    min-width: 0;
+    padding: 8px;
+    border-radius: 8px;
+    border: 1px solid #222;
+    background-color: #121212;
+    color: inherit;
+    text-align: left;
+}
+
+    .rf-recap-step.done {
+        border-color: #2c2c2c;
+        border-left: 3px solid #10b981;
+        background-color: #141414;
+    }
+
+        .rf-recap-step.done:hover {
+            border-color: var(--rf-orange-primary);
+            background-color: #181818;
+        }
+
+    .rf-recap-step.current {
+        border-color: var(--rf-orange-primary);
+        border-left: 3px solid var(--rf-orange-primary);
+        background-color: rgba(255, 140, 0, .08);
+    }
+
+    .rf-recap-step.locked {
+        opacity: .45;
+    }
+
+.rf-recap-dot {
+    display: flex;
+    flex: none;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    border: 1px solid #333;
+    background-color: #1c1c1c;
+    color: #888;
+    font-size: .65rem;
+    font-weight: 800;
+}
+
+    .rf-recap-dot .rf-icon {
+        width: 12px;
+        height: 12px;
+    }
+
+.rf-recap-step.current .rf-recap-dot {
+    border-color: var(--rf-orange-primary);
+    background-color: var(--rf-orange-primary);
+    color: #09090b;
+}
+
+.rf-recap-step.done .rf-recap-dot {
+    border-color: rgba(16, 185, 129, .45);
+    background-color: rgba(16, 185, 129, .16);
+    color: #34d399;
+}
+
+.rf-recap-step-body {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+}
+
+.rf-recap-step-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+}
+
+    .rf-recap-step-top strong {
+        font-size: .75rem;
+        font-weight: 700;
+        color: #e4e4e7;
+    }
+
+.rf-recap-step.current .rf-recap-step-top strong {
+    color: #ffb74d;
+}
+
+.rf-recap-tag {
+    font-size: .6rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    color: var(--rf-orange-primary);
+}
+
+.rf-recap-edit {
+    font-size: .62rem;
+    font-weight: 700;
+    color: #71717a;
+    text-decoration: underline;
+}
+
+.rf-recap-step.done:hover .rf-recap-edit {
+    color: var(--rf-orange-primary);
+}
+
+.rf-recap-summary {
+    overflow: hidden;
+    font-size: .7rem;
+    color: #888;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+    .rf-recap-summary.filled {
+        font-weight: 600;
+        color: #d4d4d8;
+    }
+
+/* ===== Levels: number and class, hit points, on the same two columns in every row ===== */
+.rf-level-head,
+.rf-level-hp {
+    display: grid;
+    grid-template-columns: 128px minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 8px 16px;
+}
+
+    .rf-level-head > .rf-level-class:nth-child(2) {
+        grid-column: 2 / -1;
+    }
+
+.rf-level-number {
+    min-width: 0;
+}
+
+.rf-level-class-select {
+    min-width: 0;
+}
+
+.rf-level-body {
+    margin-top: 16px;
+}
+
+.rf-level-hp-label {
+    font-size: .72rem;
+    font-weight: 800;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+    color: #8a8a8a;
+}
+
+.rf-level-hp-options {
+    display: flex;
+    flex-wrap: wrap;
+    grid-column: 2 / -1;
+    gap: 8px;
+}
+
+    .rf-level-hp-options .rf-wizard-pill {
+        margin: 0;
+    }
+
+@media (max-width: 648px) {
+    .rf-level-head,
+    .rf-level-hp {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+        .rf-level-head > .rf-level-class:nth-child(2),
+        .rf-level-hp-options {
+            grid-column: auto;
+        }
+}
+
+/* Spell slots: small tiles, not a full-width block */
+.rf-wizard-meta.rf-wizard-slots {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 0;
+    border: none;
+    background: none;
+}
+
+    .rf-wizard-slots > div {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        min-width: 104px;
+        padding: 8px 16px;
+        border-radius: 8px;
+        border: 1px solid #262626;
+        background-color: var(--rf-bg-card);
+        font-size: 1.1rem;
+        font-weight: 900;
+    }
+
+        .rf-wizard-slots > div strong {
+            margin-bottom: 4px;
+        }
+
+/* The "i" of the spell cards and the weapons */
+.rf-spell-info,
+.rf-info-i {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    padding: 0;
+    border-radius: 50%;
+    border: 1.5px solid var(--rf-orange-primary);
+    background-color: rgba(255, 140, 0, .08);
+    color: var(--rf-orange-primary);
+    font-family: Georgia, serif;
+    font-size: .8rem;
+    font-style: italic;
+    font-weight: 800;
+}
+
+    .rf-spell-info:hover,
+    .rf-info-i:hover {
+        background-color: var(--rf-orange-primary);
+        color: #09090b;
+    }
+
+.rf-wizard-spell-grid .rf-wizard-feature {
+    border-radius: 10px;
+    border-color: #262626;
+    background-color: #141414;
+}
+
+    .rf-wizard-spell-grid .rf-wizard-feature.selected {
+        border-color: var(--rf-orange-primary);
+        background-color: rgba(255, 140, 0, .1);
+    }
+
+/* ===== The pop-up of a spell or a weapon ===== */
+.rf-info-backdrop {
+    backdrop-filter: blur(4px);
+}
+
+.rf-info-modal {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    width: 100%;
+    max-width: 448px;
+    max-height: calc(100vh - 48px);
+    overflow-y: auto;
+    padding: 24px;
+    border-radius: 16px;
+    border: 1.5px solid var(--rf-orange-primary);
+    background-color: #111111;
+    box-shadow: 0 24px 48px rgba(0, 0, 0, .92);
+}
+
+    .rf-info-modal.wide {
+        max-width: 640px;
+    }
+
+.rf-info-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 16px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid #242424;
+}
+
+.rf-info-kicker {
+    font-size: .7rem;
+    font-weight: 800;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+    color: #a1a1aa;
+}
+
+.rf-info-title {
+    margin: 4px 0 0;
+    font-family: var(--rf-font-display, Georgia, serif);
+    font-size: 1.4rem;
+    font-weight: 900;
+    color: var(--rf-orange-primary);
+}
+
+.rf-info-head-right {
+    display: flex;
+    flex: none;
+    align-items: center;
+    gap: 8px;
+}
+
+.rf-info-badge {
+    display: inline-flex;
+    align-items: center;
+    height: 32px;
+    padding: 0 8px;
+    border-radius: 6px;
+    border: 1px solid rgba(255, 140, 0, .5);
+    background-color: rgba(255, 140, 0, .14);
+    color: #ffb74d;
+    font-size: .7rem;
+    font-weight: 800;
+}
+
+.rf-info-close {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    border-radius: 6px;
+    border: 1px solid #2e2e2e;
+    background-color: #181818;
+    color: #a1a1aa;
+}
+
+    .rf-info-close:hover {
+        border-color: var(--rf-orange-primary);
+        color: #ffffff;
+    }
+
+.rf-info-stats {
+    display: grid;
+    gap: 8px;
+}
+
+    .rf-info-stats.cols-3 {
+        grid-template-columns: 1.4fr .8fr .8fr;
+    }
+
+    .rf-info-stats.cols-2 {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+.rf-info-stat {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    min-width: 0;
+    padding: 8px 16px;
+    border-radius: 8px;
+    border: 1px solid #2a2a2a;
+    background-color: #171717;
+}
+
+    .rf-info-stat.highlight {
+        border-color: rgba(255, 140, 0, .45);
+        background-color: rgba(255, 140, 0, .08);
+    }
+
+    .rf-info-stat span {
+        font-size: .6rem;
+        font-weight: 800;
+        text-transform: uppercase;
+        color: #888;
+    }
+
+    .rf-info-stat strong {
+        font-size: .85rem;
+        font-weight: 800;
+        color: #ffffff;
+    }
+
+.rf-info-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    font-size: .8rem;
+}
+
+    .rf-info-row span {
+        font-weight: 700;
+        color: #888;
+    }
+
+    .rf-info-row strong {
+        color: #ffffff;
+    }
+
+.rf-info-body {
+    font-size: .85rem;
+    color: #e4e4e7;
+}
+
+.rf-info-highlight {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 16px;
+    border-radius: 8px;
+    border: 1px solid #2c2c2c;
+    border-left: 4px solid var(--rf-orange-primary);
+    background-color: #161616;
+}
+
+    .rf-info-highlight .head {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+        .rf-info-highlight .head strong {
+            font-size: .9rem;
+            color: #ffb74d;
+        }
+
+    .rf-info-highlight .pill {
+        padding: 0 8px;
+        border-radius: 4px;
+        background-color: var(--rf-orange-primary);
+        color: #09090b;
+        font-size: .6rem;
+        font-weight: 900;
+        line-height: 20px;
+        text-transform: uppercase;
+    }
+
+    .rf-info-highlight p {
+        margin: 0;
+        font-size: .8rem;
+        line-height: 1.5;
+        color: #e4e4e7;
+    }
+
+.rf-info-foot {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+    padding-top: 16px;
+    border-top: 1px solid #222;
+    font-size: .75rem;
+    color: #71717a;
+}
+
+    .rf-info-foot a {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        color: var(--rf-orange-primary);
+        font-weight: 800;
+        text-decoration: none;
+    }
+
+/* ===== Weapon Mastery: the weapons by kind and the A/B comparator ===== */
+.rf-mastery {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 368px;
+    align-items: start;
+    gap: 24px;
+    margin-top: 16px;
+}
+
+    .rf-mastery.folded {
+        grid-template-columns: minmax(0, 1fr) 48px;
+    }
+
+.rf-mastery-main {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    min-width: 0;
+}
+
+.rf-mastery-top {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: flex-end;
+    gap: 16px;
+}
+
+.rf-mastery-kicker {
+    display: block;
+    margin-bottom: 4px;
+    font-size: .68rem;
+    font-weight: 800;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+    color: var(--rf-orange-primary);
+}
+
+.rf-mastery-title {
+    margin: 0;
+    font-size: 1rem;
+    font-weight: 800;
+    color: #ffffff;
+}
+
+.rf-mastery-controls,
+.rf-mastery-filters {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+}
+
+    .rf-mastery-filters button,
+    .rf-mastery-compare-toggle {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        height: 32px;
+        padding: 0 8px;
+        border-radius: 6px;
+        border: 1px solid #282828;
+        background-color: #141414;
+        color: #9e9e9e;
+        font-size: .72rem;
+        font-weight: 700;
+    }
+
+        .rf-mastery-filters button.active,
+        .rf-mastery-compare-toggle.active {
+            border-color: rgba(255, 140, 0, .5);
+            background-color: rgba(255, 140, 0, .14);
+            color: #ffb74d;
+        }
+
+.rf-mastery-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.rf-mastery-divider {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    font-size: .68rem;
+    font-weight: 800;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+    color: var(--rf-orange-primary);
+}
+
+    .rf-mastery-divider .rule {
+        flex: 1;
+        height: 1px;
+        background-color: #1f1f1f;
+    }
+
+.rf-mastery-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.rf-mastery-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    min-height: 40px;
+    padding: 0 8px 0 0;
+    border-radius: 8px;
+    border: 1px solid #282828;
+    background-color: #141414;
+}
+
+    .rf-mastery-chip:hover {
+        border-color: #444;
+    }
+
+    .rf-mastery-chip.selected {
+        border-color: var(--rf-orange-primary);
+        background-color: rgba(255, 140, 0, .14);
+    }
+
+    .rf-mastery-chip.slot-a {
+        box-shadow: inset 3px 0 0 var(--rf-orange-primary);
+    }
+
+    .rf-mastery-chip.slot-b {
+        box-shadow: inset 3px 0 0 #3b82f6;
+    }
+
+    .rf-mastery-chip.full {
+        opacity: .55;
+    }
+
+.rf-mastery-chip-main {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    align-self: stretch;
+    padding: 0 0 0 16px;
+    border: none;
+    background: none;
+    color: #ffffff;
+    font-size: .8rem;
+    font-weight: 700;
+}
+
+    .rf-mastery-chip-main .tag {
+        padding: 0 8px;
+        border-radius: 4px;
+        border: 1px solid #2c2c2c;
+        background-color: #1c1c1c;
+        color: #888;
+        font-size: .62rem;
+        line-height: 18px;
+    }
+
+.rf-mastery-chip.selected .rf-mastery-chip-main .tag {
+    border-color: rgba(255, 140, 0, .45);
+    background-color: rgba(255, 140, 0, .2);
+    color: #ffb74d;
+}
+
+.rf-mastery-chip-actions {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+
+    .rf-mastery-chip-actions .slot {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 24px;
+        height: 24px;
+        padding: 0;
+        border-radius: 4px;
+        border: 1px solid #2e2e2e;
+        background-color: #1b1b1b;
+        color: #888;
+        font-size: .6rem;
+        font-weight: 900;
+    }
+
+        .rf-mastery-chip-actions .slot.a:hover,
+        .rf-mastery-chip.slot-a .slot.a {
+            border-color: var(--rf-orange-primary);
+            background-color: rgba(255, 140, 0, .2);
+            color: #ffb74d;
+        }
+
+        .rf-mastery-chip-actions .slot.b:hover,
+        .rf-mastery-chip.slot-b .slot.b {
+            border-color: #3b82f6;
+            background-color: rgba(59, 130, 246, .2);
+            color: #60a5fa;
+        }
+
+.rf-mastery-compare {
+    position: sticky;
+    top: 72px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    min-width: 0;
+    padding: 16px;
+    border-radius: 16px;
+    border: 1px solid #282828;
+    border-top: 2px solid var(--rf-orange-primary);
+    background-color: #0e0e0e;
+    box-shadow: 0 16px 32px rgba(0, 0, 0, .75);
+}
+
+.rf-mastery.folded .rf-mastery-compare {
+    padding: 8px;
+}
+
+.rf-mastery-compare-tab {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+    width: 100%;
+    padding: 8px 0;
+    border: none;
+    background: none;
+    color: #ffb74d;
+}
+
+    .rf-mastery-compare-tab .arrow {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 32px;
+        height: 32px;
+        border-radius: 6px;
+        border: 1px solid #303030;
+        background-color: #181818;
+    }
+
+    .rf-mastery-compare-tab .text {
+        font-size: .68rem;
+        font-weight: 800;
+        letter-spacing: .08em;
+        color: #e4e4e7;
+        writing-mode: vertical-rl;
+    }
+
+    .rf-mastery-compare-tab .pill {
+        padding: 4px;
+        border-radius: 4px;
+        border: 1px solid var(--rf-orange-primary);
+        background-color: rgba(255, 140, 0, .16);
+        font-size: .6rem;
+        font-weight: 900;
+    }
+
+.rf-mastery-compare-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-bottom: 8px;
+    border-bottom: 1px solid #1f1f1f;
+}
+
+.rf-mastery-link {
+    padding: 0;
+    border: none;
+    background: none;
+    color: #888;
+    font-size: .72rem;
+    text-decoration: underline;
+}
+
+    .rf-mastery-link:hover {
+        color: #ffffff;
+    }
+
+.rf-mastery-fold,
+.rf-mastery-swap {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    padding: 0;
+    border-radius: 4px;
+    border: 1px solid #2e2e2e;
+    background-color: #181818;
+    color: #ffb74d;
+}
+
+.rf-mastery-swap {
+    width: 32px;
+    height: 40px;
+    border-radius: 8px;
+}
+
+.rf-mastery-selects {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 32px minmax(0, 1fr);
+    align-items: end;
+    gap: 8px;
+}
+
+    .rf-mastery-selects .slot-select {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        min-width: 0;
+    }
+
+.slot-badge {
+    align-self: flex-start;
+    padding: 0 8px;
+    border-radius: 4px;
+    font-size: .6rem;
+    font-weight: 900;
+    line-height: 18px;
+}
+
+    .slot-badge.a {
+        border: 1px solid rgba(255, 140, 0, .5);
+        background-color: rgba(255, 140, 0, .16);
+        color: #ffb74d;
+    }
+
+    .slot-badge.b {
+        border: 1px solid rgba(59, 130, 246, .5);
+        background-color: rgba(59, 130, 246, .16);
+        color: #60a5fa;
+    }
+
+.rf-mastery-box {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 16px;
+    border-radius: 8px;
+    border: 1px solid #222;
+    background-color: #131313;
+}
+
+    .rf-mastery-box .label,
+    .rf-mastery-rules .label {
+        font-size: .62rem;
+        font-weight: 800;
+        letter-spacing: .06em;
+        text-transform: uppercase;
+        color: #888;
+    }
+
+.rf-mastery-versus {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 24px minmax(0, 1fr);
+    align-items: center;
+    gap: 8px;
+}
+
+    .rf-mastery-versus .vs {
+        font-size: .6rem;
+        font-weight: 900;
+        text-align: center;
+        color: #52525b;
+    }
+
+    .rf-mastery-versus .dmg {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+        padding: 8px;
+        border-radius: 8px;
+        border: 1px solid #282828;
+        background-color: #181818;
+        text-align: center;
+    }
+
+        .rf-mastery-versus .dmg.wins {
+            border-color: rgba(16, 185, 129, .5);
+            background-color: rgba(16, 185, 129, .06);
+        }
+
+        .rf-mastery-versus .dmg strong {
+            font-family: Georgia, serif;
+            font-size: 1.2rem;
+            font-weight: 900;
+        }
+
+        .rf-mastery-versus .dmg.side-a strong {
+            color: #ffb74d;
+        }
+
+        .rf-mastery-versus .dmg.side-b strong {
+            color: #93c5fd;
+        }
+
+        .rf-mastery-versus .dmg span {
+            font-size: .7rem;
+            color: #a1a1aa;
+        }
+
+        .rf-mastery-versus .dmg small {
+            font-size: .62rem;
+            color: #888;
+        }
+
+.rf-mastery-bars {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+    .rf-mastery-bars .bar-row {
+        display: grid;
+        grid-template-columns: 16px minmax(0, 1fr) 32px;
+        align-items: center;
+        gap: 8px;
+        font-size: .7rem;
+        font-weight: 800;
+    }
+
+    .rf-mastery-bars .tag.a {
+        color: #ffb74d;
+    }
+
+    .rf-mastery-bars .tag.b {
+        color: #60a5fa;
+    }
+
+    .rf-mastery-bars .track {
+        height: 8px;
+        overflow: hidden;
+        border-radius: 4px;
+        background-color: #1c1c1c;
+    }
+
+    .rf-mastery-bars .fill {
+        display: block;
+        height: 100%;
+        border-radius: 4px;
+    }
+
+        .rf-mastery-bars .fill.a {
+            background-color: var(--rf-orange-primary);
+        }
+
+        .rf-mastery-bars .fill.b {
+            background-color: #3b82f6;
+        }
+
+    .rf-mastery-bars .num {
+        font-family: monospace;
+        text-align: right;
+        color: #d4d4d8;
+    }
+
+.rf-mastery-table {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    border-radius: 8px;
+    border: 1px solid #222;
+    background-color: #131313;
+}
+
+    .rf-mastery-table .row-m {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) 96px minmax(0, 1fr);
+        align-items: center;
+        gap: 4px;
+        padding: 8px;
+        border-bottom: 1px solid #1c1c1c;
+        font-size: .72rem;
+    }
+
+        .rf-mastery-table .row-m:last-child {
+            border-bottom: none;
+        }
+
+    .rf-mastery-table .key {
+        font-size: .55rem;
+        font-weight: 800;
+        text-align: center;
+        text-transform: uppercase;
+        color: #71717a;
+    }
+
+    .rf-mastery-table .val {
+        font-weight: 700;
+        color: #d4d4d8;
+    }
+
+        .rf-mastery-table .val.b {
+            text-align: right;
+        }
+
+        .rf-mastery-table .val.wins {
+            font-weight: 800;
+            color: #34d399;
+        }
+
+.rf-mastery-props {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+}
+
+    .rf-mastery-props .col {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        padding: 8px;
+        border-radius: 8px;
+        border: 1px solid #222;
+        background-color: #131313;
+    }
+
+    .rf-mastery-props .micro {
+        font-size: .55rem;
+        font-weight: 800;
+        text-transform: uppercase;
+        color: #71717a;
+    }
+
+    .rf-mastery-props .chips {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 4px;
+    }
+
+        .rf-mastery-props .chips span {
+            padding: 0 4px;
+            border-radius: 4px;
+            border: 1px solid #2e2e2e;
+            background-color: #1c1c1c;
+            color: #e4e4e7;
+            font-size: .65rem;
+            font-weight: 600;
+        }
+
+.rf-mastery-rules {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.rf-mastery-rule {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 8px 16px;
+    border-radius: 8px;
+    border: 1px solid #262626;
+    background-color: #141414;
+}
+
+    .rf-mastery-rule.side-a {
+        border-left: 3px solid var(--rf-orange-primary);
+    }
+
+    .rf-mastery-rule.side-b {
+        border-left: 3px solid #3b82f6;
+    }
+
+    .rf-mastery-rule .top {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+        .rf-mastery-rule .top strong {
+            flex: 1;
+            font-size: .8rem;
+            color: #ffffff;
+        }
+
+    .rf-mastery-rule p {
+        margin: 0;
+        font-size: .72rem;
+        line-height: 1.4;
+        color: #a1a1aa;
+    }
+
+.rf-mastery-pick {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+}
+
+    .rf-mastery-pick button {
+        min-height: 40px;
+        padding: 0 8px;
+        border-radius: 8px;
+        font-size: .68rem;
+        font-weight: 900;
+        text-transform: uppercase;
+    }
+
+    .rf-mastery-pick .pick-a {
+        border: 1px solid var(--rf-orange-primary);
+        background-color: rgba(255, 140, 0, .14);
+        color: #ffb74d;
+    }
+
+        .rf-mastery-pick .pick-a:hover:not(:disabled),
+        .rf-mastery-pick .pick-a.picked {
+            background-color: var(--rf-orange-primary);
+            color: #09090b;
+        }
+
+    .rf-mastery-pick .pick-b {
+        border: 1px solid #3b82f6;
+        background-color: rgba(59, 130, 246, .14);
+        color: #93c5fd;
+    }
+
+        .rf-mastery-pick .pick-b:hover:not(:disabled),
+        .rf-mastery-pick .pick-b.picked {
+            background-color: #3b82f6;
+            color: #09090b;
+        }
+
+    .rf-mastery-pick button:disabled {
+        opacity: .5;
+    }
+
+@media (max-width: 1023.98px) {
+    .rf-mastery,
+    .rf-mastery.folded {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .rf-mastery-compare {
+        position: static;
+    }
+
+    .rf-mastery-compare-tab {
+        flex-direction: row;
+        justify-content: center;
+    }
+
+        .rf-mastery-compare-tab .text {
+            writing-mode: horizontal-tb;
+        }
+}
+
+/* ===== Starting equipment: what is worn and held, the two hands ===== */
+.rf-equip-hands {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 8px;
+    font-size: .72rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    color: #888;
+}
+
+    .rf-equip-hands strong {
+        color: #ffffff;
+    }
+
+.rf-equip-hand {
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    border: 1px solid #3f3f46;
+    background-color: #141414;
+}
+
+    .rf-equip-hand.busy {
+        border-color: var(--rf-orange-primary);
+        background-color: var(--rf-orange-primary);
+    }
+
+.rf-equip-list .rf-equip-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+}
+
+.rf-equip-toggle {
+    flex: none;
+    height: 32px;
+    padding: 0 16px;
+    border-radius: 6px;
+    border: 1px solid #333;
+    background-color: #1a1a1a;
+    color: #d4d4d8;
+    font-size: .7rem;
+    font-weight: 800;
+    text-transform: uppercase;
+}
+
+    .rf-equip-toggle.on {
+        border-color: var(--rf-orange-primary);
+        background-color: rgba(255, 140, 0, .14);
+        color: #ffb74d;
+    }
+
+/* The masteries follow the room of their panel: the comparator under the weapons when it is narrow */
+.rf-mastery-wrap {
+    container-type: inline-size;
+}
+
+.rf-mastery-chip-main .name {
+    white-space: nowrap;
+}
+
+@container (max-width: 760px) {
+    .rf-mastery,
+    .rf-mastery.folded {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .rf-mastery-compare {
+        position: static;
+    }
+
+    .rf-mastery-compare-tab {
+        flex-direction: row;
+        justify-content: center;
+    }
+
+        .rf-mastery-compare-tab .text {
+            writing-mode: horizontal-tb;
+        }
+}
