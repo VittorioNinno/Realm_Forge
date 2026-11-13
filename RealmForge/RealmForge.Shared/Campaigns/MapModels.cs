@@ -476,6 +476,19 @@ public static class MapRules
 	public static bool CanDeleteShape(ShapeKind kind, bool isPrivate, bool mine, bool runsTheTable) =>
 		mine || (runsTheTable && Sees(kind, isPrivate, mine));
 
+	//	A drawing reaches into a box (pixels of the picture) when one of its points falls in it
+	public static bool Touches(IReadOnlyList<double> points, double x, double y, double width, double height)
+	{
+		for (var i = 0; i + 1 < points.Count; i += 2)
+		{
+			if (points[i] >= x && points[i] <= x + width && points[i + 1] >= y && points[i + 1] <= y + height)
+			{
+				return true;
+			}
+		}
+		return false;
+	}
+
 	public static bool CanMoveShape(ShapeKind kind, bool isPrivate, bool mine, bool runsTheTable) =>
 		kind == ShapeKind.Text && (mine || (runsTheTable && !isPrivate));
 
