@@ -159,6 +159,10 @@ namespace RealmForge.Domain.Entities
 		public Guid? ImageId { get; set; }
 		public PropState PropState { get; set; } = PropState.Closed;
 		public bool PlayersInteract { get; set; }
+
+		//	What it carries (JSON of TokenGear): a creature's loot, the item lying on a dropped-item token, the statblock
+		//	attacks it lost with its weapon
+		public string Gear { get; set; } = "{}";
 		public DateTimeOffset UpdatedAt { get; set; } = DateTimeOffset.UtcNow;
 	}
 

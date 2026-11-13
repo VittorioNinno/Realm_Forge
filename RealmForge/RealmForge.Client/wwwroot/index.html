@@ -385,6 +385,52 @@
                     const fs = 14 / z, pad = 8 / z;
                     svg.innerHTML = cells + shape + `<g transform="translate(${a.to[0] + pad * 2} ${a.to[1] - pad * 2})"><rect x="0" y="${-fs - pad}" width="${label.length * 0.62 * fs + pad * 2}" height="${fs + pad * 2}" rx="${4 / z}" fill="rgba(10,10,10,.85)" stroke="${color}" stroke-width="${1 / z}"/><text x="${pad}" y="0" font-size="${fs}" font-weight="700" fill="#ffffff" data-test="map-area-label">${label}</text></g>`;
                 };
+                // The area of a spell being cast: from the caster (pointed with the pointer) or centred on a cell within
+                // range (an even cube on the corner between cells); ok is false out of range
+                const castPlan = (p) => {
+                    const c = st.options.cast;
+                    if (!c) return null;
+                    const [t, g, ox, oy] = grid(), kind = c.kind, size = c.size;
+                    if (c.fromCaster) {
+                        return kind === 'sphere'
+                            ? { kind, ox: c.x, oy: c.y, tx: c.x, ty: c.y, size, ok: true }
+                            : { kind, ox: c.x, oy: c.y, tx: p[0], ty: p[1], size, ok: true };
+                    }
+                    const cell = nearest(t, g, ox, oy, p[0], p[1]);
+                    let [cx, cy] = center(t, g, ox, oy, cell[0], cell[1]);
+                    let d = Infinity;
+                    const span = t === 0 ? c.casterSize : 1;
+                    for (let i = 0; i < span; i++) for (let j = 0; j < span; j++) d = Math.min(d, distance(t, [c.col + i, c.row + j], cell));
+                    const ok = c.range >= 999 || d <= c.range;
+                    if (kind === 'cube') {
+                        if (t === 0 && size % 2 === 0) { cx += g / 2; cy += g / 2; }
+                        const x0 = cx - g / 2 - size * g / 2;
+                        return { kind, ox: x0, oy: cy, tx: x0 + g, ty: cy, size, ok };
+                    }
+                    return { kind, ox: cx, oy: cy, tx: cx + g, ty: cy, size, ok };
+                };
+                const drawCast = (p) => {
+                    const svg = layer();
+                    if (!svg) return;
+                    const plan = p && castPlan(p), c = st.options.cast;
+                    if (!plan) { svg.innerHTML = ''; return; }
+                    const [t, g, ox, oy] = grid(), z = zoom();
+                    const color = plan.ok ? (st.options.color || '#ff8c00') : '#ef4444';
+                    const cells = areaCells(t, g, ox, oy, plan.kind, plan.ox, plan.oy, plan.tx, plan.ty, plan.size)
+                        .map(([cc, r]) => `<polygon points="${corners(t, g, ox, oy, cc, r).map(q => q.join(',')).join(' ')}" fill="${color}" fill-opacity=".3"/>`).join('');
+                    const poly = areaOutline(plan.kind, plan.ox, plan.oy, plan.tx, plan.ty, plan.size * g, g);
+                    const shape = poly
+                        ? `<polygon points="${poly.map(q => q.join(',')).join(' ')}" fill="${color}" fill-opacity=".12" stroke="${color}" stroke-width="${2 / z}"/>`
+                        : `<circle cx="${plan.ox}" cy="${plan.oy}" r="${plan.size * g}" fill="${color}" fill-opacity=".12" stroke="${color}" stroke-width="${2 / z}"/>`;
+                    let reach = '';
+                    if (!c.fromCaster && c.range < 999) {
+                        const r = (c.range + c.casterSize / 2) * g;
+                        reach = t === 0
+                            ? `<rect x="${c.x - r}" y="${c.y - r}" width="${2 * r}" height="${2 * r}" fill="none" stroke="#7dd3fc" stroke-width="${2 / z}" stroke-dasharray="${6 / z} ${4 / z}" data-test="map-cast-range"/>`
+                            : `<circle cx="${c.x}" cy="${c.y}" r="${r}" fill="none" stroke="#7dd3fc" stroke-width="${2 / z}" stroke-dasharray="${6 / z} ${4 / z}" data-test="map-cast-range"/>`;
+                    }
+                    svg.innerHTML = reach + cells + shape;
+                };
                 // Aligning the grid: the box drawn over one cell of the picture
                 const drawBox = () => {
                     const svg = board()?.querySelector('[data-ruler]');
@@ -410,6 +456,15 @@
                         const p = toMap(e);
                         e.preventDefault();
                         dotnet.invokeMethodAsync('Pinged', p[0], p[1]);
+                        return;
+                    }
+                    if (st.tool === 'cast') {
+                        const plan = castPlan(toMap(e));
+                        e.preventDefault();
+                        if (plan && plan.ok) {
+                            drawCast(null);
+                            dotnet.invokeMethodAsync('CastPlaced', plan.kind, plan.ox, plan.oy, plan.tx, plan.ty, plan.size);
+                        }
                         return;
                     }
                     if (st.tool === 'fog') {
@@ -544,6 +599,8 @@
                     } else if (st.ruler?.active) {
                         st.ruler.to = toMap(e);
                         drawRuler();
+                    } else if (st.tool === 'cast') {
+                        drawCast(toMap(e));
                     }
                 };
                 st.up = async (e) => {
@@ -640,7 +697,7 @@
                 st.key = (e) => {
                     if (!stage.isConnected || !['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Escape'].includes(e.key)) return;
                     if (e.target.closest && e.target.closest('input, textarea, select, [contenteditable]')) return;
-                    if (!board()?.querySelector('.rf-vtt-toolbar')) return;
+                    if (!board()?.querySelector('.rf-vtt-toolbar') && !document.querySelector('[data-targeting="1"]')) return;
                     e.preventDefault();
                     dotnet.invokeMethodAsync('KeyPressed', e.key);
                 };
@@ -653,6 +710,7 @@
                 });
                 st.observer.observe(stage);
                 st.drawRuler = drawRuler;
+                st.drawCast = drawCast;
                 boards.set(stage, st);
             }
 
@@ -680,6 +738,12 @@
                 if (name !== 'ruler') st.ruler = null;
                 st.box = null;
                 st.drawRuler();
+                if (name === 'cast' && st.options.cast) {
+                    const g = parseFloat(stage.querySelector('[data-board]').dataset.grid);
+                    st.drawCast([st.options.cast.x + g * (st.options.cast.casterSize + 1), st.options.cast.y]);
+                } else if (name !== 'cast') {
+                    st.options.cast = null;
+                }
             }
 
             // The zoom that fits the whole map in the stage
