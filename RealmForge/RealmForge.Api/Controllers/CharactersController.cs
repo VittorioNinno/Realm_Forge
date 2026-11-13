@@ -60,11 +60,12 @@ namespace RealmForge.Api.Controllers
 
 		//	Characters of the tokens a master gave me to play (ControlledBy) in a campaign of mine: I read them and keep their
 		//	play state, as at the table
+		//	(the character's own token, or a copy of it used as an NPC)
 		private IQueryable<Guid> GivenToMe => _context.CampaignTokens
-			.Where(t => t.CharacterId != null && t.ControlledBy.Contains(UserId)
+			.Where(t => (t.CharacterId ?? t.SheetCharacterId) != null && t.ControlledBy.Contains(UserId)
 				&& _context.CampaignMembers.Any(m => m.CampaignId == t.Map.CampaignId && m.UserId == UserId)
-				&& _context.CampaignCharacters.Any(cc => cc.CharacterId == t.CharacterId && cc.CampaignId == t.Map.CampaignId))
-			.Select(t => t.CharacterId!.Value);
+				&& _context.CampaignCharacters.Any(cc => cc.CharacterId == (t.CharacterId ?? t.SheetCharacterId) && cc.CampaignId == t.Map.CampaignId))
+			.Select(t => (t.CharacterId ?? t.SheetCharacterId)!.Value);
 
 		//	Rule modules shared with the campaigns of a character and approved: active for it
 		private Task<List<Guid>> CampaignModulesAsync(Guid characterId) => _context.CampaignContents.AsNoTracking()

@@ -10,6 +10,8 @@
 @inject ImageDataService Images
 @inject EncounterDataService Encounters
 @inject CharacterDataService CharacterService
+@inject ClassDataService ClassService
+@inject SpeciesDataService SpeciesService
 @inject LanguageStateService LanguageState
 @inject LiveTableService Live
 @inject IJSRuntime JS
@@ -63,13 +65,19 @@
                 <button type="button" class="@ToolButton("select")" title="@UiText.VttToolSelect(Lang)" aria-label="@UiText.VttToolSelect(Lang)" @onclick="@(() => SetToolAsync("select"))" data-test="vtt-tool-select"><Icon Name="cursor" /></button>
                 <button type="button" class="@ToolButton("pan")" title="@UiText.VttToolPan(Lang)" aria-label="@UiText.VttToolPan(Lang)" @onclick="@(() => SetToolAsync("pan"))" data-test="vtt-tool-pan"><Icon Name="arrows-move" /></button>
                 <button type="button" class="@ToolButton("ruler")" title="@UiText.VttToolRuler(Lang)" aria-label="@UiText.VttToolRuler(Lang)" @onclick="@(() => SetToolAsync("ruler"))" data-test="vtt-tool-ruler"><Icon Name="rulers" /></button>
-                <button type="button" class="@ToolButton("area")" title="@UiText.VttToolArea(Lang)" aria-label="@UiText.VttToolArea(Lang)" @onclick="@(() => SetToolAsync("area"))" data-test="vtt-tool-area"><Icon Name="bullseye" /></button>
+                @if (!PlayersStopped)
+                {
+                    <button type="button" class="@ToolButton("area")" title="@UiText.VttToolArea(Lang)" aria-label="@UiText.VttToolArea(Lang)" @onclick="@(() => SetToolAsync("area"))" data-test="vtt-tool-area"><Icon Name="bullseye" /></button>
+                    <button type="button" class="@ToolButton("ping")" title="@UiText.VttToolPing(Lang)" aria-label="@UiText.VttToolPing(Lang)" @onclick="@(() => SetToolAsync("ping"))" data-test="vtt-tool-ping"><Icon Name="geo-alt" /></button>
+                }
                 <button type="button" class="@ToolButton("draw")" title="@UiText.VttToolDraw(Lang)" aria-label="@UiText.VttToolDraw(Lang)" @onclick="@(() => SetToolAsync("draw"))" data-test="vtt-tool-draw"><Icon Name="edit" /></button>
                 <button type="button" class="@ToolButton("text")" title="@UiText.VttToolText(Lang)" aria-label="@UiText.VttToolText(Lang)" @onclick="@(() => SetToolAsync("text"))" data-test="vtt-tool-text"><Icon Name="type" /></button>
                 <button type="button" class="@ToolButton("erase")" title="@UiText.VttToolErase(Lang)" aria-label="@UiText.VttToolErase(Lang)" @onclick="@(() => SetToolAsync("erase"))" data-test="vtt-tool-erase"><Icon Name="eraser" /></button>
                 @if (RunsTheTable)
                 {
                     <button type="button" class="@ToolButton("fog")" title="@UiText.VttToolFog(Lang)" aria-label="@UiText.VttToolFog(Lang)" @onclick="@(() => SetToolAsync("fog"))" data-test="vtt-tool-fog"><Icon Name="eye-slash" /></button>
+                    <button type="button" class="rf-vtt-tool @(playersLocked ? "locked" : null)" disabled="@(map is null)" title="@(playersLocked ? UiText.VttUnlockPlayers(Lang) : UiText.VttLockPlayers(Lang))" aria-label="@(playersLocked ? UiText.VttUnlockPlayers(Lang) : UiText.VttLockPlayers(Lang))"
+                            aria-pressed="@(playersLocked ? "true" : "false")" @onclick="ToggleLockAsync" data-test="vtt-lock-players"><Icon Name="@(playersLocked ? "lock" : "unlock")" /></button>
                     <span class="rf-vtt-tools-sep"></span>
                     <button type="button" class="rf-vtt-tool @(panel == "tokens" ? "active" : null)" title="@UiText.VttToolTokens(Lang)" aria-label="@UiText.VttToolTokens(Lang)" @onclick="@(() => TogglePanel("tokens"))" data-test="vtt-tool-tokens"><Icon Name="people" /></button>
                 }
@@ -93,11 +101,15 @@
                         {
                             <button type="button" class="@(panel == "tokens" ? "active" : null)" @onclick="@(() => panel = "tokens")">@UiText.VttTokensShort(Lang)</button>
                         }
-                        @if (SheetToken is not null)
+                        @foreach (var tab in SheetTabs)
                         {
-                            <button type="button" class="@(panel == "sheet" ? "active" : null)" @onclick="@(() => panel = "sheet")" data-test="vtt-tab-sheet">@UiText.VttQuickSheet(Lang)</button>
+                            var sheetTab = tab;
+                            <span class="rf-vtt-sheet-tab @(panel == "sheet" && sheetTokenId == sheetTab.Id ? "active" : null)" data-test="vtt-tab-sheet">
+                                <button type="button" class="rf-vtt-sheet-tab-name" title="@sheetTab.Label" @onclick="() => ShowSheet(sheetTab.Id)">@sheetTab.Label</button>
+                                <button type="button" class="rf-vtt-sheet-tab-close" title="@UiText.TokenClose(Lang)" aria-label="@UiText.TokenClose(Lang)" @onclick="() => CloseSheet(sheetTab.Id)" data-test="vtt-tab-sheet-close"><Icon Name="close" /></button>
+                            </span>
                         }
-                        <button type="button" class="rf-vtt-icon-button ms-auto" @onclick="() => panel = null" aria-label="@UiText.TokenClose(Lang)"><Icon Name="close" /></button>
+                        <button type="button" class="rf-vtt-icon-button ms-auto" @onclick="ClosePanel" aria-label="@UiText.TokenClose(Lang)" data-test="vtt-drawer-close"><Icon Name="close" /></button>
                     </nav>
                     @switch (panel)
                     {
@@ -589,7 +601,7 @@ else
                     }
                     @if (pingShown is { } pg)
                     {
-                        <span class="rf-vtt-ping" @key="pg.At" style="left: @(N(pg.X))px; top: @(N(pg.Y))px; --rf-token: @pg.Color;" data-test="map-ping"></span>
+                        <span class="rf-vtt-ping" @key="pg.At" style="left: @(N(pg.X))px; top: @(N(pg.Y))px; --rf-token: @pg.Color;" data-test="map-ping"><span class="rf-vtt-ping-dot"></span></span>
                     }
                     @if (InfoToken is { } selected)
                     {
@@ -755,7 +767,7 @@ else
                         {
                             <span>@UiText.TokenConditions(Lang)</span>
                         }
-                        @if (RunsTheTable && it.CharacterId is null)
+                        @if (CanChangeConditions(it, character))
                         {
                             <span class="rf-hud-plus"><Icon Name="plus" /></span>
                         }
@@ -785,14 +797,14 @@ else
                     <button type="button" class="rf-hud-dock-back" title="@UiText.ToolBack(Lang)" aria-label="@UiText.ToolBack(Lang)" @onclick="() => { moreDock = false; toolTab = null; }" data-test="map-token-more-back"><Icon Name="left" /></button>
                 </nav>
             }
-            else
+            else if (HasDock(it, character))
             {
                 <nav class="rf-hud-dock">
                     @if (RunsTheTable && it.PropType is not null)
                     {
                         @DockButton("state", "key", UiText.ToolState(Lang), "map-token-tab-state")
                     }
-                    @if (it.PropType is null && (it.Hp is not null || character is not null || (RunsTheTable && it.CharacterId is null) || it.Health is not null))
+                    @if (it.PropType is null && (RunsTheTable || CanChangeHp(it, character) || character is not null || it.ShowHp))
                     {
                         @DockButton("hp", "heart", UiText.ToolHp(Lang), "map-token-tab-hp")
                     }
@@ -821,7 +833,10 @@ else
                         {
                             @DockButton("ring", "circle", UiText.ToolRing(Lang), "map-token-tab-ring")
                         }
-                        @DockButton("more", "three-dots", UiText.ToolMore(Lang), "map-token-tab-more")
+                        @if (character?.CanOpen == true)
+                        {
+                            @DockButton("more", "three-dots", UiText.ToolMore(Lang), "map-token-tab-more")
+                        }
                     }
                 </nav>
             }
@@ -847,51 +862,62 @@ else
                     <div class="rf-vtt-toolbar-panel rf-hud-drawer" data-test="map-token-hp">
                         @if (CanChangeHp(it, character))
                         {
+                            var nowHp = character is not null ? LifeHp(character) : it.Hp ?? it.MaxHp ?? 0;
+                            var maxHp = character is not null ? LifeMax(character) : it.MaxHp ?? 0;
+                            var tempHp = character is not null ? vitals?.TemporaryHitPoints ?? 0 : it.TempHp ?? 0;
                             <div class="rf-hud-hp-row">
                                 <button type="button" class="rf-hud-hp heal" disabled="@(hpAmount is null or <= 0 || busy)" @onclick="() => HealAsync(it, 1)" data-test="map-token-heal"><Icon Name="plus" /> @UiText.ToolHeal(Lang)</button>
                                 <input type="number" class="rf-hud-hp-amount" min="0" max="10000" placeholder="—" @bind="hpAmount" @bind:event="oninput" @onkeydown="e => HpKeyAsync(e, it)" aria-label="@UiText.ToolHpAmount(Lang)" data-test="map-token-hp-amount" />
                                 <button type="button" class="rf-hud-hp damage" disabled="@(hpAmount is null or <= 0 || busy)" @onclick="() => HealAsync(it, -1)" data-test="map-token-damage">@UiText.ToolDamage(Lang) <Icon Name="dash" /></button>
                             </div>
-                            <div class="rf-hud-hp-grid">
-                                <label class="rf-vtt-field">
-                                    <span class="rf-vtt-label">@UiText.ToolTempHp(Lang)</span>
-                                    <input type="number" class="rf-hud-hp-field" min="0" max="10000" value="@(character is not null ? vitals?.TemporaryHitPoints ?? 0 : it.TempHp ?? 0)"
-                                           @onchange="e => SetTempHpAsync(it, e.Value?.ToString())" data-test="map-token-temp-hp" />
+                            <div class="rf-hud-stats">
+                                <label class="rf-hud-stat now">
+                                    <span>@UiText.ToolHpNow(Lang)</span>
+                                    <span class="rf-hud-stat-value">
+                                        <input type="number" min="0" max="100000" value="@nowHp" @onchange="e => SetCurrentAsync(it, e.Value?.ToString())" aria-label="@UiText.ToolHpNow(Lang)" data-test="map-token-hp-input" />
+                                        <small>/ @maxHp</small>
+                                    </span>
+                                </label>
+                                <label class="rf-hud-stat temp">
+                                    <span>@UiText.ToolTempHp(Lang)</span>
+                                    <input type="number" min="0" max="10000" value="@tempHp" @onchange="e => SetTempHpAsync(it, e.Value?.ToString())" aria-label="@UiText.ToolTempHp(Lang)" data-test="map-token-temp-hp" />
                                 </label>
                                 @if (character is not null || it.CombatantId is null)
                                 {
-                                    <label class="rf-vtt-field">
-                                        <span class="rf-vtt-label">@UiText.ToolHpMaxEdit(Lang)</span>
-                                        <input type="number" class="rf-hud-hp-field" min="1" max="100000" placeholder="@(character is not null ? vitals?.MaxHitPoints ?? character.Character.MaxHitPoints : it.MaxHp ?? 0)"
-                                               @onchange="e => SetMaxAsync(it, e.Value?.ToString())" data-test="map-token-max-hp" />
+                                    <label class="rf-hud-stat">
+                                        <span>@UiText.ToolHpMaxEdit(Lang)</span>
+                                        <input type="number" min="1" max="100000" value="@maxHp" @onchange="e => SetMaxAsync(it, e.Value?.ToString())" aria-label="@UiText.ToolHpMaxEdit(Lang)" data-test="map-token-max-hp" />
+                                    </label>
+                                }
+                                @if (RunsTheTable && character is null)
+                                {
+                                    <label class="rf-hud-stat armor">
+                                        <span>@UiText.ToolArmorClass(Lang)</span>
+                                        <input type="number" min="1" max="50" value="@(ArmorOf(it, monster))" @onchange="e => SetArmorAsync(it, e.Value?.ToString())" aria-label="@UiText.ToolArmorClass(Lang)" data-test="map-token-ac" />
                                     </label>
                                 }
                             </div>
-                            @if (character is not null)
+                            @if (RunsTheTable && character is null)
                             {
-                                <p class="small mb-0" data-test="map-token-char-hp">@UiText.TokenHitPoints(LifeHp(character), LifeMax(character), Lang)</p>
-                            }
-                            else if (RunsTheTable)
-                            {
-                                <div class="rf-vtt-field">
-                                    <span class="rf-vtt-label">@UiText.ToolHpNow(Lang)</span>
-                                    <NumberStepper Value="@(it.Hp ?? it.MaxHp ?? 0)" ValueChanged="v => SetHpAsync(it, v)" Min="0" Max="@((it.MaxHp ?? 0) + 1000)" AriaLabel="@UiText.ToolHp(Lang)" InputTest="map-token-hp-input" />
-                                </div>
+                                <button type="button" class="rf-hud-share @(it.ShowHp ? "on" : null)" aria-pressed="@(it.ShowHp ? "true" : "false")" @onclick="() => ToggleShowHpAsync(it)" data-test="map-token-show-hp">
+                                    <Icon Name="@(it.ShowHp ? "eye" : "eye-slash")" />
+                                    <span>@(it.ShowHp ? UiText.ToolHpShown(Lang) : UiText.ToolHpHidden(Lang))</span>
+                                </button>
                             }
                         }
                         else if (character is not null)
                         {
                             <p class="small mb-0">@UiText.TokenHitPoints(character.Character.CurrentHitPoints, character.Character.MaxHitPoints, Lang)</p>
                         }
-                        else if (it.Health is { } health)
+                        else if (it.Hp is { } shownHp && it.MaxHp is { } shownMax)
                         {
-                            <p class="small mb-0">@UiText.HealthName(health, Lang)</p>
+                            <p class="small mb-0">@UiText.TokenHitPoints(shownHp, shownMax, Lang)</p>
                         }
                     </div>
                     break;
                 case "conditions":
                     <div class="rf-vtt-toolbar-panel rf-hud-drawer">
-                        @if (RunsTheTable && it.CharacterId is null)
+                        @if (CanChangeConditions(it, character))
                         {
                             <div class="rf-hud-pills" data-test="map-token-condition-list">
                                 @foreach (var key in EncounterRules.Conditions)
@@ -986,6 +1012,62 @@ else
 
     //	The hit points, temporary ones and maximum of the characters, read from their sheets when the pop-up asks
     private readonly Dictionary<Guid, SheetVitalsDto> charVitals = new();
+
+    //	The players see the simple pop-up of what is not theirs: nothing to open under it
+    private bool HasDock(MapTokenDto t, CampaignCharacterDto? character) =>
+        RunsTheTable || (t.PropType is null && (CanChangeHp(t, character) || character is not null || t.ShowHp || t.Controlled));
+
+    //	Conditions: the masters any token; a character's (on its sheet) also its owner and whoever has it
+    private bool CanChangeConditions(MapTokenDto t, CampaignCharacterDto? character) => t.PropType is null && (character is not null
+        ? character.IsMine || (RunsTheTable && character.CanEdit) || t.Controlled
+        : RunsTheTable);
+
+    private static int? ArmorOf(MapTokenDto t, MonsterResponseDto? monster) => t.ArmorClass ?? monster?.ArmorClass;
+
+    private async Task SetCurrentAsync(MapTokenDto t, string? text)
+    {
+        if (!int.TryParse(text, out var hp))
+        {
+            return;
+        }
+        hp = Math.Clamp(hp, 0, 100_000);
+        if (t.CharacterId is not null)
+        {
+            await ChangeCharacterAsync(t, (sheet, computed) => sheet.CurrentHitPoints = Math.Min(hp, Math.Max(1, computed.MaxHitPoints)));
+        }
+        else
+        {
+            await SetVitalsAsync(t, hp, null, null);
+        }
+    }
+
+    private async Task SetArmorAsync(MapTokenDto t, string? text)
+    {
+        if (map is null || !int.TryParse(text, out var armor) || armor is < 1 or > 50)
+        {
+            return;
+        }
+        Replace(t with { ArmorClass = armor });
+        if (!(await Campaigns.SetTokenExtrasAsync(CampaignId, map.Id, t.Id, (t.Conditions ?? new()).ToList(), null, armor)).Ok)
+        {
+            Replace(t);
+            message = UiText.MapSaveFailed(Lang);
+        }
+    }
+
+    private async Task ToggleShowHpAsync(MapTokenDto t)
+    {
+        if (map is null)
+        {
+            return;
+        }
+        Replace(t with { ShowHp = !t.ShowHp });
+        if (!(await Campaigns.SetTokenExtrasAsync(CampaignId, map.Id, t.Id, (t.Conditions ?? new()).ToList(), !t.ShowHp, null)).Ok)
+        {
+            Replace(t);
+            message = UiText.MapSaveFailed(Lang);
+        }
+    }
 
     private bool CanChangeHp(MapTokenDto t, CampaignCharacterDto? character) => t.PropType is null && (character is not null
         ? character.IsMine || (RunsTheTable && character.CanEdit) || t.Controlled
@@ -1164,9 +1246,11 @@ else
     private static string PropIcon(PropType type, PropState state) => type switch
     {
         PropType.Chest => "box",
-        PropType.Window => "window",
+        PropType.Window => "border-all",
         PropType.Trap => "warning",
-        PropType.Lever => state == PropState.Open ? "toggle-on" : "toggle-off",
+        PropType.Lever => "joystick",
+        PropType.Gate => "grid-3x3",
+        PropType.Secret => "question-diamond",
         _ => state is PropState.Open or PropState.Ajar or PropState.Broken ? "door-open" : "door-closed"
     };
 
@@ -1210,17 +1294,25 @@ else
             return $"{UiText.TokenHitPoints(ch.CurrentHitPoints, ch.MaxHitPoints, Lang)} · {UiText.TokenArmorClass(ch.ArmorClass, Lang)} · {UiText.TokenLevel(ch.Level, ch.ClassLine, Lang)}";
         }
         var parts = new List<string>();
-        if (RunsTheTable && it.Hp is { } hp && it.MaxHp is { } max)
+        if (!RunsTheTable && it.CreatureType is { } creatureType)
         {
-            parts.Add($"{hp}/{max}");
+            //	The players: what kind of creature it is, and its hit points when a master shows them
+            parts.Add(it.CreatureSize is { } size ? $"{UiText.FormatCreatureType(creatureType, Lang)} {UiText.FormatSizeSingle(size, Lang).ToLowerInvariant()}" : UiText.FormatCreatureType(creatureType, Lang));
         }
-        else if (it.Health is { } health)
+        if (it.Hp is { } hp && it.MaxHp is { } max && (RunsTheTable || it.Controlled || it.ShowHp))
+        {
+            parts.Add(RunsTheTable ? $"{hp}/{max}" : UiText.TokenHitPoints(hp, max, Lang));
+        }
+        else if (RunsTheTable && it.Health is { } health)
         {
             parts.Add(UiText.HealthName(health, Lang));
         }
+        if (RunsTheTable && (monster is not null || it.ArmorClass is not null))
+        {
+            parts.Add(UiText.TokenArmorClass(ArmorOf(it, monster) ?? 10, Lang));
+        }
         if (RunsTheTable && monster is not null)
         {
-            parts.Add(UiText.TokenArmorClass(monster.ArmorClass, Lang));
             parts.Add($"{UiText.MonsterChallengeShort(Lang)} {RealmForge.Shared.Monsters.MonsterMath.FormatChallenge(monster.ChallengeRating)}");
         }
         if (it.Hidden)
@@ -1289,8 +1381,15 @@ else
         var copy = ToSave(t);
         var same = tokens.Count(x => x.MonsterId is not null && x.MonsterId == t.MonsterId);
         copy.Label = t.MonsterId is not null && monsters.TryGetValue(t.MonsterId.Value, out var m) ? $"{m.Name} {same + 1}" : t.Label;
+        if (t.CharacterId is { } characterId)
+        {
+            //	A copy of a character: an NPC of its own (hit points, conditions) with the numbers of the character's sheet
+            copy.SheetCharacterId = characterId;
+            copy.Kind = TokenKind.Npc;
+            copy.MaxHp = CharacterOf(t) is { } source ? Math.Max(1, LifeMax(source)) : 1;
+            copy.Label = UiText.TokenCopyName(t.Label, Lang);
+        }
         copy.CharacterId = null;
-        copy.Kind = t.Kind == TokenKind.Character ? TokenKind.Marker : t.Kind;
         copy.Hp = copy.MaxHp;
         await AddAsync(copy);
     }
@@ -1303,18 +1402,63 @@ else
     private sealed record SheetLine(string Name, string Detail, TokenRoll? Roll, TokenRoll? Damage);
     private sealed record SheetProse(string Title, string Markdown);
     private sealed record QuickSheet(string Kind, string Sub, string Line, string Extra, List<SheetStat> Vitals, List<SheetAbility> Abilities,
-        List<SheetSave> Saves, string? SavesNote, List<SheetStat> Passives, List<SheetLine> Attacks, List<SheetProse> Prose, string? Link);
+        List<SheetSave> Saves, string? SavesNote, List<SheetStat> Passives, List<SheetLine> Attacks, List<SheetProse> Prose, string? Link,
+        List<SheetGroup>? Actions = null, List<SheetCasting>? Casting = null, List<SheetGroup>? Features = null);
+
+    //	A named entry with its text (a trait, an action, a feature), in groups; the spells of a source with its numbers
+    private sealed record SheetEntry(string Name, string Markdown, string? Badge = null);
+    private sealed record SheetGroup(string Title, List<SheetEntry> Entries);
+    private sealed record SheetSpell(Guid Id, string Name, int Level, bool Concentration, bool Ritual);
+    private sealed record SheetCasting(string Title, string Line, TokenRoll? Attack, List<SheetSpell> Spells, string? Slots);
 
     private Guid? sheetTokenId;
 
     private MapTokenDto? SheetToken => sheetTokenId is { } id ? tokens.FirstOrDefault(t => t.Id == id) : null;
 
+    //	The sheets open in the side panel, one tab each (a token once), until their tab is closed
+    private readonly List<Guid> openSheets = new();
+
+    private IEnumerable<MapTokenDto> SheetTabs => openSheets.Select(id => tokens.FirstOrDefault(t => t.Id == id)).OfType<MapTokenDto>();
+
+    private void ShowSheet(Guid id)
+    {
+        sheetTokenId = id;
+        panel = "sheet";
+    }
+
+    private void CloseSheet(Guid id)
+    {
+        openSheets.Remove(id);
+        if (sheetTokenId != id)
+        {
+            return;
+        }
+        sheetTokenId = SheetTabs.LastOrDefault()?.Id;
+        if (panel == "sheet")
+        {
+            panel = sheetTokenId is not null ? "sheet" : null;
+        }
+    }
+
+    //	The panel closed: its sheets with it
+    private void ClosePanel()
+    {
+        panel = null;
+        openSheets.Clear();
+        sheetTokenId = null;
+    }
+
     //	My characters (all of them for a master) and, for the masters, the monsters and NPCs
     private bool HasSheet(MapTokenDto t) =>
-        t.CharacterId is not null ? CharacterOf(t) is { } c && (c.IsMine || RunsTheTable || t.Controlled) : (RunsTheTable || t.Controlled) && t.MonsterId is not null;
+        t.CharacterId is not null ? CharacterOf(t) is { } c && (c.IsMine || RunsTheTable || t.Controlled)
+        : (RunsTheTable || t.Controlled) && (t.MonsterId is not null || t.SheetCharacterId is not null);
 
     private void OpenSheet(MapTokenDto t)
     {
+        if (!openSheets.Contains(t.Id))
+        {
+            openSheets.Add(t.Id);
+        }
         sheetTokenId = t.Id;
         ShowPanel("sheet");
         _ = LoadStatsAsync(t);
@@ -1408,87 +1552,224 @@ else
                     }
                 </div>
             }
-            @if (CanRest(t))
-            {
-                <div class="rf-qs-rests">
-                    <button type="button" class="rf-qs-rest" disabled="@restBusy" @onclick="@(() => OpenRestAsync(t, false))" data-test="map-token-short-rest">@UiText.BtnShortRest(Lang)</button>
-                    <button type="button" class="rf-qs-rest" disabled="@restBusy" @onclick="@(() => OpenRestAsync(t, true))" data-test="map-token-long-rest">@UiText.BtnLongRest(Lang)</button>
-                </div>
+            @{
+                var tabs = SheetTabsOf(sheet);
+                var current = qsTabs.GetValueOrDefault(t.Id) is { } chosen && tabs.Contains(chosen) ? chosen : "general";
             }
-            <div class="rf-qs-abilities">
-                @foreach (var a in sheet.Abilities)
-                {
-                    var ability = a;
-                    <button type="button" class="rf-qs-ability @(ability.Prime ? "prime" : null)" disabled="@(!canRoll || busy)" title="@ability.Roll.Label" @onclick="() => RollAsync(t, ability.Roll)" data-test="map-token-roll">
-                        <span class="rf-qs-ability-name">@ability.Name</span>
-                        <strong>@ability.Mod</strong>
-                        <span class="rf-qs-ability-score">@ability.Score</span>
-                    </button>
-                }
-            </div>
-            @if (sheet.Saves.Count > 0)
+            @if (tabs.Count > 1)
             {
-                <section class="rf-qs-card">
-                    <h3 class="rf-qs-card-title">@UiText.VttSaves(Lang)</h3>
-                    <div class="rf-qs-saves">
-                        @foreach (var s in sheet.Saves)
+                <nav class="rf-qs-tabs" role="tablist">
+                    @foreach (var key in tabs)
+                    {
+                        var k = key;
+                        <button type="button" role="tab" class="@(current == k ? "active" : null)" aria-selected="@(current == k ? "true" : "false")" @onclick="() => qsTabs[t.Id] = k" data-test="vtt-quick-sheet-tab" data-tab="@k">@UiText.VttSheetTab(k, Lang)</button>
+                    }
+                </nav>
+            }
+            @switch (current)
+            {
+                case "actions":
+                    @if (sheet.Attacks.Count > 0)
+                    {
+                        <section class="rf-qs-card">
+                            <h3 class="rf-qs-card-title">@UiText.VttQuickAttacks(Lang)</h3>
+                            <div class="rf-qs-attacks">
+                                @foreach (var line in sheet.Attacks)
+                                {
+                                    var attack = line;
+                                    <div class="rf-qs-attack">
+                                        <button type="button" class="rf-qs-attack-main" disabled="@(!canRoll || busy || attack.Roll is null)" @onclick="() => RollAsync(t, attack.Roll!)" data-test="map-token-attack">
+                                            <span class="rf-qs-attack-name">@attack.Name</span>
+                                            <span class="rf-qs-attack-detail">@attack.Detail</span>
+                                        </button>
+                                        @if (attack.Damage is { } damage)
+                                        {
+                                            <button type="button" class="rf-qs-attack-damage" disabled="@(!canRoll || busy)" title="@damage.Label" aria-label="@damage.Label" @onclick="() => RollAsync(t, damage)" data-test="map-token-damage-roll"><Icon Name="dice" /></button>
+                                        }
+                                    </div>
+                                }
+                            </div>
+                        </section>
+                    }
+                    @foreach (var group in sheet.Actions ?? new())
+                    {
+                        @EntryGroup(group)
+                    }
+                    break;
+                case "spells":
+                    @foreach (var cast in sheet.Casting ?? new())
+                    {
+                        var casting = cast;
+                        <section class="rf-qs-card" data-test="vtt-quick-sheet-spells">
+                            <h3 class="rf-qs-card-title">@casting.Title</h3>
+                            <div class="rf-qs-cast-head">
+                                <span>@casting.Line</span>
+                                @if (casting.Attack is { } spellAttack)
+                                {
+                                    <button type="button" class="rf-qs-attack-damage" disabled="@(!canRoll || busy)" title="@spellAttack.Label" aria-label="@spellAttack.Label" @onclick="() => RollAsync(t, spellAttack)" data-test="map-token-spell-attack"><Icon Name="dice" /></button>
+                                }
+                            </div>
+                            @if (casting.Slots is { } slots)
+                            {
+                                <p class="rf-qs-slots">@slots</p>
+                            }
+                            @foreach (var level in casting.Spells.GroupBy(sp => sp.Level))
+                            {
+                                <div class="rf-qs-spell-level">@UiText.VttSpellLevelName(level.Key, Lang)</div>
+                                <div class="rf-qs-spells">
+                                    @foreach (var spell in level)
+                                    {
+                                        <a href="@($"spells?id={spell.Id}")" target="_blank" rel="noopener" class="rf-qs-spell">
+                                            @spell.Name
+                                            @if (spell.Concentration)
+                                            {
+                                                <span class="rf-qs-spell-tag" title="@UiText.ConditionName(EncounterRules.Concentrating, Lang)">C</span>
+                                            }
+                                            @if (spell.Ritual)
+                                            {
+                                                <span class="rf-qs-spell-tag">R</span>
+                                            }
+                                        </a>
+                                    }
+                                </div>
+                            }
+                        </section>
+                    }
+                    break;
+                case "features":
+                    @foreach (var group in sheet.Features ?? new())
+                    {
+                        @EntryGroup(group)
+                    }
+                    break;
+                case "notes":
+                    @foreach (var prose in sheet.Prose)
+                    {
+                        <section class="rf-qs-card">
+                            <h3 class="rf-qs-card-title">@prose.Title</h3>
+                            <div class="rf-markdown-container rf-qs-prose">@((MarkupString)MarkdownText.ToHtml(prose.Markdown, null))</div>
+                        </section>
+                    }
+                    break;
+                default:
+                    @if (CanRest(t))
+                    {
+                        <div class="rf-qs-rests">
+                            <button type="button" class="rf-qs-rest" disabled="@restBusy" @onclick="@(() => OpenRestAsync(t, false))" data-test="map-token-short-rest">@UiText.BtnShortRest(Lang)</button>
+                            <button type="button" class="rf-qs-rest" disabled="@restBusy" @onclick="@(() => OpenRestAsync(t, true))" data-test="map-token-long-rest">@UiText.BtnLongRest(Lang)</button>
+                        </div>
+                    }
+                    <div class="rf-qs-abilities">
+                        @foreach (var a in sheet.Abilities)
                         {
-                            var save = s;
-                            <button type="button" class="rf-qs-save @(save.Proficient ? "prof" : null)" disabled="@(!canRoll || busy)" title="@save.Roll.Label" @onclick="() => RollAsync(t, save.Roll)" data-test="map-token-save">
-                                <span class="rf-qs-dot"></span><span class="rf-qs-save-name">@save.Short</span><strong>@save.Bonus</strong>
+                            var ability = a;
+                            <button type="button" class="rf-qs-ability @(ability.Prime ? "prime" : null)" disabled="@(!canRoll || busy)" title="@ability.Roll.Label" @onclick="() => RollAsync(t, ability.Roll)" data-test="map-token-roll">
+                                <span class="rf-qs-ability-name">@ability.Name</span>
+                                <strong>@ability.Mod</strong>
+                                <span class="rf-qs-ability-score">@ability.Score</span>
                             </button>
                         }
                     </div>
-                </section>
-            }
-            else if (!string.IsNullOrWhiteSpace(sheet.SavesNote))
-            {
-                <section class="rf-qs-card">
-                    <h3 class="rf-qs-card-title">@UiText.VttSaves(Lang)</h3>
-                    <p class="rf-qs-note">@sheet.SavesNote</p>
-                </section>
-            }
-            @if (sheet.Passives.Count > 0)
-            {
-                <section class="rf-qs-card">
-                    <h3 class="rf-qs-card-title">@UiText.VttPassives(Lang)</h3>
-                    <div class="rf-qs-passives">
-                        @foreach (var p in sheet.Passives)
-                        {
-                            <div class="rf-qs-passive"><strong>@p.Value</strong><span>@p.Bottom</span></div>
-                        }
-                    </div>
-                </section>
-            }
-            @if (sheet.Attacks.Count > 0)
-            {
-                <section class="rf-qs-card">
-                    <h3 class="rf-qs-card-title">@UiText.VttQuickAttacks(Lang)</h3>
-                    <div class="rf-qs-attacks">
-                        @foreach (var line in sheet.Attacks)
-                        {
-                            var attack = line;
-                            <div class="rf-qs-attack">
-                                <button type="button" class="rf-qs-attack-main" disabled="@(!canRoll || busy || attack.Roll is null)" @onclick="() => RollAsync(t, attack.Roll!)" data-test="map-token-attack">
-                                    <span class="rf-qs-attack-name">@attack.Name</span>
-                                    <span class="rf-qs-attack-detail">@attack.Detail</span>
-                                </button>
-                                @if (attack.Damage is { } damage)
+                    @if (sheet.Saves.Count > 0)
+                    {
+                        <section class="rf-qs-card">
+                            <h3 class="rf-qs-card-title">@UiText.VttSaves(Lang)</h3>
+                            <div class="rf-qs-saves">
+                                @foreach (var sv in sheet.Saves)
                                 {
-                                    <button type="button" class="rf-qs-attack-damage" disabled="@(!canRoll || busy)" title="@damage.Label" aria-label="@damage.Label" @onclick="() => RollAsync(t, damage)" data-test="map-token-damage-roll"><Icon Name="dice" /></button>
+                                    var save = sv;
+                                    <button type="button" class="rf-qs-save @(save.Proficient ? "prof" : null)" disabled="@(!canRoll || busy)" title="@save.Roll.Label" @onclick="() => RollAsync(t, save.Roll)" data-test="map-token-save">
+                                        <span class="rf-qs-dot"></span><span class="rf-qs-save-name">@save.Short</span><strong>@save.Bonus</strong>
+                                    </button>
                                 }
                             </div>
-                        }
-                    </div>
-                </section>
+                        </section>
+                    }
+                    else if (!string.IsNullOrWhiteSpace(sheet.SavesNote))
+                    {
+                        <section class="rf-qs-card">
+                            <h3 class="rf-qs-card-title">@UiText.VttSaves(Lang)</h3>
+                            <p class="rf-qs-note">@sheet.SavesNote</p>
+                        </section>
+                    }
+                    @if (sheet.Passives.Count > 0)
+                    {
+                        <section class="rf-qs-card">
+                            <h3 class="rf-qs-card-title">@UiText.VttPassives(Lang)</h3>
+                            <div class="rf-qs-passives">
+                                @foreach (var pv in sheet.Passives)
+                                {
+                                    <div class="rf-qs-passive"><strong>@pv.Value</strong><span>@pv.Bottom</span></div>
+                                }
+                            </div>
+                        </section>
+                    }
+                    break;
             }
-            @foreach (var prose in sheet.Prose)
-            {
-                <section class="rf-qs-card">
-                    <h3 class="rf-qs-card-title">@prose.Title</h3>
-                    <div class="rf-markdown-container rf-qs-prose">@((MarkupString)MarkdownText.ToHtml(prose.Markdown, null))</div>
-                </section>
-            }
+        </section>
+    };
+
+    //	The tab of the quick sheet each token shows
+    private readonly Dictionary<Guid, string> qsTabs = new();
+
+    private static List<string> SheetTabsOf(QuickSheet sheet)
+    {
+        var tabs = new List<string> { "general" };
+        if (sheet.Attacks.Count > 0 || sheet.Actions is { Count: > 0 })
+        {
+            tabs.Add("actions");
+        }
+        if (sheet.Casting is { Count: > 0 })
+        {
+            tabs.Add("spells");
+        }
+        if (sheet.Features is { Count: > 0 })
+        {
+            tabs.Add("features");
+        }
+        if (sheet.Prose.Count > 0)
+        {
+            tabs.Add("notes");
+        }
+        return tabs;
+    }
+
+    private RenderFragment EntryGroup(SheetGroup group) => __builder =>
+    {
+        <section class="rf-qs-card">
+            <h3 class="rf-qs-card-title">@group.Title</h3>
+            <div class="rf-qs-entries">
+                @foreach (var entry in group.Entries)
+                {
+                    @if (string.IsNullOrWhiteSpace(entry.Markdown))
+                    {
+                        <div class="rf-qs-entry plain">
+                            <span>@entry.Name</span>
+                            @if (entry.Badge is { } badge)
+                            {
+                                <span class="rf-qs-entry-badge">@badge</span>
+                            }
+                        </div>
+                    }
+                    else if (entry.Name.Length == 0)
+                    {
+                        <div class="rf-markdown-container rf-qs-prose">@((MarkupString)MarkdownText.ToHtml(entry.Markdown, null))</div>
+                    }
+                    else
+                    {
+                        <details class="rf-qs-entry">
+                            <summary>
+                                <span>@entry.Name</span>
+                                @if (entry.Badge is { } badge)
+                                {
+                                    <span class="rf-qs-entry-badge">@badge</span>
+                                }
+                            </summary>
+                            <div class="rf-markdown-container rf-qs-prose">@((MarkupString)MarkdownText.ToHtml(entry.Markdown, null))</div>
+                        </details>
+                    }
+                }
+            </div>
         </section>
     };
 
@@ -2283,7 +2564,7 @@ else
     {
         @if (map is not null && (combat is not null || RunsTheTable))
         {
-        <div class="rf-init-widget" data-test="vtt-initiative">
+        <div class="rf-init-widget @(InfoToken is not null ? "behind" : null)" data-test="vtt-initiative">
             @if (combat is null)
             {
                 <div class="rf-init-shell idle" data-test="vtt-init-idle">
@@ -2724,33 +3005,69 @@ else
         }
     }
 
-    private Task ToggleConditionAsync(MapTokenDto t, string key)
+    private async Task ToggleConditionAsync(MapTokenDto t, string key)
     {
         var list = (t.Conditions ?? new()).ToList();
-        if (!list.Remove(key))
+        var adding = !list.Remove(key);
+        if (adding)
         {
             list.Add(key);
         }
-        return SetStateAsync(t, list, null);
+        if (t.CharacterId is null)
+        {
+            await SetStateAsync(t, list, null);
+            return;
+        }
+        //	A character's conditions are on its sheet
+        Replace(t with { Conditions = list });
+        await ChangeCharacterAsync(t, (sheet, _) =>
+        {
+            if (key == EncounterRules.Exhaustion)
+            {
+                sheet.Exhaustion = adding ? Math.Max(1, sheet.Exhaustion) : 0;
+            }
+            else if (key == EncounterRules.Concentrating)
+            {
+                if (!adding)
+                {
+                    sheet.Concentration = null;
+                }
+            }
+            else if (adding)
+            {
+                if (!sheet.Conditions.Contains(key))
+                {
+                    sheet.Conditions.Add(key);
+                }
+            }
+            else
+            {
+                sheet.Conditions.Remove(key);
+            }
+        });
     }
 
     private Task SetHpAsync(MapTokenDto t, int hp) => SetStateAsync(t, (t.Conditions ?? new()).ToList(), hp);
 
     // ===== Rolls and speed from the sheet or the statblock =====
 
-    private static string StatsKey(MapTokenDto t) => t.CharacterId is { } c ? $"c:{c}" : t.MonsterId is { } m ? $"m:{m}" : string.Empty;
+    //	The sheet a token's numbers come from: its character, the character it is a copy of, its statblock
+    private static Guid? SheetIdOf(MapTokenDto t) => t.CharacterId ?? t.SheetCharacterId;
+
+    private static string StatsKey(MapTokenDto t) => SheetIdOf(t) is { } c ? $"c:{c}" : t.MonsterId is { } m ? $"m:{m}" : string.Empty;
 
     private TokenStats? StatsOf(MapTokenDto t) => stats.TryGetValue(StatsKey(t), out var found) ? found : null;
 
     //	My characters roll from the map; the masters roll for the monsters (behind the screen)
     private bool CanRoll(MapTokenDto t) =>
-        (t.CharacterId is not null && (CharacterOf(t)?.IsMine == true || t.Controlled)) || ((RunsTheTable || t.Controlled) && t.MonsterId is not null && t.CharacterId is null);
+        (t.CharacterId is not null && (CharacterOf(t)?.IsMine == true || t.Controlled))
+        || ((RunsTheTable || t.Controlled) && (t.MonsterId is not null || t.SheetCharacterId is not null) && t.CharacterId is null);
 
     private int? SpeedCells(MapTokenDto t) => StatsOf(t)?.SpeedFeet is { } feet && feet > 0 ? feet / 5 : null;
 
     private async Task PreloadStatsAsync()
     {
-        foreach (var t in tokens.Where(t => t.CanMove && (t.CharacterId is not null || t.MonsterId is not null)).DistinctBy(StatsKey).Take(12).ToList())
+        foreach (var t in tokens.Where(t => t.CanMove && StatsKey(t).Length > 0).DistinctBy(StatsKey).Take(16).ToList())
         {
             await LoadStatsAsync(t);
         }
@@ -2767,7 +3084,7 @@ else
         stats[key] = null;
         try
         {
-            stats[key] = t.CharacterId is { } characterId ? await CharacterStatsAsync(characterId) : await MonsterStatsAsync(t.MonsterId!.Value);
+            stats[key] = SheetIdOf(t) is { } characterId ? await CharacterStatsAsync(characterId) : await MonsterStatsAsync(t.MonsterId!.Value);
         }
         catch (Exception)
         {
@@ -2806,8 +3123,12 @@ else
             Sheet = character.Sheet,
             CampaignModuleIds = character.CampaignModuleIds ?? new()
         }, context);
+        contexts[id] = context;
         return (character, computed);
     }
+
+    //	The compendium a character was worked out with (the names of its spells)
+    private readonly Dictionary<Guid, RealmForge.Shared.Characters.CharacterContextDto> contexts = new();
 
     private async Task<TokenStats?> CharacterStatsAsync(Guid id)
     {
@@ -2864,8 +3185,102 @@ else
                 new(string.Empty, (10 + computed.SkillBonus(Skill.Investigation)).ToString(CultureInfo.InvariantCulture), UiText.VttPassiveInvestigation(Lang), false),
                 new(string.Empty, (10 + computed.SkillBonus(Skill.Insight)).ToString(CultureInfo.InvariantCulture), UiText.VttPassiveInsight(Lang), false)
             },
-            attacks, new List<SheetProse>(), $"characters/{id}");
+            attacks, new List<SheetProse>(), $"characters/{id}",
+            TurnGroups(computed), CastingOf(computed, character.Sheet, contexts.GetValueOrDefault(id)), await FeatureGroupsAsync(character, computed));
         return new TokenStats(computed.Speed, rolls, sheet);
+    }
+
+    //	What the character does in a turn besides the standard actions: its features by action, bonus action, reaction
+    private List<SheetGroup> TurnGroups(RealmForge.Shared.Characters.ComputedCharacter c) =>
+        TurnActions.Features(c, Lang).GroupBy(f => f.Slot).OrderBy(g => g.Key)
+            .Select(g => new SheetGroup(UiText.VttTurnSlot((int)g.Key, Lang), g.Select(f => new SheetEntry(f.Name, f.Note ?? string.Empty)).ToList()))
+            .ToList();
+
+    //	Each source of spells: save DC, attack (rolled from here), slots left, the spells by level
+    private List<SheetCasting> CastingOf(RealmForge.Shared.Characters.ComputedCharacter c, RealmForge.Shared.Characters.CharacterSheetState sheet, RealmForge.Shared.Characters.CharacterContextDto? context)
+    {
+        var list = new List<SheetCasting>();
+        if (context is null)
+        {
+            return list;
+        }
+        var byId = context.Spells.ToDictionary(sp => sp.Id);
+        var slots = string.Join(" · ", Enumerable.Range(0, 9).Where(i => c.SpellSlots[i] > 0)
+            .Select(i => $"{i + 1}°: {Math.Max(0, c.SpellSlots[i] - (i < sheet.SpentSlots.Count ? sheet.SpentSlots[i] : 0))}/{c.SpellSlots[i]}"));
+        if (c.PactSlots > 0)
+        {
+            slots = string.Join(" · ", new[] { slots, UiText.VttPactSlots(Math.Max(0, c.PactSlots - sheet.SpentPactSlots), c.PactSlots, c.PactSlotLevel, Lang) }.Where(x => x.Length > 0));
+        }
+        var first = true;
+        foreach (var source in c.AllSpellSources())
+        {
+            var spells = source.Known.Select(sid => byId.GetValueOrDefault(sid)).OfType<RealmForge.Shared.Characters.ContextSpell>()
+                .OrderBy(sp => sp.Level).ThenBy(sp => sp.Name)
+                .Select(sp => new SheetSpell(sp.Id, sp.Name, sp.Level, sp.Concentration, sp.Ritual)).ToList();
+            var attack = new TokenRoll(UiText.VttSpellAttack(Lang), Bonus(source.AttackBonus), D20(source.AttackBonus), false);
+            list.Add(new SheetCasting(source.Source, UiText.VttSpellNumbers(source.SaveDc, Bonus(source.AttackBonus), Lang), attack, spells, first && slots.Length > 0 ? slots : null));
+            first = false;
+        }
+        if (c.InnateSpells.Count > 0)
+        {
+            var innate = c.InnateSpells[0];
+            list.Add(new SheetCasting(UiText.VttInnateSpells(Lang), UiText.VttSpellNumbers(innate.SaveDc, Bonus(innate.AttackBonus), Lang),
+                new TokenRoll(UiText.VttSpellAttack(Lang), Bonus(innate.AttackBonus), D20(innate.AttackBonus), false),
+                c.InnateSpells.Select(i => new SheetSpell(i.Spell.Id, i.Spell.Name, i.Spell.Level, i.Spell.Concentration, i.Spell.Ritual)).DistinctBy(sp => sp.Id).ToList(), null));
+        }
+        return list;
+    }
+
+    //	Features: the uses left of the limited ones, the feats, the class and species features up to its level
+    private async Task<List<SheetGroup>> FeatureGroupsAsync(CharacterDto character, RealmForge.Shared.Characters.ComputedCharacter c)
+    {
+        var groups = new List<SheetGroup>();
+        var uses = RealmForge.Shared.Characters.CharacterResources.For(c, Lang)
+            .Select(res => new SheetEntry(res.Name, string.Empty, $"{Math.Max(0, res.Maximum - character.Sheet.ResourceUses.GetValueOrDefault(res.Key))}/{res.Maximum}"))
+            .Concat(character.Sheet.Resources.Select(res => new SheetEntry(res.Name, string.Empty, $"{Math.Max(0, res.Maximum - res.Used)}/{res.Maximum}")))
+            .ToList();
+        if (uses.Count > 0)
+        {
+            groups.Add(new SheetGroup(UiText.VttResources(Lang), uses));
+        }
+        if (c.Feats.Count > 0)
+        {
+            groups.Add(new SheetGroup(UiText.VttFeats(Lang), c.Feats.Select(f => new SheetEntry(f.Feat.Name, string.Empty)).ToList()));
+        }
+        try
+        {
+            foreach (var info in c.Classes)
+            {
+                if (await ClassService.GetClassDetailAsync(info.Class.Id, Lang) is not { } detail)
+                {
+                    continue;
+                }
+                var entries = detail.Features.Where(f => f.Level <= info.Level).OrderBy(f => f.Level).ThenBy(f => f.SortOrder)
+                    .Select(f => new SheetEntry(f.Name, f.Description, UiText.VttFeatureLevel(f.Level, Lang))).ToList();
+                if (detail.Subclasses.FirstOrDefault(sc => sc.Id == info.Subclass?.Id) is { } subclass)
+                {
+                    entries.AddRange(subclass.Features.Where(f => f.Level <= info.Level).OrderBy(f => f.Level).ThenBy(f => f.SortOrder)
+                        .Select(f => new SheetEntry(f.Name, f.Description, subclass.Name)));
+                }
+                if (entries.Count > 0)
+                {
+                    groups.Add(new SheetGroup($"{info.Class.Name} {info.Level}", entries));
+                }
+            }
+            if (character.SpeciesId != Guid.Empty && await SpeciesService.GetSpeciesDetailAsync(character.SpeciesId, Lang) is { } species)
+            {
+                var traits = species.BaseTraits.Where(tr => tr.RequiredLevel <= c.Level).Select(tr => new SheetEntry(tr.Name, tr.Description)).ToList();
+                if (traits.Count > 0)
+                {
+                    groups.Add(new SheetGroup(species.Name, traits));
+                }
+            }
+        }
+        catch (Exception)
+        {
+            //	Without the compendium the features stay out
+        }
+        return groups;
     }
 
     private async Task<TokenStats?> MonsterStatsAsync(Guid id)
@@ -2901,11 +3316,49 @@ else
             Add(UiText.VttNpcPersonality(Lang), text.Personality);
             Add(UiText.VttNpcSecrets(Lang), text.Secrets);
         }
-        Add(UiText.VttTraits(Lang), text.Traits);
-        Add(UiText.VttActions(Lang), text.Actions);
-        Add(UiText.VttBonusActions(Lang), text.BonusActions);
-        Add(UiText.VttReactions(Lang), text.Reactions);
-        Add(UiText.VttLegendary(Lang), text.LegendaryActions);
+        //	The actions as entries; those with a roll to hit become attacks, rolled from here
+        var attacks = new List<SheetLine>();
+        var actions = new List<SheetGroup>();
+        void Group(string title, string? body)
+        {
+            var entries = new List<SheetEntry>();
+            foreach (var entry in Entries(body))
+            {
+                if (AttackOf(entry) is { } line)
+                {
+                    attacks.Add(line);
+                    rolls.Add(line.Roll!);
+                }
+                else
+                {
+                    entries.Add(entry);
+                }
+            }
+            if (entries.Count > 0)
+            {
+                actions.Add(new SheetGroup(title, entries));
+            }
+        }
+        Group(UiText.VttActions(Lang), text.Actions);
+        Group(UiText.VttBonusActions(Lang), text.BonusActions);
+        Group(UiText.VttReactions(Lang), text.Reactions);
+        Group(UiText.VttLegendary(Lang), text.LegendaryActions);
+        var features = new List<SheetGroup>();
+        if (Entries(text.Traits) is { Count: > 0 } traits)
+        {
+            features.Add(new SheetGroup(UiText.VttTraits(Lang), traits));
+        }
+        var details = new[]
+        {
+            (UiText.VttMonsterSkills(Lang), text.Skills), (UiText.VttMonsterVulnerable(Lang), text.DamageVulnerabilities),
+            (UiText.VttMonsterResistant(Lang), text.DamageResistances), (UiText.VttMonsterImmune(Lang), text.DamageImmunities),
+            (UiText.VttMonsterConditionImmune(Lang), text.ConditionImmunities), (UiText.VttMonsterSenses(Lang), text.Senses),
+            (UiText.VttMonsterLanguages(Lang), text.Languages)
+        }.Where(d => !string.IsNullOrWhiteSpace(d.Item2)).Select(d => new SheetEntry(d.Item1, d.Item2!)).ToList();
+        if (details.Count > 0)
+        {
+            features.Insert(0, new SheetGroup(UiText.VttMonsterDetails(Lang), details));
+        }
         var challenge = $"{UiText.MonsterChallengeShort(Lang)} {RealmForge.Shared.Monsters.MonsterMath.FormatChallenge(monster.ChallengeRating)} ({monster.Xp} PE)";
         var sheet = new QuickSheet(monster.IsNpc ? "npc" : "monster",
             text.Subtitle,
@@ -2922,8 +3375,45 @@ else
             },
             abilities, new List<SheetSave>(), text.SavingThrows,
             new List<SheetStat> { new(string.Empty, monster.PassivePerception.ToString(CultureInfo.InvariantCulture), UiText.VttPassivePerception(Lang), false) },
-            new List<SheetLine>(), prose, monster.IsNpc ? $"npcs/{id}" : $"monsters?id={id}");
+            attacks, prose, monster.IsNpc ? $"npcs/{id}" : $"monsters?id={id}", actions, null, features);
         return new TokenStats(monster.Speed, rolls, sheet);
+    }
+
+    //	"***Name.*** text" paragraphs of a statblock, one entry each
+    private static List<SheetEntry> Entries(string? markdown)
+    {
+        var list = new List<SheetEntry>();
+        if (string.IsNullOrWhiteSpace(markdown))
+        {
+            return list;
+        }
+        foreach (var block in System.Text.RegularExpressions.Regex.Split(markdown.Trim(), @"\r?\n\s*\r?\n|\r?\n(?=\*{2,3}[^*])"))
+        {
+            var text = block.Trim();
+            if (text.Length == 0)
+            {
+                continue;
+            }
+            var m = System.Text.RegularExpressions.Regex.Match(text, @"^\*{2,3}(?<name>[^*]+?)\*{2,3}\s*(?<body>.*)$", System.Text.RegularExpressions.RegexOptions.Singleline);
+            list.Add(m.Success ? new SheetEntry(m.Groups["name"].Value.Trim().TrimEnd('.', ':').Trim(), m.Groups["body"].Value.Trim()) : new SheetEntry(string.Empty, text));
+        }
+        return list;
+    }
+
+    //	An action with a roll to hit ("+4 al tiro per colpire", "+4 to hit") and its damage ("5 (1d6 + 2)")
+    private SheetLine? AttackOf(SheetEntry entry)
+    {
+        var hit = System.Text.RegularExpressions.Regex.Match(entry.Markdown, @"([+\-−]\s?\d+)\s*(?:al tiro per colpire|to hit)", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+        if (!hit.Success || entry.Name.Length == 0)
+        {
+            return null;
+        }
+        var bonus = int.Parse(hit.Groups[1].Value.Replace("−", "-").Replace(" ", string.Empty), CultureInfo.InvariantCulture);
+        var dice = System.Text.RegularExpressions.Regex.Match(entry.Markdown, @"\((\d+d\d+(?:\s*[+\-−]\s*\d+)?)\)");
+        var damage = dice.Success ? dice.Groups[1].Value.Replace("−", "-").Replace(" ", string.Empty) : null;
+        return new SheetLine(entry.Name, damage is null ? Bonus(bonus) : $"{Bonus(bonus)} · {damage}",
+            new TokenRoll(UiText.RollAttack(entry.Name, Lang), Bonus(bonus), D20(bonus), true),
+            damage is null ? null : new TokenRoll(UiText.RollDamage(entry.Name, Lang), damage, damage, true));
     }
 
     private async Task RollAsync(MapTokenDto t, TokenRoll roll) => await RollForAsync(t, roll);
@@ -2960,6 +3450,11 @@ else
         }
         fogEnabled = table.FogEnabled;
         fog = table.Fog;
+        playersLocked = table.PlayersLocked;
+        if (PlayersStopped && tool is "area" or "ping")
+        {
+            _ = SetToolAsync("select");
+        }
         if (table.Ping is { } ping && ping.At != pingSeen)
         {
             pingSeen = ping.At;
@@ -2996,13 +3491,39 @@ else
         }));
     }
 
-    [JSInvokable]
-    public async Task Pinged(double x, double y)
+    //	The masters stopped the players' areas and pings
+    private bool playersLocked;
+    private bool PlayersStopped => playersLocked && !RunsTheTable;
+    private DateTimeOffset lastPing;
+
+    private async Task ToggleLockAsync()
     {
         if (map is null)
         {
             return;
         }
+        playersLocked = !playersLocked;
+        localEdits++;
+        if (!(await Campaigns.LockPlayersAsync(CampaignId, map.Id, playersLocked)).Ok)
+        {
+            playersLocked = !playersLocked;
+            message = UiText.MapSaveFailed(Lang);
+        }
+    }
+
+    [JSInvokable]
+    public async Task Pinged(double x, double y)
+    {
+        if (map is null || PlayersStopped)
+        {
+            return;
+        }
+        //	A player pings once every few seconds
+        if (!RunsTheTable && DateTimeOffset.UtcNow - lastPing < MapRules.PingEvery)
+        {
+            return;
+        }
+        lastPing = DateTimeOffset.UtcNow;
         ShowPing(new MapPingDto(x, y, RunsTheTable ? PlayerColors.Master : MyColor, DateTimeOffset.UtcNow));
         StateHasChanged();
         await Campaigns.PingAsync(CampaignId, map.Id, x, y);
@@ -3539,7 +4060,7 @@ else
     {
         Label = t.Label, Color = t.Color, Kind = t.Kind, CharacterId = t.CharacterId, MonsterId = t.MonsterId, X = t.X, Y = t.Y, Size = t.Size, Hidden = t.Hidden, Layer = t.Layer,
         ControlledBy = t.ControlledBy?.ToList() ?? new(), Hp = t.CombatantId is null ? t.Hp : null, MaxHp = t.CombatantId is null ? t.MaxHp : null,
-        PropType = t.PropType, PropState = t.PropState, PlayersInteract = t.PlayersInteract, ImageId = t.ImageId
+        PropType = t.PropType, PropState = t.PropState, PlayersInteract = t.PlayersInteract, ImageId = t.ImageId, SheetCharacterId = t.SheetCharacterId
     };
 
     private async Task ResizeAsync(MapTokenDto t, int size)
