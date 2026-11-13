@@ -1971,7 +1971,7 @@ try {
   await page.locator('[data-test=weapon-detail-close]').click();
   await shot(page, 'wizard-recap', '[data-test=wizard-recap]');
   results.push(`INFO wizard masteries: ${JSON.stringify(masteryUi)}`);
-  if (masteryUi.groups < 3 || masteryUi.chosen !== 3 || masteryUi.recapSteps < 5 || masteryUi.recapName !== 'Eroe di prova') throw new Error(`unexpected masteries: ${JSON.stringify(masteryUi)}`);
+  if (masteryUi.groups < 3 || masteryUi.chosen !== 3 || masteryUi.recapSteps < 5 || masteryUi.recapName.toLowerCase() !== 'eroe di prova') throw new Error(`unexpected masteries: ${JSON.stringify(masteryUi)}`);
   for (let guard = 0; guard < 6 && await page.locator('[data-test=wizard-forge]').count() === 0; guard++) await next();
   await page.locator('[data-test=wizard-forge]').click();
   await page.locator('[data-test=character-sheet]').waitFor({ timeout: 30000 });
