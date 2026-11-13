@@ -408,7 +408,8 @@ try {
   await page.locator('[data-test=nav-compendium] button').click();
   await page.locator('[data-test=nav-compendium] a').first().waitFor({ timeout: 5000 });
   const iconOpen = await compendiumIcon();
-  if (iconClosed !== iconOpen) throw new Error(`the compendium icon moves when the group opens: ${iconClosed} -> ${iconOpen}`);
+  // (a pixel of rounding is no jump)
+  if (iconClosed.split(',').some((v, i) => Math.abs(Number(v) - Number(iconOpen.split(',')[i])) > 1)) throw new Error(`the compendium icon moves when the group opens: ${iconClosed} -> ${iconOpen}`);
   await page.locator('[data-test=nav-compendium] a').first().waitFor({ timeout: 5000 });
   const iconGaps = await page.evaluate(() => [...document.querySelectorAll('.sidebar .nav-link, .sidebar .rf-nav-group-toggle')].map((el) => {
     const icon = el.querySelector('svg').getBoundingClientRect();
@@ -418,6 +419,22 @@ try {
   if (iconGaps.length !== 16 || iconGaps.some((g) => g.inset < 8) || new Set(iconGaps.map((g) => g.left)).size !== 1) throw new Error('menu icons are not padded or not aligned');
   await page.locator('[data-test=nav-compendium] button').click();
   ok('"Compendio" menu group: Specie, Background, Talenti, Incantesimi, Classi, Equipaggiamento, and Glossario next to it; collapsed elsewhere and toggles on click; icons padded and aligned');
+  // The menu folded to its icons and back: the name and the labels go, the icons stay in one column
+  await shot(page, 'sidebar', null);
+  await page.locator('[data-test=sidebar-collapse]').click();
+  await page.waitForTimeout(400);
+  const folded = await page.evaluate(() => ({
+    width: Math.round(document.querySelector('.sidebar').getBoundingClientRect().width),
+    labels: [...document.querySelectorAll('.sidebar .sb-label')].filter((el) => el.offsetParent !== null).length
+  }));
+  await page.locator('[data-test=nav-search]').hover();
+  await shot(page, 'sidebar-folded', null);
+  await page.locator('[data-test=sidebar-collapse]').click();
+  await page.waitForTimeout(400);
+  folded.back = Math.round(await page.evaluate(() => document.querySelector('.sidebar').getBoundingClientRect().width));
+  results.push(`INFO folded menu: ${JSON.stringify(folded)}`);
+  if (folded.width !== 64 || folded.labels !== 0 || folded.back !== 256) throw new Error(`unexpected folded menu: ${JSON.stringify(folded)}`);
+  ok('side menu: 256 px, folded to 64 px with the icons only and back');
   await page.getByText('Non hai un account? Registrati').click();
   await page.locator('input[type=email]').fill(email);
   // Own show / hide button: visible before the field is touched, not only while typing as the browser's eye

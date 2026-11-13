@@ -1,108 +1,127 @@
 ﻿@using RealmForge.Client.Localization
 @using RealmForge.Client.Services
+@using RealmForge.Shared.Enums
 @implements IDisposable
 @inject LanguageStateService LanguageState
 @inject NavigationManager Navigation
 
-<div class="top-row ps-3 navbar navbar-dark">
-    <div class="container-fluid">
-        <a class="navbar-brand d-flex align-items-center gap-2" href="">
-            <img src="img/icon-192.png" alt="" class="rf-brand-icon" width="30" height="30" />
-            <span class="brand-title fw-bold" style="color: var(--rf-orange-primary);">RealmForge</span>
+@* The side menu: the emblem and the name on top (with the button that folds it to its icons), the main pages, the
+   glossary and the compendium group, the account and the fold button at the bottom. Folded (64 px) only the icons
+   stay, each with its name as a tooltip; on phones it is a bar with the menu button *@
+<aside class="rf-sidebar @(Collapsed ? "is-collapsed" : null)">
+    <header class="sb-header">
+        <a class="sb-brand" href="" title="RealmForge">
+            <span class="sb-logo-box"><img src="img/icon-192.png" alt="" class="rf-brand-icon" width="28" height="28" /></span>
+            <span class="sb-brand-text brand-title">RealmForge</span>
         </a>
-        <button title="Navigation menu" class="navbar-toggler" @onclick="ToggleNavMenu">
-            <span class="navbar-toggler-icon"></span>
+        <button type="button" class="sb-toggle-btn" title="@ToggleText" aria-label="@ToggleText" aria-expanded="@(Collapsed ? "false" : "true")" @onclick="OnToggle" data-test="sidebar-collapse">
+            <Icon Name="chevron-double-left" />
         </button>
-    </div>
-</div>
+        <button type="button" class="sb-mobile-btn" title="Menu" aria-label="Menu" aria-expanded="@(collapseNavMenu ? "false" : "true")" @onclick="ToggleNavMenu">
+            <Icon Name="list" />
+        </button>
+    </header>
 
-<div class="@NavMenuCssClass nav-scrollable rf-sidebar-body" @onclick="ToggleNavMenu">
-    <nav class="flex-column rf-nav">
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="" Match="NavLinkMatch.All">
-                <Icon Name="home" Class="rf-nav-icon" /> @UiText.NavDashboard(LanguageState.CurrentLanguage)
-            </NavLink>
-        </div>
+    <div class="sb-body @(collapseNavMenu ? "mobile-closed" : null)" @onclick="CloseMobile">
+        <div class="sb-scroll-area">
+            <nav class="sb-nav-group" aria-label="@UiText.NavMain(Lang)">
+                <NavLink class="nav-link sb-item" href="" Match="NavLinkMatch.All" data-tooltip="@UiText.NavDashboard(Lang)">
+                    <span class="sb-icon"><Icon Name="home" Class="rf-nav-icon" /></span>
+                    <span class="sb-label">@UiText.NavDashboard(Lang)</span>
+                </NavLink>
+                @* Global search: every section of the compendium and the glossary *@
+                <NavLink class="nav-link sb-item" href="search" data-tooltip="@UiText.SearchTitle(Lang)" data-test="nav-search">
+                    <span class="sb-icon"><Icon Name="search" Class="rf-nav-icon" /></span>
+                    <span class="sb-label">@UiText.SearchTitle(Lang)</span>
+                </NavLink>
+                @* The characters of the signed-in user *@
+                <NavLink class="nav-link sb-item" href="characters" data-tooltip="@UiText.NavCharacters(Lang)" data-test="nav-characters">
+                    <span class="sb-icon"><Icon Name="characters" Class="rf-nav-icon" /></span>
+                    <span class="sb-label">@UiText.NavCharacters(Lang)</span>
+                </NavLink>
+                @* The campaigns: the table, its characters and the shared content *@
+                <NavLink class="nav-link sb-item" href="campaigns" data-tooltip="@UiText.CampaignsTitle(Lang)" data-test="nav-campaigns">
+                    <span class="sb-icon"><Icon Name="campaigns" Class="rf-nav-icon" /></span>
+                    <span class="sb-label">@UiText.CampaignsTitle(Lang)</span>
+                </NavLink>
+            </nav>
 
-        @* Global search: every section of the compendium and the glossary *@
-        <div class="nav-item px-3" data-test="nav-search">
-            <NavLink class="nav-link" href="search">
-                <Icon Name="search" Class="rf-nav-icon" /> @UiText.SearchTitle(LanguageState.CurrentLanguage)
-            </NavLink>
-        </div>
+            <div class="sb-divider"></div>
 
-        @* The characters of the signed-in user *@
-        <div class="nav-item px-3" data-test="nav-characters">
-            <NavLink class="nav-link" href="characters">
-                <Icon Name="characters" Class="rf-nav-icon" /> @UiText.NavCharacters(LanguageState.CurrentLanguage)
-            </NavLink>
-        </div>
-
-        @* The campaigns: the table, its characters and the shared content *@
-        <div class="nav-item px-3" data-test="nav-campaigns">
-            <NavLink class="nav-link" href="campaigns">
-                <Icon Name="campaigns" Class="rf-nav-icon" /> @UiText.CampaignsTitle(LanguageState.CurrentLanguage)
-            </NavLink>
-        </div>
-
-        @* Rules glossary: a reference of its own, before the compendium *@
-        <div class="nav-item px-3 rf-nav-reference" data-test="nav-rules">
-            <NavLink class="nav-link" href="rules">
-                <Icon Name="rules" Class="rf-nav-icon" /> @UiText.NavRules(LanguageState.CurrentLanguage)
-            </NavLink>
-        </div>
-
-        @* Reference data: always reachable, but kept out of the way in a collapsible section at the bottom *@
-        <div class="rf-nav-group px-3" data-test="nav-compendium">
-            <button type="button" class="rf-nav-group-toggle" aria-expanded="@compendiumOpen"
-                    @onclick="ToggleCompendium" @onclick:stopPropagation="true">
-                <Icon Name="compendium" Class="rf-nav-icon" />
-                <span class="flex-grow-1 text-start">@UiText.NavCompendium(LanguageState.CurrentLanguage)</span>
-                <span class="rf-nav-chevron @(compendiumOpen ? "open" : null)"><Icon Name="chevron" Class="rf-nav-icon" /></span>
-            </button>
-
-            @if (compendiumOpen)
-            {
-                <div class="rf-nav-group-items">
-                    <NavLink class="nav-link" href="species">
-                        <Icon Name="species" Class="rf-nav-icon" /> @UiText.NavSpecies(LanguageState.CurrentLanguage)
-                    </NavLink>
-                    <NavLink class="nav-link" href="backgrounds">
-                        <Icon Name="backgrounds" Class="rf-nav-icon" /> @UiText.BackgroundsTitle(LanguageState.CurrentLanguage)
-                    </NavLink>
-                    <NavLink class="nav-link" href="feats">
-                        <Icon Name="feats" Class="rf-nav-icon" /> @UiText.FeatsTitle(LanguageState.CurrentLanguage)
-                    </NavLink>
-                    <NavLink class="nav-link" href="spells">
-                        <Icon Name="spells" Class="rf-nav-icon" /> @UiText.SpellsTitle(LanguageState.CurrentLanguage)
-                    </NavLink>
-                    <NavLink class="nav-link" href="classes">
-                        <Icon Name="classes" Class="rf-nav-icon" /> @UiText.ClassesTitle(LanguageState.CurrentLanguage)
-                    </NavLink>
-                    <NavLink class="nav-link" href="equipment">
-                        <Icon Name="equipment" Class="rf-nav-icon" /> @UiText.EquipmentTitle(LanguageState.CurrentLanguage)
-                    </NavLink>
-                    <NavLink class="nav-link" href="magic-items">
-                        <Icon Name="magic-items" Class="rf-nav-icon" /> @UiText.MagicItemsTitle(LanguageState.CurrentLanguage)
-                    </NavLink>
-                    <NavLink class="nav-link" href="monsters">
-                        <Icon Name="monsters" Class="rf-nav-icon" /> @UiText.MonstersTitle(LanguageState.CurrentLanguage)
-                    </NavLink>
-                    <NavLink class="nav-link" href="npcs" data-test="nav-npcs">
-                        <Icon Name="npcs" Class="rf-nav-icon" /> @UiText.NpcsTitle(LanguageState.CurrentLanguage)
-                    </NavLink>
-                    <NavLink class="nav-link" href="modules" data-test="nav-modules">
-                        <Icon Name="modules" Class="rf-nav-icon" /> @UiText.ModulesTitle(LanguageState.CurrentLanguage)
-                    </NavLink>
+            @* Reference: the rules glossary, then the compendium, a group that opens on its own on its pages *@
+            <nav class="sb-nav-group" aria-label="@UiText.NavCompendium(Lang)">
+                <div data-test="nav-rules">
+                <NavLink class="nav-link sb-item" href="rules" data-tooltip="@UiText.NavRules(Lang)">
+                    <span class="sb-icon"><Icon Name="rules" Class="rf-nav-icon" /></span>
+                    <span class="sb-label">@UiText.NavRules(Lang)</span>
+                </NavLink>
                 </div>
-            }
+                <div data-test="nav-compendium">
+                    <button type="button" class="rf-nav-group-toggle sb-section-trigger" aria-expanded="@(compendiumOpen ? "true" : "false")"
+                            data-tooltip="@UiText.NavCompendium(Lang)" @onclick="ToggleCompendium" @onclick:stopPropagation="true">
+                        <span class="sb-icon"><Icon Name="compendium" Class="rf-nav-icon" /></span>
+                        <span class="sb-sec-text">@UiText.NavCompendium(Lang)</span>
+                        <span class="sb-sec-chevron rf-nav-chevron @(compendiumOpen ? "open" : null)"><Icon Name="chevron" /></span>
+                    </button>
+                    @if (compendiumOpen)
+                    {
+                        <div class="sb-sub-items rf-nav-group-items">
+                <NavLink class="nav-link sb-item" href="species" data-tooltip="@UiText.NavSpecies(Lang)">
+                    <span class="sb-icon"><Icon Name="species" Class="rf-nav-icon" /></span>
+                    <span class="sb-label">@UiText.NavSpecies(Lang)</span>
+                </NavLink>
+                <NavLink class="nav-link sb-item" href="backgrounds" data-tooltip="@UiText.BackgroundsTitle(Lang)">
+                    <span class="sb-icon"><Icon Name="backgrounds" Class="rf-nav-icon" /></span>
+                    <span class="sb-label">@UiText.BackgroundsTitle(Lang)</span>
+                </NavLink>
+                <NavLink class="nav-link sb-item" href="feats" data-tooltip="@UiText.FeatsTitle(Lang)">
+                    <span class="sb-icon"><Icon Name="feats" Class="rf-nav-icon" /></span>
+                    <span class="sb-label">@UiText.FeatsTitle(Lang)</span>
+                </NavLink>
+                <NavLink class="nav-link sb-item" href="spells" data-tooltip="@UiText.SpellsTitle(Lang)">
+                    <span class="sb-icon"><Icon Name="spells" Class="rf-nav-icon" /></span>
+                    <span class="sb-label">@UiText.SpellsTitle(Lang)</span>
+                </NavLink>
+                <NavLink class="nav-link sb-item" href="classes" data-tooltip="@UiText.ClassesTitle(Lang)">
+                    <span class="sb-icon"><Icon Name="classes" Class="rf-nav-icon" /></span>
+                    <span class="sb-label">@UiText.ClassesTitle(Lang)</span>
+                </NavLink>
+                <NavLink class="nav-link sb-item" href="equipment" data-tooltip="@UiText.EquipmentTitle(Lang)">
+                    <span class="sb-icon"><Icon Name="equipment" Class="rf-nav-icon" /></span>
+                    <span class="sb-label">@UiText.EquipmentTitle(Lang)</span>
+                </NavLink>
+                <NavLink class="nav-link sb-item" href="magic-items" data-tooltip="@UiText.MagicItemsTitle(Lang)">
+                    <span class="sb-icon"><Icon Name="magic-items" Class="rf-nav-icon" /></span>
+                    <span class="sb-label">@UiText.MagicItemsTitle(Lang)</span>
+                </NavLink>
+                <NavLink class="nav-link sb-item" href="monsters" data-tooltip="@UiText.MonstersTitle(Lang)">
+                    <span class="sb-icon"><Icon Name="monsters" Class="rf-nav-icon" /></span>
+                    <span class="sb-label">@UiText.MonstersTitle(Lang)</span>
+                </NavLink>
+                <NavLink class="nav-link sb-item" href="npcs" data-tooltip="@UiText.NpcsTitle(Lang)" data-test="nav-npcs">
+                    <span class="sb-icon"><Icon Name="npcs" Class="rf-nav-icon" /></span>
+                    <span class="sb-label">@UiText.NpcsTitle(Lang)</span>
+                </NavLink>
+                <NavLink class="nav-link sb-item" href="modules" data-tooltip="@UiText.ModulesTitle(Lang)" data-test="nav-modules">
+                    <span class="sb-icon"><Icon Name="modules" Class="rf-nav-icon" /></span>
+                    <span class="sb-label">@UiText.ModulesTitle(Lang)</span>
+                </NavLink>
+                        </div>
+                    }
+                </div>
+            </nav>
         </div>
 
-    </nav>
-
-    @* Account (sign in / signed-in user and sign out) pinned at the bottom of the sidebar *@
-    <UserMenu />
-</div>
+        <footer class="sb-footer">
+            @* Account (sign in / signed-in user and sign out) *@
+            <UserMenu />
+            <button type="button" class="sb-footer-collapse" title="@ToggleText" aria-label="@ToggleText" @onclick="OnToggle" @onclick:stopPropagation="true" data-test="sidebar-collapse-footer">
+                <span class="sb-icon"><Icon Name="chevron-double-left" /></span>
+                <span class="sb-label">@ToggleText</span>
+            </button>
+        </footer>
+    </div>
+</aside>
 
 @code {
     private static readonly string[] CompendiumRoutes = ["species", "subspecies", "backgrounds", "feats", "spells", "classes", "equipment", "magic-items", "monsters", "npcs", "modules"];
@@ -110,11 +129,30 @@
     private bool collapseNavMenu = true;
     private bool compendiumOpen;
 
-    private string? NavMenuCssClass => collapseNavMenu ? "collapse" : null;
+    //	Folded to its icons (desktop), and what folds or unfolds it (the layout keeps the choice)
+    [Parameter] public bool Collapsed { get; set; }
+    [Parameter] public EventCallback OnToggle { get; set; }
+
+    private LanguageCode Lang => LanguageState.CurrentLanguage;
+
+    private string ToggleText => Collapsed ? UiText.SidebarExpand(Lang) : UiText.SidebarCollapse(Lang);
 
     private void ToggleNavMenu() => collapseNavMenu = !collapseNavMenu;
 
-    private void ToggleCompendium() => compendiumOpen = !compendiumOpen;
+    //	A choice in the menu closes it on phones
+    private void CloseMobile() => collapseNavMenu = true;
+
+    //	Folded, the compendium unfolds the menu first
+    private async Task ToggleCompendium()
+    {
+        if (Collapsed)
+        {
+            compendiumOpen = true;
+            await OnToggle.InvokeAsync();
+            return;
+        }
+        compendiumOpen = !compendiumOpen;
+    }
 
     protected override void OnInitialized()
     {
