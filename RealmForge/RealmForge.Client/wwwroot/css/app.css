@@ -13036,7 +13036,7 @@ textarea.rf-form-control {
     color: var(--rf-text-muted);
 }
 
-.rf-vtt-bar {
+.rf-vtt-hpbar {
     display: block;
     flex: 1;
     min-width: 32px;
@@ -13046,13 +13046,13 @@ textarea.rf-form-control {
     background-color: #27272a;
 }
 
-    .rf-vtt-bar > span {
+    .rf-vtt-hpbar > span {
         display: block;
         height: 100%;
         background-color: #10b981;
     }
 
-        .rf-vtt-bar > span.low {
+        .rf-vtt-hpbar > span.low {
             background-color: #ef4444;
         }
 
@@ -16454,4 +16454,352 @@ button.rf-qs-spell {
 
 .rf-hud-take-cost {
     color: var(--rf-text-muted);
+}
+
+/* The conditions of a token a player cannot change: just their names */
+.rf-hud-conditions.static {
+    cursor: default;
+    color: var(--rf-text-secondary);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* An ally's quick sheet, read only */
+.rf-qs-readonly {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    margin-left: auto;
+    padding: 0 8px;
+    border-radius: 999px;
+    border: 1px solid var(--rf-border-light);
+    font-size: .65rem;
+    font-weight: 800;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+    color: var(--rf-text-muted);
+}
+
+/* The compendium's item card (EquipmentInfoModal): the tiles are a <dl> */
+.rf-info-dl {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    margin: 0;
+}
+
+    .rf-info-dl dt {
+        font-size: .6rem;
+        font-weight: 800;
+        text-transform: uppercase;
+        color: #888;
+    }
+
+    .rf-info-dl dd {
+        margin: 0;
+        font-size: .85rem;
+        font-weight: 800;
+        color: #ffffff;
+    }
+
+    .rf-info-dl .wide {
+        grid-column: 1 / -1;
+    }
+
+    .rf-info-dl .rf-info-highlight dd {
+        font-weight: 400;
+        font-size: .8rem;
+        line-height: 1.5;
+        color: #e4e4e7;
+    }
+
+        .rf-info-dl .rf-info-highlight dd strong {
+            color: #ffb74d;
+        }
+
+.rf-info-tags {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    margin-top: 8px;
+}
+
+.rf-info-actions {
+    font-size: inherit;
+}
+
+@media (max-width: 520px) {
+    .rf-info-dl {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+/* ===== An item on the ground: its card next to the token (Weapon.html) ===== */
+
+.rf-vtt-toolbar.rf-ground-pop {
+    width: 384px;
+    min-width: 0;
+    overflow: hidden;
+    border: 1.5px solid rgba(255, 140, 0, .55);
+    border-radius: 12px;
+    background-color: #101010;
+    box-shadow: 0 16px 40px rgba(0, 0, 0, .85);
+}
+
+.gip-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 16px;
+    border-bottom: 1px solid #222222;
+    background-color: #141414;
+}
+
+.gip-identity {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    min-width: 0;
+}
+
+.gip-icon-box {
+    display: flex;
+    flex: none;
+    align-items: center;
+    justify-content: center;
+    width: 48px;
+    height: 48px;
+    border-radius: 8px;
+    border: 1px dashed rgba(255, 140, 0, .5);
+    background-color: #1b1b1b;
+    color: #ffb74d;
+}
+
+    .gip-icon-box svg {
+        width: 24px;
+        height: 24px;
+    }
+
+.gip-title-group {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    min-width: 0;
+}
+
+.gip-name-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.gip-name {
+    margin: 0;
+    font-family: var(--rf-font-display);
+    font-size: 1.1rem;
+    font-weight: 900;
+    color: #ffffff;
+}
+
+.gip-sub-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+}
+
+.gip-status {
+    padding: 0 8px;
+    border-radius: 4px;
+    border: 1px solid rgba(255, 140, 0, .45);
+    background-color: rgba(255, 140, 0, .14);
+    color: #ffb74d;
+    font-size: .6rem;
+    font-weight: 900;
+    letter-spacing: .05em;
+    line-height: 18px;
+    text-transform: uppercase;
+}
+
+.gip-dot {
+    color: #52525b;
+    font-size: .75rem;
+}
+
+.gip-cat {
+    font-size: .75rem;
+    font-weight: 600;
+    color: #a1a1aa;
+}
+
+.gip-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(72px, 1fr));
+    gap: 8px;
+    padding: 16px;
+    border-bottom: 1px solid #1f1f1f;
+}
+
+.g-chip {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    min-width: 0;
+    padding: 8px;
+    border-radius: 8px;
+    border: 1px solid #262626;
+    background-color: #161616;
+}
+
+    .g-chip span {
+        font-size: .55rem;
+        font-weight: 800;
+        letter-spacing: .04em;
+        text-transform: uppercase;
+        color: #71717a;
+    }
+
+    .g-chip strong {
+        font-size: .75rem;
+        font-weight: 800;
+        color: #ffffff;
+    }
+
+    .g-chip.dmg {
+        border-color: rgba(255, 140, 0, .35);
+        background-color: rgba(255, 140, 0, .06);
+    }
+
+    .g-chip.mastery strong {
+        color: #ffb74d;
+    }
+
+.gip-footer {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    padding: 16px;
+    background-color: #0d0d0d;
+}
+
+.gip-range {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+}
+
+.gip-who {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: .75rem;
+    color: #d4d4d8;
+}
+
+    .gip-who strong {
+        color: #ffffff;
+    }
+
+.gip-dot-ok {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background-color: #10b981;
+    box-shadow: 0 0 8px rgba(16, 185, 129, .6);
+}
+
+.gip-cost {
+    padding: 0 8px;
+    border-radius: 4px;
+    border: 1px solid #2c2c2c;
+    background-color: #181818;
+    color: #a1a1aa;
+    font-size: .65rem;
+    font-weight: 700;
+    line-height: 20px;
+}
+
+.gip-buttons {
+    display: grid;
+    grid-template-columns: 1fr 1.15fr;
+    gap: 8px;
+}
+
+.gip-pack,
+.gip-wield {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    height: 40px;
+    border-radius: 8px;
+    font-size: .7rem;
+    font-weight: 900;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+}
+
+.gip-pack {
+    border: 1px solid #303030;
+    background-color: #181818;
+    color: #e4e4e7;
+}
+
+    .gip-pack:hover:not(:disabled) {
+        border-color: #52525b;
+        background-color: #222222;
+        color: #ffffff;
+    }
+
+.gip-wield {
+    border: 0;
+    background-color: var(--rf-orange-primary);
+    color: #09090b;
+}
+
+    .gip-wield:hover:not(:disabled) {
+        background-color: var(--rf-orange-hover);
+    }
+
+.gip-far {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 8px 16px;
+    border-radius: 8px;
+    border: 1px dashed rgba(245, 158, 11, .45);
+    border-left: 3px solid #f59e0b;
+    background-color: rgba(245, 158, 11, .08);
+    color: #fbbf24;
+}
+
+    .gip-far div {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+    }
+
+    .gip-far strong {
+        font-size: .8rem;
+        color: #fde68a;
+    }
+
+    .gip-far span {
+        font-size: .75rem;
+        line-height: 1.35;
+        color: #a1a1aa;
+    }
+
+.gip-note {
+    margin: 0;
+    padding: 0 16px 16px;
+    font-size: .75rem;
+    color: var(--rf-text-secondary);
+}
+
+.gip-footer .gip-note {
+    padding: 0;
 }

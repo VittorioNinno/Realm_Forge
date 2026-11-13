@@ -422,21 +422,65 @@ namespace RealmForge.Client.Components
 
 		private static bool IsDown(MapTokenDto t) => t.Health == CombatantHealth.Down || (t.Hp is <= 0 && t.MaxHp is > 0);
 
-		private async Task TakeAsync(MapTokenDto source, MapTokenDto by, int index)
+		private async Task TakeAsync(MapTokenDto source, MapTokenDto by, int index, bool equip = false)
 		{
 			if (map is null)
 			{
 				return;
 			}
 			busy = true;
-			var error = await Campaigns.TakeItemAsync(CampaignId, map.Id, source.Id, by.Id, index, Lang);
+			var error = await Campaigns.TakeItemAsync(CampaignId, map.Id, source.Id, by.Id, index, Lang, equip);
 			busy = false;
-			gearNote = error is null ? UiText.VttTaken(by.Label, Lang) : error.Length == 0 ? UiText.MapSaveFailed(Lang) : error;
+			gearNote = error is null ? (equip ? UiText.VttTakenInHand(by.Label, Lang) : UiText.VttTaken(by.Label, Lang)) : error.Length == 0 ? UiText.MapSaveFailed(Lang) : error;
+			if (error is null && source.PropType == PropType.Item && source.Gear?.Items.Count <= 1)
+			{
+				CloseToolbar();
+			}
 			if (error is null && by.CharacterId is { } id)
 			{
 				stats.Remove($"c:{id}");
 			}
 			await RefreshAsync();
+		}
+
+		// ----- An item on the ground: what it is (from the compendium), who is next to it -----
+
+		[Inject] private EquipmentDataService EquipmentService { get; set; } = default!;
+
+		private readonly Dictionary<Guid, EquipmentDetailResponseDto?> groundItems = new();
+		private EquipmentDetailResponseDto? groundInfo;
+
+		private EquipmentDetailResponseDto? GroundItemOf(TokenItemDto item) =>
+			item.EquipmentId is { } id && groundItems.TryGetValue(id, out var found) ? found : null;
+
+		private async Task LoadGroundItemAsync(MapTokenDto t)
+		{
+			if (t.Gear?.Items.FirstOrDefault()?.EquipmentId is not { } id || groundItems.ContainsKey(id))
+			{
+				return;
+			}
+			groundItems[id] = null;
+			try
+			{
+				groundItems[id] = await EquipmentService.GetItemAsync(id, Lang);
+			}
+			catch (Exception)
+			{
+				//	Its name only
+			}
+			await InvokeAsync(StateHasChanged);
+		}
+
+		//	The nearest of my tokens and how far it is, in the units of the map
+		private (MapTokenDto? Token, string Distance) NearestMine(MapTokenDto source)
+		{
+			var mine = tokens.Where(k => k.Id != source.Id && k.PropType is null && k.Kind != TokenKind.Marker)
+				.Where(k => RunsTheTable ? k.Kind != TokenKind.Prop : k.Controlled || CharacterOf(k)?.IsMine == true)
+				.Select(k => (Token: k, Gap: GapOf(k, source)))
+				.OrderBy(x => x.Gap)
+				.FirstOrDefault();
+			var culture = System.Globalization.CultureInfo.GetCultureInfo(Lang == LanguageCode.It ? "it-IT" : "en-GB");
+			return mine.Token is null ? (null, string.Empty) : (mine.Token, $"{(mine.Gap * UiText.VttPerCell(Lang)).ToString("0.#", culture)} {UiText.VttUnit(Lang)}");
 		}
 
 		// ----- The masters fill the loot -----

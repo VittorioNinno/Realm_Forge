@@ -1,0 +1,115 @@
+﻿@using RealmForge.Client.Localization
+@using RealmForge.Client.Services
+@using RealmForge.Shared.DTOs
+@using RealmForge.Shared.Enums
+@using RealmForge.Shared.Localization
+@inject LanguageStateService LanguageState
+@inject GlossaryService Glossary
+
+@* An item of the compendium in the card style of the character wizard: what it is, the edition and source, its numbers
+   as tiles (cost, weight, damage or armour class), properties and mastery, the description; the page's own buttons at
+   the bottom *@
+@if (Item is { } item)
+{
+    var s = item.Stats;
+    <div class="rf-modal-backdrop rf-info-backdrop" @onclick="() => OnClose.InvokeAsync()">
+        <aside class="rf-info-modal wide" @onclick:stopPropagation="true" data-test="equipment-detail">
+            <header class="rf-info-head">
+                <div>
+                    <span class="rf-info-kicker" data-test="equipment-subtitle">@SubtitleOf(s)</span>
+                    <h3 class="rf-info-title" data-test="equipment-name">@item.Name</h3>
+                    <div class="rf-info-tags">
+                        <span class="badge @(item.Ruleset == RulesetVersion.Dnd5e_2024 ? "badge-edition-2024" : "badge-edition-2014")">@UiText.FormatRuleset(item.Ruleset, Lang)</span>
+                        <ContentBadge IsBase="item.IsOfficialSRD" Source="item.Source" Visibility="item.Visibility" ShowSource="true" />
+                    </div>
+                </div>
+                <div class="rf-info-head-right">
+                    <button type="button" class="rf-info-close" aria-label="@UiText.BtnClose(Lang)" @onclick="() => OnClose.InvokeAsync()"><Icon Name="close" /></button>
+                </div>
+            </header>
+
+            @if (Extra is not null)
+            {
+                @Extra
+            }
+
+            <dl class="rf-info-stats rf-info-dl" data-test="equipment-stats">
+                <div class="rf-info-stat"><dt>@UiText.ColCost(Lang)</dt><dd>@EquipmentTerms.FormatCost(s.CostInCopper, Lang)</dd></div>
+                <div class="rf-info-stat"><dt>@UiText.ColWeight(Lang)</dt><dd>@EquipmentTerms.FormatWeight(s.WeightInPounds, Lang)</dd></div>
+                @if (s.Quantity > 1)
+                {
+                    <div class="rf-info-stat"><dt>@UiText.ColQuantity(Lang)</dt><dd>@s.Quantity</dd></div>
+                }
+                @if (s.Category == EquipmentCategory.Weapon)
+                {
+                    <div class="rf-info-stat highlight"><dt>@UiText.ColDamage(Lang)</dt><dd>@EquipmentTerms.FormatDamage(s.DamageDice, s.DamageType, Lang)</dd></div>
+                    <div class="rf-info-stat wide"><dt>@UiText.ColProperties(Lang)</dt><dd data-test="equipment-properties">@EquipmentTerms.FormatProperties(s.WeaponProperties, s.NormalRange, s.LongRange, s.VersatileDamageDice, Lang)</dd></div>
+                    @if (s.Mastery is { } mastery)
+                    {
+                        <div class="rf-info-highlight wide">
+                            <dt class="head"><span class="pill">@UiText.MasteryTag(Lang)</span></dt>
+                            <dd data-test="equipment-mastery-value"><strong>@EquipmentTerms.MasteryName(mastery, Lang).</strong> @EquipmentTerms.MasteryRule(mastery, Lang)</dd>
+                        </div>
+                    }
+                }
+                @if (s.Category == EquipmentCategory.Armor)
+                {
+                    <div class="rf-info-stat highlight"><dt>@UiText.ColArmorClass(Lang)</dt><dd data-test="equipment-ac">@EquipmentTerms.FormatArmorClass(s.ArmorCategory, s.ArmorClass, s.ArmorAddsDexterity, s.ArmorMaxDexterityBonus, Lang)</dd></div>
+                    <div class="rf-info-stat"><dt>@UiText.ColStrength(Lang)</dt><dd>@(s.StrengthRequirement is { } str ? UiText.StrengthRequirement(str, Lang) : "—")</dd></div>
+                    <div class="rf-info-stat"><dt>@UiText.ColStealth(Lang)</dt><dd>@(s.StealthDisadvantage ? UiText.StealthDisadvantage(Lang) : "—")</dd></div>
+                }
+                @if (s.ToolAbility is { } ability)
+                {
+                    <div class="rf-info-stat"><dt>@UiText.ColAbility(Lang)</dt><dd>@FeatPrerequisiteFormatter.AbilityName(ability, Lang)</dd></div>
+                }
+                @if (s.SpeedInFeet is { } speed)
+                {
+                    <div class="rf-info-stat"><dt>@UiText.ColSpeed(Lang)</dt><dd>@EquipmentTerms.FormatDistance(speed, Lang)</dd></div>
+                }
+                @if (s.SpeedInMilesPerHour is { } mph)
+                {
+                    <div class="rf-info-stat"><dt>@UiText.ColSpeed(Lang)</dt><dd>@EquipmentTerms.FormatShipSpeed(mph, Lang)</dd></div>
+                }
+                @if (s.CarryingCapacityInPounds is { } capacity)
+                {
+                    <div class="rf-info-stat"><dt>@UiText.ColCapacity(Lang)</dt><dd>@EquipmentTerms.FormatCapacity(capacity, Lang)</dd></div>
+                }
+            </dl>
+
+            @if (!string.IsNullOrWhiteSpace(item.Description))
+            {
+                <div class="rf-info-body rf-markdown-container" data-test="equipment-description">@((MarkupString)MarkdownText.ToHtml(item.Description, Glossary.Linker(Lang, item.Ruleset)))</div>
+            }
+
+            <footer class="rf-info-foot rf-info-actions">
+                <div class="d-flex gap-2">@Actions</div>
+                <button type="button" class="btn btn-sm btn-rf-outline text-uppercase" @onclick="() => OnClose.InvokeAsync()">@UiText.BtnClose(Lang)</button>
+            </footer>
+        </aside>
+    </div>
+}
+
+@code {
+    [Parameter] public EquipmentDetailResponseDto? Item { get; set; }
+    [Parameter] public EventCallback OnClose { get; set; }
+
+    //	Under the head (a share link), and next to the close button (edit, delete)
+    [Parameter] public RenderFragment? Extra { get; set; }
+    [Parameter] public RenderFragment? Actions { get; set; }
+
+    private LanguageCode Lang => LanguageState.CurrentLanguage;
+
+    protected override async Task OnInitializedAsync() => await Glossary.EnsureLoadedAsync(Lang);
+
+    //	What the item is: the kind of weapon or armour, of tool or focus, else its category
+    public static string SubtitleOf(EquipmentStatsDto s, LanguageCode lang) => s.Category switch
+    {
+        EquipmentCategory.Weapon when s.WeaponCategory is { } c && s.WeaponRange is { } r => EquipmentTerms.WeaponCategoryName(c, r, lang),
+        EquipmentCategory.Armor when s.ArmorCategory is { } a => EquipmentTerms.ArmorCategoryName(a, lang),
+        _ when s.ToolCategory is { } tool => EquipmentTerms.ToolCategoryName(tool, lang),
+        _ when s.FocusType is { } focus => EquipmentTerms.FocusTypeName(focus, lang),
+        _ => EquipmentTerms.CategoryName(s.Category, lang)
+    };
+
+    private string SubtitleOf(EquipmentStatsDto s) => SubtitleOf(s, Lang);
+}
