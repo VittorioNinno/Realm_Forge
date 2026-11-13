@@ -895,7 +895,7 @@ jobs:
           chcheck() { if [ "$2" != "$3" ]; then echo "::error title=characters::$1: got '$2', expected '$3'"; chfail=1; fi; }
           chcheck "2014 fighter rows (letters from the English text)" "$ctx_it" "ab ab ab ab"
           chcheck "anonymous list" "$ch_anon" "401"
-          chcheck "derived values" "$ch_vitals" '{"hp":9,"ac":12,"items":true,"gold":13,"worn":2}'
+          chcheck "derived values (one weapon in hand: the daggers and the quarterstaff are not both light)" "$ch_vitals" '{"hp":9,"ac":12,"items":true,"gold":13,"worn":1}'
           chcheck "owner list" "$ch_list" '[{"level":1,"classLine":"Mago","hp":9}]'
           chcheck "other list" "$ch_bob_list" "0"
           chcheck "other GET" "$ch_bob" "404"
