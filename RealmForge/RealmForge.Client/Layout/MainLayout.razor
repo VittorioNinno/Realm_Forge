@@ -10,12 +10,7 @@
 
 <div class="page @(Collapsed ? "sidebar-collapsed" : null)">
     <div class="sidebar">
-        <NavMenu />
-        <button type="button" class="rf-sidebar-collapse" title="@(Collapsed ? UiText.SidebarExpand(LanguageState.CurrentLanguage) : UiText.SidebarCollapse(LanguageState.CurrentLanguage))"
-                aria-label="@(Collapsed ? UiText.SidebarExpand(LanguageState.CurrentLanguage) : UiText.SidebarCollapse(LanguageState.CurrentLanguage))"
-                aria-expanded="@(Collapsed ? "false" : "true")" @onclick="ToggleSidebarAsync" data-test="sidebar-collapse">
-            <Icon Name="@(Collapsed ? "chevron-double-right" : "chevron-double-left")" />
-        </button>
+        <NavMenu Collapsed="Collapsed" OnToggle="ToggleSidebarAsync" />
     </div>
 
     <main>
