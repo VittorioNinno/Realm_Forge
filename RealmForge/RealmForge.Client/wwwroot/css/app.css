@@ -13104,3 +13104,8 @@ textarea.rf-form-control {
     padding: 0 8px;
     font-size: 1.1rem;
 }
+
+.rf-vtt-table .rf-vtt-initiative > .btn {
+    flex: none;
+    white-space: nowrap;
+}
