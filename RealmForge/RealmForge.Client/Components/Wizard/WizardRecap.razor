@@ -1,0 +1,151 @@
+﻿@* The recap at the side of the wizard: the hero as it takes shape (name, origin, level, the numbers worked out so
+   far) and every step with what was chosen in it; a step already seen opens again with a click *@
+@{
+    var steps = W.Steps;
+    var reachedAbilities = Reached(WizardStep.Abilities);
+}
+<aside class="rf-recap" data-test="wizard-recap">
+    <header class="rf-recap-head">
+        <span class="rf-recap-kicker">@UiText.RecapTitle(Lang)</span>
+    </header>
+
+    <section class="rf-recap-hero">
+        <div class="rf-recap-hero-top">
+            <span class="rf-recap-avatar">@Initials</span>
+            <div class="rf-recap-hero-info">
+                <h2 class="rf-recap-name" data-test="wizard-recap-name">@(string.IsNullOrWhiteSpace(W.Input.Name) ? UiText.RecapNoName(Lang) : W.Input.Name.Trim())</h2>
+                <p class="rf-recap-sub">@HeroLine</p>
+            </div>
+        </div>
+        <div class="rf-recap-badges">
+            <span class="rf-recap-badge accent">@UiText.FormatRuleset(Ruleset, Lang)</span>
+            <span class="rf-recap-badge">@UiText.RecapLevel(Build.Levels.Count, Lang)</span>
+            <span class="rf-recap-badge">@UiText.RecapAdvancement(W.Input.Sheet.Advancement, Lang)</span>
+        </div>
+        <div class="rf-recap-stats">
+            <div class="rf-recap-stat"><span>@UiText.RecapArmor(Lang)</span><strong data-test="wizard-recap-ac">@(Reached(WizardStep.Abilities) ? Computed.ArmorClass.ToString() : "—")</strong></div>
+            <div class="rf-recap-stat"><span>@UiText.RecapHitPoints(Lang)</span><strong>@(Reached(WizardStep.Abilities) ? Computed.MaxHitPoints.ToString() : "—")</strong></div>
+            <div class="rf-recap-stat"><span>@UiText.RecapInitiative(Lang)</span><strong>@(Reached(WizardStep.Abilities) ? CharacterMath.FormatModifier(Computed.Initiative) : "—")</strong></div>
+            <div class="rf-recap-stat"><span>@UiText.RecapProficiency(Lang)</span><strong>@CharacterMath.FormatModifier(Computed.ProficiencyBonus)</strong></div>
+        </div>
+        <div class="rf-recap-abilities">
+            @foreach (var ability in CharacterMath.Abilities)
+            {
+                var prime = W.StartingClass?.PrimaryAbilities.Contains(ability) == true;
+                <div class="rf-recap-ability @(reachedAbilities ? "filled" : null) @(prime && reachedAbilities ? "prime" : null)">
+                    <span>@UiText.AbilityShort(ability, Lang)</span>
+                    <strong>@(reachedAbilities ? $"{Computed.Score(ability)} ({CharacterMath.FormatModifier(Computed.Modifier(ability))})" : "—")</strong>
+                </div>
+            }
+        </div>
+    </section>
+
+    <div class="rf-recap-steps-head">
+        <span class="rf-recap-kicker">@UiText.RecapSteps(Lang)</span>
+        <span class="rf-recap-counter">@(W.StepIndex + 1) / @steps.Count</span>
+    </div>
+    <nav class="rf-recap-timeline">
+        @for (var i = 0; i < steps.Count; i++)
+        {
+            var index = i;
+            var step = steps[index];
+            var state = index == W.StepIndex ? "current" : index <= W.FurthestIndex ? "done" : "locked";
+            <button type="button" class="rf-recap-step @state" disabled="@(state == "locked")" @onclick="() => W.GoToStep(index)" data-test="wizard-recap-step" data-state="@state">
+                <span class="rf-recap-dot">
+                    @if (state == "done")
+                    {
+                        <Icon Name="check" />
+                    }
+                    else
+                    {
+                        @(index + 1)
+                    }
+                </span>
+                <span class="rf-recap-step-body">
+                    <span class="rf-recap-step-top">
+                        <strong>@UiText.WizardStepName(step, Ruleset, Lang)</strong>
+                        @if (state == "current")
+                        {
+                            <span class="rf-recap-tag">@UiText.RecapNow(Lang)</span>
+                        }
+                        else if (state == "done")
+                        {
+                            <span class="rf-recap-edit">@UiText.RecapEdit(Lang)</span>
+                        }
+                    </span>
+                    <span class="rf-recap-summary @(state != "locked" ? "filled" : null)">@(state == "locked" ? UiText.RecapStepHint(step, Ruleset, Lang) : SummaryOf(step))</span>
+                </span>
+            </button>
+        }
+    </nav>
+</aside>
+
+@code {
+    private bool Reached(WizardStep step) => W.Steps.IndexOf(step) is var i && i >= 0 && i <= W.FurthestIndex;
+
+    private string Initials
+    {
+        get
+        {
+            var words = (W.Input.Name ?? string.Empty).Split(' ', StringSplitOptions.RemoveEmptyEntries);
+            return words.Length switch
+            {
+                0 => "?",
+                1 => words[0][..Math.Min(2, words[0].Length)].ToUpperInvariant(),
+                _ => $"{words[0][0]}{words[1][0]}".ToUpperInvariant()
+            };
+        }
+    }
+
+    private string Classes => string.Join(" / ", Computed.Classes.Select(c => $"{c.Class.Name} {c.Level}"));
+
+    //	"Wood elf · Druid 1 / Cleric 1 · Hermit": what is chosen so far
+    private string HeroLine
+    {
+        get
+        {
+            var parts = new List<string>();
+            if (Reached(WizardStep.Species) && W.Species is { } species)
+            {
+                parts.Add(W.Subspecies?.Name ?? species.Name);
+            }
+            if (Reached(WizardStep.Class) && Computed.Classes.Count > 0)
+            {
+                parts.Add(Classes);
+            }
+            if (Reached(WizardStep.Background) && W.Background is { } background)
+            {
+                parts.Add(background.Name);
+            }
+            return parts.Count == 0 ? UiText.RecapToChoose(Ruleset, Lang) : string.Join(" · ", parts);
+        }
+    }
+
+    private string SummaryOf(WizardStep step)
+    {
+        var text = step switch
+        {
+            WizardStep.Identity => string.Join(" · ", new[]
+            {
+                string.IsNullOrWhiteSpace(W.Input.Name) ? null : W.Input.Name.Trim(), UiText.FormatRuleset(Ruleset, Lang),
+                UiText.RecapLevel(Build.Levels.Count, Lang), UiText.RecapAdvancement(W.Input.Sheet.Advancement, Lang)
+            }.Where(x => x is not null)),
+            WizardStep.Class when W.StartingClass is { } cls =>
+                $"{cls.Name} · d{cls.HitDie} · {UiText.RecapSaves(Lang)} {string.Join(", ", cls.SavingThrows.Select(a => UiText.AbilityShort(a, Lang)))}",
+            WizardStep.Background when W.Background is { } background =>
+                string.Join(" · ", new[] { background.Name, background.OriginFeatId is { } featId ? W.Feat(featId)?.Name : null }.Where(x => x is not null)),
+            WizardStep.Species when W.Species is { } species =>
+                string.Join(" · ", new[] { W.Subspecies?.Name ?? species.Name, UiText.FormatSpeed(Computed.Speed, Lang),
+                    Computed.Darkvision > 0 ? UiText.RecapDarkvision(Lang) : null }.Where(x => x is not null)),
+            WizardStep.Abilities => string.Join(" · ", CharacterMath.Abilities.Select(a => $"{UiText.AbilityShort(a, Lang)} {Computed.Score(a)}")),
+            WizardStep.Progression => string.Join(" · ", new[] { Classes }.Concat(Computed.Classes.Where(c => c.Subclass is not null).Select(c => c.Subclass!.Name))),
+            WizardStep.Languages => Computed.Languages.Count == 0 ? "—" : string.Join(", ", Computed.Languages.Take(4)) + (Computed.Languages.Count > 4 ? $" +{Computed.Languages.Count - 4}" : null),
+            WizardStep.Equipment => $"{UiText.RecapArmor(Lang)} {Computed.ArmorClass} · {UiText.RecapItems(W.Input.Sheet.Inventory.Count, Lang)}",
+            WizardStep.Spells => UiText.RecapSpells(Computed.Spellcasting.Sum(s => s.Known.Count()) + Computed.InnateSpells.Count, Lang),
+            WizardStep.Details => UiText.AlignmentName(Build.Alignment, Lang),
+            WizardStep.Summary => Computed.CanSave ? UiText.RecapReady(Lang) : UiText.RecapNotReady(Lang),
+            _ => string.Empty
+        };
+        return string.IsNullOrWhiteSpace(text) ? "—" : text;
+    }
+}

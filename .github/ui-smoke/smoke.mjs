@@ -1957,6 +1957,21 @@ try {
   await page.locator('[data-test=wizard-fighting-style]').waitFor({ timeout: 15000 });
   await nextOption('wizard-fighting-style');
   await pickFree('[data-test=wizard-mastery]', 3);
+  // The masteries by kind of weapon with the A/B comparator, a weapon's card, the recap of the hero at the side
+  const masteryUi = {
+    groups: await page.locator('[data-test=wizard-mastery-filter]').count(),
+    chosen: await page.locator('[data-test=wizard-mastery][aria-pressed=true]').count(),
+    recapSteps: await page.locator('[data-test=wizard-recap-step]').count(),
+    recapName: (await page.locator('[data-test=wizard-recap-name]').innerText()).trim()
+  };
+  await shot(page, 'wizard-mastery', '[data-test=wizard-masteries]');
+  await page.locator('[data-test=wizard-mastery-info]').first().click();
+  await page.locator('[data-test=weapon-detail-modal]').waitFor({ timeout: 10000 });
+  await shot(page, 'wizard-weapon-card', '[data-test=weapon-detail-modal]');
+  await page.locator('[data-test=weapon-detail-close]').click();
+  await shot(page, 'wizard-recap', '[data-test=wizard-recap]');
+  results.push(`INFO wizard masteries: ${JSON.stringify(masteryUi)}`);
+  if (masteryUi.groups < 3 || masteryUi.chosen !== 3 || masteryUi.recapSteps < 5 || masteryUi.recapName !== 'Eroe di prova') throw new Error(`unexpected masteries: ${JSON.stringify(masteryUi)}`);
   for (let guard = 0; guard < 6 && await page.locator('[data-test=wizard-forge]').count() === 0; guard++) await next();
   await page.locator('[data-test=wizard-forge]').click();
   await page.locator('[data-test=character-sheet]').waitFor({ timeout: 30000 });

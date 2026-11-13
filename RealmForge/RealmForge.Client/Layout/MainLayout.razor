@@ -5,10 +5,17 @@
 @implements IDisposable
 @inject LanguageStateService LanguageState
 @inject CrossTabService CrossTab
+@inject NavigationManager Navigation
+@inject IJSRuntime JS
 
-<div class="page">
+<div class="page @(Collapsed ? "sidebar-collapsed" : null)">
     <div class="sidebar">
         <NavMenu />
+        <button type="button" class="rf-sidebar-collapse" title="@(Collapsed ? UiText.SidebarExpand(LanguageState.CurrentLanguage) : UiText.SidebarCollapse(LanguageState.CurrentLanguage))"
+                aria-label="@(Collapsed ? UiText.SidebarExpand(LanguageState.CurrentLanguage) : UiText.SidebarCollapse(LanguageState.CurrentLanguage))"
+                aria-expanded="@(Collapsed ? "false" : "true")" @onclick="ToggleSidebarAsync" data-test="sidebar-collapse">
+            <Icon Name="@(Collapsed ? "chevron-double-right" : "chevron-double-left")" />
+        </button>
     </div>
 
     <main>
@@ -32,9 +39,42 @@
 </div>
 
 @code {
+    //	The side menu folded to its icons: chosen by hand (remembered), or on its own in the character wizard
+    private bool collapsed;
+    private bool? wizardCollapsed;
+    private bool OnWizard => System.Text.RegularExpressions.Regex.IsMatch(Navigation.ToBaseRelativePath(Navigation.Uri), @"^characters/(new|[0-9a-f-]{36}/edit)", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+    private bool Collapsed => OnWizard ? wizardCollapsed ?? true : collapsed;
+
     protected override void OnInitialized()
     {
         LanguageState.OnLanguageChanged += StateHasChanged;
+        Navigation.LocationChanged += OnLocationChanged;
+    }
+
+    private void OnLocationChanged(object? sender, Microsoft.AspNetCore.Components.Routing.LocationChangedEventArgs e)
+    {
+        if (!OnWizard)
+        {
+            wizardCollapsed = null;
+        }
+        StateHasChanged();
+    }
+
+    private async Task ToggleSidebarAsync()
+    {
+        if (OnWizard)
+        {
+            wizardCollapsed = !Collapsed;
+            return;
+        }
+        collapsed = !collapsed;
+        try
+        {
+            await JS.InvokeVoidAsync("localStorage.setItem", "rf-sidebar", collapsed ? "1" : "0");
+        }
+        catch (Exception)
+        {
+        }
     }
 
     //	Listen to messages from other RealmForge tabs (e.g. e-mail confirmed from the link in the e-mail)
@@ -42,6 +82,17 @@
     {
         if (firstRender)
         {
+            try
+            {
+                collapsed = await JS.InvokeAsync<string?>("localStorage.getItem", "rf-sidebar") == "1";
+                if (collapsed && !OnWizard)
+                {
+                    StateHasChanged();
+                }
+            }
+            catch (Exception)
+            {
+            }
             await CrossTab.StartAsync();
         }
     }
@@ -49,5 +100,6 @@
     public void Dispose()
     {
         LanguageState.OnLanguageChanged -= StateHasChanged;
+        Navigation.LocationChanged -= OnLocationChanged;
     }
 }
