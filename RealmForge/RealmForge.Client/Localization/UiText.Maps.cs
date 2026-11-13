@@ -109,10 +109,11 @@ namespace RealmForge.Client.Localization
 		public static string VttDrawHint(LanguageCode lang) => T(lang, "Trascina sulla mappa per disegnare.", "Drag on the map to draw.");
 		public static string VttTextPlace(LanguageCode lang) => T(lang, "Fai clic sulla mappa dove scrivere.", "Click on the map where to write.");
 		public static string VttTextHint(LanguageCode lang) => T(lang, "Testo…", "Text…");
-		public static string VttMasterNote(LanguageCode lang) => T(lang, "Nota solo per i master", "Note for the masters only");
+		public static string VttTextShared(LanguageCode lang) => T(lang, "Visibile ai giocatori", "Shown to the players");
+		public static string VttOnlyYou(LanguageCode lang) => T(lang, "Lo vedi solo tu.", "Only you see it.");
 		public static string VttEraseHint(LanguageCode lang) => T(lang, "Fai clic su un disegno, un testo o un'area per toglierlo.", "Click a drawing, a text or an area to remove it.");
-		public static string VttClearAll(LanguageCode lang) => T(lang, "Cancella tutti i disegni", "Clear all drawings");
-		public static string VttClearMine(LanguageCode lang) => T(lang, "Cancella i miei disegni", "Clear my drawings");
+		public static string VttClearAll(LanguageCode lang) => T(lang, "Rimuovi i disegni che vedi", "Remove the drawings you see");
+		public static string VttClearMine(LanguageCode lang) => T(lang, "Rimuovi i miei disegni", "Remove my drawings");
 		public static string MapTokenBelow(LanguageCode lang) => T(lang, "Sotto gli altri segnalini", "Under the other tokens");
 		public static string VttToolFog(LanguageCode lang) => T(lang, "Nebbia di guerra", "Fog of war");
 		public static string VttFogOn(LanguageCode lang) => T(lang, "Nebbia attiva", "Fog on");
@@ -120,6 +121,9 @@ namespace RealmForge.Client.Localization
 		public static string VttFogCover(LanguageCode lang) => T(lang, "Copri", "Cover");
 		public static string VttFogRect(LanguageCode lang) => T(lang, "Riquadro", "Box");
 		public static string VttFogBrush(LanguageCode lang) => T(lang, "Pennello", "Brush");
+		public static string VttFogBrushSize(LanguageCode lang) => T(lang, "Caselle del pennello", "Brush cells");
+		public static string VttFogFull(LanguageCode lang) => T(lang,
+			"La nebbia ha troppi passaggi: usa Rivela tutto o Copri tutto e ricomincia.", "The fog has too many steps: use Reveal all or Cover all and start again.");
 		public static string VttFogRevealAll(LanguageCode lang) => T(lang, "Rivela tutto", "Reveal all");
 		public static string VttFogCoverAll(LanguageCode lang) => T(lang, "Copri tutto", "Cover all");
 		public static string VttFocus(LanguageCode lang) => T(lang, "Porta qui la vista dei giocatori", "Bring the players' view here");
@@ -207,5 +211,26 @@ namespace RealmForge.Client.Localization
 		public static string PropPlayers(LanguageCode lang) => T(lang, "I giocatori possono usarlo", "The players can use it");
 		public static string PropAdd(LanguageCode lang) => T(lang, "Oggetti", "Objects");
 		public static string ToolState(LanguageCode lang) => T(lang, "Stato", "State");
+
+		// ===== The table open now =====
+		public static string TableOpen(LanguageCode lang) => T(lang, "Avvia il tavolo", "Start the table");
+		public static string TableOpenHint(LanguageCode lang) => T(lang,
+			"I giocatori ricevono un avviso e trovano il tavolo in cima alla campagna.", "The players get a notice and find the table at the top of the campaign.");
+		public static string TableClose(LanguageCode lang) => T(lang, "Chiudi il tavolo", "Close the table");
+		public static string TableLive(LanguageCode lang) => T(lang, "Tavolo aperto", "Table open");
+		public static string TableLiveNow(LanguageCode lang) => T(lang, "Al tavolo ora", "At the table now");
+		public static string TableLiveTitle(string campaign, LanguageCode lang) => T(lang, $"Il tavolo di «{campaign}» è aperto", $"The table of “{campaign}” is open");
+		public static string TableSessionLive(LanguageCode lang) => T(lang, "Sessione in corso", "Session in progress");
+		public static string TableOpenedBy(string name, DateTimeOffset at, LanguageCode lang)
+		{
+			var time = at.ToLocalTime().ToString("HH:mm", System.Globalization.CultureInfo.InvariantCulture);
+			return string.IsNullOrWhiteSpace(name)
+				? T(lang, $"Aperto alle {time}", $"Opened at {time}")
+				: T(lang, $"Aperto da {name} alle {time}", $"Opened by {name} at {time}");
+		}
+		public static string TableJoin(LanguageCode lang) => T(lang, "Entra al tavolo", "Join the table");
+		public static string TableNotifyMe(LanguageCode lang) => T(lang, "Avvisami anche fuori dalla scheda", "Notify me outside this tab too");
+		public static string TableNotifyOn(LanguageCode lang) => T(lang, "Avvisi del browser attivi", "Browser notices on");
+		public static string TableDismiss(LanguageCode lang) => T(lang, "Chiudi l'avviso", "Dismiss");
 	}
 }

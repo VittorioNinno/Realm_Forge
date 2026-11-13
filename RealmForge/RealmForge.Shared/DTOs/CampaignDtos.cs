@@ -15,7 +15,13 @@ namespace RealmForge.Shared.DTOs
 		int Members,
 		int Characters,
 		int PendingContents,
-		DateTimeOffset UpdatedAt);
+		DateTimeOffset UpdatedAt,
+		DateTimeOffset? TableOpenedAt = null);
+
+	///	<summary>
+	///	A campaign whose virtual tabletop is open now: who opened it and when. Mine: I opened it.
+	///	</summary>
+	public record CampaignLiveTableDto(Guid CampaignId, string CampaignName, DateTimeOffset OpenedAt, string OpenedBy, bool Mine);
 
 	///	<summary>
 	///	An invitation the current user received (accept or decline).
@@ -76,7 +82,8 @@ namespace RealmForge.Shared.DTOs
 		List<CampaignCharacterDto> Characters,
 		List<CampaignContentDto> Contents,
 		DateTimeOffset CreatedAt,
-		DateTimeOffset UpdatedAt);
+		DateTimeOffset UpdatedAt,
+		CampaignLiveTableDto? Table = null);
 
 	public class SaveCampaignDto
 	{

@@ -10891,6 +10891,13 @@ textarea.rf-form-control {
         opacity: .6;
     }
 
+/* My texts (and, for a master, the table's) are dragged with the selection or the text tool */
+.rf-vtt-stage.tool-select .rf-vtt-shapes .movable,
+.rf-vtt-stage.tool-text .rf-vtt-shapes .movable {
+    pointer-events: visiblePainted;
+    cursor: move;
+}
+
 .rf-vtt-stage.tool-erase .rf-vtt-token,
 .rf-vtt-stage.tool-draw .rf-vtt-token,
 .rf-vtt-stage.tool-text .rf-vtt-token,
@@ -11905,4 +11912,164 @@ textarea.rf-form-control {
     border-radius: 8px;
     border: 1px solid var(--rf-border-light);
     background-color: var(--rf-bg-card);
+}
+
+/* ===== The table open now: the notice to the players, the banner of the campaign, the badge in the list ===== */
+.rf-live-dot {
+    width: 8px;
+    height: 8px;
+    flex-shrink: 0;
+    border-radius: 50%;
+    background-color: #ef4444;
+    box-shadow: 0 0 0 0 rgba(239, 68, 68, .7);
+    animation: rf-live-pulse 1.6s ease-out infinite;
+}
+
+@keyframes rf-live-pulse {
+    0% {
+        box-shadow: 0 0 0 0 rgba(239, 68, 68, .7);
+    }
+
+    70% {
+        box-shadow: 0 0 0 8px rgba(239, 68, 68, 0);
+    }
+
+    100% {
+        box-shadow: 0 0 0 0 rgba(239, 68, 68, 0);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .rf-live-dot {
+        animation: none;
+    }
+}
+
+.rf-vtt-live.rf-vtt-live-on {
+    border-color: #ef4444;
+    color: #fca5a5;
+}
+
+.rf-live-notices {
+    position: fixed;
+    right: 16px;
+    bottom: 16px;
+    z-index: 1100;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    width: min(400px, calc(100vw - 32px));
+}
+
+.rf-live-notice {
+    display: flex;
+    align-items: flex-start;
+    gap: 16px;
+    padding: 16px;
+    border-radius: 8px;
+    border: 1px solid var(--rf-orange-primary);
+    background-color: rgba(18, 18, 18, .97);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, .6);
+    animation: rf-live-in .25s ease-out;
+}
+
+@keyframes rf-live-in {
+    from {
+        opacity: 0;
+        transform: translateY(16px);
+    }
+
+    to {
+        opacity: 1;
+        transform: none;
+    }
+}
+
+.rf-live-notice-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    flex-shrink: 0;
+    border-radius: 50%;
+    background-color: rgba(255, 140, 0, .15);
+    color: var(--rf-orange-primary);
+    font-size: 1.25rem;
+}
+
+.rf-live-notice-text {
+    flex-grow: 1;
+    min-width: 0;
+}
+
+.rf-live-notice-title {
+    font-weight: 800;
+    color: var(--rf-text-primary);
+    overflow-wrap: anywhere;
+}
+
+.rf-live-notice-by {
+    font-size: .8rem;
+    color: var(--rf-text-muted);
+}
+
+.rf-live-notice-close {
+    flex-shrink: 0;
+    width: 32px;
+    height: 32px;
+    border: none;
+    border-radius: 8px;
+    background: transparent;
+    color: var(--rf-text-muted);
+}
+
+    .rf-live-notice-close:hover {
+        color: var(--rf-text-primary);
+        background-color: var(--rf-bg-card);
+    }
+
+.rf-live-banner {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 16px;
+    padding: 16px;
+    border-radius: 8px;
+    border: 2px solid var(--rf-orange-primary);
+    background: linear-gradient(90deg, rgba(255, 140, 0, .18), rgba(255, 140, 0, .04));
+}
+
+.rf-live-banner-text {
+    display: flex;
+    flex-direction: column;
+    flex-grow: 1;
+    min-width: 0;
+}
+
+.rf-live-banner-title {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 800;
+    font-size: 1.1rem;
+    color: var(--rf-text-primary);
+}
+
+.rf-live-banner-by {
+    font-size: .85rem;
+    color: var(--rf-text-secondary);
+}
+
+.rf-live-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 0 8px;
+    border-radius: 8px;
+    border: 1px solid #ef4444;
+    color: #fca5a5;
+    font-size: .75rem;
+    font-weight: 700;
+    line-height: 24px;
 }

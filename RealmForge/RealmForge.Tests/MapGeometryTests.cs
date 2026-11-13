@@ -76,4 +76,61 @@ public class MapGeometryTests
 		Assert.Equal(7, Count(ShapeKind.Cone, 500, 175, 3));
 		Assert.Equal(6, MapAreas.Corners(GridType.HexRows, 60, 0, 0, 2, 3).Count);
 	}
+
+	[Fact]
+	public void Fog_hexagons_cover_their_cell_and_not_the_next()
+	{
+		//	A pointy-top hexagon of a 60 px grid (rows) at (100, 100): radius 60 / √3
+		var radius = 60 / Math.Sqrt(3);
+		var fog = new List<double> { MapFog.Reveal, 0, 0, 400, 400, MapFog.CoverHex, 100, 100, radius, (int)GridType.HexRows };
+		Assert.True(MapFog.Covered(fog, 100, 100));
+		Assert.True(MapFog.Covered(fog, 100, 100 + radius - 1));
+		Assert.False(MapFog.Covered(fog, 100 + 31, 100));
+		Assert.False(MapFog.Covered(fog, 160, 100));
+		//	Flat-top (columns): wide along x, the corner on the side
+		Assert.True(MapFog.InHex(100, 100, radius, (int)GridType.HexColumns, 100 + radius - 1, 100));
+		Assert.False(MapFog.InHex(100, 100, radius, (int)GridType.HexColumns, 100, 100 + radius - 1));
+		Assert.True(MapFog.Valid(fog));
+		Assert.False(MapFog.Valid(new List<double> { 7, 0, 0, 1, 1 }));
+	}
+
+	[Fact]
+	public void Drawings_stay_with_their_author_and_the_masters_share_texts_on_purpose()
+	{
+		//	Strokes are always private; a player's text too; a master's text only when not shared; areas for everyone
+		Assert.True(MapRules.IsPrivate(ShapeKind.Freehand, runsTheTable: true, shared: true));
+		Assert.True(MapRules.IsPrivate(ShapeKind.Text, runsTheTable: false, shared: true));
+		Assert.True(MapRules.IsPrivate(ShapeKind.Text, runsTheTable: true, shared: false));
+		Assert.False(MapRules.IsPrivate(ShapeKind.Text, runsTheTable: true, shared: true));
+		Assert.False(MapRules.IsPrivate(ShapeKind.Cone, runsTheTable: false, shared: false));
+		//	Someone else's stroke is never seen, even an old one not marked private; a shared text and an area are
+		Assert.False(MapRules.Sees(ShapeKind.Freehand, isPrivate: false, mine: false));
+		Assert.True(MapRules.Sees(ShapeKind.Freehand, isPrivate: true, mine: true));
+		Assert.False(MapRules.Sees(ShapeKind.Text, isPrivate: true, mine: false));
+		Assert.True(MapRules.Sees(ShapeKind.Text, isPrivate: false, mine: false));
+		Assert.True(MapRules.Sees(ShapeKind.Sphere, isPrivate: false, mine: false));
+		//	A master removes and moves what the table sees, never someone's private drawing; a player only their own
+		Assert.True(MapRules.CanDeleteShape(ShapeKind.Text, isPrivate: false, mine: false, runsTheTable: true));
+		Assert.False(MapRules.CanDeleteShape(ShapeKind.Text, isPrivate: true, mine: false, runsTheTable: true));
+		Assert.False(MapRules.CanDeleteShape(ShapeKind.Sphere, isPrivate: false, mine: false, runsTheTable: false));
+		Assert.True(MapRules.CanMoveShape(ShapeKind.Text, isPrivate: true, mine: true, runsTheTable: false));
+		Assert.True(MapRules.CanMoveShape(ShapeKind.Text, isPrivate: false, mine: false, runsTheTable: true));
+		Assert.False(MapRules.CanMoveShape(ShapeKind.Text, isPrivate: false, mine: false, runsTheTable: false));
+		Assert.False(MapRules.CanMoveShape(ShapeKind.Freehand, isPrivate: true, mine: true, runsTheTable: true));
+	}
+
+	[Fact]
+	public void An_open_table_closes_on_its_own_only_when_nothing_happens_at_it()
+	{
+		var now = new DateTimeOffset(2026, 11, 12, 21, 0, 0, TimeSpan.Zero);
+		var idle = CampaignRules.TableIdleHours;
+		Assert.True(CampaignRules.IsTableOpen(now.AddHours(-1), null, now));
+		//	A session of 20 hours with a token moved ten minutes ago stays open
+		Assert.True(CampaignRules.IsTableOpen(now.AddHours(-20), now.AddMinutes(-10), now));
+		//	Opened long ago with nothing done since (or only before the opening): closed
+		Assert.False(CampaignRules.IsTableOpen(now.AddHours(-idle), null, now));
+		Assert.False(CampaignRules.IsTableOpen(now.AddHours(-idle - 1), now.AddHours(-idle - 5), now));
+		Assert.False(CampaignRules.IsTableOpen(now.AddHours(-20), now.AddHours(-idle - 1), now));
+		Assert.False(CampaignRules.IsTableOpen(null, now, now));
+	}
 }

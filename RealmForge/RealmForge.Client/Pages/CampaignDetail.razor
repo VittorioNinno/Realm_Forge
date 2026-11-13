@@ -10,6 +10,7 @@
 @inject LanguageStateService LanguageState
 @inject NavigationManager Navigation
 @inject IJSRuntime JS
+@inject LiveTableService Live
 
 <PageTitle>RealmForge - @(campaign?.Name ?? UiText.CampaignsTitle(Lang))</PageTitle>
 
@@ -38,8 +39,21 @@
                     <span>· @UiText.CampaignMembersCount(campaign.Members.Count, Lang)</span>
                 </div>
             </div>
-            <a href="@($"campaigns/{campaign.Id}/vtt")" class="btn btn-rf-orange" data-test="campaign-open-vtt"><Icon Name="map" /> @UiText.VttTitle(Lang)</a>
+            <a href="@($"campaigns/{campaign.Id}/vtt")" class="btn @(campaign.Table is null ? "btn-rf-orange" : "btn-rf-outline")" data-test="campaign-open-vtt"><Icon Name="map" /> @UiText.VttTitle(Lang)</a>
         </div>
+
+        @* The table is open: the way in, first thing on the page *@
+        @if (campaign.Table is { } live)
+        {
+            <div class="rf-live-banner mb-3" data-test="campaign-live">
+                <span class="rf-live-notice-icon"><Icon Name="broadcast" /></span>
+                <div class="rf-live-banner-text">
+                    <span class="rf-live-banner-title"><span class="rf-live-dot"></span> @UiText.TableSessionLive(Lang)</span>
+                    <span class="rf-live-banner-by">@UiText.TableOpenedBy(live.OpenedBy, live.OpenedAt, Lang)</span>
+                </div>
+                <a href="@($"campaigns/{campaign.Id}/vtt")" class="btn btn-rf-orange" data-test="campaign-live-join"><Icon Name="map" /> @UiText.TableJoin(Lang)</a>
+            </div>
+        }
 
         @if (message is not null)
         {
@@ -456,8 +470,19 @@
     protected override async Task OnInitializedAsync()
     {
         LanguageState.OnLanguageChanged += HandleLanguageChanged;
+        Live.Changed += HandleLiveChanged;
         await LoadAsync();
         loading = false;
+    }
+
+    //	The check of open tables (every half minute): the banner comes and goes with the table
+    private void HandleLiveChanged()
+    {
+        if (campaign is not null)
+        {
+            campaign = campaign with { Table = Live.Of(campaign.Id) };
+            _ = InvokeAsync(StateHasChanged);
+        }
     }
 
     private async void HandleLanguageChanged()
@@ -652,5 +677,9 @@
         message = leaving && result.Status == System.Net.HttpStatusCode.BadRequest ? UiText.CampaignLastMaster(Lang) : UiText.CampaignActionFailed(result.Status, Lang);
     }
 
-    public void Dispose() => LanguageState.OnLanguageChanged -= HandleLanguageChanged;
+    public void Dispose()
+    {
+        LanguageState.OnLanguageChanged -= HandleLanguageChanged;
+        Live.Changed -= HandleLiveChanged;
+    }
 }
