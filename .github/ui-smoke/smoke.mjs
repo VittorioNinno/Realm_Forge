@@ -2198,7 +2198,7 @@ try {
     audits.push(await overflow(path));
     if (open) {
       await open();
-      await mobile.locator('.rf-modal-dialog').first().waitFor({ timeout: 15000 });
+      await mobile.locator('.rf-modal-dialog, .rf-info-modal').first().waitFor({ timeout: 15000 });
       await mobile.waitForTimeout(500);
       audits.push(await overflow(`${path} detail`));
     }
