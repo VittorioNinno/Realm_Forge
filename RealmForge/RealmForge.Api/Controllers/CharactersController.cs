@@ -67,6 +67,12 @@ namespace RealmForge.Api.Controllers
 				&& _context.CampaignCharacters.Any(cc => cc.CharacterId == (t.CharacterId ?? t.SheetCharacterId) && cc.CampaignId == t.Map.CampaignId))
 			.Select(t => (t.CharacterId ?? t.SheetCharacterId)!.Value);
 
+		//	Characters whose token stands on a map shown to a table I sit at: read only (the quick sheet of an ally)
+		private IQueryable<Guid> AtMyTable => _context.CampaignTokens
+			.Where(t => t.CharacterId != null && t.Map.Shown && !t.Hidden
+				&& _context.CampaignMembers.Any(m => m.CampaignId == t.Map.CampaignId && m.UserId == UserId))
+			.Select(t => t.CharacterId!.Value);
+
 		//	Rule modules shared with the campaigns of a character and approved: active for it
 		private Task<List<Guid>> CampaignModulesAsync(Guid characterId) => _context.CampaignContents.AsNoTracking()
 			.Where(c => c.Status == CampaignContentStatus.Approved
@@ -96,7 +102,7 @@ namespace RealmForge.Api.Controllers
 			{
 				var owner = await _context.Characters.AsNoTracking()
 					.Where(c => c.Id == characterId && (c.OwnerId == UserId || _context.CharacterShares.Any(s => s.CharacterId == c.Id && s.UserId == UserId)
-						|| RunByMe.Contains(c.Id) || GivenToMe.Contains(c.Id)))
+						|| RunByMe.Contains(c.Id) || GivenToMe.Contains(c.Id) || AtMyTable.Contains(c.Id)))
 					.Select(c => c.OwnerId)
 					.FirstOrDefaultAsync();
 				if (owner is null || UserId.Length == 0)
@@ -256,7 +262,7 @@ namespace RealmForge.Api.Controllers
 		{
 			var character = await _context.Characters.AsNoTracking()
 				.FirstOrDefaultAsync(c => c.Id == id && (c.OwnerId == UserId || _context.CharacterShares.Any(s => s.CharacterId == c.Id && s.UserId == UserId)
-					|| RunByMe.Contains(c.Id) || GivenToMe.Contains(c.Id)));
+					|| RunByMe.Contains(c.Id) || GivenToMe.Contains(c.Id) || AtMyTable.Contains(c.Id)));
 			if (character is null)
 			{
 				return NotFound();

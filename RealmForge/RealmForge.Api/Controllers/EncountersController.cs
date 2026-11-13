@@ -7,6 +7,7 @@ using RealmForge.Domain.Entities;
 using RealmForge.Infrastructure.Persistence;
 using RealmForge.Shared.Campaigns;
 using RealmForge.Shared.DTOs;
+using RealmForge.Shared.Enums;
 
 namespace RealmForge.Api.Controllers
 {
@@ -48,6 +49,11 @@ namespace RealmForge.Api.Controllers
 				.Where(e => e.CampaignId == campaignId)
 				.OrderByDescending(e => e.UpdatedAt)
 				.ToListAsync();
+			var maps = await _context.CampaignMaps.AsNoTracking().Where(m => m.CampaignId == campaignId).ToDictionaryAsync(m => m.Id, m => m.Name);
+			var levels = await _context.Characters.AsNoTracking()
+				.Where(c => _context.CampaignCharacters.Any(cc => cc.CampaignId == campaignId && cc.CharacterId == c.Id))
+				.ToDictionaryAsync(c => c.Id, c => c.Level);
+			var ruleset = await _context.Campaigns.AsNoTracking().Where(c => c.Id == campaignId).Select(c => c.Ruleset).FirstOrDefaultAsync() ?? RulesetVersion.Dnd5e_2014;
 
 			return Ok(rows
 				.Where(e => EncounterRules.CanSee(me, e.Status, e.Shown))
@@ -55,8 +61,13 @@ namespace RealmForge.Api.Controllers
 				{
 					var visible = Read(e.Combatants).Where(c => EncounterRules.CanManage(me) || !c.Hidden).ToList();
 					var monsters = visible.Where(c => c.Kind == CombatantKind.Monster).ToList();
+					var party = e.PartyIds.Where(levels.ContainsKey).Select(id => levels[id]).ToList();
+					var rating = EncounterRules.CanManage(me) && party.Count > 0
+						? RealmForge.Shared.Monsters.EncounterMath.Evaluate(ruleset, party, monsters.Select(c => c.Xp).ToList()).Rating
+						: (int?)null;
 					return new EncounterSummaryDto(e.Id, e.Name, e.Status, e.Round, monsters.Count,
-						EncounterRules.CanManage(me) ? monsters.Sum(c => c.Xp) : 0, e.Shown, e.UpdatedAt);
+						EncounterRules.CanManage(me) ? monsters.Sum(c => c.Xp) : 0, e.Shown, e.UpdatedAt,
+						e.MapId, e.MapId is { } mapId ? maps.GetValueOrDefault(mapId) : null, party.Count, rating, ruleset);
 				})
 				.ToList());
 		}
@@ -222,7 +233,9 @@ namespace RealmForge.Api.Controllers
 					ChallengeRating = c.ChallengeRating,
 					Conditions = (c.Conditions ?? new List<string>()).Where(k => EncounterRules.Conditions.Contains(k)).Distinct().ToList(),
 					Note = string.IsNullOrWhiteSpace(c.Note) ? null : c.Note.Trim(),
-					Hidden = c.Hidden
+					Hidden = c.Hidden,
+					X = c.X is { } x && c.Y is not null ? Math.Clamp(x, 0, 500) : null,
+					Y = c.Y is { } y && c.X is not null ? Math.Clamp(y, 0, 500) : null
 				})
 				.ToList();
 
@@ -234,6 +247,7 @@ namespace RealmForge.Api.Controllers
 			encounter.Shown = dto.Shown;
 			encounter.Combatants = JsonSerializer.Serialize(combatants, Json);
 			encounter.PartyIds = dto.PartyIds.Where(characters.Contains).Distinct().ToList();
+			encounter.MapId = dto.MapId is { } mapId && await _context.CampaignMaps.AnyAsync(m => m.Id == mapId && m.CampaignId == encounter.CampaignId) ? mapId : null;
 		}
 
 		//	What a master changed on the characters goes to their sheets (only what differs from the values the encounter
@@ -348,7 +362,7 @@ namespace RealmForge.Api.Controllers
 			var current = e.CurrentId is { } id && combatants.Any(c => c.Id == id) ? e.CurrentId : null;
 
 			return new EncounterDto(e.Id, e.CampaignId, e.Name, manage ? e.Notes : string.Empty, e.Status, e.Round, current, e.Shown,
-				combatants, e.PartyIds.ToList(), party, manage, campaign.Ruleset, e.Version, e.UpdatedAt);
+				combatants, e.PartyIds.ToList(), party, manage, campaign.Ruleset, e.Version, e.UpdatedAt, e.MapId);
 		}
 	}
 }

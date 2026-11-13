@@ -107,6 +107,61 @@ namespace RealmForge.Client.Localization
 		public static string EncounterNew(LanguageCode lang) => T(lang, "Nuovo incontro", "New encounter");
 		public static string EncounterNamePlaceholder(LanguageCode lang) => T(lang, "Imboscata al ponte", "Ambush at the bridge");
 		public static string BtnCreate(LanguageCode lang) => T(lang, "Crea", "Create");
+		public static string EncounterNewKicker(LanguageCode lang) => T(lang, "Prepara un nuovo scontro", "Prepare a new fight");
+		public static string EncounterLinkedMap(LanguageCode lang) => T(lang, "Mappa collegata", "Linked map");
+		public static string EncounterCreateEmpty(LanguageCode lang) => T(lang, "Crea vuoto", "Create empty");
+		public static string EncounterCreateFilled(LanguageCode lang) => T(lang, "Crea e popola", "Create and fill");
+		public static string EncounterOnMap(string map, LanguageCode lang) => T(lang, $"Mappa: {map}", $"Map: {map}");
+		public static string EncounterSides(int characters, int monsters, LanguageCode lang) => T(lang,
+			$"{characters} PG contro {monsters} {(monsters == 1 ? "nemico" : "nemici")}", $"{characters} characters against {monsters} {(monsters == 1 ? "enemy" : "enemies")}");
+		public static string EncounterOpen(LanguageCode lang) => T(lang, "Apri", "Open");
+		public static string EncounterOnTableShort(LanguageCode lang) => T(lang, "Avvia sul tavolo", "Start on the table");
+		public static string EncounterOnTable(LanguageCode lang) => T(lang, "Avvia sul tavolo virtuale", "Start on the virtual table");
+		public static string EncounterMastersOnly(LanguageCode lang) => T(lang, "Solo master e co-master", "Masters and co-masters only");
+		public static string EncounterSaved(LanguageCode lang) => T(lang, "Modifiche salvate", "Changes saved");
+		public static string EncounterBudgetKicker(RulesetVersion ruleset, LanguageCode lang) => T(lang, $"Stima del pericolo e budget PE ({FormatRuleset(ruleset, lang)})", $"Danger and XP budget ({FormatRuleset(ruleset, lang)})");
+		public static string EncounterPartyLabel(LanguageCode lang) => T(lang, "PG presenti al tavolo:", "Characters at the table:");
+		public static string EncounterThreat(LanguageCode lang) => T(lang, "Minaccia dei nemici:", "Enemy threat:");
+		public static string EncounterAdvice(RulesetVersion ruleset, int rating, int xp, LanguageCode lang)
+		{
+			if (xp == 0)
+			{
+				return T(lang, "Nessun nemico ancora: aggiungili a mano o usa il generatore qui sotto.", "No enemies yet: add them by hand or use the generator below.");
+			}
+			var top = ruleset == RulesetVersion.Dnd5e_2014 ? 4 : 3;
+			return rating switch
+			{
+				0 => T(lang, "I personaggi lo superano quasi senza consumare risorse.", "The characters get through it almost without spending anything."),
+				1 => T(lang, "Uno scontro di riscaldamento: qualche ferita, vittoria quasi certa.", "A warm-up: a few wounds, a near-certain win."),
+				_ when rating >= top => T(lang, "Attenzione: rischio concreto che qualche PG scenda a 0 punti ferita.", "Careful: one or more characters may well drop to 0 hit points."),
+				2 => T(lang, "Uno scontro bilanciato: servirà qualche cura o qualche slot incantesimo.", "A balanced fight: it will take some healing or spell slots."),
+				_ => T(lang, "Uno scontro duro: il gruppo dovrà usare le sue risorse migliori.", "A hard fight: the party will need its best resources.")
+			};
+		}
+		public static string EncounterGenBadge(LanguageCode lang) => T(lang, "Generatore", "Generator");
+		public static string EncounterGenTitle(LanguageCode lang) => T(lang, "Genera un incontro bilanciato per questo gruppo", "Generate a balanced encounter for this party");
+		public static string EncounterGenTheme(LanguageCode lang) => T(lang, "Tipo di creature", "Kind of creatures");
+		public static string EncounterGenTarget(LanguageCode lang) => T(lang, "Difficoltà desiderata", "Difficulty wanted");
+		public static string EncounterGenGo(LanguageCode lang) => T(lang, "Genera", "Generate");
+		public static string EncounterGenNeedParty(LanguageCode lang) => T(lang, "Scegli almeno un PG per il calcolo.", "Choose at least one character for the budget.");
+		public static string EncounterGenAny(LanguageCode lang) => T(lang, "Qualsiasi", "Any");
+		public static string EncounterGenNone(LanguageCode lang) => T(lang, "Nessun mostro di questo tipo entra nel budget: prova un altro tipo o un'altra difficoltà.", "No monster of this kind fits the budget: try another kind or difficulty.");
+		public static string EncounterCombatantsKicker(LanguageCode lang) => T(lang, "Combattenti e schieramento", "Combatants and positions");
+		public static string EncounterClearMonsters(LanguageCode lang) => T(lang, "Svuota nemici", "Clear the enemies");
+		public static string EncounterPlaceHint(LanguageCode lang) => T(lang, "Scegli un combattente, poi clicca la sua casella di partenza sulla mappa.", "Choose a combatant, then click its starting cell on the map.");
+		public static string EncounterCell(string cell, LanguageCode lang) => T(lang, $"Casella {cell}", $"Cell {cell}");
+		public static string EncounterNoCell(LanguageCode lang) => T(lang, "Senza casella", "No cell");
+		public static string EncounterHiddenFoe(LanguageCode lang) => T(lang, "Nascosto", "Hidden");
+		public static string EncounterVisibleFoe(LanguageCode lang) => T(lang, "Visibile", "Visible");
+		public static string EncounterAddKicker(LanguageCode lang) => T(lang, "Popola a mano", "Fill by hand");
+		public static string EncounterQuickAdd(LanguageCode lang) => T(lang, "Ancora uno (un clic):", "One more (one click):");
+		public static string EncounterMapKicker(LanguageCode lang) => T(lang, "Schieramento iniziale", "Starting positions");
+		public static string EncounterMapTitle(LanguageCode lang) => T(lang, "Posizioni sulla mappa", "Positions on the map");
+		public static string EncounterNoMaps(LanguageCode lang) => T(lang, "Nessuna mappa nella campagna: creane una nella scheda Mappe.", "No map in the campaign yet: make one in the Maps tab.");
+		public static string EncounterNoMap(LanguageCode lang) => T(lang, "Nessuna mappa", "No map");
+		public static string EncounterPlaceHow(LanguageCode lang) => T(lang, "Seleziona un partecipante e <strong>clicca una casella</strong> per la sua posizione iniziale: al tavolo i segnalini partono da lì.", "Select a combatant and <strong>click a cell</strong> for where it starts: at the table its token starts there.");
+		public static string EncounterPlacing(string name, LanguageCode lang) => T(lang, $"Clicca una casella per {name}", $"Click a cell for {name}");
+		public static string EncounterSpread(LanguageCode lang) => T(lang, "Disponi in automatico", "Arrange automatically");
 		public static string EncountersBack(LanguageCode lang) => T(lang, "Incontri", "Encounters");
 		public static string EncounterNotFound(LanguageCode lang) => T(lang, "Incontro non disponibile.", "Encounter not available.");
 		public static string EncounterName(LanguageCode lang) => T(lang, "Nome dell'incontro", "Encounter name");

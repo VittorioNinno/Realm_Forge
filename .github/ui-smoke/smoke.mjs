@@ -281,6 +281,7 @@ try {
   const sapWeapons = await equipmentCount('6 oggetti');
   await page.locator('[data-test=equipment-row]', { hasText: 'Spada lunga' }).first().click();
   await page.locator('[data-test=equipment-detail]').waitFor({ timeout: 15000 });
+  await shot(page, 'equipment-detail', null);
   const longsword = await page.evaluate(() => ({
     name: document.querySelector('[data-test=equipment-name]').textContent.trim(),
     subtitle: document.querySelector('[data-test=equipment-subtitle]').textContent.trim(),
@@ -1391,6 +1392,7 @@ try {
   for (let i = 0; i < 50 && await page.locator('[data-test=combatant-sheet]').count() === 0; i++) await page.waitForTimeout(100);
   campaignUi.sheetLink = await page.locator('[data-test=combatant-sheet]').count();
   campaignUi.rating = (await page.locator('[data-test=encounter-rating]').innerText()).trim();
+  await shot(page, 'campaign-encounter', 'main');
   await page.locator('[data-test=encounter-start]').click();
   await page.locator('[data-test=encounter-round]', { hasText: 'Round 1' }).waitFor({ timeout: 15000 });
   for (let i = 0; i < 4; i++) await page.locator('[data-test=encounter-next]').click();
@@ -1793,6 +1795,23 @@ try {
   if (await page.locator('[data-test=vtt-aim-cancel]').count()) await page.locator('[data-test=vtt-aim-cancel]').click();
   // The loot tab of the masters
   combatUi.lootTab = await page.locator('[data-test=vtt-quick-sheet-tab][data-tab=loot]').count();
+  // A goblin disarmed: its weapon lies next to it, its card tells what it is and who can take it
+  await goblin1.click();
+  await page.locator('[data-test=map-token-tab-drop]').click();
+  await page.locator('[data-test=map-token-drop-weapon]').first().click();
+  await page.locator('[data-test=vtt] .rf-vtt-token.item').first().waitFor({ timeout: 15000 });
+  if (await page.locator('.rf-vtt-card-close').count()) await page.locator('.rf-vtt-card-close').click();
+  await page.locator('[data-test=vtt] .rf-vtt-token.item').first().click();
+  await page.locator('.rf-ground-pop').waitFor({ timeout: 15000 });
+  await page.waitForTimeout(800);
+  combatUi.ground = {
+    stats: await page.locator('[data-test=map-ground-stats] .g-chip').count(),
+    take: await page.locator('.rf-ground-pop [data-test=map-token-take], .rf-ground-pop [data-test=map-token-take-far]').count()
+  };
+  await shot(page, 'vtt-ground', null);
+  // The goblin takes it back in hand: the item leaves the map
+  await page.locator('[data-test=map-token-take-wield]').click();
+  combatUi.ground.back = await page.locator('[data-test=vtt] .rf-vtt-token.item').waitFor({ state: 'detached', timeout: 15000 }).then(() => 1, () => 0);
   await page.locator('[data-test=vtt-quick-sheet-tab][data-tab=general]').click();
   await page.waitForTimeout(600);
   combatUi.goblinConditions = (await goblin1.locator('[data-test=map-token-conditions]').textContent()).trim();
@@ -1810,7 +1829,7 @@ try {
   await page.mouse.up();
   results.push(`INFO vtt combat: ${JSON.stringify(combatUi)}`);
   if (combatUi.combatants !== 4 || combatUi.tokens !== 5 || combatUi.current !== 1 || !/^Round\s+\d+$/i.test(combatUi.round) || !combatUi.turnMoved
-    || combatUi.aimSelf !== 1 || combatUi.aimLit < 1 || combatUi.lootTab !== 1
+    || combatUi.aimSelf !== 1 || combatUi.aimLit < 1 || combatUi.lootTab !== 1 || combatUi.ground?.take !== 1 || combatUi.ground?.back !== 1 || !(combatUi.ground?.stats >= 2)
     || combatUi.rollTray !== 1 || combatUi.sheetAttacks < 1 || !combatUi.sheetTabs.startsWith('general,actions') || !/ 2\/\d+$/.test(combatUi.sheetHp ?? '') || combatUi.sheetAbilities !== 6 || combatUi.goblinConditions !== 'Pr' || combatUi.goblinRing !== '28.57 100' || !/^3 \/ \d+(,\d)? m$/.test(combatUi.moveLabel ?? '')) throw new Error(`unexpected combat: ${JSON.stringify(combatUi)}`);
   ok('virtual tabletop combat: the encounter started on the map (four in the initiative order, tokens for the goblins), the turn passed on, a goblin knocked prone and down to 2 hit points with its initiative rolled from its card, the fight ended, the hero\'s move showing 3 m against its speed');
   // The initiative bar: a fight asked with the tokens on the map, the hero rolls its own initiative, a goblin leaves the
@@ -2180,7 +2199,7 @@ try {
     audits.push(await overflow(path));
     if (open) {
       await open();
-      await mobile.locator('.rf-modal-dialog').first().waitFor({ timeout: 15000 });
+      await mobile.locator('.rf-modal-dialog, .rf-info-modal').first().waitFor({ timeout: 15000 });
       await mobile.waitForTimeout(500);
       audits.push(await overflow(`${path} detail`));
     }
