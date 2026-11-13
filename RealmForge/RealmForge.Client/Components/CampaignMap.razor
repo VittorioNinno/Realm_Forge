@@ -287,6 +287,9 @@ else
     [Parameter] public CampaignRole Role { get; set; } = CampaignRole.Player;
     [Parameter] public IReadOnlyList<CampaignCharacterDto> Characters { get; set; } = Array.Empty<CampaignCharacterDto>();
     [Parameter] public bool Table { get; set; }
+
+    //	An encounter to start at once (from its page): chosen in the initiative bar, on its map
+    [Parameter] public Guid? StartEncounter { get; set; }
     [Parameter] public string BackHref { get; set; } = "campaigns";
     [Parameter] public string MyColor { get; set; } = PlayerColors.Master;
     [Parameter] public IReadOnlyList<CampaignMemberDto> Members { get; set; } = Array.Empty<CampaignMemberDto>();
@@ -2449,12 +2452,16 @@ else
         self = DotNetObjectReference.Create(this);
         sawLive = LiveTable is not null || Live.Of(CampaignId) is not null;
         Live.Changed += OnLiveChanged;
-        if (RunsTheTable)
+        if (RunsTheTable || Table)
         {
+            //	The players too: which NPCs are friendly (their sheets are read only)
             _ = LoadMonstersAsync();
-            _ = LoadEncountersAsync();
         }
         await LoadMapsAsync();
+        if (RunsTheTable)
+        {
+            _ = LoadEncountersAsync();
+        }
         stop = new CancellationTokenSource();
         _ = PollAsync(stop.Token);
     }
@@ -2956,6 +2963,17 @@ else
         {
             encounters = await Encounters.GetEncountersAsync(CampaignId) ?? new();
             encounterId ??= EncounterOptions.FirstOrDefault()?.Value;
+            if (StartEncounter is { } wanted && encounters.FirstOrDefault(e => e.Id == wanted && e.Status != EncounterStatus.Finished) is { } chosen)
+            {
+                StartEncounter = null;
+                encounterId = chosen.Id;
+                encounterPick = true;
+                if (chosen.MapId is { } mapId && mapId != selectedId && maps?.Any(m => m.Id == mapId) == true)
+                {
+                    await SelectAsync(mapId);
+                }
+                await InvokeAsync(StateHasChanged);
+            }
         }
     }
 

@@ -1392,6 +1392,7 @@ try {
   for (let i = 0; i < 50 && await page.locator('[data-test=combatant-sheet]').count() === 0; i++) await page.waitForTimeout(100);
   campaignUi.sheetLink = await page.locator('[data-test=combatant-sheet]').count();
   campaignUi.rating = (await page.locator('[data-test=encounter-rating]').innerText()).trim();
+  await shot(page, 'campaign-encounter', null);
   await page.locator('[data-test=encounter-start]').click();
   await page.locator('[data-test=encounter-round]', { hasText: 'Round 1' }).waitFor({ timeout: 15000 });
   for (let i = 0; i < 4; i++) await page.locator('[data-test=encounter-next]').click();

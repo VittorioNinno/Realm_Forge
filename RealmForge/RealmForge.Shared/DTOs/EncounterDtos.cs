@@ -11,7 +11,14 @@ namespace RealmForge.Shared.DTOs
 		int Monsters,
 		int MonsterXp,
 		bool Shown,
-		DateTimeOffset UpdatedAt);
+		DateTimeOffset UpdatedAt,
+
+		//	The map it is fought on; how many characters it is balanced for and its rating (masters only, see EncounterBudget)
+		Guid? MapId = null,
+		string? MapName = null,
+		int Characters = 0,
+		int? Rating = null,
+		RulesetVersion? Ruleset = null);
 
 	///	<summary>
 	///	A character of the campaign, for the party of an encounter.
@@ -38,7 +45,8 @@ namespace RealmForge.Shared.DTOs
 		bool CanManage,
 		RulesetVersion? Ruleset,
 		int Version,
-		DateTimeOffset UpdatedAt);
+		DateTimeOffset UpdatedAt,
+		Guid? MapId = null);
 
 	public class SaveEncounterDto
 	{
@@ -57,5 +65,8 @@ namespace RealmForge.Shared.DTOs
 
 		//	Version the client started from (null: overwrite)
 		public int? Version { get; set; }
+
+		//	The map it is fought on (a map of the campaign)
+		public Guid? MapId { get; set; }
 	}
 }
