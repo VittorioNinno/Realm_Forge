@@ -4,14 +4,15 @@
 @using RealmForge.Shared.DTOs
 @using RealmForge.Shared.Enums
 @inject EncounterDataService Encounters
+@inject CampaignDataService Campaigns
 @inject LanguageStateService LanguageState
 
 @* Encounters tab of a campaign: the list (masters and co-masters see them all, the players only the ones under way
    that were shown to them) and the encounter that is open *@
-<section data-test="campaign-encounters">
+<section class="enc" data-test="campaign-encounters">
     @if (openId is { } id)
     {
-        <EncounterTracker CampaignId="Campaign.Id" EncounterId="id" Campaign="Campaign" OnClose="CloseAsync" />
+        <EncounterTracker CampaignId="Campaign.Id" EncounterId="id" Campaign="Campaign" OnClose="CloseAsync" GenerateOnOpen="generateOnOpen" GenerateType="newType" />
     }
     else
     {
@@ -21,18 +22,31 @@
 
         @if (EncounterRules.CanManage(Campaign.MyRole))
         {
-            <div class="rf-card2 mb-3" data-test="encounter-create">
-                <div class="rf-mini-title">@UiText.EncounterNew(Lang)</div>
-                <div class="d-flex flex-wrap gap-2">
-                    <input class="rf-form-control flex-grow-1" style="max-width: 420px;" maxlength="100" placeholder="@UiText.EncounterNamePlaceholder(Lang)"
-                           @bind="newName" @bind:event="oninput" data-test="encounter-new-name" />
-                    <button type="button" class="btn btn-rf-orange" disabled="@(string.IsNullOrWhiteSpace(newName) || busy)" @onclick="CreateAsync" data-test="encounter-new-create">@UiText.BtnCreate(Lang)</button>
+            <section class="enc-card enc-new" data-test="encounter-create">
+                <span class="enc-kicker">@UiText.EncounterNewKicker(Lang)</span>
+                <div class="enc-new-grid">
+                    <label>
+                        <span class="enc-micro">@UiText.EncounterName(Lang)</span>
+                        <input class="rf-form-control" maxlength="100" placeholder="@UiText.EncounterNamePlaceholder(Lang)" @bind="newName" @bind:event="oninput" data-test="encounter-new-name" />
+                    </label>
+                    <label>
+                        <span class="enc-micro">@UiText.EncounterLinkedMap(Lang)</span>
+                        <RfSelect TValue="Guid?" @bind-Value="newMap" Options="MapOptions" />
+                    </label>
+                    <label>
+                        <span class="enc-micro">@UiText.EncounterGenTheme(Lang)</span>
+                        <RfSelect TValue="CreatureType?" @bind-Value="newType" Options="ThemeOptions" />
+                    </label>
+                    <div class="enc-new-actions">
+                        <button type="button" class="enc-btn" disabled="@(string.IsNullOrWhiteSpace(newName) || busy)" @onclick="() => CreateAsync(false)" data-test="encounter-new-create">@UiText.EncounterCreateEmpty(Lang)</button>
+                        <button type="button" class="enc-btn primary" disabled="@(string.IsNullOrWhiteSpace(newName) || busy)" @onclick="() => CreateAsync(true)" data-test="encounter-new-generate"><Icon Name="dice" /> @UiText.EncounterCreateFilled(Lang)</button>
+                    </div>
                 </div>
                 @if (error is not null)
                 {
                     <div class="small text-warning mt-2">@error</div>
                 }
-            </div>
+            </section>
         }
 
         @if (list is null)
@@ -45,25 +59,48 @@
         }
         else
         {
-            <div class="rf-encounter-list" data-test="encounter-list">
+            <div class="enc-list" data-test="encounter-list">
                 @foreach (var item in list)
                 {
                     var e = item;
-                    <button type="button" class="rf-encounter-item" @onclick="() => openId = e.Id" data-test="encounter-item">
-                        <span class="rf-encounter-item-name">@e.Name</span>
-                        <span class="badge rf-encounter-status rf-encounter-status-@e.Status.ToString().ToLowerInvariant()">@UiText.EncounterStatusName(e.Status, Lang)</span>
-                        @if (e.Status == EncounterStatus.Running)
+                    <article class="enc-list-card status-@e.Status.ToString().ToLowerInvariant()">
+                        <button type="button" class="enc-list-main" @onclick="() => Open(e.Id)" data-test="encounter-item">
+                            <span class="enc-list-title">
+                                <strong class="rf-encounter-item-name">@e.Name</strong>
+                                <span class="enc-status status-@e.Status.ToString().ToLowerInvariant()"><span class="dot"></span>@UiText.EncounterStatusName(e.Status, Lang)</span>
+                                @if (e.Status == EncounterStatus.Running)
+                                {
+                                    <span class="enc-round">@UiText.EncounterRound(e.Round, Lang)</span>
+                                }
+                                @if (e.Rating is { } rating && e.Ruleset is { } ruleset)
+                                {
+                                    <span class="enc-diff level-@Level(ruleset, rating, e.MonsterXp)">@UiText.EncounterRating(ruleset, rating, Lang) · @e.MonsterXp @UiText.XpLabel(Lang)</span>
+                                }
+                                @if (e.Shown)
+                                {
+                                    <span class="enc-shown"><Icon Name="eye" /> @UiText.EncounterShownShort(Lang)</span>
+                                }
+                            </span>
+                            <span class="enc-list-sub">
+                                @if (e.MapName is not null)
+                                {
+                                    <span>@UiText.EncounterOnMap(e.MapName, Lang)</span>
+                                    <span class="sep">•</span>
+                                }
+                                <span>@UiText.EncounterSides(e.Characters, e.Monsters, Lang)</span>
+                            </span>
+                        </button>
+                        @if (EncounterRules.CanManage(Campaign.MyRole))
                         {
-                            <span class="small">@UiText.EncounterRound(e.Round, Lang)</span>
+                            <div class="enc-list-actions">
+                                <button type="button" class="enc-btn" @onclick="() => Open(e.Id)">@UiText.EncounterOpen(Lang)</button>
+                                @if (e.Status != EncounterStatus.Finished)
+                                {
+                                    <a class="enc-cta" href="@($"campaigns/{Campaign.Id}/vtt?encounter={e.Id}")">@UiText.EncounterOnTableShort(Lang) <Icon Name="caret-right" /></a>
+                                }
+                            </div>
                         }
-                        <span class="small ms-auto" style="color: var(--rf-text-muted);">
-                            @UiText.EncounterMonsterCount(e.Monsters, Lang)@(EncounterRules.CanManage(Campaign.MyRole) ? $" · {e.MonsterXp} {UiText.XpLabel(Lang)}" : null)
-                            @if (e.Shown)
-                            {
-                                <text> · <Icon Name="eye" /> @UiText.EncounterShownShort(Lang)</text>
-                            }
-                        </span>
-                    </button>
+                    </article>
                 }
             </div>
         }
@@ -77,14 +114,43 @@
     private List<EncounterSummaryDto>? list;
     private Guid? openId;
     private string newName = string.Empty;
+    private Guid? newMap;
+    private CreatureType? newType;
+    private bool generateOnOpen;
+    private List<CampaignMapSummaryDto>? maps;
     private string? error;
     private bool busy;
 
-    protected override Task OnInitializedAsync() => LoadAsync();
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadAsync();
+        if (EncounterRules.CanManage(Campaign.MyRole))
+        {
+            maps = await Campaigns.GetMapsAsync(Campaign.Id) ?? new();
+        }
+    }
+
+    private void Open(Guid id)
+    {
+        generateOnOpen = false;
+        openId = id;
+    }
+
+    private List<RfSelect<Guid?>.OptionItem> MapOptions => new List<RfSelect<Guid?>.OptionItem> { new(null, UiText.EncounterNoMap(Lang)) }
+        .Concat((maps ?? new()).Select(m => new RfSelect<Guid?>.OptionItem(m.Id, m.Name)))
+        .ToList();
+
+    private List<RfSelect<CreatureType?>.OptionItem> ThemeOptions => new List<RfSelect<CreatureType?>.OptionItem> { new(null, UiText.EncounterGenAny(Lang)) }
+        .Concat(Enum.GetValues<CreatureType>()
+            .Select(t => new RfSelect<CreatureType?>.OptionItem(t, UiText.FormatCreatureType(t, Lang)))
+            .OrderBy(o => o.Label, StringComparer.CurrentCultureIgnoreCase))
+        .ToList();
+
+    private static string Level(RulesetVersion ruleset, int rating, int xp) => xp == 0 ? "none" : rating <= 1 ? "low" : rating == 2 ? "mid" : "high";
 
     private async Task LoadAsync() => list = await Encounters.GetEncountersAsync(Campaign.Id) ?? new List<EncounterSummaryDto>();
 
-    private async Task CreateAsync()
+    private async Task CreateAsync(bool fill)
     {
         if (string.IsNullOrWhiteSpace(newName))
         {
@@ -92,11 +158,12 @@
         }
         busy = true;
         error = null;
-        var result = await Encounters.SaveAsync(Campaign.Id, null, new SaveEncounterDto { Name = newName.Trim() });
+        var result = await Encounters.SaveAsync(Campaign.Id, null, new SaveEncounterDto { Name = newName.Trim(), MapId = newMap });
         busy = false;
         if (result.Encounter is { } created)
         {
             newName = string.Empty;
+            generateOnOpen = fill;
             openId = created.Id;
             await LoadAsync();
             return;

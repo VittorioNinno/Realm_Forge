@@ -7,26 +7,67 @@
 @implements IDisposable
 @inject EncounterDataService Encounters
 @inject MonsterDataService MonsterService
+@inject CampaignDataService Campaigns
 @inject LanguageStateService LanguageState
 
 @* One encounter: masters and co-masters build it (monsters, characters, others), see its difficulty for the party and
    run it (initiative, hit points, conditions, rounds); the players follow the initiative order of a shown encounter *@
-<div data-test="encounter">
-    <div class="d-flex flex-wrap align-items-center gap-2 mb-3">
-        <button type="button" class="btn btn-sm btn-rf-outline" @onclick="() => OnClose.InvokeAsync()" data-test="encounter-back"><Icon Name="left" /> @UiText.EncountersBack(Lang)</button>
+<div class="enc" data-test="encounter">
+    @* The top bar: back, name, status; on the right what the masters do with it (all 40 px high) *@
+    <header class="enc-top">
+        <div class="enc-top-left">
+            <button type="button" class="enc-back" @onclick="() => OnClose.InvokeAsync()" data-test="encounter-back"><Icon Name="left" /> @UiText.EncountersBack(Lang)</button>
+            @if (encounter is not null)
+            {
+                @if (Manage)
+                {
+                    <input class="enc-title-input" maxlength="100" @bind="draft.Name" @bind:after="SaveAsync" aria-label="@UiText.EncounterName(Lang)" data-test="encounter-name" />
+                }
+                else
+                {
+                    <h2 class="enc-title">@encounter.Name</h2>
+                }
+                <span class="enc-status status-@draft.Status.ToString().ToLowerInvariant()" data-test="encounter-status"><span class="dot"></span>@UiText.EncounterStatusName(draft.Status, Lang)</span>
+                @if (draft.Status == EncounterStatus.Running)
+                {
+                    <span class="enc-round" data-test="encounter-round">@UiText.EncounterRound(draft.Round, Lang)</span>
+                }
+            }
+        </div>
         @if (encounter is not null)
         {
-            <span class="badge rf-encounter-status rf-encounter-status-@draft.Status.ToString().ToLowerInvariant()" data-test="encounter-status">@UiText.EncounterStatusName(draft.Status, Lang)</span>
-            @if (draft.Status == EncounterStatus.Running)
-            {
-                <span class="rf-encounter-round" data-test="encounter-round">@UiText.EncounterRound(draft.Round, Lang)</span>
-            }
+            <div class="enc-top-right">
+                @if (Manage)
+                {
+                    <button type="button" class="enc-toggle @(draft.Shown ? "on" : null)" aria-pressed="@(draft.Shown ? "true" : "false")" title="@UiText.EncounterShownHint(Lang)" @onclick="ToggleShownAsync" data-test="encounter-shown">
+                        <span class="dot"></span>@(draft.Shown ? UiText.EncounterShown(Lang) : UiText.EncounterHidden(Lang))
+                    </button>
+                    @switch (draft.Status)
+                    {
+                        case EncounterStatus.Planned:
+                            <button type="button" class="enc-btn" disabled="@(draft.Combatants.Count == 0)" @onclick="StartAsync" data-test="encounter-start"><Icon Name="play" /> @UiText.EncounterStart(Lang)</button>
+                            break;
+                        case EncounterStatus.Running:
+                            <button type="button" class="enc-btn square" title="@UiText.ToolBack(Lang)" @onclick="PreviousAsync" data-test="encounter-prev"><Icon Name="caret-left" /></button>
+                            <button type="button" class="enc-btn" @onclick="NextAsync" data-test="encounter-next">@UiText.EncounterNextTurn(Lang) <Icon Name="caret-right" /></button>
+                            <button type="button" class="enc-btn" @onclick="FinishAsync" data-test="encounter-finish">@UiText.EncounterFinish(Lang)</button>
+                            break;
+                        default:
+                            <button type="button" class="enc-btn" @onclick="ReopenAsync" data-test="encounter-reopen">@UiText.EncounterReopen(Lang)</button>
+                            break;
+                    }
+                    @if (draft.Status != EncounterStatus.Finished)
+                    {
+                        <a class="enc-cta" href="@($"campaigns/{CampaignId}/vtt?encounter={EncounterId}")" data-test="encounter-vtt"><Icon Name="play" /> @UiText.EncounterOnTable(Lang)</a>
+                    }
+                }
+                else
+                {
+                    <button type="button" class="enc-btn" @onclick="LoadAsync" data-test="encounter-refresh"><Icon Name="refresh" /> @UiText.BtnRefresh(Lang)</button>
+                }
+            </div>
         }
-        @if (!Manage && encounter is not null)
-        {
-            <button type="button" class="btn btn-sm btn-rf-outline ms-auto" @onclick="LoadAsync" data-test="encounter-refresh"><Icon Name="refresh" /> @UiText.BtnRefresh(Lang)</button>
-        }
-    </div>
+    </header>
 
     @if (message is not null)
     {
@@ -41,245 +82,45 @@
     {
         <div class="rf-account-card text-center">@UiText.EncounterNotFound(Lang)</div>
     }
-    else
+    else if (Manage)
     {
-        @if (Manage)
-        {
-            <div class="rf-card2 mb-3">
-                <div class="row g-2 align-items-end">
-                    <div class="col-md-6">
-                        <label class="rf-form-label">@UiText.EncounterName(Lang)</label>
-                        <input class="rf-form-control" maxlength="100" @bind="draft.Name" @bind:after="SaveAsync" data-test="encounter-name" />
-                    </div>
-                    <div class="col-md-6 d-flex flex-wrap gap-2 justify-content-md-end">
-                        @switch (draft.Status)
-                        {
-                            case EncounterStatus.Planned:
-                                <button type="button" class="btn btn-rf-orange" disabled="@(draft.Combatants.Count == 0)" @onclick="StartAsync" data-test="encounter-start"><Icon Name="play" /> @UiText.EncounterStart(Lang)</button>
-                                break;
-                            case EncounterStatus.Running:
-                                <button type="button" class="btn btn-rf-outline" @onclick="PreviousAsync" data-test="encounter-prev"><Icon Name="caret-left" /></button>
-                                <button type="button" class="btn btn-rf-orange" @onclick="NextAsync" data-test="encounter-next">@UiText.EncounterNextTurn(Lang) <Icon Name="caret-right" /></button>
-                                <button type="button" class="btn btn-rf-outline" @onclick="FinishAsync" data-test="encounter-finish">@UiText.EncounterFinish(Lang)</button>
-                                break;
-                            default:
-                                <button type="button" class="btn btn-rf-outline" @onclick="ReopenAsync" data-test="encounter-reopen">@UiText.EncounterReopen(Lang)</button>
-                                break;
-                        }
-                        <button type="button" class="btn btn-rf-outline @(draft.Shown ? "active" : null)" aria-pressed="@(draft.Shown ? "true" : "false")"
-                                title="@UiText.EncounterShownHint(Lang)" @onclick="ToggleShownAsync" data-test="encounter-shown">
-                            <Icon Name="@(draft.Shown ? "eye" : "eye-slash")" /> @(draft.Shown ? UiText.EncounterShown(Lang) : UiText.EncounterHidden(Lang))
-                        </button>
-                    </div>
-                </div>
+        <div class="enc-grid">
+            <div class="enc-col">
+                @Difficulty
+                @Combatants
+                @AddCard
             </div>
-
-            @* Difficulty for the chosen characters *@
-            <div class="rf-card2 mb-3" data-test="encounter-difficulty">
-                <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
-                    <div class="rf-mini-title mb-0">@UiText.EncounterDifficulty(Lang)</div>
-                    @if (Campaign.Ruleset is null)
-                    {
-                        <div class="ms-auto" style="min-width: 180px;" data-test="encounter-rules">
-                            <RfSelect TValue="RulesetVersion" @bind-Value="difficultyRuleset" Options="RulesetOptions" />
+            <aside class="enc-col">
+                @MapCard
+                <section class="enc-card enc-notes">
+                    <div class="enc-card-head">
+                        <div>
+                            <span class="enc-kicker">@UiText.EncounterMastersOnly(Lang)</span>
+                            <h3 class="enc-h">@UiText.EncounterNotes(Lang)</h3>
                         </div>
-                    }
-                </div>
-                @if (encounter.Characters.Count == 0)
-                {
-                    <div class="small" style="color: var(--rf-text-muted);">@UiText.EncounterNoCharacters(Lang)</div>
-                }
-                else
-                {
-                    <div class="rf-pill-group mb-2" data-test="encounter-party">
-                        @foreach (var member in encounter.Characters)
-                        {
-                            var m = member;
-                            var inParty = draft.PartyIds.Contains(m.CharacterId);
-                            <button type="button" class="rf-pill-btn @(inParty ? "active" : null)" aria-pressed="@(inParty ? "true" : "false")" @onclick="() => TogglePartyAsync(m.CharacterId)">
-                                @m.Name · @UiText.CharacterLevel(m.Level, Lang)
-                            </button>
-                        }
                     </div>
-                }
-                @{
-                    var budget = Budget;
-                }
-                <div class="rf-encounter-budget">
-                    <span class="rf-encounter-rating rf-encounter-rating-@budget.Rating" data-test="encounter-rating">@UiText.EncounterRating(budget.Ruleset, budget.Rating, Lang)</span>
-                    <span>@UiText.EncounterXpLine(budget.TotalXp, budget.Multiplier, budget.AdjustedXp, budget.Ruleset, Lang)</span>
-                    @if (budget.Thresholds.Length > 0)
-                    {
-                        <span class="small" style="color: var(--rf-text-muted);">@UiText.EncounterThresholds(budget.Ruleset, budget.Thresholds, Lang)</span>
-                        <span class="small" style="color: var(--rf-text-muted);">@UiText.EncounterXpEach(budget.XpPerCharacter(PartyLevels.Count), Lang)</span>
-                    }
-                </div>
-            </div>
-        }
-
-        @* Initiative order *@
-        <div class="rf-card2 mb-3" data-test="encounter-combatants">
-            <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
-                <div class="rf-mini-title mb-0">@UiText.EncounterCombatants(Lang)</div>
-                @if (Manage && draft.Combatants.Count > 0)
-                {
-                    <button type="button" class="btn btn-sm btn-rf-outline ms-auto" @onclick="RollInitiativeAsync" data-test="encounter-roll-initiative"><Icon Name="dice" /> @UiText.EncounterRollInitiative(Lang)</button>
-                }
-            </div>
-
-            @if (draft.Combatants.Count == 0)
-            {
-                <div class="small" style="color: var(--rf-text-muted);" data-test="encounter-combatants-empty">@UiText.EncounterNoCombatants(Lang)</div>
-            }
-            @foreach (var combatant in EncounterRules.Order(draft.Combatants))
-            {
-                var c = combatant;
-                var current = draft.Status == EncounterStatus.Running && draft.CurrentId == c.Id;
-                var down = c.Kind != CombatantKind.Character && (c.Health == CombatantHealth.Down || (c.Health is null && c.MaxHp > 0 && c.Hp <= 0));
-                <div class="rf-combatant @(current ? "current" : null) @(down ? "down" : null) @(c.Hidden ? "hidden-foe" : null)" data-test="encounter-combatant">
-                    <div class="rf-combatant-init">
-                        @if (Manage)
+                    <textarea class="rf-form-control" rows="8" maxlength="8000" placeholder="@UiText.EncounterNotesHint(Lang)" @bind="draft.Notes" @bind:after="SaveAsync" data-test="encounter-notes"></textarea>
+                    <div class="enc-card-foot">
+                        <span class="enc-saved">@(saved ? $"✓ {UiText.EncounterSaved(Lang)}" : null)</span>
+                        @if (confirmDelete)
                         {
-                            <input type="number" class="rf-form-control" title="@UiText.EncounterInitiative(Lang)" value="@c.Initiative"
-                                   @onchange="e => SetInitiativeAsync(c, e.Value)" data-test="combatant-initiative" />
+                            <span class="d-flex gap-2">
+                                <button type="button" class="enc-btn" @onclick="() => confirmDelete = false">@UiText.BtnCancel(Lang)</button>
+                                <button type="button" class="enc-btn danger solid" @onclick="DeleteAsync" data-test="encounter-delete-yes">@UiText.EncounterDeleteConfirm(Lang)</button>
+                            </span>
                         }
                         else
                         {
-                            <span>@(c.Initiative?.ToString() ?? "—")</span>
+                            <button type="button" class="enc-btn danger" @onclick="() => confirmDelete = true" data-test="encounter-delete">@UiText.Delete(Lang)</button>
                         }
                     </div>
-                    <div class="rf-combatant-main">
-                        <div class="rf-combatant-name">
-                            @if (current)
-                            {
-                                <span class="rf-combatant-turn" title="@UiText.EncounterCurrentTurn(Lang)"><Icon Name="play" /></span>
-                            }
-                            @if (Manage)
-                            {
-                                <input class="rf-form-control rf-combatant-name-input" maxlength="100" value="@c.Name" @onchange="e => RenameAsync(c, e.Value)" data-test="combatant-name" />
-                            }
-                            else
-                            {
-                                <span>@c.Name</span>
-                            }
-                            <span class="rf-combatant-kind">@UiText.CombatantKindName(c.Kind, Lang)@(c.ChallengeRating is { } cr && Manage ? $" · {UiText.MonsterChallengeShort(Lang)} {MonsterMath.FormatChallenge(cr)}" : null)</span>
-                            @if (c.MonsterId is { } monsterId)
-                            {
-                                <button type="button" class="btn btn-sm btn-link p-0" @onclick="() => OpenStatblockAsync(monsterId)" data-test="combatant-statblock">@UiText.EncounterStatblock(Lang)</button>
-                            }
-                            @if (c.Kind == CombatantKind.Character && c.CharacterId is { } characterId && Manage)
-                            {
-                                <a class="btn btn-sm btn-link p-0" href="@($"characters/{characterId}")" title="@UiText.EncounterSheetSynced(Lang)" data-test="combatant-sheet">@UiText.EncounterOpenSheet(Lang)</a>
-                            }
-                        </div>
-                        <div class="rf-combatant-conditions">
-                            @foreach (var key in c.Conditions)
-                            {
-                                var k = key;
-                                if (Manage)
-                                {
-                                    <button type="button" class="rf-condition-chip" title="@UiText.BtnRemove(Lang)" @onclick="() => RemoveConditionAsync(c, k)">@UiText.ConditionName(k, Lang) <Icon Name="close" /></button>
-                                }
-                                else
-                                {
-                                    <span class="rf-condition-chip">@UiText.ConditionName(k, Lang)</span>
-                                }
-                            }
-                            @if (Manage)
-                            {
-                                <div class="rf-condition-add" data-test="combatant-condition">
-                                    <RfSelect TValue="string" Value="@(string.Empty)" ValueChanged="v => AddConditionAsync(c, v)" Options="ConditionOptions(c)" />
-                                </div>
-                            }
-                        </div>
-                    </div>
-                    <div class="rf-combatant-stats">
-                        @if (Manage || c.Kind == CombatantKind.Character)
-                        {
-                            <span class="rf-combatant-ac" title="@UiText.MonsterArmorClass(Lang)"><Icon Name="shield" /> @c.ArmorClass</span>
-                            <span class="rf-combatant-hp" data-test="combatant-hp"><Icon Name="heart" /> @c.Hp@(c.MaxHp > 0 ? $"/{c.MaxHp}" : null)@(c.TempHp > 0 ? $" (+{c.TempHp})" : null)</span>
-                        }
-                        else if (c.Health is { } health)
-                        {
-                            <span class="rf-health rf-health-@health.ToString().ToLowerInvariant()" data-test="combatant-health">@UiText.HealthName(health, Lang)</span>
-                        }
-                        @if (Manage)
-                        {
-                            <div class="rf-combatant-hp-edit">
-                                <input type="number" min="0" class="rf-form-control" placeholder="0" value="@AmountOf(c)" @onchange="e => amounts[c.Id] = e.Value?.ToString()" data-test="combatant-amount" />
-                                <button type="button" class="btn btn-sm btn-rf-outline" title="@UiText.EncounterDamage(Lang)" @onclick="() => ApplyAsync(c, -1)" data-test="combatant-damage">−</button>
-                                <button type="button" class="btn btn-sm btn-rf-outline" title="@UiText.EncounterHeal(Lang)" @onclick="() => ApplyAsync(c, 1)" data-test="combatant-heal">+</button>
-                                <button type="button" class="btn btn-sm btn-rf-outline" title="@UiText.EncounterTempHp(Lang)" @onclick="() => ApplyAsync(c, 0)">T</button>
-                            </div>
-                        }
-                    </div>
-                    @if (Manage)
-                    {
-                        <div class="rf-combatant-actions">
-                            <button type="button" class="btn btn-sm btn-rf-outline @(c.Hidden ? "active" : null)" title="@UiText.EncounterHideHint(Lang)" @onclick="() => ToggleHiddenAsync(c)" data-test="combatant-hide"><Icon Name="@(c.Hidden ? "eye-slash" : "eye")" /></button>
-                            <button type="button" class="btn btn-sm btn-rf-outline" title="@UiText.BtnRemove(Lang)" @onclick="() => RemoveAsync(c)" data-test="combatant-remove"><Icon Name="close" /></button>
-                        </div>
-                    }
-                </div>
-            }
+                </section>
+            </aside>
         </div>
-
-        @if (Manage)
-        {
-            @* Add combatants *@
-            <div class="rf-card2 mb-3" data-test="encounter-add">
-                <div class="rf-mini-title">@UiText.EncounterAddMonsters(Lang)</div>
-                <div class="d-flex flex-wrap gap-2 align-items-center mb-2">
-                    <input class="rf-form-control flex-grow-1" style="max-width: 360px;" placeholder="@UiText.PlaceholderSearchMonsters(Lang)"
-                           @bind="monsterSearch" @bind:event="oninput" @onfocus="EnsureMonstersAsync" data-test="encounter-monster-search" />
-                    <label class="small d-flex align-items-center gap-2" style="color: var(--rf-text-secondary);">
-                        <input type="checkbox" @bind="rollHp" /> @UiText.EncounterRollHp(Lang)
-                    </label>
-                </div>
-                @if (MonsterResults.Count > 0)
-                {
-                    <div class="rf-monster-picker" data-test="encounter-monster-results">
-                        @foreach (var monster in MonsterResults)
-                        {
-                            var m = monster;
-                            <div class="rf-monster-pick">
-                                <span class="rf-monster-pick-name">@m.Name</span>
-                                <span class="small" style="color: var(--rf-text-muted);">@UiText.MonsterChallengeShort(Lang) @MonsterMath.FormatChallenge(m.ChallengeRating) · @UiText.MonsterArmorClassShort(Lang) @m.ArmorClass · @UiText.MonsterHitPointsShort(Lang) @m.HitPoints · @m.Xp @UiText.XpLabel(Lang)</span>
-                                <input type="number" min="1" max="20" class="rf-form-control rf-monster-pick-count" value="@CountOf(m.Id)" @onchange="e => SetCount(m.Id, e.Value)" />
-                                <button type="button" class="btn btn-sm btn-rf-orange" @onclick="() => AddMonsterAsync(m)" data-test="encounter-monster-add">+ @UiText.BtnAdd(Lang)</button>
-                            </div>
-                        }
-                    </div>
-                }
-                else if (!string.IsNullOrWhiteSpace(monsterSearch) && monsters is not null)
-                {
-                    <div class="small" style="color: var(--rf-text-muted);">@UiText.NoMonstersFound(Lang)</div>
-                }
-
-                <div class="d-flex flex-wrap gap-2 mt-3">
-                    <button type="button" class="btn btn-sm btn-rf-outline" disabled="@(PartyToAdd.Count == 0)" @onclick="AddPartyAsync" data-test="encounter-add-party">+ @UiText.EncounterAddParty(Lang)</button>
-                    <input class="rf-form-control" style="max-width: 260px;" maxlength="100" placeholder="@UiText.EncounterOtherPlaceholder(Lang)" @bind="otherName" @bind:event="oninput" data-test="encounter-other-name" />
-                    <button type="button" class="btn btn-sm btn-rf-outline" disabled="@(string.IsNullOrWhiteSpace(otherName))" @onclick="AddOtherAsync" data-test="encounter-add-other">+ @UiText.BtnAdd(Lang)</button>
-                </div>
-            </div>
-
-            <div class="rf-card2 mb-3">
-                <label class="rf-form-label">@UiText.EncounterNotes(Lang)</label>
-                <textarea class="rf-form-control" rows="4" maxlength="8000" placeholder="@UiText.EncounterNotesHint(Lang)" @bind="draft.Notes" @bind:after="SaveAsync" data-test="encounter-notes"></textarea>
-            </div>
-
-            <div class="d-flex justify-content-end gap-2">
-                @if (confirmDelete)
-                {
-                    <button type="button" class="btn btn-sm btn-rf-outline" @onclick="() => confirmDelete = false">@UiText.BtnCancel(Lang)</button>
-                    <button type="button" class="btn btn-sm btn-rf-orange" style="background-color: #dc3545; border-color: #dc3545;" @onclick="DeleteAsync" data-test="encounter-delete-yes">@UiText.EncounterDeleteConfirm(Lang)</button>
-                }
-                else
-                {
-                    <button type="button" class="btn btn-sm btn-rf-outline" style="border-color: #dc3545; color: #dc3545;" @onclick="() => confirmDelete = true" data-test="encounter-delete">@UiText.Delete(Lang)</button>
-                }
-            </div>
-        }
+    }
+    else
+    {
+        @Combatants
     }
 </div>
 
@@ -300,6 +141,10 @@
     [Parameter, EditorRequired] public Guid EncounterId { get; set; }
     [Parameter, EditorRequired] public CampaignDetailDto Campaign { get; set; } = default!;
     [Parameter] public EventCallback OnClose { get; set; }
+
+    //	Just created to be filled: the generator runs once, with this kind of creatures
+    [Parameter] public bool GenerateOnOpen { get; set; }
+    [Parameter] public CreatureType? GenerateType { get; set; }
 
     //	The players' view follows the masters every few seconds
     private const int RefreshSeconds = 8;
@@ -330,6 +175,15 @@
         difficultyRuleset = Campaign.Ruleset ?? RulesetVersion.Dnd5e_2014;
         await LoadAsync();
         loading = false;
+        if (Manage)
+        {
+            await LoadMapsAsync();
+            if (GenerateOnOpen)
+            {
+                genType = GenerateType;
+                await GenerateAsync();
+            }
+        }
         if (encounter is not null)
         {
             var manage = encounter.CanManage;
@@ -373,6 +227,7 @@
         Shown = e.Shown,
         PartyIds = e.PartyIds.ToList(),
         Version = e.Version,
+        MapId = e.MapId,
         Combatants = e.Combatants.Select(c => new EncounterCombatant
         {
             Id = c.Id,
@@ -394,7 +249,9 @@
             Health = c.Health,
             SheetHp = c.SheetHp,
             SheetTempHp = c.SheetTempHp,
-            SheetConditions = c.SheetConditions?.ToList()
+            SheetConditions = c.SheetConditions?.ToList(),
+            X = c.X,
+            Y = c.Y
         }).ToList()
     };
 
@@ -458,6 +315,7 @@
                 draft.Version = saved.Version;
                 TakeSheets(saved);
                 message = null;
+                this.saved = true;
             }
             else if (result.Status == System.Net.HttpStatusCode.Conflict && result.Current is { } current)
             {
@@ -489,14 +347,37 @@
         new(RulesetVersion.Dnd5e_2024, UiText.FormatRuleset(RulesetVersion.Dnd5e_2024, Lang))
     };
 
+    //	A character in the party is on the field too (while the encounter is being prepared), out of it it leaves
     private async Task TogglePartyAsync(Guid characterId)
     {
-        if (!draft.PartyIds.Remove(characterId))
+        var joins = !draft.PartyIds.Remove(characterId);
+        if (joins)
         {
             draft.PartyIds.Add(characterId);
         }
+        if (draft.Status == EncounterStatus.Planned)
+        {
+            if (joins && draft.Combatants.All(c => c.CharacterId != characterId) && Campaign.Characters.FirstOrDefault(c => c.Character.Id == characterId) is { } entry)
+            {
+                draft.Combatants.Add(CharacterCombatant(entry));
+            }
+            else if (!joins)
+            {
+                draft.Combatants.RemoveAll(c => c.CharacterId == characterId);
+            }
+        }
         await SaveAsync();
     }
+
+    private static EncounterCombatant CharacterCombatant(CampaignCharacterDto entry) => new()
+    {
+        Kind = CombatantKind.Character,
+        CharacterId = entry.Character.Id,
+        Name = entry.Character.Name,
+        ArmorClass = entry.Character.ArmorClass,
+        MaxHp = entry.Character.MaxHitPoints,
+        Hp = entry.Character.CurrentHitPoints
+    };
 
     // ===== Adding =====
 
@@ -577,16 +458,7 @@
     {
         foreach (var entry in PartyToAdd)
         {
-            var ch = entry.Character;
-            draft.Combatants.Add(new EncounterCombatant
-            {
-                Kind = CombatantKind.Character,
-                CharacterId = ch.Id,
-                Name = ch.Name,
-                ArmorClass = ch.ArmorClass,
-                MaxHp = ch.MaxHitPoints,
-                Hp = ch.CurrentHitPoints
-            });
+            draft.Combatants.Add(CharacterCombatant(entry));
         }
         await SaveAsync();
     }
@@ -822,4 +694,361 @@
         refresh?.Dispose();
         saveLock.Dispose();
     }
+    // ===== The cards =====
+
+    //	How hard it is for the characters chosen: the verdict, the XP against the thresholds, and the generator
+    private RenderFragment Difficulty => __builder =>
+    {
+        var budget = Budget;
+        var top = budget.Thresholds.Length > 0 ? budget.Thresholds[^1] : 0;
+        var scale = Math.Max(top * 1.25, Math.Max(100, budget.AdjustedXp));
+        <section class="enc-card" data-test="encounter-difficulty">
+            <div class="enc-card-head">
+                <div>
+                    <span class="enc-kicker">@UiText.EncounterBudgetKicker(budget.Ruleset, Lang)</span>
+                    <h3 class="enc-h">@UiText.EncounterDifficulty(Lang)</h3>
+                </div>
+                <div class="enc-head-right">
+                    @if (Campaign.Ruleset is null)
+                    {
+                        <div class="enc-ruleset" data-test="encounter-rules">
+                            <RfSelect TValue="RulesetVersion" @bind-Value="difficultyRuleset" Options="RulesetOptions" />
+                        </div>
+                    }
+                    <span class="enc-verdict level-@VerdictLevel(budget)"><span class="dot"></span><strong data-test="encounter-rating">@UiText.EncounterRating(budget.Ruleset, budget.Rating, Lang)</strong></span>
+                </div>
+            </div>
+
+            <div class="enc-party">
+                <span class="enc-micro">@UiText.EncounterPartyLabel(Lang)</span>
+                @if (encounter!.Characters.Count == 0)
+                {
+                    <span class="small" style="color: var(--rf-text-muted);">@UiText.EncounterNoCharacters(Lang)</span>
+                }
+                else
+                {
+                    <div class="enc-party-chips" data-test="encounter-party">
+                        @foreach (var member in encounter.Characters)
+                        {
+                            var m = member;
+                            var inParty = draft.PartyIds.Contains(m.CharacterId);
+                            <button type="button" class="enc-pc @(inParty ? "on" : null)" aria-pressed="@(inParty ? "true" : "false")" @onclick="() => TogglePartyAsync(m.CharacterId)">
+                                <span class="check">@(inParty ? "✓" : "+")</span><strong>@m.Name</strong><span class="lvl">@UiText.CharacterLevel(m.Level, Lang)</span>
+                            </button>
+                        }
+                    </div>
+                }
+            </div>
+
+            <div class="enc-meter">
+                <div class="enc-meter-row">
+                    <div class="enc-meter-now">
+                        <span class="enc-micro">@UiText.EncounterThreat(Lang)</span>
+                        <strong>@budget.AdjustedXp @UiText.XpLabel(Lang)</strong>
+                        <span>@UiText.EncounterXpLine(budget.TotalXp, budget.Multiplier, budget.AdjustedXp, budget.Ruleset, Lang)</span>
+                    </div>
+                    @if (budget.Thresholds.Length > 0)
+                    {
+                        <div class="enc-meter-legend">
+                            @for (var i = 0; i < budget.Thresholds.Length; i++)
+                            {
+                                <span><small>@UiText.EncounterRating(budget.Ruleset, i + 1, Lang):</small> <strong>@budget.Thresholds[i] @UiText.XpLabel(Lang)</strong></span>
+                            }
+                        </div>
+                    }
+                </div>
+                <div class="enc-meter-track">
+                    @foreach (var t in budget.Thresholds)
+                    {
+                        <span class="enc-meter-mark" style="left: @N(Math.Min(100, t / scale * 100))%;"></span>
+                    }
+                    <span class="enc-meter-fill level-@VerdictLevel(budget)" style="width: @N(Math.Min(100, budget.AdjustedXp / scale * 100))%;"></span>
+                </div>
+                <p class="enc-advice">@UiText.EncounterAdvice(budget.Ruleset, budget.Rating, budget.TotalXp, Lang)</p>
+                @if (budget.Thresholds.Length > 0)
+                {
+                    <span class="enc-micro">@UiText.EncounterXpEach(budget.XpPerCharacter(PartyLevels.Count), Lang)</span>
+                }
+            </div>
+
+            <div class="enc-gen" data-test="encounter-generator">
+                <div class="enc-gen-head">
+                    <span class="enc-gen-badge">@UiText.EncounterGenBadge(Lang)</span>
+                    <strong>@UiText.EncounterGenTitle(Lang)</strong>
+                </div>
+                <div class="enc-gen-grid">
+                    <label>
+                        <span class="enc-micro">@UiText.EncounterGenTheme(Lang)</span>
+                        <RfSelect TValue="CreatureType?" @bind-Value="genType" Options="ThemeOptions" />
+                    </label>
+                    <label>
+                        <span class="enc-micro">@UiText.EncounterGenTarget(Lang)</span>
+                        <RfSelect TValue="int" @bind-Value="genLevel" Options="TargetOptions(budget)" />
+                    </label>
+                    <button type="button" class="enc-btn primary" disabled="@(PartyLevels.Count == 0 || generating)" @onclick="GenerateAsync" data-test="encounter-generate"><Icon Name="dice" /> @UiText.EncounterGenGo(Lang)</button>
+                </div>
+                @if (PartyLevels.Count == 0)
+                {
+                    <span class="enc-micro">@UiText.EncounterGenNeedParty(Lang)</span>
+                }
+            </div>
+        </section>
+    };
+
+    //	The initiative order: initiative, who, where it starts, hit points
+    private RenderFragment Combatants => __builder =>
+    {
+        <section class="enc-card" data-test="encounter-combatants">
+            <div class="enc-card-head">
+                <div>
+                    <span class="enc-kicker">@UiText.EncounterCombatantsKicker(Lang)</span>
+                    <h3 class="enc-h">@UiText.EncounterCombatants(Lang)</h3>
+                </div>
+                @if (Manage && draft.Combatants.Count > 0)
+                {
+                    <div class="enc-head-right">
+                        @if (draft.Status == EncounterStatus.Planned && draft.Combatants.Any(c => c.Kind == CombatantKind.Monster))
+                        {
+                            <button type="button" class="enc-btn" @onclick="ClearMonstersAsync" data-test="encounter-clear-monsters">@UiText.EncounterClearMonsters(Lang)</button>
+                        }
+                        <button type="button" class="enc-btn" @onclick="RollInitiativeAsync" data-test="encounter-roll-initiative"><Icon Name="dice" /> @UiText.EncounterRollInitiative(Lang)</button>
+                    </div>
+                }
+            </div>
+
+            @if (draft.Combatants.Count == 0)
+            {
+                <div class="small" style="color: var(--rf-text-muted);" data-test="encounter-combatants-empty">@UiText.EncounterNoCombatants(Lang)</div>
+            }
+            <div class="enc-rows">
+                @foreach (var combatant in EncounterRules.Order(draft.Combatants))
+                {
+                    var c = combatant;
+                    var current = draft.Status == EncounterStatus.Running && draft.CurrentId == c.Id;
+                    var down = c.Kind != CombatantKind.Character && (c.Health == CombatantHealth.Down || (c.Health is null && c.MaxHp > 0 && c.Hp <= 0));
+                    var kind = c.Kind == CombatantKind.Character ? "pc" : c.Kind == CombatantKind.Monster ? "monster" : "other";
+                    <div class="rf-combatant enc-row @kind @(current ? "current" : null) @(down ? "down" : null) @(c.Hidden ? "hidden-foe" : null) @(placing == c.Id ? "placing" : null)" data-test="encounter-combatant">
+                        <div class="enc-init">
+                            @if (Manage)
+                            {
+                                <input type="number" title="@UiText.EncounterInitiative(Lang)" placeholder="—" value="@c.Initiative" @onchange="e => SetInitiativeAsync(c, e.Value)" data-test="combatant-initiative" />
+                            }
+                            else
+                            {
+                                <span>@(c.Initiative?.ToString() ?? "—")</span>
+                            }
+                        </div>
+                        <div class="enc-who">
+                            <span class="enc-ava @kind">@if (current)
+                                {
+                                    <Icon Name="play" />
+                                }
+                                else
+                                {
+                                    @Code(c.Name)
+                                }</span>
+                            <div class="enc-who-main">
+                                <div class="enc-name-line">
+                                    @if (Manage)
+                                    {
+                                        <input class="enc-name" maxlength="100" value="@c.Name" @onchange="e => RenameAsync(c, e.Value)" data-test="combatant-name" />
+                                    }
+                                    else
+                                    {
+                                        <strong>@c.Name</strong>
+                                    }
+                                    <span class="enc-tag">@UiText.CombatantKindName(c.Kind, Lang)@(c.ChallengeRating is { } cr && Manage ? $" · {UiText.MonsterChallengeShort(Lang)} {MonsterMath.FormatChallenge(cr)} ({c.Xp} {UiText.XpLabel(Lang)})" : null)</span>
+                                </div>
+                                <div class="enc-sub">
+                                    @if (Manage && map is not null)
+                                    {
+                                        <button type="button" class="enc-chip @(placing == c.Id ? "on" : null)" title="@UiText.EncounterPlaceHint(Lang)" @onclick="() => placing = c.Id" data-test="combatant-place"><Icon Name="geo-alt" /> @(c.X is { } x && c.Y is { } y ? UiText.EncounterCell(CellName(x, y), Lang) : UiText.EncounterNoCell(Lang))</button>
+                                    }
+                                    @if (Manage)
+                                    {
+                                        <button type="button" class="enc-chip @(c.Hidden ? "warn" : null)" title="@UiText.EncounterHideHint(Lang)" @onclick="() => ToggleHiddenAsync(c)" data-test="combatant-hide"><Icon Name="@(c.Hidden ? "eye-slash" : "eye")" /> @(c.Hidden ? UiText.EncounterHiddenFoe(Lang) : UiText.EncounterVisibleFoe(Lang))</button>
+                                    }
+                                    @if (c.MonsterId is { } monsterId)
+                                    {
+                                        <button type="button" class="enc-chip" @onclick="() => OpenStatblockAsync(monsterId)" data-test="combatant-statblock"><Icon Name="file-text" /> @UiText.EncounterStatblock(Lang)</button>
+                                    }
+                                    @if (c.Kind == CombatantKind.Character && c.CharacterId is { } characterId && Manage)
+                                    {
+                                        <a class="enc-chip" href="@($"characters/{characterId}")" title="@UiText.EncounterSheetSynced(Lang)" data-test="combatant-sheet"><Icon Name="file-text" /> @UiText.EncounterOpenSheet(Lang)</a>
+                                    }
+                                </div>
+                                <div class="rf-combatant-conditions">
+                                    @foreach (var key in c.Conditions)
+                                    {
+                                        var k = key;
+                                        if (Manage)
+                                        {
+                                            <button type="button" class="rf-condition-chip" title="@UiText.BtnRemove(Lang)" @onclick="() => RemoveConditionAsync(c, k)">@UiText.ConditionName(k, Lang) <Icon Name="close" /></button>
+                                        }
+                                        else
+                                        {
+                                            <span class="rf-condition-chip">@UiText.ConditionName(k, Lang)</span>
+                                        }
+                                    }
+                                    @if (Manage)
+                                    {
+                                        <div class="rf-condition-add" data-test="combatant-condition">
+                                            <RfSelect TValue="string" Value="@(string.Empty)" ValueChanged="v => AddConditionAsync(c, v)" Options="ConditionOptions(c)" />
+                                        </div>
+                                    }
+                                </div>
+                            </div>
+                        </div>
+                        <div class="enc-life">
+                            @if (Manage || c.Kind == CombatantKind.Character)
+                            {
+                                <span class="enc-ac" title="@UiText.MonsterArmorClass(Lang)"><Icon Name="shield" /> @c.ArmorClass</span>
+                                <div class="enc-hp">
+                                    <span data-test="combatant-hp"><Icon Name="heart" /> @c.Hp@(c.MaxHp > 0 ? $"/{c.MaxHp}" : null)@(c.TempHp > 0 ? $" (+{c.TempHp})" : null)</span>
+                                    @if (c.MaxHp > 0)
+                                    {
+                                        <span class="enc-hp-bar"><span class="@(c.Hp * 2 <= c.MaxHp ? "low" : null)" style="width: @N(Math.Clamp(c.Hp / (double)c.MaxHp, 0, 1) * 100)%;"></span></span>
+                                    }
+                                </div>
+                            }
+                            else if (c.Health is { } health)
+                            {
+                                <span class="rf-health rf-health-@health.ToString().ToLowerInvariant()" data-test="combatant-health">@UiText.HealthName(health, Lang)</span>
+                            }
+                            @if (Manage)
+                            {
+                                <div class="enc-hp-edit">
+                                    <input type="number" min="0" placeholder="0" value="@AmountOf(c)" @onchange="e => amounts[c.Id] = e.Value?.ToString()" aria-label="@UiText.ToolHpAmount(Lang)" data-test="combatant-amount" />
+                                    <button type="button" title="@UiText.EncounterDamage(Lang)" @onclick="() => ApplyAsync(c, -1)" data-test="combatant-damage">−</button>
+                                    <button type="button" title="@UiText.EncounterHeal(Lang)" @onclick="() => ApplyAsync(c, 1)" data-test="combatant-heal">+</button>
+                                    <button type="button" title="@UiText.EncounterTempHp(Lang)" @onclick="() => ApplyAsync(c, 0)">T</button>
+                                    <button type="button" class="del" title="@UiText.BtnRemove(Lang)" @onclick="() => RemoveAsync(c)" data-test="combatant-remove"><Icon Name="close" /></button>
+                                </div>
+                            }
+                        </div>
+                    </div>
+                }
+            </div>
+        </section>
+    };
+
+    //	Monsters from the compendium, the party, anyone else; one click for one more of those already there
+    private RenderFragment AddCard => __builder =>
+    {
+        <section class="enc-card" data-test="encounter-add">
+            <div class="enc-card-head">
+                <div>
+                    <span class="enc-kicker">@UiText.EncounterAddKicker(Lang)</span>
+                    <h3 class="enc-h">@UiText.EncounterAddMonsters(Lang)</h3>
+                </div>
+                <label class="rf-checkbox-wrapper small mb-0">
+                    <input type="checkbox" class="rf-checkbox" @bind="rollHp" data-test="encounter-roll-hp" />
+                    <span>@UiText.EncounterRollHp(Lang)</span>
+                </label>
+            </div>
+            <input class="rf-form-control" placeholder="@UiText.PlaceholderSearchMonsters(Lang)" @bind="monsterSearch" @bind:event="oninput" @onfocus="EnsureMonstersAsync" data-test="encounter-monster-search" />
+            @if (MonsterResults.Count > 0)
+            {
+                <div class="rf-monster-picker" data-test="encounter-monster-results">
+                    @foreach (var monster in MonsterResults)
+                    {
+                        var m = monster;
+                        <div class="rf-monster-pick">
+                            <span class="rf-monster-pick-name">@m.Name</span>
+                            <span class="small" style="color: var(--rf-text-muted);">@UiText.MonsterChallengeShort(Lang) @MonsterMath.FormatChallenge(m.ChallengeRating) · @UiText.MonsterArmorClassShort(Lang) @m.ArmorClass · @UiText.MonsterHitPointsShort(Lang) @m.HitPoints · @m.Xp @UiText.XpLabel(Lang)</span>
+                            <input type="number" min="1" max="20" class="rf-form-control rf-monster-pick-count" value="@CountOf(m.Id)" @onchange="e => SetCount(m.Id, e.Value)" />
+                            <button type="button" class="btn btn-sm btn-rf-orange" @onclick="() => AddMonsterAsync(m)" data-test="encounter-monster-add">+ @UiText.BtnAdd(Lang)</button>
+                        </div>
+                    }
+                </div>
+            }
+            else if (!string.IsNullOrWhiteSpace(monsterSearch) && monsters is not null)
+            {
+                <div class="small" style="color: var(--rf-text-muted);">@UiText.NoMonstersFound(Lang)</div>
+            }
+            @if (QuickMonsters.Count > 0)
+            {
+                <div class="enc-quick">
+                    <span class="enc-micro">@UiText.EncounterQuickAdd(Lang)</span>
+                    <div class="enc-quick-chips">
+                        @foreach (var q in QuickMonsters)
+                        {
+                            var quick = q;
+                            <button type="button" class="enc-quick-btn" @onclick="() => AddOneMoreAsync(quick)" data-test="encounter-quick-add"><strong>+ @quick.Name</strong><span>@quick.Xp @UiText.XpLabel(Lang)</span></button>
+                        }
+                    </div>
+                </div>
+            }
+            <div class="enc-add-row">
+                <button type="button" class="enc-btn" disabled="@(PartyToAdd.Count == 0)" @onclick="AddPartyAsync" data-test="encounter-add-party">+ @UiText.EncounterAddParty(Lang)</button>
+                <input class="rf-form-control" maxlength="100" placeholder="@UiText.EncounterOtherPlaceholder(Lang)" @bind="otherName" @bind:event="oninput" data-test="encounter-other-name" />
+                <button type="button" class="enc-btn" disabled="@(string.IsNullOrWhiteSpace(otherName))" @onclick="AddOtherAsync" data-test="encounter-add-other">+ @UiText.BtnAdd(Lang)</button>
+            </div>
+        </section>
+    };
+
+    //	Where each one starts, on a map of the campaign: a combatant chosen, then its cell clicked
+    private RenderFragment MapCard => __builder =>
+    {
+        <section class="enc-card" data-test="encounter-map">
+            <div class="enc-card-head">
+                <div>
+                    <span class="enc-kicker">@UiText.EncounterMapKicker(Lang)</span>
+                    <h3 class="enc-h">@UiText.EncounterMapTitle(Lang)</h3>
+                </div>
+            </div>
+            @if (maps is null)
+            {
+                <div class="small" style="color: var(--rf-text-muted);">…</div>
+            }
+            else if (maps.Count == 0)
+            {
+                <p class="small mb-0" style="color: var(--rf-text-muted);">@UiText.EncounterNoMaps(Lang)</p>
+            }
+            else
+            {
+                <div data-test="encounter-map-select">
+                    <RfSelect TValue="Guid?" Value="draft.MapId" ValueChanged="SetMapAsync" Options="MapOptions" />
+                </div>
+                @if (map is not null)
+                {
+                    <p class="enc-micro mb-0">@((MarkupString)UiText.EncounterPlaceHow(Lang))</p>
+                    <div class="enc-brushes">
+                        @foreach (var c in draft.Combatants)
+                        {
+                            var who = c;
+                            <button type="button" class="enc-brush @(who.Kind == CombatantKind.Character ? "pc" : who.Kind == CombatantKind.Monster ? "monster" : "other") @(placing == who.Id ? "on" : null)" @onclick="() => placing = who.Id" data-test="encounter-brush">
+                                <span class="code">@Code(who.Name)</span><span class="name">@who.Name</span><small>@(who.X is { } bx && who.Y is { } by ? CellName(bx, by) : "—")</small>
+                            </button>
+                        }
+                    </div>
+                    var (w, h) = (map.Width, map.Height);
+                    <svg class="enc-minimap" viewBox="0 0 @w @h" data-test="encounter-minimap">
+                        <image href="@map.Image" x="0" y="0" width="@w" height="@h" preserveAspectRatio="none" />
+                        @foreach (var (col, row) in Cells)
+                        {
+                            var cell = (col, row);
+                            <polygon points="@Points(col, row)" class="enc-cell" @onclick="() => PlaceAtAsync(cell.col, cell.row)" />
+                        }
+                        @foreach (var c in draft.Combatants.Where(c => c.X is not null && c.Y is not null))
+                        {
+                            var (cx, cy) = MapGeometry.Center(map.GridType, map.GridSize, map.GridOffsetX, map.GridOffsetY, c.X!.Value, c.Y!.Value);
+                            var r = map.GridSize * 0.42;
+                            var kind = c.Kind == CombatantKind.Character ? "pc" : c.Kind == CombatantKind.Monster ? "monster" : "other";
+                            <g class="enc-token @kind @(placing == c.Id ? "on" : null) @(c.Hidden ? "hidden-foe" : null)" @onclick="() => placing = c.Id">
+                                <circle cx="@N(cx)" cy="@N(cy)" r="@N(r)" />
+                                <text x="@N(cx)" y="@N(cy)" font-size="@N(r * 0.8)" text-anchor="middle" dominant-baseline="central">@Code(c.Name)</text>
+                            </g>
+                        }
+                    </svg>
+                    <div class="enc-card-foot">
+                        <span class="enc-micro">@(placing is { } pid && draft.Combatants.FirstOrDefault(c => c.Id == pid) is { } chosen ? UiText.EncounterPlacing(chosen.Name, Lang) : UiText.EncounterPlaceHint(Lang))</span>
+                        <button type="button" class="enc-link" @onclick="SpreadAsync" data-test="encounter-spread">@UiText.EncounterSpread(Lang)</button>
+                    </div>
+                }
+            }
+        </section>
+    };
+
+    private static string N(double value) => value.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture);
 }

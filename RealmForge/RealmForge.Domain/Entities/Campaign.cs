@@ -239,6 +239,9 @@ namespace RealmForge.Domain.Entities
 
 		//	JSON array of EncounterCombatant
 		public string Combatants { get; set; } = "[]";
+
+		//	The map it is fought on: the combatants' starting cells are on it
+		public Guid? MapId { get; set; }
 		public List<Guid> PartyIds { get; set; } = new();
 
 		public int Version { get; set; } = 1;

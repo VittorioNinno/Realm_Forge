@@ -450,6 +450,9 @@ namespace RealmForge.Infrastructure.Migrations
                     b.Property<Guid?>("CurrentId")
                         .HasColumnType("uuid");
 
+                    b.Property<Guid?>("MapId")
+                        .HasColumnType("uuid");
+
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(100)
