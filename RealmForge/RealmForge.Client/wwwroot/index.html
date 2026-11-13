@@ -646,8 +646,11 @@
 
             // The zoom that fits the whole map in the stage
             function fit(stage, width, height) {
-                const r = stage.getBoundingClientRect();
-                return Math.min((r.width - 16) / width, (r.height - 16) / height);
+                // The room left by the tools and the dock floating over the stage (its padding) does not count
+                const r = stage.getBoundingClientRect(), cs = getComputedStyle(stage);
+                const w = r.width - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
+                const h = r.height - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom);
+                return Math.min((w - 16) / width, (h - 16) / height);
             }
 
             // The centre of what the stage shows, in pixels of the map; and the stage moved to show a point in its centre
@@ -666,7 +669,9 @@
                 return el.requestFullscreen?.();
             }
 
-            return { attach, detach, tool, fit, fullscreen, view, center: centerOn };
+            // A wide window opens the table with its side panel (the log of the rolls) already out
+            const wide = () => window.matchMedia('(min-width: 1200px)').matches;
+            return { attach, detach, tool, fit, fullscreen, view, center: centerOn, wide };
         })();
         window.rfCropImage = (src, x, y, zoom, size) => new Promise((resolve) => {
             const img = new Image();

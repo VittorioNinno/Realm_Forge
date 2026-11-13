@@ -31,28 +31,6 @@ namespace RealmForge.Client.Pages
 
 		private IEnumerable<SpellChangeGrant> GrantsOf(Guid classId) => Sheet.SpellChanges.Where(g => g.ClassId == classId && g.Remaining > 0);
 
-		//	After a long rest: the changes of each class replace the ones of the previous rest
-		private void GrantLongRestChanges()
-		{
-			if (computed is null)
-			{
-				return;
-			}
-			Sheet.SpellChanges.RemoveAll(g => g.FromLongRest);
-			foreach (var source in computed.Spellcasting.Where(s => s.Class is not null && s.Source == "class"))
-			{
-				var rule = SpellChangeRules.For(Ruleset, source.Class!);
-				if (rule.LongRest is { } kind)
-				{
-					Sheet.SpellChanges.Add(new SpellChangeGrant { ClassId = source.Class!.Class.Id, Kind = kind, Remaining = 1, FromLongRest = true });
-				}
-				if (rule.LongRestCantrip)
-				{
-					Sheet.SpellChanges.Add(new SpellChangeGrant { ClassId = source.Class!.Class.Id, Kind = SpellChangeKind.Cantrip, Remaining = 1, FromLongRest = true });
-				}
-			}
-		}
-
 		//	A class level the sheet has not seen yet: the replacements of that level (one spell, one cantrip)
 		private void TrackLevelUps()
 		{
