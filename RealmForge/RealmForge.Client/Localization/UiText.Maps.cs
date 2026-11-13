@@ -216,6 +216,7 @@ namespace RealmForge.Client.Localization
 		public static string VttRoundWord(LanguageCode lang) => "Round";
 		public static string VttDiceShort(LanguageCode lang) => T(lang, "Dadi", "Dice");
 		public static string VttTokensShort(LanguageCode lang) => T(lang, "Segnalini", "Tokens");
+		public static string VttTabRolls(LanguageCode lang) => T(lang, "Tiri", "Rolls");
 		public static string VttRollLog(LanguageCode lang) => T(lang, "Log dei tiri", "Roll log");
 		public static string VttTokensMap(LanguageCode lang) => T(lang, "Segnalini e mappa", "Tokens and map");
 		public static string VttPanelHide(LanguageCode lang) => T(lang, "Nascondi il pannello", "Hide the panel");
