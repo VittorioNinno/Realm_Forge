@@ -88,10 +88,31 @@
                             {
                                 var who = c;
                                 var token = who.TokenId is { } tid ? tokens.FirstOrDefault(t => t.Id == tid) : null;
+                                var portrait = token is null ? null : PortraitOf(token);
+                                var life = token is null ? null : LifeOf(token);
                                 <button type="button" class="rf-vtt-combatant @(combat.CurrentId == who.Id ? "current" : null) @(who.Hidden ? "hidden-token" : null)"
                                         style="--rf-token: @(token?.Color ?? "#9e9e9e");" @onclick="() => FocusTokenAsync(token)" data-test="vtt-combatant" data-current="@(combat.CurrentId == who.Id ? "1" : "0")">
                                     <span class="rf-vtt-combatant-init">@(who.Initiative?.ToString() ?? "–")</span>
-                                    <span class="rf-vtt-combatant-name">@who.Name</span>
+                                    <span class="rf-vtt-combatant-avatar kind-@KindClass(token)">
+                                        @if (portrait is not null)
+                                        {
+                                            <img src="@portrait" alt="" draggable="false" />
+                                        }
+                                        else
+                                        {
+                                            @Initials(who.Name)
+                                        }
+                                    </span>
+                                    <span class="rf-vtt-combatant-details">
+                                        <span class="rf-vtt-combatant-name">@who.Name</span>
+                                        @if (life is { } l)
+                                        {
+                                            <span class="rf-vtt-combatant-life">
+                                                <span class="rf-vtt-bar"><span class="@(l.Fraction <= .5 ? "low" : "ok")" style="width: @N(l.Fraction * 100)%;"></span></span>
+                                                <span>@l.Text</span>
+                                            </span>
+                                        }
+                                    </span>
                                 </button>
                             }
                         </div>
