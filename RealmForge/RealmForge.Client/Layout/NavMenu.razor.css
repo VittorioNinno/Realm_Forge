@@ -1,175 +1,354 @@
-﻿.navbar-toggler {
-    background-color: rgba(255, 255, 255, 0.1);
+﻿/* The side menu, on an 8 px grid: 256 px wide, 64 px folded (8 + a 48 px icon box + 8). Every entry is 40 px high with
+   its icon in a 48 px box, so the icons stay in one column whether the menu is open or folded */
+.rf-sidebar {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    background-color: #0d0d0d;
 }
 
-.top-row {
-    min-height: 56px;
-    background-color: rgba(0,0,0,0.4);
+/* ===== Head: the emblem, the name (never cut), the fold button ===== */
+
+.sb-header {
+    position: relative;
+    display: flex;
+    flex: 0 0 auto;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    height: 64px;
+    padding: 0 8px;
+    border-bottom: 1px solid #1f1f1f;
 }
 
-.navbar-brand {
-    font-size: 1.1rem;
+.sb-brand {
+    display: flex;
+    flex: 1;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+    text-decoration: none;
 }
 
-/* Inline SVG icons (Icon): fixed box so every label starts at the same x */
-::deep .rf-nav-icon {
-    flex: 0 0 1.1rem;
-    width: 1.1rem;
-    height: 1.1rem;
-    margin-right: 16px;
+.sb-logo-box {
+    display: flex;
+    flex: 0 0 auto;
+    align-items: center;
+    justify-content: center;
+    width: 48px;
+    height: 40px;
+    border-radius: 8px;
+    border: 1px solid rgba(255, 140, 0, .45);
+    background-color: #161616;
+    box-shadow: 0 0 12px rgba(255, 140, 0, .15);
 }
 
-.nav-item {
-    font-size: 0.9rem;
-    padding-bottom: 8px;
+.rf-brand-icon {
+    width: 28px;
+    height: 28px;
+    border-radius: 6px;
 }
 
-    .nav-item:first-of-type {
-        padding-top: 16px;
+.sb-brand-text {
+    font-family: var(--rf-font-display);
+    font-size: 1rem;
+    font-weight: 900;
+    letter-spacing: 1px;
+    line-height: 1;
+    white-space: nowrap;
+    text-transform: uppercase;
+    color: var(--rf-orange-primary);
+}
+
+.sb-toggle-btn,
+.sb-mobile-btn {
+    display: flex;
+    flex: 0 0 auto;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    border-radius: 8px;
+    border: 1px solid rgba(255, 140, 0, .45);
+    background-color: #141414;
+    color: var(--rf-orange-primary);
+    cursor: pointer;
+    transition: background-color .15s, color .15s;
+}
+
+    .sb-toggle-btn:hover,
+    .sb-mobile-btn:hover {
+        background-color: var(--rf-orange-primary);
+        color: #09090b;
     }
 
-    .nav-item:last-of-type {
-        padding-bottom: 16px;
+    .sb-toggle-btn ::deep svg {
+        width: 16px;
+        height: 16px;
+        transition: transform .2s ease;
     }
 
-    .nav-item ::deep a {
-        /* Explicit padding: Bootstrap's .nav-link reads it from variables defined only inside .nav */
-        padding: 0 16px;
-        color: #d7d7d7;
-        border-radius: 4px;
-        height: 48px;
-        display: flex;
-        align-items: center;
-        line-height: 3rem;
-    }
+/* ===== The entries ===== */
 
-.nav-item ::deep a.active {
-    background-color: rgba(255,255,255,0.37);
-    color: white;
+.sb-body {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    min-height: 0;
 }
 
-.nav-item ::deep a:hover {
-    background-color: rgba(255,255,255,0.1);
-    color: white;
+.sb-scroll-area {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    gap: 8px;
+    min-height: 0;
+    padding: 8px;
+    overflow-x: hidden;
+    overflow-y: auto;
+    scrollbar-gutter: stable;
 }
 
-@media (min-width: 641px) {
-    .navbar-toggler {
-        display: none;
-    }
-
-    .collapse {
-        /* Never collapse the sidebar for wide screens */
-        display: block;
-    }
-
-    .nav-scrollable {
-        /* Allow sidebar to scroll for tall menus */
-        height: calc(100vh - 56px);
-        overflow-y: auto;
-        /* Room for the scrollbar is always kept, so opening the compendium does not shift the menu */
-        scrollbar-gutter: stable;
-    }
+.sb-nav-group,
+.sb-sub-items {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
 }
 
-/* Collapsible "Compendium" section */
-/* Reference section (glossary and compendium) under a thin separator */
-.rf-nav-reference {
-    margin-top: 8px;
-    padding-top: 16px;
-    border-top: 1px solid rgba(255, 255, 255, 0.08);
+.sb-divider {
+    height: 1px;
+    margin: 4px 0;
+    background-color: #1f1f1f;
 }
 
-.rf-nav-group {
-    font-size: 0.9rem;
-}
-
-.rf-nav-group-toggle {
+::deep .sb-item,
+.sb-section-trigger,
+.sb-footer-collapse {
+    position: relative;
     display: flex;
     align-items: center;
+    gap: 8px;
     width: 100%;
     height: 40px;
-    padding: 0 16px;
-    border: 0;
-    border-radius: 4px;
+    padding: 0;
+    border-radius: 8px;
+    border: 1px solid transparent;
     background: transparent;
-    color: #9a9a9a;
-    font-size: 0.75rem;
-    font-weight: 600;
-    letter-spacing: 1px;
-    text-transform: uppercase;
+    color: #a1a1aa;
+    text-decoration: none;
+    cursor: pointer;
+    transition: background-color .15s, color .15s, border-color .15s;
 }
 
-    .rf-nav-group-toggle:hover {
-        background-color: rgba(255,255,255,0.06);
-        color: #d7d7d7;
+    ::deep .sb-item:hover,
+    .sb-section-trigger:hover,
+    .sb-footer-collapse:hover {
+        background-color: #161616;
+        color: #ffffff;
     }
 
-.rf-nav-chevron {
+    ::deep .sb-item.active {
+        border-color: rgba(255, 140, 0, .35);
+        background-color: rgba(255, 140, 0, .14);
+        box-shadow: inset 3px 0 0 var(--rf-orange-primary);
+        color: #ffffff;
+    }
+
+        ::deep .sb-item.active .sb-icon {
+            color: var(--rf-orange-primary);
+        }
+
+        ::deep .sb-item.active .sb-label {
+            font-weight: 700;
+            color: #ffb74d;
+        }
+
+::deep .sb-icon {
     display: inline-flex;
-    transition: transform 0.15s ease;
+    flex: 0 0 auto;
+    align-items: center;
+    justify-content: center;
+    width: 48px;
+    height: 38px;
+    color: inherit;
 }
 
-    .rf-nav-chevron ::deep .rf-nav-icon {
-        margin-right: 0;
-        width: 0.8rem;
-        height: 0.8rem;
+::deep .rf-nav-icon {
+    width: 20px;
+    height: 20px;
+}
+
+::deep .sb-label {
+    overflow: hidden;
+    padding-right: 8px;
+    font-size: .875rem;
+    font-weight: 600;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.sb-section-trigger {
+    margin-top: 4px;
+    color: #71717a;
+}
+
+.sb-sec-text {
+    flex: 1;
+    font-size: .7rem;
+    font-weight: 800;
+    letter-spacing: 1px;
+    text-align: left;
+    text-transform: uppercase;
+    white-space: nowrap;
+}
+
+.sb-sec-chevron {
+    display: inline-flex;
+    flex: 0 0 auto;
+    margin-right: 16px;
+    transition: transform .2s;
+}
+
+    .sb-sec-chevron ::deep svg {
+        width: 12px;
+        height: 12px;
     }
 
-    .rf-nav-chevron.open {
+    .sb-sec-chevron.open {
         transform: rotate(180deg);
     }
 
-.rf-nav-group-items {
+/* ===== Foot: the account and the fold button ===== */
+
+.sb-footer {
     display: flex;
+    flex: 0 0 auto;
     flex-direction: column;
     gap: 8px;
-    padding: 8px 0 16px 0;
+    padding: 8px;
+    border-top: 1px solid #1f1f1f;
 }
 
-    .rf-nav-group-items ::deep a {
-        padding: 0 16px;
-        color: #d7d7d7;
-        border-radius: 4px;
-        height: 40px;
-        display: flex;
-        align-items: center;
+    .sb-footer ::deep .rf-account {
+        padding: 0;
+        border-top: 0;
     }
 
-        .rf-nav-group-items ::deep a.active {
-            background-color: rgba(255,255,255,0.37);
-            color: white;
-        }
-
-        .rf-nav-group-items ::deep a:hover {
-            background-color: rgba(255,255,255,0.1);
-            color: white;
-        }
-
-/* Sidebar body: navigation on top, account area pushed to the bottom.
-   Mobile: Bootstrap hides it while collapsed; desktop: always shown as a flex column */
-.rf-sidebar-body {
-    flex-direction: column;
+.sb-footer-collapse {
+    color: #888888;
 }
 
-    .rf-sidebar-body:not(.collapse) {
-        display: flex;
+    .sb-footer-collapse:hover {
+        color: #ffb74d;
     }
 
-.rf-nav {
-    flex: 1 0 auto;
+    .sb-footer-collapse ::deep svg {
+        width: 16px;
+        height: 16px;
+        transition: transform .2s ease;
+    }
+
+/* ===== Folded: the icons only, each name as a tooltip on the right; the head button becomes a tab on the edge ===== */
+
+.rf-sidebar.is-collapsed .sb-brand-text,
+.rf-sidebar.is-collapsed ::deep .sb-label,
+.rf-sidebar.is-collapsed .sb-sec-text,
+.rf-sidebar.is-collapsed .sb-sec-chevron,
+.rf-sidebar.is-collapsed ::deep .rf-account-name,
+.rf-sidebar.is-collapsed ::deep .rf-account-logout,
+.rf-sidebar.is-collapsed ::deep .rf-account-login span {
+    display: none;
+}
+
+.rf-sidebar.is-collapsed .sb-brand {
+    flex: 0 0 auto;
+}
+
+.rf-sidebar.is-collapsed .sb-toggle-btn {
+    position: absolute;
+    top: 16px;
+    right: -24px;
+    width: 24px;
+    height: 32px;
+    border-left: 0;
+    border-radius: 0 8px 8px 0;
+    box-shadow: 4px 0 12px rgba(0, 0, 0, .6);
+}
+
+    .rf-sidebar.is-collapsed .sb-toggle-btn ::deep svg,
+    .rf-sidebar.is-collapsed .sb-footer-collapse ::deep svg {
+        transform: rotate(180deg);
+    }
+
+/* The tooltips leave the menu: nothing clips them (on short screens the open compendium waits for the menu to unfold) */
+.rf-sidebar.is-collapsed .sb-scroll-area {
+    overflow: visible;
+}
+
+.rf-sidebar.is-collapsed ::deep .sb-item:hover::after,
+.rf-sidebar.is-collapsed .sb-section-trigger:hover::after {
+    content: attr(data-tooltip);
+    position: absolute;
+    top: 50%;
+    left: 56px;
+    z-index: 100;
+    padding: 8px;
+    border-radius: 8px;
+    border: 1px solid var(--rf-orange-primary);
+    background-color: #18181b;
+    box-shadow: 0 8px 20px rgba(0, 0, 0, .85);
+    color: #ffffff;
+    font-size: .75rem;
+    font-weight: 700;
+    line-height: 1;
+    white-space: nowrap;
+    pointer-events: none;
+    transform: translateY(-50%);
+}
+
+@media (max-height: 879px) {
+    .rf-sidebar.is-collapsed .sb-sub-items {
+        display: none;
+    }
+}
+
+.rf-sidebar.is-collapsed ::deep .rf-account {
+    justify-content: center;
+}
+
+.rf-sidebar.is-collapsed ::deep .rf-account-user {
+    flex: 0 0 auto;
+    justify-content: center;
+    padding: 4px;
+}
+
+.rf-sidebar.is-collapsed ::deep .rf-account-login {
+    width: 48px;
+    margin: 0 auto;
+}
+
+/* ===== Phones: a bar with the menu button, the entries under it when opened ===== */
+
+@media (max-width: 640.98px) {
+    .sb-toggle-btn,
+    .sb-footer-collapse {
+        display: none;
+    }
+
+    .sb-body.mobile-closed {
+        display: none;
+    }
+
+    .rf-sidebar {
+        height: auto;
+    }
 }
 
 @media (min-width: 641px) {
-    .rf-sidebar-body.collapse {
-        display: flex;
+    .sb-mobile-btn {
+        display: none;
     }
-}
-
-/* Anvil emblem next to the brand name */
-.rf-brand-icon {
-    width: 30px;
-    height: 32px;
-    border-radius: 6px;
-    box-shadow: 0 0 0 1px rgba(255, 140, 0, 0.35), 0 0 10px rgba(255, 140, 0, 0.25);
 }
