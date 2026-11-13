@@ -1762,6 +1762,20 @@ try {
   await page.locator('[data-test=vtt-quick-sheet-tab][data-tab=actions]').click();
   combatUi.sheetAttacks = await page.locator('[data-test=vtt-quick-sheet] [data-test=map-token-attack]').count();
   await shot(page, 'vtt-sheet-actions', null);
+  // An attack aimed from the sheet: the bar over the map, the attacker and the others marked by reach, a click on another
+  // goblin resolves it against its armour class (or says it is out of reach), the bar closed
+  await page.locator('[data-test=vtt-quick-sheet] [data-test=map-token-aim]').first().click();
+  await page.locator('[data-test=vtt-combat-bar]').waitFor({ timeout: 15000 });
+  combatUi.aimSelf = await page.locator('.rf-vtt-token.aim-self').count();
+  combatUi.aimLit = await page.locator('.rf-vtt-token.aim-in, .rf-vtt-token.aim-far, .rf-vtt-token.aim-out').count();
+  await shot(page, 'vtt-aim', null);
+  await page.locator('[data-test=vtt] [data-test=map-token][data-label="Goblin 3"]').click();
+  await page.waitForTimeout(1500);
+  combatUi.aimAfter = (await page.locator('[data-test=vtt-aim-hint]').count()) ? (await page.locator('[data-test=vtt-aim-hint]').innerText()).trim() : 'resolved';
+  await shot(page, 'vtt-aim-after', null);
+  if (await page.locator('[data-test=vtt-aim-cancel]').count()) await page.locator('[data-test=vtt-aim-cancel]').click();
+  // The loot tab of the masters
+  combatUi.lootTab = await page.locator('[data-test=vtt-quick-sheet-tab][data-tab=loot]').count();
   await page.locator('[data-test=vtt-quick-sheet-tab][data-tab=general]').click();
   await page.waitForTimeout(600);
   combatUi.goblinConditions = (await goblin1.locator('[data-test=map-token-conditions]').textContent()).trim();
@@ -1779,6 +1793,7 @@ try {
   await page.mouse.up();
   results.push(`INFO vtt combat: ${JSON.stringify(combatUi)}`);
   if (combatUi.combatants !== 4 || combatUi.tokens !== 5 || combatUi.current !== 1 || !/^Round\s+\d+$/i.test(combatUi.round) || !combatUi.turnMoved
+    || combatUi.aimSelf !== 1 || combatUi.aimLit < 1 || combatUi.lootTab !== 1
     || combatUi.rollTray !== 1 || combatUi.sheetAttacks < 1 || !combatUi.sheetTabs.startsWith('general,actions') || !/ 2\/\d+$/.test(combatUi.sheetHp ?? '') || combatUi.sheetAbilities !== 6 || combatUi.goblinConditions !== 'Pr' || combatUi.goblinRing !== '28.57 100' || !/^3 \/ \d+(,\d)? m$/.test(combatUi.moveLabel ?? '')) throw new Error(`unexpected combat: ${JSON.stringify(combatUi)}`);
   ok('virtual tabletop combat: the encounter started on the map (four in the initiative order, tokens for the goblins), the turn passed on, a goblin knocked prone and down to 2 hit points with its initiative rolled from its card, the fight ended, the hero\'s move showing 3 m against its speed');
   // The initiative bar: a fight asked with the tokens on the map, the hero rolls its own initiative, a goblin leaves the
