@@ -2564,7 +2564,7 @@ else
     {
         @if (map is not null && (combat is not null || RunsTheTable))
         {
-        <div class="rf-init-widget" data-test="vtt-initiative">
+        <div class="rf-init-widget @(InfoToken is not null ? "behind" : null)" data-test="vtt-initiative">
             @if (combat is null)
             {
                 <div class="rf-init-shell idle" data-test="vtt-init-idle">
@@ -3321,13 +3321,17 @@ else
         var actions = new List<SheetGroup>();
         void Group(string title, string? body)
         {
-            var entries = Entries(body);
-            foreach (var entry in entries)
+            var entries = new List<SheetEntry>();
+            foreach (var entry in Entries(body))
             {
                 if (AttackOf(entry) is { } line)
                 {
                     attacks.Add(line);
                     rolls.Add(line.Roll!);
+                }
+                else
+                {
+                    entries.Add(entry);
                 }
             }
             if (entries.Count > 0)

@@ -14284,3 +14284,9 @@ textarea.rf-form-control {
     font-size: .6rem;
     font-weight: 900;
 }
+
+/* A token's pop-up open: the initiative bar steps back so it does not cover it */
+.rf-init-widget.behind > * {
+    opacity: .3;
+    pointer-events: none;
+}
