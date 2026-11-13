@@ -543,8 +543,9 @@
                         // Only the "move the view" tool drags the map; the selection clicks on it (or pings, held still)
                         st.pan = { x: e.clientX, y: e.clientY, left: stage.scrollLeft, top: stage.scrollTop, moved: false, drag: st.tool === 'pan' || !st.options.wheelZoom };
                         if (st.pan.drag) stage.classList.add('panning');
-                        // Holding still for half a second: a ping for the whole table
-                        st.pan.timer = setTimeout(() => {
+                        // Holding still for half a second with the selection, at the table: a ping for the whole table (never
+                        // while moving the view)
+                        if (st.tool === 'select' && st.options.wheelZoom) st.pan.timer = setTimeout(() => {
                             if (st.pan && !st.pan.moved) {
                                 st.pan = null;
                                 stage.classList.remove('panning');
@@ -571,6 +572,8 @@
                             drawMove(st.drag.el, dx, dy);
                         }
                     } else if (st.pan) {
+                        // Any movement at all: no ping
+                        if (Math.hypot(e.clientX - st.pan.x, e.clientY - st.pan.y) >= 2) clearTimeout(st.pan.timer);
                         if (!st.pan.moved && Math.hypot(e.clientX - st.pan.x, e.clientY - st.pan.y) < 4) return;
                         st.pan.moved = true;
                         if (!st.pan.drag) return;
@@ -692,6 +695,10 @@
                 stage.addEventListener('pointerdown', st.down);
                 window.addEventListener('pointermove', st.move);
                 window.addEventListener('pointerup', st.up);
+                // A pointer lost (released outside the window, a gesture taken by the browser): what it was doing stops
+                st.cancel = () => { if (st.pan) { clearTimeout(st.pan.timer); st.pan = null; stage.classList.remove('panning'); } };
+                window.addEventListener('pointercancel', st.cancel);
+                stage.addEventListener('scroll', () => { if (st.pan && !st.pan.drag) clearTimeout(st.pan.timer); }, { passive: true });
                 stage.addEventListener('wheel', st.wheel, { passive: false });
                 // Arrows and Esc for the token whose toolbar is open (not while typing)
                 st.key = (e) => {
@@ -720,6 +727,7 @@
                 stage.removeEventListener('pointerdown', st.down);
                 window.removeEventListener('pointermove', st.move);
                 window.removeEventListener('pointerup', st.up);
+                window.removeEventListener('pointercancel', st.cancel);
                 stage.removeEventListener('wheel', st.wheel);
                 document.removeEventListener('keydown', st.key);
                 st.observer?.disconnect();

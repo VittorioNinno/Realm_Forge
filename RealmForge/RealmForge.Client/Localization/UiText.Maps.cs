@@ -342,6 +342,19 @@ namespace RealmForge.Client.Localization
 
 		// ===== Fighting on the map: aiming, casting, dropped weapons, loot =====
 
+		public static string MapReplaceImage(LanguageCode lang) => T(lang, "Sostituisci immagine", "Replace the picture");
+		public static string VttGroundInfo(LanguageCode lang) => T(lang, "Apri la scheda dell'oggetto", "Open the item's card");
+		public static string VttGroundNext(string who, LanguageCode lang) => T(lang, $"Accanto a <strong>{who}</strong> (entro 1,5 m)", $"Next to <strong>{who}</strong> (within 5 ft)");
+		public static string VttGroundCost(LanguageCode lang) => T(lang, "Costa: l'azione del turno", "Costs: the action of the turn");
+		public static string VttGroundWho(LanguageCode lang) => T(lang, "Chi lo prende", "Who takes it");
+		public static string VttGroundPack(LanguageCode lang) => T(lang, "Metti nello zaino", "Put in the pack");
+		public static string VttGroundWield(LanguageCode lang) => T(lang, "Prendi e impugna", "Take in hand");
+		public static string VttGroundFar(string distance, LanguageCode lang) => T(lang, $"Troppo lontano per raccoglierlo ({distance})", $"Too far to pick it up ({distance})");
+		public static string VttGroundNobody(LanguageCode lang) => T(lang, "Nessun tuo segnalino sulla mappa", "None of your tokens is on the map");
+		public static string VttGroundFarHint(LanguageCode lang) => T(lang, "Muovi un tuo segnalino in una casella accanto (entro 1,5 m) per prenderlo.", "Move one of your tokens to a cell next to it (within 5 ft) to take it.");
+		public static string VttTakenInHand(string who, LanguageCode lang) => T(lang, $"{who} lo impugna.", $"{who} takes it in hand.");
+		public static string VttSheetReadOnly(LanguageCode lang) => T(lang, "Sola lettura", "Read only");
+		public static string VttSheetReadOnlyHint(LanguageCode lang) => T(lang, "La scheda di un alleato: la vedi, non la usi.", "An ally's sheet: you see it, you do not use it.");
 		public static string VttAimStart(string attack, LanguageCode lang) => T(lang, $"{attack}: scegli il bersaglio sulla mappa", $"{attack}: pick the target on the map");
 		public static string VttAimHint(LanguageCode lang) => T(lang, "Clic su un bersaglio evidenziato (giallo: con svantaggio). Esc per annullare.", "Click a highlighted target (yellow: with disadvantage). Esc to cancel.");
 		public static string VttAimOut(LanguageCode lang) => T(lang, "Fuori portata: avvicinati o scegli un altro bersaglio.", "Out of reach: move closer or pick another target.");
