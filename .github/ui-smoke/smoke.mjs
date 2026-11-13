@@ -1086,10 +1086,26 @@ try {
       tabs.attunement = (await page.locator('[data-test=sheet-attunement]').innerText()).trim();
       // Two hands: with a greatsword in hand the shield does not fit, and the sheet says why
       while (await page.locator('[data-test=sheet-item-equip].on').count() > 0) await page.locator('[data-test=sheet-item-equip].on').first().click();
-      const addItem = async (name) => {
+      // Adding from the compendium asks whether to buy it: given for free here
+      const addItem = async (name, buy = false) => {
         await page.locator('[data-test=sheet-item-search]').fill(name);
         await page.locator('[data-test=sheet-item-result]', { hasText: new RegExp(`^${name} ·`) }).first().click();
+        await page.locator('[data-test=sheet-purchase]').waitFor({ timeout: 5000 });
+        if (!buy) await page.locator('[data-test=sheet-purchase-buy]').uncheck();
+        await page.locator('[data-test=sheet-purchase-confirm]').click();
       };
+      // A torch bought from the purse (its price paid, change included), then used up
+      const purse = async () => {
+        const v = async (c) => Number(await page.locator(`[data-test=sheet-coin-${c}]`).inputValue());
+        return (await v('cp')) + 10 * (await v('sp')) + 50 * (await v('ep')) + 100 * (await v('gp')) + 1000 * (await v('pp'));
+      };
+      const purseBefore = await purse();
+      await addItem('Torcia', true);
+      tabs.torchPaid = purseBefore - await purse();
+      const torch = page.locator('[data-test=sheet-item]', { hasText: /^Torcia/ });
+      tabs.torchUse = await torch.locator('[data-test=sheet-item-use]').count();
+      await torch.locator('[data-test=sheet-item-use]').click();
+      tabs.torchLeft = await page.locator('[data-test=sheet-item]', { hasText: /^Torcia/ }).count();
       await addItem('Spadone');
       await addItem('Scudo');
       await page.locator('[data-test=sheet-item]', { hasText: /^Spadone/ }).locator('[data-test=sheet-item-equip]').click();
@@ -1992,6 +2008,7 @@ try {
   if (Number(tabs.ringAc) !== Number(sheetAc) + 1 || !/1\/3/.test(tabs.attunement)) throw new Error(`Ring of Protection: AC ${tabs.ringAc} (was ${sheetAc}), ${tabs.attunement}`);
   ok('magic items: a Ring of Protection worn and attuned adds 1 to AC (attunement 1/3); spells: the long rest opens the changes, the spellbook writes a free spell');
   if (!/mani libere/.test(tabs.hands ?? '') || !/Spadone/.test(tabs.hands ?? '') || tabs.shieldOn !== 0) throw new Error(`two hands: "${tabs.hands}" shield on=${tabs.shieldOn}`);
+  if (tabs.torchPaid !== 1 || tabs.torchUse !== 1 || tabs.torchLeft !== 0) throw new Error(`buying and using: paid=${tabs.torchPaid} use=${tabs.torchUse} left=${tabs.torchLeft}`);
   ok('equipment: with a greatsword in hand the shield is refused, and the sheet explains the hands');
   if (!/1,5 metri/.test(tabs.overload ?? '') || !/capacità di carico/.test(tabs.overload ?? '') || tabs.overloadAfter !== 0) throw new Error(`overload notice: "${tabs.overload}" after=${tabs.overloadAfter}`);
   ok('inventory: over the carrying capacity a notice explains the speed of 1.5 m and the limits, and the warning goes once the load is back');
