@@ -12,7 +12,7 @@
    picked one by one with the modifier and the d20 mode, the formula that stays editable, what for) and the log of
    everyone's rolls on the right, including the ones made on the sheets; the server rolls, so nobody picks the numbers.
    My rolls land in the dice tray with the animation; the log refreshes every few seconds *@
-<section class="rf-dice-table @(Compact ? "compact" : null) part-@Part" data-test="campaign-rolls">
+<section class="rf-dice-table @(Compact ? "compact" : null) @(Floating ? "floating" : null) @(Minimized ? "minimized" : null) part-@Part" data-test="campaign-rolls">
     @if (!Compact)
     {
         <p class="rf-dice-lead">@UiText.RollsHint(Lang)</p>
@@ -24,8 +24,16 @@
         <aside class="rf-dice-console" data-test="roll-form">
             <div class="rf-dice-console-head">
                 <span class="rf-dice-kicker">@UiText.DiceConsole(Lang)</span>
-                <button type="button" class="rf-dice-reset" @onclick="ResetPool" data-test="roll-reset">@UiText.DiceReset(Lang)</button>
+                <div class="rf-dice-head-actions">
+                    @if (!Minimized)
+                    {
+                        <button type="button" class="rf-dice-reset" @onclick="ResetPool" data-test="roll-reset">@UiText.DiceReset(Lang)</button>
+                    }
+                    @WindowButtons
+                </div>
             </div>
+            @if (!Minimized)
+            {
 
             <div class="rf-dice-actor">
                 <div class="rf-dice-field" data-test="roll-as">
@@ -48,7 +56,7 @@
                         <span class="rf-dice-label">@UiText.DiceVisibility(Lang)</span>
                         <div class="rf-dice-privacy" role="group">
                             <button type="button" class="@(hidden ? null : "active")" @onclick="() => hidden = false" data-test="roll-public">@UiText.DicePublic(Lang)</button>
-                            <button type="button" class="secret @(hidden ? "active" : null)" @onclick="() => hidden = true" data-test="roll-hidden"><Icon Name="eye-slash" /> @UiText.RollHidden(Lang)</button>
+                            <button type="button" class="secret @(hidden ? "active" : null)" @onclick="() => hidden = true" data-test="roll-hidden"><Icon Name="eye-slash" /> @(Floating ? UiText.DiceHiddenShort(Lang) : UiText.RollHidden(Lang))</button>
                         </div>
                     </div>
                 }
@@ -64,22 +72,31 @@
                         <button type="button" @onclick="() => SetModifier(modifier + 1)" aria-label="+1">+</button>
                     </div>
                 </div>
-                <div class="rf-dice-pick">
-                    @foreach (var sides in Sides)
-                    {
-                        var die = sides;
-                        var count = pool.GetValueOrDefault(die);
-                        <button type="button" class="rf-dice-pick-btn @(count > 0 ? "selected" : null)" @onclick="() => AddDie(die)" @oncontextmenu="() => RemoveDie(die)" @oncontextmenu:preventDefault="true"
-                                title="@UiText.DicePickHint(Lang)" data-test="@("roll-d" + die)">
-                            @if (count > 0)
-                            {
-                                <span class="rf-dice-pick-count">×@count</span>
-                            }
-                            <svg viewBox="0 0 24 24" aria-hidden="true">@DieShape(die)</svg>
-                            <span>d@(die)</span>
-                        </button>
-                    }
-                </div>
+                @if (Floating)
+                {
+                    @* Four big dice above, three below *@
+                    <div class="rf-dice-pick rows-4">
+                        @foreach (var sides in new[] { 20, 12, 100, 10 })
+                        {
+                            @DieButton(sides)
+                        }
+                    </div>
+                    <div class="rf-dice-pick rows-3">
+                        @foreach (var sides in new[] { 8, 6, 4 })
+                        {
+                            @DieButton(sides)
+                        }
+                    </div>
+                }
+                else
+                {
+                    <div class="rf-dice-pick">
+                        @foreach (var sides in Sides)
+                        {
+                            @DieButton(sides)
+                        }
+                    </div>
+                }
             </div>
 
             <div class="rf-dice-field">
@@ -92,6 +109,7 @@
             </div>
 
             <div class="rf-dice-formula">
+                <div class="rf-dice-formula-row">
                 <label class="rf-dice-field">
                     <span class="rf-dice-label">@UiText.DiceFormula(Lang)</span>
                     <input class="rf-form-control rf-dice-formula-input" maxlength="80" placeholder="1d20+5" @bind="expression" @bind:event="oninput"
@@ -105,6 +123,7 @@
                     <span class="rf-dice-label">@UiText.RollLabel(Lang)</span>
                     <input class="rf-form-control" maxlength="120" placeholder="@UiText.DiceReasonHint(Lang)" @bind="label" @bind:event="oninput" @onkeydown="OnKeyAsync" data-test="roll-label" />
                 </label>
+                </div>
                 <div class="rf-dice-reasons">
                     @foreach (var reason in UiText.DiceQuickReasons(Lang))
                     {
@@ -112,11 +131,18 @@
                         <button type="button" @onclick="() => label = r">@r</button>
                     }
                 </div>
-                <button type="button" class="rf-dice-go @(hidden ? "secret" : null)" disabled="@(rolling || string.IsNullOrWhiteSpace(expression))" @onclick="() => RollAsync(expression)" data-test="roll-go">
-                    <Icon Name="dice" />
-                    <span>@UiText.DiceRollButton(expression.Trim(), hidden, Lang)</span>
-                </button>
+                <div class="rf-dice-cta">
+                    @if (Floating)
+                    {
+                        <button type="button" class="rf-dice-cta-reset" @onclick="ResetPool">@UiText.DiceResetShort(Lang)</button>
+                    }
+                    <button type="button" class="rf-dice-go @(hidden ? "secret" : null)" disabled="@(rolling || string.IsNullOrWhiteSpace(expression))" @onclick="() => RollAsync(expression)" data-test="roll-go">
+                        <Icon Name="dice" />
+                        <span>@UiText.DiceRollButton(expression.Trim(), hidden, Lang)</span>
+                    </button>
+                </div>
             </div>
+            }
         </aside>
         }
 
@@ -125,7 +151,15 @@
         <div class="rf-dice-log">
             <div class="rf-dice-log-head">
                 <div class="d-flex flex-column gap-2 flex-grow-1" style="min-width: 0; flex-basis: 320px;">
-                    <span class="rf-dice-kicker">@UiText.DiceLogTitle(Lang)</span>
+                    <div class="rf-dice-console-head">
+                        <span class="rf-dice-kicker">@UiText.DiceLogTitle(Lang)</span>
+                        @if (Floating)
+                        {
+                            <div class="rf-dice-head-actions">@WindowButtons</div>
+                        }
+                    </div>
+                    @if (!Minimized)
+                    {
                     <div class="rf-dice-filters">
                         @foreach (var (key, name) in Filters)
                         {
@@ -133,14 +167,18 @@
                             <button type="button" class="@(filter == k ? "active" : null) @(k == "hidden" ? "secret" : null)" @onclick="() => filter = k" data-test="@($"rolls-filter-{k}")">@name</button>
                         }
                     </div>
+                    }
                 </div>
-                @if (SessionRules.CanClearRolls(Role) && rolls is { Count: > 0 })
+                @if (!Floating && SessionRules.CanClearRolls(Role) && rolls is { Count: > 0 })
                 {
                     <button type="button" class="rf-dice-clear" @onclick="() => clearing = true" data-test="rolls-clear">@UiText.BtnClearRolls(Lang)</button>
                 }
             </div>
 
-            @if (rolls is null)
+            @if (Minimized)
+            {
+            }
+            else if (rolls is null)
             {
                 <div class="small" style="color: var(--rf-text-muted);">…</div>
             }
@@ -162,7 +200,7 @@
                                     <strong class="rf-roll-name @(r.Removed ? "removed" : null)" style="color: @r.Color;" data-test="roll-roller">@(r.Removed && !r.IsCharacter ? UiText.RollDeletedAccount(Lang) : r.Roller)</strong>
                                     @if (r.Hidden)
                                     {
-                                        <span class="rf-dice-badge secret"><Icon Name="eye-slash" /> @UiText.DiceHiddenBadge(Lang)</span>
+                                        <span class="rf-dice-badge secret"><Icon Name="eye-slash" /> @(Floating ? UiText.DiceHiddenShort(Lang) : UiText.DiceHiddenBadge(Lang))</span>
                                     }
                                     @if (ModeOf(r) is { } m)
                                     {
@@ -218,6 +256,16 @@
                     }
                 </ol>
             }
+            @if (Floating && !Minimized)
+            {
+                <div class="rf-dice-log-foot">
+                    <span class="rf-dice-synced"><span class="rf-live-dot"></span> @UiText.DiceSynced(Lang)</span>
+                    @if (SessionRules.CanClearRolls(Role) && rolls is { Count: > 0 })
+                    {
+                        <button type="button" class="rf-dice-clear" @onclick="() => clearing = true" data-test="rolls-clear">@UiText.BtnClearAll(Lang)</button>
+                    }
+                </div>
+            }
         </div>
         }
     </div>
@@ -252,6 +300,38 @@
     //	The virtual tabletop splits the two: "console" (the dice, in a popover over the map) and "log" (in the side
     //	panel); "all" elsewhere
     [Parameter] public string Part { get; set; } = "all";
+
+    //	On the virtual tabletop: a card floating over the map, with the buttons to shrink it to its title and to close it
+    [Parameter] public bool Floating { get; set; }
+    [Parameter] public bool Minimized { get; set; }
+    [Parameter] public EventCallback OnMinimize { get; set; }
+    [Parameter] public EventCallback OnClose { get; set; }
+
+    //	Characters the master gave to me on the map: I roll for them too
+    [Parameter] public IReadOnlyCollection<Guid> GivenCharacters { get; set; } = Array.Empty<Guid>();
+
+    private RenderFragment WindowButtons => __builder =>
+    {
+        @if (Floating)
+        {
+            <button type="button" class="rf-dice-win" title="@(Minimized ? UiText.CardExpand(Lang) : UiText.CardMinimize(Lang))" aria-label="@(Minimized ? UiText.CardExpand(Lang) : UiText.CardMinimize(Lang))" @onclick="() => OnMinimize.InvokeAsync()" data-test="@($"rolls-{Part}-minimize")"><Icon Name="@(Minimized ? "up" : "dash")" /></button>
+            <button type="button" class="rf-dice-win" title="@UiText.TokenClose(Lang)" aria-label="@UiText.TokenClose(Lang)" @onclick="() => OnClose.InvokeAsync()" data-test="@($"rolls-{Part}-close")"><Icon Name="close" /></button>
+        }
+    };
+
+    private RenderFragment DieButton(int die) => __builder =>
+    {
+        var count = pool.GetValueOrDefault(die);
+        <button type="button" class="rf-dice-pick-btn @(count > 0 ? "selected" : null)" @onclick="() => AddDie(die)" @oncontextmenu="() => RemoveDie(die)" @oncontextmenu:preventDefault="true"
+                title="@UiText.DicePickHint(Lang)" data-test="@("roll-d" + die)">
+            @if (count > 0)
+            {
+                <span class="rf-dice-pick-count">×@count</span>
+            }
+            <svg viewBox="0 0 24 24" aria-hidden="true">@DieShape(die)</svg>
+            <span>d@(die)</span>
+        </button>
+    };
 
     //	A roll made here (the log of the table adds it at once) and the count of others' rolls the log just received
     [Parameter] public EventCallback<CampaignRollDto> OnRolled { get; set; }
@@ -289,7 +369,7 @@
     private bool RunsTheTable => CampaignRules.RunsTheTable(Role);
 
     //	The characters I can roll for: a player's own; for masters and co-masters, everyone's
-    private IEnumerable<CampaignCharacterDto> Playable => Characters.Where(c => c.Active && (RunsTheTable ? c.CanEdit : c.IsMine));
+    private IEnumerable<CampaignCharacterDto> Playable => Characters.Where(c => c.Active && (RunsTheTable ? c.CanEdit : c.IsMine || GivenCharacters.Contains(c.Character.Id)));
 
     //	A roll shows the character's name: masters roll as themselves ("Master") or for a character; a player rolls for
     //	one of their characters, as themselves only without any

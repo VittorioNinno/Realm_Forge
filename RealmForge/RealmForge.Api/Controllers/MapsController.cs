@@ -212,6 +212,25 @@ namespace RealmForge.Api.Controllers
 			return NoContent();
 		}
 
+		//	DELETE: api/campaigns/{campaignId}/maps/{mapId}/display — the map taken off the players' table
+		[HttpDelete("{mapId:guid}/display")]
+		public async Task<IActionResult> HideMap(Guid campaignId, Guid mapId)
+		{
+			var (map, role) = await LoadAsync(campaignId, mapId, withTokens: false);
+			if (map is null || role is null)
+			{
+				return NotFound();
+			}
+			if (!CampaignRules.RunsTheTable(role.Value))
+			{
+				return Forbid();
+			}
+			map.Shown = false;
+			map.UpdatedAt = DateTimeOffset.UtcNow;
+			await _context.SaveChangesAsync();
+			return NoContent();
+		}
+
 		//	DELETE: api/campaigns/{campaignId}/maps/{mapId}
 		[HttpDelete("{mapId:guid}")]
 		public async Task<IActionResult> DeleteMap(Guid campaignId, Guid mapId)
@@ -271,7 +290,19 @@ namespace RealmForge.Api.Controllers
 			}
 			if (!CampaignRules.RunsTheTable(role.Value))
 			{
-				return Forbid();
+				//	Whoever controls a token chooses the colour of its ring, nothing else
+				if (!await ControlsAsync(token))
+				{
+					return Forbid();
+				}
+				if (dto.Color is not { } ring || !System.Text.RegularExpressions.Regex.IsMatch(ring, "^#[0-9a-fA-F]{6}$"))
+				{
+					return Problem(statusCode: StatusCodes.Status400BadRequest, title: "Choose a colour.");
+				}
+				token.Color = ring.ToLowerInvariant();
+				token.UpdatedAt = map.UpdatedAt = DateTimeOffset.UtcNow;
+				await _context.SaveChangesAsync();
+				return NoContent();
 			}
 			if (await ValidateTokenAsync(campaignId, map, dto) is { } error)
 			{
@@ -469,6 +500,33 @@ namespace RealmForge.Api.Controllers
 			return NoContent();
 		}
 
+		//	POST: api/campaigns/{campaignId}/maps/{mapId}/shapes/erase — the drawings, texts and areas in a box that the
+		//	account may remove (the same as one by one)
+		[HttpPost("{mapId:guid}/shapes/erase")]
+		public async Task<ActionResult<int>> EraseArea(Guid campaignId, Guid mapId, [FromBody] EraseAreaDto dto)
+		{
+			var (map, role) = await LoadAsync(campaignId, mapId, withTokens: true);
+			if (map is null || role is null)
+			{
+				return NotFound();
+			}
+			if (new[] { dto.X, dto.Y, dto.Width, dto.Height }.Any(v => double.IsNaN(v) || double.IsInfinity(v)) || dto.Width <= 0 || dto.Height <= 0)
+			{
+				return Problem(statusCode: StatusCodes.Status400BadRequest, title: "Draw a box on the map.");
+			}
+			var runs = CampaignRules.RunsTheTable(role.Value);
+			var gone = map.Shapes.Where(s => MapRules.Sees(s.Kind, s.MasterOnly, s.OwnerId == UserId)
+				&& MapRules.CanDeleteShape(s.Kind, s.MasterOnly, s.OwnerId == UserId, runs)
+				&& MapRules.Touches(s.Points, dto.X, dto.Y, dto.Width, dto.Height)).ToList();
+			if (gone.Count > 0)
+			{
+				_context.CampaignMapShapes.RemoveRange(gone);
+				map.UpdatedAt = DateTimeOffset.UtcNow;
+				await _context.SaveChangesAsync();
+			}
+			return Ok(gone.Count);
+		}
+
 		// ===== Fog of war, pings, the view =====
 
 		//	PUT: api/campaigns/{campaignId}/maps/{mapId}/fog — masters and co-masters
@@ -565,9 +623,15 @@ namespace RealmForge.Api.Controllers
 				return NotFound();
 			}
 			var combatants = EncountersController.Read(encounter.Combatants);
-			foreach (var c in combatants.Where(c => c.Initiative is null))
+			//	A fight never started opens on the initiative phase (everyone rolls or the master writes the values); one
+			//	under way goes on, with the initiative rolled for whoever has none
+			var rolling = encounter.Round <= 0;
+			if (!rolling)
 			{
-				c.Initiative = Random.Shared.Next(1, 21) + c.InitiativeBonus;
+				foreach (var c in combatants.Where(c => c.Initiative is null))
+				{
+					c.Initiative = Random.Shared.Next(1, 21) + c.InitiativeBonus;
+				}
 			}
 			var monsterIds = combatants.Where(c => c.MonsterId is not null).Select(c => c.MonsterId!.Value).Distinct().ToList();
 			var sizes = await _context.Monsters.AsNoTracking().Where(m => monsterIds.Contains(m.Id)).ToDictionaryAsync(m => m.Id, m => new { m.Size, m.IsNpc });
@@ -616,8 +680,8 @@ namespace RealmForge.Api.Controllers
 			var order = EncounterRules.Order(combatants);
 			encounter.Status = EncounterStatus.Running;
 			encounter.Shown = true;
-			encounter.Round = Math.Max(1, encounter.Round);
-			encounter.CurrentId = encounter.CurrentId is { } current && combatants.Any(c => c.Id == current) ? current : order.FirstOrDefault()?.Id;
+			encounter.Round = rolling ? 0 : encounter.Round;
+			encounter.CurrentId = rolling ? null : encounter.CurrentId is { } current && combatants.Any(c => c.Id == current) ? current : order.FirstOrDefault()?.Id;
 			encounter.Combatants = System.Text.Json.JsonSerializer.Serialize(combatants, new System.Text.Json.JsonSerializerOptions(System.Text.Json.JsonSerializerDefaults.Web));
 			encounter.Version++;
 			encounter.UpdatedAt = DateTimeOffset.UtcNow;
@@ -649,7 +713,7 @@ namespace RealmForge.Api.Controllers
 			var combatants = new List<EncounterCombatant>();
 			foreach (var token in chosen)
 			{
-				combatants.Add(await CombatantOfAsync(token));
+				combatants.Add(await CombatantOfAsync(token, roll: false));
 			}
 			var encounter = new CampaignEncounter
 			{
@@ -657,10 +721,9 @@ namespace RealmForge.Api.Controllers
 				Name = map.Name.Length > 100 ? map.Name[..100] : map.Name,
 				Status = EncounterStatus.Running,
 				Shown = true,
-				Round = 1,
+				Round = 0,
 				CreatedById = UserId
 			};
-			encounter.CurrentId = EncounterRules.Order(combatants).FirstOrDefault()?.Id;
 			encounter.Combatants = System.Text.Json.JsonSerializer.Serialize(combatants, new System.Text.Json.JsonSerializerOptions(System.Text.Json.JsonSerializerDefaults.Web));
 			_context.CampaignEncounters.Add(encounter);
 			map.EncounterId = encounter.Id;
@@ -691,9 +754,13 @@ namespace RealmForge.Api.Controllers
 			{
 				return NoContent();
 			}
-			var combatant = await CombatantOfAsync(token);
+			var rolling = fight.Encounter.Round <= 0;
+			var combatant = await CombatantOfAsync(token, roll: !rolling);
 			fight.Combatants.Add(combatant);
-			fight.Encounter.CurrentId ??= combatant.Id;
+			if (!rolling)
+			{
+				fight.Encounter.CurrentId ??= combatant.Id;
+			}
 			Save(fight, fight.Combatants);
 			map.UpdatedAt = DateTimeOffset.UtcNow;
 			await _context.SaveChangesAsync();
@@ -737,7 +804,7 @@ namespace RealmForge.Api.Controllers
 		[HttpPut("{mapId:guid}/combat/initiative")]
 		public async Task<IActionResult> SetInitiative(Guid campaignId, Guid mapId, [FromBody] SetInitiativeDto dto)
 		{
-			var (map, role) = await LoadAsync(campaignId, mapId, withTokens: false);
+			var (map, role) = await LoadAsync(campaignId, mapId, withTokens: true);
 			if (map is null || role is null)
 			{
 				return NotFound();
@@ -746,7 +813,8 @@ namespace RealmForge.Api.Controllers
 			{
 				return NotFound();
 			}
-			if (!CampaignRules.RunsTheTable(role.Value) && !await OwnsAsync(combatant.CharacterId))
+			if (!CampaignRules.RunsTheTable(role.Value) && !await OwnsAsync(combatant.CharacterId)
+				&& !(map.Tokens.FirstOrDefault(t => t.CombatantId == combatant.Id) is { } token && await ControlsAsync(token)))
 			{
 				return Forbid();
 			}
@@ -758,7 +826,7 @@ namespace RealmForge.Api.Controllers
 
 		//	A combatant made from a token: a character (its initiative rolled by its player), a monster with its statblock
 		//	and the token's hit points, any other token
-		private async Task<EncounterCombatant> CombatantOfAsync(CampaignToken token)
+		private async Task<EncounterCombatant> CombatantOfAsync(CampaignToken token, bool roll = true)
 		{
 			var monster = token.MonsterId is { } monsterId
 				? await _context.Monsters.AsNoTracking().Where(m => m.Id == monsterId)
@@ -787,7 +855,7 @@ namespace RealmForge.Api.Controllers
 				combatant.MaxHp = token.MaxHp ?? 0;
 				combatant.Hp = token.Hp ?? combatant.MaxHp;
 			}
-			if (combatant.Kind != CombatantKind.Character)
+			if (roll && combatant.Kind != CombatantKind.Character)
 			{
 				combatant.Initiative = Random.Shared.Next(1, 21) + combatant.InitiativeBonus;
 			}
@@ -808,6 +876,36 @@ namespace RealmForge.Api.Controllers
 				token.Hp = combatant.Hp;
 			}
 			token.Conditions = combatant.Conditions.ToList();
+		}
+
+		//	POST: api/campaigns/{campaignId}/maps/{mapId}/combat/begin — the initiative phase is over: whoever has not rolled
+		//	gets a roll, and the first round starts from the top of the order
+		[HttpPost("{mapId:guid}/combat/begin")]
+		public async Task<IActionResult> BeginCombat(Guid campaignId, Guid mapId)
+		{
+			var (map, role) = await LoadAsync(campaignId, mapId, withTokens: false);
+			if (map is null || role is null)
+			{
+				return NotFound();
+			}
+			if (!CampaignRules.RunsTheTable(role.Value))
+			{
+				return Forbid();
+			}
+			if (await FightAsync(map, track: true) is not { } fight)
+			{
+				return NotFound();
+			}
+			foreach (var c in fight.Combatants.Where(c => c.Initiative is null))
+			{
+				c.Initiative = Random.Shared.Next(1, 21) + c.InitiativeBonus;
+			}
+			fight.Encounter.Round = Math.Max(1, fight.Encounter.Round);
+			fight.Encounter.CurrentId = EncounterRules.Order(fight.Combatants).FirstOrDefault()?.Id;
+			Save(fight, fight.Combatants);
+			map.UpdatedAt = DateTimeOffset.UtcNow;
+			await _context.SaveChangesAsync();
+			return NoContent();
 		}
 
 		//	POST: api/campaigns/{campaignId}/maps/{mapId}/combat/next — the next turn (a new round after the last one); the
@@ -833,6 +931,7 @@ namespace RealmForge.Api.Controllers
 			{
 				return NoContent();
 			}
+			fight.Encounter.Round = Math.Max(1, fight.Encounter.Round);
 			var index = order.FindIndex(c => c.Id == fight.Encounter.CurrentId);
 			var next = index + 1;
 			if (next >= order.Count)
@@ -841,6 +940,71 @@ namespace RealmForge.Api.Controllers
 				fight.Encounter.Round++;
 			}
 			fight.Encounter.CurrentId = order[next].Id;
+			fight.Encounter.Version++;
+			fight.Encounter.UpdatedAt = DateTimeOffset.UtcNow;
+			await _context.SaveChangesAsync();
+			return NoContent();
+		}
+
+		//	POST: api/campaigns/{campaignId}/maps/{mapId}/combat/previous — the turn goes back one (to the previous round
+		//	from the first of the order)
+		[HttpPost("{mapId:guid}/combat/previous")]
+		public async Task<IActionResult> PreviousTurn(Guid campaignId, Guid mapId)
+		{
+			var (map, role) = await LoadAsync(campaignId, mapId, withTokens: false);
+			if (map is null || role is null)
+			{
+				return NotFound();
+			}
+			if (!CampaignRules.RunsTheTable(role.Value))
+			{
+				return Forbid();
+			}
+			if (await FightAsync(map, track: true) is not { } fight)
+			{
+				return NotFound();
+			}
+			var order = EncounterRules.Order(fight.Combatants).Where(c => c.Kind == CombatantKind.Character || c.Hp > 0 || c.MaxHp == 0).ToList();
+			if (order.Count == 0)
+			{
+				return NoContent();
+			}
+			var index = order.FindIndex(c => c.Id == fight.Encounter.CurrentId);
+			var previous = index - 1;
+			if (previous < 0)
+			{
+				if (fight.Encounter.Round <= 1)
+				{
+					return NoContent();
+				}
+				previous = order.Count - 1;
+				fight.Encounter.Round--;
+			}
+			fight.Encounter.CurrentId = order[previous].Id;
+			fight.Encounter.Version++;
+			fight.Encounter.UpdatedAt = DateTimeOffset.UtcNow;
+			await _context.SaveChangesAsync();
+			return NoContent();
+		}
+
+		//	PUT: api/campaigns/{campaignId}/maps/{mapId}/combat/health — whether the players see how hurt the enemies are
+		[HttpPut("{mapId:guid}/combat/health")]
+		public async Task<IActionResult> ShowCombatHealth(Guid campaignId, Guid mapId, [FromBody] CombatHealthDto dto)
+		{
+			var (map, role) = await LoadAsync(campaignId, mapId, withTokens: false);
+			if (map is null || role is null)
+			{
+				return NotFound();
+			}
+			if (!CampaignRules.RunsTheTable(role.Value))
+			{
+				return Forbid();
+			}
+			if (await FightAsync(map, track: true) is not { } fight)
+			{
+				return NotFound();
+			}
+			fight.Encounter.ShowHealth = dto.Show;
 			fight.Encounter.Version++;
 			fight.Encounter.UpdatedAt = DateTimeOffset.UtcNow;
 			await _context.SaveChangesAsync();
@@ -891,7 +1055,9 @@ namespace RealmForge.Api.Controllers
 			{
 				return NotFound();
 			}
-			if (!CampaignRules.RunsTheTable(role.Value))
+			//	The masters; whoever controls the token its hit points (not its conditions)
+			var runs = CampaignRules.RunsTheTable(role.Value);
+			if (!runs && !await ControlsAsync(token))
 			{
 				return Forbid();
 			}
@@ -899,9 +1065,15 @@ namespace RealmForge.Api.Controllers
 			{
 				return Problem(statusCode: StatusCodes.Status400BadRequest, title: "A character's conditions and hit points live on its sheet.");
 			}
-			var conditions = (dto.Conditions ?? new()).Where(k => EncounterRules.Conditions.Contains(k)).Distinct().ToList();
 			var fight = await FightAsync(map, track: true);
 			var combatant = token.CombatantId is { } cid ? fight?.Combatants.FirstOrDefault(c => c.Id == cid) : null;
+			var conditions = runs
+				? (dto.Conditions ?? new()).Where(k => EncounterRules.Conditions.Contains(k)).Distinct().ToList()
+				: combatant?.Conditions ?? token.Conditions;
+			if (dto.TempHp is { } temp)
+			{
+				token.TempHp = temp > 0 ? Math.Min(temp, 10_000) : null;
+			}
 			if (fight is not null && combatant is not null)
 			{
 				combatant.Conditions = conditions;
@@ -909,11 +1081,20 @@ namespace RealmForge.Api.Controllers
 				{
 					combatant.Hp = Math.Clamp(hp, 0, Math.Max(combatant.MaxHp, 0) + 1000);
 				}
+				if (dto.TempHp is { } fightTemp)
+				{
+					combatant.TempHp = Math.Clamp(fightTemp, 0, 10_000);
+				}
 				Save(fight, fight.Combatants);
 			}
 			else
 			{
 				token.Conditions = conditions;
+				if (dto.MaxHp is { } newMax && newMax > 0)
+				{
+					token.MaxHp = Math.Min(newMax, 100_000);
+					token.Hp = Math.Min(token.Hp ?? newMax, token.MaxHp.Value + 1000);
+				}
 				if (dto.Hp is { } tokenHp && token.MaxHp is { } tokenMax)
 				{
 					token.Hp = Math.Clamp(tokenHp, 0, tokenMax + 1000);
@@ -963,7 +1144,13 @@ namespace RealmForge.Api.Controllers
 				.Select(t =>
 				{
 					var controls = (t.CharacterId is { } id && mine.Contains(id)) || t.ControlledBy.Contains(UserId);
-					var dto = ToDto(t, MapRules.CanMove(role, controls, map.Shown, t.Hidden) && (runs || t.Layer == TokenLayer.Tokens));
+					var dto = ToDto(t, MapRules.CanMove(role, controls, map.Shown, t.Hidden) && (runs || t.Layer == TokenLayer.Tokens)) with { Controlled = controls };
+					//	The masters and whoever controls it know its numbers; the others how hurt it looks
+					var knows = runs || controls;
+					if (knows)
+					{
+						dto = dto with { TempHp = t.TempHp };
+					}
 					if (runs)
 					{
 						dto = dto with { ControlledBy = t.ControlledBy.ToList() };
@@ -976,14 +1163,14 @@ namespace RealmForge.Api.Controllers
 					if (combatant is null && t.CharacterId is null && t.MaxHp is { } tokenMax && tokenMax > 0)
 					{
 						var tokenHp = t.Hp ?? tokenMax;
-						dto = runs
+						dto = knows
 							? dto with { Hp = tokenHp, MaxHp = tokenMax }
 							: dto with { Health = EncounterRules.HealthOf(tokenHp, tokenMax) };
 					}
 					if (combatant is not null && combatant.Kind != CombatantKind.Character)
 					{
-						dto = runs
-							? dto with { Hp = combatant.Hp, MaxHp = combatant.MaxHp }
+						dto = knows
+							? dto with { Hp = combatant.Hp, MaxHp = combatant.MaxHp, TempHp = combatant.TempHp > 0 ? combatant.TempHp : null }
 							: dto with { Health = EncounterRules.HealthOf(combatant.Hp, combatant.MaxHp) };
 					}
 					return dto;
@@ -1019,10 +1206,10 @@ namespace RealmForge.Api.Controllers
 			var runs = CampaignRules.RunsTheTable(role);
 			var order = EncounterRules.Order(fight.Combatants)
 				.Where(c => runs || !c.Hidden)
-				.Select(c => new MapCombatantDto(c.Id, c.Name, c.Kind, c.Initiative, map.Tokens.FirstOrDefault(t => t.CombatantId == c.Id)?.Id, c.Hidden))
+				.Select(c => new MapCombatantDto(c.Id, c.Name, c.Kind, c.Initiative, map.Tokens.FirstOrDefault(t => t.CombatantId == c.Id)?.Id, c.Hidden, c.InitiativeBonus))
 				.ToList();
 			var current = fight.Encounter.CurrentId is { } id && order.Any(c => c.Id == id) ? fight.Encounter.CurrentId : null;
-			return new MapCombatDto(fight.Encounter.Id, fight.Encounter.Name, fight.Encounter.Round, current, order);
+			return new MapCombatDto(fight.Encounter.Id, fight.Encounter.Name, fight.Encounter.Round, current, order, fight.Encounter.ShowHealth);
 		}
 
 		private static void Save(Fight fight, List<EncounterCombatant> combatants)
