@@ -12967,3 +12967,140 @@ textarea.rf-form-control {
 .rf-vtt-table .rf-vtt-drawer:has(.rf-qs) {
     width: 384px;
 }
+
+/* ===== The table, from the TV layout: the fight strip, the dice console and the log of the side panel ===== */
+.rf-vtt-table .rf-vtt-initiative {
+    gap: 16px;
+    min-height: 56px;
+    border-top: 2px solid var(--rf-orange-primary);
+    border-bottom-color: #2e2e2e;
+    background-color: #0e0e0e;
+}
+
+.rf-vtt-table .rf-vtt-initiative > .rf-vtt-round {
+    padding-right: 16px;
+    border-right: 1px solid #262626;
+}
+
+.rf-vtt-table .rf-vtt-combatant {
+    min-height: 40px;
+    padding: 0 8px;
+    border: 1px solid #2c2c2c;
+    border-left: 3px solid var(--rf-token, #9e9e9e);
+    background-color: #171717;
+    box-shadow: none;
+}
+
+    .rf-vtt-table .rf-vtt-combatant.current {
+        border-color: var(--rf-orange-primary);
+        background-color: rgba(255, 140, 0, .14);
+        box-shadow: 0 0 16px rgba(255, 140, 0, .2);
+    }
+
+.rf-vtt-table .rf-vtt-combatant-init {
+    padding: 0 8px;
+    border-radius: 4px;
+    border: 1px solid #2e2e2e;
+    background-color: #101010;
+    color: #ffb74d;
+    font-size: .7rem;
+    line-height: 20px;
+}
+
+.rf-vtt-combatant-details {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    min-width: 72px;
+    text-align: left;
+}
+
+.rf-vtt-table .rf-vtt-combatant-name {
+    font-size: .75rem;
+    font-weight: 700;
+    line-height: 1;
+    white-space: nowrap;
+}
+
+.rf-vtt-combatant-life {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: .6rem;
+    font-weight: 700;
+    color: var(--rf-text-muted);
+}
+
+.rf-vtt-bar {
+    display: block;
+    flex: 1;
+    min-width: 32px;
+    height: 4px;
+    overflow: hidden;
+    border-radius: 2px;
+    background-color: #27272a;
+}
+
+    .rf-vtt-bar > span {
+        display: block;
+        height: 100%;
+        background-color: #10b981;
+    }
+
+        .rf-vtt-bar > span.low {
+            background-color: #ef4444;
+        }
+
+/* The dice console in the side panel: big dice four to a row, as in the TV layout */
+.rf-vtt-drawer .rf-dice-pick {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.rf-vtt-drawer .rf-dice-pick-btn {
+    justify-content: center;
+    min-height: 64px;
+    border-color: #2a2a2a;
+    background-color: #181818;
+    transition: transform .15s, border-color .15s;
+}
+
+    .rf-vtt-drawer .rf-dice-pick-btn:hover {
+        border-color: var(--rf-orange-primary);
+        transform: translateY(-2px);
+    }
+
+@media (prefers-reduced-motion: reduce) {
+    .rf-vtt-drawer .rf-dice-pick-btn:hover {
+        transform: none;
+    }
+}
+
+/* The log of the side panel: compact cards, the total in a small square */
+.rf-vtt-drawer .rf-dice-card {
+    gap: 8px;
+    padding: 8px 16px;
+    border-color: #242424;
+    border-left-width: 3px;
+    background-color: #141414;
+}
+
+.rf-vtt-drawer .rf-dice-card-main {
+    gap: 4px;
+}
+
+.rf-vtt-drawer .rf-dice-card-side {
+    gap: 8px;
+}
+
+.rf-vtt-drawer .rf-dice-card-actions button {
+    min-height: 24px;
+    border-radius: 4px;
+    font-size: .65rem;
+}
+
+.rf-vtt-drawer .rf-dice-card-total {
+    min-width: 40px;
+    height: 40px;
+    padding: 0 8px;
+    font-size: 1.1rem;
+}
