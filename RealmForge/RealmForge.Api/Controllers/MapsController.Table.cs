@@ -439,7 +439,11 @@ namespace RealmForge.Api.Controllers
 
 		private static (int X, int Y) NextTo(CampaignMap map, CampaignToken token)
 		{
-			var taken = map.Tokens.Where(t => t.PropType == PropType.Item).Select(t => (t.X, t.Y)).ToHashSet();
+			//	Free: no other token on it (an item on the ground is seen and clicked only there)
+			var taken = map.Tokens.Where(t => t.Id != token.Id)
+				.SelectMany(t => Enumerable.Range(0, map.GridType == GridType.Square ? t.Size : 1)
+					.SelectMany(dx => Enumerable.Range(0, map.GridType == GridType.Square ? t.Size : 1).Select(dy => (t.X + dx, t.Y + dy))))
+				.ToHashSet();
 			for (var ring = 1; ring <= 3; ring++)
 			{
 				for (var dy = -ring; dy <= ring + token.Size - 1; dy++)
@@ -534,7 +538,7 @@ namespace RealmForge.Api.Controllers
 				}
 				if (item is not null)
 				{
-					GiveTo(sheet, item);
+					GiveTo(sheet, item, dto.Equip);
 				}
 				character.Sheet = JsonSerializer.Serialize(sheet, CharactersController.Json);
 				character.UpdatedAt = DateTimeOffset.UtcNow;
@@ -546,7 +550,7 @@ namespace RealmForge.Api.Controllers
 				mine.Coins += coins;
 				if (item is not null)
 				{
-					if (item.Attack is { } attack && mine.Disarmed.Remove(attack))
+					if (dto.Equip && item.Attack is { } attack && mine.Disarmed.Remove(attack))
 					{
 						//	Its own weapon back in hand: the attack again
 					}
@@ -579,7 +583,7 @@ namespace RealmForge.Api.Controllers
 		}
 
 		//	Into a character's inventory: the entry as it was dropped, or one more of the same compendium item
-		private static void GiveTo(CharacterSheetState sheet, TokenItem item)
+		private static void GiveTo(CharacterSheetState sheet, TokenItem item, bool equip)
 		{
 			InventoryItem? entry = null;
 			if (item.Entry is { } json)
@@ -596,9 +600,9 @@ namespace RealmForge.Api.Controllers
 			if (entry is not null)
 			{
 				entry.Id = Guid.NewGuid();
-				entry.Equipped = false;
+				entry.Equipped = equip;
 				entry.Attuned = false;
-				var same = entry.Magic is null && entry.EquipmentId is { } eid ? sheet.Inventory.FirstOrDefault(i => i.EquipmentId == eid && i.Magic is null) : null;
+				var same = !equip && entry.Magic is null && entry.EquipmentId is { } eid ? sheet.Inventory.FirstOrDefault(i => i.EquipmentId == eid && i.Magic is null && !i.Equipped) : null;
 				if (same is not null)
 				{
 					same.Quantity += Math.Max(1, entry.Quantity);
@@ -609,7 +613,7 @@ namespace RealmForge.Api.Controllers
 				}
 				return;
 			}
-			var existing = item.EquipmentId is { } id ? sheet.Inventory.FirstOrDefault(i => i.EquipmentId == id && i.Magic is null) : null;
+			var existing = !equip && item.EquipmentId is { } id ? sheet.Inventory.FirstOrDefault(i => i.EquipmentId == id && i.Magic is null && !i.Equipped) : null;
 			if (existing is not null)
 			{
 				existing.Quantity += Math.Max(1, item.Quantity);
@@ -620,7 +624,8 @@ namespace RealmForge.Api.Controllers
 				{
 					EquipmentId = item.EquipmentId,
 					Name = item.EquipmentId is null ? item.Name : null,
-					Quantity = Math.Max(1, item.Quantity)
+					Quantity = Math.Max(1, item.Quantity),
+					Equipped = equip
 				});
 			}
 		}
@@ -671,7 +676,7 @@ namespace RealmForge.Api.Controllers
 			}
 			var seesItems = t.PropType == PropType.Item || runs || controls || down;
 			return new TokenGearDto(
-				seesItems ? gear.Items.Select((i, index) => new TokenItemDto(index, i.Name, i.Quantity)).ToList() : new List<TokenItemDto>(),
+				seesItems ? gear.Items.Select((i, index) => new TokenItemDto(index, i.Name, i.Quantity, i.EquipmentId)).ToList() : new List<TokenItemDto>(),
 				seesItems ? gear.Coins : 0,
 				runs || controls ? gear.Disarmed.ToList() : new List<string>());
 		}

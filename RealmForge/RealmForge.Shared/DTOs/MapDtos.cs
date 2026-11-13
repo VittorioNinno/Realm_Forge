@@ -141,7 +141,7 @@ namespace RealmForge.Shared.DTOs
 	///	What a token carries, as the table sees it: the loot of a creature (to the masters; to everyone once it is
 	///	down), the item lying on a dropped-item token, the statblock attacks it lost.
 	///	</summary>
-	public record TokenItemDto(int Index, string Name, int Quantity);
+	public record TokenItemDto(int Index, string Name, int Quantity, Guid? EquipmentId = null);
 
 	public record TokenGearDto(List<TokenItemDto> Items, int Coins, List<string> Disarmed);
 
@@ -160,6 +160,9 @@ namespace RealmForge.Shared.DTOs
 	{
 		public Guid ByTokenId { get; set; }
 		public int Index { get; set; }
+
+		//	Taken in hand (equipped; a creature's own weapon gives its attack back), else into the pack
+		public bool Equip { get; set; }
 	}
 
 	//	The masters fill a creature's loot
