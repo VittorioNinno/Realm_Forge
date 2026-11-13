@@ -1,4 +1,5 @@
 ﻿using RealmForge.Shared.Campaigns;
+using RealmForge.Shared.Enums;
 
 namespace RealmForge.Shared.DTOs
 {
@@ -43,7 +44,15 @@ namespace RealmForge.Shared.DTOs
 		int? TempHp = null,
 
 		//	The account controls it (its character, or given by a master): hit points, ring and sheet are theirs too
-		bool Controlled = false);
+		bool Controlled = false,
+
+		//	A copy of a character (an NPC using its sheet); hit points the players may see; the armour class set at the
+		//	table; what kind of creature a monster is (for the players' pop-up)
+		Guid? SheetCharacterId = null,
+		bool ShowHp = false,
+		int? ArmorClass = null,
+		CreatureSize? CreatureSize = null,
+		CreatureType? CreatureType = null);
 
 	///	<summary>
 	///	The fight on a map: the encounter, the round, whose turn it is and the initiative order (what the players see of it).
@@ -90,6 +99,15 @@ namespace RealmForge.Shared.DTOs
 
 		//	A new maximum (a token outside a fight)
 		public int? MaxHp { get; set; }
+
+		//	Masters only: the hit points shown to the players; the armour class (0 or less: the statblock's again)
+		public bool? ShowHp { get; set; }
+		public int? ArmorClass { get; set; }
+	}
+
+	public class PlayersLockDto
+	{
+		public bool Locked { get; set; }
 	}
 
 	///	<summary>
@@ -147,7 +165,7 @@ namespace RealmForge.Shared.DTOs
 	///	<summary>
 	///	The fog of war (see MapFog), the last ping and the last view the masters brought the table to.
 	///	</summary>
-	public record MapTableDto(bool FogEnabled, List<double> Fog, MapPingDto? Ping, MapFocusDto? Focus);
+	public record MapTableDto(bool FogEnabled, List<double> Fog, MapPingDto? Ping, MapFocusDto? Focus, bool PlayersLocked = false);
 
 	public record MapPingDto(double X, double Y, string Color, DateTimeOffset At);
 
@@ -192,6 +210,7 @@ namespace RealmForge.Shared.DTOs
 		public TokenKind Kind { get; set; } = TokenKind.Marker;
 		public Guid? CharacterId { get; set; }
 		public Guid? MonsterId { get; set; }
+		public Guid? SheetCharacterId { get; set; }
 		public int X { get; set; }
 		public int Y { get; set; }
 		public int Size { get; set; } = 1;

@@ -64,6 +64,9 @@ namespace RealmForge.Domain.Entities
 		//	covered
 		public bool FogEnabled { get; set; }
 
+		//	The masters stopped the players' areas and pings (the drawings each one keeps for themselves stay)
+		public bool PlayersLocked { get; set; }
+
 		//	The encounter being fought on this map: its initiative order runs over the tokens
 		public Guid? EncounterId { get; set; }
 		public List<double> Fog { get; set; } = new();
@@ -119,6 +122,14 @@ namespace RealmForge.Domain.Entities
 		public TokenKind Kind { get; set; } = TokenKind.Marker;
 		public Guid? CharacterId { get; set; }
 		public Guid? MonsterId { get; set; }
+
+		//	A copy of a character's token: a nonplayer character of its own (hit points, conditions) that uses the
+		//	numbers of that character's sheet
+		public Guid? SheetCharacterId { get; set; }
+
+		//	The masters let the players see its hit points; the armour class a master set at the table (over the statblock)
+		public bool ShowHp { get; set; }
+		public int? ArmorClass { get; set; }
 		public int X { get; set; }
 		public int Y { get; set; }
 		public int Size { get; set; } = 1;
