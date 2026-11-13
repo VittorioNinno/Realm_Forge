@@ -83,10 +83,7 @@
                 {
                     @ToolOptionsBar
                 }
-                @if (map is not null)
-                {
-                    @DiceCluster
-                }
+                @DiceCluster
             </div>
             @if (panel is not null)
             {
@@ -2541,6 +2538,8 @@ else
                 </div>
             </div>
             <div class="rf-vtt-dock" role="toolbar">
+                @if (map is not null)
+                {
                 <div class="rf-vtt-dock-zoom" role="group" aria-label="@UiText.MapZoom(Lang)">
                     <button type="button" @onclick="() => ZoomByHand(-1)" aria-label="−" data-test="map-zoom-out"><Icon Name="dash" /></button>
                     <span data-test="map-zoom">@($"{zoom * 100:0}%")</span>
@@ -2552,6 +2551,7 @@ else
                     }
                 </div>
                 <span class="rf-vtt-dock-sep"></span>
+                }
                 <button type="button" class="rf-vtt-dock-btn @(diceOpen && !diceMin ? "lit" : null)" aria-pressed="@(diceOpen ? "true" : "false")" @onclick="ToggleDice" data-test="vtt-dock-dice"><Icon Name="dice" /> @UiText.VttDice(Lang)</button>
                 <button type="button" class="rf-vtt-dock-btn @(logOpen && !logMin ? "on" : null)" aria-pressed="@(logOpen ? "true" : "false")" @onclick="ToggleLog" data-test="vtt-dock-log">
                     <Icon Name="list" /> @UiText.VttRollLog(Lang)
