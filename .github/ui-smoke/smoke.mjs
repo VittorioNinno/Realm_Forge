@@ -1794,6 +1794,24 @@ try {
   results.push(`INFO vtt objects: ${JSON.stringify(propUi)}`);
   if (propUi.before !== 'Closed' || propUi.opened !== 'Open' || propUi.locked !== 'Locked' || propUi.stuck !== 1) throw new Error(`unexpected objects: ${JSON.stringify(propUi)}`);
   ok('virtual tabletop objects: a door placed from the tokens panel, opened from its toolbar, then locked so it no longer opens');
+  // A long rest from the hero's quick sheet: saved on its sheet, the hit points full
+  await page.locator('[data-test=vtt] [data-test=map-token][data-label="Eroe di prova"]').click();
+  await page.locator('[data-test=map-token-sheet]').click();
+  await page.locator('[data-test=map-token-long-rest]').waitFor({ timeout: 30000 });
+  await page.locator('[data-test=map-token-short-rest]').click();
+  await page.locator('[data-test=vtt-rest-dialog]').waitFor({ timeout: 15000 });
+  const restUi = { shortHp: (await page.locator('[data-test=vtt-rest-hp]').innerText()).trim() };
+  await page.locator('[data-test=vtt-rest-done]').click();
+  await page.locator('[data-test=vtt-rest-dialog]').waitFor({ state: 'detached', timeout: 15000 });
+  await page.locator('[data-test=map-token-long-rest]').click();
+  await page.locator('[data-test=vtt-rest-done]').click();
+  await page.locator('[data-test=vtt-rest-dialog]').waitFor({ state: 'detached', timeout: 15000 });
+  restUi.sheetHp = (await page.locator('[data-test=vtt-quick-sheet-hp] strong').innerText()).trim();
+  await page.locator('.rf-vtt-card-close').click();
+  results.push(`INFO vtt rests: ${JSON.stringify(restUi)}`);
+  const [restNow, restMax] = restUi.sheetHp.split('/');
+  if (!/^\d+ \/ \d+$/.test(restUi.shortHp) || restNow !== restMax) throw new Error(`unexpected rests: ${JSON.stringify(restUi)}`);
+  ok('virtual tabletop rests: a short and a long rest from the hero\'s quick sheet, saved on its sheet with the hit points full');
   // The master starts the table: the top bar says it is open, the campaign shows the way in first, the list marks it
   await page.locator('[data-test=vtt-table-start]').click();
   await page.locator('[data-test=vtt-table-open]').waitFor({ timeout: 15000 });
