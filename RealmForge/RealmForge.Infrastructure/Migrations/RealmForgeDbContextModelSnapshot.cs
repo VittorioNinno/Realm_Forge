@@ -467,6 +467,9 @@ namespace RealmForge.Infrastructure.Migrations
                     b.Property<int>("Round")
                         .HasColumnType("integer");
 
+                    b.Property<bool>("ShowHealth")
+                        .HasColumnType("boolean");
+
                     b.Property<bool>("Shown")
                         .HasColumnType("boolean");
 
@@ -918,6 +921,9 @@ namespace RealmForge.Infrastructure.Migrations
                         .HasColumnType("integer");
 
                     b.Property<int>("Size")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("TempHp")
                         .HasColumnType("integer");
 
                     b.Property<DateTimeOffset>("UpdatedAt")
