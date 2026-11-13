@@ -332,6 +332,14 @@
                         svg.innerHTML = `<rect x="${x}" y="${y}" width="${Math.abs(f.to[0] - f.from[0])}" height="${Math.abs(f.to[1] - f.from[1])}" fill="${color}" fill-opacity=".35" stroke="#7dd3fc" stroke-width="${2 / z}" stroke-dasharray="${6 / z} ${4 / z}"/>`;
                     }
                 };
+                // Erasing by area: the box being dragged
+                const drawErase = () => {
+                    const svg = layer();
+                    if (!svg) return;
+                    if (!st.eraseBox) { svg.innerHTML = ''; return; }
+                    const z = zoom(), b = st.eraseBox, x = Math.min(b.from[0], b.to[0]), y = Math.min(b.from[1], b.to[1]);
+                    svg.innerHTML = `<rect x="${x}" y="${y}" width="${Math.abs(b.to[0] - b.from[0])}" height="${Math.abs(b.to[1] - b.from[1])}" fill="#ef4444" fill-opacity=".12" stroke="#ef4444" stroke-width="${2 / z}" stroke-dasharray="${6 / z} ${4 / z}" data-test="map-erase-box"/>`;
+                };
                 // The fog brush: the cells within (size - 1) steps of the cell under the point
                 const paintCells = (p) => {
                     const [t, g, ox, oy] = grid(), ring = Math.max(0, (st.options.fogBrush || 1) - 1);
@@ -420,6 +428,13 @@
                         e.preventDefault();
                         return;
                     }
+                    if (st.tool === 'erase' && st.options.eraseArea) {
+                        const p = toMap(e);
+                        st.eraseBox = { from: p, to: p };
+                        drawErase();
+                        e.preventDefault();
+                        return;
+                    }
                     if (st.tool === 'erase') {
                         const shape = e.target.closest('[data-shape]');
                         if (shape) {
@@ -498,6 +513,9 @@
                         st.pan.moved = true;
                         stage.scrollLeft = st.pan.left - (e.clientX - st.pan.x);
                         stage.scrollTop = st.pan.top - (e.clientY - st.pan.y);
+                    } else if (st.eraseBox) {
+                        st.eraseBox.to = toMap(e);
+                        drawErase();
                     } else if (st.fog) {
                         const p = toMap(e);
                         st.fog.to = p;
@@ -521,6 +539,17 @@
                     }
                 };
                 st.up = async (e) => {
+                    if (st.eraseBox) {
+                        const b = st.eraseBox;
+                        st.eraseBox = null;
+                        drawErase();
+                        const w = Math.abs(b.to[0] - b.from[0]), h = Math.abs(b.to[1] - b.from[1]);
+                        if (w * zoom() > 4 && h * zoom() > 4) {
+                            const round = (v) => Math.round(v * 10) / 10;
+                            await dotnet.invokeMethodAsync('EraseArea', round(Math.min(b.from[0], b.to[0])), round(Math.min(b.from[1], b.to[1])), round(w), round(h));
+                        }
+                        return;
+                    }
                     if (st.fog) {
                         const f = st.fog;
                         st.fog = null;
@@ -639,6 +668,7 @@
                 st.stroke = null;
                 st.area = null;
                 st.fog = null;
+                st.eraseBox = null;
                 if (name !== 'ruler') st.ruler = null;
                 st.box = null;
                 st.drawRuler();

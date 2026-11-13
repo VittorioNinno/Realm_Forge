@@ -734,7 +734,11 @@ else
             }
             else
             {
-                <span class="rf-vtt-options-hint">@UiText.VttEraseHint(Lang)</span>
+                <span class="rf-vtt-chips" role="group" aria-label="@UiText.VttToolErase(Lang)">
+                    <button type="button" class="rf-vtt-chip @(eraseArea ? null : "active")" @onclick="() => SetEraseAsync(false)" data-test="vtt-erase-click">@UiText.VttEraseClick(Lang)</button>
+                    <button type="button" class="rf-vtt-chip @(eraseArea ? "active" : null)" @onclick="() => SetEraseAsync(true)" data-test="vtt-erase-area">@UiText.VttEraseArea(Lang)</button>
+                </span>
+                <span class="rf-vtt-options-hint">@(eraseArea ? UiText.VttEraseAreaHint(Lang) : UiText.VttEraseHint(Lang))</span>
                 <button type="button" class="btn btn-sm btn-rf-outline" @onclick="ClearShapesAsync" data-test="vtt-clear-shapes">@(RunsTheTable ? UiText.VttClearAll(Lang) : UiText.VttClearMine(Lang))</button>
             }
         </div>
@@ -853,7 +857,7 @@ else
                     {
                         @DockButton("state", "key", UiText.ToolState(Lang), "map-token-tab-state")
                     }
-                    @if (it.PropType is null && (it.Hp is not null || character is not null || (RunsTheTable && it.CharacterId is null)))
+                    @if (it.PropType is null && (it.Hp is not null || character is not null || (RunsTheTable && it.CharacterId is null) || it.Health is not null))
                     {
                         @DockButton("hp", "heart", UiText.ToolHp(Lang), "map-token-tab-hp")
                     }
@@ -878,6 +882,10 @@ else
                     }
                     else
                     {
+                        @if (it.Controlled)
+                        {
+                            @DockButton("ring", "circle", UiText.ToolRing(Lang), "map-token-tab-ring")
+                        }
                         @DockButton("more", "three-dots", UiText.ToolMore(Lang), "map-token-tab-more")
                     }
                 </nav>
@@ -900,31 +908,45 @@ else
                     </div>
                     break;
                 case "hp":
+                    var vitals = character is null ? null : charVitals.GetValueOrDefault(character.Character.Id);
                     <div class="rf-vtt-toolbar-panel rf-hud-drawer" data-test="map-token-hp">
-                        @if (character is not null)
-                        {
-                            <p class="small mb-0">@UiText.TokenHitPoints(character.Character.CurrentHitPoints, character.Character.MaxHitPoints, Lang) · @UiText.ToolHpOnSheet(Lang)</p>
-                        }
-                        else if (RunsTheTable)
+                        @if (CanChangeHp(it, character))
                         {
                             <div class="rf-hud-hp-row">
-                                <button type="button" class="rf-hud-hp heal" disabled="@(hpAmount is null or <= 0)" @onclick="() => HealAsync(it, 1)" data-test="map-token-heal"><Icon Name="plus" /> @UiText.ToolHeal(Lang)</button>
+                                <button type="button" class="rf-hud-hp heal" disabled="@(hpAmount is null or <= 0 || busy)" @onclick="() => HealAsync(it, 1)" data-test="map-token-heal"><Icon Name="plus" /> @UiText.ToolHeal(Lang)</button>
                                 <input type="number" class="rf-hud-hp-amount" min="0" max="10000" placeholder="—" @bind="hpAmount" @bind:event="oninput" @onkeydown="e => HpKeyAsync(e, it)" aria-label="@UiText.ToolHpAmount(Lang)" data-test="map-token-hp-amount" />
-                                <button type="button" class="rf-hud-hp damage" disabled="@(hpAmount is null or <= 0)" @onclick="() => HealAsync(it, -1)" data-test="map-token-damage">@UiText.ToolDamage(Lang) <Icon Name="dash" /></button>
+                                <button type="button" class="rf-hud-hp damage" disabled="@(hpAmount is null or <= 0 || busy)" @onclick="() => HealAsync(it, -1)" data-test="map-token-damage">@UiText.ToolDamage(Lang) <Icon Name="dash" /></button>
                             </div>
                             <div class="rf-hud-hp-grid">
+                                <label class="rf-vtt-field">
+                                    <span class="rf-vtt-label">@UiText.ToolTempHp(Lang)</span>
+                                    <input type="number" class="rf-hud-hp-field" min="0" max="10000" value="@(character is not null ? vitals?.TemporaryHitPoints ?? 0 : it.TempHp ?? 0)"
+                                           @onchange="e => SetTempHpAsync(it, e.Value?.ToString())" data-test="map-token-temp-hp" />
+                                </label>
+                                @if (character is not null || it.CombatantId is null)
+                                {
+                                    <label class="rf-vtt-field">
+                                        <span class="rf-vtt-label">@UiText.ToolHpMaxEdit(Lang)</span>
+                                        <input type="number" class="rf-hud-hp-field" min="1" max="100000" placeholder="@(character is not null ? vitals?.MaxHitPoints ?? character.Character.MaxHitPoints : it.MaxHp ?? 0)"
+                                               @onchange="e => SetMaxAsync(it, e.Value?.ToString())" data-test="map-token-max-hp" />
+                                    </label>
+                                }
+                            </div>
+                            @if (character is not null)
+                            {
+                                <p class="small mb-0" data-test="map-token-char-hp">@UiText.TokenHitPoints(LifeHp(character), LifeMax(character), Lang)</p>
+                            }
+                            else if (RunsTheTable)
+                            {
                                 <div class="rf-vtt-field">
                                     <span class="rf-vtt-label">@UiText.ToolHpNow(Lang)</span>
                                     <NumberStepper Value="@(it.Hp ?? it.MaxHp ?? 0)" ValueChanged="v => SetHpAsync(it, v)" Min="0" Max="@((it.MaxHp ?? 0) + 1000)" AriaLabel="@UiText.ToolHp(Lang)" InputTest="map-token-hp-input" />
                                 </div>
-                                @if (it.CombatantId is null)
-                                {
-                                    <div class="rf-vtt-field">
-                                        <span class="rf-vtt-label">@UiText.ToolHpMax(Lang)</span>
-                                        <NumberStepper Value="@(it.MaxHp ?? 0)" ValueChanged="v => SetMaxHpAsync(it, v)" Min="0" Max="100000" AriaLabel="@UiText.ToolHpMax(Lang)" InputTest="map-token-maxhp-input" />
-                                    </div>
-                                }
-                            </div>
+                            }
+                        }
+                        else if (character is not null)
+                        {
+                            <p class="small mb-0">@UiText.TokenHitPoints(character.Character.CurrentHitPoints, character.Character.MaxHitPoints, Lang)</p>
                         }
                         else if (it.Health is { } health)
                         {
@@ -1025,6 +1047,30 @@ else
     //	Healing and damage by the amount typed (Enter: damage, the usual case in a fight)
     private int? hpAmount;
 
+    // ----- Hit points from the pop-up: a master, and whoever has the token (a character: its sheet) -----
+
+    //	The hit points, temporary ones and maximum of the characters, read from their sheets when the pop-up asks
+    private readonly Dictionary<Guid, SheetVitalsDto> charVitals = new();
+
+    private bool CanChangeHp(MapTokenDto t, CampaignCharacterDto? character) => t.PropType is null && (character is not null
+        ? character.IsMine || (RunsTheTable && character.CanEdit) || t.Controlled
+        : RunsTheTable || t.Controlled);
+
+    private int LifeHp(CampaignCharacterDto c) => charVitals.TryGetValue(c.Character.Id, out var v) ? v.CurrentHitPoints ?? v.MaxHitPoints
+        : hpAfterRest.TryGetValue(c.Character.Id, out var r) ? r.Now : c.Character.CurrentHitPoints;
+
+    private int LifeMax(CampaignCharacterDto c) => charVitals.TryGetValue(c.Character.Id, out var v) ? v.MaxHitPoints
+        : hpAfterRest.TryGetValue(c.Character.Id, out var r) ? r.Max : c.Character.MaxHitPoints;
+
+    private async Task LoadVitalsAsync(Guid characterId)
+    {
+        if (await CharacterService.GetVitalsAsync(characterId) is { } vitals)
+        {
+            charVitals[characterId] = vitals;
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
     private async Task HealAsync(MapTokenDto t, int sign)
     {
         if (hpAmount is not { } amount || amount <= 0)
@@ -1032,12 +1078,145 @@ else
             return;
         }
         hpAmount = null;
-        await AddHpAsync(t, sign * amount);
+        if (t.CharacterId is not null)
+        {
+            await ChangeCharacterAsync(t, (sheet, computed) =>
+            {
+                var max = Math.Max(1, computed.MaxHitPoints);
+                var hp = Math.Clamp(sheet.CurrentHitPoints ?? max, 0, max);
+                if (sign > 0)
+                {
+                    sheet.CurrentHitPoints = Math.Min(max, hp + amount);
+                }
+                else
+                {
+                    //	Temporary hit points take the damage first
+                    var absorbed = Math.Min(sheet.TemporaryHitPoints, amount);
+                    sheet.TemporaryHitPoints -= absorbed;
+                    sheet.CurrentHitPoints = Math.Max(0, hp - (amount - absorbed));
+                }
+            });
+            return;
+        }
+        var current = t.Hp ?? t.MaxHp ?? 0;
+        var temp = t.TempHp ?? 0;
+        if (sign > 0)
+        {
+            await SetVitalsAsync(t, t.MaxHp is { } top ? Math.Min(top, current + amount) : current + amount, null, null);
+        }
+        else
+        {
+            var absorbed = Math.Min(temp, amount);
+            await SetVitalsAsync(t, Math.Max(0, current - (amount - absorbed)), absorbed > 0 ? temp - absorbed : null, null);
+        }
+    }
+
+    private async Task SetTempHpAsync(MapTokenDto t, string? text)
+    {
+        if (!int.TryParse(text, out var temp))
+        {
+            return;
+        }
+        temp = Math.Clamp(temp, 0, 10_000);
+        if (t.CharacterId is not null)
+        {
+            await ChangeCharacterAsync(t, (sheet, _) => sheet.TemporaryHitPoints = temp);
+        }
+        else
+        {
+            await SetVitalsAsync(t, null, temp, null);
+        }
+    }
+
+    //	A new maximum: for a character, the adjustment of its sheet that brings it there
+    private async Task SetMaxAsync(MapTokenDto t, string? text)
+    {
+        if (!int.TryParse(text, out var max) || max < 1)
+        {
+            return;
+        }
+        max = Math.Min(max, 100_000);
+        if (t.CharacterId is not null)
+        {
+            await ChangeCharacterAsync(t, (sheet, computed) =>
+            {
+                sheet.MaxHitPointsAdjustment += max - computed.MaxHitPoints;
+                if (sheet.CurrentHitPoints is { } hp)
+                {
+                    sheet.CurrentHitPoints = Math.Min(hp, max);
+                }
+            });
+        }
+        else
+        {
+            await SetVitalsAsync(t, null, null, max);
+        }
+    }
+
+    private async Task SetVitalsAsync(MapTokenDto t, int? hp, int? temp, int? max)
+    {
+        if (map is null)
+        {
+            return;
+        }
+        var changed = t with
+        {
+            Hp = max is { } top ? Math.Min(hp ?? t.Hp ?? top, top) : hp ?? t.Hp,
+            TempHp = temp is { } tv ? (tv > 0 ? tv : null) : t.TempHp,
+            MaxHp = max ?? t.MaxHp
+        };
+        Replace(changed);
+        if (!(await Campaigns.SetTokenStateAsync(CampaignId, map.Id, t.Id, (t.Conditions ?? new()).ToList(), hp, temp, max)).Ok)
+        {
+            Replace(t);
+            message = UiText.MapSaveFailed(Lang);
+        }
+    }
+
+    //	A character's sheet read now, changed and saved (the same as from the sheet itself)
+    private async Task ChangeCharacterAsync(MapTokenDto t, Action<CharacterSheetState, RealmForge.Shared.Characters.ComputedCharacter> change)
+    {
+        if (t.CharacterId is not { } id)
+        {
+            return;
+        }
+        busy = true;
+        var loaded = await ComputeCharacterAsync(id);
+        if (loaded is null)
+        {
+            busy = false;
+            message = UiText.MapSaveFailed(Lang);
+            return;
+        }
+        var (character, computed) = loaded.Value;
+        change(character.Sheet, computed);
+        var saved = await CharacterService.SaveSheetAsync(id, character.Sheet);
+        busy = false;
+        if (saved is null)
+        {
+            message = UiText.MapSaveFailed(Lang);
+            return;
+        }
+        message = null;
+        var max = Math.Max(1, saved.MaxHitPoints);
+        var now = Math.Clamp(saved.Vitals?.CurrentHitPoints ?? character.Sheet.CurrentHitPoints ?? max, 0, max);
+        hpAfterRest[id] = (now, max);
+        charVitals[id] = SheetVitalsDto.From(character.Sheet, max, saved.UpdatedAt);
+        stats.Remove($"c:{id}");
+        _ = LoadStatsAsync(t);
+        StateHasChanged();
     }
 
     private Task HpKeyAsync(KeyboardEventArgs e, MapTokenDto t) => e.Key == "Enter" ? HealAsync(t, -1) : Task.CompletedTask;
 
-    private void Tab(string name) => toolTab = toolTab == name ? null : name;
+    private void Tab(string name)
+    {
+        toolTab = toolTab == name ? null : name;
+        if (toolTab == "hp" && InfoToken?.CharacterId is { } characterId)
+        {
+            _ = LoadVitalsAsync(characterId);
+        }
+    }
 
     private void CloseToolbar()
     {
@@ -1197,7 +1376,7 @@ else
 
     //	My characters (all of them for a master) and, for the masters, the monsters and NPCs
     private bool HasSheet(MapTokenDto t) =>
-        t.CharacterId is not null ? CharacterOf(t) is { } c && (c.IsMine || RunsTheTable) : RunsTheTable && t.MonsterId is not null;
+        t.CharacterId is not null ? CharacterOf(t) is { } c && (c.IsMine || RunsTheTable || t.Controlled) : (RunsTheTable || t.Controlled) && t.MonsterId is not null;
 
     private void OpenSheet(MapTokenDto t)
     {
@@ -1226,7 +1405,7 @@ else
             var (current, top) = hpAfterRest.TryGetValue(c.Character.Id, out var rested) ? rested : (c.Character.CurrentHitPoints, c.Character.MaxHitPoints);
             return new Life(Math.Clamp((double)current / Math.Max(1, top), 0, 1), $"{current}/{top}");
         }
-        if (RunsTheTable && t.Hp is { } hp && t.MaxHp is { } max && max > 0)
+        if (t.Hp is { } hp && t.MaxHp is { } max && max > 0)
         {
             return new Life(Math.Clamp((double)hp / max, 0, 1), $"{hp}/{max}");
         }
@@ -1396,7 +1575,7 @@ else
     private bool restBusy;
 
     //	The owner of the character, or a master of the campaign (the sheets of the table are theirs to keep)
-    private bool CanRest(MapTokenDto t) => CharacterOf(t) is { } c && (c.IsMine || (RunsTheTable && c.CanEdit));
+    private bool CanRest(MapTokenDto t) => CharacterOf(t) is { } c && (c.IsMine || (RunsTheTable && c.CanEdit) || t.Controlled);
 
     private int RestMax => Math.Max(1, rest?.Computed.MaxHitPoints ?? 1);
     private int RestHp => rest is null ? 0 : Math.Clamp(rest.Character.Sheet.CurrentHitPoints ?? RestMax, 0, RestMax);
@@ -1797,6 +1976,7 @@ else
                     shapes = state.Shapes ?? new();
                     ApplyTable(state.Table, first: false);
                     ApplyCombat(state.Combat);
+                    _ = PreloadStatsAsync();
                     if (!RunsTheTable || Table)
                     {
                         gridType = state.GridType;
@@ -1925,6 +2105,15 @@ else
         {
             return;
         }
+        //	A player moves no further than the speed (in a fight, counting what was already moved in the turn)
+        if (!RunsTheTable && SpeedCells(t) is { } speed
+            && MapGeometry.Distance(gridType, t.X, t.Y, col, row) + (combat is not null ? moved.GetValueOrDefault(t.Id) : 0) > speed)
+        {
+            message = UiText.VttTooFar(Lang);
+            Replace(t);
+            StateHasChanged();
+            return;
+        }
         Replace(t with { X = col, Y = row });
         StateHasChanged();
         if (combat is not null)
@@ -2012,8 +2201,37 @@ else
         area = areaKind.ToString().ToLowerInvariant(),
         fogMode = fogCover ? "cover" : "reveal",
         fogShape = fogBrush ? "brush" : "rect",
-        fogBrush = fogBrushSize
+        fogBrush = fogBrushSize,
+        eraseArea
     };
+
+    //	The eraser: a click on a drawing, or a box drawn over the map that takes away all it touches
+    private bool eraseArea;
+
+    private Task SetEraseAsync(bool area)
+    {
+        eraseArea = area;
+        return SetToolAsync("erase");
+    }
+
+    [JSInvokable]
+    public async Task EraseArea(double x, double y, double width, double height)
+    {
+        if (map is null)
+        {
+            return;
+        }
+        var before = shapes;
+        shapes = shapes.Where(sh => !sh.CanDelete || !MapRules.Touches(sh.Points, x, y, width, height)).ToList();
+        localEdits++;
+        StateHasChanged();
+        if (!(await Campaigns.EraseAreaAsync(CampaignId, map.Id, x, y, width, height)).Ok)
+        {
+            shapes = before;
+            message = UiText.MapSaveFailed(Lang);
+            StateHasChanged();
+        }
+    }
 
     // ===== Fog of war, pings, the view =====
 
@@ -2368,7 +2586,7 @@ else
 
     //	My characters roll from the map; the masters roll for the monsters (behind the screen)
     private bool CanRoll(MapTokenDto t) =>
-        (t.CharacterId is not null && CharacterOf(t)?.IsMine == true) || (RunsTheTable && t.MonsterId is not null && t.CharacterId is null);
+        (t.CharacterId is not null && (CharacterOf(t)?.IsMine == true || t.Controlled)) || ((RunsTheTable || t.Controlled) && t.MonsterId is not null && t.CharacterId is null);
 
     private int? SpeedCells(MapTokenDto t) => StatsOf(t)?.SpeedFeet is { } feet && feet > 0 ? feet / 5 : null;
 
@@ -2560,7 +2778,8 @@ else
             Expression = roll.Expression,
             Label = $"{t.Label}: {roll.Label}",
             CharacterId = t.CharacterId,
-            Hidden = roll.Hidden
+            //	Behind the screen for the masters; a player rolls in the open for what was given to them
+            Hidden = roll.Hidden && RunsTheTable
         });
         busy = false;
         message = result is null ? UiText.MapSaveFailed(Lang) : null;

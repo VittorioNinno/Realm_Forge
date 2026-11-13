@@ -111,6 +111,10 @@ namespace RealmForge.Client.Localization
 		public static string VttTextHint(LanguageCode lang) => T(lang, "Testo…", "Text…");
 		public static string VttTextShared(LanguageCode lang) => T(lang, "Visibile ai giocatori", "Shown to the players");
 		public static string VttOnlyYou(LanguageCode lang) => T(lang, "Lo vedi solo tu.", "Only you see it.");
+		public static string VttEraseClick(LanguageCode lang) => T(lang, "Clic", "Click");
+		public static string VttEraseArea(LanguageCode lang) => T(lang, "Area", "Area");
+		public static string VttEraseAreaHint(LanguageCode lang) => T(lang, "Trascina un riquadro: disegni, testi e aree che tocca vengono tolti.", "Drag a box: the drawings, texts and areas it touches are removed.");
+		public static string VttTooFar(LanguageCode lang) => T(lang, "Oltre la velocità di movimento.", "Beyond the movement speed.");
 		public static string VttEraseHint(LanguageCode lang) => T(lang, "Fai clic su un disegno, un testo o un'area per toglierlo.", "Click a drawing, a text or an area to remove it.");
 		public static string VttClearAll(LanguageCode lang) => T(lang, "Rimuovi i disegni che vedi", "Remove the drawings you see");
 		public static string VttClearMine(LanguageCode lang) => T(lang, "Rimuovi i miei disegni", "Remove my drawings");
@@ -254,6 +258,8 @@ namespace RealmForge.Client.Localization
 		public static string ToolHeal(LanguageCode lang) => T(lang, "Cura", "Heal");
 		public static string ToolDamage(LanguageCode lang) => T(lang, "Danno", "Damage");
 		public static string ToolHpAmount(LanguageCode lang) => T(lang, "Quantità", "Amount");
+		public static string ToolTempHp(LanguageCode lang) => T(lang, "PF temporanei", "Temporary HP");
+		public static string ToolHpMaxEdit(LanguageCode lang) => T(lang, "Modifica PF max", "Change max HP");
 		public static string ToolHpNow(LanguageCode lang) => T(lang, "PF attuali", "Current HP");
 
 		// ===== The table open now =====

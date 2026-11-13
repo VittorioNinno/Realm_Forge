@@ -370,8 +370,20 @@ namespace RealmForge.Client.Services
 		public Task<CampaignResult> EndCombatAsync(Guid id, Guid mapId) =>
 			SendAsync(() => _http.PostAsync($"api/campaigns/{id}/maps/{mapId}/combat/end", null), "end combat");
 
-		public Task<CampaignResult> SetTokenStateAsync(Guid id, Guid mapId, Guid tokenId, List<string> conditions, int? hp) =>
-			SendAsync(() => _http.PutAsJsonAsync($"api/campaigns/{id}/maps/{mapId}/tokens/{tokenId}/state", new TokenStateDto { Conditions = conditions, Hp = hp }), "token state");
+		public Task<CampaignResult> SetTokenStateAsync(Guid id, Guid mapId, Guid tokenId, List<string> conditions, int? hp, int? tempHp = null, int? maxHp = null) =>
+			SendAsync(() => _http.PutAsJsonAsync($"api/campaigns/{id}/maps/{mapId}/tokens/{tokenId}/state", new TokenStateDto { Conditions = conditions, Hp = hp, TempHp = tempHp, MaxHp = maxHp }), "token state");
+
+		public Task<CampaignResult> HideMapAsync(Guid id, Guid mapId) =>
+			SendAsync(() => _http.DeleteAsync($"api/campaigns/{id}/maps/{mapId}/display"), "hide map");
+
+		public Task<CampaignResult> PreviousTurnAsync(Guid id, Guid mapId) =>
+			SendAsync(() => _http.PostAsync($"api/campaigns/{id}/maps/{mapId}/combat/previous", null), "previous turn");
+
+		public Task<CampaignResult> ShowCombatHealthAsync(Guid id, Guid mapId, bool show) =>
+			SendAsync(() => _http.PutAsJsonAsync($"api/campaigns/{id}/maps/{mapId}/combat/health", new CombatHealthDto { Show = show }), "combat health");
+
+		public Task<CampaignResult> EraseAreaAsync(Guid id, Guid mapId, double x, double y, double width, double height) =>
+			SendAsync(() => _http.PostAsJsonAsync($"api/campaigns/{id}/maps/{mapId}/shapes/erase", new EraseAreaDto { X = x, Y = y, Width = width, Height = height }), "erase area");
 
 		public Task<CampaignResult> QuickCombatAsync(Guid id, Guid mapId, List<Guid> tokenIds) =>
 			SendAsync(() => _http.PostAsJsonAsync($"api/campaigns/{id}/maps/{mapId}/combat/quick", new QuickCombatDto { TokenIds = tokenIds }), "quick combat");
