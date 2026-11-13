@@ -183,10 +183,10 @@
             <aside class="rf-vtt-drawer @(drawerOpen ? null : "collapsed")" aria-hidden="@(drawerOpen ? "false" : "true")" data-test="@(drawerOpen ? "vtt-drawer" : null)">
                 <header class="rf-vtt-drawer-top">
                     <nav class="rf-vtt-panel-tabs">
-                        <button type="button" class="@(panel == "log" ? "active" : null)" @onclick="@(() => ShowPanel("log"))" data-test="vtt-tab-log">@UiText.VttRollLog(Lang)</button>
+                        <button type="button" class="@(panel == "log" ? "active" : null)" @onclick="@(() => ShowPanel("log"))" data-test="vtt-tab-log">@UiText.VttTabRolls(Lang)</button>
                         @if (RunsTheTable)
                         {
-                            <button type="button" class="@(panel == "tokens" ? "active" : null)" @onclick="@(() => ShowPanel("tokens"))" data-test="vtt-tab-tokens">@UiText.VttTokensMap(Lang)</button>
+                            <button type="button" class="@(panel == "tokens" ? "active" : null)" @onclick="@(() => ShowPanel("tokens"))" data-test="vtt-tab-tokens">@UiText.VttTokensShort(Lang)</button>
                         }
                         <button type="button" class="@(panel == "initiative" ? "active" : null)" @onclick="@(() => ShowPanel("initiative"))" data-test="vtt-tab-initiative">@UiText.VttInitiative(Lang)</button>
                         @if (SheetToken is not null)

@@ -13508,3 +13508,14 @@ textarea.rf-form-control {
         padding: 8px 8px 72px 56px;
     }
 }
+
+.rf-vtt-table .rf-vtt-panel-tabs {
+    flex-wrap: nowrap;
+    min-width: 0;
+    overflow-x: auto;
+    scrollbar-width: none;
+}
+
+    .rf-vtt-table .rf-vtt-panel-tabs > button {
+        flex: none;
+    }
