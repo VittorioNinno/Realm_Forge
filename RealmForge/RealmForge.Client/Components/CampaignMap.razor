@@ -547,7 +547,6 @@ else
     private string? attachedTo;
     private DotNetObjectReference<CampaignMap>? self;
 
-    private PeriodicTimer? timer;
     private CancellationTokenSource? stop;
     private readonly string patternId = $"rf-vtt-grid-{Guid.NewGuid():N}";
 
@@ -3319,7 +3318,6 @@ else
     public async ValueTask DisposeAsync()
     {
         stop?.Cancel();
-        timer?.Dispose();
         try
         {
             if (!string.IsNullOrEmpty(stageElement.Id))
