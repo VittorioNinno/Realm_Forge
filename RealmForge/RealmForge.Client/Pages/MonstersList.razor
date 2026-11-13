@@ -140,7 +140,7 @@
     <div class="rf-modal-backdrop" @onclick="CloseDetail">
         <div class="rf-modal-dialog mm-dialog" @onclick:stopPropagation="true" data-test="monster-detail">
             <MonsterSheetCard Monster="detail" OnClose="CloseDetail">
-                <Meta>
+                <Extra>
                     @if (detail.VariantOfId is { } originalId && detail.VariantOfName is not null)
                     {
                         <div class="small" data-test="monster-variant-of">
@@ -163,8 +163,8 @@
                     {
                         <ShareLink Visibility="detail.Visibility" CanEdit="detail.CanEdit" EntityId="detail.Id" Path="@($"{PagePath}?id={detail.Id}")" />
                     }
-                </Meta>
-                <Footer>
+                </Extra>
+                <Buttons>
                     <div class="d-flex flex-wrap gap-2">
                         <ForgeAction>
                             <button class="btn btn-sm btn-rf-orange" @onclick="() => OpenVariantAsync(detail)" data-test="monster-variant">@UiText.BtnCreateVariant(Lang)</button>
@@ -179,7 +179,7 @@
                         }
                     </div>
                     <button class="btn btn-sm btn-rf-outline text-uppercase" style="letter-spacing: 1px;" @onclick="CloseDetail">@UiText.BtnClose(Lang)</button>
-                </Footer>
+                </Buttons>
             </MonsterSheetCard>
         </div>
     </div>

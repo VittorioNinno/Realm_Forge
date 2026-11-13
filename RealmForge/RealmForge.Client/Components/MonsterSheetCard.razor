@@ -46,9 +46,9 @@
     </header>
 
     <div class="mm-body">
-        @if (Meta is not null)
+        @if (Extra is not null)
         {
-            <div class="mm-meta">@Meta</div>
+            <div class="mm-meta">@Extra</div>
         }
         <section class="mm-abilities">
             @for (var i = 0; i < 6; i++)
@@ -89,9 +89,9 @@
         }
     </div>
 
-    @if (Footer is not null)
+    @if (Buttons is not null)
     {
-        <footer class="mm-footer">@Footer</footer>
+        <footer class="mm-footer">@Buttons</footer>
     }
 </div>
 
@@ -99,8 +99,8 @@
     [Parameter, EditorRequired] public MonsterDetailDto Monster { get; set; } = default!;
     [Parameter] public bool ShowPicker { get; set; } = true;
     [Parameter] public EventCallback OnClose { get; set; }
-    [Parameter] public RenderFragment? Meta { get; set; }
-    [Parameter] public RenderFragment? Footer { get; set; }
+    [Parameter] public RenderFragment? Extra { get; set; }
+    [Parameter] public RenderFragment? Buttons { get; set; }
 
     private LanguageCode Lang => LanguageState.CurrentLanguage;
     private RealmForge.Shared.Text.GlossaryLinker? Terms => Glossary.Linker(Lang, Monster.Ruleset);
