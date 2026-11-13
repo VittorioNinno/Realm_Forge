@@ -669,9 +669,7 @@
                 return el.requestFullscreen?.();
             }
 
-            // A wide window opens the table with its side panel (the log of the rolls) already out
-            const wide = () => window.matchMedia('(min-width: 1200px)').matches;
-            return { attach, detach, tool, fit, fullscreen, view, center: centerOn, wide };
+            return { attach, detach, tool, fit, fullscreen, view, center: centerOn };
         })();
         window.rfCropImage = (src, x, y, zoom, size) => new Promise((resolve) => {
             const img = new Image();
