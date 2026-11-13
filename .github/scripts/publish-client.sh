@@ -17,6 +17,14 @@ rm -f "$wwwroot/appsettings.Development.json"
 dotnet publish RealmForge/RealmForge.Client/RealmForge.Client.csproj --configuration Release --output "$out"
 
 cd "$out/wwwroot"
+# The stylesheet is not fingerprinted like the framework files: its link carries a hash of its content, so that a
+# release never shows the new pages with the styles of the old one kept by the browser or by Cloudflare
+css_hash=$(sha256sum css/app.css | cut -c1-12)
+sed -i "s|href=\"css/app.css\"|href=\"css/app.css?v=$css_hash\"|" index.html
+grep -q "css/app.css?v=$css_hash" index.html || { echo "::error title=publish-client::the stylesheet link was not versioned"; exit 1; }
+# index.html is always asked again, so it points to the files of the release just published
+printf '/index.html\n  Cache-Control: no-cache\n/\n  Cache-Control: no-cache\n' > _headers
+
 # Every route (/reset-password, /confirm-email, ...) is served by index.html, as in the development server
 echo '/* /index.html 200' > _redirects
 
