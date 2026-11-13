@@ -72,6 +72,12 @@ namespace RealmForge.Client.Localization
 		public static string MonsterBonusActions(LanguageCode lang) => T(lang, "Azioni bonus", "Bonus Actions");
 		public static string MonsterReactions(LanguageCode lang) => T(lang, "Reazioni", "Reactions");
 		public static string MonsterLegendaryActions(LanguageCode lang) => T(lang, "Azioni leggendarie", "Legendary Actions");
+		public static string MonsterSaveShort(LanguageCode lang) => T(lang, "TS", "Save");
+		public static string MonsterToHit(string bonus, LanguageCode lang) => T(lang, $"{bonus} a colpire", $"{bonus} to hit");
+		public static string MonsterPerDay(int uses, LanguageCode lang) => T(lang, $"{uses}/giorno", $"{uses}/day");
+		public static string MonsterUsesHint(LanguageCode lang) => T(lang, "Segna gli usi spesi (solo in questa scheda)", "Mark the uses spent (only on this card)");
+		public static string MonsterLegendaryLeft(LanguageCode lang) => T(lang, "Per round", "Per round");
+		public static string MonsterLegendaryCost(int cost, LanguageCode lang) => cost == 1 ? T(lang, "1 azione", "1 action") : T(lang, $"{cost} azioni", $"{cost} actions");
 		public static string MonsterDescription(LanguageCode lang) => T(lang, "Descrizione", "Description");
 
 		// ===== Editor =====

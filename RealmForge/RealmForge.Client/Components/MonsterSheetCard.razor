@@ -1,0 +1,264 @@
+﻿@using RealmForge.Client.Localization
+@using RealmForge.Client.Services
+@using RealmForge.Shared.DTOs
+@using RealmForge.Shared.Enums
+@using RealmForge.Shared.Monsters
+@inject LanguageStateService LanguageState
+@inject GlossaryService Glossary
+
+@* A monster's card: the head with picture, name and the four numbers that count most (AC, HP, speed, challenge);
+   the abilities with their saves, skills, senses and languages as chips; traits, actions (to hit, damage, saves, uses
+   per day), bonus actions, reactions and legendary actions as cards *@
+@{
+    var (acMain, acNote) = StatblockText.Lead(Monster.Text.ArmorClass, Monster.ArmorClass.ToString());
+    var (speedMain, speedNote) = StatblockText.Lead(Monster.Text.Speed, "—");
+    var saves = Saves();
+    var actions = StatblockText.Entries(Monster.Text.Actions);
+    var multi = actions.FirstOrDefault(StatblockText.IsMultiattack);
+}
+<div class="mm-card" data-test="monster-statblock">
+    <header class="mm-header">
+        <div class="mm-top">
+            <div class="mm-identity">
+                <div class="mm-avatar">
+                    <MonsterPicture MonsterId="Monster.Id" Portrait="@Monster.Portrait" Name="@Monster.Text.Name" Large="true" ShowPicker="ShowPicker" />
+                </div>
+                <div class="mm-title">
+                    <div class="mm-badges">
+                        <span class="badge @(Monster.Ruleset == RulesetVersion.Dnd5e_2024 ? "badge-edition-2024" : "badge-edition-2014")">@UiText.FormatRuleset(Monster.Ruleset, Lang)</span>
+                        <ContentBadge IsBase="Monster.IsOfficialSRD" Source="Monster.Source" Visibility="Monster.Visibility" ShowSource="true" />
+                    </div>
+                    <h2 class="mm-name" data-test="monster-detail-name">@Monster.Text.Name</h2>
+                    <p class="mm-sub">@Monster.Text.Subtitle</p>
+                </div>
+            </div>
+            @if (OnClose.HasDelegate)
+            {
+                <button type="button" class="mm-close" aria-label="@UiText.BtnClose(Lang)" @onclick="() => OnClose.InvokeAsync()"><Icon Name="close" /></button>
+            }
+        </div>
+        <div class="mm-vitals">
+            <div class="mm-vital"><span class="label">@UiText.MonsterArmorClass(Lang)</span> <div><strong>@acMain</strong>@if (acNote is not null){<small> (@acNote)</small>}</div></div>
+            <div class="mm-vital hp"><span class="label">@UiText.MonsterHitPoints(Lang)</span> <div><strong>@Monster.HitPoints</strong>@if (!string.IsNullOrWhiteSpace(Monster.HitDice)){<small> (@Monster.HitDice)</small>}</div></div>
+            <div class="mm-vital"><span class="label">@UiText.MonsterSpeed(Lang)</span> <div><strong>@speedMain</strong>@if (speedNote is not null){<small> @speedNote</small>}</div></div>
+            <div class="mm-vital cr"><span class="label">@UiText.MonsterChallenge(Lang)</span> <div><strong>@MonsterMath.FormatChallenge(Monster.ChallengeRating)</strong><small> @MonsterMath.Thousands(Monster.Xp, Lang) @UiText.MonsterXpShort(Lang) · @UiText.MonsterProficiencyShort(Lang) @MonsterMath.Signed(Monster.ProficiencyBonus)</small></div></div>
+        </div>
+    </header>
+
+    <div class="mm-body">
+        @if (Meta is not null)
+        {
+            <div class="mm-meta">@Meta</div>
+        }
+        <section class="mm-abilities">
+            @for (var i = 0; i < 6; i++)
+            {
+                var score = Monster.Abilities.ElementAtOrDefault(i);
+                var mod = MonsterMath.Modifier(score);
+                var save = saves[i];
+                <div class="mm-ability @(save is not null ? "proficient" : null)">
+                    <span class="name">@UiText.AbilityShort((AbilityScore)(i + 1), Lang)</span>
+                    <strong>@MonsterMath.Signed(mod)</strong>
+                    <span class="score">@score</span>
+                    <span class="save">@(save is not null ? "● " : null)@UiText.MonsterSaveShort(Lang) @(save ?? MonsterMath.Signed(mod))</span>
+                </div>
+            }
+        </section>
+
+        <section class="mm-props">
+            @Chips(UiText.MonsterSkills(Lang), Monster.Text.Skills, true)
+            @Chips(UiText.MonsterSenses(Lang), Monster.Text.Senses, false)
+            @Chips(UiText.MonsterLanguages(Lang), Monster.Text.Languages, false)
+            @Chips(UiText.MonsterVulnerabilities(Lang), Monster.Text.DamageVulnerabilities, false)
+            @Chips(UiText.MonsterResistances(Lang), Monster.Text.DamageResistances, false)
+            @Chips(UiText.MonsterImmunities(Lang), Monster.Text.DamageImmunities, false)
+            @Chips(UiText.MonsterConditionImmunities(Lang), Monster.Text.ConditionImmunities, false)
+        </section>
+
+        @Cards(UiText.MonsterTraits(Lang), StatblockText.Entries(Monster.Text.Traits), null, "traits")
+        @Cards(UiText.MonsterActions(Lang), actions.Where(e => e != multi).ToList(), multi, "actions")
+        @Cards(UiText.MonsterBonusActions(Lang), StatblockText.Entries(Monster.Text.BonusActions), null, "bonus")
+        @Cards(UiText.MonsterReactions(Lang), StatblockText.Entries(Monster.Text.Reactions), null, "reactions")
+        @Legendary(StatblockText.Entries(Monster.Text.LegendaryActions))
+
+        @if (!string.IsNullOrWhiteSpace(Monster.Text.Description))
+        {
+            <section class="mm-section">
+                <div class="rf-markdown-container mm-lore">@((MarkupString)MarkdownText.ToHtml(Monster.Text.Description, Terms))</div>
+            </section>
+        }
+    </div>
+
+    @if (Footer is not null)
+    {
+        <footer class="mm-footer">@Footer</footer>
+    }
+</div>
+
+@code {
+    [Parameter, EditorRequired] public MonsterDetailDto Monster { get; set; } = default!;
+    [Parameter] public bool ShowPicker { get; set; } = true;
+    [Parameter] public EventCallback OnClose { get; set; }
+    [Parameter] public RenderFragment? Meta { get; set; }
+    [Parameter] public RenderFragment? Footer { get; set; }
+
+    private LanguageCode Lang => LanguageState.CurrentLanguage;
+    private RealmForge.Shared.Text.GlossaryLinker? Terms => Glossary.Linker(Lang, Monster.Ruleset);
+
+    //	The uses per day spent, and the legendary actions spent this round, kept while the card is open
+    private readonly Dictionary<string, int> spent = new();
+    private const string LegendaryKey = "legendary";
+
+    protected override async Task OnInitializedAsync() => await Glossary.EnsureLoadedAsync(Lang);
+
+    private static readonly string[][] Shorts =
+    {
+        new[] { "for", "str" }, new[] { "des", "dex" }, new[] { "cos", "con" }, new[] { "int" }, new[] { "sag", "wis" }, new[] { "car", "cha" }
+    };
+
+    //	"Cos +6, Int +8": the bonus of each proficient save
+    private string?[] Saves()
+    {
+        var result = new string?[6];
+        foreach (var item in StatblockText.List(Monster.Text.SavingThrows))
+        {
+            var (label, value) = StatblockText.Split(item);
+            var key = label.Trim().ToLowerInvariant();
+            var index = Array.FindIndex(Shorts, s => s.Any(k => key.StartsWith(k)));
+            if (index >= 0 && value is not null)
+            {
+                result[index] = value;
+            }
+        }
+        return result;
+    }
+
+    private RenderFragment Chips(string title, string? text, bool accent) => __builder =>
+    {
+        var items = StatblockText.List(text);
+        if (items.Count > 0)
+        {
+            <div class="mm-prop">
+                <span class="kicker">@title</span>
+                <div class="chips">
+                    @foreach (var item in items)
+                    {
+                        var (label, value) = StatblockText.Split(item);
+                        <span class="chip @(accent ? "accent" : null)">@label @if (value is not null){<strong>@value</strong>}</span>
+                    }
+                </div>
+            </div>
+        }
+    };
+
+    private RenderFragment Cards(string title, List<StatblockText.Entry> entries, StatblockText.Entry? multi, string key) => __builder =>
+    {
+        if (entries.Count > 0 || multi is not null)
+        {
+            <section class="mm-section" data-test="@($"monster-{key}")">
+                <div class="mm-section-head">
+                    <h3>@title</h3>
+                    @if (multi is not null)
+                    {
+                        <span class="mm-multi" title="@multi.Body">@multi.Name: @Strip(multi.Body)</span>
+                    }
+                </div>
+                <div class="mm-cards">
+                    @foreach (var entry in entries)
+                    {
+                        var e = entry;
+                        var (name, uses) = StatblockText.Uses(e.Name);
+                        var hit = StatblockText.Hit(e.Body);
+                        var damage = StatblockText.Damage(e.Body);
+                        var save = StatblockText.Save(e.Body, Lang == LanguageCode.It);
+                        var kind = hit is not null ? "attack" : uses > 0 ? "special" : save is not null ? "save" : null;
+                        <article class="mm-entry @kind">
+                            <div class="mm-entry-head">
+                                <strong>@(name.Length > 0 ? name : "—")</strong>
+                                <div class="pills">
+                                    @if (hit is not null)
+                                    {
+                                        <span class="pill hit">@UiText.MonsterToHit(hit, Lang)</span>
+                                    }
+                                    @if (damage is not null)
+                                    {
+                                        <span class="pill dmg">@damage</span>
+                                    }
+                                    @if (save is not null)
+                                    {
+                                        <span class="pill save">@save</span>
+                                    }
+                                    @if (uses > 0)
+                                    {
+                                        var used = spent.GetValueOrDefault(key + name);
+                                        <span class="uses" title="@UiText.MonsterUsesHint(Lang)">
+                                            <span>@UiText.MonsterPerDay(uses, Lang)</span>
+                                            @for (var u = 0; u < uses; u++)
+                                            {
+                                                var index = u;
+                                                <button type="button" class="pip @(index < uses - used ? "on" : null)" aria-label="@(index + 1)" @onclick="() => Toggle(key + name, index, uses)"></button>
+                                            }
+                                        </span>
+                                    }
+                                </div>
+                            </div>
+                            @if (!string.IsNullOrWhiteSpace(e.Body))
+                            {
+                                <div class="rf-markdown-container mm-entry-text">@((MarkupString)MarkdownText.ToHtml(e.Body, Terms))</div>
+                            }
+                        </article>
+                    }
+                </div>
+            </section>
+        }
+    };
+
+    private RenderFragment Legendary(List<StatblockText.Entry> entries) => __builder =>
+    {
+        if (entries.Count > 0)
+        {
+            var rule = entries.FirstOrDefault(e => e.Name.Length == 0);
+            var used = spent.GetValueOrDefault(LegendaryKey);
+            <section class="mm-section" data-test="monster-legendary">
+                <div class="mm-section-head">
+                    <div>
+                        <h3>@UiText.MonsterLegendaryActions(Lang)</h3>
+                        @if (rule is not null)
+                        {
+                            <span class="mm-rule">@Strip(rule.Body)</span>
+                        }
+                    </div>
+                    <span class="uses">
+                        <span>@UiText.MonsterLegendaryLeft(Lang)</span>
+                        @for (var u = 0; u < 3; u++)
+                        {
+                            var index = u;
+                            <button type="button" class="pip @(index < 3 - used ? "on" : null)" aria-label="@(index + 1)" @onclick="() => Toggle(LegendaryKey, index, 3)"></button>
+                        }
+                    </span>
+                </div>
+                <div class="mm-legendary">
+                    @foreach (var entry in entries.Where(e => e.Name.Length > 0))
+                    {
+                        var (name, cost) = StatblockText.Cost(entry.Name);
+                        <div class="mm-leg @(cost > 1 ? "costly" : null)">
+                            <div class="top"><strong>@name</strong><span class="cost">@UiText.MonsterLegendaryCost(cost, Lang)</span></div>
+                            <div class="rf-markdown-container mm-entry-text">@((MarkupString)MarkdownText.ToHtml(entry.Body, Terms))</div>
+                        </div>
+                    }
+                </div>
+            </section>
+        }
+    };
+
+    //	A pip: spending one more, or giving back from that one on
+    private void Toggle(string key, int index, int max)
+    {
+        var used = spent.GetValueOrDefault(key);
+        var left = max - used;
+        spent[key] = index < left ? max - index : max - index - 1;
+        spent[key] = Math.Clamp(spent[key], 0, max);
+    }
+
+    private static string Strip(string markdown) => System.Text.RegularExpressions.Regex.Replace(markdown, @"[*_]", string.Empty);
+}

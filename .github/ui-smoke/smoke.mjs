@@ -1159,7 +1159,7 @@ try {
   await page.locator('[data-test=monster-card]').filter({ has: page.locator('.rf-card-title', { hasText: /^Goblin$/ }) }).click();
   await page.locator('[data-test=monster-statblock]').waitFor({ timeout: 15000 });
   const goblinBlock = (await page.locator('[data-test=monster-statblock]').innerText()).replace(/\s+/g, ' ');
-  monsterUi.statblock = ['Classe Armatura 15 (armatura di cuoio, scudo)', 'Punti Ferita 7 (2d6)', 'Sfida 1/4 (50 PE)', 'Fuga agile'].filter((t) => goblinBlock.includes(t)).length;
+  monsterUi.statblock = ['Classe Armatura 15 (armatura di cuoio, scudo)', 'Punti Ferita 7 (2d6)', 'Sfida 1/4 50 PE', 'Fuga agile'].filter((t) => goblinBlock.includes(t)).length;
   await page.locator('[data-test=monster-variant]').click();
   await page.locator('[data-test=monster-form]').waitFor({ timeout: 15000 });
   await page.locator('[data-test=monster-form-hp]').fill('12');
