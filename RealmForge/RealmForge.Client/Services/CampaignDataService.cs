@@ -376,6 +376,9 @@ namespace RealmForge.Client.Services
 		public Task<CampaignResult> HideMapAsync(Guid id, Guid mapId) =>
 			SendAsync(() => _http.DeleteAsync($"api/campaigns/{id}/maps/{mapId}/display"), "hide map");
 
+		public Task<CampaignResult> BeginCombatAsync(Guid id, Guid mapId) =>
+			SendAsync(() => _http.PostAsync($"api/campaigns/{id}/maps/{mapId}/combat/begin", null), "begin combat");
+
 		public Task<CampaignResult> PreviousTurnAsync(Guid id, Guid mapId) =>
 			SendAsync(() => _http.PostAsync($"api/campaigns/{id}/maps/{mapId}/combat/previous", null), "previous turn");
 

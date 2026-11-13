@@ -1138,6 +1138,8 @@ jobs:
           blade=$(curl -s "$api/api/campaigns/$ss_cp/maps/$mp2/state" -H "Authorization: Bearer $B" | jq -r '.tokens[] | select(.label == "Lame rotanti") | .id')
           fight_state_player=$(code -X PUT "$api/api/campaigns/$ss_cp/maps/$mp2/tokens/$blade/state" $json -H "Authorization: Bearer $A" -d '{"conditions":["prone"],"hp":4}')
           fight_state=$(code -X PUT "$api/api/campaigns/$ss_cp/maps/$mp2/tokens/$blade/state" $json -H "Authorization: Bearer $B" -d '{"conditions":["prone","flying"],"hp":4}')
+          fight_begin_player=$(code -X POST "$api/api/campaigns/$ss_cp/maps/$mp2/combat/begin" -H "Authorization: Bearer $A")
+          fight_begin=$(code -X POST "$api/api/campaigns/$ss_cp/maps/$mp2/combat/begin" -H "Authorization: Bearer $B")
           fight_next=$(code -X POST "$api/api/campaigns/$ss_cp/maps/$mp2/combat/next" -H "Authorization: Bearer $B")
           fight_after=$(curl -s "$api/api/campaigns/$ss_cp/maps/$mp2/state" -H "Authorization: Bearer $A" | jq -c '{blades: [.tokens[] | select(.label == "Lame rotanti") | {health, conditions}], current: ([.combat.order[] | select(.id == $c.combat.currentId)] | length)}' --argjson c "$(curl -s "$api/api/campaigns/$ss_cp/maps/$mp2/state" -H "Authorization: Bearer $B")")
           fight_master=$(curl -s "$api/api/campaigns/$ss_cp/maps/$mp2/state" -H "Authorization: Bearer $B" | jq -c '{round: .combat.round, blades: [.tokens[] | select(.label == "Lame rotanti") | {hp, maxHp}]}')
@@ -1205,7 +1207,7 @@ jobs:
           img_gone=$(code "$api/api/images/$img/file")
           echo "::notice title=maps::images bad=$img_bad file=$img_file cache=$img_cache other=$img_other choose=$img_choose steal=$img_steal choices=$img_choices token=$img_token seen=$img_seen rename=$img_rename list=$img_list delete=$img_delete after=$img_after gone=$img_gone"
           echo "::notice title=maps::control before=$ctl_before bad=$ctl_bad assign=$ctl_assign seen=$ctl_seen master=$ctl_master after=$ctl_after | long poll=$lp_result fast=$lp_fast"
-          echo "::notice title=maps::fight player=$fight_player master=$fight seen=$fight_seen | state player=$fight_state_player master=$fight_state next=$fight_next after=$fight_after master=$fight_master | end=$fight_end done=$fight_done"
+          echo "::notice title=maps::fight player=$fight_player master=$fight seen=$fight_seen | state player=$fight_state_player master=$fight_state begin player=$fight_begin_player master=$fight_begin next=$fight_next after=$fight_after master=$fight_master | end=$fight_end done=$fight_done"
           code -X DELETE "$api/api/campaigns/$ss_cp/maps/$mp2" -H "Authorization: Bearer $B" > /dev/null
           mp_delete=$(code -X DELETE "$api/api/campaigns/$ss_cp/maps/$mp" -H "Authorization: Bearer $B")
           echo "::notice title=maps::player create=$mp_player_create hidden list=$mp_hidden_list outside=$mp_outside | player state=$mp_player_state move=$mp_player_move | master move=$mp_master_move state=$mp_master_state | delete=$mp_delete"
@@ -1258,9 +1260,11 @@ jobs:
           sscheck "unknown grid" "$mp_bad_grid" "400"
           sscheck "player starts a fight" "$fight_player" "403"
           sscheck "master starts a fight" "$fight" "204"
-          sscheck "fight seen by the player" "$fight_seen" '{"order":["Lame rotanti"],"round":1,"blades":[{"health":1,"hp":null}]}'
+          sscheck "fight seen by the player (initiative phase)" "$fight_seen" '{"order":["Lame rotanti"],"round":0,"blades":[{"health":1,"hp":null}]}'
           sscheck "player hurts a token" "$fight_state_player" "403"
           sscheck "master hurts a token" "$fight_state" "204"
+          sscheck "player starts the first round" "$fight_begin_player" "403"
+          sscheck "master starts the first round" "$fight_begin" "204"
           sscheck "next turn" "$fight_next" "204"
           sscheck "hurt token seen by the player" "$fight_after" '{"blades":[{"health":3,"conditions":["prone"]}],"current":0}'
           sscheck "hurt token seen by the master" "$fight_master" '{"round":1,"blades":[{"hp":4,"maxHp":10}]}'
@@ -1296,8 +1300,8 @@ jobs:
           sscheck "door seen by the player" "$door_seen" '[{"propType":1,"propState":1,"playersInteract":false,"canMove":false}]'
           sscheck "quick fight" "$qf" "204"
           sscheck "second fight on the same map" "$qf_again" "400"
-          sscheck "quick fight order" "$qf_order" '[{"name":"Albero","rolled":true}]'
-          sscheck "player sets another initiative" "$qf_init_player" "403"
+          sscheck "quick fight order (nobody rolled yet)" "$qf_order" '[{"name":"Albero","rolled":false}]'
+          sscheck "player sets the initiative of the token given to them" "$qf_init_player" "204"
           sscheck "master sets an initiative" "$qf_init" "204"
           sscheck "initiative seen by the player" "$qf_seen" '[15]'
           sscheck "token leaves the fight" "$qf_leave" "204"

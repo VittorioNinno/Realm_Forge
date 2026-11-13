@@ -683,15 +683,23 @@
                 return Math.min((w - 16) / width, (h - 16) / height);
             }
 
-            // The centre of what the stage shows, in pixels of the map; and the stage moved to show a point in its centre
-            function view(stage) {
-                const z = parseFloat(stage.querySelector('[data-board]')?.dataset.zoom || '1');
-                return [(stage.scrollLeft + stage.clientWidth / 2) / z, (stage.scrollTop + stage.clientHeight / 2) / z];
+            // Where the map starts in what the stage scrolls (at the table the map has room around it to be moved freely)
+            function origin(stage) {
+                const m = stage.querySelector('.rf-vtt-map');
+                if (!m) return [0, 0];
+                const a = m.getBoundingClientRect(), b = stage.getBoundingClientRect();
+                return [a.left - b.left - stage.clientLeft + stage.scrollLeft, a.top - b.top - stage.clientTop + stage.scrollTop];
             }
 
-            function centerOn(stage, x, y) {
-                const z = parseFloat(stage.querySelector('[data-board]')?.dataset.zoom || '1');
-                stage.scrollTo({ left: x * z - stage.clientWidth / 2, top: y * z - stage.clientHeight / 2, behavior: 'smooth' });
+            // The centre of what the stage shows, in pixels of the map; and the stage moved to show a point in its centre
+            function view(stage) {
+                const z = parseFloat(stage.querySelector('[data-board]')?.dataset.zoom || '1'), [ox, oy] = origin(stage);
+                return [(stage.scrollLeft - ox + stage.clientWidth / 2) / z, (stage.scrollTop - oy + stage.clientHeight / 2) / z];
+            }
+
+            function centerOn(stage, x, y, instant) {
+                const z = parseFloat(stage.querySelector('[data-board]')?.dataset.zoom || '1'), [ox, oy] = origin(stage);
+                stage.scrollTo({ left: x * z + ox - stage.clientWidth / 2, top: y * z + oy - stage.clientHeight / 2, behavior: instant ? 'instant' : 'smooth' });
             }
 
             function fullscreen(el) {
