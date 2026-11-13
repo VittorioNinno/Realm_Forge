@@ -126,26 +126,15 @@ namespace RealmForge.Client.Pages
 		}
 
 		//	Charges back with a rest: the dice of the item ("1d6+1" each dawn) or all of them
-		private void RechargeItems(bool longRest)
+		private void RechargeItems(bool longRest) => CharacterRests.RechargeItems(Sheet, longRest, (item, dice) =>
 		{
-			foreach (var item in Sheet.Inventory.Where(i => i.Magic is { Charges: > 0, ChargesUsed: > 0 }))
+			if (RollFormula(dice) is not { } roll)
 			{
-				var magic = item.Magic!;
-				if (magic.Recharge == ItemRecharge.None || (!longRest && magic.Recharge != ItemRecharge.ShortRest))
-				{
-					continue;
-				}
-				if (magic.RechargeDice is { } dice && RollFormula(dice) is { } roll)
-				{
-					magic.ChargesUsed = Math.Max(0, magic.ChargesUsed - roll.Total);
-					ShowRoll(roll with { Label = $"{UiText.MagicRecharged(Lang)} · {ItemName(item)}" });
-				}
-				else
-				{
-					magic.ChargesUsed = 0;
-				}
+				return null;
 			}
-		}
+			ShowRoll(roll with { Label = $"{UiText.MagicRecharged(Lang)} · {ItemName(item)}" });
+			return roll.Total;
+		});
 
 		// ===== Potions =====
 

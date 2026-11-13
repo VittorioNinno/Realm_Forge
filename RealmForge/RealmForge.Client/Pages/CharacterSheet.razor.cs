@@ -362,20 +362,16 @@ namespace RealmForge.Client.Pages
 			Changed();
 		}
 
-		private int HitDiceSpent(int die) => Sheet.HitDiceSpent.GetValueOrDefault(die);
+		private int HitDiceSpent(int die) => CharacterRests.HitDiceSpent(Sheet, die);
 
 		//	Short rest: a hit die spent heals die + Constitution modifier (at least 0)
 		private void SpendHitDie(int die, int available)
 		{
-			if (HitDiceSpent(die) >= available || computed is null)
+			if (HitDiceSpent(die) >= available || computed is null || CharacterRests.SpendHitDie(Sheet, computed, die, size => Random.Shared.Next(1, size + 1)) is not { } spent)
 			{
 				return;
 			}
-
-			var roll = Random.Shared.Next(1, die + 1);
-			var healed = Math.Max(0, roll + computed.Modifier(AbilityScore.Constitution));
-			Sheet.HitDiceSpent[die] = HitDiceSpent(die) + 1;
-			Sheet.CurrentHitPoints = Math.Min(MaxHp, CurrentHp + healed);
+			var (roll, healed) = spent;
 			lastRoll = $"d{die}: {roll} {CharacterMath.FormatModifier(computed.Modifier(AbilityScore.Constitution))} = +{healed} {UiText.SheetHitPointsShort(Lang)}";
 			_ = diceTray?.ShowAsync(new DiceRollResult(UiText.BtnSpendHitDie(die, Lang), new List<DieFace> { new(die, roll) }, computed.Modifier(AbilityScore.Constitution), healed));
 			shortRestLog.Add(UiText.HitDieSpentLine(die, roll, computed.Modifier(AbilityScore.Constitution), healed, Lang));
@@ -384,16 +380,8 @@ namespace RealmForge.Client.Pages
 
 		private void FinishShortRest()
 		{
-			Sheet.SpentPactSlots = 0;
 			RechargeItems(longRest: false);
-			foreach (var resource in ClassResources)
-			{
-				Sheet.ResourceUses[resource.Key] = CharacterResources.SpentAfterRest(resource, ResourceSpent(resource), longRest: false);
-			}
-			foreach (var resource in Sheet.Resources.Where(r => r.ShortRest))
-			{
-				resource.Used = 0;
-			}
+			CharacterRests.FinishShortRest(Sheet, ClassResources);
 			shortRestOpen = false;
 			Changed();
 		}
@@ -401,35 +389,8 @@ namespace RealmForge.Client.Pages
 		//	Long rest: all hit points and slots; hit dice: half the total (2014) or all (2024); exhaustion -1
 		private void LongRest()
 		{
-			Sheet.CurrentHitPoints = null;
-			Sheet.TemporaryHitPoints = 0;
-			Sheet.DeathSaveSuccesses = 0;
-			Sheet.DeathSaveFailures = 0;
-			Sheet.SpentSlots.Clear();
-			Sheet.SpentPactSlots = 0;
-			Sheet.ResourceUses.Clear();
 			RechargeItems(longRest: true);
-			GrantLongRestChanges();
-			foreach (var resource in Sheet.Resources)
-			{
-				resource.Used = 0;
-			}
-
-			if (Ruleset == RulesetVersion.Dnd5e_2024)
-			{
-				Sheet.HitDiceSpent.Clear();
-			}
-			else if (computed is not null)
-			{
-				var recover = Math.Max(1, computed.Level / 2);
-				foreach (var (die, _) in computed.HitDice)
-				{
-					var back = Math.Min(recover, HitDiceSpent(die));
-					Sheet.HitDiceSpent[die] = HitDiceSpent(die) - back;
-					recover -= back;
-				}
-			}
-			Sheet.Exhaustion = Math.Max(0, Sheet.Exhaustion - 1);
+			CharacterRests.LongRest(Sheet, computed, Ruleset);
 			longRestOpen = false;
 			Changed();
 		}
