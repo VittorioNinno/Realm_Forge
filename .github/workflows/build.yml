@@ -1177,6 +1177,49 @@ jobs:
           qf_leave=$(code -X DELETE "$api/api/campaigns/$ss_cp/maps/$mp2/combat/tokens/$ctl_tree" -H "Authorization: Bearer $B")
           qf_left=$(curl -s "$api/api/campaigns/$ss_cp/maps/$mp2/state" -H "Authorization: Bearer $B" | jq -c '{order: (.combat.order | length), hp: [.tokens[] | select(.label == "Albero") | .hp]}')
           qf_end=$(code -X POST "$api/api/campaigns/$ss_cp/maps/$mp2/combat/end" -H "Authorization: Bearer $B")
+          # Fighting on the map: the master's attack is rolled against the armour class (told to the master only); a player
+          # attacks only in a fight, in reach, more than once with the action of their turn; a weapon dropped lies next to its
+          # owner and is taken by a token next to it (the action of the turn, never another's turn); the loot of a creature
+          # is seen and taken once it is down
+          at_target=$(curl -s -X POST "$api/api/campaigns/$ss_cp/maps/$mp2/tokens" $json -H "Authorization: Bearer $B" -d '{"label":"Bandito","kind":4,"x":9,"y":6,"size":1,"maxHp":10,"hp":10}' | jq -r .id)
+          code -X PUT "$api/api/campaigns/$ss_cp/maps/$mp2/tokens/$at_target/state" $json -H "Authorization: Bearer $B" -d '{"conditions":[],"armorClass":1}' > /dev/null
+          at_body() { echo "{\"attackerId\":\"$1\",\"targetId\":\"$2\",\"name\":\"Spada\",\"bonus\":30,\"damage\":\"2\",\"reach\":$3,\"mode\":1}"; }
+          at_player_out=$(code -X POST "$api/api/campaigns/$ss_cp/maps/$mp2/attack?lang=2" $json -H "Authorization: Bearer $A" -d "$(at_body $ctl_tree $at_target 1)")
+          at_master=$(curl -s -X POST "$api/api/campaigns/$ss_cp/maps/$mp2/attack?lang=2" $json -H "Authorization: Bearer $B" -d "$(at_body $ctl_tree $at_target 1)" | jq -c '{hit, damage, armorClass, dice: (.dice | length)}')
+          at_far=$(code -X POST "$api/api/campaigns/$ss_cp/maps/$mp2/attack?lang=2" $json -H "Authorization: Bearer $B" -d "$(at_body $ctl_tree $at_target 0)")
+          at_hp=$(curl -s "$api/api/campaigns/$ss_cp/maps/$mp2/state" -H "Authorization: Bearer $B" | jq -c '[.tokens[] | select(.label == "Bandito") | .hp]')
+          code -X POST "$api/api/campaigns/$ss_cp/maps/$mp2/combat/quick" $json -H "Authorization: Bearer $B" -d "{\"tokenIds\":[\"$ctl_tree\",\"$at_target\"]}" > /dev/null
+          at_state=$(curl -s "$api/api/campaigns/$ss_cp/maps/$mp2/state" -H "Authorization: Bearer $B")
+          for pair in "$ctl_tree:20" "$at_target:1"; do
+            at_cid=$(echo "$at_state" | jq -r --arg t "${pair%%:*}" '.combat.order[] | select(.tokenId == $t) | .id')
+            code -X PUT "$api/api/campaigns/$ss_cp/maps/$mp2/combat/initiative" $json -H "Authorization: Bearer $B" -d "{\"combatantId\":\"$at_cid\",\"initiative\":${pair##*:}}" > /dev/null
+          done
+          code -X POST "$api/api/campaigns/$ss_cp/maps/$mp2/combat/begin" -H "Authorization: Bearer $B" > /dev/null
+          at_player=$(curl -s -X POST "$api/api/campaigns/$ss_cp/maps/$mp2/attack?lang=2" $json -H "Authorization: Bearer $A" -d "$(at_body $ctl_tree $at_target 1)" | jq -c '{hit, armorClass}')
+          at_player_again=$(code -X POST "$api/api/campaigns/$ss_cp/maps/$mp2/attack?lang=2" $json -H "Authorization: Bearer $A" -d "$(at_body $ctl_tree $at_target 1)")
+          at_spent=$(curl -s "$api/api/campaigns/$ss_cp/maps/$mp2/state" -H "Authorization: Bearer $A" | jq -c '[.tokens[] | select(.label == "Albero") | .actionSpent]')
+          at_drop_player=$(code -X POST "$api/api/campaigns/$ss_cp/maps/$mp2/tokens/$at_target/drop" $json -H "Authorization: Bearer $A" -d '{"attack":"Spada","name":"Spada"}')
+          at_drop=$(curl -s -X POST "$api/api/campaigns/$ss_cp/maps/$mp2/tokens/$at_target/drop" $json -H "Authorization: Bearer $B" -d '{"attack":"Spada","name":"Spada"}')
+          at_item=$(echo "$at_drop" | jq -r .id)
+          at_dropped=$(echo "$at_drop" | jq -c '{propType, label, layer}')
+          at_disarmed=$(curl -s "$api/api/campaigns/$ss_cp/maps/$mp2/state" -H "Authorization: Bearer $B" | jq -c '[.tokens[] | select(.label == "Bandito") | .gear.disarmed]')
+          at_item_seen=$(curl -s "$api/api/campaigns/$ss_cp/maps/$mp2/state" -H "Authorization: Bearer $A" | jq -c --arg i "$at_item" '[.tokens[] | select(.id == $i) | [.gear.items[] | .name]]')
+          at_take_spent=$(code -X POST "$api/api/campaigns/$ss_cp/maps/$mp2/tokens/$at_item/take?lang=2" $json -H "Authorization: Bearer $A" -d "{\"byTokenId\":\"$ctl_tree\",\"index\":0}")
+          code -X POST "$api/api/campaigns/$ss_cp/maps/$mp2/combat/next" -H "Authorization: Bearer $B" > /dev/null
+          at_take_turn=$(code -X POST "$api/api/campaigns/$ss_cp/maps/$mp2/tokens/$at_item/take?lang=2" $json -H "Authorization: Bearer $A" -d "{\"byTokenId\":\"$ctl_tree\",\"index\":0}")
+          code -X POST "$api/api/campaigns/$ss_cp/maps/$mp2/combat/end" -H "Authorization: Bearer $B" > /dev/null
+          at_take=$(code -X POST "$api/api/campaigns/$ss_cp/maps/$mp2/tokens/$at_item/take?lang=2" $json -H "Authorization: Bearer $A" -d "{\"byTokenId\":\"$ctl_tree\",\"index\":0}")
+          at_after=$(curl -s "$api/api/campaigns/$ss_cp/maps/$mp2/state" -H "Authorization: Bearer $A" | jq -c '{items: ([.tokens[] | select(.propType == 8)] | length), tree: [.tokens[] | select(.label == "Albero") | .gear.items[] | .name]}')
+          at_loot=$(code -X PUT "$api/api/campaigns/$ss_cp/maps/$mp2/tokens/$at_target/loot" $json -H "Authorization: Bearer $B" -d '{"items":[{"name":"Pozione","quantity":2}],"coins":15}')
+          at_loot_player=$(code -X PUT "$api/api/campaigns/$ss_cp/maps/$mp2/tokens/$at_target/loot" $json -H "Authorization: Bearer $A" -d '{"items":[],"coins":0}')
+          at_loot_hidden=$(curl -s "$api/api/campaigns/$ss_cp/maps/$mp2/state" -H "Authorization: Bearer $A" | jq -c '[.tokens[] | select(.label == "Bandito") | {items: [.gear.items[] | .name], coins: .gear.coins}]')
+          at_take_alive=$(code -X POST "$api/api/campaigns/$ss_cp/maps/$mp2/tokens/$at_target/take?lang=2" $json -H "Authorization: Bearer $A" -d "{\"byTokenId\":\"$ctl_tree\",\"index\":-1}")
+          code -X PUT "$api/api/campaigns/$ss_cp/maps/$mp2/tokens/$at_target/state" $json -H "Authorization: Bearer $B" -d '{"conditions":[],"hp":0}' > /dev/null
+          at_loot_seen=$(curl -s "$api/api/campaigns/$ss_cp/maps/$mp2/state" -H "Authorization: Bearer $A" | jq -c '[.tokens[] | select(.label == "Bandito") | {items: [.gear.items[] | .name], coins: .gear.coins}]')
+          at_take_coins=$(code -X POST "$api/api/campaigns/$ss_cp/maps/$mp2/tokens/$at_target/take?lang=2" $json -H "Authorization: Bearer $A" -d "{\"byTokenId\":\"$ctl_tree\",\"index\":-1}")
+          at_coins=$(curl -s "$api/api/campaigns/$ss_cp/maps/$mp2/state" -H "Authorization: Bearer $A" | jq -c '[.tokens[] | select(.label == "Albero") | .gear.coins]')
+          code -X DELETE "$api/api/campaigns/$ss_cp/maps/$mp2/tokens/$at_target" -H "Authorization: Bearer $B" > /dev/null
+          echo "::notice title=maps::attack player out of a fight=$at_player_out master=$at_master far=$at_far hp=$at_hp player=$at_player again=$at_player_again spent=$at_spent | drop player=$at_drop_player master=$at_dropped disarmed=$at_disarmed seen=$at_item_seen | take spent=$at_take_spent turn=$at_take_turn after=$at_take/$at_after | loot=$at_loot/$at_loot_player hidden=$at_loot_hidden alive=$at_take_alive seen=$at_loot_seen coins=$at_take_coins/$at_coins"
           echo "::notice title=maps::quick fight=$qf again=$qf_again order=$qf_order init player=$qf_init_player master=$qf_init seen=$qf_seen leave=$qf_leave left=$qf_left end=$qf_end"
           # Objects: a door the player opens; once locked it stays shut (409); not usable when the master says so; a chest
           # cannot be barred
@@ -1310,6 +1353,28 @@ jobs:
           sscheck "token leaves the fight" "$qf_leave" "204"
           sscheck "fight without the token" "$qf_left" '{"order":0,"hp":[5]}'
           sscheck "quick fight ended" "$qf_end" "204"
+          sscheck "player attacks out of a fight" "$at_player_out" "409"
+          sscheck "master attack against the armour class" "$at_master" '{"hit":true,"damage":2,"armorClass":1,"dice":2}'
+          sscheck "attack out of reach" "$at_far" "409"
+          sscheck "damage on the target" "$at_hp" "[8]"
+          sscheck "player attack in the fight (armour class unknown)" "$at_player" '{"hit":true,"armorClass":null}'
+          sscheck "a second attack of the same action" "$at_player_again" "200"
+          sscheck "the action spent attacking" "$at_spent" '["attack"]'
+          sscheck "player drops another's weapon" "$at_drop_player" "403"
+          sscheck "weapon dropped next to its owner" "$at_dropped" '{"propType":8,"label":"Spada","layer":1}'
+          sscheck "the attack lost" "$at_disarmed" '[["Spada"]]'
+          sscheck "the item on the ground seen by the player" "$at_item_seen" '[["Spada"]]'
+          sscheck "picking up after attacking" "$at_take_spent" "409"
+          sscheck "picking up on another's turn" "$at_take_turn" "409"
+          sscheck "picked up out of the fight" "$at_take" "204"
+          sscheck "the item taken" "$at_after" '{"items":0,"tree":["Spada"]}'
+          sscheck "loot saved" "$at_loot" "204"
+          sscheck "player saves loot" "$at_loot_player" "403"
+          sscheck "loot hidden while standing" "$at_loot_hidden" '[{"items":[],"coins":0}]'
+          sscheck "loot of a creature standing" "$at_take_alive" "409"
+          sscheck "loot seen once down" "$at_loot_seen" '[{"items":["Pozione"],"coins":15}]'
+          sscheck "coins taken" "$at_take_coins/$at_coins" '204/[15]'
+
           sscheck "player sets the fog" "$fog_player" "403"
           sscheck "unknown fog step" "$fog_bad" "400"
           sscheck "marker under the fog" "$fog_covered" '{"tokens":[],"fog":true}'
