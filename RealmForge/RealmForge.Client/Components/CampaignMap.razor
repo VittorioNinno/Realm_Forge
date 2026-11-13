@@ -1246,9 +1246,11 @@ else
     private static string PropIcon(PropType type, PropState state) => type switch
     {
         PropType.Chest => "box",
-        PropType.Window => "window",
+        PropType.Window => "border-all",
         PropType.Trap => "warning",
-        PropType.Lever => state == PropState.Open ? "toggle-on" : "toggle-off",
+        PropType.Lever => "joystick",
+        PropType.Gate => "grid-3x3",
+        PropType.Secret => "question-diamond",
         _ => state is PropState.Open or PropState.Ajar or PropState.Broken ? "door-open" : "door-closed"
     };
 
@@ -1299,7 +1301,7 @@ else
         }
         if (it.Hp is { } hp && it.MaxHp is { } max && (RunsTheTable || it.Controlled || it.ShowHp))
         {
-            parts.Add(UiText.TokenHitPoints(hp, max, Lang));
+            parts.Add(RunsTheTable ? $"{hp}/{max}" : UiText.TokenHitPoints(hp, max, Lang));
         }
         else if (RunsTheTable && it.Health is { } health)
         {
