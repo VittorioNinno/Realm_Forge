@@ -68,7 +68,7 @@ namespace RealmForge.Api.Controllers
 			var flatDamage = 0;
 			if (name.Length is 0 or > 60 || dto.Bonus is < -20 or > 40 || dto.Reach is < 0 or > 20 || dto.Range is < 0 or > 1000 || dto.LongRange is < 0 or > 1000
 				|| dto.Mode is < -1 or > 1 || (dto.DamageType?.Length ?? 0) > 40
-				|| (damageText is not null && !DiceNotation.TryParse(damageText, out damageDice) && !int.TryParse(damageText, out flatDamage))
+				|| (damageText is not null && !TryDamage(damageText, out damageDice, out flatDamage))
 				|| (dto.Condition is { } key && !EncounterRules.Conditions.Contains(key)))
 			{
 				return Problem(statusCode: StatusCodes.Status400BadRequest, title: "Invalid attack.");
@@ -197,6 +197,19 @@ namespace RealmForge.Api.Controllers
 			target.UpdatedAt = map.UpdatedAt = DateTimeOffset.UtcNow;
 			await _context.SaveChangesAsync();
 			return Ok(new MapAttackResultDto(hit, critical, dice, dto.Bonus, total, damage, damageRolled, note, runs ? armorClass : null));
+		}
+
+		//	Damage as dice ("1d8+3") or a flat number ("2")
+		private static bool TryDamage(string text, out DiceNotation.Parsed? dice, out int flat)
+		{
+			dice = null;
+			flat = 0;
+			if (DiceNotation.TryParse(text, out var parsed))
+			{
+				dice = parsed;
+				return true;
+			}
+			return int.TryParse(text, out flat) && flat is >= 0 and <= 1000;
 		}
 
 		private static string Cut(string text, int length) => text.Length > length ? text[..length] : text;
