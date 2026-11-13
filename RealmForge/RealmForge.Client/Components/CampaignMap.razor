@@ -4011,11 +4011,14 @@ else
         return SetToolAsync("fog");
     }
 
+    //	A poll that began before the change would bring the old fog back: its answer is set aside
     private async Task SaveFogAsync()
     {
         if (map is not null)
         {
+            localEdits++;
             message = (await Campaigns.SaveFogAsync(CampaignId, map.Id, fogEnabled, fog)).Ok ? null : UiText.MapSaveFailed(Lang);
+            localEdits++;
         }
     }
 
