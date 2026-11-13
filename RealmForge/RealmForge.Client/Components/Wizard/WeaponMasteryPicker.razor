@@ -7,6 +7,7 @@
     var a = weapons.FirstOrDefault(w => w.Id == slotA) ?? weapons.FirstOrDefault();
     var b = weapons.FirstOrDefault(w => w.Id == slotB) ?? weapons.Skip(1).FirstOrDefault() ?? a;
 }
+<div class="rf-mastery-wrap">
 <div class="rf-mastery @(compareOpen ? null : "folded")" data-test="wizard-masteries">
     <section class="rf-mastery-main">
         <div class="rf-mastery-top">
@@ -157,6 +158,7 @@
         }
     </aside>
 </div>
+</div>
 
 <WeaponDetailModal Weapon="detail" Ruleset="Ruleset" OnClose="() => detail = null" />
 
@@ -167,7 +169,8 @@
     [Parameter] public int Max { get; set; }
 
     private (WeaponCategory, WeaponRange)? filter;
-    private bool compareOpen = true;
+    //	Folded at first: it opens with A / B on a weapon or from its tab
+    private bool compareOpen;
     private Guid? slotA;
     private Guid? slotB;
     private ContextItem? detail;

@@ -15677,3 +15677,32 @@ textarea.rf-form-control {
         background-color: rgba(255, 140, 0, .14);
         color: #ffb74d;
     }
+
+/* The masteries follow the room of their panel: the comparator under the weapons when it is narrow */
+.rf-mastery-wrap {
+    container-type: inline-size;
+}
+
+.rf-mastery-chip-main .name {
+    white-space: nowrap;
+}
+
+@container (max-width: 760px) {
+    .rf-mastery,
+    .rf-mastery.folded {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .rf-mastery-compare {
+        position: static;
+    }
+
+    .rf-mastery-compare-tab {
+        flex-direction: row;
+        justify-content: center;
+    }
+
+        .rf-mastery-compare-tab .text {
+            writing-mode: horizontal-tb;
+        }
+}
