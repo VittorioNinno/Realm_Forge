@@ -406,6 +406,12 @@
                         dotnet.invokeMethodAsync('Pinged', p[0], p[1]);
                         return;
                     }
+                    if (st.tool === 'ping') {
+                        const p = toMap(e);
+                        e.preventDefault();
+                        dotnet.invokeMethodAsync('Pinged', p[0], p[1]);
+                        return;
+                    }
                     if (st.tool === 'fog') {
                         const p = toMap(e);
                         st.fog = { from: p, to: p, last: p, cells: new Map() };
@@ -479,8 +485,9 @@
                     }
                     if (e.target.closest('[data-board]') || e.target === stage) {
                         const p = toMap(e);
-                        st.pan = { x: e.clientX, y: e.clientY, left: stage.scrollLeft, top: stage.scrollTop, moved: false };
-                        stage.classList.add('panning');
+                        // Only the "move the view" tool drags the map; the selection clicks on it (or pings, held still)
+                        st.pan = { x: e.clientX, y: e.clientY, left: stage.scrollLeft, top: stage.scrollTop, moved: false, drag: st.tool === 'pan' || !st.options.wheelZoom };
+                        if (st.pan.drag) stage.classList.add('panning');
                         // Holding still for half a second: a ping for the whole table
                         st.pan.timer = setTimeout(() => {
                             if (st.pan && !st.pan.moved) {
@@ -511,6 +518,7 @@
                     } else if (st.pan) {
                         if (!st.pan.moved && Math.hypot(e.clientX - st.pan.x, e.clientY - st.pan.y) < 4) return;
                         st.pan.moved = true;
+                        if (!st.pan.drag) return;
                         stage.scrollLeft = st.pan.left - (e.clientX - st.pan.x);
                         stage.scrollTop = st.pan.top - (e.clientY - st.pan.y);
                     } else if (st.eraseBox) {

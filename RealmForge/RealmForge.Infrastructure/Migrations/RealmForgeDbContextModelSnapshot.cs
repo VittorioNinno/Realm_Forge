@@ -595,6 +595,9 @@ namespace RealmForge.Infrastructure.Migrations
                     b.Property<double?>("PingY")
                         .HasColumnType("double precision");
 
+                    b.Property<bool>("PlayersLocked")
+                        .HasColumnType("boolean");
+
                     b.Property<bool>("Shown")
                         .HasColumnType("boolean");
 
@@ -861,6 +864,9 @@ namespace RealmForge.Infrastructure.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
+                    b.Property<int?>("ArmorClass")
+                        .HasColumnType("integer");
+
                     b.Property<Guid?>("CharacterId")
                         .HasColumnType("uuid");
 
@@ -919,6 +925,12 @@ namespace RealmForge.Infrastructure.Migrations
 
                     b.Property<int?>("PropType")
                         .HasColumnType("integer");
+
+                    b.Property<Guid?>("SheetCharacterId")
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("ShowHp")
+                        .HasColumnType("boolean");
 
                     b.Property<int>("Size")
                         .HasColumnType("integer");
