@@ -831,7 +831,7 @@
                         <div class="enc-init">
                             @if (Manage)
                             {
-                                <input type="number" title="@UiText.EncounterInitiative(Lang)" value="@c.Initiative" @onchange="e => SetInitiativeAsync(c, e.Value)" data-test="combatant-initiative" />
+                                <input type="number" title="@UiText.EncounterInitiative(Lang)" placeholder="—" value="@c.Initiative" @onchange="e => SetInitiativeAsync(c, e.Value)" data-test="combatant-initiative" />
                             }
                             else
                             {
