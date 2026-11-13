@@ -18,7 +18,7 @@ namespace RealmForge.Api.Controllers
 	[ApiController]
 	[Route("api/campaigns/{campaignId:guid}/maps")]
 	[Authorize]
-	public class MapsController : ControllerBase
+	public partial class MapsController : ControllerBase
 	{
 		private readonly RealmForgeDbContext _context;
 
@@ -947,6 +947,11 @@ namespace RealmForge.Api.Controllers
 			}
 			fight.Encounter.Round = Math.Max(1, fight.Encounter.Round);
 			fight.Encounter.CurrentId = EncounterRules.Order(fight.Combatants).FirstOrDefault()?.Id;
+			foreach (var c in fight.Combatants)
+			{
+				c.ActionSpent = null;
+				c.ReactionUsed = false;
+			}
 			Save(fight, fight.Combatants);
 			map.UpdatedAt = DateTimeOffset.UtcNow;
 			await _context.SaveChangesAsync();
@@ -985,8 +990,10 @@ namespace RealmForge.Api.Controllers
 				fight.Encounter.Round++;
 			}
 			fight.Encounter.CurrentId = order[next].Id;
-			fight.Encounter.Version++;
-			fight.Encounter.UpdatedAt = DateTimeOffset.UtcNow;
+			//	Its turn starts: the action and the reaction are there again
+			order[next].ActionSpent = null;
+			order[next].ReactionUsed = false;
+			Save(fight, fight.Combatants);
 			await _context.SaveChangesAsync();
 			return NoContent();
 		}
@@ -1237,6 +1244,13 @@ namespace RealmForge.Api.Controllers
 						dto = knows
 							? dto with { Hp = combatant.Hp, MaxHp = combatant.MaxHp, TempHp = combatant.TempHp > 0 ? combatant.TempHp : null }
 							: dto with { Health = EncounterRules.HealthOf(combatant.Hp, combatant.MaxHp) };
+					}
+					var down = combatant is not null && combatant.Kind != CombatantKind.Character ? combatant.MaxHp > 0 && combatant.Hp <= 0
+						: t.CharacterId is null && t.MaxHp is > 0 && (t.Hp ?? t.MaxHp) <= 0;
+					dto = dto with { Gear = GearOf(t, runs, controls, down) };
+					if (combatant is not null)
+					{
+						dto = dto with { ActionSpent = combatant.ActionSpent, ReactionUsed = combatant.ReactionUsed };
 					}
 					return dto;
 				})

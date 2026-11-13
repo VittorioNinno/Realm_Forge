@@ -52,7 +52,12 @@ namespace RealmForge.Shared.DTOs
 		bool ShowHp = false,
 		int? ArmorClass = null,
 		CreatureSize? CreatureSize = null,
-		CreatureType? CreatureType = null);
+		CreatureType? CreatureType = null,
+
+		//	What it carries (see TokenGearDto), and what was spent of its turn in the fight (attack, other, reaction)
+		TokenGearDto? Gear = null,
+		string? ActionSpent = null,
+		bool ReactionUsed = false);
 
 	///	<summary>
 	///	The fight on a map: the encounter, the round, whose turn it is and the initiative order (what the players see of it).
@@ -103,6 +108,72 @@ namespace RealmForge.Shared.DTOs
 		//	Masters only: the hit points shown to the players; the armour class (0 or less: the statblock's again)
 		public bool? ShowHp { get; set; }
 		public int? ArmorClass { get; set; }
+	}
+
+	///	<summary>
+	///	An attack from a token at another token: the attack as the attacker's sheet or statblock has it (bonus, damage,
+	///	how far it reaches in cells), the advantage or disadvantage chosen by hand, a condition the hit imposes. The
+	///	server rolls it against the target's armour class (which the players do not see) and applies the damage.
+	///	</summary>
+	public class MapAttackDto
+	{
+		public Guid AttackerId { get; set; }
+		public Guid TargetId { get; set; }
+		public string Name { get; set; } = string.Empty;
+		public int Bonus { get; set; }
+		public string? Damage { get; set; }
+		public string? DamageType { get; set; }
+		public int Reach { get; set; } = 1;
+		public int Range { get; set; }
+		public int LongRange { get; set; }
+		public int Mode { get; set; }
+		public string? Condition { get; set; }
+	}
+
+	///	<summary>
+	///	How an attack went: the d20 (and the one left out), the total, hit or miss, critical, the damage dealt and what
+	///	the roll log shows of it. ArmorClass only for the masters.
+	///	</summary>
+	public record MapAttackResultDto(bool Hit, bool Critical, List<RollDieDto> Dice, int Bonus, int Total, int? Damage, List<RollDieDto> DamageDice,
+		string Text, int? ArmorClass = null);
+
+	///	<summary>
+	///	What a token carries, as the table sees it: the loot of a creature (to the masters; to everyone once it is
+	///	down), the item lying on a dropped-item token, the statblock attacks it lost.
+	///	</summary>
+	public record TokenItemDto(int Index, string Name, int Quantity);
+
+	public record TokenGearDto(List<TokenItemDto> Items, int Coins, List<string> Disarmed);
+
+	//	A weapon dropped by a token: the inventory entry of a character, or the attack of a statblock
+	public class DropItemDto
+	{
+		public Guid? InventoryId { get; set; }
+		public string? Attack { get; set; }
+
+		//	The name the token on the ground shows (the item in the language of who dropped it)
+		public string? Name { get; set; }
+	}
+
+	//	An item taken by a token (an item on the ground, a beaten creature's loot): the index of the item, or -1 for the coins
+	public class TakeItemDto
+	{
+		public Guid ByTokenId { get; set; }
+		public int Index { get; set; }
+	}
+
+	//	The masters fill a creature's loot
+	public class SaveLootDto
+	{
+		public List<LootEntryDto> Items { get; set; } = new();
+		public int Coins { get; set; }
+	}
+
+	public class LootEntryDto
+	{
+		public string Name { get; set; } = string.Empty;
+		public int Quantity { get; set; } = 1;
+		public Guid? EquipmentId { get; set; }
 	}
 
 	public class PlayersLockDto

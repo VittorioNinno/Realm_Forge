@@ -361,6 +361,46 @@ namespace RealmForge.Client.Services
 		public Task<CampaignResult> SetTokenExtrasAsync(Guid id, Guid mapId, Guid tokenId, List<string> conditions, bool? showHp, int? armorClass) =>
 			SendAsync(() => _http.PutAsJsonAsync($"api/campaigns/{id}/maps/{mapId}/tokens/{tokenId}/state", new TokenStateDto { Conditions = conditions, ShowHp = showHp, ArmorClass = armorClass }), "token extras");
 
+		//	A request of the table that may be refused with a reason (out of reach, the action already used): the reason
+		private async Task<(T? Value, string? Error)> TableAsync<T>(Func<Task<HttpResponseMessage>> send, string what)
+		{
+			try
+			{
+				var response = await send();
+				if (response.IsSuccessStatusCode)
+				{
+					return (response.StatusCode == HttpStatusCode.NoContent || typeof(T) == typeof(bool) ? default : await response.Content.ReadFromJsonAsync<T>(), null);
+				}
+				string? title = null;
+				try
+				{
+					title = (await response.Content.ReadFromJsonAsync<System.Text.Json.JsonElement>()).TryGetProperty("title", out var t) ? t.GetString() : null;
+				}
+				catch (Exception)
+				{
+					title = null;
+				}
+				return (default, response.StatusCode == HttpStatusCode.Conflict && !string.IsNullOrWhiteSpace(title) ? title : string.Empty);
+			}
+			catch (Exception ex)
+			{
+				_logger.LogError(ex, "Table request {What} failed", what);
+				return (default, string.Empty);
+			}
+		}
+
+		public Task<(MapAttackResultDto? Value, string? Error)> AttackAsync(Guid id, Guid mapId, MapAttackDto dto, LanguageCode lang) =>
+			TableAsync<MapAttackResultDto>(() => _http.PostAsJsonAsync($"api/campaigns/{id}/maps/{mapId}/attack?lang={(int)lang}", dto), "attack");
+
+		public Task<(MapTokenDto? Value, string? Error)> DropItemAsync(Guid id, Guid mapId, Guid tokenId, DropItemDto dto) =>
+			TableAsync<MapTokenDto>(() => _http.PostAsJsonAsync($"api/campaigns/{id}/maps/{mapId}/tokens/{tokenId}/drop", dto), "drop item");
+
+		public async Task<string?> TakeItemAsync(Guid id, Guid mapId, Guid tokenId, Guid byTokenId, int index, LanguageCode lang) =>
+			(await TableAsync<bool>(() => _http.PostAsJsonAsync($"api/campaigns/{id}/maps/{mapId}/tokens/{tokenId}/take?lang={(int)lang}", new TakeItemDto { ByTokenId = byTokenId, Index = index }), "take item")).Error;
+
+		public Task<CampaignResult> SaveLootAsync(Guid id, Guid mapId, Guid tokenId, SaveLootDto dto) =>
+			SendAsync(() => _http.PutAsJsonAsync($"api/campaigns/{id}/maps/{mapId}/tokens/{tokenId}/loot", dto), "save loot");
+
 		public Task<CampaignResult> PingAsync(Guid id, Guid mapId, double x, double y) =>
 			SendAsync(() => _http.PostAsJsonAsync($"api/campaigns/{id}/maps/{mapId}/ping", new MapPointDto { X = x, Y = y }), "ping");
 
