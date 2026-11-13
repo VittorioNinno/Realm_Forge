@@ -13114,11 +13114,17 @@ textarea.rf-form-control {
 .rf-init-widget {
     position: absolute;
     top: 16px;
-    left: 50%;
+    right: 16px;
+    left: 16px;
     z-index: 45;
-    max-width: calc(100% - 32px);
-    transform: translateX(-50%);
+    display: flex;
+    justify-content: center;
+    pointer-events: none;
 }
+
+    .rf-init-widget > * {
+        pointer-events: auto;
+    }
 
 .rf-init-shell {
     display: flex;
@@ -13840,4 +13846,38 @@ textarea.rf-form-control {
 /* At the table the map has room around it: smaller than the screen, it can still be dragged where one likes */
 .rf-vtt-table .rf-vtt-map {
     margin: 40vh 40vw;
+}
+
+/* The floating console and log: narrower controls, the actions of a roll one above the other */
+.rf-dice-table.floating .rf-dice-privacy button {
+    gap: 4px;
+    padding: 0 4px;
+    overflow: hidden;
+    font-size: .7rem;
+    white-space: nowrap;
+}
+
+.rf-dice-table.floating .rf-dice-actor {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr);
+}
+
+.rf-dice-table.floating .rf-dice-card-main {
+    gap: 4px;
+}
+
+.rf-dice-table.floating .rf-dice-card-who {
+    flex-wrap: wrap;
+    gap: 4px 8px;
+    font-size: .75rem;
+}
+
+.rf-dice-table.floating .rf-dice-badge {
+    padding: 0 4px;
+    font-size: .55rem;
+}
+
+.rf-dice-table.floating .rf-dice-card-actions {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 4px;
 }

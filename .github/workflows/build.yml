@@ -1154,7 +1154,7 @@ jobs:
           ctl_before=$(code -X POST "$api/api/campaigns/$ss_cp/maps/$mp2/tokens/$ctl_tree/move" $json -H "Authorization: Bearer $A" -d '{"x":8,"y":6}')
           ctl_bad=$(code -X PUT "$api/api/campaigns/$ss_cp/maps/$mp2/tokens/$ctl_tree" $json -H "Authorization: Bearer $B" -d '{"label":"Albero","kind":4,"x":9,"y":6,"size":1,"controlledBy":["nobody"]}')
           ctl_assign=$(code -X PUT "$api/api/campaigns/$ss_cp/maps/$mp2/tokens/$ctl_tree" $json -H "Authorization: Bearer $B" -d "{\"label\":\"Albero\",\"kind\":4,\"x\":9,\"y\":6,\"size\":1,\"maxHp\":12,\"hp\":5,\"controlledBy\":[\"$ctl_user\"]}")
-          ctl_seen=$(curl -s "$api/api/campaigns/$ss_cp/maps/$mp2/state" -H "Authorization: Bearer $A" | jq -c '[.tokens[] | select(.label == "Albero") | {canMove, health, controlledBy}]')
+          ctl_seen=$(curl -s "$api/api/campaigns/$ss_cp/maps/$mp2/state" -H "Authorization: Bearer $A" | jq -c '[.tokens[] | select(.label == "Albero") | {canMove, hp, maxHp, controlled, controlledBy}]')
           ctl_master=$(curl -s "$api/api/campaigns/$ss_cp/maps/$mp2/state" -H "Authorization: Bearer $B" | jq -c '[.tokens[] | select(.label == "Albero") | {hp, maxHp, n: (.controlledBy | length)}]')
           lp_since=$(curl -s "$api/api/campaigns/$ss_cp/maps/$mp2/state" -H "Authorization: Bearer $A" | jq -r .updatedAt)
           lp_out=$(mktemp)
@@ -1276,7 +1276,7 @@ jobs:
           sscheck "player moves a marker not assigned" "$ctl_before" "403"
           sscheck "marker assigned to a stranger" "$ctl_bad" "400"
           sscheck "master assigns a marker" "$ctl_assign" "204"
-          sscheck "assigned marker seen by the player" "$ctl_seen" '[{"canMove":true,"health":3,"controlledBy":null}]'
+          sscheck "assigned marker seen by the player (its hit points too)" "$ctl_seen" '[{"canMove":true,"hp":5,"maxHp":12,"controlled":true,"controlledBy":null}]'
           sscheck "assigned marker seen by the master" "$ctl_master" '[{"hp":5,"maxHp":12,"n":1}]'
           sscheck "player moves the assigned marker" "$ctl_after" "204"
           sscheck "table told of the move" "$lp_result" '[{"x":8,"y":6}]'
