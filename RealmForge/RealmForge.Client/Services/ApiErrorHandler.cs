@@ -19,7 +19,9 @@ namespace RealmForge.Client.Services
 		{
 			//	The account page reports its own errors (sign-in, registration, passkeys, nickname, account deletion)
 			var path = request.RequestUri?.AbsolutePath ?? string.Empty;
-			if (path.Contains("/api/auth/") || path.Contains("/api/passkeys") || path.EndsWith("/api/account") || path.Contains("/api/account/nickname"))
+			//	The check for open tables runs in the background every half minute: it never shows an error
+			if (path.Contains("/api/auth/") || path.Contains("/api/passkeys") || path.EndsWith("/api/account") || path.Contains("/api/account/nickname")
+				|| path.EndsWith("/api/campaigns/live"))
 			{
 				return await base.SendAsync(request, cancellationToken);
 			}

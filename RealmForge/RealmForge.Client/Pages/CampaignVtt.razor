@@ -23,7 +23,7 @@ else if (campaign is null)
 }
 else
 {
-    <CampaignMap CampaignId="campaign.Id" Role="campaign.MyRole" Characters="campaign.Characters" Members="campaign.Members" Table="true" MyColor="@(campaign.Members.FirstOrDefault(m => m.IsMe)?.Color ?? PlayerColors.Master)" BackHref="@($"campaigns/{campaign.Id}")" />
+    <CampaignMap CampaignId="campaign.Id" Role="campaign.MyRole" Characters="campaign.Characters" Members="campaign.Members" LiveTable="campaign.Table" Table="true" MyColor="@(campaign.Members.FirstOrDefault(m => m.IsMe)?.Color ?? PlayerColors.Master)" BackHref="@($"campaigns/{campaign.Id}")" />
 }
 
 @code {

@@ -170,6 +170,23 @@
         });
         // The virtual tabletop board: dragging tokens (moved by the browser, the cell chosen by the app on release),
         // panning the view, the ruler. The board ([data-board]) is in map pixels, scaled by its data-zoom
+        // Notices of a table opened by a master: the browser's own, only with the user's leave and when the tab is not in view
+        window.rfLive = {
+            permission: () => ('Notification' in window) ? Notification.permission : 'unsupported',
+            ask: async () => ('Notification' in window) ? await Notification.requestPermission() : 'unsupported',
+            notify: (title, body, url, tag) => {
+                if (!('Notification' in window) || Notification.permission !== 'granted' || document.visibilityState === 'visible') return;
+                try {
+                    const n = new Notification(title, { body, tag, icon: 'img/icon-192.png' });
+                    n.onclick = () => {
+                        window.focus();
+                        if (window.Blazor && Blazor.navigateTo) Blazor.navigateTo(url); else location.href = url;
+                        n.close();
+                    };
+                } catch { /* some browsers only notify from a service worker */ }
+            }
+        };
+
         window.rfVtt = (() => {
             const boards = new WeakMap();
             const S3 = Math.sqrt(3);
@@ -306,12 +323,31 @@
                     if (!st.fog) { svg.innerHTML = ''; return; }
                     const z = zoom(), reveal = st.options.fogMode !== 'cover', color = reveal ? '#7dd3fc' : '#0b0b0b';
                     if (st.options.fogShape === 'brush') {
-                        const r = grid()[1] * (st.options.fogBrush || 1);
-                        svg.innerHTML = st.fog.dots.map(([x, y]) => `<circle cx="${x}" cy="${y}" r="${r}" fill="${color}" fill-opacity=".35"/>`).join('');
+                        // The cells painted so far, as one shape (the outline of each cell, no circles)
+                        const [t, g, ox, oy] = grid();
+                        const d = [...st.fog.cells.values()].map(([c, r]) => 'M' + corners(t, g, ox, oy, c, r).map(q => q.join(',')).join('L') + 'Z').join('');
+                        svg.innerHTML = `<path d="${d}" fill="${color}" fill-opacity=".45" stroke="#7dd3fc" stroke-width="${1 / z}" stroke-opacity=".6"/>`;
                     } else {
                         const f = st.fog, x = Math.min(f.from[0], f.to[0]), y = Math.min(f.from[1], f.to[1]);
                         svg.innerHTML = `<rect x="${x}" y="${y}" width="${Math.abs(f.to[0] - f.from[0])}" height="${Math.abs(f.to[1] - f.from[1])}" fill="${color}" fill-opacity=".35" stroke="#7dd3fc" stroke-width="${2 / z}" stroke-dasharray="${6 / z} ${4 / z}"/>`;
                     }
+                };
+                // The fog brush: the cells within (size - 1) steps of the cell under the point
+                const paintCells = (p) => {
+                    const [t, g, ox, oy] = grid(), ring = Math.max(0, (st.options.fogBrush || 1) - 1);
+                    const o = nearest(t, g, ox, oy, p[0], p[1]);
+                    for (let dc = -ring - 1; dc <= ring + 1; dc++) for (let dr = -ring - 1; dr <= ring + 1; dr++) {
+                        const c = o[0] + dc, r = o[1] + dr;
+                        if (c < 0 || r < 0 || st.fog.cells.size >= 4000) continue;
+                        if (distance(t, o, [c, r]) <= ring) st.fog.cells.set(c + ',' + r, [c, r]);
+                    }
+                };
+                // Along the pointer's path, every half cell, so that a quick stroke leaves no gaps
+                const paintTo = (p) => {
+                    const g = grid()[1], last = st.fog.last;
+                    const steps = Math.max(1, Math.ceil(Math.hypot(p[0] - last[0], p[1] - last[1]) / (g / 2)));
+                    for (let i = 1; i <= steps; i++) paintCells([last[0] + (p[0] - last[0]) * i / steps, last[1] + (p[1] - last[1]) * i / steps]);
+                    st.fog.last = p;
                 };
                 const drawStroke = () => {
                     const svg = layer();
@@ -364,7 +400,8 @@
                     }
                     if (st.tool === 'fog') {
                         const p = toMap(e);
-                        st.fog = { from: p, to: p, dots: [p] };
+                        st.fog = { from: p, to: p, last: p, cells: new Map() };
+                        if (st.options.fogShape === 'brush') paintCells(p);
                         drawFog();
                         e.preventDefault();
                         return;
@@ -395,6 +432,13 @@
                         st.stroke = [toMap(e)];
                         drawStroke();
                         e.preventDefault();
+                        return;
+                    }
+                    // A text of mine (or one a master moves): dragged with the selection or the text tool
+                    const text = e.target.closest('[data-shape][data-movable="1"]');
+                    if (text && (st.tool === 'select' || st.tool === 'text')) {
+                        e.preventDefault();
+                        st.textDrag = { el: text, id: text.dataset.shape, x: e.clientX, y: e.clientY, moved: false };
                         return;
                     }
                     if (st.tool === 'text') {
@@ -433,6 +477,13 @@
                     }
                 };
                 st.move = (e) => {
+                    if (st.textDrag) {
+                        const d = st.textDrag, z = zoom();
+                        if (!d.moved && Math.hypot(e.clientX - d.x, e.clientY - d.y) < 4) return;
+                        d.moved = true;
+                        d.el.setAttribute('transform', `translate(${(e.clientX - d.x) / z} ${(e.clientY - d.y) / z})`);
+                        return;
+                    }
                     if (st.drag) {
                         const z = zoom(), dx = (e.clientX - st.drag.x) / z, dy = (e.clientY - st.drag.y) / z;
                         if (!st.drag.moved && Math.hypot(e.clientX - st.drag.x, e.clientY - st.drag.y) < 4) return;
@@ -448,10 +499,9 @@
                         stage.scrollLeft = st.pan.left - (e.clientX - st.pan.x);
                         stage.scrollTop = st.pan.top - (e.clientY - st.pan.y);
                     } else if (st.fog) {
-                        const p = toMap(e), r = grid()[1] * (st.options.fogBrush || 1);
+                        const p = toMap(e);
                         st.fog.to = p;
-                        const last = st.fog.dots[st.fog.dots.length - 1];
-                        if (Math.hypot(p[0] - last[0], p[1] - last[1]) >= r / 2 && st.fog.dots.length < 200) st.fog.dots.push(p);
+                        if (st.options.fogShape === 'brush') paintTo(p);
                         drawFog();
                     } else if (st.stroke) {
                         const p = toMap(e), last = st.stroke[st.stroke.length - 1];
@@ -477,9 +527,22 @@
                         drawFog();
                         const brush = st.options.fogShape === 'brush';
                         const numbers = brush
-                            ? f.dots.flat()
+                            ? [...f.cells.values()].flat()
                             : [Math.min(f.from[0], f.to[0]), Math.min(f.from[1], f.to[1]), Math.abs(f.to[0] - f.from[0]), Math.abs(f.to[1] - f.from[1])];
                         if (brush || (numbers[2] > 4 && numbers[3] > 4)) await dotnet.invokeMethodAsync('FogDrawn', brush, numbers.map(v => Math.round(v * 10) / 10));
+                        return;
+                    }
+                    if (st.textDrag) {
+                        const d = st.textDrag;
+                        st.textDrag = null;
+                        if (!d.moved) return;
+                        const z = zoom();
+                        const x = parseFloat(d.el.getAttribute('x')) + (e.clientX - d.x) / z, y = parseFloat(d.el.getAttribute('y')) + (e.clientY - d.y) / z;
+                        try {
+                            await dotnet.invokeMethodAsync('ShapeMoved', d.id, Math.round(x * 10) / 10, Math.round(y * 10) / 10);
+                        } finally {
+                            d.el.removeAttribute('transform');
+                        }
                         return;
                     }
                     if (st.drag) {
