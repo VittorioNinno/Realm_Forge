@@ -355,6 +355,12 @@ namespace RealmForge.Client.Services
 		public Task<CampaignResult> SaveFogAsync(Guid id, Guid mapId, bool enabled, List<double> fog) =>
 			SendAsync(() => _http.PutAsJsonAsync($"api/campaigns/{id}/maps/{mapId}/fog", new SaveFogDto { Enabled = enabled, Fog = fog }), "save fog");
 
+		public Task<CampaignResult> LockPlayersAsync(Guid id, Guid mapId, bool locked) =>
+			SendAsync(() => _http.PutAsJsonAsync($"api/campaigns/{id}/maps/{mapId}/lock", new PlayersLockDto { Locked = locked }), "lock players");
+
+		public Task<CampaignResult> SetTokenExtrasAsync(Guid id, Guid mapId, Guid tokenId, List<string> conditions, bool? showHp, int? armorClass) =>
+			SendAsync(() => _http.PutAsJsonAsync($"api/campaigns/{id}/maps/{mapId}/tokens/{tokenId}/state", new TokenStateDto { Conditions = conditions, ShowHp = showHp, ArmorClass = armorClass }), "token extras");
+
 		public Task<CampaignResult> PingAsync(Guid id, Guid mapId, double x, double y) =>
 			SendAsync(() => _http.PostAsJsonAsync($"api/campaigns/{id}/maps/{mapId}/ping", new MapPointDto { X = x, Y = y }), "ping");
 

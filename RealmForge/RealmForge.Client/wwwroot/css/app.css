@@ -12820,10 +12820,15 @@ textarea.rf-form-control {
 }
 
 .rf-qs-passives {
-    display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
     gap: 8px;
 }
+
+    .rf-qs-passives > .rf-qs-passive {
+        flex: 0 1 calc((100% - 16px) / 3);
+    }
 
 .rf-qs-passive {
     display: flex;
@@ -13502,7 +13507,7 @@ textarea.rf-form-control {
     display: flex;
     flex-wrap: wrap-reverse;
     justify-content: flex-end;
-    align-items: flex-end;
+    align-items: stretch;
     gap: 16px;
     min-height: 0;
     overflow: hidden;
@@ -13789,7 +13794,9 @@ textarea.rf-form-control {
 }
 
 .rf-dice-table.floating .rf-dice-feed {
-    max-height: 360px;
+    flex: 1;
+    min-height: 0;
+    max-height: none;
 }
 
 .rf-dice-table.floating .rf-dice-card {
@@ -13880,4 +13887,406 @@ textarea.rf-form-control {
     flex-direction: column;
     align-items: stretch;
     gap: 4px;
+}
+
+/* The floating cards side by side keep the same height: the log fills its own down to the bottom */
+.rf-vtt-float {
+    display: flex;
+    flex-direction: column;
+}
+
+    .rf-vtt-float > .rf-dice-table,
+    .rf-vtt-float .rf-dice-workspace,
+    .rf-vtt-float .rf-dice-log {
+        display: flex;
+        flex: 1;
+        flex-direction: column;
+        min-height: 0;
+    }
+
+    .rf-vtt-float .rf-dice-log {
+        max-height: calc(100vh - 220px);
+    }
+
+    .rf-vtt-float .rf-dice-log-foot {
+        margin-top: auto;
+    }
+
+/* Scroll bars: thin and dark, the thumb lit on hover */
+* {
+    scrollbar-width: thin;
+    scrollbar-color: #3a3a3a transparent;
+}
+
+::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+    border: 2px solid transparent;
+    border-radius: 8px;
+    background-color: #3a3a3a;
+    background-clip: padding-box;
+}
+
+    ::-webkit-scrollbar-thumb:hover {
+        background-color: var(--rf-orange-primary);
+    }
+
+::-webkit-scrollbar-corner {
+    background: transparent;
+}
+
+/* At the table the map moves only with the "move the view" tool */
+.rf-vtt-table .rf-vtt-stage {
+    overflow: hidden;
+}
+
+    .rf-vtt-table .rf-vtt-stage.tool-pan {
+        cursor: grab;
+    }
+
+    .rf-vtt-table .rf-vtt-stage.tool-ping {
+        cursor: crosshair;
+    }
+
+.rf-vtt-tool.locked {
+    border-color: rgba(239, 68, 68, .5);
+    background-color: rgba(239, 68, 68, .12);
+    color: #fca5a5;
+}
+
+/* The ping: a dot in the middle of the rings */
+.rf-vtt-ping-dot {
+    position: absolute;
+    top: -8px;
+    left: -8px;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background-color: var(--rf-token, var(--rf-orange-primary));
+    box-shadow: 0 0 16px var(--rf-token, var(--rf-orange-primary));
+    transform: scale(calc(1 / var(--rf-zoom, 1)));
+    animation: rf-vtt-ping-dot 1s ease-in-out infinite alternate;
+}
+
+@keyframes rf-vtt-ping-dot {
+    from {
+        opacity: 1;
+    }
+
+    to {
+        opacity: .5;
+    }
+}
+
+/* The hit points of the pop-up: four tiles under heal and damage, the switch that shows them to the players */
+.rf-hud-stats {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+}
+
+.rf-hud-stat {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    margin: 0;
+    padding: 8px;
+    border-radius: 8px;
+    border: 1px solid #2c2c2c;
+    background-color: #141414;
+}
+
+    .rf-hud-stat:focus-within {
+        border-color: var(--rf-orange-primary);
+    }
+
+    .rf-hud-stat > span:first-child {
+        font-size: .6rem;
+        font-weight: 800;
+        letter-spacing: .06em;
+        text-transform: uppercase;
+        color: #888;
+    }
+
+    .rf-hud-stat input {
+        width: 100%;
+        min-width: 0;
+        height: 32px;
+        padding: 0;
+        border: none;
+        background: transparent;
+        color: #ffffff;
+        font-size: 1.1rem;
+        font-weight: 900;
+        appearance: textfield;
+    }
+
+        .rf-hud-stat input:focus {
+            outline: none;
+        }
+
+        .rf-hud-stat input::-webkit-outer-spin-button,
+        .rf-hud-stat input::-webkit-inner-spin-button {
+            margin: 0;
+            -webkit-appearance: none;
+        }
+
+    .rf-hud-stat.now input {
+        color: #34d399;
+    }
+
+    .rf-hud-stat.temp input {
+        color: #7dd3fc;
+    }
+
+    .rf-hud-stat.armor input {
+        color: #ffb74d;
+    }
+
+.rf-hud-stat-value {
+    display: flex;
+    align-items: baseline;
+    gap: 4px;
+}
+
+    .rf-hud-stat-value small {
+        flex: none;
+        color: #71717a;
+        font-weight: 700;
+    }
+
+.rf-hud-share {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    height: 32px;
+    padding: 0 16px;
+    border-radius: 8px;
+    border: 1px solid #303030;
+    background-color: #1a1a1a;
+    color: #a1a1aa;
+    font-size: .75rem;
+    font-weight: 700;
+}
+
+    .rf-hud-share.on {
+        border-color: rgba(16, 185, 129, .5);
+        background-color: rgba(16, 185, 129, .12);
+        color: #34d399;
+    }
+
+/* The side panel: one closable tab per sheet */
+.rf-vtt-sheet-tab {
+    display: inline-flex;
+    align-items: center;
+    min-width: 0;
+    max-width: 160px;
+    border-radius: 8px;
+    border: 1px solid transparent;
+}
+
+    .rf-vtt-sheet-tab.active {
+        border-color: rgba(255, 140, 0, .45);
+        background-color: rgba(255, 140, 0, .14);
+    }
+
+.rf-vtt-sheet-tab-name {
+    overflow: hidden;
+    padding: 4px 4px 4px 8px;
+    border: none;
+    background: none;
+    color: var(--rf-text-secondary);
+    font-size: .75rem;
+    font-weight: 800;
+    letter-spacing: .04em;
+    text-overflow: ellipsis;
+    text-transform: uppercase;
+    white-space: nowrap;
+}
+
+.rf-vtt-sheet-tab.active .rf-vtt-sheet-tab-name {
+    color: #ffb74d;
+}
+
+.rf-vtt-sheet-tab-close {
+    display: inline-flex;
+    flex: none;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    padding: 0;
+    border: none;
+    background: none;
+    color: #71717a;
+}
+
+    .rf-vtt-sheet-tab-close:hover {
+        color: #fca5a5;
+    }
+
+    .rf-vtt-sheet-tab-close .rf-icon {
+        width: 12px;
+        height: 12px;
+    }
+
+.rf-vtt-table .rf-vtt-panel-tabs {
+    flex-wrap: wrap;
+}
+
+/* The quick sheet in tabs: general, actions, spells, features, notes */
+.rf-qs-tabs {
+    display: flex;
+    gap: 4px;
+    padding: 4px;
+    border-radius: 8px;
+    border: 1px solid #262626;
+    background-color: #141414;
+}
+
+    .rf-qs-tabs > button {
+        flex: 1;
+        min-width: 0;
+        height: 32px;
+        padding: 0 4px;
+        overflow: hidden;
+        border: 1px solid transparent;
+        border-radius: 6px;
+        background: none;
+        color: #888;
+        font-size: .65rem;
+        font-weight: 800;
+        text-overflow: ellipsis;
+        text-transform: uppercase;
+        white-space: nowrap;
+    }
+
+        .rf-qs-tabs > button.active {
+            border-color: #363636;
+            background-color: #1f1f1f;
+            color: #ffb74d;
+        }
+
+.rf-qs-entries {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.rf-qs-entry {
+    border-radius: 8px;
+    border: 1px solid #2c2c2c;
+    background-color: #171717;
+}
+
+    .rf-qs-entry > summary,
+    .rf-qs-entry.plain {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 16px;
+        font-size: .8rem;
+        font-weight: 700;
+        color: #ffffff;
+    }
+
+    .rf-qs-entry > summary {
+        cursor: pointer;
+        list-style: none;
+    }
+
+        .rf-qs-entry > summary::-webkit-details-marker {
+            display: none;
+        }
+
+    .rf-qs-entry[open] > summary {
+        border-bottom: 1px solid #262626;
+        color: #ffb74d;
+    }
+
+    .rf-qs-entry > .rf-qs-prose {
+        padding: 8px 16px;
+    }
+
+.rf-qs-entry-badge {
+    flex: none;
+    padding: 0 8px;
+    border-radius: 8px;
+    background-color: #262626;
+    color: #ffb74d;
+    font-size: .65rem;
+    font-weight: 800;
+    line-height: 20px;
+}
+
+.rf-qs-cast-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+    font-size: .8rem;
+    font-weight: 700;
+    color: #ffb74d;
+}
+
+.rf-qs-slots {
+    margin: 0;
+    font-size: .75rem;
+    color: #a1a1aa;
+}
+
+.rf-qs-spell-level {
+    font-size: .6rem;
+    font-weight: 800;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+    color: #888;
+}
+
+.rf-qs-spells {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.rf-qs-spell {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 8px;
+    border-radius: 6px;
+    border: 1px solid #2c2c2c;
+    background-color: #171717;
+    color: #e4e4e7;
+    font-size: .75rem;
+    font-weight: 600;
+    text-decoration: none;
+}
+
+    .rf-qs-spell:hover {
+        border-color: var(--rf-orange-primary);
+        color: #ffffff;
+    }
+
+.rf-qs-spell-tag {
+    padding: 0 4px;
+    border-radius: 4px;
+    background-color: #262626;
+    color: #a78bfa;
+    font-size: .6rem;
+    font-weight: 900;
+}
+
+/* A token's pop-up open: the initiative bar steps back so it does not cover it */
+.rf-init-widget.behind > * {
+    opacity: .3;
+    pointer-events: none;
 }
