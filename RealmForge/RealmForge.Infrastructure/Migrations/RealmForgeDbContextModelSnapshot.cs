@@ -888,6 +888,12 @@ namespace RealmForge.Infrastructure.Migrations
                         .HasColumnType("text[]")
                         .HasDefaultValueSql("'{}'");
 
+                    b.Property<string>("Gear")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("jsonb")
+                        .HasDefaultValue("{}");
+
                     b.Property<bool>("Hidden")
                         .HasColumnType("boolean");
 

@@ -22,7 +22,6 @@ public static class StartingEquipment
 
 		var inventory = new List<InventoryItem>();
 		var coins = new CoinPurse();
-		var bodyArmorWorn = false;
 
 		void Add(Guid? equipmentId, string? name, int quantity)
 		{
@@ -36,21 +35,7 @@ public static class StartingEquipment
 				return;
 			}
 
-			var equipped = false;
-			if (item?.ArmorCategory is ArmorCategory.Shield)
-			{
-				equipped = inventory.All(i => i.EquipmentId is not { } other || items[other].ArmorCategory != ArmorCategory.Shield || !i.Equipped);
-			}
-			else if (item?.ArmorCategory is not null && !bodyArmorWorn)
-			{
-				equipped = bodyArmorWorn = true;
-			}
-			else if (item?.Category == EquipmentCategory.Weapon)
-			{
-				equipped = true;
-			}
-
-			inventory.Add(new InventoryItem { EquipmentId = item?.Id, Name = item is null ? name : null, Quantity = quantity, Equipped = equipped });
+			inventory.Add(new InventoryItem { EquipmentId = item?.Id, Name = item is null ? name : null, Quantity = quantity });
 		}
 
 		foreach (var (slot, entry) in chosen)
@@ -84,6 +69,35 @@ public static class StartingEquipment
 			}
 		}
 
+		Equip(inventory, items, build.EquippedItems);
 		return (inventory, coins);
 	}
+
+	///	<summary>
+	///	What is worn and held: the items chosen, in order, as long as they fit (one body armour, one shield, two hands);
+	///	without a choice the body armour, then a shield, then the weapons that still fit.
+	///	</summary>
+	public static void Equip(List<InventoryItem> inventory, IReadOnlyDictionary<Guid, ContextItem> items, IReadOnlyList<Guid>? chosen)
+	{
+		ContextItem? Lookup(InventoryItem i) => i.EquipmentId is { } id && items.TryGetValue(id, out var it) ? it : null;
+		foreach (var i in inventory)
+		{
+			i.Equipped = false;
+		}
+		IEnumerable<InventoryItem> order = chosen is not null
+			? chosen.Select(id => inventory.FirstOrDefault(i => i.EquipmentId == id)).OfType<InventoryItem>()
+			: inventory.Where(i => Lookup(i)?.ArmorCategory is ArmorCategory.Light or ArmorCategory.Medium or ArmorCategory.Heavy)
+				.Concat(inventory.Where(i => Lookup(i)?.ArmorCategory == ArmorCategory.Shield))
+				.Concat(inventory.Where(i => Lookup(i)?.Category == EquipmentCategory.Weapon));
+		foreach (var item in order.ToList())
+		{
+			if (Wearable(Lookup(item)) && EquipmentRules.CanEquip(item, inventory, Lookup, _ => string.Empty, false).Ok)
+			{
+				item.Equipped = true;
+			}
+		}
+	}
+
+	//	Armour, shields and weapons are worn or held; the rest stays in the backpack
+	public static bool Wearable(ContextItem? item) => item is not null && (item.ArmorCategory is not null || item.Category == EquipmentCategory.Weapon);
 }

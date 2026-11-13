@@ -7,7 +7,7 @@
 
 @if (Computed.SpellSlots.Any(s => s > 0) || Computed.PactSlots > 0)
 {
-    <div class="rf-wizard-meta">
+    <div class="rf-wizard-meta rf-wizard-slots">
         @for (var i = 0; i < 9; i++)
         {
             if (Computed.SpellSlots[i] > 0)

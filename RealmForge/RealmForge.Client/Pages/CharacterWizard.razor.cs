@@ -69,6 +69,17 @@ namespace RealmForge.Client.Pages
 
 		public WizardStep CurrentStep => Steps[Math.Clamp(stepIndex, 0, Steps.Count - 1)];
 
+		//	For the recap at the side: where the wizard is, how far it went, a step to go back to
+		private bool ShowRecap => !loading && !loadFailed && Context is not null;
+
+		public int StepIndex => stepIndex;
+		public int FurthestIndex => furthestIndex;
+		public void GoToStep(int index)
+		{
+			GoTo(index);
+			StateHasChanged();
+		}
+
 		protected override async Task OnInitializedAsync()
 		{
 			LanguageState.OnLanguageChanged += OnLanguageChanged;

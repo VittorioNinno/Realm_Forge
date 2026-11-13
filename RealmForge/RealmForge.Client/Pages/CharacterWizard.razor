@@ -20,6 +20,7 @@
                 <a href="characters" class="small text-decoration-none d-inline-block mb-3" style="color: var(--rf-text-muted);"><Icon Name="left" /> @UiText.BtnBackToCharacters(Lang)</a>
             }
 
+            <div class="rf-wizard-workspace @(ShowRecap ? "with-recap" : null)">
             <div class="rf-wizard" data-test="character-wizard" data-ruleset="@((int)Ruleset)">
                 <h1 class="rf-wizard-header rf-page-title">@Title</h1>
 
@@ -124,6 +125,11 @@
                         }
                     </div>
                 }
+            </div>
+            @if (ShowRecap)
+            {
+                <WizardRecap W="this" />
+            }
             </div>
         </div>
     </Authorized>

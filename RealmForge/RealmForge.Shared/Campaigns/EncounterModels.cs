@@ -76,6 +76,11 @@ public class EncounterCombatant
 	public int? SheetHp { get; set; }
 	public int? SheetTempHp { get; set; }
 	public List<string>? SheetConditions { get; set; }
+
+	//	What it spent of its turn at the table: its action (TableCombat.SpentAttack, SpentOther) and its reaction;
+	//	given back when its turn starts
+	public string? ActionSpent { get; set; }
+	public bool ReactionUsed { get; set; }
 }
 
 ///	<summary>
