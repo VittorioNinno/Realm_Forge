@@ -447,22 +447,38 @@ namespace RealmForge.Client.Components
 
 		[Inject] private EquipmentDataService EquipmentService { get; set; } = default!;
 
-		private readonly Dictionary<Guid, EquipmentDetailResponseDto?> groundItems = new();
 		private EquipmentDetailResponseDto? groundInfo;
 
+		//	By compendium id, or by name for a statblock's weapon ("Scimitarra")
 		private EquipmentDetailResponseDto? GroundItemOf(TokenItemDto item) =>
-			item.EquipmentId is { } id && groundItems.TryGetValue(id, out var found) ? found : null;
+			groundItems.TryGetValue(GroundKey(item), out var found) ? found : null;
+
+		private static string GroundKey(TokenItemDto item) => item.EquipmentId is { } id ? id.ToString() : item.Name.Trim().ToLowerInvariant();
+
+		private readonly Dictionary<string, EquipmentDetailResponseDto?> groundItems = new();
+		private List<EquipmentResponseDto>? equipmentIndex;
 
 		private async Task LoadGroundItemAsync(MapTokenDto t)
 		{
-			if (t.Gear?.Items.FirstOrDefault()?.EquipmentId is not { } id || groundItems.ContainsKey(id))
+			if (t.Gear?.Items.FirstOrDefault() is not { } item || groundItems.ContainsKey(GroundKey(item)))
 			{
 				return;
 			}
-			groundItems[id] = null;
+			var key = GroundKey(item);
+			groundItems[key] = null;
 			try
 			{
-				groundItems[id] = await EquipmentService.GetItemAsync(id, Lang);
+				var id = item.EquipmentId;
+				if (id is null)
+				{
+					equipmentIndex ??= await EquipmentService.GetEquipmentAsync(Lang);
+					id = equipmentIndex.Where(e => string.Equals(e.Name.Trim(), item.Name.Trim(), StringComparison.OrdinalIgnoreCase))
+						.OrderByDescending(e => e.Ruleset).Select(e => (Guid?)e.Id).FirstOrDefault();
+				}
+				if (id is { } found)
+				{
+					groundItems[key] = await EquipmentService.GetItemAsync(found, Lang);
+				}
 			}
 			catch (Exception)
 			{
