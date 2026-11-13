@@ -6,7 +6,7 @@
 @inject NavigationManager Navigation
 
 @* The side menu: the emblem and the name on top (with the button that folds it to its icons), the main pages, the
-   glossary and the compendium group, the account and the fold button at the bottom. Folded (64 px) only the icons
+   glossary and the compendium group, the account at the bottom. Folded (64 px) only the icons
    stay, each with its name as a tooltip; on phones it is a bar with the menu button *@
 <aside class="rf-sidebar @(Collapsed ? "is-collapsed" : null)">
     <header class="sb-header">
@@ -113,12 +113,8 @@
         </div>
 
         <footer class="sb-footer">
-            @* Account (sign in / signed-in user and sign out) *@
+            @* Account (sign in / signed-in user and sign out); the menu folds from the button on top *@
             <UserMenu />
-            <button type="button" class="sb-footer-collapse" title="@ToggleText" aria-label="@ToggleText" @onclick="OnToggle" @onclick:stopPropagation="true" data-test="sidebar-collapse-footer">
-                <span class="sb-icon"><Icon Name="chevron-double-left" /></span>
-                <span class="sb-label">@ToggleText</span>
-            </button>
         </footer>
     </div>
 </aside>
