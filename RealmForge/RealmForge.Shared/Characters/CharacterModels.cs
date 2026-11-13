@@ -49,6 +49,10 @@ public sealed class CharacterBuild
 	public string? BackgroundEquipment { get; set; }
 	public List<string> ClassEquipment { get; set; } = new();
 	public List<EquipmentPick> EquipmentPicks { get; set; } = new();
+
+	//	The starting items the player wears and holds (compendium ids), within one armour, one shield and two hands;
+	//	null: the armour, a shield and what fits in the hands (EquipmentRules)
+	public List<Guid>? EquippedItems { get; set; }
 }
 
 ///	<summary>

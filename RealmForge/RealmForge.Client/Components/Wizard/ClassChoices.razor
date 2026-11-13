@@ -89,16 +89,7 @@
 
         @if (masteries > 0)
         {
-            <div class="rf-wizard-counter">@UiText.LabelWeaponMastery(masteries, Lang) · @entry.WeaponMasteries.Count / @masteries</div>
-            <div class="rf-wizard-pills" data-test="wizard-masteries">
-                @foreach (var weapon in MasteryWeapons(cls))
-                {
-                    var selected = entry.WeaponMasteries.Contains(weapon.Id);
-                    <button type="button" class="rf-wizard-pill @(selected ? "selected" : null)" disabled="@(!selected && entry.WeaponMasteries.Count >= masteries)"
-                            title="@(weapon.Mastery is { } m ? EquipmentTerms.MasteryName(m, Lang) : null)"
-                            @onclick="() => W.Toggle(entry.WeaponMasteries, weapon.Id, masteries)" data-test="wizard-mastery">@weapon.Name</button>
-                }
-            </div>
+            <WeaponMasteryPicker W="W" Title="@UiText.LabelWeaponMastery(masteries, Lang)" Chosen="entry.WeaponMasteries" Max="masteries" Weapons="MasteryWeapons(cls)" />
         }
     </div>
 }
@@ -151,10 +142,16 @@
         W.Update();
     }
 
-    //	Barbarian: melee weapons; the others: weapons they are proficient with
+    //	2024: Barbarian simple and martial melee weapons; Fighter simple and martial weapons; Paladin, Ranger and Rogue
+    //	the weapons they are proficient with (a Rogue: simple, and martial with Finesse or Light). One entry per weapon
     private IEnumerable<ContextItem> MasteryWeapons(ContextClass cls) => Context.Items
-        .Where(i => i.Category == EquipmentCategory.Weapon && i.Mastery is not null)
-        .Where(i => !CharacterRules.MasteryMeleeOnly(cls) || i.WeaponRange == WeaponRange.Melee)
-        .Where(i => CharacterCalculator.IsProficient(i, Computed))
-        .OrderBy(i => i.WeaponCategory).ThenBy(i => i.Name);
+        .Where(i => i.Category == EquipmentCategory.Weapon && i.Mastery is not null && i.WeaponCategory is not null && i.WeaponRange is not null)
+        .Where(i => cls.Key switch
+        {
+            "barbarian" => i.WeaponRange == WeaponRange.Melee,
+            "fighter" => true,
+            _ => CharacterCalculator.IsProficient(i, Computed)
+        })
+        .GroupBy(i => i.EnglishName.Trim().ToLowerInvariant()).Select(g => g.First())
+        .OrderBy(i => i.WeaponCategory).ThenBy(i => i.WeaponRange).ThenBy(i => i.Name);
 }
