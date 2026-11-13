@@ -33,7 +33,8 @@
             {
                 <div class="rf-level-body">
                     <div class="rf-level-hp">
-                        <span class="rf-wizard-label p-0">@UiText.LabelHitPointsGain(Lang)</span>
+                        <span class="rf-level-hp-label">@UiText.LabelHitPointsGain(Lang)</span>
+                        <div class="rf-level-hp-options">
                         @if (index == 0)
                         {
                             <span class="rf-wizard-pill locked">@UiText.HitPointsMaximum(cls.HitDie, Lang)</span>
@@ -45,6 +46,7 @@
                                 @(level.HitPointRoll is { } roll ? UiText.HitPointsRolled(roll, Lang) : UiText.BtnRollHitDie(cls.HitDie, Lang))
                             </button>
                         }
+                        </div>
                     </div>
 
                     @if (plan is not null && (plan.Improvement || plan.EpicBoon))

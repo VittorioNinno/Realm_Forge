@@ -709,7 +709,7 @@ else
         var (cx, cy) = MapGeometry.Center(gridType, grid, offsetX, offsetY, it.X, it.Y, it.Size);
         var side = grid * it.Size;
         var hasSheet = HasSheet(it);
-        <section class="rf-vtt-toolbar rf-hud" data-ui style="left: @(N(cx + side / 2.0 + 4 / zoom))px; top: @(N(cy - side / 2.0))px; --rf-token: @it.Color;" data-test="map-token-card"
+        <section class="rf-vtt-toolbar rf-hud" data-ui style="left: @(N(cx + side / 2.0 + 4 / zoom))px; top: @(N(cy - side / 2.0))px; --rf-token: @it.Color;" data-token-id="@it.Id" data-test="map-token-card"
                  @onkeydown:stopPropagation="true">
             <header class="rf-hud-top">
                 @if (hasSheet)
@@ -871,13 +871,6 @@ else
                                 <button type="button" class="rf-hud-hp damage" disabled="@(hpAmount is null or <= 0 || busy)" @onclick="() => HealAsync(it, -1)" data-test="map-token-damage">@UiText.ToolDamage(Lang) <Icon Name="dash" /></button>
                             </div>
                             <div class="rf-hud-stats">
-                                <label class="rf-hud-stat now">
-                                    <span>@UiText.ToolHpNow(Lang)</span>
-                                    <span class="rf-hud-stat-value">
-                                        <input type="number" min="0" max="100000" value="@nowHp" @onchange="e => SetCurrentAsync(it, e.Value?.ToString())" aria-label="@UiText.ToolHpNow(Lang)" data-test="map-token-hp-input" />
-                                        <small>/ @maxHp</small>
-                                    </span>
-                                </label>
                                 <label class="rf-hud-stat temp">
                                     <span>@UiText.ToolTempHp(Lang)</span>
                                     <input type="number" min="0" max="10000" value="@tempHp" @onchange="e => SetTempHpAsync(it, e.Value?.ToString())" aria-label="@UiText.ToolTempHp(Lang)" data-test="map-token-temp-hp" />
@@ -2107,6 +2100,11 @@ else
         {
             fitPending = false;
             await FitAsync();
+        }
+        if (Table && infoToken is not null && !string.IsNullOrEmpty(stageElement.Id))
+        {
+            //	The pop-up of a token stays wholly on screen (moved or turned to the other side of the token)
+            await JS.InvokeVoidAsync("rfVtt.keepVisible", stageElement);
         }
         if (pendingFocus is { } at)
         {

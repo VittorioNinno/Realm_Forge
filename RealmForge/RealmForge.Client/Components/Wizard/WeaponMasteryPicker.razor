@@ -1,0 +1,239 @@
+﻿@* Weapon Mastery: the weapons by kind (simple / martial, melee / ranged), each with its mastery, A and B to compare two
+   of them side by side and "i" for its card; the comparator folds into a narrow tab *@
+@{
+    var weapons = Weapons.ToList();
+    var groups = weapons.GroupBy(w => (w.WeaponCategory ?? WeaponCategory.Simple, w.WeaponRange ?? WeaponRange.Melee))
+        .OrderBy(g => g.Key.Item1).ThenBy(g => g.Key.Item2).ToList();
+    var a = weapons.FirstOrDefault(w => w.Id == slotA) ?? weapons.FirstOrDefault();
+    var b = weapons.FirstOrDefault(w => w.Id == slotB) ?? weapons.Skip(1).FirstOrDefault() ?? a;
+}
+<div class="rf-mastery-wrap">
+<div class="rf-mastery @(compareOpen ? null : "folded")" data-test="wizard-masteries">
+    <section class="rf-mastery-main">
+        <div class="rf-mastery-top">
+            <div>
+                <span class="rf-mastery-kicker">@Title</span>
+                <h3 class="rf-mastery-title">@UiText.MasteryChosen(Chosen.Count, Max, Lang)</h3>
+            </div>
+            <div class="rf-mastery-controls">
+                <div class="rf-mastery-filters">
+                    <button type="button" class="@(filter is null ? "active" : null)" @onclick="() => filter = null">@UiText.MasteryAll(Lang)</button>
+                    @foreach (var g in groups)
+                    {
+                        var key = g.Key;
+                        <button type="button" class="@(filter == key ? "active" : null)" @onclick="() => filter = key" data-test="wizard-mastery-filter">@UiText.MasteryGroupShort(key.Item1, key.Item2, Lang)</button>
+                    }
+                </div>
+                <button type="button" class="rf-mastery-compare-toggle @(compareOpen ? "active" : null)" aria-pressed="@(compareOpen ? "true" : "false")" @onclick="() => compareOpen = !compareOpen" data-test="wizard-mastery-compare-toggle">
+                    <Icon Name="layers" /> @(compareOpen ? UiText.MasteryHideCompare(Lang) : UiText.MasteryShowCompare(Lang))
+                </button>
+            </div>
+        </div>
+
+        @foreach (var g in groups.Where(g => filter is null || g.Key == filter))
+        {
+            <div class="rf-mastery-group">
+                <div class="rf-mastery-divider"><span>@EquipmentTerms.WeaponCategoryName(g.Key.Item1, g.Key.Item2, Lang)</span><span class="rule"></span></div>
+                <div class="rf-mastery-chips">
+                    @foreach (var weapon in g.OrderBy(w => w.Name))
+                    {
+                        var w = weapon;
+                        var selected = Chosen.Contains(w.Id);
+                        var full = !selected && Chosen.Count >= Max;
+                        <div class="rf-mastery-chip @(selected ? "selected" : null) @(w.Id == a?.Id ? "slot-a" : null) @(w.Id == b?.Id ? "slot-b" : null) @(full ? "full" : null)">
+                            <button type="button" class="rf-mastery-chip-main @(selected ? "selected" : null)" disabled="@full" aria-pressed="@(selected ? "true" : "false")" @onclick="() => W.Toggle(Chosen, w.Id, Max)" data-test="wizard-mastery">
+                                <span class="name">@w.Name</span>
+                                @if (w.Mastery is { } m)
+                                {
+                                    <span class="tag">@EquipmentTerms.MasteryName(m, Lang)</span>
+                                }
+                            </button>
+                            <span class="rf-mastery-chip-actions">
+                                <button type="button" class="slot a" title="@UiText.MasterySlot("A", Lang)" aria-label="@UiText.MasterySlot("A", Lang)" @onclick="() => Compare(true, w.Id)">A</button>
+                                <button type="button" class="slot b" title="@UiText.MasterySlot("B", Lang)" aria-label="@UiText.MasterySlot("B", Lang)" @onclick="() => Compare(false, w.Id)">B</button>
+                                <button type="button" class="rf-info-i" title="@UiText.MasteryDetails(Lang)" aria-label="@UiText.MasteryDetails(Lang)" @onclick="() => detail = w" data-test="wizard-mastery-info">i</button>
+                            </span>
+                        </div>
+                    }
+                </div>
+            </div>
+        }
+    </section>
+
+    <aside class="rf-mastery-compare">
+        @if (!compareOpen)
+        {
+            <button type="button" class="rf-mastery-compare-tab" title="@UiText.MasteryShowCompare(Lang)" @onclick="() => compareOpen = true">
+                <span class="arrow"><Icon Name="chevron-double-left" /></span>
+                <span class="text">@UiText.MasteryComparator(Lang)</span>
+                <span class="pill">A/B</span>
+            </button>
+        }
+        else if (a is not null && b is not null)
+        {
+            <header class="rf-mastery-compare-head">
+                <span class="rf-mastery-kicker mb-0">@UiText.MasteryComparator(Lang)</span>
+                <span class="d-flex align-items-center gap-2">
+                    <button type="button" class="rf-mastery-link" @onclick="Swap">@UiText.MasterySwap(Lang)</button>
+                    <button type="button" class="rf-mastery-fold" title="@UiText.MasteryHideCompare(Lang)" aria-label="@UiText.MasteryHideCompare(Lang)" @onclick="() => compareOpen = false"><Icon Name="chevron-double-right" /></button>
+                </span>
+            </header>
+            <div class="rf-mastery-selects">
+                <div class="slot-select">
+                    <span class="slot-badge a">@UiText.MasteryWeaponSlot("A", Lang)</span>
+                    <RfSelect TValue="Guid" Value="a.Id" ValueChanged="v => slotA = v" Options="Options(weapons)" />
+                </div>
+                <button type="button" class="rf-mastery-swap" title="@UiText.MasterySwap(Lang)" aria-label="@UiText.MasterySwap(Lang)" @onclick="Swap"><Icon Name="refresh" /></button>
+                <div class="slot-select">
+                    <span class="slot-badge b">@UiText.MasteryWeaponSlot("B", Lang)</span>
+                    <RfSelect TValue="Guid" Value="b.Id" ValueChanged="v => slotB = v" Options="Options(weapons)" />
+                </div>
+            </div>
+
+            <section class="rf-mastery-box">
+                <span class="label">@UiText.MasteryDamage(Lang)</span>
+                <div class="rf-mastery-versus">
+                    @DamageCol(a, Average(a) > Average(b), "a")
+                    <span class="vs">VS</span>
+                    @DamageCol(b, Average(b) > Average(a), "b")
+                </div>
+                @{
+                    var top = Math.Max(1, Math.Max(Average(a), Average(b)));
+                }
+                <div class="rf-mastery-bars">
+                    <div class="bar-row"><span class="tag a">A</span><span class="track"><span class="fill a" style="width: @((Average(a) / top * 100).ToString("0", System.Globalization.CultureInfo.InvariantCulture))%;"></span></span><span class="num">@Average(a).ToString("0.0")</span></div>
+                    <div class="bar-row"><span class="tag b">B</span><span class="track"><span class="fill b" style="width: @((Average(b) / top * 100).ToString("0", System.Globalization.CultureInfo.InvariantCulture))%;"></span></span><span class="num">@Average(b).ToString("0.0")</span></div>
+                </div>
+            </section>
+
+            <section class="rf-mastery-table">
+                @Metric(UiText.MasteryCategory(Lang), Category(a), Category(b), 0)
+                @Metric(UiText.MasteryHands(Lang), Hands(a), Hands(b), 0)
+                @Metric(UiText.MasteryReach(Lang), Reach(a), Reach(b), Math.Sign(Distance(a) - Distance(b)))
+                @Metric(UiText.MasteryWeight(Lang), EquipmentTerms.FormatWeight(a.WeightInPounds, Lang), EquipmentTerms.FormatWeight(b.WeightInPounds, Lang), Math.Sign((b.WeightInPounds ?? 0) - (a.WeightInPounds ?? 0)))
+                @Metric(UiText.MasteryCost(Lang), EquipmentTerms.FormatCost(a.CostInCopper, Lang), EquipmentTerms.FormatCost(b.CostInCopper, Lang), Math.Sign((b.CostInCopper ?? 0) - (a.CostInCopper ?? 0)))
+            </section>
+
+            <section class="rf-mastery-props">
+                @foreach (var (weapon, side) in new[] { (a, "a"), (b, "b") })
+                {
+                    <div class="col">
+                        <span class="micro">@UiText.MasteryProperties(side.ToUpperInvariant(), Lang)</span>
+                        <div class="chips">
+                            @foreach (var p in Properties(weapon))
+                            {
+                                <span>@p</span>
+                            }
+                        </div>
+                    </div>
+                }
+            </section>
+
+            <section class="rf-mastery-rules">
+                <span class="label">@UiText.MasteryRuleCompare(Lang)</span>
+                @foreach (var (weapon, side) in new[] { (a, "a"), (b, "b") })
+                {
+                    var w = weapon;
+                    <div class="rf-mastery-rule side-@side">
+                        <div class="top">
+                            <span class="slot-badge @side">@side.ToUpperInvariant()</span>
+                            <strong>@(w.Mastery is { } m ? EquipmentTerms.MasteryName(m, Lang) : "—")</strong>
+                            <button type="button" class="rf-mastery-link" @onclick="() => detail = w">@UiText.MasteryDetails(Lang)</button>
+                        </div>
+                        <p>@(w.Mastery is { } rule ? EquipmentTerms.MasteryRule(rule, Lang) : string.Empty)</p>
+                    </div>
+                }
+            </section>
+
+            <footer class="rf-mastery-pick">
+                @foreach (var (weapon, side) in new[] { (a, "a"), (b, "b") })
+                {
+                    var w = weapon;
+                    var picked = Chosen.Contains(w.Id);
+                    <button type="button" class="pick-@side @(picked ? "picked" : null)" disabled="@(!picked && Chosen.Count >= Max)" @onclick="() => W.Toggle(Chosen, w.Id, Max)">
+                        @(picked ? UiText.MasteryPicked(w.Name, Lang) : UiText.MasteryPick(w.Name, Lang))
+                    </button>
+                }
+            </footer>
+        }
+    </aside>
+</div>
+</div>
+
+<WeaponDetailModal Weapon="detail" Ruleset="Ruleset" OnClose="() => detail = null" />
+
+@code {
+    [Parameter, EditorRequired] public string Title { get; set; } = string.Empty;
+    [Parameter, EditorRequired] public List<Guid> Chosen { get; set; } = new();
+    [Parameter, EditorRequired] public IEnumerable<ContextItem> Weapons { get; set; } = Array.Empty<ContextItem>();
+    [Parameter] public int Max { get; set; }
+
+    private (WeaponCategory, WeaponRange)? filter;
+    //	Folded at first: it opens with A / B on a weapon or from its tab
+    private bool compareOpen;
+    private Guid? slotA;
+    private Guid? slotB;
+    private ContextItem? detail;
+
+    private List<RfSelect<Guid>.OptionItem> Options(List<ContextItem> weapons) => weapons.OrderBy(w => w.Name).Select(w => new RfSelect<Guid>.OptionItem(w.Id, w.Name)).ToList();
+
+    private void Compare(bool first, Guid id)
+    {
+        compareOpen = true;
+        if (first)
+        {
+            slotA = id;
+        }
+        else
+        {
+            slotB = id;
+        }
+    }
+
+    private void Swap() => (slotA, slotB) = (slotB ?? Weapons.Skip(1).FirstOrDefault()?.Id, slotA ?? Weapons.FirstOrDefault()?.Id);
+
+    //	The average of "1d8", "2d6"
+    private static double AverageOf(string? dice)
+    {
+        var m = System.Text.RegularExpressions.Regex.Match(dice ?? string.Empty, @"^(\d*)d(\d+)");
+        return m.Success ? (string.IsNullOrEmpty(m.Groups[1].Value) ? 1 : int.Parse(m.Groups[1].Value)) * (int.Parse(m.Groups[2].Value) + 1) / 2.0 : 0;
+    }
+
+    private static double Average(ContextItem w) => AverageOf(w.DamageDice);
+
+    private string Category(ContextItem w) => $"{EquipmentTerms.WeaponCategoryLabel(w.WeaponCategory ?? WeaponCategory.Simple, Lang)} · {UiText.MasteryRangeShort(w.WeaponRange ?? WeaponRange.Melee, Lang)}";
+
+    private string Hands(ContextItem w) => w.WeaponProperties.Contains(WeaponProperty.TwoHanded) ? UiText.MasteryTwoHands(Lang)
+        : w.WeaponProperties.Contains(WeaponProperty.Versatile) ? UiText.MasteryVersatile(Lang) : UiText.MasteryOneHand(Lang);
+
+    private int Distance(ContextItem w) => w.LongRange ?? (w.WeaponProperties.Contains(WeaponProperty.Reach) ? 10 : 5);
+
+    private string Reach(ContextItem w) => w.NormalRange is { } normal && w.LongRange is { } longRange
+        ? (w.WeaponRange == WeaponRange.Melee ? $"{EquipmentTerms.FormatDistance(w.WeaponProperties.Contains(WeaponProperty.Reach) ? 10 : 5, Lang)} · {EquipmentTerms.FormatRange(normal, longRange, Lang)}" : EquipmentTerms.FormatRange(normal, longRange, Lang))
+        : EquipmentTerms.FormatDistance(w.WeaponProperties.Contains(WeaponProperty.Reach) ? 10 : 5, Lang);
+
+    private IEnumerable<string> Properties(ContextItem w)
+    {
+        var text = EquipmentTerms.FormatProperties(w.WeaponProperties, w.NormalRange, w.LongRange, w.VersatileDamageDice, Lang);
+        return text == "—" ? new[] { "—" } : text.Split(", ");
+    }
+
+    private RenderFragment DamageCol(ContextItem w, bool wins, string side) => __builder =>
+    {
+        <div class="dmg side-@side @(wins ? "wins" : null)">
+            <strong>@(w.DamageDice ?? "—")</strong>
+            <span>@(w.DamageType is { } type ? EquipmentTerms.DamageTypeName(type, Lang) : string.Empty)</span>
+            <small>@UiText.MasteryAverage(Average(w).ToString("0.0"), Lang)@(w.VersatileDamageDice is { } v ? $" ({AverageOf(v):0.0} {v})" : null)</small>
+        </div>
+    };
+
+    //	better: 1 when A wins, -1 when B wins, 0 for no comparison
+    private RenderFragment Metric(string key, string left, string right, int better) => __builder =>
+    {
+        <div class="row-m">
+            <span class="val a @(better > 0 ? "wins" : null)">@left</span>
+            <span class="key">@key</span>
+            <span class="val b @(better < 0 ? "wins" : null)">@right</span>
+        </div>
+    };
+}

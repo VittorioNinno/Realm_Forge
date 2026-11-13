@@ -10,39 +10,51 @@
 @* Details of a spell over the current page (wizard, sheet): stat block, description and higher levels *@
 @if (SpellId is not null)
 {
-    <div class="rf-modal-backdrop" @onclick="CloseAsync">
-        <div class="rf-modal-dialog" style="max-width: 640px;" @onclick:stopPropagation="true" data-test="spell-detail-modal">
+    <div class="rf-modal-backdrop rf-info-backdrop" @onclick="CloseAsync">
+        <aside class="rf-info-modal wide" @onclick:stopPropagation="true" data-test="spell-detail-modal">
             @if (spell is null)
             {
                 <div class="small" style="color: var(--rf-text-muted);">@UiText.LoadingArchives(Lang)</div>
             }
             else
             {
-                <div class="d-flex justify-content-between align-items-start gap-2 mb-3 pb-2" style="border-bottom: 2px solid var(--rf-orange-primary);">
+                <header class="rf-info-head">
                     <div>
-                        <h2 class="h4 mb-2" style="color: var(--rf-orange-primary); font-family: var(--rf-font-display);">@spell.Name</h2>
-                        <div class="fst-italic small" style="color: var(--rf-text-secondary);">@GameTerms.SpellSubtitle(spell.Level, spell.School, spell.Ritual, Lang, spell.Ruleset)</div>
+                        <span class="rf-info-kicker">@GameTerms.SpellSubtitle(spell.Level, spell.School, spell.Ritual, Lang, spell.Ruleset)</span>
+                        <h3 class="rf-info-title">@spell.Name</h3>
                     </div>
-                    <button class="btn btn-sm btn-rf-outline" @onclick="CloseAsync" aria-label="@UiText.BtnClose(Lang)" data-test="spell-detail-close"><Icon Name="close" /></button>
-                </div>
+                    <div class="rf-info-head-right">
+                        <span class="rf-info-badge">@UiText.FormatRuleset(spell.Ruleset, Lang)</span>
+                        <button type="button" class="rf-info-close" @onclick="CloseAsync" aria-label="@UiText.BtnClose(Lang)" data-test="spell-detail-close"><Icon Name="close" /></button>
+                    </div>
+                </header>
                 @Actions
-                <dl class="rf-spell-stats mb-3">
-                    <div><dt>@UiText.LabelCastingTime(Lang)</dt><dd>@spell.CastingTime</dd></div>
-                    <div><dt>@UiText.LabelRange(Lang)</dt><dd>@spell.Range</dd></div>
-                    <div><dt>@UiText.LabelComponents(Lang)</dt><dd>@Components(spell)</dd></div>
-                    <div><dt>@UiText.LabelDuration(Lang)</dt><dd>@(spell.Concentration ? $"{UiText.ConcentrationShort(Lang)}, " : null)@spell.Duration</dd></div>
-                </dl>
-                <div @key="spell.Description" class="rf-markdown-container mb-3">@((MarkupString)MarkdownText.ToHtml(spell.Description, Glossary.Linker(Lang, spell.Ruleset)))</div>
+                <div class="rf-info-stats cols-2">
+                    <div class="rf-info-stat highlight"><span>@UiText.LabelCastingTime(Lang)</span><strong>@spell.CastingTime</strong></div>
+                    <div class="rf-info-stat"><span>@UiText.LabelRange(Lang)</span><strong>@spell.Range</strong></div>
+                    <div class="rf-info-stat"><span>@UiText.LabelComponents(Lang)</span><strong>@Components(spell)</strong></div>
+                    <div class="rf-info-stat"><span>@UiText.LabelDuration(Lang)</span><strong>@(spell.Concentration ? $"{UiText.ConcentrationShort(Lang)}, " : null)@spell.Duration</strong></div>
+                </div>
+                @if (spell.Classes.Count > 0)
+                {
+                    <div class="rf-info-row"><span>@UiText.SpellClassLists(Lang)</span><strong>@string.Join(", ", spell.Classes.Select(c => GameTerms.ClassName(c, Lang)))</strong></div>
+                }
+                <div class="rf-info-body">
+                    <div @key="spell.Description" class="rf-markdown-container">@((MarkupString)MarkdownText.ToHtml(spell.Description, Glossary.Linker(Lang, spell.Ruleset)))</div>
+                </div>
                 @if (!string.IsNullOrWhiteSpace(spell.HigherLevels))
                 {
-                    <div class="p-2 rounded mb-2" style="border-left: 3px solid var(--rf-orange-primary); background: var(--rf-bg-main);">
-                        <strong class="small d-block mb-2 text-uppercase" style="color: var(--rf-orange-primary);">@GameTerms.SpellHigherLevelsHeading(spell.Level, Lang, spell.Ruleset)</strong>
+                    <div class="rf-info-highlight">
+                        <div class="head"><span class="pill">@GameTerms.SpellHigherLevelsHeading(spell.Level, Lang, spell.Ruleset)</span></div>
                         <div @key="spell.HigherLevels" class="rf-markdown-container">@((MarkupString)MarkdownText.ToHtml(spell.HigherLevels, Glossary.Linker(Lang, spell.Ruleset)))</div>
                     </div>
                 }
-                <a href="@($"spells?id={spell.Id}")" target="_blank" rel="noopener" class="small">@UiText.OpenInCompendium(Lang) <Icon Name="external" /></a>
+                <footer class="rf-info-foot">
+                    <span>@UiText.SpellFootNote(Lang)</span>
+                    <a href="@($"spells?id={spell.Id}")" target="_blank" rel="noopener">@UiText.OpenInCompendium(Lang) <Icon Name="external" /></a>
+                </footer>
             }
-        </div>
+        </aside>
     </div>
 }
 
