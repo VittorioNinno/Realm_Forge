@@ -141,6 +141,7 @@ namespace RealmForge.Client.Localization
 			"spells" => T(lang, "Incantesimi", "Spells"),
 			"features" => T(lang, "Privilegi", "Features"),
 			"notes" => T(lang, "Note", "Notes"),
+			"loot" => T(lang, "Bottino", "Loot"),
 			_ => T(lang, "Generale", "General")
 		};
 		public static string VttSpellLevelName(int level, LanguageCode lang) => level == 0 ? T(lang, "Trucchetti", "Cantrips") : T(lang, $"{level}° livello", $"Level {level}");
@@ -236,10 +237,12 @@ namespace RealmForge.Client.Localization
 			PropType.Lever => T(lang, "Leva", "Lever"),
 			PropType.Trap => T(lang, "Trappola", "Trap"),
 			PropType.Secret => T(lang, "Passaggio segreto", "Secret passage"),
+			PropType.Item => T(lang, "Oggetto", "Item"),
 			_ => T(lang, "Porta", "Door")
 		};
 		public static string PropStateName(PropType type, PropState state, LanguageCode lang) => (type, state) switch
 		{
+			(PropType.Item, _) => T(lang, "A terra", "On the ground"),
 			(PropType.Lever, PropState.Open) => T(lang, "Alzata", "Up"),
 			(PropType.Lever, PropState.Closed) => T(lang, "Abbassata", "Down"),
 			(PropType.Trap, PropState.Closed) => T(lang, "Armata", "Armed"),
@@ -336,5 +339,49 @@ namespace RealmForge.Client.Localization
 		public static string TableNotifyMe(LanguageCode lang) => T(lang, "Avvisami anche fuori dalla scheda", "Notify me outside this tab too");
 		public static string TableNotifyOn(LanguageCode lang) => T(lang, "Avvisi del browser attivi", "Browser notices on");
 		public static string TableDismiss(LanguageCode lang) => T(lang, "Chiudi l'avviso", "Dismiss");
+
+		// ===== Fighting on the map: aiming, casting, dropped weapons, loot =====
+
+		public static string VttAimStart(string attack, LanguageCode lang) => T(lang, $"{attack}: scegli il bersaglio sulla mappa", $"{attack}: pick the target on the map");
+		public static string VttAimHint(LanguageCode lang) => T(lang, "Clic su un bersaglio evidenziato (giallo: con svantaggio). Esc per annullare.", "Click a highlighted target (yellow: with disadvantage). Esc to cancel.");
+		public static string VttAimOut(LanguageCode lang) => T(lang, "Fuori portata: avvicinati o scegli un altro bersaglio.", "Out of reach: move closer or pick another target.");
+		public static string VttAimArmor(int armor, LanguageCode lang) => T(lang, $"CA {armor}", $"AC {armor}");
+		public static string VttAimMode(int mode, LanguageCode lang) => mode switch
+		{
+			> 0 => T(lang, "Vantaggio", "Advantage"),
+			< 0 => T(lang, "Svantaggio", "Disadvantage"),
+			_ => T(lang, "Normale", "Normal")
+		};
+		public static string VttAimCondition(LanguageCode lang) => T(lang, "Condizione inflitta se colpisce", "Condition imposed on a hit");
+		public static string VttAimNoCondition(LanguageCode lang) => T(lang, "Nessuna condizione", "No condition");
+		public static string VttCast(LanguageCode lang) => T(lang, "Lancia", "Cast");
+		public static string VttCastDetails(LanguageCode lang) => T(lang, "Apri l'incantesimo", "Open the spell");
+		public static string VttCastNoSlot(LanguageCode lang) => T(lang, "Nessuno slot disponibile per questo incantesimo.", "No slot left for this spell.");
+		public static string VttCastDone(string spell, string? how, LanguageCode lang) => how is null
+			? T(lang, $"Lanciato «{spell}».", $"Cast “{spell}”.")
+			: T(lang, $"Lanciato «{spell}» ({how}).", $"Cast “{spell}” ({how}).");
+		public static string VttCastLocked(string spell, LanguageCode lang) => T(lang, $"Lanciato «{spell}»: il master ha bloccato le aree, chiedigli di piazzarla.", $"Cast “{spell}”: the master locked the areas, ask them to place it.");
+		public static string VttCastFromCaster(LanguageCode lang) => T(lang, "Parte da te: muovi il puntatore per orientarla e clicca. Esc per annullare.", "It starts from you: point it and click. Esc to cancel.");
+		public static string VttCastAnywhere(LanguageCode lang) => T(lang, "Clicca dove centrarla. Esc per annullare.", "Click where to centre it. Esc to cancel.");
+		public static string VttCastWithin(string range, LanguageCode lang) => T(lang, $"Clicca un punto entro {range} (rosso: troppo lontano). Esc per annullare.", $"Click a point within {range} (red: too far). Esc to cancel.");
+		public static string VttCastInside(string spell, string names, LanguageCode lang) => T(lang, $"«{spell}»: nell'area {names}.", $"“{spell}”: in the area {names}.");
+		public static string VttCastNobody(string spell, LanguageCode lang) => T(lang, $"«{spell}»: nessuno nell'area.", $"“{spell}”: nobody in the area.");
+		public static string ToolDrop(LanguageCode lang) => T(lang, "Disarma", "Disarm");
+		public static string VttDropHint(LanguageCode lang) => T(lang, "L'arma cade a terra accanto al segnalino:", "The weapon falls next to the token:");
+		public static string VttDropNone(LanguageCode lang) => T(lang, "Nessuna arma da far cadere.", "No weapon to drop.");
+		public static string VttDropped(string weapon, LanguageCode lang) => T(lang, $"«{weapon}» è a terra.", $"“{weapon}” is on the ground.");
+		public static string VttDisarmed(string weapons, LanguageCode lang) => T(lang, $"Disarmato: {weapons} (a terra)", $"Disarmed: {weapons} (on the ground)");
+		public static string VttLoot(LanguageCode lang) => T(lang, "Bottino", "Loot");
+		public static string VttLootHint(LanguageCode lang) => T(lang, "Quello che porta con sé: i giocatori lo vedono e lo prendono quando è a terra.", "What it carries: the players see it and take it once it is down.");
+		public static string VttLootItem(LanguageCode lang) => T(lang, "Oggetto (es. Spada corta, Pozione di guarigione)", "Item (e.g. Shortsword, Potion of healing)");
+		public static string VttLootCoins(LanguageCode lang) => T(lang, "Monete d'oro", "Gold pieces");
+		public static string VttLootCoinsValue(int coins, LanguageCode lang) => T(lang, $"{coins} mo", $"{coins} gp");
+		public static string VttLootSaved(LanguageCode lang) => T(lang, "Bottino salvato.", "Loot saved.");
+		public static string VttLootEmpty(LanguageCode lang) => T(lang, "Non c'è niente da prendere.", "There is nothing to take.");
+		public static string VttTake(LanguageCode lang) => T(lang, "Prendi", "Take");
+		public static string VttTakeBy(string who, LanguageCode lang) => T(lang, $"Lo prende {who}", $"{who} takes it");
+		public static string VttTakeNear(LanguageCode lang) => T(lang, "Porta accanto un tuo segnalino per prenderlo.", "Bring one of your tokens next to it to take it.");
+		public static string VttTakeCost(LanguageCode lang) => T(lang, "In combattimento costa l'azione del turno.", "In a fight it costs the action of the turn.");
+		public static string VttTaken(string who, LanguageCode lang) => T(lang, $"Preso da {who}: è nel suo inventario.", $"Taken by {who}: it is in their inventory.");
 	}
 }
