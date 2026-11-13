@@ -1437,25 +1437,24 @@ try {
   await page.waitForTimeout(300);
   await shot(page, 'phone-campaign-rolls', 'main');
   await page.setViewportSize({ width: 1280, height: 900 });
-  // Images: one uploaded on the images page and chosen as the goblin's picture (the goblin's tokens show it)
+  // Images: uploaded from the goblin's card in the compendium and chosen as its picture (the goblin's tokens show it);
+  // there is no images page of its own
   const art = await page.screenshot({ clip: { x: 0, y: 0, width: 320, height: 320 } });
-  await page.goto(new URL('/images', campaignUrl).toString());
-  await page.locator('[data-test=images-empty]').waitFor({ timeout: 30000 });
-  await page.locator('[data-test=images-upload] input[type=file]').setInputFiles({ name: 'goblin.png', mimeType: 'image/png', buffer: art });
-  await page.locator('[data-test=image-card]').waitFor({ timeout: 15000 });
-  await page.locator('[data-test=image-assign]').fill('Goblin');
-  await page.locator('[data-test=image-assign-result]').filter({ hasText: /^\s*Goblin\s*·/ }).first().click();
-  await page.locator('[data-test=image-use]').waitFor({ timeout: 15000 });
+  await page.goto(`${base}/monsters`);
+  await page.locator('[data-test=monster-group]').first().waitFor({ timeout: 60000 });
+  await page.locator('[data-test=monster-search]').fill('goblin');
+  await page.locator('[data-test=monster-card]').filter({ has: page.locator('.rf-card-title', { hasText: /^Goblin$/ }) }).click();
+  await page.locator('[data-test=monster-picture-pick]').click();
+  await page.locator('[data-test=image-upload] input[type=file]').setInputFiles({ name: 'goblin.png', mimeType: 'image/png', buffer: art });
+  await page.locator('[data-test=monster-picture] img').waitFor({ timeout: 15000 });
   const imagesUi = {
-    cards: await page.locator('[data-test=image-card]').count(),
-    name: await page.locator('[data-test=image-name]').inputValue(),
-    use: (await page.locator('[data-test=image-use]').innerText()).trim(),
-    loaded: await page.locator('[data-test=image-card] img').evaluate((img) => img.complete && img.naturalWidth > 0)
+    loaded: await page.locator('[data-test=monster-picture] img').evaluate((img) => img.complete && img.naturalWidth > 0),
+    nav: await page.locator('[data-test=nav-images]').count()
   };
-  await shot(page, 'images', 'main');
+  await shot(page, 'images', '[data-test=monster-detail]');
   results.push(`INFO images: ${JSON.stringify(imagesUi)}`);
-  if (imagesUi.cards !== 1 || imagesUi.name !== 'goblin' || imagesUi.use !== 'Goblin' || !imagesUi.loaded) throw new Error(`unexpected images: ${JSON.stringify(imagesUi)}`);
-  ok('images: a picture uploaded on the images page, served to the browser, chosen as the goblin\'s portrait');
+  if (!imagesUi.loaded || imagesUi.nav !== 0) throw new Error(`unexpected images: ${JSON.stringify(imagesUi)}`);
+  ok('images: a picture uploaded from the goblin\'s card and chosen as its portrait; no images page in the menu');
   await page.goto(campaignUrl);
   await page.locator('[data-test=campaign-title]').waitFor({ timeout: 30000 });
   // The virtual tabletop: a map from a picture, the character and a goblin on it, the character dragged two cells right,
