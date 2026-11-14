@@ -1,4 +1,4 @@
-﻿@using System.Globalization
+@using System.Globalization
 @using RealmForge.Client.Localization
 @using RealmForge.Client.Services
 @using RealmForge.Shared.Campaigns
@@ -190,8 +190,8 @@ else
                         </div>
                         <span class="rf-me-sep"></span>
                         <div class="rf-me-tool-group">
-                            <button type="button" class="rf-me-tool @(!brushBox ? "active" : null)" title="@UiText.MapBrushCell(Lang)" @onclick="() => SetBrushBoxAsync(false)" data-test="map-shape-cell"><Icon Name="brush" /><span>@UiText.MapBrushCell(Lang)</span></button>
-                            <button type="button" class="rf-me-tool @(brushBox ? "active" : null)" title="@UiText.MapBrushBox(Lang)" @onclick="() => SetBrushBoxAsync(true)" data-test="map-shape-box"><Icon Name="bounding-box" /><span>@UiText.MapBrushBox(Lang)</span></button>
+                            <button type="button" class="rf-me-tool @(!brushBox && brush != "select" ? "active" : null)" title="@UiText.MapBrushCell(Lang)" @onclick="() => SetBrushBoxAsync(false)" data-test="map-shape-cell"><Icon Name="brush" /><span>@UiText.MapBrushCell(Lang)</span></button>
+                            <button type="button" class="rf-me-tool @(brushBox && brush != "select" ? "active" : null)" title="@UiText.MapBrushBox(Lang)" @onclick="() => SetBrushBoxAsync(true)" data-test="map-shape-box"><Icon Name="bounding-box" /><span>@UiText.MapBrushBox(Lang)</span></button>
                         </div>
                         <span class="rf-me-sep"></span>
                         <div class="rf-me-tool-group">
