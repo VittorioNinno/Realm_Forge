@@ -534,7 +534,8 @@ else
 
     //	What a token can roll and how far it moves, read from the sheet or the statblock
     private sealed record TokenRoll(string Label, string Bonus, string Expression, bool Hidden);
-    private sealed record TokenStats(int? SpeedFeet, List<TokenRoll> Rolls, QuickSheet? Sheet = null, TokenSlots? Slots = null, int? ActionAttacks = null);
+    private sealed record TokenStats(int? SpeedFeet, List<TokenRoll> Rolls, QuickSheet? Sheet = null, TokenSlots? Slots = null, int? ActionAttacks = null,
+        List<RealmForge.Shared.Characters.FeatureUse>? Uses = null, List<RealmForge.Shared.Characters.ClassResource>? Resources = null, Dictionary<string, int>? Spent = null);
 
     //	The spell slots left of a character, by level, and its pact slots
     private sealed record TokenSlots(int[] Left, int PactLeft, int PactLevel);
@@ -1982,6 +1983,10 @@ else
                     {
                         @TurnPanel(t)
                     }
+                    @if (t.CharacterId is not null && StatsOf(t)?.Uses is { Count: > 0 } uses)
+                    {
+                        @FeaturesCard(t, uses, canRoll)
+                    }
                     @if (KnockedOut(t))
                     {
                         <p class="rf-qs-note rf-qs-down-note" data-test="vtt-quick-sheet-down"><Icon Name="moon-stars" /> @UiText.VttDownNoActions(Lang)</p>
@@ -2303,6 +2308,52 @@ else
             @if (turnNote is not null)
             {
                 <p class="rf-qs-note mb-0" data-test="vtt-turn-note">@turnNote</p>
+            }
+        </section>
+    };
+
+    //	The features to use from the table: the part of the turn, the uses left, the dice
+    private RenderFragment FeaturesCard(MapTokenDto t, List<RealmForge.Shared.Characters.FeatureUse> uses, bool canRoll) => __builder =>
+    {
+        var stats = StatsOf(t);
+        <section class="rf-qs-card" data-test="vtt-features">
+            <h3 class="rf-qs-card-title">@UiText.VttFeatureUses(Lang)</h3>
+            <div class="rf-feature-uses">
+                @foreach (var u in uses)
+                {
+                    var use = u;
+                    var resource = use.ResourceKey is { } rk ? stats?.Resources?.FirstOrDefault(r => r.Key == rk) : null;
+                    var left = resource is null ? (int?)null : Math.Max(0, resource.Maximum - (stats?.Spent?.GetValueOrDefault(resource.Key) ?? 0));
+                    <div class="rf-feature-use" data-test="vtt-feature" data-key="@use.Key">
+                        <div class="rf-feature-use-main">
+                            <strong>@use.Name</strong>
+                            <span class="rf-feature-use-meta">
+                                <span class="rf-feature-slot slot-@((int)use.Slot)">@UiText.VttFeatureSlot((int)use.Slot, Lang)</span>
+                                @if (use.Roll is { } dice)
+                                {
+                                    <span class="rf-feature-dice">@dice</span>
+                                }
+                                @if (left is { } n)
+                                {
+                                    <span class="rf-feature-left @(n == 0 ? "none" : null)" data-test="vtt-feature-left">@UiText.VttFeatureLeft(n, resource!.Maximum, Lang)</span>
+                                }
+                            </span>
+                            @if (use.Note is { } note)
+                            {
+                                <small>@note</small>
+                            }
+                        </div>
+                        @if (resource is { Pool: true })
+                        {
+                            <input type="number" class="rf-feature-amount" min="1" max="@left" value="@PoolAmount(use.Key, left ?? 0)" @onchange="e => poolAmounts[use.Key] = int.TryParse(e.Value?.ToString(), out var v) ? v : 1" aria-label="@UiText.VttFeatureAmount(Lang)" />
+                        }
+                        <button type="button" class="rf-turn-btn" disabled="@(!canRoll || busy || KnockedOut(t) || left == 0)" @onclick="() => UseFeatureAsync(t, use)" data-test="vtt-feature-use">@UiText.VttFeatureUse(Lang)</button>
+                    </div>
+                }
+            </div>
+            @if (featureNote is not null)
+            {
+                <p class="rf-qs-note mb-0" data-test="vtt-feature-note">@featureNote</p>
             }
         </section>
     };
@@ -4229,7 +4280,8 @@ else
             TurnGroups(computed), CastingOf(computed, character.Sheet, contexts.GetValueOrDefault(id)), await FeatureGroupsAsync(character, computed));
         var left = Enumerable.Range(0, 9).Select(i => Math.Max(0, computed.SpellSlots[i] - (i < character.Sheet.SpentSlots.Count ? character.Sheet.SpentSlots[i] : 0))).ToArray();
         return new TokenStats(computed.Speed, rolls, sheet, new TokenSlots(left, Math.Max(0, computed.PactSlots - character.Sheet.SpentPactSlots), computed.PactSlotLevel),
-            TurnActions.AttacksPerAction(computed));
+            TurnActions.AttacksPerAction(computed), RealmForge.Shared.Characters.FeatureUses.For(computed, Lang),
+            RealmForge.Shared.Characters.CharacterResources.For(computed, Lang), new Dictionary<string, int>(character.Sheet.ResourceUses));
     }
 
     //	What the character does in a turn besides the standard actions: its features by action, bonus action, reaction

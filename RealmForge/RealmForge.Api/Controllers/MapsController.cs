@@ -488,6 +488,11 @@ namespace RealmForge.Api.Controllers
 						who.Disengaged |= kind == "disengage";
 						who.Dodging |= kind == "dodge";
 						break;
+					case "surge":
+						//	Action Surge: one more action this turn
+						who.ActionSpent = null;
+						who.AttacksMade = 0;
+						break;
 					case "bonus":
 						if (who.BonusUsed && !runs)
 						{
