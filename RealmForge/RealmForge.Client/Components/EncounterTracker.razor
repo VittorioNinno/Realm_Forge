@@ -1064,10 +1064,7 @@
                                     <clipPath id="@clip"><circle cx="@N(cx)" cy="@N(cy)" r="@N(r * 0.9)" /></clipPath>
                                     <image href="@picture" x="@N(cx - r * 0.9)" y="@N(cy - r * 0.9)" width="@N(r * 1.8)" height="@N(r * 1.8)" clip-path="url(#@clip)" preserveAspectRatio="xMidYMid slice" />
                                 }
-                                else
-                                {
-                                    <text x="@N(cx)" y="@N(cy)" font-size="@N(r * 0.8)" text-anchor="middle" dominant-baseline="central">@Code(c.Name)</text>
-                                }
+                                <text x="@N(cx)" y="@N(cy)" font-size="@N(r * 0.8)" text-anchor="middle" dominant-baseline="central" display="@(AvatarOf(c) is null ? null : "none")">@Code(c.Name)</text>
                             </g>
                         }
                     </svg>

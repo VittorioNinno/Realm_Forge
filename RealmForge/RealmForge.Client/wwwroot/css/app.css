@@ -18049,3 +18049,451 @@ button.rf-qs-spell {
     border-radius: 50%;
     object-fit: cover;
 }
+
+/* ===== The map editor: a bar of 40 px controls, the map with its brushes and status, an inspector of 368 px in three tabs ===== */
+.rf-me-top {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px 16px;
+    margin-bottom: 16px;
+    padding: 8px;
+    border-radius: 8px;
+    border: 1px solid #1f1f1f;
+    background-color: #0d0d0d;
+}
+
+.rf-me-top-left,
+.rf-me-top-right {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+}
+
+.rf-me-picker {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 240px;
+}
+
+    .rf-me-picker .rf-vtt-select {
+        flex: 1 1 280px;
+    }
+
+.rf-me-dot {
+    flex: none;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background-color: #71717a;
+}
+
+    .rf-me-dot.shown {
+        background-color: #22c55e;
+        box-shadow: 0 0 8px rgba(34, 197, 94, .6);
+    }
+
+.rf-me-seg {
+    display: inline-flex;
+    padding: 4px;
+    border-radius: 8px;
+    border: 1px solid #27272a;
+    background-color: #141414;
+}
+
+    .rf-me-seg button {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        height: 32px;
+        padding: 0 8px;
+        border: 0;
+        border-radius: 4px;
+        background: transparent;
+        color: #a1a1aa;
+        font-size: .75rem;
+        font-weight: 700;
+    }
+
+        .rf-me-seg button.active {
+            background-color: rgba(255, 140, 0, .16);
+            color: var(--rf-orange-primary);
+        }
+
+        .rf-me-seg button svg {
+            width: 14px;
+            height: 14px;
+        }
+
+.rf-me-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 368px;
+    align-items: start;
+    gap: 16px;
+}
+
+.rf-me-canvas {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    border-radius: 8px;
+    border: 1px solid #1f1f1f;
+    background-color: #0a0a0a;
+    overflow: hidden;
+}
+
+    .rf-me-canvas .rf-vtt-stage {
+        border: 0;
+        border-radius: 0;
+    }
+
+.rf-me-tools {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    padding: 8px;
+    border-bottom: 1px solid #1f1f1f;
+    background-color: #111111;
+}
+
+.rf-me-tool-group {
+    display: inline-flex;
+    flex-wrap: wrap;
+    gap: 4px;
+}
+
+.rf-me-sep {
+    width: 1px;
+    height: 24px;
+    background-color: #27272a;
+}
+
+.rf-me-tool {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    height: 32px;
+    padding: 0 8px;
+    border-radius: 8px;
+    border: 1px solid #27272a;
+    background-color: #161616;
+    color: #d4d4d8;
+    font-size: .75rem;
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+    .rf-me-tool:hover {
+        border-color: #3f3f46;
+        color: #ffffff;
+    }
+
+    .rf-me-tool.active {
+        border-color: var(--rf-orange-primary);
+        background-color: rgba(255, 140, 0, .14);
+        color: #ffffff;
+    }
+
+    .rf-me-tool > svg {
+        width: 14px;
+        height: 14px;
+    }
+
+/* The colour of each zone: the same in the brushes, the cards and the cells on the map */
+.rf-me-swatch {
+    display: inline-flex;
+    flex: none;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    height: 20px;
+    border-radius: 4px;
+    color: #ffffff;
+}
+
+    .rf-me-swatch svg {
+        width: 12px;
+        height: 12px;
+    }
+
+    .rf-me-swatch.walkable {
+        background-color: #15803d;
+    }
+
+    .rf-me-swatch.wall {
+        background-color: #b91c1c;
+    }
+
+    .rf-me-swatch.difficult {
+        background-color: #b45309;
+    }
+
+    .rf-me-swatch.door {
+        background-color: #0369a1;
+    }
+
+    .rf-me-swatch.fog {
+        background-color: #3f3f46;
+    }
+
+.rf-vtt-terrain {
+    position: absolute;
+    top: 0;
+    left: 0;
+    max-width: none;
+    pointer-events: none;
+}
+
+    .rf-vtt-terrain polygon {
+        stroke-width: 1;
+    }
+
+    .rf-vtt-terrain .rf-terrain-wall {
+        fill: rgba(239, 68, 68, .42);
+        stroke: rgba(239, 68, 68, .85);
+    }
+
+    .rf-vtt-terrain .rf-terrain-difficult {
+        fill: rgba(245, 158, 11, .32);
+        stroke: rgba(245, 158, 11, .8);
+    }
+
+    .rf-vtt-terrain .rf-terrain-door {
+        fill: rgba(56, 189, 248, .35);
+        stroke: rgba(56, 189, 248, .9);
+    }
+
+.rf-vtt-stage.tool-terrain {
+    cursor: crosshair;
+}
+
+    .rf-vtt-stage.tool-terrain .rf-vtt-token {
+        pointer-events: none;
+    }
+
+.rf-me-status {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px 16px;
+    min-height: 40px;
+    padding: 8px;
+    border-top: 1px solid #1f1f1f;
+    background-color: #111111;
+    font-size: .75rem;
+    color: #a1a1aa;
+}
+
+.rf-me-counts {
+    display: inline-flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+}
+
+.rf-me-preview-tag {
+    padding: 0 8px;
+    border-radius: 4px;
+    background-color: rgba(125, 211, 252, .14);
+    color: #7dd3fc;
+    font-weight: 800;
+    line-height: 24px;
+}
+
+.rf-me-inspector {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    border-radius: 8px;
+    border: 1px solid #1f1f1f;
+    background-color: #0d0d0d;
+    overflow: hidden;
+}
+
+.rf-me-tabs {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    border-bottom: 1px solid #1f1f1f;
+}
+
+    .rf-me-tabs button {
+        height: 40px;
+        padding: 0 8px;
+        border: 0;
+        border-bottom: 2px solid transparent;
+        background: transparent;
+        color: #71717a;
+        font-size: .65rem;
+        font-weight: 800;
+        letter-spacing: .06em;
+        text-transform: uppercase;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+        .rf-me-tabs button.active {
+            border-bottom-color: var(--rf-orange-primary);
+            color: var(--rf-orange-primary);
+        }
+
+.rf-me-panel {
+    display: flex;
+    flex-direction: column;
+    max-height: 64vh;
+    overflow-y: auto;
+}
+
+.rf-me-section {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 16px;
+    border-bottom: 1px solid #1a1a1a;
+}
+
+    .rf-me-section:last-child {
+        border-bottom: 0;
+    }
+
+.rf-me-kicker {
+    font-size: .65rem;
+    font-weight: 900;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    color: var(--rf-orange-primary);
+}
+
+.rf-me-help {
+    margin: 0;
+    font-size: .75rem;
+    line-height: 1.5;
+    color: #a1a1aa;
+}
+
+.rf-me-zones {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.rf-me-zone {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    padding: 8px;
+    border-radius: 8px;
+    border: 1px solid #222222;
+    background-color: #141414;
+    color: #e4e4e7;
+    text-align: left;
+}
+
+    .rf-me-zone:hover {
+        border-color: #3f3f46;
+    }
+
+    .rf-me-zone.active {
+        border-color: var(--rf-orange-primary);
+        background-color: rgba(255, 140, 0, .08);
+    }
+
+    .rf-me-zone .rf-me-swatch {
+        width: 32px;
+        height: 32px;
+        border-radius: 8px;
+    }
+
+        .rf-me-zone .rf-me-swatch svg {
+            width: 16px;
+            height: 16px;
+        }
+
+.rf-me-zone-info {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    min-width: 0;
+}
+
+    .rf-me-zone-info strong {
+        font-size: .8rem;
+    }
+
+    .rf-me-zone-info span {
+        font-size: .7rem;
+        line-height: 1.4;
+        color: #a1a1aa;
+    }
+
+.rf-me-quick {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+}
+
+.rf-me-action {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    min-height: 40px;
+    margin: 0;
+    padding: 4px 8px;
+    border-radius: 8px;
+    border: 1px solid #27272a;
+    background-color: #161616;
+    color: #e4e4e7;
+    font-size: .7rem;
+    font-weight: 700;
+    text-align: center;
+    cursor: pointer;
+}
+
+    .rf-me-action:hover,
+    .rf-me-action.active {
+        border-color: var(--rf-orange-primary);
+        color: #ffffff;
+    }
+
+    .rf-me-action svg {
+        flex: none;
+        width: 14px;
+        height: 14px;
+    }
+
+    .rf-me-action.disabled {
+        opacity: .5;
+        pointer-events: none;
+    }
+
+.rf-me-foot {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 16px;
+    border-top: 1px solid #1f1f1f;
+    background-color: #111111;
+}
+
+.rf-me-delete {
+    margin-left: auto;
+    border-color: #dc3545 !important;
+    color: #dc3545 !important;
+}
+
+@media (max-width: 1100px) {
+    .rf-me-grid {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .rf-me-panel {
+        max-height: none;
+    }
+}

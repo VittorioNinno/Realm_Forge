@@ -299,30 +299,96 @@
                 const layer = () => board()?.querySelector('[data-ruler]');
                 // A token being dragged: the cells it covers from where it was, against its speed (and what it already
                 // moved in this turn)
+                // The way of a player's token around the walls and the closed doors (as MapTerrain.FindPath in the app):
+                // every step 1, 2 into difficult terrain, no diagonal between two blocked squares; null when there is none
+                const neighbours = (t, c, r) => {
+                    if (t === 0) { const out = []; for (let dc = -1; dc <= 1; dc++) for (let dr = -1; dr <= 1; dr++) if (dc || dr) out.push([c + dc, r + dr]); return out; }
+                    const [q, ar] = axial(t, c, r);
+                    return [[1, 0], [-1, 0], [0, 1], [0, -1], [1, -1], [-1, 1]].map(([dq, dr]) => {
+                        const nq = q + dq, nr = ar + dr;
+                        return t === 1 ? [nq + (nr - (nr & 1)) / 2, nr] : [nq, nr + (nq - (nq & 1)) / 2];
+                    });
+                };
+                const findPath = (t, from, to, size) => {
+                    const ter = st.terrain;
+                    const side = t === 0 ? Math.max(1, size) : 1;
+                    const covers = (c, r, test) => { for (let i = 0; i < side; i++) for (let j = 0; j < side; j++) if (test((c + i) + ',' + (r + j))) return true; return false; };
+                    const free = (c, r) => c >= 0 && r >= 0 && !covers(c, r, k => ter.walls.has(k) || ter.closed.has(k));
+                    const step = (c, r) => covers(c, r, k => ter.difficult.has(k)) ? 2 : 1;
+                    const key = (c, r) => c + ',' + r;
+                    if (from[0] === to[0] && from[1] === to[1]) return { cost: 0, path: [] };
+                    if (!free(to[0], to[1])) return null;
+                    const best = new Map([[key(from[0], from[1]), 0]]), back = new Map(), open = [[0, from[0], from[1]]];
+                    while (open.length) {
+                        let bi = 0;
+                        for (let i = 1; i < open.length; i++) if (open[i][0] < open[bi][0]) bi = i;
+                        const [cost, c, r] = open.splice(bi, 1)[0];
+                        if (cost > (best.get(key(c, r)) ?? Infinity)) continue;
+                        if (c === to[0] && r === to[1]) {
+                            const path = [];
+                            for (let k = key(c, r); k !== key(from[0], from[1]); k = back.get(k)) path.unshift(k.split(',').map(Number));
+                            return { cost, path };
+                        }
+                        for (const [nc, nr] of neighbours(t, c, r)) {
+                            if (!free(nc, nr)) continue;
+                            if (t === 0 && nc !== c && nr !== r && !free(nc, r) && !free(c, nr)) continue;
+                            const total = cost + step(nc, nr);
+                            if (total > 120 || total >= (best.get(key(nc, nr)) ?? Infinity)) continue;
+                            best.set(key(nc, nr), total);
+                            back.set(key(nc, nr), key(c, r));
+                            open.push([total, nc, nr]);
+                        }
+                    }
+                    return null;
+                };
                 const drawMove = (el, dx, dy) => {
                     const svg = layer();
                     if (!svg) return;
-                    if (!el) { svg.innerHTML = ''; return; }
+                    if (!el) { svg.innerHTML = ''; st.route = null; return; }
                     const [t, g, ox, oy] = grid(), z = zoom();
                     const x1 = parseFloat(el.dataset.cx), y1 = parseFloat(el.dataset.cy);
                     const a = nearest(t, g, ox, oy, x1, y1), b = nearest(t, g, ox, oy, x1 + dx, y1 + dy);
-                    const cells = distance(t, a, b) + parseInt(el.dataset.moved || '0', 10);
+                    // The players' tokens follow the way around the walls (worked out once per cell under the pointer)
+                    let way = null, blocked = false;
+                    if (st.terrain && st.terrain.block) {
+                        const k = `${el.dataset.token}:${b[0]},${b[1]}`;
+                        if (!st.route || st.route.k !== k) {
+                            const from = [parseInt(el.dataset.col, 10), parseInt(el.dataset.row, 10)];
+                            const to = [from[0] + b[0] - a[0], from[1] + b[1] - a[1]];
+                            st.route = { k, way: findPath(t, from, to, parseInt(el.dataset.size || '1', 10)), from, a };
+                        }
+                        way = st.route.way;
+                        blocked = !way;
+                    }
+                    const cells = (way ? way.cost : distance(t, a, b)) + parseInt(el.dataset.moved || '0', 10);
                     const speed = parseInt(el.dataset.speed || '0', 10);
                     const per = st.options.perCell, fmt = (n) => (n * per).toLocaleString(st.options.locale);
-                    const label = speed > 0 ? `${fmt(cells)} / ${fmt(speed)} ${st.options.unit}` : `${fmt(cells)} ${st.options.unit}`;
-                    const over = speed > 0 && cells > speed, color = over ? '#ef4444' : '#ff8c00';
+                    const label = blocked ? (st.options.blockedText || '✕') : speed > 0 ? `${fmt(cells)} / ${fmt(speed)} ${st.options.unit}` : `${fmt(cells)} ${st.options.unit}`;
+                    const over = blocked || (speed > 0 && cells > speed), color = over ? '#ef4444' : '#ff8c00';
                     const [cx2, cy2] = center(t, g, ox, oy, b[0], b[1]);
                     const fs = 14 / z, pad = 8 / z;
-                    svg.innerHTML = `<line x1="${x1}" y1="${y1}" x2="${cx2}" y2="${cy2}" stroke="${color}" stroke-width="${3 / z}" stroke-dasharray="${8 / z} ${6 / z}"/>`
+                    // The way drawn through the centres of its cells (shifted as the token's own corner is)
+                    const shift = [x1 - center(t, g, ox, oy, a[0], a[1])[0], y1 - center(t, g, ox, oy, a[0], a[1])[1]];
+                    const pts = way && way.path.length ? [[x1, y1], ...way.path.map(([c, r]) => {
+                        const [px, py] = center(t, g, ox, oy, c - st.route.from[0] + a[0], r - st.route.from[1] + a[1]);
+                        return [px + shift[0], py + shift[1]];
+                    })] : null;
+                    svg.innerHTML = (pts
+                        ? `<polyline points="${pts.map(p => p.join(',')).join(' ')}" fill="none" stroke="${color}" stroke-width="${3 / z}" stroke-dasharray="${8 / z} ${6 / z}" stroke-linejoin="round" data-test="map-move-path"/>`
+                        : `<line x1="${x1}" y1="${y1}" x2="${cx2}" y2="${cy2}" stroke="${color}" stroke-width="${3 / z}" stroke-dasharray="${8 / z} ${6 / z}"/>`)
                         + `<g transform="translate(${x1 + dx + pad * 3} ${y1 + dy - pad * 3})"><rect x="0" y="${-fs - pad}" width="${label.length * 0.62 * fs + pad * 2}" height="${fs + pad * 2}" rx="${4 / z}" fill="rgba(10,10,10,.85)" stroke="${color}" stroke-width="${1 / z}"/>`
                         + `<text x="${pad}" y="0" font-size="${fs}" font-weight="700" fill="#ffffff" data-test="map-move-label">${label}</text></g>`;
                 };
+                // The fog and the terrain share the brush: cells painted one by one, or a box
+                const brushing = () => st.tool === 'terrain' ? st.options.terrainShape !== 'rect' : st.options.fogShape === 'brush';
+                const terrainColors = { walkable: '#22c55e', wall: '#ef4444', difficult: '#f59e0b', door: '#38bdf8' };
                 const drawFog = () => {
                     const svg = layer();
                     if (!svg) return;
                     if (!st.fog) { svg.innerHTML = ''; return; }
-                    const z = zoom(), reveal = st.options.fogMode !== 'cover', color = reveal ? '#7dd3fc' : '#0b0b0b';
-                    if (st.options.fogShape === 'brush') {
+                    const z = zoom(), reveal = st.options.fogMode !== 'cover';
+                    const color = st.tool === 'terrain' ? (terrainColors[st.options.terrain] || '#ff8c00') : reveal ? '#7dd3fc' : '#0b0b0b';
+                    if (brushing()) {
                         // The cells painted so far, as one shape (the outline of each cell, no circles)
                         const [t, g, ox, oy] = grid();
                         const d = [...st.fog.cells.values()].map(([c, r]) => 'M' + corners(t, g, ox, oy, c, r).map(q => q.join(',')).join('L') + 'Z').join('');
@@ -340,9 +406,9 @@
                     const z = zoom(), b = st.eraseBox, x = Math.min(b.from[0], b.to[0]), y = Math.min(b.from[1], b.to[1]);
                     svg.innerHTML = `<rect x="${x}" y="${y}" width="${Math.abs(b.to[0] - b.from[0])}" height="${Math.abs(b.to[1] - b.from[1])}" fill="#ef4444" fill-opacity=".12" stroke="#ef4444" stroke-width="${2 / z}" stroke-dasharray="${6 / z} ${4 / z}" data-test="map-erase-box"/>`;
                 };
-                // The fog brush: the cells within (size - 1) steps of the cell under the point
+                // The fog brush: the cells within (size - 1) steps of the cell under the point (the terrain: that cell)
                 const paintCells = (p) => {
-                    const [t, g, ox, oy] = grid(), ring = Math.max(0, (st.options.fogBrush || 1) - 1);
+                    const [t, g, ox, oy] = grid(), ring = st.tool === 'terrain' ? 0 : Math.max(0, (st.options.fogBrush || 1) - 1);
                     const o = nearest(t, g, ox, oy, p[0], p[1]);
                     for (let dc = -ring - 1; dc <= ring + 1; dc++) for (let dr = -ring - 1; dr <= ring + 1; dr++) {
                         const c = o[0] + dc, r = o[1] + dr;
@@ -356,6 +422,19 @@
                     const steps = Math.max(1, Math.ceil(Math.hypot(p[0] - last[0], p[1] - last[1]) / (g / 2)));
                     for (let i = 1; i <= steps; i++) paintCells([last[0] + (p[0] - last[0]) * i / steps, last[1] + (p[1] - last[1]) * i / steps]);
                     st.fog.last = p;
+                };
+                // The cells whose centre is in a box
+                const boxCells = (f) => {
+                    const [t, g, ox, oy] = grid();
+                    const x1 = Math.min(f.from[0], f.to[0]), y1 = Math.min(f.from[1], f.to[1]), x2 = Math.max(f.from[0], f.to[0]), y2 = Math.max(f.from[1], f.to[1]);
+                    const a = nearest(t, g, ox, oy, x1, y1), b = nearest(t, g, ox, oy, x2, y2), out = [];
+                    for (let c = Math.max(0, a[0] - 1); c <= b[0] + 1; c++) for (let r = Math.max(0, a[1] - 1); r <= b[1] + 1; r++) {
+                        const [x, y] = center(t, g, ox, oy, c, r);
+                        if (x >= x1 && x <= x2 && y >= y1 && y <= y2 && out.length < 8000) out.push(c, r);
+                    }
+                    // A click without a drag: the cell under it
+                    if (out.length === 0 && Math.hypot(x2 - x1, y2 - y1) < g / 4) out.push(...nearest(t, g, ox, oy, f.from[0], f.from[1]));
+                    return out;
                 };
                 const drawStroke = () => {
                     const svg = layer();
@@ -467,10 +546,10 @@
                         }
                         return;
                     }
-                    if (st.tool === 'fog') {
+                    if (st.tool === 'fog' || st.tool === 'terrain') {
                         const p = toMap(e);
                         st.fog = { from: p, to: p, last: p, cells: new Map() };
-                        if (st.options.fogShape === 'brush') paintCells(p);
+                        if (brushing()) paintCells(p);
                         drawFog();
                         e.preventDefault();
                         return;
@@ -585,7 +664,7 @@
                     } else if (st.fog) {
                         const p = toMap(e);
                         st.fog.to = p;
-                        if (st.options.fogShape === 'brush') paintTo(p);
+                        if (brushing()) paintTo(p);
                         drawFog();
                     } else if (st.stroke) {
                         const p = toMap(e), last = st.stroke[st.stroke.length - 1];
@@ -616,6 +695,14 @@
                             const round = (v) => Math.round(v * 10) / 10;
                             await dotnet.invokeMethodAsync('EraseArea', round(Math.min(b.from[0], b.to[0])), round(Math.min(b.from[1], b.to[1])), round(w), round(h));
                         }
+                        return;
+                    }
+                    if (st.fog && st.tool === 'terrain') {
+                        const f = st.fog, brush = brushing();
+                        st.fog = null;
+                        drawFog();
+                        const cells = brush ? [...f.cells.values()].flat() : boxCells(f);
+                        if (cells.length > 0) await dotnet.invokeMethodAsync('TerrainPainted', cells);
                         return;
                     }
                     if (st.fog) {
@@ -721,6 +808,19 @@
                 boards.set(stage, st);
             }
 
+            // The walls, difficult cells and closed doors the players' tokens go around (null: they move straight)
+            function terrain(stage, data) {
+                const st = boards.get(stage);
+                if (!st) return;
+                st.route = null;
+                st.terrain = data && data.block ? {
+                    block: true,
+                    walls: new Set(data.walls || []),
+                    difficult: new Set(data.difficult || []),
+                    closed: new Set(data.closed || [])
+                } : null;
+            }
+
             function detach(stage) {
                 const st = stage && boards.get(stage);
                 if (!st) return;
@@ -809,7 +909,7 @@
                 return el.requestFullscreen?.();
             }
 
-            return { attach, detach, tool, fit, fullscreen, view, center: centerOn, keepVisible };
+            return { attach, detach, tool, terrain, fit, fullscreen, view, center: centerOn, keepVisible };
         })();
         window.rfCropImage = (src, x, y, zoom, size) => new Promise((resolve) => {
             const img = new Image();
