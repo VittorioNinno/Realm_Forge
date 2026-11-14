@@ -198,6 +198,11 @@ namespace RealmForge.Api.Controllers
 				Save(fight, fight.Combatants);
 			}
 			target.UpdatedAt = map.UpdatedAt = DateTimeOffset.UtcNow;
+			//	Every screen shows the hit or the miss on the target
+			map.StrikeTokenId = target.Id;
+			map.StrikeKind = !hit ? 0 : critical ? 2 : 1;
+			map.StrikeDamage = hit ? damage : null;
+			map.StrikeAt = map.UpdatedAt;
 			await _context.SaveChangesAsync();
 			return Ok(new MapAttackResultDto(hit, critical, dice, dto.Bonus, total, damage, damageRolled, note, runs ? armorClass : null));
 		}
