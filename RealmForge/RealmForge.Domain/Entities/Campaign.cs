@@ -81,6 +81,12 @@ namespace RealmForge.Domain.Entities
 		public double? PingY { get; set; }
 		public string? PingColor { get; set; }
 		public DateTimeOffset? PingAt { get; set; }
+
+		//	The last attack, for its effect on every screen: the target, missed / hit / critical (0, 1, 2), the damage
+		public Guid? StrikeTokenId { get; set; }
+		public int StrikeKind { get; set; }
+		public int? StrikeDamage { get; set; }
+		public DateTimeOffset? StrikeAt { get; set; }
 		public double? FocusX { get; set; }
 		public double? FocusY { get; set; }
 		public double? FocusZoom { get; set; }

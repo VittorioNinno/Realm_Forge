@@ -323,7 +323,7 @@ namespace RealmForge.Api.Controllers
 						Initiative = c.Initiative,
 						InitiativeBonus = c.InitiativeBonus,
 						Conditions = c.Conditions,
-						Health = EncounterRules.HealthOf(c.Hp, c.MaxHp)
+						Health = EncounterRules.HiddenHealthOf(c.Hp, c.MaxHp)
 					})
 					.ToList();
 			}

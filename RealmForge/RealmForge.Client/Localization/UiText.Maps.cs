@@ -153,6 +153,14 @@ namespace RealmForge.Client.Localization
 			"A terra, privo di sensi: niente azioni, azioni bonus né reazioni finché non torna sopra 0 punti ferita.",
 			"Down and unconscious: no actions, bonus actions or reactions until back above 0 hit points.");
 		public static string VttDownState(LanguageCode lang) => T(lang, "A terra", "Down");
+		public static string VttDrawer(LanguageCode lang) => T(lang, "Pannello laterale", "Side panel");
+		public static string VttPin(LanguageCode lang) => T(lang, "Blocca nel pannello laterale", "Pin to the side panel");
+		public static string VttUnpin(LanguageCode lang) => T(lang, "Sblocca: torna sopra la mappa", "Unpin: back over the map");
+		public static string VttMissed(LanguageCode lang) => T(lang, "Mancato", "Miss");
+		public static string VttHit(LanguageCode lang) => T(lang, "Colpito", "Hit");
+		public static string VttGroupInit(LanguageCode lang) => T(lang, "Un tiro di iniziativa per gruppo di nemici uguali", "One initiative roll per group of like enemies");
+		public static string VttInitVertical(LanguageCode lang) => T(lang, "Ordine di iniziativa in verticale", "Initiative order vertical");
+		public static string VttInitHorizontal(LanguageCode lang) => T(lang, "Ordine di iniziativa in orizzontale", "Initiative order horizontal");
 		public static string VttWayBlocked(LanguageCode lang) => T(lang, "Muri o porte chiuse sbarrano la strada.", "Walls or closed doors are in the way.");
 		public static string VttWayBlockedShort(LanguageCode lang) => T(lang, "Nessun passaggio", "No way through");
 
