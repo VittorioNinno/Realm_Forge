@@ -1511,17 +1511,34 @@ else
             return;
         }
         busy = true;
-        var loaded = await ComputeCharacterAsync(id);
-        if (loaded is null)
+        (CharacterDto Character, RealmForge.Shared.Characters.ComputedCharacter Computed)? loaded = null;
+        CharacterSavedDto? saved = null;
+        try
+        {
+            //	Never left busy: a failure leaves the buttons usable and says so
+            loaded = await ComputeCharacterAsync(id);
+            if (loaded is { } ready)
+            {
+                change(ready.Character.Sheet, ready.Computed);
+                RealmForge.Shared.Characters.CharacterVitals.Normalize(ready.Character.Sheet, Math.Max(1, ready.Computed.MaxHitPoints));
+                saved = await CharacterService.SaveSheetAsync(id, ready.Character.Sheet);
+            }
+        }
+        catch (Exception)
+        {
+            saved = null;
+        }
+        finally
         {
             busy = false;
+        }
+        if (loaded is not { } done)
+        {
             message = UiText.MapSaveFailed(Lang);
+            StateHasChanged();
             return;
         }
-        var (character, computed) = loaded.Value;
-        change(character.Sheet, computed);
-        var saved = await CharacterService.SaveSheetAsync(id, character.Sheet);
-        busy = false;
+        var character = done.Character;
         if (saved is null)
         {
             message = UiText.MapSaveFailed(Lang);

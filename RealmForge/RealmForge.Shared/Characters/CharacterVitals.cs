@@ -71,7 +71,7 @@ public static class CharacterVitals
 
 	public static void Heal(CharacterSheetState sheet, int max, int amount)
 	{
-		if (amount <= 0 || max <= 0 || sheet.DeathSaveFailures >= 3)
+		if (amount <= 0 || max <= 0)
 		{
 			return;
 		}
@@ -93,6 +93,15 @@ public static class CharacterVitals
 			{
 				sheet.Conditions.Add(key);
 			}
+		}
+	}
+
+	//	Above 0 hit points nobody stays unconscious from them (a rest, a potion, a hand-set value)
+	public static void Normalize(CharacterSheetState sheet, int max)
+	{
+		if (max > 0 && Current(sheet, max) > 0)
+		{
+			sheet.Conditions.Remove(Unconscious);
 		}
 	}
 
