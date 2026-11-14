@@ -1212,9 +1212,20 @@ jobs:
             code -X PUT "$api/api/campaigns/$ss_cp/maps/$mp2/combat/initiative" $json -H "Authorization: Bearer $B" -d "{\"combatantId\":\"$at_cid\",\"initiative\":${pair##*:}}" > /dev/null
           done
           code -X POST "$api/api/campaigns/$ss_cp/maps/$mp2/combat/begin" -H "Authorization: Bearer $B" > /dev/null
-          at_player=$(curl -s -X POST "$api/api/campaigns/$ss_cp/maps/$mp2/attack?lang=2" $json -H "Authorization: Bearer $A" -d "$(at_body $ctl_tree $at_target 1)" | jq -c '{hit, armorClass}')
+          at_player=$(curl -s -X POST "$api/api/campaigns/$ss_cp/maps/$mp2/attack?lang=2" $json -H "Authorization: Bearer $A" -d "$(at_body $ctl_tree $at_target 1)" | jq -c '{hit: (.hit or any(.dice[]; .sides == 20 and .value == 1 and (.dropped | not))), armorClass}')
           at_player_again=$(code -X POST "$api/api/campaigns/$ss_cp/maps/$mp2/attack?lang=2" $json -H "Authorization: Bearer $A" -d "$(at_body $ctl_tree $at_target 1)")
           at_spent=$(curl -s "$api/api/campaigns/$ss_cp/maps/$mp2/state" -H "Authorization: Bearer $A" | jq -c '[.tokens[] | select(.label == "Albero") | .actionSpent]')
+          # The rest of the turn: no Dash once the action attacked, one bonus action; leaving the bandit's reach offers it an
+          # attack of opportunity (seen on its token), let go by the master; the marker comes back next to it
+          tu_dash=$(code -X POST "$api/api/campaigns/$ss_cp/maps/$mp2/tokens/$ctl_tree/turn?lang=2" $json -H "Authorization: Bearer $A" -d '{"kind":"dash"}')
+          tu_bonus=$(code -X POST "$api/api/campaigns/$ss_cp/maps/$mp2/tokens/$ctl_tree/turn?lang=2" $json -H "Authorization: Bearer $A" -d '{"kind":"bonus"}')
+          tu_bonus_again=$(code -X POST "$api/api/campaigns/$ss_cp/maps/$mp2/tokens/$ctl_tree/turn?lang=2" $json -H "Authorization: Bearer $A" -d '{"kind":"bonus"}')
+          tu_other=$(code -X POST "$api/api/campaigns/$ss_cp/maps/$mp2/tokens/$at_target/turn?lang=2" $json -H "Authorization: Bearer $A" -d '{"kind":"bonus"}')
+          code -X POST "$api/api/campaigns/$ss_cp/maps/$mp2/tokens/$ctl_tree/move" $json -H "Authorization: Bearer $A" -d '{"x":6,"y":6}' > /dev/null
+          tu_offered=$(curl -s "$api/api/campaigns/$ss_cp/maps/$mp2/state" -H "Authorization: Bearer $B" | jq -c --arg t "$ctl_tree" '[.tokens[] | select(.label == "Bandito") | (.turn.opportunityOn == $t)]')
+          tu_pass=$(code -X POST "$api/api/campaigns/$ss_cp/maps/$mp2/tokens/$at_target/turn?lang=2" $json -H "Authorization: Bearer $B" -d '{"kind":"pass"}')
+          tu_passed=$(curl -s "$api/api/campaigns/$ss_cp/maps/$mp2/state" -H "Authorization: Bearer $B" | jq -c '[.tokens[] | select(.label == "Bandito") | .turn.opportunityOn]')
+          code -X POST "$api/api/campaigns/$ss_cp/maps/$mp2/tokens/$ctl_tree/move" $json -H "Authorization: Bearer $A" -d '{"x":8,"y":6}' > /dev/null
           at_drop_player=$(code -X POST "$api/api/campaigns/$ss_cp/maps/$mp2/tokens/$at_target/drop" $json -H "Authorization: Bearer $A" -d '{"attack":"Spada","name":"Spada"}')
           at_drop=$(curl -s -X POST "$api/api/campaigns/$ss_cp/maps/$mp2/tokens/$at_target/drop" $json -H "Authorization: Bearer $B" -d '{"attack":"Spada","name":"Spada"}')
           at_item=$(echo "$at_drop" | jq -r .id)
@@ -1388,6 +1399,13 @@ jobs:
           sscheck "player attack in the fight (armour class unknown)" "$at_player" '{"hit":true,"armorClass":null}'
           sscheck "a second attack of the same action" "$at_player_again" "200"
           sscheck "the action spent attacking" "$at_spent" '["attack"]'
+          sscheck "turn: no Dash after attacking" "$tu_dash" "409"
+          sscheck "turn: the bonus action" "$tu_bonus" "204"
+          sscheck "turn: one bonus action" "$tu_bonus_again" "409"
+          sscheck "turn: not another's token" "$tu_other" "403"
+          sscheck "turn: attack of opportunity offered" "$tu_offered" "[true]"
+          sscheck "turn: let go" "$tu_pass" "204"
+          sscheck "turn: gone once let go" "$tu_passed" "[null]"
           sscheck "player drops another's weapon" "$at_drop_player" "403"
           sscheck "weapon dropped next to its owner" "$at_dropped" '{"propType":8,"label":"Spada","layer":1}'
           sscheck "the attack lost" "$at_disarmed" '[["Spada"]]'

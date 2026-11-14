@@ -82,6 +82,18 @@ public class EncounterCombatant
 	public string? ActionSpent { get; set; }
 	public bool ReactionUsed { get; set; }
 
+	//	The rest of the turn: the bonus action, the attacks of the Attack action, Dash / Disengage / Dodge taken, the free
+	//	object interaction (drawing a weapon), the weapon in hand (melee or ranged), an attack of opportunity offered
+	//	on a token that just left its reach
+	public bool BonusUsed { get; set; }
+	public int AttacksMade { get; set; }
+	public bool Dashed { get; set; }
+	public bool Disengaged { get; set; }
+	public bool Dodging { get; set; }
+	public bool Interacted { get; set; }
+	public string? Wield { get; set; }
+	public Guid? OpportunityOn { get; set; }
+
 	//	The cell it starts the fight on, on the encounter's map (null: the first free one)
 	public int? X { get; set; }
 	public int? Y { get; set; }
@@ -114,6 +126,19 @@ public static class EncounterRules
 	//	The players see the encounters under way that a master showed them
 	public static bool CanSee(CampaignRole role, EncounterStatus status, bool shown) =>
 		CanManage(role) || (shown && status == EncounterStatus.Running);
+
+	///	<summary>A turn starts: the action, the bonus action, the reaction, the attacks and the interaction are there again.</summary>
+	public static void StartTurn(EncounterCombatant c)
+	{
+		c.ActionSpent = null;
+		c.ReactionUsed = false;
+		c.BonusUsed = false;
+		c.AttacksMade = 0;
+		c.Dashed = false;
+		c.Disengaged = false;
+		c.Dodging = false;
+		c.Interacted = false;
+	}
 
 	///	<summary>
 	///	The health the players see of a creature whose hit points are hidden: unharmed until it is hit, then only wounded
