@@ -173,8 +173,8 @@ namespace RealmForge.Client.Services
 
 		// ===== Dice log =====
 
-		public Task<List<CampaignRollDto>?> GetRollsAsync(Guid id, DateTimeOffset? after = null) =>
-			GetAsync<List<CampaignRollDto>>($"api/campaigns/{id}/rolls" + (after is { } since ? $"?after={Uri.EscapeDataString(since.ToUniversalTime().ToString("O"))}" : string.Empty));
+		public Task<List<CampaignRollDto>?> GetRollsAsync(Guid id, DateTimeOffset? after = null, bool wait = false) =>
+			GetAsync<List<CampaignRollDto>>($"api/campaigns/{id}/rolls" + (after is { } since ? $"?after={Uri.EscapeDataString(since.ToUniversalTime().ToString("O"))}{(wait ? "&wait=true" : string.Empty)}" : string.Empty));
 
 		public async Task<(CampaignRollDto? Roll, HttpStatusCode? Status)> RollAsync(Guid id, NewCampaignRollDto roll)
 		{
@@ -405,6 +405,9 @@ namespace RealmForge.Client.Services
 
 		public Task<(MapAttackResultDto? Value, string? Error)> AttackAsync(Guid id, Guid mapId, MapAttackDto dto, LanguageCode lang) =>
 			TableAsync<MapAttackResultDto>(() => _http.PostAsJsonAsync($"api/campaigns/{id}/maps/{mapId}/attack?lang={(int)lang}", dto), "attack");
+
+		public Task<(bool Value, string? Error)> TurnActionAsync(Guid id, Guid mapId, Guid tokenId, TurnActionDto dto, LanguageCode lang) =>
+			TableAsync<bool>(() => _http.PostAsJsonAsync($"api/campaigns/{id}/maps/{mapId}/tokens/{tokenId}/turn?lang={(int)lang}", dto), "turn action");
 
 		public Task<(MapTokenDto? Value, string? Error)> DropItemAsync(Guid id, Guid mapId, Guid tokenId, DropItemDto dto) =>
 			TableAsync<MapTokenDto>(() => _http.PostAsJsonAsync($"api/campaigns/{id}/maps/{mapId}/tokens/{tokenId}/drop", dto), "drop item");

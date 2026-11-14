@@ -26,6 +26,8 @@ public sealed record AttackReach(int Reach, int Range, int LongRange)
 ///	or a line), how far from the caster it can be placed (in cells; 0 for the caster's own cell) and whether it starts
 ///	from the caster (cones, lines, auras).
 ///	</summary>
+public sealed record SpellTarget(bool Attack, bool Melee, string? SaveAbility, string? Damage, string? DamageType, int Range);
+
 public sealed record SpellArea(ShapeKind Kind, int Size, int Range, bool FromCaster);
 
 ///	<summary>
@@ -148,6 +150,46 @@ public static partial class TableCombat
 		return best.Area;
 	}
 
+	///	<summary>
+	///	How a spell without an area hits one target, read from its range and text: a spell attack (melee or ranged) or a
+	///	saving throw (the ability), the damage (a cantrip's dice grow at 5th, 11th and 17th level; a leveled spell's with
+	///	the slot, as its higher-level text says), the reach in cells. Null when the text names neither.
+	///	</summary>
+	public static SpellTarget? TargetOf(string? range, string? description, string? higherLevels, int spellLevel, int slotLevel, int characterLevel)
+	{
+		var text = description ?? string.Empty;
+		var attack = SpellAttackText().Match(text);
+		var save = SaveText().Match(text);
+		if (!attack.Success && !save.Success)
+		{
+			return null;
+		}
+		var rangeText = (range ?? string.Empty).Trim();
+		var touch = TouchText().IsMatch(rangeText) || SelfText().IsMatch(rangeText);
+		var reach = touch ? 1 : DistanceText().Match(rangeText) is { Success: true } d ? Cells(d.Groups["n"].Value, d.Groups["unit"].Value) : 1;
+		var melee = attack.Success ? attack.Groups["melee"].Success : touch;
+		string? damage = null;
+		string? damageType = null;
+		if (SpellDamage().Match(text) is { Success: true } dmg)
+		{
+			var count = int.Parse(dmg.Groups["n"].Value, CultureInfo.InvariantCulture);
+			var sides = int.Parse(dmg.Groups["s"].Value, CultureInfo.InvariantCulture);
+			if (spellLevel == 0)
+			{
+				count *= characterLevel >= 17 ? 4 : characterLevel >= 11 ? 3 : characterLevel >= 5 ? 2 : 1;
+			}
+			else if (slotLevel > spellLevel && HigherDice().Match(higherLevels ?? string.Empty) is { Success: true } more
+				&& int.Parse(more.Groups["s"].Value, CultureInfo.InvariantCulture) == sides)
+			{
+				count += int.Parse(more.Groups["n"].Value, CultureInfo.InvariantCulture) * (slotLevel - spellLevel);
+			}
+			damage = $"{count}d{sides}" + (dmg.Groups["plus"].Success ? $"+{dmg.Groups["plus"].Value}" : string.Empty);
+			damageType = dmg.Groups["type"].Success ? dmg.Groups["type"].Value.Trim() : null;
+		}
+		var ability = save.Success ? (save.Groups["en"].Success ? save.Groups["en"].Value : save.Groups["it"].Value) : null;
+		return new SpellTarget(attack.Success, melee, ability, damage, damageType, Math.Clamp(reach, 1, Unlimited));
+	}
+
 	public sealed record AttackEffect(bool Advantage, bool Disadvantage, bool AutoCritical, IReadOnlyList<string> Causes)
 	{
 		public int Mode => Advantage == Disadvantage ? 0 : Advantage ? 1 : -1;
@@ -184,6 +226,12 @@ public static partial class TableCombat
 		{
 			disadvantage = true;
 			causes.Add("invisible");
+		}
+		//	Dodging: attacks against it have disadvantage
+		if (target.Contains("dodging"))
+		{
+			disadvantage = true;
+			causes.Add("dodging");
 		}
 		if (target.Contains("prone"))
 		{
@@ -323,6 +371,18 @@ public static partial class TableCombat
 
 	[GeneratedRegex(@"\((\d+d\d+(?:\s*[+\-−]\s*\d+)?)\)")]
 	private static partial Regex DamageDice();
+
+	[GeneratedRegex(@"(?<melee>melee|in mischia)?\s*(?:ranged|a distanza)?\s*spell attack|attacco (?:con incantesimo|magico)\s*(?<melee>in mischia)?", RegexOptions.IgnoreCase)]
+	private static partial Regex SpellAttackText();
+
+	[GeneratedRegex(@"(?<en>Strength|Dexterity|Constitution|Intelligence|Wisdom|Charisma) saving throw|tiro salvezza (?:su |di )?(?<it>Forza|Destrezza|Costituzione|Intelligenza|Saggezza|Carisma)", RegexOptions.IgnoreCase)]
+	private static partial Regex SaveText();
+
+	[GeneratedRegex(@"(?<n>\d+)d(?<s>\d+)(?:\s*\+\s*(?<plus>\d+))?(?:\s+(?<type>(?:danni\s+(?:da\s+|di\s+)?\p{L}+)|(?:\p{L}+\s+damage)))?", RegexOptions.IgnoreCase)]
+	private static partial Regex SpellDamage();
+
+	[GeneratedRegex(@"(?<n>\d+)d(?<s>\d+)")]
+	private static partial Regex HigherDice();
 
 	[GeneratedRegex(@"(?:Hit|Colpito)\s*:[*_\s]*(?<n>\d+)\s+(?:dann[oi]|\p{L}+\s+damage)", RegexOptions.IgnoreCase)]
 	private static partial Regex FlatDamage();

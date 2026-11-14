@@ -3,128 +3,138 @@
    Fighting Style, Divine/Primal Order, Weapon Mastery) *@
 <div class="rf-wizard-text">@UiText.HintProgression(Ruleset, Lang)</div>
 
-@if (Multiclass)
-{
-    @* Different classes: a card per level, with the class of each *@
-    <div class="rf-level-list" data-test="wizard-levels">
-        @for (var i = 0; i < Build.Levels.Count; i++)
-        {
-            var index = i;
-            var level = Build.Levels[index];
-            var plan = index < Computed.Plan.Count ? Computed.Plan[index] : null;
-            var cls = W.Class(level.ClassId);
-            <div class="rf-level-row" data-test="wizard-level-row">
-                <div class="rf-level-head">
-                    <span class="rf-level-number">@UiText.LabelLevelRow(index + 1, Lang)</span>
-                    @if (index == 0)
-                    {
-                        <span class="rf-level-class">@cls?.Name 1</span>
-                    }
-                    else
-                    {
-                        <div class="rf-level-class-select">
-                            <ForgeSelector TValue="Guid" Value="level.ClassId" ValueChanged="v => W.SetLevelClassAsync(index, v)" Options="ClassOptions" DataTest="wizard-level-class" />
-                        </div>
-                        @if (plan is not null)
-                        {
-                            <span class="rf-level-class">@plan.Class.Name @plan.ClassLevel</span>
-                        }
-                    }
-                </div>
-                @if (cls is not null)
+@* The summary of the levels and the next level to add *@
+<section class="rf-lu-summary" data-test="wizard-level-summary">
+    <div class="rf-lu-totals">
+        <div class="rf-lu-stat main">
+            <span class="k">@UiText.LevelUpTotalLevel(Lang)</span>
+            <strong data-test="wizard-total-level">@UiText.LabelLevelRow(Build.Levels.Count, Lang)</strong>
+            <small>@string.Join(" · ", Computed.Classes.Select(c => $"{c.Class.Name} {c.Level}"))</small>
+        </div>
+        <div class="rf-lu-stat hp">
+            <span class="k">@UiText.LevelUpTotalHp(Lang)</span>
+            <strong data-test="wizard-total-hp">@UiText.HitPointsShort(Computed.MaxHitPoints, Lang)</strong>
+            <small>@UiText.LevelUpConPerLevel(Signed(ConMod), Lang)</small>
+        </div>
+        <div class="rf-lu-stat">
+            <span class="k">@UiText.LevelUpHitDice(Lang)</span>
+            <strong>@HitDiceText · @Signed(Computed.ProficiencyBonus)</strong>
+            <small>@UiText.LevelUpProficiency(Lang)</small>
+        </div>
+    </div>
+    @if (Build.Levels.Count < 20 || Build.Levels.Count > MinimumLevels)
+    {
+        <div class="rf-lu-add">
+            <div class="rf-lu-add-head">
+                <span class="rf-lu-kicker">@UiText.LevelUpNextClass(Lang)</span>
+                @if (NextClass is { } upcoming && CharacterRules.MulticlassPrerequisite(upcoming).Abilities.Count > 0 && !Build.Levels.Any(l => l.ClassId == upcoming.Id))
                 {
-                    <div class="rf-level-body">
-                        <div class="rf-level-hp">
-                            <span class="rf-level-hp-label">@UiText.LabelHitPointsGain(Lang)</span>
-                            <div class="rf-level-hp-options">@HitPoints(index, cls)</div>
-                        </div>
-                        @Choices(index, plan)
-                    </div>
+                    <span class="rf-lu-prereq @(NextAllowed ? "ok" : "bad")" data-test="wizard-next-prereq">
+                        <Icon Name="@(NextAllowed ? "check" : "lock")" /> @UiText.MulticlassRequires(PrerequisiteText(upcoming), Lang)
+                    </span>
                 }
             </div>
-        }
-    </div>
-}
-else
-{
-    @* One class: the hit points of every level in a single table, then a card only for the levels with a choice *@
-    var single = Build.Levels.Count > 0 ? W.Class(Build.Levels[0].ClassId) : null;
-    <div class="rf-level-compact" data-test="wizard-levels">
-        <div class="rf-level-compact-head">
-            <span class="rf-level-class">@single?.Name</span>
-            <span class="rf-level-compact-total">@UiText.LabelLevelRow(Build.Levels.Count, Lang)</span>
-        </div>
-        <div class="rf-level-compact-label">@UiText.LabelHitPointsGain(Lang)</div>
-        <div class="rf-level-hp-table">
-            @for (var i = 0; i < Build.Levels.Count; i++)
-            {
-                var index = i;
-                var level = Build.Levels[index];
-                var cls = W.Class(level.ClassId);
-                <div class="rf-level-hp-line" data-test="wizard-level-row">
-                    <span class="rf-level-number">@UiText.LabelLevelRow(index + 1, Lang)</span>
-                    @if (index > 0 && index == Build.Levels.Count - 1 && index >= MinimumLevels - 1)
+            <div class="rf-lu-add-row">
+                @if (Build.Levels.Count < 20)
+                {
+                    <div class="rf-lu-add-class">
+                        <ForgeSelector TValue="Guid" Value="NextClassId" ValueChanged="v => nextClassId = v" Options="ClassOptions" DataTest="wizard-next-class" />
+                    </div>
+                }
+                <div class="rf-lu-add-buttons">
+                    @if (Build.Levels.Count < 20)
                     {
-                        @* The last level added may still go to another class (multiclassing) *@
-                        <div class="rf-level-class-select">
-                            <ForgeSelector TValue="Guid" Value="level.ClassId" ValueChanged="v => W.SetLevelClassAsync(index, v)" Options="ClassOptions" DataTest="wizard-level-class" />
-                        </div>
+                        <button type="button" class="rf-lu-btn add" disabled="@(!NextAllowed)" @onclick="() => W.AddLevel(NextClassId)" data-test="wizard-add-level"><Icon Name="plus" /> @UiText.BtnAddLevel(Lang)</button>
+                    }
+                    @if (Build.Levels.Count > MinimumLevels)
+                    {
+                        <button type="button" class="rf-lu-btn remove" title="@UiText.BtnRemoveLevel(Lang)" @onclick="W.RemoveLastLevel" data-test="wizard-remove-level"><Icon Name="dash" /> @UiText.BtnRemoveLevel(Lang)</button>
+                    }
+                </div>
+            </div>
+            @if (!NextAllowed && NextClass is { } next)
+            {
+                <div class="rf-lu-warning" data-test="wizard-multiclass-needs">
+                    @if (!CharacterRules.MeetsMulticlassPrerequisite(next, Computed.FinalScores))
+                    {
+                        @UiText.MulticlassNeeds(PrerequisiteText(next), Lang)
                     }
                     else
                     {
-                        <span></span>
+                        @UiText.MulticlassCurrentNeeds(string.Join(", ", Computed.Classes.Where(i => !CharacterRules.MeetsMulticlassPrerequisite(i.Class, Computed.FinalScores)).Select(i => $"{i.Class.Name} ({PrerequisiteText(i.Class)})")), Lang)
                     }
-                    <div class="rf-level-hp-options">@if (cls is not null) { @HitPoints(index, cls) }</div>
                 </div>
             }
         </div>
-    </div>
-    <div class="rf-level-list mt-2">
-        @for (var i = 0; i < Build.Levels.Count; i++)
-        {
-            var index = i;
-            var plan = index < Computed.Plan.Count ? Computed.Plan[index] : null;
-            if (plan is null || !(plan.Improvement || plan.EpicBoon || plan.SubclassChoice))
-            {
-                continue;
-            }
-            <div class="rf-level-row" data-test="wizard-level-choice">
-                <div class="rf-level-head">
-                    <span class="rf-level-number">@UiText.LabelLevelRow(index + 1, Lang)</span>
-                    <span class="rf-level-class">@plan.Class.Name @plan.ClassLevel</span>
-                </div>
-                <div class="rf-level-body">@Choices(index, plan)</div>
-            </div>
-        }
-    </div>
-}
-
-<div class="d-flex flex-wrap gap-2 align-items-stretch mt-3">
-    @if (Build.Levels.Count < 20)
-    {
-        <div class="flex-grow-1" style="min-width: 200px;">
-            <ForgeSelector TValue="Guid" Value="NextClassId" ValueChanged="v => nextClassId = v" Options="ClassOptions" DataTest="wizard-next-class" />
-        </div>
-        <button type="button" class="rf-wizard-btn" style="flex: none; padding: 0 16px;" disabled="@(!NextAllowed)" @onclick="() => W.AddLevel(NextClassId)" data-test="wizard-add-level">@UiText.BtnAddLevel(Lang)</button>
     }
-    @if (Build.Levels.Count > MinimumLevels)
+</section>
+
+@* The levels one after the other: the hit points in the head of each, the choices and the features inside *@
+<div class="rf-lu-timeline" data-test="wizard-levels">
+    @for (var i = 0; i < Build.Levels.Count; i++)
     {
-        <button type="button" class="rf-wizard-btn secondary" style="flex: none; padding: 0 16px;" @onclick="W.RemoveLastLevel" data-test="wizard-remove-level">@UiText.BtnRemoveLevel(Lang)</button>
+        var index = i;
+        var level = Build.Levels[index];
+        var plan = index < Computed.Plan.Count ? Computed.Plan[index] : null;
+        var cls = W.Class(level.ClassId);
+        var pending = Pending(index, plan);
+        var open = IsOpen(index, plan);
+        var features = plan is null ? new List<string>() : ClassProgressionTable.FeaturesAt(plan.Class.ProgressionTable, plan.ClassLevel);
+        <article class="rf-lu-card @(pending is not null ? "pending" : "done") @(open ? null : "folded")" data-test="wizard-level-row" data-level="@(index + 1)">
+            <header class="rf-lu-card-head">
+                <button type="button" class="rf-lu-card-title" aria-expanded="@(open ? "true" : "false")" @onclick="() => Toggle(index, plan)" data-test="wizard-level-toggle">
+                    <span class="rf-lu-badge">@UiText.LabelLevelRow(index + 1, Lang)</span>
+                    <strong class="rf-lu-class">@(plan is not null ? $"{plan.Class.Name} {plan.ClassLevel}" : cls?.Name)</strong>
+                    @if (pending is not null)
+                    {
+                        <span class="rf-lu-chip pending" data-test="wizard-level-pending">@pending</span>
+                    }
+                    else
+                    {
+                        <span class="rf-lu-chip ok"><Icon Name="check" /> @DoneText(index, plan)</span>
+                    }
+                </button>
+                @if (cls is not null)
+                {
+                    <div class="rf-lu-hp">
+                        @HitPoints(index, cls)
+                        <span class="rf-lu-gain" data-test="wizard-hp-gain">@UiText.HitPointsGainShort(Gain(index, cls), Lang)</span>
+                    </div>
+                }
+                <button type="button" class="rf-lu-fold" aria-label="@UiText.LevelUpToggle(Lang)" @onclick="() => Toggle(index, plan)"><Icon Name="caret-down" /></button>
+            </header>
+            @if (open)
+            {
+                <div class="rf-lu-card-body">
+                    @if (index > 0 && index >= MinimumLevels - 1)
+                    {
+                        <div class="rf-lu-choice">
+                            <div class="rf-lu-choice-label">
+                                <span class="t">@UiText.LevelUpLevelClass(Lang)</span>
+                                <span class="s">@UiText.LevelUpLevelClassHint(Lang)</span>
+                            </div>
+                            <div class="rf-lu-choice-control">
+                                <ForgeSelector TValue="Guid" Value="level.ClassId" ValueChanged="v => W.SetLevelClassAsync(index, v)" Options="ClassOptions" DataTest="wizard-level-class" />
+                            </div>
+                        </div>
+                    }
+                    @Choices(index, plan)
+                    @if (features.Count > 0)
+                    {
+                        <div class="rf-lu-features" data-test="wizard-level-features">
+                            <span class="l">@UiText.LevelUpFeatures(Lang)</span>
+                            @foreach (var f in features)
+                            {
+                                <span class="rf-lu-feature">@f</span>
+                            }
+                        </div>
+                    }
+                </div>
+            }
+        </article>
     }
 </div>
-@if (!NextAllowed && NextClass is { } next)
-{
-    <div class="small mt-2" style="color: #ffaa00;" data-test="wizard-multiclass-needs">
-        @if (!CharacterRules.MeetsMulticlassPrerequisite(next, Computed.FinalScores))
-        {
-            @UiText.MulticlassNeeds(PrerequisiteText(next), Lang)
-        }
-        else
-        {
-            @UiText.MulticlassCurrentNeeds(string.Join(", ", Computed.Classes.Where(i => !CharacterRules.MeetsMulticlassPrerequisite(i.Class, Computed.FinalScores)).Select(i => $"{i.Class.Name} ({PrerequisiteText(i.Class)})")), Lang)
-        }
-    </div>
-}
+
 @if (Computed.Classes.Count > 1)
 {
     <div class="small mt-2" style="color: var(--rf-text-muted);">@UiText.MulticlassProficiencies(Lang)</div>
@@ -138,22 +148,29 @@ else
 @code {
     private Guid? nextClassId;
 
-    //	Levels of more than one class: a card per level
-    private bool Multiclass => Build.Levels.Select(l => l.ClassId).Distinct().Count() > 1;
-
+    //	Level 1 takes the maximum; the others the fixed value or a roll, and a roll is for good (the fixed value is no longer
+    //	offered, the same level never rolls again); the levels already saved by a level up stay as they are
     private RenderFragment HitPoints(int index, ContextClass cls) => __builder =>
     {
         var level = Build.Levels[index];
+        var saved = W.Mode == WizardMode.LevelUp && index < W.SavedLevels;
         if (index == 0)
         {
-            <span class="rf-wizard-pill locked">@UiText.HitPointsMaximum(cls.HitDie, Lang)</span>
+            <span class="rf-lu-pill locked">@UiText.HitPointsMaximum(cls.HitDie, Lang)</span>
+        }
+        else if (saved)
+        {
+            <span class="rf-lu-pill locked">@(level.HitPointRoll is { } kept ? UiText.HitPointsRolled(kept, Lang) : UiText.HitPointsFixed(cls.HitDie / 2 + 1, Lang))</span>
         }
         else
         {
-            <button type="button" class="rf-wizard-pill @(level.HitPointRoll is null ? "selected" : null)" @onclick="() => SetRoll(index, null)" data-test="wizard-hp-fixed">@UiText.HitPointsFixed(cls.HitDie / 2 + 1, Lang)</button>
-            <button type="button" class="rf-wizard-pill @(level.HitPointRoll is not null ? "selected" : null)" @onclick="() => SetRoll(index, Random.Shared.Next(1, cls.HitDie + 1))" data-test="wizard-hp-roll">
-                @(level.HitPointRoll is { } roll ? UiText.HitPointsRolled(roll, Lang) : UiText.BtnRollHitDie(cls.HitDie, Lang))
-            </button>
+            var rolled = level.HitPointRoll is not null;
+            <div class="rf-lu-pills" role="group">
+                <button type="button" class="rf-lu-pill @(rolled ? "gone" : "active")" disabled="@rolled" title="@(rolled ? UiText.HitPointsRollFinal(Lang) : null)" @onclick="() => SetFixed(index)" data-test="wizard-hp-fixed">@UiText.HitPointsFixed(cls.HitDie / 2 + 1, Lang)</button>
+                <button type="button" class="rf-lu-pill @(rolled ? "active" : null)" @onclick="() => Roll(index, cls)" data-test="wizard-hp-roll">
+                    <Icon Name="dice" /> @(level.HitPointRoll is { } roll ? UiText.HitPointsRolled(roll, Lang) : UiText.BtnRollHitDie(cls.HitDie, Lang))
+                </button>
+            </div>
         }
     };
 
@@ -202,6 +219,79 @@ else
     };
     private readonly HashSet<int> featMode = new();
 
+    //	The cards opened or closed by hand (the others: open while a choice waits, and the last level being added)
+    private readonly HashSet<int> toggled = new();
+
+    private int ConMod => Computed.Modifier(AbilityScore.Constitution);
+
+    private static string Signed(int value) => value >= 0 ? $"+{value}" : value.ToString();
+
+    private string HitDiceText => string.Join(" + ", Computed.Plan.GroupBy(p => p.HitDie).OrderByDescending(g => g.Key).Select(g => $"{g.Count()}d{g.Key}"));
+
+    private int Gain(int index, ContextClass cls)
+    {
+        var die = index == 0 ? cls.HitDie : Build.Levels[index].HitPointRoll ?? cls.HitDie / 2 + 1;
+        return Math.Max(1, die + ConMod);
+    }
+
+    private bool DefaultOpen(int index, LevelPlanEntry? plan) =>
+        Pending(index, plan) is not null || (index == Build.Levels.Count - 1 && index > 0 && index >= MinimumLevels - 1);
+
+    private bool IsOpen(int index, LevelPlanEntry? plan) => toggled.Contains(index) != DefaultOpen(index, plan);
+
+    private void Toggle(int index, LevelPlanEntry? plan)
+    {
+        if (!toggled.Add(index))
+        {
+            toggled.Remove(index);
+        }
+    }
+
+    //	What still waits on a level: the improvement or feat, the subclass
+    private string? Pending(int index, LevelPlanEntry? plan)
+    {
+        if (plan is null)
+        {
+            return null;
+        }
+        var level = Build.Levels[index];
+        if (plan.Improvement || plan.EpicBoon)
+        {
+            var feat = Is2024 || featMode.Contains(index) || level.FeatId is not null;
+            if (feat ? level.FeatId is null : IncreasePicks.Combined(level.Increases, level.ExtraIncreases).Count < 2)
+            {
+                return plan.EpicBoon ? UiText.LevelUpPendingBoon(Lang) : UiText.LevelUpPendingImprovement(Ruleset, Lang);
+            }
+        }
+        if (plan.SubclassChoice && W.ClassBuild(plan.Class.Id).SubclassId is null)
+        {
+            return UiText.LevelUpPendingSubclass(Lang);
+        }
+        return null;
+    }
+
+    private string DoneText(int index, LevelPlanEntry? plan)
+    {
+        if (plan is null)
+        {
+            return UiText.LevelUpDone(Lang);
+        }
+        var level = Build.Levels[index];
+        if (plan.SubclassChoice && W.ClassBuild(plan.Class.Id).SubclassId is { } subclassId && plan.Class.Subclasses.FirstOrDefault(s => s.Id == subclassId) is { } sub)
+        {
+            return sub.Name;
+        }
+        if ((plan.Improvement || plan.EpicBoon) && W.Feat(level.FeatId) is { } feat)
+        {
+            return feat.Name;
+        }
+        if (plan.Improvement)
+        {
+            return UiText.LabelImprovement(Ruleset, Lang);
+        }
+        return UiText.LevelUpDone(Lang);
+    }
+
     //	Level up: the levels already saved stay
     private int MinimumLevels => W.Mode == WizardMode.LevelUp ? W.SavedLevels + 1 : 1;
 
@@ -245,10 +335,23 @@ else
 
     private int HiddenFeats(LevelPlanEntry plan) => EditionFeats(plan).Count(f => !CharacterCalculator.FeatAvailable(f, plan.Level, Computed));
 
-    private void SetRoll(int index, int? roll)
+    //	The fixed value only while nothing was rolled for the level
+    private void SetFixed(int index)
     {
-        Build.Levels[index].HitPointRoll = roll;
+        if (Build.Levels[index].HitPointRoll is not null)
+        {
+            return;
+        }
         W.Update();
+    }
+
+    private void Roll(int index, ContextClass cls)
+    {
+        if (Build.Levels[index].HitPointRoll is not null)
+        {
+            return;
+        }
+        W.RollHitPoints(index, cls.HitDie);
     }
 
     private void SetPlainImprovement(int index)

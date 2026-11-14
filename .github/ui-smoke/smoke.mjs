@@ -1805,6 +1805,25 @@ try {
   await page.locator('[data-test=vtt-next-turn]').click();
   await page.waitForTimeout(800);
   combatUi.turnMoved = firstCurrent !== await page.locator('[data-test=vtt-combatant][data-current="1"]').innerText();
+  // The hero's hit points from the token: 3 damage, then 3 healed, the quick sheet follows both
+  const heroToken = page.locator('[data-test=vtt] [data-test=map-token][data-label="Eroe di prova"]');
+  await heroToken.click();
+  await page.locator('[data-test=map-token-card]').waitFor({ timeout: 15000 });
+  await page.locator('[data-test=map-token-sheet]').click();
+  await page.locator('[data-test=vtt-quick-sheet-hp]').waitFor({ timeout: 30000 });
+  const hpText = async () => (await page.locator('[data-test=vtt-quick-sheet-hp] strong').innerText()).trim();
+  const waitHp = async (not) => { for (let i = 0; i < 60 && (await hpText()) === not; i++) await page.waitForTimeout(250); return hpText(); };
+  combatUi.heroHp = [await hpText()];
+  await page.locator('[data-test=map-token-tab-hp]').click();
+  await page.locator('[data-test=map-token-hp-amount]').fill('3');
+  await page.locator('[data-test=map-token-damage]').click();
+  combatUi.heroHp.push(await waitHp(combatUi.heroHp[0]));
+  await page.locator('[data-test=map-token-hp-amount]').fill('3');
+  await page.locator('[data-test=map-token-heal]').click();
+  combatUi.heroHp.push(await waitHp(combatUi.heroHp[1]));
+  if (combatUi.heroHp[0] === combatUi.heroHp[1] || combatUi.heroHp[2] !== combatUi.heroHp[0]) throw new Error(`the hero's hit points did not follow: ${JSON.stringify(combatUi.heroHp)}`);
+  ok(`hero's hit points from the table: ${combatUi.heroHp.join(' → ')}`);
+  if (await page.locator('.rf-vtt-card-close').count()) await page.locator('.rf-vtt-card-close').click();
   const goblin1 = page.locator('[data-test=vtt] [data-test=map-token][data-label="Goblin 1"]');
   await goblin1.click();
   await page.locator('[data-test=map-token-card]').waitFor({ timeout: 15000 });
@@ -1874,7 +1893,7 @@ try {
   results.push(`INFO vtt combat: ${JSON.stringify(combatUi)}`);
   if (combatUi.combatants !== 4 || combatUi.tokens !== 5 || combatUi.current !== 1 || !/^Round\s+\d+$/i.test(combatUi.round) || !combatUi.turnMoved
     || combatUi.aimSelf !== 1 || combatUi.aimLit < 1 || combatUi.lootTab !== 1 || combatUi.ground?.take !== 1 || combatUi.ground?.back !== 1 || !(combatUi.ground?.stats >= 2)
-    || combatUi.rollTray !== 1 || combatUi.sheetAttacks < 1 || !combatUi.sheetTabs.startsWith('general,actions') || !/ 2\/\d+$/.test(combatUi.sheetHp ?? '') || combatUi.sheetAbilities !== 6 || combatUi.goblinConditions !== 'Pr' || combatUi.goblinRing !== '28.57 100' || !/^3 \/ \d+(,\d)? m$/.test(combatUi.moveLabel ?? '')) throw new Error(`unexpected combat: ${JSON.stringify(combatUi)}`);
+    || combatUi.rollTray !== 1 || combatUi.sheetAttacks < 1 || !combatUi.sheetTabs.startsWith('general,actions') || !/ 2\/\d+$/.test(combatUi.sheetHp ?? '') || combatUi.sheetAbilities !== 6 || combatUi.goblinConditions !== 'Prn' || combatUi.goblinRing !== '28.57 100' || !/^3 \/ \d+(,\d)? m$/.test(combatUi.moveLabel ?? '')) throw new Error(`unexpected combat: ${JSON.stringify(combatUi)}`);
   ok('virtual tabletop combat: the encounter started on the map (four in the initiative order, tokens for the goblins), the turn passed on, a goblin knocked prone and down to 2 hit points with its initiative rolled from its card, the fight ended, the hero\'s move showing 3 m against its speed');
   // The initiative bar: a fight asked with the tokens on the map, the hero rolls its own initiative, a goblin leaves the
   // fight from its toolbar, the others are rolled at once and the fight starts; then the dice and the log over the map
@@ -1907,6 +1926,11 @@ try {
   await page.locator('[data-test=vtt-init-collapse]').click();
   initUi.collapsed = await page.locator('[data-test=vtt-init-fight] [data-test=vtt-combatant]').count();
   await page.locator('[data-test=vtt-init-collapse]').click();
+  // The order as a column on the left, then back in a line
+  await page.locator('[data-test=vtt-init-layout]').click();
+  initUi.vertical = await page.locator('.rf-init-widget.vertical [data-test=vtt-combatant]').count();
+  await shot(page, 'vtt-initiative-vertical', null);
+  await page.locator('[data-test=vtt-init-layout]').click();
   await page.locator('[data-test=vtt-end-combat]').click();
   await page.locator('[data-test=vtt-quick-combat]').waitFor({ timeout: 15000 });
   await page.locator('[data-test=vtt-dock-dice]').click();
@@ -1920,8 +1944,18 @@ try {
   await page.locator('[data-test=vtt-dock-collapse]').click();
   initUi.minimized = await page.locator('[data-test=vtt-dice-card] [data-test=roll-go]').count();
   await page.locator('[data-test=vtt-dock-collapse]').click();
+  // The log pinned in the side panel, the panel folded to a rail and opened again, the log back over the map
+  await page.locator('[data-test=vtt-log-card] [data-test=rolls-log-pin]').click();
+  await page.locator('[data-test=vtt-drawer] [data-test=campaign-rolls]').waitFor({ timeout: 10000 });
+  initUi.pinned = await page.locator('[data-test=vtt-tab-log]').count();
+  await page.locator('[data-test=vtt-drawer-fold]').click();
+  initUi.rail = await page.locator('.rf-vtt-drawer.folded').count();
+  await page.locator('[data-test=vtt-drawer-unfold]').click();
+  await page.locator('[data-test=vtt-drawer] [data-test=rolls-log-pin]').click();
+  await page.locator('[data-test=vtt-log-card] [data-test=campaign-rolls]').waitFor({ timeout: 10000 });
   await page.locator('[data-test=rolls-console-close]').click();
   await page.locator('[data-test=rolls-log-close]').click();
+  if (initUi.vertical < 4 || initUi.pinned !== 1 || initUi.rail !== 1) throw new Error(`initiative layout or pinned log: ${JSON.stringify(initUi)}`);
   results.push(`INFO vtt initiative: ${JSON.stringify(initUi)}`);
   if (initUi.rows !== 5 || initUi.unrolled !== 5 || !/^\d+$/.test(initUi.heroInit) || initUi.afterLeave !== 4 || initUi.leftToRoll !== 0 || initUi.lives < 4
     || initUi.healthShown !== 'true' || initUi.collapsed !== 0 || initUi.diceTray !== 1 || initUi.logged !== 1 || initUi.minimized !== 0) throw new Error(`unexpected initiative: ${JSON.stringify(initUi)}`);
@@ -2064,6 +2098,22 @@ try {
   await page.locator('[data-test=sheet-levelup]').click();
   await wizardStep('progression');
   await choose('wizard-level-class', /^Guerriero/);
+  // The hit die of the new level rolled: for good (the fixed value no longer offered), the same result when clicked again
+  const newLevel = page.locator('[data-test=wizard-level-row]').last();
+  await newLevel.locator('[data-test=wizard-hp-roll]').click();
+  const rolledOnce = (await newLevel.locator('[data-test=wizard-hp-roll]').innerText()).trim();
+  await newLevel.locator('[data-test=wizard-hp-roll]').click();
+  const hpRollUi = {
+    rolled: rolledOnce,
+    again: (await newLevel.locator('[data-test=wizard-hp-roll]').innerText()).trim(),
+    fixedDisabled: await newLevel.locator('[data-test=wizard-hp-fixed]').isDisabled(),
+    cards: await page.locator('[data-test=wizard-level-row]').count(),
+    total: (await page.locator('[data-test=wizard-total-level]').innerText()).trim()
+  };
+  await shot(page, 'wizard-levels', '[data-test=wizard-levels]');
+  results.push(`INFO wizard hit die: ${JSON.stringify(hpRollUi)}`);
+  if (!/Tirato: \d+/.test(hpRollUi.rolled) || hpRollUi.again !== hpRollUi.rolled || !hpRollUi.fixedDisabled || hpRollUi.cards !== 2 || !/2/.test(hpRollUi.total)) throw new Error(`unexpected hit die roll: ${JSON.stringify(hpRollUi)}`);
+  ok('level up: the levels as cards with a summary; the hit die rolled for good, never rolled again');
   await page.locator('[data-test=wizard-fighting-style]').waitFor({ timeout: 15000 });
   await nextOption('wizard-fighting-style');
   await pickFree('[data-test=wizard-mastery]', 3);

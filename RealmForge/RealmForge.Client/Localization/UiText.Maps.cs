@@ -149,6 +149,67 @@ namespace RealmForge.Client.Localization
 		public static string VttEraseClick(LanguageCode lang) => T(lang, "Clic", "Click");
 		public static string VttEraseArea(LanguageCode lang) => T(lang, "Area", "Area");
 		public static string VttEraseAreaHint(LanguageCode lang) => T(lang, "Trascina un riquadro: disegni, testi e aree che tocca vengono tolti.", "Drag a box: the drawings, texts and areas it touches are removed.");
+		public static string VttDownNoActions(LanguageCode lang) => T(lang,
+			"A terra, privo di sensi: niente azioni, azioni bonus né reazioni finché non torna sopra 0 punti ferita.",
+			"Down and unconscious: no actions, bonus actions or reactions until back above 0 hit points.");
+		public static string VttDownState(LanguageCode lang) => T(lang, "A terra", "Down");
+		public static string VttTurnYours(LanguageCode lang) => T(lang, "Il tuo turno", "Your turn");
+		public static string VttTurnNotYours(LanguageCode lang) => T(lang, "Turno", "Turn");
+		public static string VttTurnAction(LanguageCode lang) => T(lang, "Azione", "Action");
+		public static string VttTurnBonus(LanguageCode lang) => T(lang, "Azione bonus", "Bonus action");
+		public static string VttTurnReaction(LanguageCode lang) => T(lang, "Reazione", "Reaction");
+		public static string VttTurnInteraction(LanguageCode lang) => T(lang, "Interazione", "Interaction");
+		public static string VttTurnFree(LanguageCode lang) => T(lang, "disponibile", "available");
+		public static string VttTurnUsed(LanguageCode lang) => T(lang, "usata", "used");
+		public static string VttTurnAttacks(int made, int most, LanguageCode lang) => T(lang, $"attacchi {made}/{most}", $"attacks {made}/{most}");
+		public static string VttTurnKind(string kind, LanguageCode lang) => kind switch
+		{
+			"dash" => T(lang, "Scatto", "Dash"),
+			"disengage" => T(lang, "Disimpegno", "Disengage"),
+			"dodge" => T(lang, "Schivata", "Dodge"),
+			"help" => T(lang, "Aiuto", "Help"),
+			"hide" => T(lang, "Nascondersi", "Hide"),
+			_ => kind
+		};
+		public static string VttTurnKindHint(string kind, LanguageCode lang) => kind switch
+		{
+			"dash" => T(lang, "Usa l'azione: il movimento di questo turno raddoppia", "Takes the action: the movement of this turn doubles"),
+			"disengage" => T(lang, "Usa l'azione: uscire dalla portata dei nemici non provoca attacchi di opportunità", "Takes the action: leaving the enemies' reach provokes no attacks of opportunity"),
+			"dodge" => T(lang, "Usa l'azione: gli attacchi contro di te hanno svantaggio fino al tuo prossimo turno", "Takes the action: attacks against you have disadvantage until your next turn"),
+			"help" => T(lang, "Usa l'azione: un alleato ha vantaggio nella prossima prova o attacco", "Takes the action: an ally has advantage on the next check or attack"),
+			"hide" => T(lang, "Usa l'azione: una prova di Furtività per nasconderti", "Takes the action: a Stealth check to hide"),
+			_ => kind
+		};
+		public static string VttTurnBonusUse(LanguageCode lang) => T(lang, "Usa azione bonus", "Use bonus action");
+		public static string VttTurnBonusHint(LanguageCode lang) => T(lang, "Segna l'azione bonus del turno come usata", "Marks the bonus action of the turn as used");
+		public static string VttTurnWield(LanguageCode lang) => T(lang, "Arma in mano", "Weapon in hand");
+		public static string VttTurnWieldKind(string kind, LanguageCode lang) => kind == "ranged" ? T(lang, "A distanza", "Ranged") : T(lang, "In mischia", "Melee");
+		public static string VttOpportunity(string reactor, string target, LanguageCode lang) => T(lang, $"{reactor}: attacco di opportunità su {target}", $"{reactor}: attack of opportunity on {target}");
+		public static string VttOpportunityTake(LanguageCode lang) => T(lang, "Attacca", "Attack");
+		public static string VttOpportunityPass(LanguageCode lang) => T(lang, "Lascia andare", "Let it go");
+		public static string VttOpportunityNoAttack(LanguageCode lang) => T(lang, "Nessun attacco in mischia: l'occasione è persa.", "No melee attack: the chance is gone.");
+		public static string VttFeatureUses(LanguageCode lang) => T(lang, "Privilegi da usare", "Features to use");
+		public static string VttFeatureSlot(int slot, LanguageCode lang) => slot switch
+		{
+			1 => T(lang, "Azione", "Action"),
+			2 => T(lang, "Azione bonus", "Bonus action"),
+			3 => T(lang, "Reazione", "Reaction"),
+			_ => T(lang, "Libero", "Free")
+		};
+		public static string VttFeatureLeft(int left, int most, LanguageCode lang) => T(lang, $"{left}/{most} rimasti", $"{left}/{most} left");
+		public static string VttFeatureAmount(LanguageCode lang) => T(lang, "Quanti punti", "How many points");
+		public static string VttFeatureUse(LanguageCode lang) => T(lang, "Usa", "Use");
+		public static string VttFeatureUsed(string name, LanguageCode lang) => T(lang, $"{name}: usato.", $"{name}: used.");
+		public static string VttFeatureHealed(string name, int value, LanguageCode lang) => T(lang, $"{name}: +{value} punti ferita.", $"{name}: +{value} hit points.");
+		public static string VttFeatureTemp(string name, int value, LanguageCode lang) => T(lang, $"{name}: {value} punti ferita temporanei.", $"{name}: {value} temporary hit points.");
+		public static string VttDrawer(LanguageCode lang) => T(lang, "Pannello laterale", "Side panel");
+		public static string VttPin(LanguageCode lang) => T(lang, "Blocca nel pannello laterale", "Pin to the side panel");
+		public static string VttUnpin(LanguageCode lang) => T(lang, "Sblocca: torna sopra la mappa", "Unpin: back over the map");
+		public static string VttMissed(LanguageCode lang) => T(lang, "Mancato", "Miss");
+		public static string VttHit(LanguageCode lang) => T(lang, "Colpito", "Hit");
+		public static string VttGroupInit(LanguageCode lang) => T(lang, "Un tiro di iniziativa per gruppo di nemici uguali", "One initiative roll per group of like enemies");
+		public static string VttInitVertical(LanguageCode lang) => T(lang, "Ordine di iniziativa in verticale", "Initiative order vertical");
+		public static string VttInitHorizontal(LanguageCode lang) => T(lang, "Ordine di iniziativa in orizzontale", "Initiative order horizontal");
 		public static string VttWayBlocked(LanguageCode lang) => T(lang, "Muri o porte chiuse sbarrano la strada.", "Walls or closed doors are in the way.");
 		public static string VttWayBlockedShort(LanguageCode lang) => T(lang, "Nessun passaggio", "No way through");
 
@@ -167,6 +228,8 @@ namespace RealmForge.Client.Localization
 			"wall" => T(lang, "Muro", "Wall"),
 			"difficult" => T(lang, "Difficile", "Difficult"),
 			"door" => T(lang, "Porta", "Door"),
+			"half" => T(lang, "Mezzo muro", "Low wall"),
+			"three" => T(lang, "Copertura ¾", "¾ cover"),
 			_ => T(lang, "Nebbia", "Fog")
 		};
 		public static string MapZoneTitle(string zone, LanguageCode lang) => zone switch
@@ -175,6 +238,8 @@ namespace RealmForge.Client.Localization
 			"wall" => T(lang, "Muro o ostacolo", "Wall or obstacle"),
 			"difficult" => T(lang, "Terreno difficile", "Difficult terrain"),
 			"door" => T(lang, "Porta o passaggio", "Door or passage"),
+			"half" => T(lang, "Mezza copertura", "Half cover"),
+			"three" => T(lang, "Copertura tre quarti", "Three-quarters cover"),
 			_ => T(lang, "Nebbia di guerra", "Fog of war")
 		};
 		public static string MapZoneHint(string zone, LanguageCode lang) => zone switch
@@ -183,6 +248,8 @@ namespace RealmForge.Client.Localization
 			"wall" => T(lang, "I PG non la attraversano: girano intorno a muri e colonne", "Characters cannot cross it: they go around walls and columns"),
 			"difficult" => T(lang, "Ogni casella costa il doppio del movimento", "Every cell costs double movement"),
 			"door" => T(lang, "Si passa, se la porta che ci sta sopra è aperta", "Passable, when the door token on it is open"),
+			"half" => T(lang, "Muretto o barile: +2 alla CA di chi è dietro, si scavalca come terreno difficile", "Low wall or barrel: +2 AC behind it, crossed as difficult terrain"),
+			"three" => T(lang, "Feritoia o tronco: +5 alla CA di chi è dietro, non si attraversa", "Arrow slit or trunk: +5 AC behind it, not crossed"),
 			_ => T(lang, "Rivela o oscura le celle per i giocatori", "Reveals or covers the cells for the players")
 		};
 		public static string MapZoneCounts(int walls, int difficult, int doors, LanguageCode lang) => T(lang,
@@ -411,6 +478,9 @@ namespace RealmForge.Client.Localization
 		public static string VttSheetReadOnlyHint(LanguageCode lang) => T(lang, "La scheda di un alleato: la vedi, non la usi.", "An ally's sheet: you see it, you do not use it.");
 		public static string VttAimStart(string attack, LanguageCode lang) => T(lang, $"{attack}: scegli il bersaglio sulla mappa", $"{attack}: pick the target on the map");
 		public static string VttAimHint(LanguageCode lang) => T(lang, "Clic su un bersaglio evidenziato (giallo: con svantaggio). Esc per annullare.", "Click a highlighted target (yellow: with disadvantage). Esc to cancel.");
+		public static string VttAimWall(LanguageCode lang) => T(lang, "Il bersaglio è dietro un muro: non lo raggiungi da qui.", "The target is behind a wall: you cannot reach it from here.");
+		public static string VttSaveDc(string ability, int dc, LanguageCode lang) => T(lang, $"TS {ability} CD {dc}", $"{ability} save DC {dc}");
+		public static string VttSpellSave(string spell, string target, string save, LanguageCode lang) => T(lang, $"«{spell}» su {target}: {save}. Il master tira il tiro salvezza e applica il danno.", $"“{spell}” on {target}: {save}. The master rolls the save and applies the damage.");
 		public static string VttAimOut(LanguageCode lang) => T(lang, "Fuori portata: avvicinati o scegli un altro bersaglio.", "Out of reach: move closer or pick another target.");
 		public static string VttAimArmor(int armor, LanguageCode lang) => T(lang, $"CA {armor}", $"AC {armor}");
 		public static string VttAimMode(int mode, LanguageCode lang) => mode switch

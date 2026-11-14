@@ -22,9 +22,12 @@ namespace RealmForge.Api.Controllers
 	{
 		private readonly RealmForgeDbContext _context;
 
-		public MapsController(RealmForgeDbContext context)
+		private readonly Realtime.TableSignals? _signals;
+
+		public MapsController(RealmForgeDbContext context, Realtime.TableSignals? signals = null)
 		{
 			_context = context;
+			_signals = signals;
 		}
 
 		private string UserId => ContentAccess.GetUserId(User) ?? string.Empty;
@@ -392,9 +395,133 @@ namespace RealmForge.Api.Controllers
 					return Problem(statusCode: StatusCodes.Status409Conflict, title: "Walls or closed doors are in the way.");
 				}
 			}
+			var from = (token.X, token.Y);
 			token.X = dto.X;
 			token.Y = dto.Y;
 			token.UpdatedAt = map.UpdatedAt = DateTimeOffset.UtcNow;
+			await OfferOpportunitiesAsync(map, token, from);
+			await _context.SaveChangesAsync();
+			return NoContent();
+		}
+
+		//	A token that leaves the reach of a creature of the other side, in a fight and without Disengage, offers it an attack
+		//	of opportunity: whoever controls that creature sees it and takes it (with its reaction) or lets it go
+		private async Task OfferOpportunitiesAsync(CampaignMap map, CampaignToken mover, (int X, int Y) from)
+		{
+			if (mover.Kind == TokenKind.Prop || mover.CombatantId is null)
+			{
+				return;
+			}
+			var fight = await FightAsync(map, track: true);
+			if (fight is null || fight.Encounter.Round <= 0 || fight.Combatants.FirstOrDefault(c => c.Id == mover.CombatantId) is not { } moving || moving.Disengaged)
+			{
+				return;
+			}
+			static bool PartySide(CampaignToken t) => t.CharacterId is not null || t.ControlledBy.Count > 0;
+			var offered = false;
+			foreach (var other in map.Tokens.Where(t => t.Id != mover.Id && t.Kind != TokenKind.Prop && t.CombatantId is not null && PartySide(t) != PartySide(mover)))
+			{
+				if (fight.Combatants.FirstOrDefault(c => c.Id == other.CombatantId) is not { } reactor || reactor.ReactionUsed
+					|| reactor.Conditions.Any(k => k is "incapacitated" or "paralyzed" or "petrified" or "stunned" or "unconscious")
+					|| (reactor.Kind != CombatantKind.Character && reactor.MaxHp > 0 && reactor.Hp <= 0))
+				{
+					continue;
+				}
+				var before = TableCombat.Gap(map.GridType, from.X, from.Y, mover.Size, other.X, other.Y, other.Size);
+				var after = TableCombat.Gap(map.GridType, mover.X, mover.Y, mover.Size, other.X, other.Y, other.Size);
+				if (before <= 1 && after > 1)
+				{
+					reactor.OpportunityOn = mover.Id;
+					offered = true;
+				}
+			}
+			if (offered)
+			{
+				Save(fight, fight.Combatants);
+			}
+		}
+
+		//	POST: api/campaigns/{campaignId}/maps/{mapId}/tokens/{tokenId}/turn — what a token does with its turn: an action
+		//	(Dash, Disengage, Dodge, Help, Hide, Ready, Search, another), a bonus action, the weapon taken in hand (the
+		//	first change of the turn is the free interaction, a second one takes the action), an attack of opportunity let go
+		[HttpPost("{mapId:guid}/tokens/{tokenId:guid}/turn")]
+		public async Task<IActionResult> TakeTurnAction(Guid campaignId, Guid mapId, Guid tokenId, [FromBody] TurnActionDto dto, [FromQuery] LanguageCode? lang)
+		{
+			var italian = lang != LanguageCode.En;
+			var (map, role) = await LoadAsync(campaignId, mapId, withTokens: true);
+			var token = map?.Tokens.FirstOrDefault(t => t.Id == tokenId);
+			if (map is null || role is null || token is null)
+			{
+				return NotFound();
+			}
+			var runs = CampaignRules.RunsTheTable(role.Value);
+			if (!runs && !await ControlsAsync(token))
+			{
+				return Forbid();
+			}
+			var fight = await FightAsync(map, track: true);
+			if (fight?.Combatants.FirstOrDefault(c => c.Id == token.CombatantId) is not { } who)
+			{
+				return Problem(statusCode: StatusCodes.Status409Conflict, title: T(italian, "Non è in combattimento.", "Not in a fight."));
+			}
+			var kind = dto.Kind.Trim().ToLowerInvariant();
+			if (kind == "pass")
+			{
+				who.OpportunityOn = null;
+			}
+			else
+			{
+				var mine = fight.Encounter.CurrentId == who.Id;
+				if (!mine && !runs)
+				{
+					return Problem(statusCode: StatusCodes.Status409Conflict, title: T(italian, "Non è il tuo turno.", "It is not your turn."));
+				}
+				switch (kind)
+				{
+					case "dash" or "disengage" or "dodge" or "help" or "hide" or "ready" or "search" or "other":
+						if (who.ActionSpent is not null && !runs)
+						{
+							return Problem(statusCode: StatusCodes.Status409Conflict, title: T(italian, "L'azione di questo turno è già stata usata.", "The action of this turn was already used."));
+						}
+						who.ActionSpent = TableCombat.SpentOther;
+						who.Dashed |= kind == "dash";
+						who.Disengaged |= kind == "disengage";
+						who.Dodging |= kind == "dodge";
+						break;
+					case "surge":
+						//	Action Surge: one more action this turn
+						who.ActionSpent = null;
+						who.AttacksMade = 0;
+						break;
+					case "bonus":
+						if (who.BonusUsed && !runs)
+						{
+							return Problem(statusCode: StatusCodes.Status409Conflict, title: T(italian, "L'azione bonus di questo turno è già stata usata.", "The bonus action of this turn was already used."));
+						}
+						who.BonusUsed = true;
+						break;
+					case "wield" when dto.Wield is "melee" or "ranged":
+						if (who.Wield == dto.Wield)
+						{
+							break;
+						}
+						if (who.Interacted && !runs)
+						{
+							if (who.ActionSpent is not null)
+							{
+								return Problem(statusCode: StatusCodes.Status409Conflict, title: T(italian, "Hai già cambiato arma e l'azione è usata.", "The weapon was already changed and the action is used."));
+							}
+							who.ActionSpent = TableCombat.SpentOther;
+						}
+						who.Interacted = true;
+						who.Wield = dto.Wield;
+						break;
+					default:
+						return Problem(statusCode: StatusCodes.Status400BadRequest, title: "Unknown action.");
+				}
+			}
+			Save(fight, fight.Combatants);
+			map.UpdatedAt = DateTimeOffset.UtcNow;
 			await _context.SaveChangesAsync();
 			return NoContent();
 		}
@@ -607,7 +734,7 @@ namespace RealmForge.Api.Controllers
 				return Forbid();
 			}
 			if (!Enum.IsDefined(dto.Kind) || (dto.Replace ? !MapTerrain.Valid(dto.Cells)
-				: dto.Cells.Count % 2 != 0 || dto.Cells.Count / 2 > MapTerrain.MaxCells || dto.Cells.Any(v => v is < 0 or >= 1000)))
+				: dto.Cells.Count % 2 != 0 || dto.Cells.Count / 2 > MapTerrain.MaxCells || dto.Cells.Any(v => v is < -1 or >= 1000)))
 			{
 				return Problem(statusCode: StatusCodes.Status400BadRequest, title: "Terrain cells out of range.");
 			}
@@ -1017,8 +1144,8 @@ namespace RealmForge.Api.Controllers
 			fight.Encounter.CurrentId = EncounterRules.Order(fight.Combatants).FirstOrDefault()?.Id;
 			foreach (var c in fight.Combatants)
 			{
-				c.ActionSpent = null;
-				c.ReactionUsed = false;
+				EncounterRules.StartTurn(c);
+				c.OpportunityOn = null;
 			}
 			Save(fight, fight.Combatants);
 			map.UpdatedAt = DateTimeOffset.UtcNow;
@@ -1058,9 +1185,13 @@ namespace RealmForge.Api.Controllers
 				fight.Encounter.Round++;
 			}
 			fight.Encounter.CurrentId = order[next].Id;
-			//	Its turn starts: the action and the reaction are there again
-			order[next].ActionSpent = null;
-			order[next].ReactionUsed = false;
+			//	Its turn starts: the action, the bonus action and the reaction are there again; the attacks of opportunity
+			//	not taken are gone
+			EncounterRules.StartTurn(order[next]);
+			foreach (var c in fight.Combatants)
+			{
+				c.OpportunityOn = null;
+			}
 			Save(fight, fight.Combatants);
 			await _context.SaveChangesAsync();
 			return NoContent();
@@ -1315,20 +1446,26 @@ namespace RealmForge.Api.Controllers
 						var tokenHp = t.Hp ?? tokenMax;
 						dto = knows
 							? dto with { Hp = tokenHp, MaxHp = tokenMax }
-							: dto with { Health = EncounterRules.HealthOf(tokenHp, tokenMax) };
+							: dto with { Health = EncounterRules.HiddenHealthOf(tokenHp, tokenMax) };
 					}
 					if (combatant is not null && combatant.Kind != CombatantKind.Character)
 					{
 						dto = knows
 							? dto with { Hp = combatant.Hp, MaxHp = combatant.MaxHp, TempHp = combatant.TempHp > 0 ? combatant.TempHp : null }
-							: dto with { Health = EncounterRules.HealthOf(combatant.Hp, combatant.MaxHp) };
+							: dto with { Health = EncounterRules.HiddenHealthOf(combatant.Hp, combatant.MaxHp) };
 					}
 					var down = combatant is not null && combatant.Kind != CombatantKind.Character ? combatant.MaxHp > 0 && combatant.Hp <= 0
 						: t.CharacterId is null && t.MaxHp is > 0 && (t.Hp ?? t.MaxHp) <= 0;
 					dto = dto with { Gear = GearOf(t, runs, controls, down) };
 					if (combatant is not null)
 					{
-						dto = dto with { ActionSpent = combatant.ActionSpent, ReactionUsed = combatant.ReactionUsed };
+						dto = dto with
+						{
+							ActionSpent = combatant.ActionSpent,
+							ReactionUsed = combatant.ReactionUsed,
+							Turn = new TokenTurnDto(combatant.BonusUsed, combatant.AttacksMade, combatant.Dashed, combatant.Disengaged, combatant.Dodging,
+								combatant.Interacted, combatant.Wield, combatant.OpportunityOn)
+						};
 					}
 					return dto;
 				})
@@ -1405,7 +1542,15 @@ namespace RealmForge.Api.Controllers
 					{
 						return;
 					}
-					await Task.Delay(400, aborted);
+					//	Woken at once by a save on this server; a look every half second finds what another server saved
+					if (_signals is not null)
+					{
+						await _signals.WaitAsync(TimeSpan.FromMilliseconds(500), aborted);
+					}
+					else
+					{
+						await Task.Delay(400, aborted);
+					}
 				}
 			}
 			catch (OperationCanceledException)
@@ -1437,7 +1582,8 @@ namespace RealmForge.Api.Controllers
 			map.FogEnabled || CampaignRules.RunsTheTable(role) ? map.Fog : new List<double>(),
 			map.PingAt is { } pingAt ? new MapPingDto(map.PingX ?? 0, map.PingY ?? 0, map.PingColor ?? PlayerColors.Master, pingAt) : null,
 			map.FocusAt is { } focusAt ? new MapFocusDto(map.FocusX ?? 0, map.FocusY ?? 0, map.FocusZoom ?? 1, focusAt) : null,
-			map.PlayersLocked);
+			map.PlayersLocked,
+			map.StrikeAt is { } strikeAt && map.StrikeTokenId is { } struck ? new MapStrikeDto(struck, map.StrikeKind, map.StrikeDamage, strikeAt) : null);
 
 		//	Everyone sees their own drawings and what is for the whole table (MapRules.Sees)
 		private List<MapShapeDto> ShapesOf(CampaignMap map, CampaignRole role)
