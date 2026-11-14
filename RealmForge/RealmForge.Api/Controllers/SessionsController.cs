@@ -189,22 +189,51 @@ namespace RealmForge.Api.Controllers
 
 		private readonly RealmForgeDbContext _context;
 
-		public RollsController(RealmForgeDbContext context)
+		private readonly Realtime.TableSignals? _signals;
+
+		public RollsController(RealmForgeDbContext context, Realtime.TableSignals? signals = null)
 		{
 			_context = context;
+			_signals = signals;
 		}
 
 		private string UserId => ContentAccess.GetUserId(User) ?? string.Empty;
 
-		//	GET: api/campaigns/{campaignId}/rolls?after=… — newest first; with after only the rolls made since then
+		//	GET: api/campaigns/{campaignId}/rolls?after=… — newest first; with after only the rolls made since then; with
+		//	wait the answer waits (up to 20 seconds) for a new roll, so the log of the table shows it at once
 		[HttpGet]
-		public async Task<ActionResult<List<CampaignRollDto>>> GetRolls(Guid campaignId, [FromQuery] DateTimeOffset? after)
+		public async Task<ActionResult<List<CampaignRollDto>>> GetRolls(Guid campaignId, [FromQuery] DateTimeOffset? after, [FromQuery] bool wait = false)
 		{
 			if (await CampaignAccess.RoleAsync(_context, campaignId, UserId) is not { } role)
 			{
 				return NotFound();
 			}
 			var runs = CampaignRules.RunsTheTable(role);
+			if (wait && after is { } waitFrom)
+			{
+				var from = waitFrom.ToUniversalTime();
+				var until = DateTimeOffset.UtcNow.AddSeconds(20);
+				var aborted = HttpContext.RequestAborted;
+				try
+				{
+					while (DateTimeOffset.UtcNow < until
+						&& !await _context.CampaignRolls.AsNoTracking().AnyAsync(r => r.CampaignId == campaignId && r.CreatedAt > from && (!r.Hidden || runs || r.UserId == UserId), aborted))
+					{
+						if (_signals is not null)
+						{
+							await _signals.WaitAsync(TimeSpan.FromSeconds(1), aborted);
+						}
+						else
+						{
+							await Task.Delay(1000, aborted);
+						}
+					}
+				}
+				catch (OperationCanceledException)
+				{
+					return Ok(new List<CampaignRollDto>());
+				}
+			}
 			var query = _context.CampaignRolls.AsNoTracking()
 				.Where(r => r.CampaignId == campaignId && (!r.Hidden || runs || r.UserId == UserId));
 			if (after is { } since)

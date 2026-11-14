@@ -280,7 +280,13 @@ namespace RealmForge.Shared.DTOs
 	///	<summary>
 	///	The fog of war (see MapFog), the last ping and the last view the masters brought the table to.
 	///	</summary>
-	public record MapTableDto(bool FogEnabled, List<double> Fog, MapPingDto? Ping, MapFocusDto? Focus, bool PlayersLocked = false);
+	public record MapTableDto(bool FogEnabled, List<double> Fog, MapPingDto? Ping, MapFocusDto? Focus, bool PlayersLocked = false, MapStrikeDto? Strike = null);
+
+	///	<summary>
+	///	The last attack on the map, for its effect on every screen: the target, missed (0), hit (1) or critical (2), the
+	///	damage dealt.
+	///	</summary>
+	public record MapStrikeDto(Guid TokenId, int Kind, int? Damage, DateTimeOffset At);
 
 	public record MapPingDto(double X, double Y, string Color, DateTimeOffset At);
 
