@@ -1,0 +1,95 @@
+﻿@* The Ability Score Improvement: +2 to one score or +1 to two different scores (the same score is never picked twice);
+   a score already at 20 before the level cannot be raised (19 for the +2) *@
+<div class="rf-asi" data-test="@DataTest">
+    <div class="rf-wizard-pills mb-2">
+        <button type="button" class="rf-wizard-pill @(Double ? null : "selected")" @onclick="() => SetDouble(false)" data-test="@($"{DataTest}-split")">@UiText.AsiSplit(Lang)</button>
+        <button type="button" class="rf-wizard-pill @(Double ? "selected" : null)" @onclick="() => SetDouble(true)" data-test="@($"{DataTest}-double")">@UiText.AsiDouble(Lang)</button>
+    </div>
+    @if (Double)
+    {
+        <div class="rf-wizard-row">
+            <div class="rf-wizard-label">+2</div>
+            <div class="rf-wizard-field">
+                <ForgeSelector TValue="string" Value="@Pick(0)" ValueChanged="SetBoth" Options="Options(null, 2)" DataTest="@($"{DataTest}-0")" />
+            </div>
+        </div>
+    }
+    else
+    {
+        @for (var k = 0; k < 2; k++)
+        {
+            var pick = k;
+            <div class="rf-wizard-row">
+                <div class="rf-wizard-label">@UiText.LabelPlusOne(Lang)</div>
+                <div class="rf-wizard-field">
+                    <ForgeSelector TValue="string" Value="@Pick(pick)" ValueChanged="v => Set(pick, v)" Options="Options(Pick(1 - pick), 1)" DataTest="@($"{DataTest}-{pick}")" />
+                </div>
+            </div>
+        }
+    }
+</div>
+
+@code {
+    [Parameter, EditorRequired] public List<AbilityScore> Increases { get; set; } = new();
+    [Parameter, EditorRequired] public List<string> Extra { get; set; } = new();
+
+    //	The character level of the improvement (0: unknown, no cap is checked)
+    [Parameter] public int Level { get; set; }
+    [Parameter] public string DataTest { get; set; } = "wizard-asi";
+
+    private bool doubleMode;
+
+    private bool Double => Picks.Count == 2 ? Picks[0] == Picks[1] : doubleMode;
+
+    private List<string> Picks => IncreasePicks.Combined(Increases, Extra);
+
+    private string? Pick(int index) => index < Picks.Count ? Picks[index] : null;
+
+    //	Every score but the one the other +1 went to; those that would pass 20 are shown but disabled
+    private List<ForgeSelector<string?>.Option> Options(string? other, int amount)
+    {
+        var scores = Level >= 1 && Level <= Computed.ScoresBeforeLevel.Count ? Computed.ScoresBeforeLevel[Level - 1] : null;
+        return IncreasePicks.Options(CharacterMath.Abilities, Computed, Lang)
+            .Where(o => o.Value != other)
+            .Select(o => scores is not null && int.TryParse(o.Value, out var n) && n is >= 1 and <= 6 && scores[n - 1] + amount > 20
+                ? o with { Disabled = true, Note = UiText.AsiCapped(Lang) }
+                : o)
+            .ToList();
+    }
+
+    private void SetDouble(bool value)
+    {
+        doubleMode = value;
+        var first = Pick(0);
+        Increases.Clear();
+        Extra.Clear();
+        if (first is not null)
+        {
+            IncreasePicks.Set(Increases, Extra, 0, first);
+            if (value)
+            {
+                IncreasePicks.Set(Increases, Extra, 1, first);
+            }
+        }
+        W.Update();
+    }
+
+    private void SetBoth(string? value)
+    {
+        Increases.Clear();
+        Extra.Clear();
+        if (value is not null)
+        {
+            IncreasePicks.Set(Increases, Extra, 0, value);
+            IncreasePicks.Set(Increases, Extra, 1, value);
+        }
+        W.Update();
+    }
+
+    private void Set(int pick, string? value)
+    {
+        //	Nothing chosen before it: the pick goes first
+        IncreasePicks.Set(Increases, Extra, Math.Min(pick, Picks.Count), value);
+        W.Update();
+    }
+}

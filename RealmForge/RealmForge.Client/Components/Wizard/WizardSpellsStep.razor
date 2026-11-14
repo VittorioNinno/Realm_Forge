@@ -47,9 +47,9 @@
             </div>
         }
         <SpellPicker W="W" Title="@UiText.LabelCantrips(Lang)" Chosen="lists.Value.Cantrips" List="info.SpellList" Max="info.Cantrips" MinLevel="0" MaxLevel="0" Search="@search" TakenBy="TakenElsewhere(lists.Value.Cantrips, lists.Value.Spells)"
-                     ExtraIds="extraIds" OtherLists="otherLists" AnyList="anyList" DataTest="wizard-cantrip" />
+                     ExtraIds="extraIds" OtherLists="otherLists" AnyList="anyList" Exclude="info.Always" DataTest="wizard-cantrip" />
         <SpellPicker W="W" Title="@UiText.LabelLeveledSpells(info.MaxSpellLevel, Lang)" Chosen="lists.Value.Spells" List="info.SpellList" Max="info.Spells" MinLevel="1" MaxLevel="info.MaxSpellLevel" Search="@search" TakenBy="TakenElsewhere(lists.Value.Cantrips, lists.Value.Spells)"
-                     ExtraIds="extraIds" OtherLists="otherLists" AnyList="anyList" DataTest="wizard-spell" />
+                     ExtraIds="extraIds" OtherLists="otherLists" AnyList="anyList" Exclude="info.Always" DataTest="wizard-spell" />
     </div>
 }
 
@@ -84,6 +84,25 @@
 
 @code {
     private string? search;
+
+    //	A spell chosen before the subclass prepared it for good is given back: it no longer counts, and a free pick
+    //	is left in its place
+    protected override void OnParametersSet()
+    {
+        var changed = false;
+        foreach (var info in Computed.Spellcasting.Where(s => s.Always.Count > 0))
+        {
+            if (Lists(info) is { } lists)
+            {
+                changed |= lists.Spells.RemoveAll(info.Always.Contains) > 0;
+                changed |= lists.Cantrips.RemoveAll(info.Always.Contains) > 0;
+            }
+        }
+        if (changed)
+        {
+            W.Update();
+        }
+    }
 
     //	The lists the choices of a source are saved in
     private (List<Guid> Cantrips, List<Guid> Spells)? Lists(SpellcastingInfo info)

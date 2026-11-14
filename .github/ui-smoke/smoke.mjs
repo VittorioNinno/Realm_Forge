@@ -1376,6 +1376,17 @@ try {
   await page.locator('[data-test=encounter-new-name]').fill('Imboscata');
   await page.locator('[data-test=encounter-new-create]').click();
   await page.locator('[data-test=encounter-monster-search]').waitFor({ timeout: 15000 });
+  // The generator fills the new encounter with monsters for the party and says what it added; then they go, for the goblins
+  await page.locator('[data-test=encounter-generate]').click();
+  await page.locator('[data-test=encounter-gen-result]').waitFor({ timeout: 30000 });
+  campaignUi.generated = (await page.locator('[data-test=encounter-gen-result]').innerText()).trim();
+  campaignUi.generatedFoes = await page.locator('[data-test=encounter-combatant]').count();
+  for (let guard = 0; guard < 20 && await page.locator('[data-test=combatant-remove]').count() > 0; guard++) {
+    await page.locator('[data-test=combatant-remove]').first().click();
+    await page.waitForTimeout(150);
+  }
+  for (let i = 0; i < 50 && await page.locator('[data-test=encounter-combatant]').count() > 0; i++) await page.waitForTimeout(100);
+  if (!/^Aggiunti: /.test(campaignUi.generated) || campaignUi.generatedFoes < 2) throw new Error(`the generator added nothing: ${JSON.stringify(campaignUi)}`);
   await page.locator('[data-test=encounter-monster-search]').fill('goblin');
   const goblinPick = page.locator('.rf-monster-pick').filter({ has: page.locator('.rf-monster-pick-name', { hasText: /^Goblin$/ }) });
   await goblinPick.waitFor({ timeout: 30000 });

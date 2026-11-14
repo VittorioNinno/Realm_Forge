@@ -1206,9 +1206,10 @@ namespace RealmForge.Api.Controllers
 			var runs = CampaignRules.RunsTheTable(role);
 			var characterIds = map.Tokens.Where(t => t.CharacterId is not null).Select(t => t.CharacterId!.Value).Distinct().ToList();
 			var characters = await _context.Characters.AsNoTracking()
-				.Where(c => characterIds.Contains(c.Id)).Select(c => new { c.Id, c.OwnerId, c.Sheet }).ToListAsync();
+				.Where(c => characterIds.Contains(c.Id)).Select(c => new { c.Id, c.OwnerId, c.Sheet, c.MaxHitPoints }).ToListAsync();
 			var mine = characters.Where(c => c.OwnerId == UserId).Select(c => c.Id).ToHashSet();
-			var sheetConditions = characters.ToDictionary(c => c.Id, c => EncounterSheetSync.ConditionsOf(CharactersController.ReadSheet(c.Sheet)));
+			var sheets = characters.ToDictionary(c => c.Id, c => (Sheet: CharactersController.ReadSheet(c.Sheet), Max: Math.Max(0, c.MaxHitPoints)));
+			var sheetConditions = sheets.ToDictionary(s => s.Key, s => EncounterSheetSync.ConditionsOf(s.Value.Sheet));
 			var monsterIds = map.Tokens.Where(t => t.MonsterId is not null).Select(t => t.MonsterId!.Value).Distinct().ToList();
 			var creatures = await _context.Monsters.AsNoTracking().Where(m => monsterIds.Contains(m.Id))
 				.Select(m => new { m.Id, m.Size, m.Type }).ToDictionaryAsync(m => m.Id);
@@ -1240,6 +1241,15 @@ namespace RealmForge.Api.Controllers
 						: combatant is not null ? combatant.Conditions
 						: t.Conditions;
 					dto = dto with { Conditions = conditions.ToList() };
+					if (t.CharacterId is { } sheetId && sheets.TryGetValue(sheetId, out var life) && life.Max > 0)
+					{
+						dto = dto with
+						{
+							SheetHp = EncounterSheetSync.CurrentHp(life.Sheet, life.Max),
+							SheetMaxHp = life.Max,
+							SheetTempHp = life.Sheet.TemporaryHitPoints > 0 ? life.Sheet.TemporaryHitPoints : null
+						};
+					}
 					if (combatant is null && t.CharacterId is null && t.MaxHp is { } tokenMax && tokenMax > 0)
 					{
 						var tokenHp = t.Hp ?? tokenMax;
