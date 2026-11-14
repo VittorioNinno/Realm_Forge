@@ -96,6 +96,10 @@
                 {
                     @CombatBar
                 }
+                else if (map is not null && Opportunities.Count > 0)
+                {
+                    @OpportunityBar
+                }
                 @DiceCluster
             </div>
             @if (panel is not null)
@@ -485,7 +489,7 @@ else
 
     //	What a token can roll and how far it moves, read from the sheet or the statblock
     private sealed record TokenRoll(string Label, string Bonus, string Expression, bool Hidden);
-    private sealed record TokenStats(int? SpeedFeet, List<TokenRoll> Rolls, QuickSheet? Sheet = null, TokenSlots? Slots = null);
+    private sealed record TokenStats(int? SpeedFeet, List<TokenRoll> Rolls, QuickSheet? Sheet = null, TokenSlots? Slots = null, int? ActionAttacks = null);
 
     //	The spell slots left of a character, by level, and its pact slots
     private sealed record TokenSlots(int[] Left, int PactLeft, int PactLevel);
@@ -1928,6 +1932,10 @@ else
             @switch (current)
             {
                 case "actions":
+                    @if (TurnOf(t) is not null)
+                    {
+                        @TurnPanel(t)
+                    }
                     @if (KnockedOut(t))
                     {
                         <p class="rf-qs-note rf-qs-down-note" data-test="vtt-quick-sheet-down"><Icon Name="moon-stars" /> @UiText.VttDownNoActions(Lang)</p>
@@ -2189,6 +2197,84 @@ else
             StateHasChanged();
         }
     }
+
+    //	The turn of a character in the quick sheet: what is left of it, the standard actions, the weapon in hand
+    private RenderFragment TurnPanel(MapTokenDto t) => __builder =>
+    {
+        var turn = TurnOf(t)!;
+        var mine = IsTurnOf(t);
+        var can = mine && CanRoll(t) && !busy && !KnockedOut(t);
+        var most = StatsOf(t)?.ActionAttacks ?? 1;
+        var attacking = t.ActionSpent == RealmForge.Shared.Campaigns.TableCombat.SpentAttack;
+        <section class="rf-qs-card rf-turn" data-test="vtt-turn">
+            <h3 class="rf-qs-card-title">@(mine ? UiText.VttTurnYours(Lang) : UiText.VttTurnNotYours(Lang))</h3>
+            <div class="rf-turn-slots">
+                <span class="rf-turn-slot @(t.ActionSpent is null ? "free" : "used")" data-test="vtt-turn-action">
+                    <strong>@UiText.VttTurnAction(Lang)</strong>
+                    <small>@(t.ActionSpent is null ? UiText.VttTurnFree(Lang) : attacking ? UiText.VttTurnAttacks(turn.AttacksMade, most, Lang) : UiText.VttTurnUsed(Lang))</small>
+                </span>
+                <span class="rf-turn-slot @(turn.BonusUsed ? "used" : "free")" data-test="vtt-turn-bonus">
+                    <strong>@UiText.VttTurnBonus(Lang)</strong>
+                    <small>@(turn.BonusUsed ? UiText.VttTurnUsed(Lang) : UiText.VttTurnFree(Lang))</small>
+                </span>
+                <span class="rf-turn-slot @(t.ReactionUsed ? "used" : "free")" data-test="vtt-turn-reaction">
+                    <strong>@UiText.VttTurnReaction(Lang)</strong>
+                    <small>@(t.ReactionUsed ? UiText.VttTurnUsed(Lang) : UiText.VttTurnFree(Lang))</small>
+                </span>
+                <span class="rf-turn-slot @(turn.Interacted ? "used" : "free")">
+                    <strong>@UiText.VttTurnInteraction(Lang)</strong>
+                    <small>@(turn.Interacted ? UiText.VttTurnUsed(Lang) : UiText.VttTurnFree(Lang))</small>
+                </span>
+            </div>
+            @if (turn.Dashed || turn.Disengaged || turn.Dodging)
+            {
+                <div class="rf-turn-flags">
+                    @if (turn.Dashed) { <span class="rf-turn-flag">@UiText.VttTurnKind("dash", Lang)</span> }
+                    @if (turn.Disengaged) { <span class="rf-turn-flag">@UiText.VttTurnKind("disengage", Lang)</span> }
+                    @if (turn.Dodging) { <span class="rf-turn-flag">@UiText.VttTurnKind("dodge", Lang)</span> }
+                </div>
+            }
+            <div class="rf-turn-actions">
+                @foreach (var k in new[] { "dash", "disengage", "dodge", "help", "hide" })
+                {
+                    var kind = k;
+                    <button type="button" class="rf-turn-btn" disabled="@(!can || t.ActionSpent is not null)" title="@UiText.VttTurnKindHint(kind, Lang)" @onclick="() => TurnActionAsync(t, kind, null)" data-test="vtt-turn-@kind">@UiText.VttTurnKind(kind, Lang)</button>
+                }
+                <button type="button" class="rf-turn-btn bonus" disabled="@(!can || turn.BonusUsed)" title="@UiText.VttTurnBonusHint(Lang)" @onclick="@(() => TurnActionAsync(t, "bonus", null))" data-test="vtt-turn-bonus-use">@UiText.VttTurnBonusUse(Lang)</button>
+            </div>
+            @if (HasBothKinds(t))
+            {
+                <div class="rf-turn-wield" role="group" aria-label="@UiText.VttTurnWield(Lang)">
+                    <span>@UiText.VttTurnWield(Lang)</span>
+                    @foreach (var w in new[] { "melee", "ranged" })
+                    {
+                        var wield = w;
+                        var held = (turn.Wield ?? "melee") == wield;
+                        <button type="button" class="rf-turn-btn @(held ? "held" : null)" disabled="@(!can || held)" @onclick="@(() => TurnActionAsync(t, "wield", wield))" data-test="vtt-turn-wield-@wield">@UiText.VttTurnWieldKind(wield, Lang)</button>
+                    }
+                </div>
+            }
+            @if (turnNote is not null)
+            {
+                <p class="rf-qs-note mb-0" data-test="vtt-turn-note">@turnNote</p>
+            }
+        </section>
+    };
+
+    //	The attacks of opportunity this account can take: a creature it controls, with a token that just left its reach
+    private RenderFragment OpportunityBar => __builder =>
+    {
+        <div class="rf-vtt-options rf-vtt-combatbar rf-opportunity" data-test="vtt-opportunity">
+            @foreach (var (reactor, target) in Opportunities)
+            {
+                var r = reactor;
+                var tg = target;
+                <span class="rf-opportunity-text"><Icon Name="crosshair" /> @UiText.VttOpportunity(r.Label, tg.Label, Lang)</span>
+                <button type="button" class="btn btn-sm btn-rf-orange" disabled="@busy" @onclick="() => TakeOpportunityAsync(r, tg)" data-test="vtt-opportunity-take">@UiText.VttOpportunityTake(Lang)</button>
+                <button type="button" class="btn btn-sm btn-rf-outline" disabled="@busy" @onclick="@(() => TurnActionAsync(r, "pass", null))" data-test="vtt-opportunity-pass">@UiText.VttOpportunityPass(Lang)</button>
+            }
+        </div>
+    };
 
     //	The tab of the quick sheet each token shows
     private readonly Dictionary<Guid, string> qsTabs = new();
@@ -3777,7 +3863,8 @@ else
         || ((RunsTheTable || t.Controlled) && (t.MonsterId is not null || t.SheetCharacterId is not null) && t.CharacterId is null);
 
     //	A speed of 0 (grappled, restrained…) keeps the token where it is
-    private int? SpeedCells(MapTokenDto t) => StatsOf(t)?.SpeedFeet is { } feet ? feet / 5 : null;
+    //	Dash doubles the movement of the turn
+    private int? SpeedCells(MapTokenDto t) => StatsOf(t)?.SpeedFeet is { } feet ? feet / 5 * (t.Turn?.Dashed == true ? 2 : 1) : null;
 
     private async Task PreloadStatsAsync()
     {
@@ -3906,7 +3993,8 @@ else
             attacks, new List<SheetProse>(), $"characters/{id}",
             TurnGroups(computed), CastingOf(computed, character.Sheet, contexts.GetValueOrDefault(id)), await FeatureGroupsAsync(character, computed));
         var left = Enumerable.Range(0, 9).Select(i => Math.Max(0, computed.SpellSlots[i] - (i < character.Sheet.SpentSlots.Count ? character.Sheet.SpentSlots[i] : 0))).ToArray();
-        return new TokenStats(computed.Speed, rolls, sheet, new TokenSlots(left, Math.Max(0, computed.PactSlots - character.Sheet.SpentPactSlots), computed.PactSlotLevel));
+        return new TokenStats(computed.Speed, rolls, sheet, new TokenSlots(left, Math.Max(0, computed.PactSlots - character.Sheet.SpentPactSlots), computed.PactSlotLevel),
+            TurnActions.AttacksPerAction(computed));
     }
 
     //	What the character does in a turn besides the standard actions: its features by action, bonus action, reaction

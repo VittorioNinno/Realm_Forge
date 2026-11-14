@@ -153,6 +153,41 @@ namespace RealmForge.Client.Localization
 			"A terra, privo di sensi: niente azioni, azioni bonus né reazioni finché non torna sopra 0 punti ferita.",
 			"Down and unconscious: no actions, bonus actions or reactions until back above 0 hit points.");
 		public static string VttDownState(LanguageCode lang) => T(lang, "A terra", "Down");
+		public static string VttTurnYours(LanguageCode lang) => T(lang, "Il tuo turno", "Your turn");
+		public static string VttTurnNotYours(LanguageCode lang) => T(lang, "Turno", "Turn");
+		public static string VttTurnAction(LanguageCode lang) => T(lang, "Azione", "Action");
+		public static string VttTurnBonus(LanguageCode lang) => T(lang, "Azione bonus", "Bonus action");
+		public static string VttTurnReaction(LanguageCode lang) => T(lang, "Reazione", "Reaction");
+		public static string VttTurnInteraction(LanguageCode lang) => T(lang, "Interazione", "Interaction");
+		public static string VttTurnFree(LanguageCode lang) => T(lang, "disponibile", "available");
+		public static string VttTurnUsed(LanguageCode lang) => T(lang, "usata", "used");
+		public static string VttTurnAttacks(int made, int most, LanguageCode lang) => T(lang, $"attacchi {made}/{most}", $"attacks {made}/{most}");
+		public static string VttTurnKind(string kind, LanguageCode lang) => kind switch
+		{
+			"dash" => T(lang, "Scatto", "Dash"),
+			"disengage" => T(lang, "Disimpegno", "Disengage"),
+			"dodge" => T(lang, "Schivata", "Dodge"),
+			"help" => T(lang, "Aiuto", "Help"),
+			"hide" => T(lang, "Nascondersi", "Hide"),
+			_ => kind
+		};
+		public static string VttTurnKindHint(string kind, LanguageCode lang) => kind switch
+		{
+			"dash" => T(lang, "Usa l'azione: il movimento di questo turno raddoppia", "Takes the action: the movement of this turn doubles"),
+			"disengage" => T(lang, "Usa l'azione: uscire dalla portata dei nemici non provoca attacchi di opportunità", "Takes the action: leaving the enemies' reach provokes no attacks of opportunity"),
+			"dodge" => T(lang, "Usa l'azione: gli attacchi contro di te hanno svantaggio fino al tuo prossimo turno", "Takes the action: attacks against you have disadvantage until your next turn"),
+			"help" => T(lang, "Usa l'azione: un alleato ha vantaggio nella prossima prova o attacco", "Takes the action: an ally has advantage on the next check or attack"),
+			"hide" => T(lang, "Usa l'azione: una prova di Furtività per nasconderti", "Takes the action: a Stealth check to hide"),
+			_ => kind
+		};
+		public static string VttTurnBonusUse(LanguageCode lang) => T(lang, "Usa azione bonus", "Use bonus action");
+		public static string VttTurnBonusHint(LanguageCode lang) => T(lang, "Segna l'azione bonus del turno come usata", "Marks the bonus action of the turn as used");
+		public static string VttTurnWield(LanguageCode lang) => T(lang, "Arma in mano", "Weapon in hand");
+		public static string VttTurnWieldKind(string kind, LanguageCode lang) => kind == "ranged" ? T(lang, "A distanza", "Ranged") : T(lang, "In mischia", "Melee");
+		public static string VttOpportunity(string reactor, string target, LanguageCode lang) => T(lang, $"{reactor}: attacco di opportunità su {target}", $"{reactor}: attack of opportunity on {target}");
+		public static string VttOpportunityTake(LanguageCode lang) => T(lang, "Attacca", "Attack");
+		public static string VttOpportunityPass(LanguageCode lang) => T(lang, "Lascia andare", "Let it go");
+		public static string VttOpportunityNoAttack(LanguageCode lang) => T(lang, "Nessun attacco in mischia: l'occasione è persa.", "No melee attack: the chance is gone.");
 		public static string VttWayBlocked(LanguageCode lang) => T(lang, "Muri o porte chiuse sbarrano la strada.", "Walls or closed doors are in the way.");
 		public static string VttWayBlockedShort(LanguageCode lang) => T(lang, "Nessun passaggio", "No way through");
 

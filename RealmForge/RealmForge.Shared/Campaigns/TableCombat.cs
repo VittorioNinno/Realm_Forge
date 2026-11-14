@@ -185,6 +185,12 @@ public static partial class TableCombat
 			disadvantage = true;
 			causes.Add("invisible");
 		}
+		//	Dodging: attacks against it have disadvantage
+		if (target.Contains("dodging"))
+		{
+			disadvantage = true;
+			causes.Add("dodging");
+		}
 		if (target.Contains("prone"))
 		{
 			if (gap <= 1)
