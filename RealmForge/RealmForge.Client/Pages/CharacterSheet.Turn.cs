@@ -155,8 +155,7 @@ namespace RealmForge.Client.Pages
 			if (die == 20)
 			{
 				Sheet.CurrentHitPoints = 1;
-				Sheet.DeathSaveSuccesses = 0;
-				Sheet.DeathSaveFailures = 0;
+				CharacterVitals.Wake(Sheet);
 			}
 			else
 			{

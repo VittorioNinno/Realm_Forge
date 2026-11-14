@@ -152,6 +152,14 @@ namespace RealmForge.Client.Components
 			{
 				return;
 			}
+			//	Only the cells on the picture (the cut ones on its edges included)
+			cells = Enumerable.Range(0, cells.Length / 2)
+				.Where(i => MapGeometry.Inside(gridType, grid, offsetX, offsetY, cells[i * 2], cells[i * 2 + 1], 1, map.Width, map.Height))
+				.SelectMany(i => new[] { cells[i * 2], cells[i * 2 + 1] }).ToArray();
+			if (cells.Length == 0)
+			{
+				return;
+			}
 			var before = terrain;
 			TakeTerrain(new MapTerrainDto(MapTerrain.Paint(terrain?.Cells, cells, kind), terrain?.BlockPlayers ?? true));
 			StateHasChanged();
@@ -195,27 +203,26 @@ namespace RealmForge.Client.Components
 			{
 				return;
 			}
+			//	From the cut cells before the offset (-1) when there are any, to the last cell on the picture
 			var cells = new List<int>();
-			int columns = 0, rows = 0;
-			while (columns < 1000 && MapGeometry.Inside(gridType, grid, offsetX, offsetY, columns, 0, 1, map.Width, map.Height))
+			var first = (Col: MapGeometry.Inside(gridType, grid, offsetX, offsetY, -1, 0, 1, map.Width, map.Height) ? -1 : 0,
+				Row: MapGeometry.Inside(gridType, grid, offsetX, offsetY, 0, -1, 1, map.Width, map.Height) ? -1 : 0);
+			int lastCol = 0, lastRow = 0;
+			while (lastCol < 1000 && MapGeometry.Inside(gridType, grid, offsetX, offsetY, lastCol + 1, 0, 1, map.Width, map.Height))
 			{
-				columns++;
+				lastCol++;
 			}
-			while (rows < 1000 && MapGeometry.Inside(gridType, grid, offsetX, offsetY, 0, rows, 1, map.Width, map.Height))
+			while (lastRow < 1000 && MapGeometry.Inside(gridType, grid, offsetX, offsetY, 0, lastRow + 1, 1, map.Width, map.Height))
 			{
-				rows++;
+				lastRow++;
 			}
-			for (var c = 0; c < columns; c++)
+			for (var c = first.Col; c <= lastCol; c++)
 			{
-				cells.AddRange(new[] { c, 0, c, rows - 1 });
+				cells.AddRange(new[] { c, first.Row, c, lastRow });
 			}
-			for (var r = 0; r < rows; r++)
+			for (var r = first.Row; r <= lastRow; r++)
 			{
-				cells.AddRange(new[] { 0, r, columns - 1, r });
-			}
-			if (columns == 0 || rows == 0)
-			{
-				return;
+				cells.AddRange(new[] { first.Col, r, lastCol, r });
 			}
 			var before = terrain;
 			TakeTerrain(new MapTerrainDto(MapTerrain.Paint(terrain?.Cells, cells, TerrainKind.Wall), terrain?.BlockPlayers ?? true));

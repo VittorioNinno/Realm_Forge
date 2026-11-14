@@ -26,7 +26,7 @@ public static class MapTerrain
 
 	public static bool Valid(IReadOnlyList<int>? cells) =>
 		cells is not null && cells.Count % 3 == 0 && cells.Count / 3 <= MaxCells
-		&& Enumerable.Range(0, cells.Count / 3).All(i => cells[i * 3] is >= 0 and < 1000 && cells[i * 3 + 1] is >= 0 and < 1000
+		&& Enumerable.Range(0, cells.Count / 3).All(i => cells[i * 3] is >= -1 and < 1000 && cells[i * 3 + 1] is >= -1 and < 1000
 			&& Enum.IsDefined((TerrainKind)cells[i * 3 + 2]) && cells[i * 3 + 2] != (int)TerrainKind.Walkable);
 
 	///	<summary>The cells by their place (the last group of a cell wins).</summary>
@@ -67,7 +67,7 @@ public static class MapTerrain
 		var map = Read(cells);
 		for (var i = 0; i + 1 < pairs.Count; i += 2)
 		{
-			if (pairs[i] < 0 || pairs[i + 1] < 0)
+			if (pairs[i] < -1 || pairs[i + 1] < -1)
 			{
 				continue;
 			}

@@ -149,6 +149,10 @@ namespace RealmForge.Client.Localization
 		public static string VttEraseClick(LanguageCode lang) => T(lang, "Clic", "Click");
 		public static string VttEraseArea(LanguageCode lang) => T(lang, "Area", "Area");
 		public static string VttEraseAreaHint(LanguageCode lang) => T(lang, "Trascina un riquadro: disegni, testi e aree che tocca vengono tolti.", "Drag a box: the drawings, texts and areas it touches are removed.");
+		public static string VttDownNoActions(LanguageCode lang) => T(lang,
+			"A terra, privo di sensi: niente azioni, azioni bonus né reazioni finché non torna sopra 0 punti ferita.",
+			"Down and unconscious: no actions, bonus actions or reactions until back above 0 hit points.");
+		public static string VttDownState(LanguageCode lang) => T(lang, "A terra", "Down");
 		public static string VttWayBlocked(LanguageCode lang) => T(lang, "Muri o porte chiuse sbarrano la strada.", "Walls or closed doors are in the way.");
 		public static string VttWayBlockedShort(LanguageCode lang) => T(lang, "Nessun passaggio", "No way through");
 
