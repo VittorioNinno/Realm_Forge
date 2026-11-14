@@ -174,14 +174,14 @@ public static class MapGeometry
 	public static bool Inside(GridType type, int grid, int offsetX, int offsetY, int col, int row, int size, int width, int height)
 	{
 		//	The cells cut by the edges count too: the partial column and row before the offset are -1, a cell is on the map
-		//	when any part of it is on the picture (its centre less than half a cell outside)
+		//	when a fair part of it is on the picture (its centre less than 0.3 of a cell outside: a fifth of it shows)
 		if (col < -1 || row < -1)
 		{
 			return false;
 		}
 		var (x, y) = Center(type, grid, offsetX, offsetY, col, row, size);
 		var (w, h) = Cell(type, grid);
-		return x > -w / 2 && y > -h / 2 && x < width + w / 2 && y < height + h / 2;
+		return x > -w * 0.3 && y > -h * 0.3 && x < width + w * 0.3 && y < height + h * 0.3;
 	}
 
 	///	<summary>

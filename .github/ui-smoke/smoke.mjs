@@ -1805,6 +1805,25 @@ try {
   await page.locator('[data-test=vtt-next-turn]').click();
   await page.waitForTimeout(800);
   combatUi.turnMoved = firstCurrent !== await page.locator('[data-test=vtt-combatant][data-current="1"]').innerText();
+  // The hero's hit points from the token: 3 damage, then 3 healed, the quick sheet follows both
+  const heroToken = page.locator('[data-test=vtt] [data-test=map-token][data-label="Eroe di prova"]');
+  await heroToken.click();
+  await page.locator('[data-test=map-token-card]').waitFor({ timeout: 15000 });
+  await page.locator('[data-test=map-token-sheet]').click();
+  await page.locator('[data-test=vtt-quick-sheet-hp]').waitFor({ timeout: 30000 });
+  const hpText = async () => (await page.locator('[data-test=vtt-quick-sheet-hp] strong').innerText()).trim();
+  const waitHp = async (not) => { for (let i = 0; i < 60 && (await hpText()) === not; i++) await page.waitForTimeout(250); return hpText(); };
+  combatUi.heroHp = [await hpText()];
+  await page.locator('[data-test=map-token-tab-hp]').click();
+  await page.locator('[data-test=map-token-hp-amount]').fill('3');
+  await page.locator('[data-test=map-token-damage]').click();
+  combatUi.heroHp.push(await waitHp(combatUi.heroHp[0]));
+  await page.locator('[data-test=map-token-hp-amount]').fill('3');
+  await page.locator('[data-test=map-token-heal]').click();
+  combatUi.heroHp.push(await waitHp(combatUi.heroHp[1]));
+  if (combatUi.heroHp[0] === combatUi.heroHp[1] || combatUi.heroHp[2] !== combatUi.heroHp[0]) throw new Error(`the hero's hit points did not follow: ${JSON.stringify(combatUi.heroHp)}`);
+  ok(`hero's hit points from the table: ${combatUi.heroHp.join(' → ')}`);
+  if (await page.locator('.rf-vtt-card-close').count()) await page.locator('.rf-vtt-card-close').click();
   const goblin1 = page.locator('[data-test=vtt] [data-test=map-token][data-label="Goblin 1"]');
   await goblin1.click();
   await page.locator('[data-test=map-token-card]').waitFor({ timeout: 15000 });

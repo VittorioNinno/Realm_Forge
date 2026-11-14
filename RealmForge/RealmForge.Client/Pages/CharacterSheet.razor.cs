@@ -179,6 +179,7 @@ namespace RealmForge.Client.Pages
 		///	</summary>
 		private void Changed()
 		{
+			CharacterVitals.Normalize(Sheet, MaxHp);
 			Recompute();
 
 			//	A sheet shared with me: it can be tried out, nothing is saved
