@@ -31,6 +31,7 @@ namespace RealmForge.Client.Pages
 			public int StepIndex { get; set; }
 			public int FurthestIndex { get; set; }
 			public int SavedLevels { get; set; }
+			public Dictionary<string, int> RolledHitPoints { get; set; } = new();
 			public DateTimeOffset SavedAt { get; set; }
 		}
 
@@ -67,6 +68,7 @@ namespace RealmForge.Client.Pages
 			{
 				SavedLevels = draft.SavedLevels;
 			}
+			RolledHitPoints = draft.RolledHitPoints ?? new();
 			DraftRestored = true;
 			return true;
 		}
@@ -97,6 +99,7 @@ namespace RealmForge.Client.Pages
 					StepIndex = stepIndex,
 					FurthestIndex = furthestIndex,
 					SavedLevels = SavedLevels,
+					RolledHitPoints = RolledHitPoints,
 					SavedAt = DateTimeOffset.UtcNow
 				};
 				await JS.InvokeVoidAsync("localStorage.setItem", DraftKey, JsonSerializer.Serialize(draft, DraftJson));

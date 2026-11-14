@@ -2064,6 +2064,22 @@ try {
   await page.locator('[data-test=sheet-levelup]').click();
   await wizardStep('progression');
   await choose('wizard-level-class', /^Guerriero/);
+  // The hit die of the new level rolled: for good (the fixed value no longer offered), the same result when clicked again
+  const newLevel = page.locator('[data-test=wizard-level-row]').last();
+  await newLevel.locator('[data-test=wizard-hp-roll]').click();
+  const rolledOnce = (await newLevel.locator('[data-test=wizard-hp-roll]').innerText()).trim();
+  await newLevel.locator('[data-test=wizard-hp-roll]').click();
+  const hpRollUi = {
+    rolled: rolledOnce,
+    again: (await newLevel.locator('[data-test=wizard-hp-roll]').innerText()).trim(),
+    fixedDisabled: await newLevel.locator('[data-test=wizard-hp-fixed]').isDisabled(),
+    cards: await page.locator('[data-test=wizard-level-row]').count(),
+    total: (await page.locator('[data-test=wizard-total-level]').innerText()).trim()
+  };
+  await shot(page, 'wizard-levels', '[data-test=wizard-levels]');
+  results.push(`INFO wizard hit die: ${JSON.stringify(hpRollUi)}`);
+  if (!/Tirato: \d+/.test(hpRollUi.rolled) || hpRollUi.again !== hpRollUi.rolled || !hpRollUi.fixedDisabled || hpRollUi.cards !== 2 || !/2/.test(hpRollUi.total)) throw new Error(`unexpected hit die roll: ${JSON.stringify(hpRollUi)}`);
+  ok('level up: the levels as cards with a summary; the hit die rolled for good, never rolled again');
   await page.locator('[data-test=wizard-fighting-style]').waitFor({ timeout: 15000 });
   await nextOption('wizard-fighting-style');
   await pickFree('[data-test=wizard-mastery]', 3);

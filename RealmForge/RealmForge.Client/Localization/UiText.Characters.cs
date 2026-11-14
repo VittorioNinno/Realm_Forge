@@ -234,6 +234,25 @@ namespace RealmForge.Client.Localization
 		public static string LabelHitPointsGain(LanguageCode lang) => T(lang, "Punti ferita", "Hit points");
 		public static string HitPointsMaximum(int die, LanguageCode lang) => T(lang, $"Massimo del d{die}", $"Maximum of the d{die}");
 		public static string HitPointsFixed(int value, LanguageCode lang) => T(lang, $"Fisso ({value})", $"Fixed ({value})");
+		public static string HitPointsShort(int value, LanguageCode lang) => T(lang, $"{value} PF", $"{value} HP");
+		public static string HitPointsGainShort(int value, LanguageCode lang) => T(lang, $"+{value} PF", $"+{value} HP");
+		public static string HitPointsRollFinal(LanguageCode lang) => T(lang, "Il dado è stato tirato: il risultato resta", "The die was rolled: the result stays");
+		public static string LevelUpTotalLevel(LanguageCode lang) => T(lang, "Livello totale", "Total level");
+		public static string LevelUpTotalHp(LanguageCode lang) => T(lang, "Punti ferita totali", "Total hit points");
+		public static string LevelUpConPerLevel(string mod, LanguageCode lang) => T(lang, $"Costituzione {mod} per livello", $"Constitution {mod} per level");
+		public static string LevelUpHitDice(LanguageCode lang) => T(lang, "Dadi vita e competenza", "Hit dice and proficiency");
+		public static string LevelUpProficiency(LanguageCode lang) => T(lang, "Bonus di competenza", "Proficiency bonus");
+		public static string LevelUpNextClass(LanguageCode lang) => T(lang, "Classe del prossimo livello (multiclasse)", "Class of the next level (multiclass)");
+		public static string LevelUpToggle(LanguageCode lang) => T(lang, "Apri o chiudi il livello", "Open or close the level");
+		public static string LevelUpLevelClass(LanguageCode lang) => T(lang, "Classe del livello", "Class of the level");
+		public static string LevelUpLevelClassHint(LanguageCode lang) => T(lang, "Un'altra classe per il multiclasse", "Another class to multiclass");
+		public static string LevelUpFeatures(LanguageCode lang) => T(lang, "Privilegi a questo livello:", "Features at this level:");
+		public static string LevelUpPendingSubclass(LanguageCode lang) => T(lang, "Sottoclasse da scegliere", "Subclass to choose");
+		public static string LevelUpPendingBoon(LanguageCode lang) => T(lang, "Dono epico da scegliere", "Epic Boon to choose");
+		public static string LevelUpPendingImprovement(RulesetVersion ruleset, LanguageCode lang) => ruleset == RulesetVersion.Dnd5e_2024
+			? T(lang, "Talento da scegliere", "Feat to choose")
+			: T(lang, "Aumento o talento da scegliere", "Improvement or feat to choose");
+		public static string LevelUpDone(LanguageCode lang) => T(lang, "Completo", "Complete");
 		public static string HitPointsRolled(int value, LanguageCode lang) => T(lang, $"Tirato: {value}", $"Rolled: {value}");
 		public static string BtnRollHitDie(int die, LanguageCode lang) => T(lang, $"Tira d{die}", $"Roll d{die}");
 		public static string LabelImprovement(RulesetVersion ruleset, LanguageCode lang) => Is2014(ruleset)
