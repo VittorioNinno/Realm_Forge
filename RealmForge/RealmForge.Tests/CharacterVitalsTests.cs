@@ -1,4 +1,4 @@
-using RealmForge.Shared.Campaigns;
+﻿using RealmForge.Shared.Campaigns;
 using RealmForge.Shared.Characters;
 using RealmForge.Shared.Enums;
 
