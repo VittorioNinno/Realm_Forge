@@ -534,9 +534,13 @@ else
                                 <span class="rf-vtt-token-face" data-test="map-prop" data-state="@t.PropState">
                                     <Icon Name="@PropIcon(propType, t.PropState)" />
                                 </span>
-                                @if (t.PropState is PropState.Locked or PropState.Barred)
+                                @if (t.PropState is PropState.Locked)
                                 {
-                                    <span class="rf-vtt-prop-badge"><Icon Name="lock" /></span>
+                                    <span class="rf-vtt-prop-badge locked" title="@UiText.PropStateName(propType, PropState.Locked, Lang)" data-test="map-prop-locked"><Icon Name="lock" /></span>
+                                }
+                                else if (t.PropState is PropState.Barred)
+                                {
+                                    <span class="rf-vtt-prop-badge barred" title="@UiText.PropStateName(propType, PropState.Barred, Lang)" data-test="map-prop-barred"><Icon Name="dash-square-fill" /></span>
                                 }
                             }
                             else
@@ -776,7 +780,7 @@ else
                         }
                         else
                         {
-                            <span class="rf-hud-stuck" data-test="map-prop-stuck"><Icon Name="lock" /> @UiText.PropStuck(usedType, it.PropState, Lang)</span>
+                            <span class="rf-hud-stuck" data-test="map-prop-stuck"><Icon Name="@(it.PropState == PropState.Barred ? "dash-square-fill" : "lock")" /> @UiText.PropStuck(usedType, it.PropState, Lang)</span>
                         }
                     }
                 }
@@ -933,7 +937,7 @@ else
                         {
                             var nowHp = character is not null ? LifeHp(character) : it.Hp ?? it.MaxHp ?? 0;
                             var maxHp = character is not null ? LifeMax(character) : it.MaxHp ?? 0;
-                            var tempHp = character is not null ? vitals?.TemporaryHitPoints ?? 0 : it.TempHp ?? 0;
+                            var tempHp = character is not null ? vitals?.TemporaryHitPoints ?? it.SheetTempHp ?? 0 : it.TempHp ?? 0;
                             <div class="rf-hud-hp-row">
                                 <button type="button" class="rf-hud-hp heal" disabled="@(hpAmount is null or <= 0 || busy)" @onclick="() => HealAsync(it, 1)" data-test="map-token-heal"><Icon Name="plus" /> @UiText.ToolHeal(Lang)</button>
                                 <input type="number" class="rf-hud-hp-amount" min="0" max="10000" placeholder="—" @bind="hpAmount" @bind:event="oninput" @onkeydown="e => HpKeyAsync(e, it)" aria-label="@UiText.ToolHpAmount(Lang)" data-test="map-token-hp-amount" />
@@ -1251,6 +1255,24 @@ else
 
     private int LifeMax(CampaignCharacterDto c) => charVitals.TryGetValue(c.Character.Id, out var v) ? v.MaxHitPoints
         : hpAfterRest.TryGetValue(c.Character.Id, out var r) ? r.Max : c.Character.MaxHitPoints;
+
+    //	The hit points of the characters as the server sent them with the tokens: newer than those of the page
+    //	(a monster hit one, a player healed on the sheet); a vitals read that no longer matches goes
+    private void TakeSheetLife()
+    {
+        foreach (var t in tokens)
+        {
+            if (t.CharacterId is not { } id || t.SheetHp is not { } now || t.SheetMaxHp is not { } max)
+            {
+                continue;
+            }
+            hpAfterRest[id] = (now, max);
+            if (charVitals.TryGetValue(id, out var v) && ((v.CurrentHitPoints ?? v.MaxHitPoints) != now || v.MaxHitPoints != max || v.TemporaryHitPoints != (t.SheetTempHp ?? 0)))
+            {
+                charVitals.Remove(id);
+            }
+        }
+    }
 
     private async Task LoadVitalsAsync(Guid characterId)
     {
@@ -1576,7 +1598,7 @@ else
     //	An attack: its rolls, and what an attack at a target on the map needs (bonus, damage, reach, the weapon in the
     //	inventory that spends ammunition)
     private sealed record SheetLine(string Name, string Detail, TokenRoll? Roll, TokenRoll? Damage, int Bonus = 0, string? DamageDice = null,
-        string? DamageType = null, AttackReach? Reach = null, Guid? InventoryId = null);
+        string? DamageType = null, AttackReach? Reach = null, Guid? InventoryId = null, string? Condition = null);
     private sealed record SheetProse(string Title, string Markdown);
     private sealed record QuickSheet(string Kind, string Sub, string Line, string Extra, List<SheetStat> Vitals, List<SheetAbility> Abilities,
         List<SheetSave> Saves, string? SavesNote, List<SheetStat> Passives, List<SheetLine> Attacks, List<SheetProse> Prose, string? Link,
@@ -1664,7 +1686,7 @@ else
     {
         if (CharacterOf(t) is { } c && c.Character.MaxHitPoints > 0)
         {
-            var (current, top) = hpAfterRest.TryGetValue(c.Character.Id, out var rested) ? rested : (c.Character.CurrentHitPoints, c.Character.MaxHitPoints);
+            var (current, top) = (LifeHp(c), LifeMax(c));
             return new Life(Math.Clamp((double)current / Math.Max(1, top), 0, 1), $"{current}/{top}");
         }
         if (t.Hp is { } hp && t.MaxHp is { } max && max > 0)
@@ -2556,6 +2578,7 @@ else
         if (map is not null)
         {
             tokens = map.Tokens;
+            TakeSheetLife();
             shapes = map.Shapes ?? new();
             ApplyTable(map.Table, first: true);
             ApplyCombat(map.Combat);
@@ -2634,6 +2657,7 @@ else
                 {
                     map = map with { UpdatedAt = state.UpdatedAt, GridType = state.GridType, GridSize = state.GridSize, GridOffsetX = state.GridOffsetX, GridOffsetY = state.GridOffsetY, Shown = state.Shown, Name = state.Name };
                     tokens = state.Tokens;
+                    TakeSheetLife();
                     shapes = state.Shapes ?? new();
                     ApplyTable(state.Table, first: false);
                     ApplyCombat(state.Combat);
@@ -3408,6 +3432,7 @@ else
         map = map with { UpdatedAt = state.UpdatedAt };
         localEdits++;
         tokens = state.Tokens;
+        TakeSheetLife();
         shapes = state.Shapes ?? new();
         ApplyTable(state.Table, first: false);
         ApplyCombat(state.Combat);
@@ -3856,14 +3881,14 @@ else
             return null;
         }
         var bonus = int.Parse(hit.Groups[1].Value.Replace("−", "-").Replace(" ", string.Empty), CultureInfo.InvariantCulture);
-        var dice = System.Text.RegularExpressions.Regex.Match(entry.Markdown, @"\((\d+d\d+(?:\s*[+\-−]\s*\d+)?)\)");
-        var damage = dice.Success ? dice.Groups[1].Value.Replace("−", "-").Replace(" ", string.Empty) : null;
+        //	Every damage of the hit ("1d8+3 slashing plus 1d6 fire" → "1d8+3+1d6") and the condition it gives
+        var damage = RealmForge.Shared.Campaigns.TableCombat.DamageOf(entry.Markdown);
         var type = System.Text.RegularExpressions.Regex.Match(entry.Markdown, @"\)\s+danni\s+(?:da\s+)?(\p{L}+)|\)\s+(\p{L}+)\s+damage", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
         return new SheetLine(entry.Name, damage is null ? Bonus(bonus) : $"{Bonus(bonus)} · {damage}",
             new TokenRoll(UiText.RollAttack(entry.Name, Lang), Bonus(bonus), D20(bonus), true),
             damage is null ? null : new TokenRoll(UiText.RollDamage(entry.Name, Lang), damage, damage, true),
             bonus, damage, type.Success ? (type.Groups[1].Success ? type.Groups[1].Value : type.Groups[2].Value).ToLowerInvariant() : null,
-            RealmForge.Shared.Campaigns.TableCombat.OfStatblock(entry.Markdown));
+            RealmForge.Shared.Campaigns.TableCombat.OfStatblock(entry.Markdown), null, RealmForge.Shared.Campaigns.TableCombat.ConditionOf(entry.Markdown));
     }
 
     private async Task RollAsync(MapTokenDto t, TokenRoll roll) => await RollForAsync(t, roll);

@@ -93,4 +93,20 @@ public class TableCombatTests
 	[InlineData("d10+1d4", "2d10+2d4")]
 	public void Critical_doubles_the_dice(string expression, string critical) =>
 		Assert.Equal(critical, TableCombat.Critical(expression));
+
+	[Theory]
+	[InlineData("*Melee Weapon Attack:* +4 to hit, reach 5 ft. *Hit:* 7 (1d8 + 3) slashing damage plus 3 (1d6) fire damage.", "1d8+3+1d6")]
+	[InlineData("*Attacco con arma da mischia:* +4 al tiro per colpire. *Colpito:* 5 (1d6 + 2) danni perforanti.", "1d6+2")]
+	[InlineData("*Melee Weapon Attack:* +2 to hit. *Hit:* 1 piercing damage.", "1")]
+	[InlineData("It casts a spell.", null)]
+	public void The_damage_of_an_attack_joins_every_group(string text, string? damage) =>
+		Assert.Equal(damage, TableCombat.DamageOf(text));
+
+	[Theory]
+	[InlineData("*Hit:* 6 (1d8 + 2) bludgeoning damage, and the target is grappled (escape DC 12).", "grappled")]
+	[InlineData("*Colpito:* 5 (1d6 + 2) danni perforanti e il bersaglio deve superare un TS o cadere prono.", "prone")]
+	[InlineData("*Hit:* 4 (1d4 + 2) piercing damage plus 7 (2d6) poison damage.", null)]
+	[InlineData("*Colpito:* 7 (2d6) danni da veleno e il bersaglio è avvelenato fino alla fine del suo turno.", "poisoned")]
+	public void The_condition_of_an_attack_is_read_from_its_text(string text, string? condition) =>
+		Assert.Equal(condition, TableCombat.ConditionOf(text));
 }

@@ -206,6 +206,7 @@ public static class CharacterCalculator
 				result.Error(IssueCodes.HitPointRoll, i + 1);
 			}
 
+			result.ScoresBeforeLevel.Add((int[])running.Clone());
 			if (improvement || epicBoon)
 			{
 				ApplyLevelImprovement(entry, i + 1, cls, epicBoon, result, context, takenFeats, running, levelBonuses, classes);
@@ -469,7 +470,11 @@ public static class CharacterCalculator
 			return;
 		}
 
-		if (!MeetsFeatPrerequisites(feat, level, running, result, classes, takenFeats))
+		if (!CharacterRules.IsRepeatable(feat) && takenFeats.Any(t => t.Feat.Id == feat.Id))
+		{
+			result.Error(IssueCodes.FeatDuplicate, feat.Name);
+		}
+		if (!MeetsFeatPrerequisites(feat, level, running, result, result.Plan, classes, takenFeats))
 		{
 			result.Error(IssueCodes.FeatPrerequisite, feat.Name);
 		}
@@ -483,7 +488,29 @@ public static class CharacterCalculator
 		takenFeats.Add(taken);
 	}
 
-	private static bool MeetsFeatPrerequisites(ContextFeat feat, int level, int[] scores, ComputedCharacter result,
+	///	<summary>
+	///	Whether a feat can be taken at a level of a character already computed: the scores before that level, the
+	///	classes and the feats taken before it, a feat that cannot be repeated not taken yet (the wizard offers only these).
+	///	</summary>
+	public static bool FeatAvailable(ContextFeat feat, int level, ComputedCharacter result)
+	{
+		if (level < 1 || level > result.ScoresBeforeLevel.Count)
+		{
+			return true;
+		}
+		var plan = result.Plan.Take(level).ToList();
+		var classes = result.Classes.Where(c => plan.Any(p => p.Class.Id == c.Class.Id))
+			.OrderBy(c => plan.FindIndex(p => p.Class.Id == c.Class.Id))
+			.Select(c => (c.Class, c.Build)).ToList();
+		var before = result.Feats.Where(t => !t.Source.StartsWith("level:") || (int.TryParse(t.Source[6..], out var l) && l < level)).ToList();
+		if (!CharacterRules.IsRepeatable(feat) && result.Feats.Any(t => t.Feat.Id == feat.Id && t.Source != $"level:{level}"))
+		{
+			return false;
+		}
+		return MeetsFeatPrerequisites(feat, level, result.ScoresBeforeLevel[level - 1], result, plan, classes, before);
+	}
+
+	private static bool MeetsFeatPrerequisites(ContextFeat feat, int level, int[] scores, ComputedCharacter result, IReadOnlyList<LevelPlanEntry> levels,
 		List<(ContextClass Class, CharacterClassBuild Build)> classes, List<TakenFeat> taken)
 	{
 		if (feat.MinimumLevel is { } minimum && level < minimum)
@@ -495,12 +522,7 @@ public static class CharacterCalculator
 		{
 			return false;
 		}
-		if (!CharacterRules.IsRepeatable(feat) && taken.Any(t => t.Feat.Id == feat.Id))
-		{
-			result.Error(IssueCodes.FeatDuplicate, feat.Name);
-		}
 
-		var levels = result.Plan;
 		bool HasClassAtLevel(Func<ContextClass, int, bool> test) =>
 			classes.Any(c => test(c.Class, levels.Where(p => p.Class.Id == c.Class.Id).Select(p => p.ClassLevel).DefaultIfEmpty(0).Max()));
 

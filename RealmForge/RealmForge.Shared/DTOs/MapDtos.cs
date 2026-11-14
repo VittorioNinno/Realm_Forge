@@ -57,7 +57,12 @@ namespace RealmForge.Shared.DTOs
 		//	What it carries (see TokenGearDto), and what was spent of its turn in the fight (attack, other, reaction)
 		TokenGearDto? Gear = null,
 		string? ActionSpent = null,
-		bool ReactionUsed = false);
+		bool ReactionUsed = false,
+
+		//	A character's hit points from its sheet now (everyone at the table sees them), so a hit shows on every screen
+		int? SheetHp = null,
+		int? SheetMaxHp = null,
+		int? SheetTempHp = null);
 
 	///	<summary>
 	///	The fight on a map: the encounter, the round, whose turn it is and the initiative order (what the players see of it).
