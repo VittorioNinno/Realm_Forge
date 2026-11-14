@@ -62,7 +62,8 @@ namespace RealmForge.Shared.DTOs
 		//	A character's hit points from its sheet now (everyone at the table sees them), so a hit shows on every screen
 		int? SheetHp = null,
 		int? SheetMaxHp = null,
-		int? SheetTempHp = null);
+		int? SheetTempHp = null,
+		TokenTurnDto? Turn = null);
 
 	///	<summary>
 	///	The fight on a map: the encounter, the round, whose turn it is and the initiative order (what the players see of it).
@@ -133,7 +134,23 @@ namespace RealmForge.Shared.DTOs
 		public int LongRange { get; set; }
 		public int Mode { get; set; }
 		public string? Condition { get; set; }
+
+		//	A character's attacks with one Attack action (Extra Attack); null: not counted
+		public int? ActionAttacks { get; set; }
 	}
+
+	///	<summary>
+	///	What a token did with its turn: an action (dash, disengage, dodge, help, hide, ready, search, other), a bonus action
+	///	(bonus), the weapon taken in hand (wield: melee or ranged), an attack of opportunity let go (pass).
+	///	</summary>
+	public class TurnActionDto
+	{
+		public string Kind { get; set; } = string.Empty;
+		public string? Wield { get; set; }
+	}
+
+	///	<summary>The turn of a token in a fight, as the table shows it.</summary>
+	public record TokenTurnDto(bool BonusUsed, int AttacksMade, bool Dashed, bool Disengaged, bool Dodging, bool Interacted, string? Wield, Guid? OpportunityOn);
 
 	///	<summary>
 	///	How an attack went: the d20 (and the one left out), the total, hit or miss, critical, the damage dealt and what
