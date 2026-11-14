@@ -15,7 +15,8 @@ namespace RealmForge.Infrastructure.Migrations
                 name: "Terrain",
                 table: "CampaignMaps",
                 type: "integer[]",
-                nullable: false);
+                nullable: false,
+                defaultValueSql: "'{}'");
 
             migrationBuilder.AddColumn<bool>(
                 name: "TerrainBlocks",
