@@ -1926,6 +1926,11 @@ try {
   await page.locator('[data-test=vtt-init-collapse]').click();
   initUi.collapsed = await page.locator('[data-test=vtt-init-fight] [data-test=vtt-combatant]').count();
   await page.locator('[data-test=vtt-init-collapse]').click();
+  // The order as a column on the left, then back in a line
+  await page.locator('[data-test=vtt-init-layout]').click();
+  initUi.vertical = await page.locator('.rf-init-widget.vertical [data-test=vtt-combatant]').count();
+  await shot(page, 'vtt-initiative-vertical', null);
+  await page.locator('[data-test=vtt-init-layout]').click();
   await page.locator('[data-test=vtt-end-combat]').click();
   await page.locator('[data-test=vtt-quick-combat]').waitFor({ timeout: 15000 });
   await page.locator('[data-test=vtt-dock-dice]').click();
@@ -1939,8 +1944,18 @@ try {
   await page.locator('[data-test=vtt-dock-collapse]').click();
   initUi.minimized = await page.locator('[data-test=vtt-dice-card] [data-test=roll-go]').count();
   await page.locator('[data-test=vtt-dock-collapse]').click();
+  // The log pinned in the side panel, the panel folded to a rail and opened again, the log back over the map
+  await page.locator('[data-test=vtt-log-card] [data-test=rolls-log-pin]').click();
+  await page.locator('[data-test=vtt-drawer] [data-test=campaign-rolls]').waitFor({ timeout: 10000 });
+  initUi.pinned = await page.locator('[data-test=vtt-tab-log]').count();
+  await page.locator('[data-test=vtt-drawer-fold]').click();
+  initUi.rail = await page.locator('.rf-vtt-drawer.folded').count();
+  await page.locator('[data-test=vtt-drawer-unfold]').click();
+  await page.locator('[data-test=vtt-drawer] [data-test=rolls-log-pin]').click();
+  await page.locator('[data-test=vtt-log-card] [data-test=campaign-rolls]').waitFor({ timeout: 10000 });
   await page.locator('[data-test=rolls-console-close]').click();
   await page.locator('[data-test=rolls-log-close]').click();
+  if (initUi.vertical < 4 || initUi.pinned !== 1 || initUi.rail !== 1) throw new Error(`initiative layout or pinned log: ${JSON.stringify(initUi)}`);
   results.push(`INFO vtt initiative: ${JSON.stringify(initUi)}`);
   if (initUi.rows !== 5 || initUi.unrolled !== 5 || !/^\d+$/.test(initUi.heroInit) || initUi.afterLeave !== 4 || initUi.leftToRoll !== 0 || initUi.lives < 4
     || initUi.healthShown !== 'true' || initUi.collapsed !== 0 || initUi.diceTray !== 1 || initUi.logged !== 1 || initUi.minimized !== 0) throw new Error(`unexpected initiative: ${JSON.stringify(initUi)}`);
