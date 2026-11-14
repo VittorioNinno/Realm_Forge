@@ -188,6 +188,20 @@ namespace RealmForge.Client.Localization
 		public static string VttOpportunityTake(LanguageCode lang) => T(lang, "Attacca", "Attack");
 		public static string VttOpportunityPass(LanguageCode lang) => T(lang, "Lascia andare", "Let it go");
 		public static string VttOpportunityNoAttack(LanguageCode lang) => T(lang, "Nessun attacco in mischia: l'occasione è persa.", "No melee attack: the chance is gone.");
+		public static string VttFeatureUses(LanguageCode lang) => T(lang, "Privilegi da usare", "Features to use");
+		public static string VttFeatureSlot(int slot, LanguageCode lang) => slot switch
+		{
+			1 => T(lang, "Azione", "Action"),
+			2 => T(lang, "Azione bonus", "Bonus action"),
+			3 => T(lang, "Reazione", "Reaction"),
+			_ => T(lang, "Libero", "Free")
+		};
+		public static string VttFeatureLeft(int left, int most, LanguageCode lang) => T(lang, $"{left}/{most} rimasti", $"{left}/{most} left");
+		public static string VttFeatureAmount(LanguageCode lang) => T(lang, "Quanti punti", "How many points");
+		public static string VttFeatureUse(LanguageCode lang) => T(lang, "Usa", "Use");
+		public static string VttFeatureUsed(string name, LanguageCode lang) => T(lang, $"{name}: usato.", $"{name}: used.");
+		public static string VttFeatureHealed(string name, int value, LanguageCode lang) => T(lang, $"{name}: +{value} punti ferita.", $"{name}: +{value} hit points.");
+		public static string VttFeatureTemp(string name, int value, LanguageCode lang) => T(lang, $"{name}: {value} punti ferita temporanei.", $"{name}: {value} temporary hit points.");
 		public static string VttWayBlocked(LanguageCode lang) => T(lang, "Muri o porte chiuse sbarrano la strada.", "Walls or closed doors are in the way.");
 		public static string VttWayBlockedShort(LanguageCode lang) => T(lang, "Nessun passaggio", "No way through");
 

@@ -19132,3 +19132,99 @@ button.rf-qs-spell {
         width: 16px;
         height: 16px;
     }
+
+/* ===== Features used from the quick sheet: the part of the turn, the uses left, the dice ===== */
+.rf-feature-uses {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.rf-feature-use {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px;
+    border-radius: 8px;
+    border: 1px solid #262626;
+    background-color: #141414;
+}
+
+.rf-feature-use-main {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    gap: 4px;
+    min-width: 0;
+}
+
+    .rf-feature-use-main strong {
+        font-size: .8rem;
+        color: #ffffff;
+    }
+
+    .rf-feature-use-main small {
+        font-size: .68rem;
+        line-height: 1.4;
+        color: #8a8a8a;
+    }
+
+.rf-feature-use-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+}
+
+.rf-feature-slot,
+.rf-feature-dice,
+.rf-feature-left {
+    padding: 0 8px;
+    border-radius: 4px;
+    font-size: .62rem;
+    font-weight: 800;
+    line-height: 20px;
+}
+
+.rf-feature-slot {
+    background-color: #1f1f1f;
+    color: #a1a1aa;
+}
+
+    .rf-feature-slot.slot-1 {
+        background-color: rgba(255, 140, 0, .14);
+        color: #ffb74d;
+    }
+
+    .rf-feature-slot.slot-2 {
+        background-color: rgba(124, 58, 237, .18);
+        color: #c4b5fd;
+    }
+
+    .rf-feature-slot.slot-3 {
+        background-color: rgba(2, 132, 199, .18);
+        color: #7dd3fc;
+    }
+
+.rf-feature-dice {
+    background-color: rgba(16, 185, 129, .12);
+    color: #34d399;
+}
+
+.rf-feature-left {
+    border: 1px solid #2c2c2c;
+    color: #d4d4d8;
+}
+
+    .rf-feature-left.none {
+        color: #f87171;
+    }
+
+.rf-feature-amount {
+    width: 56px;
+    height: 32px;
+    padding: 0 8px;
+    border-radius: 8px;
+    border: 1px solid #3f3f46;
+    background-color: #101010;
+    color: #ffffff;
+}
