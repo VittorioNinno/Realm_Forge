@@ -852,6 +852,30 @@
                 } : null;
             }
 
+            // The effect of a hit, a miss, the damage or the healing on a token: a flash, a small shake, a number rising
+            function strike(stage, tokenId, kind, text) {
+                const el = stage && stage.querySelector(`.rf-vtt-token[data-token="${tokenId}"]`);
+                if (!el) return;
+                const cls = `fx-${kind}`;
+                el.classList.remove('fx-hit', 'fx-miss', 'fx-crit', 'fx-heal');
+                void el.offsetWidth;
+                el.classList.add(cls);
+                setTimeout(() => el.classList.remove(cls), 900);
+                if (text) {
+                    const f = document.createElement('span');
+                    f.className = `rf-fx-float ${kind}`;
+                    f.textContent = text;
+                    f.setAttribute('data-test', 'map-fx');
+                    el.appendChild(f);
+                    setTimeout(() => f.remove(), 1500);
+                }
+            }
+
+            function reveal(selector) {
+                const el = document.querySelector(selector);
+                if (el) el.scrollIntoView({ block: 'nearest', inline: 'center', behavior: 'smooth' });
+            }
+
             function detach(stage) {
                 const st = stage && boards.get(stage);
                 if (!st) return;
@@ -940,7 +964,7 @@
                 return el.requestFullscreen?.();
             }
 
-            return { attach, detach, tool, terrain, fit, fullscreen, view, center: centerOn, keepVisible };
+            return { attach, detach, tool, terrain, strike, reveal, fit, fullscreen, view, center: centerOn, keepVisible };
         })();
         window.rfCropImage = (src, x, y, zoom, size) => new Promise((resolve) => {
             const img = new Image();

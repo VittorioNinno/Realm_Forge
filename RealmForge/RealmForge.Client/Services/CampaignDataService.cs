@@ -173,8 +173,8 @@ namespace RealmForge.Client.Services
 
 		// ===== Dice log =====
 
-		public Task<List<CampaignRollDto>?> GetRollsAsync(Guid id, DateTimeOffset? after = null) =>
-			GetAsync<List<CampaignRollDto>>($"api/campaigns/{id}/rolls" + (after is { } since ? $"?after={Uri.EscapeDataString(since.ToUniversalTime().ToString("O"))}" : string.Empty));
+		public Task<List<CampaignRollDto>?> GetRollsAsync(Guid id, DateTimeOffset? after = null, bool wait = false) =>
+			GetAsync<List<CampaignRollDto>>($"api/campaigns/{id}/rolls" + (after is { } since ? $"?after={Uri.EscapeDataString(since.ToUniversalTime().ToString("O"))}{(wait ? "&wait=true" : string.Empty)}" : string.Empty));
 
 		public async Task<(CampaignRollDto? Roll, HttpStatusCode? Status)> RollAsync(Guid id, NewCampaignRollDto roll)
 		{

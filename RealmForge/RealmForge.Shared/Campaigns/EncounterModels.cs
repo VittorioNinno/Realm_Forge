@@ -140,6 +140,15 @@ public static class EncounterRules
 		c.Interacted = false;
 	}
 
+	///	<summary>
+	///	The health the players see of a creature whose hit points are hidden: unharmed until it is hit, then only wounded
+	///	(never how badly), down at 0.
+	///	</summary>
+	public static CombatantHealth HiddenHealthOf(int hp, int maxHp) =>
+		hp <= 0 && maxHp > 0 ? CombatantHealth.Down
+		: maxHp <= 0 || hp >= maxHp ? CombatantHealth.Unharmed
+		: CombatantHealth.Wounded;
+
 	public static CombatantHealth HealthOf(int hp, int maxHp) =>
 		hp <= 0 ? CombatantHealth.Down
 		: maxHp <= 0 || hp >= maxHp ? CombatantHealth.Unharmed

@@ -22,9 +22,12 @@ namespace RealmForge.Api.Controllers
 	{
 		private readonly RealmForgeDbContext _context;
 
-		public MapsController(RealmForgeDbContext context)
+		private readonly Realtime.TableSignals? _signals;
+
+		public MapsController(RealmForgeDbContext context, Realtime.TableSignals? signals = null)
 		{
 			_context = context;
+			_signals = signals;
 		}
 
 		private string UserId => ContentAccess.GetUserId(User) ?? string.Empty;
@@ -1443,13 +1446,13 @@ namespace RealmForge.Api.Controllers
 						var tokenHp = t.Hp ?? tokenMax;
 						dto = knows
 							? dto with { Hp = tokenHp, MaxHp = tokenMax }
-							: dto with { Health = EncounterRules.HealthOf(tokenHp, tokenMax) };
+							: dto with { Health = EncounterRules.HiddenHealthOf(tokenHp, tokenMax) };
 					}
 					if (combatant is not null && combatant.Kind != CombatantKind.Character)
 					{
 						dto = knows
 							? dto with { Hp = combatant.Hp, MaxHp = combatant.MaxHp, TempHp = combatant.TempHp > 0 ? combatant.TempHp : null }
-							: dto with { Health = EncounterRules.HealthOf(combatant.Hp, combatant.MaxHp) };
+							: dto with { Health = EncounterRules.HiddenHealthOf(combatant.Hp, combatant.MaxHp) };
 					}
 					var down = combatant is not null && combatant.Kind != CombatantKind.Character ? combatant.MaxHp > 0 && combatant.Hp <= 0
 						: t.CharacterId is null && t.MaxHp is > 0 && (t.Hp ?? t.MaxHp) <= 0;
@@ -1539,7 +1542,15 @@ namespace RealmForge.Api.Controllers
 					{
 						return;
 					}
-					await Task.Delay(400, aborted);
+					//	Woken at once by a save on this server; a look every half second finds what another server saved
+					if (_signals is not null)
+					{
+						await _signals.WaitAsync(TimeSpan.FromMilliseconds(500), aborted);
+					}
+					else
+					{
+						await Task.Delay(400, aborted);
+					}
 				}
 			}
 			catch (OperationCanceledException)
@@ -1571,7 +1582,8 @@ namespace RealmForge.Api.Controllers
 			map.FogEnabled || CampaignRules.RunsTheTable(role) ? map.Fog : new List<double>(),
 			map.PingAt is { } pingAt ? new MapPingDto(map.PingX ?? 0, map.PingY ?? 0, map.PingColor ?? PlayerColors.Master, pingAt) : null,
 			map.FocusAt is { } focusAt ? new MapFocusDto(map.FocusX ?? 0, map.FocusY ?? 0, map.FocusZoom ?? 1, focusAt) : null,
-			map.PlayersLocked);
+			map.PlayersLocked,
+			map.StrikeAt is { } strikeAt && map.StrikeTokenId is { } struck ? new MapStrikeDto(struck, map.StrikeKind, map.StrikeDamage, strikeAt) : null);
 
 		//	Everyone sees their own drawings and what is for the whole table (MapRules.Sees)
 		private List<MapShapeDto> ShapesOf(CampaignMap map, CampaignRole role)
