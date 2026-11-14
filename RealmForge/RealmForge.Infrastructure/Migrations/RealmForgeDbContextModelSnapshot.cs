@@ -604,6 +604,15 @@ namespace RealmForge.Infrastructure.Migrations
                     b.Property<bool>("Shown")
                         .HasColumnType("boolean");
 
+                    b.PrimitiveCollection<List<int>>("Terrain")
+                        .IsRequired()
+                        .HasColumnType("integer[]");
+
+                    b.Property<bool>("TerrainBlocks")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true);
+
                     b.Property<DateTimeOffset>("UpdatedAt")
                         .HasColumnType("timestamp with time zone");
 

@@ -96,6 +96,9 @@ public sealed class ComputedCharacter
 	public int[] BaseScores { get; set; } = new int[6];
 	public int[] OriginBonuses { get; set; } = new int[6];
 	public int[] LevelBonuses { get; set; } = new int[6];
+
+	//	The scores before the improvement of each level (index 0: level 1), for the prerequisites of a feat
+	public List<int[]> ScoresBeforeLevel { get; } = new();
 	public int[] FinalScores { get; set; } = new int[6];
 	public int Modifier(AbilityScore ability) => CharacterMath.Modifier(FinalScores[(int)ability - 1]);
 	public int Score(AbilityScore ability) => FinalScores[(int)ability - 1];

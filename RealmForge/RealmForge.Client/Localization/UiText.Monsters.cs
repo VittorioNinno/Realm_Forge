@@ -145,6 +145,10 @@ namespace RealmForge.Client.Localization
 		public static string EncounterGenGo(LanguageCode lang) => T(lang, "Genera", "Generate");
 		public static string EncounterGenNeedParty(LanguageCode lang) => T(lang, "Scegli almeno un PG per il calcolo.", "Choose at least one character for the budget.");
 		public static string EncounterGenAny(LanguageCode lang) => T(lang, "Qualsiasi", "Any");
+		public static string EncounterGenRunning(LanguageCode lang) => T(lang, "Generazione in corso…", "Generating…");
+		public static string EncounterGenDone(string monsters, string rating, LanguageCode lang) => T(lang, $"Aggiunti: {monsters} · {rating}.", $"Added: {monsters} · {rating}.");
+		public static string EncounterGenNoList(LanguageCode lang) => T(lang, "Il bestiario non è disponibile: riprova tra poco.", "The bestiary is not available: try again shortly.");
+		public static string EncounterGenError(LanguageCode lang) => T(lang, "La generazione non è riuscita: riprova.", "The generation failed: try again.");
 		public static string EncounterGenNone(LanguageCode lang) => T(lang, "Nessun mostro di questo tipo entra nel budget: prova un altro tipo o un'altra difficoltà.", "No monster of this kind fits the budget: try another kind or difficulty.");
 		public static string EncounterCombatantsKicker(LanguageCode lang) => T(lang, "Combattenti e schieramento", "Combatants and positions");
 		public static string EncounterClearMonsters(LanguageCode lang) => T(lang, "Svuota nemici", "Clear the enemies");

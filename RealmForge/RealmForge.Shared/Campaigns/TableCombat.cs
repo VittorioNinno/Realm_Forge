@@ -251,6 +251,81 @@ public static partial class TableCombat
 
 	[GeneratedRegex(@"(?<n>\d+)-(?<unit>f)oot[- ](?:long\s+)?line", RegexOptions.IgnoreCase)]
 	private static partial Regex LineEn();
+
+	// ===== The damage and the effect of a statblock attack =====
+
+	///	<summary>
+	///	Every damage of an attack's text joined into one expression: "7 (1d8 + 3) slashing damage plus 3 (1d6) fire
+	///	damage" → "1d8+3+1d6"; a flat damage ("1 piercing damage") when it has no dice; null without damage.
+	///	</summary>
+	public static string? DamageOf(string? text)
+	{
+		if (string.IsNullOrWhiteSpace(text))
+		{
+			return null;
+		}
+		var groups = DamageDice().Matches(text).Select(m => m.Groups[1].Value.Replace("−", "-").Replace(" ", string.Empty)).ToList();
+		if (groups.Count > 0)
+		{
+			return string.Join("+", groups).Replace("+-", "-");
+		}
+		var flat = FlatDamage().Match(text);
+		return flat.Success ? flat.Groups["n"].Value : null;
+	}
+
+	//	The words of a condition in both languages (masculine and feminine, singular and plural in Italian)
+	private static readonly (string Key, Regex Words)[] ConditionWords =
+	{
+		("prone", new Regex(@"\bprone\b|\bpron[oaie]\b", RegexOptions.IgnoreCase)),
+		("grappled", new Regex(@"\bgrappled\b|\bafferrat[oaie]\b", RegexOptions.IgnoreCase)),
+		("restrained", new Regex(@"\brestrained\b|\btrattenut[oaie]\b", RegexOptions.IgnoreCase)),
+		("poisoned", new Regex(@"\bpoisoned\b|\bavvelenat[oaie]\b", RegexOptions.IgnoreCase)),
+		("frightened", new Regex(@"\bfrightened\b|\bspaventat[oaie]\b", RegexOptions.IgnoreCase)),
+		("paralyzed", new Regex(@"\bparalyzed\b|\bparalizzat[oaie]\b", RegexOptions.IgnoreCase)),
+		("stunned", new Regex(@"\bstunned\b|\bstordit[oaie]\b", RegexOptions.IgnoreCase)),
+		("blinded", new Regex(@"\bblinded\b|\baccecat[oaie]\b", RegexOptions.IgnoreCase)),
+		("charmed", new Regex(@"\bcharmed\b|\baffascinat[oaie]\b", RegexOptions.IgnoreCase)),
+		("deafened", new Regex(@"\bdeafened\b|\bassordat[oaie]\b", RegexOptions.IgnoreCase)),
+		("petrified", new Regex(@"\bpetrified\b|\bpietrificat[oaie]\b", RegexOptions.IgnoreCase)),
+		("incapacitated", new Regex(@"\bincapacitated\b|\bincapacitat[oaie]\b", RegexOptions.IgnoreCase)),
+		("unconscious", new Regex(@"\bunconscious\b|\bprivo di sensi\b|\bpriva di sensi\b", RegexOptions.IgnoreCase))
+	};
+
+	///	<summary>
+	///	The condition an attack's text gives on a hit (the first one named: "the target is grappled (escape DC 13)",
+	///	"il bersaglio è afferrato"); null when it names none.
+	///	</summary>
+	public static string? ConditionOf(string? text)
+	{
+		if (string.IsNullOrWhiteSpace(text))
+		{
+			return null;
+		}
+		return ConditionWords
+			.Select(c => (c.Key, Match: c.Words.Match(text)))
+			.Where(c => c.Match.Success)
+			.OrderBy(c => c.Match.Index)
+			.Select(c => c.Key)
+			.FirstOrDefault();
+	}
+
+	///	<summary>The name of a condition for the log of the table.</summary>
+	public static string ConditionName(string key, bool italian) => (key, italian) switch
+	{
+		("blinded", true) => "accecato", ("charmed", true) => "affascinato", ("deafened", true) => "assordato",
+		("frightened", true) => "spaventato", ("grappled", true) => "afferrato", ("incapacitated", true) => "incapacitato",
+		("invisible", true) => "invisibile", ("paralyzed", true) => "paralizzato", ("petrified", true) => "pietrificato",
+		("poisoned", true) => "avvelenato", ("prone", true) => "prono", ("restrained", true) => "trattenuto",
+		("stunned", true) => "stordito", ("unconscious", true) => "privo di sensi", ("exhaustion", true) => "indebolimento",
+		("concentrating", true) => "concentrazione",
+		_ => key
+	};
+
+	[GeneratedRegex(@"\((\d+d\d+(?:\s*[+\-−]\s*\d+)?)\)")]
+	private static partial Regex DamageDice();
+
+	[GeneratedRegex(@"(?:Hit|Colpito)\s*:[*_\s]*(?<n>\d+)\s+(?:dann[oi]|\p{L}+\s+damage)", RegexOptions.IgnoreCase)]
+	private static partial Regex FlatDamage();
 }
 
 ///	<summary>
