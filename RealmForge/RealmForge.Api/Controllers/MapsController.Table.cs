@@ -161,7 +161,7 @@ namespace RealmForge.Api.Controllers
 				? T(italian, die == 1 ? "Mancato (1 naturale)" : "Mancato", die == 1 ? "Miss (natural 1)" : "Miss")
 				: (critical ? T(italian, "Colpo critico", "Critical hit") : T(italian, "Colpito", "Hit"))
 					+ (damage is { } dealt ? T(italian, $" · {dealt} danni{(dto.DamageType is { Length: > 0 } dt ? " " + dt : string.Empty)}", $" · {dealt}{(dto.DamageType is { Length: > 0 } dt2 ? " " + dt2 : string.Empty)} damage") : string.Empty)
-					+ (dto.Condition is { } imposed ? $" · {imposed}" : string.Empty)
+					+ (dto.Condition is { } imposed ? $" · {TableCombat.ConditionName(imposed, italian)}" : string.Empty)
 					+ (down ? T(italian, " · a terra", " · down") : string.Empty);
 			if (effect.Mode != 0)
 			{

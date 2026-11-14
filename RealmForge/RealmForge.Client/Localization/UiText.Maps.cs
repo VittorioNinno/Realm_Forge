@@ -149,6 +149,60 @@ namespace RealmForge.Client.Localization
 		public static string VttEraseClick(LanguageCode lang) => T(lang, "Clic", "Click");
 		public static string VttEraseArea(LanguageCode lang) => T(lang, "Area", "Area");
 		public static string VttEraseAreaHint(LanguageCode lang) => T(lang, "Trascina un riquadro: disegni, testi e aree che tocca vengono tolti.", "Drag a box: the drawings, texts and areas it touches are removed.");
+		public static string VttWayBlocked(LanguageCode lang) => T(lang, "Muri o porte chiuse sbarrano la strada.", "Walls or closed doors are in the way.");
+		public static string VttWayBlockedShort(LanguageCode lang) => T(lang, "Nessun passaggio", "No way through");
+
+		// ----- The map editor -----
+		public static string MapShownShort(LanguageCode lang) => T(lang, "Visibile ai giocatori", "Shown to the players");
+		public static string MapHiddenShort(LanguageCode lang) => T(lang, "Non mostrata", "Not shown");
+		public static string MapViewAs(LanguageCode lang) => T(lang, "Vista", "View");
+		public static string MapViewEditor(LanguageCode lang) => T(lang, "Editor", "Editor");
+		public static string MapViewPlayers(LanguageCode lang) => T(lang, "Vista giocatori", "Players' view");
+		public static string MapBrushSelect(LanguageCode lang) => T(lang, "Seleziona", "Select");
+		public static string MapBrushCell(LanguageCode lang) => T(lang, "Pennello", "Brush");
+		public static string MapBrushBox(LanguageCode lang) => T(lang, "Rettangolo", "Box");
+		public static string MapZoneName(string zone, LanguageCode lang) => zone switch
+		{
+			"walkable" => T(lang, "Camminabile", "Walkable"),
+			"wall" => T(lang, "Muro", "Wall"),
+			"difficult" => T(lang, "Difficile", "Difficult"),
+			"door" => T(lang, "Porta", "Door"),
+			_ => T(lang, "Nebbia", "Fog")
+		};
+		public static string MapZoneTitle(string zone, LanguageCode lang) => zone switch
+		{
+			"walkable" => T(lang, "Zona camminabile", "Walkable ground"),
+			"wall" => T(lang, "Muro o ostacolo", "Wall or obstacle"),
+			"difficult" => T(lang, "Terreno difficile", "Difficult terrain"),
+			"door" => T(lang, "Porta o passaggio", "Door or passage"),
+			_ => T(lang, "Nebbia di guerra", "Fog of war")
+		};
+		public static string MapZoneHint(string zone, LanguageCode lang) => zone switch
+		{
+			"walkable" => T(lang, "Libera: cancella muri, terreno difficile e porte", "Free: clears walls, difficult terrain and doors"),
+			"wall" => T(lang, "I PG non la attraversano: girano intorno a muri e colonne", "Characters cannot cross it: they go around walls and columns"),
+			"difficult" => T(lang, "Ogni casella costa il doppio del movimento", "Every cell costs double movement"),
+			"door" => T(lang, "Si passa, se la porta che ci sta sopra è aperta", "Passable, when the door token on it is open"),
+			_ => T(lang, "Rivela o oscura le celle per i giocatori", "Reveals or covers the cells for the players")
+		};
+		public static string MapZoneCounts(int walls, int difficult, int doors, LanguageCode lang) => T(lang,
+			$"Muri: {walls} · Difficili: {difficult} · Porte: {doors}", $"Walls: {walls} · Difficult: {difficult} · Doors: {doors}");
+		public static string MapShowZones(LanguageCode lang) => T(lang, "Mostra i colori delle zone", "Show the zones' colours");
+		public static string MapTabZones(LanguageCode lang) => T(lang, "Zone e nebbia", "Zones and fog");
+		public static string MapTabGrid(LanguageCode lang) => T(lang, "Mappa e griglia", "Map and grid");
+		public static string MapTabTokens(int count, LanguageCode lang) => T(lang, $"Segnalini ({count})", $"Tokens ({count})");
+		public static string MapZonesTitle(LanguageCode lang) => T(lang, "Pennello delle zone", "Zone brush");
+		public static string MapZonesHelp(LanguageCode lang) => T(lang,
+			"Scegli una zona e dipingi le celle sulla mappa, una per una o con un rettangolo: il movimento dei giocatori ne tiene conto.",
+			"Pick a zone and paint the cells on the map, one by one or with a box: the players' movement follows it.");
+		public static string MapQuickTitle(LanguageCode lang) => T(lang, "Azioni rapide", "Quick actions");
+		public static string MapWallEdge(LanguageCode lang) => T(lang, "Muri sul bordo", "Wall the edge");
+		public static string MapAllWalkable(LanguageCode lang) => T(lang, "Tutto camminabile", "All walkable");
+		public static string MapFogAll(LanguageCode lang) => T(lang, "Oscura tutta la mappa", "Cover the whole map");
+		public static string MapRevealAll(LanguageCode lang) => T(lang, "Rivela tutta la mappa", "Reveal the whole map");
+		public static string MapRulesTitle(LanguageCode lang) => T(lang, "Regole di movimento", "Movement rules");
+		public static string MapBlockPlayers(LanguageCode lang) => T(lang, "I PG non attraversano muri e porte chiuse", "Characters do not cross walls and closed doors");
+		public static string MapFogEnabled(LanguageCode lang) => T(lang, "Nebbia di guerra attiva", "Fog of war on");
 		public static string VttTooFar(LanguageCode lang) => T(lang, "Oltre la velocità di movimento.", "Beyond the movement speed.");
 		public static string VttEraseHint(LanguageCode lang) => T(lang, "Fai clic su un disegno, un testo o un'area per toglierlo.", "Click a drawing, a text or an area to remove it.");
 		public static string VttClearAll(LanguageCode lang) => T(lang, "Rimuovi i disegni che vedi", "Remove the drawings you see");

@@ -57,7 +57,8 @@ namespace RealmForge.Client.Components
 			CancelCast();
 			aim = new Aim(t.Id, attack);
 			aimMode = 0;
-			aimCondition = null;
+			//	The condition its text gives on a hit, ready to apply (the master can take it away)
+			aimCondition = attack.Condition;
 			aimNote = null;
 			CloseToolbar();
 			await SetToolAsync("select");
