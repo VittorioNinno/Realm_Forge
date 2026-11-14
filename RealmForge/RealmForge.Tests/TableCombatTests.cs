@@ -109,4 +109,40 @@ public class TableCombatTests
 	[InlineData("*Colpito:* 7 (2d6) danni da veleno e il bersaglio è avvelenato fino alla fine del suo turno.", "poisoned")]
 	public void The_condition_of_an_attack_is_read_from_its_text(string text, string? condition) =>
 		Assert.Equal(condition, TableCombat.ConditionOf(text));
+
+	[Fact]
+	public void A_spell_attack_is_read_with_its_reach_and_damage()
+	{
+		var bolt = TableCombat.TargetOf("120 feet", "Make a ranged spell attack against the target. On a hit, the target takes 1d10 fire damage.", null, 0, 0, 5);
+		Assert.NotNull(bolt);
+		Assert.True(bolt!.Attack);
+		Assert.False(bolt.Melee);
+		Assert.Equal(24, bolt.Range);
+		Assert.Equal("2d10", bolt.Damage);
+
+		var grasp = TableCombat.TargetOf("Touch", "Make a melee spell attack against the target. On a hit, the target takes 1d8 lightning damage.", null, 0, 0, 1);
+		Assert.True(grasp!.Melee);
+		Assert.Equal(1, grasp.Range);
+		Assert.Equal("1d8", grasp.Damage);
+	}
+
+	[Fact]
+	public void A_saving_throw_spell_grows_with_the_slot()
+	{
+		var flame = TableCombat.TargetOf("60 feet", "The target must succeed on a Dexterity saving throw or take 1d8 radiant damage.", null, 0, 0, 11);
+		Assert.False(flame!.Attack);
+		Assert.Equal("Dexterity", flame.SaveAbility);
+		Assert.Equal(12, flame.Range);
+		Assert.Equal("3d8", flame.Damage);
+
+		var bolt = TableCombat.TargetOf("120 feet", "Make a ranged spell attack against the target. On a hit, the target takes 4d6 radiant damage.",
+			"The damage increases by 1d6 for each slot level above 1st.", 1, 3, 5);
+		Assert.Equal("6d6", bolt!.Damage);
+
+		var it = TableCombat.TargetOf("18 metri", "Il bersaglio deve effettuare un tiro salvezza su Saggezza o subire 2d8 danni psichici.", null, 1, 1, 3);
+		Assert.Equal("Saggezza", it!.SaveAbility);
+		Assert.Equal(12, it.Range);
+
+		Assert.Null(TableCombat.TargetOf("Touch", "You touch a creature and it regains hit points.", null, 1, 1, 1));
+	}
 }

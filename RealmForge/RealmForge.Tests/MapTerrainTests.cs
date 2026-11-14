@@ -75,4 +75,39 @@ public class MapTerrainTests
 		Assert.False(MapTerrain.Valid(new List<int> { 0, 0, 0 }));
 		Assert.False(MapTerrain.Valid(new List<int> { 0, 0 }));
 	}
+
+	[Theory]
+	[InlineData(TerrainKind.Walkable, 0)]
+	[InlineData(TerrainKind.HalfCover, 2)]
+	[InlineData(TerrainKind.ThreeQuarterCover, 5)]
+	[InlineData(TerrainKind.Wall, MapTerrain.TotalCover)]
+	[InlineData(TerrainKind.Difficult, 0)]
+	public void What_stands_between_two_tokens_gives_cover(TerrainKind kind, int cover)
+	{
+		var terrain = new Dictionary<(int Col, int Row), TerrainKind> { [(2, 2)] = kind };
+		Assert.Equal(cover, MapTerrain.Cover(GridType.Square, 50, 0, 0, terrain, new HashSet<(int, int)>(), (0, 2, 1), (4, 2, 1)));
+	}
+
+	[Fact]
+	public void A_closed_door_hides_and_an_area_stops_at_a_wall()
+	{
+		var none = new Dictionary<(int Col, int Row), TerrainKind>();
+		Assert.Equal(MapTerrain.TotalCover, MapTerrain.Cover(GridType.Square, 50, 0, 0, none, new HashSet<(int, int)> { (2, 2) }, (0, 2, 1), (4, 2, 1)));
+
+		var wall = new Dictionary<(int Col, int Row), TerrainKind> { [(2, 2)] = TerrainKind.Wall };
+		var origin = MapGeometry.Center(GridType.Square, 50, 0, 0, 0, 2);
+		Assert.False(MapTerrain.Visible(GridType.Square, 50, 0, 0, wall, new HashSet<(int, int)>(), origin, (4, 2)));
+		Assert.True(MapTerrain.Visible(GridType.Square, 50, 0, 0, wall, new HashSet<(int, int)>(), origin, (0, 4)));
+		//	The wall cell itself is reached (the area touches the wall)
+		Assert.True(MapTerrain.Visible(GridType.Square, 50, 0, 0, wall, new HashSet<(int, int)>(), origin, (2, 2)));
+	}
+
+	[Fact]
+	public void Cover_is_crossed_or_not()
+	{
+		var half = Enumerable.Range(0, 10).ToDictionary(r => (3, r), _ => TerrainKind.HalfCover);
+		var three = Enumerable.Range(0, 10).ToDictionary(r => (3, r), _ => TerrainKind.ThreeQuarterCover);
+		Assert.Equal(5, Path(GridType.Square, half, (1, 2), (5, 2))!.Value.Cost);
+		Assert.Null(Path(GridType.Square, three, (1, 2), (5, 2)));
+	}
 }
