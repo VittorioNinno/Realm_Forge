@@ -604,6 +604,18 @@ namespace RealmForge.Infrastructure.Migrations
                     b.Property<bool>("Shown")
                         .HasColumnType("boolean");
 
+                    b.Property<DateTimeOffset?>("StrikeAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int?>("StrikeDamage")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("StrikeKind")
+                        .HasColumnType("integer");
+
+                    b.Property<Guid?>("StrikeTokenId")
+                        .HasColumnType("uuid");
+
                     b.PrimitiveCollection<List<int>>("Terrain")
                         .IsRequired()
                         .HasColumnType("integer[]");
