@@ -8,6 +8,7 @@
 @inject EncounterDataService Encounters
 @inject MonsterDataService MonsterService
 @inject CampaignDataService Campaigns
+@inject ImageDataService Images
 @inject LanguageStateService LanguageState
 
 @* One encounter: masters and co-masters build it (monsters, characters, others), see its difficulty for the party and
@@ -175,6 +176,7 @@
         difficultyRuleset = Campaign.Ruleset ?? RulesetVersion.Dnd5e_2014;
         await LoadAsync();
         loading = false;
+        await LoadPicturesAsync();
         if (Manage)
         {
             await LoadMapsAsync();
@@ -791,6 +793,14 @@
                 {
                     <span class="enc-micro">@UiText.EncounterGenNeedParty(Lang)</span>
                 }
+                @if (generating)
+                {
+                    <span class="enc-gen-note" data-test="encounter-gen-running">@UiText.EncounterGenRunning(Lang)</span>
+                }
+                else if (genNote is not null)
+                {
+                    <span class="enc-gen-note @(genFailed ? "bad" : "good")" data-test="encounter-gen-result">@genNote</span>
+                }
             </div>
         </section>
     };
@@ -839,13 +849,17 @@
                             }
                         </div>
                         <div class="enc-who">
-                            <span class="enc-ava @kind">@if (current)
+                            <span class="enc-ava @kind @(current ? "current" : null)">@if (AvatarOf(c) is { } avatar)
                                 {
-                                    <Icon Name="play" />
+                                    <img src="@avatar" alt="" loading="lazy" data-test="combatant-avatar" />
                                 }
                                 else
                                 {
                                     @Code(c.Name)
+                                }
+                                @if (current)
+                                {
+                                    <span class="enc-ava-turn"><Icon Name="play" /></span>
                                 }</span>
                             <div class="enc-who-main">
                                 <div class="enc-name-line">
@@ -1018,7 +1032,14 @@
                         {
                             var who = c;
                             <button type="button" class="enc-brush @(who.Kind == CombatantKind.Character ? "pc" : who.Kind == CombatantKind.Monster ? "monster" : "other") @(placing == who.Id ? "on" : null)" @onclick="() => placing = who.Id" data-test="encounter-brush">
-                                <span class="code">@Code(who.Name)</span><span class="name">@who.Name</span><small>@(who.X is { } bx && who.Y is { } by ? CellName(bx, by) : "—")</small>
+                                <span class="code">@if (AvatarOf(who) is { } face)
+                                    {
+                                        <img src="@face" alt="" loading="lazy" />
+                                    }
+                                    else
+                                    {
+                                        @Code(who.Name)
+                                    }</span><span class="name">@who.Name</span><small>@(who.X is { } bx && who.Y is { } by ? CellName(bx, by) : "—")</small>
                             </button>
                         }
                     </div>
@@ -1037,7 +1058,13 @@
                             var kind = c.Kind == CombatantKind.Character ? "pc" : c.Kind == CombatantKind.Monster ? "monster" : "other";
                             <g class="enc-token @kind @(placing == c.Id ? "on" : null) @(c.Hidden ? "hidden-foe" : null)" @onclick="() => placing = c.Id">
                                 <circle cx="@N(cx)" cy="@N(cy)" r="@N(r)" />
-                                <text x="@N(cx)" y="@N(cy)" font-size="@N(r * 0.8)" text-anchor="middle" dominant-baseline="central">@Code(c.Name)</text>
+                                @if (AvatarOf(c) is { } picture)
+                                {
+                                    var clip = $"enc-clip-{c.Id:N}";
+                                    <clipPath id="@clip"><circle cx="@N(cx)" cy="@N(cy)" r="@N(r * 0.9)" /></clipPath>
+                                    <image href="@picture" x="@N(cx - r * 0.9)" y="@N(cy - r * 0.9)" width="@N(r * 1.8)" height="@N(r * 1.8)" clip-path="url(#@clip)" preserveAspectRatio="xMidYMid slice" />
+                                }
+                                <text x="@N(cx)" y="@N(cy)" font-size="@N(r * 0.8)" text-anchor="middle" dominant-baseline="central" display="@(AvatarOf(c) is null ? null : "none")">@Code(c.Name)</text>
                             </g>
                         }
                     </svg>

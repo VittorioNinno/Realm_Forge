@@ -4,17 +4,7 @@
     @if (IsAsi)
     {
         <div class="rf-wizard-counter">@UiText.LabelAsiIncrease(Lang)</div>
-        @for (var i = 0; i < 2; i++)
-        {
-            var index = i;
-            <div class="rf-wizard-row">
-                <div class="rf-wizard-label">@UiText.LabelPlusOne(Lang)</div>
-                <div class="rf-wizard-field">
-                    <ForgeSelector TValue="string" Value="@IncreasePicks.Get(Choice.Increases, Choice.ExtraIncreases, index)" ValueChanged="v => SetAsiIncrease(index, v)"
-                                   Options="IncreasePicks.Options(CharacterMath.Abilities, Computed, Lang)" DataTest="@($"wizard-feat-increase-{index}")" />
-                </div>
-            </div>
-        }
+        <AsiPicker W="W" Increases="Choice.Increases" Extra="Choice.ExtraIncreases" Level="Level" DataTest="wizard-feat-increase" />
     }
     else if (Feat.Increases.Count > 0)
     {
@@ -82,6 +72,9 @@
     [Parameter, EditorRequired] public ContextFeat Feat { get; set; } = default!;
     [Parameter, EditorRequired] public FeatChoice Choice { get; set; } = default!;
 
+    //	The character level the feat is taken at (0: origin or species)
+    [Parameter] public int Level { get; set; }
+
     private bool IsAsi => Feat.Key == "ability-score-improvement";
 
     private bool HasChoices => IsAsi || Feat.Increases.Count > 0 || CharacterRules.FeatSkillChoices(Feat, Ruleset) > 0
@@ -110,12 +103,6 @@
             var options = CharacterRules.MagicInitiateLists(Ruleset).Select(l => new ForgeSelector<SpellcastingClass?>.Option(l, GameTerms.ClassName(l, Lang))).ToList();
             return options;
         }
-    }
-
-    private void SetAsiIncrease(int index, string? value)
-    {
-        IncreasePicks.Set(Choice.Increases, Choice.ExtraIncreases, index, value);
-        W.Update();
     }
 
     private void SetIncrease(int index, AbilityScore? value)

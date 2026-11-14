@@ -240,6 +240,36 @@ public class CharacterEngineTests
 	}
 
 	[Fact]
+	public void The_wizard_offers_only_the_feats_whose_prerequisites_are_met_at_that_level()
+	{
+		static ContextFeat Feat(string key, FeatFeatureRequirement? feature = null, AbilityScore? ability = null, int? score = null) =>
+			new(Guid.NewGuid(), key, key, FeatCategory.General, null, ability is null ? new List<AbilityScore>() : new List<AbilityScore> { ability.Value }, score, feature, new List<AbilityScore>(), 20);
+
+		var heavy = Feat("heavily-armored", FeatFeatureRequirement.MediumArmor);
+		var grappler = Feat("grappler", ability: AbilityScore.Strength, score: 13);
+		var wizard = Class("wizard", 6, CasterProgression.Full, AbilityScore.Intelligence, SpellcastingClass.Wizard, primary: new[] { AbilityScore.Intelligence });
+		var cleric = Class("cleric", 8, CasterProgression.Full, AbilityScore.Wisdom, SpellcastingClass.Cleric, primary: new[] { AbilityScore.Wisdom });
+		var context = Context(RulesetVersion.Dnd5e_2014, new[] { wizard, cleric }) with { Feats = new List<ContextFeat> { heavy, grappler } };
+
+		//	A wizard has no medium armor training; Str 15 meets Grappler
+		var computed = CharacterCalculator.Compute(Input(RulesetVersion.Dnd5e_2014, context, (wizard, 4)), context);
+		Assert.False(CharacterCalculator.FeatAvailable(heavy, 4, computed));
+		Assert.True(CharacterCalculator.FeatAvailable(grappler, 4, computed));
+
+		//	A cleric has it
+		computed = CharacterCalculator.Compute(Input(RulesetVersion.Dnd5e_2014, context, (cleric, 4)), context);
+		Assert.True(CharacterCalculator.FeatAvailable(heavy, 4, computed));
+
+		//	A feat already taken at level 4 is not offered again at level 8, but stays offered at level 4
+		var input = Input(RulesetVersion.Dnd5e_2014, context, (cleric, 8));
+		input.Build.Levels[3].FeatId = grappler.Id;
+		computed = CharacterCalculator.Compute(input, context);
+		Assert.True(CharacterCalculator.FeatAvailable(grappler, 4, computed));
+		Assert.False(CharacterCalculator.FeatAvailable(grappler, 8, computed));
+		Assert.Equal(8, computed.ScoresBeforeLevel.Count);
+	}
+
+	[Fact]
 	public void Multiclass_spellcasters_share_the_slots_of_the_combined_caster_level()
 	{
 		var wizard = Class("wizard", 6, CasterProgression.Full, AbilityScore.Intelligence, SpellcastingClass.Wizard, primary: new[] { AbilityScore.Intelligence });

@@ -59,7 +59,26 @@ namespace RealmForge.Api.Controllers
 			var tokens = await TokensAsync(map, role.Value, fight);
 			return Ok(new CampaignMapDto(map.Id, map.Name, map.Image, map.Width, map.Height, map.GridSize, map.GridOffsetX, map.GridOffsetY,
 				map.Shown, CampaignRules.RunsTheTable(role.Value), Latest(map, fight), tokens, map.GridType, ShapesOf(map, role.Value), TableOf(map, role.Value),
-				CombatOf(map, fight, role.Value)));
+				CombatOf(map, fight, role.Value), TerrainOf(map, role.Value)));
+		}
+
+		//	The terrain as the account sees it: the masters all of it, the players the walls and the difficult cells (the
+		//	doors are told by the door tokens they may see, so a secret passage stays secret)
+		private static MapTerrainDto TerrainOf(CampaignMap map, CampaignRole role)
+		{
+			if (CampaignRules.RunsTheTable(role))
+			{
+				return new MapTerrainDto(map.Terrain.ToList(), map.TerrainBlocks);
+			}
+			var cells = new List<int>();
+			for (var i = 0; i + 2 < map.Terrain.Count; i += 3)
+			{
+				if (map.Terrain[i + 2] != (int)TerrainKind.Door)
+				{
+					cells.AddRange(new[] { map.Terrain[i], map.Terrain[i + 1], map.Terrain[i + 2] });
+				}
+			}
+			return new MapTerrainDto(cells, map.TerrainBlocks);
 		}
 
 		//	GET: api/campaigns/{campaignId}/maps/{mapId}/state — what the table polls: the grid and the tokens
@@ -79,7 +98,8 @@ namespace RealmForge.Api.Controllers
 			}
 			var fight = await FightAsync(map);
 			return Ok(new MapStateDto(map.Id, map.Name, map.GridSize, map.GridOffsetX, map.GridOffsetY, map.Shown, Latest(map, fight),
-				await TokensAsync(map, role.Value, fight), map.GridType, ShapesOf(map, role.Value), TableOf(map, role.Value), CombatOf(map, fight, role.Value)));
+				await TokensAsync(map, role.Value, fight), map.GridType, ShapesOf(map, role.Value), TableOf(map, role.Value), CombatOf(map, fight, role.Value),
+				TerrainOf(map, role.Value)));
 		}
 
 		//	POST: api/campaigns/{campaignId}/maps — masters and co-masters
@@ -162,7 +182,9 @@ namespace RealmForge.Api.Controllers
 				GridOffsetY = map.GridOffsetY,
 				Shown = false,
 				FogEnabled = map.FogEnabled,
-				Fog = map.Fog.ToList()
+				Fog = map.Fog.ToList(),
+				Terrain = map.Terrain.ToList(),
+				TerrainBlocks = map.TerrainBlocks
 			};
 			foreach (var t in map.Tokens)
 			{
@@ -357,6 +379,18 @@ namespace RealmForge.Api.Controllers
 			if (!OnMap(map, dto.X, dto.Y, token.Size))
 			{
 				return Problem(statusCode: StatusCodes.Status400BadRequest, title: "The token would leave the map.");
+			}
+			//	A player's token goes around the walls and the closed doors: no way there, no move
+			if (!CampaignRules.RunsTheTable(role.Value) && map.TerrainBlocks && token.Kind != TokenKind.Prop
+				&& Math.Max(Math.Abs(dto.X - token.X), Math.Abs(dto.Y - token.Y)) <= MapTerrain.MaxPath)
+			{
+				var closed = map.Tokens.Where(t => t.Kind == TokenKind.Prop && t.PropType is { } type && MapTerrain.Closes(type, t.PropState))
+					.SelectMany(t => MapTerrain.Footprint(map.GridType, t.X, t.Y, t.Size));
+				if (MapTerrain.Route(map.GridType, map.GridSize, map.GridOffsetX, map.GridOffsetY, map.Width, map.Height, map.Terrain, closed,
+					(token.X, token.Y), (dto.X, dto.Y), token.Size) is null)
+				{
+					return Problem(statusCode: StatusCodes.Status409Conflict, title: "Walls or closed doors are in the way.");
+				}
 			}
 			token.X = dto.X;
 			token.Y = dto.Y;
@@ -556,6 +590,32 @@ namespace RealmForge.Api.Controllers
 			map.UpdatedAt = DateTimeOffset.UtcNow;
 			await _context.SaveChangesAsync();
 			return NoContent();
+		}
+
+		//	PUT: api/campaigns/{campaignId}/maps/{mapId}/terrain — the masters paint walls, difficult terrain and doors (or
+		//	replace the whole terrain), and say whether the players' tokens go around them
+		[HttpPut("{mapId:guid}/terrain")]
+		public async Task<ActionResult<MapTerrainDto>> SaveTerrain(Guid campaignId, Guid mapId, [FromBody] SaveTerrainDto dto)
+		{
+			var (map, role) = await LoadAsync(campaignId, mapId, withTokens: false);
+			if (map is null || role is null)
+			{
+				return NotFound();
+			}
+			if (!CampaignRules.RunsTheTable(role.Value))
+			{
+				return Forbid();
+			}
+			if (!Enum.IsDefined(dto.Kind) || (dto.Replace ? !MapTerrain.Valid(dto.Cells)
+				: dto.Cells.Count % 2 != 0 || dto.Cells.Count / 2 > MapTerrain.MaxCells || dto.Cells.Any(v => v is < 0 or >= 1000)))
+			{
+				return Problem(statusCode: StatusCodes.Status400BadRequest, title: "Terrain cells out of range.");
+			}
+			map.Terrain = dto.Replace ? MapTerrain.Write(MapTerrain.Read(dto.Cells)) : MapTerrain.Paint(map.Terrain, dto.Cells, dto.Kind);
+			map.TerrainBlocks = dto.BlockPlayers;
+			map.UpdatedAt = DateTimeOffset.UtcNow;
+			await _context.SaveChangesAsync();
+			return Ok(new MapTerrainDto(map.Terrain.ToList(), map.TerrainBlocks));
 		}
 
 		//	POST: api/campaigns/{campaignId}/maps/{mapId}/ping — anyone at the table points at something
@@ -1206,9 +1266,10 @@ namespace RealmForge.Api.Controllers
 			var runs = CampaignRules.RunsTheTable(role);
 			var characterIds = map.Tokens.Where(t => t.CharacterId is not null).Select(t => t.CharacterId!.Value).Distinct().ToList();
 			var characters = await _context.Characters.AsNoTracking()
-				.Where(c => characterIds.Contains(c.Id)).Select(c => new { c.Id, c.OwnerId, c.Sheet }).ToListAsync();
+				.Where(c => characterIds.Contains(c.Id)).Select(c => new { c.Id, c.OwnerId, c.Sheet, c.MaxHitPoints }).ToListAsync();
 			var mine = characters.Where(c => c.OwnerId == UserId).Select(c => c.Id).ToHashSet();
-			var sheetConditions = characters.ToDictionary(c => c.Id, c => EncounterSheetSync.ConditionsOf(CharactersController.ReadSheet(c.Sheet)));
+			var sheets = characters.ToDictionary(c => c.Id, c => (Sheet: CharactersController.ReadSheet(c.Sheet), Max: Math.Max(0, c.MaxHitPoints)));
+			var sheetConditions = sheets.ToDictionary(s => s.Key, s => EncounterSheetSync.ConditionsOf(s.Value.Sheet));
 			var monsterIds = map.Tokens.Where(t => t.MonsterId is not null).Select(t => t.MonsterId!.Value).Distinct().ToList();
 			var creatures = await _context.Monsters.AsNoTracking().Where(m => monsterIds.Contains(m.Id))
 				.Select(m => new { m.Id, m.Size, m.Type }).ToDictionaryAsync(m => m.Id);
@@ -1240,6 +1301,15 @@ namespace RealmForge.Api.Controllers
 						: combatant is not null ? combatant.Conditions
 						: t.Conditions;
 					dto = dto with { Conditions = conditions.ToList() };
+					if (t.CharacterId is { } sheetId && sheets.TryGetValue(sheetId, out var life) && life.Max > 0)
+					{
+						dto = dto with
+						{
+							SheetHp = EncounterSheetSync.CurrentHp(life.Sheet, life.Max),
+							SheetMaxHp = life.Max,
+							SheetTempHp = life.Sheet.TemporaryHitPoints > 0 ? life.Sheet.TemporaryHitPoints : null
+						};
+					}
 					if (combatant is null && t.CharacterId is null && t.MaxHp is { } tokenMax && tokenMax > 0)
 					{
 						var tokenHp = t.Hp ?? tokenMax;

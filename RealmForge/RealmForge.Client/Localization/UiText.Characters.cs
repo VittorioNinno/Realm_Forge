@@ -169,6 +169,12 @@ namespace RealmForge.Client.Localization
 		};
 		public static string LabelPlusTwo(LanguageCode lang) => T(lang, "+2 a", "+2 to");
 		public static string LabelPlusOne(LanguageCode lang) => T(lang, "+1 a", "+1 to");
+		public static string AsiSplit(LanguageCode lang) => T(lang, "+1 a due caratteristiche", "+1 to two scores");
+		public static string AsiDouble(LanguageCode lang) => T(lang, "+2 a una caratteristica", "+2 to one score");
+		public static string AsiCapped(LanguageCode lang) => T(lang, "già al massimo (20)", "already at the maximum (20)");
+		public static string FeatsHidden(int count, LanguageCode lang) => T(lang,
+			$"{count} talenti non sono disponibili: prerequisiti non soddisfatti a questo livello o già presi.",
+			$"{count} feats are not available: prerequisites not met at this level, or already taken.");
 		public static string LabelAbilityIncreases(LanguageCode lang) => T(lang, "Incrementi dei punteggi di caratteristica", "Ability score increases");
 		public static string HintIncreases2024(LanguageCode lang) => T(lang,
 			"Il background indica tre caratteristiche: aumentane una di 2 e un'altra di 1, oppure tutte e tre di 1. Nessun punteggio può superare 20.",
