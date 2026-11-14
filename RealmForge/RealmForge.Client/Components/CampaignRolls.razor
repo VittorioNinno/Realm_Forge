@@ -532,17 +532,33 @@
         _ = PollAsync(stop.Token);
     }
 
-    //	Every 4 seconds the rolls made (or shown to the table) since the newest one shown
+    //	The rolls made since the newest one shown, as soon as they are made (the server answers when one comes); a roll
+    //	shown to the table later is picked up by a full look every half minute
     private async Task PollAsync(CancellationToken token)
     {
-        timer = new PeriodicTimer(TimeSpan.FromSeconds(4));
+        var started = DateTimeOffset.UtcNow;
+        var lastFull = DateTime.UtcNow;
         try
         {
-            while (await timer.WaitForNextTickAsync(token))
+            while (!token.IsCancellationRequested)
             {
                 var newest = rolls?.Select(r => r.CreatedAt).DefaultIfEmpty().Max();
-                var since = newest is { } at && at != default ? at : (DateTimeOffset?)null;
-                var news = await Campaigns.GetRollsAsync(CampaignId, since);
+                var since = newest is { } at && at != default ? at : started;
+                var full = DateTime.UtcNow - lastFull > TimeSpan.FromSeconds(30);
+                if (full)
+                {
+                    lastFull = DateTime.UtcNow;
+                }
+                var news = full ? await Campaigns.GetRollsAsync(CampaignId) : await Campaigns.GetRollsAsync(CampaignId, since, wait: true);
+                if (news is null)
+                {
+                    await Task.Delay(3000, token);
+                    continue;
+                }
+                if (full)
+                {
+                    news = news.Where(n => rolls?.FirstOrDefault(r => r.Id == n.Id) is not { } known || known.Hidden != n.Hidden || known.Removed != n.Removed).ToList();
+                }
                 if (news is { Count: > 0 } && !token.IsCancellationRequested)
                 {
                     var unseen = news.Count(n => !n.IsMine && rolls?.All(r => r.Id != n.Id) != false);

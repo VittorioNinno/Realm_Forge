@@ -22,9 +22,12 @@ namespace RealmForge.Api.Controllers
 	{
 		private readonly RealmForgeDbContext _context;
 
-		public MapsController(RealmForgeDbContext context)
+		private readonly Realtime.TableSignals? _signals;
+
+		public MapsController(RealmForgeDbContext context, Realtime.TableSignals? signals = null)
 		{
 			_context = context;
+			_signals = signals;
 		}
 
 		private string UserId => ContentAccess.GetUserId(User) ?? string.Empty;
@@ -1405,7 +1408,15 @@ namespace RealmForge.Api.Controllers
 					{
 						return;
 					}
-					await Task.Delay(400, aborted);
+					//	Woken at once by a save on this server; a look every half second finds what another server saved
+					if (_signals is not null)
+					{
+						await _signals.WaitAsync(TimeSpan.FromMilliseconds(500), aborted);
+					}
+					else
+					{
+						await Task.Delay(400, aborted);
+					}
 				}
 			}
 			catch (OperationCanceledException)
