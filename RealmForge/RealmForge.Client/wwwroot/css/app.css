@@ -1,4 +1,4 @@
-:root {
+﻿:root {
     --rf-bg-main: #0d0d0d;
     --rf-bg-surface: #111111;
     --rf-bg-card: #161616;
@@ -19227,6 +19227,7 @@ button.rf-qs-spell {
     border: 1px solid #3f3f46;
     background-color: #101010;
     color: #ffffff;
+}
 
 /* ===== The side panel of the table folded to a rail of icons ===== */
 .rf-vtt-drawer.folded {
