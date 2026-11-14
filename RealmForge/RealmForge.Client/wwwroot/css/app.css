@@ -19227,4 +19227,227 @@ button.rf-qs-spell {
     border: 1px solid #3f3f46;
     background-color: #101010;
     color: #ffffff;
+
+/* ===== The side panel of the table folded to a rail of icons ===== */
+.rf-vtt-drawer.folded {
+    width: 56px;
+    padding: 8px;
+    overflow: visible;
+}
+
+.rf-vtt-rail {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+}
+
+.rf-vtt-rail-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    padding: 0;
+    border-radius: 8px;
+    border: 1px solid #2c2c2c;
+    background-color: #161616;
+    color: #d4d4d8;
+    font-size: .7rem;
+    font-weight: 900;
+}
+
+    .rf-vtt-rail-btn.active,
+    .rf-vtt-rail-btn:hover {
+        border-color: var(--rf-orange-primary);
+        color: var(--rf-orange-primary);
+    }
+
+    .rf-vtt-rail-btn svg {
+        width: 16px;
+        height: 16px;
+    }
+
+.rf-vtt-drawer .rf-dice-table.pinned {
+    margin: 0 -8px;
+}
+
+/* ===== The initiative order: one line that scrolls, compact with many combatants, or a column on the left ===== */
+.rf-init-widget .rf-init-strip {
+    flex-wrap: nowrap;
+    max-width: min(100%, 960px);
+    max-height: none;
+    overflow-x: auto;
+    overflow-y: hidden;
+    scrollbar-width: thin;
+}
+
+.rf-init-widget.many .rf-init-card:not(.current) .rf-init-meta,
+.rf-init-widget.many .rf-init-chip:not(.rolled) .rf-init-info span {
+    display: none;
+}
+
+.rf-init-widget.many .rf-init-card,
+.rf-init-widget.many .rf-init-chip {
+    flex: none;
+    padding: 0 4px;
+}
+
+.rf-init-widget.vertical {
+    top: 16px;
+    right: auto;
+    bottom: 96px;
+    left: 16px;
+    justify-content: flex-start;
+    align-items: flex-start;
+    width: 256px;
+}
+
+    .rf-init-widget.vertical .rf-init-shell {
+        flex-direction: column;
+        flex-wrap: nowrap;
+        align-items: stretch;
+        width: 100%;
+        max-height: 100%;
+        padding: 8px;
+    }
+
+    .rf-init-widget.vertical .rf-init-round,
+    .rf-init-widget.vertical .rf-init-actions {
+        flex-wrap: wrap;
+        justify-content: center;
+        padding: 0 0 8px;
+        border: 0;
+        border-bottom: 1px solid #262626;
+    }
+
+    .rf-init-widget.vertical .rf-init-actions {
+        padding: 8px 0 0;
+        border-top: 1px solid #262626;
+        border-bottom: 0;
+    }
+
+    .rf-init-widget.vertical .rf-init-strip {
+        flex-direction: column;
+        align-items: stretch;
+        min-height: 0;
+        max-width: none;
+        overflow-x: hidden;
+        overflow-y: auto;
+    }
+
+    .rf-init-widget.vertical .rf-init-card,
+    .rf-init-widget.vertical .rf-init-chip {
+        flex: none;
+        width: 100%;
+    }
+
+        .rf-init-widget.vertical .rf-init-card .rf-init-meta,
+        .rf-init-widget.vertical .rf-init-chip .rf-init-info span {
+            display: flex;
+        }
+
+    .rf-init-widget.vertical .rf-init-meta {
+        flex: 1;
+        min-width: 0;
+    }
+
+        .rf-init-widget.vertical .rf-init-meta strong {
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+.rf-init-icon.on {
+    border-color: var(--rf-orange-primary);
+    color: var(--rf-orange-primary);
+}
+
+/* ===== Effects on a token: hit (red flash, a small shake), critical (gold), miss (grey), healing (green); the number rises ===== */
+@keyframes rf-fx-shake {
+    0%, 100% { translate: 0 0; }
+    20% { translate: -4px 0; }
+    40% { translate: 4px 0; }
+    60% { translate: -2px 0; }
+    80% { translate: 2px 0; }
+}
+
+@keyframes rf-fx-flash {
+    0% { box-shadow: 0 0 0 0 var(--fx), 0 0 0 0 var(--fx); }
+    30% { box-shadow: 0 0 0 4px var(--fx), 0 0 24px 8px var(--fx); }
+    100% { box-shadow: 0 0 0 0 transparent, 0 0 0 0 transparent; }
+}
+
+@keyframes rf-fx-rise {
+    0% { opacity: 0; transform: translate(-50%, 0) scale(.8); }
+    15% { opacity: 1; transform: translate(-50%, -8px) scale(1.1); }
+    100% { opacity: 0; transform: translate(-50%, -48px) scale(1); }
+}
+
+.rf-vtt-token.fx-hit .rf-vtt-token-face,
+.rf-vtt-token.fx-crit .rf-vtt-token-face,
+.rf-vtt-token.fx-miss .rf-vtt-token-face,
+.rf-vtt-token.fx-heal .rf-vtt-token-face {
+    animation: rf-fx-flash .8s ease-out;
+}
+
+.rf-vtt-token.fx-hit,
+.rf-vtt-token.fx-crit {
+    animation: rf-fx-shake .35s ease-in-out;
+}
+
+.rf-vtt-token.fx-hit {
+    --fx: rgba(239, 68, 68, .75);
+}
+
+.rf-vtt-token.fx-crit {
+    --fx: rgba(250, 204, 21, .85);
+}
+
+.rf-vtt-token.fx-miss {
+    --fx: rgba(161, 161, 170, .5);
+}
+
+.rf-vtt-token.fx-heal {
+    --fx: rgba(34, 197, 94, .7);
+}
+
+.rf-fx-float {
+    position: absolute;
+    top: 0;
+    left: 50%;
+    z-index: 30;
+    padding: 0 8px;
+    border-radius: 8px;
+    background-color: rgba(10, 10, 10, .85);
+    font-size: calc(16px / var(--rf-zoom, 1));
+    font-weight: 900;
+    line-height: 1.5;
+    white-space: nowrap;
+    pointer-events: none;
+    animation: rf-fx-rise 1.4s ease-out forwards;
+}
+
+    .rf-fx-float.hit {
+        color: #f87171;
+    }
+
+    .rf-fx-float.crit {
+        color: #facc15;
+        font-size: calc(20px / var(--rf-zoom, 1));
+    }
+
+    .rf-fx-float.miss {
+        color: #a1a1aa;
+    }
+
+    .rf-fx-float.heal {
+        color: #4ade80;
+    }
+
+@media (prefers-reduced-motion: reduce) {
+    .rf-vtt-token.fx-hit,
+    .rf-vtt-token.fx-crit {
+        animation: none;
+    }
 }

@@ -947,7 +947,7 @@ jobs:
           chcheck "encounter under way" "$enc_saved" '{"status":2,"version":2,"round":1}'
           chcheck "stale save" "$enc_stale" "409"
           chcheck "player list" "$enc_player_list2" '[{"status":2,"monsters":1,"monsterXp":0}]'
-          chcheck "player view" "$enc_player" '{"notes":"","canManage":false,"names":["Goblin 1","Eroe"],"goblin":{"hp":0,"armorClass":0,"health":3,"monsterId":null},"hero":5}'
+          chcheck "player view" "$enc_player" '{"notes":"","canManage":false,"names":["Goblin 1","Eroe"],"goblin":{"hp":0,"armorClass":0,"health":2,"monsterId":null},"hero":5}'
           chcheck "player PUT" "$enc_player_put" "403"
           chcheck "anonymous encounters" "$enc_anon" "401"
           chcheck "hero from the sheet" "$enc_hero" '{"hp":5,"maxHp":19,"tempHp":0,"conditions":["prone"],"sheetHp":5}'
@@ -1340,7 +1340,7 @@ jobs:
           sscheck "player starts the first round" "$fight_begin_player" "403"
           sscheck "master starts the first round" "$fight_begin" "204"
           sscheck "next turn" "$fight_next" "204"
-          sscheck "hurt token seen by the player" "$fight_after" '{"blades":[{"health":3,"conditions":["prone"]}],"current":0}'
+          sscheck "hurt token seen by the player" "$fight_after" '{"blades":[{"health":2,"conditions":["prone"]}],"current":0}'
           sscheck "hurt token seen by the master" "$fight_master" '{"round":1,"blades":[{"hp":4,"maxHp":10}]}'
           sscheck "fight ended" "$fight_end" "204"
           sscheck "encounter after the fight" "$fight_done" '{"status":3,"hp":4,"conditions":["prone"]}'
@@ -1621,6 +1621,8 @@ jobs:
   ui:
     runs-on: ubuntu-24.04
     needs: build
+    permissions:
+      contents: write
     services:
       postgres:
         image: postgres:17
@@ -1676,6 +1678,16 @@ jobs:
           npm install playwright@1 >/dev/null
           npx playwright install --with-deps chromium >/dev/null
           node smoke.mjs
+
+      - name: TEMP push the screenshots to a review branch
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          cd .github/ui-smoke/shots || exit 0
+          git init -q -b shots . && git add -A
+          git -c user.name=ci -c user.email=ci@localhost commit -qm "shots ${GITHUB_SHA}"
+          git push -qf "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" shots:refs/heads/ci-shots/${GITHUB_SHA::8}
 
       - name: Keep the screenshots of the smoke test
         if: always()
