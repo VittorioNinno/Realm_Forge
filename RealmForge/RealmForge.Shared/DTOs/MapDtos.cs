@@ -62,7 +62,8 @@ namespace RealmForge.Shared.DTOs
 		//	A character's hit points from its sheet now (everyone at the table sees them), so a hit shows on every screen
 		int? SheetHp = null,
 		int? SheetMaxHp = null,
-		int? SheetTempHp = null);
+		int? SheetTempHp = null,
+		TokenTurnDto? Turn = null);
 
 	///	<summary>
 	///	The fight on a map: the encounter, the round, whose turn it is and the initiative order (what the players see of it).
@@ -133,7 +134,26 @@ namespace RealmForge.Shared.DTOs
 		public int LongRange { get; set; }
 		public int Mode { get; set; }
 		public string? Condition { get; set; }
+
+		//	A character's attacks with one Attack action (Extra Attack); null: not counted
+		public int? ActionAttacks { get; set; }
+
+		//	A spell attack: no weapon is drawn for it
+		public bool Spell { get; set; }
 	}
+
+	///	<summary>
+	///	What a token did with its turn: an action (dash, disengage, dodge, help, hide, ready, search, other), a bonus action
+	///	(bonus), the weapon taken in hand (wield: melee or ranged), an attack of opportunity let go (pass).
+	///	</summary>
+	public class TurnActionDto
+	{
+		public string Kind { get; set; } = string.Empty;
+		public string? Wield { get; set; }
+	}
+
+	///	<summary>The turn of a token in a fight, as the table shows it.</summary>
+	public record TokenTurnDto(bool BonusUsed, int AttacksMade, bool Dashed, bool Disengaged, bool Dodging, bool Interacted, string? Wield, Guid? OpportunityOn);
 
 	///	<summary>
 	///	How an attack went: the d20 (and the one left out), the total, hit or miss, critical, the damage dealt and what
@@ -263,7 +283,13 @@ namespace RealmForge.Shared.DTOs
 	///	<summary>
 	///	The fog of war (see MapFog), the last ping and the last view the masters brought the table to.
 	///	</summary>
-	public record MapTableDto(bool FogEnabled, List<double> Fog, MapPingDto? Ping, MapFocusDto? Focus, bool PlayersLocked = false);
+	public record MapTableDto(bool FogEnabled, List<double> Fog, MapPingDto? Ping, MapFocusDto? Focus, bool PlayersLocked = false, MapStrikeDto? Strike = null);
+
+	///	<summary>
+	///	The last attack on the map, for its effect on every screen: the target, missed (0), hit (1) or critical (2), the
+	///	damage dealt.
+	///	</summary>
+	public record MapStrikeDto(Guid TokenId, int Kind, int? Damage, DateTimeOffset At);
 
 	public record MapPingDto(double X, double Y, string Color, DateTimeOffset At);
 

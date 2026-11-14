@@ -12,7 +12,7 @@
    picked one by one with the modifier and the d20 mode, the formula that stays editable, what for) and the log of
    everyone's rolls on the right, including the ones made on the sheets; the server rolls, so nobody picks the numbers.
    My rolls land in the dice tray with the animation; the log refreshes every few seconds *@
-<section class="rf-dice-table @(Compact ? "compact" : null) @(Cards ? "floating" : null) @(Docked ? "docked" : null) @(Minimized ? "minimized" : null) part-@Part" data-test="campaign-rolls">
+<section class="rf-dice-table @(Compact ? "compact" : null) @(Cards ? "floating" : null) @(Docked ? "docked" : null) @(Pinned ? "pinned" : null) @(Minimized ? "minimized" : null) part-@Part" data-test="campaign-rolls">
     @if (!Compact)
     {
         <p class="rf-dice-lead">@UiText.RollsHint(Lang)</p>
@@ -153,7 +153,7 @@
                 <div class="d-flex flex-column gap-2 flex-grow-1" style="min-width: 0; flex-basis: 320px;">
                     <div class="rf-dice-console-head">
                         <span class="rf-dice-kicker">@UiText.DiceLogTitle(Lang)</span>
-                        @if (Floating)
+                        @if (Floating || Pinned)
                         {
                             <div class="rf-dice-head-actions">@WindowButtons</div>
                         }
@@ -307,7 +307,11 @@
     //	The campaign's Rolls tab: the same cards as at the table, side by side in the page
     [Parameter] public bool Docked { get; set; }
 
-    private bool Cards => Floating || Docked;
+    //	In the side panel of the table, pinned there instead of floating; OnPin moves it between the two
+    [Parameter] public bool Pinned { get; set; }
+    [Parameter] public EventCallback OnPin { get; set; }
+
+    private bool Cards => Floating || Docked || Pinned;
     [Parameter] public bool Minimized { get; set; }
     [Parameter] public EventCallback OnMinimize { get; set; }
     [Parameter] public EventCallback OnClose { get; set; }
@@ -317,6 +321,10 @@
 
     private RenderFragment WindowButtons => __builder =>
     {
+        @if (OnPin.HasDelegate)
+        {
+            <button type="button" class="rf-dice-win" title="@(Pinned ? UiText.VttUnpin(Lang) : UiText.VttPin(Lang))" aria-label="@(Pinned ? UiText.VttUnpin(Lang) : UiText.VttPin(Lang))" @onclick="() => OnPin.InvokeAsync()" data-test="@($"rolls-{Part}-pin")"><Icon Name="@(Pinned ? "pin-angle-fill" : "pin-angle")" /></button>
+        }
         @if (Floating)
         {
             <button type="button" class="rf-dice-win" title="@(Minimized ? UiText.CardExpand(Lang) : UiText.CardMinimize(Lang))" aria-label="@(Minimized ? UiText.CardExpand(Lang) : UiText.CardMinimize(Lang))" @onclick="() => OnMinimize.InvokeAsync()" data-test="@($"rolls-{Part}-minimize")"><Icon Name="@(Minimized ? "up" : "dash")" /></button>
@@ -532,17 +540,33 @@
         _ = PollAsync(stop.Token);
     }
 
-    //	Every 4 seconds the rolls made (or shown to the table) since the newest one shown
+    //	The rolls made since the newest one shown, as soon as they are made (the server answers when one comes); a roll
+    //	shown to the table later is picked up by a full look every half minute
     private async Task PollAsync(CancellationToken token)
     {
-        timer = new PeriodicTimer(TimeSpan.FromSeconds(4));
+        var started = DateTimeOffset.UtcNow;
+        var lastFull = DateTime.UtcNow;
         try
         {
-            while (await timer.WaitForNextTickAsync(token))
+            while (!token.IsCancellationRequested)
             {
                 var newest = rolls?.Select(r => r.CreatedAt).DefaultIfEmpty().Max();
-                var since = newest is { } at && at != default ? at : (DateTimeOffset?)null;
-                var news = await Campaigns.GetRollsAsync(CampaignId, since);
+                var since = newest is { } at && at != default ? at : started;
+                var full = DateTime.UtcNow - lastFull > TimeSpan.FromSeconds(30);
+                if (full)
+                {
+                    lastFull = DateTime.UtcNow;
+                }
+                var news = full ? await Campaigns.GetRollsAsync(CampaignId) : await Campaigns.GetRollsAsync(CampaignId, since, wait: true);
+                if (news is null)
+                {
+                    await Task.Delay(3000, token);
+                    continue;
+                }
+                if (full)
+                {
+                    news = news.Where(n => rolls?.FirstOrDefault(r => r.Id == n.Id) is not { } known || known.Hidden != n.Hidden || known.Removed != n.Removed).ToList();
+                }
                 if (news is { Count: > 0 } && !token.IsCancellationRequested)
                 {
                     var unseen = news.Count(n => !n.IsMine && rolls?.All(r => r.Id != n.Id) != false);

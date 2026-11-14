@@ -1,4 +1,4 @@
-:root {
+﻿:root {
     --rf-bg-main: #0d0d0d;
     --rf-bg-surface: #111111;
     --rf-bg-card: #161616;
@@ -10723,16 +10723,44 @@ textarea.rf-form-control {
 }
 
     .rf-vtt-conds span {
-        min-width: 18px;
-        height: 18px;
+        min-width: 24px;
+        height: 16px;
         padding: 0 4px;
-        border-radius: 8px;
-        background-color: #7c3aed;
+        border-radius: 4px;
+        border: 1px solid rgba(0, 0, 0, .5);
+        background-color: #52525b;
         color: #ffffff;
-        font-size: .6rem;
+        font-size: .55rem;
         font-weight: 800;
-        line-height: 18px;
+        line-height: 14px;
         text-align: center;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, .6);
+    }
+
+    /* A colour per family: out of the fight red, movement orange, mind purple, senses blue, body green, concentration gold */
+    .rf-vtt-conds .cond-out {
+        background-color: #dc2626;
+    }
+
+    .rf-vtt-conds .cond-move {
+        background-color: #ea580c;
+    }
+
+    .rf-vtt-conds .cond-mind {
+        background-color: #7c3aed;
+    }
+
+    .rf-vtt-conds .cond-sense {
+        background-color: #0284c7;
+    }
+
+    .rf-vtt-conds .cond-body {
+        background-color: #16a34a;
+    }
+
+    .rf-vtt-conds .cond-focus {
+        background-color: #ca8a04;
+        color: #0a0a0a;
     }
 
 /* The initiative order: a strip over the map, which gets the rest of the height */
@@ -18236,6 +18264,14 @@ button.rf-qs-spell {
         background-color: #0369a1;
     }
 
+    .rf-me-swatch.half {
+        background-color: #7c3aed;
+    }
+
+    .rf-me-swatch.three {
+        background-color: #a21caf;
+    }
+
     .rf-me-swatch.fog {
         background-color: #3f3f46;
     }
@@ -18265,6 +18301,17 @@ button.rf-qs-spell {
     .rf-vtt-terrain .rf-terrain-door {
         fill: rgba(56, 189, 248, .35);
         stroke: rgba(56, 189, 248, .9);
+    }
+
+    .rf-vtt-terrain .rf-terrain-halfcover {
+        fill: rgba(139, 92, 246, .3);
+        stroke: rgba(139, 92, 246, .85);
+        stroke-dasharray: 4 3;
+    }
+
+    .rf-vtt-terrain .rf-terrain-threequartercover {
+        fill: rgba(192, 38, 211, .38);
+        stroke: rgba(192, 38, 211, .9);
     }
 
 .rf-vtt-stage.tool-terrain {
@@ -18495,5 +18542,932 @@ button.rf-qs-spell {
 
     .rf-me-panel {
         max-height: none;
+    }
+}
+
+/* The zoom of the map editor, over the bottom right corner of the map */
+.rf-me-view {
+    position: relative;
+}
+
+.rf-me-zoom {
+    position: absolute;
+    right: 16px;
+    bottom: 16px;
+    z-index: 5;
+    padding: 8px;
+    border-radius: 8px;
+    border: 1px solid #27272a;
+    background-color: rgba(13, 13, 13, .92);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, .6);
+}
+
+    .rf-me-zoom button svg {
+        width: 14px;
+        height: 14px;
+    }
+
+/* A character down in the quick sheet: the death saves on top, the actions locked */
+.rf-qs-death {
+    margin: 0 0 16px;
+}
+
+    .rf-qs-death span.rf-death-box {
+        display: inline-block;
+    }
+
+.rf-qs-down-note {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px;
+    border-radius: 8px;
+    border: 1px solid rgba(220, 38, 38, .45);
+    background-color: rgba(220, 38, 38, .08);
+    color: #fca5a5;
+}
+
+    .rf-qs-down-note svg {
+        flex: none;
+        width: 16px;
+        height: 16px;
+    }
+
+/* ===== Levels of the wizard: a summary with the next level to add, then a card per level (hit points in its head) ===== */
+.rf-lu-summary {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    margin-bottom: 16px;
+    padding: 16px;
+    border-radius: 8px;
+    border: 1px solid #262626;
+    border-top: 2px solid var(--rf-orange-primary);
+    background-color: #111111;
+}
+
+.rf-lu-totals {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
+}
+
+.rf-lu-stat {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    min-width: 0;
+    padding: 8px 16px;
+    border-radius: 8px;
+    border: 1px solid #282828;
+    background-color: #161616;
+}
+
+    .rf-lu-stat.main {
+        border-color: rgba(255, 140, 0, .4);
+        background-color: rgba(255, 140, 0, .08);
+    }
+
+    .rf-lu-stat.hp {
+        border-left: 3px solid #10b981;
+    }
+
+    .rf-lu-stat .k {
+        font-size: .62rem;
+        font-weight: 800;
+        letter-spacing: .06em;
+        text-transform: uppercase;
+        color: #8a8a8a;
+    }
+
+    .rf-lu-stat strong {
+        font-size: 1.1rem;
+        font-weight: 900;
+        color: #ffffff;
+    }
+
+    .rf-lu-stat.main strong {
+        color: #ffb74d;
+    }
+
+    .rf-lu-stat small {
+        overflow: hidden;
+        font-size: .7rem;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        color: #71717a;
+    }
+
+.rf-lu-add {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding-top: 16px;
+    border-top: 1px solid #1f1f1f;
+}
+
+.rf-lu-add-head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+}
+
+.rf-lu-kicker {
+    font-size: .62rem;
+    font-weight: 800;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+    color: #8a8a8a;
+}
+
+.rf-lu-prereq {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 0 8px;
+    border-radius: 4px;
+    font-size: .7rem;
+    font-weight: 700;
+    line-height: 24px;
+}
+
+    .rf-lu-prereq.ok {
+        border: 1px solid rgba(16, 185, 129, .35);
+        background-color: rgba(16, 185, 129, .12);
+        color: #34d399;
+    }
+
+    .rf-lu-prereq.bad {
+        border: 1px solid rgba(239, 68, 68, .35);
+        background-color: rgba(239, 68, 68, .1);
+        color: #fca5a5;
+    }
+
+    .rf-lu-prereq svg {
+        width: 12px;
+        height: 12px;
+    }
+
+.rf-lu-add-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 8px;
+}
+
+.rf-lu-add-class {
+    min-width: 0;
+}
+
+.rf-lu-add-buttons {
+    display: flex;
+    gap: 8px;
+}
+
+.rf-lu-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    height: 40px;
+    padding: 0 16px;
+    border-radius: 8px;
+    font-size: .72rem;
+    font-weight: 900;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+    white-space: nowrap;
+}
+
+    .rf-lu-btn svg {
+        width: 14px;
+        height: 14px;
+    }
+
+    .rf-lu-btn.add {
+        border: 0;
+        background-color: var(--rf-orange-primary);
+        color: #09090b;
+    }
+
+        .rf-lu-btn.add:disabled {
+            opacity: .45;
+        }
+
+    .rf-lu-btn.remove {
+        border: 1px solid #2e2e2e;
+        background-color: #161616;
+        color: #a1a1aa;
+    }
+
+        .rf-lu-btn.remove:hover {
+            border-color: #ef4444;
+            color: #fca5a5;
+        }
+
+.rf-lu-warning {
+    font-size: .75rem;
+    color: #ffaa00;
+}
+
+.rf-lu-timeline {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 16px;
+}
+
+.rf-lu-card {
+    overflow: hidden;
+    border-radius: 8px;
+    border: 1px solid #262626;
+    border-left: 3px solid #10b981;
+    background-color: #111111;
+}
+
+    .rf-lu-card.pending {
+        border-color: rgba(255, 140, 0, .55);
+        border-left-color: var(--rf-orange-primary);
+    }
+
+.rf-lu-card-head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px 16px;
+    min-height: 56px;
+    padding: 8px 16px;
+    background-color: #141414;
+}
+
+.rf-lu-card-title {
+    display: flex;
+    flex: 1 1 240px;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+    padding: 0;
+    border: 0;
+    background: none;
+    color: inherit;
+    text-align: left;
+}
+
+.rf-lu-badge {
+    padding: 4px 8px;
+    border-radius: 4px;
+    border: 1px solid #333333;
+    background-color: #1c1c1c;
+    color: var(--rf-orange-primary);
+    font-size: .68rem;
+    font-weight: 900;
+    text-transform: uppercase;
+}
+
+.rf-lu-class {
+    font-size: .95rem;
+    font-weight: 800;
+    color: #ffffff;
+}
+
+.rf-lu-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    max-width: 100%;
+    padding: 0 8px;
+    border-radius: 8px;
+    font-size: .7rem;
+    font-weight: 700;
+    line-height: 24px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+    .rf-lu-chip.ok {
+        background-color: rgba(16, 185, 129, .12);
+        color: #34d399;
+    }
+
+    .rf-lu-chip.pending {
+        border: 1px solid rgba(255, 140, 0, .45);
+        background-color: rgba(255, 140, 0, .15);
+        color: #ffb74d;
+    }
+
+    .rf-lu-chip svg {
+        width: 12px;
+        height: 12px;
+    }
+
+.rf-lu-hp {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+}
+
+.rf-lu-pills {
+    display: inline-flex;
+    gap: 4px;
+    padding: 4px;
+    border-radius: 8px;
+    border: 1px solid #282828;
+    background-color: #0d0d0d;
+}
+
+.rf-lu-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    height: 32px;
+    padding: 0 8px;
+    border-radius: 4px;
+    border: 1px solid transparent;
+    background: transparent;
+    color: #8a8a8a;
+    font-size: .72rem;
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+    .rf-lu-pill.active {
+        border-color: var(--rf-orange-primary);
+        background-color: rgba(255, 140, 0, .16);
+        color: #ffb74d;
+    }
+
+    .rf-lu-pill.gone {
+        opacity: .35;
+        text-decoration: line-through;
+        cursor: not-allowed;
+    }
+
+    .rf-lu-pill.locked {
+        border-color: #282828;
+        background-color: #0d0d0d;
+        color: #a1a1aa;
+    }
+
+    .rf-lu-pill svg {
+        width: 14px;
+        height: 14px;
+    }
+
+.rf-lu-gain {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 56px;
+    height: 32px;
+    padding: 0 8px;
+    border-radius: 4px;
+    border: 1px solid rgba(16, 185, 129, .4);
+    background-color: rgba(16, 185, 129, .12);
+    color: #34d399;
+    font-size: .75rem;
+    font-weight: 900;
+}
+
+.rf-lu-fold {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    border: 0;
+    background: none;
+    color: #8a8a8a;
+    transition: transform .15s;
+}
+
+    .rf-lu-fold svg {
+        width: 14px;
+        height: 14px;
+    }
+
+.rf-lu-card.folded .rf-lu-fold {
+    transform: rotate(-90deg);
+}
+
+.rf-lu-card-body {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    padding: 16px;
+    border-top: 1px solid #1f1f1f;
+}
+
+.rf-lu-choice {
+    display: grid;
+    grid-template-columns: 192px minmax(0, 1fr);
+    align-items: center;
+    gap: 16px;
+}
+
+.rf-lu-choice-label {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+    .rf-lu-choice-label .t {
+        font-size: .7rem;
+        font-weight: 800;
+        letter-spacing: .04em;
+        text-transform: uppercase;
+        color: var(--rf-orange-primary);
+    }
+
+    .rf-lu-choice-label .s {
+        font-size: .7rem;
+        color: #71717a;
+    }
+
+.rf-lu-choice-control {
+    min-width: 0;
+}
+
+.rf-lu-features {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+}
+
+    .rf-lu-features .l {
+        font-size: .7rem;
+        font-weight: 700;
+        color: #71717a;
+    }
+
+.rf-lu-feature {
+    padding: 4px 8px;
+    border-radius: 4px;
+    border: 1px solid #2a2a2a;
+    background-color: #181818;
+    color: #d4d4d8;
+    font-size: .7rem;
+    font-weight: 600;
+}
+
+@media (max-width: 720px) {
+    .rf-lu-totals,
+    .rf-lu-add-row,
+    .rf-lu-choice {
+        grid-template-columns: minmax(0, 1fr);
+    }
+}
+
+/* ===== The turn of a character in the quick sheet; an attack of opportunity offered over the map ===== */
+.rf-turn-slots {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 8px;
+}
+
+.rf-turn-slot {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    min-width: 0;
+    padding: 8px;
+    border-radius: 8px;
+    border: 1px solid #2a2a2a;
+    background-color: #141414;
+    text-align: center;
+}
+
+    .rf-turn-slot strong {
+        overflow: hidden;
+        font-size: .62rem;
+        font-weight: 900;
+        letter-spacing: .04em;
+        text-overflow: ellipsis;
+        text-transform: uppercase;
+        white-space: nowrap;
+        color: #d4d4d8;
+    }
+
+    .rf-turn-slot small {
+        font-size: .65rem;
+        color: #71717a;
+    }
+
+    .rf-turn-slot.free {
+        border-color: rgba(16, 185, 129, .4);
+    }
+
+        .rf-turn-slot.free small {
+            color: #34d399;
+        }
+
+    .rf-turn-slot.used {
+        opacity: .6;
+    }
+
+.rf-turn-flags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 8px;
+}
+
+.rf-turn-flag {
+    padding: 0 8px;
+    border-radius: 4px;
+    background-color: rgba(255, 140, 0, .14);
+    color: #ffb74d;
+    font-size: .68rem;
+    font-weight: 800;
+    line-height: 24px;
+}
+
+.rf-turn-actions,
+.rf-turn-wield {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    margin-top: 8px;
+}
+
+    .rf-turn-wield > span {
+        font-size: .68rem;
+        font-weight: 800;
+        color: #8a8a8a;
+    }
+
+.rf-turn-btn {
+    height: 32px;
+    padding: 0 8px;
+    border-radius: 8px;
+    border: 1px solid #2c2c2c;
+    background-color: #161616;
+    color: #e4e4e7;
+    font-size: .7rem;
+    font-weight: 700;
+}
+
+    .rf-turn-btn:hover:not(:disabled) {
+        border-color: var(--rf-orange-primary);
+    }
+
+    .rf-turn-btn:disabled {
+        opacity: .45;
+    }
+
+    .rf-turn-btn.bonus {
+        border-color: rgba(124, 58, 237, .5);
+    }
+
+    .rf-turn-btn.held {
+        border-color: var(--rf-orange-primary);
+        background-color: rgba(255, 140, 0, .14);
+        color: #ffb74d;
+        opacity: 1;
+    }
+
+.rf-opportunity {
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.rf-opportunity-text {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: .8rem;
+    font-weight: 700;
+    color: #ffb74d;
+}
+
+    .rf-opportunity-text svg {
+        width: 16px;
+        height: 16px;
+    }
+
+/* ===== Features used from the quick sheet: the part of the turn, the uses left, the dice ===== */
+.rf-feature-uses {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.rf-feature-use {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px;
+    border-radius: 8px;
+    border: 1px solid #262626;
+    background-color: #141414;
+}
+
+.rf-feature-use-main {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    gap: 4px;
+    min-width: 0;
+}
+
+    .rf-feature-use-main strong {
+        font-size: .8rem;
+        color: #ffffff;
+    }
+
+    .rf-feature-use-main small {
+        font-size: .68rem;
+        line-height: 1.4;
+        color: #8a8a8a;
+    }
+
+.rf-feature-use-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+}
+
+.rf-feature-slot,
+.rf-feature-dice,
+.rf-feature-left {
+    padding: 0 8px;
+    border-radius: 4px;
+    font-size: .62rem;
+    font-weight: 800;
+    line-height: 20px;
+}
+
+.rf-feature-slot {
+    background-color: #1f1f1f;
+    color: #a1a1aa;
+}
+
+    .rf-feature-slot.slot-1 {
+        background-color: rgba(255, 140, 0, .14);
+        color: #ffb74d;
+    }
+
+    .rf-feature-slot.slot-2 {
+        background-color: rgba(124, 58, 237, .18);
+        color: #c4b5fd;
+    }
+
+    .rf-feature-slot.slot-3 {
+        background-color: rgba(2, 132, 199, .18);
+        color: #7dd3fc;
+    }
+
+.rf-feature-dice {
+    background-color: rgba(16, 185, 129, .12);
+    color: #34d399;
+}
+
+.rf-feature-left {
+    border: 1px solid #2c2c2c;
+    color: #d4d4d8;
+}
+
+    .rf-feature-left.none {
+        color: #f87171;
+    }
+
+.rf-feature-amount {
+    width: 56px;
+    height: 32px;
+    padding: 0 8px;
+    border-radius: 8px;
+    border: 1px solid #3f3f46;
+    background-color: #101010;
+    color: #ffffff;
+}
+
+/* ===== The side panel of the table folded to a rail of icons ===== */
+.rf-vtt-drawer.folded {
+    width: 56px;
+    padding: 8px;
+    overflow: visible;
+}
+
+.rf-vtt-rail {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+}
+
+.rf-vtt-rail-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    padding: 0;
+    border-radius: 8px;
+    border: 1px solid #2c2c2c;
+    background-color: #161616;
+    color: #d4d4d8;
+    font-size: .7rem;
+    font-weight: 900;
+}
+
+    .rf-vtt-rail-btn.active,
+    .rf-vtt-rail-btn:hover {
+        border-color: var(--rf-orange-primary);
+        color: var(--rf-orange-primary);
+    }
+
+    .rf-vtt-rail-btn svg {
+        width: 16px;
+        height: 16px;
+    }
+
+.rf-vtt-drawer .rf-dice-table.pinned {
+    margin: 0 -8px;
+}
+
+/* ===== The initiative order: one line that scrolls, compact with many combatants, or a column on the left ===== */
+.rf-init-widget .rf-init-strip {
+    flex-wrap: nowrap;
+    max-width: min(100%, 960px);
+    max-height: none;
+    overflow-x: auto;
+    overflow-y: hidden;
+    scrollbar-width: thin;
+}
+
+.rf-init-widget.many .rf-init-card:not(.current) .rf-init-meta,
+.rf-init-widget.many .rf-init-chip:not(.rolled) .rf-init-info span {
+    display: none;
+}
+
+.rf-init-widget.many .rf-init-card,
+.rf-init-widget.many .rf-init-chip {
+    flex: none;
+    padding: 0 4px;
+}
+
+.rf-init-widget.vertical {
+    top: 16px;
+    right: auto;
+    bottom: 96px;
+    left: 16px;
+    justify-content: flex-start;
+    align-items: flex-start;
+    width: 256px;
+}
+
+    .rf-init-widget.vertical .rf-init-shell {
+        flex-direction: column;
+        flex-wrap: nowrap;
+        align-items: stretch;
+        width: 100%;
+        max-height: 100%;
+        padding: 8px;
+    }
+
+    .rf-init-widget.vertical .rf-init-round,
+    .rf-init-widget.vertical .rf-init-actions {
+        flex-wrap: wrap;
+        justify-content: center;
+        padding: 0 0 8px;
+        border: 0;
+        border-bottom: 1px solid #262626;
+    }
+
+    .rf-init-widget.vertical .rf-init-actions {
+        padding: 8px 0 0;
+        border-top: 1px solid #262626;
+        border-bottom: 0;
+    }
+
+    .rf-init-widget.vertical .rf-init-strip {
+        flex-direction: column;
+        align-items: stretch;
+        min-height: 0;
+        max-width: none;
+        overflow-x: hidden;
+        overflow-y: auto;
+    }
+
+    .rf-init-widget.vertical .rf-init-card,
+    .rf-init-widget.vertical .rf-init-chip {
+        flex: none;
+        width: 100%;
+    }
+
+        .rf-init-widget.vertical .rf-init-card .rf-init-meta,
+        .rf-init-widget.vertical .rf-init-chip .rf-init-info span {
+            display: flex;
+        }
+
+    .rf-init-widget.vertical .rf-init-meta {
+        flex: 1;
+        min-width: 0;
+    }
+
+        .rf-init-widget.vertical .rf-init-meta strong {
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+.rf-init-icon.on {
+    border-color: var(--rf-orange-primary);
+    color: var(--rf-orange-primary);
+}
+
+/* ===== Effects on a token: hit (red flash, a small shake), critical (gold), miss (grey), healing (green); the number rises ===== */
+@keyframes rf-fx-shake {
+    0%, 100% { translate: 0 0; }
+    20% { translate: -4px 0; }
+    40% { translate: 4px 0; }
+    60% { translate: -2px 0; }
+    80% { translate: 2px 0; }
+}
+
+@keyframes rf-fx-flash {
+    0% { box-shadow: 0 0 0 0 var(--fx), 0 0 0 0 var(--fx); }
+    30% { box-shadow: 0 0 0 4px var(--fx), 0 0 24px 8px var(--fx); }
+    100% { box-shadow: 0 0 0 0 transparent, 0 0 0 0 transparent; }
+}
+
+@keyframes rf-fx-rise {
+    0% { opacity: 0; transform: translate(-50%, 0) scale(.8); }
+    15% { opacity: 1; transform: translate(-50%, -8px) scale(1.1); }
+    100% { opacity: 0; transform: translate(-50%, -48px) scale(1); }
+}
+
+.rf-vtt-token.fx-hit .rf-vtt-token-face,
+.rf-vtt-token.fx-crit .rf-vtt-token-face,
+.rf-vtt-token.fx-miss .rf-vtt-token-face,
+.rf-vtt-token.fx-heal .rf-vtt-token-face {
+    animation: rf-fx-flash .8s ease-out;
+}
+
+.rf-vtt-token.fx-hit,
+.rf-vtt-token.fx-crit {
+    animation: rf-fx-shake .35s ease-in-out;
+}
+
+.rf-vtt-token.fx-hit {
+    --fx: rgba(239, 68, 68, .75);
+}
+
+.rf-vtt-token.fx-crit {
+    --fx: rgba(250, 204, 21, .85);
+}
+
+.rf-vtt-token.fx-miss {
+    --fx: rgba(161, 161, 170, .5);
+}
+
+.rf-vtt-token.fx-heal {
+    --fx: rgba(34, 197, 94, .7);
+}
+
+.rf-fx-float {
+    position: absolute;
+    top: 0;
+    left: 50%;
+    z-index: 30;
+    padding: 0 8px;
+    border-radius: 8px;
+    background-color: rgba(10, 10, 10, .85);
+    font-size: calc(16px / var(--rf-zoom, 1));
+    font-weight: 900;
+    line-height: 1.5;
+    white-space: nowrap;
+    pointer-events: none;
+    animation: rf-fx-rise 1.4s ease-out forwards;
+}
+
+    .rf-fx-float.hit {
+        color: #f87171;
+    }
+
+    .rf-fx-float.crit {
+        color: #facc15;
+        font-size: calc(20px / var(--rf-zoom, 1));
+    }
+
+    .rf-fx-float.miss {
+        color: #a1a1aa;
+    }
+
+    .rf-fx-float.heal {
+        color: #4ade80;
+    }
+
+@media (prefers-reduced-motion: reduce) {
+    .rf-vtt-token.fx-hit,
+    .rf-vtt-token.fx-crit {
+        animation: none;
     }
 }

@@ -91,7 +91,19 @@ namespace RealmForge.Api.Controllers
 			}
 
 			//	The turn: the action on its own turn, the reaction outside it
-			if (fight is not null && attackerCombatant is not null && SpendForAttack(fight, attackerCombatant, runs, italian) is { } refused)
+			//	A character with a weapon of the other kind in hand changes it with the free interaction of the turn
+			var ranged = dto.Range > 0 && dto.Reach <= 0;
+			if (!dto.Spell && attackerCombatant is { Kind: CombatantKind.Character, Wield: { } inHand } && fight?.Encounter.CurrentId == attackerCombatant.Id
+				&& inHand != (ranged ? "ranged" : "melee"))
+			{
+				if (attackerCombatant.Interacted && !runs)
+				{
+					return Problem(statusCode: StatusCodes.Status409Conflict, title: T(italian, "Prima cambia arma: l'interazione gratuita del turno è già usata.", "Change weapon first: the free interaction of the turn is used."));
+				}
+				attackerCombatant.Interacted = true;
+				attackerCombatant.Wield = ranged ? "ranged" : "melee";
+			}
+			if (fight is not null && attackerCombatant is not null && SpendForAttack(fight, attackerCombatant, runs, italian, dto.ActionAttacks, target.Id) is { } refused)
 			{
 				return Problem(statusCode: StatusCodes.Status409Conflict, title: refused);
 			}
@@ -101,9 +113,24 @@ namespace RealmForge.Api.Controllers
 			var characters = await _context.Characters.Where(c => characterIds.Contains(c.Id)).ToListAsync();
 			var attackerConditions = ConditionsOf(attacker, attackerCombatant, characters);
 			var targetConditions = ConditionsOf(target, targetCombatant, characters);
+			if (targetCombatant?.Dodging == true)
+			{
+				targetConditions = targetConditions.Append("dodging").ToList();
+			}
 			var effect = TableCombat.Effect(attackerConditions, targetConditions, gap, far, dto.Mode);
 
 			var armorClass = await ArmorClassOfAsync(target, targetCombatant, characters);
+
+			//	Cover from the terrain between the two: a wall or a closed door in the way stops the attack, a low wall adds 2 to
+			//	the armour class, an arrow slit 5
+			var closedDoors = map.Tokens.Where(t => t.Kind == TokenKind.Prop && t.PropType is { } door && MapTerrain.Closes(door, t.PropState))
+				.SelectMany(t => MapTerrain.Footprint(map.GridType, t.X, t.Y, t.Size)).ToHashSet();
+			var cover = MapTerrain.Cover(map.GridType, map.GridSize, map.GridOffsetX, map.GridOffsetY, MapTerrain.Read(map.Terrain), closedDoors,
+				(attacker.X, attacker.Y, attacker.Size), (target.X, target.Y, target.Size));
+			if (cover >= MapTerrain.TotalCover)
+			{
+				return Problem(statusCode: StatusCodes.Status409Conflict, title: T(italian, "Il bersaglio è dietro un muro: copertura totale.", "The target is behind a wall: total cover."));
+			}
 			var first = RandomNumberGenerator.GetInt32(1, 21);
 			var second = effect.Mode != 0 ? RandomNumberGenerator.GetInt32(1, 21) : 0;
 			var keepFirst = effect.Mode == 0 || (effect.Mode > 0 ? first >= second : first <= second);
@@ -114,12 +141,17 @@ namespace RealmForge.Api.Controllers
 				dice.Add(new RollDieDto(20, second, keepFirst));
 			}
 			var total = die + dto.Bonus;
+			armorClass += cover;
 			var hit = die == 20 || (die != 1 && total >= armorClass);
 			var critical = hit && (die == 20 || effect.AutoCritical);
 
 			int? damage = null;
 			var damageRolled = new List<RollDieDto>();
 			var notes = new List<string>();
+			if (cover > 0)
+			{
+				notes.Add(cover >= 5 ? T(italian, "copertura tre quarti (+5 CA)", "three-quarters cover (+5 AC)") : T(italian, "mezza copertura (+2 CA)", "half cover (+2 AC)"));
+			}
 			if (hit && damageText is not null)
 			{
 				if (damageDice is not null)
@@ -136,10 +168,13 @@ namespace RealmForge.Api.Controllers
 				}
 			}
 
+			//	Damage and conditions go on the target by themselves only from the enemies, the tokens no player controls; a
+			//	character's attack is rolled and told, the master applies what it does
+			var applies = attacker.CharacterId is null && attacker.ControlledBy.Count == 0;
 			var down = false;
-			if (hit)
+			if (hit && applies)
 			{
-				down = ApplyDamage(target, targetCombatant, characters, damage ?? 0, dto.Condition, out var concentration);
+				down = ApplyDamage(target, targetCombatant, characters, damage ?? 0, critical, dto.Condition, out var concentration);
 				if (concentration is { } dc)
 				{
 					notes.Add(T(italian, $"TS Costituzione CD {dc} per la concentrazione", $"Constitution save DC {dc} to keep concentration"));
@@ -161,7 +196,7 @@ namespace RealmForge.Api.Controllers
 				? T(italian, die == 1 ? "Mancato (1 naturale)" : "Mancato", die == 1 ? "Miss (natural 1)" : "Miss")
 				: (critical ? T(italian, "Colpo critico", "Critical hit") : T(italian, "Colpito", "Hit"))
 					+ (damage is { } dealt ? T(italian, $" · {dealt} danni{(dto.DamageType is { Length: > 0 } dt ? " " + dt : string.Empty)}", $" · {dealt}{(dto.DamageType is { Length: > 0 } dt2 ? " " + dt2 : string.Empty)} damage") : string.Empty)
-					+ (dto.Condition is { } imposed ? $" · {TableCombat.ConditionName(imposed, italian)}" : string.Empty)
+					+ (applies && dto.Condition is { } imposed ? $" · {TableCombat.ConditionName(imposed, italian)}" : string.Empty)
 					+ (down ? T(italian, " · a terra", " · down") : string.Empty);
 			if (effect.Mode != 0)
 			{
@@ -195,6 +230,11 @@ namespace RealmForge.Api.Controllers
 				Save(fight, fight.Combatants);
 			}
 			target.UpdatedAt = map.UpdatedAt = DateTimeOffset.UtcNow;
+			//	Every screen shows the hit or the miss on the target
+			map.StrikeTokenId = target.Id;
+			map.StrikeKind = !hit ? 0 : critical ? 2 : 1;
+			map.StrikeDamage = hit ? damage : null;
+			map.StrikeAt = map.UpdatedAt;
 			await _context.SaveChangesAsync();
 			return Ok(new MapAttackResultDto(hit, critical, dice, dto.Bonus, total, damage, damageRolled, note, runs ? armorClass : null));
 		}
@@ -216,7 +256,9 @@ namespace RealmForge.Api.Controllers
 
 		//	The action of the turn (more attacks of the same action are fine), or the reaction outside the turn; a master
 		//	is never stopped, the turn is only marked
-		private static string? SpendForAttack(Fight fight, EncounterCombatant combatant, bool runs, bool italian)
+		//	On its own turn an attack is part of the Attack action (a character: as many attacks as its Extra Attack allows);
+		//	outside its turn it takes the reaction (an attack of opportunity offered on the target is taken)
+		private static string? SpendForAttack(Fight fight, EncounterCombatant combatant, bool runs, bool italian, int? actionAttacks, Guid targetId)
 		{
 			if (fight.Encounter.CurrentId == combatant.Id)
 			{
@@ -224,7 +266,12 @@ namespace RealmForge.Api.Controllers
 				{
 					return T(italian, "L'azione di questo turno è già stata usata.", "The action of this turn was already used.");
 				}
+				if (combatant.Kind == CombatantKind.Character && actionAttacks is { } most && combatant.AttacksMade >= Math.Clamp(most, 1, 4) && !runs)
+				{
+					return T(italian, "Gli attacchi dell'azione di Attacco sono finiti per questo turno.", "The attacks of the Attack action are over for this turn.");
+				}
 				combatant.ActionSpent ??= TableCombat.SpentAttack;
+				combatant.AttacksMade++;
 				return null;
 			}
 			if (combatant.ReactionUsed && !runs)
@@ -232,6 +279,10 @@ namespace RealmForge.Api.Controllers
 				return T(italian, "Non è il tuo turno e la reazione è già stata usata.", "It is not your turn and the reaction was already used.");
 			}
 			combatant.ReactionUsed = true;
+			if (combatant.OpportunityOn == targetId)
+			{
+				combatant.OpportunityOn = null;
+			}
 			return null;
 		}
 
@@ -269,7 +320,7 @@ namespace RealmForge.Api.Controllers
 
 		//	Damage on the temporary hit points first, then on the hit points (a character's on its sheet), and the
 		//	condition of the hit; true when the target drops to 0. Concentration: the save to keep it
-		private static bool ApplyDamage(CampaignToken target, EncounterCombatant? combatant, List<Character> characters, int damage, string? condition, out int? concentration)
+		private static bool ApplyDamage(CampaignToken target, EncounterCombatant? combatant, List<Character> characters, int damage, bool critical, string? condition, out int? concentration)
 		{
 			concentration = null;
 			if (target.CharacterId is { } characterId)
@@ -281,24 +332,9 @@ namespace RealmForge.Api.Controllers
 				}
 				var sheet = CharactersController.ReadSheet(character.Sheet);
 				var max = Math.Max(0, character.MaxHitPoints);
-				var hp = EncounterSheetSync.CurrentHp(sheet, max);
-				var left = damage;
-				var absorbed = Math.Min(sheet.TemporaryHitPoints, left);
-				sheet.TemporaryHitPoints -= absorbed;
-				left -= absorbed;
-				hp = Math.Max(0, hp - left);
-				if (damage > 0)
-				{
-					sheet.CurrentHitPoints = hp >= max ? null : hp;
-					if (hp == 0)
-					{
-						sheet.Concentration = null;
-					}
-					else if (sheet.Concentration is not null)
-					{
-						concentration = Math.Max(10, damage / 2);
-					}
-				}
+				//	As on the sheet: down at 0 (unconscious and prone), a hit while down a failed death save
+				var outcome = CharacterVitals.Damage(sheet, max, damage, critical, character.Ruleset);
+				concentration = outcome.ConcentrationDc;
 				if (condition is not null && condition != EncounterRules.Concentrating)
 				{
 					if (condition == EncounterRules.Exhaustion)
@@ -313,7 +349,7 @@ namespace RealmForge.Api.Controllers
 				sheet.VitalsStamp++;
 				character.Sheet = JsonSerializer.Serialize(sheet, CharactersController.Json);
 				character.UpdatedAt = DateTimeOffset.UtcNow;
-				return damage > 0 && hp == 0;
+				return outcome.Dropped;
 			}
 			if (combatant is not null)
 			{

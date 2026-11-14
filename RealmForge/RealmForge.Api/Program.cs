@@ -33,8 +33,12 @@ namespace RealmForge.Api
 			var connectionString = builder.Configuration.GetConnectionString("DefaultConnection") is { Length: > 0 } configured
 				? PostgresConnectionString.Normalize(configured)
 				: null;
-			builder.Services.AddDbContext<RealmForgeDbContext>(options =>
-				options.UseNpgsql(connectionString ?? string.Empty));
+			//	The tables waiting for news wake the moment a map, a token or an encounter is saved
+			builder.Services.AddSingleton<RealmForge.Api.Realtime.TableSignals>();
+			builder.Services.AddSingleton<RealmForge.Api.Realtime.TableChangeInterceptor>();
+			builder.Services.AddDbContext<RealmForgeDbContext>((services, options) =>
+				options.UseNpgsql(connectionString ?? string.Empty)
+					.AddInterceptors(services.GetRequiredService<RealmForge.Api.Realtime.TableChangeInterceptor>()));
 
 			//	Accounts: ASP.NET Core Identity with bearer tokens (endpoints mapped under /api/auth)
 			builder.Services.AddAuthorization();

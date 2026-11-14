@@ -56,19 +56,24 @@ namespace RealmForge.Client.Components
 			{
 				return;
 			}
-			object? data = null;
+			//	Everyone: the walls that hide what is behind them (an area does not reach there); the players moving: the cells
+			//	not crossed (walls, three-quarters cover), the difficult ones (low walls too), the closed doors
 			var closed = ClosedDoors().Select(c => $"{c.Col},{c.Row}").ToList();
-			if (FollowsTerrain)
+			string Key(KeyValuePair<(int Col, int Row), TerrainKind> c) => $"{c.Key.Col},{c.Key.Row}";
+			var data = new
 			{
-				data = new
-				{
-					block = true,
-					walls = terrainCells.Where(c => c.Value == TerrainKind.Wall).Select(c => $"{c.Key.Col},{c.Key.Row}").ToList(),
-					difficult = terrainCells.Where(c => c.Value == TerrainKind.Difficult).Select(c => $"{c.Key.Col},{c.Key.Row}").ToList(),
-					closed
-				};
+				block = FollowsTerrain,
+				walls = terrainCells.Where(c => c.Value is TerrainKind.Wall or TerrainKind.ThreeQuarterCover).Select(Key).ToList(),
+				difficult = terrainCells.Where(c => c.Value is TerrainKind.Difficult or TerrainKind.HalfCover).Select(Key).ToList(),
+				sight = terrainCells.Where(c => c.Value == TerrainKind.Wall).Select(Key).Concat(closed).ToList(),
+				closed
+			};
+			var hash = new HashCode();
+			foreach (var v in terrain?.Cells ?? new List<int>())
+			{
+				hash.Add(v);
 			}
-			var sent = data is null ? "-" : $"{terrain!.Cells.Count}:{string.Join(";", terrain.Cells.Take(60))}:{string.Join(";", closed)}:{(int)gridType}";
+			var sent = $"{FollowsTerrain}:{hash.ToHashCode()}:{string.Join(";", closed)}:{(int)gridType}:{grid}:{offsetX}:{offsetY}";
 			if (sent == terrainSent)
 			{
 				return;
@@ -125,6 +130,8 @@ namespace RealmForge.Client.Components
 			"wall" => "bricks",
 			"difficult" => "triangle-half",
 			"door" => "door-open",
+			"half" => "shield",
+			"three" => "shield-shaded",
 			_ => "cloud-fog2"
 		};
 
@@ -141,6 +148,8 @@ namespace RealmForge.Client.Components
 			"wall" => TerrainKind.Wall,
 			"difficult" => TerrainKind.Difficult,
 			"door" => TerrainKind.Door,
+			"half" => TerrainKind.HalfCover,
+			"three" => TerrainKind.ThreeQuarterCover,
 			_ => null
 		};
 
@@ -149,6 +158,14 @@ namespace RealmForge.Client.Components
 		public async Task TerrainPainted(int[] cells)
 		{
 			if (map is null || !RunsTheTable || KindOf(brush) is not { } kind || cells.Length < 2)
+			{
+				return;
+			}
+			//	Only the cells on the picture (the cut ones on its edges included)
+			cells = Enumerable.Range(0, cells.Length / 2)
+				.Where(i => MapGeometry.Inside(gridType, grid, offsetX, offsetY, cells[i * 2], cells[i * 2 + 1], 1, map.Width, map.Height))
+				.SelectMany(i => new[] { cells[i * 2], cells[i * 2 + 1] }).ToArray();
+			if (cells.Length == 0)
 			{
 				return;
 			}
@@ -195,27 +212,26 @@ namespace RealmForge.Client.Components
 			{
 				return;
 			}
+			//	From the cut cells before the offset (-1) when there are any, to the last cell on the picture
 			var cells = new List<int>();
-			int columns = 0, rows = 0;
-			while (columns < 1000 && MapGeometry.Inside(gridType, grid, offsetX, offsetY, columns, 0, 1, map.Width, map.Height))
+			var first = (Col: MapGeometry.Inside(gridType, grid, offsetX, offsetY, -1, 0, 1, map.Width, map.Height) ? -1 : 0,
+				Row: MapGeometry.Inside(gridType, grid, offsetX, offsetY, 0, -1, 1, map.Width, map.Height) ? -1 : 0);
+			int lastCol = 0, lastRow = 0;
+			while (lastCol < 1000 && MapGeometry.Inside(gridType, grid, offsetX, offsetY, lastCol + 1, 0, 1, map.Width, map.Height))
 			{
-				columns++;
+				lastCol++;
 			}
-			while (rows < 1000 && MapGeometry.Inside(gridType, grid, offsetX, offsetY, 0, rows, 1, map.Width, map.Height))
+			while (lastRow < 1000 && MapGeometry.Inside(gridType, grid, offsetX, offsetY, 0, lastRow + 1, 1, map.Width, map.Height))
 			{
-				rows++;
+				lastRow++;
 			}
-			for (var c = 0; c < columns; c++)
+			for (var c = first.Col; c <= lastCol; c++)
 			{
-				cells.AddRange(new[] { c, 0, c, rows - 1 });
+				cells.AddRange(new[] { c, first.Row, c, lastRow });
 			}
-			for (var r = 0; r < rows; r++)
+			for (var r = first.Row; r <= lastRow; r++)
 			{
-				cells.AddRange(new[] { 0, r, columns - 1, r });
-			}
-			if (columns == 0 || rows == 0)
-			{
-				return;
+				cells.AddRange(new[] { first.Col, r, lastCol, r });
 			}
 			var before = terrain;
 			TakeTerrain(new MapTerrainDto(MapTerrain.Paint(terrain?.Cells, cells, TerrainKind.Wall), terrain?.BlockPlayers ?? true));

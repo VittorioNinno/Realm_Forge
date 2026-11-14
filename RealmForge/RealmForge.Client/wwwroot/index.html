@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="it">
 
 <head>
@@ -381,6 +381,8 @@
                 };
                 // The fog and the terrain share the brush: cells painted one by one, or a box
                 const brushing = () => st.tool === 'terrain' ? st.options.terrainShape !== 'rect' : st.options.fogShape === 'brush';
+                // A box of whole cells (the terrain, and the fog in the map editor) rather than a free area
+                const snapping = () => !brushing() && (st.tool === 'terrain' || (st.tool === 'fog' && st.options.fogCells));
                 const terrainColors = { walkable: '#22c55e', wall: '#ef4444', difficult: '#f59e0b', door: '#38bdf8' };
                 const drawFog = () => {
                     const svg = layer();
@@ -388,10 +390,11 @@
                     if (!st.fog) { svg.innerHTML = ''; return; }
                     const z = zoom(), reveal = st.options.fogMode !== 'cover';
                     const color = st.tool === 'terrain' ? (terrainColors[st.options.terrain] || '#ff8c00') : reveal ? '#7dd3fc' : '#0b0b0b';
-                    if (brushing()) {
+                    if (brushing() || snapping()) {
                         // The cells painted so far, as one shape (the outline of each cell, no circles)
                         const [t, g, ox, oy] = grid();
-                        const d = [...st.fog.cells.values()].map(([c, r]) => 'M' + corners(t, g, ox, oy, c, r).map(q => q.join(',')).join('L') + 'Z').join('');
+                        const list = brushing() ? [...st.fog.cells.values()] : pairs(boxCells(st.fog));
+                        const d = list.map(([c, r]) => 'M' + corners(t, g, ox, oy, c, r).map(q => q.join(',')).join('L') + 'Z').join('');
                         svg.innerHTML = `<path d="${d}" fill="${color}" fill-opacity=".45" stroke="#7dd3fc" stroke-width="${1 / z}" stroke-opacity=".6"/>`;
                     } else {
                         const f = st.fog, x = Math.min(f.from[0], f.to[0]), y = Math.min(f.from[1], f.to[1]);
@@ -412,7 +415,7 @@
                     const o = nearest(t, g, ox, oy, p[0], p[1]);
                     for (let dc = -ring - 1; dc <= ring + 1; dc++) for (let dr = -ring - 1; dr <= ring + 1; dr++) {
                         const c = o[0] + dc, r = o[1] + dr;
-                        if (c < 0 || r < 0 || st.fog.cells.size >= 4000) continue;
+                        if (c < -1 || r < -1 || st.fog.cells.size >= 4000) continue;
                         if (distance(t, o, [c, r]) <= ring) st.fog.cells.set(c + ',' + r, [c, r]);
                     }
                 };
@@ -423,19 +426,27 @@
                     for (let i = 1; i <= steps; i++) paintCells([last[0] + (p[0] - last[0]) * i / steps, last[1] + (p[1] - last[1]) * i / steps]);
                     st.fog.last = p;
                 };
-                // The cells whose centre is in a box
+                // The whole cells from the one under the start of the drag to the one under its end (the cut cells of the
+                // edges, column and row -1, included)
                 const boxCells = (f) => {
                     const [t, g, ox, oy] = grid();
-                    const x1 = Math.min(f.from[0], f.to[0]), y1 = Math.min(f.from[1], f.to[1]), x2 = Math.max(f.from[0], f.to[0]), y2 = Math.max(f.from[1], f.to[1]);
-                    const a = nearest(t, g, ox, oy, x1, y1), b = nearest(t, g, ox, oy, x2, y2), out = [];
-                    for (let c = Math.max(0, a[0] - 1); c <= b[0] + 1; c++) for (let r = Math.max(0, a[1] - 1); r <= b[1] + 1; r++) {
+                    const a = nearest(t, g, ox, oy, f.from[0], f.from[1]), b = nearest(t, g, ox, oy, f.to[0], f.to[1]), out = [];
+                    const c1 = Math.max(-1, Math.min(a[0], b[0])), c2 = Math.max(a[0], b[0]), r1 = Math.max(-1, Math.min(a[1], b[1])), r2 = Math.max(a[1], b[1]);
+                    if (t === 0) {
+                        for (let c = c1; c <= c2; c++) for (let r = r1; r <= r2 && out.length < 8000; r++) out.push(c, r);
+                        return out;
+                    }
+                    // Hexagons: those whose centre lies between the centres of the two cells
+                    const [ax, ay] = center(t, g, ox, oy, a[0], a[1]), [bx, by] = center(t, g, ox, oy, b[0], b[1]), [w, h] = cell(t, g);
+                    const x1 = Math.min(ax, bx) - w / 4, x2 = Math.max(ax, bx) + w / 4, y1 = Math.min(ay, by) - h / 4, y2 = Math.max(ay, by) + h / 4;
+                    for (let c = c1 - 1; c <= c2 + 1; c++) for (let r = r1 - 1; r <= r2 + 1; r++) {
+                        if (c < -1 || r < -1) continue;
                         const [x, y] = center(t, g, ox, oy, c, r);
                         if (x >= x1 && x <= x2 && y >= y1 && y <= y2 && out.length < 8000) out.push(c, r);
                     }
-                    // A click without a drag: the cell under it
-                    if (out.length === 0 && Math.hypot(x2 - x1, y2 - y1) < g / 4) out.push(...nearest(t, g, ox, oy, f.from[0], f.from[1]));
                     return out;
                 };
+                const pairs = (flat) => { const out = []; for (let i = 0; i + 1 < flat.length; i += 2) out.push([flat[i], flat[i + 1]]); return out; };
                 const drawStroke = () => {
                     const svg = layer();
                     if (!svg) return;
@@ -466,6 +477,25 @@
                 };
                 // The area of a spell being cast: from the caster (pointed with the pointer) or centred on a cell within
                 // range (an even cube on the corner between cells); ok is false out of range
+                // Whether a cell is seen from a point: no wall or closed door on the line between them (the cell of the
+                // point and the cell itself left out)
+                const seen = (x, y, cell) => {
+                    if (!st.sight) return true;
+                    const [t, g, ox, oy] = grid(), [bx, by] = center(t, g, ox, oy, cell[0], cell[1]);
+                    const start = nearest(t, g, ox, oy, x, y), steps = Math.max(1, Math.ceil(Math.hypot(bx - x, by - y) / Math.max(1, g / 6)));
+                    for (let i = 1; i < steps; i++) {
+                        const k = nearest(t, g, ox, oy, x + (bx - x) * i / steps, y + (by - y) * i / steps);
+                        if ((k[0] === start[0] && k[1] === start[1]) || (k[0] === cell[0] && k[1] === cell[1])) continue;
+                        if (st.sight.has(k[0] + ',' + k[1])) return false;
+                    }
+                    return true;
+                };
+                // The point an area spreads from: the middle of a cube, the origin of the others
+                const spread = (plan, g) => plan.kind === 'cube' ? [plan.ox + plan.size * g / 2, plan.oy] : [plan.ox, plan.oy];
+                const planCells = (plan) => {
+                    const [t, g, ox, oy] = grid(), [sx, sy] = spread(plan, g);
+                    return areaCells(t, g, ox, oy, plan.kind, plan.ox, plan.oy, plan.tx, plan.ty, plan.size).filter(k => seen(sx, sy, k));
+                };
                 const castPlan = (p) => {
                     const c = st.options.cast;
                     if (!c) return null;
@@ -480,7 +510,7 @@
                     let d = Infinity;
                     const span = t === 0 ? c.casterSize : 1;
                     for (let i = 0; i < span; i++) for (let j = 0; j < span; j++) d = Math.min(d, distance(t, [c.col + i, c.row + j], cell));
-                    const ok = c.range >= 999 || d <= c.range;
+                    const ok = (c.range >= 999 || d <= c.range) && seen(c.x, c.y, cell);
                     if (kind === 'cube') {
                         if (t === 0 && size % 2 === 0) { cx += g / 2; cy += g / 2; }
                         const x0 = cx - g / 2 - size * g / 2;
@@ -495,7 +525,7 @@
                     if (!plan) { svg.innerHTML = ''; return; }
                     const [t, g, ox, oy] = grid(), z = zoom();
                     const color = plan.ok ? (st.options.color || '#ff8c00') : '#ef4444';
-                    const cells = areaCells(t, g, ox, oy, plan.kind, plan.ox, plan.oy, plan.tx, plan.ty, plan.size)
+                    const cells = planCells(plan)
                         .map(([cc, r]) => `<polygon points="${corners(t, g, ox, oy, cc, r).map(q => q.join(',')).join(' ')}" fill="${color}" fill-opacity=".3"/>`).join('');
                     const poly = areaOutline(plan.kind, plan.ox, plan.oy, plan.tx, plan.ty, plan.size * g, g);
                     const shape = poly
@@ -709,8 +739,8 @@
                         const f = st.fog;
                         st.fog = null;
                         drawFog();
-                        const brush = st.options.fogShape === 'brush';
-                        const numbers = brush
+                        const snap = snapping(), brush = st.options.fogShape === 'brush' || snap;
+                        const numbers = snap ? boxCells(f) : brush
                             ? [...f.cells.values()].flat()
                             : [Math.min(f.from[0], f.to[0]), Math.min(f.from[1], f.to[1]), Math.abs(f.to[0] - f.from[0]), Math.abs(f.to[1] - f.from[1])];
                         if (brush || (numbers[2] > 4 && numbers[3] > 4)) await dotnet.invokeMethodAsync('FogDrawn', brush, numbers.map(v => Math.round(v * 10) / 10));
@@ -813,12 +843,37 @@
                 const st = boards.get(stage);
                 if (!st) return;
                 st.route = null;
+                st.sight = data && data.sight && data.sight.length ? new Set(data.sight) : null;
                 st.terrain = data && data.block ? {
                     block: true,
                     walls: new Set(data.walls || []),
                     difficult: new Set(data.difficult || []),
                     closed: new Set(data.closed || [])
                 } : null;
+            }
+
+            // The effect of a hit, a miss, the damage or the healing on a token: a flash, a small shake, a number rising
+            function strike(stage, tokenId, kind, text) {
+                const el = stage && stage.querySelector(`.rf-vtt-token[data-token="${tokenId}"]`);
+                if (!el) return;
+                const cls = `fx-${kind}`;
+                el.classList.remove('fx-hit', 'fx-miss', 'fx-crit', 'fx-heal');
+                void el.offsetWidth;
+                el.classList.add(cls);
+                setTimeout(() => el.classList.remove(cls), 900);
+                if (text) {
+                    const f = document.createElement('span');
+                    f.className = `rf-fx-float ${kind}`;
+                    f.textContent = text;
+                    f.setAttribute('data-test', 'map-fx');
+                    el.appendChild(f);
+                    setTimeout(() => f.remove(), 1500);
+                }
+            }
+
+            function reveal(selector) {
+                const el = document.querySelector(selector);
+                if (el) el.scrollIntoView({ block: 'nearest', inline: 'center', behavior: 'smooth' });
             }
 
             function detach(stage) {
@@ -909,7 +964,7 @@
                 return el.requestFullscreen?.();
             }
 
-            return { attach, detach, tool, terrain, fit, fullscreen, view, center: centerOn, keepVisible };
+            return { attach, detach, tool, terrain, strike, reveal, fit, fullscreen, view, center: centerOn, keepVisible };
         })();
         window.rfCropImage = (src, x, y, zoom, size) => new Promise((resolve) => {
             const img = new Image();
