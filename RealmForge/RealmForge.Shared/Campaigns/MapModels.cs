@@ -131,7 +131,7 @@ public static class MapGeometry
 	{
 		if (type == GridType.Square)
 		{
-			return (Math.Max(0, (int)Math.Round((x - offsetX) / grid - size / 2.0)), Math.Max(0, (int)Math.Round((y - offsetY) / grid - size / 2.0)));
+			return (Math.Max(-1, (int)Math.Round((x - offsetX) / grid - size / 2.0)), Math.Max(-1, (int)Math.Round((y - offsetY) / grid - size / 2.0)));
 		}
 		var (w, h) = Cell(type, grid);
 		int guessCol, guessRow;
@@ -145,14 +145,14 @@ public static class MapGeometry
 			guessCol = (int)Math.Round((x - offsetX - w / 2) / (0.75 * w));
 			guessRow = (int)Math.Round((y - offsetY - h / 2) / h);
 		}
-		var best = (Col: Math.Max(0, guessCol), Row: Math.Max(0, guessRow));
+		var best = (Col: Math.Max(-1, guessCol), Row: Math.Max(-1, guessRow));
 		var bestDistance = double.MaxValue;
 		for (var dc = -1; dc <= 1; dc++)
 		{
 			for (var dr = -1; dr <= 1; dr++)
 			{
 				var (c, r) = (guessCol + dc, guessRow + dr);
-				if (c < 0 || r < 0)
+				if (c < -1 || r < -1)
 				{
 					continue;
 				}
@@ -169,16 +169,19 @@ public static class MapGeometry
 	}
 
 	///	<summary>
-	///	A token on the map: on a cell of the grid with its centre inside the picture.
+	///	A token on the map: on a cell of the grid that is at least partly on the picture.
 	///	</summary>
 	public static bool Inside(GridType type, int grid, int offsetX, int offsetY, int col, int row, int size, int width, int height)
 	{
-		if (col < 0 || row < 0)
+		//	The cells cut by the edges count too: the partial column and row before the offset are -1, a cell is on the map
+		//	when any part of it is on the picture (its centre less than half a cell outside)
+		if (col < -1 || row < -1)
 		{
 			return false;
 		}
 		var (x, y) = Center(type, grid, offsetX, offsetY, col, row, size);
-		return x >= 0 && y >= 0 && x <= width && y <= height;
+		var (w, h) = Cell(type, grid);
+		return x > -w / 2 && y > -h / 2 && x < width + w / 2 && y < height + h / 2;
 	}
 
 	///	<summary>

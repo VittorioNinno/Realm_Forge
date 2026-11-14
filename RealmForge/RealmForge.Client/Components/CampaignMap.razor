@@ -1,4 +1,4 @@
-@using System.Globalization
+﻿@using System.Globalization
 @using RealmForge.Client.Localization
 @using RealmForge.Client.Services
 @using RealmForge.Shared.Campaigns
@@ -153,11 +153,6 @@ else
                 }
                 @if (map is not null)
                 {
-                    <div class="rf-vtt-zoom" role="group" aria-label="@UiText.MapZoom(Lang)">
-                        <button type="button" @onclick="() => ZoomByHand(-1)" aria-label="−" data-test="map-zoom-out">−</button>
-                        <span>@($"{zoom * 100:0}%")</span>
-                        <button type="button" @onclick="() => ZoomByHand(1)" aria-label="+" data-test="map-zoom-in">+</button>
-                    </div>
                     <div class="rf-me-seg" role="group" aria-label="@UiText.MapViewAs(Lang)">
                         <button type="button" class="@(previewPlayers ? null : "active")" aria-pressed="@(previewPlayers ? "false" : "true")" @onclick="() => previewPlayers = false" data-test="map-preview-editor"><Icon Name="pencil" /> @UiText.MapViewEditor(Lang)</button>
                         <button type="button" class="@(previewPlayers ? "active" : null)" aria-pressed="@(previewPlayers ? "true" : "false")" @onclick="() => previewPlayers = true" data-test="map-preview-players"><Icon Name="eye" /> @UiText.MapViewPlayers(Lang)</button>
@@ -212,8 +207,17 @@ else
                             </div>
                         }
                     </div>
-                    <div class="rf-vtt-viewport prep">
-                        @Board
+                    <div class="rf-me-view">
+                        <div class="rf-vtt-viewport prep">
+                            @Board
+                        </div>
+                        @* Zoom and fit over the map, as at the table *@
+                        <div class="rf-me-zoom rf-vtt-dock-zoom" role="group" aria-label="@UiText.MapZoom(Lang)">
+                            <button type="button" @onclick="() => ZoomByHand(-1)" aria-label="−" title="−" data-test="map-zoom-out"><Icon Name="dash" /></button>
+                            <span data-test="map-zoom">@($"{zoom * 100:0}%")</span>
+                            <button type="button" @onclick="() => ZoomByHand(1)" aria-label="+" title="+" data-test="map-zoom-in"><Icon Name="plus" /></button>
+                            <button type="button" @onclick="FitByHand" title="@UiText.VttFit(Lang)" aria-label="@UiText.VttFit(Lang)" data-test="map-fit"><Icon Name="aspect-ratio" /></button>
+                        </div>
                     </div>
                     <footer class="rf-me-status">
                         <span class="rf-me-counts" data-test="map-zone-counts">
@@ -685,7 +689,7 @@ else
                                 <span class="rf-vtt-conds" data-test="map-token-conditions">
                                     @foreach (var key in conditions.Take(4))
                                     {
-                                        <span title="@UiText.ConditionName(key, Lang)">@ConditionShort(key)</span>
+                                        <span class="cond-@UiText.ConditionFamily(key)" title="@UiText.ConditionName(key, Lang)" data-condition="@key">@UiText.ConditionCode(key, Lang)</span>
                                     }
                                     @if (conditions.Count > 4)
                                     {
@@ -1411,18 +1415,15 @@ else
         {
             await ChangeCharacterAsync(t, (sheet, computed) =>
             {
+                //	As on the sheet: down at 0 (unconscious and prone, the death saves), awake again when healed
                 var max = Math.Max(1, computed.MaxHitPoints);
-                var hp = Math.Clamp(sheet.CurrentHitPoints ?? max, 0, max);
                 if (sign > 0)
                 {
-                    sheet.CurrentHitPoints = Math.Min(max, hp + amount);
+                    RealmForge.Shared.Characters.CharacterVitals.Heal(sheet, max, amount);
                 }
                 else
                 {
-                    //	Temporary hit points take the damage first
-                    var absorbed = Math.Min(sheet.TemporaryHitPoints, amount);
-                    sheet.TemporaryHitPoints -= absorbed;
-                    sheet.CurrentHitPoints = Math.Max(0, hp - (amount - absorbed));
+                    RealmForge.Shared.Characters.CharacterVitals.Damage(sheet, max, amount, false, null);
                 }
             });
             return;
@@ -1878,6 +1879,10 @@ else
                     }
                 </div>
             }
+            @if (KnockedOut(t))
+            {
+                @DeathCard(t, canRoll)
+            }
             @{
                 var tabs = SheetTabsOf(sheet);
                 if (RunsTheTable && t.CharacterId is null && t.PropType is null)
@@ -1904,6 +1909,10 @@ else
             @switch (current)
             {
                 case "actions":
+                    @if (KnockedOut(t))
+                    {
+                        <p class="rf-qs-note rf-qs-down-note" data-test="vtt-quick-sheet-down"><Icon Name="moon-stars" /> @UiText.VttDownNoActions(Lang)</p>
+                    }
                     @if (sheet.Attacks.Count > 0)
                     {
                         <section class="rf-qs-card">
@@ -1913,18 +1922,18 @@ else
                                 {
                                     var attack = line;
                                     <div class="rf-qs-attack">
-                                        <button type="button" class="rf-qs-attack-main" disabled="@(!canRoll || busy || attack.Roll is null)" @onclick="() => RollAsync(t, attack.Roll!)" data-test="map-token-attack">
+                                        <button type="button" class="rf-qs-attack-main" disabled="@(!canRoll || busy || attack.Roll is null || KnockedOut(t))" @onclick="() => RollAsync(t, attack.Roll!)" data-test="map-token-attack">
                                             <span class="rf-qs-attack-name">@attack.Name</span>
                                             <span class="rf-qs-attack-detail">@attack.Detail</span>
                                         </button>
-                                        @if (CanAim(t))
+                                        @if (CanAim(t) && !KnockedOut(t))
                                         {
                                             <button type="button" class="rf-qs-attack-damage aim @(aim is { } aiming && aiming.AttackerId == t.Id && aiming.Attack.Name == attack.Name ? "active" : null)" disabled="@busy"
                                                     title="@UiText.VttAimStart(attack.Name, Lang)" aria-label="@UiText.VttAimStart(attack.Name, Lang)" @onclick="() => StartAimAsync(t, attack)" data-test="map-token-aim"><Icon Name="crosshair" /></button>
                                         }
                                         @if (attack.Damage is { } damage)
                                         {
-                                            <button type="button" class="rf-qs-attack-damage" disabled="@(!canRoll || busy)" title="@damage.Label" aria-label="@damage.Label" @onclick="() => RollAsync(t, damage)" data-test="map-token-damage-roll"><Icon Name="dice" /></button>
+                                            <button type="button" class="rf-qs-attack-damage" disabled="@(!canRoll || busy || KnockedOut(t))" title="@damage.Label" aria-label="@damage.Label" @onclick="() => RollAsync(t, damage)" data-test="map-token-damage-roll"><Icon Name="dice" /></button>
                                         }
                                     </div>
                                 }
@@ -1950,7 +1959,7 @@ else
                                 <span>@casting.Line</span>
                                 @if (casting.Attack is { } spellAttack)
                                 {
-                                    <button type="button" class="rf-qs-attack-damage" disabled="@(!canRoll || busy)" title="@spellAttack.Label" aria-label="@spellAttack.Label" @onclick="() => RollAsync(t, spellAttack)" data-test="map-token-spell-attack"><Icon Name="dice" /></button>
+                                    <button type="button" class="rf-qs-attack-damage" disabled="@(!canRoll || busy || KnockedOut(t))" title="@spellAttack.Label" aria-label="@spellAttack.Label" @onclick="() => RollAsync(t, spellAttack)" data-test="map-token-spell-attack"><Icon Name="dice" /></button>
                                 }
                             </div>
                             @if (casting.Slots is { } slots)
@@ -1965,7 +1974,7 @@ else
                                     {
                                         var spell = sp;
                                         var picked = castChoice is { } cc && cc.TokenId == t.Id && cc.Spell.Id == spell.Id;
-                                        @if (canRoll && t.CharacterId is not null)
+                                        @if (canRoll && t.CharacterId is not null && !KnockedOut(t))
                                         {
                                             <button type="button" class="rf-qs-spell @(picked ? "active" : null)" aria-expanded="@(picked ? "true" : "false")" @onclick="() => ChooseCast(t, spell, casting.UsesSlots)" data-test="map-token-spell">
                                                 @spell.Name
@@ -2078,6 +2087,87 @@ else
             }
         </section>
     };
+
+    //	A character at 0 hit points: unconscious, no actions nor bonus actions, only the death saves
+    private bool KnockedOut(MapTokenDto t) => t.CharacterId is { } id && Characters.FirstOrDefault(c => c.Character.Id == id) is { } c && LifeMax(c) > 0 && LifeHp(c) == 0;
+
+    private bool deathRolling;
+    private string? deathNote;
+
+    private RenderFragment DeathCard(MapTokenDto t, bool canRoll) => __builder =>
+    {
+        var id = t.CharacterId!.Value;
+        var vitals = charVitals.GetValueOrDefault(id);
+        if (vitals is null)
+        {
+            _ = LoadVitalsAsync(id);
+        }
+        var successes = vitals?.DeathSaveSuccesses ?? 0;
+        var failures = vitals?.DeathSaveFailures ?? 0;
+        var stable = successes >= 3;
+        var dead = failures >= 3;
+        <section class="rf-death rf-qs-death @(stable ? "stable" : dead ? "dead" : null)" data-test="vtt-death-saves">
+            <div class="rf-death-head">
+                <span class="rf-qs-card-title mb-0">@UiText.SheetDeathSaves(Lang)</span>
+                <span class="rf-death-state" data-test="vtt-death-state">@(stable ? UiText.DeathSaveStable(Lang) : dead ? UiText.DeathSaveDead(Lang) : UiText.VttDownState(Lang))</span>
+            </div>
+            <div class="rf-death-body">
+                <div class="rf-death-group">
+                    <span>@UiText.SheetSuccesses(Lang)</span>
+                    @for (var i = 1; i <= 3; i++)
+                    {
+                        <span class="rf-death-box success @(successes >= i ? "on" : null)"></span>
+                    }
+                </div>
+                <div class="rf-death-group">
+                    <span>@UiText.SheetFailures(Lang)</span>
+                    @for (var i = 1; i <= 3; i++)
+                    {
+                        <span class="rf-death-box fail @(failures >= i ? "on" : null)"></span>
+                    }
+                </div>
+                @if (canRoll && !PeekSheet(t))
+                {
+                    <button type="button" class="rf-death-roll" disabled="@(stable || dead || deathRolling || busy || vitals is null)" @onclick="() => RollDeathSaveAsync(t)" data-test="vtt-death-roll">@UiText.BtnRollDeathSave(Lang)</button>
+                }
+            </div>
+            @if (deathNote is not null)
+            {
+                <div class="rf-death-note" data-test="vtt-death-note">@deathNote</div>
+            }
+        </section>
+    };
+
+    //	The d20 goes to the log like any roll, then the sheet takes the result
+    private async Task RollDeathSaveAsync(MapTokenDto t)
+    {
+        if (deathRolling)
+        {
+            return;
+        }
+        deathRolling = true;
+        deathNote = null;
+        try
+        {
+            var rolled = await RollForAsync(t, new TokenRoll(UiText.SheetDeathSaves(Lang), string.Empty, "1d20", false));
+            if (rolled?.Dice.FirstOrDefault(d => !d.Dropped)?.Value is not { } die)
+            {
+                return;
+            }
+            RealmForge.Shared.Characters.CharacterVitals.DeathSaveOutcome? outcome = null;
+            await ChangeCharacterAsync(t, (sheet, computed) => outcome = RealmForge.Shared.Characters.CharacterVitals.DeathSave(sheet, Math.Max(1, computed.MaxHitPoints), die));
+            if (outcome is { } o)
+            {
+                deathNote = (o.Twenty ? UiText.DeathSaveTwenty(Lang) : o.One ? UiText.DeathSaveOne(Lang) : o.Success ? UiText.DeathSaveSuccess(Lang) : UiText.DeathSaveFailure(Lang))
+                    + (o.Stable ? " · " + UiText.DeathSaveStable(Lang) : o.Dead ? " · " + UiText.DeathSaveDead(Lang) : string.Empty);
+            }
+        }
+        finally
+        {
+            deathRolling = false;
+            StateHasChanged();
+        }
+    }
 
     //	The tab of the quick sheet each token shows
     private readonly Dictionary<Guid, string> qsTabs = new();
@@ -2295,13 +2385,16 @@ else
                         <button type="button" class="rf-vtt-chip @(aimMode == mode ? "active" : null)" @onclick="() => aimMode = mode" data-test="vtt-aim-mode" data-mode="@mode">@UiText.VttAimMode(mode, Lang)</button>
                     }
                 </span>
-                <select class="rf-form-control rf-vtt-combatbar-select" title="@UiText.VttAimCondition(Lang)" aria-label="@UiText.VttAimCondition(Lang)" @onchange="e => aimCondition = string.IsNullOrEmpty(e.Value?.ToString()) ? null : e.Value!.ToString()" data-test="vtt-aim-condition">
+@if (AimHurts)
+                {
+                                <select class="rf-form-control rf-vtt-combatbar-select" title="@UiText.VttAimCondition(Lang)" aria-label="@UiText.VttAimCondition(Lang)" @onchange="e => aimCondition = string.IsNullOrEmpty(e.Value?.ToString()) ? null : e.Value!.ToString()" data-test="vtt-aim-condition">
                     <option value="" selected="@(aimCondition is null)">@UiText.VttAimNoCondition(Lang)</option>
                     @foreach (var key in EncounterRules.Conditions.Where(k => k is not (EncounterRules.Concentrating or EncounterRules.Exhaustion)))
                     {
                         <option value="@key" selected="@(aimCondition == key)">@UiText.ConditionName(key, Lang)</option>
                     }
                 </select>
+                }
                 <span class="rf-vtt-options-hint" data-test="vtt-aim-hint">@(aimNote ?? UiText.VttAimHint(Lang))</span>
                 <button type="button" class="btn btn-sm btn-rf-outline" @onclick="CancelAim" data-test="vtt-aim-cancel">@UiText.BtnCancel(Lang)</button>
             }
@@ -3062,6 +3155,7 @@ else
         fogMode = fogCover ? "cover" : "reveal",
         fogShape = fogBrush ? "brush" : "rect",
         fogBrush = fogBrushSize,
+        fogCells = !Table,
         eraseArea,
         terrain = brush,
         terrainShape = brushBox ? "rect" : "brush",
@@ -3587,12 +3681,6 @@ else
     }
 
     private static string HpColor(double share) => share > 0.5 ? "#22c55e" : share > 0.25 ? "#f59e0b" : "#ef4444";
-
-    private string ConditionShort(string key)
-    {
-        var name = UiText.ConditionName(key, Lang);
-        return name.Length <= 2 ? name : name[..2];
-    }
 
     private async Task SetStateAsync(MapTokenDto t, List<string> conditions, int? hp)
     {
@@ -4233,7 +4321,7 @@ else
         {
             var (col, row) = ((int)cells[i], (int)cells[i + 1]);
             var (x, y) = MapGeometry.Center(gridType, grid, offsetX, offsetY, col, row);
-            if (col >= 0 && row >= 0 && x <= map!.Width + grid && y <= map.Height + grid && MapFog.Covered(fog, x, y) != fogCover)
+            if (MapGeometry.Inside(gridType, grid, offsetX, offsetY, col, row, 1, map!.Width, map.Height) && MapFog.Covered(fog, x, y) != fogCover)
             {
                 changed.Add((col, row));
             }

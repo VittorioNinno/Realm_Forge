@@ -236,53 +236,24 @@ namespace RealmForge.Client.Pages
 			{
 				return;
 			}
-			var wasDown = CurrentHp == 0;
-			var fromTemp = Math.Min(Sheet.TemporaryHitPoints, value);
-			Sheet.TemporaryHitPoints -= fromTemp;
-			var rest = value - fromTemp;
 			deathNote = null;
-
-			if (wasDown)
+			var outcome = CharacterVitals.Damage(Sheet, MaxHp, value, criticalHit, Ruleset);
+			if (outcome.InstantDeath)
 			{
-				if (rest >= MaxHp)
-				{
-					Sheet.DeathSaveFailures = 3;
-					deathNote = UiText.InstantDeath(Lang);
-				}
-				else if (rest > 0)
-				{
-					//	A stable character is no longer stable
-					if (Stable)
-					{
-						Sheet.DeathSaveSuccesses = 0;
-					}
-					Sheet.DeathSaveFailures = Math.Min(3, Sheet.DeathSaveFailures + (criticalHit ? 2 : 1));
-					deathNote = UiText.DamageAtZero(criticalHit, Lang);
-				}
+				deathNote = UiText.InstantDeath(Lang);
 			}
-			else
+			else if (outcome.HitWhileDown)
 			{
-				var left = CurrentHp - rest;
-				Sheet.CurrentHitPoints = Math.Max(0, left);
-				if (left <= 0)
-				{
-					//	Falling unconscious ends concentration
-					Sheet.Concentration = null;
-					concentrationDc = null;
-					Sheet.DeathSaveSuccesses = 0;
-					Sheet.DeathSaveFailures = 0;
-					if (-left >= MaxHp)
-					{
-						Sheet.DeathSaveFailures = 3;
-						deathNote = UiText.InstantDeath(Lang);
-					}
-				}
-				else if (Sheet.Concentration is not null)
-				{
-					//	Constitution save to keep concentrating: half the damage, at least 10 (2024: at most 30)
-					var dc = Math.Max(10, value / 2);
-					concentrationDc = Ruleset == RulesetVersion.Dnd5e_2024 ? Math.Min(30, dc) : dc;
-				}
+				deathNote = UiText.DamageAtZero(criticalHit, Lang);
+			}
+			if (outcome.Dropped)
+			{
+				//	Falling unconscious ends concentration
+				concentrationDc = null;
+			}
+			else if (outcome.ConcentrationDc is { } dc)
+			{
+				concentrationDc = dc;
 			}
 			criticalHit = false;
 			Changed();
@@ -290,13 +261,7 @@ namespace RealmForge.Client.Pages
 
 		private void Heal()
 		{
-			var wasDown = CurrentHp == 0;
-			Sheet.CurrentHitPoints = Math.Min(MaxHp, CurrentHp + Math.Max(0, amount));
-			if (wasDown && Sheet.CurrentHitPoints > 0)
-			{
-				Sheet.DeathSaveSuccesses = 0;
-				Sheet.DeathSaveFailures = 0;
-			}
+			CharacterVitals.Heal(Sheet, MaxHp, Math.Max(0, amount));
 			Changed();
 		}
 
