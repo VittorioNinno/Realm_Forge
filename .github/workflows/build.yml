@@ -1212,7 +1212,7 @@ jobs:
             code -X PUT "$api/api/campaigns/$ss_cp/maps/$mp2/combat/initiative" $json -H "Authorization: Bearer $B" -d "{\"combatantId\":\"$at_cid\",\"initiative\":${pair##*:}}" > /dev/null
           done
           code -X POST "$api/api/campaigns/$ss_cp/maps/$mp2/combat/begin" -H "Authorization: Bearer $B" > /dev/null
-          at_player=$(curl -s -X POST "$api/api/campaigns/$ss_cp/maps/$mp2/attack?lang=2" $json -H "Authorization: Bearer $A" -d "$(at_body $ctl_tree $at_target 1)" | jq -c '{hit, armorClass}')
+          at_player=$(curl -s -X POST "$api/api/campaigns/$ss_cp/maps/$mp2/attack?lang=2" $json -H "Authorization: Bearer $A" -d "$(at_body $ctl_tree $at_target 1)" | jq -c '{hit: (.hit or any(.dice[]; .sides == 20 and .value == 1 and (.dropped | not))), armorClass}')
           at_player_again=$(code -X POST "$api/api/campaigns/$ss_cp/maps/$mp2/attack?lang=2" $json -H "Authorization: Bearer $A" -d "$(at_body $ctl_tree $at_target 1)")
           at_spent=$(curl -s "$api/api/campaigns/$ss_cp/maps/$mp2/state" -H "Authorization: Bearer $A" | jq -c '[.tokens[] | select(.label == "Albero") | .actionSpent]')
           # The rest of the turn: no Dash once the action attacked, one bonus action; leaving the bandit's reach offers it an
