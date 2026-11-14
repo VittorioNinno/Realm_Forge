@@ -136,10 +136,13 @@ namespace RealmForge.Api.Controllers
 				}
 			}
 
+			//	Damage and conditions go on the target by themselves only from the enemies, the tokens no player controls; a
+			//	character's attack is rolled and told, the master applies what it does
+			var applies = attacker.CharacterId is null && attacker.ControlledBy.Count == 0;
 			var down = false;
-			if (hit)
+			if (hit && applies)
 			{
-				down = ApplyDamage(target, targetCombatant, characters, damage ?? 0, dto.Condition, out var concentration);
+				down = ApplyDamage(target, targetCombatant, characters, damage ?? 0, critical, dto.Condition, out var concentration);
 				if (concentration is { } dc)
 				{
 					notes.Add(T(italian, $"TS Costituzione CD {dc} per la concentrazione", $"Constitution save DC {dc} to keep concentration"));
@@ -161,7 +164,7 @@ namespace RealmForge.Api.Controllers
 				? T(italian, die == 1 ? "Mancato (1 naturale)" : "Mancato", die == 1 ? "Miss (natural 1)" : "Miss")
 				: (critical ? T(italian, "Colpo critico", "Critical hit") : T(italian, "Colpito", "Hit"))
 					+ (damage is { } dealt ? T(italian, $" · {dealt} danni{(dto.DamageType is { Length: > 0 } dt ? " " + dt : string.Empty)}", $" · {dealt}{(dto.DamageType is { Length: > 0 } dt2 ? " " + dt2 : string.Empty)} damage") : string.Empty)
-					+ (dto.Condition is { } imposed ? $" · {TableCombat.ConditionName(imposed, italian)}" : string.Empty)
+					+ (applies && dto.Condition is { } imposed ? $" · {TableCombat.ConditionName(imposed, italian)}" : string.Empty)
 					+ (down ? T(italian, " · a terra", " · down") : string.Empty);
 			if (effect.Mode != 0)
 			{
@@ -269,7 +272,7 @@ namespace RealmForge.Api.Controllers
 
 		//	Damage on the temporary hit points first, then on the hit points (a character's on its sheet), and the
 		//	condition of the hit; true when the target drops to 0. Concentration: the save to keep it
-		private static bool ApplyDamage(CampaignToken target, EncounterCombatant? combatant, List<Character> characters, int damage, string? condition, out int? concentration)
+		private static bool ApplyDamage(CampaignToken target, EncounterCombatant? combatant, List<Character> characters, int damage, bool critical, string? condition, out int? concentration)
 		{
 			concentration = null;
 			if (target.CharacterId is { } characterId)
@@ -281,24 +284,9 @@ namespace RealmForge.Api.Controllers
 				}
 				var sheet = CharactersController.ReadSheet(character.Sheet);
 				var max = Math.Max(0, character.MaxHitPoints);
-				var hp = EncounterSheetSync.CurrentHp(sheet, max);
-				var left = damage;
-				var absorbed = Math.Min(sheet.TemporaryHitPoints, left);
-				sheet.TemporaryHitPoints -= absorbed;
-				left -= absorbed;
-				hp = Math.Max(0, hp - left);
-				if (damage > 0)
-				{
-					sheet.CurrentHitPoints = hp >= max ? null : hp;
-					if (hp == 0)
-					{
-						sheet.Concentration = null;
-					}
-					else if (sheet.Concentration is not null)
-					{
-						concentration = Math.Max(10, damage / 2);
-					}
-				}
+				//	As on the sheet: down at 0 (unconscious and prone), a hit while down a failed death save
+				var outcome = CharacterVitals.Damage(sheet, max, damage, critical, character.Ruleset);
+				concentration = outcome.ConcentrationDc;
 				if (condition is not null && condition != EncounterRules.Concentrating)
 				{
 					if (condition == EncounterRules.Exhaustion)
@@ -313,7 +301,7 @@ namespace RealmForge.Api.Controllers
 				sheet.VitalsStamp++;
 				character.Sheet = JsonSerializer.Serialize(sheet, CharactersController.Json);
 				character.UpdatedAt = DateTimeOffset.UtcNow;
-				return damage > 0 && hp == 0;
+				return outcome.Dropped;
 			}
 			if (combatant is not null)
 			{

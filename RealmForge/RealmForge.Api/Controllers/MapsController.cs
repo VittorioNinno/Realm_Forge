@@ -607,7 +607,7 @@ namespace RealmForge.Api.Controllers
 				return Forbid();
 			}
 			if (!Enum.IsDefined(dto.Kind) || (dto.Replace ? !MapTerrain.Valid(dto.Cells)
-				: dto.Cells.Count % 2 != 0 || dto.Cells.Count / 2 > MapTerrain.MaxCells || dto.Cells.Any(v => v is < 0 or >= 1000)))
+				: dto.Cells.Count % 2 != 0 || dto.Cells.Count / 2 > MapTerrain.MaxCells || dto.Cells.Any(v => v is < -1 or >= 1000)))
 			{
 				return Problem(statusCode: StatusCodes.Status400BadRequest, title: "Terrain cells out of range.");
 			}

@@ -381,6 +381,8 @@
                 };
                 // The fog and the terrain share the brush: cells painted one by one, or a box
                 const brushing = () => st.tool === 'terrain' ? st.options.terrainShape !== 'rect' : st.options.fogShape === 'brush';
+                // A box of whole cells (the terrain, and the fog in the map editor) rather than a free area
+                const snapping = () => !brushing() && (st.tool === 'terrain' || (st.tool === 'fog' && st.options.fogCells));
                 const terrainColors = { walkable: '#22c55e', wall: '#ef4444', difficult: '#f59e0b', door: '#38bdf8' };
                 const drawFog = () => {
                     const svg = layer();
@@ -388,10 +390,11 @@
                     if (!st.fog) { svg.innerHTML = ''; return; }
                     const z = zoom(), reveal = st.options.fogMode !== 'cover';
                     const color = st.tool === 'terrain' ? (terrainColors[st.options.terrain] || '#ff8c00') : reveal ? '#7dd3fc' : '#0b0b0b';
-                    if (brushing()) {
+                    if (brushing() || snapping()) {
                         // The cells painted so far, as one shape (the outline of each cell, no circles)
                         const [t, g, ox, oy] = grid();
-                        const d = [...st.fog.cells.values()].map(([c, r]) => 'M' + corners(t, g, ox, oy, c, r).map(q => q.join(',')).join('L') + 'Z').join('');
+                        const list = brushing() ? [...st.fog.cells.values()] : pairs(boxCells(st.fog));
+                        const d = list.map(([c, r]) => 'M' + corners(t, g, ox, oy, c, r).map(q => q.join(',')).join('L') + 'Z').join('');
                         svg.innerHTML = `<path d="${d}" fill="${color}" fill-opacity=".45" stroke="#7dd3fc" stroke-width="${1 / z}" stroke-opacity=".6"/>`;
                     } else {
                         const f = st.fog, x = Math.min(f.from[0], f.to[0]), y = Math.min(f.from[1], f.to[1]);
@@ -412,7 +415,7 @@
                     const o = nearest(t, g, ox, oy, p[0], p[1]);
                     for (let dc = -ring - 1; dc <= ring + 1; dc++) for (let dr = -ring - 1; dr <= ring + 1; dr++) {
                         const c = o[0] + dc, r = o[1] + dr;
-                        if (c < 0 || r < 0 || st.fog.cells.size >= 4000) continue;
+                        if (c < -1 || r < -1 || st.fog.cells.size >= 4000) continue;
                         if (distance(t, o, [c, r]) <= ring) st.fog.cells.set(c + ',' + r, [c, r]);
                     }
                 };
@@ -423,19 +426,27 @@
                     for (let i = 1; i <= steps; i++) paintCells([last[0] + (p[0] - last[0]) * i / steps, last[1] + (p[1] - last[1]) * i / steps]);
                     st.fog.last = p;
                 };
-                // The cells whose centre is in a box
+                // The whole cells from the one under the start of the drag to the one under its end (the cut cells of the
+                // edges, column and row -1, included)
                 const boxCells = (f) => {
                     const [t, g, ox, oy] = grid();
-                    const x1 = Math.min(f.from[0], f.to[0]), y1 = Math.min(f.from[1], f.to[1]), x2 = Math.max(f.from[0], f.to[0]), y2 = Math.max(f.from[1], f.to[1]);
-                    const a = nearest(t, g, ox, oy, x1, y1), b = nearest(t, g, ox, oy, x2, y2), out = [];
-                    for (let c = Math.max(0, a[0] - 1); c <= b[0] + 1; c++) for (let r = Math.max(0, a[1] - 1); r <= b[1] + 1; r++) {
+                    const a = nearest(t, g, ox, oy, f.from[0], f.from[1]), b = nearest(t, g, ox, oy, f.to[0], f.to[1]), out = [];
+                    const c1 = Math.max(-1, Math.min(a[0], b[0])), c2 = Math.max(a[0], b[0]), r1 = Math.max(-1, Math.min(a[1], b[1])), r2 = Math.max(a[1], b[1]);
+                    if (t === 0) {
+                        for (let c = c1; c <= c2; c++) for (let r = r1; r <= r2 && out.length < 8000; r++) out.push(c, r);
+                        return out;
+                    }
+                    // Hexagons: those whose centre lies between the centres of the two cells
+                    const [ax, ay] = center(t, g, ox, oy, a[0], a[1]), [bx, by] = center(t, g, ox, oy, b[0], b[1]), [w, h] = cell(t, g);
+                    const x1 = Math.min(ax, bx) - w / 4, x2 = Math.max(ax, bx) + w / 4, y1 = Math.min(ay, by) - h / 4, y2 = Math.max(ay, by) + h / 4;
+                    for (let c = c1 - 1; c <= c2 + 1; c++) for (let r = r1 - 1; r <= r2 + 1; r++) {
+                        if (c < -1 || r < -1) continue;
                         const [x, y] = center(t, g, ox, oy, c, r);
                         if (x >= x1 && x <= x2 && y >= y1 && y <= y2 && out.length < 8000) out.push(c, r);
                     }
-                    // A click without a drag: the cell under it
-                    if (out.length === 0 && Math.hypot(x2 - x1, y2 - y1) < g / 4) out.push(...nearest(t, g, ox, oy, f.from[0], f.from[1]));
                     return out;
                 };
+                const pairs = (flat) => { const out = []; for (let i = 0; i + 1 < flat.length; i += 2) out.push([flat[i], flat[i + 1]]); return out; };
                 const drawStroke = () => {
                     const svg = layer();
                     if (!svg) return;
@@ -709,8 +720,8 @@
                         const f = st.fog;
                         st.fog = null;
                         drawFog();
-                        const brush = st.options.fogShape === 'brush';
-                        const numbers = brush
+                        const snap = snapping(), brush = st.options.fogShape === 'brush' || snap;
+                        const numbers = snap ? boxCells(f) : brush
                             ? [...f.cells.values()].flat()
                             : [Math.min(f.from[0], f.to[0]), Math.min(f.from[1], f.to[1]), Math.abs(f.to[0] - f.from[0]), Math.abs(f.to[1] - f.from[1])];
                         if (brush || (numbers[2] > 4 && numbers[3] > 4)) await dotnet.invokeMethodAsync('FogDrawn', brush, numbers.map(v => Math.round(v * 10) / 10));
