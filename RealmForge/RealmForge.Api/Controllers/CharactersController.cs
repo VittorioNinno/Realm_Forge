@@ -402,6 +402,7 @@ namespace RealmForge.Api.Controllers
 			{
 				sheet.CurrentHitPoints = Math.Clamp(current, 0, computed.MaxHitPoints);
 			}
+			CharacterVitals.Normalize(sheet, computed.MaxHitPoints);
 
 			character.Sheet = JsonSerializer.Serialize(sheet, Json);
 			character.MaxHitPoints = computed.MaxHitPoints;
