@@ -71,6 +71,11 @@ namespace RealmForge.Domain.Entities
 		public Guid? EncounterId { get; set; }
 		public List<double> Fog { get; set; } = new();
 
+		//	The terrain (MapTerrain): groups of column, row and kind for the cells that are not plain floor; whether the
+		//	players' tokens go around walls and closed doors
+		public List<int> Terrain { get; set; } = new();
+		public bool TerrainBlocks { get; set; } = true;
+
 		//	The last ping (a point the table should look at) and the last view the masters brought everyone to
 		public double? PingX { get; set; }
 		public double? PingY { get; set; }

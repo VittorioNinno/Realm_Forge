@@ -355,6 +355,20 @@ namespace RealmForge.Client.Services
 		public Task<CampaignResult> SaveFogAsync(Guid id, Guid mapId, bool enabled, List<double> fog) =>
 			SendAsync(() => _http.PutAsJsonAsync($"api/campaigns/{id}/maps/{mapId}/fog", new SaveFogDto { Enabled = enabled, Fog = fog }), "save fog");
 
+		public async Task<MapTerrainDto?> SaveTerrainAsync(Guid id, Guid mapId, SaveTerrainDto terrain)
+		{
+			try
+			{
+				var response = await _http.PutAsJsonAsync($"api/campaigns/{id}/maps/{mapId}/terrain", terrain);
+				return response.IsSuccessStatusCode ? await response.Content.ReadFromJsonAsync<MapTerrainDto>() : null;
+			}
+			catch (Exception ex)
+			{
+				_logger.LogError(ex, "Saving the terrain of map {MapId} failed", mapId);
+				return null;
+			}
+		}
+
 		public Task<CampaignResult> LockPlayersAsync(Guid id, Guid mapId, bool locked) =>
 			SendAsync(() => _http.PutAsJsonAsync($"api/campaigns/{id}/maps/{mapId}/lock", new PlayersLockDto { Locked = locked }), "lock players");
 

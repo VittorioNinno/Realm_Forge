@@ -138,96 +138,204 @@
 }
 else
 {
-    <section class="rf-vtt" data-test="campaign-map">
-        <div class="rf-vtt-bar">
-            @if (maps is { Count: > 0 })
-            {
-                <div class="rf-vtt-select" data-test="map-select">
-                    <RfSelect TValue="Guid" Value="selectedId" ValueChanged="SelectAsync" Options="MapOptions" />
-                </div>
-            }
-            @if (map is not null)
-            {
-                <div class="rf-vtt-zoom" role="group" aria-label="@UiText.MapZoom(Lang)">
-                    <button type="button" @onclick="() => ZoomByHand(-1)" aria-label="−" data-test="map-zoom-out">−</button>
-                    <span>@($"{zoom * 100:0}%")</span>
-                    <button type="button" @onclick="() => ZoomByHand(1)" aria-label="+" data-test="map-zoom-in">+</button>
-                </div>
-            }
-            <div class="d-flex flex-wrap gap-2 ms-auto">
+    @* The map editor: the map, its zones and its fog painted on the cells, its grid and its tokens *@
+    <section class="rf-vtt rf-me" data-test="campaign-map">
+        <header class="rf-me-top">
+            <div class="rf-me-top-left">
+                @if (maps is { Count: > 0 })
+                {
+                    <div class="rf-me-picker">
+                        <span class="rf-me-dot @(map?.Shown == true ? "shown" : null)" title="@(map?.Shown == true ? UiText.MapShownShort(Lang) : UiText.MapHiddenShort(Lang))"></span>
+                        <div class="rf-vtt-select" data-test="map-select">
+                            <RfSelect TValue="Guid" Value="selectedId" ValueChanged="SelectAsync" Options="MapOptions" />
+                        </div>
+                    </div>
+                }
+                @if (map is not null)
+                {
+                    <div class="rf-vtt-zoom" role="group" aria-label="@UiText.MapZoom(Lang)">
+                        <button type="button" @onclick="() => ZoomByHand(-1)" aria-label="−" data-test="map-zoom-out">−</button>
+                        <span>@($"{zoom * 100:0}%")</span>
+                        <button type="button" @onclick="() => ZoomByHand(1)" aria-label="+" data-test="map-zoom-in">+</button>
+                    </div>
+                    <div class="rf-me-seg" role="group" aria-label="@UiText.MapViewAs(Lang)">
+                        <button type="button" class="@(previewPlayers ? null : "active")" aria-pressed="@(previewPlayers ? "false" : "true")" @onclick="() => previewPlayers = false" data-test="map-preview-editor"><Icon Name="pencil" /> @UiText.MapViewEditor(Lang)</button>
+                        <button type="button" class="@(previewPlayers ? "active" : null)" aria-pressed="@(previewPlayers ? "true" : "false")" @onclick="() => previewPlayers = true" data-test="map-preview-players"><Icon Name="eye" /> @UiText.MapViewPlayers(Lang)</button>
+                    </div>
+                }
+            </div>
+            <div class="rf-me-top-right">
                 <a href="@($"campaigns/{CampaignId}/vtt")" class="btn btn-sm btn-rf-outline" data-test="map-open-vtt"><Icon Name="map" /> @UiText.VttTitle(Lang)</a>
                 <button type="button" class="btn btn-sm btn-rf-orange" @onclick="OpenNewMap" data-test="map-new"><Icon Name="plus" /> @UiText.MapNew(Lang)</button>
             </div>
-        </div>
-        <p class="small mb-3" style="color: var(--rf-text-muted);">@UiText.MapPrepHint(Lang)</p>
+        </header>
 
         @if (message is not null)
         {
-            <div class="rf-cast-warning mb-3" role="alert" data-test="map-message">@message</div>
+            <div class="rf-cast-warning mb-2" role="alert" data-test="map-message">@message</div>
         }
 
         @if (map is null)
         {
+            <p class="small mb-2" style="color: var(--rf-text-muted);">@UiText.MapPrepHint(Lang)</p>
             @Board
         }
         else
         {
-            <div class="rf-vtt-layout master">
-                <div class="rf-vtt-viewport prep">
-                    @Board
-                </div>
-                <aside class="rf-vtt-panel">
-                    <section class="rf-vtt-box" data-test="map-settings">
-                        <span class="rf-vtt-title">@UiText.MapSettings(Lang)</span>
-                        <label class="rf-vtt-field">
-                            <span class="rf-vtt-label">@UiText.MapName(Lang)</span>
-                            <input class="rf-form-control" maxlength="120" @bind="mapName" data-test="map-name" />
-                        </label>
-                        <div class="rf-vtt-field">
-                            <span class="rf-vtt-label">@UiText.MapGridType(Lang)</span>
-                            <div data-test="map-grid-type">
-                                <RfSelect TValue="GridType" Value="gridType" ValueChanged="v => gridType = v" Options="GridOptions" />
-                            </div>
+            <div class="rf-me-grid">
+                <div class="rf-me-canvas">
+                    <div class="rf-me-tools" data-test="map-brushes">
+                        <div class="rf-me-tool-group">
+                            <button type="button" class="rf-me-tool @(brush == "select" ? "active" : null)" title="@UiText.MapBrushSelect(Lang)" @onclick="SelectBrushAsync" data-test="map-brush-select"><Icon Name="cursor" /><span>@UiText.MapBrushSelect(Lang)</span></button>
                         </div>
-                        <div class="rf-vtt-grid-fields">
-                            <div class="rf-vtt-field">
-                                <span class="rf-vtt-label">@UiText.MapGrid(Lang)</span>
-                                <NumberStepper Value="grid" ValueChanged="v => grid = v" Min="MapRules.MinGrid" Max="MapRules.MaxGrid" AriaLabel="@UiText.MapGrid(Lang)" InputTest="map-grid" />
-                            </div>
-                            <div class="rf-vtt-field">
-                                <span class="rf-vtt-label">@UiText.MapOffsetX(Lang)</span>
-                                <NumberStepper Value="offsetX" ValueChanged="v => offsetX = v" Min="0" Max="@(grid - 1)" AriaLabel="@UiText.MapOffsetX(Lang)" />
-                            </div>
-                            <div class="rf-vtt-field">
-                                <span class="rf-vtt-label">@UiText.MapOffsetY(Lang)</span>
-                                <NumberStepper Value="offsetY" ValueChanged="v => offsetY = v" Min="0" Max="@(grid - 1)" AriaLabel="@UiText.MapOffsetY(Lang)" />
-                            </div>
+                        <span class="rf-me-sep"></span>
+                        <div class="rf-me-tool-group">
+                            <button type="button" class="rf-me-tool @(!brushBox ? "active" : null)" title="@UiText.MapBrushCell(Lang)" @onclick="() => SetBrushBoxAsync(false)" data-test="map-shape-cell"><Icon Name="brush" /><span>@UiText.MapBrushCell(Lang)</span></button>
+                            <button type="button" class="rf-me-tool @(brushBox ? "active" : null)" title="@UiText.MapBrushBox(Lang)" @onclick="() => SetBrushBoxAsync(true)" data-test="map-shape-box"><Icon Name="bounding-box" /><span>@UiText.MapBrushBox(Lang)</span></button>
                         </div>
-                        <button type="button" class="btn btn-sm btn-rf-outline @(tool == "calibrate" ? "active" : null)" @onclick="ToggleCalibrateAsync" data-test="map-calibrate"><Icon Name="aspect-ratio" /> @UiText.MapCalibrate(Lang)</button>
-                        @if (tool == "calibrate")
+                        <span class="rf-me-sep"></span>
+                        <div class="rf-me-tool-group">
+                            @foreach (var b in new[] { "walkable", "wall", "difficult", "door", "fog" })
+                            {
+                                var name = b;
+                                <button type="button" class="rf-me-tool brush @(brush == name ? "active" : null)" title="@UiText.MapZoneHint(name, Lang)" @onclick="() => SetBrushAsync(name)" data-test="map-brush-@name">
+                                    <span class="rf-me-swatch @name"><Icon Name="@ZoneIcon(name)" /></span><span>@UiText.MapZoneName(name, Lang)</span>
+                                </button>
+                            }
+                        </div>
+                        @if (brush == "fog")
                         {
-                            <p class="small mb-0" style="color: var(--rf-orange-primary);" data-test="map-calibrate-hint">@UiText.MapCalibrateHint(gridType, Lang)</p>
+                            <span class="rf-me-sep"></span>
+                            <div class="rf-me-tool-group">
+                                <button type="button" class="rf-me-tool @(!fogCover ? "active" : null)" @onclick="() => SetFogCoverAsync(false)" data-test="map-fog-reveal"><Icon Name="eye" /><span>@UiText.VttFogReveal(Lang)</span></button>
+                                <button type="button" class="rf-me-tool @(fogCover ? "active" : null)" @onclick="() => SetFogCoverAsync(true)" data-test="map-fog-cover"><Icon Name="eye-slash" /><span>@UiText.VttFogCover(Lang)</span></button>
+                            </div>
                         }
-                        <label class="btn btn-sm btn-rf-outline rf-vtt-replace @(replacingImage ? "disabled" : null)" data-test="map-replace-image">
-                            <Icon Name="images" /> @UiText.MapReplaceImage(Lang)
-                            <InputFile OnChange="ReplaceImageAsync" accept="image/png,image/jpeg,image/webp" class="d-none" />
-                        </label>
-                        @if (imageError is not null && newMap is null)
-                        {
-                            <p class="small mb-0" style="color: #ef4444;">@imageError</p>
-                        }
+                    </div>
+                    <div class="rf-vtt-viewport prep">
+                        @Board
+                    </div>
+                    <footer class="rf-me-status">
+                        <span class="rf-me-counts" data-test="map-zone-counts">
+                            @UiText.MapZoneCounts(ZoneCount(TerrainKind.Wall), ZoneCount(TerrainKind.Difficult), ZoneCount(TerrainKind.Door), Lang)
+                            @if (previewPlayers)
+                            {
+                                <span class="rf-me-preview-tag">@UiText.MapViewPlayers(Lang)</span>
+                            }
+                        </span>
                         <label class="rf-checkbox-wrapper small mb-0">
-                            <input type="checkbox" class="rf-checkbox" @bind="shown" data-test="map-shown" />
-                            <span>@UiText.MapShown(Lang)</span>
+                            <input type="checkbox" class="rf-checkbox" checked="@showZones" @onchange="() => showZones = !showZones" data-test="map-show-zones" />
+                            <span>@UiText.MapShowZones(Lang)</span>
                         </label>
-                        <div class="d-flex flex-wrap gap-2">
-                            <button type="button" class="btn btn-sm btn-rf-orange" @onclick="SaveMapAsync" data-test="map-save">@UiText.MapSave(Lang)</button>
-                            <button type="button" class="btn btn-sm btn-rf-outline" @onclick="DuplicateAsync" data-test="map-duplicate">@UiText.MapDuplicate(Lang)</button>
-                            <button type="button" class="btn btn-sm btn-rf-outline" style="border-color: #dc3545; color: #dc3545;" @onclick="() => confirmDelete = true" data-test="map-delete">@UiText.Delete(Lang)</button>
-                        </div>
-                    </section>
-                    @AddTokens
-                    <p class="small mb-0" style="color: var(--rf-text-muted);">@UiText.MapTokenHint(Lang)</p>
+                    </footer>
+                </div>
+
+                <aside class="rf-me-inspector">
+                    <nav class="rf-me-tabs" role="tablist">
+                        <button type="button" role="tab" class="@(editorTab == "zones" ? "active" : null)" aria-selected="@(editorTab == "zones" ? "true" : "false")" @onclick="ShowZonesTab" data-test="map-tab-zones">@UiText.MapTabZones(Lang)</button>
+                        <button type="button" role="tab" class="@(editorTab == "grid" ? "active" : null)" aria-selected="@(editorTab == "grid" ? "true" : "false")" @onclick="ShowGridTab" data-test="map-tab-grid">@UiText.MapTabGrid(Lang)</button>
+                        <button type="button" role="tab" class="@(editorTab == "tokens" ? "active" : null)" aria-selected="@(editorTab == "tokens" ? "true" : "false")" @onclick="ShowTokensTab" data-test="map-tab-tokens">@UiText.MapTabTokens(tokens.Count, Lang)</button>
+                    </nav>
+                    <div class="rf-me-panel">
+                        @if (editorTab == "zones")
+                        {
+                            <section class="rf-me-section">
+                                <span class="rf-me-kicker">@UiText.MapZonesTitle(Lang)</span>
+                                <p class="rf-me-help">@UiText.MapZonesHelp(Lang)</p>
+                                <div class="rf-me-zones">
+                                    @foreach (var b in new[] { "walkable", "wall", "difficult", "door", "fog" })
+                                    {
+                                        var name = b;
+                                        <button type="button" class="rf-me-zone @(brush == name ? "active" : null)" @onclick="() => SetBrushAsync(name)" data-test="map-zone-@name">
+                                            <span class="rf-me-swatch @name"><Icon Name="@ZoneIcon(name)" /></span>
+                                            <span class="rf-me-zone-info"><strong>@UiText.MapZoneTitle(name, Lang)</strong><span>@UiText.MapZoneHint(name, Lang)</span></span>
+                                        </button>
+                                    }
+                                </div>
+                            </section>
+                            <section class="rf-me-section">
+                                <span class="rf-me-kicker">@UiText.MapQuickTitle(Lang)</span>
+                                <div class="rf-me-quick">
+                                    <button type="button" class="rf-me-action" @onclick="WallTheEdgeAsync" data-test="map-wall-edge"><Icon Name="bricks" /> @UiText.MapWallEdge(Lang)</button>
+                                    <button type="button" class="rf-me-action" @onclick="ClearTerrainAsync" data-test="map-clear-terrain"><Icon Name="check" /> @UiText.MapAllWalkable(Lang)</button>
+                                    <button type="button" class="rf-me-action" @onclick="() => FogAllAsync(true)" data-test="map-fog-all"><Icon Name="eye-slash" /> @UiText.MapFogAll(Lang)</button>
+                                    <button type="button" class="rf-me-action" @onclick="() => FogAllAsync(false)" data-test="map-reveal-all"><Icon Name="eye" /> @UiText.MapRevealAll(Lang)</button>
+                                </div>
+                            </section>
+                            <section class="rf-me-section">
+                                <span class="rf-me-kicker">@UiText.MapRulesTitle(Lang)</span>
+                                <label class="rf-checkbox-wrapper small mb-0">
+                                    <input type="checkbox" class="rf-checkbox" checked="@(terrain?.BlockPlayers ?? true)" @onchange="SetBlockPlayersAsync" data-test="map-block-players" />
+                                    <span>@UiText.MapBlockPlayers(Lang)</span>
+                                </label>
+                                <label class="rf-checkbox-wrapper small mb-0">
+                                    <input type="checkbox" class="rf-checkbox" checked="@fogEnabled" @onchange="ToggleFogAsync" data-test="map-fog-enabled" />
+                                    <span>@UiText.MapFogEnabled(Lang)</span>
+                                </label>
+                            </section>
+                        }
+                        else if (editorTab == "grid")
+                        {
+                            <section class="rf-me-section" data-test="map-settings">
+                                <span class="rf-me-kicker">@UiText.MapSettings(Lang)</span>
+                                <label class="rf-vtt-field">
+                                    <span class="rf-vtt-label">@UiText.MapName(Lang)</span>
+                                    <input class="rf-form-control" maxlength="120" @bind="mapName" data-test="map-name" />
+                                </label>
+                                <div class="rf-vtt-field">
+                                    <span class="rf-vtt-label">@UiText.MapGridType(Lang)</span>
+                                    <div data-test="map-grid-type">
+                                        <RfSelect TValue="GridType" Value="gridType" ValueChanged="v => gridType = v" Options="GridOptions" />
+                                    </div>
+                                </div>
+                                <div class="rf-vtt-grid-fields">
+                                    <div class="rf-vtt-field">
+                                        <span class="rf-vtt-label">@UiText.MapGrid(Lang)</span>
+                                        <NumberStepper Value="grid" ValueChanged="v => grid = v" Min="MapRules.MinGrid" Max="MapRules.MaxGrid" AriaLabel="@UiText.MapGrid(Lang)" InputTest="map-grid" />
+                                    </div>
+                                    <div class="rf-vtt-field">
+                                        <span class="rf-vtt-label">@UiText.MapOffsetX(Lang)</span>
+                                        <NumberStepper Value="offsetX" ValueChanged="v => offsetX = v" Min="0" Max="@(grid - 1)" AriaLabel="@UiText.MapOffsetX(Lang)" />
+                                    </div>
+                                    <div class="rf-vtt-field">
+                                        <span class="rf-vtt-label">@UiText.MapOffsetY(Lang)</span>
+                                        <NumberStepper Value="offsetY" ValueChanged="v => offsetY = v" Min="0" Max="@(grid - 1)" AriaLabel="@UiText.MapOffsetY(Lang)" />
+                                    </div>
+                                </div>
+                                <div class="rf-me-quick">
+                                    <button type="button" class="rf-me-action @(tool == "calibrate" ? "active" : null)" @onclick="ToggleCalibrateAsync" data-test="map-calibrate"><Icon Name="aspect-ratio" /> @UiText.MapCalibrate(Lang)</button>
+                                    <label class="rf-me-action rf-vtt-replace @(replacingImage ? "disabled" : null)" data-test="map-replace-image">
+                                        <Icon Name="images" /> @UiText.MapReplaceImage(Lang)
+                                        <InputFile OnChange="ReplaceImageAsync" accept="image/png,image/jpeg,image/webp" class="d-none" />
+                                    </label>
+                                </div>
+                                @if (tool == "calibrate")
+                                {
+                                    <p class="small mb-0" style="color: var(--rf-orange-primary);" data-test="map-calibrate-hint">@UiText.MapCalibrateHint(gridType, Lang)</p>
+                                }
+                                @if (imageError is not null && newMap is null)
+                                {
+                                    <p class="small mb-0" style="color: #ef4444;">@imageError</p>
+                                }
+                                <label class="rf-checkbox-wrapper small mb-0">
+                                    <input type="checkbox" class="rf-checkbox" @bind="shown" data-test="map-shown" />
+                                    <span>@UiText.MapShown(Lang)</span>
+                                </label>
+                            </section>
+                        }
+                        else
+                        {
+                            <section class="rf-me-section rf-me-tokens">
+                                @AddTokens
+                                <p class="rf-me-help mb-0">@UiText.MapTokenHint(Lang)</p>
+                            </section>
+                        }
+                    </div>
+                    <footer class="rf-me-foot">
+                        <button type="button" class="btn btn-sm btn-rf-orange" @onclick="SaveMapAsync" data-test="map-save">@UiText.MapSave(Lang)</button>
+                        <button type="button" class="btn btn-sm btn-rf-outline" @onclick="DuplicateAsync" data-test="map-duplicate">@UiText.MapDuplicate(Lang)</button>
+                        <button type="button" class="btn btn-sm btn-rf-outline rf-me-delete" @onclick="() => confirmDelete = true" data-test="map-delete">@UiText.Delete(Lang)</button>
+                    </footer>
                 </aside>
             </div>
         }
@@ -520,7 +628,16 @@ else
                             @ShapeMarkup(sh)
                         }
                     </svg>
-                    @foreach (var t in tokens.OrderBy(t => t.Layer == TokenLayer.Below ? 0 : 1))
+                    @if (ShowTerrain)
+                    {
+                        <svg class="rf-vtt-terrain" width="@map.Width" height="@map.Height" viewBox="0 0 @map.Width @map.Height" aria-hidden="true" data-test="map-terrain">
+                            @foreach (var cell in terrainCells)
+                            {
+                                <polygon class="rf-terrain-@cell.Value.ToString().ToLowerInvariant()" points="@TerrainPoints(cell.Key.Col, cell.Key.Row)" data-test="map-terrain-cell" data-kind="@cell.Value" />
+                            }
+                        </svg>
+                    }
+                    @foreach (var t in tokens.Where(t => !HidesFromPreview(t)).OrderBy(t => t.Layer == TokenLayer.Below ? 0 : 1))
                     {
                         var (cx, cy) = MapGeometry.Center(gridType, grid, offsetX, offsetY, t.X, t.Y, t.Size);
                         var side = grid * t.Size;
@@ -528,7 +645,7 @@ else
                         var summary = Summary(t);
                         <div class="rf-vtt-token @(t.Hidden ? "hidden-token" : null) @(t.Layer == TokenLayer.Below ? "below" : null) @(t.CanMove ? "movable" : null) @(infoToken == t.Id ? "selected" : null) @(IsCurrent(t) ? "current" : null) @(t.Kind == TokenKind.Prop ? $"prop state-{t.PropState.ToString().ToLowerInvariant()}" : null) @(t.Health is { } hl ? $"health-{hl.ToString().ToLowerInvariant()}" : null) @AimClass(t) @(t.PropType == PropType.Item ? "item" : null)"
                              style="left: @(N(cx - side / 2.0))px; top: @(N(cy - side / 2.0))px; width: @(side)px; height: @(side)px; --rf-token: @t.Color;"
-                             data-token="@t.Id" data-movable="@(t.CanMove ? "1" : "0")" data-cx="@N(cx)" data-cy="@N(cy)" data-speed="@SpeedCells(t)" data-moved="@(moved.GetValueOrDefault(t.Id))" data-size="@t.Size" data-test="map-token" data-label="@t.Label">
+                             data-token="@t.Id" data-col="@t.X" data-row="@t.Y" data-movable="@(t.CanMove ? "1" : "0")" data-cx="@N(cx)" data-cy="@N(cy)" data-speed="@SpeedCells(t)" data-moved="@(moved.GetValueOrDefault(t.Id))" data-size="@t.Size" data-test="map-token" data-label="@t.Label">
                             @if (t.Kind == TokenKind.Prop && t.PropType is { } propType)
                             {
                                 <span class="rf-vtt-token-face" data-test="map-prop" data-state="@t.PropState">
@@ -596,7 +713,7 @@ else
                     }
                     @if (fogEnabled)
                     {
-                        <svg class="rf-vtt-fog @(RunsTheTable ? "master" : null)" width="@map.Width" height="@map.Height" viewBox="0 0 @map.Width @map.Height" aria-hidden="true" data-test="map-fog">
+                        <svg class="rf-vtt-fog @(RunsTheTable && !previewPlayers ? "master" : null)" width="@map.Width" height="@map.Height" viewBox="0 0 @map.Width @map.Height" aria-hidden="true" data-test="map-fog">
                             <defs>
                                 <mask id="@($"{patternId}-fog")" maskUnits="userSpaceOnUse" x="0" y="0" width="@map.Width" height="@map.Height">
                                     <rect width="@map.Width" height="@map.Height" fill="#ffffff" />
@@ -2535,7 +2652,9 @@ else
             attachedTo = stageElement.Id;
             await JS.InvokeVoidAsync("rfVtt.attach", stageElement, self, new { wheelZoom = Table, perCell = UiText.VttPerCell(Lang), unit = UiText.VttUnit(Lang), locale = Lang == LanguageCode.It ? "it-IT" : "en-GB" });
             await JS.InvokeVoidAsync("rfVtt.tool", stageElement, tool, ToolOptions);
+            terrainSent = null;
         }
+        await PushTerrainAsync();
         if (fitPending)
         {
             fitPending = false;
@@ -2579,6 +2698,7 @@ else
         {
             tokens = map.Tokens;
             TakeSheetLife();
+            TakeTerrain(map.Terrain);
             shapes = map.Shapes ?? new();
             ApplyTable(map.Table, first: true);
             ApplyCombat(map.Combat);
@@ -2658,6 +2778,7 @@ else
                     map = map with { UpdatedAt = state.UpdatedAt, GridType = state.GridType, GridSize = state.GridSize, GridOffsetX = state.GridOffsetX, GridOffsetY = state.GridOffsetY, Shown = state.Shown, Name = state.Name };
                     tokens = state.Tokens;
                     TakeSheetLife();
+                    TakeTerrain(state.Terrain);
                     shapes = state.Shapes ?? new();
                     ApplyTable(state.Table, first: false);
                     ApplyCombat(state.Combat);
@@ -2803,9 +2924,22 @@ else
         {
             return;
         }
+        //	A player's token goes around the walls and the closed doors: the way it takes is what it moves
+        var cost = MapGeometry.Distance(gridType, t.X, t.Y, col, row);
+        if (FollowsTerrain && t.Kind != TokenKind.Prop)
+        {
+            if (WayCost(t, col, row) is not { } way)
+            {
+                message = UiText.VttWayBlocked(Lang);
+                Replace(t);
+                StateHasChanged();
+                return;
+            }
+            cost = way;
+        }
         //	A player moves no further than the speed (in a fight, counting what was already moved in the turn)
         if (!RunsTheTable && SpeedCells(t) is { } speed
-            && MapGeometry.Distance(gridType, t.X, t.Y, col, row) + (combat is not null ? moved.GetValueOrDefault(t.Id) : 0) > speed)
+            && cost + (combat is not null ? moved.GetValueOrDefault(t.Id) : 0) > speed)
         {
             message = UiText.VttTooFar(Lang);
             Replace(t);
@@ -2816,10 +2950,10 @@ else
         StateHasChanged();
         if (combat is not null)
         {
-            moved[t.Id] = moved.GetValueOrDefault(t.Id) + MapGeometry.Distance(gridType, t.X, t.Y, col, row);
+            moved[t.Id] = moved.GetValueOrDefault(t.Id) + cost;
         }
         var result = await Campaigns.MoveTokenAsync(CampaignId, map.Id, t.Id, col, row);
-        message = result.Ok ? null : UiText.MapMoveFailed(Lang);
+        message = result.Ok ? null : result.Status == System.Net.HttpStatusCode.Conflict ? UiText.VttWayBlocked(Lang) : UiText.MapMoveFailed(Lang);
         if (!result.Ok)
         {
             Replace(t);
@@ -2928,7 +3062,10 @@ else
         fogMode = fogCover ? "cover" : "reveal",
         fogShape = fogBrush ? "brush" : "rect",
         fogBrush = fogBrushSize,
-        eraseArea
+        eraseArea,
+        terrain = brush,
+        terrainShape = brushBox ? "rect" : "brush",
+        blockedText = UiText.VttWayBlockedShort(Lang)
     };
 
     //	The eraser: a click on a drawing, or a box drawn over the map that takes away all it touches
@@ -3433,6 +3570,7 @@ else
         localEdits++;
         tokens = state.Tokens;
         TakeSheetLife();
+        TakeTerrain(state.Terrain);
         shapes = state.Shapes ?? new();
         ApplyTable(state.Table, first: false);
         ApplyCombat(state.Combat);

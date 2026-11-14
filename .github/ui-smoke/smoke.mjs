@@ -1510,6 +1510,38 @@ try {
   await page.locator('[data-test=map-new-dialog] img').waitFor({ timeout: 15000 });
   await page.locator('[data-test=map-new-save]').click();
   await page.locator('[data-test=map-stage]').waitFor({ timeout: 15000 });
+  // The editor: walls painted with a box over the third row of cells, a difficult cell with the brush, the zones counted
+  await page.locator('[data-test=map-brush-wall]').click();
+  await page.locator('[data-test=map-shape-box]').click();
+  const stageGrid = await page.locator('svg[data-test=map-grid]').boundingBox();
+  // Points of the picture (700 × 490) on the screen, whatever the zoom
+  const at = (x, y) => [stageGrid.x + x * stageGrid.width / 700, stageGrid.y + y * stageGrid.height / 490];
+  await page.mouse.move(...at(75, 145));
+  await page.mouse.down();
+  await page.mouse.move(...at(140, 175), { steps: 3 });
+  await page.mouse.move(...at(200, 205), { steps: 3 });
+  await page.mouse.up();
+  await page.locator('[data-test=map-terrain-cell][data-kind=Wall]').nth(1).waitFor({ timeout: 15000 });
+  await page.locator('[data-test=map-brush-difficult]').click();
+  await page.locator('[data-test=map-shape-cell]').click();
+  await page.mouse.click(...at(455, 315));
+  await page.locator('[data-test=map-terrain-cell][data-kind=Difficult]').waitFor({ timeout: 15000 });
+  const zoneUi = {
+    walls: await page.locator('[data-test=map-terrain-cell][data-kind=Wall]').count(),
+    difficult: await page.locator('[data-test=map-terrain-cell][data-kind=Difficult]').count(),
+    counts: (await page.locator('[data-test=map-zone-counts]').innerText()).replace(/\s+/g, ' ').trim()
+  };
+  await shot(page, 'map-editor-zones', 'main');
+  await page.locator('[data-test=map-preview-players]').click();
+  zoneUi.hiddenInPreview = await page.locator('[data-test=map-terrain]').count();
+  await page.locator('[data-test=map-preview-editor]').click();
+  await page.locator('[data-test=map-clear-terrain]').click();
+  await page.locator('[data-test=map-terrain]').waitFor({ state: 'detached', timeout: 15000 });
+  await page.locator('[data-test=map-brush-select]').click();
+  results.push(`INFO map editor: ${JSON.stringify(zoneUi)}`);
+  if (zoneUi.walls !== 2 || zoneUi.difficult !== 1 || !/Muri: 2 · Difficili: 1/.test(zoneUi.counts) || zoneUi.hiddenInPreview !== 0) throw new Error(`unexpected map zones: ${JSON.stringify(zoneUi)}`);
+  ok('map editor: walls painted with a box, a difficult cell with the brush, the zones counted and hidden in the players\' view, then cleared');
+  await page.locator('[data-test=map-tab-tokens]').click();
   await page.locator('[data-test=map-add-character]').first().click();
   await page.locator('[data-test=map-token]').first().waitFor({ timeout: 15000 });
   await page.locator('[data-test=map-monster-search]').fill('goblin');
@@ -1549,6 +1581,7 @@ try {
   const goblinTabs = await page.locator('[data-test=map-token-card] .rf-hud-dock-item').count();
   await shot(page, 'campaign-map-card', '[data-test=map-stage]');
   await page.locator('.rf-vtt-card-close').click();
+  await page.locator('[data-test=map-tab-grid]').click();
   // The cells of the overlay are squares (70 × 70 on the picture), then hexagons
   const cellBox = await page.locator('[data-test=map-grid] pattern').evaluate((p) => `${p.getAttribute('width')}x${p.getAttribute('height')}`);
   await page.locator('[data-test=map-grid-type] .rf-custom-select-trigger').click();
