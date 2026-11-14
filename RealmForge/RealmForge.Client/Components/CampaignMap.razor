@@ -194,7 +194,7 @@ else
                         </div>
                         <span class="rf-me-sep"></span>
                         <div class="rf-me-tool-group">
-                            @foreach (var b in new[] { "walkable", "wall", "difficult", "door", "fog" })
+                            @foreach (var b in new[] { "walkable", "wall", "half", "three", "difficult", "door", "fog" })
                             {
                                 var name = b;
                                 <button type="button" class="rf-me-tool brush @(brush == name ? "active" : null)" title="@UiText.MapZoneHint(name, Lang)" @onclick="() => SetBrushAsync(name)" data-test="map-brush-@name">
@@ -251,7 +251,7 @@ else
                                 <span class="rf-me-kicker">@UiText.MapZonesTitle(Lang)</span>
                                 <p class="rf-me-help">@UiText.MapZonesHelp(Lang)</p>
                                 <div class="rf-me-zones">
-                                    @foreach (var b in new[] { "walkable", "wall", "difficult", "door", "fog" })
+                                    @foreach (var b in new[] { "walkable", "wall", "half", "three", "difficult", "door", "fog" })
                                     {
                                         var name = b;
                                         <button type="button" class="rf-me-zone @(brush == name ? "active" : null)" @onclick="() => SetBrushAsync(name)" data-test="map-zone-@name">
@@ -1738,7 +1738,7 @@ else
     //	An attack: its rolls, and what an attack at a target on the map needs (bonus, damage, reach, the weapon in the
     //	inventory that spends ammunition)
     private sealed record SheetLine(string Name, string Detail, TokenRoll? Roll, TokenRoll? Damage, int Bonus = 0, string? DamageDice = null,
-        string? DamageType = null, AttackReach? Reach = null, Guid? InventoryId = null, string? Condition = null);
+        string? DamageType = null, AttackReach? Reach = null, Guid? InventoryId = null, string? Condition = null, bool Spell = false);
     private sealed record SheetProse(string Title, string Markdown);
     private sealed record QuickSheet(string Kind, string Sub, string Line, string Extra, List<SheetStat> Vitals, List<SheetAbility> Abilities,
         List<SheetSave> Saves, string? SavesNote, List<SheetStat> Passives, List<SheetLine> Attacks, List<SheetProse> Prose, string? Link,
@@ -1747,7 +1747,8 @@ else
     //	A named entry with its text (a trait, an action, a feature), in groups; the spells of a source with its numbers
     private sealed record SheetEntry(string Name, string Markdown, string? Badge = null);
     private sealed record SheetGroup(string Title, List<SheetEntry> Entries);
-    private sealed record SheetSpell(Guid Id, string Name, int Level, bool Concentration, bool Ritual);
+    //	A spell, with the numbers of its source (attack bonus, save DC) and the caster's level (a cantrip's damage grows)
+    private sealed record SheetSpell(Guid Id, string Name, int Level, bool Concentration, bool Ritual, int AttackBonus = 0, int SaveDc = 0, int CasterLevel = 1);
     private sealed record SheetCasting(string Title, string Line, TokenRoll? Attack, List<SheetSpell> Spells, string? Slots, bool UsesSlots = false);
 
     private Guid? sheetTokenId;
@@ -2535,7 +2536,13 @@ else
             @if (aim is { } current)
             {
                 var reach = current.Attack.Reach ?? AttackReach.Melee;
-                <span class="rf-vtt-combatbar-what"><Icon Name="crosshair" /> <strong>@current.Attack.Name</strong> <span>@ReachText(reach)</span></span>
+                <span class="rf-vtt-combatbar-what"><Icon Name="@(current.Save is null ? "crosshair" : "magic")" /> <strong>@current.Attack.Name</strong> <span>@ReachText(reach)</span></span>
+                @if (current.Save is { } save)
+                {
+                    <span class="rf-vtt-chip active" data-test="vtt-aim-save">@UiText.VttSaveDc(save, current.Dc, Lang)</span>
+                }
+                else
+                {
                 <span class="rf-vtt-chips" role="group">
                     @foreach (var m in new[] { 0, 1, -1 })
                     {
@@ -2543,6 +2550,7 @@ else
                         <button type="button" class="rf-vtt-chip @(aimMode == mode ? "active" : null)" @onclick="() => aimMode = mode" data-test="vtt-aim-mode" data-mode="@mode">@UiText.VttAimMode(mode, Lang)</button>
                     }
                 </span>
+                }
 @if (AimHurts)
                 {
                                 <select class="rf-form-control rf-vtt-combatbar-select" title="@UiText.VttAimCondition(Lang)" aria-label="@UiText.VttAimCondition(Lang)" @onchange="e => aimCondition = string.IsNullOrEmpty(e.Value?.ToString()) ? null : e.Value!.ToString()" data-test="vtt-aim-condition">
@@ -4070,22 +4078,23 @@ else
         {
             slots = string.Join(" · ", new[] { slots, UiText.VttPactSlots(Math.Max(0, c.PactSlots - sheet.SpentPactSlots), c.PactSlots, c.PactSlotLevel, Lang) }.Where(x => x.Length > 0));
         }
+        //	Every source once (the spells of the species, of a subclass, of a feat are sources too), by its name as the sheet shows it
         var first = true;
         foreach (var source in c.AllSpellSources())
         {
             var spells = source.Known.Select(sid => byId.GetValueOrDefault(sid)).OfType<RealmForge.Shared.Characters.ContextSpell>()
                 .OrderBy(sp => sp.Level).ThenBy(sp => sp.Name)
-                .Select(sp => new SheetSpell(sp.Id, sp.Name, sp.Level, sp.Concentration, sp.Ritual)).ToList();
+                .Select(sp => new SheetSpell(sp.Id, sp.Name, sp.Level, sp.Concentration, sp.Ritual, source.AttackBonus, source.SaveDc, Math.Max(1, c.Level))).ToList();
+            if (spells.Count == 0)
+            {
+                continue;
+            }
+            var title = source.Class is { } owner
+                ? (source.Source == "subclass" && owner.Subclass is not null ? $"{owner.Class.Name} · {owner.Subclass.Name}" : owner.Class.Name)
+                : source.Source == "species" ? UiText.SpellSourceSpecies(c.Ruleset, Lang) : source.Source == "subclass" ? UiText.SpellSourceSubclass(Lang) : source.Source;
             var attack = new TokenRoll(UiText.VttSpellAttack(Lang), Bonus(source.AttackBonus), D20(source.AttackBonus), false);
-            list.Add(new SheetCasting(source.Source, UiText.VttSpellNumbers(source.SaveDc, Bonus(source.AttackBonus), Lang), attack, spells, first && slots.Length > 0 ? slots : null, source.Class is not null));
+            list.Add(new SheetCasting(title, UiText.VttSpellNumbers(source.SaveDc, Bonus(source.AttackBonus), Lang), attack, spells, first && slots.Length > 0 ? slots : null, source.Class is not null));
             first = false;
-        }
-        if (c.InnateSpells.Count > 0)
-        {
-            var innate = c.InnateSpells[0];
-            list.Add(new SheetCasting(UiText.VttInnateSpells(Lang), UiText.VttSpellNumbers(innate.SaveDc, Bonus(innate.AttackBonus), Lang),
-                new TokenRoll(UiText.VttSpellAttack(Lang), Bonus(innate.AttackBonus), D20(innate.AttackBonus), false),
-                c.InnateSpells.Select(i => new SheetSpell(i.Spell.Id, i.Spell.Name, i.Spell.Level, i.Spell.Concentration, i.Spell.Ritual)).DistinctBy(sp => sp.Id).ToList(), null));
         }
         return list;
     }

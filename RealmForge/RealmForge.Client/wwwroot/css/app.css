@@ -1,4 +1,4 @@
-:root {
+﻿:root {
     --rf-bg-main: #0d0d0d;
     --rf-bg-surface: #111111;
     --rf-bg-card: #161616;
@@ -18264,6 +18264,14 @@ button.rf-qs-spell {
         background-color: #0369a1;
     }
 
+    .rf-me-swatch.half {
+        background-color: #7c3aed;
+    }
+
+    .rf-me-swatch.three {
+        background-color: #a21caf;
+    }
+
     .rf-me-swatch.fog {
         background-color: #3f3f46;
     }
@@ -18293,6 +18301,17 @@ button.rf-qs-spell {
     .rf-vtt-terrain .rf-terrain-door {
         fill: rgba(56, 189, 248, .35);
         stroke: rgba(56, 189, 248, .9);
+    }
+
+    .rf-vtt-terrain .rf-terrain-halfcover {
+        fill: rgba(139, 92, 246, .3);
+        stroke: rgba(139, 92, 246, .85);
+        stroke-dasharray: 4 3;
+    }
+
+    .rf-vtt-terrain .rf-terrain-threequartercover {
+        fill: rgba(192, 38, 211, .38);
+        stroke: rgba(192, 38, 211, .9);
     }
 
 .rf-vtt-stage.tool-terrain {
