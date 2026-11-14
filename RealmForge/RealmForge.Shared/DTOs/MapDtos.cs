@@ -57,7 +57,12 @@ namespace RealmForge.Shared.DTOs
 		//	What it carries (see TokenGearDto), and what was spent of its turn in the fight (attack, other, reaction)
 		TokenGearDto? Gear = null,
 		string? ActionSpent = null,
-		bool ReactionUsed = false);
+		bool ReactionUsed = false,
+
+		//	A character's hit points from its sheet now (everyone at the table sees them), so a hit shows on every screen
+		int? SheetHp = null,
+		int? SheetMaxHp = null,
+		int? SheetTempHp = null);
 
 	///	<summary>
 	///	The fight on a map: the encounter, the round, whose turn it is and the initiative order (what the players see of it).
@@ -227,14 +232,33 @@ namespace RealmForge.Shared.DTOs
 		GridType GridType = GridType.Square,
 		List<MapShapeDto>? Shapes = null,
 		MapTableDto? Table = null,
-		MapCombatDto? Combat = null);
+		MapCombatDto? Combat = null,
+		MapTerrainDto? Terrain = null);
 
 	///	<summary>
 	///	What the table polls every few seconds: the grid and the tokens, without the picture.
 	///	</summary>
 	public record MapStateDto(Guid Id, string Name, int GridSize, int GridOffsetX, int GridOffsetY, bool Shown, DateTimeOffset UpdatedAt, List<MapTokenDto> Tokens,
 		GridType GridType = GridType.Square, List<MapShapeDto>? Shapes = null, MapTableDto? Table = null,
-		MapCombatDto? Combat = null);
+		MapCombatDto? Combat = null, MapTerrainDto? Terrain = null);
+
+	///	<summary>
+	///	The terrain of a map (see MapTerrain): the cells that are not plain floor (column, row, kind) and whether the players'
+	///	tokens go around the walls and the closed doors.
+	///	</summary>
+	public record MapTerrainDto(List<int> Cells, bool BlockPlayers);
+
+	///	<summary>
+	///	Cells painted with a kind of terrain (pairs of column and row; Walkable clears them), or the whole terrain replaced
+	///	(Replace: Cells as groups of three), and the rule for the players.
+	///	</summary>
+	public class SaveTerrainDto
+	{
+		public List<int> Cells { get; set; } = new();
+		public TerrainKind Kind { get; set; }
+		public bool Replace { get; set; }
+		public bool BlockPlayers { get; set; } = true;
+	}
 
 	///	<summary>
 	///	The fog of war (see MapFog), the last ping and the last view the masters brought the table to.

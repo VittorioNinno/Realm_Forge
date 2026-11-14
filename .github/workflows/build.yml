@@ -1165,6 +1165,18 @@ jobs:
           wait $lp_pid
           lp_result=$(jq -c '[.tokens[] | select(.label == "Albero") | {x, y}]' "$lp_out")
           lp_fast=$(awk -v t="$(cat "$lp_out.time")" 'BEGIN { print (t >= 1.5 && t < 8) ? "yes" : "no (" t ")" }')
+          # Terrain: the master walls the marker in (the six hexagons around it) and paints a door the players do not see; the
+          # player cannot walk onto a wall nor out of the ring, the master moves freely; the walls go and the marker comes back
+          tr_walls=$(curl -s -X PUT "$api/api/campaigns/$ss_cp/maps/$mp2/terrain" $json -H "Authorization: Bearer $B" -d '{"cells":[9,6,7,6,8,7,7,5,8,5,7,7],"kind":1,"blockPlayers":true}' | jq -c '.cells | length')
+          tr_door=$(curl -s -X PUT "$api/api/campaigns/$ss_cp/maps/$mp2/terrain" $json -H "Authorization: Bearer $B" -d '{"cells":[1,1],"kind":3,"blockPlayers":true}' | jq -c '.cells | length')
+          tr_player_put=$(code -X PUT "$api/api/campaigns/$ss_cp/maps/$mp2/terrain" $json -H "Authorization: Bearer $A" -d '{"cells":[1,1],"kind":1}')
+          tr_bad=$(code -X PUT "$api/api/campaigns/$ss_cp/maps/$mp2/terrain" $json -H "Authorization: Bearer $B" -d '{"cells":[1],"kind":1}')
+          tr_seen=$(curl -s "$api/api/campaigns/$ss_cp/maps/$mp2/state" -H "Authorization: Bearer $A" | jq -c '{n: (.terrain.cells | length), block: .terrain.blockPlayers}')
+          tr_onto=$(code -X POST "$api/api/campaigns/$ss_cp/maps/$mp2/tokens/$ctl_tree/move" $json -H "Authorization: Bearer $A" -d '{"x":7,"y":6}')
+          tr_out=$(code -X POST "$api/api/campaigns/$ss_cp/maps/$mp2/tokens/$ctl_tree/move" $json -H "Authorization: Bearer $A" -d '{"x":8,"y":3}')
+          tr_master=$(code -X POST "$api/api/campaigns/$ss_cp/maps/$mp2/tokens/$ctl_tree/move" $json -H "Authorization: Bearer $B" -d '{"x":8,"y":3}')
+          tr_clear=$(curl -s -X PUT "$api/api/campaigns/$ss_cp/maps/$mp2/terrain" $json -H "Authorization: Bearer $B" -d '{"cells":[],"replace":true,"blockPlayers":true}' | jq -c '.cells | length')
+          tr_back=$(code -X POST "$api/api/campaigns/$ss_cp/maps/$mp2/tokens/$ctl_tree/move" $json -H "Authorization: Bearer $A" -d '{"x":8,"y":6}')
           # A quick fight with the marker: its initiative rolled, set by the master only, the marker leaves, the fight ends
           qf=$(code -X POST "$api/api/campaigns/$ss_cp/maps/$mp2/combat/quick" $json -H "Authorization: Bearer $B" -d "{\"tokenIds\":[\"$ctl_tree\"]}")
           qf_again=$(code -X POST "$api/api/campaigns/$ss_cp/maps/$mp2/combat/quick" $json -H "Authorization: Bearer $B" -d "{\"tokenIds\":[\"$ctl_tree\"]}")
@@ -1323,6 +1335,16 @@ jobs:
           sscheck "assigned marker seen by the master" "$ctl_master" '[{"hp":5,"maxHp":12,"n":1}]'
           sscheck "player moves the assigned marker" "$ctl_after" "204"
           sscheck "table told of the move" "$lp_result" '[{"x":8,"y":6}]'
+          sscheck "terrain: six walls painted" "$tr_walls" "18"
+          sscheck "terrain: a door added" "$tr_door" "21"
+          sscheck "terrain: a player cannot paint" "$tr_player_put" "403"
+          sscheck "terrain: cells out of shape refused" "$tr_bad" "400"
+          sscheck "terrain: the players see the walls, not the door" "$tr_seen" '{"n":18,"block":true}'
+          sscheck "terrain: a player cannot step onto a wall" "$tr_onto" "409"
+          sscheck "terrain: a player cannot walk out of a ring of walls" "$tr_out" "409"
+          sscheck "terrain: the master moves freely" "$tr_master" "204"
+          sscheck "terrain: cleared" "$tr_clear" "0"
+          sscheck "terrain: without walls the player walks back" "$tr_back" "204"
           sscheck "told at once, not at the next poll" "$lp_fast" "yes"
           sscheck "image of another type" "$img_bad" "400"
           sscheck "image file" "$img_file" "200|image/png"
