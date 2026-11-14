@@ -20,7 +20,8 @@ namespace RealmForge.Client.Components
 
 		// ===== Aiming an attack =====
 
-		private sealed record Aim(Guid AttackerId, SheetLine Attack);
+		//	What is aimed: an attack (a weapon, a spell attack) or a spell with a saving throw (its ability and DC)
+		private sealed record Aim(Guid AttackerId, SheetLine Attack, string? Save = null, int Dc = 0);
 
 		private Aim? aim;
 		private int aimMode;
@@ -58,10 +59,10 @@ namespace RealmForge.Client.Components
 
 		private bool AimHurts => aim is { } a && tokens.FirstOrDefault(t => t.Id == a.AttackerId) is { } attacker && Hurts(attacker);
 
-		private async Task StartAimAsync(MapTokenDto t, SheetLine attack)
+		private async Task StartAimAsync(MapTokenDto t, SheetLine attack, string? save = null, int dc = 0)
 		{
 			CancelCast();
-			aim = new Aim(t.Id, attack);
+			aim = new Aim(t.Id, attack, save, dc);
 			aimMode = 0;
 			//	The condition its text gives on a hit, ready to apply (the master can take it away); only an enemy's
 			aimCondition = Hurts(t) ? attack.Condition : null;
@@ -114,6 +115,10 @@ namespace RealmForge.Client.Components
 				aimNote = UiText.VttAimOut(Lang);
 				return true;
 			}
+			if (current.Save is { } ability)
+			{
+				return await AimSaveAsync(current, attacker, target, ability);
+			}
 			busy = true;
 			//	A shot spends its ammunition first (none left: no shot)
 			if (current.Attack.InventoryId is { } weaponId && attacker.CharacterId is not null)
@@ -161,7 +166,9 @@ namespace RealmForge.Client.Components
 				LongRange = reach.LongRange,
 				Mode = aimMode,
 				Condition = aimCondition,
-				ActionAttacks = attacker.CharacterId is not null ? StatsOf(attacker)?.ActionAttacks : null
+				Spell = current.Attack.Spell,
+				//	A spell attack is the whole action; a weapon's, one of the attacks of the Attack action
+				ActionAttacks = attacker.CharacterId is null ? null : current.Attack.InventoryId is null && current.Attack.Spell ? 1 : StatsOf(attacker)?.ActionAttacks
 			}, Lang);
 			busy = false;
 			if (result is null)
@@ -193,6 +200,28 @@ namespace RealmForge.Client.Components
 				hpAfterRest.Remove(targetCharacter);
 			}
 			await RefreshAsync();
+			return true;
+		}
+
+		//	A spell with a saving throw at a target: not behind a wall, the damage rolled for the table with the save to make
+		private async Task<bool> AimSaveAsync(Aim current, MapTokenDto caster, MapTokenDto target, string ability)
+		{
+			if (MapTerrain.Cover(gridType, grid, offsetX, offsetY, terrainCells, ClosedDoors().ToHashSet(),
+				(caster.X, caster.Y, caster.Size), (target.X, target.Y, target.Size)) >= MapTerrain.TotalCover)
+			{
+				aimNote = UiText.VttAimWall(Lang);
+				return true;
+			}
+			var save = UiText.VttSaveDc(ability, current.Dc, Lang);
+			aim = null;
+			aimNote = null;
+			if (current.Attack.DamageDice is { Length: > 0 } dice)
+			{
+				var label = $"{current.Attack.Name} → {target.Label} · {save}";
+				await RollForAsync(caster, new TokenRoll(string.IsNullOrEmpty(current.Attack.DamageType) ? label : $"{label} · {current.Attack.DamageType}", string.Empty, dice, false));
+			}
+			castNote = UiText.VttSpellSave(current.Attack.Name, target.Label, save, Lang);
+			StateHasChanged();
 			return true;
 		}
 
@@ -286,9 +315,16 @@ namespace RealmForge.Client.Components
 			}
 			castNote = level > 0 ? UiText.VttCastDone(spell.Name, pact ? UiText.CastPact(level, Lang) : UiText.CastSlot(level, Lang), Lang) : UiText.VttCastDone(spell.Name, null, Lang);
 
-			//	Its area, read from the range and the description
+			//	Its area, read from the range and the description; without one, the target of a spell attack or a save
 			var detail = await SpellService.GetSpellDetailAsync(spell.Id, Lang);
-			if (detail is null || TableCombat.AreaOf(detail.Range, detail.Description) is not { } area || !Table || map is null || !tokens.Any(k => k.Id == t.Id))
+			if (detail is null || !Table || map is null || !tokens.Any(k => k.Id == t.Id))
+			{
+				StateHasChanged();
+				return;
+			}
+			var area = TableCombat.AreaOf(detail.Range, detail.Description);
+			var target = area is null ? TableCombat.TargetOf(detail.Range, detail.Description, detail.HigherLevels, spell.Level, Math.Max(level, spell.Level), spell.CasterLevel) : null;
+			if (area is null && target is null)
 			{
 				StateHasChanged();
 				return;
@@ -299,7 +335,21 @@ namespace RealmForge.Client.Components
 				StateHasChanged();
 				return;
 			}
-			await StartPlacingAsync(t, spell.Name, area);
+			if (area is not null)
+			{
+				await StartPlacingAsync(t, spell.Name, area);
+				return;
+			}
+			var reach = target!.Melee ? new AttackReach(target.Range, 0, 0) : new AttackReach(0, target.Range, target.Range);
+			var line = new SheetLine(spell.Name, string.Empty, null, null, spell.AttackBonus, target.Damage, target.DamageType, reach, Spell: true);
+			if (target.Attack)
+			{
+				await StartAimAsync(t, line);
+			}
+			else
+			{
+				await StartAimAsync(t, line, target.SaveAbility ?? "?", spell.SaveDc);
+			}
 		}
 
 		private async Task StartPlacingAsync(MapTokenDto caster, string spell, SpellArea area)
@@ -353,7 +403,11 @@ namespace RealmForge.Client.Components
 				return;
 			}
 			await AddShapeAsync(new SaveShapeDto { Kind = k, Points = new() { ox, oy, tx, ty }, Size = size, Color = drawColorChoice });
-			var cells = MapAreas.Cells(gridType, grid, offsetX, offsetY, k, ox, oy, tx, ty, size, map.Width, map.Height).ToHashSet();
+			//	The cells the area reaches: not those behind a wall or a closed door, seen from where it spreads
+			var spread = k == ShapeKind.Cube ? (ox + size * grid / 2.0, oy) : (ox, oy);
+			var closed = ClosedDoors().ToHashSet();
+			var cells = MapAreas.Cells(gridType, grid, offsetX, offsetY, k, ox, oy, tx, ty, size, map.Width, map.Height)
+				.Where(c => MapTerrain.Visible(gridType, grid, offsetX, offsetY, terrainCells, closed, spread, c)).ToHashSet();
 			var inside = tokens.Where(IsTarget).Where(t => Covered(t).Any(cells.Contains)).Select(t => t.Label).ToList();
 			castNote = inside.Count > 0 ? UiText.VttCastInside(spell ?? string.Empty, string.Join(", ", inside), Lang) : UiText.VttCastNobody(spell ?? string.Empty, Lang);
 			StateHasChanged();

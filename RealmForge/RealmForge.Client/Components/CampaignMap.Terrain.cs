@@ -56,19 +56,24 @@ namespace RealmForge.Client.Components
 			{
 				return;
 			}
-			object? data = null;
+			//	Everyone: the walls that hide what is behind them (an area does not reach there); the players moving: the cells
+			//	not crossed (walls, three-quarters cover), the difficult ones (low walls too), the closed doors
 			var closed = ClosedDoors().Select(c => $"{c.Col},{c.Row}").ToList();
-			if (FollowsTerrain)
+			string Key(KeyValuePair<(int Col, int Row), TerrainKind> c) => $"{c.Key.Col},{c.Key.Row}";
+			var data = new
 			{
-				data = new
-				{
-					block = true,
-					walls = terrainCells.Where(c => c.Value == TerrainKind.Wall).Select(c => $"{c.Key.Col},{c.Key.Row}").ToList(),
-					difficult = terrainCells.Where(c => c.Value == TerrainKind.Difficult).Select(c => $"{c.Key.Col},{c.Key.Row}").ToList(),
-					closed
-				};
+				block = FollowsTerrain,
+				walls = terrainCells.Where(c => c.Value is TerrainKind.Wall or TerrainKind.ThreeQuarterCover).Select(Key).ToList(),
+				difficult = terrainCells.Where(c => c.Value is TerrainKind.Difficult or TerrainKind.HalfCover).Select(Key).ToList(),
+				sight = terrainCells.Where(c => c.Value == TerrainKind.Wall).Select(Key).Concat(closed).ToList(),
+				closed
+			};
+			var hash = new HashCode();
+			foreach (var v in terrain?.Cells ?? new List<int>())
+			{
+				hash.Add(v);
 			}
-			var sent = data is null ? "-" : $"{terrain!.Cells.Count}:{string.Join(";", terrain.Cells.Take(60))}:{string.Join(";", closed)}:{(int)gridType}";
+			var sent = $"{FollowsTerrain}:{hash.ToHashCode()}:{string.Join(";", closed)}:{(int)gridType}:{grid}:{offsetX}:{offsetY}";
 			if (sent == terrainSent)
 			{
 				return;
@@ -125,6 +130,8 @@ namespace RealmForge.Client.Components
 			"wall" => "bricks",
 			"difficult" => "triangle-half",
 			"door" => "door-open",
+			"half" => "shield",
+			"three" => "shield-shaded",
 			_ => "cloud-fog2"
 		};
 
@@ -141,6 +148,8 @@ namespace RealmForge.Client.Components
 			"wall" => TerrainKind.Wall,
 			"difficult" => TerrainKind.Difficult,
 			"door" => TerrainKind.Door,
+			"half" => TerrainKind.HalfCover,
+			"three" => TerrainKind.ThreeQuarterCover,
 			_ => null
 		};
 

@@ -228,6 +228,8 @@ namespace RealmForge.Client.Localization
 			"wall" => T(lang, "Muro", "Wall"),
 			"difficult" => T(lang, "Difficile", "Difficult"),
 			"door" => T(lang, "Porta", "Door"),
+			"half" => T(lang, "Mezzo muro", "Low wall"),
+			"three" => T(lang, "Copertura ¾", "¾ cover"),
 			_ => T(lang, "Nebbia", "Fog")
 		};
 		public static string MapZoneTitle(string zone, LanguageCode lang) => zone switch
@@ -236,6 +238,8 @@ namespace RealmForge.Client.Localization
 			"wall" => T(lang, "Muro o ostacolo", "Wall or obstacle"),
 			"difficult" => T(lang, "Terreno difficile", "Difficult terrain"),
 			"door" => T(lang, "Porta o passaggio", "Door or passage"),
+			"half" => T(lang, "Mezza copertura", "Half cover"),
+			"three" => T(lang, "Copertura tre quarti", "Three-quarters cover"),
 			_ => T(lang, "Nebbia di guerra", "Fog of war")
 		};
 		public static string MapZoneHint(string zone, LanguageCode lang) => zone switch
@@ -244,6 +248,8 @@ namespace RealmForge.Client.Localization
 			"wall" => T(lang, "I PG non la attraversano: girano intorno a muri e colonne", "Characters cannot cross it: they go around walls and columns"),
 			"difficult" => T(lang, "Ogni casella costa il doppio del movimento", "Every cell costs double movement"),
 			"door" => T(lang, "Si passa, se la porta che ci sta sopra è aperta", "Passable, when the door token on it is open"),
+			"half" => T(lang, "Muretto o barile: +2 alla CA di chi è dietro, si scavalca come terreno difficile", "Low wall or barrel: +2 AC behind it, crossed as difficult terrain"),
+			"three" => T(lang, "Feritoia o tronco: +5 alla CA di chi è dietro, non si attraversa", "Arrow slit or trunk: +5 AC behind it, not crossed"),
 			_ => T(lang, "Rivela o oscura le celle per i giocatori", "Reveals or covers the cells for the players")
 		};
 		public static string MapZoneCounts(int walls, int difficult, int doors, LanguageCode lang) => T(lang,
@@ -472,6 +478,9 @@ namespace RealmForge.Client.Localization
 		public static string VttSheetReadOnlyHint(LanguageCode lang) => T(lang, "La scheda di un alleato: la vedi, non la usi.", "An ally's sheet: you see it, you do not use it.");
 		public static string VttAimStart(string attack, LanguageCode lang) => T(lang, $"{attack}: scegli il bersaglio sulla mappa", $"{attack}: pick the target on the map");
 		public static string VttAimHint(LanguageCode lang) => T(lang, "Clic su un bersaglio evidenziato (giallo: con svantaggio). Esc per annullare.", "Click a highlighted target (yellow: with disadvantage). Esc to cancel.");
+		public static string VttAimWall(LanguageCode lang) => T(lang, "Il bersaglio è dietro un muro: non lo raggiungi da qui.", "The target is behind a wall: you cannot reach it from here.");
+		public static string VttSaveDc(string ability, int dc, LanguageCode lang) => T(lang, $"TS {ability} CD {dc}", $"{ability} save DC {dc}");
+		public static string VttSpellSave(string spell, string target, string save, LanguageCode lang) => T(lang, $"«{spell}» su {target}: {save}. Il master tira il tiro salvezza e applica il danno.", $"“{spell}” on {target}: {save}. The master rolls the save and applies the damage.");
 		public static string VttAimOut(LanguageCode lang) => T(lang, "Fuori portata: avvicinati o scegli un altro bersaglio.", "Out of reach: move closer or pick another target.");
 		public static string VttAimArmor(int armor, LanguageCode lang) => T(lang, $"CA {armor}", $"AC {armor}");
 		public static string VttAimMode(int mode, LanguageCode lang) => mode switch
