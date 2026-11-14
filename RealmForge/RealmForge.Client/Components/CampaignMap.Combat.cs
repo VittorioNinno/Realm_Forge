@@ -50,15 +50,21 @@ namespace RealmForge.Client.Components
 		private int GapOf(MapTokenDto a, MapTokenDto b) => TableCombat.Gap(gridType, a.X, a.Y, a.Size, b.X, b.Y, b.Size);
 
 		//	A target can be aimed at: by a master always, by a player in a fight
-		private bool CanAim(MapTokenDto t) => Table && map is not null && tokens.Any(k => k.Id == t.Id) && CanRoll(t) && (RunsTheTable || combat is not null);
+		private bool CanAim(MapTokenDto t) => Table && map is not null && tokens.Any(k => k.Id == t.Id) && CanRoll(t) && (RunsTheTable || combat is not null) && !KnockedOut(t);
+
+		//	An enemy: a token no player controls, whose hits put damage and conditions on the target by themselves (a
+		//	character's attack is only rolled and told)
+		private bool Hurts(MapTokenDto t) => RunsTheTable && t.CharacterId is null && (t.ControlledBy?.Count ?? 0) == 0;
+
+		private bool AimHurts => aim is { } a && tokens.FirstOrDefault(t => t.Id == a.AttackerId) is { } attacker && Hurts(attacker);
 
 		private async Task StartAimAsync(MapTokenDto t, SheetLine attack)
 		{
 			CancelCast();
 			aim = new Aim(t.Id, attack);
 			aimMode = 0;
-			//	The condition its text gives on a hit, ready to apply (the master can take it away)
-			aimCondition = attack.Condition;
+			//	The condition its text gives on a hit, ready to apply (the master can take it away); only an enemy's
+			aimCondition = Hurts(t) ? attack.Condition : null;
 			aimNote = null;
 			CloseToolbar();
 			await SetToolAsync("select");
