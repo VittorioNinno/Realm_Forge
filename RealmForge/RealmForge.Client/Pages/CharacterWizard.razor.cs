@@ -565,13 +565,34 @@ namespace RealmForge.Client.Pages
 			Update();
 		}
 
+		//	The hit dice rolled, by level and die ("5:8"): a roll is for good, the same level and die never rolls again (not
+		//	after removing the level and adding it back, nor after reloading the page: the draft keeps them)
+		public Dictionary<string, int> RolledHitPoints { get; private set; } = new();
+
+		//	A roll already made for that level with that die stays
+		private int? KeptRoll(int index, Guid classId) =>
+			Class(classId) is { } cls && RolledHitPoints.TryGetValue($"{index + 1}:{cls.HitDie}", out var roll) ? roll : null;
+
+		public int RollHitPoints(int index, int die)
+		{
+			var key = $"{index + 1}:{die}";
+			if (!RolledHitPoints.TryGetValue(key, out var roll))
+			{
+				roll = Build.Levels[index].HitPointRoll is { } kept && kept <= die ? kept : Random.Shared.Next(1, die + 1);
+				RolledHitPoints[key] = roll;
+			}
+			Build.Levels[index].HitPointRoll = roll;
+			Update();
+			return roll;
+		}
+
 		public void AddLevel(Guid classId)
 		{
 			if (Build.Levels.Count >= 20)
 			{
 				return;
 			}
-			Build.Levels.Add(new CharacterLevelBuild { ClassId = classId });
+			Build.Levels.Add(new CharacterLevelBuild { ClassId = classId, HitPointRoll = KeptRoll(Build.Levels.Count, classId) });
 			Update();
 		}
 
@@ -592,7 +613,7 @@ namespace RealmForge.Client.Pages
 			}
 			var level = Build.Levels[index];
 			level.ClassId = classId;
-			level.HitPointRoll = null;
+			level.HitPointRoll = KeptRoll(index, classId);
 			level.FeatId = null;
 			level.Feat = new FeatChoice();
 			level.Increases.Clear();
