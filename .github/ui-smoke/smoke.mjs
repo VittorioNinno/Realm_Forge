@@ -1893,7 +1893,7 @@ try {
   results.push(`INFO vtt combat: ${JSON.stringify(combatUi)}`);
   if (combatUi.combatants !== 4 || combatUi.tokens !== 5 || combatUi.current !== 1 || !/^Round\s+\d+$/i.test(combatUi.round) || !combatUi.turnMoved
     || combatUi.aimSelf !== 1 || combatUi.aimLit < 1 || combatUi.lootTab !== 1 || combatUi.ground?.take !== 1 || combatUi.ground?.back !== 1 || !(combatUi.ground?.stats >= 2)
-    || combatUi.rollTray !== 1 || combatUi.sheetAttacks < 1 || !combatUi.sheetTabs.startsWith('general,actions') || !/ 2\/\d+$/.test(combatUi.sheetHp ?? '') || combatUi.sheetAbilities !== 6 || combatUi.goblinConditions !== 'Pr' || combatUi.goblinRing !== '28.57 100' || !/^3 \/ \d+(,\d)? m$/.test(combatUi.moveLabel ?? '')) throw new Error(`unexpected combat: ${JSON.stringify(combatUi)}`);
+    || combatUi.rollTray !== 1 || combatUi.sheetAttacks < 1 || !combatUi.sheetTabs.startsWith('general,actions') || !/ 2\/\d+$/.test(combatUi.sheetHp ?? '') || combatUi.sheetAbilities !== 6 || combatUi.goblinConditions !== 'Prn' || combatUi.goblinRing !== '28.57 100' || !/^3 \/ \d+(,\d)? m$/.test(combatUi.moveLabel ?? '')) throw new Error(`unexpected combat: ${JSON.stringify(combatUi)}`);
   ok('virtual tabletop combat: the encounter started on the map (four in the initiative order, tokens for the goblins), the turn passed on, a goblin knocked prone and down to 2 hit points with its initiative rolled from its card, the fight ended, the hero\'s move showing 3 m against its speed');
   // The initiative bar: a fight asked with the tokens on the map, the hero rolls its own initiative, a goblin leaves the
   // fight from its toolbar, the others are rolled at once and the fight starts; then the dice and the log over the map
