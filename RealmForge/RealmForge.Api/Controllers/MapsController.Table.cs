@@ -91,7 +91,19 @@ namespace RealmForge.Api.Controllers
 			}
 
 			//	The turn: the action on its own turn, the reaction outside it
-			if (fight is not null && attackerCombatant is not null && SpendForAttack(fight, attackerCombatant, runs, italian) is { } refused)
+			//	A character with a weapon of the other kind in hand changes it with the free interaction of the turn
+			var ranged = dto.Range > 0 && dto.Reach <= 0;
+			if (attackerCombatant is { Kind: CombatantKind.Character, Wield: { } inHand } && fight?.Encounter.CurrentId == attackerCombatant.Id
+				&& inHand != (ranged ? "ranged" : "melee"))
+			{
+				if (attackerCombatant.Interacted && !runs)
+				{
+					return Problem(statusCode: StatusCodes.Status409Conflict, title: T(italian, "Prima cambia arma: l'interazione gratuita del turno è già usata.", "Change weapon first: the free interaction of the turn is used."));
+				}
+				attackerCombatant.Interacted = true;
+				attackerCombatant.Wield = ranged ? "ranged" : "melee";
+			}
+			if (fight is not null && attackerCombatant is not null && SpendForAttack(fight, attackerCombatant, runs, italian, dto.ActionAttacks, target.Id) is { } refused)
 			{
 				return Problem(statusCode: StatusCodes.Status409Conflict, title: refused);
 			}
@@ -101,6 +113,10 @@ namespace RealmForge.Api.Controllers
 			var characters = await _context.Characters.Where(c => characterIds.Contains(c.Id)).ToListAsync();
 			var attackerConditions = ConditionsOf(attacker, attackerCombatant, characters);
 			var targetConditions = ConditionsOf(target, targetCombatant, characters);
+			if (targetCombatant?.Dodging == true)
+			{
+				targetConditions = targetConditions.Append("dodging").ToList();
+			}
 			var effect = TableCombat.Effect(attackerConditions, targetConditions, gap, far, dto.Mode);
 
 			var armorClass = await ArmorClassOfAsync(target, targetCombatant, characters);
@@ -219,7 +235,9 @@ namespace RealmForge.Api.Controllers
 
 		//	The action of the turn (more attacks of the same action are fine), or the reaction outside the turn; a master
 		//	is never stopped, the turn is only marked
-		private static string? SpendForAttack(Fight fight, EncounterCombatant combatant, bool runs, bool italian)
+		//	On its own turn an attack is part of the Attack action (a character: as many attacks as its Extra Attack allows);
+		//	outside its turn it takes the reaction (an attack of opportunity offered on the target is taken)
+		private static string? SpendForAttack(Fight fight, EncounterCombatant combatant, bool runs, bool italian, int? actionAttacks, Guid targetId)
 		{
 			if (fight.Encounter.CurrentId == combatant.Id)
 			{
@@ -227,7 +245,12 @@ namespace RealmForge.Api.Controllers
 				{
 					return T(italian, "L'azione di questo turno è già stata usata.", "The action of this turn was already used.");
 				}
+				if (combatant.Kind == CombatantKind.Character && actionAttacks is { } most && combatant.AttacksMade >= Math.Clamp(most, 1, 4) && !runs)
+				{
+					return T(italian, "Gli attacchi dell'azione di Attacco sono finiti per questo turno.", "The attacks of the Attack action are over for this turn.");
+				}
 				combatant.ActionSpent ??= TableCombat.SpentAttack;
+				combatant.AttacksMade++;
 				return null;
 			}
 			if (combatant.ReactionUsed && !runs)
@@ -235,6 +258,10 @@ namespace RealmForge.Api.Controllers
 				return T(italian, "Non è il tuo turno e la reazione è già stata usata.", "It is not your turn and the reaction was already used.");
 			}
 			combatant.ReactionUsed = true;
+			if (combatant.OpportunityOn == targetId)
+			{
+				combatant.OpportunityOn = null;
+			}
 			return null;
 		}
 

@@ -19004,3 +19004,131 @@ button.rf-qs-spell {
         grid-template-columns: minmax(0, 1fr);
     }
 }
+
+/* ===== The turn of a character in the quick sheet; an attack of opportunity offered over the map ===== */
+.rf-turn-slots {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 8px;
+}
+
+.rf-turn-slot {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    min-width: 0;
+    padding: 8px;
+    border-radius: 8px;
+    border: 1px solid #2a2a2a;
+    background-color: #141414;
+    text-align: center;
+}
+
+    .rf-turn-slot strong {
+        overflow: hidden;
+        font-size: .62rem;
+        font-weight: 900;
+        letter-spacing: .04em;
+        text-overflow: ellipsis;
+        text-transform: uppercase;
+        white-space: nowrap;
+        color: #d4d4d8;
+    }
+
+    .rf-turn-slot small {
+        font-size: .65rem;
+        color: #71717a;
+    }
+
+    .rf-turn-slot.free {
+        border-color: rgba(16, 185, 129, .4);
+    }
+
+        .rf-turn-slot.free small {
+            color: #34d399;
+        }
+
+    .rf-turn-slot.used {
+        opacity: .6;
+    }
+
+.rf-turn-flags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 8px;
+}
+
+.rf-turn-flag {
+    padding: 0 8px;
+    border-radius: 4px;
+    background-color: rgba(255, 140, 0, .14);
+    color: #ffb74d;
+    font-size: .68rem;
+    font-weight: 800;
+    line-height: 24px;
+}
+
+.rf-turn-actions,
+.rf-turn-wield {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    margin-top: 8px;
+}
+
+    .rf-turn-wield > span {
+        font-size: .68rem;
+        font-weight: 800;
+        color: #8a8a8a;
+    }
+
+.rf-turn-btn {
+    height: 32px;
+    padding: 0 8px;
+    border-radius: 8px;
+    border: 1px solid #2c2c2c;
+    background-color: #161616;
+    color: #e4e4e7;
+    font-size: .7rem;
+    font-weight: 700;
+}
+
+    .rf-turn-btn:hover:not(:disabled) {
+        border-color: var(--rf-orange-primary);
+    }
+
+    .rf-turn-btn:disabled {
+        opacity: .45;
+    }
+
+    .rf-turn-btn.bonus {
+        border-color: rgba(124, 58, 237, .5);
+    }
+
+    .rf-turn-btn.held {
+        border-color: var(--rf-orange-primary);
+        background-color: rgba(255, 140, 0, .14);
+        color: #ffb74d;
+        opacity: 1;
+    }
+
+.rf-opportunity {
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.rf-opportunity-text {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: .8rem;
+    font-weight: 700;
+    color: #ffb74d;
+}
+
+    .rf-opportunity-text svg {
+        width: 16px;
+        height: 16px;
+    }

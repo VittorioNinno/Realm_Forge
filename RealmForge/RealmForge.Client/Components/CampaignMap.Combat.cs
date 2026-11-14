@@ -160,7 +160,8 @@ namespace RealmForge.Client.Components
 				Range = reach.Range,
 				LongRange = reach.LongRange,
 				Mode = aimMode,
-				Condition = aimCondition
+				Condition = aimCondition,
+				ActionAttacks = attacker.CharacterId is not null ? StatsOf(attacker)?.ActionAttacks : null
 			}, Lang);
 			busy = false;
 			if (result is null)
