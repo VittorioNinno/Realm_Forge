@@ -137,6 +137,9 @@ namespace RealmForge.Shared.DTOs
 
 		//	A character's attacks with one Attack action (Extra Attack); null: not counted
 		public int? ActionAttacks { get; set; }
+
+		//	A spell attack: no weapon is drawn for it
+		public bool Spell { get; set; }
 	}
 
 	///	<summary>

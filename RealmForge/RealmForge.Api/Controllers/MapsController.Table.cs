@@ -93,7 +93,7 @@ namespace RealmForge.Api.Controllers
 			//	The turn: the action on its own turn, the reaction outside it
 			//	A character with a weapon of the other kind in hand changes it with the free interaction of the turn
 			var ranged = dto.Range > 0 && dto.Reach <= 0;
-			if (attackerCombatant is { Kind: CombatantKind.Character, Wield: { } inHand } && fight?.Encounter.CurrentId == attackerCombatant.Id
+			if (!dto.Spell && attackerCombatant is { Kind: CombatantKind.Character, Wield: { } inHand } && fight?.Encounter.CurrentId == attackerCombatant.Id
 				&& inHand != (ranged ? "ranged" : "melee"))
 			{
 				if (attackerCombatant.Interacted && !runs)
@@ -120,6 +120,17 @@ namespace RealmForge.Api.Controllers
 			var effect = TableCombat.Effect(attackerConditions, targetConditions, gap, far, dto.Mode);
 
 			var armorClass = await ArmorClassOfAsync(target, targetCombatant, characters);
+
+			//	Cover from the terrain between the two: a wall or a closed door in the way stops the attack, a low wall adds 2 to
+			//	the armour class, an arrow slit 5
+			var closedDoors = map.Tokens.Where(t => t.Kind == TokenKind.Prop && t.PropType is { } door && MapTerrain.Closes(door, t.PropState))
+				.SelectMany(t => MapTerrain.Footprint(map.GridType, t.X, t.Y, t.Size)).ToHashSet();
+			var cover = MapTerrain.Cover(map.GridType, map.GridSize, map.GridOffsetX, map.GridOffsetY, MapTerrain.Read(map.Terrain), closedDoors,
+				(attacker.X, attacker.Y, attacker.Size), (target.X, target.Y, target.Size));
+			if (cover >= MapTerrain.TotalCover)
+			{
+				return Problem(statusCode: StatusCodes.Status409Conflict, title: T(italian, "Il bersaglio è dietro un muro: copertura totale.", "The target is behind a wall: total cover."));
+			}
 			var first = RandomNumberGenerator.GetInt32(1, 21);
 			var second = effect.Mode != 0 ? RandomNumberGenerator.GetInt32(1, 21) : 0;
 			var keepFirst = effect.Mode == 0 || (effect.Mode > 0 ? first >= second : first <= second);
@@ -130,12 +141,17 @@ namespace RealmForge.Api.Controllers
 				dice.Add(new RollDieDto(20, second, keepFirst));
 			}
 			var total = die + dto.Bonus;
+			armorClass += cover;
 			var hit = die == 20 || (die != 1 && total >= armorClass);
 			var critical = hit && (die == 20 || effect.AutoCritical);
 
 			int? damage = null;
 			var damageRolled = new List<RollDieDto>();
 			var notes = new List<string>();
+			if (cover > 0)
+			{
+				notes.Add(cover >= 5 ? T(italian, "copertura tre quarti (+5 CA)", "three-quarters cover (+5 AC)") : T(italian, "mezza copertura (+2 CA)", "half cover (+2 AC)"));
+			}
 			if (hit && damageText is not null)
 			{
 				if (damageDice is not null)

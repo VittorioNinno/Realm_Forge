@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="it">
 
 <head>
@@ -477,6 +477,25 @@
                 };
                 // The area of a spell being cast: from the caster (pointed with the pointer) or centred on a cell within
                 // range (an even cube on the corner between cells); ok is false out of range
+                // Whether a cell is seen from a point: no wall or closed door on the line between them (the cell of the
+                // point and the cell itself left out)
+                const seen = (x, y, cell) => {
+                    if (!st.sight) return true;
+                    const [t, g, ox, oy] = grid(), [bx, by] = center(t, g, ox, oy, cell[0], cell[1]);
+                    const start = nearest(t, g, ox, oy, x, y), steps = Math.max(1, Math.ceil(Math.hypot(bx - x, by - y) / Math.max(1, g / 6)));
+                    for (let i = 1; i < steps; i++) {
+                        const k = nearest(t, g, ox, oy, x + (bx - x) * i / steps, y + (by - y) * i / steps);
+                        if ((k[0] === start[0] && k[1] === start[1]) || (k[0] === cell[0] && k[1] === cell[1])) continue;
+                        if (st.sight.has(k[0] + ',' + k[1])) return false;
+                    }
+                    return true;
+                };
+                // The point an area spreads from: the middle of a cube, the origin of the others
+                const spread = (plan, g) => plan.kind === 'cube' ? [plan.ox + plan.size * g / 2, plan.oy] : [plan.ox, plan.oy];
+                const planCells = (plan) => {
+                    const [t, g, ox, oy] = grid(), [sx, sy] = spread(plan, g);
+                    return areaCells(t, g, ox, oy, plan.kind, plan.ox, plan.oy, plan.tx, plan.ty, plan.size).filter(k => seen(sx, sy, k));
+                };
                 const castPlan = (p) => {
                     const c = st.options.cast;
                     if (!c) return null;
@@ -491,7 +510,7 @@
                     let d = Infinity;
                     const span = t === 0 ? c.casterSize : 1;
                     for (let i = 0; i < span; i++) for (let j = 0; j < span; j++) d = Math.min(d, distance(t, [c.col + i, c.row + j], cell));
-                    const ok = c.range >= 999 || d <= c.range;
+                    const ok = (c.range >= 999 || d <= c.range) && seen(c.x, c.y, cell);
                     if (kind === 'cube') {
                         if (t === 0 && size % 2 === 0) { cx += g / 2; cy += g / 2; }
                         const x0 = cx - g / 2 - size * g / 2;
@@ -506,7 +525,7 @@
                     if (!plan) { svg.innerHTML = ''; return; }
                     const [t, g, ox, oy] = grid(), z = zoom();
                     const color = plan.ok ? (st.options.color || '#ff8c00') : '#ef4444';
-                    const cells = areaCells(t, g, ox, oy, plan.kind, plan.ox, plan.oy, plan.tx, plan.ty, plan.size)
+                    const cells = planCells(plan)
                         .map(([cc, r]) => `<polygon points="${corners(t, g, ox, oy, cc, r).map(q => q.join(',')).join(' ')}" fill="${color}" fill-opacity=".3"/>`).join('');
                     const poly = areaOutline(plan.kind, plan.ox, plan.oy, plan.tx, plan.ty, plan.size * g, g);
                     const shape = poly
@@ -824,6 +843,7 @@
                 const st = boards.get(stage);
                 if (!st) return;
                 st.route = null;
+                st.sight = data && data.sight && data.sight.length ? new Set(data.sight) : null;
                 st.terrain = data && data.block ? {
                     block: true,
                     walls: new Set(data.walls || []),
