@@ -202,6 +202,14 @@ namespace RealmForge.Client.Localization
 		public static string VttFeatureUsed(string name, LanguageCode lang) => T(lang, $"{name}: usato.", $"{name}: used.");
 		public static string VttFeatureHealed(string name, int value, LanguageCode lang) => T(lang, $"{name}: +{value} punti ferita.", $"{name}: +{value} hit points.");
 		public static string VttFeatureTemp(string name, int value, LanguageCode lang) => T(lang, $"{name}: {value} punti ferita temporanei.", $"{name}: {value} temporary hit points.");
+		public static string VttDrawer(LanguageCode lang) => T(lang, "Pannello laterale", "Side panel");
+		public static string VttPin(LanguageCode lang) => T(lang, "Blocca nel pannello laterale", "Pin to the side panel");
+		public static string VttUnpin(LanguageCode lang) => T(lang, "Sblocca: torna sopra la mappa", "Unpin: back over the map");
+		public static string VttMissed(LanguageCode lang) => T(lang, "Mancato", "Miss");
+		public static string VttHit(LanguageCode lang) => T(lang, "Colpito", "Hit");
+		public static string VttGroupInit(LanguageCode lang) => T(lang, "Un tiro di iniziativa per gruppo di nemici uguali", "One initiative roll per group of like enemies");
+		public static string VttInitVertical(LanguageCode lang) => T(lang, "Ordine di iniziativa in verticale", "Initiative order vertical");
+		public static string VttInitHorizontal(LanguageCode lang) => T(lang, "Ordine di iniziativa in orizzontale", "Initiative order horizontal");
 		public static string VttWayBlocked(LanguageCode lang) => T(lang, "Muri o porte chiuse sbarrano la strada.", "Walls or closed doors are in the way.");
 		public static string VttWayBlockedShort(LanguageCode lang) => T(lang, "Nessun passaggio", "No way through");
 
