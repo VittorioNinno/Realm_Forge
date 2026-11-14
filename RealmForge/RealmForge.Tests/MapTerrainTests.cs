@@ -47,7 +47,7 @@ public class MapTerrainTests
 		Assert.Equal(5, through!.Value.Cost);
 
 		var door = new HashSet<(int, int)> { (2, 0) };
-		Assert.Null(MapTerrain.FindPath(GridType.Square, new(), door, (0, 0), (4, 0), 1, MapTerrain.MaxPath, Corridor));
+		Assert.Null(MapTerrain.FindPath(GridType.Square, new Dictionary<(int, int), TerrainKind>(), door, (0, 0), (4, 0), 1, MapTerrain.MaxPath, Corridor));
 		Assert.True(MapTerrain.Closes(PropType.Door, PropState.Locked));
 		Assert.False(MapTerrain.Closes(PropType.Door, PropState.Open));
 		Assert.False(MapTerrain.Closes(PropType.Chest, PropState.Closed));
