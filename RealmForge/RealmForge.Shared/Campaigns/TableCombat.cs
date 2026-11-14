@@ -324,7 +324,7 @@ public static partial class TableCombat
 	[GeneratedRegex(@"\((\d+d\d+(?:\s*[+\-−]\s*\d+)?)\)")]
 	private static partial Regex DamageDice();
 
-	[GeneratedRegex(@"(?:Hit|Colpito)\s*:\s*(?<n>\d+)\s+(?:danni|\p{L}+\s+damage)", RegexOptions.IgnoreCase)]
+	[GeneratedRegex(@"(?:Hit|Colpito)\s*:[*_\s]*(?<n>\d+)\s+(?:dann[oi]|\p{L}+\s+damage)", RegexOptions.IgnoreCase)]
 	private static partial Regex FlatDamage();
 }
 
