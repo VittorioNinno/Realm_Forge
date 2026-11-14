@@ -1854,8 +1854,10 @@ else
             @if (sheet is null)
             {
                 <p class="small mb-0" style="color: var(--rf-text-muted);">…</p>
-                return;
             }
+            else
+            {
+            <text>
             <div class="rf-qs-hero">
                 <span class="rf-qs-avatar">
                     @if (portrait is not null)
@@ -2101,6 +2103,8 @@ else
                         </section>
                     }
                     break;
+            }
+            </text>
             }
         </section>
     };
