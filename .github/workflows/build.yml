@@ -1199,6 +1199,11 @@ jobs:
           at_player_out=$(code -X POST "$api/api/campaigns/$ss_cp/maps/$mp2/attack?lang=2" $json -H "Authorization: Bearer $A" -d "$(at_body $ctl_tree $at_target 1)")
           at_master=$(curl -s -X POST "$api/api/campaigns/$ss_cp/maps/$mp2/attack?lang=2" $json -H "Authorization: Bearer $B" -d "$(at_body $ctl_tree $at_target 1)" | jq -c '{hit, damage, armorClass, dice: (.dice | length)}')
           at_far=$(code -X POST "$api/api/campaigns/$ss_cp/maps/$mp2/attack?lang=2" $json -H "Authorization: Bearer $B" -d "$(at_body $ctl_tree $at_target 0)")
+          # A token a player controls deals no damage by itself; an enemy (the master's only) does
+          at_hp_ally=$(curl -s "$api/api/campaigns/$ss_cp/maps/$mp2/state" -H "Authorization: Bearer $B" | jq -c '[.tokens[] | select(.label == "Bandito") | .hp]')
+          at_enemy=$(curl -s -X POST "$api/api/campaigns/$ss_cp/maps/$mp2/tokens" $json -H "Authorization: Bearer $B" -d '{"label":"Sicario","kind":4,"x":9,"y":5,"size":1}' | jq -r .id)
+          code -X POST "$api/api/campaigns/$ss_cp/maps/$mp2/attack?lang=2" $json -H "Authorization: Bearer $B" -d "$(at_body $at_enemy $at_target 1)" > /dev/null
+          code -X DELETE "$api/api/campaigns/$ss_cp/maps/$mp2/tokens/$at_enemy" -H "Authorization: Bearer $B" > /dev/null
           at_hp=$(curl -s "$api/api/campaigns/$ss_cp/maps/$mp2/state" -H "Authorization: Bearer $B" | jq -c '[.tokens[] | select(.label == "Bandito") | .hp]')
           code -X POST "$api/api/campaigns/$ss_cp/maps/$mp2/combat/quick" $json -H "Authorization: Bearer $B" -d "{\"tokenIds\":[\"$ctl_tree\",\"$at_target\"]}" > /dev/null
           at_state=$(curl -s "$api/api/campaigns/$ss_cp/maps/$mp2/state" -H "Authorization: Bearer $B")
@@ -1378,7 +1383,8 @@ jobs:
           sscheck "player attacks out of a fight" "$at_player_out" "409"
           sscheck "master attack against the armour class" "$at_master" '{"hit":true,"damage":2,"armorClass":1,"dice":2}'
           sscheck "attack out of reach" "$at_far" "409"
-          sscheck "damage on the target" "$at_hp" "[8]"
+          sscheck "an ally's hit applies no damage by itself" "$at_hp_ally" "[10]"
+          sscheck "damage on the target from an enemy" "$at_hp" "[8]"
           sscheck "player attack in the fight (armour class unknown)" "$at_player" '{"hit":true,"armorClass":null}'
           sscheck "a second attack of the same action" "$at_player_again" "200"
           sscheck "the action spent attacking" "$at_spent" '["attack"]'

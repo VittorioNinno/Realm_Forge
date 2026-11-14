@@ -192,12 +192,12 @@ public static class EncounterSheetSync
 			if (hp == 0)
 			{
 				sheet.Concentration = null;
+				Characters.CharacterVitals.Fall(sheet);
 			}
 			else
 			{
-				//	Back above 0: the death saves start over
-				sheet.DeathSaveSuccesses = 0;
-				sheet.DeathSaveFailures = 0;
+				//	Back above 0: awake, the death saves start over
+				Characters.CharacterVitals.Wake(sheet);
 			}
 			changed = true;
 		}

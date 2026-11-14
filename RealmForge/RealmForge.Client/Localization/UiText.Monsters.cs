@@ -268,6 +268,40 @@ namespace RealmForge.Client.Localization
 			_ => T(lang, "A terra", "Down")
 		};
 
+		//	Three letters for a condition on a token, never the same for two of them
+		public static string ConditionCode(string key, LanguageCode lang) => key switch
+		{
+			"blinded" => T(lang, "Acc", "Bli"),
+			"charmed" => T(lang, "Aff", "Cha"),
+			"deafened" => T(lang, "Ass", "Dea"),
+			"frightened" => T(lang, "Spa", "Fri"),
+			"grappled" => T(lang, "Afr", "Gra"),
+			"incapacitated" => T(lang, "Inc", "Inc"),
+			"invisible" => T(lang, "Inv", "Inv"),
+			"paralyzed" => T(lang, "Par", "Par"),
+			"petrified" => T(lang, "Pie", "Pet"),
+			"poisoned" => T(lang, "Avv", "Poi"),
+			"prone" => T(lang, "Prn", "Prn"),
+			"restrained" => T(lang, "Tra", "Res"),
+			"stunned" => T(lang, "Sto", "Stu"),
+			"unconscious" => T(lang, "Sen", "Unc"),
+			"exhaustion" => T(lang, "Ind", "Exh"),
+			"concentrating" => T(lang, "Con", "Con"),
+			_ => key.Length <= 3 ? key : key[..3]
+		};
+
+		//	The family of a condition, for its colour: out of the fight, movement, mind, senses, body, concentration
+		public static string ConditionFamily(string key) => key switch
+		{
+			"unconscious" or "paralyzed" or "petrified" or "stunned" or "incapacitated" => "out",
+			"prone" or "grappled" or "restrained" => "move",
+			"frightened" or "charmed" => "mind",
+			"blinded" or "deafened" or "invisible" => "sense",
+			"poisoned" or "exhaustion" => "body",
+			"concentrating" => "focus",
+			_ => "other"
+		};
+
 		public static string ConditionName(string key, LanguageCode lang) => key switch
 		{
 			"blinded" => T(lang, "Accecato", "Blinded"),
