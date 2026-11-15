@@ -110,7 +110,9 @@ namespace RealmForge.Client.Components
 			{
 				return true;
 			}
-			if (!IsTarget(target) || !(current.Attack.Reach ?? AttackReach.Melee).At(GapOf(attacker, target)).Can)
+			//	An attack of opportunity reaches the token where it was (the server measures from there)
+			var opportunity = attacker.Turn?.OpportunityOn == target.Id;
+			if (!IsTarget(target) || (!opportunity && !(current.Attack.Reach ?? AttackReach.Melee).At(GapOf(attacker, target)).Can))
 			{
 				aimNote = UiText.VttAimOut(Lang);
 				return true;
@@ -192,7 +194,8 @@ namespace RealmForge.Client.Components
 			}
 			if (attacker.CharacterId is { } ownerId)
 			{
-				stats.Remove($"c:{ownerId}");
+				InvalidateStats($"c:{ownerId}");
+				_ = LoadStatsAsync(attacker);
 			}
 			if (target.CharacterId is { } targetCharacter)
 			{
@@ -464,7 +467,7 @@ namespace RealmForge.Client.Components
 			gearNote = dropped is null ? (string.IsNullOrEmpty(error) ? UiText.MapSaveFailed(Lang) : error) : UiText.VttDropped(weapon.Name, Lang);
 			if (dropped is not null && t.CharacterId is { } id)
 			{
-				stats.Remove($"c:{id}");
+				InvalidateStats($"c:{id}");
 				_ = LoadStatsAsync(t);
 			}
 			await RefreshAsync();
@@ -500,7 +503,8 @@ namespace RealmForge.Client.Components
 			}
 			if (error is null && by.CharacterId is { } id)
 			{
-				stats.Remove($"c:{id}");
+				InvalidateStats($"c:{id}");
+				_ = LoadStatsAsync(by);
 			}
 			await RefreshAsync();
 		}

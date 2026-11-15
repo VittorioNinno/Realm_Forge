@@ -13,20 +13,49 @@ namespace RealmForge.Client.Components
 	{
 		private string? turnNote;
 
-		private TokenTurnDto? TurnOf(MapTokenDto t) => combat is not null && combat.Round > 0 && t.CharacterId is not null ? t.Turn : null;
+		//	Every creature of the fight has its turn (the characters, the monsters, the others the master runs)
+		private TokenTurnDto? TurnOf(MapTokenDto t) => combat is not null && combat.Round > 0 && t.Kind != TokenKind.Prop ? t.Turn : null;
 
-		private bool IsTurnOf(MapTokenDto t) => combat?.Order.FirstOrDefault(o => o.Id == combat.CurrentId)?.TokenId == t.Id;
-
-		//	Melee and ranged attacks on the sheet: the weapon in hand can be changed
-		private bool HasBothKinds(MapTokenDto t)
+		//	Nothing left for an attack: on its turn the action used otherwise or its attacks over (a character's Extra Attack;
+		//	a monster's multiattack is one action), outside it the reaction used
+		private bool AttacksGone(MapTokenDto t)
 		{
-			var attacks = StatsOf(t)?.Sheet?.Attacks;
-			if (attacks is null)
+			if (TurnOf(t) is not { } turn)
 			{
 				return false;
 			}
+			if (!IsTurnOf(t))
+			{
+				return t.ReactionUsed && turn.OpportunityOn is null;
+			}
+			var most = t.CharacterId is not null ? StatsOf(t)?.ActionAttacks ?? 1 : int.MaxValue;
+			return t.ActionSpent == TableCombat.SpentOther || (t.ActionSpent == TableCombat.SpentAttack && turn.AttacksMade >= most);
+		}
+
+		//	The part of the turn a feature takes is used already (on its own turn; the reaction at any time)
+		private bool SlotGone(MapTokenDto t, RealmForge.Shared.Characters.FeatureSlot slot) => TurnOf(t) is { } turn && slot switch
+		{
+			RealmForge.Shared.Characters.FeatureSlot.Action => IsTurnOf(t) && t.ActionSpent is not null,
+			RealmForge.Shared.Characters.FeatureSlot.Bonus => IsTurnOf(t) && turn.BonusUsed,
+			RealmForge.Shared.Characters.FeatureSlot.Reaction => t.ReactionUsed,
+			_ => false
+		};
+
+		//	A creature of the fight whose turn it is not (the round started)
+		private bool OffTurn(MapTokenDto t) => t.Kind != TokenKind.Prop && combat is { Round: > 0 } && combat.Order.Any(o => o.TokenId == t.Id) && !IsTurnOf(t);
+
+		private bool IsTurnOf(MapTokenDto t) => combat?.Order.FirstOrDefault(o => o.Id == combat.CurrentId)?.TokenId == t.Id;
+
+		//	The weapons of each kind on the sheet (the spells left out): the one in hand can be changed to the other kind
+		private (int Melee, int Ranged) WeaponKinds(MapTokenDto t)
+		{
+			var attacks = StatsOf(t)?.Sheet?.Attacks?.Where(a => !a.Spell).ToList();
+			if (attacks is null)
+			{
+				return (0, 0);
+			}
 			var ranged = attacks.Count(a => a.Reach is { } r && r.Range > 0 && r.Reach <= 0);
-			return ranged > 0 && ranged < attacks.Count;
+			return (attacks.Count - ranged, ranged);
 		}
 
 		private async Task TurnActionAsync(MapTokenDto t, string kind, string? wield)
