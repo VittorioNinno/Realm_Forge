@@ -124,16 +124,28 @@ public static class MapTerrain
 			return null;
 		}
 
-		var best = new Dictionary<(int, int), int> { [from] = 0 };
-		var back = new Dictionary<(int, int), (int, int)>();
-		var queue = new PriorityQueue<(int Col, int Row), int>();
-		queue.Enqueue(from, 0);
-		while (queue.TryDequeue(out var at, out var cost))
+		//	Among the ways of the same cost the one nearest the straight line wins (no zig-zag): every cell adds how far
+		//	its middle is from the line, a second key after the cost
+		var (ax, ay) = MapGeometry.Center(type, 100, 0, 0, from.Col, from.Row);
+		var (bx, by) = MapGeometry.Center(type, 100, 0, 0, to.Col, to.Row);
+		var length = Math.Max(1, Math.Sqrt((bx - ax) * (bx - ax) + (by - ay) * (by - ay)));
+		long Off((int Col, int Row) at)
 		{
-			if (cost > best.GetValueOrDefault(at, int.MaxValue))
+			var (px, py) = MapGeometry.Center(type, 100, 0, 0, at.Col, at.Row);
+			return (long)Math.Round(Math.Abs((bx - ax) * (py - ay) - (by - ay) * (px - ax)) / length);
+		}
+		const long Weight = 1_000_000_000;
+		var best = new Dictionary<(int, int), long> { [from] = 0 };
+		var back = new Dictionary<(int, int), (int, int)>();
+		var queue = new PriorityQueue<(int Col, int Row), long>();
+		queue.Enqueue(from, 0);
+		while (queue.TryDequeue(out var at, out var score))
+		{
+			if (score > best.GetValueOrDefault(at, long.MaxValue))
 			{
 				continue;
 			}
+			var cost = (int)(score / Weight);
 			if (at == to)
 			{
 				var path = new List<(int, int)>();
@@ -157,13 +169,14 @@ public static class MapTerrain
 					continue;
 				}
 				var total = cost + Step(next);
-				if (total > maxCost || total >= best.GetValueOrDefault(next, int.MaxValue))
+				var nextScore = total * Weight + score % Weight + Off(next);
+				if (total > maxCost || nextScore >= best.GetValueOrDefault(next, long.MaxValue))
 				{
 					continue;
 				}
-				best[next] = total;
+				best[next] = nextScore;
 				back[next] = at;
-				queue.Enqueue(next, total);
+				queue.Enqueue(next, nextScore);
 			}
 		}
 		return null;

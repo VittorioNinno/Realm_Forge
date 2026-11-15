@@ -13950,6 +13950,31 @@ textarea.rf-form-control {
         margin-top: auto;
     }
 
+/* The console and the log open together: one height for both (the content scrolls inside), aligned at the bottom */
+.rf-vtt-cards {
+    align-items: flex-end;
+}
+
+.rf-vtt-cards.pair .rf-vtt-float {
+    height: min(704px, calc(100vh - 200px));
+    overflow: hidden;
+}
+
+    .rf-vtt-cards.pair .rf-dice-table.floating .rf-dice-workspace {
+        display: flex;
+        flex: 1;
+        flex-direction: column;
+        min-height: 0;
+    }
+
+    .rf-vtt-cards.pair .rf-dice-table.floating .rf-dice-console,
+    .rf-vtt-cards.pair .rf-dice-table.floating .rf-dice-log {
+        flex: 1;
+        min-height: 0;
+        max-height: none;
+        overflow-y: auto;
+    }
+
 /* Scroll bars: thin and dark, the thumb lit on hover */
 * {
     scrollbar-width: thin;
@@ -19377,6 +19402,47 @@ button.rf-qs-spell {
             text-overflow: ellipsis;
             white-space: nowrap;
         }
+
+.rf-turn-reset {
+    align-self: flex-start;
+    margin-top: 8px;
+}
+
+/* The vertical strip folded: a narrow column on the left, the summary read upward */
+.rf-init-widget.vertical.collapsed {
+    bottom: auto;
+    width: auto;
+}
+
+    .rf-init-widget.vertical.collapsed .rf-init-shell {
+        align-items: center;
+        width: 56px;
+        padding: 8px;
+    }
+
+    .rf-init-widget.vertical.collapsed .rf-init-summary {
+        max-height: 240px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        writing-mode: vertical-rl;
+        transform: rotate(180deg);
+    }
+
+    .rf-init-widget.vertical.collapsed .rf-init-actions {
+        flex-direction: column;
+        padding: 0;
+        border: 0;
+    }
+
+    .rf-init-widget.vertical.collapsed .rf-init-btn {
+        width: 40px;
+        padding: 0;
+        justify-content: center;
+    }
+
+    .rf-init-widget.vertical.collapsed .rf-init-btn-text {
+        display: none;
+    }
 
 .rf-init-icon.on {
     border-color: var(--rf-orange-primary);

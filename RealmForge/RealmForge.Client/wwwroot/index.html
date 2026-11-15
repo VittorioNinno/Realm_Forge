@@ -318,12 +318,18 @@
                     const key = (c, r) => c + ',' + r;
                     if (from[0] === to[0] && from[1] === to[1]) return { cost: 0, path: [] };
                     if (!free(to[0], to[1])) return null;
-                    const best = new Map([[key(from[0], from[1]), 0]]), back = new Map(), open = [[0, from[0], from[1]]];
+                    // Among the ways of the same cost the one nearest the straight line (no zig-zag): a second key after the cost
+                    const [ax, ay] = center(t, 100, 0, 0, from[0], from[1]), [bx, by] = center(t, 100, 0, 0, to[0], to[1]);
+                    const len = Math.max(1, Math.hypot(bx - ax, by - ay));
+                    const off = (c, r) => { const [px, py] = center(t, 100, 0, 0, c, r); return Math.round(Math.abs((bx - ax) * (py - ay) - (by - ay) * (px - ax)) / len); };
+                    const less = (x, y) => x[0] < y[0] || (x[0] === y[0] && x[1] < y[1]);
+                    const best = new Map([[key(from[0], from[1]), [0, 0]]]), back = new Map(), open = [[0, 0, from[0], from[1]]];
                     while (open.length) {
                         let bi = 0;
-                        for (let i = 1; i < open.length; i++) if (open[i][0] < open[bi][0]) bi = i;
-                        const [cost, c, r] = open.splice(bi, 1)[0];
-                        if (cost > (best.get(key(c, r)) ?? Infinity)) continue;
+                        for (let i = 1; i < open.length; i++) if (less(open[i], open[bi])) bi = i;
+                        const [cost, dev, c, r] = open.splice(bi, 1)[0];
+                        const seen = best.get(key(c, r));
+                        if (seen && less(seen, [cost, dev])) continue;
                         if (c === to[0] && r === to[1]) {
                             const path = [];
                             for (let k = key(c, r); k !== key(from[0], from[1]); k = back.get(k)) path.unshift(k.split(',').map(Number));
@@ -332,11 +338,12 @@
                         for (const [nc, nr] of neighbours(t, c, r)) {
                             if (!free(nc, nr)) continue;
                             if (t === 0 && nc !== c && nr !== r && !free(nc, r) && !free(c, nr)) continue;
-                            const total = cost + step(nc, nr);
-                            if (total > 120 || total >= (best.get(key(nc, nr)) ?? Infinity)) continue;
+                            const total = [cost + step(nc, nr), dev + off(nc, nr)];
+                            const had = best.get(key(nc, nr));
+                            if (total[0] > 120 || (had && !less(total, had))) continue;
                             best.set(key(nc, nr), total);
                             back.set(key(nc, nr), key(c, r));
-                            open.push([total, nc, nr]);
+                            open.push([total[0], total[1], nc, nr]);
                         }
                     }
                     return null;
@@ -1029,10 +1036,36 @@
                     return { ok: false, error: e && e.name ? e.name : 'Error' };
                 }
             };
+            // The passkeys offered by the e-mail field (conditional mediation: Safari on iPhone shows them above the
+            // keyboard, the desktop browsers in the autofill list); stopped before any other request, since a browser
+            // runs one at a time
+            let pending = null;
+            const stop = () => { if (pending) { pending.abort(); pending = null; } };
+            // Safari (iPhone, iPad, Mac) only shows the dialog while the click that asked for it is fresh: the options
+            // are read before the click, and the call here starts with nothing awaited before it
             return {
-                supported: () => !!(window.PublicKeyCredential && navigator.credentials && window.isSecureContext),
-                create: (options) => run(() => navigator.credentials.create({ publicKey: creation(JSON.parse(options)) })),
-                get: (options) => run(() => navigator.credentials.get({ publicKey: request(JSON.parse(options)) }))
+                supported: (rpId) => {
+                    if (!(window.PublicKeyCredential && navigator.credentials && window.isSecureContext)) return false;
+                    // A passkey belongs to the site's domain: on another address (a preview) the browser refuses it
+                    const host = location.hostname;
+                    return !rpId || host === rpId || host.endsWith('.' + rpId);
+                },
+                autofillAvailable: async () => {
+                    try {
+                        return !!(window.PublicKeyCredential && PublicKeyCredential.isConditionalMediationAvailable
+                            && await PublicKeyCredential.isConditionalMediationAvailable());
+                    } catch { return false; }
+                },
+                create: (options) => { stop(); return run(() => navigator.credentials.create({ publicKey: creation(JSON.parse(options)) })); },
+                get: (options) => { stop(); return run(() => navigator.credentials.get({ publicKey: request(JSON.parse(options)) })); },
+                autofill: (options) => {
+                    stop();
+                    const controller = new AbortController();
+                    pending = controller;
+                    return run(() => navigator.credentials.get({ publicKey: request(JSON.parse(options)), mediation: 'conditional', signal: controller.signal }))
+                        .finally(() => { if (pending === controller) pending = null; });
+                },
+                stop
             };
         })();
     </script>

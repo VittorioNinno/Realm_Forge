@@ -153,7 +153,7 @@ namespace RealmForge.Shared.DTOs
 	}
 
 	///	<summary>The turn of a token in a fight, as the table shows it.</summary>
-	public record TokenTurnDto(bool BonusUsed, int AttacksMade, bool Dashed, bool Disengaged, bool Dodging, bool Interacted, string? Wield, Guid? OpportunityOn);
+	public record TokenTurnDto(bool BonusUsed, int AttacksMade, bool Dashed, bool Disengaged, bool Dodging, bool Interacted, string? Wield, Guid? OpportunityOn, int Moved = 0);
 
 	///	<summary>
 	///	How an attack went: the d20 (and the one left out), the total, hit or miss, critical, the damage dealt and what
