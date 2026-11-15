@@ -758,13 +758,19 @@ try {
   // The same device again: the browser refuses a second passkey for the account
   await page.locator('[data-test=account-passkey-add]').click();
   await page.locator('[data-test=account-passkey-message]', { hasText: 'già una passkey' }).waitFor({ timeout: 15000 });
+  // Signed out with the (virtual) finger away: the e-mail field offers the passkey (autofill) without signing in by itself
+  await cdp.send('WebAuthn.setAutomaticPresenceSimulation', { authenticatorId, enabled: false });
   await page.locator('[data-test=account-logout]').click();
   await page.locator('[data-test=auth-passkey]').waitFor({ timeout: 15000 });
+  const autofillField = await page.locator('[data-test=auth-email]').getAttribute('autocomplete');
   await shot(page, 'login-passkey', 'main');
   // The errors handled on the account page (wrong password of the deletion, a refused passkey) do not raise the page banner
   const bannerOnLogin = await page.locator('[data-test=api-error]').count();
-  await page.locator('[data-test=auth-passkey]').click();
+  // The finger back: the button signs in (the pending autofill request may answer first, it signs in all the same)
+  await cdp.send('WebAuthn.setAutomaticPresenceSimulation', { authenticatorId, enabled: true });
+  await page.locator('[data-test=auth-passkey]').click({ timeout: 5000 }).catch(() => {});
   await page.locator('[data-test=account-area]', { hasText: email }).waitFor({ timeout: 30000 });
+  if (autofillField !== 'username webauthn') throw new Error(`e-mail field without the passkey autofill: ${autofillField}`);
   const credentials = (await cdp.send('WebAuthn.getCredentials', { authenticatorId })).credentials.length;
   results.push(`INFO passkey: added='${passkeyMessage}' credentials on the device=${credentials}`);
   if (!/aggiunta/i.test(passkeyMessage) || credentials !== 1 || bannerOnLogin !== 0) throw new Error(`unexpected passkey flow (banner=${bannerOnLogin})`);
