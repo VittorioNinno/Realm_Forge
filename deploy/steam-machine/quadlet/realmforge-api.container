@@ -11,6 +11,11 @@ Image=ghcr.io/vittorioninno/realmforge-api:release
 AutoUpdate=registry
 Network=realmforge.network
 EnvironmentFile=%h/realmforge/config/api.env
+# Public resolvers for the names outside the network (api.brevo.com for the e-mails): the resolver of the machine
+# (systemd-resolved on 127.0.0.53, the router) is not always reachable from the containers, and then every e-mail
+# fails with "Resource temporarily unavailable". The names of the containers are still resolved by Podman.
+DNS=1.1.1.1
+DNS=9.9.9.9
 Environment=PORT=8080
 
 [Service]

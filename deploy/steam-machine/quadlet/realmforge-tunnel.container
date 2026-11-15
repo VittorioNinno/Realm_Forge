@@ -10,6 +10,8 @@ Image=docker.io/cloudflare/cloudflared:latest
 AutoUpdate=registry
 Network=realmforge.network
 EnvironmentFile=%h/realmforge/config/tunnel.env
+DNS=1.1.1.1
+DNS=9.9.9.9
 Exec=tunnel --no-autoupdate run
 
 [Service]
