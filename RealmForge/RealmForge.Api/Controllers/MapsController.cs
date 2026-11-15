@@ -383,6 +383,8 @@ namespace RealmForge.Api.Controllers
 			{
 				return Problem(statusCode: StatusCodes.Status400BadRequest, title: "The token would leave the map.");
 			}
+			//	The cells the move costs: the way around the walls for a player, else the straight distance
+			var cost = MapGeometry.Distance(map.GridType, token.X, token.Y, dto.X, dto.Y);
 			//	A player's token goes around the walls and the closed doors: no way there, no move
 			if (!CampaignRules.RunsTheTable(role.Value) && map.TerrainBlocks && token.Kind != TokenKind.Prop
 				&& Math.Max(Math.Abs(dto.X - token.X), Math.Abs(dto.Y - token.Y)) <= MapTerrain.MaxPath)
@@ -390,35 +392,54 @@ namespace RealmForge.Api.Controllers
 				var closed = map.Tokens.Where(t => t.Kind == TokenKind.Prop && t.PropType is { } type && MapTerrain.Closes(type, t.PropState))
 					.SelectMany(t => MapTerrain.Footprint(map.GridType, t.X, t.Y, t.Size));
 				if (MapTerrain.Route(map.GridType, map.GridSize, map.GridOffsetX, map.GridOffsetY, map.Width, map.Height, map.Terrain, closed,
-					(token.X, token.Y), (dto.X, dto.Y), token.Size) is null)
+					(token.X, token.Y), (dto.X, dto.Y), token.Size) is not { } way)
 				{
 					return Problem(statusCode: StatusCodes.Status409Conflict, title: "Walls or closed doors are in the way.");
 				}
+				cost = way.Cost;
+			}
+			//	In a fight a player moves a creature only on its own turn
+			if (!CampaignRules.RunsTheTable(role.Value) && token.Kind != TokenKind.Prop && token.CombatantId is { } moverId
+				&& await FightAsync(map, track: false) is { } current && current.Encounter.Round > 0 && current.Encounter.CurrentId != moverId
+				&& current.Combatants.Any(c => c.Id == moverId))
+			{
+				return Problem(statusCode: StatusCodes.Status409Conflict, title: "Not its turn.", detail: "turn");
 			}
 			var from = (token.X, token.Y);
 			token.X = dto.X;
 			token.Y = dto.Y;
 			token.UpdatedAt = map.UpdatedAt = DateTimeOffset.UtcNow;
-			await OfferOpportunitiesAsync(map, token, from);
+			await AfterMoveAsync(map, token, from, cost);
 			await _context.SaveChangesAsync();
 			return NoContent();
 		}
 
 		//	A token that leaves the reach of a creature of the other side, in a fight and without Disengage, offers it an attack
 		//	of opportunity: whoever controls that creature sees it and takes it (with its reaction) or lets it go
-		private async Task OfferOpportunitiesAsync(CampaignMap map, CampaignToken mover, (int X, int Y) from)
+		//	On its own turn the cells moved are counted (the speed left); then the attacks of opportunity
+		private async Task AfterMoveAsync(CampaignMap map, CampaignToken mover, (int X, int Y) from, int cost)
 		{
 			if (mover.Kind == TokenKind.Prop || mover.CombatantId is null)
 			{
 				return;
 			}
 			var fight = await FightAsync(map, track: true);
-			if (fight is null || fight.Encounter.Round <= 0 || fight.Combatants.FirstOrDefault(c => c.Id == mover.CombatantId) is not { } moving || moving.Disengaged)
+			if (fight is null || fight.Encounter.Round <= 0 || fight.Combatants.FirstOrDefault(c => c.Id == mover.CombatantId) is not { } moving)
 			{
 				return;
 			}
-			static bool PartySide(CampaignToken t) => t.CharacterId is not null || t.ControlledBy.Count > 0;
 			var offered = false;
+			if (fight.Encounter.CurrentId == moving.Id)
+			{
+				moving.Moved += cost;
+				offered = true;
+			}
+			if (moving.Disengaged)
+			{
+				Save(fight, fight.Combatants);
+				return;
+			}
+			static bool PartySide(CampaignToken t) => t.CharacterId is not null || t.ControlledBy.Count > 0;
 			foreach (var other in map.Tokens.Where(t => t.Id != mover.Id && t.Kind != TokenKind.Prop && t.CombatantId is not null && PartySide(t) != PartySide(mover)))
 			{
 				if (fight.Combatants.FirstOrDefault(c => c.Id == other.CombatantId) is not { } reactor || reactor.ReactionUsed
@@ -432,6 +453,8 @@ namespace RealmForge.Api.Controllers
 				if (before <= 1 && after > 1)
 				{
 					reactor.OpportunityOn = mover.Id;
+					reactor.OpportunityX = from.X;
+					reactor.OpportunityY = from.Y;
 					offered = true;
 				}
 			}
@@ -465,7 +488,16 @@ namespace RealmForge.Api.Controllers
 				return Problem(statusCode: StatusCodes.Status409Conflict, title: T(italian, "Non è in combattimento.", "Not in a fight."));
 			}
 			var kind = dto.Kind.Trim().ToLowerInvariant();
-			if (kind == "pass")
+			if (kind == "reset")
+			{
+				//	A master gives a creature its turn back (an action marked by mistake)
+				if (!runs)
+				{
+					return Forbid();
+				}
+				EncounterRules.StartTurn(who);
+			}
+			else if (kind == "pass")
 			{
 				who.OpportunityOn = null;
 			}
@@ -1464,7 +1496,7 @@ namespace RealmForge.Api.Controllers
 							ActionSpent = combatant.ActionSpent,
 							ReactionUsed = combatant.ReactionUsed,
 							Turn = new TokenTurnDto(combatant.BonusUsed, combatant.AttacksMade, combatant.Dashed, combatant.Disengaged, combatant.Dodging,
-								combatant.Interacted, combatant.Wield, combatant.OpportunityOn)
+								combatant.Interacted, combatant.Wield, combatant.OpportunityOn, combatant.Moved)
 						};
 					}
 					return dto;

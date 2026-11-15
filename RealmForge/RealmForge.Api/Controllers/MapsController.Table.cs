@@ -82,8 +82,13 @@ namespace RealmForge.Api.Controllers
 				return Problem(statusCode: StatusCodes.Status409Conflict, title: T(italian, "Si attacca un bersaglio solo durante un combattimento.", "Targets are attacked only during a fight."));
 			}
 
+			//	An attack of opportunity is made where the target was when it left the reach (the start of its move)
+			var opportunity = attackerCombatant is { OpportunityOn: { } on, OpportunityX: { } ox, OpportunityY: { } oy } && on == target.Id
+				&& fight!.Encounter.CurrentId != attackerCombatant.Id ? (X: ox, Y: oy) : ((int X, int Y)?)null;
+			var (targetX, targetY) = opportunity ?? (target.X, target.Y);
+
 			//	How far: the nearest cells of the two tokens
-			var gap = TableCombat.Gap(map.GridType, attacker.X, attacker.Y, attacker.Size, target.X, target.Y, target.Size);
+			var gap = TableCombat.Gap(map.GridType, attacker.X, attacker.Y, attacker.Size, targetX, targetY, target.Size);
 			var (can, far) = new AttackReach(dto.Reach, dto.Range, Math.Max(dto.Range, dto.LongRange)).At(gap);
 			if (!can)
 			{
@@ -126,7 +131,7 @@ namespace RealmForge.Api.Controllers
 			var closedDoors = map.Tokens.Where(t => t.Kind == TokenKind.Prop && t.PropType is { } door && MapTerrain.Closes(door, t.PropState))
 				.SelectMany(t => MapTerrain.Footprint(map.GridType, t.X, t.Y, t.Size)).ToHashSet();
 			var cover = MapTerrain.Cover(map.GridType, map.GridSize, map.GridOffsetX, map.GridOffsetY, MapTerrain.Read(map.Terrain), closedDoors,
-				(attacker.X, attacker.Y, attacker.Size), (target.X, target.Y, target.Size));
+				(attacker.X, attacker.Y, attacker.Size), (targetX, targetY, target.Size));
 			if (cover >= MapTerrain.TotalCover)
 			{
 				return Problem(statusCode: StatusCodes.Status409Conflict, title: T(italian, "Il bersaglio è dietro un muro: copertura totale.", "The target is behind a wall: total cover."));
@@ -190,6 +195,13 @@ namespace RealmForge.Api.Controllers
 						down = target.Hp == 0;
 					}
 				}
+			}
+
+			//	Dropped by an attack of opportunity: it never left, it lies where its move started
+			if (down && opportunity is { } start && OnMap(map, start.X, start.Y, target.Size))
+			{
+				target.X = start.X;
+				target.Y = start.Y;
 			}
 
 			var text = !hit
@@ -282,6 +294,7 @@ namespace RealmForge.Api.Controllers
 			if (combatant.OpportunityOn == targetId)
 			{
 				combatant.OpportunityOn = null;
+				combatant.OpportunityX = combatant.OpportunityY = null;
 			}
 			return null;
 		}

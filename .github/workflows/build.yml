@@ -1226,6 +1226,7 @@ jobs:
           tu_pass=$(code -X POST "$api/api/campaigns/$ss_cp/maps/$mp2/tokens/$at_target/turn?lang=2" $json -H "Authorization: Bearer $B" -d '{"kind":"pass"}')
           tu_passed=$(curl -s "$api/api/campaigns/$ss_cp/maps/$mp2/state" -H "Authorization: Bearer $B" | jq -c '[.tokens[] | select(.label == "Bandito") | .turn.opportunityOn]')
           code -X POST "$api/api/campaigns/$ss_cp/maps/$mp2/tokens/$ctl_tree/move" $json -H "Authorization: Bearer $A" -d '{"x":8,"y":6}' > /dev/null
+          tu_moved=$(curl -s "$api/api/campaigns/$ss_cp/maps/$mp2/state" -H "Authorization: Bearer $A" | jq -c '[.tokens[] | select(.label == "Albero") | .turn.moved]')
           at_drop_player=$(code -X POST "$api/api/campaigns/$ss_cp/maps/$mp2/tokens/$at_target/drop" $json -H "Authorization: Bearer $A" -d '{"attack":"Spada","name":"Spada"}')
           at_drop=$(curl -s -X POST "$api/api/campaigns/$ss_cp/maps/$mp2/tokens/$at_target/drop" $json -H "Authorization: Bearer $B" -d '{"attack":"Spada","name":"Spada"}')
           at_item=$(echo "$at_drop" | jq -r .id)
@@ -1233,7 +1234,12 @@ jobs:
           at_disarmed=$(curl -s "$api/api/campaigns/$ss_cp/maps/$mp2/state" -H "Authorization: Bearer $B" | jq -c '[.tokens[] | select(.label == "Bandito") | .gear.disarmed]')
           at_item_seen=$(curl -s "$api/api/campaigns/$ss_cp/maps/$mp2/state" -H "Authorization: Bearer $A" | jq -c --arg i "$at_item" '[.tokens[] | select(.id == $i) | [.gear.items[] | .name]]')
           at_take_spent=$(code -X POST "$api/api/campaigns/$ss_cp/maps/$mp2/tokens/$at_item/take?lang=2" $json -H "Authorization: Bearer $A" -d "{\"byTokenId\":\"$ctl_tree\",\"index\":0}")
+          # The master gives the turn back (only the master); then off its turn the player's token does not move
+          tu_reset_player=$(code -X POST "$api/api/campaigns/$ss_cp/maps/$mp2/tokens/$ctl_tree/turn?lang=2" $json -H "Authorization: Bearer $A" -d '{"kind":"reset"}')
+          tu_reset=$(code -X POST "$api/api/campaigns/$ss_cp/maps/$mp2/tokens/$ctl_tree/turn?lang=2" $json -H "Authorization: Bearer $B" -d '{"kind":"reset"}')
+          tu_reset_state=$(curl -s "$api/api/campaigns/$ss_cp/maps/$mp2/state" -H "Authorization: Bearer $A" | jq -c '[.tokens[] | select(.label == "Albero") | [.turn.bonusUsed, .turn.moved, .actionSpent]]')
           code -X POST "$api/api/campaigns/$ss_cp/maps/$mp2/combat/next" -H "Authorization: Bearer $B" > /dev/null
+          tu_offturn=$(code -X POST "$api/api/campaigns/$ss_cp/maps/$mp2/tokens/$ctl_tree/move" $json -H "Authorization: Bearer $A" -d '{"x":7,"y":6}')
           at_take_turn=$(code -X POST "$api/api/campaigns/$ss_cp/maps/$mp2/tokens/$at_item/take?lang=2" $json -H "Authorization: Bearer $A" -d "{\"byTokenId\":\"$ctl_tree\",\"index\":0}")
           code -X POST "$api/api/campaigns/$ss_cp/maps/$mp2/combat/end" -H "Authorization: Bearer $B" > /dev/null
           at_take=$(code -X POST "$api/api/campaigns/$ss_cp/maps/$mp2/tokens/$at_item/take?lang=2" $json -H "Authorization: Bearer $A" -d "{\"byTokenId\":\"$ctl_tree\",\"index\":0}")
@@ -1406,6 +1412,11 @@ jobs:
           sscheck "turn: attack of opportunity offered" "$tu_offered" "[true]"
           sscheck "turn: let go" "$tu_pass" "204"
           sscheck "turn: gone once let go" "$tu_passed" "[null]"
+          sscheck "turn: the cells moved in the turn" "$tu_moved" "[4]"
+          sscheck "turn: only a master gives it back" "$tu_reset_player" "403"
+          sscheck "turn: given back by the master" "$tu_reset" "204"
+          sscheck "turn: all of it free again" "$tu_reset_state" "[[false,0,null]]"
+          sscheck "turn: no move off its turn" "$tu_offturn" "409"
           sscheck "player drops another's weapon" "$at_drop_player" "403"
           sscheck "weapon dropped next to its owner" "$at_dropped" '{"propType":8,"label":"Spada","layer":1}'
           sscheck "the attack lost" "$at_disarmed" '[["Spada"]]'
