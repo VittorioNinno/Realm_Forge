@@ -19,3 +19,11 @@ if [ -n "$origin" ] && [[ "$origin" != *"<dominio>"* ]]; then
   echo "== $api/health"
   curl -s -m 20 -o /dev/null -w '%{http_code} in %{time_total}s\n' "$api/health" || echo "non raggiungibile"
 fi
+echo
+# The e-mails go out through api.brevo.com: the API container must resolve it
+echo "== Email (DNS di api.brevo.com dal container dell'API)"
+if podman exec realmforge-api getent hosts api.brevo.com > /dev/null 2>&1; then
+  echo "ok"
+else
+  echo "NON risolto: le email non partono (controlla le righe DNS= in realmforge-api.container)"
+fi
