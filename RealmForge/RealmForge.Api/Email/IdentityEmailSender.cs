@@ -125,7 +125,12 @@ namespace RealmForge.Api.Email
 					await _brevo.SendAsync(to, subject, html, text);
 					_logger.LogInformation("E-mail sent to {Email} through Brevo: {Subject}", to, subject);
 				}
-				catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException)
+				catch (Exception ex) when (ex is HttpRequestException { StatusCode: null } or TaskCanceledException)
+				{
+					//	Brevo never answered: the name of its server not resolved, no connection (the network of the server)
+					_logger.LogError(ex, "Could not reach Brevo to send e-mail to {Email}: check the DNS and the internet connection of the API server (api.brevo.com:443).", to);
+				}
+				catch (HttpRequestException ex)
 				{
 					//	Registration must not fail because of the mail service: the user can ask for a new e-mail from the account page
 					_logger.LogError(ex, "Could not send e-mail to {Email} through Brevo. Check Email:BrevoApiKey and that {Sender} is a verified sender in Brevo.",
