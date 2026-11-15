@@ -1036,10 +1036,36 @@
                     return { ok: false, error: e && e.name ? e.name : 'Error' };
                 }
             };
+            // The passkeys offered by the e-mail field (conditional mediation: Safari on iPhone shows them above the
+            // keyboard, the desktop browsers in the autofill list); stopped before any other request, since a browser
+            // runs one at a time
+            let pending = null;
+            const stop = () => { if (pending) { pending.abort(); pending = null; } };
+            // Safari (iPhone, iPad, Mac) only shows the dialog while the click that asked for it is fresh: the options
+            // are read before the click, and the call here starts with nothing awaited before it
             return {
-                supported: () => !!(window.PublicKeyCredential && navigator.credentials && window.isSecureContext),
-                create: (options) => run(() => navigator.credentials.create({ publicKey: creation(JSON.parse(options)) })),
-                get: (options) => run(() => navigator.credentials.get({ publicKey: request(JSON.parse(options)) }))
+                supported: (rpId) => {
+                    if (!(window.PublicKeyCredential && navigator.credentials && window.isSecureContext)) return false;
+                    // A passkey belongs to the site's domain: on another address (a preview) the browser refuses it
+                    const host = location.hostname;
+                    return !rpId || host === rpId || host.endsWith('.' + rpId);
+                },
+                autofillAvailable: async () => {
+                    try {
+                        return !!(window.PublicKeyCredential && PublicKeyCredential.isConditionalMediationAvailable
+                            && await PublicKeyCredential.isConditionalMediationAvailable());
+                    } catch { return false; }
+                },
+                create: (options) => { stop(); return run(() => navigator.credentials.create({ publicKey: creation(JSON.parse(options)) })); },
+                get: (options) => { stop(); return run(() => navigator.credentials.get({ publicKey: request(JSON.parse(options)) })); },
+                autofill: (options) => {
+                    stop();
+                    const controller = new AbortController();
+                    pending = controller;
+                    return run(() => navigator.credentials.get({ publicKey: request(JSON.parse(options)), mediation: 'conditional', signal: controller.signal }))
+                        .finally(() => { if (pending === controller) pending = null; });
+                },
+                stop
             };
         })();
     </script>

@@ -59,6 +59,11 @@ namespace RealmForge.Api
 				options.ServerDomain = configuration["Passkeys:ServerDomain"] is { Length: > 0 } domain
 					? domain
 					: origins.Select(o => Uri.TryCreate(o, UriKind.Absolute, out var uri) ? uri.Host : null).FirstOrDefault(h => h is not null);
+				//	Every device and browser: a discoverable passkey (the sign-in lists the ones the device has, with no e-mail
+				//	typed first), the device's lock (Face ID, Touch ID, Windows Hello, PIN) asked where the device has one
+				//	instead of refusing the security keys and phones without it
+				options.ResidentKeyRequirement = "required";
+				options.UserVerificationRequirement = "preferred";
 				options.ValidateOrigin = context => ValueTask.FromResult(!context.CrossOrigin && origins.Contains(context.Origin.TrimEnd('/'), StringComparer.OrdinalIgnoreCase));
 			});
 
