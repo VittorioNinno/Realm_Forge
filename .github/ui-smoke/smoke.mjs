@@ -772,6 +772,9 @@ try {
   await page.locator('[data-test=account-area]', { hasText: email }).waitFor({ timeout: 30000 });
   if (autofillField !== 'username webauthn') throw new Error(`e-mail field without the passkey autofill: ${autofillField}`);
   const credentials = (await cdp.send('WebAuthn.getCredentials', { authenticatorId })).credentials.length;
+  // The virtual authenticator answers the e-mail field's passkey request with no one choosing it (a real browser waits
+  // for a pick): it goes, so the later visits to the sign-in page stay signed out
+  await cdp.send('WebAuthn.removeVirtualAuthenticator', { authenticatorId });
   results.push(`INFO passkey: added='${passkeyMessage}' credentials on the device=${credentials}`);
   if (!/aggiunta/i.test(passkeyMessage) || credentials !== 1 || bannerOnLogin !== 0) throw new Error(`unexpected passkey flow (banner=${bannerOnLogin})`);
   ok('passkey: added from the account page with a (virtual) fingerprint, a second one on the same device refused, sign-out and sign-in with the passkey');
