@@ -528,8 +528,8 @@ else
     private MapCombatDto? combat;
     private List<EncounterSummaryDto> encounters = new();
     private Guid? encounterId;
-    private Dictionary<Guid, int> moved = new();
-    private Guid? movedTurn;
+    //	The cells moved in its turn: counted by the server, in a fight only
+    private int MovedOf(MapTokenDto t) => combat is { Round: > 0 } && IsTurnOf(t) ? t.Turn?.Moved ?? 0 : 0;
     private DiceTray? tray;
 
     //	What a token can roll and how far it moves, read from the sheet or the statblock
@@ -622,7 +622,7 @@ else
         if (CharacterOf(t) is { } c)
         {
             var ch = c.Character;
-            return $"{UiText.TokenHitPoints(ch.CurrentHitPoints, ch.MaxHitPoints, Lang)} · {UiText.TokenArmorClass(ch.ArmorClass, Lang)}";
+            return $"{UiText.TokenHitPoints(LifeHp(c), LifeMax(c), Lang)} · {UiText.TokenArmorClass(ch.ArmorClass, Lang)}";
         }
         if (RunsTheTable && t.MonsterId is { } id && monsters.TryGetValue(id, out var m))
         {
@@ -699,7 +699,7 @@ else
                         var summary = Summary(t);
                         <div class="rf-vtt-token @(t.Hidden ? "hidden-token" : null) @(t.Layer == TokenLayer.Below ? "below" : null) @(t.CanMove ? "movable" : null) @(infoToken == t.Id ? "selected" : null) @(IsCurrent(t) ? "current" : null) @(t.Kind == TokenKind.Prop ? $"prop state-{t.PropState.ToString().ToLowerInvariant()}" : null) @(t.Health is { } hl ? $"health-{hl.ToString().ToLowerInvariant()}" : null) @AimClass(t) @(t.PropType == PropType.Item ? "item" : null)"
                              style="left: @(N(cx - side / 2.0))px; top: @(N(cy - side / 2.0))px; width: @(side)px; height: @(side)px; --rf-token: @t.Color;"
-                             data-token="@t.Id" data-col="@t.X" data-row="@t.Y" data-movable="@(t.CanMove ? "1" : "0")" data-cx="@N(cx)" data-cy="@N(cy)" data-speed="@SpeedCells(t)" data-moved="@(moved.GetValueOrDefault(t.Id))" data-size="@t.Size" data-test="map-token" data-label="@t.Label">
+                             data-token="@t.Id" data-col="@t.X" data-row="@t.Y" data-movable="@(t.CanMove ? "1" : "0")" data-cx="@N(cx)" data-cy="@N(cy)" data-speed="@SpeedCells(t)" data-moved="@MovedOf(t)" data-size="@t.Size" data-test="map-token" data-label="@t.Label">
                             @if (t.Kind == TokenKind.Prop && t.PropType is { } propType)
                             {
                                 <span class="rf-vtt-token-face" data-test="map-prop" data-state="@t.PropState">
@@ -1600,7 +1600,7 @@ else
         var now = Math.Clamp(saved.Vitals?.CurrentHitPoints ?? character.Sheet.CurrentHitPoints ?? max, 0, max);
         hpAfterRest[id] = (now, max);
         charVitals[id] = SheetVitalsDto.From(character.Sheet, max, saved.UpdatedAt);
-        stats.Remove($"c:{id}");
+        InvalidateStats($"c:{id}");
         _ = LoadStatsAsync(t);
         StateHasChanged();
     }
@@ -1673,7 +1673,8 @@ else
         if (character is not null)
         {
             var ch = character.Character;
-            return $"{UiText.TokenHitPoints(ch.CurrentHitPoints, ch.MaxHitPoints, Lang)} · {UiText.TokenArmorClass(ch.ArmorClass, Lang)} · {UiText.TokenLevel(ch.Level, ch.ClassLine, Lang)}";
+            //	The hit points as the table last saw them (a hit, a heal, a rest), not those the page was opened with
+            return $"{UiText.TokenHitPoints(LifeHp(character), LifeMax(character), Lang)} · {UiText.TokenArmorClass(ch.ArmorClass, Lang)} · {UiText.TokenLevel(ch.Level, ch.ClassLine, Lang)}";
         }
         var parts = new List<string>();
         if (!RunsTheTable && it.CreatureType is { } creatureType)
@@ -2001,13 +2002,13 @@ else
                                 {
                                     var attack = line;
                                     <div class="rf-qs-attack">
-                                        <button type="button" class="rf-qs-attack-main" disabled="@(!canRoll || busy || attack.Roll is null || KnockedOut(t))" @onclick="() => RollAsync(t, attack.Roll!)" data-test="map-token-attack">
+                                        <button type="button" class="rf-qs-attack-main" disabled="@(!canRoll || busy || attack.Roll is null || KnockedOut(t) || AttacksGone(t))" @onclick="() => RollAsync(t, attack.Roll!)" data-test="map-token-attack">
                                             <span class="rf-qs-attack-name">@attack.Name</span>
                                             <span class="rf-qs-attack-detail">@attack.Detail</span>
                                         </button>
                                         @if (CanAim(t) && !KnockedOut(t))
                                         {
-                                            <button type="button" class="rf-qs-attack-damage aim @(aim is { } aiming && aiming.AttackerId == t.Id && aiming.Attack.Name == attack.Name ? "active" : null)" disabled="@busy"
+                                            <button type="button" class="rf-qs-attack-damage aim @(aim is { } aiming && aiming.AttackerId == t.Id && aiming.Attack.Name == attack.Name ? "active" : null)" disabled="@(busy || AttacksGone(t))"
                                                     title="@UiText.VttAimStart(attack.Name, Lang)" aria-label="@UiText.VttAimStart(attack.Name, Lang)" @onclick="() => StartAimAsync(t, attack)" data-test="map-token-aim"><Icon Name="crosshair" /></button>
                                         }
                                         @if (attack.Damage is { } damage)
@@ -2112,10 +2113,16 @@ else
                 default:
                     @if (CanRest(t))
                     {
-                        <div class="rf-qs-rests">
-                            <button type="button" class="rf-qs-rest" disabled="@restBusy" @onclick="@(() => OpenRestAsync(t, false))" data-test="map-token-short-rest">@UiText.BtnShortRest(Lang)</button>
-                            <button type="button" class="rf-qs-rest" disabled="@restBusy" @onclick="@(() => OpenRestAsync(t, true))" data-test="map-token-long-rest">@UiText.BtnLongRest(Lang)</button>
+                        //	No rest while an encounter runs on the map
+                        var fighting = combat is not null;
+                        <div class="rf-qs-rests" title="@(fighting ? UiText.VttNoRestInFight(Lang) : null)">
+                            <button type="button" class="rf-qs-rest" disabled="@(restBusy || fighting)" @onclick="@(() => OpenRestAsync(t, false))" data-test="map-token-short-rest">@UiText.BtnShortRest(Lang)</button>
+                            <button type="button" class="rf-qs-rest" disabled="@(restBusy || fighting)" @onclick="@(() => OpenRestAsync(t, true))" data-test="map-token-long-rest">@UiText.BtnLongRest(Lang)</button>
                         </div>
+                        @if (fighting)
+                        {
+                            <p class="rf-qs-note" data-test="map-token-no-rest"><Icon Name="lock" /> @UiText.VttNoRestInFight(Lang)</p>
+                        }
                     }
                     <div class="rf-qs-abilities">
                         @foreach (var a in sheet.Abilities)
@@ -2294,17 +2301,27 @@ else
                 }
                 <button type="button" class="rf-turn-btn bonus" disabled="@(!can || turn.BonusUsed)" title="@UiText.VttTurnBonusHint(Lang)" @onclick="@(() => TurnActionAsync(t, "bonus", null))" data-test="vtt-turn-bonus-use">@UiText.VttTurnBonusUse(Lang)</button>
             </div>
-            @if (HasBothKinds(t))
+            @{
+                var (meleeWeapons, rangedWeapons) = WeaponKinds(t);
+            }
+            @if (meleeWeapons + rangedWeapons > 0)
             {
-                <div class="rf-turn-wield" role="group" aria-label="@UiText.VttTurnWield(Lang)">
-                    <span>@UiText.VttTurnWield(Lang)</span>
+                //	The weapon in hand: the first change of the turn is the free interaction, a second one takes the action
+                <div class="rf-turn-wield" role="group" aria-label="@UiText.VttTurnWield(Lang)" data-test="vtt-turn-wield">
+                    <span><Icon Name="arrow-left-right" /> @UiText.VttTurnWield(Lang)</span>
                     @foreach (var w in new[] { "melee", "ranged" })
                     {
                         var wield = w;
-                        var held = (turn.Wield ?? "melee") == wield;
-                        <button type="button" class="rf-turn-btn @(held ? "held" : null)" disabled="@(!can || held)" @onclick="@(() => TurnActionAsync(t, "wield", wield))" data-test="vtt-turn-wield-@wield">@UiText.VttTurnWieldKind(wield, Lang)</button>
+                        var held = (turn.Wield ?? (meleeWeapons > 0 ? "melee" : "ranged")) == wield;
+                        var none = (wield == "melee" ? meleeWeapons : rangedWeapons) == 0;
+                        <button type="button" class="rf-turn-btn @(held ? "held" : null)" disabled="@(!can || held || none)"
+                                title="@(none ? UiText.VttTurnWieldNone(wield, Lang) : UiText.VttTurnWieldHint(Lang))" @onclick="@(() => TurnActionAsync(t, "wield", wield))" data-test="vtt-turn-wield-@wield">@UiText.VttTurnWieldKind(wield, Lang)</button>
                     }
                 </div>
+            }
+            @if (RunsTheTable)
+            {
+                <button type="button" class="rf-turn-btn rf-turn-reset" disabled="@busy" title="@UiText.VttTurnResetHint(Lang)" @onclick="@(() => TurnActionAsync(t, "reset", null))" data-test="vtt-turn-reset"><Icon Name="arrow-counterclockwise" /> @UiText.VttTurnReset(Lang)</button>
             }
             @if (turnNote is not null)
             {
@@ -2348,7 +2365,7 @@ else
                         {
                             <input type="number" class="rf-feature-amount" min="1" max="@left" value="@PoolAmount(use.Key, left ?? 0)" @onchange="e => poolAmounts[use.Key] = int.TryParse(e.Value?.ToString(), out var v) ? v : 1" aria-label="@UiText.VttFeatureAmount(Lang)" />
                         }
-                        <button type="button" class="rf-turn-btn" disabled="@(!canRoll || busy || KnockedOut(t) || left == 0)" @onclick="() => UseFeatureAsync(t, use)" data-test="vtt-feature-use">@UiText.VttFeatureUse(Lang)</button>
+                        <button type="button" class="rf-turn-btn" disabled="@(!canRoll || busy || KnockedOut(t) || left == 0 || SlotGone(t, use.Slot))" @onclick="() => UseFeatureAsync(t, use)" data-test="vtt-feature-use">@UiText.VttFeatureUse(Lang)</button>
                     </div>
                 }
             </div>
@@ -2650,6 +2667,10 @@ else
     //	The sheet is read again first, so the rest starts from what it holds now (damage taken in a fight included)
     private async Task OpenRestAsync(MapTokenDto t, bool longRest)
     {
+        if (combat is not null)
+        {
+            return;
+        }
         if (t.CharacterId is not { } id)
         {
             return;
@@ -2718,7 +2739,7 @@ else
         var now = saved.Vitals?.CurrentHitPoints ?? rest.Character.Sheet.CurrentHitPoints ?? max;
         hpAfterRest[rest.Character.Id] = (Math.Clamp(now, 0, max), max);
         //	The numbers of the quick sheet are worked out again from the sheet just saved
-        stats.Remove($"c:{rest.Character.Id}");
+        InvalidateStats($"c:{rest.Character.Id}");
         if (tokens.FirstOrDefault(x => x.Id == rest.TokenId) is { } token)
         {
             _ = LoadStatsAsync(token);
@@ -3245,6 +3266,14 @@ else
         {
             return;
         }
+        //	In a fight a player moves a creature only on its own turn
+        if (!RunsTheTable && OffTurn(t))
+        {
+            message = UiText.VttNotYourTurn(Lang);
+            Replace(t);
+            StateHasChanged();
+            return;
+        }
         //	A player's token goes around the walls and the closed doors: the way it takes is what it moves
         var cost = MapGeometry.Distance(gridType, t.X, t.Y, col, row);
         if (FollowsTerrain && t.Kind != TokenKind.Prop)
@@ -3260,21 +3289,18 @@ else
         }
         //	A player moves no further than the speed (in a fight, counting what was already moved in the turn)
         if (!RunsTheTable && SpeedCells(t) is { } speed
-            && cost + (combat is not null ? moved.GetValueOrDefault(t.Id) : 0) > speed)
+            && cost + MovedOf(t) > speed)
         {
             message = UiText.VttTooFar(Lang);
             Replace(t);
             StateHasChanged();
             return;
         }
-        Replace(t with { X = col, Y = row });
+        //	The cells moved in its turn grow at once (the server counts them too)
+        Replace(t with { X = col, Y = row, Turn = t.Turn is { } turn && IsTurnOf(t) ? turn with { Moved = turn.Moved + cost } : t.Turn });
         StateHasChanged();
-        if (combat is not null)
-        {
-            moved[t.Id] = moved.GetValueOrDefault(t.Id) + cost;
-        }
         var result = await Campaigns.MoveTokenAsync(CampaignId, map.Id, t.Id, col, row);
-        message = result.Ok ? null : result.Status == System.Net.HttpStatusCode.Conflict ? UiText.VttWayBlocked(Lang) : UiText.MapMoveFailed(Lang);
+        message = result.Ok ? null : result.Status == System.Net.HttpStatusCode.Conflict ? (OffTurn(t) ? UiText.VttNotYourTurn(Lang) : UiText.VttWayBlocked(Lang)) : UiText.MapMoveFailed(Lang);
         if (!result.Ok)
         {
             Replace(t);
@@ -3432,12 +3458,6 @@ else
     private void ApplyCombat(MapCombatDto? fight)
     {
         combat = fight;
-        //	A new turn: the cells moved start again
-        if (fight?.CurrentId != movedTurn)
-        {
-            movedTurn = fight?.CurrentId;
-            moved.Clear();
-        }
     }
 
     private async Task LoadEncountersAsync()
@@ -3488,7 +3508,7 @@ else
     {
         @if (map is not null && (combat is not null || RunsTheTable))
         {
-        <div class="rf-init-widget @(InfoToken is not null ? "behind" : null) @(initVertical ? "vertical" : null) @(combat is not null && combat.Order.Count > 6 ? "many" : null)" data-test="vtt-initiative">
+        <div class="rf-init-widget @(InfoToken is not null ? "behind" : null) @(initVertical ? "vertical" : null) @(initCollapsed ? "collapsed" : null) @(combat is not null && combat.Order.Count > 6 ? "many" : null)" data-test="vtt-initiative">
             @if (combat is null)
             {
                 <div class="rf-init-shell idle" data-test="vtt-init-idle">
@@ -3581,7 +3601,7 @@ else
                         <span class="rf-init-summary">@UiText.VttActiveTurn(Lang): <strong>@(current?.Name ?? "–")</strong></span>
                         @if (RunsTheTable)
                         {
-                            <button type="button" class="rf-init-btn orange" disabled="@busy" @onclick="NextTurnAsync" data-test="vtt-next-turn">@UiText.VttTurnShort(Lang) <Icon Name="chevron-right" /></button>
+                            <button type="button" class="rf-init-btn orange" disabled="@busy" title="@UiText.VttNextTurn(Lang)" @onclick="NextTurnAsync" data-test="vtt-next-turn"><span class="rf-init-btn-text">@UiText.VttTurnShort(Lang)</span> <Icon Name="@(initVertical ? "chevron-down" : "chevron-right")" /></button>
                         }
                     }
                     else
@@ -3630,12 +3650,15 @@ else
         }
     };
 
+    //	The strip folds toward the side it stands on: up when it runs across the top, left when it stands on the left
+    private string CollapseIcon => initVertical ? (initCollapsed ? "chevron-right" : "chevron-left") : (initCollapsed ? "down" : "up");
+
     private RenderFragment CollapseButton => __builder =>
     {
         <button type="button" class="rf-init-icon" title="@(initVertical ? UiText.VttInitHorizontal(Lang) : UiText.VttInitVertical(Lang))" aria-label="@(initVertical ? UiText.VttInitHorizontal(Lang) : UiText.VttInitVertical(Lang))" aria-pressed="@(initVertical ? "true" : "false")"
                 @onclick="ToggleInitLayoutAsync" data-test="vtt-init-layout"><Icon Name="@(initVertical ? "distribute-horizontal" : "distribute-vertical")" /></button>
         <button type="button" class="rf-init-icon accent" title="@(initCollapsed ? UiText.CardExpand(Lang) : UiText.CardMinimize(Lang))" aria-label="@(initCollapsed ? UiText.CardExpand(Lang) : UiText.CardMinimize(Lang))" aria-expanded="@(initCollapsed ? "false" : "true")"
-                @onclick="() => initCollapsed = !initCollapsed" data-test="vtt-init-collapse"><Icon Name="@(initCollapsed ? "down" : "up")" /></button>
+                @onclick="() => initCollapsed = !initCollapsed" data-test="vtt-init-collapse"><Icon Name="@CollapseIcon" /></button>
     };
 
     private RenderFragment Avatar(MapCombatantDto who, MapTokenDto? token) => __builder =>
@@ -3898,7 +3921,8 @@ else
     private RenderFragment DiceCluster => __builder =>
     {
         <div class="rf-vtt-cluster" data-test="vtt-cluster">
-            <div class="rf-vtt-cards">
+            @* Both cards open side by side: the same height, their bottoms on the same line *@
+            <div class="rf-vtt-cards @(!diceDocked && !logDocked && diceOpen && logOpen && !diceMin && !logMin ? "pair" : null)">
                 @if (!diceDocked)
                 {
                 <div class="rf-vtt-float @(diceOpen ? null : "d-none")" data-test="vtt-dice-card">
@@ -4151,9 +4175,10 @@ else
 
     private TokenStats? StatsOf(MapTokenDto t) => stats.TryGetValue(StatsKey(t), out var found) ? found : null;
 
-    //	My characters roll from the map; the masters roll for the monsters (behind the screen)
+    //	My characters roll from the map; the masters roll for the monsters (behind the screen) and play the characters
+    //	too (an absent player, a correction): attacks, spells, features
     private bool CanRoll(MapTokenDto t) =>
-        (t.CharacterId is not null && (CharacterOf(t)?.IsMine == true || t.Controlled))
+        (t.CharacterId is not null && (CharacterOf(t) is { } own && (own.IsMine || (RunsTheTable && own.CanEdit)) || t.Controlled))
         || ((RunsTheTable || t.Controlled) && (t.MonsterId is not null || t.SheetCharacterId is not null) && t.CharacterId is null);
 
     //	A speed of 0 (grappled, restrained…) keeps the token where it is
@@ -4169,21 +4194,45 @@ else
         await InvokeAsync(StateHasChanged);
     }
 
+    //	A sheet that changed is read again in the background: the old numbers stay on screen until the new ones come,
+    //	so the open sheet is updated in place and never goes blank
+    private readonly HashSet<string> staleStats = new();
+    private readonly HashSet<string> loadingStats = new();
+
+    private void InvalidateStats(string key)
+    {
+        if (stats.ContainsKey(key))
+        {
+            staleStats.Add(key);
+        }
+    }
+
     private async Task LoadStatsAsync(MapTokenDto t)
     {
         var key = StatsKey(t);
-        if (key.Length == 0 || stats.ContainsKey(key))
+        if (key.Length == 0 || (stats.ContainsKey(key) && !staleStats.Contains(key)) || !loadingStats.Add(key))
         {
             return;
         }
-        stats[key] = null;
+        staleStats.Remove(key);
+        if (!stats.ContainsKey(key))
+        {
+            stats[key] = null;
+        }
         try
         {
             stats[key] = SheetIdOf(t) is { } characterId ? await CharacterStatsAsync(characterId) : await MonsterStatsAsync(t.MonsterId!.Value);
         }
         catch (Exception)
         {
-            stats.Remove(key);
+            if (stats.GetValueOrDefault(key) is null)
+            {
+                stats.Remove(key);
+            }
+        }
+        finally
+        {
+            loadingStats.Remove(key);
         }
         await InvokeAsync(StateHasChanged);
     }
@@ -4748,8 +4797,13 @@ else
         for (var i = 0; i + 1 < cells.Length; i += 2)
         {
             var (col, row) = ((int)cells[i], (int)cells[i + 1]);
+            //	A cell cut by the edge of the picture counts too: its state is read where it shows (its middle may be past the
+            //	edge, where the fog of the whole picture does not reach)
             var (x, y) = MapGeometry.Center(gridType, grid, offsetX, offsetY, col, row);
-            if (MapGeometry.Inside(gridType, grid, offsetX, offsetY, col, row, 1, map!.Width, map.Height) && MapFog.Covered(fog, x, y) != fogCover)
+            var (seenX, seenY) = (Math.Clamp(x, 1, Math.Max(1, map!.Width - 1)), Math.Clamp(y, 1, Math.Max(1, map.Height - 1)));
+            var (cellW, cellH) = MapGeometry.Cell(gridType, grid);
+            var shows = col >= -1 && row >= -1 && x > -cellW / 2 && y > -cellH / 2 && x < map.Width + cellW / 2 && y < map.Height + cellH / 2;
+            if (shows && MapFog.Covered(fog, seenX, seenY) != fogCover)
             {
                 changed.Add((col, row));
             }

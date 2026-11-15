@@ -94,6 +94,13 @@ public class EncounterCombatant
 	public string? Wield { get; set; }
 	public Guid? OpportunityOn { get; set; }
 
+	//	Where that token started its move: the attack of opportunity is made there, and a token it drops goes back there
+	public int? OpportunityX { get; set; }
+	public int? OpportunityY { get; set; }
+
+	//	The cells it moved in its turn (its speed left)
+	public int Moved { get; set; }
+
 	//	The cell it starts the fight on, on the encounter's map (null: the first free one)
 	public int? X { get; set; }
 	public int? Y { get; set; }
@@ -138,6 +145,7 @@ public static class EncounterRules
 		c.Disengaged = false;
 		c.Dodging = false;
 		c.Interacted = false;
+		c.Moved = 0;
 	}
 
 	///	<summary>

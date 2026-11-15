@@ -182,6 +182,8 @@ namespace RealmForge.Client.Localization
 		};
 		public static string VttTurnBonusUse(LanguageCode lang) => T(lang, "Usa azione bonus", "Use bonus action");
 		public static string VttTurnBonusHint(LanguageCode lang) => T(lang, "Segna l'azione bonus del turno come usata", "Marks the bonus action of the turn as used");
+		public static string VttTurnWieldNone(string kind, LanguageCode lang) => kind == "ranged" ? T(lang, "Nessuna arma a distanza nell'equipaggiamento", "No ranged weapon in the equipment") : T(lang, "Nessuna arma da mischia nell'equipaggiamento", "No melee weapon in the equipment");
+		public static string VttTurnWieldHint(LanguageCode lang) => T(lang, "Il primo cambio del turno è l'interazione gratuita, il secondo usa l'azione", "The first change of the turn is the free interaction, a second one takes the action");
 		public static string VttTurnWield(LanguageCode lang) => T(lang, "Arma in mano", "Weapon in hand");
 		public static string VttTurnWieldKind(string kind, LanguageCode lang) => kind == "ranged" ? T(lang, "A distanza", "Ranged") : T(lang, "In mischia", "Melee");
 		public static string VttOpportunity(string reactor, string target, LanguageCode lang) => T(lang, $"{reactor}: attacco di opportunità su {target}", $"{reactor}: attack of opportunity on {target}");
@@ -478,6 +480,10 @@ namespace RealmForge.Client.Localization
 		public static string VttSheetReadOnlyHint(LanguageCode lang) => T(lang, "La scheda di un alleato: la vedi, non la usi.", "An ally's sheet: you see it, you do not use it.");
 		public static string VttAimStart(string attack, LanguageCode lang) => T(lang, $"{attack}: scegli il bersaglio sulla mappa", $"{attack}: pick the target on the map");
 		public static string VttAimHint(LanguageCode lang) => T(lang, "Clic su un bersaglio evidenziato (giallo: con svantaggio). Esc per annullare.", "Click a highlighted target (yellow: with disadvantage). Esc to cancel.");
+		public static string VttNoRestInFight(LanguageCode lang) => T(lang, "Durante un incontro non si riposa.", "No rest during an encounter.");
+		public static string VttNotYourTurn(LanguageCode lang) => T(lang, "Non è il suo turno: in combattimento ci si muove solo nel proprio turno.", "Not its turn: in a fight a creature moves only on its own turn.");
+		public static string VttTurnReset(LanguageCode lang) => T(lang, "Ridai il turno", "Give the turn back");
+		public static string VttTurnResetHint(LanguageCode lang) => T(lang, "Azione, azione bonus, reazione e movimento di questo turno tornano disponibili", "Action, bonus action, reaction and movement of this turn are available again");
 		public static string VttAimWall(LanguageCode lang) => T(lang, "Il bersaglio è dietro un muro: non lo raggiungi da qui.", "The target is behind a wall: you cannot reach it from here.");
 		public static string VttSaveDc(string ability, int dc, LanguageCode lang) => T(lang, $"TS {ability} CD {dc}", $"{ability} save DC {dc}");
 		public static string VttSpellSave(string spell, string target, string save, LanguageCode lang) => T(lang, $"«{spell}» su {target}: {save}. Il master tira il tiro salvezza e applica il danno.", $"“{spell}” on {target}: {save}. The master rolls the save and applies the damage.");
