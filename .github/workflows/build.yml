@@ -1607,7 +1607,7 @@ jobs:
           pk_req=$(curl -s -X POST "$api/api/passkeys/request-options" -H 'Origin: https://localhost:7171')
           pk_req_shape=$(echo "$pk_req" | jq -c '.options | fromjson | {rpId, challenge: (.challenge | length > 30), uv: .userVerification}')
           pk_create=$(curl -s -X POST "$api/api/passkeys/creation-options" -H "Authorization: Bearer $A")
-          pk_create_shape=$(echo "$pk_create" | jq -c '.options | fromjson | {rp: .rp.id, user: .user.name, display: .user.displayName}')
+          pk_create_shape=$(echo "$pk_create" | jq -c '.options | fromjson | {rp: .rp.id, user: .user.name, display: .user.displayName, residentKey: .authenticatorSelection.residentKey}')
           pk_create_anon=$(code -X POST "$api/api/passkeys/creation-options")
           fake='{"id":"AAAA","rawId":"AAAA","type":"public-key","response":{"clientDataJSON":"e30","authenticatorData":"AAAA","signature":"AAAA"},"clientExtensionResults":{}}'
           pk_forged=$(curl -s -X POST "$api/api/passkeys/sign-in" $json -d "$(jq -nc --arg c "$fake" --arg s "$(echo "$pk_req" | jq -r .state)" '{credential:$c, state:$s}')" | jq -r '.detail // "token"')
@@ -1619,8 +1619,8 @@ jobs:
           pkfail=0
           pkcheck() { if [ "$2" != "$3" ]; then echo "::error title=passkeys::$1: got '$2', expected '$3'"; pkfail=1; fi; }
           pkcheck "anonymous list" "$pk_anon_list" "401"
-          pkcheck "sign-in options" "$pk_req_shape" '{"rpId":"localhost","challenge":true,"uv":"required"}'
-          pkcheck "creation options" "$pk_create_shape" '{"rp":"localhost","user":"alice@example.com","display":"Alice"}'
+          pkcheck "sign-in options" "$pk_req_shape" '{"rpId":"localhost","challenge":true,"uv":"preferred"}'
+          pkcheck "creation options" "$pk_create_shape" '{"rp":"localhost","user":"alice@example.com","display":"Alice","residentKey":"required"}'
           pkcheck "creation options need an account" "$pk_create_anon" "401"
           pkcheck "forged answer" "$pk_forged" "PasskeyFailed"
           pkcheck "unreadable state" "$pk_bad_state" "PasskeyExpired"

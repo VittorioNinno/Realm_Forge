@@ -291,7 +291,7 @@
 
             <div class="mb-3">
                 <label class="rf-form-label">Email</label>
-                <input type="email" class="rf-form-control" autocomplete="username" @bind="email" @bind:event="oninput"
+                <input type="email" class="rf-form-control" autocomplete="username webauthn" @bind="email" @bind:event="oninput"
                        @ref="emailInput" @onkeydown="AuthKeyDownAsync" data-test="auth-email" />
             </div>
             <div class="mb-4">
@@ -455,8 +455,19 @@
             wasAuthenticated = authenticated;
             summary = authenticated ? await Auth.GetAccountSummaryAsync() : null;
             nickname = summary?.Nickname ?? string.Empty;
-            passkeysSupported = await Passkeys.IsSupportedAsync();
+            //	The options for the next passkey click are read now: Safari (iPhone, iPad, Mac) opens its dialog only for a
+            //	fresh click, with nothing to wait for in between
+            Passkeys.Reset();
+            passkeysSupported = await Passkeys.PrepareAsync(creating: authenticated);
             passkeys = authenticated ? await Passkeys.GetPasskeysAsync() ?? new List<PasskeyDto>() : null;
+            if (!authenticated && passkeysSupported)
+            {
+                _ = AutofillAsync();
+            }
+            else
+            {
+                await Passkeys.StopAutofillAsync();
+            }
         }
     }
 
@@ -493,6 +504,23 @@
         removingPasskey = null;
     }
 
+    //	The passkeys offered right in the e-mail field (above the keyboard on iPhone): one picked signs in
+    private async Task AutofillAsync()
+    {
+        var result = await Passkeys.AutofillAsync();
+        if (result is null)
+        {
+            return;
+        }
+        if (result.Success)
+        {
+            Navigation.NavigateTo("");
+            return;
+        }
+        errors = result.Errors.ToList();
+        await InvokeAsync(StateHasChanged);
+    }
+
     //	Sign-in with a passkey: the browser offers the ones it has for this site
     private async Task PasskeySignInAsync()
     {
@@ -507,6 +535,8 @@
         else
         {
             errors = result.Errors.ToList();
+            //	The field offers the passkeys again
+            _ = AutofillAsync();
         }
     }
 
@@ -643,5 +673,7 @@
         LanguageState.OnLanguageChanged -= StateHasChanged;
         CrossTab.OnEmailConfirmed -= HandleEmailConfirmed;
         CrossTab.OnTabVisible -= HandleTabVisible;
+        //	The passkeys offered by the e-mail field stop with the page
+        _ = Passkeys.StopAutofillAsync();
     }
 }
