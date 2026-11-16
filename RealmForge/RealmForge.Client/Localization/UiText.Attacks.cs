@@ -13,6 +13,13 @@ namespace RealmForge.Client.Localization
 			"Before rolling, choose what joins this attack: the options depend on how you are fighting.");
 		public static string AttackRollDamage(LanguageCode lang) => T(lang, "Tira i danni", "Roll damage");
 
+		//	A rider's name: the Homebrew automations bring theirs ("Italian|English")
+		public static string RiderName(AttackRiders.Rider rider, LanguageCode lang) => rider.Name is { } name && name.Split('|') is { Length: 2 } parts
+			? (lang == LanguageCode.It ? parts[0] : parts[1])
+			: RiderName(rider.Key, lang);
+
+		public static string RiderUses(int left, LanguageCode lang) => T(lang, $"Spende un uso ({left} rimasti).", $"Spends one use ({left} left).");
+
 		public static string RiderName(string key, LanguageCode lang) => key switch
 		{
 			"sneak-attack" => T(lang, "Attacco furtivo", "Sneak Attack"),

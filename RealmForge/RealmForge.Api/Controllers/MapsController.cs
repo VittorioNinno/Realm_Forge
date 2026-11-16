@@ -295,10 +295,12 @@ namespace RealmForge.Api.Controllers
 			{
 				return Problem(statusCode: StatusCodes.Status400BadRequest, title: error);
 			}
+			var before = TokensBefore(map, role.Value);
 			var token = new CampaignToken { MapId = map.Id };
 			await ApplyAsync(campaignId, token, dto);
 			_context.CampaignTokens.Add(token);
 			map.UpdatedAt = DateTimeOffset.UtcNow;
+			await RememberTokensAsync(map, before, token);
 			await _context.SaveChangesAsync();
 			return Ok(ToDto(token, true));
 		}
@@ -333,8 +335,10 @@ namespace RealmForge.Api.Controllers
 			{
 				return Problem(statusCode: StatusCodes.Status400BadRequest, title: error);
 			}
+			var before = TokensBefore(map, role.Value);
 			await ApplyAsync(campaignId, token, dto);
 			map.UpdatedAt = DateTimeOffset.UtcNow;
+			await RememberTokensAsync(map, before);
 			await _context.SaveChangesAsync();
 			return NoContent();
 		}
@@ -351,7 +355,7 @@ namespace RealmForge.Api.Controllers
 			{
 				return NotFound();
 			}
-			if (!runs && (!token.PlayersInteract || !map.Shown || (map.FogEnabled && UnderFog(map, token))))
+			if (!runs && (!token.PlayersInteract || !map.Shown || (map.FogEnabled && UnderFog(map, token)) || PropRules.Leads(token.PropType)))
 			{
 				return Forbid();
 			}
@@ -359,8 +363,10 @@ namespace RealmForge.Api.Controllers
 			{
 				return Problem(statusCode: StatusCodes.Status409Conflict, title: "It does not move.", detail: token.PropState.ToString());
 			}
+			var before = TokensBefore(map, role.Value);
 			token.PropState = next;
 			token.UpdatedAt = map.UpdatedAt = DateTimeOffset.UtcNow;
+			await RememberTokensAsync(map, before);
 			await _context.SaveChangesAsync();
 			return Ok(ToDto(token, runs));
 		}
@@ -405,11 +411,32 @@ namespace RealmForge.Api.Controllers
 			{
 				return Problem(statusCode: StatusCodes.Status409Conflict, title: "Not its turn.", detail: "turn");
 			}
+			//	A grappled creature does not move by itself (its speed is 0); a master moves it anyway
+			if (!CampaignRules.RunsTheTable(role.Value) && token.CombatantId is { } heldId
+				&& await FightAsync(map, track: false) is { } held && held.Combatants.FirstOrDefault(c => c.Id == heldId) is { GrappledBy: not null })
+			{
+				return Problem(statusCode: StatusCodes.Status409Conflict, title: "Grappled: its speed is 0.", detail: "grappled");
+			}
+			var before = TokensBefore(map, role.Value);
 			var from = (token.X, token.Y);
 			token.X = dto.X;
 			token.Y = dto.Y;
 			token.UpdatedAt = map.UpdatedAt = DateTimeOffset.UtcNow;
+			//	A rider moving by itself gets off its mount; the riders of a mount move with it
+			var riding = ReadGear(token.Gear);
+			if (riding.MountedOn is not null)
+			{
+				riding.MountedOn = null;
+				WriteGear(token, riding);
+			}
+			foreach (var rider in map.Tokens.Where(t => t.Id != token.Id && ReadGear(t.Gear).MountedOn == token.Id))
+			{
+				rider.X = token.X;
+				rider.Y = token.Y;
+				rider.UpdatedAt = map.UpdatedAt;
+			}
 			await AfterMoveAsync(map, token, from, cost);
+			await RememberTokensAsync(map, before);
 			await _context.SaveChangesAsync();
 			return NoContent();
 		}
@@ -429,10 +456,32 @@ namespace RealmForge.Api.Controllers
 				return;
 			}
 			var offered = false;
+
+			//	The creatures it grapples come along (dragging costs double); a grapple ends when the two are apart
+			var dragged = fight.Combatants.Where(c => c.GrappledBy == moving.Id).ToList();
+			foreach (var heldOne in dragged)
+			{
+				if (map.Tokens.FirstOrDefault(t => t.CombatantId == heldOne.Id) is { } heldToken && OnMap(map, heldToken.X + mover.X - from.X, heldToken.Y + mover.Y - from.Y, heldToken.Size))
+				{
+					heldToken.X += mover.X - from.X;
+					heldToken.Y += mover.Y - from.Y;
+					heldToken.UpdatedAt = map.UpdatedAt;
+				}
+			}
 			if (fight.Encounter.CurrentId == moving.Id)
 			{
-				moving.Moved += cost;
+				moving.Moved += dragged.Count > 0 ? cost * 2 : cost;
 				offered = true;
+			}
+			offered |= await ReleaseGrapplesAsync(map, fight);
+			//	A creature that enters an aura (dragged ones too), the creatures an aura reaches as its owner moves
+			await TouchAurasAsync(map, fight, mover, from);
+			foreach (var heldOne in dragged)
+			{
+				if (map.Tokens.FirstOrDefault(t => t.CombatantId == heldOne.Id) is { } heldToken)
+				{
+					await TouchAurasAsync(map, fight, heldToken, (heldToken.X - mover.X + from.X, heldToken.Y - mover.Y + from.Y));
+				}
 			}
 			if (moving.Disengaged)
 			{
@@ -500,6 +549,109 @@ namespace RealmForge.Api.Controllers
 			else if (kind == "pass")
 			{
 				who.OpportunityOn = null;
+			}
+			else if (kind == "trigger")
+			{
+				//	The trigger of a readied action came: told by a master or by whoever controls it
+				if (who.ReadyWhat is null)
+				{
+					return Problem(statusCode: StatusCodes.Status409Conflict, title: T(italian, "Nessuna azione preparata.", "No readied action."));
+				}
+				who.ReadyFired = true;
+			}
+			else if (kind == "release")
+			{
+				//	The readied action let go: it takes the reaction (a readied attack spends it when it is made)
+				if (who.ReadyWhat is null)
+				{
+					return Problem(statusCode: StatusCodes.Status409Conflict, title: T(italian, "Nessuna azione preparata.", "No readied action."));
+				}
+				if (who.ReactionUsed && !runs)
+				{
+					return Problem(statusCode: StatusCodes.Status409Conflict, title: T(italian, "La reazione è già stata usata.", "The reaction was already used."));
+				}
+				if (dto.Wield != "attack")
+				{
+					who.ReactionUsed = true;
+				}
+				EncounterRules.ClearReady(who);
+			}
+			else if (kind == "unready")
+			{
+				EncounterRules.ClearReady(who);
+			}
+			else if (kind == "ready")
+			{
+				//	An action readied on its own turn: the action now, the reaction when the trigger comes
+				var trigger = (dto.Trigger ?? string.Empty).Trim();
+				var what = (dto.What ?? string.Empty).Trim();
+				if (trigger.Length is 0 or > 120 || what.Length is 0 or > 60)
+				{
+					return Problem(statusCode: StatusCodes.Status400BadRequest, title: T(italian, "Scrivi l'innesco e cosa prepari.", "Write the trigger and what is readied."));
+				}
+				if (fight.Encounter.CurrentId != who.Id && !runs)
+				{
+					return Problem(statusCode: StatusCodes.Status409Conflict, title: T(italian, "Non è il tuo turno.", "It is not your turn."));
+				}
+				if (who.ActionSpent is not null && !runs)
+				{
+					return Problem(statusCode: StatusCodes.Status409Conflict, title: T(italian, "L'azione di questo turno è già stata usata.", "The action of this turn was already used."));
+				}
+				who.ActionSpent = TableCombat.SpentOther;
+				who.ReadyTrigger = trigger;
+				who.ReadyWhat = what;
+				who.ReadySpellId = dto.SpellId;
+				who.ReadyLevel = Math.Clamp(dto.Level ?? 0, 0, 9);
+				who.ReadyFired = false;
+			}
+			else if (kind == "cast" && dto.Wield is "action" or "bonus" or "reaction")
+			{
+				//	A spell: its part of the turn (a reaction at any time, the others on its own turn) and, for a character, the
+				//	spells already cast this turn
+				var part = dto.Wield;
+				var level = Math.Clamp(dto.Level ?? 0, 0, 9);
+				var mine = fight.Encounter.CurrentId == who.Id;
+				if (part != "reaction" && !mine && !runs)
+				{
+					return Problem(statusCode: StatusCodes.Status409Conflict, title: T(italian, "Non è il tuo turno.", "It is not your turn."));
+				}
+				string? refused = part switch
+				{
+					"action" when who.ActionSpent is not null => T(italian, "L'azione di questo turno è già stata usata.", "The action of this turn was already used."),
+					"bonus" when who.BonusUsed => T(italian, "L'azione bonus di questo turno è già stata usata.", "The bonus action of this turn was already used."),
+					"reaction" when who.ReactionUsed => T(italian, "La reazione è già stata usata.", "The reaction was already used."),
+					_ => null
+				};
+				if (refused is null && part != "reaction" && who.CharacterId is { } characterId)
+				{
+					var edition = await _context.Characters.AsNoTracking().Where(c => c.Id == characterId).Select(c => c.Ruleset).FirstOrDefaultAsync();
+					refused = EncounterRules.SpellRefused(who, part, level, edition == RulesetVersion.Dnd5e_2014) switch
+					{
+						"slot" => T(italian, "In questo turno è già stato lanciato un incantesimo di 1° livello o superiore: ora solo trucchetti.", "A spell of level 1 or higher was already cast this turn: only cantrips now."),
+						"bonus" => T(italian, "Con un incantesimo lanciato come azione bonus, l'altro del turno può essere solo un trucchetto.", "With a spell cast as a bonus action, the other spell of the turn can only be a cantrip."),
+						_ => null
+					};
+				}
+				if (refused is not null && !runs)
+				{
+					return Problem(statusCode: StatusCodes.Status409Conflict, title: refused);
+				}
+				switch (part)
+				{
+					case "action":
+						who.ActionSpent = TableCombat.SpentOther;
+						break;
+					case "bonus":
+						who.BonusUsed = true;
+						break;
+					default:
+						who.ReactionUsed = true;
+						break;
+				}
+				if (part != "reaction")
+				{
+					EncounterRules.SpellCast(who, part, level);
+				}
 			}
 			else
 			{
@@ -572,8 +724,10 @@ namespace RealmForge.Api.Controllers
 			{
 				return Forbid();
 			}
+			var before = TokensBefore(map, role.Value);
 			_context.CampaignTokens.Remove(token);
 			map.UpdatedAt = DateTimeOffset.UtcNow;
+			await RememberTokensAsync(map, before);
 			await _context.SaveChangesAsync();
 			return NoContent();
 		}
@@ -614,6 +768,7 @@ namespace RealmForge.Api.Controllers
 			{
 				return Problem(statusCode: StatusCodes.Status400BadRequest, title: $"At most {MapRules.MaxShapes} drawings per map.");
 			}
+			var before = ShapesBefore(map, role.Value);
 			var colors = await CampaignAccess.EnsureColorsAsync(_context, campaignId);
 			var shape = new CampaignMapShape
 			{
@@ -628,6 +783,7 @@ namespace RealmForge.Api.Controllers
 			};
 			_context.CampaignMapShapes.Add(shape);
 			map.UpdatedAt = DateTimeOffset.UtcNow;
+			await RememberShapesAsync(map, before, shape);
 			await _context.SaveChangesAsync();
 			return Ok(ShapeDto(shape, runs));
 		}
@@ -653,8 +809,10 @@ namespace RealmForge.Api.Controllers
 			{
 				return Problem(statusCode: StatusCodes.Status400BadRequest, title: "The text must stay on the map.");
 			}
+			var before = ShapesBefore(map, role.Value);
 			shape.Points = dto.Points.Select(v => Math.Round(v, 1)).ToList();
 			map.UpdatedAt = DateTimeOffset.UtcNow;
+			await RememberShapesAsync(map, before);
 			await _context.SaveChangesAsync();
 			return Ok(ShapeDto(shape, runs));
 		}
@@ -673,8 +831,10 @@ namespace RealmForge.Api.Controllers
 			{
 				return Forbid();
 			}
+			var before = ShapesBefore(map, role.Value);
 			_context.CampaignMapShapes.Remove(shape);
 			map.UpdatedAt = DateTimeOffset.UtcNow;
+			await RememberShapesAsync(map, before);
 			await _context.SaveChangesAsync();
 			return NoContent();
 		}
@@ -690,10 +850,12 @@ namespace RealmForge.Api.Controllers
 				return NotFound();
 			}
 			var runs = CampaignRules.RunsTheTable(role.Value);
+			var before = ShapesBefore(map, role.Value);
 			var gone = map.Shapes.Where(s => MapRules.Sees(s.Kind, s.MasterOnly, s.OwnerId == UserId)
 				&& MapRules.CanDeleteShape(s.Kind, s.MasterOnly, s.OwnerId == UserId, runs)).ToList();
 			_context.CampaignMapShapes.RemoveRange(gone);
 			map.UpdatedAt = DateTimeOffset.UtcNow;
+			await RememberShapesAsync(map, before);
 			await _context.SaveChangesAsync();
 			return NoContent();
 		}
@@ -713,6 +875,7 @@ namespace RealmForge.Api.Controllers
 				return Problem(statusCode: StatusCodes.Status400BadRequest, title: "Draw a box on the map.");
 			}
 			var runs = CampaignRules.RunsTheTable(role.Value);
+			var before = ShapesBefore(map, role.Value);
 			var gone = map.Shapes.Where(s => MapRules.Sees(s.Kind, s.MasterOnly, s.OwnerId == UserId)
 				&& MapRules.CanDeleteShape(s.Kind, s.MasterOnly, s.OwnerId == UserId, runs)
 				&& MapRules.Touches(s.Points, dto.X, dto.Y, dto.Width, dto.Height)).ToList();
@@ -720,6 +883,7 @@ namespace RealmForge.Api.Controllers
 			{
 				_context.CampaignMapShapes.RemoveRange(gone);
 				map.UpdatedAt = DateTimeOffset.UtcNow;
+				await RememberShapesAsync(map, before);
 				await _context.SaveChangesAsync();
 			}
 			return Ok(gone.Count);
@@ -744,6 +908,7 @@ namespace RealmForge.Api.Controllers
 			{
 				return Problem(statusCode: StatusCodes.Status400BadRequest, title: "Fog steps out of range.");
 			}
+			await RememberFogAsync(map, role.Value);
 			map.FogEnabled = dto.Enabled;
 			map.Fog = dto.Fog.Select(v => Math.Round(v, 1)).ToList();
 			map.UpdatedAt = DateTimeOffset.UtcNow;
@@ -770,6 +935,7 @@ namespace RealmForge.Api.Controllers
 			{
 				return Problem(statusCode: StatusCodes.Status400BadRequest, title: "Terrain cells out of range.");
 			}
+			await RememberTerrainAsync(map, role.Value);
 			map.Terrain = dto.Replace ? MapTerrain.Write(MapTerrain.Read(dto.Cells)) : MapTerrain.Paint(map.Terrain, dto.Cells, dto.Kind);
 			map.TerrainBlocks = dto.BlockPlayers;
 			map.UpdatedAt = DateTimeOffset.UtcNow;
@@ -1190,7 +1356,7 @@ namespace RealmForge.Api.Controllers
 		[HttpPost("{mapId:guid}/combat/next")]
 		public async Task<IActionResult> NextTurn(Guid campaignId, Guid mapId)
 		{
-			var (map, role) = await LoadAsync(campaignId, mapId, withTokens: false);
+			var (map, role) = await LoadAsync(campaignId, mapId, withTokens: true);
 			if (map is null || role is null)
 			{
 				return NotFound();
@@ -1224,6 +1390,12 @@ namespace RealmForge.Api.Controllers
 			{
 				c.OpportunityOn = null;
 			}
+			//	A creature that starts its turn in an aura
+			if (map.Tokens.FirstOrDefault(t => t.CombatantId == order[next].Id) is { } starting)
+			{
+				await TouchAurasAsync(map, fight, starting, null);
+			}
+			map.UpdatedAt = DateTimeOffset.UtcNow;
 			Save(fight, fight.Combatants);
 			await _context.SaveChangesAsync();
 			return NoContent();
@@ -1427,16 +1599,18 @@ namespace RealmForge.Api.Controllers
 		private async Task<List<MapTokenDto>> TokensAsync(CampaignMap map, CampaignRole role, Fight? fight = null)
 		{
 			var runs = CampaignRules.RunsTheTable(role);
+			undoLeft = runs ? await _context.CampaignMapEdits.CountAsync(e => e.MapId == map.Id && e.UserId == UserId) : 0;
 			var characterIds = map.Tokens.Where(t => t.CharacterId is not null).Select(t => t.CharacterId!.Value).Distinct().ToList();
 			var characters = await _context.Characters.AsNoTracking()
-				.Where(c => characterIds.Contains(c.Id)).Select(c => new { c.Id, c.OwnerId, c.Sheet, c.MaxHitPoints }).ToListAsync();
+				.Where(c => characterIds.Contains(c.Id)).Select(c => new { c.Id, c.OwnerId, c.Sheet, c.MaxHitPoints, c.Darkvision }).ToListAsync();
 			var mine = characters.Where(c => c.OwnerId == UserId).Select(c => c.Id).ToHashSet();
 			var sheets = characters.ToDictionary(c => c.Id, c => (Sheet: CharactersController.ReadSheet(c.Sheet), Max: Math.Max(0, c.MaxHitPoints)));
 			var sheetConditions = sheets.ToDictionary(s => s.Key, s => EncounterSheetSync.ConditionsOf(s.Value.Sheet));
 			var monsterIds = map.Tokens.Where(t => t.MonsterId is not null).Select(t => t.MonsterId!.Value).Distinct().ToList();
 			var creatures = await _context.Monsters.AsNoTracking().Where(m => monsterIds.Contains(m.Id))
 				.Select(m => new { m.Id, m.Size, m.Type }).ToDictionaryAsync(m => m.Id);
-			return map.Tokens
+			var links = runs ? await LinksOfAsync(map) : new();
+			var listed = map.Tokens
 				.Where(t => runs || !t.Hidden)
 				.Where(t => runs || !map.FogEnabled || (t.CharacterId is { } own && mine.Contains(own)) || !UnderFog(map, t))
 				.OrderBy(t => t.Kind).ThenBy(t => t.Label)
@@ -1489,6 +1663,20 @@ namespace RealmForge.Api.Controllers
 					var down = combatant is not null && combatant.Kind != CombatantKind.Character ? combatant.MaxHp > 0 && combatant.Hp <= 0
 						: t.CharacterId is null && t.MaxHp is > 0 && (t.Hp ?? t.MaxHp) <= 0;
 					dto = dto with { Gear = GearOf(t, runs, controls, down) };
+					var carried = ReadGear(t.Gear);
+					if (carried.Aura is { } aura)
+					{
+						dto = dto with { Aura = new TokenAuraDto(aura.Name, aura.Radius, aura.Color, aura.Enemies, aura.Ability, aura.Dc, aura.Damage, aura.DamageType, aura.Half) };
+					}
+					dto = dto with { SummonedBy = carried.SummonedBy, MountedOn = carried.MountedOn };
+					if (links.TryGetValue(t.Id, out var link))
+					{
+						dto = dto with { LinkTo = link.Id, LinkLabel = link.Label };
+					}
+					if (carried.Light is { } light)
+					{
+						dto = dto with { Light = new TokenLightDto(light.Name, light.Bright, light.Dim) };
+					}
 					if (combatant is not null)
 					{
 						dto = dto with
@@ -1496,12 +1684,15 @@ namespace RealmForge.Api.Controllers
 							ActionSpent = combatant.ActionSpent,
 							ReactionUsed = combatant.ReactionUsed,
 							Turn = new TokenTurnDto(combatant.BonusUsed, combatant.AttacksMade, combatant.Dashed, combatant.Disengaged, combatant.Dodging,
-								combatant.Interacted, combatant.Wield, combatant.OpportunityOn, combatant.Moved)
+								combatant.Interacted, combatant.Wield, combatant.OpportunityOn, combatant.Moved,
+								combatant.ReadyWhat is { } readied ? new TokenReadyDto(combatant.ReadyTrigger ?? string.Empty, readied, combatant.ReadySpellId, combatant.ReadyLevel, combatant.ReadyFired) : null,
+								combatant.GrappledBy is { } holder ? map.Tokens.FirstOrDefault(k => k.CombatantId == holder)?.Id : null)
 						};
 					}
 					return dto;
 				})
 				.ToList();
+			return await SeenAsync(map, runs, listed, characters.ToDictionary(c => c.Id, c => c.Darkvision));
 		}
 
 		// ----- The fight on a map -----
@@ -1609,13 +1800,32 @@ namespace RealmForge.Api.Controllers
 			return MapFog.Covered(map.Fog, x, y);
 		}
 
-		private static MapTableDto TableOf(CampaignMap map, CampaignRole role) => new(
+		private MapTableDto TableOf(CampaignMap map, CampaignRole role) => new(
 			map.FogEnabled,
 			map.FogEnabled || CampaignRules.RunsTheTable(role) ? map.Fog : new List<double>(),
 			map.PingAt is { } pingAt ? new MapPingDto(map.PingX ?? 0, map.PingY ?? 0, map.PingColor ?? PlayerColors.Master, pingAt) : null,
 			map.FocusAt is { } focusAt ? new MapFocusDto(map.FocusX ?? 0, map.FocusY ?? 0, map.FocusZoom ?? 1, focusAt) : null,
 			map.PlayersLocked,
-			map.StrikeAt is { } strikeAt && map.StrikeTokenId is { } struck ? new MapStrikeDto(struck, map.StrikeKind, map.StrikeDamage, strikeAt) : null);
+			map.StrikeAt is { } strikeAt && map.StrikeTokenId is { } struck ? new MapStrikeDto(struck, map.StrikeKind, map.StrikeDamage, strikeAt) : null,
+			SavesOf(map, CampaignRules.RunsTheTable(role)),
+			map.Lighting,
+			map.DynamicVision,
+			vision,
+			undoLeft);
+
+		//	The saving throws waiting: all of them for the masters; for the players those of a caster they see, without the
+		//	targets hidden from them
+		private static List<MapSaveCallDto> SavesOf(CampaignMap map, bool runs)
+		{
+			var hidden = map.Tokens.Where(t => t.Hidden).Select(t => t.Id).ToHashSet();
+			return ReadSaves(map.SaveCalls)
+				.Where(c => runs || !c.CasterHidden)
+				.Select(c => new MapSaveCallDto(c.Id, c.CasterTokenId, c.Caster, c.Spell, c.Ability, c.Dc, c.Damage, c.DamageType, c.Half, c.At,
+					c.Targets.Where(t => runs || !hidden.Contains(t.TokenId))
+						.Select(t => new MapSaveTargetDto(t.TokenId, t.Label, t.Careful, t.Disadvantage, t.Roll, t.Saved, t.Dealt)).ToList()))
+				.Where(c => c.Targets.Count > 0)
+				.ToList();
+		}
 
 		//	Everyone sees their own drawings and what is for the whole table (MapRules.Sees)
 		private List<MapShapeDto> ShapesOf(CampaignMap map, CampaignRole role)

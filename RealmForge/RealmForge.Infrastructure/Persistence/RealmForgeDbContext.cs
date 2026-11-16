@@ -75,6 +75,8 @@ namespace RealmForge.Infrastructure.Persistence
 		public DbSet<CampaignMap> CampaignMaps => Set<CampaignMap>();
 		public DbSet<CampaignToken> CampaignTokens => Set<CampaignToken>();
 		public DbSet<CampaignMapShape> CampaignMapShapes => Set<CampaignMapShape>();
+		public DbSet<CampaignMapEdit> CampaignMapEdits => Set<CampaignMapEdit>();
+		public DbSet<CampaignMonsterGroup> CampaignMonsterGroups => Set<CampaignMonsterGroup>();
 		public DbSet<UserImage> UserImages => Set<UserImage>();
 		public DbSet<MonsterImageChoice> MonsterImageChoices => Set<MonsterImageChoice>();
 
@@ -487,6 +489,7 @@ namespace RealmForge.Infrastructure.Persistence
 				entity.Property(c => c.Name).IsRequired().HasMaxLength(100);
 				entity.Property(c => c.Build).IsRequired().HasColumnType("jsonb");
 				entity.Property(c => c.Sheet).IsRequired().HasColumnType("jsonb");
+				entity.Property(c => c.Defenses).HasMaxLength(200);
 
 				entity.HasIndex(c => c.OwnerId);
 
@@ -637,6 +640,25 @@ namespace RealmForge.Infrastructure.Persistence
 				entity.Property(e => e.Color).IsRequired().HasMaxLength(9);
 				entity.Property(e => e.Text).HasMaxLength(200);
 				entity.HasIndex(e => e.MapId);
+			});
+
+			modelBuilder.Entity<CampaignMonsterGroup>(entity =>
+			{
+				entity.HasKey(e => e.Id);
+				entity.Property(e => e.Name).IsRequired().HasMaxLength(80);
+				entity.Property(e => e.Entries).IsRequired().HasColumnType("jsonb");
+				entity.HasIndex(e => e.CampaignId);
+				entity.HasOne<Campaign>().WithMany().HasForeignKey(e => e.CampaignId).OnDelete(DeleteBehavior.Cascade);
+			});
+
+			modelBuilder.Entity<CampaignMapEdit>(entity =>
+			{
+				entity.HasKey(e => e.Id);
+				entity.Property(e => e.UserId).IsRequired().HasMaxLength(450);
+				entity.Property(e => e.Kind).IsRequired().HasMaxLength(20);
+				entity.Property(e => e.Payload).IsRequired().HasColumnType("jsonb");
+				entity.HasIndex(e => new { e.MapId, e.UserId, e.At });
+				entity.HasOne<CampaignMap>().WithMany().HasForeignKey(e => e.MapId).OnDelete(DeleteBehavior.Cascade);
 			});
 
 			modelBuilder.Entity<CampaignToken>(entity =>

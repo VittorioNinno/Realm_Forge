@@ -169,6 +169,7 @@ namespace RealmForge.Client.Localization
 			"dodge" => T(lang, "Schivata", "Dodge"),
 			"help" => T(lang, "Aiuto", "Help"),
 			"hide" => T(lang, "Nascondersi", "Hide"),
+			"ready" => T(lang, "Preparare", "Ready"),
 			_ => kind
 		};
 		public static string VttTurnKindHint(string kind, LanguageCode lang) => kind switch
@@ -178,6 +179,7 @@ namespace RealmForge.Client.Localization
 			"dodge" => T(lang, "Usa l'azione: gli attacchi contro di te hanno svantaggio fino al tuo prossimo turno", "Takes the action: attacks against you have disadvantage until your next turn"),
 			"help" => T(lang, "Usa l'azione: un alleato ha vantaggio nella prossima prova o attacco", "Takes the action: an ally has advantage on the next check or attack"),
 			"hide" => T(lang, "Usa l'azione: una prova di Furtività per nasconderti", "Takes the action: a Stealth check to hide"),
+			"ready" => T(lang, "Usa l'azione ora: quando l'innesco scatta, l'azione preparata si fa con la reazione", "Takes the action now: when the trigger comes, the readied action is made with the reaction"),
 			_ => kind
 		};
 		public static string VttTurnBonusUse(LanguageCode lang) => T(lang, "Usa azione bonus", "Use bonus action");
@@ -361,11 +363,16 @@ namespace RealmForge.Client.Localization
 			PropType.Trap => T(lang, "Trappola", "Trap"),
 			PropType.Secret => T(lang, "Passaggio segreto", "Secret passage"),
 			PropType.Item => T(lang, "Oggetto", "Item"),
+			PropType.Stairs => T(lang, "Scale", "Stairs"),
+			PropType.Portal => T(lang, "Portale", "Portal"),
 			_ => T(lang, "Porta", "Door")
 		};
 		public static string PropStateName(PropType type, PropState state, LanguageCode lang) => (type, state) switch
 		{
 			(PropType.Item, _) => T(lang, "A terra", "On the ground"),
+			(PropType.Stairs or PropType.Portal, PropState.Open) => T(lang, "Attivo", "Active"),
+			(PropType.Stairs or PropType.Portal, PropState.Closed) => T(lang, "Inattivo", "Inactive"),
+			(PropType.Stairs or PropType.Portal, PropState.Broken) => T(lang, "Distrutto", "Destroyed"),
 			(PropType.Lever, PropState.Open) => T(lang, "Alzata", "Up"),
 			(PropType.Lever, PropState.Closed) => T(lang, "Abbassata", "Down"),
 			(PropType.Trap, PropState.Closed) => T(lang, "Armata", "Armed"),
@@ -383,6 +390,8 @@ namespace RealmForge.Client.Localization
 		{
 			(PropType.Lever, PropState.Open) => T(lang, "Abbassa", "Pull down"),
 			(PropType.Lever, _) => T(lang, "Alza", "Pull up"),
+			(PropType.Stairs or PropType.Portal, PropState.Open) => T(lang, "Disattiva", "Turn off"),
+			(PropType.Stairs or PropType.Portal, _) => T(lang, "Attiva", "Turn on"),
 			(_, PropState.Open) => T(lang, "Chiudi", "Close"),
 			_ => T(lang, "Apri", "Open")
 		};
@@ -480,6 +489,188 @@ namespace RealmForge.Client.Localization
 		public static string VttSheetReadOnlyHint(LanguageCode lang) => T(lang, "La scheda di un alleato: la vedi, non la usi.", "An ally's sheet: you see it, you do not use it.");
 		public static string VttAimStart(string attack, LanguageCode lang) => T(lang, $"{attack}: scegli il bersaglio sulla mappa", $"{attack}: pick the target on the map");
 		public static string VttAimHint(LanguageCode lang) => T(lang, "Clic su un bersaglio evidenziato (giallo: con svantaggio). Esc per annullare.", "Click a highlighted target (yellow: with disadvantage). Esc to cancel.");
+		public static string VttMetamagicName(string key, LanguageCode lang) => key switch
+		{
+			"careful" => T(lang, "Incantesimo preciso", "Careful Spell"),
+			"distant" => T(lang, "Incantesimo distante", "Distant Spell"),
+			"empowered" => T(lang, "Incantesimo potenziato", "Empowered Spell"),
+			"extended" => T(lang, "Incantesimo esteso", "Extended Spell"),
+			"heightened" => T(lang, "Incantesimo intensificato", "Heightened Spell"),
+			"quickened" => T(lang, "Incantesimo rapido", "Quickened Spell"),
+			"seeking" => T(lang, "Incantesimo mirato", "Seeking Spell"),
+			"subtle" => T(lang, "Incantesimo celato", "Subtle Spell"),
+			"transmuted" => T(lang, "Incantesimo trasmutato", "Transmuted Spell"),
+			_ => T(lang, "Incantesimo raddoppiato", "Twinned Spell")
+		};
+		public static string VttMetamagicHint(string key, LanguageCode lang) => key switch
+		{
+			"careful" => T(lang, "Scegli le creature che superano da sole il tiro salvezza (nessun danno se il successo dimezza)", "Choose the creatures that succeed on the save by themselves (no damage where a success halves it)"),
+			"distant" => T(lang, "Gittata raddoppiata; a contatto diventa 9 metri", "Twice the range; a touch becomes 30 feet"),
+			"empowered" => T(lang, "Ritira i dadi dei danni più bassi (fino al modificatore di Carisma)", "Reroll the lowest damage dice (up to the Charisma modifier)"),
+			"heightened" => T(lang, "Un bersaglio ha svantaggio al tiro salvezza", "One target has disadvantage on the save"),
+			"quickened" => T(lang, "Lanciato come azione bonus invece che come azione", "Cast as a bonus action instead of an action"),
+			"seeking" => T(lang, "Se l'attacco manca, il d20 si ritira una volta", "If the attack misses, the d20 is rolled again once"),
+			"transmuted" => T(lang, "Cambia il tipo di danni con un altro della lista", "Change the damage type to another of the list"),
+			_ => string.Empty
+		};
+		public static string VttMetamagicCost(int cost, LanguageCode lang) => T(lang, $"{cost} PS", $"{cost} SP");
+		public static string VttMetamagicPoints(int left, LanguageCode lang) => T(lang, $"Punti stregoneria: {left}", $"Sorcery Points: {left}");
+		public static string VttCompanions(LanguageCode lang) => T(lang, "Evocazioni e cavalcature", "Summons and mounts");
+		public static string VttSummonHint(LanguageCode lang) => T(lang, "Creatura da evocare (es. Gufo, Lupo)", "Creature to summon (e.g. Owl, Wolf)");
+		public static string VttSummonShare(LanguageCode lang) => T(lang, "Agisce subito dopo di me", "Acts right after me");
+		public static string VttSummon(LanguageCode lang) => T(lang, "Evoca", "Summon");
+		public static string VttSummoned(string what, string who, LanguageCode lang) => T(lang, $"{what} compare accanto a {who}.", $"{what} appears next to {who}.");
+		public static string VttSummonUnknown(string name, LanguageCode lang) => T(lang, $"Nessuna creatura del compendio si chiama «{name}».", $"No creature of the compendium is called “{name}”.");
+		public static string VttDismiss(LanguageCode lang) => T(lang, "Congeda", "Dismiss");
+		public static string VttMount(string mount, LanguageCode lang) => T(lang, $"Monta su {mount}", $"Mount {mount}");
+		public static string VttMounted(string rider, string mount, LanguageCode lang) => T(lang, $"{rider} è in sella a {mount}: si muovono insieme.", $"{rider} rides {mount}: they move together.");
+		public static string VttRiding(string mount, LanguageCode lang) => T(lang, $"In sella a {mount}", $"Riding {mount}");
+		public static string VttDismount(LanguageCode lang) => T(lang, "Smonta", "Dismount");
+		public static string VttAura(LanguageCode lang) => T(lang, "Aura", "Aura");
+		public static string VttAuraLine(string name, string reach, bool enemies, LanguageCode lang) =>
+			T(lang, $"{name}: {reach} attorno, {(enemies ? "solo i nemici" : "ogni creatura")}", $"{name}: {reach} around, {(enemies ? "enemies only" : "every creature")}");
+		public static string VttAuraName(LanguageCode lang) => T(lang, "Nome (es. Aura di protezione)", "Name (e.g. Aura of Protection)");
+		public static string VttAuraRadius(LanguageCode lang) => T(lang, "Raggio in caselle", "Radius in cells");
+		public static string VttAuraEnemies(LanguageCode lang) => T(lang, "Solo i nemici", "Enemies only");
+		public static string VttAuraAdd(LanguageCode lang) => T(lang, "Aggiungi l'aura", "Add the aura");
+		public static string VttAuraRemove(LanguageCode lang) => T(lang, "Togli l'aura", "Remove the aura");
+		public static string VttAuraSet(string name, string who, LanguageCode lang) => T(lang, $"«{name}» si muove con {who}: chi entra o inizia il turno dentro viene segnalato.", $"“{name}” moves with {who}: whoever enters it or starts a turn in it is told.");
+		public static string VttConnection(int state, LanguageCode lang) => state switch
+		{
+			0 => T(lang, "In linea", "Online"),
+			1 => T(lang, "Riconnessione…", "Reconnecting…"),
+			_ => T(lang, "Disconnesso", "Offline")
+		};
+		public static string VttConnectionLive(LanguageCode lang) => T(lang, "Collegato al tavolo: le mosse arrivano subito", "Connected to the table: moves arrive at once");
+		public static string VttConnectionRetry(LanguageCode lang) => T(lang, "Il server non ha risposto: nuovo tentativo in corso", "The server did not answer: trying again");
+		public static string VttConnectionLost(DateTime since, LanguageCode lang) => T(lang,
+			$"Nessun contatto dalle {since:HH:mm:ss}: le mosse fatte ora potrebbero non arrivare. Il tavolo si aggiorna da solo appena torna la rete",
+			$"No contact since {since:HH:mm:ss}: moves made now may not get through. The table updates itself as soon as the network is back");
+		public static string VttTravel(string who, LanguageCode lang) => T(lang, $"Passa: {who}", $"Go through: {who}");
+		public static string VttTravelHint(LanguageCode lang) => T(lang, "Avvicina una tua creatura per passare", "Bring one of your creatures next to it to go through");
+		public static string VttTravelled(string who, string where, LanguageCode lang) => T(lang, $"{who} è arrivato: {where}.", $"{who} arrived: {where}.");
+		public static string VttTravelShown(LanguageCode lang) => T(lang, "Il tavolo dei giocatori ora mostra questa mappa.", "The players' table now shows this map.");
+		public static string VttTravelGo(string map, LanguageCode lang) => T(lang, $"Apri «{map}»", $"Open “{map}”");
+		public static string VttTravelFailed(string? reason, LanguageCode lang) => reason switch
+		{
+			"inactive" => T(lang, "Non è attivo.", "It is not active."),
+			"far" => T(lang, "Troppo lontano: avvicinati.", "Too far: get next to it."),
+			"turn" => T(lang, "Non è il suo turno.", "It is not its turn."),
+			"nowhere" => T(lang, "Non porta ancora da nessuna parte.", "It leads nowhere yet."),
+			"full" => T(lang, "Non c'è spazio dall'altra parte.", "There is no room at the other end."),
+			_ => T(lang, "Non si passa.", "It cannot be crossed.")
+		};
+		public static string ToolLink(LanguageCode lang) => T(lang, "Collega", "Link");
+		public static string VttLinkTo(LanguageCode lang) => T(lang, "Porta a", "Leads to");
+		public static string VttLinkNone(LanguageCode lang) => T(lang, "Da nessuna parte", "Nowhere");
+		public static string VttLinkBoth(LanguageCode lang) => T(lang, "Anche al ritorno", "Both ways");
+		public static string VttLinkEmpty(LanguageCode lang) => T(lang, "Aggiungi altre scale o un altro portale (anche su un'altra mappa) per collegarli.", "Add other stairs or another portal (on another map too) to link them.");
+		public static string VttMonsterDrawer(LanguageCode lang) => T(lang, "Cassetto mostri", "Monster drawer");
+		public static string VttDrawerHint(LanguageCode lang) => T(lang, "Cerca un mostro e premi il cassetto accanto per raccoglierne più copie, poi piazzale insieme o salvale come gruppo", "Search a monster and press the drawer next to it to gather several, then place them together or save them as a group");
+		public static string VttDrawerAdd(LanguageCode lang) => T(lang, "Metti nel cassetto", "Put in the drawer");
+		public static string VttDrawerHidden(LanguageCode lang) => T(lang, "Piazza nascosti ai giocatori", "Place hidden from the players");
+		public static string VttDrawerPlace(int count, LanguageCode lang) => T(lang, $"Piazza {count} al centro della vista", $"Place {count} in the middle of the view");
+		public static string VttDrawerClear(LanguageCode lang) => T(lang, "Svuota", "Empty");
+		public static string VttGroupName(LanguageCode lang) => T(lang, "Nome del gruppo (es. Pattuglia goblin)", "Group name (e.g. Goblin patrol)");
+		public static string VttGroupSave(LanguageCode lang) => T(lang, "Salva gruppo", "Save group");
+		public static string VttGroups(LanguageCode lang) => T(lang, "Gruppi salvati", "Saved groups");
+		public static string VttGroupsShow(LanguageCode lang) => T(lang, "Mostra i gruppi salvati", "Show the saved groups");
+		public static string VttGroupPlace(LanguageCode lang) => T(lang, "Piazza il gruppo al centro della vista", "Place the group in the middle of the view");
+		public static string VttGroupEdit(LanguageCode lang) => T(lang, "Apri nel cassetto", "Open in the drawer");
+		public static string VttGroupDelete(LanguageCode lang) => T(lang, "Elimina il gruppo", "Delete the group");
+		public static string VttPlaced(int count, LanguageCode lang) => T(lang, count == 1 ? "Piazzato 1 mostro." : $"Piazzati {count} mostri.", count == 1 ? "1 monster placed." : $"{count} monsters placed.");
+		public static string VttNoRoom(LanguageCode lang) => T(lang, "Non c'è spazio libero sulla mappa.", "There is no free room on the map.");
+		public static string VttUndo(int left, LanguageCode lang) => left > 0
+			? T(lang, $"Annulla l'ultima modifica (Ctrl+Z) · {left} disponibili", $"Undo the last edit (Ctrl+Z) · {left} left")
+			: T(lang, "Niente da annullare", "Nothing to undo");
+		public static string VttNothingToUndo(LanguageCode lang) => T(lang, "Niente da annullare su questa mappa.", "Nothing to undo on this map.");
+		public static string VttUndone(string kind, LanguageCode lang) => kind switch
+		{
+			MapUndoKinds.Shapes => T(lang, "Annullata l'ultima modifica ai disegni.", "The last edit of the drawings was undone."),
+			MapUndoKinds.Terrain => T(lang, "Annullata l'ultima modifica al terreno.", "The last edit of the terrain was undone."),
+			MapUndoKinds.Fog => T(lang, "Annullata l'ultima modifica alla nebbia.", "The last edit of the fog was undone."),
+			_ => T(lang, "Annullata l'ultima modifica ai token.", "The last edit of the tokens was undone.")
+		};
+		public static string VttLighting(LanguageCode lang) => T(lang, "Luce e visione", "Light and vision");
+		public static string VttLightingName(MapLighting lighting, LanguageCode lang) => lighting switch
+		{
+			MapLighting.Dim => T(lang, "Penombra", "Dim light"),
+			MapLighting.Dark => T(lang, "Buio", "Darkness"),
+			_ => T(lang, "Luce piena", "Bright light")
+		};
+		public static string VttDynamicVision(LanguageCode lang) => T(lang, "Visione dinamica", "Dynamic vision");
+		public static string VttVisionPreview(LanguageCode lang) => T(lang, "Guarda come i PG", "See as the characters");
+		public static string VttLightingHint(LanguageCode lang) => T(lang,
+			"Con la visione dinamica ogni giocatore vede solo ciò che vedono le sue creature: muri e porte chiuse bloccano la vista, al buio servono luci o scurovisione",
+			"With dynamic vision each player sees only what their creatures see: walls and closed doors block the sight, in the dark it takes a light or darkvision");
+		public static string VttLightAndSight(LanguageCode lang) => T(lang, "Luce e vista", "Light and sight");
+		public static string VttLightLine(string name, string bright, string dim, LanguageCode lang) => T(lang,
+			$"{name}: luce intensa {bright}, fioca per altri {dim}", $"{name}: bright light {bright}, dim for another {dim}");
+		public static string VttNoLight(LanguageCode lang) => T(lang, "Nessuna luce", "No light");
+		public static string VttDarkvisionLine(string range, LanguageCode lang) => T(lang, $"scurovisione {range}", $"darkvision {range}");
+		public static string VttNoDarkvision(LanguageCode lang) => T(lang, "senza scurovisione", "no darkvision");
+		public static string VttDarkvision(LanguageCode lang) => T(lang, "Scurovisione", "Darkvision");
+		public static string VttFromSheet(LanguageCode lang) => T(lang, "dalla scheda", "from the sheet");
+		public static string VttDarkvisionSave(LanguageCode lang) => T(lang, "Imposta", "Set");
+		public static string VttLightPreset(string key, LanguageCode lang) => key switch
+		{
+			"candle" => T(lang, "Candela", "Candle"),
+			"torch" => T(lang, "Torcia", "Torch"),
+			"lantern" => T(lang, "Lanterna", "Lantern"),
+			"light" => T(lang, "Luce", "Light"),
+			"bullseye" => T(lang, "Lanterna a lente", "Bullseye lantern"),
+			"daylight" => T(lang, "Luce diurna", "Daylight"),
+			_ => T(lang, "Nessuna", "None")
+		};
+		public static string VttGrapple(LanguageCode lang) => T(lang, "Lotta", "Grapple");
+		public static string VttGrappleHint(LanguageCode lang) => T(lang, "Uno degli attacchi dell'azione Attacco: afferra una creatura a portata, che poi si muove con te (a velocità dimezzata)", "One of the attacks of the Attack action: grapple a creature in reach, which then moves with you (at half speed)");
+		public static string VttShove(LanguageCode lang) => T(lang, "Spinta", "Shove");
+		public static string VttShoveHint(LanguageCode lang) => T(lang, "Uno degli attacchi dell'azione Attacco: spingi via di 1,5 m o butta a terra una creatura a portata", "One of the attacks of the Attack action: push a creature in reach 5 feet away or knock it prone");
+		public static string VttShoveKind(string kind, LanguageCode lang) => kind == "prone" ? T(lang, "A terra", "Prone") : T(lang, "Spingi via", "Push away");
+		public static string VttGrappledBy(string who, LanguageCode lang) => T(lang, $"Afferrato da {who}: velocità 0", $"Grappled by {who}: speed 0");
+		public static string VttHolding(string who, LanguageCode lang) => T(lang, $"Stai afferrando {who}: si muove con te, a velocità dimezzata", $"Grappling {who}: it moves with you, at half speed");
+		public static string VttEscape(LanguageCode lang) => T(lang, "Liberati", "Escape");
+		public static string VttEscapeHint(LanguageCode lang) => T(lang, "Usa l'azione: Atletica o Acrobazia per liberarti", "Takes the action: Athletics or Acrobatics to escape");
+		public static string VttLetGo(LanguageCode lang) => T(lang, "Lascia la presa", "Let go");
+		public static string VttGrappledMove(LanguageCode lang) => T(lang, "Afferrato: non può muoversi finché non si libera.", "Grappled: it cannot move until it escapes.");
+		public static string VttReadyOther(LanguageCode lang) => T(lang, "Altro", "Something else");
+		public static string VttReadyWhat(LanguageCode lang) => T(lang, "Cosa prepari", "What is readied");
+		public static string VttReadyTriggerHint(LanguageCode lang) => T(lang, "Innesco: es. «quando il goblin esce dal muro»", "Trigger: e.g. “when the goblin steps out of the wall”");
+		public static string VttReadyGo(LanguageCode lang) => T(lang, "Prepara", "Ready");
+		public static string VttReadySpell(LanguageCode lang) => T(lang, "Prepara come reazione", "Ready as a reaction");
+		public static string VttReadySpellHint(LanguageCode lang) => T(lang, "Un incantesimo si prepara dalla sua scheda: lo slot si spende subito e lo tieni con la concentrazione.", "A spell is readied from its tab: the slot is spent now and you hold it with concentration.");
+		public static string VttReadyNeedsTrigger(LanguageCode lang) => T(lang, "Scrivi l'innesco dell'azione preparata.", "Write the trigger of the readied action.");
+		public static string VttReadied(string what, string trigger, LanguageCode lang) => T(lang, $"«{what}» preparato: {trigger}", $"“{what}” readied: {trigger}");
+		public static string VttReadyBadge(string what, string trigger, LanguageCode lang) => T(lang, $"Preparato: {what} · quando {trigger}", $"Readied: {what} · when {trigger}");
+		public static string VttReadyFired(string who, string what, string trigger, LanguageCode lang) => T(lang, $"{who}: innesco scattato ({trigger}) → {what}", $"{who}: the trigger came ({trigger}) → {what}");
+		public static string VttReadyTrigger(LanguageCode lang) => T(lang, "Innesca", "Trigger");
+		public static string VttReadyRelease(LanguageCode lang) => T(lang, "Usa (reazione)", "Use (reaction)");
+		public static string VttReadyDrop(LanguageCode lang) => T(lang, "Lascia", "Let it go");
+		public static string VttReadyReleased(string what, LanguageCode lang) => T(lang, $"«{what}» usato con la reazione.", $"“{what}” used with the reaction.");
+		public static string VttSpellsGone(LanguageCode lang) => T(lang, "Azione e azione bonus di questo turno sono già usate", "The action and the bonus action of this turn are used");
+		public static string VttMetamagicNoPoints(LanguageCode lang) => T(lang, "Punti stregoneria insufficienti.", "Not enough Sorcery Points.");
+		public static string VttMetamagic(LanguageCode lang) => T(lang, "Metamagia", "Metamagic");
+		public static string VttSculpt(LanguageCode lang) => T(lang, "Scolpire incantesimi", "Sculpt Spells");
+		public static string VttSculptHint(LanguageCode lang) => T(lang, "Gli alleati scelti superano il tiro salvezza e non subiscono danni", "The allies chosen succeed on the save and take no damage");
+		public static string VttProtect(int most, LanguageCode lang) => T(lang, $"Proteggi (fino a {most})", $"Protect (up to {most})");
+		public static string VttConfirmAttack(LanguageCode lang) => T(lang, "Conferma l'attacco", "Confirm the attack");
+		public static string VttConfirmSpell(LanguageCode lang) => T(lang, "Conferma l'incantesimo", "Confirm the spell");
+		public static string VttConfirm(LanguageCode lang) => T(lang, "Conferma", "Confirm");
+		public static string VttTargets(LanguageCode lang) => T(lang, "Bersagli", "Targets");
+		public static string VttDamageType(LanguageCode lang) => T(lang, "Tipo di danni", "Damage type");
+		public static string VttSavesAsked(string spell, string save, int? damage, LanguageCode lang) =>
+			T(lang, $"«{spell}»: {save}{(damage is { } d ? $", {d} danni" : string.Empty)}. I bersagli tirano il tiro salvezza.", $"“{spell}”: {save}{(damage is { } d2 ? $", {d2} damage" : string.Empty)}. The targets roll their save.");
+		public static string VttSavesTitle(LanguageCode lang) => T(lang, "Tiri salvezza da fare", "Saving throws to make");
+		public static string VttSaveRoll(LanguageCode lang) => T(lang, "Tira", "Roll");
+		public static string VttSaveRollMine(LanguageCode lang) => T(lang, "Tira per le mie creature", "Roll for my creatures");
+		public static string VttSaveMade(LanguageCode lang) => T(lang, "Superato", "Made");
+		public static string VttSaveFailed(LanguageCode lang) => T(lang, "Fallito", "Failed");
+		public static string VttSaveDismiss(LanguageCode lang) => T(lang, "Chiudi i tiri salvezza rimasti", "Close the saves left");
+		public static string VttSaveProtected(LanguageCode lang) => T(lang, "protetto", "protected");
+		public static string VttSaveDisadvantage(LanguageCode lang) => T(lang, "svantaggio", "disadvantage");
+		public static string VttSaveDamage(int damage, string? type, bool half, LanguageCode lang) =>
+			T(lang, $"{damage} danni{(type is null ? string.Empty : " " + type)}{(half ? " (metà se superato)" : string.Empty)}", $"{damage}{(type is null ? string.Empty : " " + type)} damage{(half ? " (half on a success)" : string.Empty)}");
+		public static string VttSaveDealt(int dealt, LanguageCode lang) => T(lang, $"{dealt} danni", $"{dealt} damage");
 		public static string VttNoRestInFight(LanguageCode lang) => T(lang, "Durante un incontro non si riposa.", "No rest during an encounter.");
 		public static string VttNotYourTurn(LanguageCode lang) => T(lang, "Non è il suo turno: in combattimento ci si muove solo nel proprio turno.", "Not its turn: in a fight a creature moves only on its own turn.");
 		public static string VttTurnReset(LanguageCode lang) => T(lang, "Ridai il turno", "Give the turn back");

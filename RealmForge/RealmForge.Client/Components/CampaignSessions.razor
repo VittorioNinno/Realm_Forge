@@ -5,6 +5,7 @@
 @using RealmForge.Shared.Enums
 @inject CampaignDataService Campaigns
 @inject LanguageStateService LanguageState
+@inject IJSRuntime JS
 
 @* Sessions of a campaign: the next one on top with its date and plan, then the played ones with their recap; masters
    and co-masters write them and keep their notes behind the screen *@
@@ -129,13 +130,14 @@
                 }
                 <footer class="rf-session-foot">
                     <span>@UiText.SessionUpdatedBy(s.UpdatedBy, s.UpdatedAt, Lang)</span>
+                    <span class="d-flex gap-2">
+                        <button type="button" class="btn btn-sm btn-rf-outline" disabled="@(exporting == s.Id)" title="@UiText.ExportSessionHint(Lang)" @onclick="() => ExportAsync(s)" data-test="session-export"><Icon Name="download" /> @UiText.ExportLog(Lang)</button>
                     @if (s.CanEdit)
                     {
-                        <span class="d-flex gap-2">
                             <button type="button" class="btn btn-sm btn-rf-outline" @onclick="() => Edit(s)" data-test="session-edit">@UiText.Edit(Lang)</button>
                             <button type="button" class="btn btn-sm btn-rf-outline" @onclick="() => removing = s" data-test="session-delete">@UiText.BtnRemove(Lang)</button>
-                        </span>
                     }
+                    </span>
                 </footer>
             </article>
         }
@@ -159,6 +161,28 @@
 @code {
     [Parameter, EditorRequired] public Guid CampaignId { get; set; }
     [Parameter] public CampaignRole Role { get; set; } = CampaignRole.Player;
+    [Parameter] public string CampaignName { get; set; } = string.Empty;
+
+    //	The session whose log is being exported
+    private Guid? exporting;
+
+    //	The log of a session as Markdown: the session and the rolls of its day
+    private async Task ExportAsync(CampaignSessionDto session)
+    {
+        exporting = session.Id;
+        var window = SessionLogExport.WindowOf(session);
+        var rolls = window is { } w ? await Campaigns.GetAllRollsAsync(CampaignId, w.From, w.To) ?? new() : new List<CampaignRollDto>();
+        var text = SessionLogExport.Markdown(CampaignName, session, rolls, Lang);
+        await SaveFileAsync(SessionLogExport.FileName(CampaignName, UiText.ExportSession(session.Number, Lang), "md"), "text/markdown", text);
+        exporting = null;
+    }
+
+    //	A text file saved by the browser
+    private async Task SaveFileAsync(string name, string mime, string text)
+    {
+        var bytes = System.Text.Encoding.UTF8.GetPreamble().Concat(System.Text.Encoding.UTF8.GetBytes(text)).ToArray();
+        await JS.InvokeVoidAsync("rfDownloadFile", name, mime, Convert.ToBase64String(bytes));
+    }
 
     //	Tells the campaign page that the sessions changed (the next session shown in the overview)
     [Parameter] public EventCallback<List<CampaignSessionDto>> OnChanged { get; set; }

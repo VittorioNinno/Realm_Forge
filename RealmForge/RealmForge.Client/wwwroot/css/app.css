@@ -19537,3 +19537,432 @@ button.rf-qs-spell {
         animation: none;
     }
 }
+
+/* ===== The initiative's two buttons: in a row under the vertical strip, stacked when it is folded ===== */
+.rf-init-tools {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.rf-init-widget.vertical:not(.collapsed) .rf-init-tools {
+    justify-content: space-between;
+    width: 100%;
+}
+
+.rf-init-widget.vertical:not(.collapsed) .rf-init-shell > .rf-init-tools {
+    padding-top: 8px;
+    border-top: 1px solid #262626;
+}
+
+.rf-init-widget.vertical.collapsed .rf-init-tools {
+    flex-direction: column;
+}
+
+/* ===== An attack of opportunity: its own alert at the top, over any other bar ===== */
+.rf-opportunity.floating {
+    top: 88px;
+    bottom: auto;
+    left: 50%;
+    z-index: 46;
+    max-width: min(640px, calc(100% - 32px));
+    border-color: var(--rf-orange-primary);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, .5);
+    transform: translateX(-50%);
+}
+
+/* ===== The confirmation of a character's attack or spell ===== */
+.rf-vtt-confirm {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+    min-width: 320px;
+    border-color: var(--rf-orange-primary);
+}
+
+.rf-vtt-confirm-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+}
+
+    .rf-vtt-confirm-row.end {
+        justify-content: flex-end;
+    }
+
+.rf-vtt-confirm-target {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 0 8px;
+    min-height: 32px;
+    border: 1px solid var(--rf-border-light);
+    border-radius: 16px;
+    font-size: .8rem;
+    font-weight: 700;
+}
+
+.rf-vtt-confirm-check {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    margin: 0;
+    cursor: pointer;
+}
+
+    .rf-vtt-confirm-check svg {
+        width: 14px;
+        height: 14px;
+    }
+
+/* ===== Metamagic chosen before the slot, in the quick sheet ===== */
+.rf-qs-meta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 8px;
+}
+
+.rf-qs-meta-title {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    font-size: .75rem;
+    font-weight: 700;
+    color: #c4b5fd;
+}
+
+/* ===== The saving throws waiting at the table ===== */
+.rf-vtt-saves {
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    z-index: 44;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    width: min(320px, calc(100% - 32px));
+    max-height: calc(100% - 200px);
+    padding: 8px;
+    overflow-y: auto;
+    border: 1px solid #7c3aed;
+    border-radius: 8px;
+    background-color: rgba(18, 18, 18, .96);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, .5);
+}
+
+.rf-vtt-saves-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 0;
+    font-size: .8rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+    color: #c4b5fd;
+}
+
+.rf-vtt-save-call {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 8px;
+    border: 1px solid #262626;
+    border-radius: 8px;
+    background-color: #161616;
+}
+
+.rf-vtt-save-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+}
+
+    .rf-vtt-save-head small {
+        color: var(--rf-text-muted, #9e9e9e);
+    }
+
+.rf-vtt-save-what {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.rf-vtt-save-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+    .rf-vtt-save-list li {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+        font-size: .8rem;
+    }
+
+        .rf-vtt-save-list li.made .rf-vtt-save-outcome {
+            color: #4ade80;
+        }
+
+        .rf-vtt-save-list li.failed .rf-vtt-save-outcome {
+            color: #f87171;
+        }
+
+.rf-vtt-save-name {
+    font-weight: 700;
+}
+
+    .rf-vtt-save-name small {
+        font-weight: 400;
+        color: var(--rf-text-muted, #9e9e9e);
+    }
+
+.rf-vtt-save-actions {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+
+/* ===== Readied actions: the badge on the token, the block of the turn panel ===== */
+.rf-vtt-ready {
+    position: absolute;
+    top: -6px;
+    left: -6px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    height: 20px;
+    border: 1px solid #a78bfa;
+    border-radius: 50%;
+    background-color: #1e1b2e;
+    color: #c4b5fd;
+    pointer-events: none;
+}
+
+    .rf-vtt-ready svg {
+        width: 12px;
+        height: 12px;
+    }
+
+    .rf-vtt-ready.fired {
+        border-color: var(--rf-orange-primary);
+        color: var(--rf-orange-primary);
+        animation: rf-ready-pulse 1.2s ease-in-out infinite;
+    }
+
+@keyframes rf-ready-pulse {
+    50% {
+        box-shadow: 0 0 0 4px rgba(255, 140, 0, .35);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .rf-vtt-ready.fired {
+        animation: none;
+    }
+}
+
+.rf-turn-ready {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    margin-top: 8px;
+    padding: 8px;
+    border: 1px dashed #7c3aed;
+    border-radius: 8px;
+    font-size: .8rem;
+}
+
+    .rf-turn-ready.fired {
+        border-style: solid;
+        border-color: var(--rf-orange-primary);
+    }
+
+    .rf-turn-ready > span:first-child {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        flex: 1 1 100%;
+    }
+
+.rf-turn-ready-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+/* ===== An aura around a token ===== */
+.rf-vtt-aura {
+    fill: color-mix(in srgb, var(--rf-aura, #a78bfa) 14%, transparent);
+    stroke: var(--rf-aura, #a78bfa);
+    stroke-width: 2;
+    stroke-dasharray: 8 6;
+    pointer-events: none;
+}
+
+/* Dynamic vision: the dark over what the creatures do not see, the glow of the lights they carry */
+.rf-vtt-dark rect {
+    transition: opacity .2s ease;
+}
+
+.rf-vtt-light {
+    pointer-events: none;
+    mix-blend-mode: screen;
+}
+
+.rf-qs-aura-form {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.rf-qs-aura-radius {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 0;
+    font-size: .8rem;
+}
+
+    .rf-qs-aura-radius input {
+        width: 72px;
+    }
+
+/* The monster drawer: the search results with their drawer button, the monsters gathered with how many of each */
+.rf-vtt-drawer-result {
+    display: flex;
+    align-items: stretch;
+}
+
+    .rf-vtt-drawer-result .rf-forge-selector-option {
+        flex: 1 1 auto;
+        min-width: 0;
+    }
+
+.rf-vtt-drawer-add {
+    flex: 0 0 auto;
+    width: 40px;
+    border: 0;
+    border-left: 1px solid #303030;
+    background: transparent;
+    color: var(--rf-text-secondary);
+}
+
+    .rf-vtt-drawer-add:hover {
+        color: var(--rf-orange-primary);
+    }
+
+.rf-vtt-drawer {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 8px;
+    border: 1px dashed #303030;
+    border-radius: 8px;
+}
+
+.rf-vtt-drawer-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.rf-vtt-drawer-name {
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.rf-vtt-drawer-step {
+    width: 24px;
+    height: 24px;
+    padding: 0;
+    border-radius: 4px;
+    border: 1px solid #303030;
+    background-color: #1c1c1c;
+    color: var(--rf-text-secondary);
+}
+
+    .rf-vtt-drawer-step:hover:not(:disabled) {
+        border-color: var(--rf-orange-primary);
+    }
+
+.rf-vtt-drawer-count {
+    min-width: 24px;
+    text-align: center;
+}
+
+/* The connection to the table: live, reconnecting, offline */
+.rf-vtt-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 0 8px;
+    border-radius: 8px;
+    border: 1px solid transparent;
+    font-size: .8rem;
+    font-weight: 700;
+    line-height: 32px;
+    color: #22c55e;
+}
+
+.rf-vtt-link-reconnecting {
+    border-color: #f59e0b;
+    color: #fbbf24;
+}
+
+.rf-vtt-link-offline {
+    border-color: #ef4444;
+    color: #fca5a5;
+}
+
+@media (max-width: 767.98px) {
+    .rf-vtt-link-live .rf-vtt-link-text {
+        display: none;
+    }
+}
+
+/* The button of the top bar that pins the page to the side menu */
+.rf-pin-page {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    height: 32px;
+    padding: 0 8px;
+    border-radius: 8px;
+    border: 1px solid #303030;
+    background: transparent;
+    color: var(--rf-text-secondary);
+    font-size: .8rem;
+}
+
+    .rf-pin-page:hover:not(:disabled),
+    .rf-pin-page.on {
+        border-color: var(--rf-orange-primary);
+        color: var(--rf-orange-primary);
+    }
+
+    .rf-pin-page:disabled {
+        opacity: .5;
+    }
+
+@media (max-width: 767.98px) {
+    .rf-pin-page span {
+        display: none;
+    }
+}

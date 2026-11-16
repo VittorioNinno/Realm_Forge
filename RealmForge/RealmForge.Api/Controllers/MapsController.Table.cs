@@ -108,7 +108,7 @@ namespace RealmForge.Api.Controllers
 				attackerCombatant.Interacted = true;
 				attackerCombatant.Wield = ranged ? "ranged" : "melee";
 			}
-			if (fight is not null && attackerCombatant is not null && SpendForAttack(fight, attackerCombatant, runs, italian, dto.ActionAttacks, target.Id) is { } refused)
+			if (fight is not null && attackerCombatant is not null && !(dto.Reroll && dto.Spell) && SpendForAttack(fight, attackerCombatant, runs, italian, dto.ActionAttacks, target.Id) is { } refused)
 			{
 				return Problem(statusCode: StatusCodes.Status409Conflict, title: refused);
 			}
@@ -177,6 +177,16 @@ namespace RealmForge.Api.Controllers
 			//	character's attack is rolled and told, the master applies what it does
 			var applies = attacker.CharacterId is null && attacker.ControlledBy.Count == 0;
 			var down = false;
+			//	The target's defenses against the damage type (a spell is magical)
+			if (hit && damage is { } rawDamage && rawDamage > 0 && DamageDefenses.TypeOf(dto.DamageType) is { } damageType)
+			{
+				var (adjusted, why) = (await DefensesOfAsync(target, targetCombatant, characters)).Apply(rawDamage, damageType, dto.Spell);
+				if (DefenseNote(why, italian) is { } defenseNote)
+				{
+					damage = adjusted;
+					notes.Add(defenseNote);
+				}
+			}
 			if (hit && applies)
 			{
 				down = ApplyDamage(target, targetCombatant, characters, damage ?? 0, critical, dto.Condition, out var concentration);
@@ -239,6 +249,8 @@ namespace RealmForge.Api.Controllers
 			_context.CampaignRolls.Add(log);
 			if (fight is not null)
 			{
+				//	A creature dropped lets go of what it grapples
+				await ReleaseGrapplesAsync(map, fight);
 				Save(fight, fight.Combatants);
 			}
 			target.UpdatedAt = map.UpdatedAt = DateTimeOffset.UtcNow;
@@ -391,6 +403,941 @@ namespace RealmForge.Api.Controllers
 				target.Conditions = target.Conditions.Append(condition).ToList();
 			}
 			return damage > 0 && target.MaxHp is > 0 && target.Hp == 0;
+		}
+
+		// ===== Summons, familiars, mounts =====
+
+		//	POST: api/campaigns/{campaignId}/maps/{mapId}/tokens/{tokenId}/summon — a creature called by a token (a familiar,
+		//	a summon, a companion): whoever controls that token (a master any). It stands next to it, controlled by the same
+		//	players; in a fight it acts right after it, or rolls its own initiative
+		[HttpPost("{mapId:guid}/tokens/{tokenId:guid}/summon")]
+		public async Task<ActionResult<MapTokenDto>> Summon(Guid campaignId, Guid mapId, Guid tokenId, [FromBody] SummonDto dto)
+		{
+			var (map, role) = await LoadAsync(campaignId, mapId, withTokens: true);
+			var owner = map?.Tokens.FirstOrDefault(t => t.Id == tokenId);
+			if (map is null || role is null || owner is null)
+			{
+				return NotFound();
+			}
+			var runs = CampaignRules.RunsTheTable(role.Value);
+			if (!runs && !await ControlsAsync(owner))
+			{
+				return Forbid();
+			}
+			if (map.Tokens.Count >= MapRules.MaxTokens)
+			{
+				return Problem(statusCode: StatusCodes.Status400BadRequest, title: $"At most {MapRules.MaxTokens} tokens per map.");
+			}
+			var monster = await _context.Monsters.AsNoTracking().Where(m => m.Id == dto.MonsterId)
+				.Select(m => new { m.Id, m.Size, Name = m.Translations.OrderBy(t => t.Language == LanguageCode.It ? 0 : 1).Select(t => t.Name).FirstOrDefault() })
+				.FirstOrDefaultAsync();
+			if (monster is null)
+			{
+				return NotFound();
+			}
+			//	The first free cell next to it
+			var size = map.GridType == GridType.Square ? Math.Max(1, (int)monster.Size - 2) : 1;
+			var free = MapTerrain.Neighbours(map.GridType, (owner.X, owner.Y))
+				.Concat(MapTerrain.Neighbours(map.GridType, (owner.X + owner.Size - 1, owner.Y + owner.Size - 1)))
+				.Where(c => OnMap(map, c.Col, c.Row, size) && !map.Tokens.Any(t => t.Kind != TokenKind.Prop && t.X == c.Col && t.Y == c.Row))
+				.ToList();
+			if (free.Count == 0)
+			{
+				return Problem(statusCode: StatusCodes.Status409Conflict, title: "No room next to it.");
+			}
+			var place = free[0];
+			var label = (dto.Label ?? monster.Name ?? string.Empty).Trim();
+			label = label.Length == 0 ? "?" : Cut(label, 60);
+			var tokenDto = new SaveTokenDto { Label = label, Kind = TokenKind.Monster, MonsterId = monster.Id, X = place.Col, Y = place.Row, Size = Math.Min(size, MapRules.MaxTokenSize) };
+			if (await ValidateTokenAsync(campaignId, map, tokenDto) is { } error)
+			{
+				return Problem(statusCode: StatusCodes.Status400BadRequest, title: error);
+			}
+			var token = new CampaignToken { MapId = map.Id };
+			await ApplyAsync(campaignId, token, tokenDto);
+			//	The same players control it: the owner of the character that called it, those it was given to
+			var controllers = owner.ControlledBy.ToList();
+			if (owner.CharacterId is { } characterId
+				&& await _context.Characters.AsNoTracking().Where(c => c.Id == characterId).Select(c => c.OwnerId).FirstOrDefaultAsync() is { Length: > 0 } characterOwner)
+			{
+				controllers.Add(characterOwner);
+			}
+			if (!runs)
+			{
+				controllers.Add(UserId);
+			}
+			token.ControlledBy = controllers.Distinct().ToList();
+			token.Color = owner.Color;
+			WriteGear(token, new TokenGear { SummonedBy = owner.Id });
+			_context.CampaignTokens.Add(token);
+
+			//	In a fight: right after the one that called it, or its own initiative
+			if (owner.CombatantId is { } ownerCombatant && await FightAsync(map, track: true) is { } fight
+				&& fight.Combatants.FirstOrDefault(c => c.Id == ownerCombatant) is { } caller)
+			{
+				var combatant = await CombatantOfAsync(token, roll: !dto.ShareTurn);
+				if (dto.ShareTurn)
+				{
+					combatant.Initiative = caller.Initiative;
+					combatant.InitiativeBonus = caller.InitiativeBonus - 1;
+				}
+				fight.Combatants.Add(combatant);
+				Save(fight, fight.Combatants);
+			}
+			map.UpdatedAt = DateTimeOffset.UtcNow;
+			await _context.SaveChangesAsync();
+			return Ok(ToDto(token, true));
+		}
+
+		//	DELETE: api/campaigns/{campaignId}/maps/{mapId}/tokens/{tokenId}/summon — a called creature dismissed: whoever
+		//	controls it, a master any
+		[HttpDelete("{mapId:guid}/tokens/{tokenId:guid}/summon")]
+		public async Task<IActionResult> Dismiss(Guid campaignId, Guid mapId, Guid tokenId)
+		{
+			var (map, role) = await LoadAsync(campaignId, mapId, withTokens: true);
+			var token = map?.Tokens.FirstOrDefault(t => t.Id == tokenId);
+			if (map is null || role is null || token is null || ReadGear(token.Gear).SummonedBy is null)
+			{
+				return NotFound();
+			}
+			if (!CampaignRules.RunsTheTable(role.Value) && !await ControlsAsync(token))
+			{
+				return Forbid();
+			}
+			if (token.CombatantId is { } id && await FightAsync(map, track: true) is { } fight && fight.Combatants.FirstOrDefault(c => c.Id == id) is { } combatant)
+			{
+				if (fight.Encounter.CurrentId == id)
+				{
+					var order = EncounterRules.Order(fight.Combatants);
+					fight.Encounter.CurrentId = (order.SkipWhile(c => c.Id != id).Skip(1).FirstOrDefault() ?? order.FirstOrDefault(c => c.Id != id))?.Id;
+				}
+				fight.Combatants.Remove(combatant);
+				Save(fight, fight.Combatants);
+			}
+			foreach (var rider in map.Tokens.Where(t => ReadGear(t.Gear).MountedOn == token.Id).ToList())
+			{
+				var gear = ReadGear(rider.Gear);
+				gear.MountedOn = null;
+				WriteGear(rider, gear);
+			}
+			_context.CampaignTokens.Remove(token);
+			map.UpdatedAt = DateTimeOffset.UtcNow;
+			await _context.SaveChangesAsync();
+			return NoContent();
+		}
+
+		//	POST: api/campaigns/{campaignId}/maps/{mapId}/tokens/{tokenId}/mount — a token rides a bigger creature next to
+		//	it: it stands on it and moves with it; a mount it controls acts on its initiative
+		[HttpPost("{mapId:guid}/tokens/{tokenId:guid}/mount")]
+		public async Task<IActionResult> Mount(Guid campaignId, Guid mapId, Guid tokenId, [FromBody] MountDto dto, [FromQuery] LanguageCode? lang)
+		{
+			var italian = lang != LanguageCode.En;
+			var (map, role) = await LoadAsync(campaignId, mapId, withTokens: true);
+			var rider = map?.Tokens.FirstOrDefault(t => t.Id == tokenId);
+			var mount = map?.Tokens.FirstOrDefault(t => t.Id == dto.MountId);
+			if (map is null || role is null || rider is null || mount is null || rider.Id == mount.Id || mount.Kind == TokenKind.Prop)
+			{
+				return NotFound();
+			}
+			var runs = CampaignRules.RunsTheTable(role.Value);
+			if (!runs && !await ControlsAsync(rider))
+			{
+				return Forbid();
+			}
+			if (TableCombat.Gap(map.GridType, rider.X, rider.Y, rider.Size, mount.X, mount.Y, mount.Size) > 1)
+			{
+				return Problem(statusCode: StatusCodes.Status409Conflict, title: T(italian, "La cavalcatura deve essere accanto.", "The mount must be next to it."));
+			}
+			if (map.GridType == GridType.Square && mount.Size <= rider.Size)
+			{
+				return Problem(statusCode: StatusCodes.Status409Conflict, title: T(italian, "La cavalcatura deve essere più grande di chi la monta.", "The mount must be bigger than its rider."));
+			}
+			var gear = ReadGear(rider.Gear);
+			gear.MountedOn = mount.Id;
+			WriteGear(rider, gear);
+			rider.X = mount.X;
+			rider.Y = mount.Y;
+			rider.UpdatedAt = map.UpdatedAt = DateTimeOffset.UtcNow;
+			//	A controlled mount (one the same players move) acts on its rider's initiative
+			if (rider.CombatantId is { } riderId && mount.CombatantId is { } mountId && await FightAsync(map, track: true) is { } fight
+				&& fight.Combatants.FirstOrDefault(c => c.Id == riderId) is { } riderCombatant && fight.Combatants.FirstOrDefault(c => c.Id == mountId) is { } mountCombatant
+				&& (mount.ControlledBy.Any(rider.ControlledBy.Contains) || ReadGear(mount.Gear).SummonedBy == rider.Id || (runs && mount.ControlledBy.Count > 0)))
+			{
+				mountCombatant.Initiative = riderCombatant.Initiative;
+				mountCombatant.InitiativeBonus = riderCombatant.InitiativeBonus - 1;
+				Save(fight, fight.Combatants);
+			}
+			await _context.SaveChangesAsync();
+			return NoContent();
+		}
+
+		//	DELETE: api/campaigns/{campaignId}/maps/{mapId}/tokens/{tokenId}/mount — the rider gets off, to a free cell next to it
+		[HttpDelete("{mapId:guid}/tokens/{tokenId:guid}/mount")]
+		public async Task<IActionResult> Dismount(Guid campaignId, Guid mapId, Guid tokenId)
+		{
+			var (map, role) = await LoadAsync(campaignId, mapId, withTokens: true);
+			var rider = map?.Tokens.FirstOrDefault(t => t.Id == tokenId);
+			if (map is null || role is null || rider is null)
+			{
+				return NotFound();
+			}
+			if (!CampaignRules.RunsTheTable(role.Value) && !await ControlsAsync(rider))
+			{
+				return Forbid();
+			}
+			var gear = ReadGear(rider.Gear);
+			if (gear.MountedOn is not { } mountId)
+			{
+				return NoContent();
+			}
+			gear.MountedOn = null;
+			WriteGear(rider, gear);
+			if (map.Tokens.FirstOrDefault(t => t.Id == mountId) is { } mount)
+			{
+				var cells = MapTerrain.Neighbours(map.GridType, (mount.X, mount.Y))
+					.Where(c => OnMap(map, c.Col, c.Row, rider.Size) && !map.Tokens.Any(t => t.Id != rider.Id && t.Kind != TokenKind.Prop && t.X == c.Col && t.Y == c.Row))
+					.ToList();
+				if (cells.Count > 0)
+				{
+					rider.X = cells[0].Col;
+					rider.Y = cells[0].Row;
+				}
+			}
+			rider.UpdatedAt = map.UpdatedAt = DateTimeOffset.UtcNow;
+			await _context.SaveChangesAsync();
+			return NoContent();
+		}
+
+		// ===== Auras that move with a token =====
+
+		//	PUT: api/campaigns/{campaignId}/maps/{mapId}/tokens/{tokenId}/aura — an aura set on a token (a radius of 0 takes it
+		//	away): whoever controls it, a master any
+		[HttpPut("{mapId:guid}/tokens/{tokenId:guid}/aura")]
+		public async Task<IActionResult> SaveAura(Guid campaignId, Guid mapId, Guid tokenId, [FromBody] SaveAuraDto dto)
+		{
+			var (map, role) = await LoadAsync(campaignId, mapId, withTokens: true);
+			var token = map?.Tokens.FirstOrDefault(t => t.Id == tokenId);
+			if (map is null || role is null || token is null)
+			{
+				return NotFound();
+			}
+			if (!CampaignRules.RunsTheTable(role.Value) && !await ControlsAsync(token))
+			{
+				return Forbid();
+			}
+			var name = (dto.Name ?? string.Empty).Trim();
+			var damage = string.IsNullOrWhiteSpace(dto.Damage) ? null : dto.Damage.Replace(" ", string.Empty);
+			if (dto.Radius is < 0 or > TokenAura.MaxRadius || name.Length > 60 || dto.Ability is < 0 or > 6 || dto.Dc is < 0 or > 40 || (dto.DamageType?.Length ?? 0) > 40
+				|| (dto.Color is { } color && !System.Text.RegularExpressions.Regex.IsMatch(color, "^#[0-9a-fA-F]{6}$"))
+				|| (damage is not null && !TryDamage(damage, out _, out _)) || (dto.Radius > 0 && name.Length == 0))
+			{
+				return Problem(statusCode: StatusCodes.Status400BadRequest, title: "Invalid aura.");
+			}
+			var gear = ReadGear(token.Gear);
+			gear.Aura = dto.Radius == 0 ? null : new TokenAura
+			{
+				Name = name,
+				Radius = dto.Radius,
+				Color = dto.Color ?? "#a78bfa",
+				Enemies = dto.Enemies,
+				Ability = dto.Ability,
+				Dc = dto.Ability > 0 ? Math.Max(1, dto.Dc) : 0,
+				Damage = damage,
+				DamageType = string.IsNullOrWhiteSpace(dto.DamageType) ? null : dto.DamageType.Trim(),
+				Half = dto.Half
+			};
+			WriteGear(token, gear);
+			token.UpdatedAt = map.UpdatedAt = DateTimeOffset.UtcNow;
+			await _context.SaveChangesAsync();
+			return NoContent();
+		}
+
+		private static bool PartyOf(CampaignToken t) => t.CharacterId is not null || t.ControlledBy.Count > 0;
+
+		//	A creature touched by the auras of the others (it entered one, or starts its turn in one; from is where it came
+		//	from, null at the start of a turn), and, when it has an aura, the creatures its aura reaches as it moves: once a
+		//	turn each. A save asked of the creature (the damage rolled once), or the table told
+		private async Task TouchAurasAsync(CampaignMap map, Fight fight, CampaignToken creature, (int X, int Y)? from)
+		{
+			if (creature.Kind == TokenKind.Prop || creature.CombatantId is null || fight.Encounter.Round <= 0)
+			{
+				return;
+			}
+			var stamp = $"{fight.Encounter.Round}:{fight.Encounter.CurrentId}";
+			int GapAt(CampaignToken a, (int X, int Y) at, CampaignToken b) => TableCombat.Gap(map.GridType, at.X, at.Y, a.Size, b.X, b.Y, b.Size);
+			var touches = new List<(CampaignToken Owner, TokenAura Aura, TokenGear Gear, CampaignToken Target)>();
+			foreach (var owner in map.Tokens.Where(t => t.Id != creature.Id && t.Kind != TokenKind.Prop))
+			{
+				var gear = ReadGear(owner.Gear);
+				if (gear.Aura is not { } aura || (aura.Enemies && PartyOf(owner) == PartyOf(creature)))
+				{
+					continue;
+				}
+				var inside = TableCombat.Gap(map.GridType, owner.X, owner.Y, owner.Size, creature.X, creature.Y, creature.Size) <= aura.Radius;
+				var before = from is { } came && GapAt(creature, came, owner) <= aura.Radius;
+				if (inside && !before)
+				{
+					touches.Add((owner, aura, gear, creature));
+				}
+			}
+			//	Its own aura reaching the others as it moves
+			if (from is { } moved && ReadGear(creature.Gear) is { Aura: { } own } ownGear)
+			{
+				foreach (var other in map.Tokens.Where(t => t.Id != creature.Id && t.Kind != TokenKind.Prop && t.CombatantId is not null))
+				{
+					if (own.Enemies && PartyOf(other) == PartyOf(creature))
+					{
+						continue;
+					}
+					var now = TableCombat.Gap(map.GridType, creature.X, creature.Y, creature.Size, other.X, other.Y, other.Size) <= own.Radius;
+					var was = TableCombat.Gap(map.GridType, moved.X, moved.Y, creature.Size, other.X, other.Y, other.Size) <= own.Radius;
+					if (now && !was)
+					{
+						touches.Add((creature, own, ownGear, other));
+					}
+				}
+			}
+			if (touches.Count == 0)
+			{
+				return;
+			}
+			var calls = ReadSaves(map.SaveCalls);
+			foreach (var (owner, aura, gear, target) in touches)
+			{
+				var key = $"{target.Id}:{stamp}";
+				if (aura.Touched.Contains(key))
+				{
+					continue;
+				}
+				aura.Touched = aura.Touched.Append(key).TakeLast(60).ToList();
+				WriteGear(owner, gear);
+				int? damage = null;
+				var rolled = new List<RollDieDto>();
+				if (aura.Damage is { } text && TryDamage(text, out var dice, out var flat))
+				{
+					if (dice is not null)
+					{
+						var (faces, sum) = DiceNotation.Roll(dice, sides => RandomNumberGenerator.GetInt32(1, sides + 1));
+						rolled = faces.Select(d => new RollDieDto(d.Sides, d.Value, d.Dropped)).ToList();
+						damage = Math.Max(0, sum);
+					}
+					else
+					{
+						damage = Math.Max(0, flat);
+					}
+				}
+				if (aura.Ability is >= 1 and <= 6)
+				{
+					calls.Add(new MapSaveCall
+					{
+						CasterTokenId = owner.Id,
+						Caster = Cut(owner.Label, 60),
+						Spell = Cut(aura.Name, 60),
+						Ability = aura.Ability,
+						Dc = Math.Max(1, aura.Dc),
+						Damage = damage,
+						DamageType = aura.DamageType,
+						Half = aura.Half,
+						CasterHidden = owner.Hidden,
+						Targets = new() { new MapSaveTarget { TokenId = target.Id, Label = Cut(target.Label, 60) } }
+					});
+				}
+				_context.CampaignRolls.Add(new CampaignRoll
+				{
+					CampaignId = map.CampaignId,
+					UserId = UserId,
+					Roller = Cut(owner.Label, 100),
+					Color = owner.Color,
+					Label = Cut($"{owner.Label}: {aura.Name} → {target.Label}", 120),
+					Expression = aura.Damage ?? string.Empty,
+					Dice = JsonSerializer.Serialize(rolled, GearJson),
+					Total = damage ?? 0,
+					Note = Cut(aura.Ability is >= 1 and <= 6
+						? $"TS {AbilityName(aura.Ability, true)} CD {aura.Dc}{(damage is { } d ? $" · {d}" : string.Empty)}"
+						: "aura", 200),
+					Hidden = owner.Hidden || target.Hidden
+				});
+			}
+			WriteSaves(map, calls);
+		}
+
+		// ===== Grapples and shoves =====
+
+		//	A condition put on or taken off a token: a character's on its sheet, a fight's creature on its combatant
+		private static void SetCondition(CampaignToken token, EncounterCombatant? combatant, List<Character> characters, string key, bool on)
+		{
+			if (token.CharacterId is { } characterId && characters.FirstOrDefault(c => c.Id == characterId) is { } character)
+			{
+				var sheet = CharactersController.ReadSheet(character.Sheet);
+				var has = sheet.Conditions.Contains(key);
+				if (on && !has)
+				{
+					sheet.Conditions.Add(key);
+				}
+				else if (!on && has)
+				{
+					sheet.Conditions.Remove(key);
+				}
+				sheet.VitalsStamp++;
+				character.Sheet = JsonSerializer.Serialize(sheet, CharactersController.Json);
+				character.UpdatedAt = DateTimeOffset.UtcNow;
+			}
+			if (combatant is not null)
+			{
+				if (on && !combatant.Conditions.Contains(key))
+				{
+					combatant.Conditions.Add(key);
+				}
+				else if (!on)
+				{
+					combatant.Conditions.Remove(key);
+				}
+			}
+			else if (on && !token.Conditions.Contains(key))
+			{
+				token.Conditions = token.Conditions.Append(key).ToList();
+			}
+			else if (!on && token.Conditions.Contains(key))
+			{
+				token.Conditions = token.Conditions.Where(k => k != key).ToList();
+			}
+		}
+
+		//	The grapples that end: the one holding is incapacitated (or down), gone, or no longer next to it; true when any did
+		private async Task<bool> ReleaseGrapplesAsync(CampaignMap map, Fight fight)
+		{
+			var ended = new List<(CampaignToken Token, EncounterCombatant Combatant)>();
+			foreach (var held in fight.Combatants.Where(c => c.GrappledBy is not null))
+			{
+				var holder = fight.Combatants.FirstOrDefault(c => c.Id == held.GrappledBy);
+				var holderToken = map.Tokens.FirstOrDefault(t => t.CombatantId == held.GrappledBy);
+				var heldToken = map.Tokens.FirstOrDefault(t => t.CombatantId == held.Id);
+				var apart = holderToken is null || heldToken is null
+					|| TableCombat.Gap(map.GridType, holderToken.X, holderToken.Y, holderToken.Size, heldToken.X, heldToken.Y, heldToken.Size) > 1;
+				var down = holder is null || holder.Conditions.Any(EncounterRules.Incapacitating.Contains)
+					|| (holder.Kind != CombatantKind.Character && holder.MaxHp > 0 && holder.Hp <= 0);
+				if (apart || down)
+				{
+					held.GrappledBy = null;
+					if (heldToken is not null)
+					{
+						ended.Add((heldToken, held));
+					}
+				}
+			}
+			if (ended.Count == 0)
+			{
+				return false;
+			}
+			var ids = ended.Select(e => e.Token.CharacterId).OfType<Guid>().ToList();
+			var characters = ids.Count == 0 ? new List<Character>() : await _context.Characters.Where(c => ids.Contains(c.Id)).ToListAsync();
+			foreach (var (token, combatant) in ended)
+			{
+				SetCondition(token, combatant, characters, "grappled", false);
+			}
+			return true;
+		}
+
+		//	POST: api/campaigns/{campaignId}/maps/{mapId}/tokens/{tokenId}/grapple — in a fight: a grapple or a shove (one of
+		//	the attacks of the Attack action, at a creature next to it), an escape (the action), a grapple let go (free)
+		[HttpPost("{mapId:guid}/tokens/{tokenId:guid}/grapple")]
+		public async Task<ActionResult<MapAttackResultDto>> Grapple(Guid campaignId, Guid mapId, Guid tokenId, [FromBody] GrappleDto dto, [FromQuery] LanguageCode? lang)
+		{
+			var italian = lang != LanguageCode.En;
+			var (map, role) = await LoadAsync(campaignId, mapId, withTokens: true);
+			var actor = map?.Tokens.FirstOrDefault(t => t.Id == tokenId);
+			var target = map?.Tokens.FirstOrDefault(t => t.Id == dto.TargetId);
+			if (map is null || role is null || actor is null || target is null || actor.Id == target.Id)
+			{
+				return NotFound();
+			}
+			var runs = CampaignRules.RunsTheTable(role.Value);
+			if (!runs && !await ControlsAsync(actor))
+			{
+				return Forbid();
+			}
+			var kind = (dto.Kind ?? string.Empty).Trim().ToLowerInvariant();
+			if (kind is not ("grapple" or "push" or "prone" or "escape" or "release") || dto.ActorBonus is < -10 or > 30 || dto.OtherBonus is < -10 or > 30 || dto.Dc is < 1 or > 40)
+			{
+				return Problem(statusCode: StatusCodes.Status400BadRequest, title: "Invalid grapple.");
+			}
+			var fight = await FightAsync(map, track: true);
+			var actorCombatant = actor.CombatantId is { } aid ? fight?.Combatants.FirstOrDefault(c => c.Id == aid) : null;
+			var targetCombatant = target.CombatantId is { } tid ? fight?.Combatants.FirstOrDefault(c => c.Id == tid) : null;
+			if (fight is null || actorCombatant is null || targetCombatant is null)
+			{
+				return Problem(statusCode: StatusCodes.Status409Conflict, title: T(italian, "Lotta e spinta si fanno durante un combattimento.", "Grapples and shoves are made during a fight."));
+			}
+			var characterIds = new[] { actor.CharacterId, target.CharacterId }.OfType<Guid>().ToList();
+			var characters = await _context.Characters.Where(c => characterIds.Contains(c.Id)).ToListAsync();
+
+			//	Let go: free, at any time
+			if (kind == "release")
+			{
+				if (targetCombatant.GrappledBy != actorCombatant.Id)
+				{
+					return Problem(statusCode: StatusCodes.Status409Conflict, title: T(italian, "Non lo stai afferrando.", "It is not grappled by it."));
+				}
+				targetCombatant.GrappledBy = null;
+				SetCondition(target, targetCombatant, characters, "grappled", false);
+				Save(fight, fight.Combatants);
+				map.UpdatedAt = DateTimeOffset.UtcNow;
+				await _context.SaveChangesAsync();
+				return Ok(new MapAttackResultDto(true, false, new List<RollDieDto>(), 0, 0, null, new List<RollDieDto>(), T(italian, "Presa lasciata", "Let go")));
+			}
+			if (kind == "escape" && actorCombatant.GrappledBy != targetCombatant.Id)
+			{
+				return Problem(statusCode: StatusCodes.Status409Conflict, title: T(italian, "Non è afferrato da quella creatura.", "It is not grappled by that creature."));
+			}
+			if (TableCombat.Gap(map.GridType, actor.X, actor.Y, actor.Size, target.X, target.Y, target.Size) > 1)
+			{
+				return Problem(statusCode: StatusCodes.Status409Conflict, title: T(italian, "Il bersaglio deve essere a portata (1,5 m).", "The target must be within reach (5 feet)."));
+			}
+
+			//	The turn: an escape is the action; a grapple or a shove one of the attacks of the Attack action
+			if (kind == "escape")
+			{
+				if (fight.Encounter.CurrentId != actorCombatant.Id && !runs)
+				{
+					return Problem(statusCode: StatusCodes.Status409Conflict, title: T(italian, "Non è il tuo turno.", "It is not your turn."));
+				}
+				if (actorCombatant.ActionSpent is not null && !runs)
+				{
+					return Problem(statusCode: StatusCodes.Status409Conflict, title: T(italian, "L'azione di questo turno è già stata usata.", "The action of this turn was already used."));
+				}
+				actorCombatant.ActionSpent = TableCombat.SpentOther;
+			}
+			else if (SpendForAttack(fight, actorCombatant, runs, italian, dto.ActionAttacks, target.Id) is { } refused)
+			{
+				return Problem(statusCode: StatusCodes.Status409Conflict, title: refused);
+			}
+
+			//	The rolls: against a DC (the other side's save, or the escape's check), or a contest the actor wins only above
+			var actorDie = RandomNumberGenerator.GetInt32(1, 21);
+			var otherDie = RandomNumberGenerator.GetInt32(1, 21);
+			bool success;
+			int total;
+			var dice = new List<RollDieDto>();
+			if (dto.Dc is { } dc)
+			{
+				if (kind == "escape")
+				{
+					total = actorDie + dto.ActorBonus;
+					success = total >= dc;
+					dice.Add(new RollDieDto(20, actorDie, false));
+				}
+				else
+				{
+					total = otherDie + dto.OtherBonus;
+					success = total < dc;
+					dice.Add(new RollDieDto(20, otherDie, false));
+				}
+			}
+			else
+			{
+				total = actorDie + dto.ActorBonus;
+				success = total > otherDie + dto.OtherBonus;
+				dice.Add(new RollDieDto(20, actorDie, false));
+				dice.Add(new RollDieDto(20, otherDie, true));
+			}
+
+			string outcome;
+			if (!success)
+			{
+				outcome = kind == "escape" ? T(italian, "Non si libera", "Fails to escape") : T(italian, "Resiste", "Resists");
+			}
+			else
+			{
+				switch (kind)
+				{
+					case "grapple":
+						targetCombatant.GrappledBy = actorCombatant.Id;
+						SetCondition(target, targetCombatant, characters, "grappled", true);
+						outcome = T(italian, "Afferrato", "Grappled");
+						break;
+					case "prone":
+						SetCondition(target, targetCombatant, characters, "prone", true);
+						outcome = T(italian, "Prono", "Prone");
+						break;
+					case "push":
+						//	One cell straight away from the actor, when it is free and on the map
+						var (dx, dy) = (Math.Sign(target.X - actor.X), Math.Sign(target.Y - actor.Y));
+						var (nx, ny) = (target.X + dx, target.Y + dy);
+						var blocked = MapTerrain.Read(map.Terrain).GetValueOrDefault((nx, ny)) is TerrainKind.Wall or TerrainKind.ThreeQuarterCover
+							|| map.Tokens.Any(t => t.Id != target.Id && t.Kind != TokenKind.Prop && t.X == nx && t.Y == ny);
+						if ((dx != 0 || dy != 0) && OnMap(map, nx, ny, target.Size) && !blocked)
+						{
+							target.X = nx;
+							target.Y = ny;
+							target.UpdatedAt = DateTimeOffset.UtcNow;
+							outcome = T(italian, "Spinto via di 1,5 m", "Pushed 5 feet away");
+						}
+						else
+						{
+							outcome = T(italian, "Non c'è spazio per spingerlo", "No room to push it");
+						}
+						break;
+					default:
+						actorCombatant.GrappledBy = null;
+						SetCondition(actor, actorCombatant, characters, "grappled", false);
+						outcome = T(italian, "Si libera", "Escapes");
+						break;
+				}
+			}
+			await ReleaseGrapplesAsync(map, fight);
+
+			var name = kind switch
+			{
+				"grapple" => T(italian, "Lotta", "Grapple"),
+				"escape" => T(italian, "Liberarsi", "Escape"),
+				_ => T(italian, "Spinta", "Shove")
+			};
+			var colors = await CampaignAccess.EnsureColorsAsync(_context, campaignId);
+			var characterName = characters.FirstOrDefault(c => c.Id == actor.CharacterId)?.Name;
+			_context.CampaignRolls.Add(new CampaignRoll
+			{
+				CampaignId = campaignId,
+				UserId = UserId,
+				CharacterId = actor.CharacterId,
+				CharacterName = characterName is null ? null : Cut(characterName, 100),
+				Roller = Cut(characterName ?? (runs ? (role == CampaignRole.Master ? "Master" : "Co-master") : actor.Label), 100),
+				Color = colors.GetValueOrDefault(UserId, PlayerColors.Master),
+				Label = Cut($"{actor.Label} → {target.Label}: {name}", 120),
+				Expression = dto.Dc is { } shown ? T(italian, $"CD {shown}", $"DC {shown}") : "1d20",
+				Dice = JsonSerializer.Serialize(dice, GearJson),
+				Modifier = dto.Dc is null || kind == "escape" ? dto.ActorBonus : dto.OtherBonus,
+				Total = total,
+				Note = Cut(outcome, 200),
+				Hidden = runs && actor.Hidden
+			});
+			Save(fight, fight.Combatants);
+			map.UpdatedAt = DateTimeOffset.UtcNow;
+			await _context.SaveChangesAsync();
+			return Ok(new MapAttackResultDto(success, false, dice, dto.Dc is null || kind == "escape" ? dto.ActorBonus : dto.OtherBonus, total, null, new List<RollDieDto>(), outcome));
+		}
+
+		// ===== Resistances, immunities, vulnerabilities =====
+
+		//	A target's defenses: a character's kept with its sheet, a monster's from its statblock (the English texts, whose
+		//	wording is the steadiest)
+		private async Task<DamageDefenses> DefensesOfAsync(CampaignToken target, EncounterCombatant? combatant, List<Character> characters)
+		{
+			if ((target.CharacterId ?? target.SheetCharacterId) is { } characterId)
+			{
+				var defenses = characters.FirstOrDefault(c => c.Id == characterId)?.Defenses
+					?? await _context.Characters.AsNoTracking().Where(c => c.Id == characterId).Select(c => c.Defenses).FirstOrDefaultAsync();
+				return DamageDefenses.Read(defenses);
+			}
+			if ((target.MonsterId ?? combatant?.MonsterId) is { } monsterId)
+			{
+				var lines = await _context.Set<MonsterTranslation>().AsNoTracking()
+					.Where(t => t.MonsterId == monsterId)
+					.OrderBy(t => t.Language == LanguageCode.En ? 0 : 1)
+					.Select(t => new { t.DamageVulnerabilities, t.DamageResistances, t.DamageImmunities })
+					.FirstOrDefaultAsync();
+				return lines is null ? DamageDefenses.None : DamageDefenses.FromStatblock(lines.DamageVulnerabilities, lines.DamageResistances, lines.DamageImmunities);
+			}
+			return DamageDefenses.None;
+		}
+
+		private static string? DefenseNote(string? why, bool italian) => why switch
+		{
+			"immune" => T(italian, "immune", "immune"),
+			"resist" => T(italian, "resistenza: dimezzati", "resistance: halved"),
+			"vulnerable" => T(italian, "vulnerabilità: raddoppiati", "vulnerability: doubled"),
+			_ => null
+		};
+
+		// ===== Saving throws asked by a spell =====
+
+		public static List<MapSaveCall> ReadSaves(string? json)
+		{
+			try
+			{
+				return string.IsNullOrWhiteSpace(json) ? new() : JsonSerializer.Deserialize<List<MapSaveCall>>(json, GearJson) ?? new();
+			}
+			catch (JsonException)
+			{
+				return new();
+			}
+		}
+
+		private static void WriteSaves(CampaignMap map, List<MapSaveCall> calls) =>
+			map.SaveCalls = calls.Count == 0 ? null : JsonSerializer.Serialize(calls.TakeLast(MapSaveRules.MaxCalls).ToList(), GearJson);
+
+		private static string AbilityName(int ability, bool italian) => ability switch
+		{
+			1 => T(italian, "Forza", "Strength"),
+			2 => T(italian, "Destrezza", "Dexterity"),
+			3 => T(italian, "Costituzione", "Constitution"),
+			4 => T(italian, "Intelligenza", "Intelligence"),
+			5 => T(italian, "Saggezza", "Wisdom"),
+			_ => T(italian, "Carisma", "Charisma")
+		};
+
+		//	POST: api/campaigns/{campaignId}/maps/{mapId}/saves — a spell cast at the table that forces saves: whoever
+		//	controls the caster (a master any token). The damage is rolled once for every target and goes to the log with
+		//	the save to make; the targets wait for their rolls on every screen of the table
+		[HttpPost("{mapId:guid}/saves")]
+		public async Task<ActionResult<MapSaveCallDto>> CallSaves(Guid campaignId, Guid mapId, [FromBody] CallSavesDto dto, [FromQuery] LanguageCode? lang)
+		{
+			var italian = lang != LanguageCode.En;
+			var (map, role) = await LoadAsync(campaignId, mapId, withTokens: true);
+			var caster = map?.Tokens.FirstOrDefault(t => t.Id == dto.CasterId);
+			if (map is null || role is null || caster is null)
+			{
+				return NotFound();
+			}
+			var runs = CampaignRules.RunsTheTable(role.Value);
+			if (!runs && !await ControlsAsync(caster))
+			{
+				return Forbid();
+			}
+			var spell = (dto.Spell ?? string.Empty).Trim();
+			var damageText = string.IsNullOrWhiteSpace(dto.Damage) ? null : dto.Damage.Replace(" ", string.Empty).Replace('−', '-');
+			DiceNotation.Parsed? damageDice = null;
+			var flat = 0;
+			var targets = dto.TargetIds.Distinct().Select(id => map.Tokens.FirstOrDefault(t => t.Id == id)).ToList();
+			if (spell.Length is 0 or > 60 || dto.Ability is < 1 or > 6 || dto.Dc is < 1 or > 40 || (dto.DamageType?.Length ?? 0) > 40 || dto.Empowered is < 0 or > 10
+				|| targets.Count is 0 or > MapSaveRules.MaxTargets || targets.Any(t => t is null || t.Kind == TokenKind.Prop || (!runs && t.Hidden))
+				|| (damageText is not null && !TryDamage(damageText, out damageDice, out flat)))
+			{
+				return Problem(statusCode: StatusCodes.Status400BadRequest, title: "Invalid saving throws.");
+			}
+
+			//	The damage, once for every target; Empowered Spell rolls the lowest dice again
+			int? damage = null;
+			var rolled = new List<RollDieDto>();
+			if (damageText is not null)
+			{
+				if (damageDice is not null)
+				{
+					var (dice, sum) = DiceNotation.Roll(damageDice, sides => RandomNumberGenerator.GetInt32(1, sides + 1));
+					var kept = dice.Select(d => (d.Sides, d.Value, d.Dropped)).ToList();
+					foreach (var i in kept.Select((d, i) => (d, i)).Where(x => !x.d.Dropped).OrderBy(x => x.d.Value).Take(dto.Empowered).Select(x => x.i).ToList())
+					{
+						var again = RandomNumberGenerator.GetInt32(1, kept[i].Sides + 1);
+						sum += again - kept[i].Value;
+						kept[i] = (kept[i].Sides, again, false);
+					}
+					rolled = kept.Select(d => new RollDieDto(d.Sides, d.Value, d.Dropped)).ToList();
+					damage = Math.Max(0, sum);
+				}
+				else
+				{
+					damage = Math.Max(0, flat);
+				}
+			}
+
+			var call = new MapSaveCall
+			{
+				CasterTokenId = caster.Id,
+				Caster = Cut(caster.Label, 60),
+				Spell = Cut(spell, 60),
+				Ability = dto.Ability,
+				Dc = dto.Dc,
+				Damage = damage,
+				DamageType = string.IsNullOrWhiteSpace(dto.DamageType) ? null : Cut(dto.DamageType.Trim(), 40),
+				Half = dto.Half,
+				CasterHidden = runs && caster.Hidden,
+				Targets = targets.Select(t => new MapSaveTarget
+				{
+					TokenId = t!.Id,
+					Label = Cut(t.Label, 60),
+					Careful = dto.Careful.Contains(t.Id),
+					Disadvantage = dto.Heightened == t.Id
+				}).ToList()
+			};
+			var calls = ReadSaves(map.SaveCalls);
+			calls.Add(call);
+			WriteSaves(map, calls);
+
+			//	The log: the damage rolled and the save the targets make (the hidden ones named only to the masters)
+			var save = T(italian, $"TS {AbilityName(dto.Ability, true)} CD {dto.Dc}", $"{AbilityName(dto.Ability, false)} save DC {dto.Dc}");
+			var named = string.Join(", ", targets.Where(t => !t!.Hidden).Select(t => t!.Label));
+			var colors = await CampaignAccess.EnsureColorsAsync(_context, campaignId);
+			var characterName = caster.CharacterId is { } casterCharacter
+				? await _context.Characters.AsNoTracking().Where(c => c.Id == casterCharacter).Select(c => c.Name).FirstOrDefaultAsync() : null;
+			var roller = characterName ?? (runs ? (role == CampaignRole.Master ? "Master" : "Co-master") : caster.Label);
+			_context.CampaignRolls.Add(new CampaignRoll
+			{
+				CampaignId = campaignId,
+				UserId = UserId,
+				CharacterId = caster.CharacterId,
+				CharacterName = characterName is null ? null : Cut(characterName, 100),
+				Roller = Cut(roller, 100),
+				Color = colors.GetValueOrDefault(UserId, PlayerColors.Master),
+				Label = Cut($"{caster.Label}: {spell} · {save}", 120),
+				Expression = damageText ?? string.Empty,
+				Dice = JsonSerializer.Serialize(rolled, GearJson),
+				Modifier = damageDice?.Modifier ?? 0,
+				Total = damage ?? 0,
+				Note = Cut(T(italian,
+					$"{(damage is { } d ? $"{d} danni{(call.DamageType is { } dt ? " " + dt : string.Empty)}{(dto.Half ? ", metà se superato" : string.Empty)} · " : string.Empty)}{(named.Length > 0 ? named : "bersagli nascosti")}",
+					$"{(damage is { } d2 ? $"{d2}{(call.DamageType is { } dt2 ? " " + dt2 : string.Empty)} damage{(dto.Half ? ", half on a success" : string.Empty)} · " : string.Empty)}{(named.Length > 0 ? named : "hidden targets")}"), 200),
+				Hidden = runs && caster.Hidden
+			});
+			map.UpdatedAt = DateTimeOffset.UtcNow;
+			await _context.SaveChangesAsync();
+			return Ok(SavesOf(map, true).First(c => c.Id == call.Id));
+		}
+
+		//	POST: api/campaigns/{campaignId}/maps/{mapId}/saves/{callId}/targets/{tokenId} — a target's save: rolled here
+		//	with its bonus (by a master, or by whoever controls the target), or told as made or failed by a master; the
+		//	damage goes on the target (half or none on a success)
+		[HttpPost("{mapId:guid}/saves/{callId:guid}/targets/{tokenId:guid}")]
+		public async Task<ActionResult<MapSaveCallDto>> ResolveSave(Guid campaignId, Guid mapId, Guid callId, Guid tokenId, [FromBody] ResolveSaveDto dto, [FromQuery] LanguageCode? lang)
+		{
+			var italian = lang != LanguageCode.En;
+			var (map, role) = await LoadAsync(campaignId, mapId, withTokens: true);
+			var token = map?.Tokens.FirstOrDefault(t => t.Id == tokenId);
+			var calls = ReadSaves(map?.SaveCalls);
+			var call = calls.FirstOrDefault(c => c.Id == callId);
+			var target = call?.Targets.FirstOrDefault(t => t.TokenId == tokenId);
+			if (map is null || role is null || token is null || call is null || target is null)
+			{
+				return NotFound();
+			}
+			var runs = CampaignRules.RunsTheTable(role.Value);
+			if (!runs && (dto.Saved is not null || !await ControlsAsync(token)))
+			{
+				return Forbid();
+			}
+			if (target.Saved is not null)
+			{
+				return Problem(statusCode: StatusCodes.Status409Conflict, title: T(italian, "Questo tiro salvezza è già stato fatto.", "This save was already made."));
+			}
+			if (dto.Bonus is < -10 or > 30)
+			{
+				return Problem(statusCode: StatusCodes.Status400BadRequest, title: "Invalid bonus.");
+			}
+
+			//	The roll: a d20 (two with disadvantage, the lower kept) and the bonus; a careful target succeeds by itself
+			var dice = new List<RollDieDto>();
+			int total;
+			bool saved;
+			if (target.Careful)
+			{
+				saved = true;
+				total = 0;
+			}
+			else if (dto.Saved is { } told)
+			{
+				saved = told;
+				total = 0;
+			}
+			else
+			{
+				var first = RandomNumberGenerator.GetInt32(1, 21);
+				var second = target.Disadvantage ? RandomNumberGenerator.GetInt32(1, 21) : 0;
+				var keepFirst = !target.Disadvantage || first <= second;
+				dice.Add(new RollDieDto(20, first, !keepFirst));
+				if (target.Disadvantage)
+				{
+					dice.Add(new RollDieDto(20, second, keepFirst));
+				}
+				total = (keepFirst ? first : second) + dto.Bonus;
+				saved = total >= call.Dc;
+				target.Roll = total;
+			}
+			target.Saved = saved;
+			target.Dealt = MapSaveRules.Dealt(call.Damage, saved, call.Half, target.Careful);
+
+			//	The damage on the target, as an attack's, after its defenses (a spell is magical)
+			var fight = await FightAsync(map, track: true);
+			var combatant = token.CombatantId is { } cid ? fight?.Combatants.FirstOrDefault(c => c.Id == cid) : null;
+			var characterIds = new[] { token.CharacterId, token.SheetCharacterId }.OfType<Guid>().ToList();
+			var characters = await _context.Characters.Where(c => characterIds.Contains(c.Id)).ToListAsync();
+			string? defense = null;
+			if (target.Dealt is { } before && before > 0 && DamageDefenses.TypeOf(call.DamageType) is { } savedType)
+			{
+				var (after, why) = (await DefensesOfAsync(token, combatant, characters)).Apply(before, savedType, magical: true);
+				target.Dealt = after;
+				defense = DefenseNote(why, italian);
+			}
+			var down = false;
+			int? concentration = null;
+			if (target.Dealt is { } dealt && dealt > 0)
+			{
+				if (token.MonsterId is { } monsterId && token.CharacterId is null && combatant is null && token.MaxHp is null)
+				{
+					var hp = await _context.Monsters.AsNoTracking().Where(m => m.Id == monsterId).Select(m => m.HitPoints).FirstOrDefaultAsync();
+					if (hp > 0)
+					{
+						token.MaxHp = hp;
+					}
+				}
+				down = ApplyDamage(token, combatant, characters, dealt, false, null, out concentration);
+			}
+			var outcome = (saved ? T(italian, "superato", "made") : T(italian, "fallito", "failed"))
+				+ (target.Careful ? T(italian, " (protetto)", " (protected)") : string.Empty)
+				+ (defense is null ? string.Empty : $" · {defense}")
+				+ (target.Dealt is { } hurt ? T(italian, $" · {hurt} danni{(call.DamageType is { } dt ? " " + dt : string.Empty)}", $" · {hurt}{(call.DamageType is { } dt2 ? " " + dt2 : string.Empty)} damage") : string.Empty)
+				+ (down ? T(italian, " · a terra", " · down") : string.Empty)
+				+ (concentration is { } cdc ? T(italian, $" · TS Costituzione CD {cdc} per la concentrazione", $" · Constitution save DC {cdc} to keep concentration") : string.Empty);
+
+			var colors = await CampaignAccess.EnsureColorsAsync(_context, campaignId);
+			var characterName = characters.FirstOrDefault(c => c.Id == token.CharacterId)?.Name;
+			_context.CampaignRolls.Add(new CampaignRoll
+			{
+				CampaignId = campaignId,
+				UserId = UserId,
+				CharacterId = token.CharacterId,
+				CharacterName = characterName is null ? null : Cut(characterName, 100),
+				Roller = Cut(characterName ?? (runs ? (role == CampaignRole.Master ? "Master" : "Co-master") : token.Label), 100),
+				Color = colors.GetValueOrDefault(UserId, PlayerColors.Master),
+				Label = Cut($"{token.Label}: {T(italian, $"TS {AbilityName(call.Ability, true)} CD {call.Dc}", $"{AbilityName(call.Ability, false)} save DC {call.Dc}")} · {call.Spell}", 120),
+				Expression = dice.Count == 0 ? string.Empty : dto.Bonus == 0 ? "1d20" : $"1d20{(dto.Bonus > 0 ? "+" : string.Empty)}{dto.Bonus}",
+				Dice = JsonSerializer.Serialize(dice, GearJson),
+				Modifier = dice.Count == 0 ? 0 : dto.Bonus,
+				Total = total,
+				Note = Cut(outcome, 200),
+				Hidden = runs && token.Hidden
+			});
+
+			//	Done for every target: the call goes
+			if (call.Targets.All(t => t.Saved is not null))
+			{
+				calls.Remove(call);
+			}
+			WriteSaves(map, calls);
+			if (fight is not null)
+			{
+				await ReleaseGrapplesAsync(map, fight);
+				Save(fight, fight.Combatants);
+			}
+			token.UpdatedAt = map.UpdatedAt = DateTimeOffset.UtcNow;
+			map.StrikeTokenId = token.Id;
+			map.StrikeKind = target.Dealt is > 0 ? 1 : 0;
+			map.StrikeDamage = target.Dealt is > 0 ? target.Dealt : null;
+			map.StrikeAt = map.UpdatedAt;
+			await _context.SaveChangesAsync();
+			return Ok(new MapSaveCallDto(call.Id, call.CasterTokenId, call.Caster, call.Spell, call.Ability, call.Dc, call.Damage, call.DamageType, call.Half, call.At,
+				call.Targets.Select(t => new MapSaveTargetDto(t.TokenId, t.Label, t.Careful, t.Disadvantage, t.Roll, t.Saved, t.Dealt)).ToList()));
+		}
+
+		//	DELETE: api/campaigns/{campaignId}/maps/{mapId}/saves/{callId} — a master lets the saves still waiting go
+		[HttpDelete("{mapId:guid}/saves/{callId:guid}")]
+		public async Task<IActionResult> DismissSaves(Guid campaignId, Guid mapId, Guid callId)
+		{
+			var (map, role) = await LoadAsync(campaignId, mapId, withTokens: false);
+			if (map is null || role is null)
+			{
+				return NotFound();
+			}
+			if (!CampaignRules.RunsTheTable(role.Value))
+			{
+				return Forbid();
+			}
+			var calls = ReadSaves(map.SaveCalls);
+			if (calls.RemoveAll(c => c.Id == callId) == 0)
+			{
+				return NotFound();
+			}
+			WriteSaves(map, calls);
+			map.UpdatedAt = DateTimeOffset.UtcNow;
+			await _context.SaveChangesAsync();
+			return NoContent();
 		}
 
 		// ===== Dropped weapons =====

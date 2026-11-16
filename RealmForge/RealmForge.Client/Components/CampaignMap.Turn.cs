@@ -32,6 +32,9 @@ namespace RealmForge.Client.Components
 			return t.ActionSpent == TableCombat.SpentOther || (t.ActionSpent == TableCombat.SpentAttack && turn.AttacksMade >= most);
 		}
 
+		//	On its own turn, with the action and the bonus action used: no spell but a reaction is left (those wait)
+		private bool SpellsGone(MapTokenDto t) => TurnOf(t) is { } turn && IsTurnOf(t) && t.ActionSpent is not null && turn.BonusUsed;
+
 		//	The part of the turn a feature takes is used already (on its own turn; the reaction at any time)
 		private bool SlotGone(MapTokenDto t, RealmForge.Shared.Characters.FeatureSlot slot) => TurnOf(t) is { } turn && slot switch
 		{
@@ -186,6 +189,103 @@ namespace RealmForge.Client.Components
 			await StartAimAsync(reactor, attack);
 			await AimAtAsync(target.Id);
 			StateHasChanged();
+		}
+	
+		// ===== Readied actions =====
+
+		//	The draft of an action being readied from the turn panel: what (an attack of the sheet, or something else) and
+		//	its trigger
+		private Guid? readyFor;
+		private string readyWhat = string.Empty;
+
+		private void OpenReady(MapTokenDto t)
+		{
+			readyFor = readyFor == t.Id ? null : t.Id;
+			readyWhat = StatsOf(t)?.Sheet?.Attacks.FirstOrDefault()?.Name ?? UiText.VttReadyOther(Lang);
+			readyTrigger = string.Empty;
+		}
+
+		private async Task ReadyAsync(MapTokenDto t)
+		{
+			var trigger = readyTrigger.Trim();
+			if (map is null || trigger.Length == 0 || readyWhat.Trim().Length == 0)
+			{
+				turnNote = UiText.VttReadyNeedsTrigger(Lang);
+				return;
+			}
+			busy = true;
+			turnNote = null;
+			localEdits++;
+			var (_, error) = await Campaigns.TurnActionAsync(CampaignId, map.Id, t.Id, new TurnActionDto
+			{
+				Kind = "ready",
+				Trigger = trigger.Length > 120 ? trigger[..120] : trigger,
+				What = readyWhat.Length > 60 ? readyWhat[..60] : readyWhat
+			}, Lang);
+			busy = false;
+			if (error is not null)
+			{
+				turnNote = error.Length > 0 ? error : UiText.MapSaveFailed(Lang);
+			}
+			else
+			{
+				readyFor = null;
+				readyTrigger = string.Empty;
+			}
+			await RefreshAsync();
+		}
+
+		//	The readied actions whose trigger came, of the creatures this account plays
+		private List<MapTokenDto> ReadyAlerts => combat is null || combat.Round <= 0 ? new()
+			: tokens.Where(t => t.Turn?.Ready is { Fired: true } && CanRoll(t)).ToList();
+
+		//	Let go: a readied attack is aimed (the attack spends the reaction), a readied spell takes effect (its slot was
+		//	spent when it was readied), anything else is told
+		private async Task ReleaseReadyAsync(MapTokenDto t)
+		{
+			if (map is null || t.Turn?.Ready is not { } ready)
+			{
+				return;
+			}
+			await LoadStatsAsync(t);
+			var attack = ready.SpellId is null ? StatsOf(t)?.Sheet?.Attacks.FirstOrDefault(a => a.Name == ready.What) : null;
+			busy = true;
+			turnNote = null;
+			localEdits++;
+			var (_, error) = await Campaigns.TurnActionAsync(CampaignId, map.Id, t.Id, new TurnActionDto { Kind = "release", Wield = attack is null ? null : "attack" }, Lang);
+			busy = false;
+			if (error is not null)
+			{
+				turnNote = error.Length > 0 ? error : UiText.MapSaveFailed(Lang);
+				await RefreshAsync();
+				return;
+			}
+			if (attack is not null)
+			{
+				await StartAimAsync(t, attack);
+			}
+			else if (ready.SpellId is { } spellId && StatsOf(t)?.Sheet?.Casting?.SelectMany(c => c.Spells).FirstOrDefault(sp => sp.Id == spellId) is { } spell)
+			{
+				var detail = await SpellService.GetSpellDetailAsync(spellId, Lang);
+				//	Held with concentration until now
+				if (!spell.Concentration && t.CharacterId is not null)
+				{
+					await ChangeCharacterAsync(t, (sheet, _) =>
+					{
+						if (sheet.Concentration == spellId)
+						{
+							sheet.Concentration = null;
+						}
+					});
+				}
+				castNote = UiText.VttReadyReleased(ready.What, Lang);
+				await CastEffectAsync(t, spell, ready.Level, detail, new HashSet<string>(), OptionsOf(t));
+			}
+			else
+			{
+				castNote = UiText.VttReadyReleased(ready.What, Lang);
+			}
+			await RefreshAsync();
 		}
 	}
 }

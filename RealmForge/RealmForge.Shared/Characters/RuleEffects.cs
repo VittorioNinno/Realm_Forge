@@ -40,7 +40,20 @@ public enum RuleEffectKind
 
 	//	Building blocks of a module
 	ExtraAbility = 40,
-	Resource = 41
+	Resource = 41,
+
+	//	Automations: a feature used at the table (its part of the turn, its dice, what the roll does, the resource it
+	//	spends) and extra damage on the hits of an attack (asked before rolling, or always added)
+	Ability = 50,
+	OnHitDamage = 51
+}
+
+///	<summary>Which attacks extra damage on the hits joins.</summary>
+public enum AttackReachFilter
+{
+	Any = 0,
+	Melee = 1,
+	Ranged = 2
 }
 
 ///	<summary>
@@ -63,6 +76,10 @@ public enum ResourceUses
 ///	ExtraAbility: Key, NameIt / NameEn, ShortIt / ShortEn (three letters), Value = its value in the standard array
 ///	(default 10), Points = extra points for the point buy, Save = it has a saving throw;
 ///	Resource: NameIt / NameEn, Uses (with Value, Ability / AbilityKey), Reset.
+///	Ability: NameIt / NameEn, Slot, Roll (dice with MOD, PB, LV: the modifier of Ability / AbilityKey, the proficiency
+///	bonus, the character level), Outcome ("heal", "temp" or "none"), Resource (the name of a resource of the same
+///	entry: one use spent), Text (a note).
+///	OnHitDamage: NameIt / NameEn, Roll, DamageType, Attacks, OncePerTurn, Automatic (added without asking), Resource.
 ///	Level: the character level from which it works (1 for modules).
 ///	</summary>
 public sealed class RuleEffect
@@ -86,6 +103,14 @@ public sealed class RuleEffect
 
 	public ResourceUses Uses { get; set; } = ResourceUses.Fixed;
 	public ResourceReset Reset { get; set; } = ResourceReset.LongRest;
+
+	public FeatureSlot? Slot { get; set; }
+	public string? Roll { get; set; }
+	public string? Outcome { get; set; }
+	public string? Resource { get; set; }
+	public AttackReachFilter Attacks { get; set; }
+	public bool OncePerTurn { get; set; }
+	public bool Automatic { get; set; }
 
 	public string Name(LanguageCode lang) => (lang == LanguageCode.It ? NameIt ?? NameEn : NameEn ?? NameIt) ?? Key ?? string.Empty;
 
@@ -291,6 +316,47 @@ public static class RuleModules
 	});
 
 	private static bool Is(string? key, string other) => key is not null && string.Equals(key.Trim(), other, StringComparison.OrdinalIgnoreCase);
+
+	///	<summary>
+	///	The dice of an automation for this character: MOD, PB and LV replaced by the modifier of its ability, the
+	///	proficiency bonus and the character level ("1d8+MOD" → "1d8+3"); null when it has none or it does not read as dice.
+	///	</summary>
+	public static string? RollOf(RuleEffect e, ComputedCharacter c)
+	{
+		if (string.IsNullOrWhiteSpace(e.Roll))
+		{
+			return null;
+		}
+		var modifier = e.Ability is { } a && Enum.IsDefined(a) ? c.Modifier(a) : c.Extra(e.AbilityKey)?.Modifier ?? 0;
+		var text = AutomationRules.Resolve(e.Roll, modifier, c.ProficiencyBonus, c.Level);
+		return Rules.DiceNotation.TryParse(text, out var parsed) ? parsed.Text : null;
+	}
+
+	///	<summary>The key of the resource of an entry an automation spends (as CharacterResources keys it), or null.</summary>
+	public static string? ResourceKeyOf(RuleEffect e, string source) =>
+		string.IsNullOrWhiteSpace(e.Resource) ? null : $"module:{source}:{e.Resource.Trim()}".ToLowerInvariant();
+}
+
+///	<summary>
+///	The dice of the automations: the words they may use for numbers of the character, replaced before rolling.
+///	</summary>
+public static class AutomationRules
+{
+	public static readonly string[] Outcomes = ["none", "heal", "temp"];
+
+	public static string Resolve(string roll, int modifier, int proficiency, int level)
+	{
+		static string Signed(int n) => n < 0 ? $"-{-n}" : n.ToString(System.Globalization.CultureInfo.InvariantCulture);
+		var text = roll.Replace(" ", string.Empty).Replace('−', '-').ToUpperInvariant();
+		text = text.Replace("+MOD", modifier < 0 ? $"-{-modifier}" : $"+{modifier}").Replace("MOD", Signed(modifier));
+		text = text.Replace("PB", proficiency.ToString(System.Globalization.CultureInfo.InvariantCulture))
+			.Replace("LV", level.ToString(System.Globalization.CultureInfo.InvariantCulture));
+		return text.Replace("+-", "-").Replace("--", "+").ToLowerInvariant();
+	}
+
+	///	<summary>Whether a roll reads as dice once its words are replaced (any numbers).</summary>
+	public static bool Valid(string? roll) => !string.IsNullOrWhiteSpace(roll) && roll.Length <= 30
+		&& Rules.DiceNotation.TryParse(Resolve(roll, 2, 2, 5), out _);
 }
 
 ///	<summary>
@@ -321,7 +387,8 @@ public static class RuleEffectRules
 		foreach (var e in effects)
 		{
 			if (!Enum.IsDefined(e.Kind) || e.Level is < 1 or > 20 || Math.Abs(e.Value) > 100 || (e.Text?.Length ?? 0) > 60
-				|| (e.NameIt?.Length ?? 0) > 40 || (e.NameEn?.Length ?? 0) > 40 || (e.ShortIt?.Length ?? 0) > 4 || (e.ShortEn?.Length ?? 0) > 4)
+				|| (e.NameIt?.Length ?? 0) > 40 || (e.NameEn?.Length ?? 0) > 40 || (e.ShortIt?.Length ?? 0) > 4 || (e.ShortEn?.Length ?? 0) > 4
+				|| (e.Roll?.Length ?? 0) > 30 || (e.Resource?.Length ?? 0) > 40 || (e.Outcome?.Length ?? 0) > 10)
 			{
 				return "Invalid";
 			}
@@ -340,6 +407,14 @@ public static class RuleEffectRules
 				RuleEffectKind.Resource when string.IsNullOrWhiteSpace(e.NameIt) && string.IsNullOrWhiteSpace(e.NameEn) => "Name",
 				RuleEffectKind.Resource when e.Uses == ResourceUses.Fixed && e.Value is < 1 or > 50 => "Value",
 				RuleEffectKind.Resource when e.Uses == ResourceUses.AbilityModifier && e.Ability is null && string.IsNullOrWhiteSpace(e.AbilityKey) => "Ability",
+				RuleEffectKind.Ability or RuleEffectKind.OnHitDamage when string.IsNullOrWhiteSpace(e.NameIt) && string.IsNullOrWhiteSpace(e.NameEn) => "Name",
+				RuleEffectKind.Ability when e.Roll is not null && !AutomationRules.Valid(e.Roll) => "Roll",
+				RuleEffectKind.Ability when e.Slot is { } slot && !Enum.IsDefined(slot) => "Invalid",
+				RuleEffectKind.Ability when e.Outcome is not null && !AutomationRules.Outcomes.Contains(e.Outcome) => "Invalid",
+				RuleEffectKind.OnHitDamage when !AutomationRules.Valid(e.Roll) => "Roll",
+				RuleEffectKind.OnHitDamage when !Enum.IsDefined(e.Attacks) => "Invalid",
+				RuleEffectKind.Ability or RuleEffectKind.OnHitDamage when e.Resource is { } resource && !effects.Any(r => r.Kind == RuleEffectKind.Resource
+					&& (string.Equals(r.NameEn?.Trim() ?? r.NameIt?.Trim(), resource.Trim(), StringComparison.OrdinalIgnoreCase))) => "Resource",
 				_ => null
 			};
 			if (problem is not null)
@@ -387,6 +462,9 @@ public static class RuleEffectJson
 			e.NameEn = Trim(e.NameEn);
 			e.ShortIt = Trim(e.ShortIt)?.ToUpperInvariant();
 			e.ShortEn = Trim(e.ShortEn)?.ToUpperInvariant();
+			e.Roll = Trim(e.Roll);
+			e.Outcome = Trim(e.Outcome)?.ToLowerInvariant();
+			e.Resource = Trim(e.Resource);
 		}
 		return effects;
 	}

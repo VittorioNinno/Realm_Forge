@@ -792,6 +792,17 @@ jobs:
           md_char_delete=$(code -X DELETE "$api/api/characters/$md_char_id" -H "Authorization: Bearer $A")
           md_delete=$(code -X DELETE "$api/api/modules/$md_id" -H "Authorization: Bearer $A")
           md_bin=$(get "$api/api/trash?lang=2" -H "Authorization: Bearer $A" | jq -c '[.[] | select(.kind == "module") | .name]')
+          # Automations: a feature with its dice and a resource, extra damage on melee hits; dice that do not read are refused
+          am_mod=$(echo "$fortuna" | jq -c '.translations[0].name = "Braci" | .translations[1].name = "Embers" | .effects = [
+            {"kind":41,"nameIt":"Braci","nameEn":"Embers","value":3,"reset":1},
+            {"kind":50,"nameIt":"Soffio caldo","nameEn":"Warm breath","slot":2,"roll":"1d8+MOD","ability":5,"outcome":"heal","resource":"Embers"},
+            {"kind":51,"nameIt":"Colpo ardente","nameEn":"Burning strike","roll":"PBd6","damageType":4,"attacks":1,"oncePerTurn":true}]')
+          am=$(curl -s -X POST "$api/api/modules?lang=2" $json -H "Authorization: Bearer $A" -d "$am_mod")
+          am_id=$(echo "$am" | jq -r .id)
+          am_saved=$(get "$api/api/modules/$am_id?lang=2" -H "Authorization: Bearer $A" | jq -c '[.effects[] | select(.kind >= 50) | {kind, roll, resource, outcome, attacks, oncePerTurn}]')
+          am_bad=$(curl -s -X POST "$api/api/modules" $json -H "Authorization: Bearer $A" -d "$(echo "$am_mod" | jq -c '.effects[2].roll = "molto"')" | jq -r .detail)
+          am_orphan=$(curl -s -X POST "$api/api/modules" $json -H "Authorization: Bearer $A" -d "$(echo "$am_mod" | jq -c '.effects |= .[1:]')" | jq -r .detail)
+          code -X DELETE "$api/api/modules/$am_id" -H "Authorization: Bearer $A" > /dev/null
           # The same effects on a Homebrew feat: saved, read back, in the character context; a broken one is refused
           ef_feat=$(curl -s -X POST "$api/api/feats?lang=2" $json -H "Authorization: Bearer $A" -d "$(echo "$feat" | jq -c '.effects = [{"kind":4,"value":2},{"kind":32,"value":60}]')")
           ef_id=$(echo "$ef_feat" | jq -r .id)
@@ -819,6 +830,9 @@ jobs:
           mdcheck "character deleted" "$md_char_delete" "204"
           mdcheck "module deleted" "$md_delete" "204"
           mdcheck "module in the bin" "$md_bin" '["Fortuna"]'
+          mdcheck "automations saved" "$am_saved" '[{"kind":50,"roll":"1d8+MOD","resource":"Embers","outcome":"heal","attacks":0,"oncePerTurn":false},{"kind":51,"roll":"PBd6","resource":null,"outcome":null,"attacks":1,"oncePerTurn":true}]'
+          mdcheck "automation dice that do not read" "$am_bad" "Roll"
+          mdcheck "automation spending a resource it does not have" "$am_orphan" "Resource"
           mdcheck "feat effects saved" "$ef_detail" '[4,32]'
           mdcheck "feat effects in the context" "$ef_ctx" '[2]'
           mdcheck "feat effect without its skill" "$ef_bad" "Skill"
@@ -1039,8 +1053,8 @@ jobs:
           ss_delete=$(code -X DELETE "$api/api/campaigns/$ss_cp/sessions/$ss_id" -H "Authorization: Bearer $B")
           rl=$(curl -s -X POST "$api/api/campaigns/$ss_cp/rolls" $json -H "Authorization: Bearer $A" -d '{"expression":"1d20 + 5","label":"Percezione"}')
           rl_alice=$(echo "$rl" | jq -c '{expression, label, dice: (.dice | length), ok: (.total >= 6 and .total <= 25 and .total == .dice[0].value + 5), mine: .isMine}')
-          rl_adv=$(curl -s -X POST "$api/api/campaigns/$ss_cp/rolls" $json -H "Authorization: Bearer $A" -d '{"expression":"2d20kh1"}' \
-            | jq -c '{label, dropped: ([.dice[] | select(.dropped)] | length), ok: (.total == ([.dice[].value] | max))}')
+          rl_adv_raw=$(curl -s -X POST "$api/api/campaigns/$ss_cp/rolls" $json -H "Authorization: Bearer $A" -d '{"expression":"2d20kh1"}')
+          rl_adv=$(echo "$rl_adv_raw" | jq -c '{label, dropped: ([.dice[] | select(.dropped)] | length), ok: (.total == ([.dice[].value] | max))}')
           rl_bad=$(code -X POST "$api/api/campaigns/$ss_cp/rolls" $json -H "Authorization: Bearer $A" -d '{"expression":"1d20 5"}')
           rl_hidden_player=$(code -X POST "$api/api/campaigns/$ss_cp/rolls" $json -H "Authorization: Bearer $A" -d '{"expression":"1d6","hidden":true}')
           rl_hidden=$(code -X POST "$api/api/campaigns/$ss_cp/rolls" $json -H "Authorization: Bearer $B" -d '{"expression":"1d100","label":"Tabella incontri","hidden":true}')
@@ -1051,6 +1065,10 @@ jobs:
           rl_bob_log=$(curl -s "$api/api/campaigns/$ss_cp/rolls" -H "Authorization: Bearer $B" | jq -c '[.[] | {label, hidden, roller, master: (.color == "#ff8c00")}]')
           rl_colors=$(curl -s "$api/api/campaigns/$ss_cp?lang=2" -H "Authorization: Bearer $A" | jq -c '[.members[] | {name, orange: (.color == "#ff8c00"), hex: (.color | test("^#[0-9a-f]{6}$"))}] | sort_by(.name)')
           rl_since=$(curl -s "$api/api/campaigns/$ss_cp/rolls?after=$(echo "$rl" | jq -r .createdAt | jq -Rr @uri)" -H "Authorization: Bearer $A" | jq length)
+          # Export: every roll kept in a window of time (a session's day)
+          rl_window=$(curl -s "$api/api/campaigns/$ss_cp/rolls?all=true&after=$(echo "$rl" | jq -r .createdAt | jq -Rr @uri)&before=2100-01-01T00%3A00%3A00Z" -H "Authorization: Bearer $A" | jq length)
+          rl_upto=$(curl -s "$api/api/campaigns/$ss_cp/rolls?all=true&before=$(echo "$rl_adv_raw" | jq -r .createdAt | jq -Rr @uri)" -H "Authorization: Bearer $A" \
+            | jq -c --arg r "$(echo "$rl" | jq -r .id)" --arg a "$(echo "$rl_adv_raw" | jq -r .id)" '[([.[].id] | index($r) != null), ([.[].id] | index($a) != null)]')
           # Virtual tabletop: the master prepares a map, hides one token, shows the map; the player sees the visible token only
           # and cannot create maps nor move a token that is not theirs
           png="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=="
@@ -1238,6 +1256,114 @@ jobs:
           tu_reset_player=$(code -X POST "$api/api/campaigns/$ss_cp/maps/$mp2/tokens/$ctl_tree/turn?lang=2" $json -H "Authorization: Bearer $A" -d '{"kind":"reset"}')
           tu_reset=$(code -X POST "$api/api/campaigns/$ss_cp/maps/$mp2/tokens/$ctl_tree/turn?lang=2" $json -H "Authorization: Bearer $B" -d '{"kind":"reset"}')
           tu_reset_state=$(curl -s "$api/api/campaigns/$ss_cp/maps/$mp2/state" -H "Authorization: Bearer $A" | jq -c '[.tokens[] | select(.label == "Albero") | [.turn.bonusUsed, .turn.moved, .actionSpent]]')
+          # A spell cast takes its part of the turn: the action once, then refused
+          tu_cast=$(code -X POST "$api/api/campaigns/$ss_cp/maps/$mp2/tokens/$ctl_tree/turn?lang=2" $json -H "Authorization: Bearer $A" -d '{"kind":"cast","wield":"action","level":1}')
+          tu_cast_again=$(code -X POST "$api/api/campaigns/$ss_cp/maps/$mp2/tokens/$ctl_tree/turn?lang=2" $json -H "Authorization: Bearer $A" -d '{"kind":"cast","wield":"action","level":0}')
+          # A readied action: refused to the player once the action is used, readied by the master; the trigger comes, the
+          # player lets it go with the reaction
+          rd_player=$(code -X POST "$api/api/campaigns/$ss_cp/maps/$mp2/tokens/$ctl_tree/turn?lang=2" $json -H "Authorization: Bearer $A" -d '{"kind":"ready","trigger":"quando esce","what":"Altro"}')
+          rd_master=$(code -X POST "$api/api/campaigns/$ss_cp/maps/$mp2/tokens/$ctl_tree/turn?lang=2" $json -H "Authorization: Bearer $B" -d '{"kind":"ready","trigger":"quando esce","what":"Altro"}')
+          code -X POST "$api/api/campaigns/$ss_cp/maps/$mp2/tokens/$ctl_tree/turn?lang=2" $json -H "Authorization: Bearer $A" -d '{"kind":"trigger"}' > /dev/null
+          rd_fired=$(curl -s "$api/api/campaigns/$ss_cp/maps/$mp2/state" -H "Authorization: Bearer $A" | jq -c '[.tokens[] | select(.label == "Albero") | .turn.ready | {what, fired}]')
+          rd_release=$(code -X POST "$api/api/campaigns/$ss_cp/maps/$mp2/tokens/$ctl_tree/turn?lang=2" $json -H "Authorization: Bearer $A" -d '{"kind":"release"}')
+          rd_after=$(curl -s "$api/api/campaigns/$ss_cp/maps/$mp2/state" -H "Authorization: Bearer $A" | jq -c '[.tokens[] | select(.label == "Albero") | [.turn.ready, .reactionUsed]]')
+          # A grapple at the creature next to it (against DC 40 it holds): the bandit is held, then let go
+          gr_hold=$(curl -s -X POST "$api/api/campaigns/$ss_cp/maps/$mp2/tokens/$ctl_tree/grapple?lang=2" $json -H "Authorization: Bearer $B" \
+            -d "{\"targetId\":\"$at_target\",\"kind\":\"grapple\",\"dc\":40}" | jq -c '.hit')
+          gr_state=$(curl -s "$api/api/campaigns/$ss_cp/maps/$mp2/state" -H "Authorization: Bearer $B" | jq -c --arg t "$ctl_tree" '[.tokens[] | select(.label == "Bandito") | [(.turn.grappledBy == $t), (.conditions | index("grappled") != null)]]')
+          gr_release=$(code -X POST "$api/api/campaigns/$ss_cp/maps/$mp2/tokens/$ctl_tree/grapple?lang=2" $json -H "Authorization: Bearer $B" -d "{\"targetId\":\"$at_target\",\"kind\":\"release\"}")
+          gr_after=$(curl -s "$api/api/campaigns/$ss_cp/maps/$mp2/state" -H "Authorization: Bearer $B" | jq -c '[.tokens[] | select(.label == "Bandito") | .turn.grappledBy]')
+          # An aura on the bandit: set by the master (not by a player who does not control it), seen, taken away
+          au_player=$(code -X PUT "$api/api/campaigns/$ss_cp/maps/$mp2/tokens/$at_target/aura" $json -H "Authorization: Bearer $A" -d '{"name":"Spiriti","radius":3}')
+          au_set=$(code -X PUT "$api/api/campaigns/$ss_cp/maps/$mp2/tokens/$at_target/aura" $json -H "Authorization: Bearer $B" -d '{"name":"Spiriti","radius":3,"enemies":true,"ability":5,"dc":14,"damage":"3d8","damageType":"radiosi","half":true}')
+          au_seen=$(curl -s "$api/api/campaigns/$ss_cp/maps/$mp2/state" -H "Authorization: Bearer $A" | jq -c '[.tokens[] | select(.label == "Bandito") | .aura | {name, radius, ability}]')
+          au_off=$(code -X PUT "$api/api/campaigns/$ss_cp/maps/$mp2/tokens/$at_target/aura" $json -H "Authorization: Bearer $B" -d '{"radius":0}')
+          au_gone=$(curl -s "$api/api/campaigns/$ss_cp/maps/$mp2/state" -H "Authorization: Bearer $A" | jq -c '[.tokens[] | select(.label == "Bandito") | .aura]')
+          # A creature called by the player's token: next to it, controlled by the player; ridden, got off, dismissed
+          sm_mon=$(curl -s "$api/api/monsters?ruleset=1&lang=2" -H "Authorization: Bearer $A" | jq -r '.[0].id')
+          sm_token=$(curl -s -X POST "$api/api/campaigns/$ss_cp/maps/$mp2/tokens/$ctl_tree/summon" $json -H "Authorization: Bearer $A" -d "{\"monsterId\":\"$sm_mon\",\"shareTurn\":true}" | jq -r '.id')
+          sm_seen=$(curl -s "$api/api/campaigns/$ss_cp/maps/$mp2/state" -H "Authorization: Bearer $A" | jq -c --arg s "$sm_token" --arg o "$ctl_tree" '[.tokens[] | select(.id == $s) | [.controlled, (.summonedBy == $o)]]')
+          mt_on=$(code -X POST "$api/api/campaigns/$ss_cp/maps/$mp2/tokens/$ctl_tree/mount?lang=2" $json -H "Authorization: Bearer $A" -d "{\"mountId\":\"$sm_token\"}")
+          mt_state=$(curl -s "$api/api/campaigns/$ss_cp/maps/$mp2/state" -H "Authorization: Bearer $A" | jq -c --arg s "$sm_token" '[.tokens[] | select(.label == "Albero") | (.mountedOn == $s)]')
+          mt_off=$(code -X DELETE "$api/api/campaigns/$ss_cp/maps/$mp2/tokens/$ctl_tree/mount" -H "Authorization: Bearer $A")
+          sm_gone=$(code -X DELETE "$api/api/campaigns/$ss_cp/maps/$mp2/tokens/$sm_token/summon" -H "Authorization: Bearer $A")
+          # Dynamic vision: in the dark the player sees only what their creature sees; a torch shows the wolf
+          vi_player=$(code -X PUT "$api/api/campaigns/$ss_cp/maps/$mp2/lighting" $json -H "Authorization: Bearer $A" -d '{"lighting":2,"dynamicVision":true}')
+          vi_set=$(code -X PUT "$api/api/campaigns/$ss_cp/maps/$mp2/lighting" $json -H "Authorization: Bearer $B" -d '{"lighting":2,"dynamicVision":true}')
+          vi_wolf=$(curl -s -X POST "$api/api/campaigns/$ss_cp/maps/$mp2/tokens" $json -H "Authorization: Bearer $B" -d '{"label":"Lupo","kind":3,"x":1,"y":1,"size":1}' | jq -r .id)
+          vi_guide=$(curl -s -X POST "$api/api/campaigns/$ss_cp/maps/$mp2/tokens" $json -H "Authorization: Bearer $B" -d '{"label":"Guida","kind":2,"x":8,"y":6,"size":1}' | jq -r .id)
+          code -X PUT "$api/api/campaigns/$ss_cp/maps/$mp2/tokens/$vi_guide" $json -H "Authorization: Bearer $B" -d "{\"label\":\"Guida\",\"kind\":2,\"x\":8,\"y\":6,\"size\":1,\"controlledBy\":[\"$ctl_user\"]}" > /dev/null
+          vi_dark=$(curl -s "$api/api/campaigns/$ss_cp/maps/$mp2/state" -H "Authorization: Bearer $A" | jq -c '{wolf: ([.tokens[] | select(.label == "Lupo")] | length), lighting: .table.lighting, dynamic: .table.dynamicVision, own: ((.table.vision.bright | length) > 0)}')
+          vi_torch=$(code -X PUT "$api/api/campaigns/$ss_cp/maps/$mp2/tokens/$vi_wolf/vision" $json -H "Authorization: Bearer $B" -d '{"name":"Torcia","bright":20,"dim":20}')
+          vi_lit=$(curl -s "$api/api/campaigns/$ss_cp/maps/$mp2/state" -H "Authorization: Bearer $A" | jq -c '[.tokens[] | select(.label == "Lupo") | .light.bright]')
+          vi_master=$(curl -s "$api/api/campaigns/$ss_cp/maps/$mp2/state" -H "Authorization: Bearer $B" | jq -c '{wolf: ([.tokens[] | select(.label == "Lupo")] | length), dv: [.tokens[] | select(.label == "Guida") | .darkvision]}')
+          vi_dv=$(code -X PUT "$api/api/campaigns/$ss_cp/maps/$mp2/tokens/$vi_guide/vision" $json -H "Authorization: Bearer $A" -d '{"darkvision":60}')
+          vi_dv_bad=$(code -X PUT "$api/api/campaigns/$ss_cp/maps/$mp2/tokens/$vi_guide/vision" $json -H "Authorization: Bearer $A" -d '{"darkvision":999}')
+          vi_dv_seen=$(curl -s "$api/api/campaigns/$ss_cp/maps/$mp2/state" -H "Authorization: Bearer $A" | jq -c '[.tokens[] | select(.label == "Guida") | .darkvision]')
+          code -X PUT "$api/api/campaigns/$ss_cp/maps/$mp2/lighting" $json -H "Authorization: Bearer $B" -d '{"lighting":0,"dynamicVision":false}' > /dev/null
+          code -X DELETE "$api/api/campaigns/$ss_cp/maps/$mp2/tokens/$vi_wolf" -H "Authorization: Bearer $B" > /dev/null
+          code -X DELETE "$api/api/campaigns/$ss_cp/maps/$mp2/tokens/$vi_guide" -H "Authorization: Bearer $B" > /dev/null
+          # Undo: a master takes back their own edits, the last first (a token removed comes back as it was)
+          un_player=$(code -X POST "$api/api/campaigns/$ss_cp/maps/$mp2/undo" -H "Authorization: Bearer $A")
+          un_id=$(curl -s -X POST "$api/api/campaigns/$ss_cp/maps/$mp2/tokens" $json -H "Authorization: Bearer $B" -d '{"label":"Statua","kind":4,"x":2,"y":2,"size":1}' | jq -r .id)
+          code -X POST "$api/api/campaigns/$ss_cp/maps/$mp2/tokens/$un_id/move" $json -H "Authorization: Bearer $B" -d '{"x":3,"y":3}' > /dev/null
+          code -X DELETE "$api/api/campaigns/$ss_cp/maps/$mp2/tokens/$un_id" -H "Authorization: Bearer $B" > /dev/null
+          un1=$(curl -s -X POST "$api/api/campaigns/$ss_cp/maps/$mp2/undo" -H "Authorization: Bearer $B" | jq -c '{kind, more: (.left > 0)}')
+          un1_seen=$(curl -s "$api/api/campaigns/$ss_cp/maps/$mp2/state" -H "Authorization: Bearer $B" | jq -c --arg u "$un_id" '[.tokens[] | select(.id == $u) | [.x, .y, .label]]')
+          code -X POST "$api/api/campaigns/$ss_cp/maps/$mp2/undo" -H "Authorization: Bearer $B" > /dev/null
+          un2_seen=$(curl -s "$api/api/campaigns/$ss_cp/maps/$mp2/state" -H "Authorization: Bearer $B" | jq -c --arg u "$un_id" '[.tokens[] | select(.id == $u) | [.x, .y]]')
+          code -X POST "$api/api/campaigns/$ss_cp/maps/$mp2/undo" -H "Authorization: Bearer $B" > /dev/null
+          un3_seen=$(curl -s "$api/api/campaigns/$ss_cp/maps/$mp2/state" -H "Authorization: Bearer $B" | jq -c --arg u "$un_id" '[.tokens[] | select(.id == $u)] | length')
+          un_tr_before=$(curl -s "$api/api/campaigns/$ss_cp/maps/$mp2/state" -H "Authorization: Bearer $B" | jq -c '.terrain.cells | length')
+          code -X PUT "$api/api/campaigns/$ss_cp/maps/$mp2/terrain" $json -H "Authorization: Bearer $B" -d '{"cells":[5,5],"kind":1,"blockPlayers":true}' > /dev/null
+          un_tr=$(curl -s -X POST "$api/api/campaigns/$ss_cp/maps/$mp2/undo" -H "Authorization: Bearer $B" | jq -r .kind)
+          un_tr_after=$(curl -s "$api/api/campaigns/$ss_cp/maps/$mp2/state" -H "Authorization: Bearer $B" | jq -c '.terrain.cells | length')
+          un_table=$(curl -s "$api/api/campaigns/$ss_cp/maps/$mp2/state" -H "Authorization: Bearer $A" | jq -c '.table.undo')
+          # Monster drawer: a group kept for the campaign; monsters placed in one go (hidden), one step to undo
+          dr_player=$(code "$api/api/campaigns/$ss_cp/maps/groups" -H "Authorization: Bearer $A")
+          dr_mon2=$(curl -s "$api/api/monsters?ruleset=1&lang=2" -H "Authorization: Bearer $B" | jq -r '.[1].id')
+          dr_save=$(curl -s -X POST "$api/api/campaigns/$ss_cp/maps/groups?lang=2" $json -H "Authorization: Bearer $B" \
+            -d "{\"name\":\"Pattuglia\",\"entries\":[{\"monsterId\":\"$sm_mon\",\"count\":2},{\"monsterId\":\"$dr_mon2\",\"count\":1},{\"monsterId\":\"$sm_mon\",\"count\":1}]}")
+          dr_group=$(echo "$dr_save" | jq -r .id)
+          dr_saved=$(echo "$dr_save" | jq -c '{name, counts: [.entries[].count], names: (.names | length)}')
+          dr_bad=$(code -X POST "$api/api/campaigns/$ss_cp/maps/groups" $json -H "Authorization: Bearer $B" -d "{\"name\":\"Troppi\",\"entries\":[{\"monsterId\":\"$sm_mon\",\"count\":99}]}")
+          dr_list=$(curl -s "$api/api/campaigns/$ss_cp/maps/groups" -H "Authorization: Bearer $B" | jq -c '[.[] | .name]')
+          dr_before=$(curl -s "$api/api/campaigns/$ss_cp/maps/$mp2/state" -H "Authorization: Bearer $B" | jq -c --arg m "$sm_mon" '[.tokens[] | select(.monsterId == $m)] | length')
+          dr_place=$(curl -s -X POST "$api/api/campaigns/$ss_cp/maps/$mp2/tokens/monsters?lang=2" $json -H "Authorization: Bearer $B" \
+            -d "{\"entries\":[{\"monsterId\":\"$sm_mon\",\"count\":3}],\"x\":350,\"y\":245,\"hidden\":true}" | jq -c '[length, all(.[]; .hidden), ([.[] | [.x, .y]] | unique | length)]')
+          dr_player_seen=$(curl -s "$api/api/campaigns/$ss_cp/maps/$mp2/state" -H "Authorization: Bearer $A" | jq -c '[.tokens[] | select(.hidden)] | length')
+          dr_undo=$(curl -s -X POST "$api/api/campaigns/$ss_cp/maps/$mp2/undo" -H "Authorization: Bearer $B" | jq -r .kind)
+          dr_after=$(curl -s "$api/api/campaigns/$ss_cp/maps/$mp2/state" -H "Authorization: Bearer $B" | jq -c --arg m "$sm_mon" '[.tokens[] | select(.monsterId == $m)] | length')
+          dr_del=$(code -X DELETE "$api/api/campaigns/$ss_cp/maps/groups/$dr_group" -H "Authorization: Bearer $B")
+          # Floors: stairs on this map linked (both ways) to stairs on another map; a creature next to them goes through
+          fl_map=$(curl -s -X POST "$api/api/campaigns/$ss_cp/maps" $json -H "Authorization: Bearer $B" -d "$(jq -nc --arg i "$png" '{name:"Piano 2",image:$i,width:700,height:490,gridType:0,gridSize:70,gridOffsetX:0,gridOffsetY:0,shown:false}')" | jq -r .id)
+          fl_up=$(curl -s -X POST "$api/api/campaigns/$ss_cp/maps/$mp2/tokens" $json -H "Authorization: Bearer $B" -d '{"label":"Scale","kind":5,"propType":9,"propState":1,"playersInteract":true,"x":1,"y":5,"size":1,"layer":1}' | jq -r .id)
+          fl_down=$(curl -s -X POST "$api/api/campaigns/$ss_cp/maps/$fl_map/tokens" $json -H "Authorization: Bearer $B" -d '{"label":"Scale giù","kind":5,"propType":9,"propState":1,"playersInteract":true,"x":2,"y":2,"size":1,"layer":1}' | jq -r .id)
+          fl_walker=$(curl -s -X POST "$api/api/campaigns/$ss_cp/maps/$mp2/tokens" $json -H "Authorization: Bearer $B" -d '{"label":"Viandante","kind":4,"x":2,"y":5,"size":1}' | jq -r .id)
+          fl_link_player=$(code -X PUT "$api/api/campaigns/$ss_cp/maps/$mp2/tokens/$fl_up/link" $json -H "Authorization: Bearer $A" -d "{\"targetId\":\"$fl_down\"}")
+          fl_link=$(code -X PUT "$api/api/campaigns/$ss_cp/maps/$mp2/tokens/$fl_up/link" $json -H "Authorization: Bearer $B" -d "{\"targetId\":\"$fl_down\",\"bothWays\":true}")
+          fl_links=$(curl -s "$api/api/campaigns/$ss_cp/maps/links" -H "Authorization: Bearer $B" | jq -c '[.[] | select(.label | startswith("Scale")) | .mapName] | sort')
+          fl_label=$(curl -s "$api/api/campaigns/$ss_cp/maps/$mp2/state" -H "Authorization: Bearer $B" | jq -c --arg u "$fl_up" '[.tokens[] | select(.id == $u) | .linkLabel]')
+          fl_label_player=$(curl -s "$api/api/campaigns/$ss_cp/maps/$mp2/state" -H "Authorization: Bearer $A" | jq -c --arg u "$fl_up" '[.tokens[] | select(.id == $u) | .linkLabel]')
+          fl_toggle_player=$(code -X POST "$api/api/campaigns/$ss_cp/maps/$mp2/tokens/$fl_up/interact" -H "Authorization: Bearer $A")
+          fl_go=$(curl -s -X POST "$api/api/campaigns/$ss_cp/maps/$mp2/tokens/$fl_up/travel" $json -H "Authorization: Bearer $B" -d "{\"tokenId\":\"$fl_walker\"}" | jq -c --arg m "$fl_map" 'if .title then {title, status, detail} else {there: (.mapId == $m), x, y, displayed} end')
+          fl_there=$(curl -s "$api/api/campaigns/$ss_cp/maps/$fl_map/state" -H "Authorization: Bearer $B" | jq -c '[.tokens[] | select(.label == "Viandante") | .label]')
+          fl_gone=$(curl -s "$api/api/campaigns/$ss_cp/maps/$mp2/state" -H "Authorization: Bearer $B" | jq -c '[.tokens[] | select(.label == "Viandante")] | length')
+          fl_back=$(curl -s -X POST "$api/api/campaigns/$ss_cp/maps/$fl_map/tokens/$fl_down/travel" $json -H "Authorization: Bearer $B" -d "{\"tokenId\":\"$fl_walker\"}" | jq -c --arg m "$mp2" '(.mapId == $m)')
+          fl_far=$(curl -s -X POST "$api/api/campaigns/$ss_cp/maps/$mp2/tokens/$fl_up/travel" $json -H "Authorization: Bearer $B" -d "{\"tokenId\":\"$at_target\"}" -o /dev/null -w '%{http_code}')
+          code -X DELETE "$api/api/campaigns/$ss_cp/maps/$mp2/tokens/$fl_walker" -H "Authorization: Bearer $B" > /dev/null
+          code -X DELETE "$api/api/campaigns/$ss_cp/maps/$mp2/tokens/$fl_up" -H "Authorization: Bearer $B" > /dev/null
+          code -X DELETE "$api/api/campaigns/$ss_cp/maps/$fl_map" -H "Authorization: Bearer $B" > /dev/null
+          # A spell asks for a save: the damage rolled once, the target waits; only who controls it (or a master) rolls
+          sv_call=$(curl -s -X POST "$api/api/campaigns/$ss_cp/maps/$mp2/saves?lang=2" $json -H "Authorization: Bearer $A" \
+            -d "{\"casterId\":\"$ctl_tree\",\"spell\":\"Prova\",\"ability\":2,\"dc\":30,\"half\":true,\"targetIds\":[\"$at_target\"]}")
+          sv_id=$(echo "$sv_call" | jq -r '.id')
+          sv_shape=$(echo "$sv_call" | jq -c '{targets: (.targets | length), dc, ability, damage}')
+          sv_seen=$(curl -s "$api/api/campaigns/$ss_cp/maps/$mp2/state" -H "Authorization: Bearer $B" | jq -c '[(.table.saves // [])[] | select(.id == "'"$sv_id"'") | .targets | length]')
+          sv_player=$(code -X POST "$api/api/campaigns/$ss_cp/maps/$mp2/saves/$sv_id/targets/$at_target?lang=2" $json -H "Authorization: Bearer $A" -d '{"bonus":0}')
+          sv_resolved=$(curl -s -X POST "$api/api/campaigns/$ss_cp/maps/$mp2/saves/$sv_id/targets/$at_target?lang=2" $json -H "Authorization: Bearer $B" -d '{"bonus":0}' \
+            | jq -c '[.targets[0].saved, (.targets[0].dealt == .damage)]')
+          sv_gone=$(curl -s "$api/api/campaigns/$ss_cp/maps/$mp2/state" -H "Authorization: Bearer $B" | jq -c '[(.table.saves // [])[] | select(.id == "'"$sv_id"'")] | length')
           code -X POST "$api/api/campaigns/$ss_cp/maps/$mp2/combat/next" -H "Authorization: Bearer $B" > /dev/null
           tu_offturn=$(code -X POST "$api/api/campaigns/$ss_cp/maps/$mp2/tokens/$ctl_tree/move" $json -H "Authorization: Bearer $A" -d '{"x":7,"y":6}')
           at_take_turn=$(code -X POST "$api/api/campaigns/$ss_cp/maps/$mp2/tokens/$at_item/take?lang=2" $json -H "Authorization: Bearer $A" -d "{\"byTokenId\":\"$ctl_tree\",\"index\":0}")
@@ -1323,6 +1449,8 @@ jobs:
           sscheck "master log" "$rl_bob_log" '[{"label":"Tabella incontri","hidden":true,"roller":"Master","master":true},{"label":"2d20kh1","hidden":false,"roller":"Alice","master":false},{"label":"Percezione","hidden":false,"roller":"Alice","master":false}]'
           sscheck "member colours" "$rl_colors" '[{"name":"Alice","orange":false,"hex":true},{"name":"Bob","orange":true,"hex":true}]'
           sscheck "rolls since" "$rl_since" "1"
+          sscheck "rolls export: a window of time" "$rl_window" "1"
+          sscheck "rolls export: up to a time" "$rl_upto" "[true,false]"
           sscheck "map by a player" "$mp_player_create" "403"
           sscheck "map not shown to the player" "$mp_hidden_list" "0"
           sscheck "token outside the map" "$mp_outside" "400"
@@ -1416,6 +1544,67 @@ jobs:
           sscheck "turn: only a master gives it back" "$tu_reset_player" "403"
           sscheck "turn: given back by the master" "$tu_reset" "204"
           sscheck "turn: all of it free again" "$tu_reset_state" "[[false,0,null]]"
+          sscheck "turn: a spell takes the action" "$tu_cast" "204"
+          sscheck "turn: no second spell with the action used" "$tu_cast_again" "409"
+          sscheck "ready: not with the action used" "$rd_player" "409"
+          sscheck "ready: readied by the master" "$rd_master" "204"
+          sscheck "ready: the trigger came" "$rd_fired" '[{"what":"Altro","fired":true}]'
+          sscheck "ready: let go" "$rd_release" "204"
+          sscheck "ready: gone, the reaction used" "$rd_after" "[[null,true]]"
+          sscheck "grapple: held against DC 40" "$gr_hold" "true"
+          sscheck "grapple: the bandit held and grappled" "$gr_state" "[[true,true]]"
+          sscheck "grapple: let go" "$gr_release" "200"
+          sscheck "grapple: free again" "$gr_after" "[null]"
+          sscheck "aura: not set by a player who does not control the token" "$au_player" "403"
+          sscheck "aura: set by the master" "$au_set" "204"
+          sscheck "aura: seen at the table" "$au_seen" '[{"name":"Spiriti","radius":3,"ability":5}]'
+          sscheck "aura: taken away" "$au_off" "204"
+          sscheck "aura: gone" "$au_gone" "[null]"
+          sscheck "summon: next to it, controlled by the player" "$sm_seen" "[[true,true]]"
+          sscheck "mount: ridden" "$mt_on" "204"
+          sscheck "mount: the rider on it" "$mt_state" "[true]"
+          sscheck "mount: got off" "$mt_off" "204"
+          sscheck "summon: dismissed" "$sm_gone" "204"
+          sscheck "vision: only masters set the light" "$vi_player" "403"
+          sscheck "vision: dark map, dynamic vision" "$vi_set" "204"
+          sscheck "vision: the unseen wolf is not sent" "$vi_dark" '{"wolf":0,"lighting":2,"dynamic":true,"own":true}'
+          sscheck "vision: a torch on the wolf" "$vi_torch" "204"
+          sscheck "vision: the lit wolf is seen" "$vi_lit" "[20]"
+          sscheck "vision: the master sees all" "$vi_master" '{"wolf":1,"dv":[0]}'
+          sscheck "vision: darkvision set by its player" "$vi_dv" "204"
+          sscheck "vision: darkvision out of range" "$vi_dv_bad" "400"
+          sscheck "vision: darkvision kept" "$vi_dv_seen" "[60]"
+          sscheck "undo: only masters" "$un_player" "403"
+          sscheck "undo: the removed token is back" "$un1" '{"kind":"tokens","more":true}'
+          sscheck "undo: where it was removed" "$un1_seen" '[[3,3,"Statua"]]'
+          sscheck "undo: the move taken back" "$un2_seen" "[[2,2]]"
+          sscheck "undo: the token placed taken away" "$un3_seen" "0"
+          sscheck "undo: the terrain painted taken back" "$un_tr|$un_tr_after" "terrain|$un_tr_before"
+          sscheck "undo: nothing for the players" "$un_table" "0"
+          sscheck "drawer: groups for the masters only" "$dr_player" "404"
+          sscheck "drawer: a group saved (the same monster once)" "$dr_saved" '{"name":"Pattuglia","counts":[3,1],"names":2}'
+          sscheck "drawer: too many of one" "$dr_bad" "400"
+          sscheck "drawer: the groups listed" "$dr_list" '["Pattuglia"]'
+          sscheck "drawer: three placed hidden, each on its own cell" "$dr_place" "[3,true,3]"
+          sscheck "drawer: hidden from the players" "$dr_player_seen" "0"
+          sscheck "drawer: placing undone in one step" "$dr_undo|$dr_after" "tokens|$dr_before"
+          sscheck "drawer: group deleted" "$dr_del" "204"
+          sscheck "floors: only masters link" "$fl_link_player" "403"
+          sscheck "floors: stairs linked" "$fl_link" "204"
+          sscheck "floors: the stairs of every map" "$fl_links" '["Foresta","Piano 2"]'
+          sscheck "floors: where they lead, for the masters" "$fl_label" '["Piano 2 · Scale giù"]'
+          sscheck "floors: not told to the players" "$fl_label_player" "[null]"
+          sscheck "floors: the players do not switch stairs off" "$fl_toggle_player" "403"
+          sscheck "floors: upstairs, on the other end" "$fl_go" '{"there":true,"x":2,"y":2,"displayed":false}'
+          sscheck "floors: on the other map" "$fl_there" '["Viandante"]'
+          sscheck "floors: gone from this one" "$fl_gone" "0"
+          sscheck "floors: and back down (both ways)" "$fl_back" "true"
+          sscheck "floors: too far from the stairs" "$fl_far" "409"
+          sscheck "saves: asked of the target" "$sv_shape" '{"targets":1,"dc":30,"ability":2,"damage":null}'
+          sscheck "saves: the masters see them" "$sv_seen" "[1]"
+          sscheck "saves: a player does not roll an enemy's save" "$sv_player" "403"
+          sscheck "saves: failed against DC 30" "$sv_resolved" "[false,true]"
+          sscheck "saves: gone once every target rolled" "$sv_gone" "0"
           sscheck "turn: no move off its turn" "$tu_offturn" "409"
           sscheck "player drops another's weapon" "$at_drop_player" "403"
           sscheck "weapon dropped next to its owner" "$at_dropped" '{"propType":8,"label":"Spada","layer":1}'

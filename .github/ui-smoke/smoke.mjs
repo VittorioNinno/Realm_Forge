@@ -377,6 +377,16 @@ try {
   // Rules terms in the other modules: Command 2024 links "prono" and "azione bonus", with a tooltip and a link to the glossary
   await page.goto(`${base}/spells`);
   await page.locator('[data-test=spell-level-group]').first().waitFor({ timeout: 60000 });
+  // Pins: the spells page pinned to the side menu from the top bar, then taken away
+  await page.locator('[data-test=pin-page]').click();
+  await page.locator('[data-test=nav-pin]').first().waitFor({ timeout: 5000 });
+  const pinLabel = (await page.locator('[data-test=nav-pin] .sb-label').first().innerText()).trim();
+  const pinPressed = await page.locator('[data-test=pin-page]').getAttribute('aria-pressed');
+  await page.locator('[data-test=pin-page]').click();
+  await page.locator('[data-test=nav-pins]').waitFor({ state: 'detached', timeout: 5000 });
+  results.push(`INFO pins: label="${pinLabel}" pressed=${pinPressed}`);
+  if (pinLabel !== 'Incantesimi' || pinPressed !== 'true') throw new Error(`unexpected pin: ${pinLabel} ${pinPressed}`);
+  ok('pins: the spells page pinned to the side menu and taken away');
   await pickOption('spell-ruleset', '5.5e (2024)');
   await page.locator('[data-test=spell-search]').fill('comando');
   await page.locator('[data-test=spell-card]').filter({ has: page.locator('.rf-card-title', { hasText: /^Comando$/ }) }).first().click();
@@ -1662,7 +1672,8 @@ try {
     ruler: (await page.locator('[data-test=map-ruler-label]').textContent())?.trim(),
     displayed: await page.locator('[data-test=vtt-displayed]').count(),
     zoom: (await page.locator('[data-test=vtt] [data-test=map-zoom]').innerText()).trim(),
-    tools: await page.locator('.rf-vtt-tool').count()
+    tools: await page.locator('.rf-vtt-tool').count(),
+    connection: await page.locator('[data-test=vtt-connection]').getAttribute('data-state')
   };
   await page.locator('[data-test=vtt-tool-tokens]').click();
   await page.locator('[data-test=vtt-drawer]').waitFor({ timeout: 15000 });
@@ -1674,7 +1685,7 @@ try {
   await shot(page, 'phone-vtt-table', null);
   await page.setViewportSize({ width: 1280, height: 900 });
   results.push(`INFO vtt: ${JSON.stringify(vttUi)}`);
-  if (vttUi.ruler !== '3 · 4,5 m' || vttUi.displayed !== 1 || vttUi.zoom === '100%' || vttUi.tools !== 12 || vttUi.phoneZoom === vttUi.zoom) throw new Error(`unexpected virtual tabletop: ${JSON.stringify(vttUi)}`);
+  if (vttUi.ruler !== '3 · 4,5 m' || vttUi.displayed !== 1 || vttUi.zoom === '100%' || vttUi.tools !== 14 || vttUi.connection !== 'live' || vttUi.phoneZoom === vttUi.zoom) throw new Error(`unexpected virtual tabletop: ${JSON.stringify(vttUi)}`);
   ok('virtual tabletop: the table on the whole window with the map shown to the players, fitted to the screen, the tools on the left, the ruler measuring three cells (4,5 m), the map fitted again on a phone');
   // A sphere of 1 cell (1,5 m) around the hero: its cell and the three around it on the map; a stroke, then erased;
   // a note for the masters

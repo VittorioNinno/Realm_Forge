@@ -47,9 +47,10 @@ public static class PlayerColors
 ///	</summary>
 public static class SessionRules
 {
-	//	Most sessions and rolls kept per campaign (the oldest rolls make room for the new ones)
+	//	Most sessions and rolls kept per campaign (the oldest rolls make room for the new ones): enough rolls for a few
+	//	whole sessions, to export the log of each
 	public const int MaxSessions = 300;
-	public const int MaxRolls = 200;
+	public const int MaxRolls = 1500;
 
 	//	Masters and co-masters plan the sessions and write their recap; the players read them
 	public static bool CanManageSessions(CampaignRole role) => CampaignRules.RunsTheTable(role);

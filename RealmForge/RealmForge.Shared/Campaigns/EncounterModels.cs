@@ -101,6 +101,22 @@ public class EncounterCombatant
 	//	The cells it moved in its turn (its speed left)
 	public int Moved { get; set; }
 
+	//	The spells of its turn: one of level 1+ cast, one cast as a bonus action, one of level 1+ cast with the action
+	public bool SlotSpell { get; set; }
+	public bool BonusSpell { get; set; }
+	public bool ActionSlotSpell { get; set; }
+
+	//	A readied action: what sets it off, what it is (an attack, a spell already cast with its slot, something else),
+	//	and whether the trigger came (the reaction then lets it go). Gone at the start of its next turn
+	public string? ReadyTrigger { get; set; }
+	public string? ReadyWhat { get; set; }
+	public Guid? ReadySpellId { get; set; }
+	public int ReadyLevel { get; set; }
+	public bool ReadyFired { get; set; }
+
+	//	The combatant holding it in a grapple: it moves with it, and is let go when that one is incapacitated or apart
+	public Guid? GrappledBy { get; set; }
+
 	//	The cell it starts the fight on, on the encounter's map (null: the first free one)
 	public int? X { get; set; }
 	public int? Y { get; set; }
@@ -146,6 +162,52 @@ public static class EncounterRules
 		c.Dodging = false;
 		c.Interacted = false;
 		c.Moved = 0;
+		c.SlotSpell = false;
+		c.BonusSpell = false;
+		c.ActionSlotSpell = false;
+		ClearReady(c);
+	}
+
+	//	The conditions that make a creature let go of what it grapples
+	public static readonly IReadOnlySet<string> Incapacitating = new HashSet<string> { "incapacitated", "paralyzed", "petrified", "stunned", "unconscious" };
+
+	public static void ClearReady(EncounterCombatant c)
+	{
+		c.ReadyTrigger = null;
+		c.ReadyWhat = null;
+		c.ReadySpellId = null;
+		c.ReadyLevel = 0;
+		c.ReadyFired = false;
+	}
+
+	///	<summary>
+	///	Whether a spell may be cast now, by the part of the turn it takes and its level: 2024, one spell of level 1+ in a
+	///	turn; 2014, a spell cast as a bonus action leaves only cantrips for the action (and the other way round). Null
+	///	when it may, else why not (a key: "slot", "bonus").
+	///	</summary>
+	public static string? SpellRefused(EncounterCombatant c, string part, int level, bool edition2014)
+	{
+		if (!edition2014)
+		{
+			return level > 0 && c.SlotSpell ? "slot" : null;
+		}
+		if (part == "bonus" && c.ActionSlotSpell)
+		{
+			return "bonus";
+		}
+		if (part == "action" && level > 0 && c.BonusSpell)
+		{
+			return "bonus";
+		}
+		return null;
+	}
+
+	///	<summary>Marks a spell cast in the turn.</summary>
+	public static void SpellCast(EncounterCombatant c, string part, int level)
+	{
+		c.SlotSpell |= level > 0;
+		c.BonusSpell |= part == "bonus";
+		c.ActionSlotSpell |= part == "action" && level > 0;
 	}
 
 	///	<summary>

@@ -539,6 +539,9 @@ namespace RealmForge.Infrastructure.Migrations
                     b.Property<DateTimeOffset>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<bool>("DynamicVision")
+                        .HasColumnType("boolean");
+
                     b.Property<Guid?>("EncounterId")
                         .HasColumnType("uuid");
 
@@ -580,6 +583,9 @@ namespace RealmForge.Infrastructure.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
+                    b.Property<int>("Lighting")
+                        .HasColumnType("integer");
+
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(120)
@@ -600,6 +606,9 @@ namespace RealmForge.Infrastructure.Migrations
 
                     b.Property<bool>("PlayersLocked")
                         .HasColumnType("boolean");
+
+                    b.Property<string>("SaveCalls")
+                        .HasColumnType("text");
 
                     b.Property<bool>("Shown")
                         .HasColumnType("boolean");
@@ -636,6 +645,39 @@ namespace RealmForge.Infrastructure.Migrations
                     b.HasIndex("CampaignId");
 
                     b.ToTable("CampaignMaps");
+                });
+
+            modelBuilder.Entity("RealmForge.Domain.Entities.CampaignMapEdit", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("At")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Kind")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<Guid>("MapId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Payload")
+                        .IsRequired()
+                        .HasColumnType("jsonb");
+
+                    b.Property<string>("UserId")
+                        .IsRequired()
+                        .HasMaxLength(450)
+                        .HasColumnType("character varying(450)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("MapId", "UserId", "At");
+
+                    b.ToTable("CampaignMapEdits");
                 });
 
             modelBuilder.Entity("RealmForge.Domain.Entities.CampaignMapShape", b =>
@@ -716,6 +758,34 @@ namespace RealmForge.Infrastructure.Migrations
                         .IsUnique();
 
                     b.ToTable("CampaignMembers");
+                });
+
+            modelBuilder.Entity("RealmForge.Domain.Entities.CampaignMonsterGroup", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("CampaignId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Entries")
+                        .IsRequired()
+                        .HasColumnType("jsonb");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(80)
+                        .HasColumnType("character varying(80)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CampaignId");
+
+                    b.ToTable("CampaignMonsterGroups");
                 });
 
             modelBuilder.Entity("RealmForge.Domain.Entities.CampaignNote", b =>
@@ -1005,6 +1075,13 @@ namespace RealmForge.Infrastructure.Migrations
 
                     b.Property<DateTimeOffset>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("Darkvision")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Defenses")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
 
                     b.Property<int>("Level")
                         .HasColumnType("integer");
@@ -2813,6 +2890,15 @@ namespace RealmForge.Infrastructure.Migrations
                     b.Navigation("Campaign");
                 });
 
+            modelBuilder.Entity("RealmForge.Domain.Entities.CampaignMapEdit", b =>
+                {
+                    b.HasOne("RealmForge.Domain.Entities.CampaignMap", null)
+                        .WithMany()
+                        .HasForeignKey("MapId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("RealmForge.Domain.Entities.CampaignMapShape", b =>
                 {
                     b.HasOne("RealmForge.Domain.Entities.CampaignMap", "Map")
@@ -2833,6 +2919,15 @@ namespace RealmForge.Infrastructure.Migrations
                         .IsRequired();
 
                     b.Navigation("Campaign");
+                });
+
+            modelBuilder.Entity("RealmForge.Domain.Entities.CampaignMonsterGroup", b =>
+                {
+                    b.HasOne("RealmForge.Domain.Entities.Campaign", null)
+                        .WithMany()
+                        .HasForeignKey("CampaignId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("RealmForge.Domain.Entities.CampaignNote", b =>
