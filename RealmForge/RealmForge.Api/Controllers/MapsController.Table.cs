@@ -405,6 +405,209 @@ namespace RealmForge.Api.Controllers
 			return damage > 0 && target.MaxHp is > 0 && target.Hp == 0;
 		}
 
+		// ===== Summons, familiars, mounts =====
+
+		//	POST: api/campaigns/{campaignId}/maps/{mapId}/tokens/{tokenId}/summon — a creature called by a token (a familiar,
+		//	a summon, a companion): whoever controls that token (a master any). It stands next to it, controlled by the same
+		//	players; in a fight it acts right after it, or rolls its own initiative
+		[HttpPost("{mapId:guid}/tokens/{tokenId:guid}/summon")]
+		public async Task<ActionResult<MapTokenDto>> Summon(Guid campaignId, Guid mapId, Guid tokenId, [FromBody] SummonDto dto)
+		{
+			var (map, role) = await LoadAsync(campaignId, mapId, withTokens: true);
+			var owner = map?.Tokens.FirstOrDefault(t => t.Id == tokenId);
+			if (map is null || role is null || owner is null)
+			{
+				return NotFound();
+			}
+			var runs = CampaignRules.RunsTheTable(role.Value);
+			if (!runs && !await ControlsAsync(owner))
+			{
+				return Forbid();
+			}
+			if (map.Tokens.Count >= MapRules.MaxTokens)
+			{
+				return Problem(statusCode: StatusCodes.Status400BadRequest, title: $"At most {MapRules.MaxTokens} tokens per map.");
+			}
+			var monster = await _context.Monsters.AsNoTracking().Where(m => m.Id == dto.MonsterId)
+				.Select(m => new { m.Id, m.Size, Name = m.Translations.OrderBy(t => t.Language == LanguageCode.It ? 0 : 1).Select(t => t.Name).FirstOrDefault() })
+				.FirstOrDefaultAsync();
+			if (monster is null)
+			{
+				return NotFound();
+			}
+			//	The first free cell next to it
+			var size = map.GridType == GridType.Square ? Math.Max(1, (int)monster.Size - 2) : 1;
+			var free = MapTerrain.Neighbours(map.GridType, (owner.X, owner.Y))
+				.Concat(MapTerrain.Neighbours(map.GridType, (owner.X + owner.Size - 1, owner.Y + owner.Size - 1)))
+				.Where(c => OnMap(map, c.Col, c.Row, size) && !map.Tokens.Any(t => t.Kind != TokenKind.Prop && t.X == c.Col && t.Y == c.Row))
+				.ToList();
+			if (free.Count == 0)
+			{
+				return Problem(statusCode: StatusCodes.Status409Conflict, title: "No room next to it.");
+			}
+			var place = free[0];
+			var label = (dto.Label ?? monster.Name ?? string.Empty).Trim();
+			label = label.Length == 0 ? "?" : Cut(label, 60);
+			var tokenDto = new SaveTokenDto { Label = label, Kind = TokenKind.Monster, MonsterId = monster.Id, X = place.Col, Y = place.Row, Size = Math.Min(size, MapRules.MaxTokenSize) };
+			if (await ValidateTokenAsync(campaignId, map, tokenDto) is { } error)
+			{
+				return Problem(statusCode: StatusCodes.Status400BadRequest, title: error);
+			}
+			var token = new CampaignToken { MapId = map.Id };
+			await ApplyAsync(campaignId, token, tokenDto);
+			//	The same players control it: the owner of the character that called it, those it was given to
+			var controllers = owner.ControlledBy.ToList();
+			if (owner.CharacterId is { } characterId
+				&& await _context.Characters.AsNoTracking().Where(c => c.Id == characterId).Select(c => c.OwnerId).FirstOrDefaultAsync() is { Length: > 0 } characterOwner)
+			{
+				controllers.Add(characterOwner);
+			}
+			if (!runs)
+			{
+				controllers.Add(UserId);
+			}
+			token.ControlledBy = controllers.Distinct().ToList();
+			token.Color = owner.Color;
+			WriteGear(token, new TokenGear { SummonedBy = owner.Id });
+			_context.CampaignTokens.Add(token);
+
+			//	In a fight: right after the one that called it, or its own initiative
+			if (owner.CombatantId is { } ownerCombatant && await FightAsync(map, track: true) is { } fight
+				&& fight.Combatants.FirstOrDefault(c => c.Id == ownerCombatant) is { } caller)
+			{
+				var combatant = await CombatantOfAsync(token, roll: !dto.ShareTurn);
+				if (dto.ShareTurn)
+				{
+					combatant.Initiative = caller.Initiative;
+					combatant.InitiativeBonus = caller.InitiativeBonus - 1;
+				}
+				fight.Combatants.Add(combatant);
+				Save(fight, fight.Combatants);
+			}
+			map.UpdatedAt = DateTimeOffset.UtcNow;
+			await _context.SaveChangesAsync();
+			return Ok(ToDto(token, true));
+		}
+
+		//	DELETE: api/campaigns/{campaignId}/maps/{mapId}/tokens/{tokenId}/summon — a called creature dismissed: whoever
+		//	controls it, a master any
+		[HttpDelete("{mapId:guid}/tokens/{tokenId:guid}/summon")]
+		public async Task<IActionResult> Dismiss(Guid campaignId, Guid mapId, Guid tokenId)
+		{
+			var (map, role) = await LoadAsync(campaignId, mapId, withTokens: true);
+			var token = map?.Tokens.FirstOrDefault(t => t.Id == tokenId);
+			if (map is null || role is null || token is null || ReadGear(token.Gear).SummonedBy is null)
+			{
+				return NotFound();
+			}
+			if (!CampaignRules.RunsTheTable(role.Value) && !await ControlsAsync(token))
+			{
+				return Forbid();
+			}
+			if (token.CombatantId is { } id && await FightAsync(map, track: true) is { } fight && fight.Combatants.FirstOrDefault(c => c.Id == id) is { } combatant)
+			{
+				if (fight.Encounter.CurrentId == id)
+				{
+					var order = EncounterRules.Order(fight.Combatants);
+					fight.Encounter.CurrentId = (order.SkipWhile(c => c.Id != id).Skip(1).FirstOrDefault() ?? order.FirstOrDefault(c => c.Id != id))?.Id;
+				}
+				fight.Combatants.Remove(combatant);
+				Save(fight, fight.Combatants);
+			}
+			foreach (var rider in map.Tokens.Where(t => ReadGear(t.Gear).MountedOn == token.Id).ToList())
+			{
+				var gear = ReadGear(rider.Gear);
+				gear.MountedOn = null;
+				WriteGear(rider, gear);
+			}
+			_context.CampaignTokens.Remove(token);
+			map.UpdatedAt = DateTimeOffset.UtcNow;
+			await _context.SaveChangesAsync();
+			return NoContent();
+		}
+
+		//	POST: api/campaigns/{campaignId}/maps/{mapId}/tokens/{tokenId}/mount — a token rides a bigger creature next to
+		//	it: it stands on it and moves with it; a mount it controls acts on its initiative
+		[HttpPost("{mapId:guid}/tokens/{tokenId:guid}/mount")]
+		public async Task<IActionResult> Mount(Guid campaignId, Guid mapId, Guid tokenId, [FromBody] MountDto dto, [FromQuery] LanguageCode? lang)
+		{
+			var italian = lang != LanguageCode.En;
+			var (map, role) = await LoadAsync(campaignId, mapId, withTokens: true);
+			var rider = map?.Tokens.FirstOrDefault(t => t.Id == tokenId);
+			var mount = map?.Tokens.FirstOrDefault(t => t.Id == dto.MountId);
+			if (map is null || role is null || rider is null || mount is null || rider.Id == mount.Id || mount.Kind == TokenKind.Prop)
+			{
+				return NotFound();
+			}
+			var runs = CampaignRules.RunsTheTable(role.Value);
+			if (!runs && !await ControlsAsync(rider))
+			{
+				return Forbid();
+			}
+			if (TableCombat.Gap(map.GridType, rider.X, rider.Y, rider.Size, mount.X, mount.Y, mount.Size) > 1)
+			{
+				return Problem(statusCode: StatusCodes.Status409Conflict, title: T(italian, "La cavalcatura deve essere accanto.", "The mount must be next to it."));
+			}
+			if (map.GridType == GridType.Square && mount.Size <= rider.Size)
+			{
+				return Problem(statusCode: StatusCodes.Status409Conflict, title: T(italian, "La cavalcatura deve essere più grande di chi la monta.", "The mount must be bigger than its rider."));
+			}
+			var gear = ReadGear(rider.Gear);
+			gear.MountedOn = mount.Id;
+			WriteGear(rider, gear);
+			rider.X = mount.X;
+			rider.Y = mount.Y;
+			rider.UpdatedAt = map.UpdatedAt = DateTimeOffset.UtcNow;
+			//	A controlled mount (one the same players move) acts on its rider's initiative
+			if (rider.CombatantId is { } riderId && mount.CombatantId is { } mountId && await FightAsync(map, track: true) is { } fight
+				&& fight.Combatants.FirstOrDefault(c => c.Id == riderId) is { } riderCombatant && fight.Combatants.FirstOrDefault(c => c.Id == mountId) is { } mountCombatant
+				&& (mount.ControlledBy.Any(rider.ControlledBy.Contains) || ReadGear(mount.Gear).SummonedBy == rider.Id || (runs && mount.ControlledBy.Count > 0)))
+			{
+				mountCombatant.Initiative = riderCombatant.Initiative;
+				mountCombatant.InitiativeBonus = riderCombatant.InitiativeBonus - 1;
+				Save(fight, fight.Combatants);
+			}
+			await _context.SaveChangesAsync();
+			return NoContent();
+		}
+
+		//	DELETE: api/campaigns/{campaignId}/maps/{mapId}/tokens/{tokenId}/mount — the rider gets off, to a free cell next to it
+		[HttpDelete("{mapId:guid}/tokens/{tokenId:guid}/mount")]
+		public async Task<IActionResult> Dismount(Guid campaignId, Guid mapId, Guid tokenId)
+		{
+			var (map, role) = await LoadAsync(campaignId, mapId, withTokens: true);
+			var rider = map?.Tokens.FirstOrDefault(t => t.Id == tokenId);
+			if (map is null || role is null || rider is null)
+			{
+				return NotFound();
+			}
+			if (!CampaignRules.RunsTheTable(role.Value) && !await ControlsAsync(rider))
+			{
+				return Forbid();
+			}
+			var gear = ReadGear(rider.Gear);
+			if (gear.MountedOn is not { } mountId)
+			{
+				return NoContent();
+			}
+			gear.MountedOn = null;
+			WriteGear(rider, gear);
+			if (map.Tokens.FirstOrDefault(t => t.Id == mountId) is { } mount)
+			{
+				var cells = MapTerrain.Neighbours(map.GridType, (mount.X, mount.Y))
+					.Where(c => OnMap(map, c.Col, c.Row, rider.Size) && !map.Tokens.Any(t => t.Id != rider.Id && t.Kind != TokenKind.Prop && t.X == c.Col && t.Y == c.Row))
+					.ToList();
+				if (cells.Count > 0)
+				{
+					rider.X = cells[0].Col;
+					rider.Y = cells[0].Row;
+				}
+			}
+			rider.UpdatedAt = map.UpdatedAt = DateTimeOffset.UtcNow;
+			await _context.SaveChangesAsync();
+			return NoContent();
+		}
+
 		// ===== Auras that move with a token =====
 
 		//	PUT: api/campaigns/{campaignId}/maps/{mapId}/tokens/{tokenId}/aura — an aura set on a token (a radius of 0 takes it

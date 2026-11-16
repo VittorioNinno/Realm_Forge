@@ -65,8 +65,24 @@ namespace RealmForge.Shared.DTOs
 		int? SheetTempHp = null,
 		TokenTurnDto? Turn = null,
 
-		//	An aura that moves with it
-		TokenAuraDto? Aura = null);
+		//	An aura that moves with it; the token that called it (a familiar, a summon); the token it rides
+		TokenAuraDto? Aura = null,
+		Guid? SummonedBy = null,
+		Guid? MountedOn = null);
+
+	//	A creature called by a token: a monster of the compendium next to it, controlled by the same players; in a fight it
+	//	acts right after the one that called it (or rolls its own initiative)
+	public class SummonDto
+	{
+		public Guid MonsterId { get; set; }
+		public string? Label { get; set; }
+		public bool ShareTurn { get; set; } = true;
+	}
+
+	public class MountDto
+	{
+		public Guid MountId { get; set; }
+	}
 
 	///	<summary>
 	///	The fight on a map: the encounter, the round, whose turn it is and the initiative order (what the players see of it).

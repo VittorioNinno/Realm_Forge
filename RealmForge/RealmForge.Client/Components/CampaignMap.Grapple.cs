@@ -105,6 +105,99 @@ namespace RealmForge.Client.Components
 			await RefreshAsync();
 		}
 
+		// ===== Summons, familiars, mounts =====
+
+		private List<MonsterResponseDto>? summonIndex;
+		private string summonName = string.Empty;
+		private bool summonShare = true;
+
+		private async Task LoadSummonIndexAsync()
+		{
+			if (summonIndex is not null)
+			{
+				return;
+			}
+			try
+			{
+				summonIndex = await MonsterService.GetMonstersAsync(Lang);
+			}
+			catch (Exception)
+			{
+				summonIndex = new();
+			}
+			StateHasChanged();
+		}
+
+		//	The creature named in the field (its name, or "name (ruleset)" when two share it), called next to the token
+		private async Task SummonAsync(MapTokenDto t)
+		{
+			if (map is null || summonIndex is null)
+			{
+				return;
+			}
+			var name = summonName.Trim();
+			var monster = summonIndex.FirstOrDefault(m => string.Equals(m.Name, name, StringComparison.OrdinalIgnoreCase))
+				?? summonIndex.FirstOrDefault(m => m.Name.StartsWith(name, StringComparison.OrdinalIgnoreCase));
+			if (monster is null)
+			{
+				castNote = UiText.VttSummonUnknown(name, Lang);
+				return;
+			}
+			busy = true;
+			localEdits++;
+			var (summoned, error) = await Campaigns.SummonAsync(CampaignId, map.Id, t.Id, new SummonDto { MonsterId = monster.Id, ShareTurn = summonShare });
+			busy = false;
+			castNote = summoned is null ? (string.IsNullOrEmpty(error) ? UiText.MapSaveFailed(Lang) : error) : UiText.VttSummoned(monster.Name, t.Label, Lang);
+			summonName = string.Empty;
+			await RefreshAsync();
+		}
+
+		private async Task DismissAsync(MapTokenDto t)
+		{
+			if (map is null)
+			{
+				return;
+			}
+			busy = true;
+			localEdits++;
+			await Campaigns.DismissAsync(CampaignId, map.Id, t.Id);
+			busy = false;
+			await RefreshAsync();
+		}
+
+		//	The creatures a token can ride: bigger ones next to it (any creature on hexagons)
+		private List<MapTokenDto> MountsFor(MapTokenDto t) => tokens
+			.Where(k => k.Id != t.Id && k.Kind is TokenKind.Monster or TokenKind.Npc or TokenKind.Character && !k.Hidden && k.MountedOn is null)
+			.Where(k => GapOf(t, k) <= 1 && (gridType != GridType.Square || k.Size > t.Size))
+			.ToList();
+
+		private async Task MountAsync(MapTokenDto rider, MapTokenDto mount)
+		{
+			if (map is null)
+			{
+				return;
+			}
+			busy = true;
+			localEdits++;
+			var (_, error) = await Campaigns.MountAsync(CampaignId, map.Id, rider.Id, mount.Id, Lang);
+			busy = false;
+			castNote = error is null ? UiText.VttMounted(rider.Label, mount.Label, Lang) : error.Length > 0 ? error : UiText.MapSaveFailed(Lang);
+			await RefreshAsync();
+		}
+
+		private async Task DismountAsync(MapTokenDto rider)
+		{
+			if (map is null)
+			{
+				return;
+			}
+			busy = true;
+			localEdits++;
+			await Campaigns.DismountAsync(CampaignId, map.Id, rider.Id);
+			busy = false;
+			await RefreshAsync();
+		}
+
 		// ===== Auras =====
 
 		private string auraName = string.Empty;
