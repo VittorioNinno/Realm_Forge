@@ -453,6 +453,15 @@ namespace RealmForge.Api.Controllers
 				offered = true;
 			}
 			offered |= await ReleaseGrapplesAsync(map, fight);
+			//	A creature that enters an aura (dragged ones too), the creatures an aura reaches as its owner moves
+			await TouchAurasAsync(map, fight, mover, from);
+			foreach (var heldOne in dragged)
+			{
+				if (map.Tokens.FirstOrDefault(t => t.CombatantId == heldOne.Id) is { } heldToken)
+				{
+					await TouchAurasAsync(map, fight, heldToken, (heldToken.X - mover.X + from.X, heldToken.Y - mover.Y + from.Y));
+				}
+			}
 			if (moving.Disengaged)
 			{
 				Save(fight, fight.Combatants);
@@ -1312,7 +1321,7 @@ namespace RealmForge.Api.Controllers
 		[HttpPost("{mapId:guid}/combat/next")]
 		public async Task<IActionResult> NextTurn(Guid campaignId, Guid mapId)
 		{
-			var (map, role) = await LoadAsync(campaignId, mapId, withTokens: false);
+			var (map, role) = await LoadAsync(campaignId, mapId, withTokens: true);
 			if (map is null || role is null)
 			{
 				return NotFound();
@@ -1346,6 +1355,12 @@ namespace RealmForge.Api.Controllers
 			{
 				c.OpportunityOn = null;
 			}
+			//	A creature that starts its turn in an aura
+			if (map.Tokens.FirstOrDefault(t => t.CombatantId == order[next].Id) is { } starting)
+			{
+				await TouchAurasAsync(map, fight, starting, null);
+			}
+			map.UpdatedAt = DateTimeOffset.UtcNow;
 			Save(fight, fight.Combatants);
 			await _context.SaveChangesAsync();
 			return NoContent();
@@ -1611,6 +1626,10 @@ namespace RealmForge.Api.Controllers
 					var down = combatant is not null && combatant.Kind != CombatantKind.Character ? combatant.MaxHp > 0 && combatant.Hp <= 0
 						: t.CharacterId is null && t.MaxHp is > 0 && (t.Hp ?? t.MaxHp) <= 0;
 					dto = dto with { Gear = GearOf(t, runs, controls, down) };
+					if (ReadGear(t.Gear).Aura is { } aura)
+					{
+						dto = dto with { Aura = new TokenAuraDto(aura.Name, aura.Radius, aura.Color, aura.Enemies, aura.Ability, aura.Dc, aura.Damage, aura.DamageType, aura.Half) };
+					}
 					if (combatant is not null)
 					{
 						dto = dto with

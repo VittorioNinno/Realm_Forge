@@ -698,6 +698,14 @@ else
                         {
                             @ShapeMarkup(sh)
                         }
+                        @* The auras that move with their tokens: a circle reaching that far past the token's space *@
+                        @foreach (var auraToken in tokens.Where(k => k.Aura is not null && !HidesFromPreview(k) && (RunsTheTable || !k.Hidden)))
+                        {
+                            var tokenAura = auraToken.Aura!;
+                            var (auraX, auraY) = MapGeometry.Center(gridType, grid, offsetX, offsetY, auraToken.X, auraToken.Y, auraToken.Size);
+                            var (auraCell, _) = MapGeometry.Cell(gridType, grid);
+                            <circle class="rf-vtt-aura" cx="@N(auraX)" cy="@N(auraY)" r="@N((tokenAura.Radius + auraToken.Size / 2.0) * auraCell)" style="--rf-aura: @tokenAura.Color;" data-test="map-aura"><title>@tokenAura.Name</title></circle>
+                        }
                     </svg>
                     @if (ShowTerrain)
                     {
@@ -2134,6 +2142,10 @@ else
                     }
                     break;
                 default:
+                    @if (Table && (RunsTheTable || CanRoll(t)))
+                    {
+                        @AuraCard(t)
+                    }
                     @if (CanRest(t))
                     {
                         //	No rest while an encounter runs on the map
@@ -2471,6 +2483,39 @@ else
                 <button type="button" class="btn btn-sm btn-rf-outline" disabled="@busy" @onclick="@(() => TurnActionAsync(r, "pass", null))" data-test="vtt-opportunity-pass">@UiText.VttOpportunityPass(Lang)</button>
             }
         </div>
+    };
+
+    //	The aura of a token: what it is and whom it touches, taken away; or a new one (a paladin's aura, an effect around
+    //	the creature: the spells with one set it by themselves)
+    private RenderFragment AuraCard(MapTokenDto t) => __builder =>
+    {
+        <section class="rf-qs-card" data-test="vtt-aura">
+            <h3 class="rf-qs-card-title"><Icon Name="circle" /> @UiText.VttAura(Lang)</h3>
+            @if (t.Aura is { } aura)
+            {
+                <p class="rf-qs-note mb-2" data-test="vtt-aura-what">@UiText.VttAuraLine(aura.Name, ReachText(new AttackReach(aura.Radius, 0, 0)), aura.Enemies, Lang)
+                    @if (aura.Ability > 0)
+                    {
+                        <span> · @UiText.VttSaveDc(UiText.AbilityShort((AbilityScore)aura.Ability, Lang), aura.Dc, Lang)@(aura.Damage is null ? null : $" · {aura.Damage}")</span>
+                    }
+                </p>
+                <button type="button" class="rf-qs-rest" disabled="@busy" @onclick="() => SaveAuraAsync(t, null)" data-test="vtt-aura-remove">@UiText.VttAuraRemove(Lang)</button>
+            }
+            else
+            {
+                <div class="rf-qs-aura-form">
+                    <input type="text" class="rf-form-control" maxlength="60" placeholder="@UiText.VttAuraName(Lang)" aria-label="@UiText.VttAuraName(Lang)" @bind="auraName" @bind:event="oninput" data-test="vtt-aura-name" />
+                    <label class="rf-qs-aura-radius">
+                        <span>@UiText.VttAuraRadius(Lang)</span>
+                        <input type="number" class="rf-form-control" min="1" max="@RealmForge.Shared.Campaigns.TokenAura.MaxRadius" @bind="auraCells" data-test="vtt-aura-radius" />
+                        <small>× @UiText.VttPerCell(Lang).ToString("0.#") @UiText.VttUnit(Lang)</small>
+                    </label>
+                    <label class="rf-vtt-confirm-check"><input type="checkbox" @bind="auraEnemies" data-test="vtt-aura-enemies" /> @UiText.VttAuraEnemies(Lang)</label>
+                    <button type="button" class="rf-qs-rest" disabled="@(busy || string.IsNullOrWhiteSpace(auraName))"
+                            @onclick="@(() => SaveAuraAsync(t, new SaveAuraDto { Name = auraName.Trim(), Radius = Math.Clamp(auraCells, 1, RealmForge.Shared.Campaigns.TokenAura.MaxRadius), Enemies = auraEnemies }))" data-test="vtt-aura-add">@UiText.VttAuraAdd(Lang)</button>
+                </div>
+            }
+        </section>
     };
 
     //	A readied action whose trigger came: let it go (the reaction) or let it be

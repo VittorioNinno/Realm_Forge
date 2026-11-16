@@ -105,6 +105,35 @@ namespace RealmForge.Client.Components
 			await RefreshAsync();
 		}
 
+		// ===== Auras =====
+
+		private string auraName = string.Empty;
+		private int auraCells = 2;
+		private bool auraEnemies = true;
+
+		//	An aura set on a token (null takes it away)
+		private async Task SaveAuraAsync(MapTokenDto t, SaveAuraDto? dto)
+		{
+			if (map is null)
+			{
+				return;
+			}
+			busy = true;
+			localEdits++;
+			var result = await Campaigns.SaveAuraAsync(CampaignId, map.Id, t.Id, dto ?? new SaveAuraDto { Radius = 0 });
+			busy = false;
+			if (!result.Ok)
+			{
+				castNote = UiText.MapSaveFailed(Lang);
+			}
+			else if (dto is not null)
+			{
+				auraName = string.Empty;
+				castNote = UiText.VttAuraSet(dto.Name, t.Label, Lang);
+			}
+			await RefreshAsync();
+		}
+
 		//	Who holds a creature, and the creatures a creature holds
 		private MapTokenDto? HolderOf(MapTokenDto t) => t.Turn?.GrappledBy is { } holder ? tokens.FirstOrDefault(k => k.Id == holder) : null;
 
