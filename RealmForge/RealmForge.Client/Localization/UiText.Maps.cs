@@ -363,11 +363,16 @@ namespace RealmForge.Client.Localization
 			PropType.Trap => T(lang, "Trappola", "Trap"),
 			PropType.Secret => T(lang, "Passaggio segreto", "Secret passage"),
 			PropType.Item => T(lang, "Oggetto", "Item"),
+			PropType.Stairs => T(lang, "Scale", "Stairs"),
+			PropType.Portal => T(lang, "Portale", "Portal"),
 			_ => T(lang, "Porta", "Door")
 		};
 		public static string PropStateName(PropType type, PropState state, LanguageCode lang) => (type, state) switch
 		{
 			(PropType.Item, _) => T(lang, "A terra", "On the ground"),
+			(PropType.Stairs or PropType.Portal, PropState.Open) => T(lang, "Attivo", "Active"),
+			(PropType.Stairs or PropType.Portal, PropState.Closed) => T(lang, "Inattivo", "Inactive"),
+			(PropType.Stairs or PropType.Portal, PropState.Broken) => T(lang, "Distrutto", "Destroyed"),
 			(PropType.Lever, PropState.Open) => T(lang, "Alzata", "Up"),
 			(PropType.Lever, PropState.Closed) => T(lang, "Abbassata", "Down"),
 			(PropType.Trap, PropState.Closed) => T(lang, "Armata", "Armed"),
@@ -385,6 +390,8 @@ namespace RealmForge.Client.Localization
 		{
 			(PropType.Lever, PropState.Open) => T(lang, "Abbassa", "Pull down"),
 			(PropType.Lever, _) => T(lang, "Alza", "Pull up"),
+			(PropType.Stairs or PropType.Portal, PropState.Open) => T(lang, "Disattiva", "Turn off"),
+			(PropType.Stairs or PropType.Portal, _) => T(lang, "Attiva", "Turn on"),
 			(_, PropState.Open) => T(lang, "Chiudi", "Close"),
 			_ => T(lang, "Apri", "Open")
 		};
@@ -528,6 +535,25 @@ namespace RealmForge.Client.Localization
 		public static string VttAuraAdd(LanguageCode lang) => T(lang, "Aggiungi l'aura", "Add the aura");
 		public static string VttAuraRemove(LanguageCode lang) => T(lang, "Togli l'aura", "Remove the aura");
 		public static string VttAuraSet(string name, string who, LanguageCode lang) => T(lang, $"«{name}» si muove con {who}: chi entra o inizia il turno dentro viene segnalato.", $"“{name}” moves with {who}: whoever enters it or starts a turn in it is told.");
+		public static string VttTravel(string who, LanguageCode lang) => T(lang, $"Passa: {who}", $"Go through: {who}");
+		public static string VttTravelHint(LanguageCode lang) => T(lang, "Avvicina una tua creatura per passare", "Bring one of your creatures next to it to go through");
+		public static string VttTravelled(string who, string where, LanguageCode lang) => T(lang, $"{who} è arrivato: {where}.", $"{who} arrived: {where}.");
+		public static string VttTravelShown(LanguageCode lang) => T(lang, "Il tavolo dei giocatori ora mostra questa mappa.", "The players' table now shows this map.");
+		public static string VttTravelGo(string map, LanguageCode lang) => T(lang, $"Apri «{map}»", $"Open “{map}”");
+		public static string VttTravelFailed(string? reason, LanguageCode lang) => reason switch
+		{
+			"inactive" => T(lang, "Non è attivo.", "It is not active."),
+			"far" => T(lang, "Troppo lontano: avvicinati.", "Too far: get next to it."),
+			"turn" => T(lang, "Non è il suo turno.", "It is not its turn."),
+			"nowhere" => T(lang, "Non porta ancora da nessuna parte.", "It leads nowhere yet."),
+			"full" => T(lang, "Non c'è spazio dall'altra parte.", "There is no room at the other end."),
+			_ => T(lang, "Non si passa.", "It cannot be crossed.")
+		};
+		public static string ToolLink(LanguageCode lang) => T(lang, "Collega", "Link");
+		public static string VttLinkTo(LanguageCode lang) => T(lang, "Porta a", "Leads to");
+		public static string VttLinkNone(LanguageCode lang) => T(lang, "Da nessuna parte", "Nowhere");
+		public static string VttLinkBoth(LanguageCode lang) => T(lang, "Anche al ritorno", "Both ways");
+		public static string VttLinkEmpty(LanguageCode lang) => T(lang, "Aggiungi altre scale o un altro portale (anche su un'altra mappa) per collegarli.", "Add other stairs or another portal (on another map too) to link them.");
 		public static string VttMonsterDrawer(LanguageCode lang) => T(lang, "Cassetto mostri", "Monster drawer");
 		public static string VttDrawerHint(LanguageCode lang) => T(lang, "Cerca un mostro e premi il cassetto accanto per raccoglierne più copie, poi piazzale insieme o salvale come gruppo", "Search a monster and press the drawer next to it to gather several, then place them together or save them as a group");
 		public static string VttDrawerAdd(LanguageCode lang) => T(lang, "Metti nel cassetto", "Put in the drawer");
