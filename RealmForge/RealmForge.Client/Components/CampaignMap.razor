@@ -105,6 +105,10 @@
                 {
                     @OpportunityBar
                 }
+                else if (map is not null && ReadyAlerts.Count > 0)
+                {
+                    @ReadyBar
+                }
                 @if (map is not null && Table && MySaveCalls.Count > 0)
                 {
                     @SavesPanel
@@ -756,6 +760,11 @@ else
                                         <span>+@(conditions.Count - 4)</span>
                                     }
                                 </span>
+                            }
+                            @if (t.Turn?.Ready is { } readied)
+                            {
+                                @* A readied action waits on the token (alight once its trigger came) *@
+                                <span class="rf-vtt-ready @(readied.Fired ? "fired" : null)" title="@UiText.VttReadyBadge(readied.What, readied.Trigger, Lang)" data-test="map-token-ready"><Icon Name="hourglass-split" /></span>
                             }
                             @if (t.Layer == TokenLayer.Tokens && t.Kind != TokenKind.Marker)
                             {
@@ -2311,7 +2320,42 @@ else
                     <button type="button" class="rf-turn-btn" disabled="@(!can || t.ActionSpent is not null)" title="@UiText.VttTurnKindHint(kind, Lang)" @onclick="() => TurnActionAsync(t, kind, null)" data-test="vtt-turn-@kind">@UiText.VttTurnKind(kind, Lang)</button>
                 }
                 <button type="button" class="rf-turn-btn bonus" disabled="@(!can || turn.BonusUsed)" title="@UiText.VttTurnBonusHint(Lang)" @onclick="@(() => TurnActionAsync(t, "bonus", null))" data-test="vtt-turn-bonus-use">@UiText.VttTurnBonusUse(Lang)</button>
+                <button type="button" class="rf-turn-btn @(readyFor == t.Id ? "held" : null)" disabled="@(!can || t.ActionSpent is not null || turn.Ready is not null)" title="@UiText.VttTurnKindHint("ready", Lang)" @onclick="() => OpenReady(t)" data-test="vtt-turn-ready">@UiText.VttTurnKind("ready", Lang)</button>
             </div>
+            @if (turn.Ready is { } readied)
+            {
+                @* The action readied: the trigger told by the master (or the player), let go with the reaction *@
+                <div class="rf-turn-ready @(readied.Fired ? "fired" : null)" data-test="vtt-turn-readied">
+                    <span><Icon Name="hourglass-split" /> @UiText.VttReadyBadge(readied.What, readied.Trigger, Lang)</span>
+                    <span class="rf-turn-ready-actions">
+                        @if (!readied.Fired && (RunsTheTable || CanRoll(t)))
+                        {
+                            <button type="button" class="rf-turn-btn" disabled="@busy" @onclick="@(() => TurnActionAsync(t, "trigger", null))" data-test="vtt-ready-trigger">@UiText.VttReadyTrigger(Lang)</button>
+                        }
+                        @if (CanRoll(t))
+                        {
+                            <button type="button" class="rf-turn-btn bonus" disabled="@(busy || t.ReactionUsed)" @onclick="() => ReleaseReadyAsync(t)" data-test="vtt-ready-release-now">@UiText.VttReadyRelease(Lang)</button>
+                        }
+                        <button type="button" class="rf-turn-btn" disabled="@busy" @onclick="@(() => TurnActionAsync(t, "unready", null))" data-test="vtt-ready-cancel">@UiText.VttReadyDrop(Lang)</button>
+                    </span>
+                </div>
+            }
+            else if (readyFor == t.Id && can)
+            {
+                @* Readying: what (an attack of the sheet, or something else) and when; a spell is readied from its tab *@
+                <div class="rf-turn-ready" data-test="vtt-ready-form">
+                    <select class="rf-form-control" aria-label="@UiText.VttReadyWhat(Lang)" @bind="readyWhat" data-test="vtt-ready-what">
+                        @foreach (var a in StatsOf(t)?.Sheet?.Attacks ?? new())
+                        {
+                            <option value="@a.Name">@a.Name</option>
+                        }
+                        <option value="@UiText.VttReadyOther(Lang)">@UiText.VttReadyOther(Lang)</option>
+                    </select>
+                    <input type="text" class="rf-form-control" maxlength="120" placeholder="@UiText.VttReadyTriggerHint(Lang)" aria-label="@UiText.VttReadyTriggerHint(Lang)" @bind="readyTrigger" @bind:event="oninput" data-test="vtt-ready-trigger-text" />
+                    <button type="button" class="rf-turn-btn bonus" disabled="@(busy || string.IsNullOrWhiteSpace(readyTrigger))" @onclick="() => ReadyAsync(t)" data-test="vtt-ready-go">@UiText.VttReadyGo(Lang)</button>
+                    <small class="rf-qs-note mb-0">@UiText.VttReadySpellHint(Lang)</small>
+                </div>
+            }
             @{
                 var (meleeWeapons, rangedWeapons) = WeaponKinds(t);
             }
@@ -2398,6 +2442,21 @@ else
                 <span class="rf-opportunity-text"><Icon Name="crosshair" /> @UiText.VttOpportunity(r.Label, tg.Label, Lang)</span>
                 <button type="button" class="btn btn-sm btn-rf-orange" disabled="@busy" @onclick="() => TakeOpportunityAsync(r, tg)" data-test="vtt-opportunity-take">@UiText.VttOpportunityTake(Lang)</button>
                 <button type="button" class="btn btn-sm btn-rf-outline" disabled="@busy" @onclick="@(() => TurnActionAsync(r, "pass", null))" data-test="vtt-opportunity-pass">@UiText.VttOpportunityPass(Lang)</button>
+            }
+        </div>
+    };
+
+    //	A readied action whose trigger came: let it go (the reaction) or let it be
+    private RenderFragment ReadyBar => __builder =>
+    {
+        <div class="rf-vtt-options rf-vtt-combatbar rf-opportunity floating" role="alert" data-test="vtt-ready-alert">
+            @foreach (var r in ReadyAlerts)
+            {
+                var who = r;
+                var ready = who.Turn!.Ready!;
+                <span class="rf-opportunity-text"><Icon Name="hourglass-split" /> @UiText.VttReadyFired(who.Label, ready.What, ready.Trigger, Lang)</span>
+                <button type="button" class="btn btn-sm btn-rf-orange" disabled="@(busy || who.ReactionUsed)" @onclick="() => ReleaseReadyAsync(who)" data-test="vtt-ready-release">@UiText.VttReadyRelease(Lang)</button>
+                <button type="button" class="btn btn-sm btn-rf-outline" disabled="@busy" @onclick="@(() => TurnActionAsync(who, "unready", null))" data-test="vtt-ready-drop">@UiText.VttReadyDrop(Lang)</button>
             }
         </div>
     };
@@ -2492,6 +2551,17 @@ else
                         <button type="button" class="rf-vtt-chip @(preMeta.Contains(option) ? "active" : null)" aria-pressed="@(preMeta.Contains(option) ? "true" : "false")"
                                 disabled="@(!preMeta.Contains(option) && PointsLeft(t) < preMeta.Sum(o => RealmForge.Shared.Characters.CastingOptions.CostOf(o)) + cost)" title="@UiText.VttMetamagicHint(option, Lang)"
                                 @onclick="() => TogglePreMeta(option)" data-test="map-token-cast-meta-option" data-option="@option">@UiText.VttMetamagicName(option, Lang) <small>@UiText.VttMetamagicCost(cost, Lang)</small></button>
+                    }
+                </div>
+            }
+            @if (TurnOf(t) is not null && IsTurnOf(t) && t.ActionSpent is null && t.Turn?.Ready is null)
+            {
+                @* Readied instead of cast: the slot now, the effect with the reaction when the trigger comes *@
+                <div class="rf-qs-meta" data-test="map-token-cast-ready">
+                    <button type="button" class="rf-vtt-chip @(preMeta.Contains("ready") ? "active" : null)" aria-pressed="@(preMeta.Contains("ready") ? "true" : "false")" title="@UiText.VttTurnKindHint("ready", Lang)" @onclick="@(() => TogglePreMeta("ready"))" data-test="map-token-cast-ready-toggle"><Icon Name="hourglass-split" /> @UiText.VttReadySpell(Lang)</button>
+                    @if (preMeta.Contains("ready"))
+                    {
+                        <input type="text" class="rf-form-control" maxlength="120" placeholder="@UiText.VttReadyTriggerHint(Lang)" aria-label="@UiText.VttReadyTriggerHint(Lang)" @bind="readyTrigger" @bind:event="oninput" data-test="map-token-cast-ready-trigger" />
                     }
                 </div>
             }
