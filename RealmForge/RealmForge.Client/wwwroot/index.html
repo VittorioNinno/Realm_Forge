@@ -187,6 +187,30 @@
             }
         };
 
+        // The browser's network: the table is told when it goes and comes back (the connection indicator)
+        window.rfNet = (() => {
+            const watched = new Map();
+            return {
+                watch(ref) {
+                    const tell = () => ref.invokeMethodAsync('NetworkChanged', navigator.onLine).catch(() => { });
+                    watched.set(ref._id, tell);
+                    window.addEventListener('online', tell);
+                    window.addEventListener('offline', tell);
+                    if (!navigator.onLine) {
+                        tell();
+                    }
+                },
+                unwatch(ref) {
+                    const tell = watched.get(ref._id);
+                    if (tell) {
+                        window.removeEventListener('online', tell);
+                        window.removeEventListener('offline', tell);
+                        watched.delete(ref._id);
+                    }
+                }
+            };
+        })();
+
         window.rfVtt = (() => {
             const boards = new WeakMap();
             const S3 = Math.sqrt(3);

@@ -535,6 +535,17 @@ namespace RealmForge.Client.Localization
 		public static string VttAuraAdd(LanguageCode lang) => T(lang, "Aggiungi l'aura", "Add the aura");
 		public static string VttAuraRemove(LanguageCode lang) => T(lang, "Togli l'aura", "Remove the aura");
 		public static string VttAuraSet(string name, string who, LanguageCode lang) => T(lang, $"«{name}» si muove con {who}: chi entra o inizia il turno dentro viene segnalato.", $"“{name}” moves with {who}: whoever enters it or starts a turn in it is told.");
+		public static string VttConnection(int state, LanguageCode lang) => state switch
+		{
+			0 => T(lang, "In linea", "Online"),
+			1 => T(lang, "Riconnessione…", "Reconnecting…"),
+			_ => T(lang, "Disconnesso", "Offline")
+		};
+		public static string VttConnectionLive(LanguageCode lang) => T(lang, "Collegato al tavolo: le mosse arrivano subito", "Connected to the table: moves arrive at once");
+		public static string VttConnectionRetry(LanguageCode lang) => T(lang, "Il server non ha risposto: nuovo tentativo in corso", "The server did not answer: trying again");
+		public static string VttConnectionLost(DateTime since, LanguageCode lang) => T(lang,
+			$"Nessun contatto dalle {since:HH:mm:ss}: le mosse fatte ora potrebbero non arrivare. Il tavolo si aggiorna da solo appena torna la rete",
+			$"No contact since {since:HH:mm:ss}: moves made now may not get through. The table updates itself as soon as the network is back");
 		public static string VttTravel(string who, LanguageCode lang) => T(lang, $"Passa: {who}", $"Go through: {who}");
 		public static string VttTravelHint(LanguageCode lang) => T(lang, "Avvicina una tua creatura per passare", "Bring one of your creatures next to it to go through");
 		public static string VttTravelled(string who, string where, LanguageCode lang) => T(lang, $"{who} è arrivato: {where}.", $"{who} arrived: {where}.");

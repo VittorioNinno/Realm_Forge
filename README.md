@@ -107,6 +107,10 @@ The table of a campaign, on its own page: the master prepares the maps away from
 - Preview as the players see the map, players' tokens blocked, turn reset, encounters started from the map.
   *Anteprima come la vedono i giocatori, blocco dei giocatori, azzeramento del turno, incontri avviati dalla mappa.*
 
+**Connection · *Connessione***
+- An indicator at the top tells whether the table is live, reconnecting or offline; when the network comes back the map is read again at once.
+  *Un indicatore in alto dice se il tavolo è in linea, in riconnessione o disconnesso; quando torna la rete la mappa si rilegge subito.*
+
 ---
 
 ## 🛠️ Tech Stack / Tecnologie
@@ -331,7 +335,7 @@ dotnet test RealmForge/RealmForge.slnx
 - [x] Advanced combat: saves, Metamagic, damage defenses, Ready, grapples, auras, summons and mounts · *Combattimento avanzato: tiri salvezza, Metamagia, difese ai danni, Preparare, lotta, aure, evocazioni e cavalcature*
 - [x] Dynamic vision with lights and darkvision · *Visione dinamica con luci e scurovisione*
 - [x] Master tools: undo, monster drawer and groups, floors, stairs and portals · *Strumenti del master: annulla, cassetto e gruppi di mostri, piani, scale e portali*
-- [ ] Table stability: connection indicator · *Stabilità del tavolo: indicatore di connessione*
+- [x] Table stability: connection indicator · *Stabilità del tavolo: indicatore di connessione*
 - [ ] Session log export · *Esportazione del registro di sessione*
 - [ ] Pinned items in the sidebar · *Elementi fissati nella barra laterale*
 - [ ] Homebrew automation builder · *Costruttore di automazioni Homebrew*
