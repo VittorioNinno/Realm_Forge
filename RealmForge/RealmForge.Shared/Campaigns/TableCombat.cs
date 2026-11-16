@@ -127,18 +127,22 @@ public static partial class TableCombat
 		return area with { Range = reach, FromCaster = self || area.Kind is ShapeKind.Cone or ShapeKind.Line };
 	}
 
-	//	The first shape a text names, with its size
+	//	The first shape a text names, with its size (a sphere's radius; from a diameter, half of it). The light a spell
+	//	sheds ("bright light in a 20-foot radius", "luce intensa in un raggio di 6 metri") is not its area: left out
 	private static SpellArea? Shape(string text)
 	{
+		text = LightText().Replace(text, " ");
 		var best = (Index: int.MaxValue, Area: (SpellArea?)null);
-		void Try(Regex regex, ShapeKind kind)
+		void Try(Regex regex, ShapeKind kind, bool diameter = false)
 		{
 			if (regex.Match(text) is { Success: true } m && m.Index < best.Index)
 			{
 				var size = Cells(m.Groups["n"].Value, m.Groups["unit"].Success && m.Groups["unit"].Value.Length > 0 ? m.Groups["unit"].Value : "m");
-				best = (m.Index, new SpellArea(kind, Math.Clamp(size, 1, 40), 0, false));
+				best = (m.Index, new SpellArea(kind, Math.Clamp(diameter ? size / 2 : size, 1, 40), 0, false));
 			}
 		}
+		Try(DiameterIt(), ShapeKind.Sphere, diameter: true);
+		Try(DiameterEn(), ShapeKind.Sphere, diameter: true);
 		Try(SphereIt(), ShapeKind.Sphere);
 		Try(CubeIt(), ShapeKind.Cube);
 		Try(ConeIt(), ShapeKind.Cone);
@@ -274,18 +278,31 @@ public static partial class TableCombat
 	private static partial Regex DistanceText();
 
 	//	"sfera del raggio di 6 metri", "cilindro del raggio di 3 metri", "raggio di 9 metri", "sfera con un raggio massimo di 3 metri"
-	[GeneratedRegex(@"(?:(?:sfera|semisfera|emisfera|cilindro)[^.,;]{0,25}?\s)?raggio\s+(?:massimo\s+)?di\s+(?<n>\d+(?:,\d+)?)\s*(?<unit>m)etri", RegexOptions.IgnoreCase)]
+	//	also "sfera di 6 metri di raggio", "cilindro di 3 metri di raggio e 12 metri di altezza"
+	[GeneratedRegex(@"(?:(?:sfera|semisfera|emisfera|cilindro)[^.,;]{0,25}?\s)?raggio\s+(?:massimo\s+)?di\s+(?<n>\d+(?:,\d+)?)\s*(?<unit>m)etri|(?:sfera|semisfera|emisfera|cilindro)\s+di\s+(?<n>\d+(?:,\d+)?)\s*(?<unit>m)etri\s+di\s+raggio", RegexOptions.IgnoreCase)]
 	private static partial Regex SphereIt();
 
 	//	"cubo con spigolo di 6 metri", "cubo di 4,5 metri", "quadrato di 6 metri", "quadrato fino a 6 metri"
-	[GeneratedRegex(@"(?:cubo|quadrato)\s+(?:con\s+(?:uno\s+)?spigolo\s+di|con\s+lato\s+di|di\s+lato|fino\s+a|di)\s+(?<n>\d+(?:,\d+)?)\s*(?<unit>m)etri", RegexOptions.IgnoreCase)]
+	[GeneratedRegex(@"(?:cubo|quadrato)\s+(?:con\s+(?:uno\s+)?spigolo\s+(?:fino\s+a|di)|con\s+lato\s+di|di\s+lato|fino\s+a|di)\s+(?<n>\d+(?:,\d+)?)\s*(?<unit>m)etri", RegexOptions.IgnoreCase)]
 	private static partial Regex CubeIt();
 
 	[GeneratedRegex(@"cono\s+(?:lungo\s+)?di\s+(?<n>\d+(?:,\d+)?)\s*(?<unit>m)etri", RegexOptions.IgnoreCase)]
 	private static partial Regex ConeIt();
 
-	[GeneratedRegex(@"linea\s+(?:lunga\s+)?(?:di\s+)?(?<n>\d+(?:,\d+)?)\s*(?<unit>m)etri", RegexOptions.IgnoreCase)]
+	[GeneratedRegex(@"linea\s+(?:larga\s+\d+(?:,\d+)?\s*metri\s+e\s+)?(?:lunga\s+)?(?:di\s+)?(?<n>\d+(?:,\d+)?)\s*(?<unit>m)etri", RegexOptions.IgnoreCase)]
 	private static partial Regex LineIt();
+
+	//	"luce intensa in un raggio di 6 metri", "emette luce fioca in un raggio di 3 metri", "sheds bright light in a 20-foot radius"
+	[GeneratedRegex(@"luce\s+(?:intensa|fioca)\s+in\s+un\s+raggio\s+di\s+\d+(?:,\d+)?\s*metri|(?:bright|dim)\s+light\s+in\s+a\s+\d+-foot[- ]radius", RegexOptions.IgnoreCase)]
+	private static partial Regex LightText();
+
+	//	"sfera di fuoco del diametro di 1,5 metri", "sfera con un diametro di 3 metri"
+	[GeneratedRegex(@"diametro\s+di\s+(?<n>\d+(?:,\d+)?)\s*(?<unit>m)etri", RegexOptions.IgnoreCase)]
+	private static partial Regex DiameterIt();
+
+	//	"5-foot-diameter sphere"
+	[GeneratedRegex(@"(?<n>\d+)-(?<unit>f)oot[- ]diameter", RegexOptions.IgnoreCase)]
+	private static partial Regex DiameterEn();
 
 	//	"20-foot-radius sphere", "10-foot radius", "30-foot-radius, 40-foot-high cylinder"
 	[GeneratedRegex(@"(?<n>\d+)-(?<unit>f)oot[- ]radius", RegexOptions.IgnoreCase)]

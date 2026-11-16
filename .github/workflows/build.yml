@@ -1238,6 +1238,19 @@ jobs:
           tu_reset_player=$(code -X POST "$api/api/campaigns/$ss_cp/maps/$mp2/tokens/$ctl_tree/turn?lang=2" $json -H "Authorization: Bearer $A" -d '{"kind":"reset"}')
           tu_reset=$(code -X POST "$api/api/campaigns/$ss_cp/maps/$mp2/tokens/$ctl_tree/turn?lang=2" $json -H "Authorization: Bearer $B" -d '{"kind":"reset"}')
           tu_reset_state=$(curl -s "$api/api/campaigns/$ss_cp/maps/$mp2/state" -H "Authorization: Bearer $A" | jq -c '[.tokens[] | select(.label == "Albero") | [.turn.bonusUsed, .turn.moved, .actionSpent]]')
+          # A spell cast takes its part of the turn: the action once, then refused
+          tu_cast=$(code -X POST "$api/api/campaigns/$ss_cp/maps/$mp2/tokens/$ctl_tree/turn?lang=2" $json -H "Authorization: Bearer $A" -d '{"kind":"cast","wield":"action","level":1}')
+          tu_cast_again=$(code -X POST "$api/api/campaigns/$ss_cp/maps/$mp2/tokens/$ctl_tree/turn?lang=2" $json -H "Authorization: Bearer $A" -d '{"kind":"cast","wield":"action","level":0}')
+          # A spell asks for a save: the damage rolled once, the target waits; only who controls it (or a master) rolls
+          sv_call=$(curl -s -X POST "$api/api/campaigns/$ss_cp/maps/$mp2/saves?lang=2" $json -H "Authorization: Bearer $A" \
+            -d "{\"casterId\":\"$ctl_tree\",\"spell\":\"Prova\",\"ability\":2,\"dc\":30,\"half\":true,\"targetIds\":[\"$at_target\"]}")
+          sv_id=$(echo "$sv_call" | jq -r '.id')
+          sv_shape=$(echo "$sv_call" | jq -c '{targets: (.targets | length), dc, ability, damage}')
+          sv_seen=$(curl -s "$api/api/campaigns/$ss_cp/maps/$mp2/state" -H "Authorization: Bearer $B" | jq -c '[(.table.saves // [])[] | select(.id == "'"$sv_id"'") | .targets | length]')
+          sv_player=$(code -X POST "$api/api/campaigns/$ss_cp/maps/$mp2/saves/$sv_id/targets/$at_target?lang=2" $json -H "Authorization: Bearer $A" -d '{"bonus":0}')
+          sv_resolved=$(curl -s -X POST "$api/api/campaigns/$ss_cp/maps/$mp2/saves/$sv_id/targets/$at_target?lang=2" $json -H "Authorization: Bearer $B" -d '{"bonus":0}' \
+            | jq -c '[.targets[0].saved, (.targets[0].dealt == .damage)]')
+          sv_gone=$(curl -s "$api/api/campaigns/$ss_cp/maps/$mp2/state" -H "Authorization: Bearer $B" | jq -c '[(.table.saves // [])[] | select(.id == "'"$sv_id"'")] | length')
           code -X POST "$api/api/campaigns/$ss_cp/maps/$mp2/combat/next" -H "Authorization: Bearer $B" > /dev/null
           tu_offturn=$(code -X POST "$api/api/campaigns/$ss_cp/maps/$mp2/tokens/$ctl_tree/move" $json -H "Authorization: Bearer $A" -d '{"x":7,"y":6}')
           at_take_turn=$(code -X POST "$api/api/campaigns/$ss_cp/maps/$mp2/tokens/$at_item/take?lang=2" $json -H "Authorization: Bearer $A" -d "{\"byTokenId\":\"$ctl_tree\",\"index\":0}")
@@ -1416,6 +1429,13 @@ jobs:
           sscheck "turn: only a master gives it back" "$tu_reset_player" "403"
           sscheck "turn: given back by the master" "$tu_reset" "204"
           sscheck "turn: all of it free again" "$tu_reset_state" "[[false,0,null]]"
+          sscheck "turn: a spell takes the action" "$tu_cast" "204"
+          sscheck "turn: no second spell with the action used" "$tu_cast_again" "409"
+          sscheck "saves: asked of the target" "$sv_shape" '{"targets":1,"dc":30,"ability":2,"damage":null}'
+          sscheck "saves: the masters see them" "$sv_seen" "[1]"
+          sscheck "saves: a player does not roll an enemy's save" "$sv_player" "403"
+          sscheck "saves: failed against DC 30" "$sv_resolved" "[false,true]"
+          sscheck "saves: gone once every target rolled" "$sv_gone" "0"
           sscheck "turn: no move off its turn" "$tu_offturn" "409"
           sscheck "player drops another's weapon" "$at_drop_player" "403"
           sscheck "weapon dropped next to its owner" "$at_dropped" '{"propType":8,"label":"Spada","layer":1}'

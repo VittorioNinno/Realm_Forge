@@ -480,6 +480,56 @@ namespace RealmForge.Client.Localization
 		public static string VttSheetReadOnlyHint(LanguageCode lang) => T(lang, "La scheda di un alleato: la vedi, non la usi.", "An ally's sheet: you see it, you do not use it.");
 		public static string VttAimStart(string attack, LanguageCode lang) => T(lang, $"{attack}: scegli il bersaglio sulla mappa", $"{attack}: pick the target on the map");
 		public static string VttAimHint(LanguageCode lang) => T(lang, "Clic su un bersaglio evidenziato (giallo: con svantaggio). Esc per annullare.", "Click a highlighted target (yellow: with disadvantage). Esc to cancel.");
+		public static string VttMetamagicName(string key, LanguageCode lang) => key switch
+		{
+			"careful" => T(lang, "Incantesimo preciso", "Careful Spell"),
+			"distant" => T(lang, "Incantesimo distante", "Distant Spell"),
+			"empowered" => T(lang, "Incantesimo potenziato", "Empowered Spell"),
+			"extended" => T(lang, "Incantesimo esteso", "Extended Spell"),
+			"heightened" => T(lang, "Incantesimo intensificato", "Heightened Spell"),
+			"quickened" => T(lang, "Incantesimo rapido", "Quickened Spell"),
+			"seeking" => T(lang, "Incantesimo mirato", "Seeking Spell"),
+			"subtle" => T(lang, "Incantesimo celato", "Subtle Spell"),
+			"transmuted" => T(lang, "Incantesimo trasmutato", "Transmuted Spell"),
+			_ => T(lang, "Incantesimo raddoppiato", "Twinned Spell")
+		};
+		public static string VttMetamagicHint(string key, LanguageCode lang) => key switch
+		{
+			"careful" => T(lang, "Scegli le creature che superano da sole il tiro salvezza (nessun danno se il successo dimezza)", "Choose the creatures that succeed on the save by themselves (no damage where a success halves it)"),
+			"distant" => T(lang, "Gittata raddoppiata; a contatto diventa 9 metri", "Twice the range; a touch becomes 30 feet"),
+			"empowered" => T(lang, "Ritira i dadi dei danni più bassi (fino al modificatore di Carisma)", "Reroll the lowest damage dice (up to the Charisma modifier)"),
+			"heightened" => T(lang, "Un bersaglio ha svantaggio al tiro salvezza", "One target has disadvantage on the save"),
+			"quickened" => T(lang, "Lanciato come azione bonus invece che come azione", "Cast as a bonus action instead of an action"),
+			"seeking" => T(lang, "Se l'attacco manca, il d20 si ritira una volta", "If the attack misses, the d20 is rolled again once"),
+			"transmuted" => T(lang, "Cambia il tipo di danni con un altro della lista", "Change the damage type to another of the list"),
+			_ => string.Empty
+		};
+		public static string VttMetamagicCost(int cost, LanguageCode lang) => T(lang, $"{cost} PS", $"{cost} SP");
+		public static string VttMetamagicPoints(int left, LanguageCode lang) => T(lang, $"Punti stregoneria: {left}", $"Sorcery Points: {left}");
+		public static string VttSpellsGone(LanguageCode lang) => T(lang, "Azione e azione bonus di questo turno sono già usate", "The action and the bonus action of this turn are used");
+		public static string VttMetamagicNoPoints(LanguageCode lang) => T(lang, "Punti stregoneria insufficienti.", "Not enough Sorcery Points.");
+		public static string VttMetamagic(LanguageCode lang) => T(lang, "Metamagia", "Metamagic");
+		public static string VttSculpt(LanguageCode lang) => T(lang, "Scolpire incantesimi", "Sculpt Spells");
+		public static string VttSculptHint(LanguageCode lang) => T(lang, "Gli alleati scelti superano il tiro salvezza e non subiscono danni", "The allies chosen succeed on the save and take no damage");
+		public static string VttProtect(int most, LanguageCode lang) => T(lang, $"Proteggi (fino a {most})", $"Protect (up to {most})");
+		public static string VttConfirmAttack(LanguageCode lang) => T(lang, "Conferma l'attacco", "Confirm the attack");
+		public static string VttConfirmSpell(LanguageCode lang) => T(lang, "Conferma l'incantesimo", "Confirm the spell");
+		public static string VttConfirm(LanguageCode lang) => T(lang, "Conferma", "Confirm");
+		public static string VttTargets(LanguageCode lang) => T(lang, "Bersagli", "Targets");
+		public static string VttDamageType(LanguageCode lang) => T(lang, "Tipo di danni", "Damage type");
+		public static string VttSavesAsked(string spell, string save, int? damage, LanguageCode lang) =>
+			T(lang, $"«{spell}»: {save}{(damage is { } d ? $", {d} danni" : string.Empty)}. I bersagli tirano il tiro salvezza.", $"“{spell}”: {save}{(damage is { } d2 ? $", {d2} damage" : string.Empty)}. The targets roll their save.");
+		public static string VttSavesTitle(LanguageCode lang) => T(lang, "Tiri salvezza da fare", "Saving throws to make");
+		public static string VttSaveRoll(LanguageCode lang) => T(lang, "Tira", "Roll");
+		public static string VttSaveRollMine(LanguageCode lang) => T(lang, "Tira per le mie creature", "Roll for my creatures");
+		public static string VttSaveMade(LanguageCode lang) => T(lang, "Superato", "Made");
+		public static string VttSaveFailed(LanguageCode lang) => T(lang, "Fallito", "Failed");
+		public static string VttSaveDismiss(LanguageCode lang) => T(lang, "Chiudi i tiri salvezza rimasti", "Close the saves left");
+		public static string VttSaveProtected(LanguageCode lang) => T(lang, "protetto", "protected");
+		public static string VttSaveDisadvantage(LanguageCode lang) => T(lang, "svantaggio", "disadvantage");
+		public static string VttSaveDamage(int damage, string? type, bool half, LanguageCode lang) =>
+			T(lang, $"{damage} danni{(type is null ? string.Empty : " " + type)}{(half ? " (metà se superato)" : string.Empty)}", $"{damage}{(type is null ? string.Empty : " " + type)} damage{(half ? " (half on a success)" : string.Empty)}");
+		public static string VttSaveDealt(int dealt, LanguageCode lang) => T(lang, $"{dealt} danni", $"{dealt} damage");
 		public static string VttNoRestInFight(LanguageCode lang) => T(lang, "Durante un incontro non si riposa.", "No rest during an encounter.");
 		public static string VttNotYourTurn(LanguageCode lang) => T(lang, "Non è il suo turno: in combattimento ci si muove solo nel proprio turno.", "Not its turn: in a fight a creature moves only on its own turn.");
 		public static string VttTurnReset(LanguageCode lang) => T(lang, "Ridai il turno", "Give the turn back");

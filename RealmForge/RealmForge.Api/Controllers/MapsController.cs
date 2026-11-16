@@ -501,6 +501,55 @@ namespace RealmForge.Api.Controllers
 			{
 				who.OpportunityOn = null;
 			}
+			else if (kind == "cast" && dto.Wield is "action" or "bonus" or "reaction")
+			{
+				//	A spell: its part of the turn (a reaction at any time, the others on its own turn) and, for a character, the
+				//	spells already cast this turn
+				var part = dto.Wield;
+				var level = Math.Clamp(dto.Level ?? 0, 0, 9);
+				var mine = fight.Encounter.CurrentId == who.Id;
+				if (part != "reaction" && !mine && !runs)
+				{
+					return Problem(statusCode: StatusCodes.Status409Conflict, title: T(italian, "Non è il tuo turno.", "It is not your turn."));
+				}
+				string? refused = part switch
+				{
+					"action" when who.ActionSpent is not null => T(italian, "L'azione di questo turno è già stata usata.", "The action of this turn was already used."),
+					"bonus" when who.BonusUsed => T(italian, "L'azione bonus di questo turno è già stata usata.", "The bonus action of this turn was already used."),
+					"reaction" when who.ReactionUsed => T(italian, "La reazione è già stata usata.", "The reaction was already used."),
+					_ => null
+				};
+				if (refused is null && part != "reaction" && who.CharacterId is { } characterId)
+				{
+					var edition = await _context.Characters.AsNoTracking().Where(c => c.Id == characterId).Select(c => c.Ruleset).FirstOrDefaultAsync();
+					refused = EncounterRules.SpellRefused(who, part, level, edition == RulesetVersion.Dnd5e_2014) switch
+					{
+						"slot" => T(italian, "In questo turno è già stato lanciato un incantesimo di 1° livello o superiore: ora solo trucchetti.", "A spell of level 1 or higher was already cast this turn: only cantrips now."),
+						"bonus" => T(italian, "Con un incantesimo lanciato come azione bonus, l'altro del turno può essere solo un trucchetto.", "With a spell cast as a bonus action, the other spell of the turn can only be a cantrip."),
+						_ => null
+					};
+				}
+				if (refused is not null && !runs)
+				{
+					return Problem(statusCode: StatusCodes.Status409Conflict, title: refused);
+				}
+				switch (part)
+				{
+					case "action":
+						who.ActionSpent = TableCombat.SpentOther;
+						break;
+					case "bonus":
+						who.BonusUsed = true;
+						break;
+					default:
+						who.ReactionUsed = true;
+						break;
+				}
+				if (part != "reaction")
+				{
+					EncounterRules.SpellCast(who, part, level);
+				}
+			}
 			else
 			{
 				var mine = fight.Encounter.CurrentId == who.Id;
@@ -1615,7 +1664,22 @@ namespace RealmForge.Api.Controllers
 			map.PingAt is { } pingAt ? new MapPingDto(map.PingX ?? 0, map.PingY ?? 0, map.PingColor ?? PlayerColors.Master, pingAt) : null,
 			map.FocusAt is { } focusAt ? new MapFocusDto(map.FocusX ?? 0, map.FocusY ?? 0, map.FocusZoom ?? 1, focusAt) : null,
 			map.PlayersLocked,
-			map.StrikeAt is { } strikeAt && map.StrikeTokenId is { } struck ? new MapStrikeDto(struck, map.StrikeKind, map.StrikeDamage, strikeAt) : null);
+			map.StrikeAt is { } strikeAt && map.StrikeTokenId is { } struck ? new MapStrikeDto(struck, map.StrikeKind, map.StrikeDamage, strikeAt) : null,
+			SavesOf(map, CampaignRules.RunsTheTable(role)));
+
+		//	The saving throws waiting: all of them for the masters; for the players those of a caster they see, without the
+		//	targets hidden from them
+		private static List<MapSaveCallDto> SavesOf(CampaignMap map, bool runs)
+		{
+			var hidden = map.Tokens.Where(t => t.Hidden).Select(t => t.Id).ToHashSet();
+			return ReadSaves(map.SaveCalls)
+				.Where(c => runs || !c.CasterHidden)
+				.Select(c => new MapSaveCallDto(c.Id, c.CasterTokenId, c.Caster, c.Spell, c.Ability, c.Dc, c.Damage, c.DamageType, c.Half, c.At,
+					c.Targets.Where(t => runs || !hidden.Contains(t.TokenId))
+						.Select(t => new MapSaveTargetDto(t.TokenId, t.Label, t.Careful, t.Disadvantage, t.Roll, t.Saved, t.Dealt)).ToList()))
+				.Where(c => c.Targets.Count > 0)
+				.ToList();
+		}
 
 		//	Everyone sees their own drawings and what is for the whole table (MapRules.Sees)
 		private List<MapShapeDto> ShapesOf(CampaignMap map, CampaignRole role)

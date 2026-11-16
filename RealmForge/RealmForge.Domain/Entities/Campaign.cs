@@ -86,6 +86,9 @@ namespace RealmForge.Domain.Entities
 		public Guid? StrikeTokenId { get; set; }
 		public int StrikeKind { get; set; }
 		public int? StrikeDamage { get; set; }
+
+		//	The saving throws a spell asks for, waiting for their rolls (JSON of MapSaveCall)
+		public string? SaveCalls { get; set; }
 		public DateTimeOffset? StrikeAt { get; set; }
 		public double? FocusX { get; set; }
 		public double? FocusY { get; set; }

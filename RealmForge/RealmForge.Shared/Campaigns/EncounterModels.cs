@@ -101,6 +101,11 @@ public class EncounterCombatant
 	//	The cells it moved in its turn (its speed left)
 	public int Moved { get; set; }
 
+	//	The spells of its turn: one of level 1+ cast, one cast as a bonus action, one of level 1+ cast with the action
+	public bool SlotSpell { get; set; }
+	public bool BonusSpell { get; set; }
+	public bool ActionSlotSpell { get; set; }
+
 	//	The cell it starts the fight on, on the encounter's map (null: the first free one)
 	public int? X { get; set; }
 	public int? Y { get; set; }
@@ -146,6 +151,39 @@ public static class EncounterRules
 		c.Dodging = false;
 		c.Interacted = false;
 		c.Moved = 0;
+		c.SlotSpell = false;
+		c.BonusSpell = false;
+		c.ActionSlotSpell = false;
+	}
+
+	///	<summary>
+	///	Whether a spell may be cast now, by the part of the turn it takes and its level: 2024, one spell of level 1+ in a
+	///	turn; 2014, a spell cast as a bonus action leaves only cantrips for the action (and the other way round). Null
+	///	when it may, else why not (a key: "slot", "bonus").
+	///	</summary>
+	public static string? SpellRefused(EncounterCombatant c, string part, int level, bool edition2014)
+	{
+		if (!edition2014)
+		{
+			return level > 0 && c.SlotSpell ? "slot" : null;
+		}
+		if (part == "bonus" && c.ActionSlotSpell)
+		{
+			return "bonus";
+		}
+		if (part == "action" && level > 0 && c.BonusSpell)
+		{
+			return "bonus";
+		}
+		return null;
+	}
+
+	///	<summary>Marks a spell cast in the turn.</summary>
+	public static void SpellCast(EncounterCombatant c, string part, int level)
+	{
+		c.SlotSpell |= level > 0;
+		c.BonusSpell |= part == "bonus";
+		c.ActionSlotSpell |= part == "action" && level > 0;
 	}
 
 	///	<summary>
