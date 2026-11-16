@@ -283,6 +283,23 @@ namespace RealmForge.Client.Components
 				return;
 			}
 			var half = HalfOnSave(detail.Description) || (spell.Level == 0 && options.PotentCantrip);
+			//	A lasting emanation around the caster (Spirit Guardians and the like): an aura that moves with it, asking its
+			//	save of the creatures that enter it or start their turn in it
+			if (area is { FromCaster: true, Kind: ShapeKind.Sphere } && spell.Concentration)
+			{
+				await SaveAuraAsync(t, new SaveAuraDto
+				{
+					Name = spell.Name.Length > 60 ? spell.Name[..60] : spell.Name,
+					Radius = Math.Clamp(area.Size, 1, TokenAura.MaxRadius),
+					Enemies = true,
+					Ability = target?.SaveAbility is { } auraAbility ? MapSaveRules.AbilityOf(auraAbility) : 0,
+					Dc = spell.SaveDc,
+					Damage = DamageWith(target?.Damage, options, new SpellInfo(spell.Level, spell.School == SpellSchool.Evocation, spell.Key)),
+					DamageType = target?.DamageType,
+					Half = half
+				});
+				return;
+			}
 			if (area is not null)
 			{
 				if (distant && !area.FromCaster)
