@@ -1,6 +1,7 @@
 ﻿using System.Text.RegularExpressions;
 using RealmForge.Client.Localization;
 using RealmForge.Client.Services;
+using RealmForge.Shared.Campaigns;
 using RealmForge.Shared.DTOs;
 
 namespace RealmForge.Client.Components
