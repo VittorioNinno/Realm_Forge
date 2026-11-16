@@ -26,9 +26,10 @@ public static class AttackRiders
 
 	///	<summary>
 	///	One option: its key, the dice or the bonus, whether the sheet applies it without asking, and whether it works once
-	///	per turn. Name and condition texts come from the client (by key).
+	///	per turn. Name and condition texts come from the client (by key); the Homebrew automations bring their own name
+	///	("Italian|English") and the resource they spend.
 	///	</summary>
-	public sealed record Rider(string Key, Kind Kind, string? Dice, int Flat, bool Automatic, bool OncePerTurn);
+	public sealed record Rider(string Key, Kind Kind, string? Dice, int Flat, bool Automatic, bool OncePerTurn, string? Name = null, string? ResourceKey = null);
 
 	private static int ClassLevel(ComputedCharacter c, string key) => c.Classes.Where(x => x.Class.Key == key).Sum(x => x.Level);
 
@@ -99,6 +100,24 @@ public static class AttackRiders
 		if (weapon && Ranged(item!) && HasFeat(c, "sharpshooter") && c.Ruleset == RulesetVersion.Dnd5e_2014)
 		{
 			riders.Add(new Rider("sharpshooter", Kind.PowerAttack, null, 10, false, false));
+		}
+		//	The extra damage of the Homebrew automations, for the attacks they name (a resource spent: asked first)
+		var index = 0;
+		foreach (var (e, source) in c.ModuleEffects.Where(e => e.Effect.Kind == RuleEffectKind.OnHitDamage))
+		{
+			index++;
+			var fits = e.Attacks switch
+			{
+				AttackReachFilter.Melee => item is null || (weapon && Melee(item)),
+				AttackReachFilter.Ranged => weapon && Ranged(item!),
+				_ => item is null || weapon
+			};
+			if (fits && RuleModules.RollOf(e, c) is { } dice)
+			{
+				var resource = RuleModules.ResourceKeyOf(e, source);
+				riders.Add(new Rider($"auto-{index}", Kind.Dice, dice, 0, e.Automatic && resource is null, e.OncePerTurn,
+					$"{e.NameIt ?? e.NameEn}|{e.NameEn ?? e.NameIt}", resource));
+			}
 		}
 		return riders;
 	}

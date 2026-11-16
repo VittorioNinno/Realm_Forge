@@ -131,6 +131,18 @@ namespace RealmForge.Client.Pages
 				ToggleSlot(draft.SmiteLevel, SpentSlots(draft.SmiteLevel));
 				smiteDice = AttackRiders.SmiteDice(draft.SmiteLevel, draft.UndeadOrFiend);
 			}
+			//	The Homebrew extra damage that spends a resource: one use each (none left: left out)
+			foreach (var paid in chosen.Where(r => r.ResourceKey is not null).ToList())
+			{
+				if (ClassResources.FirstOrDefault(c => c.Key == paid.ResourceKey) is { } resource && ResourceLeft(resource) > 0)
+				{
+					Sheet.ResourceUses[resource.Key] = ResourceSpent(resource) + 1;
+				}
+				else
+				{
+					chosen.Remove(paid);
+				}
+			}
 			RollAttackDamage(draft.Name, draft.Damage, chosen, PowerAttack ? 10 : 0, draft.Critical, smite is not null, smiteDice);
 			attackDraft = null;
 			Changed();
@@ -168,12 +180,16 @@ namespace RealmForge.Client.Pages
 				}
 				if (rider.Kind != AttackRiders.Kind.PowerAttack || power > 0)
 				{
-					names.Add(rider.Kind == AttackRiders.Kind.SlotDice ? $"{UiText.RiderName(rider.Key, Lang)} {dice}" : UiText.RiderName(rider.Key, Lang));
+					names.Add(rider.Kind == AttackRiders.Kind.SlotDice ? $"{UiText.RiderName(rider, Lang)} {dice}" : UiText.RiderName(rider, Lang));
 				}
 			}
 			var label = $"{name} · {UiText.LabelDamage(Lang)}" + (names.Count > 0 ? $" + {string.Join(", ", names)}" : string.Empty);
 			ShowRoll(new DiceRollResult(label, faces, modifier, Math.Max(0, faces.Sum(f => f.Value) + modifier), critical ? UiText.RollCritical(Lang) : null));
 		}
+
+		//	Uses left of the resource a Homebrew extra damage spends
+		private int RiderUsesLeft(AttackRiders.Rider rider) =>
+			ClassResources.FirstOrDefault(c => c.Key == rider.ResourceKey) is { } resource ? ResourceLeft(resource) : 0;
 
 		private static void AddDice(List<DieFace> faces, int count, int size, bool critical)
 		{
