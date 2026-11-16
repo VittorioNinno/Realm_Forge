@@ -1285,6 +1285,22 @@ jobs:
           code -X PUT "$api/api/campaigns/$ss_cp/maps/$mp2/lighting" $json -H "Authorization: Bearer $B" -d '{"lighting":0,"dynamicVision":false}' > /dev/null
           code -X DELETE "$api/api/campaigns/$ss_cp/maps/$mp2/tokens/$vi_wolf" -H "Authorization: Bearer $B" > /dev/null
           code -X DELETE "$api/api/campaigns/$ss_cp/maps/$mp2/tokens/$vi_guide" -H "Authorization: Bearer $B" > /dev/null
+          # Undo: a master takes back their own edits, the last first (a token removed comes back as it was)
+          un_player=$(code -X POST "$api/api/campaigns/$ss_cp/maps/$mp2/undo" -H "Authorization: Bearer $A")
+          un_id=$(curl -s -X POST "$api/api/campaigns/$ss_cp/maps/$mp2/tokens" $json -H "Authorization: Bearer $B" -d '{"label":"Statua","kind":4,"x":2,"y":2,"size":1}' | jq -r .id)
+          code -X POST "$api/api/campaigns/$ss_cp/maps/$mp2/tokens/$un_id/move" $json -H "Authorization: Bearer $B" -d '{"x":3,"y":3}' > /dev/null
+          code -X DELETE "$api/api/campaigns/$ss_cp/maps/$mp2/tokens/$un_id" -H "Authorization: Bearer $B" > /dev/null
+          un1=$(curl -s -X POST "$api/api/campaigns/$ss_cp/maps/$mp2/undo" -H "Authorization: Bearer $B" | jq -c '{kind, more: (.left > 0)}')
+          un1_seen=$(curl -s "$api/api/campaigns/$ss_cp/maps/$mp2/state" -H "Authorization: Bearer $B" | jq -c --arg u "$un_id" '[.tokens[] | select(.id == $u) | [.x, .y, .label]]')
+          code -X POST "$api/api/campaigns/$ss_cp/maps/$mp2/undo" -H "Authorization: Bearer $B" > /dev/null
+          un2_seen=$(curl -s "$api/api/campaigns/$ss_cp/maps/$mp2/state" -H "Authorization: Bearer $B" | jq -c --arg u "$un_id" '[.tokens[] | select(.id == $u) | [.x, .y]]')
+          code -X POST "$api/api/campaigns/$ss_cp/maps/$mp2/undo" -H "Authorization: Bearer $B" > /dev/null
+          un3_seen=$(curl -s "$api/api/campaigns/$ss_cp/maps/$mp2/state" -H "Authorization: Bearer $B" | jq -c --arg u "$un_id" '[.tokens[] | select(.id == $u)] | length')
+          un_tr_before=$(curl -s "$api/api/campaigns/$ss_cp/maps/$mp2/state" -H "Authorization: Bearer $B" | jq -c '.terrain.cells | length')
+          code -X PUT "$api/api/campaigns/$ss_cp/maps/$mp2/terrain" $json -H "Authorization: Bearer $B" -d '{"cells":[5,5],"kind":1,"blockPlayers":true}' > /dev/null
+          un_tr=$(curl -s -X POST "$api/api/campaigns/$ss_cp/maps/$mp2/undo" -H "Authorization: Bearer $B" | jq -r .kind)
+          un_tr_after=$(curl -s "$api/api/campaigns/$ss_cp/maps/$mp2/state" -H "Authorization: Bearer $B" | jq -c '.terrain.cells | length')
+          un_table=$(curl -s "$api/api/campaigns/$ss_cp/maps/$mp2/state" -H "Authorization: Bearer $A" | jq -c '.table.undo')
           # A spell asks for a save: the damage rolled once, the target waits; only who controls it (or a master) rolls
           sv_call=$(curl -s -X POST "$api/api/campaigns/$ss_cp/maps/$mp2/saves?lang=2" $json -H "Authorization: Bearer $A" \
             -d "{\"casterId\":\"$ctl_tree\",\"spell\":\"Prova\",\"ability\":2,\"dc\":30,\"half\":true,\"targetIds\":[\"$at_target\"]}")
@@ -1503,6 +1519,13 @@ jobs:
           sscheck "vision: darkvision set by its player" "$vi_dv" "204"
           sscheck "vision: darkvision out of range" "$vi_dv_bad" "400"
           sscheck "vision: darkvision kept" "$vi_dv_seen" "[60]"
+          sscheck "undo: only masters" "$un_player" "403"
+          sscheck "undo: the removed token is back" "$un1" '{"kind":"tokens","more":true}'
+          sscheck "undo: where it was removed" "$un1_seen" '[[3,3,"Statua"]]'
+          sscheck "undo: the move taken back" "$un2_seen" "[[2,2]]"
+          sscheck "undo: the token placed taken away" "$un3_seen" "0"
+          sscheck "undo: the terrain painted taken back" "$un_tr|$un_tr_after" "terrain|$un_tr_before"
+          sscheck "undo: nothing for the players" "$un_table" "0"
           sscheck "saves: asked of the target" "$sv_shape" '{"targets":1,"dc":30,"ability":2,"damage":null}'
           sscheck "saves: the masters see them" "$sv_seen" "[1]"
           sscheck "saves: a player does not roll an enemy's save" "$sv_player" "403"
