@@ -114,6 +114,9 @@ public class EncounterCombatant
 	public int ReadyLevel { get; set; }
 	public bool ReadyFired { get; set; }
 
+	//	The combatant holding it in a grapple: it moves with it, and is let go when that one is incapacitated or apart
+	public Guid? GrappledBy { get; set; }
+
 	//	The cell it starts the fight on, on the encounter's map (null: the first free one)
 	public int? X { get; set; }
 	public int? Y { get; set; }
@@ -164,6 +167,9 @@ public static class EncounterRules
 		c.ActionSlotSpell = false;
 		ClearReady(c);
 	}
+
+	//	The conditions that make a creature let go of what it grapples
+	public static readonly IReadOnlySet<string> Incapacitating = new HashSet<string> { "incapacitated", "paralyzed", "petrified", "stunned", "unconscious" };
 
 	public static void ClearReady(EncounterCombatant c)
 	{

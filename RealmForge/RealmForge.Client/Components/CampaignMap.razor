@@ -549,7 +549,10 @@ else
     private sealed record TokenRoll(string Label, string Bonus, string Expression, bool Hidden);
     private sealed record TokenStats(int? SpeedFeet, List<TokenRoll> Rolls, QuickSheet? Sheet = null, TokenSlots? Slots = null, int? ActionAttacks = null,
         List<RealmForge.Shared.Characters.FeatureUse>? Uses = null, List<RealmForge.Shared.Characters.ClassResource>? Resources = null, Dictionary<string, int>? Spent = null,
-        int[]? SaveBonuses = null, RealmForge.Shared.Characters.CastingOptions? Casting = null);
+        int[]? SaveBonuses = null, RealmForge.Shared.Characters.CastingOptions? Casting = null, TokenBody? Body = null);
+
+    //	What a grapple or a shove reads of a creature: Strength and Dexterity, proficiency, Athletics and Acrobatics, its rules
+    private sealed record TokenBody(int Str, int Dex, int Prof, int Athletics, int Acrobatics, bool Edition2024);
 
     //	The spell slots left of a character, by level, and its pact slots
     private sealed record TokenSlots(int[] Left, int PactLeft, int PactLevel);
@@ -2321,7 +2324,31 @@ else
                 }
                 <button type="button" class="rf-turn-btn bonus" disabled="@(!can || turn.BonusUsed)" title="@UiText.VttTurnBonusHint(Lang)" @onclick="@(() => TurnActionAsync(t, "bonus", null))" data-test="vtt-turn-bonus-use">@UiText.VttTurnBonusUse(Lang)</button>
                 <button type="button" class="rf-turn-btn @(readyFor == t.Id ? "held" : null)" disabled="@(!can || t.ActionSpent is not null || turn.Ready is not null)" title="@UiText.VttTurnKindHint("ready", Lang)" @onclick="() => OpenReady(t)" data-test="vtt-turn-ready">@UiText.VttTurnKind("ready", Lang)</button>
+                <button type="button" class="rf-turn-btn" disabled="@(!can || AttacksGone(t))" title="@UiText.VttGrappleHint(Lang)" @onclick="@(() => StartManeuverAsync(t, "grapple"))" data-test="vtt-turn-grapple">@UiText.VttGrapple(Lang)</button>
+                <button type="button" class="rf-turn-btn" disabled="@(!can || AttacksGone(t))" title="@UiText.VttShoveHint(Lang)" @onclick="@(() => StartManeuverAsync(t, "shove"))" data-test="vtt-turn-shove">@UiText.VttShove(Lang)</button>
             </div>
+            @if (HolderOf(t) is { } holder)
+            {
+                @* Grappled: it moves with the one holding it, escapes with its action *@
+                <div class="rf-turn-ready" data-test="vtt-turn-grappled">
+                    <span><Icon Name="link" /> @UiText.VttGrappledBy(holder.Label, Lang)</span>
+                    @if (CanRoll(t))
+                    {
+                        <button type="button" class="rf-turn-btn bonus" disabled="@(!mine || busy || t.ActionSpent is not null)" title="@UiText.VttEscapeHint(Lang)" @onclick="@(() => ManeuverAsync(t, holder, "escape"))" data-test="vtt-turn-escape">@UiText.VttEscape(Lang)</button>
+                    }
+                </div>
+            }
+            @foreach (var h in HeldBy(t))
+            {
+                var heldOne = h;
+                <div class="rf-turn-ready" data-test="vtt-turn-holding">
+                    <span><Icon Name="link" /> @UiText.VttHolding(heldOne.Label, Lang)</span>
+                    @if (CanRoll(t))
+                    {
+                        <button type="button" class="rf-turn-btn" disabled="@busy" @onclick="@(() => ManeuverAsync(t, heldOne, "release"))" data-test="vtt-turn-release">@UiText.VttLetGo(Lang)</button>
+                    }
+                </div>
+            }
             @if (turn.Ready is { } readied)
             {
                 @* The action readied: the trigger told by the master (or the player), let go with the reaction *@
@@ -2868,7 +2895,20 @@ else
             {
                 var reach = current.Attack.Reach ?? AttackReach.Melee;
                 <span class="rf-vtt-combatbar-what"><Icon Name="@(current.Save is null ? "crosshair" : "magic")" /> <strong>@current.Attack.Name</strong> <span>@ReachText(reach)</span></span>
-                @if (current.Save is { } save)
+                @if (current.Maneuver == "shove")
+                {
+                    <span class="rf-vtt-chips" role="group" aria-label="@UiText.VttShove(Lang)">
+                        @foreach (var sv in new[] { "push", "prone" })
+                        {
+                            var shove = sv;
+                            <button type="button" class="rf-vtt-chip @(aimShove == shove ? "active" : null)" @onclick="() => aimShove = shove" data-test="vtt-aim-shove" data-shove="@shove">@UiText.VttShoveKind(shove, Lang)</button>
+                        }
+                    </span>
+                }
+                else if (current.Maneuver is not null)
+                {
+                }
+                else if (current.Save is { } save)
                 {
                     <span class="rf-vtt-chip active" data-test="vtt-aim-save">@UiText.VttSaveDc(save, current.Dc, Lang)</span>
                 }
@@ -3542,6 +3582,14 @@ else
             StateHasChanged();
             return;
         }
+        //	Grappled: its speed is 0 (a master moves it anyway)
+        if (!RunsTheTable && HolderOf(t) is not null)
+        {
+            message = UiText.VttGrappledMove(Lang);
+            Replace(t);
+            StateHasChanged();
+            return;
+        }
         //	A player's token goes around the walls and the closed doors: the way it takes is what it moves
         var cost = MapGeometry.Distance(gridType, t.X, t.Y, col, row);
         if (FollowsTerrain && t.Kind != TokenKind.Prop)
@@ -3554,6 +3602,11 @@ else
                 return;
             }
             cost = way;
+        }
+        //	Dragging a creature it grapples costs double
+        if (HeldBy(t).Count > 0)
+        {
+            cost *= 2;
         }
         //	A player moves no further than the speed (in a fight, counting what was already moved in the turn)
         if (!RunsTheTable && SpeedCells(t) is { } speed
@@ -4613,7 +4666,9 @@ else
             TurnActions.AttacksPerAction(computed), RealmForge.Shared.Characters.FeatureUses.For(computed, Lang),
             RealmForge.Shared.Characters.CharacterResources.For(computed, Lang), new Dictionary<string, int>(character.Sheet.ResourceUses),
             Enum.GetValues<AbilityScore>().Select(computed.SaveBonus).ToArray(),
-            RealmForge.Shared.Characters.CastingOptions.For(computed, character.Sheet.FeatureNotes));
+            RealmForge.Shared.Characters.CastingOptions.For(computed, character.Sheet.FeatureNotes),
+            new TokenBody(computed.Modifier(AbilityScore.Strength), computed.Modifier(AbilityScore.Dexterity), computed.ProficiencyBonus,
+                computed.SkillBonus(Skill.Athletics), computed.SkillBonus(Skill.Acrobatics), computed.Ruleset != RulesetVersion.Dnd5e_2014));
     }
 
     //	What the character does in a turn besides the standard actions: its features by action, bonus action, reaction
@@ -4803,7 +4858,8 @@ else
             abilities, new List<SheetSave>(), text.SavingThrows,
             new List<SheetStat> { new(string.Empty, monster.PassivePerception.ToString(CultureInfo.InvariantCulture), UiText.VttPassivePerception(Lang), false) },
             attacks, prose, monster.IsNpc ? $"npcs/{id}" : $"monsters?id={id}", actions, null, features);
-        return new TokenStats(monster.Speed, rolls, sheet, SaveBonuses: MonsterSaves(text.SavingThrows, monster.Abilities));
+        return new TokenStats(monster.Speed, rolls, sheet, SaveBonuses: MonsterSaves(text.SavingThrows, monster.Abilities),
+            Body: MonsterBody(text.Skills, monster.Abilities, monster.ProficiencyBonus, monster.Ruleset != RulesetVersion.Dnd5e_2014));
     }
 
     //	"***Name.*** text" paragraphs of a statblock, one entry each
