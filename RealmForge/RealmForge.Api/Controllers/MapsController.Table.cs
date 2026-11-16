@@ -177,6 +177,16 @@ namespace RealmForge.Api.Controllers
 			//	character's attack is rolled and told, the master applies what it does
 			var applies = attacker.CharacterId is null && attacker.ControlledBy.Count == 0;
 			var down = false;
+			//	The target's defenses against the damage type (a spell is magical)
+			if (hit && damage is { } rawDamage && rawDamage > 0 && DamageDefenses.TypeOf(dto.DamageType) is { } damageType)
+			{
+				var (adjusted, why) = (await DefensesOfAsync(target, targetCombatant, characters)).Apply(rawDamage, damageType, dto.Spell);
+				if (DefenseNote(why, italian) is { } defenseNote)
+				{
+					damage = adjusted;
+					notes.Add(defenseNote);
+				}
+			}
 			if (hit && applies)
 			{
 				down = ApplyDamage(target, targetCombatant, characters, damage ?? 0, critical, dto.Condition, out var concentration);
@@ -393,6 +403,38 @@ namespace RealmForge.Api.Controllers
 			return damage > 0 && target.MaxHp is > 0 && target.Hp == 0;
 		}
 
+		// ===== Resistances, immunities, vulnerabilities =====
+
+		//	A target's defenses: a character's kept with its sheet, a monster's from its statblock (the English texts, whose
+		//	wording is the steadiest)
+		private async Task<DamageDefenses> DefensesOfAsync(CampaignToken target, EncounterCombatant? combatant, List<Character> characters)
+		{
+			if ((target.CharacterId ?? target.SheetCharacterId) is { } characterId)
+			{
+				var defenses = characters.FirstOrDefault(c => c.Id == characterId)?.Defenses
+					?? await _context.Characters.AsNoTracking().Where(c => c.Id == characterId).Select(c => c.Defenses).FirstOrDefaultAsync();
+				return DamageDefenses.Read(defenses);
+			}
+			if ((target.MonsterId ?? combatant?.MonsterId) is { } monsterId)
+			{
+				var lines = await _context.Set<MonsterTranslation>().AsNoTracking()
+					.Where(t => t.MonsterId == monsterId)
+					.OrderBy(t => t.Language == LanguageCode.En ? 0 : 1)
+					.Select(t => new { t.DamageVulnerabilities, t.DamageResistances, t.DamageImmunities })
+					.FirstOrDefaultAsync();
+				return lines is null ? DamageDefenses.None : DamageDefenses.FromStatblock(lines.DamageVulnerabilities, lines.DamageResistances, lines.DamageImmunities);
+			}
+			return DamageDefenses.None;
+		}
+
+		private static string? DefenseNote(string? why, bool italian) => why switch
+		{
+			"immune" => T(italian, "immune", "immune"),
+			"resist" => T(italian, "resistenza: dimezzati", "resistance: halved"),
+			"vulnerable" => T(italian, "vulnerabilità: raddoppiati", "vulnerability: doubled"),
+			_ => null
+		};
+
 		// ===== Saving throws asked by a spell =====
 
 		public static List<MapSaveCall> ReadSaves(string? json)
@@ -588,11 +630,18 @@ namespace RealmForge.Api.Controllers
 			target.Saved = saved;
 			target.Dealt = MapSaveRules.Dealt(call.Damage, saved, call.Half, target.Careful);
 
-			//	The damage on the target, as an attack's
+			//	The damage on the target, as an attack's, after its defenses (a spell is magical)
 			var fight = await FightAsync(map, track: true);
 			var combatant = token.CombatantId is { } cid ? fight?.Combatants.FirstOrDefault(c => c.Id == cid) : null;
 			var characterIds = new[] { token.CharacterId, token.SheetCharacterId }.OfType<Guid>().ToList();
 			var characters = await _context.Characters.Where(c => characterIds.Contains(c.Id)).ToListAsync();
+			string? defense = null;
+			if (target.Dealt is { } before && before > 0 && DamageDefenses.TypeOf(call.DamageType) is { } savedType)
+			{
+				var (after, why) = (await DefensesOfAsync(token, combatant, characters)).Apply(before, savedType, magical: true);
+				target.Dealt = after;
+				defense = DefenseNote(why, italian);
+			}
 			var down = false;
 			int? concentration = null;
 			if (target.Dealt is { } dealt && dealt > 0)
@@ -609,6 +658,7 @@ namespace RealmForge.Api.Controllers
 			}
 			var outcome = (saved ? T(italian, "superato", "made") : T(italian, "fallito", "failed"))
 				+ (target.Careful ? T(italian, " (protetto)", " (protected)") : string.Empty)
+				+ (defense is null ? string.Empty : $" · {defense}")
 				+ (target.Dealt is { } hurt ? T(italian, $" · {hurt} danni{(call.DamageType is { } dt ? " " + dt : string.Empty)}", $" · {hurt}{(call.DamageType is { } dt2 ? " " + dt2 : string.Empty)} damage") : string.Empty)
 				+ (down ? T(italian, " · a terra", " · down") : string.Empty)
 				+ (concentration is { } cdc ? T(italian, $" · TS Costituzione CD {cdc} per la concentrazione", $" · Constitution save DC {cdc} to keep concentration") : string.Empty);
