@@ -64,6 +64,11 @@ namespace RealmForge.Domain.Entities
 		//	covered
 		public bool FogEnabled { get; set; }
 
+		//	The light where nobody carries one, and whether each player sees only what their creatures see (the lights,
+		//	the darkvision, the walls in the way; see MapVision)
+		public MapLighting Lighting { get; set; }
+		public bool DynamicVision { get; set; }
+
 		//	The masters stopped the players' areas and pings (the drawings each one keeps for themselves stay)
 		public bool PlayersLocked { get; set; }
 

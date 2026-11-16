@@ -409,6 +409,7 @@ namespace RealmForge.Api.Controllers
 			character.MaxHitPoints = computed.MaxHitPoints;
 			character.ArmorClass = computed.ArmorClass;
 			character.Defenses = DamageDefenses.Write(computed.Resistances, computed.Immunities);
+			character.Darkvision = computed.Darkvision;
 			character.UpdatedAt = DateTimeOffset.UtcNow;
 			character.UpdatedById = UserId;
 			await _context.SaveChangesAsync();
@@ -479,6 +480,7 @@ namespace RealmForge.Api.Controllers
 			character.MaxHitPoints = computed.MaxHitPoints;
 			character.ArmorClass = computed.ArmorClass;
 			character.Defenses = DamageDefenses.Write(computed.Resistances, computed.Immunities);
+			character.Darkvision = computed.Darkvision;
 			character.UpdatedAt = DateTimeOffset.UtcNow;
 		}
 
