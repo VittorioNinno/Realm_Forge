@@ -92,13 +92,22 @@
                 {
                     @ToolOptionsBar
                 }
+                else if (map is not null && pending is not null)
+                {
+                    @ConfirmBar
+                }
                 else if (map is not null && (aim is not null || placing is not null || castNote is not null || (gearNote is not null && !PanelShown("sheet"))))
                 {
                     @CombatBar
                 }
-                else if (map is not null && Opportunities.Count > 0)
+                @* An attack of opportunity and the saves to make stand apart: no other bar hides them *@
+                @if (map is not null && Opportunities.Count > 0)
                 {
                     @OpportunityBar
+                }
+                @if (map is not null && Table && MySaveCalls.Count > 0)
+                {
+                    @SavesPanel
                 }
                 @DiceCluster
             </div>
@@ -535,7 +544,8 @@ else
     //	What a token can roll and how far it moves, read from the sheet or the statblock
     private sealed record TokenRoll(string Label, string Bonus, string Expression, bool Hidden);
     private sealed record TokenStats(int? SpeedFeet, List<TokenRoll> Rolls, QuickSheet? Sheet = null, TokenSlots? Slots = null, int? ActionAttacks = null,
-        List<RealmForge.Shared.Characters.FeatureUse>? Uses = null, List<RealmForge.Shared.Characters.ClassResource>? Resources = null, Dictionary<string, int>? Spent = null);
+        List<RealmForge.Shared.Characters.FeatureUse>? Uses = null, List<RealmForge.Shared.Characters.ClassResource>? Resources = null, Dictionary<string, int>? Spent = null,
+        int[]? SaveBonuses = null, RealmForge.Shared.Characters.CastingOptions? Casting = null);
 
     //	The spell slots left of a character, by level, and its pact slots
     private sealed record TokenSlots(int[] Left, int PactLeft, int PactLevel);
@@ -1795,7 +1805,8 @@ else
     private sealed record SheetEntry(string Name, string Markdown, string? Badge = null);
     private sealed record SheetGroup(string Title, List<SheetEntry> Entries);
     //	A spell, with the numbers of its source (attack bonus, save DC) and the caster's level (a cantrip's damage grows)
-    private sealed record SheetSpell(Guid Id, string Name, int Level, bool Concentration, bool Ritual, int AttackBonus = 0, int SaveDc = 0, int CasterLevel = 1);
+    private sealed record SheetSpell(Guid Id, string Name, int Level, bool Concentration, bool Ritual, int AttackBonus = 0, int SaveDc = 0, int CasterLevel = 1,
+        SpellSchool School = SpellSchool.Evocation, string? Key = null);
     private sealed record SheetCasting(string Title, string Line, TokenRoll? Attack, List<SheetSpell> Spells, string? Slots, bool UsesSlots = false);
 
     private Guid? sheetTokenId;
@@ -2056,7 +2067,7 @@ else
                                         var picked = castChoice is { } cc && cc.TokenId == t.Id && cc.Spell.Id == spell.Id;
                                         @if (canRoll && t.CharacterId is not null && !KnockedOut(t))
                                         {
-                                            <button type="button" class="rf-qs-spell @(picked ? "active" : null)" aria-expanded="@(picked ? "true" : "false")" @onclick="() => ChooseCast(t, spell, casting.UsesSlots)" data-test="map-token-spell">
+                                            <button type="button" class="rf-qs-spell @(picked ? "active" : null)" aria-expanded="@(picked ? "true" : "false")" disabled="@(SpellsGone(t) && !picked)" title="@(SpellsGone(t) ? UiText.VttSpellsGone(Lang) : null)" @onclick="() => ChooseCast(t, spell, casting.UsesSlots)" data-test="map-token-spell">
                                                 @spell.Name
                                                 @if (spell.Concentration)
                                                 {
@@ -2379,7 +2390,7 @@ else
     //	The attacks of opportunity this account can take: a creature it controls, with a token that just left its reach
     private RenderFragment OpportunityBar => __builder =>
     {
-        <div class="rf-vtt-options rf-vtt-combatbar rf-opportunity" data-test="vtt-opportunity">
+        <div class="rf-vtt-options rf-vtt-combatbar rf-opportunity floating" role="alert" data-test="vtt-opportunity">
             @foreach (var (reactor, target) in Opportunities)
             {
                 var r = reactor;
@@ -2465,6 +2476,25 @@ else
                 <strong>@spell.Name</strong>
                 <a href="@($"spells?id={spell.Id}")" target="_blank" rel="noopener" class="rf-vtt-icon-button" title="@UiText.VttCastDetails(Lang)" aria-label="@UiText.VttCastDetails(Lang)"><Icon Name="external" /></a>
             </div>
+            @{
+                var options = OptionsOf(t);
+                var before = new[] { "quickened", "distant" }.Where(options.Has).ToList();
+            }
+            @if (before.Count > 0)
+            {
+                @* Metamagic that changes the casting itself, chosen before the slot *@
+                <div class="rf-qs-meta" role="group" aria-label="@UiText.VttMetamagic(Lang)" data-test="map-token-cast-meta">
+                    <span class="rf-qs-meta-title"><Icon Name="magic" /> @UiText.VttMetamagic(Lang) · @UiText.VttMetamagicPoints(PointsLeft(t), Lang)</span>
+                    @foreach (var m in before)
+                    {
+                        var option = m;
+                        var cost = RealmForge.Shared.Characters.CastingOptions.CostOf(option);
+                        <button type="button" class="rf-vtt-chip @(preMeta.Contains(option) ? "active" : null)" aria-pressed="@(preMeta.Contains(option) ? "true" : "false")"
+                                disabled="@(!preMeta.Contains(option) && PointsLeft(t) < preMeta.Sum(o => RealmForge.Shared.Characters.CastingOptions.CostOf(o)) + cost)" title="@UiText.VttMetamagicHint(option, Lang)"
+                                @onclick="() => TogglePreMeta(option)" data-test="map-token-cast-meta-option" data-option="@option">@UiText.VttMetamagicName(option, Lang) <small>@UiText.VttMetamagicCost(cost, Lang)</small></button>
+                    }
+                </div>
+            }
             @if (spell.Level == 0 || !choice.UsesSlots)
             {
                 <button type="button" class="rf-qs-cast-slot" disabled="@busy" @onclick="() => CastAsync(t, spell, 0, false)" data-test="map-token-cast-go"><Icon Name="magic" /> @UiText.VttCast(Lang)</button>
@@ -2593,6 +2623,174 @@ else
 
     //	Over the map, while aiming an attack or placing the area of a spell: what is going on, the options, cancel; then
     //	what the last cast did
+    //	A character's attack or spell before it is made: the targets, the save, the damage, the options it may take
+    private RenderFragment ConfirmBar => __builder =>
+    {
+        var p = pending!;
+        var caster = tokens.FirstOrDefault(t => t.Id == p.CasterId);
+        var options = caster is null ? RealmForge.Shared.Characters.CastingOptions.None : OptionsOf(caster);
+        var metas = caster is null ? new List<string>() : MetaFor(p, caster).ToList();
+        var sculpt = p.Kind == "save" && options.SculptSpells && p.Info?.Evocation == true;
+        var protect = caster is null ? 0 : ProtectMost(p, caster);
+        <div class="rf-vtt-options rf-vtt-combatbar rf-vtt-confirm" role="dialog" aria-label="@(p.Kind == "attack" ? UiText.VttConfirmAttack(Lang) : UiText.VttConfirmSpell(Lang))" data-test="vtt-confirm">
+            <div class="rf-vtt-confirm-row">
+                <span class="rf-vtt-combatbar-what"><Icon Name="@(p.Kind == "attack" ? "crosshair" : "magic")" /> <strong>@p.Name</strong></span>
+                @if (p.Kind == "save")
+                {
+                    <span class="rf-vtt-chip active" data-test="vtt-confirm-save">@UiText.VttSaveDc(UiText.AbilityShort((AbilityScore)Math.Clamp(p.Ability, 1, 6), Lang), p.Dc, Lang)</span>
+                }
+                @if (!string.IsNullOrEmpty(p.Damage))
+                {
+                    <span class="rf-vtt-chip" data-test="vtt-confirm-damage"><Icon Name="lightning" /> @DamageWith(p.Damage, options, p.Info) @(p.Transmute ?? p.DamageType)</span>
+                }
+                @if (p.Kind == "attack")
+                {
+                    <span class="rf-vtt-chips" role="group">
+                        @foreach (var m in new[] { 0, 1, -1 })
+                        {
+                            var mode = m;
+                            <button type="button" class="rf-vtt-chip @(p.Mode == mode ? "active" : null)" @onclick="() => p.Mode = mode" data-test="vtt-confirm-mode" data-mode="@mode">@UiText.VttAimMode(mode, Lang)</button>
+                        }
+                    </span>
+                }
+            </div>
+            <div class="rf-vtt-confirm-row" role="group" aria-label="@UiText.VttTargets(Lang)">
+                <span class="rf-vtt-options-hint">@UiText.VttTargets(Lang):</span>
+                @foreach (var id in p.Targets)
+                {
+                    var targetId = id;
+                    var who = tokens.FirstOrDefault(t => t.Id == targetId);
+                    <span class="rf-vtt-confirm-target" data-test="vtt-confirm-target">
+                        @(who?.Label ?? "?")
+                        @if (protect > 0)
+                        {
+                            <label class="rf-vtt-confirm-check" title="@UiText.VttProtect(protect, Lang)">
+                                <input type="checkbox" checked="@p.Careful.Contains(targetId)" disabled="@(!p.Careful.Contains(targetId) && p.Careful.Count >= protect)" @onchange="() => ToggleCareful(targetId)" data-test="vtt-confirm-careful" />
+                                <Icon Name="shield" />
+                            </label>
+                        }
+                        @if (p.Meta.Contains("heightened"))
+                        {
+                            <label class="rf-vtt-confirm-check" title="@UiText.VttSaveDisadvantage(Lang)">
+                                <input type="radio" name="vtt-heightened" checked="@(p.Heightened == targetId)" @onchange="() => p.Heightened = targetId" data-test="vtt-confirm-heightened" />
+                                <Icon Name="arrow-down" />
+                            </label>
+                        }
+                    </span>
+                }
+            </div>
+            @if (metas.Count > 0 || sculpt)
+            {
+                <div class="rf-vtt-confirm-row" role="group" aria-label="@UiText.VttMetamagic(Lang)">
+                    @if (metas.Count > 0 && caster is not null)
+                    {
+                        <span class="rf-vtt-options-hint">@UiText.VttMetamagicPoints(PointsLeft(caster), Lang)</span>
+                    }
+                    @foreach (var m in metas)
+                    {
+                        var option = m;
+                        var cost = RealmForge.Shared.Characters.CastingOptions.CostOf(option);
+                        <button type="button" class="rf-vtt-chip @(p.Meta.Contains(option) ? "active" : null)" aria-pressed="@(p.Meta.Contains(option) ? "true" : "false")"
+                                disabled="@(caster is null || (!p.Meta.Contains(option) && PointsLeft(caster) < PendingCost(p) + cost))" title="@UiText.VttMetamagicHint(option, Lang)"
+                                @onclick="() => TogglePendingMeta(option)" data-test="vtt-confirm-meta" data-option="@option">@UiText.VttMetamagicName(option, Lang) <small>@UiText.VttMetamagicCost(cost, Lang)</small></button>
+                    }
+                    @if (p.Meta.Contains("transmuted"))
+                    {
+                        <select class="rf-form-control rf-vtt-combatbar-select" aria-label="@UiText.VttDamageType(Lang)" @onchange="e => p.Transmute = e.Value?.ToString()" data-test="vtt-confirm-transmute">
+                            @foreach (var type in TransmutedTypes(Lang))
+                            {
+                                <option value="@type" selected="@(string.Equals(p.Transmute ?? p.DamageType, type, StringComparison.OrdinalIgnoreCase))">@type</option>
+                            }
+                        </select>
+                    }
+                    @if (sculpt)
+                    {
+                        <button type="button" class="rf-vtt-chip @(p.Sculpt ? "active" : null)" aria-pressed="@(p.Sculpt ? "true" : "false")" title="@UiText.VttSculptHint(Lang)" @onclick="ToggleSculpt" data-test="vtt-confirm-sculpt">@UiText.VttSculpt(Lang)</button>
+                    }
+                </div>
+            }
+            <div class="rf-vtt-confirm-row end">
+                <button type="button" class="btn btn-sm btn-rf-outline" @onclick="CancelPending" data-test="vtt-confirm-cancel">@UiText.BtnCancel(Lang)</button>
+                <button type="button" class="btn btn-sm btn-rf-orange" disabled="@busy" @onclick="ConfirmPendingAsync" data-test="vtt-confirm-go"><Icon Name="check" /> @UiText.VttConfirm(Lang)</button>
+            </div>
+        </div>
+    };
+
+    //	The saves a spell asks for, waiting: a master rolls for the creatures (or tells the outcome), each player for the
+    //	own characters; the damage goes on the targets by itself
+    private RenderFragment SavesPanel => __builder =>
+    {
+        <section class="rf-vtt-saves" role="region" aria-label="@UiText.VttSavesTitle(Lang)" data-test="vtt-saves">
+            <h3 class="rf-vtt-saves-title"><Icon Name="shield" /> @UiText.VttSavesTitle(Lang)</h3>
+            @foreach (var c in MySaveCalls)
+            {
+                var call = c;
+                var waiting = call.Targets.Where(x => x.Saved is null && CanSave(x)).ToList();
+                <div class="rf-vtt-save-call" data-test="vtt-save-call">
+                    <div class="rf-vtt-save-head">
+                        <span><strong>@call.Spell</strong> <small>@call.Caster</small></span>
+                        @if (RunsTheTable)
+                        {
+                            <button type="button" class="rf-vtt-icon-button" title="@UiText.VttSaveDismiss(Lang)" aria-label="@UiText.VttSaveDismiss(Lang)" @onclick="() => DismissSavesAsync(call)" data-test="vtt-save-dismiss"><Icon Name="close" /></button>
+                        }
+                    </div>
+                    <div class="rf-vtt-save-what">
+                        <span class="rf-vtt-chip active">@UiText.VttSaveDc(UiText.AbilityShort((AbilityScore)Math.Clamp(call.Ability, 1, 6), Lang), call.Dc, Lang)</span>
+                        @if (call.Damage is { } damage)
+                        {
+                            <span class="rf-vtt-chip">@UiText.VttSaveDamage(damage, call.DamageType, call.Half, Lang)</span>
+                        }
+                    </div>
+                    <ul class="rf-vtt-save-list">
+                        @foreach (var tg in call.Targets)
+                        {
+                            var target = tg;
+                            <li class="@(target.Saved is null ? null : target.Saved == true ? "made" : "failed")" data-test="vtt-save-target">
+                                <span class="rf-vtt-save-name">@target.Label
+                                    @if (target.Careful)
+                                    {
+                                        <small>(@UiText.VttSaveProtected(Lang))</small>
+                                    }
+                                    @if (target.Disadvantage)
+                                    {
+                                        <small>(@UiText.VttSaveDisadvantage(Lang))</small>
+                                    }
+                                </span>
+                                @if (target.Saved is { } made)
+                                {
+                                    <span class="rf-vtt-save-outcome">@(target.Roll is { } roll ? $"{roll} · " : string.Empty)@(made ? UiText.VttSaveMade(Lang) : UiText.VttSaveFailed(Lang))@(target.Dealt is { } dealt ? $" · {UiText.VttSaveDealt(dealt, Lang)}" : string.Empty)</span>
+                                }
+                                else if (CanSave(target))
+                                {
+                                    <span class="rf-vtt-save-actions">
+                                        <button type="button" class="btn btn-sm btn-rf-orange" disabled="@busy" @onclick="() => RollSaveAsync(call, target)" data-test="vtt-save-roll"><Icon Name="dice" /> @UiText.VttSaveRoll(Lang)</button>
+                                        @if (RunsTheTable)
+                                        {
+                                            <button type="button" class="rf-vtt-icon-button" title="@UiText.VttSaveMade(Lang)" aria-label="@UiText.VttSaveMade(Lang)" disabled="@busy" @onclick="() => RollSaveAsync(call, target, true)" data-test="vtt-save-made"><Icon Name="check" /></button>
+                                            <button type="button" class="rf-vtt-icon-button" title="@UiText.VttSaveFailed(Lang)" aria-label="@UiText.VttSaveFailed(Lang)" disabled="@busy" @onclick="() => RollSaveAsync(call, target, false)" data-test="vtt-save-failed"><Icon Name="close" /></button>
+                                        }
+                                    </span>
+                                }
+                                else
+                                {
+                                    <span class="rf-vtt-save-outcome">…</span>
+                                }
+                            </li>
+                        }
+                    </ul>
+                    @if (RunsTheTable && waiting.Count > 1)
+                    {
+                        <button type="button" class="btn btn-sm btn-rf-outline w-100" disabled="@busy" @onclick="() => RollMySavesAsync(call)" data-test="vtt-save-roll-mine"><Icon Name="dice" /> @UiText.VttSaveRollMine(Lang)</button>
+                    }
+                </div>
+            }
+            @if (saveNote is not null)
+            {
+                <p class="rf-qs-note mb-0">@saveNote</p>
+            }
+        </section>
+    };
+
     private RenderFragment CombatBar => __builder =>
     {
         <div class="rf-vtt-options rf-vtt-combatbar" data-targeting="@(aim is not null || placing is not null ? "1" : null)" data-test="vtt-combat-bar">
@@ -3655,10 +3853,13 @@ else
 
     private RenderFragment CollapseButton => __builder =>
     {
+        @* The two side by side (in a row under the vertical strip; one above the other when it is folded) *@
+        <div class="rf-init-tools">
         <button type="button" class="rf-init-icon" title="@(initVertical ? UiText.VttInitHorizontal(Lang) : UiText.VttInitVertical(Lang))" aria-label="@(initVertical ? UiText.VttInitHorizontal(Lang) : UiText.VttInitVertical(Lang))" aria-pressed="@(initVertical ? "true" : "false")"
                 @onclick="ToggleInitLayoutAsync" data-test="vtt-init-layout"><Icon Name="@(initVertical ? "distribute-horizontal" : "distribute-vertical")" /></button>
         <button type="button" class="rf-init-icon accent" title="@(initCollapsed ? UiText.CardExpand(Lang) : UiText.CardMinimize(Lang))" aria-label="@(initCollapsed ? UiText.CardExpand(Lang) : UiText.CardMinimize(Lang))" aria-expanded="@(initCollapsed ? "false" : "true")"
                 @onclick="() => initCollapsed = !initCollapsed" data-test="vtt-init-collapse"><Icon Name="@CollapseIcon" /></button>
+        </div>
     };
 
     private RenderFragment Avatar(MapCombatantDto who, MapTokenDto? token) => __builder =>
@@ -3739,7 +3940,9 @@ else
             {
                 continue;
             }
-            if (TokenOf(who) is { } token && (token.CharacterId is null || CharacterOf(token)?.IsMine == true))
+            //	The masters roll for the monsters and the other creatures they run, never for a character (a player's, even one
+            //	they made); a player for the own characters and the creatures given to them
+            if (TokenOf(who) is { } token && (RunsTheTable ? token.CharacterId is null : CharacterOf(token)?.IsMine == true || token.Controlled))
             {
                 foreach (var member in GroupOf(who, token))
                 {
@@ -4338,7 +4541,9 @@ else
         var left = Enumerable.Range(0, 9).Select(i => Math.Max(0, computed.SpellSlots[i] - (i < character.Sheet.SpentSlots.Count ? character.Sheet.SpentSlots[i] : 0))).ToArray();
         return new TokenStats(computed.Speed, rolls, sheet, new TokenSlots(left, Math.Max(0, computed.PactSlots - character.Sheet.SpentPactSlots), computed.PactSlotLevel),
             TurnActions.AttacksPerAction(computed), RealmForge.Shared.Characters.FeatureUses.For(computed, Lang),
-            RealmForge.Shared.Characters.CharacterResources.For(computed, Lang), new Dictionary<string, int>(character.Sheet.ResourceUses));
+            RealmForge.Shared.Characters.CharacterResources.For(computed, Lang), new Dictionary<string, int>(character.Sheet.ResourceUses),
+            Enum.GetValues<AbilityScore>().Select(computed.SaveBonus).ToArray(),
+            RealmForge.Shared.Characters.CastingOptions.For(computed, character.Sheet.FeatureNotes));
     }
 
     //	What the character does in a turn besides the standard actions: its features by action, bonus action, reaction
@@ -4368,7 +4573,7 @@ else
         {
             var spells = source.Known.Select(sid => byId.GetValueOrDefault(sid)).OfType<RealmForge.Shared.Characters.ContextSpell>()
                 .OrderBy(sp => sp.Level).ThenBy(sp => sp.Name)
-                .Select(sp => new SheetSpell(sp.Id, sp.Name, sp.Level, sp.Concentration, sp.Ritual, source.AttackBonus, source.SaveDc, Math.Max(1, c.Level))).ToList();
+                .Select(sp => new SheetSpell(sp.Id, sp.Name, sp.Level, sp.Concentration, sp.Ritual, source.AttackBonus, source.SaveDc, Math.Max(1, c.Level), sp.School, sp.Key)).ToList();
             if (spells.Count == 0)
             {
                 continue;
@@ -4528,7 +4733,7 @@ else
             abilities, new List<SheetSave>(), text.SavingThrows,
             new List<SheetStat> { new(string.Empty, monster.PassivePerception.ToString(CultureInfo.InvariantCulture), UiText.VttPassivePerception(Lang), false) },
             attacks, prose, monster.IsNpc ? $"npcs/{id}" : $"monsters?id={id}", actions, null, features);
-        return new TokenStats(monster.Speed, rolls, sheet);
+        return new TokenStats(monster.Speed, rolls, sheet, SaveBonuses: MonsterSaves(text.SavingThrows, monster.Abilities));
     }
 
     //	"***Name.*** text" paragraphs of a statblock, one entry each
@@ -4619,6 +4824,7 @@ else
         }
         fogEnabled = table.FogEnabled;
         fog = table.Fog;
+        saveCalls = table.Saves ?? new();
         playersLocked = table.PlayersLocked;
         if (PlayersStopped && tool is "area" or "ping")
         {

@@ -32,6 +32,9 @@ namespace RealmForge.Client.Components
 			return t.ActionSpent == TableCombat.SpentOther || (t.ActionSpent == TableCombat.SpentAttack && turn.AttacksMade >= most);
 		}
 
+		//	On its own turn, with the action and the bonus action used: no spell but a reaction is left (those wait)
+		private bool SpellsGone(MapTokenDto t) => TurnOf(t) is { } turn && IsTurnOf(t) && t.ActionSpent is not null && turn.BonusUsed;
+
 		//	The part of the turn a feature takes is used already (on its own turn; the reaction at any time)
 		private bool SlotGone(MapTokenDto t, RealmForge.Shared.Characters.FeatureSlot slot) => TurnOf(t) is { } turn && slot switch
 		{

@@ -406,6 +406,15 @@ namespace RealmForge.Client.Services
 		public Task<(MapAttackResultDto? Value, string? Error)> AttackAsync(Guid id, Guid mapId, MapAttackDto dto, LanguageCode lang) =>
 			TableAsync<MapAttackResultDto>(() => _http.PostAsJsonAsync($"api/campaigns/{id}/maps/{mapId}/attack?lang={(int)lang}", dto), "attack");
 
+		public Task<(MapSaveCallDto? Value, string? Error)> CallSavesAsync(Guid id, Guid mapId, CallSavesDto dto, LanguageCode lang) =>
+			TableAsync<MapSaveCallDto>(() => _http.PostAsJsonAsync($"api/campaigns/{id}/maps/{mapId}/saves?lang={(int)lang}", dto), "call saves");
+
+		public Task<(MapSaveCallDto? Value, string? Error)> ResolveSaveAsync(Guid id, Guid mapId, Guid callId, Guid tokenId, ResolveSaveDto dto, LanguageCode lang) =>
+			TableAsync<MapSaveCallDto>(() => _http.PostAsJsonAsync($"api/campaigns/{id}/maps/{mapId}/saves/{callId}/targets/{tokenId}?lang={(int)lang}", dto), "resolve save");
+
+		public Task<CampaignResult> DismissSavesAsync(Guid id, Guid mapId, Guid callId) =>
+			SendAsync(() => _http.DeleteAsync($"api/campaigns/{id}/maps/{mapId}/saves/{callId}"), "dismiss saves");
+
 		public Task<(bool Value, string? Error)> TurnActionAsync(Guid id, Guid mapId, Guid tokenId, TurnActionDto dto, LanguageCode lang) =>
 			TableAsync<bool>(() => _http.PostAsJsonAsync($"api/campaigns/{id}/maps/{mapId}/tokens/{tokenId}/turn?lang={(int)lang}", dto), "turn action");
 

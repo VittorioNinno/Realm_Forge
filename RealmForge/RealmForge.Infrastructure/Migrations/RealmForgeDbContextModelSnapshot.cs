@@ -601,6 +601,9 @@ namespace RealmForge.Infrastructure.Migrations
                     b.Property<bool>("PlayersLocked")
                         .HasColumnType("boolean");
 
+                    b.Property<string>("SaveCalls")
+                        .HasColumnType("text");
+
                     b.Property<bool>("Shown")
                         .HasColumnType("boolean");
 
