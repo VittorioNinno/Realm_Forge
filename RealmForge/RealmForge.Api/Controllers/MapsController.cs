@@ -405,6 +405,12 @@ namespace RealmForge.Api.Controllers
 			{
 				return Problem(statusCode: StatusCodes.Status409Conflict, title: "Not its turn.", detail: "turn");
 			}
+			//	A grappled creature does not move by itself (its speed is 0); a master moves it anyway
+			if (!CampaignRules.RunsTheTable(role.Value) && token.CombatantId is { } heldId
+				&& await FightAsync(map, track: false) is { } held && held.Combatants.FirstOrDefault(c => c.Id == heldId) is { GrappledBy: not null })
+			{
+				return Problem(statusCode: StatusCodes.Status409Conflict, title: "Grappled: its speed is 0.", detail: "grappled");
+			}
 			var from = (token.X, token.Y);
 			token.X = dto.X;
 			token.Y = dto.Y;
@@ -429,11 +435,24 @@ namespace RealmForge.Api.Controllers
 				return;
 			}
 			var offered = false;
+
+			//	The creatures it grapples come along (dragging costs double); a grapple ends when the two are apart
+			var dragged = fight.Combatants.Where(c => c.GrappledBy == moving.Id).ToList();
+			foreach (var heldOne in dragged)
+			{
+				if (map.Tokens.FirstOrDefault(t => t.CombatantId == heldOne.Id) is { } heldToken && OnMap(map, heldToken.X + mover.X - from.X, heldToken.Y + mover.Y - from.Y, heldToken.Size))
+				{
+					heldToken.X += mover.X - from.X;
+					heldToken.Y += mover.Y - from.Y;
+					heldToken.UpdatedAt = map.UpdatedAt;
+				}
+			}
 			if (fight.Encounter.CurrentId == moving.Id)
 			{
-				moving.Moved += cost;
+				moving.Moved += dragged.Count > 0 ? cost * 2 : cost;
 				offered = true;
 			}
+			offered |= await ReleaseGrapplesAsync(map, fight);
 			if (moving.Disengaged)
 			{
 				Save(fight, fight.Combatants);
@@ -1600,7 +1619,8 @@ namespace RealmForge.Api.Controllers
 							ReactionUsed = combatant.ReactionUsed,
 							Turn = new TokenTurnDto(combatant.BonusUsed, combatant.AttacksMade, combatant.Dashed, combatant.Disengaged, combatant.Dodging,
 								combatant.Interacted, combatant.Wield, combatant.OpportunityOn, combatant.Moved,
-								combatant.ReadyWhat is { } readied ? new TokenReadyDto(combatant.ReadyTrigger ?? string.Empty, readied, combatant.ReadySpellId, combatant.ReadyLevel, combatant.ReadyFired) : null)
+								combatant.ReadyWhat is { } readied ? new TokenReadyDto(combatant.ReadyTrigger ?? string.Empty, readied, combatant.ReadySpellId, combatant.ReadyLevel, combatant.ReadyFired) : null,
+								combatant.GrappledBy is { } holder ? map.Tokens.FirstOrDefault(k => k.CombatantId == holder)?.Id : null)
 						};
 					}
 					return dto;

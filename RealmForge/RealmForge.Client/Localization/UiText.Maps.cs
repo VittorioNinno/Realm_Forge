@@ -508,6 +508,17 @@ namespace RealmForge.Client.Localization
 		};
 		public static string VttMetamagicCost(int cost, LanguageCode lang) => T(lang, $"{cost} PS", $"{cost} SP");
 		public static string VttMetamagicPoints(int left, LanguageCode lang) => T(lang, $"Punti stregoneria: {left}", $"Sorcery Points: {left}");
+		public static string VttGrapple(LanguageCode lang) => T(lang, "Lotta", "Grapple");
+		public static string VttGrappleHint(LanguageCode lang) => T(lang, "Uno degli attacchi dell'azione Attacco: afferra una creatura a portata, che poi si muove con te (a velocità dimezzata)", "One of the attacks of the Attack action: grapple a creature in reach, which then moves with you (at half speed)");
+		public static string VttShove(LanguageCode lang) => T(lang, "Spinta", "Shove");
+		public static string VttShoveHint(LanguageCode lang) => T(lang, "Uno degli attacchi dell'azione Attacco: spingi via di 1,5 m o butta a terra una creatura a portata", "One of the attacks of the Attack action: push a creature in reach 5 feet away or knock it prone");
+		public static string VttShoveKind(string kind, LanguageCode lang) => kind == "prone" ? T(lang, "A terra", "Prone") : T(lang, "Spingi via", "Push away");
+		public static string VttGrappledBy(string who, LanguageCode lang) => T(lang, $"Afferrato da {who}: velocità 0", $"Grappled by {who}: speed 0");
+		public static string VttHolding(string who, LanguageCode lang) => T(lang, $"Stai afferrando {who}: si muove con te, a velocità dimezzata", $"Grappling {who}: it moves with you, at half speed");
+		public static string VttEscape(LanguageCode lang) => T(lang, "Liberati", "Escape");
+		public static string VttEscapeHint(LanguageCode lang) => T(lang, "Usa l'azione: Atletica o Acrobazia per liberarti", "Takes the action: Athletics or Acrobatics to escape");
+		public static string VttLetGo(LanguageCode lang) => T(lang, "Lascia la presa", "Let go");
+		public static string VttGrappledMove(LanguageCode lang) => T(lang, "Afferrato: non può muoversi finché non si libera.", "Grappled: it cannot move until it escapes.");
 		public static string VttReadyOther(LanguageCode lang) => T(lang, "Altro", "Something else");
 		public static string VttReadyWhat(LanguageCode lang) => T(lang, "Cosa prepari", "What is readied");
 		public static string VttReadyTriggerHint(LanguageCode lang) => T(lang, "Innesco: es. «quando il goblin esce dal muro»", "Trigger: e.g. “when the goblin steps out of the wall”");

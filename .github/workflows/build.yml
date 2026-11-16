@@ -1249,6 +1249,12 @@ jobs:
           rd_fired=$(curl -s "$api/api/campaigns/$ss_cp/maps/$mp2/state" -H "Authorization: Bearer $A" | jq -c '[.tokens[] | select(.label == "Albero") | .turn.ready | {what, fired}]')
           rd_release=$(code -X POST "$api/api/campaigns/$ss_cp/maps/$mp2/tokens/$ctl_tree/turn?lang=2" $json -H "Authorization: Bearer $A" -d '{"kind":"release"}')
           rd_after=$(curl -s "$api/api/campaigns/$ss_cp/maps/$mp2/state" -H "Authorization: Bearer $A" | jq -c '[.tokens[] | select(.label == "Albero") | [.turn.ready, .reactionUsed]]')
+          # A grapple at the creature next to it (against DC 40 it holds): the bandit is held, then let go
+          gr_hold=$(curl -s -X POST "$api/api/campaigns/$ss_cp/maps/$mp2/tokens/$ctl_tree/grapple?lang=2" $json -H "Authorization: Bearer $B" \
+            -d "{\"targetId\":\"$at_target\",\"kind\":\"grapple\",\"dc\":40}" | jq -c '.hit')
+          gr_state=$(curl -s "$api/api/campaigns/$ss_cp/maps/$mp2/state" -H "Authorization: Bearer $B" | jq -c --arg t "$ctl_tree" '[.tokens[] | select(.label == "Bandito") | [(.turn.grappledBy == $t), (.conditions | index("grappled") != null)]]')
+          gr_release=$(code -X POST "$api/api/campaigns/$ss_cp/maps/$mp2/tokens/$ctl_tree/grapple?lang=2" $json -H "Authorization: Bearer $B" -d "{\"targetId\":\"$at_target\",\"kind\":\"release\"}")
+          gr_after=$(curl -s "$api/api/campaigns/$ss_cp/maps/$mp2/state" -H "Authorization: Bearer $B" | jq -c '[.tokens[] | select(.label == "Bandito") | .turn.grappledBy]')
           # A spell asks for a save: the damage rolled once, the target waits; only who controls it (or a master) rolls
           sv_call=$(curl -s -X POST "$api/api/campaigns/$ss_cp/maps/$mp2/saves?lang=2" $json -H "Authorization: Bearer $A" \
             -d "{\"casterId\":\"$ctl_tree\",\"spell\":\"Prova\",\"ability\":2,\"dc\":30,\"half\":true,\"targetIds\":[\"$at_target\"]}")
@@ -1444,6 +1450,10 @@ jobs:
           sscheck "ready: the trigger came" "$rd_fired" '[{"what":"Altro","fired":true}]'
           sscheck "ready: let go" "$rd_release" "204"
           sscheck "ready: gone, the reaction used" "$rd_after" "[[null,true]]"
+          sscheck "grapple: held against DC 40" "$gr_hold" "true"
+          sscheck "grapple: the bandit held and grappled" "$gr_state" "[[true,true]]"
+          sscheck "grapple: let go" "$gr_release" "200"
+          sscheck "grapple: free again" "$gr_after" "[null]"
           sscheck "saves: asked of the target" "$sv_shape" '{"targets":1,"dc":30,"ability":2,"damage":null}'
           sscheck "saves: the masters see them" "$sv_seen" "[1]"
           sscheck "saves: a player does not roll an enemy's save" "$sv_player" "403"
