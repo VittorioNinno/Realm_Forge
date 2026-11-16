@@ -167,7 +167,20 @@ namespace RealmForge.Shared.DTOs
 
 	///	<summary>The turn of a token in a fight, as the table shows it.</summary>
 	public record TokenTurnDto(bool BonusUsed, int AttacksMade, bool Dashed, bool Disengaged, bool Dodging, bool Interacted, string? Wield, Guid? OpportunityOn, int Moved = 0,
-		TokenReadyDto? Ready = null);
+		TokenReadyDto? Ready = null, Guid? GrappledBy = null);
+
+	//	A grapple, a shove (pushed away or knocked prone), an escape from a grapple, a grapple let go: the bonuses come from
+	//	the sheets (Athletics, Acrobatics, the saves); with a DC (the 2024 rules) the other side rolls against it, without
+	//	one the two sides roll a contest (2014)
+	public class GrappleDto
+	{
+		public Guid TargetId { get; set; }
+		public string Kind { get; set; } = string.Empty;
+		public int ActorBonus { get; set; }
+		public int OtherBonus { get; set; }
+		public int? Dc { get; set; }
+		public int? ActionAttacks { get; set; }
+	}
 
 	//	A readied action, as the table shows it: its trigger, what it is, the spell readied, whether the trigger came
 	public record TokenReadyDto(string Trigger, string What, Guid? SpellId, int Level, bool Fired);

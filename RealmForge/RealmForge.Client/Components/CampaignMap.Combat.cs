@@ -21,7 +21,7 @@ namespace RealmForge.Client.Components
 		// ===== Aiming an attack =====
 
 		//	What is aimed: an attack (a weapon, a spell attack) or a spell with a saving throw (its ability and DC)
-		private sealed record Aim(Guid AttackerId, SheetLine Attack, string? Save = null, int Dc = 0, bool Half = false, SpellInfo? Info = null);
+		private sealed record Aim(Guid AttackerId, SheetLine Attack, string? Save = null, int Dc = 0, bool Half = false, SpellInfo? Info = null, string? Maneuver = null);
 
 		private Aim? aim;
 		private int aimMode;
@@ -115,6 +115,11 @@ namespace RealmForge.Client.Components
 			if (!IsTarget(target) || (!opportunity && !(current.Attack.Reach ?? AttackReach.Melee).At(GapOf(attacker, target)).Can))
 			{
 				aimNote = UiText.VttAimOut(Lang);
+				return true;
+			}
+			if (current.Maneuver is { } maneuver)
+			{
+				await ManeuverAsync(attacker, target, maneuver == "grapple" ? "grapple" : aimShove);
 				return true;
 			}
 			if (current.Save is { } ability)

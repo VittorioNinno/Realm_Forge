@@ -249,6 +249,8 @@ namespace RealmForge.Api.Controllers
 			_context.CampaignRolls.Add(log);
 			if (fight is not null)
 			{
+				//	A creature dropped lets go of what it grapples
+				await ReleaseGrapplesAsync(map, fight);
 				Save(fight, fight.Combatants);
 			}
 			target.UpdatedAt = map.UpdatedAt = DateTimeOffset.UtcNow;
@@ -401,6 +403,261 @@ namespace RealmForge.Api.Controllers
 				target.Conditions = target.Conditions.Append(condition).ToList();
 			}
 			return damage > 0 && target.MaxHp is > 0 && target.Hp == 0;
+		}
+
+		// ===== Grapples and shoves =====
+
+		//	A condition put on or taken off a token: a character's on its sheet, a fight's creature on its combatant
+		private static void SetCondition(CampaignToken token, EncounterCombatant? combatant, List<Character> characters, string key, bool on)
+		{
+			if (token.CharacterId is { } characterId && characters.FirstOrDefault(c => c.Id == characterId) is { } character)
+			{
+				var sheet = CharactersController.ReadSheet(character.Sheet);
+				var has = sheet.Conditions.Contains(key);
+				if (on && !has)
+				{
+					sheet.Conditions.Add(key);
+				}
+				else if (!on && has)
+				{
+					sheet.Conditions.Remove(key);
+				}
+				sheet.VitalsStamp++;
+				character.Sheet = JsonSerializer.Serialize(sheet, CharactersController.Json);
+				character.UpdatedAt = DateTimeOffset.UtcNow;
+			}
+			if (combatant is not null)
+			{
+				if (on && !combatant.Conditions.Contains(key))
+				{
+					combatant.Conditions.Add(key);
+				}
+				else if (!on)
+				{
+					combatant.Conditions.Remove(key);
+				}
+			}
+			else if (on && !token.Conditions.Contains(key))
+			{
+				token.Conditions = token.Conditions.Append(key).ToList();
+			}
+			else if (!on && token.Conditions.Contains(key))
+			{
+				token.Conditions = token.Conditions.Where(k => k != key).ToList();
+			}
+		}
+
+		//	The grapples that end: the one holding is incapacitated (or down), gone, or no longer next to it; true when any did
+		private async Task<bool> ReleaseGrapplesAsync(CampaignMap map, Fight fight)
+		{
+			var ended = new List<(CampaignToken Token, EncounterCombatant Combatant)>();
+			foreach (var held in fight.Combatants.Where(c => c.GrappledBy is not null))
+			{
+				var holder = fight.Combatants.FirstOrDefault(c => c.Id == held.GrappledBy);
+				var holderToken = map.Tokens.FirstOrDefault(t => t.CombatantId == held.GrappledBy);
+				var heldToken = map.Tokens.FirstOrDefault(t => t.CombatantId == held.Id);
+				var apart = holderToken is null || heldToken is null
+					|| TableCombat.Gap(map.GridType, holderToken.X, holderToken.Y, holderToken.Size, heldToken.X, heldToken.Y, heldToken.Size) > 1;
+				var down = holder is null || holder.Conditions.Any(EncounterRules.Incapacitating.Contains)
+					|| (holder.Kind != CombatantKind.Character && holder.MaxHp > 0 && holder.Hp <= 0);
+				if (apart || down)
+				{
+					held.GrappledBy = null;
+					if (heldToken is not null)
+					{
+						ended.Add((heldToken, held));
+					}
+				}
+			}
+			if (ended.Count == 0)
+			{
+				return false;
+			}
+			var ids = ended.Select(e => e.Token.CharacterId).OfType<Guid>().ToList();
+			var characters = ids.Count == 0 ? new List<Character>() : await _context.Characters.Where(c => ids.Contains(c.Id)).ToListAsync();
+			foreach (var (token, combatant) in ended)
+			{
+				SetCondition(token, combatant, characters, "grappled", false);
+			}
+			return true;
+		}
+
+		//	POST: api/campaigns/{campaignId}/maps/{mapId}/tokens/{tokenId}/grapple — in a fight: a grapple or a shove (one of
+		//	the attacks of the Attack action, at a creature next to it), an escape (the action), a grapple let go (free)
+		[HttpPost("{mapId:guid}/tokens/{tokenId:guid}/grapple")]
+		public async Task<ActionResult<MapAttackResultDto>> Grapple(Guid campaignId, Guid mapId, Guid tokenId, [FromBody] GrappleDto dto, [FromQuery] LanguageCode? lang)
+		{
+			var italian = lang != LanguageCode.En;
+			var (map, role) = await LoadAsync(campaignId, mapId, withTokens: true);
+			var actor = map?.Tokens.FirstOrDefault(t => t.Id == tokenId);
+			var target = map?.Tokens.FirstOrDefault(t => t.Id == dto.TargetId);
+			if (map is null || role is null || actor is null || target is null || actor.Id == target.Id)
+			{
+				return NotFound();
+			}
+			var runs = CampaignRules.RunsTheTable(role.Value);
+			if (!runs && !await ControlsAsync(actor))
+			{
+				return Forbid();
+			}
+			var kind = (dto.Kind ?? string.Empty).Trim().ToLowerInvariant();
+			if (kind is not ("grapple" or "push" or "prone" or "escape" or "release") || dto.ActorBonus is < -10 or > 30 || dto.OtherBonus is < -10 or > 30 || dto.Dc is < 1 or > 40)
+			{
+				return Problem(statusCode: StatusCodes.Status400BadRequest, title: "Invalid grapple.");
+			}
+			var fight = await FightAsync(map, track: true);
+			var actorCombatant = actor.CombatantId is { } aid ? fight?.Combatants.FirstOrDefault(c => c.Id == aid) : null;
+			var targetCombatant = target.CombatantId is { } tid ? fight?.Combatants.FirstOrDefault(c => c.Id == tid) : null;
+			if (fight is null || actorCombatant is null || targetCombatant is null)
+			{
+				return Problem(statusCode: StatusCodes.Status409Conflict, title: T(italian, "Lotta e spinta si fanno durante un combattimento.", "Grapples and shoves are made during a fight."));
+			}
+			var characterIds = new[] { actor.CharacterId, target.CharacterId }.OfType<Guid>().ToList();
+			var characters = await _context.Characters.Where(c => characterIds.Contains(c.Id)).ToListAsync();
+
+			//	Let go: free, at any time
+			if (kind == "release")
+			{
+				if (targetCombatant.GrappledBy != actorCombatant.Id)
+				{
+					return Problem(statusCode: StatusCodes.Status409Conflict, title: T(italian, "Non lo stai afferrando.", "It is not grappled by it."));
+				}
+				targetCombatant.GrappledBy = null;
+				SetCondition(target, targetCombatant, characters, "grappled", false);
+				Save(fight, fight.Combatants);
+				map.UpdatedAt = DateTimeOffset.UtcNow;
+				await _context.SaveChangesAsync();
+				return Ok(new MapAttackResultDto(true, false, new List<RollDieDto>(), 0, 0, null, new List<RollDieDto>(), T(italian, "Presa lasciata", "Let go")));
+			}
+			if (kind == "escape" && actorCombatant.GrappledBy != targetCombatant.Id)
+			{
+				return Problem(statusCode: StatusCodes.Status409Conflict, title: T(italian, "Non è afferrato da quella creatura.", "It is not grappled by that creature."));
+			}
+			if (TableCombat.Gap(map.GridType, actor.X, actor.Y, actor.Size, target.X, target.Y, target.Size) > 1)
+			{
+				return Problem(statusCode: StatusCodes.Status409Conflict, title: T(italian, "Il bersaglio deve essere a portata (1,5 m).", "The target must be within reach (5 feet)."));
+			}
+
+			//	The turn: an escape is the action; a grapple or a shove one of the attacks of the Attack action
+			if (kind == "escape")
+			{
+				if (fight.Encounter.CurrentId != actorCombatant.Id && !runs)
+				{
+					return Problem(statusCode: StatusCodes.Status409Conflict, title: T(italian, "Non è il tuo turno.", "It is not your turn."));
+				}
+				if (actorCombatant.ActionSpent is not null && !runs)
+				{
+					return Problem(statusCode: StatusCodes.Status409Conflict, title: T(italian, "L'azione di questo turno è già stata usata.", "The action of this turn was already used."));
+				}
+				actorCombatant.ActionSpent = TableCombat.SpentOther;
+			}
+			else if (SpendForAttack(fight, actorCombatant, runs, italian, dto.ActionAttacks, target.Id) is { } refused)
+			{
+				return Problem(statusCode: StatusCodes.Status409Conflict, title: refused);
+			}
+
+			//	The rolls: against a DC (the other side's save, or the escape's check), or a contest the actor wins only above
+			var actorDie = RandomNumberGenerator.GetInt32(1, 21);
+			var otherDie = RandomNumberGenerator.GetInt32(1, 21);
+			bool success;
+			int total;
+			var dice = new List<RollDieDto>();
+			if (dto.Dc is { } dc)
+			{
+				if (kind == "escape")
+				{
+					total = actorDie + dto.ActorBonus;
+					success = total >= dc;
+					dice.Add(new RollDieDto(20, actorDie, false));
+				}
+				else
+				{
+					total = otherDie + dto.OtherBonus;
+					success = total < dc;
+					dice.Add(new RollDieDto(20, otherDie, false));
+				}
+			}
+			else
+			{
+				total = actorDie + dto.ActorBonus;
+				success = total > otherDie + dto.OtherBonus;
+				dice.Add(new RollDieDto(20, actorDie, false));
+				dice.Add(new RollDieDto(20, otherDie, true));
+			}
+
+			string outcome;
+			if (!success)
+			{
+				outcome = kind == "escape" ? T(italian, "Non si libera", "Fails to escape") : T(italian, "Resiste", "Resists");
+			}
+			else
+			{
+				switch (kind)
+				{
+					case "grapple":
+						targetCombatant.GrappledBy = actorCombatant.Id;
+						SetCondition(target, targetCombatant, characters, "grappled", true);
+						outcome = T(italian, "Afferrato", "Grappled");
+						break;
+					case "prone":
+						SetCondition(target, targetCombatant, characters, "prone", true);
+						outcome = T(italian, "Prono", "Prone");
+						break;
+					case "push":
+						//	One cell straight away from the actor, when it is free and on the map
+						var (dx, dy) = (Math.Sign(target.X - actor.X), Math.Sign(target.Y - actor.Y));
+						var (nx, ny) = (target.X + dx, target.Y + dy);
+						var blocked = MapTerrain.Read(map.Terrain).GetValueOrDefault((nx, ny)) is TerrainKind.Wall or TerrainKind.ThreeQuarterCover
+							|| map.Tokens.Any(t => t.Id != target.Id && t.Kind != TokenKind.Prop && t.X == nx && t.Y == ny);
+						if ((dx != 0 || dy != 0) && OnMap(map, nx, ny, target.Size) && !blocked)
+						{
+							target.X = nx;
+							target.Y = ny;
+							target.UpdatedAt = DateTimeOffset.UtcNow;
+							outcome = T(italian, "Spinto via di 1,5 m", "Pushed 5 feet away");
+						}
+						else
+						{
+							outcome = T(italian, "Non c'è spazio per spingerlo", "No room to push it");
+						}
+						break;
+					default:
+						actorCombatant.GrappledBy = null;
+						SetCondition(actor, actorCombatant, characters, "grappled", false);
+						outcome = T(italian, "Si libera", "Escapes");
+						break;
+				}
+			}
+			await ReleaseGrapplesAsync(map, fight);
+
+			var name = kind switch
+			{
+				"grapple" => T(italian, "Lotta", "Grapple"),
+				"escape" => T(italian, "Liberarsi", "Escape"),
+				_ => T(italian, "Spinta", "Shove")
+			};
+			var colors = await CampaignAccess.EnsureColorsAsync(_context, campaignId);
+			var characterName = characters.FirstOrDefault(c => c.Id == actor.CharacterId)?.Name;
+			_context.CampaignRolls.Add(new CampaignRoll
+			{
+				CampaignId = campaignId,
+				UserId = UserId,
+				CharacterId = actor.CharacterId,
+				CharacterName = characterName is null ? null : Cut(characterName, 100),
+				Roller = Cut(characterName ?? (runs ? (role == CampaignRole.Master ? "Master" : "Co-master") : actor.Label), 100),
+				Color = colors.GetValueOrDefault(UserId, PlayerColors.Master),
+				Label = Cut($"{actor.Label} → {target.Label}: {name}", 120),
+				Expression = dto.Dc is { } shown ? T(italian, $"CD {shown}", $"DC {shown}") : "1d20",
+				Dice = JsonSerializer.Serialize(dice, GearJson),
+				Modifier = dto.Dc is null || kind == "escape" ? dto.ActorBonus : dto.OtherBonus,
+				Total = total,
+				Note = Cut(outcome, 200),
+				Hidden = runs && actor.Hidden
+			});
+			Save(fight, fight.Combatants);
+			map.UpdatedAt = DateTimeOffset.UtcNow;
+			await _context.SaveChangesAsync();
+			return Ok(new MapAttackResultDto(success, false, dice, dto.Dc is null || kind == "escape" ? dto.ActorBonus : dto.OtherBonus, total, null, new List<RollDieDto>(), outcome));
 		}
 
 		// ===== Resistances, immunities, vulnerabilities =====
@@ -690,6 +947,7 @@ namespace RealmForge.Api.Controllers
 			WriteSaves(map, calls);
 			if (fight is not null)
 			{
+				await ReleaseGrapplesAsync(map, fight);
 				Save(fight, fight.Combatants);
 			}
 			token.UpdatedAt = map.UpdatedAt = DateTimeOffset.UtcNow;
