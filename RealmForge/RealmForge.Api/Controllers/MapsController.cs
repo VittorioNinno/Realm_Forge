@@ -355,7 +355,7 @@ namespace RealmForge.Api.Controllers
 			{
 				return NotFound();
 			}
-			if (!runs && (!token.PlayersInteract || !map.Shown || (map.FogEnabled && UnderFog(map, token))))
+			if (!runs && (!token.PlayersInteract || !map.Shown || (map.FogEnabled && UnderFog(map, token)) || PropRules.Leads(token.PropType)))
 			{
 				return Forbid();
 			}
@@ -1609,6 +1609,7 @@ namespace RealmForge.Api.Controllers
 			var monsterIds = map.Tokens.Where(t => t.MonsterId is not null).Select(t => t.MonsterId!.Value).Distinct().ToList();
 			var creatures = await _context.Monsters.AsNoTracking().Where(m => monsterIds.Contains(m.Id))
 				.Select(m => new { m.Id, m.Size, m.Type }).ToDictionaryAsync(m => m.Id);
+			var links = runs ? await LinksOfAsync(map) : new();
 			var listed = map.Tokens
 				.Where(t => runs || !t.Hidden)
 				.Where(t => runs || !map.FogEnabled || (t.CharacterId is { } own && mine.Contains(own)) || !UnderFog(map, t))
@@ -1668,6 +1669,10 @@ namespace RealmForge.Api.Controllers
 						dto = dto with { Aura = new TokenAuraDto(aura.Name, aura.Radius, aura.Color, aura.Enemies, aura.Ability, aura.Dc, aura.Damage, aura.DamageType, aura.Half) };
 					}
 					dto = dto with { SummonedBy = carried.SummonedBy, MountedOn = carried.MountedOn };
+					if (links.TryGetValue(t.Id, out var link))
+					{
+						dto = dto with { LinkTo = link.Id, LinkLabel = link.Label };
+					}
 					if (carried.Light is { } light)
 					{
 						dto = dto with { Light = new TokenLightDto(light.Name, light.Bright, light.Dim) };

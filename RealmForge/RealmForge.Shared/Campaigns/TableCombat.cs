@@ -430,6 +430,9 @@ public sealed class TokenGear
 	//	Its darkvision in feet when set by hand (else the sheet's, or the statblock's senses)
 	public int? Darkvision { get; set; }
 
+	//	Stairs or a portal: the stairs or portal it leads to (on this map or another)
+	public Guid? LinkTo { get; set; }
+
 	public bool IsEmpty => Items.Count == 0 && Disarmed.Count == 0 && Coins == 0;
 
 	public const int MaxItems = 40;
