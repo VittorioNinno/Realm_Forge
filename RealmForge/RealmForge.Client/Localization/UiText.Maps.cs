@@ -508,6 +508,17 @@ namespace RealmForge.Client.Localization
 		};
 		public static string VttMetamagicCost(int cost, LanguageCode lang) => T(lang, $"{cost} PS", $"{cost} SP");
 		public static string VttMetamagicPoints(int left, LanguageCode lang) => T(lang, $"Punti stregoneria: {left}", $"Sorcery Points: {left}");
+		public static string VttCompanions(LanguageCode lang) => T(lang, "Evocazioni e cavalcature", "Summons and mounts");
+		public static string VttSummonHint(LanguageCode lang) => T(lang, "Creatura da evocare (es. Gufo, Lupo)", "Creature to summon (e.g. Owl, Wolf)");
+		public static string VttSummonShare(LanguageCode lang) => T(lang, "Agisce subito dopo di me", "Acts right after me");
+		public static string VttSummon(LanguageCode lang) => T(lang, "Evoca", "Summon");
+		public static string VttSummoned(string what, string who, LanguageCode lang) => T(lang, $"{what} compare accanto a {who}.", $"{what} appears next to {who}.");
+		public static string VttSummonUnknown(string name, LanguageCode lang) => T(lang, $"Nessuna creatura del compendio si chiama «{name}».", $"No creature of the compendium is called “{name}”.");
+		public static string VttDismiss(LanguageCode lang) => T(lang, "Congeda", "Dismiss");
+		public static string VttMount(string mount, LanguageCode lang) => T(lang, $"Monta su {mount}", $"Mount {mount}");
+		public static string VttMounted(string rider, string mount, LanguageCode lang) => T(lang, $"{rider} è in sella a {mount}: si muovono insieme.", $"{rider} rides {mount}: they move together.");
+		public static string VttRiding(string mount, LanguageCode lang) => T(lang, $"In sella a {mount}", $"Riding {mount}");
+		public static string VttDismount(LanguageCode lang) => T(lang, "Smonta", "Dismount");
 		public static string VttAura(LanguageCode lang) => T(lang, "Aura", "Aura");
 		public static string VttAuraLine(string name, string reach, bool enemies, LanguageCode lang) =>
 			T(lang, $"{name}: {reach} attorno, {(enemies ? "solo i nemici" : "ogni creatura")}", $"{name}: {reach} around, {(enemies ? "enemies only" : "every creature")}");

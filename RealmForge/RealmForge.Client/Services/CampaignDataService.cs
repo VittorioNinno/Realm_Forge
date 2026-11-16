@@ -406,6 +406,18 @@ namespace RealmForge.Client.Services
 		public Task<(MapAttackResultDto? Value, string? Error)> AttackAsync(Guid id, Guid mapId, MapAttackDto dto, LanguageCode lang) =>
 			TableAsync<MapAttackResultDto>(() => _http.PostAsJsonAsync($"api/campaigns/{id}/maps/{mapId}/attack?lang={(int)lang}", dto), "attack");
 
+		public Task<(MapTokenDto? Value, string? Error)> SummonAsync(Guid id, Guid mapId, Guid tokenId, SummonDto dto) =>
+			TableAsync<MapTokenDto>(() => _http.PostAsJsonAsync($"api/campaigns/{id}/maps/{mapId}/tokens/{tokenId}/summon", dto), "summon");
+
+		public Task<CampaignResult> DismissAsync(Guid id, Guid mapId, Guid tokenId) =>
+			SendAsync(() => _http.DeleteAsync($"api/campaigns/{id}/maps/{mapId}/tokens/{tokenId}/summon"), "dismiss");
+
+		public Task<(bool Value, string? Error)> MountAsync(Guid id, Guid mapId, Guid tokenId, Guid mountId, LanguageCode lang) =>
+			TableAsync<bool>(() => _http.PostAsJsonAsync($"api/campaigns/{id}/maps/{mapId}/tokens/{tokenId}/mount?lang={(int)lang}", new MountDto { MountId = mountId }), "mount");
+
+		public Task<CampaignResult> DismountAsync(Guid id, Guid mapId, Guid tokenId) =>
+			SendAsync(() => _http.DeleteAsync($"api/campaigns/{id}/maps/{mapId}/tokens/{tokenId}/mount"), "dismount");
+
 		public Task<CampaignResult> SaveAuraAsync(Guid id, Guid mapId, Guid tokenId, SaveAuraDto dto) =>
 			SendAsync(() => _http.PutAsJsonAsync($"api/campaigns/{id}/maps/{mapId}/tokens/{tokenId}/aura", dto), "save aura");
 
