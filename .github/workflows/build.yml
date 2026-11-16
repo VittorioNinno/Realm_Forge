@@ -1317,6 +1317,25 @@ jobs:
           dr_undo=$(curl -s -X POST "$api/api/campaigns/$ss_cp/maps/$mp2/undo" -H "Authorization: Bearer $B" | jq -r .kind)
           dr_after=$(curl -s "$api/api/campaigns/$ss_cp/maps/$mp2/state" -H "Authorization: Bearer $B" | jq -c --arg m "$sm_mon" '[.tokens[] | select(.monsterId == $m)] | length')
           dr_del=$(code -X DELETE "$api/api/campaigns/$ss_cp/maps/groups/$dr_group" -H "Authorization: Bearer $B")
+          # Floors: stairs on this map linked (both ways) to stairs on another map; a creature next to them goes through
+          fl_map=$(curl -s -X POST "$api/api/campaigns/$ss_cp/maps" $json -H "Authorization: Bearer $B" -d "$(jq -nc --arg i "$png" '{name:"Piano 2",image:$i,width:700,height:490,gridType:0,gridSize:70,gridOffsetX:0,gridOffsetY:0,shown:false}')" | jq -r .id)
+          fl_up=$(curl -s -X POST "$api/api/campaigns/$ss_cp/maps/$mp2/tokens" $json -H "Authorization: Bearer $B" -d '{"label":"Scale","kind":5,"propType":9,"propState":1,"playersInteract":true,"x":1,"y":5,"size":1,"layer":1}' | jq -r .id)
+          fl_down=$(curl -s -X POST "$api/api/campaigns/$ss_cp/maps/$fl_map/tokens" $json -H "Authorization: Bearer $B" -d '{"label":"Scale giù","kind":5,"propType":9,"propState":1,"playersInteract":true,"x":2,"y":2,"size":1,"layer":1}' | jq -r .id)
+          fl_walker=$(curl -s -X POST "$api/api/campaigns/$ss_cp/maps/$mp2/tokens" $json -H "Authorization: Bearer $B" -d '{"label":"Viandante","kind":4,"x":2,"y":5,"size":1}' | jq -r .id)
+          fl_link_player=$(code -X PUT "$api/api/campaigns/$ss_cp/maps/$mp2/tokens/$fl_up/link" $json -H "Authorization: Bearer $A" -d "{\"targetId\":\"$fl_down\"}")
+          fl_link=$(code -X PUT "$api/api/campaigns/$ss_cp/maps/$mp2/tokens/$fl_up/link" $json -H "Authorization: Bearer $B" -d "{\"targetId\":\"$fl_down\",\"bothWays\":true}")
+          fl_links=$(curl -s "$api/api/campaigns/$ss_cp/maps/links" -H "Authorization: Bearer $B" | jq -c '[.[] | select(.label | startswith("Scale")) | .mapName] | sort')
+          fl_label=$(curl -s "$api/api/campaigns/$ss_cp/maps/$mp2/state" -H "Authorization: Bearer $B" | jq -c --arg u "$fl_up" '[.tokens[] | select(.id == $u) | .linkLabel]')
+          fl_label_player=$(curl -s "$api/api/campaigns/$ss_cp/maps/$mp2/state" -H "Authorization: Bearer $A" | jq -c --arg u "$fl_up" '[.tokens[] | select(.id == $u) | .linkLabel]')
+          fl_toggle_player=$(code -X POST "$api/api/campaigns/$ss_cp/maps/$mp2/tokens/$fl_up/interact" -H "Authorization: Bearer $A")
+          fl_go=$(curl -s -X POST "$api/api/campaigns/$ss_cp/maps/$mp2/tokens/$fl_up/travel" $json -H "Authorization: Bearer $B" -d "{\"tokenId\":\"$fl_walker\"}" | jq -c --arg m "$fl_map" 'if .title then {title, status, detail} else {there: (.mapId == $m), x, y, displayed} end')
+          fl_there=$(curl -s "$api/api/campaigns/$ss_cp/maps/$fl_map/state" -H "Authorization: Bearer $B" | jq -c '[.tokens[] | select(.label == "Viandante") | .label]')
+          fl_gone=$(curl -s "$api/api/campaigns/$ss_cp/maps/$mp2/state" -H "Authorization: Bearer $B" | jq -c '[.tokens[] | select(.label == "Viandante")] | length')
+          fl_back=$(curl -s -X POST "$api/api/campaigns/$ss_cp/maps/$fl_map/tokens/$fl_down/travel" $json -H "Authorization: Bearer $B" -d "{\"tokenId\":\"$fl_walker\"}" | jq -c --arg m "$mp2" '(.mapId == $m)')
+          fl_far=$(curl -s -X POST "$api/api/campaigns/$ss_cp/maps/$mp2/tokens/$fl_up/travel" $json -H "Authorization: Bearer $B" -d "{\"tokenId\":\"$at_target\"}" -o /dev/null -w '%{http_code}')
+          code -X DELETE "$api/api/campaigns/$ss_cp/maps/$mp2/tokens/$fl_walker" -H "Authorization: Bearer $B" > /dev/null
+          code -X DELETE "$api/api/campaigns/$ss_cp/maps/$mp2/tokens/$fl_up" -H "Authorization: Bearer $B" > /dev/null
+          code -X DELETE "$api/api/campaigns/$ss_cp/maps/$fl_map" -H "Authorization: Bearer $B" > /dev/null
           # A spell asks for a save: the damage rolled once, the target waits; only who controls it (or a master) rolls
           sv_call=$(curl -s -X POST "$api/api/campaigns/$ss_cp/maps/$mp2/saves?lang=2" $json -H "Authorization: Bearer $A" \
             -d "{\"casterId\":\"$ctl_tree\",\"spell\":\"Prova\",\"ability\":2,\"dc\":30,\"half\":true,\"targetIds\":[\"$at_target\"]}")
@@ -1550,6 +1569,17 @@ jobs:
           sscheck "drawer: hidden from the players" "$dr_player_seen" "0"
           sscheck "drawer: placing undone in one step" "$dr_undo|$dr_after" "tokens|$dr_before"
           sscheck "drawer: group deleted" "$dr_del" "204"
+          sscheck "floors: only masters link" "$fl_link_player" "403"
+          sscheck "floors: stairs linked" "$fl_link" "204"
+          sscheck "floors: the stairs of every map" "$fl_links" '["Foresta","Piano 2"]'
+          sscheck "floors: where they lead, for the masters" "$fl_label" '["Piano 2 · Scale giù"]'
+          sscheck "floors: not told to the players" "$fl_label_player" "[null]"
+          sscheck "floors: the players do not switch stairs off" "$fl_toggle_player" "403"
+          sscheck "floors: upstairs, on the other end" "$fl_go" '{"there":true,"x":2,"y":2,"displayed":false}'
+          sscheck "floors: on the other map" "$fl_there" '["Viandante"]'
+          sscheck "floors: gone from this one" "$fl_gone" "0"
+          sscheck "floors: and back down (both ways)" "$fl_back" "true"
+          sscheck "floors: too far from the stairs" "$fl_far" "409"
           sscheck "saves: asked of the target" "$sv_shape" '{"targets":1,"dc":30,"ability":2,"damage":null}'
           sscheck "saves: the masters see them" "$sv_seen" "[1]"
           sscheck "saves: a player does not roll an enemy's save" "$sv_player" "403"

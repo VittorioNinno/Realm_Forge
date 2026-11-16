@@ -45,7 +45,12 @@ public enum PropType
 	Secret = 7,
 
 	//	Something lying on the ground (a dropped weapon): taken by a token next to it
-	Item = 8
+	Item = 8,
+
+	//	Ways to another place: stairs or a ladder to another floor (another map), a portal or a teleportation circle
+	//	(anywhere): a creature next to it goes to the one it leads to (TokenGear.LinkTo). Open: usable
+	Stairs = 9,
+	Portal = 10
 }
 
 public enum PropState
@@ -71,11 +76,15 @@ public static class PropRules
 		PropType.Lever => new[] { PropState.Closed, PropState.Open, PropState.Broken },
 		PropType.Trap => new[] { PropState.Closed, PropState.Open, PropState.Broken },
 		PropType.Item => new[] { PropState.Closed },
+		PropType.Stairs or PropType.Portal => new[] { PropState.Open, PropState.Closed, PropState.Broken },
 		PropType.Window => new[] { PropState.Closed, PropState.Open, PropState.Ajar, PropState.Locked, PropState.Broken },
 		_ => new[] { PropState.Closed, PropState.Open, PropState.Ajar, PropState.Locked, PropState.Barred, PropState.Broken }
 	};
 
 	public static bool Valid(PropType type, PropState state) => States(type).Contains(state);
+
+	//	Stairs and portals: a way somewhere else
+	public static bool Leads(PropType? type) => type is PropType.Stairs or PropType.Portal;
 
 	//	null: it does not move
 	public static PropState? Toggle(PropState state) => state switch
