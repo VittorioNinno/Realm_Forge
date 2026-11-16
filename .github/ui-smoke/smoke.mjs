@@ -377,6 +377,16 @@ try {
   // Rules terms in the other modules: Command 2024 links "prono" and "azione bonus", with a tooltip and a link to the glossary
   await page.goto(`${base}/spells`);
   await page.locator('[data-test=spell-level-group]').first().waitFor({ timeout: 60000 });
+  // Pins: the spells page pinned to the side menu from the top bar, then taken away
+  await page.locator('[data-test=pin-page]').click();
+  await page.locator('[data-test=nav-pin]').first().waitFor({ timeout: 5000 });
+  const pinLabel = (await page.locator('[data-test=nav-pin] .sb-label').first().innerText()).trim();
+  const pinPressed = await page.locator('[data-test=pin-page]').getAttribute('aria-pressed');
+  await page.locator('[data-test=pin-page]').click();
+  await page.locator('[data-test=nav-pins]').waitFor({ state: 'detached', timeout: 5000 });
+  results.push(`INFO pins: label="${pinLabel}" pressed=${pinPressed}`);
+  if (pinLabel !== 'Incantesimi' || pinPressed !== 'true') throw new Error(`unexpected pin: ${pinLabel} ${pinPressed}`);
+  ok('pins: the spells page pinned to the side menu and taken away');
   await pickOption('spell-ruleset', '5.5e (2024)');
   await page.locator('[data-test=spell-search]').fill('comando');
   await page.locator('[data-test=spell-card]').filter({ has: page.locator('.rf-card-title', { hasText: /^Comando$/ }) }).first().click();
