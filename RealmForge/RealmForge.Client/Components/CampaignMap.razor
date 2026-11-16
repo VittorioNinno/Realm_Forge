@@ -2145,6 +2145,7 @@ else
                     @if (Table && (RunsTheTable || CanRoll(t)))
                     {
                         @AuraCard(t)
+                        @CompanionsCard(t)
                     }
                     @if (CanRest(t))
                     {
@@ -2514,6 +2515,58 @@ else
                     <button type="button" class="rf-qs-rest" disabled="@(busy || string.IsNullOrWhiteSpace(auraName))"
                             @onclick="@(() => SaveAuraAsync(t, new SaveAuraDto { Name = auraName.Trim(), Radius = Math.Clamp(auraCells, 1, RealmForge.Shared.Campaigns.TokenAura.MaxRadius), Enemies = auraEnemies }))" data-test="vtt-aura-add">@UiText.VttAuraAdd(Lang)</button>
                 </div>
+            }
+        </section>
+    };
+
+    //	The creatures a token calls (a familiar, a summon) and the mount it rides
+    private RenderFragment CompanionsCard(MapTokenDto t) => __builder =>
+    {
+        var called = tokens.Where(k => k.SummonedBy == t.Id).ToList();
+        var mountedOn = t.MountedOn is { } mountId ? tokens.FirstOrDefault(k => k.Id == mountId) : null;
+        var mounts = mountedOn is null ? MountsFor(t) : new List<MapTokenDto>();
+        <section class="rf-qs-card" data-test="vtt-companions">
+            <h3 class="rf-qs-card-title"><Icon Name="people" /> @UiText.VttCompanions(Lang)</h3>
+            @foreach (var c in called)
+            {
+                var summon = c;
+                <div class="rf-turn-ready" data-test="vtt-summon">
+                    <span><Icon Name="stars" /> @summon.Label</span>
+                    <button type="button" class="rf-turn-btn" disabled="@busy" @onclick="() => DismissAsync(summon)" data-test="vtt-summon-dismiss">@UiText.VttDismiss(Lang)</button>
+                </div>
+            }
+            @if (t.SummonedBy is null)
+            {
+                <div class="rf-qs-aura-form">
+                    <input type="text" class="rf-form-control" list="vtt-summon-list" placeholder="@UiText.VttSummonHint(Lang)" aria-label="@UiText.VttSummonHint(Lang)"
+                           @bind="summonName" @bind:event="oninput" @onfocus="LoadSummonIndexAsync" data-test="vtt-summon-name" />
+                    @if (summonIndex is not null)
+                    {
+                        <datalist id="vtt-summon-list">
+                            @foreach (var m in summonIndex.Where(m => summonName.Length >= 2 && m.Name.Contains(summonName.Trim(), StringComparison.OrdinalIgnoreCase)).Take(30))
+                            {
+                                <option value="@m.Name"></option>
+                            }
+                        </datalist>
+                    }
+                    <label class="rf-vtt-confirm-check"><input type="checkbox" @bind="summonShare" data-test="vtt-summon-share" /> @UiText.VttSummonShare(Lang)</label>
+                    <button type="button" class="rf-qs-rest" disabled="@(busy || string.IsNullOrWhiteSpace(summonName))" @onclick="() => SummonAsync(t)" data-test="vtt-summon-go">@UiText.VttSummon(Lang)</button>
+                </div>
+            }
+            @if (mountedOn is not null)
+            {
+                <div class="rf-turn-ready" data-test="vtt-mounted">
+                    <span><Icon Name="link" /> @UiText.VttRiding(mountedOn.Label, Lang)</span>
+                    <button type="button" class="rf-turn-btn" disabled="@busy" @onclick="() => DismountAsync(t)" data-test="vtt-dismount">@UiText.VttDismount(Lang)</button>
+                </div>
+            }
+            else
+            {
+                @foreach (var m in mounts)
+                {
+                    var mount = m;
+                    <button type="button" class="rf-turn-btn" disabled="@busy" @onclick="() => MountAsync(t, mount)" data-test="vtt-mount">@UiText.VttMount(mount.Label, Lang)</button>
+                }
             }
         </section>
     };

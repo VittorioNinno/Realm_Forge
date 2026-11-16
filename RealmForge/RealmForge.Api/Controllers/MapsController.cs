@@ -415,6 +415,19 @@ namespace RealmForge.Api.Controllers
 			token.X = dto.X;
 			token.Y = dto.Y;
 			token.UpdatedAt = map.UpdatedAt = DateTimeOffset.UtcNow;
+			//	A rider moving by itself gets off its mount; the riders of a mount move with it
+			var riding = ReadGear(token.Gear);
+			if (riding.MountedOn is not null)
+			{
+				riding.MountedOn = null;
+				WriteGear(token, riding);
+			}
+			foreach (var rider in map.Tokens.Where(t => t.Id != token.Id && ReadGear(t.Gear).MountedOn == token.Id))
+			{
+				rider.X = token.X;
+				rider.Y = token.Y;
+				rider.UpdatedAt = map.UpdatedAt;
+			}
 			await AfterMoveAsync(map, token, from, cost);
 			await _context.SaveChangesAsync();
 			return NoContent();
@@ -1626,10 +1639,12 @@ namespace RealmForge.Api.Controllers
 					var down = combatant is not null && combatant.Kind != CombatantKind.Character ? combatant.MaxHp > 0 && combatant.Hp <= 0
 						: t.CharacterId is null && t.MaxHp is > 0 && (t.Hp ?? t.MaxHp) <= 0;
 					dto = dto with { Gear = GearOf(t, runs, controls, down) };
-					if (ReadGear(t.Gear).Aura is { } aura)
+					var carried = ReadGear(t.Gear);
+					if (carried.Aura is { } aura)
 					{
 						dto = dto with { Aura = new TokenAuraDto(aura.Name, aura.Radius, aura.Color, aura.Enemies, aura.Ability, aura.Dc, aura.Damage, aura.DamageType, aura.Half) };
 					}
+					dto = dto with { SummonedBy = carried.SummonedBy, MountedOn = carried.MountedOn };
 					if (combatant is not null)
 					{
 						dto = dto with
