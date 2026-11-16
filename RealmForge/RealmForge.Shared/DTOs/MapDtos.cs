@@ -421,6 +421,31 @@ namespace RealmForge.Shared.DTOs
 	///	</summary>
 	public record MapStrikeDto(Guid TokenId, int Kind, int? Damage, DateTimeOffset At);
 
+	//	A monster of a group, and how many (MonsterGroups.MaxCount at most)
+	public class MonsterGroupEntryDto
+	{
+		public Guid MonsterId { get; set; }
+		public int Count { get; set; } = 1;
+	}
+
+	//	A group of monsters kept ready for the table: its entries with the names of the monsters (in the language asked)
+	public record MonsterGroupDto(Guid Id, string Name, List<MonsterGroupEntryDto> Entries, List<string> Names);
+
+	public class SaveMonsterGroupDto
+	{
+		public string Name { get; set; } = string.Empty;
+		public List<MonsterGroupEntryDto> Entries { get; set; } = new();
+	}
+
+	//	Monsters placed on a map in one go, around a point of the picture (the middle of the master's view), hidden or not
+	public class PlaceMonstersDto
+	{
+		public List<MonsterGroupEntryDto> Entries { get; set; } = new();
+		public double X { get; set; }
+		public double Y { get; set; }
+		public bool Hidden { get; set; }
+	}
+
 	//	A master's edit taken back: what it was about (MapUndoKinds) and how many are left to take back
 	public record MapUndoDto(string Kind, int Left);
 
