@@ -295,10 +295,12 @@ namespace RealmForge.Api.Controllers
 			{
 				return Problem(statusCode: StatusCodes.Status400BadRequest, title: error);
 			}
+			var before = TokensBefore(map, role.Value);
 			var token = new CampaignToken { MapId = map.Id };
 			await ApplyAsync(campaignId, token, dto);
 			_context.CampaignTokens.Add(token);
 			map.UpdatedAt = DateTimeOffset.UtcNow;
+			await RememberTokensAsync(map, before, token);
 			await _context.SaveChangesAsync();
 			return Ok(ToDto(token, true));
 		}
@@ -333,8 +335,10 @@ namespace RealmForge.Api.Controllers
 			{
 				return Problem(statusCode: StatusCodes.Status400BadRequest, title: error);
 			}
+			var before = TokensBefore(map, role.Value);
 			await ApplyAsync(campaignId, token, dto);
 			map.UpdatedAt = DateTimeOffset.UtcNow;
+			await RememberTokensAsync(map, before);
 			await _context.SaveChangesAsync();
 			return NoContent();
 		}
@@ -359,8 +363,10 @@ namespace RealmForge.Api.Controllers
 			{
 				return Problem(statusCode: StatusCodes.Status409Conflict, title: "It does not move.", detail: token.PropState.ToString());
 			}
+			var before = TokensBefore(map, role.Value);
 			token.PropState = next;
 			token.UpdatedAt = map.UpdatedAt = DateTimeOffset.UtcNow;
+			await RememberTokensAsync(map, before);
 			await _context.SaveChangesAsync();
 			return Ok(ToDto(token, runs));
 		}
@@ -411,6 +417,7 @@ namespace RealmForge.Api.Controllers
 			{
 				return Problem(statusCode: StatusCodes.Status409Conflict, title: "Grappled: its speed is 0.", detail: "grappled");
 			}
+			var before = TokensBefore(map, role.Value);
 			var from = (token.X, token.Y);
 			token.X = dto.X;
 			token.Y = dto.Y;
@@ -429,6 +436,7 @@ namespace RealmForge.Api.Controllers
 				rider.UpdatedAt = map.UpdatedAt;
 			}
 			await AfterMoveAsync(map, token, from, cost);
+			await RememberTokensAsync(map, before);
 			await _context.SaveChangesAsync();
 			return NoContent();
 		}
@@ -716,8 +724,10 @@ namespace RealmForge.Api.Controllers
 			{
 				return Forbid();
 			}
+			var before = TokensBefore(map, role.Value);
 			_context.CampaignTokens.Remove(token);
 			map.UpdatedAt = DateTimeOffset.UtcNow;
+			await RememberTokensAsync(map, before);
 			await _context.SaveChangesAsync();
 			return NoContent();
 		}
@@ -758,6 +768,7 @@ namespace RealmForge.Api.Controllers
 			{
 				return Problem(statusCode: StatusCodes.Status400BadRequest, title: $"At most {MapRules.MaxShapes} drawings per map.");
 			}
+			var before = ShapesBefore(map, role.Value);
 			var colors = await CampaignAccess.EnsureColorsAsync(_context, campaignId);
 			var shape = new CampaignMapShape
 			{
@@ -772,6 +783,7 @@ namespace RealmForge.Api.Controllers
 			};
 			_context.CampaignMapShapes.Add(shape);
 			map.UpdatedAt = DateTimeOffset.UtcNow;
+			await RememberShapesAsync(map, before, shape);
 			await _context.SaveChangesAsync();
 			return Ok(ShapeDto(shape, runs));
 		}
@@ -797,8 +809,10 @@ namespace RealmForge.Api.Controllers
 			{
 				return Problem(statusCode: StatusCodes.Status400BadRequest, title: "The text must stay on the map.");
 			}
+			var before = ShapesBefore(map, role.Value);
 			shape.Points = dto.Points.Select(v => Math.Round(v, 1)).ToList();
 			map.UpdatedAt = DateTimeOffset.UtcNow;
+			await RememberShapesAsync(map, before);
 			await _context.SaveChangesAsync();
 			return Ok(ShapeDto(shape, runs));
 		}
@@ -817,8 +831,10 @@ namespace RealmForge.Api.Controllers
 			{
 				return Forbid();
 			}
+			var before = ShapesBefore(map, role.Value);
 			_context.CampaignMapShapes.Remove(shape);
 			map.UpdatedAt = DateTimeOffset.UtcNow;
+			await RememberShapesAsync(map, before);
 			await _context.SaveChangesAsync();
 			return NoContent();
 		}
@@ -834,10 +850,12 @@ namespace RealmForge.Api.Controllers
 				return NotFound();
 			}
 			var runs = CampaignRules.RunsTheTable(role.Value);
+			var before = ShapesBefore(map, role.Value);
 			var gone = map.Shapes.Where(s => MapRules.Sees(s.Kind, s.MasterOnly, s.OwnerId == UserId)
 				&& MapRules.CanDeleteShape(s.Kind, s.MasterOnly, s.OwnerId == UserId, runs)).ToList();
 			_context.CampaignMapShapes.RemoveRange(gone);
 			map.UpdatedAt = DateTimeOffset.UtcNow;
+			await RememberShapesAsync(map, before);
 			await _context.SaveChangesAsync();
 			return NoContent();
 		}
@@ -857,6 +875,7 @@ namespace RealmForge.Api.Controllers
 				return Problem(statusCode: StatusCodes.Status400BadRequest, title: "Draw a box on the map.");
 			}
 			var runs = CampaignRules.RunsTheTable(role.Value);
+			var before = ShapesBefore(map, role.Value);
 			var gone = map.Shapes.Where(s => MapRules.Sees(s.Kind, s.MasterOnly, s.OwnerId == UserId)
 				&& MapRules.CanDeleteShape(s.Kind, s.MasterOnly, s.OwnerId == UserId, runs)
 				&& MapRules.Touches(s.Points, dto.X, dto.Y, dto.Width, dto.Height)).ToList();
@@ -864,6 +883,7 @@ namespace RealmForge.Api.Controllers
 			{
 				_context.CampaignMapShapes.RemoveRange(gone);
 				map.UpdatedAt = DateTimeOffset.UtcNow;
+				await RememberShapesAsync(map, before);
 				await _context.SaveChangesAsync();
 			}
 			return Ok(gone.Count);
@@ -888,6 +908,7 @@ namespace RealmForge.Api.Controllers
 			{
 				return Problem(statusCode: StatusCodes.Status400BadRequest, title: "Fog steps out of range.");
 			}
+			await RememberFogAsync(map, role.Value);
 			map.FogEnabled = dto.Enabled;
 			map.Fog = dto.Fog.Select(v => Math.Round(v, 1)).ToList();
 			map.UpdatedAt = DateTimeOffset.UtcNow;
@@ -914,6 +935,7 @@ namespace RealmForge.Api.Controllers
 			{
 				return Problem(statusCode: StatusCodes.Status400BadRequest, title: "Terrain cells out of range.");
 			}
+			await RememberTerrainAsync(map, role.Value);
 			map.Terrain = dto.Replace ? MapTerrain.Write(MapTerrain.Read(dto.Cells)) : MapTerrain.Paint(map.Terrain, dto.Cells, dto.Kind);
 			map.TerrainBlocks = dto.BlockPlayers;
 			map.UpdatedAt = DateTimeOffset.UtcNow;
@@ -1577,6 +1599,7 @@ namespace RealmForge.Api.Controllers
 		private async Task<List<MapTokenDto>> TokensAsync(CampaignMap map, CampaignRole role, Fight? fight = null)
 		{
 			var runs = CampaignRules.RunsTheTable(role);
+			undoLeft = runs ? await _context.CampaignMapEdits.CountAsync(e => e.MapId == map.Id && e.UserId == UserId) : 0;
 			var characterIds = map.Tokens.Where(t => t.CharacterId is not null).Select(t => t.CharacterId!.Value).Distinct().ToList();
 			var characters = await _context.Characters.AsNoTracking()
 				.Where(c => characterIds.Contains(c.Id)).Select(c => new { c.Id, c.OwnerId, c.Sheet, c.MaxHitPoints, c.Darkvision }).ToListAsync();
@@ -1782,7 +1805,8 @@ namespace RealmForge.Api.Controllers
 			SavesOf(map, CampaignRules.RunsTheTable(role)),
 			map.Lighting,
 			map.DynamicVision,
-			vision);
+			vision,
+			undoLeft);
 
 		//	The saving throws waiting: all of them for the masters; for the players those of a caster they see, without the
 		//	targets hidden from them

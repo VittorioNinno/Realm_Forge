@@ -647,6 +647,39 @@ namespace RealmForge.Infrastructure.Migrations
                     b.ToTable("CampaignMaps");
                 });
 
+            modelBuilder.Entity("RealmForge.Domain.Entities.CampaignMapEdit", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("At")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Kind")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<Guid>("MapId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Payload")
+                        .IsRequired()
+                        .HasColumnType("jsonb");
+
+                    b.Property<string>("UserId")
+                        .IsRequired()
+                        .HasMaxLength(450)
+                        .HasColumnType("character varying(450)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("MapId", "UserId", "At");
+
+                    b.ToTable("CampaignMapEdits");
+                });
+
             modelBuilder.Entity("RealmForge.Domain.Entities.CampaignMapShape", b =>
                 {
                     b.Property<Guid>("Id")
@@ -2827,6 +2860,15 @@ namespace RealmForge.Infrastructure.Migrations
                         .IsRequired();
 
                     b.Navigation("Campaign");
+                });
+
+            modelBuilder.Entity("RealmForge.Domain.Entities.CampaignMapEdit", b =>
+                {
+                    b.HasOne("RealmForge.Domain.Entities.CampaignMap", null)
+                        .WithMany()
+                        .HasForeignKey("MapId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("RealmForge.Domain.Entities.CampaignMapShape", b =>

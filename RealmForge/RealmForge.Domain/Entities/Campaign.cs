@@ -128,6 +128,20 @@ namespace RealmForge.Domain.Entities
 	}
 
 	///	<summary>
+	///	One step a master can take back on a map (MapUndo): what the tokens, the drawings, the terrain or the fog were
+	///	before an edit of theirs, as JSON; the last ones of each master on each map are kept.
+	///	</summary>
+	public class CampaignMapEdit
+	{
+		public Guid Id { get; set; } = Guid.NewGuid();
+		public Guid MapId { get; set; }
+		public string UserId { get; set; } = string.Empty;
+		public string Kind { get; set; } = string.Empty;
+		public string Payload { get; set; } = "{}";
+		public DateTimeOffset At { get; set; } = DateTimeOffset.UtcNow;
+	}
+
+	///	<summary>
 	///	A token on a map, on a cell of the grid (X, Y from the top left), Size cells wide: a character of the table (its
 	///	owner can move it), a monster, an NPC or a marker. Hidden tokens are seen by the masters only.
 	///	</summary>
