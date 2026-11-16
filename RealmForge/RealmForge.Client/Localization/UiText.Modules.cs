@@ -92,6 +92,7 @@ namespace RealmForge.Client.Localization
 			1 => T(lang, "Bonus +N", "+N bonus"),
 			2 => T(lang, "Competenze", "Training"),
 			3 => T(lang, "Difese e sensi", "Defences and senses"),
+			5 => T(lang, "Automazioni", "Automations"),
 			_ => T(lang, "Caratteristiche e risorse", "Abilities and resources")
 		};
 
@@ -100,7 +101,8 @@ namespace RealmForge.Client.Localization
 			< 20 => 1,
 			< 30 => 2,
 			< 40 => 3,
-			_ => 4
+			< 50 => 4,
+			_ => 5
 		};
 
 		public static string EffectKindName(RuleEffectKind kind, LanguageCode lang) => kind switch
@@ -129,6 +131,8 @@ namespace RealmForge.Client.Localization
 			RuleEffectKind.Darkvision => T(lang, "Scurovisione", "Darkvision"),
 			RuleEffectKind.ExtraAbility => T(lang, "Una caratteristica in più", "An extra ability score"),
 			RuleEffectKind.Resource => T(lang, "Una risorsa con usi che si ricaricano", "A resource with uses that come back"),
+			RuleEffectKind.Ability => T(lang, "Capacità da usare al tavolo (dadi, cura, risorsa)", "A feature to use at the table (dice, healing, resource)"),
+			RuleEffectKind.OnHitDamage => T(lang, "Danni in più sui colpi", "Extra damage on a hit"),
 			_ => kind.ToString()
 		};
 
@@ -209,10 +213,55 @@ namespace RealmForge.Client.Localization
 					+ (e.Save ? T(lang, ", con tiro salvezza", ", with a saving throw") : string.Empty),
 				RuleEffectKind.Resource => T(lang, $"Risorsa: {e.Name(lang)}, {UsesText(e, Ability, lang)}, si ricarica con {ResetText(e.Reset, lang)}",
 					$"Resource: {e.Name(lang)}, {UsesText(e, Ability, lang)}, comes back on {ResetText(e.Reset, lang)}"),
+				RuleEffectKind.Ability => T(lang, $"Capacità: {e.Name(lang)} ({EffectSlotName(e.Slot ?? FeatureSlot.Action, lang)})", $"Feature: {e.Name(lang)} ({EffectSlotName(e.Slot ?? FeatureSlot.Action, lang)})")
+					+ (string.IsNullOrWhiteSpace(e.Roll) ? string.Empty : T(lang, $", tira {e.Roll}", $", rolls {e.Roll}"))
+					+ (e.Outcome == "heal" ? T(lang, " e recupera punti ferita", " and heals") : e.Outcome == "temp" ? T(lang, " in punti ferita temporanei", " as temporary hit points") : string.Empty)
+					+ (e.Resource is { } spends ? T(lang, $", spende un uso di {spends}", $", spends one use of {spends}") : string.Empty),
+				RuleEffectKind.OnHitDamage => T(lang, $"{e.Name(lang)}: +{e.Roll} danni{(e.DamageType is null ? string.Empty : $" {damage}")} sui colpi {AttacksName(e.Attacks, lang)}",
+						$"{e.Name(lang)}: +{e.Roll}{(e.DamageType is null ? string.Empty : $" {damage}")} damage on {AttacksName(e.Attacks, lang)} hits")
+					+ (e.OncePerTurn ? T(lang, ", una volta per turno", ", once per turn") : string.Empty)
+					+ (e.Automatic && e.Resource is null ? T(lang, ", sempre", ", always") : T(lang, ", a scelta", ", when chosen"))
+					+ (e.Resource is { } paid ? T(lang, $", spende un uso di {paid}", $", spends one use of {paid}") : string.Empty),
 				_ => e.Kind.ToString()
 			};
 			return e.Level > 1 ? text + T(lang, $" (dal {e.Level}° livello)", $" (from level {e.Level})") : text;
 		}
+
+		public static string EffectSlotName(FeatureSlot slot, LanguageCode lang) => slot switch
+		{
+			FeatureSlot.Bonus => T(lang, "azione bonus", "bonus action"),
+			FeatureSlot.Reaction => T(lang, "reazione", "reaction"),
+			FeatureSlot.Free => T(lang, "senza azione", "no action"),
+			_ => T(lang, "azione", "action")
+		};
+
+		public static string AttacksName(AttackReachFilter attacks, LanguageCode lang) => attacks switch
+		{
+			AttackReachFilter.Melee => T(lang, "in mischia", "melee"),
+			AttackReachFilter.Ranged => T(lang, "a distanza", "ranged"),
+			_ => T(lang, "con armi e colpi senz'armi", "weapon and unarmed")
+		};
+
+		public static string EffectOutcomeName(string? outcome, LanguageCode lang) => outcome switch
+		{
+			"heal" => T(lang, "Recupera punti ferita", "Heals"),
+			"temp" => T(lang, "Punti ferita temporanei", "Temporary hit points"),
+			_ => T(lang, "Solo il tiro (danni o altro)", "Just the roll (damage or else)")
+		};
+
+		public static string EffectRollLabel(LanguageCode lang) => T(lang, "Dadi", "Dice");
+		public static string EffectRollHint(LanguageCode lang) => T(lang, "Es. 2d6+MOD, PBd4, 1d10+LV (MOD: modificatore, PB: bonus di competenza, LV: livello)", "E.g. 2d6+MOD, PBd4, 1d10+LV (MOD: modifier, PB: proficiency bonus, LV: level)");
+		public static string EffectSlotLabel(LanguageCode lang) => T(lang, "Quando", "When");
+		public static string EffectOutcomeLabel(LanguageCode lang) => T(lang, "Il tiro", "The roll");
+		public static string EffectResourceLabel(LanguageCode lang) => T(lang, "Spende un uso di", "Spends one use of");
+		public static string EffectNoResource(LanguageCode lang) => T(lang, "Nessuna risorsa", "No resource");
+		public static string EffectAttacksLabel(LanguageCode lang) => T(lang, "Sugli attacchi", "On attacks");
+		public static string EffectOncePerTurn(LanguageCode lang) => T(lang, "Una volta per turno", "Once per turn");
+		public static string EffectAutomatic(LanguageCode lang) => T(lang, "Sempre aggiunto (senza chiedere)", "Always added (without asking)");
+		public static string EffectNoteLabel(LanguageCode lang) => T(lang, "Nota per il tavolo", "Note for the table");
+		public static string EffectAutomationHint(LanguageCode lang) => T(lang,
+			"Le capacità compaiono nella scheda rapida del tavolo con i loro dadi e gli usi; i danni in più si scelgono prima di tirare i danni di un attacco.",
+			"Features show in the quick sheet of the table with their dice and uses; extra damage is chosen before rolling the damage of an attack.");
 
 		private static string UsesText(RuleEffect e, Func<string> ability, LanguageCode lang)
 		{

@@ -792,6 +792,17 @@ jobs:
           md_char_delete=$(code -X DELETE "$api/api/characters/$md_char_id" -H "Authorization: Bearer $A")
           md_delete=$(code -X DELETE "$api/api/modules/$md_id" -H "Authorization: Bearer $A")
           md_bin=$(get "$api/api/trash?lang=2" -H "Authorization: Bearer $A" | jq -c '[.[] | select(.kind == "module") | .name]')
+          # Automations: a feature with its dice and a resource, extra damage on melee hits; dice that do not read are refused
+          am_mod=$(echo "$fortuna" | jq -c '.translations[0].name = "Braci" | .translations[1].name = "Embers" | .effects = [
+            {"kind":41,"nameIt":"Braci","nameEn":"Embers","value":3,"reset":1},
+            {"kind":50,"nameIt":"Soffio caldo","nameEn":"Warm breath","slot":2,"roll":"1d8+MOD","ability":5,"outcome":"heal","resource":"Embers"},
+            {"kind":51,"nameIt":"Colpo ardente","nameEn":"Burning strike","roll":"PBd6","damageType":4,"attacks":1,"oncePerTurn":true}]')
+          am=$(curl -s -X POST "$api/api/modules?lang=2" $json -H "Authorization: Bearer $A" -d "$am_mod")
+          am_id=$(echo "$am" | jq -r .id)
+          am_saved=$(get "$api/api/modules/$am_id?lang=2" -H "Authorization: Bearer $A" | jq -c '[.effects[] | select(.kind >= 50) | {kind, roll, resource, outcome, attacks, oncePerTurn}]')
+          am_bad=$(curl -s -X POST "$api/api/modules" $json -H "Authorization: Bearer $A" -d "$(echo "$am_mod" | jq -c '.effects[2].roll = "molto"')" | jq -r .detail)
+          am_orphan=$(curl -s -X POST "$api/api/modules" $json -H "Authorization: Bearer $A" -d "$(echo "$am_mod" | jq -c '.effects |= .[1:]')" | jq -r .detail)
+          code -X DELETE "$api/api/modules/$am_id" -H "Authorization: Bearer $A" > /dev/null
           # The same effects on a Homebrew feat: saved, read back, in the character context; a broken one is refused
           ef_feat=$(curl -s -X POST "$api/api/feats?lang=2" $json -H "Authorization: Bearer $A" -d "$(echo "$feat" | jq -c '.effects = [{"kind":4,"value":2},{"kind":32,"value":60}]')")
           ef_id=$(echo "$ef_feat" | jq -r .id)
@@ -819,6 +830,9 @@ jobs:
           mdcheck "character deleted" "$md_char_delete" "204"
           mdcheck "module deleted" "$md_delete" "204"
           mdcheck "module in the bin" "$md_bin" '["Fortuna"]'
+          mdcheck "automations saved" "$am_saved" '[{"kind":50,"roll":"1d8+MOD","resource":"Embers","outcome":"heal","attacks":0,"oncePerTurn":false},{"kind":51,"roll":"PBd6","resource":null,"outcome":null,"attacks":1,"oncePerTurn":true}]'
+          mdcheck "automation dice that do not read" "$am_bad" "Roll"
+          mdcheck "automation spending a resource it does not have" "$am_orphan" "Resource"
           mdcheck "feat effects saved" "$ef_detail" '[4,32]'
           mdcheck "feat effects in the context" "$ef_ctx" '[2]'
           mdcheck "feat effect without its skill" "$ef_bad" "Skill"
