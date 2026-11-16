@@ -128,6 +128,19 @@ namespace RealmForge.Domain.Entities
 	}
 
 	///	<summary>
+	///	A group of monsters the masters keep ready for the table (a goblin patrol: four goblins and their boss): placed on a
+	///	map in one go. Entries: JSON of MonsterGroupEntry (the monster and how many).
+	///	</summary>
+	public class CampaignMonsterGroup
+	{
+		public Guid Id { get; set; } = Guid.NewGuid();
+		public Guid CampaignId { get; set; }
+		public string Name { get; set; } = string.Empty;
+		public string Entries { get; set; } = "[]";
+		public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
+	}
+
+	///	<summary>
 	///	One step a master can take back on a map (MapUndo): what the tokens, the drawings, the terrain or the fog were
 	///	before an edit of theirs, as JSON; the last ones of each master on each map are kept.
 	///	</summary>

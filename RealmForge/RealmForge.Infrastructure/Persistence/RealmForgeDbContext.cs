@@ -76,6 +76,7 @@ namespace RealmForge.Infrastructure.Persistence
 		public DbSet<CampaignToken> CampaignTokens => Set<CampaignToken>();
 		public DbSet<CampaignMapShape> CampaignMapShapes => Set<CampaignMapShape>();
 		public DbSet<CampaignMapEdit> CampaignMapEdits => Set<CampaignMapEdit>();
+		public DbSet<CampaignMonsterGroup> CampaignMonsterGroups => Set<CampaignMonsterGroup>();
 		public DbSet<UserImage> UserImages => Set<UserImage>();
 		public DbSet<MonsterImageChoice> MonsterImageChoices => Set<MonsterImageChoice>();
 
@@ -639,6 +640,15 @@ namespace RealmForge.Infrastructure.Persistence
 				entity.Property(e => e.Color).IsRequired().HasMaxLength(9);
 				entity.Property(e => e.Text).HasMaxLength(200);
 				entity.HasIndex(e => e.MapId);
+			});
+
+			modelBuilder.Entity<CampaignMonsterGroup>(entity =>
+			{
+				entity.HasKey(e => e.Id);
+				entity.Property(e => e.Name).IsRequired().HasMaxLength(80);
+				entity.Property(e => e.Entries).IsRequired().HasColumnType("jsonb");
+				entity.HasIndex(e => e.CampaignId);
+				entity.HasOne<Campaign>().WithMany().HasForeignKey(e => e.CampaignId).OnDelete(DeleteBehavior.Cascade);
 			});
 
 			modelBuilder.Entity<CampaignMapEdit>(entity =>

@@ -528,6 +528,21 @@ namespace RealmForge.Client.Localization
 		public static string VttAuraAdd(LanguageCode lang) => T(lang, "Aggiungi l'aura", "Add the aura");
 		public static string VttAuraRemove(LanguageCode lang) => T(lang, "Togli l'aura", "Remove the aura");
 		public static string VttAuraSet(string name, string who, LanguageCode lang) => T(lang, $"«{name}» si muove con {who}: chi entra o inizia il turno dentro viene segnalato.", $"“{name}” moves with {who}: whoever enters it or starts a turn in it is told.");
+		public static string VttMonsterDrawer(LanguageCode lang) => T(lang, "Cassetto mostri", "Monster drawer");
+		public static string VttDrawerHint(LanguageCode lang) => T(lang, "Cerca un mostro e premi il cassetto accanto per raccoglierne più copie, poi piazzale insieme o salvale come gruppo", "Search a monster and press the drawer next to it to gather several, then place them together or save them as a group");
+		public static string VttDrawerAdd(LanguageCode lang) => T(lang, "Metti nel cassetto", "Put in the drawer");
+		public static string VttDrawerHidden(LanguageCode lang) => T(lang, "Piazza nascosti ai giocatori", "Place hidden from the players");
+		public static string VttDrawerPlace(int count, LanguageCode lang) => T(lang, $"Piazza {count} al centro della vista", $"Place {count} in the middle of the view");
+		public static string VttDrawerClear(LanguageCode lang) => T(lang, "Svuota", "Empty");
+		public static string VttGroupName(LanguageCode lang) => T(lang, "Nome del gruppo (es. Pattuglia goblin)", "Group name (e.g. Goblin patrol)");
+		public static string VttGroupSave(LanguageCode lang) => T(lang, "Salva gruppo", "Save group");
+		public static string VttGroups(LanguageCode lang) => T(lang, "Gruppi salvati", "Saved groups");
+		public static string VttGroupsShow(LanguageCode lang) => T(lang, "Mostra i gruppi salvati", "Show the saved groups");
+		public static string VttGroupPlace(LanguageCode lang) => T(lang, "Piazza il gruppo al centro della vista", "Place the group in the middle of the view");
+		public static string VttGroupEdit(LanguageCode lang) => T(lang, "Apri nel cassetto", "Open in the drawer");
+		public static string VttGroupDelete(LanguageCode lang) => T(lang, "Elimina il gruppo", "Delete the group");
+		public static string VttPlaced(int count, LanguageCode lang) => T(lang, count == 1 ? "Piazzato 1 mostro." : $"Piazzati {count} mostri.", count == 1 ? "1 monster placed." : $"{count} monsters placed.");
+		public static string VttNoRoom(LanguageCode lang) => T(lang, "Non c'è spazio libero sulla mappa.", "There is no free room on the map.");
 		public static string VttUndo(int left, LanguageCode lang) => left > 0
 			? T(lang, $"Annulla l'ultima modifica (Ctrl+Z) · {left} disponibili", $"Undo the last edit (Ctrl+Z) · {left} left")
 			: T(lang, "Niente da annullare", "Nothing to undo");

@@ -19840,3 +19840,69 @@ button.rf-qs-spell {
     .rf-qs-aura-radius input {
         width: 72px;
     }
+
+/* The monster drawer: the search results with their drawer button, the monsters gathered with how many of each */
+.rf-vtt-drawer-result {
+    display: flex;
+    align-items: stretch;
+}
+
+    .rf-vtt-drawer-result .rf-forge-selector-option {
+        flex: 1 1 auto;
+        min-width: 0;
+    }
+
+.rf-vtt-drawer-add {
+    flex: 0 0 auto;
+    width: 40px;
+    border: 0;
+    border-left: 1px solid #303030;
+    background: transparent;
+    color: var(--rf-text-secondary);
+}
+
+    .rf-vtt-drawer-add:hover {
+        color: var(--rf-orange-primary);
+    }
+
+.rf-vtt-drawer {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 8px;
+    border: 1px dashed #303030;
+    border-radius: 8px;
+}
+
+.rf-vtt-drawer-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.rf-vtt-drawer-name {
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.rf-vtt-drawer-step {
+    width: 24px;
+    height: 24px;
+    padding: 0;
+    border-radius: 4px;
+    border: 1px solid #303030;
+    background-color: #1c1c1c;
+    color: var(--rf-text-secondary);
+}
+
+    .rf-vtt-drawer-step:hover:not(:disabled) {
+        border-color: var(--rf-orange-primary);
+    }
+
+.rf-vtt-drawer-count {
+    min-width: 24px;
+    text-align: center;
+}

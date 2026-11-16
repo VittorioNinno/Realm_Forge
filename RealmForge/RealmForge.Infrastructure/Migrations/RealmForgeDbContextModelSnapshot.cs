@@ -760,6 +760,34 @@ namespace RealmForge.Infrastructure.Migrations
                     b.ToTable("CampaignMembers");
                 });
 
+            modelBuilder.Entity("RealmForge.Domain.Entities.CampaignMonsterGroup", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("CampaignId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Entries")
+                        .IsRequired()
+                        .HasColumnType("jsonb");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(80)
+                        .HasColumnType("character varying(80)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CampaignId");
+
+                    b.ToTable("CampaignMonsterGroups");
+                });
+
             modelBuilder.Entity("RealmForge.Domain.Entities.CampaignNote", b =>
                 {
                     b.Property<Guid>("Id")
@@ -2891,6 +2919,15 @@ namespace RealmForge.Infrastructure.Migrations
                         .IsRequired();
 
                     b.Navigation("Campaign");
+                });
+
+            modelBuilder.Entity("RealmForge.Domain.Entities.CampaignMonsterGroup", b =>
+                {
+                    b.HasOne("RealmForge.Domain.Entities.Campaign", null)
+                        .WithMany()
+                        .HasForeignKey("CampaignId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("RealmForge.Domain.Entities.CampaignNote", b =>
