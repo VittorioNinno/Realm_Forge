@@ -68,7 +68,37 @@ namespace RealmForge.Shared.DTOs
 		//	An aura that moves with it; the token that called it (a familiar, a summon); the token it rides
 		TokenAuraDto? Aura = null,
 		Guid? SummonedBy = null,
-		Guid? MountedOn = null);
+		Guid? MountedOn = null,
+
+		//	The light it carries; its darkvision in feet (set by hand, else from its sheet or statblock; to the masters and
+		//	whoever controls it)
+		TokenLightDto? Light = null,
+		int? Darkvision = null);
+
+	public record TokenLightDto(string Name, int Bright, int Dim);
+
+	//	The light and the darkvision set on a token, in feet: null leaves it as it is; a light of 0 and 0 is put out, a
+	//	darkvision of -1 goes back to the sheet's (or the statblock's)
+	public class SaveTokenVisionDto
+	{
+		public string Name { get; set; } = string.Empty;
+		public int? Bright { get; set; }
+		public int? Dim { get; set; }
+		public int? Darkvision { get; set; }
+	}
+
+	//	The light of a map and whether the players see only what their creatures see
+	public class SaveLightingDto
+	{
+		public MapLighting Lighting { get; set; }
+		public bool DynamicVision { get; set; }
+	}
+
+	///	<summary>
+	///	What the account's creatures see (the masters: what the characters see together), as columns and rows in pairs:
+	///	the cells in bright light, those in dim light or seen through darkvision.
+	///	</summary>
+	public record MapVisionDto(List<int> Bright, List<int> Dim);
 
 	//	A creature called by a token: a monster of the compendium next to it, controlled by the same players; in a fight it
 	//	acts right after the one that called it (or rolls its own initiative)
@@ -350,7 +380,7 @@ namespace RealmForge.Shared.DTOs
 	///	The fog of war (see MapFog), the last ping and the last view the masters brought the table to.
 	///	</summary>
 	public record MapTableDto(bool FogEnabled, List<double> Fog, MapPingDto? Ping, MapFocusDto? Focus, bool PlayersLocked = false, MapStrikeDto? Strike = null,
-		List<MapSaveCallDto>? Saves = null);
+		List<MapSaveCallDto>? Saves = null, MapLighting Lighting = MapLighting.Bright, bool DynamicVision = false, MapVisionDto? Vision = null);
 
 	//	A spell's saving throws waiting at the table (the targets the account sees), with their outcome
 	public record MapSaveCallDto(Guid Id, Guid CasterTokenId, string Caster, string Spell, int Ability, int Dc, int? Damage, string? DamageType, bool Half,

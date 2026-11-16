@@ -43,6 +43,9 @@ namespace RealmForge.Domain.Entities
 		//	table applies them to the damage it takes
 		public string? Defenses { get; set; }
 
+		//	Its darkvision in feet, kept from the last save of the sheet: what it sees in the dark at the table
+		public int Darkvision { get; set; }
+
 		public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
 		public DateTimeOffset UpdatedAt { get; set; } = DateTimeOffset.UtcNow;
 

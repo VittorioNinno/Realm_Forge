@@ -1579,14 +1579,14 @@ namespace RealmForge.Api.Controllers
 			var runs = CampaignRules.RunsTheTable(role);
 			var characterIds = map.Tokens.Where(t => t.CharacterId is not null).Select(t => t.CharacterId!.Value).Distinct().ToList();
 			var characters = await _context.Characters.AsNoTracking()
-				.Where(c => characterIds.Contains(c.Id)).Select(c => new { c.Id, c.OwnerId, c.Sheet, c.MaxHitPoints }).ToListAsync();
+				.Where(c => characterIds.Contains(c.Id)).Select(c => new { c.Id, c.OwnerId, c.Sheet, c.MaxHitPoints, c.Darkvision }).ToListAsync();
 			var mine = characters.Where(c => c.OwnerId == UserId).Select(c => c.Id).ToHashSet();
 			var sheets = characters.ToDictionary(c => c.Id, c => (Sheet: CharactersController.ReadSheet(c.Sheet), Max: Math.Max(0, c.MaxHitPoints)));
 			var sheetConditions = sheets.ToDictionary(s => s.Key, s => EncounterSheetSync.ConditionsOf(s.Value.Sheet));
 			var monsterIds = map.Tokens.Where(t => t.MonsterId is not null).Select(t => t.MonsterId!.Value).Distinct().ToList();
 			var creatures = await _context.Monsters.AsNoTracking().Where(m => monsterIds.Contains(m.Id))
 				.Select(m => new { m.Id, m.Size, m.Type }).ToDictionaryAsync(m => m.Id);
-			return map.Tokens
+			var listed = map.Tokens
 				.Where(t => runs || !t.Hidden)
 				.Where(t => runs || !map.FogEnabled || (t.CharacterId is { } own && mine.Contains(own)) || !UnderFog(map, t))
 				.OrderBy(t => t.Kind).ThenBy(t => t.Label)
@@ -1645,6 +1645,10 @@ namespace RealmForge.Api.Controllers
 						dto = dto with { Aura = new TokenAuraDto(aura.Name, aura.Radius, aura.Color, aura.Enemies, aura.Ability, aura.Dc, aura.Damage, aura.DamageType, aura.Half) };
 					}
 					dto = dto with { SummonedBy = carried.SummonedBy, MountedOn = carried.MountedOn };
+					if (carried.Light is { } light)
+					{
+						dto = dto with { Light = new TokenLightDto(light.Name, light.Bright, light.Dim) };
+					}
 					if (combatant is not null)
 					{
 						dto = dto with
@@ -1660,6 +1664,7 @@ namespace RealmForge.Api.Controllers
 					return dto;
 				})
 				.ToList();
+			return await SeenAsync(map, runs, listed, characters.ToDictionary(c => c.Id, c => c.Darkvision));
 		}
 
 		// ----- The fight on a map -----
@@ -1767,14 +1772,17 @@ namespace RealmForge.Api.Controllers
 			return MapFog.Covered(map.Fog, x, y);
 		}
 
-		private static MapTableDto TableOf(CampaignMap map, CampaignRole role) => new(
+		private MapTableDto TableOf(CampaignMap map, CampaignRole role) => new(
 			map.FogEnabled,
 			map.FogEnabled || CampaignRules.RunsTheTable(role) ? map.Fog : new List<double>(),
 			map.PingAt is { } pingAt ? new MapPingDto(map.PingX ?? 0, map.PingY ?? 0, map.PingColor ?? PlayerColors.Master, pingAt) : null,
 			map.FocusAt is { } focusAt ? new MapFocusDto(map.FocusX ?? 0, map.FocusY ?? 0, map.FocusZoom ?? 1, focusAt) : null,
 			map.PlayersLocked,
 			map.StrikeAt is { } strikeAt && map.StrikeTokenId is { } struck ? new MapStrikeDto(struck, map.StrikeKind, map.StrikeDamage, strikeAt) : null,
-			SavesOf(map, CampaignRules.RunsTheTable(role)));
+			SavesOf(map, CampaignRules.RunsTheTable(role)),
+			map.Lighting,
+			map.DynamicVision,
+			vision);
 
 		//	The saving throws waiting: all of them for the masters; for the players those of a caster they see, without the
 		//	targets hidden from them

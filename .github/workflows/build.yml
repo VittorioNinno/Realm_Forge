@@ -1269,6 +1269,22 @@ jobs:
           mt_state=$(curl -s "$api/api/campaigns/$ss_cp/maps/$mp2/state" -H "Authorization: Bearer $A" | jq -c --arg s "$sm_token" '[.tokens[] | select(.label == "Albero") | (.mountedOn == $s)]')
           mt_off=$(code -X DELETE "$api/api/campaigns/$ss_cp/maps/$mp2/tokens/$ctl_tree/mount" -H "Authorization: Bearer $A")
           sm_gone=$(code -X DELETE "$api/api/campaigns/$ss_cp/maps/$mp2/tokens/$sm_token/summon" -H "Authorization: Bearer $A")
+          # Dynamic vision: in the dark the player sees only what their creature sees; a torch shows the wolf
+          vi_player=$(code -X PUT "$api/api/campaigns/$ss_cp/maps/$mp2/lighting" $json -H "Authorization: Bearer $A" -d '{"lighting":2,"dynamicVision":true}')
+          vi_set=$(code -X PUT "$api/api/campaigns/$ss_cp/maps/$mp2/lighting" $json -H "Authorization: Bearer $B" -d '{"lighting":2,"dynamicVision":true}')
+          vi_wolf=$(curl -s -X POST "$api/api/campaigns/$ss_cp/maps/$mp2/tokens" $json -H "Authorization: Bearer $B" -d '{"label":"Lupo","kind":3,"x":1,"y":1,"size":1}' | jq -r .id)
+          vi_guide=$(curl -s -X POST "$api/api/campaigns/$ss_cp/maps/$mp2/tokens" $json -H "Authorization: Bearer $B" -d '{"label":"Guida","kind":2,"x":8,"y":6,"size":1}' | jq -r .id)
+          code -X PUT "$api/api/campaigns/$ss_cp/maps/$mp2/tokens/$vi_guide" $json -H "Authorization: Bearer $B" -d "{\"label\":\"Guida\",\"kind\":2,\"x\":8,\"y\":6,\"size\":1,\"controlledBy\":[\"$ctl_user\"]}" > /dev/null
+          vi_dark=$(curl -s "$api/api/campaigns/$ss_cp/maps/$mp2/state" -H "Authorization: Bearer $A" | jq -c '{wolf: ([.tokens[] | select(.label == "Lupo")] | length), lighting: .table.lighting, dynamic: .table.dynamicVision, own: ((.table.vision.bright | length) > 0)}')
+          vi_torch=$(code -X PUT "$api/api/campaigns/$ss_cp/maps/$mp2/tokens/$vi_wolf/vision" $json -H "Authorization: Bearer $B" -d '{"name":"Torcia","bright":20,"dim":20}')
+          vi_lit=$(curl -s "$api/api/campaigns/$ss_cp/maps/$mp2/state" -H "Authorization: Bearer $A" | jq -c '[.tokens[] | select(.label == "Lupo") | .light.bright]')
+          vi_master=$(curl -s "$api/api/campaigns/$ss_cp/maps/$mp2/state" -H "Authorization: Bearer $B" | jq -c '{wolf: ([.tokens[] | select(.label == "Lupo")] | length), dv: [.tokens[] | select(.label == "Guida") | .darkvision]}')
+          vi_dv=$(code -X PUT "$api/api/campaigns/$ss_cp/maps/$mp2/tokens/$vi_guide/vision" $json -H "Authorization: Bearer $A" -d '{"darkvision":60}')
+          vi_dv_bad=$(code -X PUT "$api/api/campaigns/$ss_cp/maps/$mp2/tokens/$vi_guide/vision" $json -H "Authorization: Bearer $A" -d '{"darkvision":999}')
+          vi_dv_seen=$(curl -s "$api/api/campaigns/$ss_cp/maps/$mp2/state" -H "Authorization: Bearer $A" | jq -c '[.tokens[] | select(.label == "Guida") | .darkvision]')
+          code -X PUT "$api/api/campaigns/$ss_cp/maps/$mp2/lighting" $json -H "Authorization: Bearer $B" -d '{"lighting":0,"dynamicVision":false}' > /dev/null
+          code -X DELETE "$api/api/campaigns/$ss_cp/maps/$mp2/tokens/$vi_wolf" -H "Authorization: Bearer $B" > /dev/null
+          code -X DELETE "$api/api/campaigns/$ss_cp/maps/$mp2/tokens/$vi_guide" -H "Authorization: Bearer $B" > /dev/null
           # A spell asks for a save: the damage rolled once, the target waits; only who controls it (or a master) rolls
           sv_call=$(curl -s -X POST "$api/api/campaigns/$ss_cp/maps/$mp2/saves?lang=2" $json -H "Authorization: Bearer $A" \
             -d "{\"casterId\":\"$ctl_tree\",\"spell\":\"Prova\",\"ability\":2,\"dc\":30,\"half\":true,\"targetIds\":[\"$at_target\"]}")
@@ -1478,6 +1494,15 @@ jobs:
           sscheck "mount: the rider on it" "$mt_state" "[true]"
           sscheck "mount: got off" "$mt_off" "204"
           sscheck "summon: dismissed" "$sm_gone" "204"
+          sscheck "vision: only masters set the light" "$vi_player" "403"
+          sscheck "vision: dark map, dynamic vision" "$vi_set" "204"
+          sscheck "vision: the unseen wolf is not sent" "$vi_dark" '{"wolf":0,"lighting":2,"dynamic":true,"own":true}'
+          sscheck "vision: a torch on the wolf" "$vi_torch" "204"
+          sscheck "vision: the lit wolf is seen" "$vi_lit" "[20]"
+          sscheck "vision: the master sees all" "$vi_master" '{"wolf":1,"dv":[0]}'
+          sscheck "vision: darkvision set by its player" "$vi_dv" "204"
+          sscheck "vision: darkvision out of range" "$vi_dv_bad" "400"
+          sscheck "vision: darkvision kept" "$vi_dv_seen" "[60]"
           sscheck "saves: asked of the target" "$sv_shape" '{"targets":1,"dc":30,"ability":2,"damage":null}'
           sscheck "saves: the masters see them" "$sv_seen" "[1]"
           sscheck "saves: a player does not roll an enemy's save" "$sv_player" "403"
