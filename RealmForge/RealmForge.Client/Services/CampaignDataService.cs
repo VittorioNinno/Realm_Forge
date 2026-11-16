@@ -406,6 +406,9 @@ namespace RealmForge.Client.Services
 		public Task<(MapAttackResultDto? Value, string? Error)> AttackAsync(Guid id, Guid mapId, MapAttackDto dto, LanguageCode lang) =>
 			TableAsync<MapAttackResultDto>(() => _http.PostAsJsonAsync($"api/campaigns/{id}/maps/{mapId}/attack?lang={(int)lang}", dto), "attack");
 
+		public Task<CampaignResult> SaveAuraAsync(Guid id, Guid mapId, Guid tokenId, SaveAuraDto dto) =>
+			SendAsync(() => _http.PutAsJsonAsync($"api/campaigns/{id}/maps/{mapId}/tokens/{tokenId}/aura", dto), "save aura");
+
 		public Task<(MapAttackResultDto? Value, string? Error)> GrappleAsync(Guid id, Guid mapId, Guid tokenId, GrappleDto dto, LanguageCode lang) =>
 			TableAsync<MapAttackResultDto>(() => _http.PostAsJsonAsync($"api/campaigns/{id}/maps/{mapId}/tokens/{tokenId}/grapple?lang={(int)lang}", dto), "grapple");
 

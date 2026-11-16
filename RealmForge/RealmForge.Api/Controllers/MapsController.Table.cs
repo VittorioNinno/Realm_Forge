@@ -405,6 +405,159 @@ namespace RealmForge.Api.Controllers
 			return damage > 0 && target.MaxHp is > 0 && target.Hp == 0;
 		}
 
+		// ===== Auras that move with a token =====
+
+		//	PUT: api/campaigns/{campaignId}/maps/{mapId}/tokens/{tokenId}/aura — an aura set on a token (a radius of 0 takes it
+		//	away): whoever controls it, a master any
+		[HttpPut("{mapId:guid}/tokens/{tokenId:guid}/aura")]
+		public async Task<IActionResult> SaveAura(Guid campaignId, Guid mapId, Guid tokenId, [FromBody] SaveAuraDto dto)
+		{
+			var (map, role) = await LoadAsync(campaignId, mapId, withTokens: true);
+			var token = map?.Tokens.FirstOrDefault(t => t.Id == tokenId);
+			if (map is null || role is null || token is null)
+			{
+				return NotFound();
+			}
+			if (!CampaignRules.RunsTheTable(role.Value) && !await ControlsAsync(token))
+			{
+				return Forbid();
+			}
+			var name = (dto.Name ?? string.Empty).Trim();
+			var damage = string.IsNullOrWhiteSpace(dto.Damage) ? null : dto.Damage.Replace(" ", string.Empty);
+			if (dto.Radius is < 0 or > TokenAura.MaxRadius || name.Length > 60 || dto.Ability is < 0 or > 6 || dto.Dc is < 0 or > 40 || (dto.DamageType?.Length ?? 0) > 40
+				|| (dto.Color is { } color && !System.Text.RegularExpressions.Regex.IsMatch(color, "^#[0-9a-fA-F]{6}$"))
+				|| (damage is not null && !TryDamage(damage, out _, out _)) || (dto.Radius > 0 && name.Length == 0))
+			{
+				return Problem(statusCode: StatusCodes.Status400BadRequest, title: "Invalid aura.");
+			}
+			var gear = ReadGear(token.Gear);
+			gear.Aura = dto.Radius == 0 ? null : new TokenAura
+			{
+				Name = name,
+				Radius = dto.Radius,
+				Color = dto.Color ?? "#a78bfa",
+				Enemies = dto.Enemies,
+				Ability = dto.Ability,
+				Dc = dto.Ability > 0 ? Math.Max(1, dto.Dc) : 0,
+				Damage = damage,
+				DamageType = string.IsNullOrWhiteSpace(dto.DamageType) ? null : dto.DamageType.Trim(),
+				Half = dto.Half
+			};
+			WriteGear(token, gear);
+			token.UpdatedAt = map.UpdatedAt = DateTimeOffset.UtcNow;
+			await _context.SaveChangesAsync();
+			return NoContent();
+		}
+
+		private static bool PartyOf(CampaignToken t) => t.CharacterId is not null || t.ControlledBy.Count > 0;
+
+		//	A creature touched by the auras of the others (it entered one, or starts its turn in one; from is where it came
+		//	from, null at the start of a turn), and, when it has an aura, the creatures its aura reaches as it moves: once a
+		//	turn each. A save asked of the creature (the damage rolled once), or the table told
+		private async Task TouchAurasAsync(CampaignMap map, Fight fight, CampaignToken creature, (int X, int Y)? from)
+		{
+			if (creature.Kind == TokenKind.Prop || creature.CombatantId is null || fight.Encounter.Round <= 0)
+			{
+				return;
+			}
+			var stamp = $"{fight.Encounter.Round}:{fight.Encounter.CurrentId}";
+			int GapAt(CampaignToken a, (int X, int Y) at, CampaignToken b) => TableCombat.Gap(map.GridType, at.X, at.Y, a.Size, b.X, b.Y, b.Size);
+			var touches = new List<(CampaignToken Owner, TokenAura Aura, TokenGear Gear, CampaignToken Target)>();
+			foreach (var owner in map.Tokens.Where(t => t.Id != creature.Id && t.Kind != TokenKind.Prop))
+			{
+				var gear = ReadGear(owner.Gear);
+				if (gear.Aura is not { } aura || (aura.Enemies && PartyOf(owner) == PartyOf(creature)))
+				{
+					continue;
+				}
+				var inside = TableCombat.Gap(map.GridType, owner.X, owner.Y, owner.Size, creature.X, creature.Y, creature.Size) <= aura.Radius;
+				var before = from is { } came && GapAt(creature, came, owner) <= aura.Radius;
+				if (inside && !before)
+				{
+					touches.Add((owner, aura, gear, creature));
+				}
+			}
+			//	Its own aura reaching the others as it moves
+			if (from is { } moved && ReadGear(creature.Gear) is { Aura: { } own } ownGear)
+			{
+				foreach (var other in map.Tokens.Where(t => t.Id != creature.Id && t.Kind != TokenKind.Prop && t.CombatantId is not null))
+				{
+					if (own.Enemies && PartyOf(other) == PartyOf(creature))
+					{
+						continue;
+					}
+					var now = TableCombat.Gap(map.GridType, creature.X, creature.Y, creature.Size, other.X, other.Y, other.Size) <= own.Radius;
+					var was = TableCombat.Gap(map.GridType, moved.X, moved.Y, creature.Size, other.X, other.Y, other.Size) <= own.Radius;
+					if (now && !was)
+					{
+						touches.Add((creature, own, ownGear, other));
+					}
+				}
+			}
+			if (touches.Count == 0)
+			{
+				return;
+			}
+			var calls = ReadSaves(map.SaveCalls);
+			foreach (var (owner, aura, gear, target) in touches)
+			{
+				var key = $"{target.Id}:{stamp}";
+				if (aura.Touched.Contains(key))
+				{
+					continue;
+				}
+				aura.Touched = aura.Touched.Append(key).TakeLast(60).ToList();
+				WriteGear(owner, gear);
+				int? damage = null;
+				var rolled = new List<RollDieDto>();
+				if (aura.Damage is { } text && TryDamage(text, out var dice, out var flat))
+				{
+					if (dice is not null)
+					{
+						var (faces, sum) = DiceNotation.Roll(dice, sides => RandomNumberGenerator.GetInt32(1, sides + 1));
+						rolled = faces.Select(d => new RollDieDto(d.Sides, d.Value, d.Dropped)).ToList();
+						damage = Math.Max(0, sum);
+					}
+					else
+					{
+						damage = Math.Max(0, flat);
+					}
+				}
+				if (aura.Ability is >= 1 and <= 6)
+				{
+					calls.Add(new MapSaveCall
+					{
+						CasterTokenId = owner.Id,
+						Caster = Cut(owner.Label, 60),
+						Spell = Cut(aura.Name, 60),
+						Ability = aura.Ability,
+						Dc = Math.Max(1, aura.Dc),
+						Damage = damage,
+						DamageType = aura.DamageType,
+						Half = aura.Half,
+						CasterHidden = owner.Hidden,
+						Targets = new() { new MapSaveTarget { TokenId = target.Id, Label = Cut(target.Label, 60) } }
+					});
+				}
+				_context.CampaignRolls.Add(new CampaignRoll
+				{
+					CampaignId = map.CampaignId,
+					UserId = UserId,
+					Roller = Cut(owner.Label, 100),
+					Color = owner.Color,
+					Label = Cut($"{owner.Label}: {aura.Name} → {target.Label}", 120),
+					Expression = aura.Damage ?? string.Empty,
+					Dice = JsonSerializer.Serialize(rolled, GearJson),
+					Total = damage ?? 0,
+					Note = Cut(aura.Ability is >= 1 and <= 6
+						? $"TS {AbilityName(aura.Ability, true)} CD {aura.Dc}{(damage is { } d ? $" · {d}" : string.Empty)}"
+						: "aura", 200),
+					Hidden = owner.Hidden || target.Hidden
+				});
+			}
+			WriteSaves(map, calls);
+		}
+
 		// ===== Grapples and shoves =====
 
 		//	A condition put on or taken off a token: a character's on its sheet, a fight's creature on its combatant

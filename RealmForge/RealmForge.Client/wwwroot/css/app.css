@@ -19803,3 +19803,30 @@ button.rf-qs-spell {
     flex-wrap: wrap;
     gap: 8px;
 }
+
+/* ===== An aura around a token ===== */
+.rf-vtt-aura {
+    fill: color-mix(in srgb, var(--rf-aura, #a78bfa) 14%, transparent);
+    stroke: var(--rf-aura, #a78bfa);
+    stroke-width: 2;
+    stroke-dasharray: 8 6;
+    pointer-events: none;
+}
+
+.rf-qs-aura-form {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.rf-qs-aura-radius {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 0;
+    font-size: .8rem;
+}
+
+    .rf-qs-aura-radius input {
+        width: 72px;
+    }
