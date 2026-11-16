@@ -140,6 +140,9 @@ namespace RealmForge.Shared.DTOs
 
 		//	A spell attack: no weapon is drawn for it
 		public bool Spell { get; set; }
+
+		//	Seeking Spell: the d20 of a spell attack that missed rolled again (the turn is not spent twice)
+		public bool Reroll { get; set; }
 	}
 
 	///	<summary>
@@ -149,7 +152,12 @@ namespace RealmForge.Shared.DTOs
 	public class TurnActionDto
 	{
 		public string Kind { get; set; } = string.Empty;
+
+		//	The weapon in hand ("melee", "ranged"); for a spell cast, the part of the turn it takes ("action", "bonus", "reaction")
 		public string? Wield { get; set; }
+
+		//	A spell cast: its level (0 a cantrip)
+		public int? Level { get; set; }
 	}
 
 	///	<summary>The turn of a token in a fight, as the table shows it.</summary>
@@ -283,7 +291,40 @@ namespace RealmForge.Shared.DTOs
 	///	<summary>
 	///	The fog of war (see MapFog), the last ping and the last view the masters brought the table to.
 	///	</summary>
-	public record MapTableDto(bool FogEnabled, List<double> Fog, MapPingDto? Ping, MapFocusDto? Focus, bool PlayersLocked = false, MapStrikeDto? Strike = null);
+	public record MapTableDto(bool FogEnabled, List<double> Fog, MapPingDto? Ping, MapFocusDto? Focus, bool PlayersLocked = false, MapStrikeDto? Strike = null,
+		List<MapSaveCallDto>? Saves = null);
+
+	//	A spell's saving throws waiting at the table (the targets the account sees), with their outcome
+	public record MapSaveCallDto(Guid Id, Guid CasterTokenId, string Caster, string Spell, int Ability, int Dc, int? Damage, string? DamageType, bool Half,
+		DateTimeOffset At, List<MapSaveTargetDto> Targets);
+
+	public record MapSaveTargetDto(Guid TokenId, string Label, bool Careful, bool Disadvantage, int? Roll, bool? Saved, int? Dealt);
+
+	//	A spell cast at the table that forces saves: the damage is rolled here once for every target
+	public class CallSavesDto
+	{
+		public Guid CasterId { get; set; }
+		public string Spell { get; set; } = string.Empty;
+		public int Ability { get; set; }
+		public int Dc { get; set; }
+		public string? Damage { get; set; }
+		public string? DamageType { get; set; }
+		public bool Half { get; set; }
+		public List<Guid> TargetIds { get; set; } = new();
+
+		//	Metamagic and the like: the targets that succeed by themselves, the one with disadvantage, the damage dice
+		//	rolled again (Empowered Spell: the lowest ones)
+		public List<Guid> Careful { get; set; } = new();
+		public Guid? Heightened { get; set; }
+		public int Empowered { get; set; }
+	}
+
+	//	A target's save: rolled here with its bonus, or (a master) told as made or failed
+	public class ResolveSaveDto
+	{
+		public int Bonus { get; set; }
+		public bool? Saved { get; set; }
+	}
 
 	///	<summary>
 	///	The last attack on the map, for its effect on every screen: the target, missed (0), hit (1) or critical (2), the
