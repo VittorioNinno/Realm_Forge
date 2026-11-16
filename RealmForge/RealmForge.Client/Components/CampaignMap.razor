@@ -1043,7 +1043,7 @@ else
                 </div>
                 @if (it.PropType is { } usedType && usedType != PropType.Item)
                 {
-                    @if (RunsTheTable || it.PlayersInteract)
+                    @if (RunsTheTable || (it.PlayersInteract && !PropRules.Leads(usedType)))
                     {
                         @if (PropRules.Toggle(it.PropState) is not null)
                         {
@@ -1081,6 +1081,25 @@ else
                 }
                 <button type="button" class="rf-vtt-card-close rf-vtt-icon-button" @onclick="CloseToolbar" aria-label="@UiText.TokenClose(Lang)" title="@UiText.TokenClose(Lang)"><Icon Name="close" /></button>
             </header>
+            @if (Table && PropRules.Leads(it.PropType) && (RunsTheTable || it.PlayersInteract))
+            {
+                var travellers = TravellersAt(it);
+                <div class="rf-hud-pills rf-vtt-travel" data-test="map-travel">
+                    @if (it.LinkLabel is { } leadsTo)
+                    {
+                        <span class="rf-vtt-label w-100"><Icon Name="ladder" /> @UiText.VttLinkTo(Lang): @leadsTo</span>
+                    }
+                    @foreach (var w in travellers)
+                    {
+                        var who = w;
+                        <button type="button" class="rf-hud-pill" disabled="@(busy || it.PropState != PropState.Open)" @onclick="() => TravelAsync(it, who)" data-test="map-travel-go">@UiText.VttTravel(who.Label, Lang)</button>
+                    }
+                    @if (travellers.Count == 0)
+                    {
+                        <span class="small">@UiText.VttTravelHint(Lang)</span>
+                    }
+                </div>
+            }
             @if (propMessage is not null)
             {
                 <p class="rf-hud-message" data-test="map-prop-message">@propMessage</p>
@@ -1113,6 +1132,10 @@ else
                     @if (RunsTheTable && it.PropType is not null and not PropType.Item)
                     {
                         @DockButton("state", "key", UiText.ToolState(Lang), "map-token-tab-state")
+                    }
+                    @if (RunsTheTable && PropRules.Leads(it.PropType))
+                    {
+                        @DockButton("link", "link", UiText.ToolLink(Lang), "map-token-tab-link")
                     }
                     @if (it.PropType is null && (RunsTheTable || CanChangeHp(it, character)))
                     {
@@ -1184,6 +1207,33 @@ else
                 case "loot":
                     <div class="rf-vtt-toolbar-panel rf-hud-drawer">
                         @TakeList(it)
+                    </div>
+                    break;
+                case "link" when PropRules.Leads(it.PropType):
+                    <div class="rf-vtt-toolbar-panel rf-hud-drawer" data-test="map-token-link">
+                        @if (mapLinks is null)
+                        {
+                            <p class="small mb-0">…</p>
+                        }
+                        else if (mapLinks.All(l => l.TokenId == it.Id))
+                        {
+                            <p class="small mb-0">@UiText.VttLinkEmpty(Lang)</p>
+                        }
+                        else
+                        {
+                            <label class="rf-vtt-label" for="@($"link-{it.Id}")">@UiText.VttLinkTo(Lang)</label>
+                            <select id="@($"link-{it.Id}")" class="rf-form-control" disabled="@busy" @onchange="@(e => SaveLinkAsync(it, e.Value?.ToString()))" data-test="map-link-target">
+                                <option value="" selected="@(it.LinkTo is null)">@UiText.VttLinkNone(Lang)</option>
+                                @foreach (var l in mapLinks.Where(l => l.TokenId != it.Id))
+                                {
+                                    <option value="@l.TokenId" selected="@(it.LinkTo == l.TokenId)">@l.MapName · @l.Label</option>
+                                }
+                            </select>
+                            <label class="rf-checkbox-wrapper small mb-0">
+                                <input type="checkbox" class="rf-checkbox" @bind="linkBothWays" data-test="map-link-both" />
+                                <span>@UiText.VttLinkBoth(Lang)</span>
+                            </label>
+                        }
                     </div>
                     break;
                 case "state" when it.PropType is { } stateType:
@@ -1714,6 +1764,12 @@ else
         {
             _ = LoadVitalsAsync(characterId);
         }
+        if (toolTab == "link")
+        {
+            //	The stairs and portals of every map, fresh (another map may have new ones)
+            mapLinks = null;
+            _ = LoadLinksAsync();
+        }
     }
 
     private void CloseToolbar()
@@ -1733,6 +1789,8 @@ else
         PropType.Gate => "grid-3x3",
         PropType.Secret => "question-diamond",
         PropType.Item => "hammer",
+        PropType.Stairs => "ladder",
+        PropType.Portal => "hurricane",
         _ => state is PropState.Open or PropState.Ajar or PropState.Broken ? "door-open" : "door-closed"
     };
 
@@ -3146,6 +3204,10 @@ else
             else
             {
                 <span class="rf-vtt-options-hint" data-test="vtt-cast-note">@(castNote ?? gearNote)</span>
+                @if (travelled is { } where && castNote is not null)
+                {
+                    <button type="button" class="btn btn-sm btn-rf-outline" @onclick="FollowTravelAsync" data-test="vtt-travel-follow"><Icon Name="ladder" /> @UiText.VttTravelGo(where.MapName, Lang)</button>
+                }
                 <button type="button" class="rf-vtt-icon-button" aria-label="@UiText.TokenClose(Lang)" title="@UiText.TokenClose(Lang)" @onclick="() => { castNote = null; gearNote = null; }"><Icon Name="close" /></button>
             }
         </div>
@@ -5859,7 +5921,7 @@ else
             Label = UiText.PropTypeName(type, Lang),
             Kind = TokenKind.Prop,
             PropType = type,
-            PropState = PropState.Closed,
+            PropState = PropRules.Leads(type) ? PropState.Open : PropState.Closed,
             PlayersInteract = !secret,
             Hidden = secret,
             Color = "#8b5e3c",

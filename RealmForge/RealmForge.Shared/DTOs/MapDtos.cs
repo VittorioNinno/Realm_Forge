@@ -73,7 +73,30 @@ namespace RealmForge.Shared.DTOs
 		//	The light it carries; its darkvision in feet (set by hand, else from its sheet or statblock; to the masters and
 		//	whoever controls it)
 		TokenLightDto? Light = null,
-		int? Darkvision = null);
+		int? Darkvision = null,
+
+		//	Stairs or a portal: where it leads (to the masters: the token, its map and its name)
+		Guid? LinkTo = null,
+		string? LinkLabel = null);
+
+	//	The stairs and portals of the campaign, for the masters to link them
+	public record MapLinkDto(Guid TokenId, Guid MapId, string MapName, string Label, PropType Type);
+
+	//	Where stairs or a portal lead (null: nowhere), and whether the other end leads back
+	public class SaveLinkDto
+	{
+		public Guid? TargetId { get; set; }
+		public bool BothWays { get; set; } = true;
+	}
+
+	//	A creature next to stairs or a portal goes through
+	public class TravelDto
+	{
+		public Guid TokenId { get; set; }
+	}
+
+	//	Where it arrived; the map shown to the players changed with it (the last character left the one shown)
+	public record TravelResultDto(Guid MapId, string MapName, int X, int Y, bool Displayed);
 
 	public record TokenLightDto(string Name, int Bright, int Dim);
 

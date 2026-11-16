@@ -54,7 +54,7 @@ namespace RealmForge.Api.Controllers
 					case MapUndoKinds.Tokens:
 						foreach (var item in JsonSerializer.Deserialize<UndoItems>(edit.Payload, GearJson)?.Items ?? new())
 						{
-							RestoreToken(map, item);
+							await RestoreTokenAsync(map, item);
 						}
 						break;
 					case MapUndoKinds.Shapes:
@@ -157,9 +157,11 @@ namespace RealmForge.Api.Controllers
 
 		// ----- Taking a step back -----
 
-		private void RestoreToken(CampaignMap map, UndoItem item)
+		private async Task RestoreTokenAsync(CampaignMap map, UndoItem item)
 		{
-			var token = map.Tokens.FirstOrDefault(t => t.Id == item.Id);
+			//	A token that went through stairs or a portal is on another map now: it comes back from there
+			var token = map.Tokens.FirstOrDefault(t => t.Id == item.Id)
+				?? await _context.CampaignTokens.FirstOrDefaultAsync(t => t.Id == item.Id && t.Map.CampaignId == map.CampaignId);
 			if (item.Values is not { } values)
 			{
 				if (token is not null)

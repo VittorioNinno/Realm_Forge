@@ -424,6 +424,14 @@ namespace RealmForge.Client.Services
 		public Task<CampaignResult> SaveTokenVisionAsync(Guid id, Guid mapId, Guid tokenId, SaveTokenVisionDto dto) =>
 			SendAsync(() => _http.PutAsJsonAsync($"api/campaigns/{id}/maps/{mapId}/tokens/{tokenId}/vision", dto), "save token vision");
 
+		public Task<List<MapLinkDto>?> GetMapLinksAsync(Guid id) => GetAsync<List<MapLinkDto>>($"api/campaigns/{id}/maps/links");
+
+		public Task<CampaignResult> SaveLinkAsync(Guid id, Guid mapId, Guid tokenId, SaveLinkDto dto) =>
+			SendAsync(() => _http.PutAsJsonAsync($"api/campaigns/{id}/maps/{mapId}/tokens/{tokenId}/link", dto), "save link");
+
+		public Task<(TravelResultDto? Value, string? Error)> TravelAsync(Guid id, Guid mapId, Guid wayId, TravelDto dto) =>
+			TableAsync<TravelResultDto>(() => _http.PostAsJsonAsync($"api/campaigns/{id}/maps/{mapId}/tokens/{wayId}/travel", dto), "travel");
+
 		public Task<List<MonsterGroupDto>?> GetMonsterGroupsAsync(Guid id, LanguageCode lang) =>
 			GetAsync<List<MonsterGroupDto>>($"api/campaigns/{id}/maps/groups?lang={(int)lang}");
 
