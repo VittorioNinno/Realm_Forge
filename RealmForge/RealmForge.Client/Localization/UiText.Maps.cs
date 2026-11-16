@@ -528,6 +528,17 @@ namespace RealmForge.Client.Localization
 		public static string VttAuraAdd(LanguageCode lang) => T(lang, "Aggiungi l'aura", "Add the aura");
 		public static string VttAuraRemove(LanguageCode lang) => T(lang, "Togli l'aura", "Remove the aura");
 		public static string VttAuraSet(string name, string who, LanguageCode lang) => T(lang, $"«{name}» si muove con {who}: chi entra o inizia il turno dentro viene segnalato.", $"“{name}” moves with {who}: whoever enters it or starts a turn in it is told.");
+		public static string VttUndo(int left, LanguageCode lang) => left > 0
+			? T(lang, $"Annulla l'ultima modifica (Ctrl+Z) · {left} disponibili", $"Undo the last edit (Ctrl+Z) · {left} left")
+			: T(lang, "Niente da annullare", "Nothing to undo");
+		public static string VttNothingToUndo(LanguageCode lang) => T(lang, "Niente da annullare su questa mappa.", "Nothing to undo on this map.");
+		public static string VttUndone(string kind, LanguageCode lang) => kind switch
+		{
+			MapUndoKinds.Shapes => T(lang, "Annullata l'ultima modifica ai disegni.", "The last edit of the drawings was undone."),
+			MapUndoKinds.Terrain => T(lang, "Annullata l'ultima modifica al terreno.", "The last edit of the terrain was undone."),
+			MapUndoKinds.Fog => T(lang, "Annullata l'ultima modifica alla nebbia.", "The last edit of the fog was undone."),
+			_ => T(lang, "Annullata l'ultima modifica ai token.", "The last edit of the tokens was undone.")
+		};
 		public static string VttLighting(LanguageCode lang) => T(lang, "Luce e visione", "Light and vision");
 		public static string VttLightingName(MapLighting lighting, LanguageCode lang) => lighting switch
 		{

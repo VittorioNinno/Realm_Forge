@@ -380,7 +380,8 @@ namespace RealmForge.Shared.DTOs
 	///	The fog of war (see MapFog), the last ping and the last view the masters brought the table to.
 	///	</summary>
 	public record MapTableDto(bool FogEnabled, List<double> Fog, MapPingDto? Ping, MapFocusDto? Focus, bool PlayersLocked = false, MapStrikeDto? Strike = null,
-		List<MapSaveCallDto>? Saves = null, MapLighting Lighting = MapLighting.Bright, bool DynamicVision = false, MapVisionDto? Vision = null);
+		List<MapSaveCallDto>? Saves = null, MapLighting Lighting = MapLighting.Bright, bool DynamicVision = false, MapVisionDto? Vision = null,
+		int Undo = 0);
 
 	//	A spell's saving throws waiting at the table (the targets the account sees), with their outcome
 	public record MapSaveCallDto(Guid Id, Guid CasterTokenId, string Caster, string Spell, int Ability, int Dc, int? Damage, string? DamageType, bool Half,
@@ -419,6 +420,9 @@ namespace RealmForge.Shared.DTOs
 	///	damage dealt.
 	///	</summary>
 	public record MapStrikeDto(Guid TokenId, int Kind, int? Damage, DateTimeOffset At);
+
+	//	A master's edit taken back: what it was about (MapUndoKinds) and how many are left to take back
+	public record MapUndoDto(string Kind, int Left);
 
 	public record MapPingDto(double X, double Y, string Color, DateTimeOffset At);
 

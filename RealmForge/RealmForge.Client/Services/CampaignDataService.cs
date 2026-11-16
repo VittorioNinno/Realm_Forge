@@ -424,6 +424,9 @@ namespace RealmForge.Client.Services
 		public Task<CampaignResult> SaveTokenVisionAsync(Guid id, Guid mapId, Guid tokenId, SaveTokenVisionDto dto) =>
 			SendAsync(() => _http.PutAsJsonAsync($"api/campaigns/{id}/maps/{mapId}/tokens/{tokenId}/vision", dto), "save token vision");
 
+		public Task<(MapUndoDto? Value, string? Error)> UndoAsync(Guid id, Guid mapId) =>
+			TableAsync<MapUndoDto>(() => _http.PostAsync($"api/campaigns/{id}/maps/{mapId}/undo", null), "undo");
+
 		public Task<CampaignResult> SaveLightingAsync(Guid id, Guid mapId, SaveLightingDto dto) =>
 			SendAsync(() => _http.PutAsJsonAsync($"api/campaigns/{id}/maps/{mapId}/lighting", dto), "save lighting");
 
