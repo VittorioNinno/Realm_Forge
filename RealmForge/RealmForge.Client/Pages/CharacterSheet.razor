@@ -493,14 +493,14 @@
                     var r = rider;
                     <div class="rf-rider @(r.Automatic || draft.Chosen.Contains(r.Key) ? "on" : null)" data-test="attack-rider" data-key="@r.Key">
                         <label class="rf-checkbox-wrapper mb-0">
-                            <input type="checkbox" class="rf-checkbox" checked="@(r.Automatic || draft.Chosen.Contains(r.Key))" disabled="@(r.Automatic || (r.Kind == AttackRiders.Kind.SlotDice && SmiteLevels.Count == 0))"
+                            <input type="checkbox" class="rf-checkbox" checked="@(r.Automatic || draft.Chosen.Contains(r.Key))" disabled="@(r.Automatic || (r.Kind == AttackRiders.Kind.SlotDice && SmiteLevels.Count == 0) || (r.ResourceKey is not null && !draft.Chosen.Contains(r.Key) && RiderUsesLeft(r) == 0))"
                                    @onchange="() => ToggleRider(r.Key)" data-test="@($"attack-rider-{r.Key}")" />
                             <span>
-                                <strong>@UiText.RiderName(r.Key, Lang)</strong>
+                                <strong>@UiText.RiderName(r, Lang)</strong>
                                 <span class="rf-rider-value">@UiText.RiderValue(r, Lang)</span>
                             </span>
                         </label>
-                        <div class="rf-rider-when">@(r.Automatic ? UiText.RiderAutomatic(Lang) : UiText.RiderCondition(r.Key, Lang))@(r.OncePerTurn ? $" {UiText.RiderOncePerTurn(Lang)}" : null)</div>
+                        <div class="rf-rider-when">@(r.Automatic ? UiText.RiderAutomatic(Lang) : r.ResourceKey is not null ? UiText.RiderUses(RiderUsesLeft(r), Lang) : UiText.RiderCondition(r.Key, Lang))@(r.OncePerTurn ? $" {UiText.RiderOncePerTurn(Lang)}" : null)</div>
                         @if (r.Kind == AttackRiders.Kind.SlotDice && draft.Chosen.Contains(r.Key))
                         {
                             <div class="d-flex flex-wrap align-items-center gap-2 mt-2">

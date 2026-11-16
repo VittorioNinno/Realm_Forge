@@ -71,6 +71,22 @@ public static class FeatureUses
 		Use("species-breath", FeatureSlot.Action, Breath(c, is2024), "none");
 		Use("feat-lucky", FeatureSlot.Free, null, "none", T("Tira un d20 in più", "Roll one more d20"));
 
+		//	The automations of the Homebrew the character uses: features with their dice and their resource
+		foreach (var (e, source) in c.ModuleEffects.Where(e => e.Effect.Kind == RuleEffectKind.Ability))
+		{
+			var resource = RuleModules.ResourceKeyOf(e, source);
+			if (resource is not null && resources.All(r => r.Key != resource))
+			{
+				resource = null;
+			}
+			list.Add(new FeatureUse($"auto:{source}:{e.NameEn ?? e.NameIt}".ToLowerInvariant(), e.Name(lang), e.Slot ?? FeatureSlot.Action, resource,
+				RuleModules.RollOf(e, c), e.Outcome is "heal" or "temp" ? e.Outcome : "none", e.Text));
+			if (resource is not null)
+			{
+				known.Add(resource);
+			}
+		}
+
 		//	Every other resource is spent the same way, without dice
 		foreach (var r in resources.Where(r => !known.Contains(r.Key)))
 		{
@@ -92,6 +108,17 @@ public static class FeatureUses
 		{
 			list.Add(new FeatureUse("paladin-smite", T("Punizione Divina", "Divine Smite"), FeatureSlot.Free, null, "2d8", "none",
 				T("Con uno slot di 1° livello: +1d8 per ogni livello in più, +1d8 contro non morti e immondi", "With a 1st-level slot: +1d8 per higher level, +1d8 against undead and fiends")));
+		}
+		foreach (var (e, source) in c.ModuleEffects.Where(e => e.Effect.Kind == RuleEffectKind.OnHitDamage))
+		{
+			if (RuleModules.RollOf(e, c) is not { } dice)
+			{
+				continue;
+			}
+			var resource = RuleModules.ResourceKeyOf(e, source);
+			list.Add(new FeatureUse($"auto:{source}:{e.NameEn ?? e.NameIt}".ToLowerInvariant(), e.Name(lang), FeatureSlot.Free,
+				resources.Any(r => r.Key == resource) ? resource : null, dice, "none",
+				T("Danni in più sui colpi", "Extra damage on a hit") + (e.DamageType is { } type ? $" ({type.ToString().ToLowerInvariant()})" : string.Empty), e.OncePerTurn));
 		}
 		if (Level("ranger") > 0 && !is2024)
 		{
