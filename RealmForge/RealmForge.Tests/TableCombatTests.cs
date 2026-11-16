@@ -145,4 +145,25 @@ public class TableCombatTests
 
 		Assert.Null(TableCombat.TargetOf("Touch", "You touch a creature and it regains hit points.", null, 1, 1, 1));
 	}
+
+	[Theory]
+	//	A sphere given by its diameter is half as wide; the light a spell sheds is not its area
+	[InlineData("60 feet", "A 5-foot-diameter sphere of fire appears. Any creature that ends its turn within 5 feet of the sphere must make a Dexterity saving throw. It sheds bright light in a 20-foot radius.", ShapeKind.Sphere, 1)]
+	[InlineData("18 metri", "Una sfera di fuoco del diametro di 1,5 metri compare. La sfera emette luce intensa in un raggio di 6 metri e luce fioca per ulteriori 6 metri.", ShapeKind.Sphere, 1)]
+	[InlineData("36 metri", "Ogni creatura in una sfera di 6 metri di raggio attorno a quel punto tenta un tiro salvezza su Intelligenza.", ShapeKind.Sphere, 4)]
+	[InlineData("36 metri", "Un cilindro di 3 metri di raggio e 12 metri di altezza centrato su di esso.", ShapeKind.Sphere, 2)]
+	[InlineData("Incantatore", "L'incantatore scaglia un raggio di sole in una linea larga 1,5 metri e lunga 18 metri.", ShapeKind.Line, 12)]
+	[InlineData("150 feet", "Each creature in a 20-foot-radius sphere centered on that point must make a Dexterity saving throw.", ShapeKind.Sphere, 4)]
+	public void The_size_of_an_area_is_read_right(string range, string description, ShapeKind kind, int size)
+	{
+		var area = TableCombat.AreaOf(range, description);
+		Assert.NotNull(area);
+		Assert.Equal(kind, area!.Kind);
+		Assert.Equal(size, area.Size);
+	}
+
+	[Theory]
+	[InlineData("Touch", "You touch one object. Until the spell ends, the object sheds bright light in a 20-foot radius and dim light for an additional 20 feet.")]
+	[InlineData("Contatto", "Finché l'incantesimo non termina, l'oggetto emette luce intensa in un raggio di 6 metri e luce fioca per ulteriori 6 metri.")]
+	public void The_light_of_a_spell_is_no_area(string range, string description) => Assert.Null(TableCombat.AreaOf(range, description));
 }

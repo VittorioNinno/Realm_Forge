@@ -21,7 +21,7 @@ namespace RealmForge.Client.Components
 		// ===== Aiming an attack =====
 
 		//	What is aimed: an attack (a weapon, a spell attack) or a spell with a saving throw (its ability and DC)
-		private sealed record Aim(Guid AttackerId, SheetLine Attack, string? Save = null, int Dc = 0);
+		private sealed record Aim(Guid AttackerId, SheetLine Attack, string? Save = null, int Dc = 0, bool Half = false, SpellInfo? Info = null);
 
 		private Aim? aim;
 		private int aimMode;
@@ -59,10 +59,10 @@ namespace RealmForge.Client.Components
 
 		private bool AimHurts => aim is { } a && tokens.FirstOrDefault(t => t.Id == a.AttackerId) is { } attacker && Hurts(attacker);
 
-		private async Task StartAimAsync(MapTokenDto t, SheetLine attack, string? save = null, int dc = 0)
+		private async Task StartAimAsync(MapTokenDto t, SheetLine attack, string? save = null, int dc = 0, bool half = false, SpellInfo? info = null)
 		{
 			CancelCast();
-			aim = new Aim(t.Id, attack, save, dc);
+			aim = new Aim(t.Id, attack, save, dc, half, info);
 			aimMode = 0;
 			//	The condition its text gives on a hit, ready to apply (the master can take it away); only an enemy's
 			aimCondition = Hurts(t) ? attack.Condition : null;
@@ -119,7 +119,38 @@ namespace RealmForge.Client.Components
 			}
 			if (current.Save is { } ability)
 			{
-				return await AimSaveAsync(current, attacker, target, ability);
+				return AimSave(current, attacker, target, ability);
+			}
+			//	A character's attack waits for its confirmation, with the options it may take (Metamagic on a spell)
+			if (attacker.CharacterId is not null)
+			{
+				pending = new Pending
+				{
+					Kind = "attack",
+					CasterId = attacker.Id,
+					Name = current.Attack.Name,
+					Aim = current,
+					Mode = aimMode,
+					Condition = aimCondition,
+					Targets = new() { target.Id },
+					Damage = current.Attack.DamageDice,
+					DamageType = current.Attack.DamageType,
+					Info = current.Info
+				};
+				aim = null;
+				aimNote = null;
+				StateHasChanged();
+				return true;
+			}
+			return await StrikeAsync(current, attacker, target, aimMode, aimCondition, null);
+		}
+
+		//	The attack made: rolled by the server against the armour class, its damage on the target from an enemy
+		private async Task<bool> StrikeAsync(Aim current, MapTokenDto attacker, MapTokenDto target, int mode, string? condition, Pending? plan)
+		{
+			if (map is null)
+			{
+				return false;
 			}
 			busy = true;
 			//	A shot spends its ammunition first (none left: no shot)
@@ -155,23 +186,34 @@ namespace RealmForge.Client.Components
 				aimNote = ammoProblem;
 			}
 			var reach = current.Attack.Reach ?? AttackReach.Melee;
-			var (result, error) = await Campaigns.AttackAsync(CampaignId, map.Id, new MapAttackDto
+			var attack = new MapAttackDto
 			{
 				AttackerId = attacker.Id,
 				TargetId = target.Id,
 				Name = current.Attack.Name.Length > 60 ? current.Attack.Name[..60] : current.Attack.Name,
 				Bonus = current.Attack.Bonus,
-				Damage = current.Attack.DamageDice,
-				DamageType = current.Attack.DamageType,
+				Damage = plan?.Damage ?? current.Attack.DamageDice,
+				DamageType = plan?.Transmute ?? current.Attack.DamageType,
 				Reach = reach.Reach,
 				Range = reach.Range,
 				LongRange = reach.LongRange,
-				Mode = aimMode,
-				Condition = aimCondition,
+				Mode = mode,
+				Condition = condition,
 				Spell = current.Attack.Spell,
 				//	A spell attack is the whole action; a weapon's, one of the attacks of the Attack action
 				ActionAttacks = attacker.CharacterId is null ? null : current.Attack.InventoryId is null && current.Attack.Spell ? 1 : StatsOf(attacker)?.ActionAttacks
-			}, Lang);
+			};
+			var (result, error) = await Campaigns.AttackAsync(CampaignId, map.Id, attack, Lang);
+			//	Seeking Spell: a spell attack that missed rolls its d20 again
+			if (result is { Hit: false } && plan?.Meta.Contains("seeking") == true)
+			{
+				attack.Reroll = true;
+				var (again, _) = await Campaigns.AttackAsync(CampaignId, map.Id, attack, Lang);
+				if (again is not null)
+				{
+					result = again with { Text = $"{again.Text} · {UiText.VttMetamagicName("seeking", Lang)}" };
+				}
+			}
 			busy = false;
 			if (result is null)
 			{
@@ -206,8 +248,9 @@ namespace RealmForge.Client.Components
 			return true;
 		}
 
-		//	A spell with a saving throw at a target: not behind a wall, the damage rolled for the table with the save to make
-		private async Task<bool> AimSaveAsync(Aim current, MapTokenDto caster, MapTokenDto target, string ability)
+		//	A spell with a saving throw at a target: not behind a wall; the caster confirms (with its options), then the
+		//	table is asked for the save
+		private bool AimSave(Aim current, MapTokenDto caster, MapTokenDto target, string ability)
 		{
 			if (MapTerrain.Cover(gridType, grid, offsetX, offsetY, terrainCells, ClosedDoors().ToHashSet(),
 				(caster.X, caster.Y, caster.Size), (target.X, target.Y, target.Size)) >= MapTerrain.TotalCover)
@@ -215,205 +258,23 @@ namespace RealmForge.Client.Components
 				aimNote = UiText.VttAimWall(Lang);
 				return true;
 			}
-			var save = UiText.VttSaveDc(ability, current.Dc, Lang);
+			pending = new Pending
+			{
+				Kind = "save",
+				CasterId = caster.Id,
+				Name = current.Attack.Name,
+				Targets = new() { target.Id },
+				Ability = MapSaveRules.AbilityOf(ability),
+				Dc = current.Dc,
+				Damage = current.Attack.DamageDice,
+				DamageType = current.Attack.DamageType,
+				Half = current.Half,
+				Info = current.Info
+			};
 			aim = null;
 			aimNote = null;
-			if (current.Attack.DamageDice is { Length: > 0 } dice)
-			{
-				var label = $"{current.Attack.Name} → {target.Label} · {save}";
-				await RollForAsync(caster, new TokenRoll(string.IsNullOrEmpty(current.Attack.DamageType) ? label : $"{label} · {current.Attack.DamageType}", string.Empty, dice, false));
-			}
-			castNote = UiText.VttSpellSave(current.Attack.Name, target.Label, save, Lang);
 			StateHasChanged();
 			return true;
-		}
-
-		// ===== Casting a spell =====
-
-		private sealed record CastChoice(Guid TokenId, SheetSpell Spell, bool UsesSlots);
-
-		private CastChoice? castChoice;
-
-		//	The area being placed: the caster, the spell, its shape
-		private sealed record Placing(Guid CasterId, string Spell, SpellArea Area);
-
-		private Placing? placing;
-		private string? castNote;
-
-		private void ChooseCast(MapTokenDto t, SheetSpell spell, bool usesSlots)
-		{
-			castChoice = castChoice?.Spell.Id == spell.Id && castChoice.TokenId == t.Id ? null : new CastChoice(t.Id, spell, usesSlots);
-			castNote = null;
-		}
-
-		//	The slots that can cast it: its level or higher with one left, the pact slots of a high enough level
-		private List<(int Level, int Left, bool Pact)> CastSlots(MapTokenDto t, SheetSpell spell)
-		{
-			var list = new List<(int, int, bool)>();
-			if (StatsOf(t)?.Slots is not { } slots)
-			{
-				return list;
-			}
-			for (var level = Math.Max(1, spell.Level); level <= 9; level++)
-			{
-				if (slots.Left[level - 1] > 0)
-				{
-					list.Add((level, slots.Left[level - 1], false));
-				}
-			}
-			if (slots.PactLeft > 0 && slots.PactLevel >= spell.Level)
-			{
-				list.Add((slots.PactLevel, slots.PactLeft, true));
-			}
-			return list;
-		}
-
-		//	Cast: the slot is spent on the sheet (and the concentration taken), then the area of the spell is placed on the
-		//	map, from the caster or at a point within range
-		private async Task CastAsync(MapTokenDto t, SheetSpell spell, int level, bool pact)
-		{
-			castChoice = null;
-			CancelAim();
-			if (spell.Level > 0 && level > 0)
-			{
-				var ok = true;
-				await ChangeCharacterAsync(t, (sheet, computed) =>
-				{
-					if (pact)
-					{
-						if (sheet.SpentPactSlots >= computed.PactSlots)
-						{
-							ok = false;
-							return;
-						}
-						sheet.SpentPactSlots++;
-					}
-					else
-					{
-						while (sheet.SpentSlots.Count < 9)
-						{
-							sheet.SpentSlots.Add(0);
-						}
-						if (sheet.SpentSlots[level - 1] >= computed.SpellSlots[level - 1])
-						{
-							ok = false;
-							return;
-						}
-						sheet.SpentSlots[level - 1]++;
-					}
-					if (spell.Concentration)
-					{
-						sheet.Concentration = spell.Id;
-					}
-				});
-				if (!ok)
-				{
-					castNote = UiText.VttCastNoSlot(Lang);
-					return;
-				}
-			}
-			else if (spell.Concentration && t.CharacterId is not null)
-			{
-				await ChangeCharacterAsync(t, (sheet, _) => sheet.Concentration = spell.Id);
-			}
-			castNote = level > 0 ? UiText.VttCastDone(spell.Name, pact ? UiText.CastPact(level, Lang) : UiText.CastSlot(level, Lang), Lang) : UiText.VttCastDone(spell.Name, null, Lang);
-
-			//	Its area, read from the range and the description; without one, the target of a spell attack or a save
-			var detail = await SpellService.GetSpellDetailAsync(spell.Id, Lang);
-			if (detail is null || !Table || map is null || !tokens.Any(k => k.Id == t.Id))
-			{
-				StateHasChanged();
-				return;
-			}
-			var area = TableCombat.AreaOf(detail.Range, detail.Description);
-			var target = area is null ? TableCombat.TargetOf(detail.Range, detail.Description, detail.HigherLevels, spell.Level, Math.Max(level, spell.Level), spell.CasterLevel) : null;
-			if (area is null && target is null)
-			{
-				StateHasChanged();
-				return;
-			}
-			if (PlayersStopped)
-			{
-				castNote = UiText.VttCastLocked(spell.Name, Lang);
-				StateHasChanged();
-				return;
-			}
-			if (area is not null)
-			{
-				await StartPlacingAsync(t, spell.Name, area);
-				return;
-			}
-			var reach = target!.Melee ? new AttackReach(target.Range, 0, 0) : new AttackReach(0, target.Range, target.Range);
-			var line = new SheetLine(spell.Name, string.Empty, null, null, spell.AttackBonus, target.Damage, target.DamageType, reach, Spell: true);
-			if (target.Attack)
-			{
-				await StartAimAsync(t, line);
-			}
-			else
-			{
-				await StartAimAsync(t, line, target.SaveAbility ?? "?", spell.SaveDc);
-			}
-		}
-
-		private async Task StartPlacingAsync(MapTokenDto caster, string spell, SpellArea area)
-		{
-			placing = new Placing(caster.Id, spell, area);
-			CloseToolbar();
-			var (cx, cy) = MapGeometry.Center(gridType, grid, offsetX, offsetY, caster.X, caster.Y, caster.Size);
-			tool = "cast";
-			if (!string.IsNullOrEmpty(stageElement.Id))
-			{
-				await JS.InvokeVoidAsync("rfVtt.tool", stageElement, "cast", new
-				{
-					color = drawColor,
-					cast = new
-					{
-						kind = area.Kind.ToString().ToLowerInvariant(),
-						size = area.Size,
-						range = area.Range,
-						fromCaster = area.FromCaster,
-						x = cx,
-						y = cy,
-						col = caster.X,
-						row = caster.Y,
-						casterSize = caster.Size
-					}
-				});
-			}
-			StateHasChanged();
-		}
-
-		private void CancelCast()
-		{
-			castChoice = null;
-			if (placing is not null)
-			{
-				placing = null;
-				_ = SetToolAsync("select");
-			}
-		}
-
-		//	The area placed: drawn for the table, and the tokens in it named
-		[JSInvokable]
-		public async Task CastPlaced(string kind, double ox, double oy, double tx, double ty, int size)
-		{
-			var spell = placing?.Spell;
-			placing = null;
-			await SetToolAsync("select");
-			if (!Enum.TryParse<ShapeKind>(kind, true, out var k) || !MapRules.IsArea(k) || map is null)
-			{
-				StateHasChanged();
-				return;
-			}
-			await AddShapeAsync(new SaveShapeDto { Kind = k, Points = new() { ox, oy, tx, ty }, Size = size, Color = drawColorChoice });
-			//	The cells the area reaches: not those behind a wall or a closed door, seen from where it spreads
-			var spread = k == ShapeKind.Cube ? (ox + size * grid / 2.0, oy) : (ox, oy);
-			var closed = ClosedDoors().ToHashSet();
-			var cells = MapAreas.Cells(gridType, grid, offsetX, offsetY, k, ox, oy, tx, ty, size, map.Width, map.Height)
-				.Where(c => MapTerrain.Visible(gridType, grid, offsetX, offsetY, terrainCells, closed, spread, c)).ToHashSet();
-			var inside = tokens.Where(IsTarget).Where(t => Covered(t).Any(cells.Contains)).Select(t => t.Label).ToList();
-			castNote = inside.Count > 0 ? UiText.VttCastInside(spell ?? string.Empty, string.Join(", ", inside), Lang) : UiText.VttCastNobody(spell ?? string.Empty, Lang);
-			StateHasChanged();
 		}
 
 		//	The cells a token covers
