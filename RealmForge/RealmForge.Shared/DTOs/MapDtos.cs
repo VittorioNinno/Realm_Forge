@@ -63,7 +63,10 @@ namespace RealmForge.Shared.DTOs
 		int? SheetHp = null,
 		int? SheetMaxHp = null,
 		int? SheetTempHp = null,
-		TokenTurnDto? Turn = null);
+		TokenTurnDto? Turn = null,
+
+		//	An aura that moves with it
+		TokenAuraDto? Aura = null);
 
 	///	<summary>
 	///	The fight on a map: the encounter, the round, whose turn it is and the initiative order (what the players see of it).
@@ -199,6 +202,23 @@ namespace RealmForge.Shared.DTOs
 	public record TokenItemDto(int Index, string Name, int Quantity, Guid? EquipmentId = null);
 
 	public record TokenGearDto(List<TokenItemDto> Items, int Coins, List<string> Disarmed);
+
+	//	An aura around a token, as the table draws it
+	public record TokenAuraDto(string Name, int Radius, string Color, bool Enemies, int Ability, int Dc, string? Damage, string? DamageType, bool Half);
+
+	//	An aura set on a token (a radius of 0 takes it away)
+	public class SaveAuraDto
+	{
+		public string Name { get; set; } = string.Empty;
+		public int Radius { get; set; }
+		public string? Color { get; set; }
+		public bool Enemies { get; set; } = true;
+		public int Ability { get; set; }
+		public int Dc { get; set; }
+		public string? Damage { get; set; }
+		public string? DamageType { get; set; }
+		public bool Half { get; set; }
+	}
 
 	//	A weapon dropped by a token: the inventory entry of a character, or the attack of a statblock
 	public class DropItemDto

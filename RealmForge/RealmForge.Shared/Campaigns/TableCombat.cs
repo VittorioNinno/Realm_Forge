@@ -415,6 +415,9 @@ public sealed class TokenGear
 	public List<string> Disarmed { get; set; } = new();
 	public int Coins { get; set; }
 
+	//	An aura that moves with the token (Spirit Guardians, a paladin's aura): kept with what it carries
+	public TokenAura? Aura { get; set; }
+
 	public bool IsEmpty => Items.Count == 0 && Disarmed.Count == 0 && Coins == 0;
 
 	public const int MaxItems = 40;
@@ -424,6 +427,31 @@ public sealed class TokenGear
 ///	An item a token carries: its name, how many, the compendium item it is (if any) and, for one dropped from a
 ///	character, the inventory entry as it was (magic, charges) to give it back as it was.
 ///	</summary>
+public sealed class TokenAura
+{
+	public string Name { get; set; } = string.Empty;
+
+	//	How far it reaches past the token's space, in cells
+	public int Radius { get; set; } = 2;
+	public string Color { get; set; } = "#a78bfa";
+
+	//	Whom it touches: the other side only (the default), or every creature
+	public bool Enemies { get; set; } = true;
+
+	//	What it asks of a creature that enters it or starts its turn in it: a save (ability 1-6, DC), its damage (dice),
+	//	half on a success; none (ability 0): the table is only told
+	public int Ability { get; set; }
+	public int Dc { get; set; }
+	public string? Damage { get; set; }
+	public string? DamageType { get; set; }
+	public bool Half { get; set; }
+
+	//	The creatures it touched, once a turn each ("token:round:turn")
+	public List<string> Touched { get; set; } = new();
+
+	public const int MaxRadius = 24;
+}
+
 public sealed class TokenItem
 {
 	public string Name { get; set; } = string.Empty;

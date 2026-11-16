@@ -1255,6 +1255,12 @@ jobs:
           gr_state=$(curl -s "$api/api/campaigns/$ss_cp/maps/$mp2/state" -H "Authorization: Bearer $B" | jq -c --arg t "$ctl_tree" '[.tokens[] | select(.label == "Bandito") | [(.turn.grappledBy == $t), (.conditions | index("grappled") != null)]]')
           gr_release=$(code -X POST "$api/api/campaigns/$ss_cp/maps/$mp2/tokens/$ctl_tree/grapple?lang=2" $json -H "Authorization: Bearer $B" -d "{\"targetId\":\"$at_target\",\"kind\":\"release\"}")
           gr_after=$(curl -s "$api/api/campaigns/$ss_cp/maps/$mp2/state" -H "Authorization: Bearer $B" | jq -c '[.tokens[] | select(.label == "Bandito") | .turn.grappledBy]')
+          # An aura on the bandit: set by the master (not by a player who does not control it), seen, taken away
+          au_player=$(code -X PUT "$api/api/campaigns/$ss_cp/maps/$mp2/tokens/$at_target/aura" $json -H "Authorization: Bearer $A" -d '{"name":"Spiriti","radius":3}')
+          au_set=$(code -X PUT "$api/api/campaigns/$ss_cp/maps/$mp2/tokens/$at_target/aura" $json -H "Authorization: Bearer $B" -d '{"name":"Spiriti","radius":3,"enemies":true,"ability":5,"dc":14,"damage":"3d8","damageType":"radiosi","half":true}')
+          au_seen=$(curl -s "$api/api/campaigns/$ss_cp/maps/$mp2/state" -H "Authorization: Bearer $A" | jq -c '[.tokens[] | select(.label == "Bandito") | .aura | {name, radius, ability}]')
+          au_off=$(code -X PUT "$api/api/campaigns/$ss_cp/maps/$mp2/tokens/$at_target/aura" $json -H "Authorization: Bearer $B" -d '{"radius":0}')
+          au_gone=$(curl -s "$api/api/campaigns/$ss_cp/maps/$mp2/state" -H "Authorization: Bearer $A" | jq -c '[.tokens[] | select(.label == "Bandito") | .aura]')
           # A spell asks for a save: the damage rolled once, the target waits; only who controls it (or a master) rolls
           sv_call=$(curl -s -X POST "$api/api/campaigns/$ss_cp/maps/$mp2/saves?lang=2" $json -H "Authorization: Bearer $A" \
             -d "{\"casterId\":\"$ctl_tree\",\"spell\":\"Prova\",\"ability\":2,\"dc\":30,\"half\":true,\"targetIds\":[\"$at_target\"]}")
@@ -1454,6 +1460,11 @@ jobs:
           sscheck "grapple: the bandit held and grappled" "$gr_state" "[[true,true]]"
           sscheck "grapple: let go" "$gr_release" "200"
           sscheck "grapple: free again" "$gr_after" "[null]"
+          sscheck "aura: not set by a player who does not control the token" "$au_player" "403"
+          sscheck "aura: set by the master" "$au_set" "204"
+          sscheck "aura: seen at the table" "$au_seen" '[{"name":"Spiriti","radius":3,"ability":5}]'
+          sscheck "aura: taken away" "$au_off" "204"
+          sscheck "aura: gone" "$au_gone" "[null]"
           sscheck "saves: asked of the target" "$sv_shape" '{"targets":1,"dc":30,"ability":2,"damage":null}'
           sscheck "saves: the masters see them" "$sv_seen" "[1]"
           sscheck "saves: a player does not roll an enemy's save" "$sv_player" "403"

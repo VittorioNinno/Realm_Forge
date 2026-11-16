@@ -508,6 +508,15 @@ namespace RealmForge.Client.Localization
 		};
 		public static string VttMetamagicCost(int cost, LanguageCode lang) => T(lang, $"{cost} PS", $"{cost} SP");
 		public static string VttMetamagicPoints(int left, LanguageCode lang) => T(lang, $"Punti stregoneria: {left}", $"Sorcery Points: {left}");
+		public static string VttAura(LanguageCode lang) => T(lang, "Aura", "Aura");
+		public static string VttAuraLine(string name, string reach, bool enemies, LanguageCode lang) =>
+			T(lang, $"{name}: {reach} attorno, {(enemies ? "solo i nemici" : "ogni creatura")}", $"{name}: {reach} around, {(enemies ? "enemies only" : "every creature")}");
+		public static string VttAuraName(LanguageCode lang) => T(lang, "Nome (es. Aura di protezione)", "Name (e.g. Aura of Protection)");
+		public static string VttAuraRadius(LanguageCode lang) => T(lang, "Raggio in caselle", "Radius in cells");
+		public static string VttAuraEnemies(LanguageCode lang) => T(lang, "Solo i nemici", "Enemies only");
+		public static string VttAuraAdd(LanguageCode lang) => T(lang, "Aggiungi l'aura", "Add the aura");
+		public static string VttAuraRemove(LanguageCode lang) => T(lang, "Togli l'aura", "Remove the aura");
+		public static string VttAuraSet(string name, string who, LanguageCode lang) => T(lang, $"«{name}» si muove con {who}: chi entra o inizia il turno dentro viene segnalato.", $"“{name}” moves with {who}: whoever enters it or starts a turn in it is told.");
 		public static string VttGrapple(LanguageCode lang) => T(lang, "Lotta", "Grapple");
 		public static string VttGrappleHint(LanguageCode lang) => T(lang, "Uno degli attacchi dell'azione Attacco: afferra una creatura a portata, che poi si muove con te (a velocità dimezzata)", "One of the attacks of the Attack action: grapple a creature in reach, which then moves with you (at half speed)");
 		public static string VttShove(LanguageCode lang) => T(lang, "Spinta", "Shove");
