@@ -169,6 +169,7 @@ namespace RealmForge.Client.Localization
 			"dodge" => T(lang, "Schivata", "Dodge"),
 			"help" => T(lang, "Aiuto", "Help"),
 			"hide" => T(lang, "Nascondersi", "Hide"),
+			"ready" => T(lang, "Preparare", "Ready"),
 			_ => kind
 		};
 		public static string VttTurnKindHint(string kind, LanguageCode lang) => kind switch
@@ -178,6 +179,7 @@ namespace RealmForge.Client.Localization
 			"dodge" => T(lang, "Usa l'azione: gli attacchi contro di te hanno svantaggio fino al tuo prossimo turno", "Takes the action: attacks against you have disadvantage until your next turn"),
 			"help" => T(lang, "Usa l'azione: un alleato ha vantaggio nella prossima prova o attacco", "Takes the action: an ally has advantage on the next check or attack"),
 			"hide" => T(lang, "Usa l'azione: una prova di Furtività per nasconderti", "Takes the action: a Stealth check to hide"),
+			"ready" => T(lang, "Usa l'azione ora: quando l'innesco scatta, l'azione preparata si fa con la reazione", "Takes the action now: when the trigger comes, the readied action is made with the reaction"),
 			_ => kind
 		};
 		public static string VttTurnBonusUse(LanguageCode lang) => T(lang, "Usa azione bonus", "Use bonus action");
@@ -506,6 +508,20 @@ namespace RealmForge.Client.Localization
 		};
 		public static string VttMetamagicCost(int cost, LanguageCode lang) => T(lang, $"{cost} PS", $"{cost} SP");
 		public static string VttMetamagicPoints(int left, LanguageCode lang) => T(lang, $"Punti stregoneria: {left}", $"Sorcery Points: {left}");
+		public static string VttReadyOther(LanguageCode lang) => T(lang, "Altro", "Something else");
+		public static string VttReadyWhat(LanguageCode lang) => T(lang, "Cosa prepari", "What is readied");
+		public static string VttReadyTriggerHint(LanguageCode lang) => T(lang, "Innesco: es. «quando il goblin esce dal muro»", "Trigger: e.g. “when the goblin steps out of the wall”");
+		public static string VttReadyGo(LanguageCode lang) => T(lang, "Prepara", "Ready");
+		public static string VttReadySpell(LanguageCode lang) => T(lang, "Prepara come reazione", "Ready as a reaction");
+		public static string VttReadySpellHint(LanguageCode lang) => T(lang, "Un incantesimo si prepara dalla sua scheda: lo slot si spende subito e lo tieni con la concentrazione.", "A spell is readied from its tab: the slot is spent now and you hold it with concentration.");
+		public static string VttReadyNeedsTrigger(LanguageCode lang) => T(lang, "Scrivi l'innesco dell'azione preparata.", "Write the trigger of the readied action.");
+		public static string VttReadied(string what, string trigger, LanguageCode lang) => T(lang, $"«{what}» preparato: {trigger}", $"“{what}” readied: {trigger}");
+		public static string VttReadyBadge(string what, string trigger, LanguageCode lang) => T(lang, $"Preparato: {what} · quando {trigger}", $"Readied: {what} · when {trigger}");
+		public static string VttReadyFired(string who, string what, string trigger, LanguageCode lang) => T(lang, $"{who}: innesco scattato ({trigger}) → {what}", $"{who}: the trigger came ({trigger}) → {what}");
+		public static string VttReadyTrigger(LanguageCode lang) => T(lang, "Innesca", "Trigger");
+		public static string VttReadyRelease(LanguageCode lang) => T(lang, "Usa (reazione)", "Use (reaction)");
+		public static string VttReadyDrop(LanguageCode lang) => T(lang, "Lascia", "Let it go");
+		public static string VttReadyReleased(string what, LanguageCode lang) => T(lang, $"«{what}» usato con la reazione.", $"“{what}” used with the reaction.");
 		public static string VttSpellsGone(LanguageCode lang) => T(lang, "Azione e azione bonus di questo turno sono già usate", "The action and the bonus action of this turn are used");
 		public static string VttMetamagicNoPoints(LanguageCode lang) => T(lang, "Punti stregoneria insufficienti.", "Not enough Sorcery Points.");
 		public static string VttMetamagic(LanguageCode lang) => T(lang, "Metamagia", "Metamagic");
