@@ -164,6 +164,70 @@
                                       Options="@(new List<RfSelect<ResourceReset>.OptionItem> { new(ResourceReset.LongRest, UiText.ResetLongRest(Lang)), new(ResourceReset.ShortRest, UiText.ResetShortRest(Lang)), new(ResourceReset.OneOnShortRest, UiText.ResetOneOnShortRest(Lang)) })" />
                         </div>
                         break;
+                    case RuleEffectKind.Ability or RuleEffectKind.OnHitDamage:
+                        <div class="col-sm-6">
+                            <label class="rf-form-label">@UiText.EffectNameIt(Lang)</label>
+                            <input type="text" class="rf-form-control" maxlength="40" value="@effect.NameIt" data-test="effect-name-it"
+                                   @onchange="e => { effect.NameIt = e.Value?.ToString(); Changed(); }" />
+                        </div>
+                        <div class="col-sm-6">
+                            <label class="rf-form-label">@UiText.EffectNameEn(Lang)</label>
+                            <input type="text" class="rf-form-control" maxlength="40" value="@effect.NameEn" data-test="effect-name-en"
+                                   @onchange="e => { effect.NameEn = e.Value?.ToString(); Changed(); }" />
+                        </div>
+                        <div class="col-sm-6">
+                            <label class="rf-form-label">@UiText.EffectRollLabel(Lang)</label>
+                            <input type="text" class="rf-form-control" maxlength="30" value="@effect.Roll" placeholder="2d6+MOD" title="@UiText.EffectRollHint(Lang)" data-test="effect-roll"
+                                   @onchange="e => { effect.Roll = e.Value?.ToString(); Changed(); }" />
+                            <div class="small mt-1 @(string.IsNullOrWhiteSpace(effect.Roll) || AutomationRules.Valid(effect.Roll) ? null : "text-danger")" style="color: var(--rf-text-muted);">@UiText.EffectRollHint(Lang)</div>
+                        </div>
+                        @if (effect.Roll?.Contains("MOD", StringComparison.OrdinalIgnoreCase) == true)
+                        {
+                            <div class="col-sm-6">@AbilitySelect(effect)</div>
+                        }
+                        @if (effect.Kind == RuleEffectKind.Ability)
+                        {
+                            <div class="col-sm-6" data-test="effect-slot">
+                                <label class="rf-form-label">@UiText.EffectSlotLabel(Lang)</label>
+                                <RfSelect TValue="FeatureSlot" Value="@(effect.Slot ?? FeatureSlot.Action)" ValueChanged="v => { effect.Slot = v; Changed(); }" Options="SlotOptions" />
+                            </div>
+                            <div class="col-sm-6" data-test="effect-outcome">
+                                <label class="rf-form-label">@UiText.EffectOutcomeLabel(Lang)</label>
+                                <RfSelect TValue="string" Value="@(effect.Outcome ?? "none")" ValueChanged="v => { effect.Outcome = v == "none" ? null : v; Changed(); }" Options="OutcomeOptions" />
+                            </div>
+                            <div class="col-12">
+                                <label class="rf-form-label">@UiText.EffectNoteLabel(Lang)</label>
+                                <input type="text" class="rf-form-control" maxlength="60" value="@effect.Text" data-test="effect-text"
+                                       @onchange="e => { effect.Text = e.Value?.ToString(); Changed(); }" />
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="col-sm-6" data-test="effect-damage">
+                                <label class="rf-form-label">@UiText.EffectDamageLabel(Lang)</label>
+                                <RfSelect TValue="DamageType?" Value="effect.DamageType" ValueChanged="d => { effect.DamageType = d; Changed(); }" Options="DamageOptions" />
+                            </div>
+                            <div class="col-sm-6" data-test="effect-attacks">
+                                <label class="rf-form-label">@UiText.EffectAttacksLabel(Lang)</label>
+                                <RfSelect TValue="AttackReachFilter" Value="effect.Attacks" ValueChanged="v => { effect.Attacks = v; Changed(); }" Options="AttacksOptions" />
+                            </div>
+                            <div class="col-12 d-flex flex-wrap gap-3">
+                                <label class="rf-checkbox-wrapper small mb-0">
+                                    <input type="checkbox" class="rf-checkbox" checked="@effect.OncePerTurn" @onchange="e => { effect.OncePerTurn = e.Value is true; Changed(); }" data-test="effect-once" />
+                                    <span>@UiText.EffectOncePerTurn(Lang)</span>
+                                </label>
+                                <label class="rf-checkbox-wrapper small mb-0">
+                                    <input type="checkbox" class="rf-checkbox" checked="@effect.Automatic" disabled="@(effect.Resource is not null)" @onchange="e => { effect.Automatic = e.Value is true; Changed(); }" data-test="effect-automatic" />
+                                    <span>@UiText.EffectAutomatic(Lang)</span>
+                                </label>
+                            </div>
+                        }
+                        <div class="col-sm-6" data-test="effect-resource">
+                            <label class="rf-form-label">@UiText.EffectResourceLabel(Lang)</label>
+                            <RfSelect TValue="string" Value="@(effect.Resource ?? string.Empty)" ValueChanged="v => { effect.Resource = string.IsNullOrEmpty(v) ? null : v; if (effect.Resource is not null) { effect.Automatic = false; } Changed(); }" Options="ResourceOptions" />
+                        </div>
+                        <div class="col-12 small" style="color: var(--rf-text-muted);">@UiText.EffectAutomationHint(Lang)</div>
+                        break;
                 }
             </div>
             <div class="small mt-2 rf-effect-preview" data-test="effect-preview">@UiText.EffectText(effect, Effects, Lang)</div>
@@ -188,6 +252,18 @@
 
     private List<RfSelect<RuleEffectKind>.OptionItem> KindOptions => Enum.GetValues<RuleEffectKind>()
         .Select(k => new RfSelect<RuleEffectKind>.OptionItem(k, $"{UiText.EffectGroup(UiText.EffectGroupOf(k), Lang)} · {UiText.EffectKindName(k, Lang)}"))
+        .ToList();
+
+    private List<RfSelect<FeatureSlot>.OptionItem> SlotOptions => new[] { FeatureSlot.Action, FeatureSlot.Bonus, FeatureSlot.Reaction, FeatureSlot.Free }
+        .Select(s => new RfSelect<FeatureSlot>.OptionItem(s, UiText.EffectSlotName(s, Lang))).ToList();
+    private List<RfSelect<string>.OptionItem> OutcomeOptions => AutomationRules.Outcomes.Select(o => new RfSelect<string>.OptionItem(o, UiText.EffectOutcomeName(o, Lang))).ToList();
+    private List<RfSelect<AttackReachFilter>.OptionItem> AttacksOptions => Enum.GetValues<AttackReachFilter>()
+        .Select(a => new RfSelect<AttackReachFilter>.OptionItem(a, UiText.AttacksName(a, Lang))).ToList();
+
+    //	The resources of this same list (by the name the character's resources take: English, else Italian)
+    private List<RfSelect<string>.OptionItem> ResourceOptions => new[] { new RfSelect<string>.OptionItem(string.Empty, UiText.EffectNoResource(Lang)) }
+        .Concat(Effects.Where(e => e.Kind == RuleEffectKind.Resource && !string.IsNullOrWhiteSpace(e.NameEn ?? e.NameIt))
+            .Select(e => new RfSelect<string>.OptionItem((e.NameEn ?? e.NameIt)!.Trim(), e.Name(Lang))))
         .ToList();
 
     private List<RfSelect<ResourceUses>.OptionItem> UsesOptions => Enum.GetValues<ResourceUses>().Select(u => new RfSelect<ResourceUses>.OptionItem(u, UiText.EffectUsesName(u, Lang))).ToList();
@@ -272,6 +348,8 @@
         RuleEffectKind.Resistance or RuleEffectKind.Immunity => new RuleEffect { Kind = kind, DamageType = DamageType.Fire },
         RuleEffectKind.ExtraAbility => new RuleEffect { Kind = kind, Value = 10 },
         RuleEffectKind.Resource => new RuleEffect { Kind = kind, Value = 3, Uses = ResourceUses.Fixed, Reset = ResourceReset.LongRest },
+        RuleEffectKind.Ability => new RuleEffect { Kind = kind, Slot = FeatureSlot.Action, Roll = "1d8+MOD", Ability = AbilityScore.Wisdom, Outcome = "heal" },
+        RuleEffectKind.OnHitDamage => new RuleEffect { Kind = kind, Roll = "1d6", DamageType = DamageType.Fire, OncePerTurn = true },
         _ => new RuleEffect { Kind = kind, Value = 1 }
     };
 
