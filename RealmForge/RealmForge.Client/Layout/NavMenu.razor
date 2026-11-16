@@ -4,6 +4,7 @@
 @implements IDisposable
 @inject LanguageStateService LanguageState
 @inject NavigationManager Navigation
+@inject PinService Pinned
 
 @* The side menu: the emblem and the name on top (with the button that folds it to its icons), the main pages, the
    glossary and the compendium group, the account at the bottom. Folded (64 px) only the icons
@@ -45,6 +46,27 @@
                     <span class="sb-label">@UiText.CampaignsTitle(Lang)</span>
                 </NavLink>
             </nav>
+
+            @if (Pinned.Pins.Count > 0)
+            {
+                <div class="sb-divider"></div>
+                @* The pages pinned from the top bar: a character, a campaign, a list of the compendium *@
+                <nav class="sb-nav-group" aria-label="@UiText.NavPinned(Lang)" data-test="nav-pins">
+                    <div class="sb-section-title">@UiText.NavPinned(Lang)</div>
+                    @foreach (var p in Pinned.Pins)
+                    {
+                        var pin = p;
+                        <div class="sb-pin" data-test="nav-pin">
+                            <NavLink class="nav-link sb-item" href="@pin.Href" Match="NavLinkMatch.All" data-tooltip="@pin.Label">
+                                <span class="sb-icon"><Icon Name="@pin.Icon" Class="rf-nav-icon" /></span>
+                                <span class="sb-label">@pin.Label</span>
+                            </NavLink>
+                            <button type="button" class="sb-pin-remove" title="@UiText.Unpin(Lang)" aria-label="@($"{UiText.Unpin(Lang)}: {pin.Label}")"
+                                    @onclick="() => Pinned.UnpinAsync(pin.Href)" @onclick:stopPropagation="true" data-test="nav-pin-remove"><Icon Name="close" /></button>
+                        </div>
+                    }
+                </nav>
+            }
 
             <div class="sb-divider"></div>
 
@@ -156,7 +178,12 @@
         compendiumOpen = IsCompendiumRoute(Navigation.Uri);
         LanguageState.OnLanguageChanged += StateHasChanged;
         Navigation.LocationChanged += HandleLocationChanged;
+        Pinned.Changed += OnPinsChanged;
     }
+
+    protected override Task OnAfterRenderAsync(bool firstRender) => firstRender ? Pinned.LoadAsync() : Task.CompletedTask;
+
+    private void OnPinsChanged() => InvokeAsync(StateHasChanged);
 
     private void HandleLocationChanged(object? sender, LocationChangedEventArgs e)
     {
@@ -177,5 +204,6 @@
     {
         LanguageState.OnLanguageChanged -= StateHasChanged;
         Navigation.LocationChanged -= HandleLocationChanged;
+        Pinned.Changed -= OnPinsChanged;
     }
 }

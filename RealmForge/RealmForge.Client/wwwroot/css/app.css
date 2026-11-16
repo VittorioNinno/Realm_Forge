@@ -19936,3 +19936,33 @@ button.rf-qs-spell {
         display: none;
     }
 }
+
+/* The button of the top bar that pins the page to the side menu */
+.rf-pin-page {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    height: 32px;
+    padding: 0 8px;
+    border-radius: 8px;
+    border: 1px solid #303030;
+    background: transparent;
+    color: var(--rf-text-secondary);
+    font-size: .8rem;
+}
+
+    .rf-pin-page:hover:not(:disabled),
+    .rf-pin-page.on {
+        border-color: var(--rf-orange-primary);
+        color: var(--rf-orange-primary);
+    }
+
+    .rf-pin-page:disabled {
+        opacity: .5;
+    }
+
+@media (max-width: 767.98px) {
+    .rf-pin-page span {
+        display: none;
+    }
+}
