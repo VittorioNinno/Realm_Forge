@@ -1328,7 +1328,7 @@ jobs:
           fl_label=$(curl -s "$api/api/campaigns/$ss_cp/maps/$mp2/state" -H "Authorization: Bearer $B" | jq -c --arg u "$fl_up" '[.tokens[] | select(.id == $u) | .linkLabel]')
           fl_label_player=$(curl -s "$api/api/campaigns/$ss_cp/maps/$mp2/state" -H "Authorization: Bearer $A" | jq -c --arg u "$fl_up" '[.tokens[] | select(.id == $u) | .linkLabel]')
           fl_toggle_player=$(code -X POST "$api/api/campaigns/$ss_cp/maps/$mp2/tokens/$fl_up/interact" -H "Authorization: Bearer $A")
-          fl_go=$(curl -s -X POST "$api/api/campaigns/$ss_cp/maps/$mp2/tokens/$fl_up/travel" $json -H "Authorization: Bearer $B" -d "{\"tokenId\":\"$fl_walker\"}" | jq -c --arg m "$fl_map" '{there: (.mapId == $m), x, y, displayed}')
+          fl_go=$(curl -s -X POST "$api/api/campaigns/$ss_cp/maps/$mp2/tokens/$fl_up/travel" $json -H "Authorization: Bearer $B" -d "{\"tokenId\":\"$fl_walker\"}" | jq -c --arg m "$fl_map" 'if .title then {title, status, detail} else {there: (.mapId == $m), x, y, displayed} end')
           fl_there=$(curl -s "$api/api/campaigns/$ss_cp/maps/$fl_map/state" -H "Authorization: Bearer $B" | jq -c '[.tokens[] | select(.label == "Viandante") | .label]')
           fl_gone=$(curl -s "$api/api/campaigns/$ss_cp/maps/$mp2/state" -H "Authorization: Bearer $B" | jq -c '[.tokens[] | select(.label == "Viandante")] | length')
           fl_back=$(curl -s -X POST "$api/api/campaigns/$ss_cp/maps/$fl_map/tokens/$fl_down/travel" $json -H "Authorization: Bearer $B" -d "{\"tokenId\":\"$fl_walker\"}" | jq -c --arg m "$mp2" '(.mapId == $m)')
