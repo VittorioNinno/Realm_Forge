@@ -32,9 +32,9 @@ A modular, bilingual web platform for managing tabletop RPG campaigns, sessions 
   Sign-in with passkeys (iPhone, Safari, Android, Windows Hello, security keys) offered right in the e-mail field, rate limiting, e-mail change, account suspension and deletion confirmed by e-mail.
   *Accesso con passkey (iPhone, Safari, Android, Windows Hello, chiavi di sicurezza) proposte già nel campo email, limiti di frequenza, cambio email, sospensione ed eliminazione dell'account confermate via email.*
 
-- **Search, bin and moderation** · *Ricerca, cestino e moderazione*
-  Global search with quick lookup (`/` or Ctrl+K), recently viewed entries and a random entry; deleted Homebrew goes to a bin first; administrators manage accounts and Homebrew.
-  *Ricerca globale con consultazione rapida (`/` o Ctrl+K), voci viste di recente e voce casuale; gli Homebrew eliminati passano prima dal cestino; gli amministratori gestiscono account e Homebrew.*
+- **Search, pins, bin and moderation** · *Ricerca, pagine fissate, cestino e moderazione*
+  Global search with quick lookup (`/` or Ctrl+K), recently viewed entries and a random entry; any page (a character, a campaign, a list of the compendium) pinned to the side menu from the top bar; deleted Homebrew goes to a bin first; administrators manage accounts and Homebrew.
+  *Ricerca globale con consultazione rapida (`/` o Ctrl+K), voci viste di recente e voce casuale; qualsiasi pagina (un personaggio, una campagna, un elenco del compendio) fissabile nella barra laterale dal pulsante in alto; gli Homebrew eliminati passano prima dal cestino; gli amministratori gestiscono account e Homebrew.*
 
 - **Campaigns and virtual tabletop** · *Campagne e tavolo virtuale*
   Campaigns with masters, co-masters and players, sessions, encounters, a shared roll log and a full virtual tabletop that applies the rules of both editions (see below).
@@ -337,7 +337,7 @@ dotnet test RealmForge/RealmForge.slnx
 - [x] Master tools: undo, monster drawer and groups, floors, stairs and portals · *Strumenti del master: annulla, cassetto e gruppi di mostri, piani, scale e portali*
 - [x] Table stability: connection indicator · *Stabilità del tavolo: indicatore di connessione*
 - [x] Session log export · *Esportazione del registro di sessione*
-- [ ] Pinned items in the sidebar · *Elementi fissati nella barra laterale*
+- [x] Pinned pages in the sidebar · *Pagine fissate nella barra laterale*
 - [ ] Homebrew automation builder · *Costruttore di automazioni Homebrew*
 
 ## 📄 License / Licenza

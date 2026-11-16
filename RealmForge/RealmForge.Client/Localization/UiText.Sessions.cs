@@ -76,6 +76,12 @@ namespace RealmForge.Client.Localization
 		public static string RollHidden(LanguageCode lang) => T(lang, "Dietro lo schermo", "Behind the screen");
 		public static string RollHiddenBadge(LanguageCode lang) => T(lang, "nascosto", "hidden");
 		public static string RollInvalid(LanguageCode lang) => T(lang, "Espressione non valida: usa ad esempio 1d20+5 o 2d6 + 1d4.", "Invalid expression: try for example 1d20+5 or 2d6 + 1d4.");
+		public static string NavPinned(LanguageCode lang) => T(lang, "Fissati", "Pinned");
+		public static string Pin(LanguageCode lang) => T(lang, "Fissa", "Pin");
+		public static string Pinned(LanguageCode lang) => T(lang, "Fissata", "Pinned");
+		public static string PinPage(LanguageCode lang) => T(lang, "Fissa questa pagina nella barra laterale", "Pin this page to the side menu");
+		public static string Unpin(LanguageCode lang) => T(lang, "Togli dalla barra laterale", "Unpin from the side menu");
+		public static string PinsFull(int max, LanguageCode lang) => T(lang, $"Al massimo {max} pagine fissate: togline una dalla barra laterale", $"At most {max} pinned pages: unpin one from the side menu");
 		public static string ExportLog(LanguageCode lang) => T(lang, "Esporta registro", "Export log");
 		public static string ExportSessionHint(LanguageCode lang) => T(lang, "Scarica la sessione e i tiri del suo giorno (Markdown)", "Download the session and the rolls of its day (Markdown)");
 		public static string ExportRollsHint(LanguageCode lang) => T(lang, "Scarica tutti i tiri del registro (Markdown)", "Download every roll of the log (Markdown)");
