@@ -76,6 +76,24 @@ namespace RealmForge.Client.Localization
 		public static string RollHidden(LanguageCode lang) => T(lang, "Dietro lo schermo", "Behind the screen");
 		public static string RollHiddenBadge(LanguageCode lang) => T(lang, "nascosto", "hidden");
 		public static string RollInvalid(LanguageCode lang) => T(lang, "Espressione non valida: usa ad esempio 1d20+5 o 2d6 + 1d4.", "Invalid expression: try for example 1d20+5 or 2d6 + 1d4.");
+		public static string NavPinned(LanguageCode lang) => T(lang, "Fissati", "Pinned");
+		public static string Pin(LanguageCode lang) => T(lang, "Fissa", "Pin");
+		public static string Pinned(LanguageCode lang) => T(lang, "Fissata", "Pinned");
+		public static string PinPage(LanguageCode lang) => T(lang, "Fissa questa pagina nella barra laterale", "Pin this page to the side menu");
+		public static string Unpin(LanguageCode lang) => T(lang, "Togli dalla barra laterale", "Unpin from the side menu");
+		public static string PinsFull(int max, LanguageCode lang) => T(lang, $"Al massimo {max} pagine fissate: togline una dalla barra laterale", $"At most {max} pinned pages: unpin one from the side menu");
+		public static string ExportLog(LanguageCode lang) => T(lang, "Esporta registro", "Export log");
+		public static string ExportSessionHint(LanguageCode lang) => T(lang, "Scarica la sessione e i tiri del suo giorno (Markdown)", "Download the session and the rolls of its day (Markdown)");
+		public static string ExportRollsHint(LanguageCode lang) => T(lang, "Scarica tutti i tiri del registro (Markdown)", "Download every roll of the log (Markdown)");
+		public static string ExportCsvHint(LanguageCode lang) => T(lang, "Scarica tutti i tiri del registro per un foglio di calcolo (CSV)", "Download every roll of the log for a spreadsheet (CSV)");
+		public static string ExportSession(int number, LanguageCode lang) => T(lang, $"Sessione {number}", $"Session {number}");
+		public static string ExportRollsTitle(LanguageCode lang) => T(lang, "Registro dei tiri", "Roll log");
+		public static string ExportRolls(int count, LanguageCode lang) => T(lang, $"Tiri ({count})", $"Rolls ({count})");
+		public static string ExportNoDate(LanguageCode lang) => T(lang, "La sessione non ha una data: i tiri non sono inclusi.", "The session has no date: the rolls are not included.");
+		public static string ExportHidden(LanguageCode lang) => T(lang, "dietro lo schermo", "behind the screen");
+		public static string[] ExportCsvHeader(LanguageCode lang) => lang == LanguageCode.It
+			? new[] { "Data", "Ora", "Chi", "Tiro", "Espressione", "Dadi", "Modificatore", "Totale", "Nota", "Nascosto" }
+			: new[] { "Date", "Time", "Who", "Roll", "Expression", "Dice", "Modifier", "Total", "Note", "Hidden" };
 		public static string RollsEmpty(LanguageCode lang) => T(lang, "Ancora nessun tiro.", "No rolls yet.");
 		public static string BtnClearRolls(LanguageCode lang) => T(lang, "Svuota il registro", "Clear the log");
 		public static string RollsClearConfirm(LanguageCode lang) => T(lang, "Svuotare il registro dei tiri per tutti?", "Clear the dice log for everyone?");

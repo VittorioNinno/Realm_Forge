@@ -39,6 +39,13 @@ namespace RealmForge.Domain.Entities
 		public int MaxHitPoints { get; set; }
 		public int ArmorClass { get; set; }
 
+		//	The damage types it resists and is immune to, kept from the last save of the sheet (DamageDefenses.Write): the
+		//	table applies them to the damage it takes
+		public string? Defenses { get; set; }
+
+		//	Its darkvision in feet, kept from the last save of the sheet: what it sees in the dark at the table
+		public int Darkvision { get; set; }
+
 		public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
 		public DateTimeOffset UpdatedAt { get; set; } = DateTimeOffset.UtcNow;
 

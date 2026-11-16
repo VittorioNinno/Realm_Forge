@@ -176,6 +176,12 @@ namespace RealmForge.Client.Services
 		public Task<List<CampaignRollDto>?> GetRollsAsync(Guid id, DateTimeOffset? after = null, bool wait = false) =>
 			GetAsync<List<CampaignRollDto>>($"api/campaigns/{id}/rolls" + (after is { } since ? $"?after={Uri.EscapeDataString(since.ToUniversalTime().ToString("O"))}{(wait ? "&wait=true" : string.Empty)}" : string.Empty));
 
+		//	Every roll kept (an export), made in a window of time when given
+		public Task<List<CampaignRollDto>?> GetAllRollsAsync(Guid id, DateTimeOffset? from = null, DateTimeOffset? to = null) =>
+			GetAsync<List<CampaignRollDto>>($"api/campaigns/{id}/rolls?all=true"
+				+ (from is { } f ? $"&after={Uri.EscapeDataString(f.ToUniversalTime().ToString("O"))}" : string.Empty)
+				+ (to is { } t ? $"&before={Uri.EscapeDataString(t.ToUniversalTime().ToString("O"))}" : string.Empty));
+
 		public async Task<(CampaignRollDto? Roll, HttpStatusCode? Status)> RollAsync(Guid id, NewCampaignRollDto roll)
 		{
 			try
@@ -405,6 +411,62 @@ namespace RealmForge.Client.Services
 
 		public Task<(MapAttackResultDto? Value, string? Error)> AttackAsync(Guid id, Guid mapId, MapAttackDto dto, LanguageCode lang) =>
 			TableAsync<MapAttackResultDto>(() => _http.PostAsJsonAsync($"api/campaigns/{id}/maps/{mapId}/attack?lang={(int)lang}", dto), "attack");
+
+		public Task<(MapTokenDto? Value, string? Error)> SummonAsync(Guid id, Guid mapId, Guid tokenId, SummonDto dto) =>
+			TableAsync<MapTokenDto>(() => _http.PostAsJsonAsync($"api/campaigns/{id}/maps/{mapId}/tokens/{tokenId}/summon", dto), "summon");
+
+		public Task<CampaignResult> DismissAsync(Guid id, Guid mapId, Guid tokenId) =>
+			SendAsync(() => _http.DeleteAsync($"api/campaigns/{id}/maps/{mapId}/tokens/{tokenId}/summon"), "dismiss");
+
+		public Task<(bool Value, string? Error)> MountAsync(Guid id, Guid mapId, Guid tokenId, Guid mountId, LanguageCode lang) =>
+			TableAsync<bool>(() => _http.PostAsJsonAsync($"api/campaigns/{id}/maps/{mapId}/tokens/{tokenId}/mount?lang={(int)lang}", new MountDto { MountId = mountId }), "mount");
+
+		public Task<CampaignResult> DismountAsync(Guid id, Guid mapId, Guid tokenId) =>
+			SendAsync(() => _http.DeleteAsync($"api/campaigns/{id}/maps/{mapId}/tokens/{tokenId}/mount"), "dismount");
+
+		public Task<CampaignResult> SaveAuraAsync(Guid id, Guid mapId, Guid tokenId, SaveAuraDto dto) =>
+			SendAsync(() => _http.PutAsJsonAsync($"api/campaigns/{id}/maps/{mapId}/tokens/{tokenId}/aura", dto), "save aura");
+
+		public Task<CampaignResult> SaveTokenVisionAsync(Guid id, Guid mapId, Guid tokenId, SaveTokenVisionDto dto) =>
+			SendAsync(() => _http.PutAsJsonAsync($"api/campaigns/{id}/maps/{mapId}/tokens/{tokenId}/vision", dto), "save token vision");
+
+		public Task<List<MapLinkDto>?> GetMapLinksAsync(Guid id) => GetAsync<List<MapLinkDto>>($"api/campaigns/{id}/maps/links");
+
+		public Task<CampaignResult> SaveLinkAsync(Guid id, Guid mapId, Guid tokenId, SaveLinkDto dto) =>
+			SendAsync(() => _http.PutAsJsonAsync($"api/campaigns/{id}/maps/{mapId}/tokens/{tokenId}/link", dto), "save link");
+
+		public Task<(TravelResultDto? Value, string? Error)> TravelAsync(Guid id, Guid mapId, Guid wayId, TravelDto dto) =>
+			TableAsync<TravelResultDto>(() => _http.PostAsJsonAsync($"api/campaigns/{id}/maps/{mapId}/tokens/{wayId}/travel", dto), "travel");
+
+		public Task<List<MonsterGroupDto>?> GetMonsterGroupsAsync(Guid id, LanguageCode lang) =>
+			GetAsync<List<MonsterGroupDto>>($"api/campaigns/{id}/maps/groups?lang={(int)lang}");
+
+		public Task<(MonsterGroupDto? Value, string? Error)> SaveMonsterGroupAsync(Guid id, SaveMonsterGroupDto dto, LanguageCode lang) =>
+			TableAsync<MonsterGroupDto>(() => _http.PostAsJsonAsync($"api/campaigns/{id}/maps/groups?lang={(int)lang}", dto), "save monster group");
+
+		public Task<CampaignResult> DeleteMonsterGroupAsync(Guid id, Guid groupId) =>
+			SendAsync(() => _http.DeleteAsync($"api/campaigns/{id}/maps/groups/{groupId}"), "delete monster group");
+
+		public Task<(List<MapTokenDto>? Value, string? Error)> PlaceMonstersAsync(Guid id, Guid mapId, PlaceMonstersDto dto, LanguageCode lang) =>
+			TableAsync<List<MapTokenDto>>(() => _http.PostAsJsonAsync($"api/campaigns/{id}/maps/{mapId}/tokens/monsters?lang={(int)lang}", dto), "place monsters");
+
+		public Task<(MapUndoDto? Value, string? Error)> UndoAsync(Guid id, Guid mapId) =>
+			TableAsync<MapUndoDto>(() => _http.PostAsync($"api/campaigns/{id}/maps/{mapId}/undo", null), "undo");
+
+		public Task<CampaignResult> SaveLightingAsync(Guid id, Guid mapId, SaveLightingDto dto) =>
+			SendAsync(() => _http.PutAsJsonAsync($"api/campaigns/{id}/maps/{mapId}/lighting", dto), "save lighting");
+
+		public Task<(MapAttackResultDto? Value, string? Error)> GrappleAsync(Guid id, Guid mapId, Guid tokenId, GrappleDto dto, LanguageCode lang) =>
+			TableAsync<MapAttackResultDto>(() => _http.PostAsJsonAsync($"api/campaigns/{id}/maps/{mapId}/tokens/{tokenId}/grapple?lang={(int)lang}", dto), "grapple");
+
+		public Task<(MapSaveCallDto? Value, string? Error)> CallSavesAsync(Guid id, Guid mapId, CallSavesDto dto, LanguageCode lang) =>
+			TableAsync<MapSaveCallDto>(() => _http.PostAsJsonAsync($"api/campaigns/{id}/maps/{mapId}/saves?lang={(int)lang}", dto), "call saves");
+
+		public Task<(MapSaveCallDto? Value, string? Error)> ResolveSaveAsync(Guid id, Guid mapId, Guid callId, Guid tokenId, ResolveSaveDto dto, LanguageCode lang) =>
+			TableAsync<MapSaveCallDto>(() => _http.PostAsJsonAsync($"api/campaigns/{id}/maps/{mapId}/saves/{callId}/targets/{tokenId}?lang={(int)lang}", dto), "resolve save");
+
+		public Task<CampaignResult> DismissSavesAsync(Guid id, Guid mapId, Guid callId) =>
+			SendAsync(() => _http.DeleteAsync($"api/campaigns/{id}/maps/{mapId}/saves/{callId}"), "dismiss saves");
 
 		public Task<(bool Value, string? Error)> TurnActionAsync(Guid id, Guid mapId, Guid tokenId, TurnActionDto dto, LanguageCode lang) =>
 			TableAsync<bool>(() => _http.PostAsJsonAsync($"api/campaigns/{id}/maps/{mapId}/tokens/{tokenId}/turn?lang={(int)lang}", dto), "turn action");

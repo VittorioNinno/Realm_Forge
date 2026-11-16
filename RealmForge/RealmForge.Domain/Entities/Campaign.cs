@@ -64,6 +64,11 @@ namespace RealmForge.Domain.Entities
 		//	covered
 		public bool FogEnabled { get; set; }
 
+		//	The light where nobody carries one, and whether each player sees only what their creatures see (the lights,
+		//	the darkvision, the walls in the way; see MapVision)
+		public MapLighting Lighting { get; set; }
+		public bool DynamicVision { get; set; }
+
 		//	The masters stopped the players' areas and pings (the drawings each one keeps for themselves stay)
 		public bool PlayersLocked { get; set; }
 
@@ -86,6 +91,9 @@ namespace RealmForge.Domain.Entities
 		public Guid? StrikeTokenId { get; set; }
 		public int StrikeKind { get; set; }
 		public int? StrikeDamage { get; set; }
+
+		//	The saving throws a spell asks for, waiting for their rolls (JSON of MapSaveCall)
+		public string? SaveCalls { get; set; }
 		public DateTimeOffset? StrikeAt { get; set; }
 		public double? FocusX { get; set; }
 		public double? FocusY { get; set; }
@@ -117,6 +125,33 @@ namespace RealmForge.Domain.Entities
 		public int Size { get; set; }
 		public bool MasterOnly { get; set; }
 		public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
+	}
+
+	///	<summary>
+	///	A group of monsters the masters keep ready for the table (a goblin patrol: four goblins and their boss): placed on a
+	///	map in one go. Entries: JSON of MonsterGroupEntry (the monster and how many).
+	///	</summary>
+	public class CampaignMonsterGroup
+	{
+		public Guid Id { get; set; } = Guid.NewGuid();
+		public Guid CampaignId { get; set; }
+		public string Name { get; set; } = string.Empty;
+		public string Entries { get; set; } = "[]";
+		public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
+	}
+
+	///	<summary>
+	///	One step a master can take back on a map (MapUndo): what the tokens, the drawings, the terrain or the fog were
+	///	before an edit of theirs, as JSON; the last ones of each master on each map are kept.
+	///	</summary>
+	public class CampaignMapEdit
+	{
+		public Guid Id { get; set; } = Guid.NewGuid();
+		public Guid MapId { get; set; }
+		public string UserId { get; set; } = string.Empty;
+		public string Kind { get; set; } = string.Empty;
+		public string Payload { get; set; } = "{}";
+		public DateTimeOffset At { get; set; } = DateTimeOffset.UtcNow;
 	}
 
 	///	<summary>

@@ -1,0 +1,65 @@
+﻿@using RealmForge.Client.Localization
+@using RealmForge.Client.Services
+@using RealmForge.Shared.Enums
+@implements IDisposable
+@inject PinService Pinned
+@inject NavigationManager Navigation
+@inject LanguageStateService LanguageState
+@inject IJSRuntime JS
+
+@* The button of the top bar that pins the page open now to the side menu (its name is the title of the page), or
+   takes it away *@
+<button type="button" class="rf-pin-page @(pinned ? "on" : null)" disabled="@(!pinned && Pinned.IsFull)" aria-pressed="@(pinned ? "true" : "false")"
+        title="@(pinned ? UiText.Unpin(Lang) : Pinned.IsFull ? UiText.PinsFull(PinService.MaxPins, Lang) : UiText.PinPage(Lang))" @onclick="ToggleAsync" data-test="pin-page">
+    <Icon Name="@(pinned ? "pin-angle-fill" : "pin-angle")" /> <span>@(pinned ? UiText.Pinned(Lang) : UiText.Pin(Lang))</span>
+</button>
+
+@code {
+    private LanguageCode Lang => LanguageState.CurrentLanguage;
+    private bool pinned;
+
+    //	The page as the menu links to it: its address without the site's base
+    private string Here => Navigation.ToBaseRelativePath(Navigation.Uri).Split('#')[0];
+
+    protected override void OnInitialized()
+    {
+        Pinned.Changed += Refresh;
+        Navigation.LocationChanged += OnLocationChanged;
+        LanguageState.OnLanguageChanged += Refresh;
+        pinned = Pinned.IsPinned(Here);
+    }
+
+    private void OnLocationChanged(object? sender, Microsoft.AspNetCore.Components.Routing.LocationChangedEventArgs e) => Refresh();
+
+    private void Refresh()
+    {
+        pinned = Pinned.IsPinned(Here);
+        InvokeAsync(StateHasChanged);
+    }
+
+    private async Task ToggleAsync()
+    {
+        if (pinned)
+        {
+            await Pinned.UnpinAsync(Here);
+            return;
+        }
+        var title = string.Empty;
+        try
+        {
+            title = await JS.InvokeAsync<string>("rfPageTitle");
+        }
+        catch (JSException)
+        {
+        }
+        title = title.Replace("RealmForge - ", string.Empty, StringComparison.Ordinal).Replace("RealmForge", string.Empty, StringComparison.Ordinal).Trim(' ', '-', '·');
+        await Pinned.PinAsync(Here, title.Length > 0 ? title : Here, PinService.IconOf(Here));
+    }
+
+    public void Dispose()
+    {
+        Pinned.Changed -= Refresh;
+        Navigation.LocationChanged -= OnLocationChanged;
+        LanguageState.OnLanguageChanged -= Refresh;
+    }
+}

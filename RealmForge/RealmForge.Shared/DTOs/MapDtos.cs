@@ -63,7 +63,79 @@ namespace RealmForge.Shared.DTOs
 		int? SheetHp = null,
 		int? SheetMaxHp = null,
 		int? SheetTempHp = null,
-		TokenTurnDto? Turn = null);
+		TokenTurnDto? Turn = null,
+
+		//	An aura that moves with it; the token that called it (a familiar, a summon); the token it rides
+		TokenAuraDto? Aura = null,
+		Guid? SummonedBy = null,
+		Guid? MountedOn = null,
+
+		//	The light it carries; its darkvision in feet (set by hand, else from its sheet or statblock; to the masters and
+		//	whoever controls it)
+		TokenLightDto? Light = null,
+		int? Darkvision = null,
+
+		//	Stairs or a portal: where it leads (to the masters: the token, its map and its name)
+		Guid? LinkTo = null,
+		string? LinkLabel = null);
+
+	//	The stairs and portals of the campaign, for the masters to link them
+	public record MapLinkDto(Guid TokenId, Guid MapId, string MapName, string Label, PropType Type);
+
+	//	Where stairs or a portal lead (null: nowhere), and whether the other end leads back
+	public class SaveLinkDto
+	{
+		public Guid? TargetId { get; set; }
+		public bool BothWays { get; set; } = true;
+	}
+
+	//	A creature next to stairs or a portal goes through
+	public class TravelDto
+	{
+		public Guid TokenId { get; set; }
+	}
+
+	//	Where it arrived; the map shown to the players changed with it (the last character left the one shown)
+	public record TravelResultDto(Guid MapId, string MapName, int X, int Y, bool Displayed);
+
+	public record TokenLightDto(string Name, int Bright, int Dim);
+
+	//	The light and the darkvision set on a token, in feet: null leaves it as it is; a light of 0 and 0 is put out, a
+	//	darkvision of -1 goes back to the sheet's (or the statblock's)
+	public class SaveTokenVisionDto
+	{
+		public string Name { get; set; } = string.Empty;
+		public int? Bright { get; set; }
+		public int? Dim { get; set; }
+		public int? Darkvision { get; set; }
+	}
+
+	//	The light of a map and whether the players see only what their creatures see
+	public class SaveLightingDto
+	{
+		public MapLighting Lighting { get; set; }
+		public bool DynamicVision { get; set; }
+	}
+
+	///	<summary>
+	///	What the account's creatures see (the masters: what the characters see together), as columns and rows in pairs:
+	///	the cells in bright light, those in dim light or seen through darkvision.
+	///	</summary>
+	public record MapVisionDto(List<int> Bright, List<int> Dim);
+
+	//	A creature called by a token: a monster of the compendium next to it, controlled by the same players; in a fight it
+	//	acts right after the one that called it (or rolls its own initiative)
+	public class SummonDto
+	{
+		public Guid MonsterId { get; set; }
+		public string? Label { get; set; }
+		public bool ShareTurn { get; set; } = true;
+	}
+
+	public class MountDto
+	{
+		public Guid MountId { get; set; }
+	}
 
 	///	<summary>
 	///	The fight on a map: the encounter, the round, whose turn it is and the initiative order (what the players see of it).
@@ -140,6 +212,9 @@ namespace RealmForge.Shared.DTOs
 
 		//	A spell attack: no weapon is drawn for it
 		public bool Spell { get; set; }
+
+		//	Seeking Spell: the d20 of a spell attack that missed rolled again (the turn is not spent twice)
+		public bool Reroll { get; set; }
 	}
 
 	///	<summary>
@@ -149,11 +224,38 @@ namespace RealmForge.Shared.DTOs
 	public class TurnActionDto
 	{
 		public string Kind { get; set; } = string.Empty;
+
+		//	The weapon in hand ("melee", "ranged"); for a spell cast, the part of the turn it takes ("action", "bonus", "reaction")
 		public string? Wield { get; set; }
+
+		//	A spell cast: its level (0 a cantrip)
+		public int? Level { get; set; }
+
+		//	A readied action: its trigger, what it is, the spell readied
+		public string? Trigger { get; set; }
+		public string? What { get; set; }
+		public Guid? SpellId { get; set; }
 	}
 
 	///	<summary>The turn of a token in a fight, as the table shows it.</summary>
-	public record TokenTurnDto(bool BonusUsed, int AttacksMade, bool Dashed, bool Disengaged, bool Dodging, bool Interacted, string? Wield, Guid? OpportunityOn, int Moved = 0);
+	public record TokenTurnDto(bool BonusUsed, int AttacksMade, bool Dashed, bool Disengaged, bool Dodging, bool Interacted, string? Wield, Guid? OpportunityOn, int Moved = 0,
+		TokenReadyDto? Ready = null, Guid? GrappledBy = null);
+
+	//	A grapple, a shove (pushed away or knocked prone), an escape from a grapple, a grapple let go: the bonuses come from
+	//	the sheets (Athletics, Acrobatics, the saves); with a DC (the 2024 rules) the other side rolls against it, without
+	//	one the two sides roll a contest (2014)
+	public class GrappleDto
+	{
+		public Guid TargetId { get; set; }
+		public string Kind { get; set; } = string.Empty;
+		public int ActorBonus { get; set; }
+		public int OtherBonus { get; set; }
+		public int? Dc { get; set; }
+		public int? ActionAttacks { get; set; }
+	}
+
+	//	A readied action, as the table shows it: its trigger, what it is, the spell readied, whether the trigger came
+	public record TokenReadyDto(string Trigger, string What, Guid? SpellId, int Level, bool Fired);
 
 	///	<summary>
 	///	How an attack went: the d20 (and the one left out), the total, hit or miss, critical, the damage dealt and what
@@ -169,6 +271,23 @@ namespace RealmForge.Shared.DTOs
 	public record TokenItemDto(int Index, string Name, int Quantity, Guid? EquipmentId = null);
 
 	public record TokenGearDto(List<TokenItemDto> Items, int Coins, List<string> Disarmed);
+
+	//	An aura around a token, as the table draws it
+	public record TokenAuraDto(string Name, int Radius, string Color, bool Enemies, int Ability, int Dc, string? Damage, string? DamageType, bool Half);
+
+	//	An aura set on a token (a radius of 0 takes it away)
+	public class SaveAuraDto
+	{
+		public string Name { get; set; } = string.Empty;
+		public int Radius { get; set; }
+		public string? Color { get; set; }
+		public bool Enemies { get; set; } = true;
+		public int Ability { get; set; }
+		public int Dc { get; set; }
+		public string? Damage { get; set; }
+		public string? DamageType { get; set; }
+		public bool Half { get; set; }
+	}
 
 	//	A weapon dropped by a token: the inventory entry of a character, or the attack of a statblock
 	public class DropItemDto
@@ -283,13 +402,75 @@ namespace RealmForge.Shared.DTOs
 	///	<summary>
 	///	The fog of war (see MapFog), the last ping and the last view the masters brought the table to.
 	///	</summary>
-	public record MapTableDto(bool FogEnabled, List<double> Fog, MapPingDto? Ping, MapFocusDto? Focus, bool PlayersLocked = false, MapStrikeDto? Strike = null);
+	public record MapTableDto(bool FogEnabled, List<double> Fog, MapPingDto? Ping, MapFocusDto? Focus, bool PlayersLocked = false, MapStrikeDto? Strike = null,
+		List<MapSaveCallDto>? Saves = null, MapLighting Lighting = MapLighting.Bright, bool DynamicVision = false, MapVisionDto? Vision = null,
+		int Undo = 0);
+
+	//	A spell's saving throws waiting at the table (the targets the account sees), with their outcome
+	public record MapSaveCallDto(Guid Id, Guid CasterTokenId, string Caster, string Spell, int Ability, int Dc, int? Damage, string? DamageType, bool Half,
+		DateTimeOffset At, List<MapSaveTargetDto> Targets);
+
+	public record MapSaveTargetDto(Guid TokenId, string Label, bool Careful, bool Disadvantage, int? Roll, bool? Saved, int? Dealt);
+
+	//	A spell cast at the table that forces saves: the damage is rolled here once for every target
+	public class CallSavesDto
+	{
+		public Guid CasterId { get; set; }
+		public string Spell { get; set; } = string.Empty;
+		public int Ability { get; set; }
+		public int Dc { get; set; }
+		public string? Damage { get; set; }
+		public string? DamageType { get; set; }
+		public bool Half { get; set; }
+		public List<Guid> TargetIds { get; set; } = new();
+
+		//	Metamagic and the like: the targets that succeed by themselves, the one with disadvantage, the damage dice
+		//	rolled again (Empowered Spell: the lowest ones)
+		public List<Guid> Careful { get; set; } = new();
+		public Guid? Heightened { get; set; }
+		public int Empowered { get; set; }
+	}
+
+	//	A target's save: rolled here with its bonus, or (a master) told as made or failed
+	public class ResolveSaveDto
+	{
+		public int Bonus { get; set; }
+		public bool? Saved { get; set; }
+	}
 
 	///	<summary>
 	///	The last attack on the map, for its effect on every screen: the target, missed (0), hit (1) or critical (2), the
 	///	damage dealt.
 	///	</summary>
 	public record MapStrikeDto(Guid TokenId, int Kind, int? Damage, DateTimeOffset At);
+
+	//	A monster of a group, and how many (MonsterGroups.MaxCount at most)
+	public class MonsterGroupEntryDto
+	{
+		public Guid MonsterId { get; set; }
+		public int Count { get; set; } = 1;
+	}
+
+	//	A group of monsters kept ready for the table: its entries with the names of the monsters (in the language asked)
+	public record MonsterGroupDto(Guid Id, string Name, List<MonsterGroupEntryDto> Entries, List<string> Names);
+
+	public class SaveMonsterGroupDto
+	{
+		public string Name { get; set; } = string.Empty;
+		public List<MonsterGroupEntryDto> Entries { get; set; } = new();
+	}
+
+	//	Monsters placed on a map in one go, around a point of the picture (the middle of the master's view), hidden or not
+	public class PlaceMonstersDto
+	{
+		public List<MonsterGroupEntryDto> Entries { get; set; } = new();
+		public double X { get; set; }
+		public double Y { get; set; }
+		public bool Hidden { get; set; }
+	}
+
+	//	A master's edit taken back: what it was about (MapUndoKinds) and how many are left to take back
+	public record MapUndoDto(string Kind, int Left);
 
 	public record MapPingDto(double X, double Y, string Color, DateTimeOffset At);
 
