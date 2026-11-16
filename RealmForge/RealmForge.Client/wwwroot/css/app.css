@@ -19906,3 +19906,33 @@ button.rf-qs-spell {
     min-width: 24px;
     text-align: center;
 }
+
+/* The connection to the table: live, reconnecting, offline */
+.rf-vtt-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 0 8px;
+    border-radius: 8px;
+    border: 1px solid transparent;
+    font-size: .8rem;
+    font-weight: 700;
+    line-height: 32px;
+    color: #22c55e;
+}
+
+.rf-vtt-link-reconnecting {
+    border-color: #f59e0b;
+    color: #fbbf24;
+}
+
+.rf-vtt-link-offline {
+    border-color: #ef4444;
+    color: #fca5a5;
+}
+
+@media (max-width: 767.98px) {
+    .rf-vtt-link-live .rf-vtt-link-text {
+        display: none;
+    }
+}

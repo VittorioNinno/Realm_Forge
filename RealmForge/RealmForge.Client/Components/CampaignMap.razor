@@ -36,6 +36,10 @@
                 </div>
             }
             <div class="rf-vtt-top-actions">
+                <span class="rf-vtt-link rf-vtt-link-@Connection.ToString().ToLowerInvariant()" role="status" aria-live="polite" title="@ConnectionTitle" data-test="vtt-connection" data-state="@Connection.ToString().ToLowerInvariant()">
+                    <Icon Name="@(Connection == TableLink.Live ? "wifi" : "wifi-off")" />
+                    <span class="rf-vtt-link-text">@UiText.VttConnection(Connection == TableLink.Live ? 0 : Connection == TableLink.Reconnecting ? 1 : 2, Lang)</span>
+                </span>
                 @if (RunsTheTable)
                 {
                     @if (liveTable is not null)
@@ -3563,6 +3567,10 @@ else
         }
         stop = new CancellationTokenSource();
         _ = PollAsync(stop.Token);
+        if (Table)
+        {
+            _ = WatchNetworkAsync();
+        }
     }
 
     //	A player at the table: when the master closes it, back to the campaign
@@ -3728,9 +3736,10 @@ else
                 var waitingFor = map.Id;
                 var editsBefore = localEdits;
                 var (state, reached) = await Campaigns.WaitMapStateAsync(CampaignId, map.Id, map.UpdatedAt, token);
+                await ContactAsync(reached);
                 if (!reached)
                 {
-                    await Task.Delay(3000, token);
+                    await Task.Delay(RetryDelay, token);
                     continue;
                 }
                 if (grabbing || map is null || map.Id != waitingFor || localEdits != editsBefore)
@@ -6018,6 +6027,7 @@ else
     {
         stop?.Cancel();
         Live.Changed -= OnLiveChanged;
+        await UnwatchNetworkAsync();
         try
         {
             if (!string.IsNullOrEmpty(stageElement.Id))
