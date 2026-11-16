@@ -101,14 +101,15 @@ namespace RealmForge.Api.Controllers
 		private Dictionary<Guid, string>? ShapesBefore(CampaignMap map, CampaignRole role) =>
 			CampaignRules.RunsTheTable(role) ? map.Shapes.ToDictionary(s => s.Id, s => ValuesOf(s)) : null;
 
-		//	The step of an edit of the tokens: those it changed or removed as they were, those it placed (to remove)
+		//	The step of an edit of the tokens: those it changed or removed as they were, those it placed (to remove). The
+		//	list is copied first: looking at a token that changed map moves it out of the map's tokens
 		private Task RememberTokensAsync(CampaignMap map, Dictionary<Guid, string>? before, params CampaignToken[] placed)
 		{
 			if (before is null)
 			{
 				return Task.CompletedTask;
 			}
-			var items = Changed(before, map.Tokens.Where(t => _context.Entry(t).State != EntityState.Deleted).Concat(placed).DistinctBy(t => t.Id).ToDictionary(t => t.Id, t => (object)t));
+			var items = Changed(before, map.Tokens.ToList().Where(t => _context.Entry(t).State != EntityState.Deleted).Concat(placed).DistinctBy(t => t.Id).ToDictionary(t => t.Id, t => (object)t));
 			return RememberAsync(map, MapUndoKinds.Tokens, new UndoItems(items));
 		}
 
@@ -118,7 +119,7 @@ namespace RealmForge.Api.Controllers
 			{
 				return Task.CompletedTask;
 			}
-			var items = Changed(before, map.Shapes.Where(s => _context.Entry(s).State != EntityState.Deleted).Concat(placed).DistinctBy(s => s.Id).ToDictionary(s => s.Id, s => (object)s));
+			var items = Changed(before, map.Shapes.ToList().Where(s => _context.Entry(s).State != EntityState.Deleted).Concat(placed).DistinctBy(s => s.Id).ToDictionary(s => s.Id, s => (object)s));
 			return RememberAsync(map, MapUndoKinds.Shapes, new UndoItems(items));
 		}
 
