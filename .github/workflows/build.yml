@@ -1301,6 +1301,22 @@ jobs:
           un_tr=$(curl -s -X POST "$api/api/campaigns/$ss_cp/maps/$mp2/undo" -H "Authorization: Bearer $B" | jq -r .kind)
           un_tr_after=$(curl -s "$api/api/campaigns/$ss_cp/maps/$mp2/state" -H "Authorization: Bearer $B" | jq -c '.terrain.cells | length')
           un_table=$(curl -s "$api/api/campaigns/$ss_cp/maps/$mp2/state" -H "Authorization: Bearer $A" | jq -c '.table.undo')
+          # Monster drawer: a group kept for the campaign; monsters placed in one go (hidden), one step to undo
+          dr_player=$(code "$api/api/campaigns/$ss_cp/maps/groups" -H "Authorization: Bearer $A")
+          dr_mon2=$(curl -s "$api/api/monsters?ruleset=1&lang=2" -H "Authorization: Bearer $B" | jq -r '.[1].id')
+          dr_save=$(curl -s -X POST "$api/api/campaigns/$ss_cp/maps/groups?lang=2" $json -H "Authorization: Bearer $B" \
+            -d "{\"name\":\"Pattuglia\",\"entries\":[{\"monsterId\":\"$sm_mon\",\"count\":2},{\"monsterId\":\"$dr_mon2\",\"count\":1},{\"monsterId\":\"$sm_mon\",\"count\":1}]}")
+          dr_group=$(echo "$dr_save" | jq -r .id)
+          dr_saved=$(echo "$dr_save" | jq -c '{name, counts: [.entries[].count], names: (.names | length)}')
+          dr_bad=$(code -X POST "$api/api/campaigns/$ss_cp/maps/groups" $json -H "Authorization: Bearer $B" -d "{\"name\":\"Troppi\",\"entries\":[{\"monsterId\":\"$sm_mon\",\"count\":99}]}")
+          dr_list=$(curl -s "$api/api/campaigns/$ss_cp/maps/groups" -H "Authorization: Bearer $B" | jq -c '[.[] | .name]')
+          dr_before=$(curl -s "$api/api/campaigns/$ss_cp/maps/$mp2/state" -H "Authorization: Bearer $B" | jq -c --arg m "$sm_mon" '[.tokens[] | select(.monsterId == $m)] | length')
+          dr_place=$(curl -s -X POST "$api/api/campaigns/$ss_cp/maps/$mp2/tokens/monsters?lang=2" $json -H "Authorization: Bearer $B" \
+            -d "{\"entries\":[{\"monsterId\":\"$sm_mon\",\"count\":3}],\"x\":350,\"y\":245,\"hidden\":true}" | jq -c '[length, all(.[]; .hidden), ([.[] | [.x, .y]] | unique | length)]')
+          dr_player_seen=$(curl -s "$api/api/campaigns/$ss_cp/maps/$mp2/state" -H "Authorization: Bearer $A" | jq -c '[.tokens[] | select(.hidden)] | length')
+          dr_undo=$(curl -s -X POST "$api/api/campaigns/$ss_cp/maps/$mp2/undo" -H "Authorization: Bearer $B" | jq -r .kind)
+          dr_after=$(curl -s "$api/api/campaigns/$ss_cp/maps/$mp2/state" -H "Authorization: Bearer $B" | jq -c --arg m "$sm_mon" '[.tokens[] | select(.monsterId == $m)] | length')
+          dr_del=$(code -X DELETE "$api/api/campaigns/$ss_cp/maps/groups/$dr_group" -H "Authorization: Bearer $B")
           # A spell asks for a save: the damage rolled once, the target waits; only who controls it (or a master) rolls
           sv_call=$(curl -s -X POST "$api/api/campaigns/$ss_cp/maps/$mp2/saves?lang=2" $json -H "Authorization: Bearer $A" \
             -d "{\"casterId\":\"$ctl_tree\",\"spell\":\"Prova\",\"ability\":2,\"dc\":30,\"half\":true,\"targetIds\":[\"$at_target\"]}")
@@ -1526,6 +1542,14 @@ jobs:
           sscheck "undo: the token placed taken away" "$un3_seen" "0"
           sscheck "undo: the terrain painted taken back" "$un_tr|$un_tr_after" "terrain|$un_tr_before"
           sscheck "undo: nothing for the players" "$un_table" "0"
+          sscheck "drawer: groups for the masters only" "$dr_player" "404"
+          sscheck "drawer: a group saved (the same monster once)" "$dr_saved" '{"name":"Pattuglia","counts":[3,1],"names":2}'
+          sscheck "drawer: too many of one" "$dr_bad" "400"
+          sscheck "drawer: the groups listed" "$dr_list" '["Pattuglia"]'
+          sscheck "drawer: three placed hidden, each on its own cell" "$dr_place" "[3,true,3]"
+          sscheck "drawer: hidden from the players" "$dr_player_seen" "0"
+          sscheck "drawer: placing undone in one step" "$dr_undo|$dr_after" "tokens|$dr_before"
+          sscheck "drawer: group deleted" "$dr_del" "204"
           sscheck "saves: asked of the target" "$sv_shape" '{"targets":1,"dc":30,"ability":2,"damage":null}'
           sscheck "saves: the masters see them" "$sv_seen" "[1]"
           sscheck "saves: a player does not roll an enemy's save" "$sv_player" "403"
