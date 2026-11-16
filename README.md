@@ -60,7 +60,7 @@ A modular, bilingual web platform for managing tabletop RPG campaigns, sessions 
 | Monsters & NPCs · *Mostri e PNG* | ✅ | 2014 bestiary (SRD 5.1 statblocks and the rest of the Monster Manual with RealmForge text), Homebrew variants, monster pictures; NPC register with its own sheet · *bestiario 2014 (schede SRD 5.1 e il resto del Manuale dei Mostri con testo RealmForge), varianti Homebrew, immagini dei mostri; registro dei PNG con scheda dedicata* |
 | Magic items · *Oggetti magici* | ✅ | 2014 compendium, Homebrew items and variants; on the sheet with their spells and charges · *compendio 2014, oggetti e varianti Homebrew; nella scheda con i loro incantesimi e le cariche* |
 | Rule modules · *Moduli di regole* | ✅ | Homebrew rules computed by the sheet: extra abilities (e.g. Luck next to the six), resources, bonuses and proficiencies · *regole Homebrew calcolate dalla scheda: caratteristiche in più (es. Fortuna accanto alle sei), risorse, bonus e competenze* |
-| Campaigns & sessions · *Campagne e sessioni* | ✅ | Masters, co-masters and players by invitation, characters shared with the master, notes and requirements, sessions, shared roll log with filters, live table notice to the players · *master, co-master e giocatori su invito, personaggi condivisi con il master, note e requisiti, sessioni, registro dei tiri condiviso con filtri, avviso del tavolo aperto ai giocatori* |
+| Campaigns & sessions · *Campagne e sessioni* | ✅ | Masters, co-masters and players by invitation, characters shared with the master, notes and requirements, sessions, shared roll log with filters, live table notice to the players; each session exported as Markdown with the rolls of its day, the whole log as Markdown or CSV · *master, co-master e giocatori su invito, personaggi condivisi con il master, note e requisiti, sessioni, registro dei tiri condiviso con filtri, avviso del tavolo aperto ai giocatori; ogni sessione esportabile in Markdown con i tiri del suo giorno, l'intero registro in Markdown o CSV* |
 | Encounters · *Incontri* | ✅ | Builder with difficulty and generator, starting positions on the map, hit points and conditions synchronized with the sheets · *costruttore con difficoltà e generatore, posizioni di partenza sulla mappa, punti ferita e condizioni sincronizzati con le schede* |
 | Virtual tabletop · *Tavolo virtuale* | ✅ | Square and hex maps, fog, walls and doors, initiative and turns with the rules of both editions, attacks, spells and saves, dynamic vision, master tools; details below · *mappe quadrate ed esagonali, nebbia, muri e porte, iniziativa e turni con le regole di entrambe le edizioni, attacchi, incantesimi e tiri salvezza, visione dinamica, strumenti del master; dettagli sotto* |
 
@@ -336,7 +336,7 @@ dotnet test RealmForge/RealmForge.slnx
 - [x] Dynamic vision with lights and darkvision · *Visione dinamica con luci e scurovisione*
 - [x] Master tools: undo, monster drawer and groups, floors, stairs and portals · *Strumenti del master: annulla, cassetto e gruppi di mostri, piani, scale e portali*
 - [x] Table stability: connection indicator · *Stabilità del tavolo: indicatore di connessione*
-- [ ] Session log export · *Esportazione del registro di sessione*
+- [x] Session log export · *Esportazione del registro di sessione*
 - [ ] Pinned items in the sidebar · *Elementi fissati nella barra laterale*
 - [ ] Homebrew automation builder · *Costruttore di automazioni Homebrew*
 

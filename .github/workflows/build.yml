@@ -1039,8 +1039,8 @@ jobs:
           ss_delete=$(code -X DELETE "$api/api/campaigns/$ss_cp/sessions/$ss_id" -H "Authorization: Bearer $B")
           rl=$(curl -s -X POST "$api/api/campaigns/$ss_cp/rolls" $json -H "Authorization: Bearer $A" -d '{"expression":"1d20 + 5","label":"Percezione"}')
           rl_alice=$(echo "$rl" | jq -c '{expression, label, dice: (.dice | length), ok: (.total >= 6 and .total <= 25 and .total == .dice[0].value + 5), mine: .isMine}')
-          rl_adv=$(curl -s -X POST "$api/api/campaigns/$ss_cp/rolls" $json -H "Authorization: Bearer $A" -d '{"expression":"2d20kh1"}' \
-            | jq -c '{label, dropped: ([.dice[] | select(.dropped)] | length), ok: (.total == ([.dice[].value] | max))}')
+          rl_adv_raw=$(curl -s -X POST "$api/api/campaigns/$ss_cp/rolls" $json -H "Authorization: Bearer $A" -d '{"expression":"2d20kh1"}')
+          rl_adv=$(echo "$rl_adv_raw" | jq -c '{label, dropped: ([.dice[] | select(.dropped)] | length), ok: (.total == ([.dice[].value] | max))}')
           rl_bad=$(code -X POST "$api/api/campaigns/$ss_cp/rolls" $json -H "Authorization: Bearer $A" -d '{"expression":"1d20 5"}')
           rl_hidden_player=$(code -X POST "$api/api/campaigns/$ss_cp/rolls" $json -H "Authorization: Bearer $A" -d '{"expression":"1d6","hidden":true}')
           rl_hidden=$(code -X POST "$api/api/campaigns/$ss_cp/rolls" $json -H "Authorization: Bearer $B" -d '{"expression":"1d100","label":"Tabella incontri","hidden":true}')
@@ -1051,6 +1051,10 @@ jobs:
           rl_bob_log=$(curl -s "$api/api/campaigns/$ss_cp/rolls" -H "Authorization: Bearer $B" | jq -c '[.[] | {label, hidden, roller, master: (.color == "#ff8c00")}]')
           rl_colors=$(curl -s "$api/api/campaigns/$ss_cp?lang=2" -H "Authorization: Bearer $A" | jq -c '[.members[] | {name, orange: (.color == "#ff8c00"), hex: (.color | test("^#[0-9a-f]{6}$"))}] | sort_by(.name)')
           rl_since=$(curl -s "$api/api/campaigns/$ss_cp/rolls?after=$(echo "$rl" | jq -r .createdAt | jq -Rr @uri)" -H "Authorization: Bearer $A" | jq length)
+          # Export: every roll kept in a window of time (a session's day)
+          rl_window=$(curl -s "$api/api/campaigns/$ss_cp/rolls?all=true&after=$(echo "$rl" | jq -r .createdAt | jq -Rr @uri)&before=2100-01-01T00%3A00%3A00Z" -H "Authorization: Bearer $A" | jq length)
+          rl_upto=$(curl -s "$api/api/campaigns/$ss_cp/rolls?all=true&before=$(echo "$rl_adv_raw" | jq -r .createdAt | jq -Rr @uri)" -H "Authorization: Bearer $A" \
+            | jq -c --arg r "$(echo "$rl" | jq -r .id)" --arg a "$(echo "$rl_adv_raw" | jq -r .id)" '[([.[].id] | index($r) != null), ([.[].id] | index($a) != null)]')
           # Virtual tabletop: the master prepares a map, hides one token, shows the map; the player sees the visible token only
           # and cannot create maps nor move a token that is not theirs
           png="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=="
@@ -1431,6 +1435,8 @@ jobs:
           sscheck "master log" "$rl_bob_log" '[{"label":"Tabella incontri","hidden":true,"roller":"Master","master":true},{"label":"2d20kh1","hidden":false,"roller":"Alice","master":false},{"label":"Percezione","hidden":false,"roller":"Alice","master":false}]'
           sscheck "member colours" "$rl_colors" '[{"name":"Alice","orange":false,"hex":true},{"name":"Bob","orange":true,"hex":true}]'
           sscheck "rolls since" "$rl_since" "1"
+          sscheck "rolls export: a window of time" "$rl_window" "1"
+          sscheck "rolls export: up to a time" "$rl_upto" "[true,false]"
           sscheck "map by a player" "$mp_player_create" "403"
           sscheck "map not shown to the player" "$mp_hidden_list" "0"
           sscheck "token outside the map" "$mp_outside" "400"

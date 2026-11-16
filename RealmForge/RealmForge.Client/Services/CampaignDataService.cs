@@ -176,6 +176,12 @@ namespace RealmForge.Client.Services
 		public Task<List<CampaignRollDto>?> GetRollsAsync(Guid id, DateTimeOffset? after = null, bool wait = false) =>
 			GetAsync<List<CampaignRollDto>>($"api/campaigns/{id}/rolls" + (after is { } since ? $"?after={Uri.EscapeDataString(since.ToUniversalTime().ToString("O"))}{(wait ? "&wait=true" : string.Empty)}" : string.Empty));
 
+		//	Every roll kept (an export), made in a window of time when given
+		public Task<List<CampaignRollDto>?> GetAllRollsAsync(Guid id, DateTimeOffset? from = null, DateTimeOffset? to = null) =>
+			GetAsync<List<CampaignRollDto>>($"api/campaigns/{id}/rolls?all=true"
+				+ (from is { } f ? $"&after={Uri.EscapeDataString(f.ToUniversalTime().ToString("O"))}" : string.Empty)
+				+ (to is { } t ? $"&before={Uri.EscapeDataString(t.ToUniversalTime().ToString("O"))}" : string.Empty));
+
 		public async Task<(CampaignRollDto? Roll, HttpStatusCode? Status)> RollAsync(Guid id, NewCampaignRollDto roll)
 		{
 			try

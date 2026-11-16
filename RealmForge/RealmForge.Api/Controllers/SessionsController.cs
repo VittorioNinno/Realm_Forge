@@ -200,9 +200,11 @@ namespace RealmForge.Api.Controllers
 		private string UserId => ContentAccess.GetUserId(User) ?? string.Empty;
 
 		//	GET: api/campaigns/{campaignId}/rolls?after=… — newest first; with after only the rolls made since then; with
-		//	wait the answer waits (up to 20 seconds) for a new roll, so the log of the table shows it at once
+		//	wait the answer waits (up to 20 seconds) for a new roll, so the log of the table shows it at once. With all (an
+		//	export) every roll kept, up to before when given
 		[HttpGet]
-		public async Task<ActionResult<List<CampaignRollDto>>> GetRolls(Guid campaignId, [FromQuery] DateTimeOffset? after, [FromQuery] bool wait = false)
+		public async Task<ActionResult<List<CampaignRollDto>>> GetRolls(Guid campaignId, [FromQuery] DateTimeOffset? after, [FromQuery] bool wait = false,
+			[FromQuery] bool all = false, [FromQuery] DateTimeOffset? before = null)
 		{
 			if (await CampaignAccess.RoleAsync(_context, campaignId, UserId) is not { } role)
 			{
@@ -241,7 +243,12 @@ namespace RealmForge.Api.Controllers
 				var utc = since.ToUniversalTime();
 				query = query.Where(r => r.CreatedAt > utc);
 			}
-			var rows = await query.OrderByDescending(r => r.CreatedAt).Take(100).ToListAsync();
+			if (before is { } until2)
+			{
+				var utc = until2.ToUniversalTime();
+				query = query.Where(r => r.CreatedAt < utc);
+			}
+			var rows = await query.OrderByDescending(r => r.CreatedAt).Take(all ? SessionRules.MaxRolls : 100).ToListAsync();
 			var masters = (await _context.CampaignMembers.AsNoTracking().Where(m => m.CampaignId == campaignId).ToListAsync())
 				.Where(m => CampaignRules.RunsTheTable(m.Role)).Select(m => m.UserId).ToHashSet();
 			return Ok(rows.Select(r => ToDto(r, masters.Contains(r.UserId))).ToList());
