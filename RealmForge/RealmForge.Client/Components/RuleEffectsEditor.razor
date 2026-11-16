@@ -193,7 +193,7 @@
                             </div>
                             <div class="col-sm-6" data-test="effect-outcome">
                                 <label class="rf-form-label">@UiText.EffectOutcomeLabel(Lang)</label>
-                                <RfSelect TValue="string" Value="@(effect.Outcome ?? "none")" ValueChanged="v => { effect.Outcome = v == "none" ? null : v; Changed(); }" Options="OutcomeOptions" />
+                                <RfSelect TValue="string" Value="@(effect.Outcome ?? "none")" ValueChanged="v => SetOutcome(effect, v)" Options="OutcomeOptions" />
                             </div>
                             <div class="col-12">
                                 <label class="rf-form-label">@UiText.EffectNoteLabel(Lang)</label>
@@ -253,6 +253,12 @@
     private List<RfSelect<RuleEffectKind>.OptionItem> KindOptions => Enum.GetValues<RuleEffectKind>()
         .Select(k => new RfSelect<RuleEffectKind>.OptionItem(k, $"{UiText.EffectGroup(UiText.EffectGroupOf(k), Lang)} · {UiText.EffectKindName(k, Lang)}"))
         .ToList();
+
+    private void SetOutcome(RuleEffect e, string? value)
+    {
+        e.Outcome = value is null or "none" ? null : value;
+        Changed();
+    }
 
     private List<RfSelect<FeatureSlot>.OptionItem> SlotOptions => new[] { FeatureSlot.Action, FeatureSlot.Bonus, FeatureSlot.Reaction, FeatureSlot.Free }
         .Select(s => new RfSelect<FeatureSlot>.OptionItem(s, UiText.EffectSlotName(s, Lang))).ToList();
