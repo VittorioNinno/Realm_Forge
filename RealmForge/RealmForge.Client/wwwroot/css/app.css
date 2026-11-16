@@ -19813,6 +19813,16 @@ button.rf-qs-spell {
     pointer-events: none;
 }
 
+/* Dynamic vision: the dark over what the creatures do not see, the glow of the lights they carry */
+.rf-vtt-dark rect {
+    transition: opacity .2s ease;
+}
+
+.rf-vtt-light {
+    pointer-events: none;
+    mix-blend-mode: screen;
+}
+
 .rf-qs-aura-form {
     display: flex;
     flex-direction: column;

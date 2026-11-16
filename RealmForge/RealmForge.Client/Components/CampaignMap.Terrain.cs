@@ -37,7 +37,7 @@ namespace RealmForge.Client.Components
 		//	The zones are drawn in the editor, for the masters, unless they look at the map as the players do
 		private bool ShowTerrain => !Table && RunsTheTable && showZones && !previewPlayers && terrainCells.Count > 0;
 
-		private bool HidesFromPreview(MapTokenDto t) => previewPlayers && t.Hidden;
+		private bool HidesFromPreview(MapTokenDto t) => previewPlayers && (t.Hidden || OutOfSight(t));
 
 		private int ZoneCount(TerrainKind kind) => terrainCells.Count(c => c.Value == kind);
 
