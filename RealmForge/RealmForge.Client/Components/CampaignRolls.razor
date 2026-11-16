@@ -6,6 +6,7 @@
 @using RealmForge.Shared.Rules
 @inject CampaignDataService Campaigns
 @inject LanguageStateService LanguageState
+@inject IJSRuntime JS
 @implements IDisposable
 
 @* The shared dice table of a campaign: a console on the left (who rolls, in public or behind the screen, the dice
@@ -260,6 +261,13 @@
             {
                 <div class="rf-dice-log-foot">
                     <span class="rf-dice-synced"><span class="rf-live-dot"></span> @UiText.DiceSynced(Lang)</span>
+                    @if (Part != "console" && rolls is { Count: > 0 })
+                    {
+                        <span class="d-flex gap-2">
+                            <button type="button" class="rf-dice-clear" disabled="@exporting" title="@UiText.ExportRollsHint(Lang)" @onclick="@(() => ExportAsync("md"))" data-test="rolls-export-md"><Icon Name="download" /> .md</button>
+                            <button type="button" class="rf-dice-clear" disabled="@exporting" title="@UiText.ExportCsvHint(Lang)" @onclick="@(() => ExportAsync("csv"))" data-test="rolls-export-csv"><Icon Name="download" /> .csv</button>
+                        </span>
+                    }
                     @if (SessionRules.CanClearRolls(Role) && rolls is { Count: > 0 })
                     {
                         <button type="button" class="rf-dice-clear" @onclick="() => clearing = true" data-test="rolls-clear">@UiText.BtnClearAll(Lang)</button>
@@ -290,6 +298,33 @@
     [Parameter, EditorRequired] public Guid CampaignId { get; set; }
     [Parameter] public CampaignRole Role { get; set; } = CampaignRole.Player;
     [Parameter] public IReadOnlyList<CampaignCharacterDto> Characters { get; set; } = Array.Empty<CampaignCharacterDto>();
+    [Parameter] public string CampaignName { get; set; } = string.Empty;
+
+    private bool exporting;
+
+    //	Every roll kept, as Markdown or as CSV
+    private async Task ExportAsync(string format)
+    {
+        exporting = true;
+        var all = await Campaigns.GetAllRollsAsync(CampaignId) ?? new();
+        var name = CampaignName.Length > 0 ? CampaignName : "realmforge";
+        if (format == "csv")
+        {
+            await SaveFileAsync(SessionLogExport.FileName(name, UiText.ExportRollsTitle(Lang), "csv"), "text/csv", SessionLogExport.Csv(all, Lang));
+        }
+        else
+        {
+            await SaveFileAsync(SessionLogExport.FileName(name, UiText.ExportRollsTitle(Lang), "md"), "text/markdown", SessionLogExport.Markdown(name, null, all, Lang));
+        }
+        exporting = false;
+    }
+
+    //	A text file saved by the browser
+    private async Task SaveFileAsync(string name, string mime, string text)
+    {
+        var bytes = System.Text.Encoding.UTF8.GetPreamble().Concat(System.Text.Encoding.UTF8.GetBytes(text)).ToArray();
+        await JS.InvokeVoidAsync("rfDownloadFile", name, mime, Convert.ToBase64String(bytes));
+    }
 
     //	My colour at this table (the colour of my rolls)
     [Parameter] public string MyColor { get; set; } = PlayerColors.Master;
