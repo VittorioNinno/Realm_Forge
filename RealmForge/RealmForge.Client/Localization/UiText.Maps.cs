@@ -528,6 +528,37 @@ namespace RealmForge.Client.Localization
 		public static string VttAuraAdd(LanguageCode lang) => T(lang, "Aggiungi l'aura", "Add the aura");
 		public static string VttAuraRemove(LanguageCode lang) => T(lang, "Togli l'aura", "Remove the aura");
 		public static string VttAuraSet(string name, string who, LanguageCode lang) => T(lang, $"«{name}» si muove con {who}: chi entra o inizia il turno dentro viene segnalato.", $"“{name}” moves with {who}: whoever enters it or starts a turn in it is told.");
+		public static string VttLighting(LanguageCode lang) => T(lang, "Luce e visione", "Light and vision");
+		public static string VttLightingName(MapLighting lighting, LanguageCode lang) => lighting switch
+		{
+			MapLighting.Dim => T(lang, "Penombra", "Dim light"),
+			MapLighting.Dark => T(lang, "Buio", "Darkness"),
+			_ => T(lang, "Luce piena", "Bright light")
+		};
+		public static string VttDynamicVision(LanguageCode lang) => T(lang, "Visione dinamica", "Dynamic vision");
+		public static string VttVisionPreview(LanguageCode lang) => T(lang, "Guarda come i PG", "See as the characters");
+		public static string VttLightingHint(LanguageCode lang) => T(lang,
+			"Con la visione dinamica ogni giocatore vede solo ciò che vedono le sue creature: muri e porte chiuse bloccano la vista, al buio servono luci o scurovisione",
+			"With dynamic vision each player sees only what their creatures see: walls and closed doors block the sight, in the dark it takes a light or darkvision");
+		public static string VttLightAndSight(LanguageCode lang) => T(lang, "Luce e vista", "Light and sight");
+		public static string VttLightLine(string name, string bright, string dim, LanguageCode lang) => T(lang,
+			$"{name}: luce intensa {bright}, fioca per altri {dim}", $"{name}: bright light {bright}, dim for another {dim}");
+		public static string VttNoLight(LanguageCode lang) => T(lang, "Nessuna luce", "No light");
+		public static string VttDarkvisionLine(string range, LanguageCode lang) => T(lang, $"scurovisione {range}", $"darkvision {range}");
+		public static string VttNoDarkvision(LanguageCode lang) => T(lang, "senza scurovisione", "no darkvision");
+		public static string VttDarkvision(LanguageCode lang) => T(lang, "Scurovisione", "Darkvision");
+		public static string VttFromSheet(LanguageCode lang) => T(lang, "dalla scheda", "from the sheet");
+		public static string VttDarkvisionSave(LanguageCode lang) => T(lang, "Imposta", "Set");
+		public static string VttLightPreset(string key, LanguageCode lang) => key switch
+		{
+			"candle" => T(lang, "Candela", "Candle"),
+			"torch" => T(lang, "Torcia", "Torch"),
+			"lantern" => T(lang, "Lanterna", "Lantern"),
+			"light" => T(lang, "Luce", "Light"),
+			"bullseye" => T(lang, "Lanterna a lente", "Bullseye lantern"),
+			"daylight" => T(lang, "Luce diurna", "Daylight"),
+			_ => T(lang, "Nessuna", "None")
+		};
 		public static string VttGrapple(LanguageCode lang) => T(lang, "Lotta", "Grapple");
 		public static string VttGrappleHint(LanguageCode lang) => T(lang, "Uno degli attacchi dell'azione Attacco: afferra una creatura a portata, che poi si muove con te (a velocità dimezzata)", "One of the attacks of the Attack action: grapple a creature in reach, which then moves with you (at half speed)");
 		public static string VttShove(LanguageCode lang) => T(lang, "Spinta", "Shove");

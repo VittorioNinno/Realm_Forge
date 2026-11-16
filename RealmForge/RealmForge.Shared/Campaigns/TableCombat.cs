@@ -424,6 +424,12 @@ public sealed class TokenGear
 	//	The token it rides: it moves with its mount
 	public Guid? MountedOn { get; set; }
 
+	//	The light it carries or gives off (a torch, the Light cantrip, a brazier on a marker)
+	public TokenLight? Light { get; set; }
+
+	//	Its darkvision in feet when set by hand (else the sheet's, or the statblock's senses)
+	public int? Darkvision { get; set; }
+
 	public bool IsEmpty => Items.Count == 0 && Disarmed.Count == 0 && Coins == 0;
 
 	public const int MaxItems = 40;

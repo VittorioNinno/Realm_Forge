@@ -77,6 +77,8 @@
                 @if (RunsTheTable)
                 {
                     <button type="button" class="@ToolButton("fog")" title="@UiText.VttToolFog(Lang)" aria-label="@UiText.VttToolFog(Lang)" @onclick="@(() => SetToolAsync("fog"))" data-test="vtt-tool-fog"><Icon Name="eye-slash" /></button>
+                    <button type="button" class="rf-vtt-tool @(lightBar ? "active" : null)" disabled="@(map is null)" title="@UiText.VttLighting(Lang)" aria-label="@UiText.VttLighting(Lang)"
+                            aria-pressed="@(lightBar ? "true" : "false")" @onclick="() => lightBar = !lightBar" data-test="vtt-tool-light"><Icon Name="lightbulb" /></button>
                     <button type="button" class="rf-vtt-tool @(playersLocked ? "locked" : null)" disabled="@(map is null)" title="@(playersLocked ? UiText.VttUnlockPlayers(Lang) : UiText.VttLockPlayers(Lang))" aria-label="@(playersLocked ? UiText.VttUnlockPlayers(Lang) : UiText.VttLockPlayers(Lang))"
                             aria-pressed="@(playersLocked ? "true" : "false")" @onclick="ToggleLockAsync" data-test="vtt-lock-players"><Icon Name="@(playersLocked ? "lock" : "unlock")" /></button>
                     <span class="rf-vtt-tools-sep"></span>
@@ -88,7 +90,11 @@
             <div class="rf-vtt-viewport">
                 @InitiativeBar
                 @Board
-                @if (map is not null && tool is "area" or "draw" or "text" or "erase" or "fog")
+                @if (map is not null && lightBar && RunsTheTable)
+                {
+                    @LightBar
+                }
+                else if (map is not null && tool is "area" or "draw" or "text" or "erase" or "fog")
                 {
                     @ToolOptionsBar
                 }
@@ -698,6 +704,23 @@ else
                         {
                             @ShapeMarkup(sh)
                         }
+                        @* The lights the tokens carry, warm where the map is not in full light *@
+                        @if (lighting != MapLighting.Bright)
+                        {
+                            <defs>
+                                <radialGradient id="@($"{patternId}-glow")">
+                                    <stop offset="0" stop-color="#ffd27a" stop-opacity=".34" />
+                                    <stop offset=".5" stop-color="#ffb347" stop-opacity=".16" />
+                                    <stop offset="1" stop-color="#ff9a3d" stop-opacity="0" />
+                                </radialGradient>
+                            </defs>
+                            @foreach (var lit in tokens.Where(k => k.Light is not null && !HidesFromPreview(k)))
+                            {
+                                var (litX, litY) = MapGeometry.Center(gridType, grid, offsetX, offsetY, lit.X, lit.Y, lit.Size);
+                                var (litCell, _) = MapGeometry.Cell(gridType, grid);
+                                <circle class="rf-vtt-light" cx="@N(litX)" cy="@N(litY)" r="@N(((lit.Light!.Bright + lit.Light!.Dim) / 5.0 + lit.Size / 2.0) * litCell)" fill="@($"url(#{patternId}-glow)")" data-test="map-light"><title>@lit.Light!.Name</title></circle>
+                            }
+                        }
                         @* The auras that move with their tokens: a circle reaching that far past the token's space *@
                         @foreach (var auraToken in tokens.Where(k => k.Aura is not null && !HidesFromPreview(k) && (RunsTheTable || !k.Hidden)))
                         {
@@ -823,6 +846,23 @@ else
                             <rect width="@map.Width" height="@map.Height" fill="#0b0b0b" mask="@($"url(#{patternId}-fog)")" />
                         </svg>
                     }
+                    @if (VisionShown)
+                    {
+                        @* What the creatures see: dark where they see nothing, dimmed where they saw before, shaded in dim light *@
+                        <svg class="rf-vtt-fog rf-vtt-dark" width="@map.Width" height="@map.Height" viewBox="0 0 @map.Width @map.Height" aria-hidden="true" data-test="map-vision">
+                            <defs>
+                                <mask id="@($"{patternId}-vision")" maskUnits="userSpaceOnUse" x="0" y="0" width="@map.Width" height="@map.Height">
+                                    <rect width="@map.Width" height="@map.Height" fill="#ffffff" />
+                                    @foreach (var cell in explored)
+                                    {
+                                        var paint = visionBright!.Contains(cell) ? "#000000" : visionDim!.Contains(cell) ? "#5a5a5a" : "#a8a8a8";
+                                        <polygon points="@CellPoints(cell.Col, cell.Row)" fill="@paint" stroke="@paint" stroke-width="1" />
+                                    }
+                                </mask>
+                            </defs>
+                            <rect width="@map.Width" height="@map.Height" fill="#05060a" mask="@($"url(#{patternId}-vision)")" />
+                        </svg>
+                    }
                     @if (pingShown is { } pg)
                     {
                         <span class="rf-vtt-ping" @key="pg.At" style="left: @(N(pg.X))px; top: @(N(pg.Y))px; --rf-token: @pg.Color;" data-test="map-ping"><span class="rf-vtt-ping-dot"></span></span>
@@ -838,6 +878,34 @@ else
     };
 
     // ===== The options of the tool in use, at the bottom of the map =====
+
+    //	The light of the map and dynamic vision; the masters may look at the table as the characters see it
+    private RenderFragment LightBar => __builder =>
+    {
+        <div class="rf-vtt-options" data-test="vtt-light-options">
+            <span class="rf-vtt-chips" role="group" aria-label="@UiText.VttLighting(Lang)">
+                @foreach (var level in new[] { MapLighting.Bright, MapLighting.Dim, MapLighting.Dark })
+                {
+                    var value = level;
+                    <button type="button" class="rf-vtt-chip @(lighting == value ? "active" : null)" disabled="@busy" @onclick="() => SaveLightingAsync(value, dynamicVision)" data-test="vtt-lighting-@((int)value)">
+                        <Icon Name="@(value switch { MapLighting.Bright => "sun", MapLighting.Dim => "cloud-moon", _ => "moon-stars" })" /> @UiText.VttLightingName(value, Lang)
+                    </button>
+                }
+            </span>
+            <label class="rf-checkbox-wrapper small mb-0">
+                <input type="checkbox" class="rf-checkbox" checked="@dynamicVision" disabled="@busy" @onchange="@(e => SaveLightingAsync(lighting, e.Value is true))" data-test="vtt-dynamic-vision" />
+                <span>@UiText.VttDynamicVision(Lang)</span>
+            </label>
+            @if (dynamicVision)
+            {
+                <label class="rf-checkbox-wrapper small mb-0">
+                    <input type="checkbox" class="rf-checkbox" checked="@previewPlayers" @onchange="@(e => previewPlayers = e.Value is true)" data-test="vtt-vision-preview" />
+                    <span>@UiText.VttVisionPreview(Lang)</span>
+                </label>
+            }
+            <span class="rf-vtt-options-hint">@UiText.VttLightingHint(Lang)</span>
+        </div>
+    };
 
     private RenderFragment ToolOptionsBar => __builder =>
     {
@@ -2145,6 +2213,7 @@ else
                     @if (Table && (RunsTheTable || CanRoll(t)))
                     {
                         @AuraCard(t)
+                        @VisionCard(t)
                         @CompanionsCard(t)
                     }
                     @if (CanRest(t))
@@ -2516,6 +2585,39 @@ else
                             @onclick="@(() => SaveAuraAsync(t, new SaveAuraDto { Name = auraName.Trim(), Radius = Math.Clamp(auraCells, 1, RealmForge.Shared.Campaigns.TokenAura.MaxRadius), Enemies = auraEnemies }))" data-test="vtt-aura-add">@UiText.VttAuraAdd(Lang)</button>
                 </div>
             }
+        </section>
+    };
+
+    //	The light a token carries (the usual ones) and its darkvision (set by hand, else its sheet's or statblock's)
+    private RenderFragment VisionCard(MapTokenDto t) => __builder =>
+    {
+        <section class="rf-qs-card" data-test="vtt-vision">
+            <h3 class="rf-qs-card-title"><Icon Name="lightbulb" /> @UiText.VttLightAndSight(Lang)</h3>
+            <p class="rf-qs-note mb-2" data-test="vtt-vision-what">
+                @(t.Light is { } light ? UiText.VttLightLine(light.Name, UiText.Distance(light.Bright, Lang), UiText.Distance(light.Dim, Lang), Lang) : UiText.VttNoLight(Lang))
+                @if (t.Darkvision is { } seesDark)
+                {
+                    <span> · @(seesDark > 0 ? UiText.VttDarkvisionLine(UiText.Distance(seesDark, Lang), Lang) : UiText.VttNoDarkvision(Lang))</span>
+                }
+            </p>
+            <div class="rf-vtt-chips mb-2" role="group" aria-label="@UiText.VttLightAndSight(Lang)">
+                <button type="button" class="rf-vtt-chip @(t.Light is null ? "active" : null)" disabled="@busy" @onclick="@(() => SaveTokenLightAsync(t, "none"))" data-test="vtt-light-none">@UiText.VttLightPreset("none", Lang)</button>
+                @foreach (var preset in TokenLight.Presets)
+                {
+                    var key = preset.Key;
+                    var on = t.Light is { } carried && carried.Bright == preset.Bright && carried.Dim == preset.Dim && carried.Name == UiText.VttLightPreset(key, Lang);
+                    <button type="button" class="rf-vtt-chip @(on ? "active" : null)" disabled="@busy" title="@UiText.VttLightLine(UiText.VttLightPreset(key, Lang), UiText.Distance(preset.Bright, Lang), UiText.Distance(preset.Dim, Lang), Lang)"
+                            @onclick="@(() => SaveTokenLightAsync(t, key))" data-test="vtt-light-@key">@UiText.VttLightPreset(key, Lang)</button>
+                }
+            </div>
+            <div class="rf-qs-aura-form">
+                <label class="rf-qs-aura-radius">
+                    <span>@UiText.VttDarkvision(Lang)</span>
+                    <input type="text" inputmode="decimal" class="rf-form-control" maxlength="5" placeholder="@UiText.VttFromSheet(Lang)" aria-label="@UiText.VttDarkvision(Lang)" @bind="darkvisionText" @bind:event="oninput" data-test="vtt-darkvision" />
+                    <small>@UiText.VttUnit(Lang)</small>
+                </label>
+                <button type="button" class="rf-qs-rest" disabled="@busy" @onclick="() => SaveDarkvisionAsync(t)" data-test="vtt-darkvision-save">@UiText.VttDarkvisionSave(Lang)</button>
+            </div>
         </section>
     };
 
@@ -5048,6 +5150,7 @@ else
         }
         fogEnabled = table.FogEnabled;
         fog = table.Fog;
+        ApplyVision(table);
         saveCalls = table.Saves ?? new();
         playersLocked = table.PlayersLocked;
         if (PlayersStopped && tool is "area" or "ping")

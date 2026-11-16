@@ -539,6 +539,9 @@ namespace RealmForge.Infrastructure.Migrations
                     b.Property<DateTimeOffset>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<bool>("DynamicVision")
+                        .HasColumnType("boolean");
+
                     b.Property<Guid?>("EncounterId")
                         .HasColumnType("uuid");
 
@@ -579,6 +582,9 @@ namespace RealmForge.Infrastructure.Migrations
                     b.Property<string>("Image")
                         .IsRequired()
                         .HasColumnType("text");
+
+                    b.Property<int>("Lighting")
+                        .HasColumnType("integer");
 
                     b.Property<string>("Name")
                         .IsRequired()
@@ -1008,6 +1014,9 @@ namespace RealmForge.Infrastructure.Migrations
 
                     b.Property<DateTimeOffset>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("Darkvision")
+                        .HasColumnType("integer");
 
                     b.Property<string>("Defenses")
                         .HasMaxLength(200)
