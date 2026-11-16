@@ -77,6 +77,8 @@
                 @if (RunsTheTable)
                 {
                     <button type="button" class="@ToolButton("fog")" title="@UiText.VttToolFog(Lang)" aria-label="@UiText.VttToolFog(Lang)" @onclick="@(() => SetToolAsync("fog"))" data-test="vtt-tool-fog"><Icon Name="eye-slash" /></button>
+                    <button type="button" class="rf-vtt-tool" disabled="@(map is null || busy || undoLeft <= 0)" title="@UiText.VttUndo(undoLeft, Lang)" aria-label="@UiText.VttUndo(undoLeft, Lang)"
+                            @onclick="UndoAsync" data-test="vtt-undo"><Icon Name="arrow-counterclockwise" /></button>
                     <button type="button" class="rf-vtt-tool @(lightBar ? "active" : null)" disabled="@(map is null)" title="@UiText.VttLighting(Lang)" aria-label="@UiText.VttLighting(Lang)"
                             aria-pressed="@(lightBar ? "true" : "false")" @onclick="() => lightBar = !lightBar" data-test="vtt-tool-light"><Icon Name="lightbulb" /></button>
                     <button type="button" class="rf-vtt-tool @(playersLocked ? "locked" : null)" disabled="@(map is null)" title="@(playersLocked ? UiText.VttUnlockPlayers(Lang) : UiText.VttLockPlayers(Lang))" aria-label="@(playersLocked ? UiText.VttUnlockPlayers(Lang) : UiText.VttLockPlayers(Lang))"
@@ -5151,6 +5153,7 @@ else
         fogEnabled = table.FogEnabled;
         fog = table.Fog;
         ApplyVision(table);
+        undoLeft = table.Undo;
         saveCalls = table.Saves ?? new();
         playersLocked = table.PlayersLocked;
         if (PlayersStopped && tool is "area" or "ping")
