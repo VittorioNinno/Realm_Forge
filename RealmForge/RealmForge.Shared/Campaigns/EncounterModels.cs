@@ -106,6 +106,14 @@ public class EncounterCombatant
 	public bool BonusSpell { get; set; }
 	public bool ActionSlotSpell { get; set; }
 
+	//	A readied action: what sets it off, what it is (an attack, a spell already cast with its slot, something else),
+	//	and whether the trigger came (the reaction then lets it go). Gone at the start of its next turn
+	public string? ReadyTrigger { get; set; }
+	public string? ReadyWhat { get; set; }
+	public Guid? ReadySpellId { get; set; }
+	public int ReadyLevel { get; set; }
+	public bool ReadyFired { get; set; }
+
 	//	The cell it starts the fight on, on the encounter's map (null: the first free one)
 	public int? X { get; set; }
 	public int? Y { get; set; }
@@ -154,6 +162,16 @@ public static class EncounterRules
 		c.SlotSpell = false;
 		c.BonusSpell = false;
 		c.ActionSlotSpell = false;
+		ClearReady(c);
+	}
+
+	public static void ClearReady(EncounterCombatant c)
+	{
+		c.ReadyTrigger = null;
+		c.ReadyWhat = null;
+		c.ReadySpellId = null;
+		c.ReadyLevel = 0;
+		c.ReadyFired = false;
 	}
 
 	///	<summary>

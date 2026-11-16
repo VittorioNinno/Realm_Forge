@@ -501,6 +501,60 @@ namespace RealmForge.Api.Controllers
 			{
 				who.OpportunityOn = null;
 			}
+			else if (kind == "trigger")
+			{
+				//	The trigger of a readied action came: told by a master or by whoever controls it
+				if (who.ReadyWhat is null)
+				{
+					return Problem(statusCode: StatusCodes.Status409Conflict, title: T(italian, "Nessuna azione preparata.", "No readied action."));
+				}
+				who.ReadyFired = true;
+			}
+			else if (kind == "release")
+			{
+				//	The readied action let go: it takes the reaction (a readied attack spends it when it is made)
+				if (who.ReadyWhat is null)
+				{
+					return Problem(statusCode: StatusCodes.Status409Conflict, title: T(italian, "Nessuna azione preparata.", "No readied action."));
+				}
+				if (who.ReactionUsed && !runs)
+				{
+					return Problem(statusCode: StatusCodes.Status409Conflict, title: T(italian, "La reazione è già stata usata.", "The reaction was already used."));
+				}
+				if (dto.Wield != "attack")
+				{
+					who.ReactionUsed = true;
+				}
+				EncounterRules.ClearReady(who);
+			}
+			else if (kind == "unready")
+			{
+				EncounterRules.ClearReady(who);
+			}
+			else if (kind == "ready")
+			{
+				//	An action readied on its own turn: the action now, the reaction when the trigger comes
+				var trigger = (dto.Trigger ?? string.Empty).Trim();
+				var what = (dto.What ?? string.Empty).Trim();
+				if (trigger.Length is 0 or > 120 || what.Length is 0 or > 60)
+				{
+					return Problem(statusCode: StatusCodes.Status400BadRequest, title: T(italian, "Scrivi l'innesco e cosa prepari.", "Write the trigger and what is readied."));
+				}
+				if (fight.Encounter.CurrentId != who.Id && !runs)
+				{
+					return Problem(statusCode: StatusCodes.Status409Conflict, title: T(italian, "Non è il tuo turno.", "It is not your turn."));
+				}
+				if (who.ActionSpent is not null && !runs)
+				{
+					return Problem(statusCode: StatusCodes.Status409Conflict, title: T(italian, "L'azione di questo turno è già stata usata.", "The action of this turn was already used."));
+				}
+				who.ActionSpent = TableCombat.SpentOther;
+				who.ReadyTrigger = trigger;
+				who.ReadyWhat = what;
+				who.ReadySpellId = dto.SpellId;
+				who.ReadyLevel = Math.Clamp(dto.Level ?? 0, 0, 9);
+				who.ReadyFired = false;
+			}
 			else if (kind == "cast" && dto.Wield is "action" or "bonus" or "reaction")
 			{
 				//	A spell: its part of the turn (a reaction at any time, the others on its own turn) and, for a character, the
@@ -1545,7 +1599,8 @@ namespace RealmForge.Api.Controllers
 							ActionSpent = combatant.ActionSpent,
 							ReactionUsed = combatant.ReactionUsed,
 							Turn = new TokenTurnDto(combatant.BonusUsed, combatant.AttacksMade, combatant.Dashed, combatant.Disengaged, combatant.Dodging,
-								combatant.Interacted, combatant.Wield, combatant.OpportunityOn, combatant.Moved)
+								combatant.Interacted, combatant.Wield, combatant.OpportunityOn, combatant.Moved,
+								combatant.ReadyWhat is { } readied ? new TokenReadyDto(combatant.ReadyTrigger ?? string.Empty, readied, combatant.ReadySpellId, combatant.ReadyLevel, combatant.ReadyFired) : null)
 						};
 					}
 					return dto;

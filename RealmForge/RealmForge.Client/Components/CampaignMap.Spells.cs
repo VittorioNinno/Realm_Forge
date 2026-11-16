@@ -33,8 +33,9 @@ namespace RealmForge.Client.Components
 		private Placing? placing;
 		private string? castNote;
 
-		//	Metamagic chosen before casting (it changes the casting: Quickened, Distant)
+		//	Metamagic chosen before casting (it changes the casting: Quickened, Distant), "ready" to ready it instead
 		private readonly HashSet<string> preMeta = new();
+		private string readyTrigger = string.Empty;
 
 		private void ChooseCast(MapTokenDto t, SheetSpell spell, bool usesSlots)
 		{
@@ -145,6 +146,14 @@ namespace RealmForge.Client.Components
 		//	Metamagic chosen spent, then its area is placed or its target aimed at
 		private async Task CastAsync(MapTokenDto t, SheetSpell spell, int level, bool pact)
 		{
+			//	Readied (in a fight, on its own turn): the slot spent now, the effect when the trigger comes
+			var ready = preMeta.Contains("ready") && TurnOf(t) is not null && IsTurnOf(t);
+			var trigger = readyTrigger.Trim();
+			if (ready && trigger.Length == 0)
+			{
+				castNote = UiText.VttReadyNeedsTrigger(Lang);
+				return;
+			}
 			castChoice = null;
 			CancelAim();
 			var detail = await SpellService.GetSpellDetailAsync(spell.Id, Lang);
@@ -169,11 +178,14 @@ namespace RealmForge.Client.Components
 
 			//	In a fight: the action, bonus action or reaction it takes (refused when already used, or when the spells of
 			//	the turn do not allow it)
-			if (TurnOf(t) is not null && part != "other" && map is not null)
+			if (TurnOf(t) is not null && (part != "other" || ready) && map is not null)
 			{
 				busy = true;
 				localEdits++;
-				var (_, refused) = await Campaigns.TurnActionAsync(CampaignId, map.Id, t.Id, new TurnActionDto { Kind = "cast", Wield = part, Level = spell.Level }, Lang);
+				var turnAction = ready
+					? new TurnActionDto { Kind = "ready", Trigger = trigger.Length > 120 ? trigger[..120] : trigger, What = spell.Name.Length > 60 ? spell.Name[..60] : spell.Name, SpellId = spell.Id, Level = Math.Max(level, spell.Level) }
+					: new TurnActionDto { Kind = "cast", Wield = part, Level = spell.Level };
+				var (_, refused) = await Campaigns.TurnActionAsync(CampaignId, map.Id, t.Id, turnAction, Lang);
 				busy = false;
 				if (refused is not null)
 				{
@@ -209,7 +221,8 @@ namespace RealmForge.Client.Components
 						}
 						sheet.SpentSlots[level - 1]++;
 					}
-					if (spell.Concentration)
+					//	A readied spell is held with concentration until it is let go
+					if (spell.Concentration || ready)
 					{
 						sheet.Concentration = spell.Id;
 					}
@@ -220,7 +233,7 @@ namespace RealmForge.Client.Components
 					return;
 				}
 			}
-			else if (spell.Concentration && t.CharacterId is not null)
+			else if ((spell.Concentration || ready) && t.CharacterId is not null)
 			{
 				await ChangeCharacterAsync(t, (sheet, _) => sheet.Concentration = spell.Id);
 			}
@@ -233,7 +246,19 @@ namespace RealmForge.Client.Components
 				+ (used is null ? string.Empty : $" · {used}");
 			InvalidateStats(StatsKey(t));
 			_ = LoadStatsAsync(t);
+			if (ready)
+			{
+				readyTrigger = string.Empty;
+				castNote = UiText.VttReadied(spell.Name, trigger, Lang);
+				await RefreshAsync();
+				return;
+			}
+			await CastEffectAsync(t, spell, level, detail, meta, options);
+		}
 
+		//	What a spell does once cast (or let go when readied): its area placed, or its target aimed at
+		private async Task CastEffectAsync(MapTokenDto t, SheetSpell spell, int level, SpellDetailResponseDto? detail, HashSet<string> meta, CastingOptions options)
+		{
 			//	Its area, read from the range and the description; without one, the target of a spell attack or a save
 			if (detail is null || !Table || map is null || !tokens.Any(k => k.Id == t.Id))
 			{
