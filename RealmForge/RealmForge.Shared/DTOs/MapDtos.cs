@@ -158,10 +158,19 @@ namespace RealmForge.Shared.DTOs
 
 		//	A spell cast: its level (0 a cantrip)
 		public int? Level { get; set; }
+
+		//	A readied action: its trigger, what it is, the spell readied
+		public string? Trigger { get; set; }
+		public string? What { get; set; }
+		public Guid? SpellId { get; set; }
 	}
 
 	///	<summary>The turn of a token in a fight, as the table shows it.</summary>
-	public record TokenTurnDto(bool BonusUsed, int AttacksMade, bool Dashed, bool Disengaged, bool Dodging, bool Interacted, string? Wield, Guid? OpportunityOn, int Moved = 0);
+	public record TokenTurnDto(bool BonusUsed, int AttacksMade, bool Dashed, bool Disengaged, bool Dodging, bool Interacted, string? Wield, Guid? OpportunityOn, int Moved = 0,
+		TokenReadyDto? Ready = null);
+
+	//	A readied action, as the table shows it: its trigger, what it is, the spell readied, whether the trigger came
+	public record TokenReadyDto(string Trigger, string What, Guid? SpellId, int Level, bool Fired);
 
 	///	<summary>
 	///	How an attack went: the d20 (and the one left out), the total, hit or miss, critical, the damage dealt and what

@@ -1241,6 +1241,14 @@ jobs:
           # A spell cast takes its part of the turn: the action once, then refused
           tu_cast=$(code -X POST "$api/api/campaigns/$ss_cp/maps/$mp2/tokens/$ctl_tree/turn?lang=2" $json -H "Authorization: Bearer $A" -d '{"kind":"cast","wield":"action","level":1}')
           tu_cast_again=$(code -X POST "$api/api/campaigns/$ss_cp/maps/$mp2/tokens/$ctl_tree/turn?lang=2" $json -H "Authorization: Bearer $A" -d '{"kind":"cast","wield":"action","level":0}')
+          # A readied action: refused to the player once the action is used, readied by the master; the trigger comes, the
+          # player lets it go with the reaction
+          rd_player=$(code -X POST "$api/api/campaigns/$ss_cp/maps/$mp2/tokens/$ctl_tree/turn?lang=2" $json -H "Authorization: Bearer $A" -d '{"kind":"ready","trigger":"quando esce","what":"Altro"}')
+          rd_master=$(code -X POST "$api/api/campaigns/$ss_cp/maps/$mp2/tokens/$ctl_tree/turn?lang=2" $json -H "Authorization: Bearer $B" -d '{"kind":"ready","trigger":"quando esce","what":"Altro"}')
+          code -X POST "$api/api/campaigns/$ss_cp/maps/$mp2/tokens/$ctl_tree/turn?lang=2" $json -H "Authorization: Bearer $A" -d '{"kind":"trigger"}' > /dev/null
+          rd_fired=$(curl -s "$api/api/campaigns/$ss_cp/maps/$mp2/state" -H "Authorization: Bearer $A" | jq -c '[.tokens[] | select(.label == "Albero") | .turn.ready | {what, fired}]')
+          rd_release=$(code -X POST "$api/api/campaigns/$ss_cp/maps/$mp2/tokens/$ctl_tree/turn?lang=2" $json -H "Authorization: Bearer $A" -d '{"kind":"release"}')
+          rd_after=$(curl -s "$api/api/campaigns/$ss_cp/maps/$mp2/state" -H "Authorization: Bearer $A" | jq -c '[.tokens[] | select(.label == "Albero") | [.turn.ready, .reactionUsed]]')
           # A spell asks for a save: the damage rolled once, the target waits; only who controls it (or a master) rolls
           sv_call=$(curl -s -X POST "$api/api/campaigns/$ss_cp/maps/$mp2/saves?lang=2" $json -H "Authorization: Bearer $A" \
             -d "{\"casterId\":\"$ctl_tree\",\"spell\":\"Prova\",\"ability\":2,\"dc\":30,\"half\":true,\"targetIds\":[\"$at_target\"]}")
@@ -1431,6 +1439,11 @@ jobs:
           sscheck "turn: all of it free again" "$tu_reset_state" "[[false,0,null]]"
           sscheck "turn: a spell takes the action" "$tu_cast" "204"
           sscheck "turn: no second spell with the action used" "$tu_cast_again" "409"
+          sscheck "ready: not with the action used" "$rd_player" "409"
+          sscheck "ready: readied by the master" "$rd_master" "204"
+          sscheck "ready: the trigger came" "$rd_fired" '[{"what":"Altro","fired":true}]'
+          sscheck "ready: let go" "$rd_release" "204"
+          sscheck "ready: gone, the reaction used" "$rd_after" "[[null,true]]"
           sscheck "saves: asked of the target" "$sv_shape" '{"targets":1,"dc":30,"ability":2,"damage":null}'
           sscheck "saves: the masters see them" "$sv_seen" "[1]"
           sscheck "saves: a player does not roll an enemy's save" "$sv_player" "403"

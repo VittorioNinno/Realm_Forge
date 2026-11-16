@@ -19733,3 +19733,73 @@ button.rf-qs-spell {
     align-items: center;
     gap: 8px;
 }
+
+/* ===== Readied actions: the badge on the token, the block of the turn panel ===== */
+.rf-vtt-ready {
+    position: absolute;
+    top: -6px;
+    left: -6px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    height: 20px;
+    border: 1px solid #a78bfa;
+    border-radius: 50%;
+    background-color: #1e1b2e;
+    color: #c4b5fd;
+    pointer-events: none;
+}
+
+    .rf-vtt-ready svg {
+        width: 12px;
+        height: 12px;
+    }
+
+    .rf-vtt-ready.fired {
+        border-color: var(--rf-orange-primary);
+        color: var(--rf-orange-primary);
+        animation: rf-ready-pulse 1.2s ease-in-out infinite;
+    }
+
+@keyframes rf-ready-pulse {
+    50% {
+        box-shadow: 0 0 0 4px rgba(255, 140, 0, .35);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .rf-vtt-ready.fired {
+        animation: none;
+    }
+}
+
+.rf-turn-ready {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    margin-top: 8px;
+    padding: 8px;
+    border: 1px dashed #7c3aed;
+    border-radius: 8px;
+    font-size: .8rem;
+}
+
+    .rf-turn-ready.fired {
+        border-style: solid;
+        border-color: var(--rf-orange-primary);
+    }
+
+    .rf-turn-ready > span:first-child {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        flex: 1 1 100%;
+    }
+
+.rf-turn-ready-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
