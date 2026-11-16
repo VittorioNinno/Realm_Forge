@@ -28,6 +28,18 @@ A modular, bilingual web platform for managing tabletop RPG campaigns, sessions 
   Every Homebrew entry is private, shareable through its link, or public (listed for everyone).
   *Ogni contenuto Homebrew è privato, condivisibile tramite link oppure pubblico (visibile a tutti nelle liste).*
 
+- **Passkeys and account security** · *Passkey e sicurezza dell'account*
+  Sign-in with passkeys (iPhone, Safari, Android, Windows Hello, security keys) offered right in the e-mail field, rate limiting, e-mail change, account suspension and deletion confirmed by e-mail.
+  *Accesso con passkey (iPhone, Safari, Android, Windows Hello, chiavi di sicurezza) proposte già nel campo email, limiti di frequenza, cambio email, sospensione ed eliminazione dell'account confermate via email.*
+
+- **Search, bin and moderation** · *Ricerca, cestino e moderazione*
+  Global search with quick lookup (`/` or Ctrl+K), recently viewed entries and a random entry; deleted Homebrew goes to a bin first; administrators manage accounts and Homebrew.
+  *Ricerca globale con consultazione rapida (`/` o Ctrl+K), voci viste di recente e voce casuale; gli Homebrew eliminati passano prima dal cestino; gli amministratori gestiscono account e Homebrew.*
+
+- **Campaigns and virtual tabletop** · *Campagne e tavolo virtuale*
+  Campaigns with masters, co-masters and players, sessions, encounters, a shared roll log and a full virtual tabletop that applies the rules of both editions (see below).
+  *Campagne con master, co-master e giocatori, sessioni, incontri, registro dei tiri condiviso e un tavolo virtuale completo che applica le regole di entrambe le edizioni (vedi sotto).*
+
 - **Dark Fantasy design system** · *Design system "Dark Fantasy"*
   Dark surfaces, forge-orange accents and custom components.
   *Superfici scure, accenti arancione forgia e componenti personalizzati.*
@@ -45,6 +57,55 @@ A modular, bilingual web platform for managing tabletop RPG campaigns, sessions 
 | Equipment · *Equipaggiamento* | ✅ | 242 base 2014 items (SRD 5.1) and 208 base 2024 items (SRD 5.2): weapons with damage, properties and 2024 mastery, armor with AC, Strength and Stealth, tools (2024: ability, Utilize and Craft), adventuring gear, equipment packs, spellcasting focuses, mounts, vehicles, ships and trade goods; costs and weights checked against the Player's Handbook, kilograms and metres in Italian, weapon property and mastery rules, Homebrew editor · *242 oggetti base 2014 (SRD 5.1) e 208 oggetti base 2024 (SRD 5.2): armi con danni, proprietà e padronanza 2024, armature con CA, Forza e Furtività, strumenti (2024: caratteristica, Utilizzo e Creazione), equipaggiamento d'avventura, dotazioni, focus da incantatore, cavalcature, veicoli, navi e merci; costi e pesi verificati sul Manuale del Giocatore, chilogrammi e metri in italiano, regole delle proprietà delle armi e della padronanza, editor Homebrew* |
 | Rules glossary · *Glossario delle regole* | ✅ | 155 entries of 2024 (the whole Rules Glossary of the SRD 5.2.1, the same entries as appendix C of the Player's Handbook) and 88 of 2014 (conditions, combat actions, areas of effect and the main rules of the SRD 5.1) with the official Italian names; the rules terms in the descriptions of spells, classes, species, feats, backgrounds and equipment link to their entry, with a tooltip · *155 voci 2024 (l'intero glossario delle regole dell'SRD 5.2.1, le stesse voci dell'appendice C del Manuale del Giocatore) e 88 voci 2014 (condizioni, azioni in combattimento, aree di effetto e regole principali dell'SRD 5.1) con i nomi ufficiali italiani; i termini di regola nei testi di incantesimi, classi, specie, talenti, background ed equipaggiamento rimandano alla loro voce, con un tooltip* |
 | Characters · *Personaggi* | ✅ | Wizard that follows each Player's Handbook: 2014 race → class → scores → background (racial increases, subraces, variant human), 2024 class → background → species (background increases and Origin feat, Versatile human); levels one by one with multiclassing (prerequisites, reduced proficiencies, multiclass spell slots, Pact Magic), fixed or rolled hit points, Ability Score Improvements and feats, Epic Boons, subclasses, Expertise, Fighting Styles, Divine/Primal Orders, Weapon Mastery; languages from the Standard/Exotic (2014) and Standard/Rare (2024) tables of the manuals; starting equipment built on the English structure (same choices in both languages, specific weapon for the generic lines); spells per class and per feat. Every choice is checked by one rules engine shared by the wizard, the sheet and the API. Interactive sheet saved automatically: hit points, temporary HP, death saves, rests and hit dice, spell slots, conditions and exhaustion, d20 rolls with advantage, attacks, inventory with worn armor and coins, resources, notes; edit and level up; PDF download · *Creazione guidata che segue il Manuale del Giocatore di ogni edizione: 2014 razza → classe → punteggi → background (incrementi razziali, sottorazze, umano variante), 2024 classe → background → specie (incrementi e Talento di Origine dal background, umano Versatile); livelli uno per uno con multiclasse (prerequisiti, competenze ridotte, slot multiclasse, Magia del Patto), punti ferita fissi o tirati, aumenti dei punteggi e talenti, Doni Epici, sottoclassi, Maestria, Stili di combattimento, Ordini, Maestria nelle armi; lingue dalle tabelle dei manuali; equipaggiamento iniziale costruito sulla struttura inglese (stesse scelte in entrambe le lingue); incantesimi per classe e per talento. Ogni scelta è controllata da un unico motore di regole condiviso da wizard, scheda e API. Scheda interattiva con salvataggio automatico, modifica, avanzamento di livello e PDF* |
+| Monsters & NPCs · *Mostri e PNG* | ✅ | 2014 bestiary (SRD 5.1 statblocks and the rest of the Monster Manual with RealmForge text), Homebrew variants, monster pictures; NPC register with its own sheet · *bestiario 2014 (schede SRD 5.1 e il resto del Manuale dei Mostri con testo RealmForge), varianti Homebrew, immagini dei mostri; registro dei PNG con scheda dedicata* |
+| Magic items · *Oggetti magici* | ✅ | 2014 compendium, Homebrew items and variants; on the sheet with their spells and charges · *compendio 2014, oggetti e varianti Homebrew; nella scheda con i loro incantesimi e le cariche* |
+| Rule modules · *Moduli di regole* | ✅ | Homebrew rules computed by the sheet: extra abilities (e.g. Luck next to the six), resources, bonuses and proficiencies · *regole Homebrew calcolate dalla scheda: caratteristiche in più (es. Fortuna accanto alle sei), risorse, bonus e competenze* |
+| Campaigns & sessions · *Campagne e sessioni* | ✅ | Masters, co-masters and players by invitation, characters shared with the master, notes and requirements, sessions, shared roll log with filters, live table notice to the players · *master, co-master e giocatori su invito, personaggi condivisi con il master, note e requisiti, sessioni, registro dei tiri condiviso con filtri, avviso del tavolo aperto ai giocatori* |
+| Encounters · *Incontri* | ✅ | Builder with difficulty and generator, starting positions on the map, hit points and conditions synchronized with the sheets · *costruttore con difficoltà e generatore, posizioni di partenza sulla mappa, punti ferita e condizioni sincronizzati con le schede* |
+| Virtual tabletop · *Tavolo virtuale* | ✅ | Square and hex maps, fog, walls and doors, initiative and turns with the rules of both editions, attacks, spells and saves, dynamic vision, master tools; details below · *mappe quadrate ed esagonali, nebbia, muri e porte, iniziativa e turni con le regole di entrambe le edizioni, attacchi, incantesimi e tiri salvezza, visione dinamica, strumenti del master; dettagli sotto* |
+
+---
+
+## 🗺️ Virtual tabletop / Tavolo virtuale
+
+The table of a campaign, on its own page: the master prepares the maps away from the players, opens the table (the players are notified) and shows one map at a time. Changes reach everyone almost at once (the API answers as soon as something changes).
+*Il tavolo di una campagna, su una pagina dedicata: il master prepara le mappe lontano dai giocatori, apre il tavolo (i giocatori ricevono l'avviso) e mostra una mappa alla volta. Le modifiche arrivano a tutti quasi subito (l'API risponde appena qualcosa cambia).*
+
+**Maps · *Mappe***
+- Square or hex grid aligned on the picture, adaptive zoom, ruler in metres or feet, pings, drawings, texts and areas, map duplication.
+  *Griglia quadrata o esagonale allineata sull'immagine, zoom adattivo, righello in metri o piedi, ping, disegni, testi e aree, duplicazione della mappa.*
+- Fog of war painted cell by cell; terrain with walls, difficult terrain and cover (half, three-quarters, total), walkable zones.
+  *Nebbia di guerra dipinta a caselle; terreno con muri, terreno difficile e coperture (mezza, tre quarti, totale), zone percorribili.*
+- Objects with states: doors (also locked and secret), chests and loot, levers, traps, items on the ground; **stairs and portals** linked to each other, on the same map or on another floor: a creature next to one goes through, and the players' table follows the party.
+  *Oggetti con stati: porte (anche chiuse a chiave e segrete), forzieri e bottino, leve, trappole, oggetti a terra; **scale e portali** collegati tra loro, sulla stessa mappa o su un altro piano: una creatura accanto passa, e il tavolo dei giocatori segue il gruppo.*
+
+**Tokens · *Segnalini***
+- Characters, NPCs, monsters (with pictures) and markers; tokens assigned to players; quick sheet with hit points, armor class, conditions, abilities with uses and dice.
+  *Personaggi, PNG, mostri (con immagini) e segnalini; segnalini assegnati ai giocatori; scheda rapida con punti ferita, classe armatura, condizioni, capacità con usi e dadi.*
+- Auras that move with their token (and hit whoever enters them), summons and familiars, mounts that carry their riders, grapples that drag the creature held.
+  *Aure che seguono il segnalino (e colpiscono chi ci entra), evocazioni e famigli, cavalcature che portano chi le monta, prese che trascinano la creatura afferrata.*
+
+**Combat · *Combattimento***
+- Initiative (vertical or horizontal bar, group initiative), turn-bound movement with difficult terrain and diagonals, actions, bonus actions and reactions per turn, Disengage and opportunity attacks, Ready with a trigger, weapon swap.
+  *Iniziativa (barra verticale o orizzontale, iniziativa di gruppo), movimento solo nel proprio turno con terreno difficile e diagonali, azioni, azioni bonus e reazioni per turno, Disimpegno e attacchi di opportunità, Preparare con innesco, cambio arma.*
+- Attacks against armor class with confirmation, cover and line of sight, linked features (Sneak Attack, Rage, Divine Smite…), resistances, immunities and vulnerabilities applied to the damage, concentration checks, characters at 0 hit points and death saves.
+  *Attacchi contro la classe armatura con conferma, coperture e linea di vista, capacità collegate (Attacco furtivo, Ira, Punizione divina…), resistenze, immunità e vulnerabilità applicate ai danni, prove di concentrazione, personaggi a 0 punti ferita e tiri salvezza contro la morte.*
+- Spells aimed like attacks or placed as areas of the right size, saving throws called by the caster and rolled by each target (the master sees them all), Metamagic and the other casting options of the classes (Evocation, Agonizing Blast), spell rules per turn.
+  *Incantesimi mirati come gli attacchi o piazzati come aree della dimensione giusta, tiri salvezza chiamati da chi lancia e tirati da ogni bersaglio (il master li vede tutti), Metamagia e le altre opzioni di lancio delle classi (Evocazione, Deflagrazione agonizzante), regole degli incantesimi nel turno.*
+- Dice rolled at the table with a floating tray and the shared log; rests are not allowed during an encounter.
+  *Dadi tirati al tavolo con il vassoio fluttuante e il registro condiviso; durante un incontro non si riposa.*
+
+**Light and vision · *Luce e visione***
+- Map light (bright, dim, dark) and **dynamic vision**: each player sees only what their creatures see. Walls and closed doors block the sight; torches, lanterns and the Light spell light the way; darkvision comes from the sheet, the statblock or is set by hand. Creatures out of sight are never sent to the player.
+  *Luce della mappa (piena, penombra, buio) e **visione dinamica**: ogni giocatore vede solo ciò che vedono le sue creature. Muri e porte chiuse bloccano la vista; torce, lanterne e l'incantesimo Luce illuminano; la scurovisione arriva dalla scheda, dal bestiario o è impostata a mano. Le creature fuori vista non vengono mai inviate al giocatore.*
+
+**Master tools · *Strumenti del master***
+- **Undo** (button or Ctrl+Z) for the master's own edits: tokens, doors, drawings, terrain and fog (the last 40 steps per map).
+  ***Annulla** (pulsante o Ctrl+Z) per le proprie modifiche: segnalini, porte, disegni, terreno e nebbia (gli ultimi 40 passi per mappa).*
+- **Monster drawer**: monsters gathered from the search with their numbers, placed together in the middle of the view (hidden if needed) or saved as campaign groups (e.g. "Goblin patrol").
+  ***Cassetto mostri**: mostri raccolti dalla ricerca con le quantità, piazzati insieme al centro della vista (anche nascosti) o salvati come gruppi della campagna (es. "Pattuglia goblin").*
+- Preview as the players see the map, players' tokens blocked, turn reset, encounters started from the map.
+  *Anteprima come la vedono i giocatori, blocco dei giocatori, azzeramento del turno, incontri avviati dalla mappa.*
 
 ---
 
@@ -137,6 +198,9 @@ In development the API applies pending migrations and synchronizes the base cont
 *In sviluppo l'API applica le migrazioni in sospeso e sincronizza i contenuti Base all'avvio.*
 
 ## ☁️ Deployment / Pubblicazione
+
+**Self-hosting**: [`deploy/steam-machine`](deploy/steam-machine/README.md) runs API and database on a home machine (rootless Podman with Quadlet, Cloudflare Tunnel, automatic image updates, nightly encrypted backups, a desktop control panel); the site stays on Cloudflare Pages.
+***Self-hosting**: `deploy/steam-machine` fa girare API e database su una macchina di casa (Podman senza root con Quadlet, Cloudflare Tunnel, aggiornamento automatico dell'immagine, backup notturni cifrati, pannello di controllo sul desktop); il sito resta su Cloudflare Pages.*
 
 Free setup: API on [Render](https://render.com) (Docker, `render.yaml`), database on [Neon](https://neon.com), client on [Cloudflare Pages](https://pages.cloudflare.com). Every push to `release` redeploys API and client.
 *Configurazione gratuita: API su Render, database su Neon, client su Cloudflare Pages. Ogni push su `release` ripubblica API e client.*
@@ -238,9 +302,9 @@ Every push and pull request runs four jobs · *Ogni push e pull request esegue q
 | Job | Checks · *Verifica* |
 |---|---|
 | `build` | Build without warnings + unit tests · *Compilazione senza warning + test* |
-| `database` | Migrations on PostgreSQL 17, data preservation, base content seeding and re-sync, auth and ownership rules (401/403/204), e-mail confirmation, password reset, visibility, character rules and derived values · *Migrazioni, conservazione dei dati, seeding, regole di accesso, conferma email, reset password, visibilità, regole e valori derivati dei personaggi* |
+| `database` | Migrations on PostgreSQL 17, data preservation, base content seeding and re-sync, auth and ownership rules (401/403/204), e-mail confirmation, password reset, visibility, character rules and derived values, passkeys, campaigns, encounters and the rules of the virtual tabletop (turns, attacks, saves, vision, undo, floors) · *Migrazioni, conservazione dei dati, seeding, regole di accesso, conferma email, reset password, visibilità, regole e valori derivati dei personaggi, passkey, campagne, incontri e regole del tavolo virtuale (turni, attacchi, tiri salvezza, visione, annulla, piani)* |
 | `container` | API image run as on Render (Production, PORT, Neon-style URL, migrations, /health, keys kept across restarts, e-mail through a mock Brevo API, encrypted backup and restore) and client publish · *Immagine dell'API eseguita come su Render e pubblicazione del client* |
-| `ui` | Headless browser: dashboard, registration and e-mail confirmation across tabs, password change and recovery, search and filters, modal layout, Base content rendering, character wizard, sheet, PDF and level up, phone layout at 375 px, language switch · *Browser headless: dashboard, creazione guidata, scheda, PDF e avanzamento del personaggio, layout a 375 px, registrazione e conferma email tra schede, cambio e recupero password, ricerca e filtri, layout dei modali, contenuti Base, cambio lingua* |
+| `ui` | Headless browser: dashboard, registration and e-mail confirmation across tabs, password change and recovery, search and filters, modal layout, Base content rendering, character wizard, sheet, PDF and level up, phone layout at 375 px, language switch, virtual tabletop · *Browser headless: tavolo virtuale, dashboard, creazione guidata, scheda, PDF e avanzamento del personaggio, layout a 375 px, registrazione e conferma email tra schede, cambio e recupero password, ricerca e filtri, layout dei modali, contenuti Base, cambio lingua* |
 
 ```bash
 dotnet test RealmForge/RealmForge.slnx
@@ -261,7 +325,16 @@ dotnet test RealmForge/RealmForge.slnx
 - [x] Equipment · *Equipaggiamento*
 - [x] Rules glossary and conditions, linked in the texts · *Glossario delle regole e condizioni, collegati nei testi*
 - [x] Character wizard, interactive sheet, multiclassing, level up and PDF · *Creazione guidata, scheda interattiva, multiclasse, avanzamento e PDF*
-- [ ] Campaigns and sessions · *Campagne e sessioni*
+- [x] Monsters, NPCs and magic items · *Mostri, PNG e oggetti magici*
+- [x] Campaigns, sessions, encounters and shared roll log · *Campagne, sessioni, incontri e registro dei tiri condiviso*
+- [x] Virtual tabletop: maps, fog, objects, initiative and turns · *Tavolo virtuale: mappe, nebbia, oggetti, iniziativa e turni*
+- [x] Advanced combat: saves, Metamagic, damage defenses, Ready, grapples, auras, summons and mounts · *Combattimento avanzato: tiri salvezza, Metamagia, difese ai danni, Preparare, lotta, aure, evocazioni e cavalcature*
+- [x] Dynamic vision with lights and darkvision · *Visione dinamica con luci e scurovisione*
+- [x] Master tools: undo, monster drawer and groups, floors, stairs and portals · *Strumenti del master: annulla, cassetto e gruppi di mostri, piani, scale e portali*
+- [ ] Table stability: connection indicator · *Stabilità del tavolo: indicatore di connessione*
+- [ ] Session log export · *Esportazione del registro di sessione*
+- [ ] Pinned items in the sidebar · *Elementi fissati nella barra laterale*
+- [ ] Homebrew automation builder · *Costruttore di automazioni Homebrew*
 
 ## 📄 License / Licenza
 
