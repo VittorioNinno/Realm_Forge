@@ -3366,6 +3366,64 @@ else
         </section>
     };
 
+    //	The monster drawer: what was gathered from the search (how many of each), placed in one go or kept as a group
+    private RenderFragment MonsterDrawer => __builder =>
+    {
+        <div class="rf-vtt-drawer" data-test="map-drawer">
+            <span class="rf-vtt-label"><Icon Name="inbox" /> @UiText.VttMonsterDrawer(Lang)</span>
+            @if (drawer.Count == 0)
+            {
+                <span class="rf-vtt-options-hint">@UiText.VttDrawerHint(Lang)</span>
+            }
+            else
+            {
+                @foreach (var e in drawer)
+                {
+                    var entry = e;
+                    <div class="rf-vtt-drawer-row" data-test="map-drawer-row">
+                        <span class="rf-vtt-drawer-name">@entry.Name</span>
+                        <button type="button" class="rf-vtt-drawer-step" aria-label="−1" @onclick="() => CountInDrawer(entry, -1)" data-test="map-drawer-less"><Icon Name="dash" /></button>
+                        <strong class="rf-vtt-drawer-count" data-test="map-drawer-count">@entry.Count</strong>
+                        <button type="button" class="rf-vtt-drawer-step" aria-label="+1" disabled="@(entry.Count >= MonsterGroups.MaxCount)" @onclick="() => CountInDrawer(entry, 1)" data-test="map-drawer-more"><Icon Name="plus" /></button>
+                    </div>
+                }
+                <label class="rf-checkbox-wrapper small mb-0">
+                    <input type="checkbox" class="rf-checkbox" @bind="drawerHidden" data-test="map-drawer-hidden" />
+                    <span>@UiText.VttDrawerHidden(Lang)</span>
+                </label>
+                <div class="d-flex gap-2 flex-wrap">
+                    <button type="button" class="btn btn-sm btn-rf-primary" disabled="@busy" @onclick="PlaceDrawerAsync" data-test="map-drawer-place"><Icon Name="geo-alt" /> @UiText.VttDrawerPlace(drawer.Sum(d => d.Count), Lang)</button>
+                    <button type="button" class="btn btn-sm btn-rf-outline" @onclick="() => drawer.Clear()" data-test="map-drawer-clear">@UiText.VttDrawerClear(Lang)</button>
+                </div>
+                <div class="d-flex gap-2">
+                    <input class="rf-form-control" maxlength="80" placeholder="@UiText.VttGroupName(Lang)" aria-label="@UiText.VttGroupName(Lang)" @bind="groupName" @bind:event="oninput" data-test="map-group-name" />
+                    <button type="button" class="btn btn-sm btn-rf-outline" disabled="@(busy || string.IsNullOrWhiteSpace(groupName))" @onclick="SaveGroupAsync" data-test="map-group-save"><Icon Name="bookmark" /> @UiText.VttGroupSave(Lang)</button>
+                </div>
+            }
+            @if (monsterGroups is null)
+            {
+                <button type="button" class="rf-vtt-row-action align-self-start" @onclick="LoadGroupsAsync" data-test="map-groups-load">@UiText.VttGroupsShow(Lang)</button>
+            }
+            else if (monsterGroups.Count > 0)
+            {
+                <span class="rf-vtt-label">@UiText.VttGroups(Lang)</span>
+                @foreach (var g in monsterGroups)
+                {
+                    var group = g;
+                    <div class="rf-vtt-row" data-test="map-group-row">
+                        <span class="rf-vtt-row-info">
+                            <strong>@group.Name</strong>
+                            <span>@GroupLine(group)</span>
+                        </span>
+                        <button type="button" class="rf-vtt-row-action" disabled="@busy" title="@UiText.VttGroupPlace(Lang)" aria-label="@UiText.VttGroupPlace(Lang)" @onclick="() => PlaceAsync(group.Entries)" data-test="map-group-place"><Icon Name="geo-alt" /></button>
+                        <button type="button" class="rf-vtt-row-action" title="@UiText.VttGroupEdit(Lang)" aria-label="@UiText.VttGroupEdit(Lang)" @onclick="() => LoadGroup(group)" data-test="map-group-edit"><Icon Name="pencil" /></button>
+                        <button type="button" class="rf-vtt-row-action" disabled="@busy" title="@UiText.VttGroupDelete(Lang)" aria-label="@UiText.VttGroupDelete(Lang)" @onclick="() => DeleteGroupAsync(group)" data-test="map-group-delete"><Icon Name="trash" /></button>
+                    </div>
+                }
+            }
+        </div>
+    };
+
     private RenderFragment AddTokens => __builder =>
     {
         <section class="rf-vtt-box" data-test="map-add-tokens">
@@ -3388,13 +3446,17 @@ else
                         @foreach (var m in monsterResults)
                         {
                             var monster = m;
-                            <button type="button" class="rf-forge-selector-option" @onclick="() => AddMonsterAsync(monster)" data-test="map-monster-result">
-                                @monster.Name <span class="small" style="color: var(--rf-text-muted);">· @UiText.MonsterChallengeShort(Lang) @RealmForge.Shared.Monsters.MonsterMath.FormatChallenge(monster.ChallengeRating)</span>
-                            </button>
+                            <div class="rf-vtt-drawer-result">
+                                <button type="button" class="rf-forge-selector-option" @onclick="() => AddMonsterAsync(monster)" data-test="map-monster-result">
+                                    @monster.Name <span class="small" style="color: var(--rf-text-muted);">· @UiText.MonsterChallengeShort(Lang) @RealmForge.Shared.Monsters.MonsterMath.FormatChallenge(monster.ChallengeRating)</span>
+                                </button>
+                                <button type="button" class="rf-vtt-drawer-add" title="@UiText.VttDrawerAdd(Lang)" aria-label="@UiText.VttDrawerAdd(Lang)" @onclick="() => AddToDrawer(monster)" data-test="map-monster-drawer-add"><Icon Name="inbox" /></button>
+                            </div>
                         }
                     </div>
                 }
             </div>
+            @MonsterDrawer
             <div class="d-flex gap-2">
                 <input class="rf-form-control" maxlength="100" placeholder="@UiText.MapMarkerHint(Lang)" @bind="markerLabel" data-test="map-marker-label" />
                 <input type="color" class="rf-vtt-color" @bind="markerColor" aria-label="@UiText.MapColor(Lang)" />

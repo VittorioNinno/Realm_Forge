@@ -424,6 +424,18 @@ namespace RealmForge.Client.Services
 		public Task<CampaignResult> SaveTokenVisionAsync(Guid id, Guid mapId, Guid tokenId, SaveTokenVisionDto dto) =>
 			SendAsync(() => _http.PutAsJsonAsync($"api/campaigns/{id}/maps/{mapId}/tokens/{tokenId}/vision", dto), "save token vision");
 
+		public Task<List<MonsterGroupDto>?> GetMonsterGroupsAsync(Guid id, LanguageCode lang) =>
+			GetAsync<List<MonsterGroupDto>>($"api/campaigns/{id}/maps/groups?lang={(int)lang}");
+
+		public Task<(MonsterGroupDto? Value, string? Error)> SaveMonsterGroupAsync(Guid id, SaveMonsterGroupDto dto, LanguageCode lang) =>
+			TableAsync<MonsterGroupDto>(() => _http.PostAsJsonAsync($"api/campaigns/{id}/maps/groups?lang={(int)lang}", dto), "save monster group");
+
+		public Task<CampaignResult> DeleteMonsterGroupAsync(Guid id, Guid groupId) =>
+			SendAsync(() => _http.DeleteAsync($"api/campaigns/{id}/maps/groups/{groupId}"), "delete monster group");
+
+		public Task<(List<MapTokenDto>? Value, string? Error)> PlaceMonstersAsync(Guid id, Guid mapId, PlaceMonstersDto dto, LanguageCode lang) =>
+			TableAsync<List<MapTokenDto>>(() => _http.PostAsJsonAsync($"api/campaigns/{id}/maps/{mapId}/tokens/monsters?lang={(int)lang}", dto), "place monsters");
+
 		public Task<(MapUndoDto? Value, string? Error)> UndoAsync(Guid id, Guid mapId) =>
 			TableAsync<MapUndoDto>(() => _http.PostAsync($"api/campaigns/{id}/maps/{mapId}/undo", null), "undo");
 
