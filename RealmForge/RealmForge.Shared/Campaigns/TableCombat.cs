@@ -418,6 +418,12 @@ public sealed class TokenGear
 	//	An aura that moves with the token (Spirit Guardians, a paladin's aura): kept with what it carries
 	public TokenAura? Aura { get; set; }
 
+	//	A creature called by another token (a familiar, a summon, a companion): whoever controls that one controls it
+	public Guid? SummonedBy { get; set; }
+
+	//	The token it rides: it moves with its mount
+	public Guid? MountedOn { get; set; }
+
 	public bool IsEmpty => Items.Count == 0 && Disarmed.Count == 0 && Coins == 0;
 
 	public const int MaxItems = 40;
