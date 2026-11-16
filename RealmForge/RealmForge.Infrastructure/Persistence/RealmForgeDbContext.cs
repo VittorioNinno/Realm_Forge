@@ -487,6 +487,7 @@ namespace RealmForge.Infrastructure.Persistence
 				entity.Property(c => c.Name).IsRequired().HasMaxLength(100);
 				entity.Property(c => c.Build).IsRequired().HasColumnType("jsonb");
 				entity.Property(c => c.Sheet).IsRequired().HasColumnType("jsonb");
+				entity.Property(c => c.Defenses).HasMaxLength(200);
 
 				entity.HasIndex(c => c.OwnerId);
 

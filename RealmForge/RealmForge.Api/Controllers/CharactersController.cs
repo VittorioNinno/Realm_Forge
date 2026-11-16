@@ -15,6 +15,7 @@ using RealmForge.Shared.Campaigns;
 using RealmForge.Shared.Characters;
 using RealmForge.Shared.DTOs;
 using RealmForge.Shared.Enums;
+using RealmForge.Shared.Rules;
 
 namespace RealmForge.Api.Controllers
 {
@@ -407,6 +408,7 @@ namespace RealmForge.Api.Controllers
 			character.Sheet = JsonSerializer.Serialize(sheet, Json);
 			character.MaxHitPoints = computed.MaxHitPoints;
 			character.ArmorClass = computed.ArmorClass;
+			character.Defenses = DamageDefenses.Write(computed.Resistances, computed.Immunities);
 			character.UpdatedAt = DateTimeOffset.UtcNow;
 			character.UpdatedById = UserId;
 			await _context.SaveChangesAsync();
@@ -476,6 +478,7 @@ namespace RealmForge.Api.Controllers
 			character.Sheet = JsonSerializer.Serialize(sheet, Json);
 			character.MaxHitPoints = computed.MaxHitPoints;
 			character.ArmorClass = computed.ArmorClass;
+			character.Defenses = DamageDefenses.Write(computed.Resistances, computed.Immunities);
 			character.UpdatedAt = DateTimeOffset.UtcNow;
 		}
 
