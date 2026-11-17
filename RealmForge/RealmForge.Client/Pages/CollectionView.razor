@@ -1,0 +1,131 @@
+﻿@page "/collections/{Code}"
+@using RealmForge.Client.Localization
+@using RealmForge.Client.Services
+@using RealmForge.Shared.Campaigns
+@using RealmForge.Shared.DTOs
+@using RealmForge.Shared.Enums
+@inject TransferDataService Transfer
+@inject CampaignDataService Campaigns
+@inject CharacterDataService Characters
+@inject LanguageStateService LanguageState
+
+<PageTitle>RealmForge - @(collection?.Name ?? UiText.CollectionsTitle(Lang))</PageTitle>
+
+@* A collection of Homebrew behind its link: the entries, added all at once to the reader's collection or switched on
+   as a block in one of their campaigns *@
+<div class="container-fluid px-0 py-4" style="max-width: 960px;" data-test="collection-page">
+    <AuthorizeView>
+        <Authorized>
+            @if (loading)
+            {
+                <div class="small" style="color: var(--rf-text-muted);">…</div>
+            }
+            else if (collection is null)
+            {
+                <div class="rf-account-card text-center" data-test="collection-missing">@UiText.CollectionNotFound(Lang)</div>
+            }
+            else
+            {
+                <div class="mb-4 pb-3" style="border-bottom: 2px solid var(--rf-orange-primary);">
+                    <h1 class="h3 fw-bold mb-2 rf-page-title" data-test="collection-title">@collection.Name</h1>
+                    <p class="mb-0 small" style="color: var(--rf-text-muted); letter-spacing: 1px; text-transform: uppercase;">
+                        @UiText.CollectionBy(collection.Author, Lang) · @UiText.CollectionEntries(collection.Entries.Count, Lang)
+                    </p>
+                </div>
+                @if (!string.IsNullOrWhiteSpace(collection.Description))
+                {
+                    <p style="white-space: pre-line;">@collection.Description</p>
+                }
+                @if (message is not null)
+                {
+                    <div class="rf-trash-message @(messageOk ? "ok" : "error") mb-3" role="status" data-test="collection-page-message">
+                        <Icon Name="@(messageOk ? "check" : "close")" />
+                        <span>@message</span>
+                    </div>
+                }
+                <div class="rf-collection-actions mb-4">
+                    @if (!collection.IsMine)
+                    {
+                        <button type="button" class="btn btn-rf-orange" disabled="@busy" @onclick="CollectAsync" data-test="collection-collect"><Icon Name="collection" /> @UiText.CollectionCollect(Lang)</button>
+                    }
+                    @if (campaigns is { Count: > 0 })
+                    {
+                        <span class="rf-collection-enable">
+                            <label class="small" for="collection-campaign">@UiText.CollectionEnableIn(Lang)</label>
+                            <select id="collection-campaign" class="rf-form-control" @bind="campaignId" data-test="collection-campaign">
+                                @foreach (var c in campaigns)
+                                {
+                                    <option value="@c.Id">@c.Name</option>
+                                }
+                            </select>
+                            <button type="button" class="btn btn-rf-outline" disabled="@busy" @onclick="EnableAsync" data-test="collection-enable">@UiText.CollectionEnable(Lang)</button>
+                        </span>
+                    }
+                </div>
+                @foreach (var group in collection.Entries.GroupBy(e => e.Kind))
+                {
+                    <h2 class="rf-homebrew-kind">@UiText.TrashKind(group.Key, Lang) <span>@group.Count()</span></h2>
+                    <div class="rf-homebrew-list">
+                        @foreach (var e in group)
+                        {
+                            <div class="rf-homebrew-row" data-test="collection-entry">
+                                <a href="@e.Link" class="rf-homebrew-name">@e.Name</a>
+                                <span class="rf-homebrew-tags"><span class="rf-homebrew-tag">@(e.Ruleset == RulesetVersion.Dnd5e_2014 ? "2014" : "2024")</span></span>
+                            </div>
+                        }
+                    </div>
+                }
+            }
+        </Authorized>
+        <NotAuthorized>
+            <div class="rf-account-card text-center">@UiText.TransferSignIn(Lang)</div>
+        </NotAuthorized>
+    </AuthorizeView>
+</div>
+
+@code {
+    [Parameter] public string Code { get; set; } = string.Empty;
+
+    private ContentCollectionDto? collection;
+    private List<CampaignSummaryDto>? campaigns;
+    private string campaignId = string.Empty;
+    private bool loading = true;
+    private bool busy;
+    private string? message;
+    private bool messageOk;
+
+    private LanguageCode Lang => LanguageState.CurrentLanguage;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        loading = true;
+        collection = (await Transfer.CollectionAsync(Code, Lang)).Value;
+        campaigns = await Campaigns.GetCampaignsAsync();
+        campaignId = campaigns?.FirstOrDefault()?.Id.ToString() ?? string.Empty;
+        loading = false;
+    }
+
+    private async Task CollectAsync()
+    {
+        busy = true;
+        var result = await Transfer.CollectAllAsync(Code);
+        busy = false;
+        (message, messageOk) = result.Title is null ? (UiText.CollectionCollected(result.Value, Lang), true) : (UiText.CollectionFailed(result.Title, Lang), false);
+        Characters.InvalidateContexts();
+    }
+
+    private async Task EnableAsync()
+    {
+        if (!Guid.TryParse(campaignId, out var id))
+        {
+            return;
+        }
+        busy = true;
+        var result = await Transfer.EnableCollectionAsync(id, Code, Lang);
+        busy = false;
+        (message, messageOk) = result.Value is { } added
+            ? (UiText.CollectionEnabled(added.Name, added.Added, added.Skipped, added.Status == CampaignContentStatus.Pending, Lang), true)
+            : (UiText.CollectionFailed(result.Title, Lang), false);
+        Characters.InvalidateContexts();
+    }
+}

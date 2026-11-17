@@ -863,6 +863,26 @@ jobs:
           code -X DELETE "$api/api/campaigns/$cp_id/characters/$sp_ch" -H "Authorization: Bearer $A" > /dev/null
           code -X DELETE "$api/api/characters/$sp_ch" -H "Authorization: Bearer $A" > /dev/null
           code -X DELETE "$api/api/trash/$(get "$api/api/trash?lang=2" -H "Authorization: Bearer $A" | jq -r --arg id "$sp_ch" '.[] | select(.entityId == $id) | .id')" -H "Authorization: Bearer $A" > /dev/null
+          # Collections: bob gathers two private feats under one link; alice reads it and adds them all to her collection (then she reads
+          # them), bob switches the collection on in the campaign as a block and off again; only the author's own entries go in one
+          cl_f1=$(curl -sf -X POST "$api/api/feats?lang=2" $json -H "Authorization: Bearer $B" -d "$(echo "$feat" | jq -c '.visibility = 2 | .translations[0].name = "Collection One" | .translations[1].name = "Raccolta Uno"')" | jq -r .id)
+          cl_f2=$(curl -sf -X POST "$api/api/feats?lang=2" $json -H "Authorization: Bearer $B" -d "$(echo "$feat" | jq -c '.visibility = 2 | .translations[0].name = "Collection Two" | .translations[1].name = "Raccolta Due"')" | jq -r .id)
+          cl_not_mine=$(code -X POST "$api/api/collections" $json -H "Authorization: Bearer $A" -d "{\"name\":\"Rubata\",\"entityIds\":[\"$cl_f1\"]}")
+          cl=$(curl -s -X POST "$api/api/collections" $json -H "Authorization: Bearer $B" -d "{\"name\":\"Ambientazione\",\"description\":\"Due talenti\",\"entityIds\":[\"$cl_f1\",\"$cl_f2\"]}")
+          cl_id=$(echo "$cl" | jq -r .id)
+          cl_code=$(echo "$cl" | jq -r .code)
+          cl_view=$(curl -s "$api/api/collections/link/$cl_code?lang=2" -H "Authorization: Bearer $A" | jq -c '{name, author, isMine, entries: [.entries[].name] | sort}')
+          cl_before=$(code "$api/api/feats/$cl_f1" -H "Authorization: Bearer $A")
+          cl_collect=$(curl -s -X POST "$api/api/collections/link/$cl_code/collect" -H "Authorization: Bearer $A")
+          cl_after=$(code "$api/api/feats/$cl_f1" -H "Authorization: Bearer $A")
+          cl_enable=$(curl -s -X POST "$api/api/campaigns/$cp_id/collections" $json -H "Authorization: Bearer $B" -d "{\"code\":\"https://example.org/collections/$cl_code\"}" | jq -c '{name, added, skipped, status}')
+          cl_listed=$(curl -s "$api/api/campaigns/$cp_id/collections" -H "Authorization: Bearer $A" | jq -c '[.[] | {name, count, canRemove}]')
+          cl_player_off=$(code -X DELETE "$api/api/campaigns/$cp_id/collections/$cl_id" -H "Authorization: Bearer $A")
+          cl_off=$(code -X DELETE "$api/api/campaigns/$cp_id/collections/$cl_id" -H "Authorization: Bearer $B")
+          cl_left=$(get "$api/api/campaigns/$cp_id" -H "Authorization: Bearer $B" | jq --arg a "$cl_f1" --arg b "$cl_f2" '[.contents[] | select(.entityId == $a or .entityId == $b)] | length')
+          cl_delete=$(code -X DELETE "$api/api/collections/$cl_id" -H "Authorization: Bearer $B")
+          cl_gone=$(code "$api/api/collections/link/$cl_code" -H "Authorization: Bearer $A")
+          code -X DELETE "$api/api/feats/$cl_f1" -H "Authorization: Bearer $B" > /dev/null; code -X DELETE "$api/api/feats/$cl_f2" -H "Authorization: Bearer $B" > /dev/null
           # Clona e personalizza: a Base spell copied as a private Homebrew spell that says where it comes from
           fk_base=$(get "$api/api/spells?lang=2" | jq -r '[.[] | select(.isOfficialSRD == true)][0].id')
           fk=$(curl -s -X POST "$api/api/content/spell/$fk_base/fork?lang=2" -H "Authorization: Bearer $A")
@@ -939,6 +959,13 @@ jobs:
           mdcheck "clock: two days without rations" "$ck_hungry" '{"days":2,"hungry":[2]}'
           mdcheck "clock: a sheet saved from before keeps the server's inventory" "$ck_stale" '{"inventory":0}'
           mdcheck "clock: set to a time" "$ck_set" "1230"
+          mdcheck "collections: only the author's own entries" "$cl_not_mine" "400"
+          mdcheck "collections: read through the link" "$cl_view" '{"name":"Ambientazione","author":"Bob","isMine":false,"entries":["Raccolta Due","Raccolta Uno"]}'
+          mdcheck "collections: all added to the reader's collection" "$cl_before|$cl_collect|$cl_after" "404|2|200"
+          mdcheck "collections: switched on in a campaign as a block" "$cl_enable" '{"name":"Ambientazione","added":2,"skipped":0,"status":2}'
+          mdcheck "collections: listed in the campaign" "$cl_listed" '[{"name":"Ambientazione","count":2,"canRemove":false}]'
+          mdcheck "collections: switched off by the masters, as a block" "$cl_player_off|$cl_off|$cl_left" "403|204|0"
+          mdcheck "collections: deleted, the link is gone" "$cl_delete|$cl_gone" "204|404"
           mdcheck "feat effects saved" "$ef_detail" '[4,32]'
           mdcheck "feat effects in the context" "$ef_ctx" '[2]'
           mdcheck "feat effect without its skill" "$ef_bad" "Skill"

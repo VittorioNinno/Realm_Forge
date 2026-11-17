@@ -41,6 +41,32 @@ namespace RealmForge.Client.Services
 		public Task<TransferResult<HomebrewImportedDto>> ForkAsync(string kind, Guid id, LanguageCode lang) =>
 			SendAsync<HomebrewImportedDto>(() => _http.PostAsync($"api/content/{kind}/{id}/fork?lang={(int)lang}", null), "fork");
 
+		// ----- Collections of Homebrew -----
+
+		public Task<TransferResult<List<ContentCollectionSummaryDto>>> MyCollectionsAsync() =>
+			SendAsync<List<ContentCollectionSummaryDto>>(() => _http.GetAsync("api/collections"), "my collections");
+
+		public Task<TransferResult<ContentCollectionSummaryDto>> SaveCollectionAsync(Guid? id, SaveContentCollectionDto dto) =>
+			SendAsync<ContentCollectionSummaryDto>(() => id is { } existing ? _http.PutAsJsonAsync($"api/collections/{existing}", dto) : _http.PostAsJsonAsync("api/collections", dto), "save collection");
+
+		public Task<TransferResult<bool>> DeleteCollectionAsync(Guid id) =>
+			SendAsync<bool>(() => _http.DeleteAsync($"api/collections/{id}"), "delete collection");
+
+		public Task<TransferResult<ContentCollectionDto>> CollectionAsync(string code, LanguageCode lang) =>
+			SendAsync<ContentCollectionDto>(() => _http.GetAsync($"api/collections/link/{Uri.EscapeDataString(code)}?lang={(int)lang}"), "collection");
+
+		public Task<TransferResult<int>> CollectAllAsync(string code) =>
+			SendAsync<int>(() => _http.PostAsync($"api/collections/link/{Uri.EscapeDataString(code)}/collect", null), "collect");
+
+		public Task<TransferResult<List<CampaignCollectionDto>>> CampaignCollectionsAsync(Guid campaignId) =>
+			SendAsync<List<CampaignCollectionDto>>(() => _http.GetAsync($"api/campaigns/{campaignId}/collections"), "campaign collections");
+
+		public Task<TransferResult<CampaignCollectionAddedDto>> EnableCollectionAsync(Guid campaignId, string code, LanguageCode lang) =>
+			SendAsync<CampaignCollectionAddedDto>(() => _http.PostAsJsonAsync($"api/campaigns/{campaignId}/collections?lang={(int)lang}", new EnableCollectionDto { Code = code }), "enable collection");
+
+		public Task<TransferResult<bool>> DisableCollectionAsync(Guid campaignId, Guid collectionId) =>
+			SendAsync<bool>(() => _http.DeleteAsync($"api/campaigns/{campaignId}/collections/{collectionId}"), "disable collection");
+
 		//	The entry this one was cloned from (none: no answer)
 		public async Task<TransferResult<ContentOriginDto>> OriginAsync(string kind, Guid id, LanguageCode lang)
 		{
@@ -62,6 +88,11 @@ namespace RealmForge.Client.Services
 			try
 			{
 				var response = await send();
+				if (response.StatusCode == System.Net.HttpStatusCode.NoContent)
+				{
+					//	Done, nothing to read (a true for the calls that only say so)
+					return new TransferResult<T>(typeof(T) == typeof(bool) ? (T)(object)true : default, null, null);
+				}
 				if (response.IsSuccessStatusCode)
 				{
 					return new TransferResult<T>(await response.Content.ReadFromJsonAsync<T>(), null, null);

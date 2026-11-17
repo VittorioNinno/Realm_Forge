@@ -443,6 +443,9 @@ namespace RealmForge.Domain.Entities
 		public string SharedById { get; set; } = string.Empty;
 		public CampaignContentStatus Status { get; set; } = CampaignContentStatus.Pending;
 		public string? ReviewedById { get; set; }
+
+		//	Switched on with a collection of Homebrew (switched off with it as a block)
+		public Guid? CollectionId { get; set; }
 		public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
 	}
 }
