@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="it">
 
 <head>
@@ -210,6 +210,63 @@
                         window.removeEventListener('offline', tell);
                         watched.delete(ref._id);
                     }
+                }
+            };
+        })();
+
+        // The soundboard of the table: one track (music, ambience) in a loop, kept in time with the master's start, and
+        // one-shot effects; the browser plays only after a gesture on the page (unlock), the volume is the reader's
+        window.rfSound = (() => {
+            let track = null, trackKey = null, unlocked = false, volume = 1;
+            try { const v = parseFloat(localStorage.getItem('rf-sound-volume')); if (!isNaN(v)) volume = Math.min(1, Math.max(0, v)); } catch { }
+            const level = (v) => Math.min(1, Math.max(0, (v / 100) * volume));
+            return {
+                unlocked: () => unlocked,
+                unlock() {
+                    unlocked = true;
+                    if (track) track.play().catch(() => { });
+                    return true;
+                },
+                volume: () => volume,
+                setVolume(v) {
+                    volume = Math.min(1, Math.max(0, v));
+                    try { localStorage.setItem('rf-sound-volume', String(volume)); } catch { }
+                    if (track) track.volume = level(track._rfVolume);
+                },
+                // The track of the table: the same key keeps playing (only the volume follows), a new one starts at its offset
+                track(key, url, trackVolume, offsetSeconds) {
+                    if (!url) {
+                        if (track) { track.pause(); track.src = ''; }
+                        track = null; trackKey = null;
+                        return;
+                    }
+                    if (key === trackKey && track) {
+                        track._rfVolume = trackVolume;
+                        track.volume = level(trackVolume);
+                        return;
+                    }
+                    if (track) { track.pause(); track.src = ''; }
+                    trackKey = key;
+                    track = new Audio(url);
+                    track.loop = true;
+                    track._rfVolume = trackVolume;
+                    track.volume = level(trackVolume);
+                    track.addEventListener('loadedmetadata', () => {
+                        if (isFinite(track.duration) && track.duration > 0 && offsetSeconds > 0) {
+                            try { track.currentTime = offsetSeconds % track.duration; } catch { }
+                        }
+                    }, { once: true });
+                    if (unlocked) track.play().catch(() => { });
+                },
+                cue(url, cueVolume) {
+                    if (!url || !unlocked) return;
+                    const a = new Audio(url);
+                    a.volume = level(cueVolume);
+                    a.play().catch(() => { });
+                },
+                stopAll() {
+                    if (track) { track.pause(); track.src = ''; }
+                    track = null; trackKey = null;
                 }
             };
         })();

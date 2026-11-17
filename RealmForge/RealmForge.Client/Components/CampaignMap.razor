@@ -40,6 +40,15 @@
                 </div>
             }
             <div class="rf-vtt-top-actions">
+                @if (SoundWaiting)
+                {
+                    <button type="button" class="rf-vtt-clock rf-vtt-sound-unlock" @onclick="UnlockSoundAsync" data-test="vtt-sound-unlock"><Icon Name="volume-up" /> <span>@UiText.SoundUnlock(Lang)</span></button>
+                }
+                else if (soundUnlocked && tableSound is not null)
+                {
+                    <button type="button" class="rf-vtt-clock" title="@(soundMuted ? UiText.SoundUnmute(Lang) : UiText.SoundMute(Lang))" aria-label="@(soundMuted ? UiText.SoundUnmute(Lang) : UiText.SoundMute(Lang))"
+                            aria-pressed="@(soundMuted ? "true" : "false")" @onclick="ToggleMuteAsync" data-test="vtt-sound-mute"><Icon Name="@(soundMuted ? "volume-mute" : "volume-up")" /></button>
+                }
                 @if (gameClock is { } clockNow)
                 {
                     @if (RunsTheTable)
@@ -105,6 +114,7 @@
                     <span class="rf-vtt-tools-sep"></span>
                     <button type="button" class="rf-vtt-tool @(panel == "tokens" ? "active" : null)" title="@UiText.VttToolTokens(Lang)" aria-label="@UiText.VttToolTokens(Lang)" @onclick="@(() => TogglePanel("tokens"))" data-test="vtt-tool-tokens"><Icon Name="people" /></button>
                     <button type="button" class="rf-vtt-tool @(panel == "handouts" ? "active" : null)" title="@UiText.VttToolHandouts(Lang)" aria-label="@UiText.VttToolHandouts(Lang)" @onclick="@(() => TogglePanel("handouts"))" data-test="vtt-tool-handouts"><Icon Name="file-text" /></button>
+                    <button type="button" class="rf-vtt-tool @(panel == "sounds" ? "active" : null)" title="@UiText.VttToolSounds(Lang)" aria-label="@UiText.VttToolSounds(Lang)" @onclick="@(() => TogglePanel("sounds"))" data-test="vtt-tool-sounds"><Icon Name="music-note-beamed" /></button>
                 }
                 <span class="rf-vtt-tools-sep"></span>
                 <button type="button" class="rf-vtt-tool" title="@UiText.VttFullscreen(Lang)" aria-label="@UiText.VttFullscreen(Lang)" @onclick="FullscreenAsync" data-test="vtt-fullscreen"><Icon Name="fullscreen" /></button>
@@ -211,6 +221,9 @@
                                 @OnMapList
                                 @AddTokens
                             }
+                            break;
+                        case "sounds" when RunsTheTable:
+                            <CampaignSoundboard CampaignId="CampaignId" OnChanged="RefreshAsync" />
                             break;
                         case "clock" when RunsTheTable:
                             <CampaignClock CampaignId="CampaignId" Role="Role" Compact="true" OnMoved="m => gameClock = m" />
@@ -5355,6 +5368,7 @@ else
         _ = ShowSceneAsync(table.Scene);
         _ = ShowHandoutAsync(table.Handout);
         gameClock = table.Clock;
+        _ = ApplySoundAsync(table.Sound);
         undoLeft = table.Undo;
         saveCalls = table.Saves ?? new();
         playersLocked = table.PlayersLocked;
@@ -6095,6 +6109,7 @@ else
     public async ValueTask DisposeAsync()
     {
         stop?.Cancel();
+        await StopSoundAsync();
         Live.Changed -= OnLiveChanged;
         await UnwatchNetworkAsync();
         try
