@@ -168,6 +168,17 @@ public sealed class CharacterSheetState
 	//	stamp keeps the values of the encounter (see SheetVitals)
 	public int VitalsStamp { get; set; }
 
+	//	Raised each time the inventory or the purse change on the server (a purchase in a shop, the rations of a journey,
+	//	loot): a sheet saved from an older stamp keeps the server's inventory and purse
+	public int StoreStamp { get; set; }
+
+	//	Spells and effects that last on the clock of a campaign (8 hours of Mage Armor): they end when a master moves the
+	//	time of the campaign past them
+	public List<TimedEffect> TimedEffects { get; set; } = new();
+
+	//	Ammunition shot since the last time it was picked up (half of it can be recovered after the fight)
+	public List<SpentAmmunition> SpentAmmunition { get; set; } = new();
+
 	//	Spent spell slots per spell level (index 0 = level 1) and spent Pact Magic slots
 	public List<int> SpentSlots { get; set; } = new();
 	public int SpentPactSlots { get; set; }
@@ -322,6 +333,28 @@ public sealed class MagicItemSpell
 	public int Charges { get; set; }
 	public int? Level { get; set; }
 	public int? SaveDc { get; set; }
+}
+
+///	<summary>
+///	An effect on the clock of a campaign: it lasts until the game minute Until of that campaign.
+///	</summary>
+public sealed class TimedEffect
+{
+	public Guid Id { get; set; } = Guid.NewGuid();
+	public string Name { get; set; } = string.Empty;
+	public Guid? SpellId { get; set; }
+	public Guid CampaignId { get; set; }
+	public long Until { get; set; }
+}
+
+///	<summary>
+///	Pieces of one ammunition shot since the last recovery: the compendium item, or a free entry by its name.
+///	</summary>
+public sealed class SpentAmmunition
+{
+	public Guid? EquipmentId { get; set; }
+	public string? Name { get; set; }
+	public int Count { get; set; }
 }
 
 public sealed class CoinPurse

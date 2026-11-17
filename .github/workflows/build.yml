@@ -843,6 +843,20 @@ jobs:
           sp_inventory=$(get "$api/api/characters/$ch_id" -H "Authorization: Bearer $A" | jq -c --arg l "$longsword" '.sheet | {sword: ([.inventory[] | select(.equipmentId == $l)] | length > 0), map: [.inventory[] | select(.name == "Mappa del tesoro") | .quantity], gp: .coins.gp}')
           sp_player_delete=$(code -X DELETE "$api/api/campaigns/$cp_id/shops/$sp" -H "Authorization: Bearer $A")
           sp_delete=$(code -X DELETE "$api/api/campaigns/$cp_id/shops/$sp" -H "Authorization: Bearer $B")
+          # The clock: a master moves the time on; an effect on the sheet ends when the time passes it, the days of travel eat a ration a day,
+          # and a sheet saved from before keeps the inventory of the server
+          ck_start=$(curl -s "$api/api/campaigns/$cp_id/clock" -H "Authorization: Bearer $A" | jq -c '{minutes, effects: (.effects | length)}')
+          ck_sheet=$(get "$api/api/characters/$ch_id" -H "Authorization: Bearer $A" | jq -c --arg c "$cp_id" '.sheet | .timedEffects = [{name: "Armatura magica", campaignId: $c, until: 540}] | .inventory = [{name: "Razioni", quantity: 1}]')
+          code -X PUT "$api/api/characters/$ch_id/sheet" $json -H "Authorization: Bearer $A" -d "$ck_sheet" > /dev/null
+          ck_effects=$(curl -s "$api/api/campaigns/$cp_id/clock" -H "Authorization: Bearer $A" | jq -c '[.effects[] | {name, until}]')
+          ck_player=$(code -X POST "$api/api/campaigns/$cp_id/clock" $json -H "Authorization: Bearer $A" -d '{"minutes":60}')
+          ck_bad=$(code -X POST "$api/api/campaigns/$cp_id/clock" $json -H "Authorization: Bearer $B" -d '{"minutes":0}')
+          ck_hour=$(curl -s -X POST "$api/api/campaigns/$cp_id/clock" $json -H "Authorization: Bearer $B" -d '{"minutes":60}' | jq -c '{minutes, expired: [.expired[].name]}')
+          ck_ended=$(get "$api/api/characters/$ch_id" -H "Authorization: Bearer $A" | jq '.sheet.timedEffects | length')
+          ck_day=$(curl -s -X POST "$api/api/campaigns/$cp_id/clock" $json -H "Authorization: Bearer $B" -d '{"minutes":1440,"rations":true}' | jq -c '{minutes, days, hungry: [.hungry[].days]}')
+          ck_hungry=$(curl -s -X POST "$api/api/campaigns/$cp_id/clock" $json -H "Authorization: Bearer $B" -d '{"minutes":2880,"rations":true}' | jq -c '{days, hungry: [.hungry[].days]}')
+          ck_stale=$(curl -s -X PUT "$api/api/characters/$ch_id/sheet" $json -H "Authorization: Bearer $A" -d "$ck_sheet" | jq -c '{inventory: (.vitals.inventory | length)}')
+          ck_set=$(curl -s -X POST "$api/api/campaigns/$cp_id/clock" $json -H "Authorization: Bearer $B" -d '{"set":1230}' | jq .minutes)
           # Clona e personalizza: a Base spell copied as a private Homebrew spell that says where it comes from
           fk_base=$(get "$api/api/spells?lang=2" | jq -r '[.[] | select(.isOfficialSRD == true)][0].id')
           fk=$(curl -s -X POST "$api/api/content/spell/$fk_base/fork?lang=2" -H "Authorization: Bearer $A")
@@ -911,6 +925,14 @@ jobs:
           mdcheck "shops: change in smaller coins" "$sp_change" '{"paid":6,"gp":9,"sp":9,"cp":4}'
           mdcheck "shops: in the inventory" "$sp_inventory" '{"sword":true,"map":[3],"gp":9}'
           mdcheck "shops: deleted by the masters only" "$sp_player_delete|$sp_delete" "403|204"
+          mdcheck "clock: a new campaign starts at 08:00 of day 1" "$ck_start" '{"minutes":480,"effects":0}'
+          mdcheck "clock: the effects of the sheets" "$ck_effects" '[{"name":"Armatura magica","until":540}]'
+          mdcheck "clock: only masters move it" "$ck_player|$ck_bad" "403|400"
+          mdcheck "clock: an hour on, the effect ends" "$ck_hour|$ck_ended" '{"minutes":540,"expired":["Armatura magica"]}|0'
+          mdcheck "clock: a day of travel eats a ration" "$ck_day" '{"minutes":1980,"days":1,"hungry":[]}'
+          mdcheck "clock: two days without rations" "$ck_hungry" '{"days":2,"hungry":[2]}'
+          mdcheck "clock: a sheet saved from before keeps the server's inventory" "$ck_stale" '{"inventory":0}'
+          mdcheck "clock: set to a time" "$ck_set" "1230"
           mdcheck "feat effects saved" "$ef_detail" '[4,32]'
           mdcheck "feat effects in the context" "$ef_ctx" '[2]'
           mdcheck "feat effect without its skill" "$ef_bad" "Skill"
@@ -1441,6 +1463,7 @@ jobs:
           ho_en=$(curl -s "$api/api/campaigns/$ss_cp/handouts?lang=1" -H "Authorization: Bearer $A" | jq -c '[.[] | {title, body, both: (.titleIt != null)}]')
           ho_it=$(curl -s "$api/api/campaigns/$ss_cp/handouts/$ho?lang=2" -H "Authorization: Bearer $A" | jq -r .title)
           ho_table=$(curl -s "$api/api/campaigns/$ss_cp/maps/$mp2/state" -H "Authorization: Bearer $A" | jq -c --arg h "$ho" '.table.handout.id == $h')
+          ck_table=$(curl -s "$api/api/campaigns/$ss_cp/maps/$mp2/state" -H "Authorization: Bearer $A" | jq .table.clock)
           ho_master=$(curl -s "$api/api/campaigns/$ss_cp/handouts" -H "Authorization: Bearer $B" | jq -c '[.[] | {titleIt, titleEn}]')
           # Theater of the mind: the handout in place of the map for the whole table, then back to the map
           sc_player=$(code -X POST "$api/api/campaigns/$ss_cp/handouts/$ho/scene" -H "Authorization: Bearer $A")
@@ -1693,6 +1716,7 @@ jobs:
           sscheck "handouts: read in English" "$ho_en" '[{"title":"Letter","body":"Meet me at the tower.","both":false}]'
           sscheck "handouts: read in Italian" "$ho_it" "Lettera"
           sscheck "handouts: the table opens it" "$ho_table" "true"
+          sscheck "clock: the table shows the time of the campaign" "$ck_table" "480"
           sscheck "handouts: the master has both languages" "$ho_master" '[{"titleIt":"Lettera","titleEn":"Letter"}]'
           sscheck "scene: only masters" "$sc_player" "403"
           sscheck "scene: shown to the table" "$sc_show|$sc_table" "204|true"
