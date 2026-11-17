@@ -20868,8 +20868,8 @@ button.rf-vtt-clock.on {
         line-height: 26px;
     }
 
-        .rf-vtt-clock .rf-icon,
-        .rf-vtt-clock svg {
-            display: none;
-        }
+    /* The time without its hourglass (the sound buttons keep their icon) */
+    [data-test=vtt-clock] svg {
+        display: none;
+    }
 }
