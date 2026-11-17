@@ -52,7 +52,7 @@
                     </div>
                 }
                 <div class="rf-sheet-toolbar">
-                    <span class="rf-sheet-save @(saveStatus == SaveStatus.Failed ? "text-warning" : null)" data-test="sheet-save-status">@SaveText</span>
+                    <span class="rf-sheet-save @(saveStatus is SaveStatus.Failed or SaveStatus.Offline ? "text-warning" : null)" data-test="sheet-save-status">@SaveText</span>
                     @if (character.LastEditedBy is { } editor)
                     {
                         <span class="small" style="color: var(--rf-text-muted);" data-test="sheet-last-edit">@UiText.SheetLastEditedBy(editor, Lang)</span>

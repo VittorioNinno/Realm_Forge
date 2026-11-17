@@ -2224,3 +2224,5 @@ jobs:
           largest=$(find publish/wwwroot -type f -printf '%s\n' | sort -n | tail -1)
           echo "::notice title=container::client publish: $files files, largest $((largest / 1024)) KiB (Cloudflare Pages: max 20000 files, 25 MiB each)"
           test -f publish/wwwroot/index.html && test "$files" -lt 20000 && test "$largest" -lt 26214400
+          # Offline: the published service worker keeps the app files listed in its assets manifest
+          test -f publish/wwwroot/service-worker-assets.js && grep -q "rf-api-v1" publish/wwwroot/service-worker.js && test -f publish/wwwroot/manifest.webmanifest
