@@ -13,6 +13,8 @@
     <link rel="icon" type="image/png" sizes="32x32" href="img/favicon-32.png" />
     <link rel="icon" type="image/png" sizes="192x192" href="img/icon-192.png" />
     <link rel="apple-touch-icon" href="img/apple-touch-icon.png" />
+    <link rel="manifest" href="manifest.webmanifest" />
+    <meta name="theme-color" content="#0d0d0d" />
     <link href="RealmForge.Client.styles.css" rel="stylesheet" />
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -1179,6 +1181,25 @@
         })();
     </script>
     <script src="_framework/blazor.webassembly#[.{fingerprint}].js"></script>
+    <script>
+        // Installed as an app and usable offline (not under automated browsers: the tests always want the network)
+        if ('serviceWorker' in navigator && !navigator.webdriver) {
+            // A new version of the app published: the page reloads once on it
+            const hadWorker = !!navigator.serviceWorker.controller;
+            let reloaded = false;
+            navigator.serviceWorker.addEventListener('controllerchange', () => {
+                if (hadWorker && !reloaded) { reloaded = true; location.reload(); }
+            });
+            navigator.serviceWorker.register('service-worker.js', { updateViaCache: 'none' }).catch(() => { });
+        }
+        // Signing out forgets the characters read and kept for offline on this device
+        window.rfForgetOffline = () => {
+            try {
+                if (navigator.serviceWorker && navigator.serviceWorker.controller) navigator.serviceWorker.controller.postMessage('rf-forget');
+                if (window.caches) caches.delete('rf-api-v1');
+            } catch { }
+        };
+    </script>
 </body>
 
 </html>

@@ -95,6 +95,15 @@ try {
   if (!brand.loaded || brand.favicon !== 'img/favicon-32.png' || brand.status !== 200 || brand.heroLogos !== 0) throw new Error('unexpected brand icons');
   ok('emblem in the sidebar only, RealmForge favicon served');
 
+  // Installable app: the manifest and the service worker are served
+  const pwa = await page.evaluate(async () => {
+    const href = document.querySelector('link[rel=manifest]')?.getAttribute('href');
+    const manifest = href ? await (await fetch(href)).json() : null;
+    return { name: manifest?.name, display: manifest?.display, icons: manifest?.icons?.length ?? 0, worker: (await fetch('service-worker.js')).status };
+  });
+  if (pwa.name !== 'RealmForge' || pwa.display !== 'standalone' || pwa.icons < 1 || pwa.worker !== 200) throw new Error(`unexpected app manifest: ${JSON.stringify(pwa)}`);
+  ok('installable app: manifest and service worker served');
+
   // Dashboard: one card per compendium module with Base counts per edition and the visible Homebrew
   // Dashboard: welcome, one link per section (glossary first, no figures), how it works and the house rules
   await page.locator('[data-test=home-intro]').waitFor({ timeout: 30000 });

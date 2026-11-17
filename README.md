@@ -137,6 +137,10 @@ The table of a campaign, on its own page: the master prepares the maps away from
 - The detail pages of the compendium (and of Homebrew) suggest the corresponding entry of the other edition, by its English name ("Melf's Acid Arrow" finds "Acid Arrow" too): one click moves from a 2014 spell, monster or item to its 2024 version and back.
   *Le pagine di dettaglio del compendio (e dell'Homebrew) suggeriscono la voce corrispondente dell'altra edizione, tramite il nome inglese ("Melf's Acid Arrow" trova anche "Acid Arrow"): un clic porta da un incantesimo, mostro o oggetto 2014 alla sua versione 2024 e viceversa.*
 
+**Installable app, offline sheet · *App installabile, scheda offline***
+- RealmForge can be installed as an app (phone home screen or desktop). Once opened online, the app and the characters read last stay on the device: a sheet opens without network, and its changes are kept on the device and sent as soon as the connection is back. Signing out forgets the characters kept.
+  *RealmForge si può installare come app (schermata home del telefono o desktop). Dopo averla aperta online, l'app e gli ultimi personaggi letti restano sul dispositivo: una scheda si apre senza rete e le modifiche vengono conservate sul dispositivo e inviate appena torna la connessione. Uscendo dall'account i personaggi conservati vengono dimenticati.*
+
 **Master tools · *Strumenti del master***
 - **Undo** (button or Ctrl+Z) for the master's own edits: tokens, doors, drawings, terrain and fog (the last 40 steps per map).
   ***Annulla** (pulsante o Ctrl+Z) per le proprie modifiche: segnalini, porte, disegni, terreno e nebbia (gli ultimi 40 passi per mappa).*
