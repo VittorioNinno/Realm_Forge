@@ -68,6 +68,11 @@
                     }
                     <a class="rf-tool-btn" href="@($"characters/{character.Id}/edit")" title="@UiText.BtnEditCharacter(Lang)" data-test="sheet-edit"><Icon Name="edit" /><span>@UiText.BtnEditShort(Lang)</span></a>
                     <button type="button" class="rf-tool-btn" @onclick="DownloadPdfAsync" title="@UiText.BtnDownloadPdf(Lang)" data-test="sheet-pdf"><Icon Name="download" /><span>PDF</span></button>
+                    <button type="button" class="rf-tool-btn" @onclick="DownloadJsonAsync" title="@UiText.BtnDownloadJson(Lang)" data-test="sheet-json"><Icon Name="download" /><span>JSON</span></button>
+                    @if (transferError is not null)
+                    {
+                        <span class="small text-warning" data-test="sheet-json-error">@transferError</span>
+                    }
                     @if (character.IsOwner)
                     {
                         <button type="button" class="rf-tool-btn danger" @onclick="() => deleteOpen = true" title="@UiText.Delete(Lang)" data-test="sheet-delete"><Icon Name="trash" /><span>@UiText.Delete(Lang)</span></button>

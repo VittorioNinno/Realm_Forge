@@ -114,6 +114,7 @@ namespace RealmForge.Api
 			builder.Services.AddScoped<RealmForge.Api.Campaigns.CampaignCharacterCheck>();
 			builder.Services.AddScoped<RealmForge.Api.Characters.CharacterContextBuilder>();
 			builder.Services.AddScoped<RealmForge.Infrastructure.Persistence.Trash.TrashBin>();
+			builder.Services.AddScoped<RealmForge.Infrastructure.Persistence.Content.ContentCopier>();
 			builder.Services.AddScoped<AccountDeletion>();
 			builder.Services.AddHostedService<RealmForge.Api.Trash.TrashPurgeService>();
 
