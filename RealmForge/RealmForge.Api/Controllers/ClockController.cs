@@ -100,8 +100,13 @@ namespace RealmForge.Api.Controllers
 					{
 						hungry.Add(new ClockHungerDto(character.Id, character.Name, missing));
 					}
-					sheet.StoreStamp++;
-					changed = true;
+
+					//	Only an inventory that lost rations is written (and wins over the copies open)
+					if (missing < days)
+					{
+						sheet.StoreStamp++;
+						changed = true;
+					}
 				}
 				if (changed)
 				{

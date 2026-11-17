@@ -833,7 +833,7 @@ jobs:
           sp_closed=$(curl -s "$api/api/campaigns/$cp_id/shops" -H "Authorization: Bearer $A" | jq '.shops | length')
           code -X PUT "$api/api/campaigns/$cp_id/shops/$sp" $json -H "Authorization: Bearer $B" -d '{"nameIt":"Emporio","nameEn":"Emporium","pricePercent":200,"open":true}' > /dev/null
           sp_seen=$(curl -s "$api/api/campaigns/$cp_id/shops?lang=1" -H "Authorization: Bearer $A")
-          sp_view=$(echo "$sp_seen" | jq -c --arg c "$sp_ch" '{name: .shops[0].name, items: (.shops[0].items | length), both: (.shops[0].nameIt != null), buyer: ([.buyers[].characterId] == [$c])}')
+          sp_view=$(echo "$sp_seen" | jq -c --arg c "$sp_ch" '{name: .shops[0].name, items: (.shops[0].items | length), both: (.shops[0].nameIt != null), buyer: ([.buyers[].characterId] | index($c) != null)}')
           sp_sword_id=$(echo "$sp_seen" | jq -r '.shops[0].items[] | select(.kind == "equipment") | .id')
           sp_potion_id=$(echo "$sp_seen" | jq -r '.shops[0].items[] | select(.kind == "magic-item") | .id')
           sp_purse=$(get "$api/api/characters/$sp_ch" -H "Authorization: Bearer $A" | jq -c '.sheet | .coins = {cp: 0, sp: 0, ep: 0, gp: 40, pp: 0}')
@@ -856,8 +856,8 @@ jobs:
           ck_bad=$(code -X POST "$api/api/campaigns/$cp_id/clock" $json -H "Authorization: Bearer $B" -d '{"minutes":0}')
           ck_hour=$(curl -s -X POST "$api/api/campaigns/$cp_id/clock" $json -H "Authorization: Bearer $B" -d '{"minutes":60}' | jq -c '{minutes, expired: [.expired[].name]}')
           ck_ended=$(get "$api/api/characters/$sp_ch" -H "Authorization: Bearer $A" | jq '.sheet.timedEffects | length')
-          ck_day=$(curl -s -X POST "$api/api/campaigns/$cp_id/clock" $json -H "Authorization: Bearer $B" -d '{"minutes":1440,"rations":true}' | jq -c '{minutes, days, hungry: [.hungry[].days]}')
-          ck_hungry=$(curl -s -X POST "$api/api/campaigns/$cp_id/clock" $json -H "Authorization: Bearer $B" -d '{"minutes":2880,"rations":true}' | jq -c '{days, hungry: [.hungry[].days]}')
+          ck_day=$(curl -s -X POST "$api/api/campaigns/$cp_id/clock" $json -H "Authorization: Bearer $B" -d '{"minutes":1440,"rations":true}' | jq -c --arg c "$sp_ch" '{minutes, days, hungry: [.hungry[] | select(.characterId == $c) | .days]}')
+          ck_hungry=$(curl -s -X POST "$api/api/campaigns/$cp_id/clock" $json -H "Authorization: Bearer $B" -d '{"minutes":2880,"rations":true}' | jq -c --arg c "$sp_ch" '{days, hungry: [.hungry[] | select(.characterId == $c) | .days]}')
           ck_stale=$(curl -s -X PUT "$api/api/characters/$sp_ch/sheet" $json -H "Authorization: Bearer $A" -d "$ck_sheet" | jq -c '{inventory: (.vitals.inventory | length)}')
           ck_set=$(curl -s -X POST "$api/api/campaigns/$cp_id/clock" $json -H "Authorization: Bearer $B" -d '{"set":1230}' | jq .minutes)
           code -X DELETE "$api/api/campaigns/$cp_id/characters/$sp_ch" -H "Authorization: Bearer $A" > /dev/null
