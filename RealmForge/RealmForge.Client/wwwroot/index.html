@@ -192,6 +192,24 @@
             }
         };
 
+        // A media query watched for a component: told now and on every change (the table on a phone)
+        window.rfMedia = (() => {
+            const watched = new Map();
+            return {
+                watch(ref, query, method) {
+                    const list = window.matchMedia(query);
+                    const tell = () => ref.invokeMethodAsync(method, list.matches).catch(() => { });
+                    list.addEventListener('change', tell);
+                    watched.set(ref._id, () => list.removeEventListener('change', tell));
+                    tell();
+                },
+                unwatch(ref) {
+                    watched.get(ref._id)?.();
+                    watched.delete(ref._id);
+                }
+            };
+        })();
+
         // The browser's network: the table is told when it goes and comes back (the connection indicator)
         window.rfNet = (() => {
             const watched = new Map();
