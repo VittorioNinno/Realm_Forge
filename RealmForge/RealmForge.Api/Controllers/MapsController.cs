@@ -1603,6 +1603,7 @@ namespace RealmForge.Api.Controllers
 			var campaignNow = await _context.Campaigns.AsNoTracking().Where(c => c.Id == map.CampaignId).Select(c => new { c.SceneHandoutId, c.GameMinutes }).FirstAsync();
 			scene = campaignNow.SceneHandoutId;
 			gameMinutes = campaignNow.GameMinutes;
+			sound = await SoundsController.StateAsync(_context, map.CampaignId);
 			shownHandout = await _context.CampaignHandouts.AsNoTracking()
 				.Where(h => h.CampaignId == map.CampaignId && h.RevealedAt != null)
 				.OrderByDescending(h => h.RevealedAt)
@@ -1822,7 +1823,8 @@ namespace RealmForge.Api.Controllers
 			undoLeft,
 			shownHandout,
 			scene,
-			gameMinutes);
+			gameMinutes,
+			sound);
 
 		//	The saving throws waiting: all of them for the masters; for the players those of a caster they see, without the
 		//	targets hidden from them

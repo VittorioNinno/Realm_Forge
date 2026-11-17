@@ -129,6 +129,10 @@ The table of a campaign, on its own page: the master prepares the maps away from
 - On "My Homebrew" an author gathers the selected entries into a collection with one link. Whoever opens the link can add every entry to their own collection at once, or switch the whole collection on in a campaign (and off again as a block from the campaign's Content tab).
   *In "Il mio Homebrew" l'autore riunisce i contenuti selezionati in una raccolta con un unico link. Chi apre il link può aggiungere tutti i contenuti alla propria raccolta in un colpo, oppure attivare l'intera raccolta in una campagna (e disattivarla in blocco dalla scheda Contenuti della campagna).*
 
+**Soundboard · *Soundboard sincronizzata***
+- In the table's Soundboard drawer the master keeps links to audio files or streams hosted elsewhere (https, nothing is uploaded): tracks that loop (music, ambience) and one-shot effects. Playing one reaches every screen at the table: the track in time with its start, the effect once. Each player turns the sound on with one click (browsers require it) and can mute it just for themselves.
+  *Nel cassetto Soundboard del tavolo il master tiene link a file audio o stream ospitati altrove (https, nulla viene caricato): tracce in loop (musica, ambiente) ed effetti singoli. Avviarne uno raggiunge tutti gli schermi del tavolo: la traccia sincronizzata con il suo inizio, l'effetto una volta. Ogni giocatore attiva l'audio con un clic (lo richiedono i browser) e può silenziarlo solo per sé.*
+
 **Master tools · *Strumenti del master***
 - **Undo** (button or Ctrl+Z) for the master's own edits: tokens, doors, drawings, terrain and fog (the last 40 steps per map).
   ***Annulla** (pulsante o Ctrl+Z) per le proprie modifiche: segnalini, porte, disegni, terreno e nebbia (gli ultimi 40 passi per mappa).*

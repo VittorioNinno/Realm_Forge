@@ -36,6 +36,12 @@ namespace RealmForge.Domain.Entities
 		//	The time inside the game, in minutes from the start of day 1 (GameClock): the masters move it on
 		public long GameMinutes { get; set; } = 8 * 60;
 
+		//	The soundboard: the track the table plays (from when) and the last effect played (when)
+		public Guid? SoundTrackId { get; set; }
+		public DateTimeOffset? SoundTrackAt { get; set; }
+		public Guid? SoundCueId { get; set; }
+		public DateTimeOffset? SoundCueAt { get; set; }
+
 		public ICollection<CampaignMember> Members { get; set; } = new List<CampaignMember>();
 		public ICollection<CampaignInvite> Invites { get; set; } = new List<CampaignInvite>();
 		public ICollection<CampaignCharacter> Characters { get; set; } = new List<CampaignCharacter>();
@@ -153,6 +159,21 @@ namespace RealmForge.Domain.Entities
 		public DateTimeOffset? RevealedAt { get; set; }
 		public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
 		public DateTimeOffset UpdatedAt { get; set; } = DateTimeOffset.UtcNow;
+	}
+
+	///	<summary>
+	///	A sound of the soundboard: a link to an audio file or stream hosted elsewhere, a track that loops (music,
+	///	ambience) or a one-shot effect, with its volume.
+	///	</summary>
+	public class CampaignSound
+	{
+		public Guid Id { get; set; } = Guid.NewGuid();
+		public Guid CampaignId { get; set; }
+		public string Name { get; set; } = string.Empty;
+		public string Url { get; set; } = string.Empty;
+		public bool Effect { get; set; }
+		public int Volume { get; set; } = 80;
+		public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
 	}
 
 	///	<summary>
