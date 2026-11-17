@@ -20032,6 +20032,13 @@ button.rf-qs-spell {
         display: none;
     }
 
+    /* The buttons of the top bar on one line */
+    .rf-vtt-top-actions .btn {
+        padding: 4px 8px;
+        font-size: .7rem;
+        white-space: nowrap;
+    }
+
     .rf-vtt-tools {
         width: 48px;
         gap: 4px;
@@ -20065,7 +20072,7 @@ button.rf-qs-spell {
         right: 8px;
         bottom: 64px;
         z-index: 45;
-        width: min(360px, 50%);
+        width: min(360px, calc(100% - 16px));
         overflow-y: auto;
         border-radius: 8px;
     }
