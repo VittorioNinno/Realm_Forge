@@ -20853,3 +20853,23 @@ button.rf-vtt-clock.on {
         .rf-timed-effects li .small {
             color: var(--rf-text-muted);
         }
+
+/* The clock on a phone held sideways: the hourglass and the time only, the bar stays on one line */
+@media (max-height: 500px) and (max-width: 1023.98px) and (orientation: landscape) {
+    .rf-vtt-top-actions {
+        gap: 4px;
+        min-width: 0;
+    }
+
+    .rf-vtt-clock {
+        gap: 4px;
+        padding: 0 4px;
+        font-size: .7rem;
+        line-height: 26px;
+    }
+
+        .rf-vtt-clock .rf-icon,
+        .rf-vtt-clock svg {
+            display: none;
+        }
+}
