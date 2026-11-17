@@ -20193,3 +20193,143 @@ button.rf-qs-spell {
     gap: 8px;
     color: var(--rf-text-muted);
 }
+
+/* Handouts: the list of a campaign (a picture or an icon, the title, when it was revealed) and the parchment a player
+   reads, over the table too */
+.rf-handout-langs {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 16px;
+}
+
+.rf-handout-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.rf-handout-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    padding: 8px;
+    border-radius: 8px;
+    border: 1px solid #303030;
+    background-color: var(--rf-bg-card);
+}
+
+    .rf-handout-row.hidden {
+        border-style: dashed;
+    }
+
+.rf-handout-open {
+    display: flex;
+    flex: 1 1 200px;
+    align-items: center;
+    gap: 16px;
+    min-width: 0;
+    padding: 0;
+    border: 0;
+    background: none;
+    color: var(--rf-text-primary);
+    text-align: left;
+}
+
+    .rf-handout-open img,
+    .rf-handout-icon {
+        flex: none;
+        width: 48px;
+        height: 48px;
+        border-radius: 8px;
+        object-fit: cover;
+    }
+
+.rf-handout-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: #1c1c1c;
+    color: var(--rf-orange-primary);
+}
+
+.rf-handout-row-text {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+}
+
+    .rf-handout-row-text strong {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .rf-handout-row-text span {
+        color: var(--rf-text-muted);
+    }
+
+.rf-handout-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.rf-handout-backdrop {
+    z-index: 2100;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+}
+
+.rf-handout {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    width: min(640px, 100%);
+    max-height: calc(100vh - 32px);
+    overflow-y: auto;
+    padding: 24px;
+    border-radius: 8px;
+    border: 1px solid #5c4a2e;
+    background: linear-gradient(180deg, #1f1a12, #15120d);
+    box-shadow: 0 24px 48px rgba(0, 0, 0, .8);
+}
+
+.rf-handout-close {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    border: 0;
+    background: rgba(0, 0, 0, .4);
+    color: var(--rf-text-primary);
+}
+
+.rf-handout-image {
+    width: 100%;
+    max-height: 60vh;
+    border-radius: 8px;
+    object-fit: contain;
+}
+
+.rf-handout-title {
+    margin: 0;
+    font-family: var(--rf-font-display, inherit);
+    font-size: 1.4rem;
+    color: #f5d9a8;
+}
+
+.rf-handout-body {
+    color: #e8dcc6;
+}
+
+@media (max-width: 575.98px) {
+    .rf-handout {
+        padding: 16px;
+    }
+}

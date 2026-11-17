@@ -133,6 +133,24 @@ namespace RealmForge.Client.Services
 			}
 		}
 
+		public Task<List<CampaignHandoutDto>?> GetHandoutsAsync(Guid id, LanguageCode lang) =>
+			GetAsync<List<CampaignHandoutDto>>($"api/campaigns/{id}/handouts?lang={(int)lang}");
+
+		public Task<CampaignHandoutDto?> GetHandoutAsync(Guid id, Guid handoutId, LanguageCode lang) =>
+			GetAsync<CampaignHandoutDto>($"api/campaigns/{id}/handouts/{handoutId}?lang={(int)lang}");
+
+		public Task<(CampaignHandoutDto? Value, string? Error)> AddHandoutAsync(Guid id, SaveCampaignHandoutDto dto, LanguageCode lang) =>
+			TableAsync<CampaignHandoutDto>(() => _http.PostAsJsonAsync($"api/campaigns/{id}/handouts?lang={(int)lang}", dto), "add handout");
+
+		public Task<CampaignResult> UpdateHandoutAsync(Guid id, Guid handoutId, SaveCampaignHandoutDto dto) =>
+			SendAsync(() => _http.PutAsJsonAsync($"api/campaigns/{id}/handouts/{handoutId}", dto), "update handout");
+
+		public Task<CampaignResult> DeleteHandoutAsync(Guid id, Guid handoutId) =>
+			SendAsync(() => _http.DeleteAsync($"api/campaigns/{id}/handouts/{handoutId}"), "delete handout");
+
+		public Task<CampaignResult> RevealHandoutAsync(Guid id, Guid handoutId, bool reveal) =>
+			SendAsync(() => _http.PostAsync($"api/campaigns/{id}/handouts/{handoutId}/{(reveal ? "reveal" : "hide")}", null), "reveal handout");
+
 		public Task<List<CampaignNoteDto>?> GetNotesAsync(Guid id) => GetAsync<List<CampaignNoteDto>>($"api/campaigns/{id}/notes");
 
 		public Task<CampaignResult> AddNoteAsync(Guid id, SaveCampaignNoteDto note) =>
