@@ -180,6 +180,7 @@
                 <button class="btn btn-sm btn-rf-outline" @onclick="CloseDetail"><Icon Name="close" /></button>
             </div>
 
+            <ForkBar Kind="spell" EntityId="spellDetail.Id" />
             @if (!spellDetail.IsOfficialSRD)
             {
                 <ShareLink Visibility="spellDetail.Visibility" CanEdit="spellDetail.CanEdit" EntityId="spellDetail.Id" Path="@($"spells?id={spellDetail.Id}")" />

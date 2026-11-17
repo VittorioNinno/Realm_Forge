@@ -25,5 +25,8 @@ namespace RealmForge.Domain.Common
 
 		//	Homebrew sharing: public (listed), link (readable with the link) or private (author only)
 		public ContentVisibility Visibility { get; set; } = ContentVisibility.Public;
+
+		//	The entry this one was cloned from ("Clona e personalizza"): shown as "Basato su …" while it exists
+		public Guid? ForkedFromId { get; set; }
 	}
 }

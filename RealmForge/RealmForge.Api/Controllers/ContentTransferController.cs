@@ -40,6 +40,46 @@ namespace RealmForge.Api.Controllers
 
 		private string UserId => ContentAccess.GetUserId(User) ?? string.Empty;
 
+		//	POST: api/content/{kind}/{id}/fork?lang=2 — "Clona e personalizza": a private copy of an entry the account can
+		//	read (Base or someone's Homebrew), with what belongs to it, that remembers where it comes from
+		[HttpPost("{kind}/{id:guid}/fork")]
+		[RequireConfirmedEmail]
+		public async Task<ActionResult<HomebrewImportedDto>> Fork(string kind, Guid id, [FromQuery] LanguageCode lang = LanguageCode.It)
+		{
+			if (!ContentCopier.Kinds.TryGetValue(kind, out var type) || await _context.FindAsync(type, id) is not GameEntity entity
+				|| !_access.CanView(entity, User, await _shares.SharedWithAsync(User)))
+			{
+				return NotFound();
+			}
+			var rows = await _copier.SnapshotAsync(entity);
+			var (copy, missing) = await _copier.InsertAsync(rows, UserId, root => ((GameEntity)root).ForkedFromId = entity.Id);
+			if (copy is not GameEntity created)
+			{
+				return Problem(statusCode: StatusCodes.Status409Conflict, title: "The entry cannot be cloned.", detail: missing);
+			}
+			await _context.SaveChangesAsync();
+			var link = (await _homebrew.FindAsync(new[] { created.Id }, lang)).GetValueOrDefault(created.Id)?.Link;
+			return Ok(new HomebrewImportedDto(kind, ContentCopier.NameOf(created, lang), created.Id, link, null));
+		}
+
+		//	GET: api/content/{kind}/{id}/origin?lang=2 — the entry an entry was cloned from, when it still exists and can
+		//	be read (204 otherwise)
+		[HttpGet("{kind}/{id:guid}/origin")]
+		[AllowAnonymous]
+		public async Task<ActionResult<ContentOriginDto>> Origin(string kind, Guid id, [FromQuery] LanguageCode lang = LanguageCode.It)
+		{
+			if (!ContentCopier.Kinds.TryGetValue(kind, out var type) || await _context.FindAsync(type, id) is not GameEntity { ForkedFromId: { } from })
+			{
+				return NoContent();
+			}
+			if (await _context.FindAsync(type, from) is not GameEntity origin || !_access.CanView(origin, User, await _shares.SharedWithAsync(User)))
+			{
+				return NoContent();
+			}
+			var entry = (await _homebrew.FindAsync(new[] { from }, lang)).GetValueOrDefault(from);
+			return entry is null ? NoContent() : Ok(new ContentOriginDto(entry.Kind, entry.Id, entry.Name, entry.Link, entry.IsBase));
+		}
+
 		//	GET: api/content/mine?lang=2 — the Homebrew the account wrote, with the languages of its texts
 		[HttpGet("mine")]
 		public async Task<ActionResult<List<MyHomebrewDto>>> Mine([FromQuery] LanguageCode lang = LanguageCode.It)

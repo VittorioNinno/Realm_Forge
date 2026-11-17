@@ -172,6 +172,9 @@ namespace RealmForge.Shared.DTOs
 
 	public record HomebrewRefDto(string Kind, Guid Id);
 
+	//	The entry another was cloned from: "Basato su Palla di Fuoco"
+	public record ContentOriginDto(string Kind, Guid Id, string Name, string Link, bool IsBase);
+
 	//	An entry of the account's Homebrew: where it opens, its edition and visibility, the languages it is written in
 	public record MyHomebrewDto(string Kind, Guid Id, string Name, string Link, RulesetVersion Ruleset, ContentVisibility Visibility, List<LanguageCode> Languages);
 

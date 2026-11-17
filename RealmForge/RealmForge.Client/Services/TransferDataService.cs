@@ -38,6 +38,25 @@ namespace RealmForge.Client.Services
 		public Task<TransferResult<List<HomebrewImportedDto>>> ImportHomebrewAsync(HomebrewExportDto file, LanguageCode lang) =>
 			SendAsync<List<HomebrewImportedDto>>(() => _http.PostAsJsonAsync($"api/content/import?lang={(int)lang}", file), "import homebrew");
 
+		public Task<TransferResult<HomebrewImportedDto>> ForkAsync(string kind, Guid id, LanguageCode lang) =>
+			SendAsync<HomebrewImportedDto>(() => _http.PostAsync($"api/content/{kind}/{id}/fork?lang={(int)lang}", null), "fork");
+
+		//	The entry this one was cloned from (none: no answer)
+		public async Task<TransferResult<ContentOriginDto>> OriginAsync(string kind, Guid id, LanguageCode lang)
+		{
+			try
+			{
+				var response = await _http.GetAsync($"api/content/{kind}/{id}/origin?lang={(int)lang}");
+				return response.StatusCode == System.Net.HttpStatusCode.OK
+					? new TransferResult<ContentOriginDto>(await response.Content.ReadFromJsonAsync<ContentOriginDto>(), null, null)
+					: new TransferResult<ContentOriginDto>(default, null, null);
+			}
+			catch (Exception)
+			{
+				return new TransferResult<ContentOriginDto>(default, null, "network");
+			}
+		}
+
 		private async Task<TransferResult<T>> SendAsync<T>(Func<Task<HttpResponseMessage>> send, string what)
 		{
 			try
