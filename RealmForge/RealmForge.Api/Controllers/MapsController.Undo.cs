@@ -27,6 +27,9 @@ namespace RealmForge.Api.Controllers
 		//	The handout shown to the table in place of the map (theater of the mind)
 		private Guid? scene;
 
+		//	The clock of the campaign (game minutes)
+		private long gameMinutes;
+
 		private sealed record UndoItem(Guid Id, JsonElement? Values);
 
 		private sealed record UndoItems(List<UndoItem> Items);

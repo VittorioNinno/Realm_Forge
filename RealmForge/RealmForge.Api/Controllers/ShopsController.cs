@@ -293,6 +293,7 @@ namespace RealmForge.Api.Controllers
 			{
 				item.Stock -= dto.Quantity;
 			}
+			sheet.StoreStamp++;
 			character.Sheet = JsonSerializer.Serialize(sheet, CharactersController.Json);
 			character.UpdatedAt = DateTimeOffset.UtcNow;
 			character.UpdatedById = UserId;

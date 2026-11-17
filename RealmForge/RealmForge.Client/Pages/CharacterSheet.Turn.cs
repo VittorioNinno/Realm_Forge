@@ -305,6 +305,7 @@ namespace RealmForge.Client.Pages
 			{
 				Sheet.Concentration = spell.Id;
 			}
+			StartTimedEffect(spell);
 			lastCast = $"{spell.Name} · {how}";
 			CloseSpell();
 			Changed();
@@ -338,6 +339,11 @@ namespace RealmForge.Client.Pages
 
 		private void EndConcentration()
 		{
+			//	Its effect on the clock ends with it
+			if (Sheet.Concentration is { } ended)
+			{
+				Sheet.TimedEffects.RemoveAll(e => e.SpellId == ended);
+			}
 			Sheet.Concentration = null;
 			concentrationDc = null;
 			Changed();
