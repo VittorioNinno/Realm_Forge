@@ -211,6 +211,9 @@ namespace RealmForge.Infrastructure.Migrations
                     b.Property<int?>("EquipmentGoldAlternative")
                         .HasColumnType("integer");
 
+                    b.Property<Guid?>("ForkedFromId")
+                        .HasColumnType("uuid");
+
                     b.Property<bool>("IsOfficialSRD")
                         .HasColumnType("boolean");
 
@@ -1149,6 +1152,9 @@ namespace RealmForge.Infrastructure.Migrations
                     b.Property<int>("CasterProgression")
                         .HasColumnType("integer");
 
+                    b.Property<Guid?>("ForkedFromId")
+                        .HasColumnType("uuid");
+
                     b.Property<int>("HitDie")
                         .HasColumnType("integer");
 
@@ -1292,6 +1298,9 @@ namespace RealmForge.Infrastructure.Migrations
                         .HasColumnType("jsonb")
                         .HasDefaultValue("[]");
 
+                    b.Property<Guid?>("ForkedFromId")
+                        .HasColumnType("uuid");
+
                     b.Property<bool>("IsOfficialSRD")
                         .HasColumnType("boolean");
 
@@ -1428,6 +1437,9 @@ namespace RealmForge.Infrastructure.Migrations
                     b.Property<int?>("FocusType")
                         .HasColumnType("integer");
 
+                    b.Property<Guid?>("ForkedFromId")
+                        .HasColumnType("uuid");
+
                     b.Property<bool>("IsOfficialSRD")
                         .HasColumnType("boolean");
 
@@ -1548,6 +1560,9 @@ namespace RealmForge.Infrastructure.Migrations
                         .HasColumnType("jsonb")
                         .HasDefaultValue("[]");
 
+                    b.Property<Guid?>("ForkedFromId")
+                        .HasColumnType("uuid");
+
                     b.Property<bool>("IsOfficialSRD")
                         .HasColumnType("boolean");
 
@@ -1619,6 +1634,9 @@ namespace RealmForge.Infrastructure.Migrations
 
                     b.Property<string>("AuthorId")
                         .HasColumnType("text");
+
+                    b.Property<Guid?>("ForkedFromId")
+                        .HasColumnType("uuid");
 
                     b.Property<bool>("IsOfficialSRD")
                         .HasColumnType("boolean");
@@ -1727,6 +1745,9 @@ namespace RealmForge.Infrastructure.Migrations
 
                     b.Property<int>("Dexterity")
                         .HasColumnType("integer");
+
+                    b.Property<Guid?>("ForkedFromId")
+                        .HasColumnType("uuid");
 
                     b.Property<string>("HitDice")
                         .IsRequired()
@@ -2028,6 +2049,9 @@ namespace RealmForge.Infrastructure.Migrations
                     b.Property<int>("Category")
                         .HasColumnType("integer");
 
+                    b.Property<Guid?>("ForkedFromId")
+                        .HasColumnType("uuid");
+
                     b.Property<bool>("IsOfficialSRD")
                         .HasColumnType("boolean");
 
@@ -2102,6 +2126,9 @@ namespace RealmForge.Infrastructure.Migrations
                     b.Property<string>("Effects")
                         .IsRequired()
                         .HasColumnType("jsonb");
+
+                    b.Property<Guid?>("ForkedFromId")
+                        .HasColumnType("uuid");
 
                     b.Property<bool>("IsOfficialSRD")
                         .HasColumnType("boolean");
@@ -2180,6 +2207,9 @@ namespace RealmForge.Infrastructure.Migrations
                         .HasColumnType("jsonb")
                         .HasDefaultValue("[]");
 
+                    b.Property<Guid?>("ForkedFromId")
+                        .HasColumnType("uuid");
+
                     b.Property<bool>("IsOfficialSRD")
                         .HasColumnType("boolean");
 
@@ -2242,6 +2272,9 @@ namespace RealmForge.Infrastructure.Migrations
 
                     b.Property<bool>("Concentration")
                         .HasColumnType("boolean");
+
+                    b.Property<Guid?>("ForkedFromId")
+                        .HasColumnType("uuid");
 
                     b.Property<bool>("IsOfficialSRD")
                         .HasColumnType("boolean");
@@ -2349,6 +2382,9 @@ namespace RealmForge.Infrastructure.Migrations
                     b.Property<Guid>("CharacterClassId")
                         .HasColumnType("uuid");
 
+                    b.Property<Guid?>("ForkedFromId")
+                        .HasColumnType("uuid");
+
                     b.Property<bool>("IsOfficialSRD")
                         .HasColumnType("boolean");
 
@@ -2418,6 +2454,9 @@ namespace RealmForge.Infrastructure.Migrations
                         .HasColumnType("jsonb")
                         .HasDefaultValue("[]");
 
+                    b.Property<Guid?>("ForkedFromId")
+                        .HasColumnType("uuid");
+
                     b.Property<bool>("IsOfficialSRD")
                         .HasColumnType("boolean");
 
@@ -2478,6 +2517,9 @@ namespace RealmForge.Infrastructure.Migrations
 
                     b.Property<string>("AuthorId")
                         .HasColumnType("text");
+
+                    b.Property<Guid?>("ForkedFromId")
+                        .HasColumnType("uuid");
 
                     b.Property<bool>("IsOfficialSRD")
                         .HasColumnType("boolean");
