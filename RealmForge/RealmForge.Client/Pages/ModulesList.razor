@@ -90,6 +90,7 @@
                 <button class="btn btn-sm btn-rf-outline" @onclick="CloseDetail" aria-label="@UiText.BtnClose(Lang)"><Icon Name="close" /></button>
             </div>
 
+            <ForkBar Kind="module" EntityId="selected.Id" />
             <ShareLink Visibility="selected.Visibility" CanEdit="selected.CanEdit" EntityId="selected.Id" Path="@($"modules?id={selected.Id}")" />
 
             @if (!string.IsNullOrWhiteSpace(selected.Description))

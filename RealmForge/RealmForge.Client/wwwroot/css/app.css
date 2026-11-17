@@ -20050,3 +20050,19 @@ button.rf-qs-spell {
         padding: 8px;
     }
 }
+
+/* "Clona e personalizza" in the detail of an entry, with where a clone comes from */
+.rf-fork {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 16px;
+}
+
+.rf-fork-origin {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--rf-text-muted);
+}

@@ -1,0 +1,66 @@
+﻿@using RealmForge.Client.Localization
+@using RealmForge.Client.Services
+@using RealmForge.Shared.DTOs
+@using RealmForge.Shared.Enums
+@inject TransferDataService Transfer
+@inject LanguageStateService LanguageState
+@inject NavigationManager Navigation
+@inject AuthenticationStateProvider Auth
+
+@* "Clona e personalizza" in the detail of an entry: where the entry comes from when it was cloned ("Basato su Palla di
+   Fuoco"), and a private copy of it for the account to change (Base content or someone's Homebrew alike) *@
+<div class="rf-fork" data-test="fork-bar">
+    @if (origin is { } from)
+    {
+        <span class="small rf-fork-origin" data-test="fork-origin"><Icon Name="copy" /> @UiText.ForkBasedOn(Lang) <a href="@from.Link">@from.Name</a></span>
+    }
+    @if (signedIn)
+    {
+        <button type="button" class="btn btn-sm btn-rf-outline ms-auto" disabled="@busy" title="@UiText.ForkHint(Lang)" @onclick="ForkAsync" data-test="fork-button">
+            <Icon Name="copy" /> @UiText.ForkButton(Lang)
+        </button>
+    }
+    @if (error is not null)
+    {
+        <span class="small text-warning w-100" role="alert" data-test="fork-error">@error</span>
+    }
+</div>
+
+@code {
+    [Parameter, EditorRequired] public string Kind { get; set; } = string.Empty;
+    [Parameter, EditorRequired] public Guid EntityId { get; set; }
+
+    private ContentOriginDto? origin;
+    private Guid loadedFor;
+    private bool signedIn;
+    private bool busy;
+    private string? error;
+
+    private LanguageCode Lang => LanguageState.CurrentLanguage;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (loadedFor == EntityId)
+        {
+            return;
+        }
+        loadedFor = EntityId;
+        error = null;
+        signedIn = (await Auth.GetAuthenticationStateAsync()).User.Identity?.IsAuthenticated == true;
+        origin = (await Transfer.OriginAsync(Kind, EntityId, Lang)).Value;
+    }
+
+    private async Task ForkAsync()
+    {
+        busy = true;
+        error = null;
+        var result = await Transfer.ForkAsync(Kind, EntityId, Lang);
+        busy = false;
+        if (result.Value?.Link is { } link)
+        {
+            Navigation.NavigateTo(link, forceLoad: true);
+            return;
+        }
+        error = UiText.ForkFailed(result.Detail, Lang);
+    }
+}
