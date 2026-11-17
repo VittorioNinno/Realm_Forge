@@ -1166,7 +1166,13 @@
     <script>
         // Installed as an app and usable offline (not under automated browsers: the tests always want the network)
         if ('serviceWorker' in navigator && !navigator.webdriver) {
-            navigator.serviceWorker.register('service-worker.js').catch(() => { });
+            // A new version of the app published: the page reloads once on it
+            const hadWorker = !!navigator.serviceWorker.controller;
+            let reloaded = false;
+            navigator.serviceWorker.addEventListener('controllerchange', () => {
+                if (hadWorker && !reloaded) { reloaded = true; location.reload(); }
+            });
+            navigator.serviceWorker.register('service-worker.js', { updateViaCache: 'none' }).catch(() => { });
         }
         // Signing out forgets the characters read and kept for offline on this device
         window.rfForgetOffline = () => {

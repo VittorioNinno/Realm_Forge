@@ -1,8 +1,9 @@
 // RealmForge offline: the files of the app are kept at install (the app opens without network), and the characters
 // and their rules read last are kept too, so that a sheet opens offline; the network wins whenever it answers.
 self.importScripts('./service-worker-assets.js');
-self.addEventListener('install', event => event.waitUntil(onInstall()));
-self.addEventListener('activate', event => event.waitUntil(onActivate()));
+// A new version takes over at once (the page reloads on it): a published update reaches the app at the next opening
+self.addEventListener('install', event => event.waitUntil(onInstall().then(() => self.skipWaiting())));
+self.addEventListener('activate', event => event.waitUntil(onActivate().then(() => self.clients.claim())));
 self.addEventListener('fetch', event => event.respondWith(onFetch(event)));
 self.addEventListener('message', event => {
     if (event.data === 'rf-forget') {
