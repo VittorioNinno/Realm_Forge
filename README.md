@@ -107,6 +107,10 @@ The table of a campaign, on its own page: the master prepares the maps away from
 - Map light (bright, dim, dark) and **dynamic vision**: each player sees only what their creatures see. Walls and closed doors block the sight; torches, lanterns and the Light spell light the way; darkvision comes from the sheet, the statblock or is set by hand. Creatures out of sight are never sent to the player.
   *Luce della mappa (piena, penombra, buio) e **visione dinamica**: ogni giocatore vede solo ciò che vedono le sue creature. Muri e porte chiuse bloccano la vista; torce, lanterne e l'incantesimo Luce illuminano; la scurovisione arriva dalla scheda, dal bestiario o è impostata a mano. Le creature fuori vista non vengono mai inviate al giocatore.*
 
+**Handouts · *Handout***
+- Letters, clues, portraits and maps that are not tactical, written in Italian and English with a picture: hidden until the master reveals them (from the campaign or from the table), then they open on the players' screens, each in their own language, and stay in the campaign's Handouts tab.
+  *Lettere, indizi, ritratti e mappe non tattiche, scritti in italiano e inglese con un'immagine: nascosti finché il master non li rivela (dalla campagna o dal tavolo), poi si aprono sullo schermo dei giocatori, ciascuno nella propria lingua, e restano nella scheda Handout della campagna.*
+
 **Master tools · *Strumenti del master***
 - **Undo** (button or Ctrl+Z) for the master's own edits: tokens, doors, drawings, terrain and fog (the last 40 steps per map).
   ***Annulla** (pulsante o Ctrl+Z) per le proprie modifiche: segnalini, porte, disegni, terreno e nebbia (gli ultimi 40 passi per mappa).*
