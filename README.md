@@ -125,6 +125,10 @@ The table of a campaign, on its own page: the master prepares the maps away from
 - The sheet shows the supplies (rations, torches, ammunition) with quick steppers and, after a fight, recovers half of the ammunition shot. Purchases, rations and loot changed at the table win over an older copy of the sheet left open.
   *La scheda mostra le scorte (razioni, torce, munizioni) con contatori rapidi e, dopo uno scontro, recupera metà delle munizioni tirate. Acquisti, razioni e bottino cambiati al tavolo prevalgono su una copia più vecchia della scheda rimasta aperta.*
 
+**Homebrew collections · *Raccolte di Homebrew***
+- On "My Homebrew" an author gathers the selected entries into a collection with one link. Whoever opens the link can add every entry to their own collection at once, or switch the whole collection on in a campaign (and off again as a block from the campaign's Content tab).
+  *In "Il mio Homebrew" l'autore riunisce i contenuti selezionati in una raccolta con un unico link. Chi apre il link può aggiungere tutti i contenuti alla propria raccolta in un colpo, oppure attivare l'intera raccolta in una campagna (e disattivarla in blocco dalla scheda Contenuti della campagna).*
+
 **Master tools · *Strumenti del master***
 - **Undo** (button or Ctrl+Z) for the master's own edits: tokens, doors, drawings, terrain and fog (the last 40 steps per map).
   ***Annulla** (pulsante o Ctrl+Z) per le proprie modifiche: segnalini, porte, disegni, terreno e nebbia (gli ultimi 40 passi per mappa).*

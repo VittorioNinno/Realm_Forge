@@ -264,6 +264,7 @@
             case Tab.Content:
                 <section class="mb-3">
                     <div class="small mb-3" style="color: var(--rf-text-muted);">@UiText.CampaignContentHint(campaign.Ruleset, Lang)</div>
+                    <CampaignCollections CampaignId="campaign.Id" OnChanged="ContentChangedAsync" />
                     @{ var pending = campaign.Contents.Where(c => c.Status == CampaignContentStatus.Pending).ToList(); }
                     @if (pending.Count > 0)
                     {
@@ -528,6 +529,13 @@
         {
             Characters.InvalidateContexts();
         }
+        await LoadAsync();
+    }
+
+    //	Entries switched on or off together (a collection of Homebrew)
+    private async Task ContentChangedAsync()
+    {
+        Characters.InvalidateContexts();
         await LoadAsync();
     }
 
