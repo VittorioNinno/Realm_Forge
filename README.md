@@ -111,6 +111,10 @@ The table of a campaign, on its own page: the master prepares the maps away from
 - Letters, clues, portraits and maps that are not tactical, written in Italian and English with a picture: hidden until the master reveals them (from the campaign or from the table), then they open on the players' screens, each in their own language, and stay in the campaign's Handouts tab.
   *Lettere, indizi, ritratti e mappe non tattiche, scritti in italiano e inglese con un'immagine: nascosti finché il master non li rivela (dalla campagna o dal tavolo), poi si aprono sullo schermo dei giocatori, ciascuno nella propria lingua, e restano nella scheda Handout della campagna.*
 
+**Theater of the mind · *Teatro della mente***
+- A handout shown as a scene in place of the tactical map for the whole table (a landscape, an NPC's portrait, a letter), with the party's portraits; dice, log and initiative stay active. One click goes back to the map.
+  *Un handout mostrato come scena al posto della mappa tattica per tutto il tavolo (un paesaggio, il ritratto di un PNG, una lettera), con i ritratti del gruppo; dadi, log e iniziativa restano attivi. Un clic e si torna alla mappa.*
+
 **Master tools · *Strumenti del master***
 - **Undo** (button or Ctrl+Z) for the master's own edits: tokens, doors, drawings, terrain and fog (the last 40 steps per map).
   ***Annulla** (pulsante o Ctrl+Z) per le proprie modifiche: segnalini, porte, disegni, terreno e nebbia (gli ultimi 40 passi per mappa).*
