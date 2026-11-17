@@ -350,6 +350,18 @@ namespace RealmForge.Infrastructure.Migrations
                     b.Property<Guid?>("SceneHandoutId")
                         .HasColumnType("uuid");
 
+                    b.Property<DateTimeOffset?>("SoundCueAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("SoundCueId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset?>("SoundTrackAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("SoundTrackId")
+                        .HasColumnType("uuid");
+
                     b.Property<DateTimeOffset?>("TableOpenedAt")
                         .HasColumnType("timestamp with time zone");
 
@@ -1106,6 +1118,41 @@ namespace RealmForge.Infrastructure.Migrations
                     b.HasIndex("ShopId");
 
                     b.ToTable("CampaignShopItems");
+                });
+
+            modelBuilder.Entity("RealmForge.Domain.Entities.CampaignSound", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("CampaignId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("Effect")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(80)
+                        .HasColumnType("character varying(80)");
+
+                    b.Property<string>("Url")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<int>("Volume")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CampaignId");
+
+                    b.ToTable("CampaignSounds");
                 });
 
             modelBuilder.Entity("RealmForge.Domain.Entities.CampaignToken", b =>
@@ -3231,6 +3278,15 @@ namespace RealmForge.Infrastructure.Migrations
                         .IsRequired();
 
                     b.Navigation("Shop");
+                });
+
+            modelBuilder.Entity("RealmForge.Domain.Entities.CampaignSound", b =>
+                {
+                    b.HasOne("RealmForge.Domain.Entities.Campaign", null)
+                        .WithMany()
+                        .HasForeignKey("CampaignId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("RealmForge.Domain.Entities.CampaignToken", b =>
