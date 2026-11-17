@@ -133,6 +133,10 @@ The table of a campaign, on its own page: the master prepares the maps away from
 - In the table's Soundboard drawer the master keeps links to audio files or streams hosted elsewhere (https, nothing is uploaded): tracks that loop (music, ambience) and one-shot effects. Playing one reaches every screen at the table: the track in time with its start, the effect once. Each player turns the sound on with one click (browsers require it) and can mute it just for themselves.
   *Nel cassetto Soundboard del tavolo il master tiene link a file audio o stream ospitati altrove (https, nulla viene caricato): tracce in loop (musica, ambiente) ed effetti singoli. Avviarne uno raggiunge tutti gli schermi del tavolo: la traccia sincronizzata con il suo inizio, l'effetto una volta. Ogni giocatore attiva l'audio con un clic (lo richiedono i browser) e può silenziarlo solo per sé.*
 
+**2014 ↔ 2024 equivalences · *Equivalenze 2014 ↔ 2024***
+- The detail pages of the compendium (and of Homebrew) suggest the corresponding entry of the other edition, by its English name ("Melf's Acid Arrow" finds "Acid Arrow" too): one click moves from a 2014 spell, monster or item to its 2024 version and back.
+  *Le pagine di dettaglio del compendio (e dell'Homebrew) suggeriscono la voce corrispondente dell'altra edizione, tramite il nome inglese ("Melf's Acid Arrow" trova anche "Acid Arrow"): un clic porta da un incantesimo, mostro o oggetto 2014 alla sua versione 2024 e viceversa.*
+
 **Master tools · *Strumenti del master***
 - **Undo** (button or Ctrl+Z) for the master's own edits: tokens, doors, drawings, terrain and fog (the last 40 steps per map).
   ***Annulla** (pulsante o Ctrl+Z) per le proprie modifiche: segnalini, porte, disegni, terreno e nebbia (gli ultimi 40 passi per mappa).*

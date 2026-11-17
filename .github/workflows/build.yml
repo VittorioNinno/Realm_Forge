@@ -891,6 +891,12 @@ jobs:
           fk_copy=$(get "$api/api/spells/$fk_id?lang=2" -H "Authorization: Bearer $A" | jq -c '{base: .isOfficialSRD, visibility, canEdit}')
           fk_origin=$(curl -s "$api/api/content/spell/$fk_id/origin?lang=2" | jq -c --arg b "$fk_base" '{same: (.id == $b), isBase}')
           fk_none=$(code "$api/api/content/spell/$fk_base/origin")
+          # Equivalences: Fireball of 2014 points to Fireball of 2024 and back, in the reader's language
+          eq_fb14=$(get "$api/api/spells?isOfficial=true&ruleset=1&lang=1" | jq -r '.[] | select(.name == "Fireball") | .id')
+          eq_fb24=$(get "$api/api/spells?isOfficial=true&ruleset=2&lang=1" | jq -r '.[] | select(.name == "Fireball") | .id')
+          eq_to24=$(curl -s "$api/api/content/spell/$eq_fb14/equivalent?lang=2" | jq -c --arg t "$eq_fb24" '{name, ruleset, same: (.id == $t), link: (.link | startswith("spells?id="))}')
+          eq_to14=$(curl -s "$api/api/content/spell/$eq_fb24/equivalent?lang=1" | jq -c --arg t "$eq_fb14" '{name, ruleset, same: (.id == $t)}')
+          eq_none=$(code "$api/api/content/spell/$(uuidgen)/equivalent")
           fk_anon=$(code -X POST "$api/api/content/spell/$fk_base/fork")
           code -X DELETE "$api/api/spells/$fk_id" -H "Authorization: Bearer $A" > /dev/null
           code -X DELETE "$api/api/modules/$am_id" -H "Authorization: Bearer $A" > /dev/null
@@ -937,6 +943,9 @@ jobs:
           mdcheck "fork: the clone is private Homebrew of the account" "$fk_copy" '{"base":false,"visibility":2,"canEdit":true}'
           mdcheck "fork: it says where it comes from" "$fk_origin" '{"same":true,"isBase":true}'
           mdcheck "fork: an original has no origin" "$fk_none" "204"
+          mdcheck "equivalences: 2014 to 2024" "$eq_to24" '{"name":"Palla di Fuoco","ruleset":2,"same":true,"link":true}'
+          mdcheck "equivalences: 2024 to 2014" "$eq_to14" '{"name":"Fireball","ruleset":1,"same":true}'
+          mdcheck "equivalences: none for an unknown entry" "$eq_none" "204"
           mdcheck "fork: signed in only" "$fk_anon" "401"
           mdcheck "shops: only masters stock them" "$sp_player_add" "403"
           mdcheck "shops: equipment at its list price, times the multiplier" "$sp_sword" '{"kind":"equipment","name":"Longsword","listPrice":1500,"price":3000,"stock":1}'

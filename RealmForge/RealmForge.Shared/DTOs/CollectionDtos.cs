@@ -31,3 +31,9 @@ namespace RealmForge.Shared.DTOs
 	//	Switched on: the entries added, those left out (another edition, already there by another way do not count), and their status
 	public record CampaignCollectionAddedDto(Guid Id, string Name, int Added, int Skipped, CampaignContentStatus Status);
 }
+
+namespace RealmForge.Shared.DTOs
+{
+	//	The entry of the other edition that corresponds to one (2014 ↔ 2024)
+	public record ContentEquivalentDto(string Kind, Guid Id, string Name, string Link, RulesetVersion Ruleset);
+}
