@@ -31,6 +31,7 @@ const overflowOf = async (target, label) => target.evaluate((label) => {
 }, label);
 const ok = (name) => { results.push(`OK ${name}`); };
 const characterAudits = [];
+const phoneWide = [];
 
 const browser = await chromium.launch();
 // Explicit context: the e-mail confirmation test opens a second tab in the same browser session
@@ -1657,8 +1658,52 @@ try {
   if (mapUi.copyTokens !== 2 || mapUi.copyShown || await page.locator('[data-test=map-name]').inputValue() !== 'cripta') throw new Error('unexpected map copy');
   ok('virtual tabletop prep: a map from a picture with its square grid lined up, the character and a goblin as tokens, the character dragged two cells, the goblin\'s numbers on hover and its card on click, a hex grid, the grid aligned on a box drawn over the picture, the map shown to the players and duplicated');
   // The table on the whole window: the map shown, the tools on the left, the ruler three cells long
+  const campaignPath = new URL(page.url()).pathname;
   await page.locator('[data-test=map-open-vtt]').click();
   await page.locator('[data-test=vtt] [data-test=map-token]').first().waitFor({ timeout: 30000 });
+  const vttPath = new URL(page.url()).pathname;
+  // The signed-in pages on a phone (375 px): each one photographed and checked for content wider than the screen
+  {
+    const phone = await browser.newContext({ storageState: await context.storageState(), viewport: { width: 375, height: 812 }, isMobile: true, hasTouch: true });
+    const mobile = await phone.newPage();
+    const tour = async (path, name, ready = 'main') => {
+      await mobile.goto(`${base}${path}`);
+      await mobile.locator(ready).first().waitFor({ timeout: 60000 }).catch(() => {});
+      await mobile.waitForTimeout(2000);
+      await shot(mobile, `phone-${name}`, null);
+      const wide = await overflowOf(mobile, path);
+      if (wide) phoneWide.push(wide);
+    };
+    for (const [path, name] of [['/characters', 'characters'], ['/campaigns', 'campaigns'], ['/monsters', 'monsters'], ['/magic-items', 'magic-items'],
+      ['/npcs', 'npcs'], ['/modules', 'modules'], ['/subspecies', 'subspecies'], ['/search', 'search'], ['/trash', 'trash']]) {
+      await tour(path, name);
+    }
+    await tour(campaignPath, 'campaign', '[data-test=campaign-tabs]');
+    const tabs = mobile.locator('[data-test=campaign-tabs] button, [data-test=campaign-tabs] a');
+    for (let i = 0; i < await tabs.count(); i++) {
+      await tabs.nth(i).click().catch(() => {});
+      await mobile.waitForTimeout(1200);
+      await shot(mobile, `phone-campaign-tab-${i}`, null);
+      const wide = await overflowOf(mobile, `${campaignPath} tab ${i}`);
+      if (wide) phoneWide.push(wide);
+    }
+    await tour(vttPath, 'vtt', '[data-test=vtt] [data-test=map-token]');
+    await mobile.locator('[data-test=vtt] [data-test=map-token]').first().click().catch(() => {});
+    await mobile.waitForTimeout(1200);
+    await shot(mobile, 'phone-vtt-token', null);
+    await mobile.keyboard.press('Escape').catch(() => {});
+    for (const tool of ['tokens', 'fog', 'light']) {
+      await mobile.locator(`[data-test=vtt-tool-${tool}]`).click().catch(() => {});
+      await mobile.waitForTimeout(1000);
+      await shot(mobile, `phone-vtt-${tool}`, null);
+      await mobile.locator(`[data-test=vtt-tool-${tool}]`).click().catch(() => {});
+    }
+    await mobile.setViewportSize({ width: 812, height: 375 });
+    await mobile.waitForTimeout(1200);
+    await shot(mobile, 'phone-vtt-landscape', null);
+    await phone.close();
+    results.push(`INFO phone (signed in): ${phoneWide.length ? phoneWide.join(' | ') : 'every page fits 375 px'}`);
+  }
   await page.waitForTimeout(600);
   const tableHero = page.locator('[data-test=vtt] [data-test=map-token]:not([data-label=Goblin])').first();
   const hb = await tableHero.boundingBox();
