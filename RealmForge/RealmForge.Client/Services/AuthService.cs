@@ -82,7 +82,11 @@ namespace RealmForge.Client.Services
 			}
 		}
 
-		public Task LogoutAsync() => _tokens.ClearAsync();
+		public async Task LogoutAsync()
+		{
+			await _tokens.ForgetOfflineAsync();
+			await _tokens.ClearAsync();
+		}
 
 		///	<summary>
 		///	Profile and Homebrew counts of the signed-in user; null when there is no valid session.

@@ -1,5 +1,7 @@
 ﻿using System.Net.Http.Json;
+using System.Text.Json;
 using Microsoft.Extensions.Logging;
+using Microsoft.JSInterop;
 using RealmForge.Shared.Characters;
 using RealmForge.Shared.DTOs;
 using RealmForge.Shared.Enums;
@@ -16,12 +18,54 @@ namespace RealmForge.Client.Services
 
 		private readonly HttpClient _http;
 		private readonly ILogger<CharacterDataService> _logger;
+		private readonly IJSRuntime _js;
+		private static readonly JsonSerializerOptions PendingJson = new(JsonSerializerDefaults.Web);
 		private readonly Dictionary<(RulesetVersion, LanguageCode), (DateTime Loaded, Task<CharacterContextDto?> Load)> _contexts = new();
 
-		public CharacterDataService(HttpClient http, ILogger<CharacterDataService> logger)
+		public CharacterDataService(HttpClient http, ILogger<CharacterDataService> logger, IJSRuntime js)
 		{
 			_http = http;
 			_logger = logger;
+			_js = js;
+		}
+
+		// ----- Offline: the sheet kept on the device until the server can take it -----
+
+		//	The last save of a sheet could not reach the server: it waits on this device
+		public bool SavedOffline { get; private set; }
+
+		private static string PendingKey(Guid id) => $"rf-sheet-pending-{id:N}";
+
+		private async Task<CharacterSheetState?> PendingAsync(Guid id)
+		{
+			try
+			{
+				var json = await _js.InvokeAsync<string?>("localStorage.getItem", PendingKey(id));
+				return string.IsNullOrEmpty(json) ? null : JsonSerializer.Deserialize<CharacterSheetState>(json, PendingJson);
+			}
+			catch (Exception)
+			{
+				return null;
+			}
+		}
+
+		private async Task SetPendingAsync(Guid id, CharacterSheetState? sheet)
+		{
+			try
+			{
+				if (sheet is null)
+				{
+					await _js.InvokeVoidAsync("localStorage.removeItem", PendingKey(id));
+				}
+				else
+				{
+					await _js.InvokeVoidAsync("localStorage.setItem", PendingKey(id), JsonSerializer.Serialize(sheet, PendingJson));
+				}
+			}
+			catch (Exception)
+			{
+				//	No storage (a private window): the sheet stays in the page only
+			}
 		}
 
 		//	Something changed what the user can use (an entry shared or collected): the next context is loaded again
@@ -104,7 +148,15 @@ namespace RealmForge.Client.Services
 		{
 			try
 			{
-				return await _http.GetFromJsonAsync<CharacterDto>($"api/characters/{id}");
+				var character = await _http.GetFromJsonAsync<CharacterDto>($"api/characters/{id}");
+
+				//	A sheet saved on this device while offline: sent now, or shown over the copy read (the cached one offline)
+				if (character is not null && !character.ReadOnly && await PendingAsync(id) is { } pending)
+				{
+					var sent = await SaveSheetAsync(id, pending);
+					character = sent is not null ? await _http.GetFromJsonAsync<CharacterDto>($"api/characters/{id}") ?? character : character with { Sheet = pending };
+				}
+				return character;
 			}
 			catch (Exception ex)
 			{
@@ -156,7 +208,21 @@ namespace RealmForge.Client.Services
 			try
 			{
 				var response = await _http.PutAsJsonAsync($"api/characters/{id}/sheet", sheet);
-				return response.IsSuccessStatusCode ? await response.Content.ReadFromJsonAsync<CharacterSavedDto>() : null;
+				SavedOffline = false;
+				if (response.IsSuccessStatusCode)
+				{
+					await SetPendingAsync(id, null);
+					return await response.Content.ReadFromJsonAsync<CharacterSavedDto>();
+				}
+				return null;
+			}
+			catch (HttpRequestException ex)
+			{
+				//	No network: kept on the device, sent at the next save or opening
+				_logger.LogWarning(ex, "The sheet of character {CharacterId} waits on the device", id);
+				await SetPendingAsync(id, sheet);
+				SavedOffline = true;
+				return null;
 			}
 			catch (Exception ex)
 			{
