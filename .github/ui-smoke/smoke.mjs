@@ -1391,6 +1391,20 @@ try {
   campaignUi.notes = await page.locator('[data-test=campaign-note]').count();
   campaignUi.noteKinds = (await page.locator('[data-test=campaign-notes-kinds] .rf-pill-btn').allInnerTexts()).map((t) => t.trim()).join(',');
   await shot(page, 'campaign-notes', 'main');
+  // A shop opened to the players, a free item on sale at the list price
+  await page.locator('[data-test=campaign-tab-shops]').click();
+  await page.locator('[data-test=shop-new]').click();
+  await page.locator('[data-test=shop-name-it]').fill('Emporio');
+  await page.locator('[data-test=shop-open]').check();
+  await page.locator('[data-test=shop-save]').click();
+  await page.locator('[data-test=shop]').waitFor({ timeout: 15000 });
+  await page.locator('[data-test=shop-free]').click();
+  await page.locator('[data-test=shop-free-name]').fill('Mappa del tesoro');
+  await page.locator('[data-test=shop-free-price]').fill('25');
+  await page.locator('[data-test=shop-free-save]').click();
+  await page.locator('[data-test=shop-item]').waitFor({ timeout: 15000 });
+  campaignUi.shopCost = (await page.locator('[data-test=shop-item-cost]').first().innerText()).trim();
+  await shot(page, 'campaign-shops', 'main');
   // An encounter: three goblins and the party, its difficulty, the fight starts and the turn moves on
   await page.locator('[data-test=campaign-tab-encounters]').click();
   await page.locator('[data-test=encounter-new-name]').fill('Imboscata');
@@ -2159,7 +2173,7 @@ try {
   await binRow.waitFor({ state: 'detached', timeout: 15000 });
   campaignUi.purged = true;
   results.push(`INFO campaign: ${JSON.stringify(campaignUi)}`);
-  if (campaignUi.role !== 'Master' || !campaignUi.link || campaignUi.share !== 1 || campaignUi.notes !== 1
+  if (campaignUi.role !== 'Master' || !campaignUi.link || campaignUi.share !== 1 || campaignUi.notes !== 1 || campaignUi.shopCost !== '25 mo'
     || campaignUi.combatants !== 4 || campaignUi.goblins !== 3 || !campaignUi.hero || campaignUi.sheetLink !== 1 || !/^(Facile|Medio|Difficile|Mortale)$/.test(campaignUi.rating) || campaignUi.current !== 1
     || campaignUi.binKind !== 'CAMPAGNA' || !campaignUi.restored || !campaignUi.purged
     || campaignUi.cardButtons !== 0 || !campaignUi.cardOpens || campaignUi.listActions !== 2 || !campaignUi.toggled || campaignUi.noteKinds !== 'Diario di viaggio,Personali,Per i master' || campaignUi.leftFromSheet !== 1

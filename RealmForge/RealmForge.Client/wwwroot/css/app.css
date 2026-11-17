@@ -20432,3 +20432,257 @@ button.rf-qs-spell {
         height: 36px;
     }
 }
+
+/* ===== Shops of a campaign ===== */
+
+.rf-shop-form-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    gap: 16px;
+}
+
+    .rf-shop-form-row .rf-form-control {
+        width: 160px;
+    }
+
+.rf-shop-notice {
+    padding: 8px 16px;
+    border-radius: 8px;
+    border: 1px solid rgba(255, 140, 0, 0.4);
+    background-color: rgba(255, 140, 0, 0.08);
+}
+
+.rf-shop-list {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.rf-shop {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 16px;
+    border-radius: 8px;
+    border: 1px solid #303030;
+    background-color: var(--rf-bg-card);
+}
+
+    .rf-shop.closed {
+        border-style: dashed;
+    }
+
+.rf-shop-head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 16px;
+}
+
+    .rf-shop-head .rf-handout-icon {
+        width: 48px;
+        height: 48px;
+        border-radius: 8px;
+    }
+
+    .rf-shop-head .rf-handout-row-text {
+        flex: 1 1 160px;
+    }
+
+.rf-shop-description {
+    margin: 0;
+    color: var(--rf-text-muted);
+    white-space: pre-line;
+}
+
+.rf-shop-items {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.rf-shop-item {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px 16px;
+    padding: 8px;
+    border-radius: 8px;
+    background-color: #1c1c1c;
+}
+
+    .rf-shop-item.out {
+        opacity: 0.6;
+    }
+
+.rf-shop-item-name {
+    display: flex;
+    flex: 1 1 160px;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 8px;
+    min-width: 0;
+}
+
+    .rf-shop-item-name strong {
+        overflow-wrap: anywhere;
+    }
+
+    .rf-shop-item-name .small {
+        color: var(--rf-text-muted);
+    }
+
+.rf-shop-tag {
+    padding: 0 8px;
+    border-radius: 8px;
+    font-size: 0.75rem;
+    color: var(--rf-orange-primary);
+    border: 1px solid currentColor;
+}
+
+.rf-shop-item-edit,
+.rf-shop-item-buy {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+}
+
+.rf-shop-mini {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    margin: 0;
+}
+
+    .rf-shop-mini span {
+        font-size: 0.75rem;
+        color: var(--rf-text-muted);
+    }
+
+    .rf-shop-mini .rf-form-control {
+        width: 96px;
+        padding: 0 8px;
+        min-height: 32px;
+    }
+
+    .rf-shop-mini select.rf-form-control {
+        width: 160px;
+    }
+
+.rf-shop-price {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    min-width: 72px;
+    font-weight: 600;
+    color: var(--rf-orange-primary);
+}
+
+    .rf-shop-price .small {
+        font-weight: 400;
+        color: var(--rf-text-muted);
+    }
+
+.rf-shop-buy {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    gap: 8px 16px;
+    width: 100%;
+    padding-top: 8px;
+    border-top: 1px solid #303030;
+}
+
+.rf-shop-buy-sum {
+    display: flex;
+    flex-direction: column;
+}
+
+    .rf-shop-buy-sum .small {
+        color: var(--rf-text-muted);
+    }
+
+.rf-shop-add {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    gap: 8px;
+}
+
+.rf-shop-search {
+    position: relative;
+    flex: 1 1 240px;
+    min-width: 0;
+}
+
+.rf-shop-hits {
+    position: absolute;
+    z-index: 20;
+    top: calc(100% + 4px);
+    left: 0;
+    right: 0;
+    max-height: 280px;
+    margin: 0;
+    padding: 4px;
+    overflow-y: auto;
+    list-style: none;
+    border-radius: 8px;
+    border: 1px solid #303030;
+    background-color: var(--rf-bg-card);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+}
+
+    .rf-shop-hits button {
+        display: flex;
+        justify-content: space-between;
+        gap: 8px;
+        width: 100%;
+        padding: 8px;
+        border: 0;
+        border-radius: 8px;
+        background: none;
+        color: inherit;
+        text-align: left;
+    }
+
+        .rf-shop-hits button:hover,
+        .rf-shop-hits button:focus-visible {
+            background-color: #262626;
+        }
+
+        .rf-shop-hits button .small {
+            color: var(--rf-orange-primary);
+        }
+
+.rf-shop-free {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    width: 100%;
+}
+
+    .rf-shop-free .rf-form-control {
+        flex: 1 1 120px;
+        min-width: 0;
+    }
+
+@media (max-width: 575.98px) {
+    .rf-shop {
+        padding: 8px;
+    }
+
+    .rf-shop-item-edit,
+    .rf-shop-item-buy {
+        width: 100%;
+        justify-content: space-between;
+    }
+
+    .rf-shop-price {
+        align-items: flex-start;
+    }
+}

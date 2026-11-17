@@ -1,0 +1,53 @@
+﻿using RealmForge.Shared.Characters;
+using RealmForge.Shared.Enums;
+
+namespace RealmForge.Client.Localization
+{
+	///	<summary>Texts of the shops: merchants the masters stock and the players buy from.</summary>
+	public static partial class UiText
+	{
+		public static string CampaignTabShops(LanguageCode lang) => T(lang, "Negozi", "Shops");
+		public static string ShopsHintMaster(LanguageCode lang) => T(lang,
+			"Prepara mercanti con oggetti del compendio o tuoi e un moltiplicatore di prezzo; aprili quando i personaggi entrano: i giocatori comprano, le monete escono dalla borsa e l'oggetto finisce nell'inventario.",
+			"Prepare merchants with items of the compendium or your own and a price multiplier; open them when the characters walk in: the players buy, the coins leave the purse and the item lands in the inventory.");
+		public static string ShopsHintPlayer(LanguageCode lang) => T(lang, "I negozi aperti dal master: scegli il personaggio e compra.", "The shops the master opened: pick the character and buy.");
+		public static string ShopsEmptyMaster(LanguageCode lang) => T(lang, "Nessun negozio ancora.", "No shops yet.");
+		public static string ShopsEmptyPlayer(LanguageCode lang) => T(lang, "Nessun negozio aperto in questo momento.", "No shop is open right now.");
+		public static string ShopNew(LanguageCode lang) => T(lang, "Nuovo negozio", "New shop");
+		public static string ShopName(LanguageCode lang) => T(lang, "Nome", "Name");
+		public static string ShopDescription(LanguageCode lang) => T(lang, "Descrizione", "Description");
+		public static string ShopPercent(LanguageCode lang) => T(lang, "Prezzi (% del listino)", "Prices (% of the list price)");
+		public static string ShopOpen(LanguageCode lang) => T(lang, "Aperto ai giocatori", "Open to the players");
+		public static string ShopClosed(LanguageCode lang) => T(lang, "Chiuso", "Closed");
+		public static string ShopNeedsName(LanguageCode lang) => T(lang, "Serve un nome, in almeno una lingua.", "A name is needed, in one language at least.");
+		public static string ShopPercentBadge(int percent, LanguageCode lang) => percent == 100 ? T(lang, "Prezzi di listino", "List prices") : $"{percent}%";
+		public static string ShopEmpty(LanguageCode lang) => T(lang, "Scaffali vuoti.", "Empty shelves.");
+		public static string ShopAddSearch(LanguageCode lang) => T(lang, "Aggiungi dal compendio (equipaggiamento, oggetti magici)…", "Add from the compendium (equipment, magic items)…");
+		public static string ShopAddFree(LanguageCode lang) => T(lang, "Oggetto libero", "Free item");
+		public static string ShopFreeName(LanguageCode lang) => T(lang, "Nome dell'oggetto", "Item name");
+		public static string ShopPriceGp(LanguageCode lang) => T(lang, "Prezzo (mo)", "Price (GP)");
+		public static string ShopStock(LanguageCode lang) => T(lang, "Scorte", "Stock");
+		public static string ShopStockHint(LanguageCode lang) => T(lang, "vuoto: illimitate", "empty: unlimited");
+		public static string ShopStockLeft(int stock, LanguageCode lang) => stock == 0 ? T(lang, "Esaurito", "Sold out") : T(lang, $"{stock} disponibili", $"{stock} available");
+		public static string ShopListPrice(string price, LanguageCode lang) => T(lang, $"listino {price}", $"list {price}");
+		public static string ShopBuy(LanguageCode lang) => T(lang, "Compra", "Buy");
+		public static string ShopBuyFor(LanguageCode lang) => T(lang, "Per", "For");
+		public static string ShopNoBuyer(LanguageCode lang) => T(lang, "Porta un tuo personaggio al tavolo per comprare.", "Bring a character of yours to the table to buy.");
+		public static string ShopQuantity(LanguageCode lang) => T(lang, "Quantità", "Quantity");
+		public static string ShopTotal(string price, LanguageCode lang) => T(lang, $"Totale {price}", $"Total {price}");
+		public static string ShopBought(string item, int quantity, string price, LanguageCode lang) => T(lang,
+			$"Comprato: {item} ×{quantity} per {price}. È nell'inventario.", $"Bought: {item} ×{quantity} for {price}. It is in the inventory.");
+		public static string ShopNoMoney(LanguageCode lang) => T(lang, "Le monete non bastano.", "Not enough coins.");
+		public static string ShopSoldOut(LanguageCode lang) => T(lang, "Non ne restano abbastanza.", "Not enough left in stock.");
+		public static string ShopFailed(LanguageCode lang) => T(lang, "Non è stato possibile.", "That did not work.");
+		public static string ShopKindMagic(LanguageCode lang) => T(lang, "Magico", "Magic");
+
+		//	A purse in short: "12 mo · 5 ma · 3 mr" (the coins there are)
+		public static string PurseText(CoinPurse purse, LanguageCode lang)
+		{
+			var parts = new (int Amount, CoinType Type)[] { (purse.Pp, CoinType.Pp), (purse.Gp, CoinType.Gp), (purse.Ep, CoinType.Ep), (purse.Sp, CoinType.Sp), (purse.Cp, CoinType.Cp) }
+				.Where(p => p.Amount > 0).Select(p => $"{p.Amount} {CoinName(p.Type, lang)}").ToList();
+			return parts.Count == 0 ? T(lang, "borsa vuota", "empty purse") : string.Join(" · ", parts);
+		}
+	}
+}
