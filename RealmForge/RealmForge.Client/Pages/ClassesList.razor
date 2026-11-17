@@ -132,6 +132,7 @@
                 <button class="btn btn-sm btn-rf-outline" @onclick="CloseDetail"><Icon Name="close" /></button>
             </div>
 
+            <ForkBar Kind="class" EntityId="cls.Id" />
             @if (!cls.IsOfficialSRD)
             {
                 <ShareLink Visibility="cls.Visibility" CanEdit="cls.CanEdit" EntityId="cls.Id" Path="@($"classes?id={cls.Id}")" />
@@ -260,6 +261,7 @@
                                         <h3 class="h5 mb-0" style="color: var(--rf-orange-primary); font-family: var(--rf-font-display);" data-test="subclass-name">@subclass.Name</h3>
                                         <ContentBadge IsBase="subclass.IsOfficialSRD" Source="subclass.Source" Visibility="subclass.Visibility" ShowSource="true" />
                                     </div>
+                                    <ForkBar Kind="subclass" EntityId="subclass.Id" />
                                     @if (!subclass.IsOfficialSRD)
                                     {
                                         <ShareLink Visibility="subclass.Visibility" CanEdit="subclass.CanEdit" EntityId="subclass.Id" Path="@($"classes?id={cls.Id}&subclass={subclass.Id}")" />

@@ -32,6 +32,10 @@ A modular, bilingual web platform for managing tabletop RPG campaigns, sessions 
   Sign-in with passkeys (iPhone, Safari, Android, Windows Hello, security keys) offered right in the e-mail field, rate limiting, e-mail change, account suspension and deletion confirmed by e-mail.
   *Accesso con passkey (iPhone, Safari, Android, Windows Hello, chiavi di sicurezza) proposte già nel campo email, limiti di frequenza, cambio email, sospensione ed eliminazione dell'account confermate via email.*
 
+- **Clone and customise** · *Clona e personalizza*
+  Any entry you can read (Base content or someone's public Homebrew) becomes a private copy of yours with one click, with everything that belongs to it, ready to change for your campaign; the copy shows "Based on …" with a link to the original.
+  *Qualsiasi voce che puoi leggere (contenuti Base o Homebrew pubblico di altri) diventa con un clic una tua copia privata, con tutto ciò che le appartiene, pronta da modificare per la tua campagna; la copia mostra "Basato su …" con il link all'originale.*
+
 - **JSON files and the author's page** · *File JSON e pagina dell'autore*
   Characters and Homebrew (with everything that belongs to each entry) export to a versioned JSON file and import back, also on another RealmForge (self-hosting); "My Homebrew" lists what you created by kind, with the languages each entry is written in and a filter for what is left to translate.
   *Personaggi e Homebrew (con tutto ciò che appartiene a ogni voce) si esportano in un file JSON versionato e si reimportano, anche su un altro RealmForge (self-hosting); "Il mio Homebrew" elenca ciò che hai creato per tipo, con le lingue in cui è scritta ogni voce e un filtro per ciò che resta da tradurre.*

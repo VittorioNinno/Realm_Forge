@@ -43,6 +43,12 @@ namespace RealmForge.Client.Localization
 		public static string ExportAll(LanguageCode lang) => T(lang, "Esporta tutto", "Export everything");
 		public static string Exported(int count, LanguageCode lang) => T(lang, count == 1 ? "1 voce esportata." : $"{count} voci esportate.", count == 1 ? "1 entry exported." : $"{count} entries exported.");
 		public static string Imported(int done, int total, LanguageCode lang) => T(lang, $"Importate {done} voci su {total}: le trovi qui sotto, private.", $"{done} of {total} entries imported: they are below, private.");
+		public static string ForkButton(LanguageCode lang) => T(lang, "Clona e personalizza", "Clone and customise");
+		public static string ForkHint(LanguageCode lang) => T(lang, "Una copia privata da modificare per le tue campagne: ricorda da dove viene", "A private copy to change for your campaigns: it remembers where it comes from");
+		public static string ForkBasedOn(LanguageCode lang) => T(lang, "Basato su", "Based on");
+		public static string ForkFailed(string? missing, LanguageCode lang) => missing is { Length: > 0 } and not "network"
+			? T(lang, $"Non è stato possibile clonarlo: manca {TrashKind(missing, lang)}.", $"It could not be cloned: the {TrashKind(missing, lang)} it needs is missing.")
+			: T(lang, "Non è stato possibile clonarlo. Hai confermato la tua email?", "It could not be cloned. Have you confirmed your e-mail?");
 		public static string NavHomebrew(LanguageCode lang) => T(lang, "Il mio Homebrew", "My Homebrew");
 	}
 }
