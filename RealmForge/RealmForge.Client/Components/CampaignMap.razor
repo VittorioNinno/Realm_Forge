@@ -29,6 +29,13 @@
         <HandoutView Handout="popupHandout" OnClose="() => popupHandout = null" />
     }
     <div class="rf-vtt-table" @ref="tableElement" data-test="vtt">
+        @* Shown only on a phone held upright (CSS): the table needs the phone turned *@
+        <div class="rf-vtt-rotate" role="alert" data-test="vtt-rotate">
+            <Icon Name="phone" />
+            <strong>@UiText.VttRotate(Lang)</strong>
+            <p>@UiText.VttRotateHint(Lang)</p>
+            <a href="@($"campaigns/{CampaignId}")" class="btn btn-rf-outline btn-sm">@UiText.VttRotateBack(Lang)</a>
+        </div>
         <DiceTray @ref="tray" AutoHideMs="1800" ShowHistory="false" />
         <EquipmentInfoModal Item="groundInfo" OnClose="() => groundInfo = null" />
         <header class="rf-vtt-top">
@@ -133,6 +140,11 @@
                 @if (map is not null && Table && MySaveCalls.Count > 0)
                 {
                     @SavesPanel
+                }
+                @if (PhoneSheet && InfoToken is { } onPhone)
+                {
+                    @* On a phone the card of the token opens as a sheet at the bottom of the table, over the whole width *@
+                    <div class="rf-vtt-phone-sheet" data-test="vtt-phone-sheet">@Toolbar(onPhone)</div>
                 }
                 @DiceCluster
             </div>
@@ -885,7 +897,7 @@ else
                     {
                         <span class="rf-vtt-ping" @key="pg.At" style="left: @(N(pg.X))px; top: @(N(pg.Y))px; --rf-token: @pg.Color;" data-test="map-ping"><span class="rf-vtt-ping-dot"></span></span>
                     }
-                    @if (InfoToken is { } selected)
+                    @if (InfoToken is { } selected && !PhoneSheet)
                     {
                         @Toolbar(selected)
                     }
@@ -3666,6 +3678,7 @@ else
         if (firstRender && Table)
         {
             await LoadLayoutAsync();
+            await WatchPhoneAsync();
         }
         //	The turn that just came is brought into view in a long order
         if (combat?.CurrentId is { } currentId && currentId != revealedTurn)
@@ -6082,6 +6095,7 @@ else
         stop?.Cancel();
         Live.Changed -= OnLiveChanged;
         await UnwatchNetworkAsync();
+        await UnwatchPhoneAsync();
         try
         {
             if (!string.IsNullOrEmpty(stageElement.Id))
