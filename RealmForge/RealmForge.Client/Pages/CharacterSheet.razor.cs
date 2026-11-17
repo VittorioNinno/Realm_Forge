@@ -69,7 +69,7 @@ namespace RealmForge.Client.Pages
 		private int newResourceMax = 1;
 
 		// Autosave
-		private enum SaveStatus { Idle, Pending, Saving, Saved, Failed }
+		private enum SaveStatus { Idle, Pending, Saving, Saved, Failed, Offline }
 		private SaveStatus saveStatus = SaveStatus.Idle;
 		private CancellationTokenSource? saveDelay;
 
@@ -218,7 +218,21 @@ namespace RealmForge.Client.Pages
 			saveStatus = SaveStatus.Saving;
 			await InvokeAsync(StateHasChanged);
 			var saved = await Characters.SaveSheetAsync(character.Id, character.Sheet);
-			saveStatus = saved is null ? SaveStatus.Failed : SaveStatus.Saved;
+			saveStatus = saved is not null ? SaveStatus.Saved : Characters.SavedOffline ? SaveStatus.Offline : SaveStatus.Failed;
+			if (saveStatus == SaveStatus.Offline)
+			{
+				//	Kept on the device: tried again in a while (and at the next change)
+				saveDelay?.Cancel();
+				saveDelay = new CancellationTokenSource();
+				var retry = saveDelay.Token;
+				_ = Task.Delay(TimeSpan.FromSeconds(20), retry).ContinueWith(t =>
+				{
+					if (!t.IsCanceled)
+					{
+						_ = InvokeAsync(SaveNowAsync);
+					}
+				}, TaskScheduler.Default);
+			}
 			if (saved?.Vitals is { } vitals)
 			{
 				var store = vitals.Inventory is not null && vitals.StoreStamp != Sheet.StoreStamp;
@@ -617,6 +631,7 @@ namespace RealmForge.Client.Pages
 			SaveStatus.Pending or SaveStatus.Saving => UiText.SheetSaving(Lang),
 			SaveStatus.Saved => UiText.SheetSaved(Lang),
 			SaveStatus.Failed => UiText.SheetSaveFailed(Lang),
+			SaveStatus.Offline => UiText.SheetSavedOffline(Lang),
 			_ => string.Empty
 		};
 	}
