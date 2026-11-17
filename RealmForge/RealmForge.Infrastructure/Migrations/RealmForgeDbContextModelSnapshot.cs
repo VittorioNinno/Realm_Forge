@@ -330,6 +330,11 @@ namespace RealmForge.Infrastructure.Migrations
                         .HasMaxLength(8000)
                         .HasColumnType("character varying(8000)");
 
+                    b.Property<long>("GameMinutes")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasDefaultValue(480L);
+
                     b.Property<string>("InviteCode")
                         .HasMaxLength(32)
                         .HasColumnType("character varying(32)");
