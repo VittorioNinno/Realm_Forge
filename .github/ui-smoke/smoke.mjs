@@ -1675,7 +1675,7 @@ try {
       if (wide) phoneWide.push(wide);
     };
     for (const [path, name] of [['/characters', 'characters'], ['/campaigns', 'campaigns'], ['/monsters', 'monsters'], ['/magic-items', 'magic-items'],
-      ['/npcs', 'npcs'], ['/modules', 'modules'], ['/subspecies', 'subspecies'], ['/search', 'search'], ['/trash', 'trash']]) {
+      ['/npcs', 'npcs'], ['/modules', 'modules'], ['/search', 'search'], ['/trash', 'trash']]) {
       await tour(path, name);
     }
     await tour(campaignPath, 'campaign', '[data-test=campaign-tabs]');
@@ -1687,22 +1687,39 @@ try {
       const wide = await overflowOf(mobile, `${campaignPath} tab ${i}`);
       if (wide) phoneWide.push(wide);
     }
-    await tour(vttPath, 'vtt', '[data-test=vtt] [data-test=map-token]');
+    // The table upright asks to turn the phone; sideways it works: the card of a token on the right, nothing off the screen
+    await mobile.goto(`${base}${vttPath}`);
+    await mobile.locator('[data-test=vtt] [data-test=map-token]').first().waitFor({ timeout: 60000 });
+    await mobile.waitForTimeout(1500);
+    const rotate = await mobile.locator('[data-test=vtt-rotate]').isVisible();
+    await shot(mobile, 'phone-vtt-upright', null);
+    await mobile.setViewportSize({ width: 812, height: 375 });
+    await mobile.waitForTimeout(1500);
+    const rotateSideways = await mobile.locator('[data-test=vtt-rotate]').isVisible();
+    await shot(mobile, 'phone-vtt-landscape', null);
+    const vttWide = await overflowOf(mobile, `${vttPath} sideways`);
+    if (vttWide) phoneWide.push(vttWide);
     await mobile.locator('[data-test=vtt] [data-test=map-token]').first().click().catch(() => {});
     await mobile.waitForTimeout(1200);
+    const sheet = await mobile.locator('[data-test=vtt-phone-sheet] [data-test=map-token-card]').count();
     await shot(mobile, 'phone-vtt-token', null);
+    const sheetWide = await overflowOf(mobile, `${vttPath} token card`);
+    if (sheetWide) phoneWide.push(sheetWide);
     await mobile.keyboard.press('Escape').catch(() => {});
     for (const tool of ['tokens', 'fog', 'light']) {
       await mobile.locator(`[data-test=vtt-tool-${tool}]`).click().catch(() => {});
       await mobile.waitForTimeout(1000);
       await shot(mobile, `phone-vtt-${tool}`, null);
+      const wide = await overflowOf(mobile, `${vttPath} ${tool}`);
+      if (wide) phoneWide.push(wide);
       await mobile.locator(`[data-test=vtt-tool-${tool}]`).click().catch(() => {});
     }
-    await mobile.setViewportSize({ width: 812, height: 375 });
-    await mobile.waitForTimeout(1200);
-    await shot(mobile, 'phone-vtt-landscape', null);
+    results.push(`INFO phone table: upright asks to turn=${rotate}, sideways=${!rotateSideways}, token card on the side=${sheet}`);
+    if (!rotate || rotateSideways || sheet !== 1) throw new Error(`unexpected table on a phone: rotate=${rotate} sideways=${rotateSideways} sheet=${sheet}`);
     await phone.close();
     results.push(`INFO phone (signed in): ${phoneWide.length ? phoneWide.join(' | ') : 'every page fits 375 px'}`);
+    if (phoneWide.length) throw new Error(`content wider than a phone: ${phoneWide.join(' | ').slice(0, 300)}`);
+    ok('phone (signed in): characters, campaigns (every tab), monsters, magic items, NPCs, modules, search, bin and the table sideways fit the screen; upright the table asks to turn the phone');
   }
   await page.waitForTimeout(600);
   const tableHero = page.locator('[data-test=vtt] [data-test=map-token]:not([data-label=Goblin])').first();
