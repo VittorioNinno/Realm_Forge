@@ -91,6 +91,8 @@
                             {
                                 <button type="button" class="rf-vtt-row-action" disabled="@busy" title="@UiText.HandoutHide(Lang)" aria-label="@UiText.HandoutHide(Lang)" @onclick="() => RevealAsync(handout, false)" data-test="handout-hide"><Icon Name="eye-slash" /></button>
                             }
+                            <button type="button" class="rf-vtt-row-action @(handout.IsScene ? "on" : null)" disabled="@busy" title="@(handout.IsScene ? UiText.SceneEnd(Lang) : UiText.SceneShow(Lang))"
+                                    aria-label="@(handout.IsScene ? UiText.SceneEnd(Lang) : UiText.SceneShow(Lang))" aria-pressed="@(handout.IsScene ? "true" : "false")" @onclick="() => SceneAsync(handout)" data-test="handout-scene"><Icon Name="images" /></button>
                             <button type="button" class="rf-vtt-row-action" title="@UiText.Edit(Lang)" aria-label="@UiText.Edit(Lang)" @onclick="() => Edit(handout)" data-test="handout-edit"><Icon Name="pencil" /></button>
                             <button type="button" class="rf-vtt-row-action" disabled="@busy" title="@UiText.BtnRemove(Lang)" aria-label="@UiText.BtnRemove(Lang)" @onclick="() => DeleteAsync(handout)" data-test="handout-delete"><Icon Name="trash" /></button>
                         </span>
@@ -110,6 +112,9 @@
     [Parameter, EditorRequired] public Guid CampaignId { get; set; }
     [Parameter] public CampaignRole Role { get; set; } = CampaignRole.Player;
     [Parameter] public bool Compact { get; set; }
+
+    //	Something changed that the table shows (the scene)
+    [Parameter] public EventCallback OnChanged { get; set; }
 
     private List<CampaignHandoutDto>? handouts;
     private SaveCampaignHandoutDto? draft;
@@ -176,6 +181,23 @@
         await Campaigns.RevealHandoutAsync(CampaignId, h.Id, reveal);
         busy = false;
         await LoadAsync();
+    }
+
+    //	The handout in place of the map for the whole table (again: back to the map)
+    private async Task SceneAsync(CampaignHandoutDto h)
+    {
+        busy = true;
+        if (h.IsScene)
+        {
+            await Campaigns.EndSceneAsync(CampaignId);
+        }
+        else
+        {
+            await Campaigns.ShowSceneAsync(CampaignId, h.Id);
+        }
+        busy = false;
+        await LoadAsync();
+        await OnChanged.InvokeAsync();
     }
 
     private async Task DeleteAsync(CampaignHandoutDto h)

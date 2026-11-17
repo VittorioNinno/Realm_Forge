@@ -1600,6 +1600,7 @@ namespace RealmForge.Api.Controllers
 		{
 			var runs = CampaignRules.RunsTheTable(role);
 			undoLeft = runs ? await _context.CampaignMapEdits.CountAsync(e => e.MapId == map.Id && e.UserId == UserId) : 0;
+			scene = await _context.Campaigns.AsNoTracking().Where(c => c.Id == map.CampaignId).Select(c => c.SceneHandoutId).FirstOrDefaultAsync();
 			shownHandout = await _context.CampaignHandouts.AsNoTracking()
 				.Where(h => h.CampaignId == map.CampaignId && h.RevealedAt != null)
 				.OrderByDescending(h => h.RevealedAt)
@@ -1817,7 +1818,8 @@ namespace RealmForge.Api.Controllers
 			map.DynamicVision,
 			vision,
 			undoLeft,
-			shownHandout);
+			shownHandout,
+			scene);
 
 		//	The saving throws waiting: all of them for the masters; for the players those of a caster they see, without the
 		//	targets hidden from them

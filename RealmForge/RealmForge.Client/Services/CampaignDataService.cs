@@ -151,6 +151,12 @@ namespace RealmForge.Client.Services
 		public Task<CampaignResult> RevealHandoutAsync(Guid id, Guid handoutId, bool reveal) =>
 			SendAsync(() => _http.PostAsync($"api/campaigns/{id}/handouts/{handoutId}/{(reveal ? "reveal" : "hide")}", null), "reveal handout");
 
+		public Task<CampaignResult> ShowSceneAsync(Guid id, Guid handoutId) =>
+			SendAsync(() => _http.PostAsync($"api/campaigns/{id}/handouts/{handoutId}/scene", null), "show scene");
+
+		public Task<CampaignResult> EndSceneAsync(Guid id) =>
+			SendAsync(() => _http.DeleteAsync($"api/campaigns/{id}/handouts/scene"), "end scene");
+
 		public Task<List<CampaignNoteDto>?> GetNotesAsync(Guid id) => GetAsync<List<CampaignNoteDto>>($"api/campaigns/{id}/notes");
 
 		public Task<CampaignResult> AddNoteAsync(Guid id, SaveCampaignNoteDto note) =>
