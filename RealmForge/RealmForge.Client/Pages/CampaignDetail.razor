@@ -354,6 +354,10 @@
                 <CampaignHandouts CampaignId="campaign.Id" Role="role" />
                 break;
 
+            case Tab.Shops:
+                <CampaignShops CampaignId="campaign.Id" Role="role" Ruleset="campaign.Ruleset" />
+                break;
+
             case Tab.Sessions:
                 <CampaignSessions CampaignId="campaign.Id" CampaignName="@campaign.Name" Role="role" OnChanged="s => sessions = s" />
                 break;
@@ -417,7 +421,7 @@
 @code {
     [Parameter] public Guid Id { get; set; }
 
-    private enum Tab { Overview, Sessions, Members, Characters, Encounters, Map, Rolls, Content, Notes, Handouts }
+    private enum Tab { Overview, Sessions, Members, Characters, Encounters, Map, Rolls, Content, Notes, Handouts, Shops }
     private enum Confirm { None, Leave, Delete }
 
     private LanguageCode Lang => LanguageState.CurrentLanguage;
@@ -456,12 +460,13 @@
         Tab.Rolls => UiText.CampaignTabRolls(Lang),
         Tab.Map => UiText.CampaignTabMaps(Lang),
         Tab.Handouts => UiText.CampaignTabHandouts(Lang),
+        Tab.Shops => UiText.CampaignTabShops(Lang),
         _ => UiText.CampaignTabNotes(Lang)
     };
 
     //	Maps and encounters are the masters' preparation: the players meet them at the virtual tabletop
     private static IEnumerable<Tab> VisibleTabs(CampaignRole role) =>
-        new[] { Tab.Overview, Tab.Sessions, Tab.Members, Tab.Characters, Tab.Encounters, Tab.Map, Tab.Handouts, Tab.Rolls, Tab.Content, Tab.Notes }
+        new[] { Tab.Overview, Tab.Sessions, Tab.Members, Tab.Characters, Tab.Encounters, Tab.Map, Tab.Handouts, Tab.Shops, Tab.Rolls, Tab.Content, Tab.Notes }
             .Where(t => CampaignRules.RunsTheTable(role) || (t != Tab.Encounters && t != Tab.Map));
 
     //	My characters not yet at the table, of the campaign's edition
