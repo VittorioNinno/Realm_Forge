@@ -69,6 +69,7 @@ namespace RealmForge.Infrastructure.Persistence
 		public DbSet<CampaignCharacter> CampaignCharacters => Set<CampaignCharacter>();
 		public DbSet<CampaignContent> CampaignContents => Set<CampaignContent>();
 		public DbSet<CampaignNote> CampaignNotes => Set<CampaignNote>();
+		public DbSet<CampaignHandout> CampaignHandouts => Set<CampaignHandout>();
 		public DbSet<CampaignEncounter> CampaignEncounters => Set<CampaignEncounter>();
 		public DbSet<CampaignSession> CampaignSessions => Set<CampaignSession>();
 		public DbSet<CampaignRoll> CampaignRolls => Set<CampaignRoll>();
@@ -577,6 +578,18 @@ namespace RealmForge.Infrastructure.Persistence
 				entity.Property(n => n.Body).IsRequired().HasMaxLength(8000);
 				entity.HasIndex(n => new { n.CampaignId, n.Kind });
 				entity.HasOne(n => n.Campaign).WithMany(c => c.Notes).HasForeignKey(n => n.CampaignId).OnDelete(DeleteBehavior.Cascade);
+			});
+
+			modelBuilder.Entity<CampaignHandout>(entity =>
+			{
+				entity.HasKey(h => h.Id);
+				entity.Property(h => h.AuthorId).IsRequired().HasMaxLength(450);
+				entity.Property(h => h.TitleIt).IsRequired().HasMaxLength(120);
+				entity.Property(h => h.TitleEn).IsRequired().HasMaxLength(120);
+				entity.Property(h => h.BodyIt).IsRequired().HasMaxLength(8000);
+				entity.Property(h => h.BodyEn).IsRequired().HasMaxLength(8000);
+				entity.HasIndex(h => new { h.CampaignId, h.RevealedAt });
+				entity.HasOne<Campaign>().WithMany().HasForeignKey(h => h.CampaignId).OnDelete(DeleteBehavior.Cascade);
 			});
 
 			modelBuilder.Entity<CampaignEncounter>(entity =>

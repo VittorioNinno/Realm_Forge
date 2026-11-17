@@ -1,0 +1,32 @@
+﻿@using RealmForge.Client.Localization
+@using RealmForge.Client.Services
+@using RealmForge.Shared.DTOs
+@using RealmForge.Shared.Enums
+@inject ImageDataService Images
+@inject LanguageStateService LanguageState
+
+@* A handout read by a player (or looked at by a master): its picture over the width, its title and its text, like a
+   parchment handed over the table *@
+<div class="rf-modal-backdrop rf-handout-backdrop" @onclick="Close" data-test="handout-view">
+    <article class="rf-handout" role="dialog" aria-modal="true" aria-label="@Handout.Title" @onclick:stopPropagation="true">
+        <button type="button" class="rf-handout-close" aria-label="@UiText.TokenClose(Lang)" @onclick="Close" data-test="handout-close"><Icon Name="close" /></button>
+        @if (Handout.ImageId is { } image)
+        {
+            <img class="rf-handout-image" src="@Images.FileUrl(image)" alt="@Handout.Title" />
+        }
+        <h2 class="rf-handout-title" data-test="handout-title">@Handout.Title</h2>
+        @if (!string.IsNullOrWhiteSpace(Handout.Body))
+        {
+            <div class="rf-markdown-container rf-handout-body" data-test="handout-body">@((MarkupString)MarkdownText.ToHtml(Handout.Body, null))</div>
+        }
+    </article>
+</div>
+
+@code {
+    [Parameter, EditorRequired] public CampaignHandoutDto Handout { get; set; } = default!;
+    [Parameter] public EventCallback OnClose { get; set; }
+
+    private LanguageCode Lang => LanguageState.CurrentLanguage;
+
+    private Task Close() => OnClose.InvokeAsync();
+}

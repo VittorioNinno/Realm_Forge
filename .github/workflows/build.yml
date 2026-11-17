@@ -1395,6 +1395,19 @@ jobs:
           code -X DELETE "$api/api/campaigns/$ss_cp/maps/$mp2/tokens/$fl_walker" -H "Authorization: Bearer $B" > /dev/null
           code -X DELETE "$api/api/campaigns/$ss_cp/maps/$mp2/tokens/$fl_up" -H "Authorization: Bearer $B" > /dev/null
           code -X DELETE "$api/api/campaigns/$ss_cp/maps/$fl_map" -H "Authorization: Bearer $B" > /dev/null
+          # Handouts: written by the master in two languages, hidden until revealed, then read by the player in theirs; the table
+          # of the map shown tells the player's screen to open it
+          ho=$(curl -s -X POST "$api/api/campaigns/$ss_cp/handouts?lang=2" $json -H "Authorization: Bearer $B" -d '{"titleIt":"Lettera","titleEn":"Letter","bodyIt":"Ci vediamo alla torre.","bodyEn":"Meet me at the tower."}' | jq -r .id)
+          ho_player_add=$(code -X POST "$api/api/campaigns/$ss_cp/handouts" $json -H "Authorization: Bearer $A" -d '{"titleIt":"Mia"}')
+          ho_hidden=$(curl -s "$api/api/campaigns/$ss_cp/handouts" -H "Authorization: Bearer $A" | jq length)
+          ho_reveal=$(code -X POST "$api/api/campaigns/$ss_cp/handouts/$ho/reveal" -H "Authorization: Bearer $B")
+          ho_en=$(curl -s "$api/api/campaigns/$ss_cp/handouts?lang=1" -H "Authorization: Bearer $A" | jq -c '[.[] | {title, body, both: (.titleIt != null)}]')
+          ho_it=$(curl -s "$api/api/campaigns/$ss_cp/handouts/$ho?lang=2" -H "Authorization: Bearer $A" | jq -r .title)
+          ho_table=$(curl -s "$api/api/campaigns/$ss_cp/maps/$mp2/state" -H "Authorization: Bearer $A" | jq -c --arg h "$ho" '.table.handout.id == $h')
+          ho_master=$(curl -s "$api/api/campaigns/$ss_cp/handouts" -H "Authorization: Bearer $B" | jq -c '[.[] | {titleIt, titleEn}]')
+          ho_hide=$(code -X POST "$api/api/campaigns/$ss_cp/handouts/$ho/hide" -H "Authorization: Bearer $B")
+          ho_after=$(curl -s "$api/api/campaigns/$ss_cp/handouts" -H "Authorization: Bearer $A" | jq length)
+          ho_delete=$(code -X DELETE "$api/api/campaigns/$ss_cp/handouts/$ho" -H "Authorization: Bearer $B")
           # A spell asks for a save: the damage rolled once, the target waits; only who controls it (or a master) rolls
           sv_call=$(curl -s -X POST "$api/api/campaigns/$ss_cp/maps/$mp2/saves?lang=2" $json -H "Authorization: Bearer $A" \
             -d "{\"casterId\":\"$ctl_tree\",\"spell\":\"Prova\",\"ability\":2,\"dc\":30,\"half\":true,\"targetIds\":[\"$at_target\"]}")
@@ -1630,6 +1643,15 @@ jobs:
           sscheck "drawer: hidden from the players" "$dr_player_seen" "0"
           sscheck "drawer: placing undone in one step" "$dr_undo|$dr_after" "tokens|$dr_before"
           sscheck "drawer: group deleted" "$dr_del" "204"
+          sscheck "handouts: only masters write them" "$ho_player_add" "403"
+          sscheck "handouts: hidden from the players" "$ho_hidden" "0"
+          sscheck "handouts: revealed" "$ho_reveal" "204"
+          sscheck "handouts: read in English" "$ho_en" '[{"title":"Letter","body":"Meet me at the tower.","both":false}]'
+          sscheck "handouts: read in Italian" "$ho_it" "Lettera"
+          sscheck "handouts: the table opens it" "$ho_table" "true"
+          sscheck "handouts: the master has both languages" "$ho_master" '[{"titleIt":"Lettera","titleEn":"Letter"}]'
+          sscheck "handouts: hidden again" "$ho_hide|$ho_after" "204|0"
+          sscheck "handouts: deleted" "$ho_delete" "204"
           sscheck "floors: only masters link" "$fl_link_player" "403"
           sscheck "floors: stairs linked" "$fl_link" "204"
           sscheck "floors: the stairs of every map" "$fl_links" '["Foresta","Piano 2"]'

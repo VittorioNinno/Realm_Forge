@@ -128,6 +128,28 @@ namespace RealmForge.Domain.Entities
 	}
 
 	///	<summary>
+	///	A handout of a campaign: a letter, a clue, a picture or a map that is not tactical, prepared by the masters and
+	///	revealed to the players during a session (a pop-up at the table). Written in Italian and English: each player
+	///	reads it in their language (the other one when it has only that).
+	///	</summary>
+	public class CampaignHandout
+	{
+		public Guid Id { get; set; } = Guid.NewGuid();
+		public Guid CampaignId { get; set; }
+		public string AuthorId { get; set; } = string.Empty;
+		public string TitleIt { get; set; } = string.Empty;
+		public string TitleEn { get; set; } = string.Empty;
+		public string BodyIt { get; set; } = string.Empty;
+		public string BodyEn { get; set; } = string.Empty;
+		public Guid? ImageId { get; set; }
+
+		//	When it was shown to the players (null: still hidden)
+		public DateTimeOffset? RevealedAt { get; set; }
+		public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
+		public DateTimeOffset UpdatedAt { get; set; } = DateTimeOffset.UtcNow;
+	}
+
+	///	<summary>
 	///	A group of monsters the masters keep ready for the table (a goblin patrol: four goblins and their boss): placed on a
 	///	map in one go. Entries: JSON of MonsterGroupEntry (the monster and how many).
 	///	</summary>
