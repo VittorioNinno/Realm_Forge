@@ -157,6 +157,11 @@ namespace RealmForge.Client.Services
 		public Task<CampaignResult> EndSceneAsync(Guid id) =>
 			SendAsync(() => _http.DeleteAsync($"api/campaigns/{id}/handouts/scene"), "end scene");
 
+		public Task<CampaignClockDto?> GetClockAsync(Guid id) => GetAsync<CampaignClockDto>($"api/campaigns/{id}/clock");
+
+		public Task<(ClockMovedDto? Value, string? Error)> MoveClockAsync(Guid id, MoveClockDto dto) =>
+			TableAsync<ClockMovedDto>(() => _http.PostAsJsonAsync($"api/campaigns/{id}/clock", dto), "move clock");
+
 		public Task<CampaignShopsDto?> GetShopsAsync(Guid id, LanguageCode lang) =>
 			GetAsync<CampaignShopsDto>($"api/campaigns/{id}/shops?lang={(int)lang}");
 

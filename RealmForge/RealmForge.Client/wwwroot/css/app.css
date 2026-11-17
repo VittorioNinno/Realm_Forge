@@ -20686,3 +20686,177 @@ button.rf-qs-spell {
         align-items: flex-start;
     }
 }
+
+/* ===== Game clock, supplies and timed effects ===== */
+
+.rf-clock {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.rf-clock-head {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+    .rf-clock-head .rf-handout-icon {
+        width: 48px;
+        height: 48px;
+        border-radius: 8px;
+    }
+
+.rf-clock-now {
+    font-size: 1.25rem;
+    font-variant-numeric: tabular-nums;
+}
+
+.rf-clock-steps,
+.rf-clock-custom {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+}
+
+    .rf-clock-custom .rf-form-control {
+        width: 96px;
+        min-height: 32px;
+        padding: 0 8px;
+    }
+
+    .rf-clock-custom input[type=time].rf-form-control {
+        width: 120px;
+    }
+
+.rf-clock-set summary {
+    cursor: pointer;
+    color: var(--rf-text-muted);
+    margin-bottom: 8px;
+}
+
+.rf-clock-report {
+    margin: 0;
+    padding: 8px 16px 8px 32px;
+    border-radius: 8px;
+    border: 1px solid rgba(255, 140, 0, 0.4);
+    background-color: rgba(255, 140, 0, 0.08);
+}
+
+.rf-clock-effects {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+    .rf-clock-effects ul {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        margin: 0;
+        padding: 0;
+        list-style: none;
+    }
+
+    .rf-clock-effects .small {
+        color: var(--rf-text-muted);
+    }
+
+.rf-vtt-clock {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 0 8px;
+    border-radius: 8px;
+    border: 1px solid #303030;
+    background: none;
+    color: inherit;
+    font-size: .8rem;
+    font-weight: 700;
+    line-height: 30px;
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+}
+
+    .rf-vtt-clock .rf-icon,
+    .rf-vtt-clock svg {
+        color: var(--rf-orange-primary);
+    }
+
+button.rf-vtt-clock:hover,
+button.rf-vtt-clock.on {
+    border-color: var(--rf-orange-primary);
+}
+
+.rf-supplies {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.rf-supplies-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 8px;
+}
+
+.rf-supply {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+    padding: 8px;
+    border-radius: 8px;
+    background-color: #1c1c1c;
+}
+
+.rf-supply-icon {
+    flex: none;
+    color: var(--rf-orange-primary);
+}
+
+.rf-supply-name {
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.rf-supply-count {
+    min-width: 32px;
+    text-align: center;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+}
+
+.rf-timed-effects {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+    .rf-timed-effects li {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 8px;
+        padding: 8px;
+        border-radius: 8px;
+        background-color: #1c1c1c;
+    }
+
+        .rf-timed-effects li .small {
+            color: var(--rf-text-muted);
+        }
+
+/* The clock on a phone held sideways: the top bar has no room for it there (the campaign overview shows it) */
+@media (max-height: 500px) and (max-width: 1023.98px) and (orientation: landscape) {
+    [data-test=vtt-clock] {
+        display: none;
+    }
+}

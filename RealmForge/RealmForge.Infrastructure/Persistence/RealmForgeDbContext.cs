@@ -529,6 +529,9 @@ namespace RealmForge.Infrastructure.Persistence
 				entity.Property(c => c.Description).IsRequired().HasMaxLength(8000);
 				entity.Property(c => c.InviteCode).HasMaxLength(32);
 				entity.Property(c => c.CreatedById).IsRequired().HasMaxLength(450);
+
+				//	The campaigns from before the clock start at 08:00 of day 1, as the new ones (0 is a real time: midnight)
+				entity.Property(c => c.GameMinutes).HasDefaultValue(480L).HasSentinel(-1L);
 				entity.HasIndex(c => c.InviteCode).IsUnique();
 			});
 

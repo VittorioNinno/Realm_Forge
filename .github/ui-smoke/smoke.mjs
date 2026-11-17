@@ -1391,6 +1391,11 @@ try {
   campaignUi.notes = await page.locator('[data-test=campaign-note]').count();
   campaignUi.noteKinds = (await page.locator('[data-test=campaign-notes-kinds] .rf-pill-btn').allInnerTexts()).map((t) => t.trim()).join(',');
   await shot(page, 'campaign-notes', 'main');
+  // The game clock: an hour on from 08:00 of day 1
+  await page.locator('[data-test=campaign-tab-overview]').click();
+  await page.locator('[data-test=clock-hour]').click();
+  await page.locator('[data-test=clock-now]', { hasText: '09:00' }).waitFor({ timeout: 15000 });
+  campaignUi.clock = (await page.locator('[data-test=clock-now]').innerText()).trim();
   // A shop opened to the players, a free item on sale at the list price
   await page.locator('[data-test=campaign-tab-shops]').click();
   await page.locator('[data-test=shop-new]').click();
@@ -2173,7 +2178,7 @@ try {
   await binRow.waitFor({ state: 'detached', timeout: 15000 });
   campaignUi.purged = true;
   results.push(`INFO campaign: ${JSON.stringify(campaignUi)}`);
-  if (campaignUi.role !== 'Master' || !campaignUi.link || campaignUi.share !== 1 || campaignUi.notes !== 1 || campaignUi.shopCost !== '25 mo'
+  if (campaignUi.role !== 'Master' || !campaignUi.link || campaignUi.share !== 1 || campaignUi.notes !== 1 || campaignUi.shopCost !== '25 mo' || campaignUi.clock !== 'Giorno 1 · 09:00'
     || campaignUi.combatants !== 4 || campaignUi.goblins !== 3 || !campaignUi.hero || campaignUi.sheetLink !== 1 || !/^(Facile|Medio|Difficile|Mortale)$/.test(campaignUi.rating) || campaignUi.current !== 1
     || campaignUi.binKind !== 'CAMPAGNA' || !campaignUi.restored || !campaignUi.purged
     || campaignUi.cardButtons !== 0 || !campaignUi.cardOpens || campaignUi.listActions !== 2 || !campaignUi.toggled || campaignUi.noteKinds !== 'Diario di viaggio,Personali,Per i master' || campaignUi.leftFromSheet !== 1

@@ -221,7 +221,15 @@ namespace RealmForge.Client.Pages
 			saveStatus = saved is null ? SaveStatus.Failed : SaveStatus.Saved;
 			if (saved?.Vitals is { } vitals)
 			{
-				ApplyVitals(vitals);
+				var store = vitals.Inventory is not null && vitals.StoreStamp != Sheet.StoreStamp;
+				if (vitals.VitalsStamp != Sheet.VitalsStamp)
+				{
+					ApplyVitals(vitals);
+				}
+				if (store)
+				{
+					ApplyStore(vitals);
+				}
 			}
 			await InvokeAsync(StateHasChanged);
 		}

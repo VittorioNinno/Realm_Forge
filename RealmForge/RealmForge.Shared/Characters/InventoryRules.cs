@@ -73,6 +73,113 @@ public static class InventoryRules
 		return item.Quantity;
 	}
 
+	///	<summary>
+	///	A shot: one piece of the ammunition spent and remembered, so that half of it can be picked up after the fight.
+	///	The pieces left.
+	///	</summary>
+	public static int Shoot(CharacterSheetState sheet, InventoryItem ammo)
+	{
+		var spent = sheet.SpentAmmunition.FirstOrDefault(a => ammo.EquipmentId is { } id ? a.EquipmentId == id : a.EquipmentId is null && a.Name == ammo.Name);
+		if (spent is null)
+		{
+			spent = new SpentAmmunition { EquipmentId = ammo.EquipmentId, Name = ammo.EquipmentId is null ? ammo.Name : null };
+			sheet.SpentAmmunition.Add(spent);
+		}
+		spent.Count = Math.Min(9999, spent.Count + 1);
+		return Spend(ammo, sheet.Inventory);
+	}
+
+	public static int SpentAmmunitionCount(CharacterSheetState sheet) => sheet.SpentAmmunition.Sum(a => a.Count);
+
+	///	<summary>
+	///	After the fight: half of the ammunition shot (rounded down) back in the inventory. The pieces recovered.
+	///	</summary>
+	public static int RecoverAmmunition(CharacterSheetState sheet)
+	{
+		var recovered = 0;
+		foreach (var spent in sheet.SpentAmmunition)
+		{
+			var back = spent.Count / 2;
+			if (back == 0)
+			{
+				continue;
+			}
+			var entry = sheet.Inventory.FirstOrDefault(i => i.Magic is null && (spent.EquipmentId is { } id ? i.EquipmentId == id : i.EquipmentId is null && i.Name == spent.Name));
+			if (entry is not null)
+			{
+				entry.Quantity += back;
+			}
+			else
+			{
+				sheet.Inventory.Add(new InventoryItem { EquipmentId = spent.EquipmentId, Name = spent.Name, Quantity = back });
+			}
+			recovered += back;
+		}
+		sheet.SpentAmmunition.Clear();
+		return recovered;
+	}
+
+	// ----- Supplies -----
+
+	public enum Supply
+	{
+		Rations = 1,
+		Torches = 2,
+		Ammunition = 3
+	}
+
+	private static readonly string[] AmmunitionWords = { "arrow", "bolt", "sling bullet", "bullets, sling", "needle", "bullets, firearm", "firearm bullet" };
+
+	///	<summary>
+	///	What kind of supply an entry of the inventory is (by the English name of its compendium item, or by its own
+	///	name in Italian or English), or null.
+	///	</summary>
+	public static Supply? SupplyOf(InventoryItem item, string? englishName)
+	{
+		if (item.Magic is not null)
+		{
+			return null;
+		}
+		var name = (englishName ?? item.Name ?? string.Empty).ToLowerInvariant();
+		if (name.Contains("case") || name.Contains("quiver") || name.Contains("faretra") || name.Contains("custodia"))
+		{
+			return null;
+		}
+		if (name.Contains("ration") || name.Contains("razion"))
+		{
+			return Supply.Rations;
+		}
+		if (name.Contains("torch") || name.Contains("torc"))
+		{
+			return Supply.Torches;
+		}
+		if (AmmunitionWords.Any(w => name.Contains(w)) || name.Contains("frecc") || name.Contains("dard") || name.Contains("proiettil"))
+		{
+			return Supply.Ammunition;
+		}
+		return null;
+	}
+
+	///	<summary>
+	///	The rations of <paramref name="days"/> days of travel: one a day, from the entries of rations. The days left
+	///	without one.
+	///	</summary>
+	public static int EatRations(CharacterSheetState sheet, Func<InventoryItem, string?> englishName, int days)
+	{
+		var left = days;
+		foreach (var entry in sheet.Inventory.Where(i => SupplyOf(i, englishName(i)) == Supply.Rations).ToList())
+		{
+			if (left == 0)
+			{
+				break;
+			}
+			var eat = Math.Min(left, entry.Quantity);
+			Spend(entry, sheet.Inventory, eat);
+			left -= eat;
+		}
+		return left;
+	}
+
 	private static readonly (CoinType Type, int Copper)[] Coins =
 	{
 		(CoinType.Cp, 1), (CoinType.Sp, 10), (CoinType.Ep, 50), (CoinType.Gp, 100), (CoinType.Pp, 1000)
