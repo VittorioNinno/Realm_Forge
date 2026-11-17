@@ -404,7 +404,7 @@ namespace RealmForge.Shared.DTOs
 	///	</summary>
 	public record MapTableDto(bool FogEnabled, List<double> Fog, MapPingDto? Ping, MapFocusDto? Focus, bool PlayersLocked = false, MapStrikeDto? Strike = null,
 		List<MapSaveCallDto>? Saves = null, MapLighting Lighting = MapLighting.Bright, bool DynamicVision = false, MapVisionDto? Vision = null,
-		int Undo = 0, HandoutShownDto? Handout = null, Guid? Scene = null, long? Clock = null);
+		int Undo = 0, HandoutShownDto? Handout = null, Guid? Scene = null, long? Clock = null, MapSoundDto? Sound = null);
 
 	//	A spell's saving throws waiting at the table (the targets the account sees), with their outcome
 	public record MapSaveCallDto(Guid Id, Guid CasterTokenId, string Caster, string Spell, int Ability, int Dc, int? Damage, string? DamageType, bool Half,

@@ -157,6 +157,20 @@ namespace RealmForge.Client.Services
 		public Task<CampaignResult> EndSceneAsync(Guid id) =>
 			SendAsync(() => _http.DeleteAsync($"api/campaigns/{id}/handouts/scene"), "end scene");
 
+		public Task<CampaignSoundboardDto?> GetSoundsAsync(Guid id) => GetAsync<CampaignSoundboardDto>($"api/campaigns/{id}/sounds");
+
+		public Task<(CampaignSoundDto? Value, string? Error)> AddSoundAsync(Guid id, SaveCampaignSoundDto dto) =>
+			TableAsync<CampaignSoundDto>(() => _http.PostAsJsonAsync($"api/campaigns/{id}/sounds", dto), "add sound");
+
+		public Task<CampaignResult> DeleteSoundAsync(Guid id, Guid soundId) =>
+			SendAsync(() => _http.DeleteAsync($"api/campaigns/{id}/sounds/{soundId}"), "delete sound");
+
+		public Task<CampaignResult> PlaySoundAsync(Guid id, Guid soundId) =>
+			SendAsync(() => _http.PostAsync($"api/campaigns/{id}/sounds/{soundId}/play", null), "play sound");
+
+		public Task<CampaignResult> StopSoundsAsync(Guid id) =>
+			SendAsync(() => _http.PostAsync($"api/campaigns/{id}/sounds/stop", null), "stop sounds");
+
 		public Task<CampaignClockDto?> GetClockAsync(Guid id) => GetAsync<CampaignClockDto>($"api/campaigns/{id}/clock");
 
 		public Task<(ClockMovedDto? Value, string? Error)> MoveClockAsync(Guid id, MoveClockDto dto) =>

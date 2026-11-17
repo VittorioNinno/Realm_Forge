@@ -1497,6 +1497,21 @@ jobs:
           ho_it=$(curl -s "$api/api/campaigns/$ss_cp/handouts/$ho?lang=2" -H "Authorization: Bearer $A" | jq -r .title)
           ho_table=$(curl -s "$api/api/campaigns/$ss_cp/maps/$mp2/state" -H "Authorization: Bearer $A" | jq -c --arg h "$ho" '.table.handout.id == $h')
           ck_table=$(curl -s "$api/api/campaigns/$ss_cp/maps/$mp2/state" -H "Authorization: Bearer $A" | jq .table.clock)
+          # Soundboard: the master adds a looping track and an effect (https links only); playing them reaches the table of the players
+          sb_player=$(code -X POST "$api/api/campaigns/$ss_cp/sounds" $json -H "Authorization: Bearer $A" -d '{"name":"Taverna","url":"https://example.org/taverna.mp3"}')
+          sb_http=$(code -X POST "$api/api/campaigns/$ss_cp/sounds" $json -H "Authorization: Bearer $B" -d '{"name":"Taverna","url":"http://example.org/taverna.mp3"}')
+          sb_track=$(curl -s -X POST "$api/api/campaigns/$ss_cp/sounds" $json -H "Authorization: Bearer $B" -d '{"name":"Taverna","url":"https://example.org/taverna.mp3","volume":60}' | jq -r .id)
+          sb_cue=$(curl -s -X POST "$api/api/campaigns/$ss_cp/sounds" $json -H "Authorization: Bearer $B" -d '{"name":"Tuono","url":"https://example.org/tuono.ogg","effect":true}' | jq -r .id)
+          sb_silent=$(curl -s "$api/api/campaigns/$ss_cp/maps/$mp2/state" -H "Authorization: Bearer $A" | jq -c .table.sound)
+          sb_play=$(code -X POST "$api/api/campaigns/$ss_cp/sounds/$sb_track/play" -H "Authorization: Bearer $B")
+          code -X POST "$api/api/campaigns/$ss_cp/sounds/$sb_cue/play" -H "Authorization: Bearer $B" > /dev/null
+          sb_table=$(curl -s "$api/api/campaigns/$ss_cp/maps/$mp2/state" -H "Authorization: Bearer $A" | jq -c '.table.sound | {trackUrl, trackVolume, started: (.trackAt != null), cueUrl}')
+          sb_board=$(curl -s "$api/api/campaigns/$ss_cp/sounds" -H "Authorization: Bearer $B" | jq -c --arg t "$sb_track" '{sounds: (.sounds | length), playing: (.playing == $t)}')
+          sb_stop=$(code -X POST "$api/api/campaigns/$ss_cp/sounds/stop" -H "Authorization: Bearer $B")
+          sb_after=$(curl -s "$api/api/campaigns/$ss_cp/maps/$mp2/state" -H "Authorization: Bearer $A" | jq -c '.table.sound | {trackUrl, cueUrl}')
+          code -X DELETE "$api/api/campaigns/$ss_cp/sounds/$sb_cue" -H "Authorization: Bearer $B" > /dev/null
+          sb_gone=$(curl -s "$api/api/campaigns/$ss_cp/maps/$mp2/state" -H "Authorization: Bearer $A" | jq -c .table.sound)
+          code -X DELETE "$api/api/campaigns/$ss_cp/sounds/$sb_track" -H "Authorization: Bearer $B" > /dev/null
           ho_master=$(curl -s "$api/api/campaigns/$ss_cp/handouts" -H "Authorization: Bearer $B" | jq -c '[.[] | {titleIt, titleEn}]')
           # Theater of the mind: the handout in place of the map for the whole table, then back to the map
           sc_player=$(code -X POST "$api/api/campaigns/$ss_cp/handouts/$ho/scene" -H "Authorization: Bearer $A")
@@ -1750,6 +1765,12 @@ jobs:
           sscheck "handouts: read in Italian" "$ho_it" "Lettera"
           sscheck "handouts: the table opens it" "$ho_table" "true"
           sscheck "clock: the table shows the time of the campaign" "$ck_table" "480"
+          sscheck "soundboard: only masters add sounds, https links only" "$sb_player|$sb_http" "403|400"
+          sscheck "soundboard: silence at first" "$sb_silent" "null"
+          sscheck "soundboard: the table plays the track and the effect" "$sb_play|$sb_table" '204|{"trackUrl":"https://example.org/taverna.mp3","trackVolume":60,"started":true,"cueUrl":"https://example.org/tuono.ogg"}'
+          sscheck "soundboard: the masters see what plays" "$sb_board" '{"sounds":2,"playing":true}'
+          sscheck "soundboard: silence again" "$sb_stop|$sb_after" '204|{"trackUrl":null,"cueUrl":"https://example.org/tuono.ogg"}'
+          sscheck "soundboard: a deleted sound stops" "$sb_gone" "null"
           sscheck "handouts: the master has both languages" "$ho_master" '[{"titleIt":"Lettera","titleEn":"Letter"}]'
           sscheck "scene: only masters" "$sc_player" "403"
           sscheck "scene: shown to the table" "$sc_show|$sc_table" "204|true"

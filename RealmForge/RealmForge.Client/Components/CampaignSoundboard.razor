@@ -1,0 +1,142 @@
+﻿@using RealmForge.Client.Localization
+@using RealmForge.Client.Services
+@using RealmForge.Shared.DTOs
+@using RealmForge.Shared.Enums
+@inject CampaignDataService Campaigns
+@inject LanguageStateService LanguageState
+@inject IJSRuntime JS
+
+@* The masters' soundboard in the drawer of the table: links to audio hosted elsewhere, played for everyone *@
+<section class="rf-sounds" data-test="vtt-sounds">
+    <div class="small" style="color: var(--rf-text-muted);">@UiText.SoundsHint(Lang)</div>
+    <div class="rf-card2 d-flex flex-column gap-2">
+        <input class="rf-form-control" maxlength="80" placeholder="@UiText.SoundName(Lang)" @bind="draft.Name" data-test="sound-name" />
+        <input class="rf-form-control" maxlength="500" type="url" placeholder="@UiText.SoundUrl(Lang)" @bind="draft.Url" data-test="sound-url" />
+        <div class="d-flex flex-wrap align-items-center gap-2">
+            <label class="form-check d-flex align-items-center gap-2 mb-0">
+                <input type="checkbox" class="form-check-input" @bind="draft.Effect" data-test="sound-effect" />
+                <span class="small">@UiText.SoundEffect(Lang)</span>
+            </label>
+            <label class="d-flex align-items-center gap-2 mb-0 ms-auto">
+                <span class="small">@UiText.SoundVolume(Lang)</span>
+                <input type="range" min="0" max="100" step="5" @bind="draft.Volume" @bind:event="oninput" aria-label="@UiText.SoundVolume(Lang)" />
+            </label>
+        </div>
+        @if (error is not null)
+        {
+            <span class="small text-warning">@error</span>
+        }
+        <button type="button" class="btn btn-sm btn-rf-orange align-self-end" disabled="@busy" @onclick="AddAsync" data-test="sound-add"><Icon Name="plus" /> @UiText.SoundAdd(Lang)</button>
+    </div>
+
+    @if (board is null)
+    {
+        <span class="small" style="color: var(--rf-text-muted);">…</span>
+    }
+    else if (board.Sounds.Count == 0)
+    {
+        <span class="small" style="color: var(--rf-text-muted);">@UiText.SoundsEmpty(Lang)</span>
+    }
+    else
+    {
+        @if (board.Playing is not null)
+        {
+            <button type="button" class="btn btn-sm btn-rf-outline align-self-start" disabled="@busy" @onclick="StopAsync" data-test="sound-stop"><Icon Name="stop-fill" /> @UiText.SoundStop(Lang)</button>
+        }
+        @foreach (var group in board.Sounds.GroupBy(s => s.Effect))
+        {
+            <span class="rf-mini-label">@(group.Key ? UiText.SoundEffects(Lang) : UiText.SoundTracks(Lang))</span>
+            <ul class="rf-sound-list">
+                @foreach (var s in group)
+                {
+                    var sound = s;
+                    <li class="@(board.Playing == sound.Id ? "on" : null)" data-test="sound-row">
+                        <button type="button" class="rf-sound-play" disabled="@busy" title="@UiText.SoundPlay(Lang)" @onclick="() => PlayAsync(sound)" data-test="sound-play">
+                            <Icon Name="@(sound.Effect ? "volume-up" : "play-fill")" />
+                            <span>@sound.Name</span>
+                        </button>
+                        <button type="button" class="rf-vtt-row-action" disabled="@busy" title="@UiText.BtnRemove(Lang)" aria-label="@UiText.BtnRemove(Lang)" @onclick="() => DeleteAsync(sound)" data-test="sound-delete"><Icon Name="trash" /></button>
+                    </li>
+                }
+            </ul>
+        }
+    }
+</section>
+
+@code {
+    [Parameter, EditorRequired] public Guid CampaignId { get; set; }
+
+    //	Something the table plays changed (the table refreshes at once)
+    [Parameter] public EventCallback OnChanged { get; set; }
+
+    private CampaignSoundboardDto? board;
+    private SaveCampaignSoundDto draft = new();
+    private bool busy;
+    private string? error;
+
+    private LanguageCode Lang => LanguageState.CurrentLanguage;
+
+    protected override async Task OnInitializedAsync() => await LoadAsync();
+
+    private async Task LoadAsync() => board = await Campaigns.GetSoundsAsync(CampaignId) ?? new CampaignSoundboardDto(new(), null);
+
+    private async Task AddAsync()
+    {
+        if (string.IsNullOrWhiteSpace(draft.Name) || !Uri.TryCreate(draft.Url?.Trim(), UriKind.Absolute, out var uri) || uri.Scheme != Uri.UriSchemeHttps)
+        {
+            error = UiText.SoundInvalid(Lang);
+            return;
+        }
+        busy = true;
+        var (added, failure) = await Campaigns.AddSoundAsync(CampaignId, draft);
+        busy = false;
+        if (added is null)
+        {
+            error = failure ?? UiText.SoundInvalid(Lang);
+            return;
+        }
+        error = null;
+        draft = new SaveCampaignSoundDto { Effect = draft.Effect, Volume = draft.Volume };
+        await LoadAsync();
+    }
+
+    private async Task PlayAsync(CampaignSoundDto sound)
+    {
+        //	The click lets this browser play too
+        await UnlockAsync();
+        busy = true;
+        await Campaigns.PlaySoundAsync(CampaignId, sound.Id);
+        busy = false;
+        await LoadAsync();
+        await OnChanged.InvokeAsync();
+    }
+
+    private async Task StopAsync()
+    {
+        busy = true;
+        await Campaigns.StopSoundsAsync(CampaignId);
+        busy = false;
+        await LoadAsync();
+        await OnChanged.InvokeAsync();
+    }
+
+    private async Task DeleteAsync(CampaignSoundDto sound)
+    {
+        busy = true;
+        await Campaigns.DeleteSoundAsync(CampaignId, sound.Id);
+        busy = false;
+        await LoadAsync();
+        await OnChanged.InvokeAsync();
+    }
+
+    private async Task UnlockAsync()
+    {
+        try
+        {
+            await JS.InvokeAsync<bool>("rfSound.unlock");
+        }
+        catch (Exception)
+        {
+        }
+    }
+}
