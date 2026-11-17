@@ -535,6 +535,9 @@ namespace RealmForge.Client.Localization
 		public static string VttAuraAdd(LanguageCode lang) => T(lang, "Aggiungi l'aura", "Add the aura");
 		public static string VttAuraRemove(LanguageCode lang) => T(lang, "Togli l'aura", "Remove the aura");
 		public static string VttAuraSet(string name, string who, LanguageCode lang) => T(lang, $"«{name}» si muove con {who}: chi entra o inizia il turno dentro viene segnalato.", $"“{name}” moves with {who}: whoever enters it or starts a turn in it is told.");
+		public static string VttRotate(LanguageCode lang) => T(lang, "Ruota il telefono", "Turn your phone");
+		public static string VttRotateHint(LanguageCode lang) => T(lang, "Il tavolo virtuale ha bisogno dello schermo in orizzontale: la mappa, gli strumenti e le schede non stanno in verticale.", "The virtual tabletop needs the screen sideways: the map, the tools and the cards do not fit upright.");
+		public static string VttRotateBack(LanguageCode lang) => T(lang, "Torna alla campagna", "Back to the campaign");
 		public static string VttConnection(int state, LanguageCode lang) => state switch
 		{
 			0 => T(lang, "In linea", "Online"),
