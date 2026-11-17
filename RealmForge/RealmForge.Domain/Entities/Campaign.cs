@@ -153,6 +153,47 @@ namespace RealmForge.Domain.Entities
 	}
 
 	///	<summary>
+	///	A shop of a campaign (a merchant, a blacksmith, a temple): the masters stock it with items of the compendium or
+	///	their own and a price multiplier (PricePercent: 100 = list price); the players buy while it is open, the coins
+	///	come off their character's purse and the item goes to their inventory.
+	///	</summary>
+	public class CampaignShop
+	{
+		public Guid Id { get; set; } = Guid.NewGuid();
+		public Guid CampaignId { get; set; }
+		public string AuthorId { get; set; } = string.Empty;
+		public string NameIt { get; set; } = string.Empty;
+		public string NameEn { get; set; } = string.Empty;
+		public string DescriptionIt { get; set; } = string.Empty;
+		public string DescriptionEn { get; set; } = string.Empty;
+		public int PricePercent { get; set; } = 100;
+
+		//	Open: the players see it and buy (closed: behind the screen)
+		public bool Open { get; set; }
+		public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
+		public DateTimeOffset UpdatedAt { get; set; } = DateTimeOffset.UtcNow;
+		public ICollection<CampaignShopItem> Items { get; set; } = new List<CampaignShopItem>();
+	}
+
+	///	<summary>
+	///	An item on sale: equipment or a magic item of the compendium (its name follows the reader's language), or a free
+	///	entry with its own Name. PriceInCopper is the list price of one piece (before the shop's multiplier); Stock null:
+	///	as many as wanted.
+	///	</summary>
+	public class CampaignShopItem
+	{
+		public Guid Id { get; set; } = Guid.NewGuid();
+		public Guid ShopId { get; set; }
+		public CampaignShop Shop { get; set; } = null!;
+		public Guid? EquipmentId { get; set; }
+		public Guid? MagicItemId { get; set; }
+		public string Name { get; set; } = string.Empty;
+		public int PriceInCopper { get; set; }
+		public int? Stock { get; set; }
+		public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
+	}
+
+	///	<summary>
 	///	A group of monsters the masters keep ready for the table (a goblin patrol: four goblins and their boss): placed on a
 	///	map in one go. Entries: JSON of MonsterGroupEntry (the monster and how many).
 	///	</summary>

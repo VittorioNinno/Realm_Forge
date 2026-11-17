@@ -157,6 +157,41 @@ namespace RealmForge.Client.Services
 		public Task<CampaignResult> EndSceneAsync(Guid id) =>
 			SendAsync(() => _http.DeleteAsync($"api/campaigns/{id}/handouts/scene"), "end scene");
 
+		public Task<CampaignShopsDto?> GetShopsAsync(Guid id, LanguageCode lang) =>
+			GetAsync<CampaignShopsDto>($"api/campaigns/{id}/shops?lang={(int)lang}");
+
+		public Task<(CampaignShopDto? Value, string? Error)> AddShopAsync(Guid id, SaveCampaignShopDto dto, LanguageCode lang) =>
+			TableAsync<CampaignShopDto>(() => _http.PostAsJsonAsync($"api/campaigns/{id}/shops?lang={(int)lang}", dto), "add shop");
+
+		public Task<CampaignResult> UpdateShopAsync(Guid id, Guid shopId, SaveCampaignShopDto dto) =>
+			SendAsync(() => _http.PutAsJsonAsync($"api/campaigns/{id}/shops/{shopId}", dto), "update shop");
+
+		public Task<CampaignResult> DeleteShopAsync(Guid id, Guid shopId) =>
+			SendAsync(() => _http.DeleteAsync($"api/campaigns/{id}/shops/{shopId}"), "delete shop");
+
+		public Task<(ShopItemDto? Value, string? Error)> AddShopItemAsync(Guid id, Guid shopId, SaveShopItemDto dto, LanguageCode lang) =>
+			TableAsync<ShopItemDto>(() => _http.PostAsJsonAsync($"api/campaigns/{id}/shops/{shopId}/items?lang={(int)lang}", dto), "add shop item");
+
+		public Task<CampaignResult> UpdateShopItemAsync(Guid id, Guid shopId, Guid itemId, SaveShopItemDto dto) =>
+			SendAsync(() => _http.PutAsJsonAsync($"api/campaigns/{id}/shops/{shopId}/items/{itemId}", dto), "update shop item");
+
+		public Task<CampaignResult> DeleteShopItemAsync(Guid id, Guid shopId, Guid itemId) =>
+			SendAsync(() => _http.DeleteAsync($"api/campaigns/{id}/shops/{shopId}/items/{itemId}"), "delete shop item");
+
+		public async Task<(ShopPurchaseDto? Value, HttpStatusCode? Status)> BuyShopItemAsync(Guid id, Guid shopId, Guid itemId, BuyShopItemDto dto, LanguageCode lang)
+		{
+			try
+			{
+				var response = await _http.PostAsJsonAsync($"api/campaigns/{id}/shops/{shopId}/items/{itemId}/buy?lang={(int)lang}", dto);
+				return response.IsSuccessStatusCode ? (await response.Content.ReadFromJsonAsync<ShopPurchaseDto>(), null) : (null, response.StatusCode);
+			}
+			catch (Exception ex)
+			{
+				_logger.LogError(ex, "Campaign request {What} failed", "buy");
+				return (null, null);
+			}
+		}
+
 		public Task<List<CampaignNoteDto>?> GetNotesAsync(Guid id) => GetAsync<List<CampaignNoteDto>>($"api/campaigns/{id}/notes");
 
 		public Task<CampaignResult> AddNoteAsync(Guid id, SaveCampaignNoteDto note) =>
