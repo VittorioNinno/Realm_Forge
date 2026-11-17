@@ -1,0 +1,188 @@
+﻿@using RealmForge.Client.Localization
+@using RealmForge.Client.Services
+@using RealmForge.Shared.Campaigns
+@using RealmForge.Shared.DTOs
+@using RealmForge.Shared.Enums
+@inject CampaignDataService Campaigns
+@inject ImageDataService Images
+@inject LanguageStateService LanguageState
+
+@* The handouts of a campaign: the masters write them (Italian and English, a picture) and reveal them to the players
+   during a session; the players find here the ones they were shown. Compact: the drawer of the table *@
+<section class="rf-handouts @(Compact ? "compact" : null)" data-test="campaign-handouts">
+    @if (!Compact)
+    {
+        <div class="small mb-3" style="color: var(--rf-text-muted);">@(Runs ? UiText.HandoutsHintMaster(Lang) : UiText.HandoutsHintPlayer(Lang))</div>
+    }
+    @if (Runs)
+    {
+        @if (draft is null)
+        {
+            <button type="button" class="btn btn-sm btn-rf-orange mb-3" @onclick="New" data-test="handout-new">+ @UiText.HandoutNew(Lang)</button>
+        }
+        else
+        {
+            <div class="rf-card2 mb-3 d-flex flex-column gap-2" data-test="handout-form">
+                <div class="rf-handout-langs">
+                    <div class="d-flex flex-column gap-2">
+                        <label class="rf-form-label mb-0">@UiText.HandoutTitle(Lang) · IT</label>
+                        <input class="rf-form-control" maxlength="120" @bind="draft.TitleIt" data-test="handout-title-it" />
+                        <label class="rf-form-label mb-0">@UiText.HandoutBody(Lang) · IT</label>
+                        <textarea class="rf-form-control" rows="@(Compact ? 4 : 6)" maxlength="8000" @bind="draft.BodyIt" data-test="handout-body-it"></textarea>
+                    </div>
+                    <div class="d-flex flex-column gap-2">
+                        <label class="rf-form-label mb-0">@UiText.HandoutTitle(Lang) · EN</label>
+                        <input class="rf-form-control" maxlength="120" @bind="draft.TitleEn" data-test="handout-title-en" />
+                        <label class="rf-form-label mb-0">@UiText.HandoutBody(Lang) · EN</label>
+                        <textarea class="rf-form-control" rows="@(Compact ? 4 : 6)" maxlength="8000" @bind="draft.BodyEn" data-test="handout-body-en"></textarea>
+                    </div>
+                </div>
+                <span class="small" style="color: var(--rf-text-muted);">@UiText.HandoutLanguagesHint(Lang)</span>
+                <label class="rf-form-label mb-0">@UiText.HandoutImage(Lang)</label>
+                <ImagePicker Selected="draft.ImageId" Name="@(draft.TitleIt.Length > 0 ? draft.TitleIt : draft.TitleEn)" OnPick="id => draft!.ImageId = id" />
+                @if (error is not null)
+                {
+                    <div class="small text-warning">@error</div>
+                }
+                <div class="d-flex justify-content-end gap-2">
+                    <button type="button" class="btn btn-sm btn-rf-outline" @onclick="() => draft = null">@UiText.BtnCancel(Lang)</button>
+                    <button type="button" class="btn btn-sm btn-rf-orange" disabled="@busy" @onclick="SaveAsync" data-test="handout-save">@UiText.BtnConfirm(Lang)</button>
+                </div>
+            </div>
+        }
+    }
+
+    @if (handouts is null)
+    {
+        <div class="small" style="color: var(--rf-text-muted);">…</div>
+    }
+    else if (handouts.Count == 0)
+    {
+        <div class="small" style="color: var(--rf-text-muted);" data-test="handouts-empty">@(Runs ? UiText.HandoutsEmptyMaster(Lang) : UiText.HandoutsEmptyPlayer(Lang))</div>
+    }
+    else
+    {
+        <div class="rf-handout-list">
+            @foreach (var h in handouts)
+            {
+                var handout = h;
+                <div class="rf-handout-row @(handout.RevealedAt is null ? "hidden" : null)" data-test="handout-row">
+                    <button type="button" class="rf-handout-open" @onclick="() => reading = handout" data-test="handout-open">
+                        @if (handout.ImageId is { } image)
+                        {
+                            <img src="@Images.FileUrl(image)" alt="" loading="lazy" />
+                        }
+                        else
+                        {
+                            <span class="rf-handout-icon"><Icon Name="file-text" /></span>
+                        }
+                        <span class="rf-handout-row-text">
+                            <strong>@handout.Title</strong>
+                            <span class="small">@(handout.RevealedAt is { } at ? UiText.HandoutRevealedAt(at, Lang) : UiText.HandoutHidden(Lang))</span>
+                        </span>
+                    </button>
+                    @if (Runs)
+                    {
+                        <span class="rf-handout-actions">
+                            <button type="button" class="btn btn-sm @(handout.RevealedAt is null ? "btn-rf-orange" : "btn-rf-outline")" disabled="@busy" @onclick="() => RevealAsync(handout, true)" data-test="handout-reveal">
+                                <Icon Name="eye" /> @(handout.RevealedAt is null ? UiText.HandoutReveal(Lang) : UiText.HandoutRevealAgain(Lang))
+                            </button>
+                            @if (handout.RevealedAt is not null)
+                            {
+                                <button type="button" class="rf-vtt-row-action" disabled="@busy" title="@UiText.HandoutHide(Lang)" aria-label="@UiText.HandoutHide(Lang)" @onclick="() => RevealAsync(handout, false)" data-test="handout-hide"><Icon Name="eye-slash" /></button>
+                            }
+                            <button type="button" class="rf-vtt-row-action" title="@UiText.Edit(Lang)" aria-label="@UiText.Edit(Lang)" @onclick="() => Edit(handout)" data-test="handout-edit"><Icon Name="pencil" /></button>
+                            <button type="button" class="rf-vtt-row-action" disabled="@busy" title="@UiText.BtnRemove(Lang)" aria-label="@UiText.BtnRemove(Lang)" @onclick="() => DeleteAsync(handout)" data-test="handout-delete"><Icon Name="trash" /></button>
+                        </span>
+                    }
+                </div>
+            }
+        </div>
+    }
+</section>
+
+@if (reading is not null)
+{
+    <HandoutView Handout="reading" OnClose="() => reading = null" />
+}
+
+@code {
+    [Parameter, EditorRequired] public Guid CampaignId { get; set; }
+    [Parameter] public CampaignRole Role { get; set; } = CampaignRole.Player;
+    [Parameter] public bool Compact { get; set; }
+
+    private List<CampaignHandoutDto>? handouts;
+    private SaveCampaignHandoutDto? draft;
+    private Guid? editingId;
+    private CampaignHandoutDto? reading;
+    private bool busy;
+    private string? error;
+
+    private LanguageCode Lang => LanguageState.CurrentLanguage;
+    private bool Runs => CampaignRules.RunsTheTable(Role);
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (handouts is null)
+        {
+            await LoadAsync();
+        }
+    }
+
+    private async Task LoadAsync() => handouts = await Campaigns.GetHandoutsAsync(CampaignId, Lang) ?? new();
+
+    private void New()
+    {
+        draft = new SaveCampaignHandoutDto();
+        editingId = null;
+        error = null;
+    }
+
+    private void Edit(CampaignHandoutDto h)
+    {
+        draft = new SaveCampaignHandoutDto { TitleIt = h.TitleIt ?? string.Empty, TitleEn = h.TitleEn ?? string.Empty, BodyIt = h.BodyIt ?? string.Empty, BodyEn = h.BodyEn ?? string.Empty, ImageId = h.ImageId };
+        editingId = h.Id;
+        error = null;
+    }
+
+    private async Task SaveAsync()
+    {
+        if (draft is null)
+        {
+            return;
+        }
+        if (string.IsNullOrWhiteSpace(draft.TitleIt) && string.IsNullOrWhiteSpace(draft.TitleEn))
+        {
+            error = UiText.HandoutNeedsTitle(Lang);
+            return;
+        }
+        busy = true;
+        var ok = editingId is { } id
+            ? (await Campaigns.UpdateHandoutAsync(CampaignId, id, draft)).Ok
+            : (await Campaigns.AddHandoutAsync(CampaignId, draft, Lang)).Value is not null;
+        busy = false;
+        if (!ok)
+        {
+            error = UiText.MapSaveFailed(Lang);
+            return;
+        }
+        draft = null;
+        await LoadAsync();
+    }
+
+    private async Task RevealAsync(CampaignHandoutDto h, bool reveal)
+    {
+        busy = true;
+        await Campaigns.RevealHandoutAsync(CampaignId, h.Id, reveal);
+        busy = false;
+        await LoadAsync();
+    }
+
+    private async Task DeleteAsync(CampaignHandoutDto h)
+    {
+        busy = true;
+        await Campaigns.DeleteHandoutAsync(CampaignId, h.Id);
+        busy = false;
+        await LoadAsync();
+    }
+}
