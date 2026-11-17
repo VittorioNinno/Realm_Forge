@@ -1,0 +1,82 @@
+﻿@using RealmForge.Client.Localization
+@using RealmForge.Client.Services
+@using RealmForge.Shared.Campaigns
+@using RealmForge.Shared.DTOs
+@using RealmForge.Shared.Enums
+@inject TransferDataService Transfer
+@inject LanguageStateService LanguageState
+
+@* The collections of Homebrew switched on in a campaign: a link pasted switches all its entries on, one click off *@
+<div class="rf-card2 mb-3 d-flex flex-column gap-2" data-test="campaign-collections">
+    <div class="rf-mini-title">@UiText.CampaignCollectionsTitle(Lang)</div>
+    <span class="small" style="color: var(--rf-text-muted);">@UiText.CampaignCollectionsHint(Lang)</span>
+    <div class="d-flex flex-wrap gap-2">
+        <input class="rf-form-control flex-grow-1" style="min-width: 0; flex-basis: 240px;" maxlength="300" placeholder="@UiText.CampaignCollectionCode(Lang)" @bind="code" data-test="campaign-collection-code" />
+        <button type="button" class="btn btn-sm btn-rf-orange" disabled="@(busy || string.IsNullOrWhiteSpace(code))" @onclick="EnableAsync" data-test="campaign-collection-enable">@UiText.CollectionEnable(Lang)</button>
+    </div>
+    @if (message is not null)
+    {
+        <span class="small" role="status" data-test="campaign-collection-message">@message</span>
+    }
+    @foreach (var c in collections)
+    {
+        var collection = c;
+        <div class="rf-campaign-row" data-test="campaign-collection-row">
+            <div class="rf-campaign-row-main">
+                <span class="rf-spell-flag"><Icon Name="collection" /></span>
+                <strong>@collection.Name</strong>
+                <span class="small" style="color: var(--rf-text-muted);">@UiText.CampaignCollectionBy(collection.EnabledBy, collection.Count, Lang)</span>
+            </div>
+            @if (collection.CanRemove)
+            {
+                <button type="button" class="btn btn-sm btn-rf-outline" disabled="@busy" @onclick="() => DisableAsync(collection)" data-test="campaign-collection-off">@UiText.CampaignCollectionOff(Lang)</button>
+            }
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter, EditorRequired] public Guid CampaignId { get; set; }
+
+    //	The entries of the campaign changed (the page reloads them)
+    [Parameter] public EventCallback OnChanged { get; set; }
+
+    private List<CampaignCollectionDto> collections = new();
+    private string code = string.Empty;
+    private bool busy;
+    private string? message;
+
+    private LanguageCode Lang => LanguageState.CurrentLanguage;
+
+    protected override async Task OnInitializedAsync() => await LoadAsync();
+
+    private async Task LoadAsync() => collections = (await Transfer.CampaignCollectionsAsync(CampaignId)).Value ?? new();
+
+    private async Task EnableAsync()
+    {
+        busy = true;
+        var result = await Transfer.EnableCollectionAsync(CampaignId, code.Trim(), Lang);
+        busy = false;
+        if (result.Value is { } added)
+        {
+            message = UiText.CollectionEnabled(added.Name, added.Added, added.Skipped, added.Status == CampaignContentStatus.Pending, Lang);
+            code = string.Empty;
+            await LoadAsync();
+            await OnChanged.InvokeAsync();
+        }
+        else
+        {
+            message = UiText.CollectionFailed(result.Title, Lang);
+        }
+    }
+
+    private async Task DisableAsync(CampaignCollectionDto c)
+    {
+        busy = true;
+        await Transfer.DisableCollectionAsync(CampaignId, c.Id);
+        busy = false;
+        message = null;
+        await LoadAsync();
+        await OnChanged.InvokeAsync();
+    }
+}

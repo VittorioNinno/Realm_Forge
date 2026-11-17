@@ -20726,3 +20726,25 @@ button.rf-vtt-clock.on {
         .rf-timed-effects li .small {
             color: var(--rf-text-muted);
         }
+
+/* ===== Collections of Homebrew ===== */
+
+.rf-collection-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 16px;
+}
+
+.rf-collection-enable {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+}
+
+    .rf-collection-enable .rf-form-control {
+        width: auto;
+        min-width: 0;
+        max-width: 100%;
+    }
