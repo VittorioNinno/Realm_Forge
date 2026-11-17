@@ -133,6 +133,84 @@ namespace RealmForge.Client.Services
 			}
 		}
 
+		public Task<List<CampaignHandoutDto>?> GetHandoutsAsync(Guid id, LanguageCode lang) =>
+			GetAsync<List<CampaignHandoutDto>>($"api/campaigns/{id}/handouts?lang={(int)lang}");
+
+		public Task<CampaignHandoutDto?> GetHandoutAsync(Guid id, Guid handoutId, LanguageCode lang) =>
+			GetAsync<CampaignHandoutDto>($"api/campaigns/{id}/handouts/{handoutId}?lang={(int)lang}");
+
+		public Task<(CampaignHandoutDto? Value, string? Error)> AddHandoutAsync(Guid id, SaveCampaignHandoutDto dto, LanguageCode lang) =>
+			TableAsync<CampaignHandoutDto>(() => _http.PostAsJsonAsync($"api/campaigns/{id}/handouts?lang={(int)lang}", dto), "add handout");
+
+		public Task<CampaignResult> UpdateHandoutAsync(Guid id, Guid handoutId, SaveCampaignHandoutDto dto) =>
+			SendAsync(() => _http.PutAsJsonAsync($"api/campaigns/{id}/handouts/{handoutId}", dto), "update handout");
+
+		public Task<CampaignResult> DeleteHandoutAsync(Guid id, Guid handoutId) =>
+			SendAsync(() => _http.DeleteAsync($"api/campaigns/{id}/handouts/{handoutId}"), "delete handout");
+
+		public Task<CampaignResult> RevealHandoutAsync(Guid id, Guid handoutId, bool reveal) =>
+			SendAsync(() => _http.PostAsync($"api/campaigns/{id}/handouts/{handoutId}/{(reveal ? "reveal" : "hide")}", null), "reveal handout");
+
+		public Task<CampaignResult> ShowSceneAsync(Guid id, Guid handoutId) =>
+			SendAsync(() => _http.PostAsync($"api/campaigns/{id}/handouts/{handoutId}/scene", null), "show scene");
+
+		public Task<CampaignResult> EndSceneAsync(Guid id) =>
+			SendAsync(() => _http.DeleteAsync($"api/campaigns/{id}/handouts/scene"), "end scene");
+
+		public Task<CampaignSoundboardDto?> GetSoundsAsync(Guid id) => GetAsync<CampaignSoundboardDto>($"api/campaigns/{id}/sounds");
+
+		public Task<(CampaignSoundDto? Value, string? Error)> AddSoundAsync(Guid id, SaveCampaignSoundDto dto) =>
+			TableAsync<CampaignSoundDto>(() => _http.PostAsJsonAsync($"api/campaigns/{id}/sounds", dto), "add sound");
+
+		public Task<CampaignResult> DeleteSoundAsync(Guid id, Guid soundId) =>
+			SendAsync(() => _http.DeleteAsync($"api/campaigns/{id}/sounds/{soundId}"), "delete sound");
+
+		public Task<CampaignResult> PlaySoundAsync(Guid id, Guid soundId) =>
+			SendAsync(() => _http.PostAsync($"api/campaigns/{id}/sounds/{soundId}/play", null), "play sound");
+
+		public Task<CampaignResult> StopSoundsAsync(Guid id) =>
+			SendAsync(() => _http.PostAsync($"api/campaigns/{id}/sounds/stop", null), "stop sounds");
+
+		public Task<CampaignClockDto?> GetClockAsync(Guid id) => GetAsync<CampaignClockDto>($"api/campaigns/{id}/clock");
+
+		public Task<(ClockMovedDto? Value, string? Error)> MoveClockAsync(Guid id, MoveClockDto dto) =>
+			TableAsync<ClockMovedDto>(() => _http.PostAsJsonAsync($"api/campaigns/{id}/clock", dto), "move clock");
+
+		public Task<CampaignShopsDto?> GetShopsAsync(Guid id, LanguageCode lang) =>
+			GetAsync<CampaignShopsDto>($"api/campaigns/{id}/shops?lang={(int)lang}");
+
+		public Task<(CampaignShopDto? Value, string? Error)> AddShopAsync(Guid id, SaveCampaignShopDto dto, LanguageCode lang) =>
+			TableAsync<CampaignShopDto>(() => _http.PostAsJsonAsync($"api/campaigns/{id}/shops?lang={(int)lang}", dto), "add shop");
+
+		public Task<CampaignResult> UpdateShopAsync(Guid id, Guid shopId, SaveCampaignShopDto dto) =>
+			SendAsync(() => _http.PutAsJsonAsync($"api/campaigns/{id}/shops/{shopId}", dto), "update shop");
+
+		public Task<CampaignResult> DeleteShopAsync(Guid id, Guid shopId) =>
+			SendAsync(() => _http.DeleteAsync($"api/campaigns/{id}/shops/{shopId}"), "delete shop");
+
+		public Task<(ShopItemDto? Value, string? Error)> AddShopItemAsync(Guid id, Guid shopId, SaveShopItemDto dto, LanguageCode lang) =>
+			TableAsync<ShopItemDto>(() => _http.PostAsJsonAsync($"api/campaigns/{id}/shops/{shopId}/items?lang={(int)lang}", dto), "add shop item");
+
+		public Task<CampaignResult> UpdateShopItemAsync(Guid id, Guid shopId, Guid itemId, SaveShopItemDto dto) =>
+			SendAsync(() => _http.PutAsJsonAsync($"api/campaigns/{id}/shops/{shopId}/items/{itemId}", dto), "update shop item");
+
+		public Task<CampaignResult> DeleteShopItemAsync(Guid id, Guid shopId, Guid itemId) =>
+			SendAsync(() => _http.DeleteAsync($"api/campaigns/{id}/shops/{shopId}/items/{itemId}"), "delete shop item");
+
+		public async Task<(ShopPurchaseDto? Value, HttpStatusCode? Status)> BuyShopItemAsync(Guid id, Guid shopId, Guid itemId, BuyShopItemDto dto, LanguageCode lang)
+		{
+			try
+			{
+				var response = await _http.PostAsJsonAsync($"api/campaigns/{id}/shops/{shopId}/items/{itemId}/buy?lang={(int)lang}", dto);
+				return response.IsSuccessStatusCode ? (await response.Content.ReadFromJsonAsync<ShopPurchaseDto>(), null) : (null, response.StatusCode);
+			}
+			catch (Exception ex)
+			{
+				_logger.LogError(ex, "Campaign request {What} failed", "buy");
+				return (null, null);
+			}
+		}
+
 		public Task<List<CampaignNoteDto>?> GetNotesAsync(Guid id) => GetAsync<List<CampaignNoteDto>>($"api/campaigns/{id}/notes");
 
 		public Task<CampaignResult> AddNoteAsync(Guid id, SaveCampaignNoteDto note) =>

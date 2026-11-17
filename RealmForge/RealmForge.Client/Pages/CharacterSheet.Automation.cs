@@ -85,7 +85,7 @@ namespace RealmForge.Client.Pages
 				return false;
 			}
 			var name = ItemName(ammo);
-			var left = InventoryRules.Spend(ammo, Sheet.Inventory);
+			var left = InventoryRules.Shoot(Sheet, ammo);
 			ammoNote = left == 0 ? UiText.AmmoLast(name, Lang) : left <= InventoryRules.LowAmmunition ? UiText.AmmoLow(name, left, Lang) : null;
 			Changed();
 			return true;

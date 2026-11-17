@@ -219,6 +219,7 @@
                 <button class="btn btn-sm btn-rf-outline" @onclick="CloseDetail"><Icon Name="close" /></button>
             </div>
 
+            <ForkBar Kind="feat" EntityId="SelectedFeat.Id" />
             @if (!SelectedFeat.IsOfficialSRD)
             {
                 <ShareLink Visibility="SelectedFeat.Visibility" CanEdit="SelectedFeat.CanEdit" EntityId="SelectedFeat.Id" Path="@($"feats?id={SelectedFeat.Id}")" />

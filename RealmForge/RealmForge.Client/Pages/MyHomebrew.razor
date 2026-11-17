@@ -1,0 +1,221 @@
+﻿@page "/homebrew"
+@using System.Text.Json
+@using RealmForge.Client.Localization
+@using RealmForge.Client.Services
+@using RealmForge.Shared.DTOs
+@using RealmForge.Shared.Enums
+@implements IDisposable
+@inject TransferDataService Transfer
+@inject LanguageStateService LanguageState
+@inject IJSRuntime JS
+
+<PageTitle>RealmForge - @UiText.MyHomebrewTitle(Lang)</PageTitle>
+
+@* The account's Homebrew in one place: what it wrote, by kind, the languages each entry is written in, and the JSON
+   files to keep it or to take it to another RealmForge (and to bring it back) *@
+<div class="container-fluid px-0 py-4" style="max-width: 960px;" data-test="homebrew-page">
+    <div class="d-flex flex-wrap justify-content-between align-items-end gap-3 mb-4 pb-3" style="border-bottom: 2px solid var(--rf-orange-primary);">
+        <div>
+            <h1 class="h3 fw-bold mb-2 rf-page-title">@UiText.MyHomebrewTitle(Lang)</h1>
+            <p class="mb-0 small" style="color: var(--rf-text-muted); letter-spacing: 1px; text-transform: uppercase;">@UiText.MyHomebrewSubtitle(Lang)</p>
+        </div>
+        <AuthorizeView>
+            <Authorized>
+                <div class="d-flex flex-wrap gap-2">
+                    <label class="btn btn-rf-outline mb-0 @(busy ? "disabled" : null)" title="@UiText.ImportHomebrewHint(Lang)" data-test="homebrew-import">
+                        <Icon Name="download" Class="rf-icon rf-icon-flip" /> @UiText.BtnImport(Lang)
+                        <InputFile OnChange="ImportAsync" accept=".json,application/json" class="d-none" data-test="homebrew-import-file" />
+                    </label>
+                    <button type="button" class="btn btn-rf-orange" disabled="@(busy || entries is not { Count: > 0 })" @onclick="ExportAsync" data-test="homebrew-export">
+                        <Icon Name="download" /> @(selected.Count > 0 ? UiText.ExportSelected(selected.Count, Lang) : UiText.ExportAll(Lang))
+                    </button>
+                </div>
+            </Authorized>
+        </AuthorizeView>
+    </div>
+
+    <AuthorizeView>
+        <Authorized>
+            @if (message is not null)
+            {
+                <div class="rf-trash-message @(messageOk ? "ok" : "error")" role="status" data-test="homebrew-message">
+                    <Icon Name="@(messageOk ? "check" : "close")" />
+                    <span>@message</span>
+                </div>
+            }
+            @if (imported is { Count: > 0 })
+            {
+                <ul class="rf-homebrew-imported" data-test="homebrew-imported">
+                    @foreach (var i in imported)
+                    {
+                        <li>
+                            @if (i.Link is { } link)
+                            {
+                                <a href="@link">@UiText.TrashKind(i.Kind, Lang) · @i.Name</a>
+                            }
+                            else
+                            {
+                                <span class="text-warning">@UiText.TrashKind(i.Kind, Lang) · @i.Name — @UiText.ImportMissing(i.Missing, Lang)</span>
+                            }
+                        </li>
+                    }
+                </ul>
+            }
+            @if (entries is null)
+            {
+                <div class="small" style="color: var(--rf-text-muted);">@UiText.TransferLoading(Lang)</div>
+            }
+            else if (entries.Count == 0)
+            {
+                <div class="rf-account-card text-center" data-test="homebrew-empty">
+                    <p class="mb-0" style="color: var(--rf-text-secondary);">@UiText.MyHomebrewEmpty(Lang)</p>
+                </div>
+            }
+            else
+            {
+                <div class="d-flex flex-wrap align-items-center gap-2 mb-3">
+                    <span class="rf-vtt-chips" role="group" aria-label="@UiText.MyHomebrewFilter(Lang)">
+                        <button type="button" class="rf-vtt-chip @(filter == null ? "active" : null)" @onclick="() => filter = null" data-test="homebrew-filter-all">@UiText.FilterAll(Lang)</button>
+                        <button type="button" class="rf-vtt-chip @(filter == LanguageCode.It ? "active" : null)" @onclick="() => filter = LanguageCode.It" data-test="homebrew-filter-it">@UiText.ToTranslate(LanguageCode.It, Lang) (@Missing(LanguageCode.It))</button>
+                        <button type="button" class="rf-vtt-chip @(filter == LanguageCode.En ? "active" : null)" @onclick="() => filter = LanguageCode.En" data-test="homebrew-filter-en">@UiText.ToTranslate(LanguageCode.En, Lang) (@Missing(LanguageCode.En))</button>
+                    </span>
+                    @if (selected.Count > 0)
+                    {
+                        <button type="button" class="rf-vtt-row-action" @onclick="() => selected.Clear()" data-test="homebrew-clear">@UiText.ClearSelection(Lang)</button>
+                    }
+                </div>
+                @foreach (var group in Shown.GroupBy(e => e.Kind))
+                {
+                    <h2 class="rf-homebrew-kind">@UiText.TrashKind(group.Key, Lang) <span>@group.Count()</span></h2>
+                    <div class="rf-homebrew-list">
+                        @foreach (var e in group)
+                        {
+                            var entry = e;
+                            <div class="rf-homebrew-row" data-test="homebrew-row">
+                                <input type="checkbox" class="rf-checkbox" checked="@selected.Contains(entry.Id)" aria-label="@entry.Name"
+                                       @onchange="@(c => Toggle(entry, c.Value is true))" data-test="homebrew-select" />
+                                <a href="@entry.Link" class="rf-homebrew-name">@entry.Name</a>
+                                <span class="rf-homebrew-tags">
+                                    <span class="rf-homebrew-tag">@(entry.Ruleset == RulesetVersion.Dnd5e_2014 ? "2014" : "2024")</span>
+                                    @foreach (var language in new[] { LanguageCode.It, LanguageCode.En })
+                                    {
+                                        var has = entry.Languages.Contains(language);
+                                        <span class="rf-homebrew-tag @(has ? null : "missing")" title="@(has ? null : UiText.ToTranslate(language, Lang))" data-test="homebrew-language-@(has ? "ok" : "missing")">@(language == LanguageCode.It ? "IT" : "EN")</span>
+                                    }
+                                </span>
+                            </div>
+                        }
+                    </div>
+                }
+                <HomebrewCollections Selected="selected" />
+            }
+        </Authorized>
+        <NotAuthorized>
+            <div class="rf-account-card text-center">@UiText.TransferSignIn(Lang)</div>
+        </NotAuthorized>
+    </AuthorizeView>
+</div>
+
+@code {
+    private List<MyHomebrewDto>? entries;
+    private readonly HashSet<Guid> selected = new();
+    private List<HomebrewImportedDto>? imported;
+    private LanguageCode? filter;
+    private bool busy;
+    private string? message;
+    private bool messageOk;
+
+    private LanguageCode Lang => LanguageState.CurrentLanguage;
+
+    //	The entries shown: all, or those not written yet in a language
+    private IEnumerable<MyHomebrewDto> Shown => filter is { } language ? entries!.Where(e => !e.Languages.Contains(language)) : entries!;
+
+    private int Missing(LanguageCode language) => entries?.Count(e => !e.Languages.Contains(language)) ?? 0;
+
+    protected override async Task OnInitializedAsync()
+    {
+        LanguageState.OnLanguageChanged += OnLanguageChanged;
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        var result = await Transfer.MineAsync(Lang);
+        entries = result.Value ?? new();
+    }
+
+    private void Toggle(MyHomebrewDto entry, bool on)
+    {
+        if (on)
+        {
+            selected.Add(entry.Id);
+        }
+        else
+        {
+            selected.Remove(entry.Id);
+        }
+    }
+
+    //	The selected entries (all of them when none is selected) as one file
+    private async Task ExportAsync()
+    {
+        if (entries is null)
+        {
+            return;
+        }
+        busy = true;
+        message = null;
+        var chosen = (selected.Count > 0 ? entries.Where(e => selected.Contains(e.Id)) : entries).Take(100).Select(e => new HomebrewRefDto(e.Kind, e.Id)).ToList();
+        var result = await Transfer.ExportHomebrewAsync(chosen, Lang);
+        busy = false;
+        if (result.Value is null)
+        {
+            (message, messageOk) = (UiText.TransferFailed(Lang), false);
+            return;
+        }
+        var bytes = JsonSerializer.SerializeToUtf8Bytes(result.Value, new JsonSerializerOptions(JsonSerializerDefaults.Web) { WriteIndented = true });
+        var name = chosen.Count == 1 ? entries.First(e => e.Id == chosen[0].Id).Name : UiText.MyHomebrewTitle(Lang);
+        await JS.InvokeVoidAsync("rfDownloadFile", SessionLogExport.FileName(name, "realmforge", "json"), "application/json", Convert.ToBase64String(bytes));
+        (message, messageOk) = (UiText.Exported(result.Value.Items.Count, Lang), true);
+    }
+
+    private async Task ImportAsync(InputFileChangeEventArgs e)
+    {
+        busy = true;
+        message = null;
+        imported = null;
+        try
+        {
+            await using var stream = e.File.OpenReadStream(8_000_000);
+            var file = await JsonSerializer.DeserializeAsync<HomebrewExportDto>(stream, new JsonSerializerOptions(JsonSerializerDefaults.Web));
+            var result = file is null ? null : await Transfer.ImportHomebrewAsync(file, Lang);
+            if (result?.Value is { } list)
+            {
+                imported = list;
+                var done = list.Count(i => i.Id is not null);
+                (message, messageOk) = (UiText.Imported(done, list.Count, Lang), done > 0);
+                await LoadAsync();
+            }
+            else
+            {
+                (message, messageOk) = (UiText.ImportFailed(result?.Detail ?? "format", result?.Title, Lang), false);
+            }
+        }
+        catch (Exception)
+        {
+            (message, messageOk) = (UiText.ImportFailed("format", null, Lang), false);
+        }
+        finally
+        {
+            busy = false;
+        }
+    }
+
+    private void OnLanguageChanged() => _ = InvokeAsync(async () =>
+    {
+        await LoadAsync();
+        StateHasChanged();
+    });
+
+    public void Dispose() => LanguageState.OnLanguageChanged -= OnLanguageChanged;
+}

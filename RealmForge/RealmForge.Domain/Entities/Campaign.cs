@@ -30,6 +30,18 @@ namespace RealmForge.Domain.Entities
 		public DateTimeOffset? TableOpenedAt { get; set; }
 		public string? TableOpenedById { get; set; }
 
+		//	Theater of the mind: the handout shown to the whole table in place of the map (null: the map)
+		public Guid? SceneHandoutId { get; set; }
+
+		//	The time inside the game, in minutes from the start of day 1 (GameClock): the masters move it on
+		public long GameMinutes { get; set; } = 8 * 60;
+
+		//	The soundboard: the track the table plays (from when) and the last effect played (when)
+		public Guid? SoundTrackId { get; set; }
+		public DateTimeOffset? SoundTrackAt { get; set; }
+		public Guid? SoundCueId { get; set; }
+		public DateTimeOffset? SoundCueAt { get; set; }
+
 		public ICollection<CampaignMember> Members { get; set; } = new List<CampaignMember>();
 		public ICollection<CampaignInvite> Invites { get; set; } = new List<CampaignInvite>();
 		public ICollection<CampaignCharacter> Characters { get; set; } = new List<CampaignCharacter>();
@@ -124,6 +136,84 @@ namespace RealmForge.Domain.Entities
 		public string? Text { get; set; }
 		public int Size { get; set; }
 		public bool MasterOnly { get; set; }
+		public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
+	}
+
+	///	<summary>
+	///	A handout of a campaign: a letter, a clue, a picture or a map that is not tactical, prepared by the masters and
+	///	revealed to the players during a session (a pop-up at the table). Written in Italian and English: each player
+	///	reads it in their language (the other one when it has only that).
+	///	</summary>
+	public class CampaignHandout
+	{
+		public Guid Id { get; set; } = Guid.NewGuid();
+		public Guid CampaignId { get; set; }
+		public string AuthorId { get; set; } = string.Empty;
+		public string TitleIt { get; set; } = string.Empty;
+		public string TitleEn { get; set; } = string.Empty;
+		public string BodyIt { get; set; } = string.Empty;
+		public string BodyEn { get; set; } = string.Empty;
+		public Guid? ImageId { get; set; }
+
+		//	When it was shown to the players (null: still hidden)
+		public DateTimeOffset? RevealedAt { get; set; }
+		public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
+		public DateTimeOffset UpdatedAt { get; set; } = DateTimeOffset.UtcNow;
+	}
+
+	///	<summary>
+	///	A sound of the soundboard: a link to an audio file or stream hosted elsewhere, a track that loops (music,
+	///	ambience) or a one-shot effect, with its volume.
+	///	</summary>
+	public class CampaignSound
+	{
+		public Guid Id { get; set; } = Guid.NewGuid();
+		public Guid CampaignId { get; set; }
+		public string Name { get; set; } = string.Empty;
+		public string Url { get; set; } = string.Empty;
+		public bool Effect { get; set; }
+		public int Volume { get; set; } = 80;
+		public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
+	}
+
+	///	<summary>
+	///	A shop of a campaign (a merchant, a blacksmith, a temple): the masters stock it with items of the compendium or
+	///	their own and a price multiplier (PricePercent: 100 = list price); the players buy while it is open, the coins
+	///	come off their character's purse and the item goes to their inventory.
+	///	</summary>
+	public class CampaignShop
+	{
+		public Guid Id { get; set; } = Guid.NewGuid();
+		public Guid CampaignId { get; set; }
+		public string AuthorId { get; set; } = string.Empty;
+		public string NameIt { get; set; } = string.Empty;
+		public string NameEn { get; set; } = string.Empty;
+		public string DescriptionIt { get; set; } = string.Empty;
+		public string DescriptionEn { get; set; } = string.Empty;
+		public int PricePercent { get; set; } = 100;
+
+		//	Open: the players see it and buy (closed: behind the screen)
+		public bool Open { get; set; }
+		public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
+		public DateTimeOffset UpdatedAt { get; set; } = DateTimeOffset.UtcNow;
+		public ICollection<CampaignShopItem> Items { get; set; } = new List<CampaignShopItem>();
+	}
+
+	///	<summary>
+	///	An item on sale: equipment or a magic item of the compendium (its name follows the reader's language), or a free
+	///	entry with its own Name. PriceInCopper is the list price of one piece (before the shop's multiplier); Stock null:
+	///	as many as wanted.
+	///	</summary>
+	public class CampaignShopItem
+	{
+		public Guid Id { get; set; } = Guid.NewGuid();
+		public Guid ShopId { get; set; }
+		public CampaignShop Shop { get; set; } = null!;
+		public Guid? EquipmentId { get; set; }
+		public Guid? MagicItemId { get; set; }
+		public string Name { get; set; } = string.Empty;
+		public int PriceInCopper { get; set; }
+		public int? Stock { get; set; }
 		public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
 	}
 
@@ -374,6 +464,9 @@ namespace RealmForge.Domain.Entities
 		public string SharedById { get; set; } = string.Empty;
 		public CampaignContentStatus Status { get; set; } = CampaignContentStatus.Pending;
 		public string? ReviewedById { get; set; }
+
+		//	Switched on with a collection of Homebrew (switched off with it as a block)
+		public Guid? CollectionId { get; set; }
 		public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
 	}
 }

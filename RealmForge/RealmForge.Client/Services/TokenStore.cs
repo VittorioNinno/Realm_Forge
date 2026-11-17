@@ -56,6 +56,18 @@ namespace RealmForge.Client.Services
 			OnChange?.Invoke();
 		}
 
+		//	Signing out: the characters kept for offline on this device are forgotten too
+		public async Task ForgetOfflineAsync()
+		{
+			try
+			{
+				await _js.InvokeVoidAsync("rfForgetOffline");
+			}
+			catch (Exception)
+			{
+			}
+		}
+
 		public async Task ClearAsync()
 		{
 			var hadTokens = _tokens != null;

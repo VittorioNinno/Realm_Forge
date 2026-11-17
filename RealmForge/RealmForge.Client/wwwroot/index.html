@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="it">
 
 <head>
@@ -13,6 +13,8 @@
     <link rel="icon" type="image/png" sizes="32x32" href="img/favicon-32.png" />
     <link rel="icon" type="image/png" sizes="192x192" href="img/icon-192.png" />
     <link rel="apple-touch-icon" href="img/apple-touch-icon.png" />
+    <link rel="manifest" href="manifest.webmanifest" />
+    <meta name="theme-color" content="#0d0d0d" />
     <link href="RealmForge.Client.styles.css" rel="stylesheet" />
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -190,6 +192,24 @@
             }
         };
 
+        // A media query watched for a component: told now and on every change (the table on a phone)
+        window.rfMedia = (() => {
+            const watched = new Map();
+            return {
+                watch(ref, query, method) {
+                    const list = window.matchMedia(query);
+                    const tell = () => ref.invokeMethodAsync(method, list.matches).catch(() => { });
+                    list.addEventListener('change', tell);
+                    watched.set(ref._id, () => list.removeEventListener('change', tell));
+                    tell();
+                },
+                unwatch(ref) {
+                    watched.get(ref._id)?.();
+                    watched.delete(ref._id);
+                }
+            };
+        })();
+
         // The browser's network: the table is told when it goes and comes back (the connection indicator)
         window.rfNet = (() => {
             const watched = new Map();
@@ -210,6 +230,63 @@
                         window.removeEventListener('offline', tell);
                         watched.delete(ref._id);
                     }
+                }
+            };
+        })();
+
+        // The soundboard of the table: one track (music, ambience) in a loop, kept in time with the master's start, and
+        // one-shot effects; the browser plays only after a gesture on the page (unlock), the volume is the reader's
+        window.rfSound = (() => {
+            let track = null, trackKey = null, unlocked = false, volume = 1;
+            try { const v = parseFloat(localStorage.getItem('rf-sound-volume')); if (!isNaN(v)) volume = Math.min(1, Math.max(0, v)); } catch { }
+            const level = (v) => Math.min(1, Math.max(0, (v / 100) * volume));
+            return {
+                unlocked: () => unlocked,
+                unlock() {
+                    unlocked = true;
+                    if (track) track.play().catch(() => { });
+                    return true;
+                },
+                volume: () => volume,
+                setVolume(v) {
+                    volume = Math.min(1, Math.max(0, v));
+                    try { localStorage.setItem('rf-sound-volume', String(volume)); } catch { }
+                    if (track) track.volume = level(track._rfVolume);
+                },
+                // The track of the table: the same key keeps playing (only the volume follows), a new one starts at its offset
+                track(key, url, trackVolume, offsetSeconds) {
+                    if (!url) {
+                        if (track) { track.pause(); track.src = ''; }
+                        track = null; trackKey = null;
+                        return;
+                    }
+                    if (key === trackKey && track) {
+                        track._rfVolume = trackVolume;
+                        track.volume = level(trackVolume);
+                        return;
+                    }
+                    if (track) { track.pause(); track.src = ''; }
+                    trackKey = key;
+                    track = new Audio(url);
+                    track.loop = true;
+                    track._rfVolume = trackVolume;
+                    track.volume = level(trackVolume);
+                    track.addEventListener('loadedmetadata', () => {
+                        if (isFinite(track.duration) && track.duration > 0 && offsetSeconds > 0) {
+                            try { track.currentTime = offsetSeconds % track.duration; } catch { }
+                        }
+                    }, { once: true });
+                    if (unlocked) track.play().catch(() => { });
+                },
+                cue(url, cueVolume) {
+                    if (!url || !unlocked) return;
+                    const a = new Audio(url);
+                    a.volume = level(cueVolume);
+                    a.play().catch(() => { });
+                },
+                stopAll() {
+                    if (track) { track.pause(); track.src = ''; }
+                    track = null; trackKey = null;
                 }
             };
         })();
@@ -1104,6 +1181,25 @@
         })();
     </script>
     <script src="_framework/blazor.webassembly#[.{fingerprint}].js"></script>
+    <script>
+        // Installed as an app and usable offline (not under automated browsers: the tests always want the network)
+        if ('serviceWorker' in navigator && !navigator.webdriver) {
+            // A new version of the app published: the page reloads once on it
+            const hadWorker = !!navigator.serviceWorker.controller;
+            let reloaded = false;
+            navigator.serviceWorker.addEventListener('controllerchange', () => {
+                if (hadWorker && !reloaded) { reloaded = true; location.reload(); }
+            });
+            navigator.serviceWorker.register('service-worker.js', { updateViaCache: 'none' }).catch(() => { });
+        }
+        // Signing out forgets the characters read and kept for offline on this device
+        window.rfForgetOffline = () => {
+            try {
+                if (navigator.serviceWorker && navigator.serviceWorker.controller) navigator.serviceWorker.controller.postMessage('rf-forget');
+                if (window.caches) caches.delete('rf-api-v1');
+            } catch { }
+        };
+    </script>
 </body>
 
 </html>

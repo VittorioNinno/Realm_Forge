@@ -21,6 +21,18 @@ namespace RealmForge.Api.Controllers
 		//	The edits the account can take back on the map of this request (sent with the table to the masters)
 		private int undoLeft;
 
+		//	The handout revealed last in the campaign (the players' screens open it when it is new to them)
+		private HandoutShownDto? shownHandout;
+
+		//	The handout shown to the table in place of the map (theater of the mind)
+		private Guid? scene;
+
+		//	The clock of the campaign (game minutes)
+		private long gameMinutes;
+
+		//	What the soundboard plays at the table
+		private MapSoundDto? sound;
+
 		private sealed record UndoItem(Guid Id, JsonElement? Values);
 
 		private sealed record UndoItems(List<UndoItem> Items);
