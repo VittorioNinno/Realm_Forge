@@ -20854,22 +20854,9 @@ button.rf-vtt-clock.on {
             color: var(--rf-text-muted);
         }
 
-/* The clock on a phone held sideways: the hourglass and the time only, the bar stays on one line */
+/* The clock on a phone held sideways: the top bar has no room for it there (the campaign overview shows it) */
 @media (max-height: 500px) and (max-width: 1023.98px) and (orientation: landscape) {
-    .rf-vtt-top-actions {
-        gap: 4px;
-        min-width: 0;
-    }
-
-    .rf-vtt-clock {
-        gap: 4px;
-        padding: 0 4px;
-        font-size: .7rem;
-        line-height: 26px;
-    }
-
-    /* The time without its hourglass (the sound buttons keep their icon) */
-    [data-test=vtt-clock] svg {
+    [data-test=vtt-clock] {
         display: none;
     }
 }
