@@ -115,6 +115,10 @@ The table of a campaign, on its own page: the master prepares the maps away from
 - A handout shown as a scene in place of the tactical map for the whole table (a landscape, an NPC's portrait, a letter), with the party's portraits; dice, log and initiative stay active. One click goes back to the map.
   *Un handout mostrato come scena al posto della mappa tattica per tutto il tavolo (un paesaggio, il ritratto di un PNG, una lettera), con i ritratti del gruppo; dadi, log e iniziativa restano attivi. Un clic e si torna alla mappa.*
 
+**Shops · *Negozi***
+- Merchants prepared by the master in the campaign's Shops tab: equipment and magic items of the compendium (list price, or the usual price of the rarity) or free items, with a price multiplier and an optional stock. Once opened, the players buy for their characters: the coins come off the purse (with change in smaller coins) and the item lands in the inventory, magic properties included.
+  *Mercanti preparati dal master nella scheda Negozi della campagna: equipaggiamento e oggetti magici del compendio (prezzo di listino, o quello abituale della rarità) oppure oggetti liberi, con un moltiplicatore di prezzo e scorte facoltative. Una volta aperti, i giocatori comprano per i propri personaggi: le monete escono dalla borsa (con il resto in monete più piccole) e l'oggetto finisce nell'inventario, proprietà magiche comprese.*
+
 **Master tools · *Strumenti del master***
 - **Undo** (button or Ctrl+Z) for the master's own edits: tokens, doors, drawings, terrain and fog (the last 40 steps per map).
   ***Annulla** (pulsante o Ctrl+Z) per le proprie modifiche: segnalini, porte, disegni, terreno e nebbia (gli ultimi 40 passi per mappa).*

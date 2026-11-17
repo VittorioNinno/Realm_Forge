@@ -819,6 +819,30 @@ jobs:
           tf_char_ok=$(echo "$tf_char_new" | jq -c --arg old "$ch_id" '{name, other: (.id != $old), level: (.build.levels | length > 0)}')
           tf_char_bad=$(curl -s -X POST "$api/api/characters/import" $json -H "Authorization: Bearer $A" -d "$(echo "$tf_char" | jq -c '.speciesId = "00000000-0000-0000-0000-000000000001"')" | jq -r .detail)
           code -X DELETE "$api/api/characters/$(echo "$tf_char_new" | jq -r .id)" -H "Authorization: Bearer $A" > /dev/null
+          # Shops: the master stocks one at 200% (a longsword at its list price, a potion at the usual price of its rarity, a free item) and opens
+          # it; the player buys for their character: the coins come off the purse with change, the item lands in the inventory, the stock goes down
+          sp=$(curl -s -X POST "$api/api/campaigns/$cp_id/shops?lang=2" $json -H "Authorization: Bearer $B" -d '{"nameIt":"Emporio","nameEn":"","pricePercent":200,"open":false}' | jq -r .id)
+          sp_player_add=$(code -X POST "$api/api/campaigns/$cp_id/shops" $json -H "Authorization: Bearer $A" -d '{"nameIt":"Mio"}')
+          sp_sword=$(curl -s -X POST "$api/api/campaigns/$cp_id/shops/$sp/items?lang=1" $json -H "Authorization: Bearer $B" -d "{\"equipmentId\":\"$longsword\",\"stock\":1}" | jq -c '{kind, name, listPrice, price, stock}')
+          sp_potion=$(curl -s -X POST "$api/api/campaigns/$cp_id/shops/$sp/items" $json -H "Authorization: Bearer $B" -d "{\"magicItemId\":\"$superior\"}" | jq -c '{kind, listPrice}')
+          sp_bad_free=$(code -X POST "$api/api/campaigns/$cp_id/shops/$sp/items" $json -H "Authorization: Bearer $B" -d '{"name":"Mappa"}')
+          sp_free=$(curl -s -X POST "$api/api/campaigns/$cp_id/shops/$sp/items" $json -H "Authorization: Bearer $B" -d '{"name":"Mappa del tesoro","priceInCopper":1}' | jq -r .id)
+          sp_closed=$(curl -s "$api/api/campaigns/$cp_id/shops" -H "Authorization: Bearer $A" | jq '.shops | length')
+          code -X PUT "$api/api/campaigns/$cp_id/shops/$sp" $json -H "Authorization: Bearer $B" -d '{"nameIt":"Emporio","nameEn":"Emporium","pricePercent":200,"open":true}' > /dev/null
+          sp_seen=$(curl -s "$api/api/campaigns/$cp_id/shops?lang=1" -H "Authorization: Bearer $A")
+          sp_view=$(echo "$sp_seen" | jq -c --arg c "$ch_id" '{name: .shops[0].name, items: (.shops[0].items | length), both: (.shops[0].nameIt != null), buyer: ([.buyers[].characterId] == [$c])}')
+          sp_sword_id=$(echo "$sp_seen" | jq -r '.shops[0].items[] | select(.kind == "equipment") | .id')
+          sp_potion_id=$(echo "$sp_seen" | jq -r '.shops[0].items[] | select(.kind == "magic-item") | .id')
+          sp_purse=$(get "$api/api/characters/$ch_id" -H "Authorization: Bearer $A" | jq -c '.sheet | .coins = {cp: 0, sp: 0, ep: 0, gp: 40, pp: 0}')
+          code -X PUT "$api/api/characters/$ch_id/sheet" $json -H "Authorization: Bearer $A" -d "$sp_purse" > /dev/null
+          sp_not_mine=$(code -X POST "$api/api/campaigns/$cp_id/shops/$sp/items/$sp_sword_id/buy" $json -H "Authorization: Bearer $A" -d "{\"characterId\":\"$(uuidgen)\"}")
+          sp_buy=$(curl -s -X POST "$api/api/campaigns/$cp_id/shops/$sp/items/$sp_sword_id/buy?lang=1" $json -H "Authorization: Bearer $A" -d "{\"characterId\":\"$ch_id\"}" | jq -c '{item, quantity, paid, gp: .coins.gp, stockLeft}')
+          sp_sold_out=$(code -X POST "$api/api/campaigns/$cp_id/shops/$sp/items/$sp_sword_id/buy" $json -H "Authorization: Bearer $A" -d "{\"characterId\":\"$ch_id\"}")
+          sp_poor=$(code -X POST "$api/api/campaigns/$cp_id/shops/$sp/items/$sp_potion_id/buy" $json -H "Authorization: Bearer $A" -d "{\"characterId\":\"$ch_id\"}")
+          sp_change=$(curl -s -X POST "$api/api/campaigns/$cp_id/shops/$sp/items/$sp_free/buy" $json -H "Authorization: Bearer $A" -d "{\"characterId\":\"$ch_id\",\"quantity\":3}" | jq -c '{paid, gp: .coins.gp, sp: .coins.sp, cp: .coins.cp}')
+          sp_inventory=$(get "$api/api/characters/$ch_id" -H "Authorization: Bearer $A" | jq -c --arg l "$longsword" '.sheet | {sword: ([.inventory[] | select(.equipmentId == $l)] | length > 0), map: [.inventory[] | select(.name == "Mappa del tesoro") | .quantity], gp: .coins.gp}')
+          sp_player_delete=$(code -X DELETE "$api/api/campaigns/$cp_id/shops/$sp" -H "Authorization: Bearer $A")
+          sp_delete=$(code -X DELETE "$api/api/campaigns/$cp_id/shops/$sp" -H "Authorization: Bearer $B")
           # Clona e personalizza: a Base spell copied as a private Homebrew spell that says where it comes from
           fk_base=$(get "$api/api/spells?lang=2" | jq -r '[.[] | select(.isOfficialSRD == true)][0].id')
           fk=$(curl -s -X POST "$api/api/content/spell/$fk_base/fork?lang=2" -H "Authorization: Bearer $A")
@@ -874,6 +898,19 @@ jobs:
           mdcheck "fork: it says where it comes from" "$fk_origin" '{"same":true,"isBase":true}'
           mdcheck "fork: an original has no origin" "$fk_none" "204"
           mdcheck "fork: signed in only" "$fk_anon" "401"
+          mdcheck "shops: only masters stock them" "$sp_player_add" "403"
+          mdcheck "shops: equipment at its list price, times the multiplier" "$sp_sword" '{"kind":"equipment","name":"Longsword","listPrice":1500,"price":3000,"stock":1}'
+          mdcheck "shops: a magic item at the usual price of its rarity" "$sp_potion" '{"kind":"magic-item","listPrice":400000}'
+          mdcheck "shops: a free item needs a price" "$sp_bad_free" "400"
+          mdcheck "shops: closed, hidden from the players" "$sp_closed" "0"
+          mdcheck "shops: open, read in English" "$sp_view" '{"name":"Emporium","items":3,"both":false,"buyer":true}'
+          mdcheck "shops: only the player's own characters buy" "$sp_not_mine" "400"
+          mdcheck "shops: bought, paid, out of stock" "$sp_buy" '{"item":"Longsword","quantity":1,"paid":3000,"gp":10,"stockLeft":0}'
+          mdcheck "shops: sold out" "$sp_sold_out" "409"
+          mdcheck "shops: not enough coins" "$sp_poor" "409"
+          mdcheck "shops: change in smaller coins" "$sp_change" '{"paid":6,"gp":9,"sp":9,"cp":4}'
+          mdcheck "shops: in the inventory" "$sp_inventory" '{"sword":true,"map":[3],"gp":9}'
+          mdcheck "shops: deleted by the masters only" "$sp_player_delete|$sp_delete" "403|204"
           mdcheck "feat effects saved" "$ef_detail" '[4,32]'
           mdcheck "feat effects in the context" "$ef_ctx" '[2]'
           mdcheck "feat effect without its skill" "$ef_bad" "Skill"
