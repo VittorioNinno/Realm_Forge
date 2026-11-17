@@ -7,6 +7,8 @@
 @inject CharacterDataService CharacterService
 @inject CampaignDataService Campaigns
 @inject LanguageStateService LanguageState
+@inject TransferDataService Transfer
+@inject NavigationManager Navigation
 
 <PageTitle>RealmForge - @UiText.CharactersTitle(Lang)</PageTitle>
 
@@ -18,13 +20,24 @@
         </div>
         <AuthorizeView>
             <Authorized>
-                <a href="characters/new" class="btn btn-rf-orange" data-test="new-character">@UiText.BtnNewCharacter(Lang)</a>
+                <div class="d-flex flex-wrap gap-2">
+                    @* A character from a JSON file (a backup, or one taken from another RealmForge) *@
+                    <label class="btn btn-rf-outline mb-0 @(busy ? "disabled" : null)" title="@UiText.ImportCharacterHint(Lang)" data-test="import-character">
+                        <Icon Name="download" Class="rf-icon rf-icon-flip" /> @UiText.BtnImport(Lang)
+                        <InputFile OnChange="ImportAsync" accept=".json,application/json" class="d-none" data-test="import-character-file" />
+                    </label>
+                    <a href="characters/new" class="btn btn-rf-orange" data-test="new-character">@UiText.BtnNewCharacter(Lang)</a>
+                </div>
             </Authorized>
         </AuthorizeView>
     </div>
 
     <AuthorizeView>
         <Authorized>
+            @if (actionError is not null)
+            {
+                <div class="small text-warning mb-3" role="alert" data-test="characters-error">@actionError</div>
+            }
             @if (characters is null)
             {
                 <div class="small" style="color: var(--rf-text-muted);">@UiText.LoadingCharacters(Lang)</div>
@@ -48,10 +61,6 @@
                                        Band="@(ch.Campaigns.Count > 0 ? CampaignBand(ch) : null)" Actions="CardActions(ch)" />
                     }
                 </div>
-                @if (actionError is not null)
-                {
-                    <div class="small text-warning mt-2" data-test="characters-error">@actionError</div>
-                }
             }
 
             @if (shared is { Count: > 0 })
@@ -99,6 +108,38 @@
     private CharacterSummaryDto? deleting;
     private bool busy;
     private string? actionError;
+
+    //	A character file: read, sent, opened when it was accepted
+    private async Task ImportAsync(InputFileChangeEventArgs e)
+    {
+        actionError = null;
+        busy = true;
+        try
+        {
+            await using var stream = e.File.OpenReadStream(2_000_000);
+            var file = await System.Text.Json.JsonSerializer.DeserializeAsync<CharacterExportDto>(stream, new System.Text.Json.JsonSerializerOptions(System.Text.Json.JsonSerializerDefaults.Web));
+            if (file is null)
+            {
+                actionError = UiText.ImportFailed("format", null, Lang);
+                return;
+            }
+            var result = await Transfer.ImportCharacterAsync(file);
+            if (result.Value is { } created)
+            {
+                Navigation.NavigateTo($"characters/{created.Id}");
+                return;
+            }
+            actionError = UiText.ImportFailed(result.Detail, result.Title, Lang);
+        }
+        catch (Exception)
+        {
+            actionError = UiText.ImportFailed("format", null, Lang);
+        }
+        finally
+        {
+            busy = false;
+        }
+    }
     private List<SharedCharacterDto>? shared;
 
     private LanguageCode Lang => LanguageState.CurrentLanguage;

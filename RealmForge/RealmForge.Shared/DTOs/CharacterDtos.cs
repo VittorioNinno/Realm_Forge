@@ -114,3 +114,67 @@ namespace RealmForge.Shared.DTOs
 		}
 	}
 }
+
+namespace RealmForge.Shared.DTOs
+{
+	///	<summary>
+	///	A character as a file to keep or to move to another RealmForge: its choices (the build) and its play state (the
+	///	sheet), with the format and the version of the file. The species, background, classes and the rest are named by
+	///	their ids: Base content has the same ids on every RealmForge, Homebrew must be there too (exported with it).
+	///	</summary>
+	public class CharacterExportDto
+	{
+		public const string FormatName = "realmforge.character";
+		public const int CurrentVersion = 1;
+
+		public string Format { get; set; } = FormatName;
+		public int Version { get; set; } = CurrentVersion;
+		public DateTimeOffset ExportedAt { get; set; } = DateTimeOffset.UtcNow;
+		public string Name { get; set; } = string.Empty;
+		public RulesetVersion Ruleset { get; set; }
+		public Guid SpeciesId { get; set; }
+		public Guid? SubspeciesId { get; set; }
+		public Guid BackgroundId { get; set; }
+		public CharacterBuild Build { get; set; } = new();
+		public CharacterSheetState Sheet { get; set; } = new();
+	}
+}
+
+namespace RealmForge.Shared.DTOs
+{
+	///	<summary>
+	///	Homebrew as a file to keep or to move to another RealmForge: entries (a spell, a class with its features and
+	///	subclasses, a monster…), each as the rows of its tables. Imported, each becomes a new private entry of the account.
+	///	</summary>
+	public class HomebrewExportDto
+	{
+		public const string FormatName = "realmforge.homebrew";
+		public const int CurrentVersion = 1;
+
+		public string Format { get; set; } = FormatName;
+		public int Version { get; set; } = CurrentVersion;
+		public DateTimeOffset ExportedAt { get; set; } = DateTimeOffset.UtcNow;
+		public List<HomebrewExportItemDto> Items { get; set; } = new();
+	}
+
+	public class HomebrewExportItemDto
+	{
+		public string Kind { get; set; } = string.Empty;
+		public string Name { get; set; } = string.Empty;
+		public List<System.Text.Json.JsonElement> Rows { get; set; } = new();
+	}
+
+	//	What to put in a file: entries by kind and id
+	public class HomebrewExportRequestDto
+	{
+		public List<HomebrewRefDto> Entries { get; set; } = new();
+	}
+
+	public record HomebrewRefDto(string Kind, Guid Id);
+
+	//	An entry of the account's Homebrew: where it opens, its edition and visibility, the languages it is written in
+	public record MyHomebrewDto(string Kind, Guid Id, string Name, string Link, RulesetVersion Ruleset, ContentVisibility Visibility, List<LanguageCode> Languages);
+
+	//	An entry imported (its link to open it), or one that could not be (what it needs and is missing here)
+	public record HomebrewImportedDto(string Kind, string Name, Guid? Id, string? Link, string? Missing);
+}

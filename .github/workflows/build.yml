@@ -802,6 +802,23 @@ jobs:
           am_saved=$(get "$api/api/modules/$am_id?lang=2" -H "Authorization: Bearer $A" | jq -c '[.effects[] | select(.kind >= 50) | {kind, roll, resource, outcome, attacks, oncePerTurn}]')
           am_bad=$(curl -s -X POST "$api/api/modules" $json -H "Authorization: Bearer $A" -d "$(echo "$am_mod" | jq -c '.effects[2].roll = "molto"')" | jq -r .detail)
           am_orphan=$(curl -s -X POST "$api/api/modules" $json -H "Authorization: Bearer $A" -d "$(echo "$am_mod" | jq -c '.effects |= .[1:]')" | jq -r .detail)
+          # JSON files: the module exported and imported again as a new private entry; a character the same way
+          tf_file=$(curl -s -X POST "$api/api/content/export?lang=2" $json -H "Authorization: Bearer $A" -d "{\"entries\":[{\"kind\":\"module\",\"id\":\"$am_id\"}]}")
+          tf_export=$(echo "$tf_file" | jq -c '{format, items: [.items[] | {kind, name, rows: (.rows | length > 1)}]}')
+          tf_bob=$(code -X POST "$api/api/content/export" $json -H "Authorization: Bearer $B" -d "{\"entries\":[{\"kind\":\"module\",\"id\":\"$am_id\"}]}")
+          tf_import=$(curl -s -X POST "$api/api/content/import?lang=2" $json -H "Authorization: Bearer $A" -d "$tf_file")
+          tf_new=$(echo "$tf_import" | jq -r '.[0].id')
+          tf_imported=$(echo "$tf_import" | jq -c --arg old "$am_id" '[.[] | {kind, name, other: (.id != $old), link: (.link != null)}]')
+          tf_copy=$(get "$api/api/modules/$tf_new?lang=2" -H "Authorization: Bearer $A" | jq -c '{effects: (.effects | length), visibility}')
+          tf_mine=$(get "$api/api/content/mine?lang=2" -H "Authorization: Bearer $A" | jq -c --arg id "$tf_new" '[.[] | select(.id == $id) | {kind, languages}]')
+          tf_bad=$(curl -s -X POST "$api/api/content/import" $json -H "Authorization: Bearer $A" -d '{"format":"other","version":1,"items":[]}' | jq -r .detail)
+          code -X DELETE "$api/api/modules/$tf_new" -H "Authorization: Bearer $A" > /dev/null
+          tf_char=$(curl -s "$api/api/characters/$ch_id/export" -H "Authorization: Bearer $A")
+          tf_char_bob=$(code "$api/api/characters/$ch_id/export" -H "Authorization: Bearer $B")
+          tf_char_new=$(curl -s -X POST "$api/api/characters/import" $json -H "Authorization: Bearer $A" -d "$(echo "$tf_char" | jq -c '.name = "Copia importata"')")
+          tf_char_ok=$(echo "$tf_char_new" | jq -c --arg old "$ch_id" '{name, other: (.id != $old), level: (.build.levels | length > 0)}')
+          tf_char_bad=$(curl -s -X POST "$api/api/characters/import" $json -H "Authorization: Bearer $A" -d "$(echo "$tf_char" | jq -c '.speciesId = "00000000-0000-0000-0000-000000000001"')" | jq -r .detail)
+          code -X DELETE "$api/api/characters/$(echo "$tf_char_new" | jq -r .id)" -H "Authorization: Bearer $A" > /dev/null
           code -X DELETE "$api/api/modules/$am_id" -H "Authorization: Bearer $A" > /dev/null
           # The same effects on a Homebrew feat: saved, read back, in the character context; a broken one is refused
           ef_feat=$(curl -s -X POST "$api/api/feats?lang=2" $json -H "Authorization: Bearer $A" -d "$(echo "$feat" | jq -c '.effects = [{"kind":4,"value":2},{"kind":32,"value":60}]')")
@@ -833,6 +850,15 @@ jobs:
           mdcheck "automations saved" "$am_saved" '[{"kind":50,"roll":"1d8+MOD","resource":"Embers","outcome":"heal","attacks":0,"oncePerTurn":false},{"kind":51,"roll":"PBd6","resource":null,"outcome":null,"attacks":1,"oncePerTurn":true}]'
           mdcheck "automation dice that do not read" "$am_bad" "Roll"
           mdcheck "automation spending a resource it does not have" "$am_orphan" "Resource"
+          mdcheck "file: Homebrew exported with what belongs to it" "$tf_export" '{"format":"realmforge.homebrew","items":[{"kind":"module","name":"Braci","rows":true}]}'
+          mdcheck "file: private Homebrew of others is not exported" "$tf_bob" "404"
+          mdcheck "file: imported as a new entry" "$tf_imported" '[{"kind":"module","name":"Braci","other":true,"link":true}]'
+          mdcheck "file: the copy has its effects and is private" "$tf_copy" '{"effects":3,"visibility":2}'
+          mdcheck "file: on the author's page with its languages" "$tf_mine" '[{"kind":"module","languages":[1,2]}]'
+          mdcheck "file: not a RealmForge file" "$tf_bad" "format"
+          mdcheck "file: someone else's character is not exported" "$tf_char_bob" "404"
+          mdcheck "file: character imported as a new one" "$tf_char_ok" '{"name":"Copia importata","other":true,"level":true}'
+          mdcheck "file: character missing what it needs" "$tf_char_bad" "rules"
           mdcheck "feat effects saved" "$ef_detail" '[4,32]'
           mdcheck "feat effects in the context" "$ef_ctx" '[2]'
           mdcheck "feat effect without its skill" "$ef_bad" "Skill"

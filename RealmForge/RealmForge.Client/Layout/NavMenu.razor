@@ -40,6 +40,11 @@
                     <span class="sb-icon"><Icon Name="characters" Class="rf-nav-icon" /></span>
                     <span class="sb-label">@UiText.NavCharacters(Lang)</span>
                 </NavLink>
+                @* The account's Homebrew: by kind, what is left to translate, the JSON files *@
+                <NavLink class="nav-link sb-item" href="homebrew" data-tooltip="@UiText.NavHomebrew(Lang)" data-test="nav-homebrew">
+                    <span class="sb-icon"><Icon Name="collection" Class="rf-nav-icon" /></span>
+                    <span class="sb-label">@UiText.NavHomebrew(Lang)</span>
+                </NavLink>
                 @* The campaigns: the table, its characters and the shared content *@
                 <NavLink class="nav-link sb-item" href="campaigns" data-tooltip="@UiText.CampaignsTitle(Lang)" data-test="nav-campaigns">
                     <span class="sb-icon"><Icon Name="campaigns" Class="rf-nav-icon" /></span>
