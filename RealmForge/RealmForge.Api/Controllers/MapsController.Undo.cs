@@ -30,6 +30,9 @@ namespace RealmForge.Api.Controllers
 		//	The clock of the campaign (game minutes)
 		private long gameMinutes;
 
+		//	What the soundboard plays at the table
+		private MapSoundDto? sound;
+
 		private sealed record UndoItem(Guid Id, JsonElement? Values);
 
 		private sealed record UndoItems(List<UndoItem> Items);

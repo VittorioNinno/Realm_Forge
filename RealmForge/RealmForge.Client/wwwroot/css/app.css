@@ -20876,6 +20876,72 @@ button.rf-vtt-clock.on {
         max-width: 100%;
     }
 
+/* ===== Soundboard ===== */
+
+.rf-sounds {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+    .rf-sounds input[type=range] {
+        width: 120px;
+        accent-color: var(--rf-orange-primary);
+    }
+
+.rf-sound-list {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+    .rf-sound-list li {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 4px 8px;
+        border-radius: 8px;
+        border: 1px solid transparent;
+        background-color: #1c1c1c;
+    }
+
+        .rf-sound-list li.on {
+            border-color: var(--rf-orange-primary);
+        }
+
+.rf-sound-play {
+    display: flex;
+    flex: 1 1 auto;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+    min-height: 32px;
+    padding: 0;
+    border: 0;
+    background: none;
+    color: inherit;
+    text-align: left;
+}
+
+    .rf-sound-play span {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .rf-sound-play svg {
+        flex: none;
+        color: var(--rf-orange-primary);
+    }
+
+.rf-vtt-sound-unlock {
+    border-color: var(--rf-orange-primary);
+    color: var(--rf-orange-primary);
+}
+
 /* The clock on a phone held sideways: the top bar has no room for it there (the campaign overview shows it) */
 @media (max-height: 500px) and (max-width: 1023.98px) and (orientation: landscape) {
     [data-test=vtt-clock] {
