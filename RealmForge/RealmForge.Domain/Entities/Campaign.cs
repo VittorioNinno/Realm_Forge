@@ -30,6 +30,9 @@ namespace RealmForge.Domain.Entities
 		public DateTimeOffset? TableOpenedAt { get; set; }
 		public string? TableOpenedById { get; set; }
 
+		//	Theater of the mind: the handout shown to the whole table in place of the map (null: the map)
+		public Guid? SceneHandoutId { get; set; }
+
 		public ICollection<CampaignMember> Members { get; set; } = new List<CampaignMember>();
 		public ICollection<CampaignInvite> Invites { get; set; } = new List<CampaignInvite>();
 		public ICollection<CampaignCharacter> Characters { get; set; } = new List<CampaignCharacter>();

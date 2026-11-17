@@ -1405,6 +1405,13 @@ jobs:
           ho_it=$(curl -s "$api/api/campaigns/$ss_cp/handouts/$ho?lang=2" -H "Authorization: Bearer $A" | jq -r .title)
           ho_table=$(curl -s "$api/api/campaigns/$ss_cp/maps/$mp2/state" -H "Authorization: Bearer $A" | jq -c --arg h "$ho" '.table.handout.id == $h')
           ho_master=$(curl -s "$api/api/campaigns/$ss_cp/handouts" -H "Authorization: Bearer $B" | jq -c '[.[] | {titleIt, titleEn}]')
+          # Theater of the mind: the handout in place of the map for the whole table, then back to the map
+          sc_player=$(code -X POST "$api/api/campaigns/$ss_cp/handouts/$ho/scene" -H "Authorization: Bearer $A")
+          sc_show=$(code -X POST "$api/api/campaigns/$ss_cp/handouts/$ho/scene" -H "Authorization: Bearer $B")
+          sc_table=$(curl -s "$api/api/campaigns/$ss_cp/maps/$mp2/state" -H "Authorization: Bearer $A" | jq -c --arg h "$ho" '.table.scene == $h')
+          sc_list=$(curl -s "$api/api/campaigns/$ss_cp/handouts" -H "Authorization: Bearer $B" | jq -c '[.[] | .isScene]')
+          sc_end=$(code -X DELETE "$api/api/campaigns/$ss_cp/handouts/scene" -H "Authorization: Bearer $B")
+          sc_after=$(curl -s "$api/api/campaigns/$ss_cp/maps/$mp2/state" -H "Authorization: Bearer $A" | jq -c '.table.scene')
           ho_hide=$(code -X POST "$api/api/campaigns/$ss_cp/handouts/$ho/hide" -H "Authorization: Bearer $B")
           ho_after=$(curl -s "$api/api/campaigns/$ss_cp/handouts" -H "Authorization: Bearer $A" | jq length)
           ho_delete=$(code -X DELETE "$api/api/campaigns/$ss_cp/handouts/$ho" -H "Authorization: Bearer $B")
@@ -1650,6 +1657,10 @@ jobs:
           sscheck "handouts: read in Italian" "$ho_it" "Lettera"
           sscheck "handouts: the table opens it" "$ho_table" "true"
           sscheck "handouts: the master has both languages" "$ho_master" '[{"titleIt":"Lettera","titleEn":"Letter"}]'
+          sscheck "scene: only masters" "$sc_player" "403"
+          sscheck "scene: shown to the table" "$sc_show|$sc_table" "204|true"
+          sscheck "scene: marked in the list" "$sc_list" "[true]"
+          sscheck "scene: back to the map" "$sc_end|$sc_after" "204|null"
           sscheck "handouts: hidden again" "$ho_hide|$ho_after" "204|0"
           sscheck "handouts: deleted" "$ho_delete" "204"
           sscheck "floors: only masters link" "$fl_link_player" "403"

@@ -16,7 +16,8 @@ namespace RealmForge.Shared.DTOs
 		string? TitleIt = null,
 		string? TitleEn = null,
 		string? BodyIt = null,
-		string? BodyEn = null);
+		string? BodyEn = null,
+		bool IsScene = false);
 
 	public class SaveCampaignHandoutDto
 	{

@@ -23,6 +23,9 @@ namespace RealmForge.Client.Localization
 		public static string HandoutHide(LanguageCode lang) => T(lang, "Nascondi ai giocatori", "Hide from the players");
 		public static string HandoutHidden(LanguageCode lang) => T(lang, "Dietro lo schermo", "Behind the screen");
 		public static string HandoutRevealedAt(DateTimeOffset at, LanguageCode lang) => T(lang, $"Rivelato {FormatDateTime(at, lang)}", $"Revealed {FormatDateTime(at, lang)}");
+		public static string SceneShow(LanguageCode lang) => T(lang, "Mostra come scena al posto della mappa", "Show as a scene in place of the map");
+		public static string SceneEnd(LanguageCode lang) => T(lang, "Torna alla mappa", "Back to the map");
+		public static string SceneActive(LanguageCode lang) => T(lang, "Scena", "Scene");
 		public static string VttToolHandouts(LanguageCode lang) => T(lang, "Handout", "Handouts");
 	}
 }
