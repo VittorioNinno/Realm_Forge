@@ -8,6 +8,9 @@ namespace RealmForge.Client.Components
 	///	</summary>
 	public partial class CampaignMap
 	{
+		//	The clock of the campaign (game minutes), shown in the bar of the table
+		private long? gameClock;
+
 		private CampaignHandoutDto? popupHandout;
 
 		//	The handout shown to the whole table in place of the map

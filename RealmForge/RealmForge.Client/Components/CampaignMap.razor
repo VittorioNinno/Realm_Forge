@@ -40,6 +40,17 @@
                 </div>
             }
             <div class="rf-vtt-top-actions">
+                @if (gameClock is { } clockNow)
+                {
+                    @if (RunsTheTable)
+                    {
+                        <button type="button" class="rf-vtt-clock @(panel == "clock" ? "on" : null)" title="@UiText.ClockText(clockNow, Lang)" aria-label="@UiText.VttClock(Lang)" @onclick="@(() => TogglePanel("clock"))" data-test="vtt-clock"><Icon Name="hourglass-split" /> <span>@UiText.ClockShort(clockNow, Lang)</span></button>
+                    }
+                    else
+                    {
+                        <span class="rf-vtt-clock" title="@UiText.ClockText(clockNow, Lang)" data-test="vtt-clock"><Icon Name="hourglass-split" /> <span>@UiText.ClockShort(clockNow, Lang)</span></span>
+                    }
+                }
                 <span class="rf-vtt-link rf-vtt-link-@Connection.ToString().ToLowerInvariant()" role="status" aria-live="polite" title="@ConnectionTitle" data-test="vtt-connection" data-state="@Connection.ToString().ToLowerInvariant()">
                     <Icon Name="@(Connection == TableLink.Live ? "wifi" : "wifi-off")" />
                     <span class="rf-vtt-link-text">@UiText.VttConnection(Connection == TableLink.Live ? 0 : Connection == TableLink.Reconnecting ? 1 : 2, Lang)</span>
@@ -200,6 +211,9 @@
                                 @OnMapList
                                 @AddTokens
                             }
+                            break;
+                        case "clock" when RunsTheTable:
+                            <CampaignClock CampaignId="CampaignId" Role="Role" Compact="true" OnMoved="m => gameClock = m" />
                             break;
                         case "handouts" when RunsTheTable:
                             <CampaignHandouts CampaignId="CampaignId" Role="Role" Compact="true" OnChanged="RefreshAsync" />
@@ -5340,6 +5354,7 @@ else
         ApplyVision(table);
         _ = ShowSceneAsync(table.Scene);
         _ = ShowHandoutAsync(table.Handout);
+        gameClock = table.Clock;
         undoLeft = table.Undo;
         saveCalls = table.Saves ?? new();
         playersLocked = table.PlayersLocked;

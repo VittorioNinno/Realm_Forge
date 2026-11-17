@@ -86,7 +86,12 @@ namespace RealmForge.Shared.DTOs
 		List<Guid>? Campaigns = null,
 
 		//	Rule modules the campaigns of the character make active for it (shared with the table and approved)
-		List<Guid>? CampaignModuleIds = null);
+		List<Guid>? CampaignModuleIds = null,
+
+		//	The clock of the campaign the character plays in last (its game minute): the effects of the spells cast
+		//	from the sheet last on it
+		Guid? ClockCampaignId = null,
+		long? GameMinutes = null);
 
 	public record CharacterSavedDto(Guid Id, int MaxHitPoints, int ArmorClass, DateTimeOffset UpdatedAt, SheetVitalsDto? Vitals = null);
 
@@ -97,9 +102,43 @@ namespace RealmForge.Shared.DTOs
 	public record SheetVitalsDto(int VitalsStamp, int? CurrentHitPoints, int TemporaryHitPoints, List<string> Conditions, int Exhaustion,
 		Guid? Concentration, int DeathSaveSuccesses, int DeathSaveFailures, int MaxHitPoints, DateTimeOffset UpdatedAt, string? UpdatedBy = null)
 	{
+		//	The effects on the clock of the campaigns (ended by a master moving the time)
+		public List<TimedEffect>? Effects { get; init; }
+
+		//	The inventory and the purse as the server keeps them (a purchase, the rations of a journey, loot)
+		public int StoreStamp { get; init; }
+		public List<InventoryItem>? Inventory { get; init; }
+		public CoinPurse? Coins { get; init; }
+		public List<SpentAmmunition>? SpentAmmunition { get; init; }
+
 		public static SheetVitalsDto From(CharacterSheetState s, int maxHitPoints, DateTimeOffset updatedAt, string? updatedBy = null) =>
 			new(s.VitalsStamp, s.CurrentHitPoints, s.TemporaryHitPoints, s.Conditions.ToList(), s.Exhaustion, s.Concentration,
-				s.DeathSaveSuccesses, s.DeathSaveFailures, maxHitPoints, updatedAt, updatedBy);
+				s.DeathSaveSuccesses, s.DeathSaveFailures, maxHitPoints, updatedAt, updatedBy)
+			{
+				Effects = s.TimedEffects.ToList(),
+				StoreStamp = s.StoreStamp,
+				Inventory = s.Inventory.ToList(),
+				Coins = s.Coins,
+				SpentAmmunition = s.SpentAmmunition.ToList()
+			};
+
+		//	The inventory, the purse and the ammunition to pick up, as the server keeps them
+		public void ApplyStoreTo(CharacterSheetState s)
+		{
+			s.StoreStamp = StoreStamp;
+			if (Inventory is not null)
+			{
+				s.Inventory = Inventory.ToList();
+			}
+			if (Coins is not null)
+			{
+				s.Coins = Coins;
+			}
+			if (SpentAmmunition is not null)
+			{
+				s.SpentAmmunition = SpentAmmunition.ToList();
+			}
+		}
 
 		public void ApplyTo(CharacterSheetState s)
 		{
@@ -111,6 +150,10 @@ namespace RealmForge.Shared.DTOs
 			s.Concentration = Concentration;
 			s.DeathSaveSuccesses = DeathSaveSuccesses;
 			s.DeathSaveFailures = DeathSaveFailures;
+			if (Effects is not null)
+			{
+				s.TimedEffects = Effects.ToList();
+			}
 		}
 	}
 }

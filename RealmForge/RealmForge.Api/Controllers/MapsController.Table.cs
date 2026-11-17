@@ -1385,6 +1385,7 @@ namespace RealmForge.Api.Controllers
 				{
 					sheet.Inventory.Remove(entry);
 				}
+				sheet.StoreStamp++;
 				character.Sheet = JsonSerializer.Serialize(sheet, CharactersController.Json);
 				character.UpdatedAt = DateTimeOffset.UtcNow;
 				character.UpdatedById = UserId;
@@ -1536,6 +1537,7 @@ namespace RealmForge.Api.Controllers
 				{
 					GiveTo(sheet, item, dto.Equip);
 				}
+				sheet.StoreStamp++;
 				character.Sheet = JsonSerializer.Serialize(sheet, CharactersController.Json);
 				character.UpdatedAt = DateTimeOffset.UtcNow;
 				character.UpdatedById = UserId;
