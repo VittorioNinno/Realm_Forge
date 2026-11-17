@@ -26,7 +26,8 @@ async function onInstall() {
     const assetsRequests = self.assetsManifest.assets
         .filter(asset => offlineAssetsInclude.some(pattern => pattern.test(asset.url)))
         .filter(asset => !offlineAssetsExclude.some(pattern => pattern.test(asset.url)))
-        .map(asset => new Request(asset.url, { integrity: asset.hash, cache: 'no-cache' }));
+        // index.html is versioned again after the publish (the stylesheet link): it is kept without its hash
+        .map(asset => new Request(asset.url, asset.url === 'index.html' ? { cache: 'no-cache' } : { integrity: asset.hash, cache: 'no-cache' }));
     await caches.open(cacheName).then(cache => cache.addAll(assetsRequests));
 }
 
@@ -64,6 +65,7 @@ async function onFetch(event) {
     }
     const shouldServeIndexHtml = request.mode === 'navigate' && !manifestUrlList.some(u => u === request.url);
     const cache = await caches.open(cacheName);
-    const cached = await cache.match(shouldServeIndexHtml ? 'index.html' : request);
+    // The stylesheet is asked with its version (css/app.css?v=…): kept without it
+    const cached = await cache.match(shouldServeIndexHtml ? 'index.html' : request, { ignoreSearch: true });
     return cached || fetch(request);
 }
