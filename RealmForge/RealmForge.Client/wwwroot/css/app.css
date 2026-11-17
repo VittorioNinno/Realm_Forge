@@ -19966,3 +19966,123 @@ button.rf-qs-spell {
         display: none;
     }
 }
+
+/* ===== The table on a phone: only phones change, the desktop layout stays as it is =====
+   Upright, a phone is too narrow for the map and its tools: the table asks to turn it. Sideways, the top bar is lower,
+   the tools scroll, the card of a token opens on the right side of the screen (see CampaignMap.Phone) */
+.rf-vtt-rotate {
+    display: none;
+}
+
+@media (max-width: 767.98px) and (orientation: portrait) {
+    .rf-vtt-rotate {
+        position: absolute;
+        inset: 0;
+        z-index: 2000;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 16px;
+        padding: 32px;
+        background-color: #0b0b0b;
+        color: var(--rf-text-primary);
+        text-align: center;
+    }
+
+        .rf-vtt-rotate svg {
+            width: 48px;
+            height: 48px;
+            color: var(--rf-orange-primary);
+            animation: rf-rotate-hint 2.4s ease-in-out infinite;
+        }
+
+        .rf-vtt-rotate p {
+            max-width: 280px;
+            margin: 0;
+            font-size: .9rem;
+            color: var(--rf-text-secondary);
+        }
+}
+
+@keyframes rf-rotate-hint {
+    0%, 30% {
+        transform: rotate(0deg);
+    }
+
+    60%, 100% {
+        transform: rotate(-90deg);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .rf-vtt-rotate svg {
+        animation: none;
+    }
+}
+
+@media (max-height: 500px) and (max-width: 1023.98px) and (orientation: landscape) {
+    .rf-vtt-top {
+        gap: 8px;
+        min-height: 44px;
+        padding: 4px 8px;
+    }
+
+    .rf-vtt-link-text {
+        display: none;
+    }
+
+    .rf-vtt-tools {
+        width: 48px;
+        gap: 4px;
+        padding: 8px 4px;
+        overflow-y: auto;
+        scrollbar-width: none;
+    }
+
+    .rf-vtt-tool {
+        flex: none;
+        width: 36px;
+        height: 36px;
+    }
+
+    .rf-vtt-cluster {
+        right: 8px;
+        bottom: 8px;
+        max-width: calc(100% - 16px);
+    }
+
+    .rf-vtt-options {
+        bottom: 8px;
+        left: 8px;
+        max-height: calc(100% - 16px);
+        overflow-y: auto;
+    }
+
+    .rf-vtt-phone-sheet {
+        position: absolute;
+        top: 8px;
+        right: 8px;
+        bottom: 64px;
+        z-index: 45;
+        width: min(360px, 50%);
+        overflow-y: auto;
+        border-radius: 8px;
+    }
+
+        .rf-vtt-phone-sheet .rf-vtt-toolbar {
+            position: relative;
+            top: auto !important;
+            left: auto !important;
+            width: 100%;
+            min-width: 0;
+            max-width: none;
+            transform: none;
+        }
+
+        .rf-vtt-phone-sheet .rf-hud-dock {
+            grid-auto-columns: minmax(64px, 1fr);
+            overflow-x: auto;
+            scrollbar-width: none;
+        }
+}
