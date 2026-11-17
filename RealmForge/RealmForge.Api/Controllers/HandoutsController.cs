@@ -44,7 +44,8 @@ namespace RealmForge.Api.Controllers
 				.Where(h => h.CampaignId == campaignId && (runs || h.RevealedAt != null))
 				.OrderByDescending(h => h.RevealedAt ?? h.CreatedAt)
 				.ToListAsync();
-			return Ok(handouts.Select(h => ToDto(h, lang, runs)).ToList());
+			var scene = await _context.Campaigns.AsNoTracking().Where(c => c.Id == campaignId).Select(c => c.SceneHandoutId).FirstOrDefaultAsync();
+			return Ok(handouts.Select(h => ToDto(h, lang, runs) with { IsScene = h.Id == scene }).ToList());
 		}
 
 		//	GET: api/campaigns/{campaignId}/handouts/{id}?lang=2
@@ -115,6 +116,11 @@ namespace RealmForge.Api.Controllers
 			{
 				return error!;
 			}
+			if (await _context.Campaigns.FirstAsync(c => c.Id == campaignId) is { } campaign && campaign.SceneHandoutId == handout.Id)
+			{
+				campaign.SceneHandoutId = null;
+				await WakeTableAsync(campaignId);
+			}
 			_context.CampaignHandouts.Remove(handout);
 			await _context.SaveChangesAsync();
 			return NoContent();
@@ -128,6 +134,52 @@ namespace RealmForge.Api.Controllers
 		[HttpPost("{id:guid}/hide")]
 		public Task<IActionResult> Hide(Guid campaignId, Guid id) => SetRevealedAsync(campaignId, id, false);
 
+		//	POST: api/campaigns/{campaignId}/handouts/{id}/scene — the handout in place of the map for the whole table
+		//	(revealed with it); DELETE api/campaigns/{campaignId}/handouts/scene — back to the map
+		[HttpPost("{id:guid}/scene")]
+		public async Task<IActionResult> ShowScene(Guid campaignId, Guid id)
+		{
+			var (handout, error) = await MastersHandoutAsync(campaignId, id);
+			if (handout is null)
+			{
+				return error!;
+			}
+			var campaign = await _context.Campaigns.FirstAsync(c => c.Id == campaignId);
+			campaign.SceneHandoutId = handout.Id;
+			handout.RevealedAt ??= DateTimeOffset.UtcNow;
+			await WakeTableAsync(campaignId);
+			await _context.SaveChangesAsync();
+			return NoContent();
+		}
+
+		[HttpDelete("scene")]
+		public async Task<IActionResult> EndScene(Guid campaignId)
+		{
+			if (await CampaignAccess.RoleAsync(_context, campaignId, UserId) is not { } role)
+			{
+				return NotFound();
+			}
+			if (!CampaignRules.RunsTheTable(role))
+			{
+				return Forbid();
+			}
+			var campaign = await _context.Campaigns.FirstAsync(c => c.Id == campaignId);
+			campaign.SceneHandoutId = null;
+			await WakeTableAsync(campaignId);
+			await _context.SaveChangesAsync();
+			return NoContent();
+		}
+
+		//	The table of the map shown wakes up: the players' screens follow at once
+		private async Task WakeTableAsync(Guid campaignId)
+		{
+			var now = DateTimeOffset.UtcNow;
+			foreach (var map in await _context.CampaignMaps.Where(m => m.CampaignId == campaignId && m.Shown).ToListAsync())
+			{
+				map.UpdatedAt = now;
+			}
+		}
+
 		private async Task<IActionResult> SetRevealedAsync(Guid campaignId, Guid id, bool revealed)
 		{
 			var (handout, error) = await MastersHandoutAsync(campaignId, id);
@@ -138,12 +190,13 @@ namespace RealmForge.Api.Controllers
 			var now = DateTimeOffset.UtcNow;
 			handout.RevealedAt = revealed ? now : null;
 			handout.UpdatedAt = now;
+			if (!revealed && await _context.Campaigns.FirstAsync(c => c.Id == campaignId) is { } campaign && campaign.SceneHandoutId == handout.Id)
+			{
+				campaign.SceneHandoutId = null;
+			}
 
 			//	The table of the map shown wakes up: the players' screens open the handout
-			foreach (var map in await _context.CampaignMaps.Where(m => m.CampaignId == campaignId && m.Shown).ToListAsync())
-			{
-				map.UpdatedAt = now;
-			}
+			await WakeTableAsync(campaignId);
 			await _context.SaveChangesAsync();
 			return NoContent();
 		}

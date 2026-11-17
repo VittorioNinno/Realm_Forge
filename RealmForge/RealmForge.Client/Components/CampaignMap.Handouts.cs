@@ -9,6 +9,30 @@ namespace RealmForge.Client.Components
 	public partial class CampaignMap
 	{
 		private CampaignHandoutDto? popupHandout;
+
+		//	The handout shown to the whole table in place of the map
+		private Guid? sceneId;
+		private CampaignHandoutDto? sceneHandout;
+
+		private async Task ShowSceneAsync(Guid? scene)
+		{
+			if (scene == sceneId)
+			{
+				return;
+			}
+			sceneId = scene;
+			sceneHandout = scene is { } id ? await Campaigns.GetHandoutAsync(CampaignId, id, Lang) : null;
+			await InvokeAsync(StateHasChanged);
+		}
+
+		private async Task EndSceneAsync()
+		{
+			busy = true;
+			localEdits++;
+			await Campaigns.EndSceneAsync(CampaignId);
+			busy = false;
+			await RefreshAsync();
+		}
 		private readonly HashSet<string> handoutsSeen = new();
 		private bool handoutsStarted;
 
@@ -16,7 +40,7 @@ namespace RealmForge.Client.Components
 		{
 			var first = !handoutsStarted;
 			handoutsStarted = true;
-			if (shown is null || RunsTheTable || !Table || !handoutsSeen.Add($"{shown.Id}|{shown.RevealedAt:O}"))
+			if (shown is null || RunsTheTable || !Table || !handoutsSeen.Add($"{shown.Id}|{shown.RevealedAt:O}") || shown.Id == sceneId)
 			{
 				return;
 			}

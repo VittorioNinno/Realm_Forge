@@ -108,6 +108,10 @@
             <div class="rf-vtt-viewport">
                 @InitiativeBar
                 @Board
+                @if (Table && sceneHandout is not null)
+                {
+                    @SceneView
+                }
                 @if (map is not null && lightBar && RunsTheTable)
                 {
                     @LightBar
@@ -210,7 +214,7 @@
                             }
                             break;
                         case "handouts" when RunsTheTable:
-                            <CampaignHandouts CampaignId="CampaignId" Role="Role" Compact="true" />
+                            <CampaignHandouts CampaignId="CampaignId" Role="Role" Compact="true" OnChanged="RefreshAsync" />
                             break;
                         case "sheet" when SheetToken is { } sheetToken:
                             @QuickSheetPanel(sheetToken)
@@ -906,6 +910,46 @@ else
     // ===== The options of the tool in use, at the bottom of the map =====
 
     //	The light of the map and dynamic vision; the masters may look at the table as the characters see it
+    //	Theater of the mind: the handout of the scene over the map, with the portraits of the characters at the table
+    private RenderFragment SceneView => __builder =>
+    {
+        var scene = sceneHandout!;
+        <section class="rf-vtt-scene" aria-label="@scene.Title" data-test="vtt-scene">
+            @if (scene.ImageId is { } image)
+            {
+                <img class="rf-vtt-scene-image" src="@Images.FileUrl(image)" alt="@scene.Title" />
+            }
+            <div class="rf-vtt-scene-caption">
+                <span class="rf-vtt-scene-tag"><Icon Name="images" /> @UiText.SceneActive(Lang)</span>
+                <h2>@scene.Title</h2>
+                @if (!string.IsNullOrWhiteSpace(scene.Body))
+                {
+                    <div class="rf-markdown-container">@((MarkupString)MarkdownText.ToHtml(scene.Body, null))</div>
+                }
+                @if (RunsTheTable)
+                {
+                    <button type="button" class="btn btn-sm btn-rf-orange align-self-start" disabled="@busy" @onclick="EndSceneAsync" data-test="vtt-scene-end"><Icon Name="map" /> @UiText.SceneEnd(Lang)</button>
+                }
+            </div>
+            <div class="rf-vtt-scene-party" data-test="vtt-scene-party">
+                @foreach (var pc in tokens.Where(k => k.Kind == TokenKind.Character && !k.Hidden))
+                {
+                    var face = PortraitOf(pc);
+                    <span class="rf-vtt-scene-face" style="--rf-token: @pc.Color;" title="@pc.Label">
+                        @if (face is not null)
+                        {
+                            <img src="@face" alt="" />
+                        }
+                        else
+                        {
+                            <span>@Initials(pc.Label)</span>
+                        }
+                    </span>
+                }
+            </div>
+        </section>
+    };
+
     private RenderFragment LightBar => __builder =>
     {
         <div class="rf-vtt-options" data-test="vtt-light-options">
@@ -5307,6 +5351,7 @@ else
         fogEnabled = table.FogEnabled;
         fog = table.Fog;
         ApplyVision(table);
+        _ = ShowSceneAsync(table.Scene);
         _ = ShowHandoutAsync(table.Handout);
         undoLeft = table.Undo;
         saveCalls = table.Saves ?? new();
