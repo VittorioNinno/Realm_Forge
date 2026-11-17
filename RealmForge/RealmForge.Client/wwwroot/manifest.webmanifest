@@ -1,0 +1,15 @@
+{
+  "name": "RealmForge",
+  "short_name": "RealmForge",
+  "description": "Campagne, personaggi e sessioni di gioco di ruolo",
+  "id": "./",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#0d0d0d",
+  "theme_color": "#0d0d0d",
+  "icons": [
+    { "src": "img/icon-192.png", "type": "image/png", "sizes": "192x192", "purpose": "any" },
+    { "src": "img/apple-touch-icon.png", "type": "image/png", "sizes": "180x180", "purpose": "any" }
+  ]
+}

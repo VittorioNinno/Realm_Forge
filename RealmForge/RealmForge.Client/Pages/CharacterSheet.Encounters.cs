@@ -40,6 +40,11 @@ namespace RealmForge.Client.Pages
 				ApplyVitals(vitals);
 				StateHasChanged();
 			}
+			if (vitals is not null && vitals.Inventory is not null && vitals.StoreStamp != Sheet.StoreStamp)
+			{
+				ApplyStore(vitals);
+				StateHasChanged();
+			}
 		}
 
 		private void ApplyVitals(SheetVitalsDto vitals)

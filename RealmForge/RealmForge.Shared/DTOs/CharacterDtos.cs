@@ -86,7 +86,12 @@ namespace RealmForge.Shared.DTOs
 		List<Guid>? Campaigns = null,
 
 		//	Rule modules the campaigns of the character make active for it (shared with the table and approved)
-		List<Guid>? CampaignModuleIds = null);
+		List<Guid>? CampaignModuleIds = null,
+
+		//	The clock of the campaign the character plays in last (its game minute): the effects of the spells cast
+		//	from the sheet last on it
+		Guid? ClockCampaignId = null,
+		long? GameMinutes = null);
 
 	public record CharacterSavedDto(Guid Id, int MaxHitPoints, int ArmorClass, DateTimeOffset UpdatedAt, SheetVitalsDto? Vitals = null);
 
@@ -97,9 +102,43 @@ namespace RealmForge.Shared.DTOs
 	public record SheetVitalsDto(int VitalsStamp, int? CurrentHitPoints, int TemporaryHitPoints, List<string> Conditions, int Exhaustion,
 		Guid? Concentration, int DeathSaveSuccesses, int DeathSaveFailures, int MaxHitPoints, DateTimeOffset UpdatedAt, string? UpdatedBy = null)
 	{
+		//	The effects on the clock of the campaigns (ended by a master moving the time)
+		public List<TimedEffect>? Effects { get; init; }
+
+		//	The inventory and the purse as the server keeps them (a purchase, the rations of a journey, loot)
+		public int StoreStamp { get; init; }
+		public List<InventoryItem>? Inventory { get; init; }
+		public CoinPurse? Coins { get; init; }
+		public List<SpentAmmunition>? SpentAmmunition { get; init; }
+
 		public static SheetVitalsDto From(CharacterSheetState s, int maxHitPoints, DateTimeOffset updatedAt, string? updatedBy = null) =>
 			new(s.VitalsStamp, s.CurrentHitPoints, s.TemporaryHitPoints, s.Conditions.ToList(), s.Exhaustion, s.Concentration,
-				s.DeathSaveSuccesses, s.DeathSaveFailures, maxHitPoints, updatedAt, updatedBy);
+				s.DeathSaveSuccesses, s.DeathSaveFailures, maxHitPoints, updatedAt, updatedBy)
+			{
+				Effects = s.TimedEffects.ToList(),
+				StoreStamp = s.StoreStamp,
+				Inventory = s.Inventory.ToList(),
+				Coins = s.Coins,
+				SpentAmmunition = s.SpentAmmunition.ToList()
+			};
+
+		//	The inventory, the purse and the ammunition to pick up, as the server keeps them
+		public void ApplyStoreTo(CharacterSheetState s)
+		{
+			s.StoreStamp = StoreStamp;
+			if (Inventory is not null)
+			{
+				s.Inventory = Inventory.ToList();
+			}
+			if (Coins is not null)
+			{
+				s.Coins = Coins;
+			}
+			if (SpentAmmunition is not null)
+			{
+				s.SpentAmmunition = SpentAmmunition.ToList();
+			}
+		}
 
 		public void ApplyTo(CharacterSheetState s)
 		{
@@ -111,6 +150,77 @@ namespace RealmForge.Shared.DTOs
 			s.Concentration = Concentration;
 			s.DeathSaveSuccesses = DeathSaveSuccesses;
 			s.DeathSaveFailures = DeathSaveFailures;
+			if (Effects is not null)
+			{
+				s.TimedEffects = Effects.ToList();
+			}
 		}
 	}
+}
+
+namespace RealmForge.Shared.DTOs
+{
+	///	<summary>
+	///	A character as a file to keep or to move to another RealmForge: its choices (the build) and its play state (the
+	///	sheet), with the format and the version of the file. The species, background, classes and the rest are named by
+	///	their ids: Base content has the same ids on every RealmForge, Homebrew must be there too (exported with it).
+	///	</summary>
+	public class CharacterExportDto
+	{
+		public const string FormatName = "realmforge.character";
+		public const int CurrentVersion = 1;
+
+		public string Format { get; set; } = FormatName;
+		public int Version { get; set; } = CurrentVersion;
+		public DateTimeOffset ExportedAt { get; set; } = DateTimeOffset.UtcNow;
+		public string Name { get; set; } = string.Empty;
+		public RulesetVersion Ruleset { get; set; }
+		public Guid SpeciesId { get; set; }
+		public Guid? SubspeciesId { get; set; }
+		public Guid BackgroundId { get; set; }
+		public CharacterBuild Build { get; set; } = new();
+		public CharacterSheetState Sheet { get; set; } = new();
+	}
+}
+
+namespace RealmForge.Shared.DTOs
+{
+	///	<summary>
+	///	Homebrew as a file to keep or to move to another RealmForge: entries (a spell, a class with its features and
+	///	subclasses, a monster…), each as the rows of its tables. Imported, each becomes a new private entry of the account.
+	///	</summary>
+	public class HomebrewExportDto
+	{
+		public const string FormatName = "realmforge.homebrew";
+		public const int CurrentVersion = 1;
+
+		public string Format { get; set; } = FormatName;
+		public int Version { get; set; } = CurrentVersion;
+		public DateTimeOffset ExportedAt { get; set; } = DateTimeOffset.UtcNow;
+		public List<HomebrewExportItemDto> Items { get; set; } = new();
+	}
+
+	public class HomebrewExportItemDto
+	{
+		public string Kind { get; set; } = string.Empty;
+		public string Name { get; set; } = string.Empty;
+		public List<System.Text.Json.JsonElement> Rows { get; set; } = new();
+	}
+
+	//	What to put in a file: entries by kind and id
+	public class HomebrewExportRequestDto
+	{
+		public List<HomebrewRefDto> Entries { get; set; } = new();
+	}
+
+	public record HomebrewRefDto(string Kind, Guid Id);
+
+	//	The entry another was cloned from: "Basato su Palla di Fuoco"
+	public record ContentOriginDto(string Kind, Guid Id, string Name, string Link, bool IsBase);
+
+	//	An entry of the account's Homebrew: where it opens, its edition and visibility, the languages it is written in
+	public record MyHomebrewDto(string Kind, Guid Id, string Name, string Link, RulesetVersion Ruleset, ContentVisibility Visibility, List<LanguageCode> Languages);
+
+	//	An entry imported (its link to open it), or one that could not be (what it needs and is missing here)
+	public record HomebrewImportedDto(string Kind, string Name, Guid? Id, string? Link, string? Missing);
 }

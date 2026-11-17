@@ -1,0 +1,155 @@
+﻿@using RealmForge.Client.Localization
+@using RealmForge.Client.Services
+@using RealmForge.Shared.Campaigns
+@using RealmForge.Shared.DTOs
+@using RealmForge.Shared.Enums
+@inject CampaignDataService Campaigns
+@inject LanguageStateService LanguageState
+
+@* The clock of a campaign: the time inside the game and the effects of the characters running on it; the masters move
+   it on (the long spells end, days of travel eat the rations). Compact: the drawer of the table *@
+<section class="rf-clock @(Compact ? "compact" : "rf-card2 mb-3")" data-test="campaign-clock">
+    <div class="rf-clock-head">
+        <span class="rf-handout-icon"><Icon Name="hourglass-split" /></span>
+        <span class="rf-handout-row-text">
+            <span class="rf-mini-label">@UiText.ClockTitle(Lang)</span>
+            <strong class="rf-clock-now" data-test="clock-now">@(clock is null ? "…" : UiText.ClockText(clock.Minutes, Lang))</strong>
+        </span>
+    </div>
+    <div class="small" style="color: var(--rf-text-muted);">@(Runs ? UiText.ClockHintMaster(Lang) : UiText.ClockHintPlayer(Lang))</div>
+
+    @if (Runs && clock is not null)
+    {
+        <div class="rf-clock-steps">
+            <button type="button" class="btn btn-sm btn-rf-outline" disabled="@busy" @onclick="() => MoveAsync(10)" data-test="clock-10">@UiText.ClockPlus10(Lang)</button>
+            <button type="button" class="btn btn-sm btn-rf-outline" disabled="@busy" @onclick="() => MoveAsync(60)" data-test="clock-hour">@UiText.ClockPlusHour(Lang)</button>
+            <button type="button" class="btn btn-sm btn-rf-outline" disabled="@busy" @onclick="() => MoveAsync(480)" data-test="clock-rest">@UiText.ClockLongRest(Lang)</button>
+            <button type="button" class="btn btn-sm btn-rf-outline" disabled="@busy" @onclick="() => MoveAsync(GameClock.MinutesPerDay)" data-test="clock-day">@UiText.ClockPlusDay(Lang)</button>
+        </div>
+        <div class="rf-clock-custom">
+            <span class="small">@UiText.ClockCustom(Lang)</span>
+            <input type="number" class="rf-form-control" min="1" max="720" @bind="amount" aria-label="@UiText.ClockCustom(Lang)" data-test="clock-amount" />
+            <select class="rf-form-control" @bind="unit" aria-label="@UiText.ClockCustom(Lang)" data-test="clock-unit">
+                <option value="h">@UiText.ClockHours(Lang)</option>
+                <option value="d">@UiText.ClockDays(Lang)</option>
+            </select>
+            <button type="button" class="btn btn-sm btn-rf-orange" disabled="@busy" @onclick="MoveCustomAsync" data-test="clock-go">@UiText.ClockGo(Lang)</button>
+        </div>
+        <label class="form-check d-flex align-items-center gap-2 mb-0">
+            <input type="checkbox" class="form-check-input" @bind="rations" data-test="clock-rations" />
+            <span class="small">@UiText.ClockRations(Lang)</span>
+        </label>
+        <details class="rf-clock-set">
+            <summary class="small">@UiText.ClockSet(Lang)</summary>
+            <div class="rf-clock-custom">
+                <label class="d-flex align-items-center gap-2 mb-0">
+                    <span class="small">@UiText.ClockDay(Lang)</span>
+                    <input type="number" class="rf-form-control" min="1" @bind="setDay" data-test="clock-set-day" />
+                </label>
+                <label class="d-flex align-items-center gap-2 mb-0">
+                    <span class="small">@UiText.ClockTime(Lang)</span>
+                    <input type="time" class="rf-form-control" @bind="setTime" data-test="clock-set-time" />
+                </label>
+                <button type="button" class="btn btn-sm btn-rf-outline" disabled="@busy" @onclick="SetAsync" data-test="clock-set">@UiText.ClockSet(Lang)</button>
+            </div>
+        </details>
+    }
+
+    @if (report.Count > 0)
+    {
+        <ul class="rf-clock-report" role="status" data-test="clock-report">
+            @foreach (var line in report)
+            {
+                <li>@line</li>
+            }
+        </ul>
+    }
+
+    @if (clock is not null)
+    {
+        <div class="rf-clock-effects">
+            <span class="rf-mini-label">@UiText.ClockEffects(Lang)</span>
+            @if (clock.Effects.Count == 0)
+            {
+                <span class="small" style="color: var(--rf-text-muted);">@UiText.ClockNoEffects(Lang)</span>
+            }
+            else
+            {
+                <ul>
+                    @foreach (var effect in clock.Effects)
+                    {
+                        <li data-test="clock-effect"><strong>@effect.Character</strong> · @effect.Name <span class="small">@UiText.ClockLeft(effect.Until - clock.Minutes, Lang)</span></li>
+                    }
+                </ul>
+            }
+        </div>
+    }
+</section>
+
+@code {
+    [Parameter, EditorRequired] public Guid CampaignId { get; set; }
+    [Parameter] public CampaignRole Role { get; set; } = CampaignRole.Player;
+    [Parameter] public bool Compact { get; set; }
+
+    //	The time moved (the table follows it at once)
+    [Parameter] public EventCallback<long> OnMoved { get; set; }
+
+    private CampaignClockDto? clock;
+    private bool busy;
+    private int amount = 2;
+    private string unit = "h";
+    private bool UnitDays => unit == "d";
+    private bool rations = true;
+    private long setDay = 1;
+    private TimeOnly setTime = new(8, 0);
+    private List<string> report = new();
+
+    private LanguageCode Lang => LanguageState.CurrentLanguage;
+    private bool Runs => CampaignRules.RunsTheTable(Role);
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (clock is null)
+        {
+            await LoadAsync();
+        }
+    }
+
+    private async Task LoadAsync()
+    {
+        clock = await Campaigns.GetClockAsync(CampaignId);
+        if (clock is not null)
+        {
+            setDay = GameClock.Day(clock.Minutes);
+            setTime = new TimeOnly(GameClock.Hour(clock.Minutes), GameClock.Minute(clock.Minutes));
+        }
+    }
+
+    private Task MoveAsync(int minutes) => SendAsync(new MoveClockDto { Minutes = minutes, Rations = rations });
+
+    private Task MoveCustomAsync()
+    {
+        var steps = Math.Clamp(amount, 1, UnitDays ? 30 : 720);
+        return MoveAsync(UnitDays ? steps * GameClock.MinutesPerDay : steps * 60);
+    }
+
+    private Task SetAsync() => SendAsync(new MoveClockDto { Set = (Math.Max(1, setDay) - 1) * GameClock.MinutesPerDay + setTime.Hour * 60 + setTime.Minute });
+
+    private async Task SendAsync(MoveClockDto dto)
+    {
+        busy = true;
+        var (moved, error) = await Campaigns.MoveClockAsync(CampaignId, dto);
+        busy = false;
+        if (moved is null)
+        {
+            report = new() { error ?? UiText.ClockFailed(Lang) };
+            return;
+        }
+        report = moved.Expired.Select(e => UiText.ClockExpired(e.Character, e.Name, Lang))
+            .Concat(moved.Days > 0 ? new[] { UiText.ClockAte(moved.Days, Lang) } : Array.Empty<string>())
+            .Concat(moved.Hungry.Select(h => UiText.ClockHungry(h.Character, h.Days, Lang)))
+            .ToList();
+        await LoadAsync();
+        await OnMoved.InvokeAsync(moved.Minutes);
+    }
+}

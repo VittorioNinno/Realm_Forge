@@ -54,6 +54,10 @@ namespace RealmForge.Client.Pages
 			{
 				Sheet.Concentration = entry.Context.Id;
 			}
+			if (entry.Context is { } cast)
+			{
+				StartTimedEffect(cast);
+			}
 			lastCast = $"{entry.Name} · {ItemName(entry.Item)}";
 			CloseSpell();
 			Changed();

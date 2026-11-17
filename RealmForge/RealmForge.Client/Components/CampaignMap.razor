@@ -24,7 +24,18 @@
    The browser moves a dragged token and the view; the app picks the cell where the token lands *@
 @if (Table)
 {
+    @if (popupHandout is not null)
+    {
+        <HandoutView Handout="popupHandout" OnClose="() => popupHandout = null" />
+    }
     <div class="rf-vtt-table" @ref="tableElement" data-test="vtt">
+        @* Shown only on a phone held upright (CSS): the table needs the phone turned *@
+        <div class="rf-vtt-rotate" role="alert" data-test="vtt-rotate">
+            <Icon Name="phone" />
+            <strong>@UiText.VttRotate(Lang)</strong>
+            <p>@UiText.VttRotateHint(Lang)</p>
+            <a href="@($"campaigns/{CampaignId}")" class="btn btn-rf-outline btn-sm">@UiText.VttRotateBack(Lang)</a>
+        </div>
         <DiceTray @ref="tray" AutoHideMs="1800" ShowHistory="false" />
         <EquipmentInfoModal Item="groundInfo" OnClose="() => groundInfo = null" />
         <header class="rf-vtt-top">
@@ -36,6 +47,26 @@
                 </div>
             }
             <div class="rf-vtt-top-actions">
+                @if (SoundWaiting)
+                {
+                    <button type="button" class="rf-vtt-clock rf-vtt-sound-unlock" @onclick="UnlockSoundAsync" data-test="vtt-sound-unlock"><Icon Name="volume-up" /> <span>@UiText.SoundUnlock(Lang)</span></button>
+                }
+                else if (soundUnlocked && tableSound is not null)
+                {
+                    <button type="button" class="rf-vtt-clock" title="@(soundMuted ? UiText.SoundUnmute(Lang) : UiText.SoundMute(Lang))" aria-label="@(soundMuted ? UiText.SoundUnmute(Lang) : UiText.SoundMute(Lang))"
+                            aria-pressed="@(soundMuted ? "true" : "false")" @onclick="ToggleMuteAsync" data-test="vtt-sound-mute"><Icon Name="@(soundMuted ? "volume-mute" : "volume-up")" /></button>
+                }
+                @if (gameClock is { } clockNow)
+                {
+                    @if (RunsTheTable)
+                    {
+                        <button type="button" class="rf-vtt-clock @(panel == "clock" ? "on" : null)" title="@UiText.ClockText(clockNow, Lang)" aria-label="@UiText.VttClock(Lang)" @onclick="@(() => TogglePanel("clock"))" data-test="vtt-clock"><Icon Name="hourglass-split" /> <span>@UiText.ClockShort(clockNow, Lang)</span></button>
+                    }
+                    else
+                    {
+                        <span class="rf-vtt-clock" title="@UiText.ClockText(clockNow, Lang)" data-test="vtt-clock"><Icon Name="hourglass-split" /> <span>@UiText.ClockShort(clockNow, Lang)</span></span>
+                    }
+                }
                 <span class="rf-vtt-link rf-vtt-link-@Connection.ToString().ToLowerInvariant()" role="status" aria-live="polite" title="@ConnectionTitle" data-test="vtt-connection" data-state="@Connection.ToString().ToLowerInvariant()">
                     <Icon Name="@(Connection == TableLink.Live ? "wifi" : "wifi-off")" />
                     <span class="rf-vtt-link-text">@UiText.VttConnection(Connection == TableLink.Live ? 0 : Connection == TableLink.Reconnecting ? 1 : 2, Lang)</span>
@@ -89,6 +120,8 @@
                             aria-pressed="@(playersLocked ? "true" : "false")" @onclick="ToggleLockAsync" data-test="vtt-lock-players"><Icon Name="@(playersLocked ? "lock" : "unlock")" /></button>
                     <span class="rf-vtt-tools-sep"></span>
                     <button type="button" class="rf-vtt-tool @(panel == "tokens" ? "active" : null)" title="@UiText.VttToolTokens(Lang)" aria-label="@UiText.VttToolTokens(Lang)" @onclick="@(() => TogglePanel("tokens"))" data-test="vtt-tool-tokens"><Icon Name="people" /></button>
+                    <button type="button" class="rf-vtt-tool @(panel == "handouts" ? "active" : null)" title="@UiText.VttToolHandouts(Lang)" aria-label="@UiText.VttToolHandouts(Lang)" @onclick="@(() => TogglePanel("handouts"))" data-test="vtt-tool-handouts"><Icon Name="file-text" /></button>
+                    <button type="button" class="rf-vtt-tool @(panel == "sounds" ? "active" : null)" title="@UiText.VttToolSounds(Lang)" aria-label="@UiText.VttToolSounds(Lang)" @onclick="@(() => TogglePanel("sounds"))" data-test="vtt-tool-sounds"><Icon Name="music-note-beamed" /></button>
                 }
                 <span class="rf-vtt-tools-sep"></span>
                 <button type="button" class="rf-vtt-tool" title="@UiText.VttFullscreen(Lang)" aria-label="@UiText.VttFullscreen(Lang)" @onclick="FullscreenAsync" data-test="vtt-fullscreen"><Icon Name="fullscreen" /></button>
@@ -96,6 +129,10 @@
             <div class="rf-vtt-viewport">
                 @InitiativeBar
                 @Board
+                @if (Table && sceneHandout is not null)
+                {
+                    @SceneView
+                }
                 @if (map is not null && lightBar && RunsTheTable)
                 {
                     @LightBar
@@ -124,6 +161,11 @@
                 @if (map is not null && Table && MySaveCalls.Count > 0)
                 {
                     @SavesPanel
+                }
+                @if (PhoneSheet && InfoToken is { } onPhone)
+                {
+                    @* On a phone the card of the token opens as a sheet at the bottom of the table, over the whole width *@
+                    <div class="rf-vtt-phone-sheet" data-test="vtt-phone-sheet">@Toolbar(onPhone)</div>
                 }
                 @DiceCluster
             </div>
@@ -191,6 +233,15 @@
                                 @OnMapList
                                 @AddTokens
                             }
+                            break;
+                        case "sounds" when RunsTheTable:
+                            <CampaignSoundboard CampaignId="CampaignId" OnChanged="RefreshAsync" />
+                            break;
+                        case "clock" when RunsTheTable:
+                            <CampaignClock CampaignId="CampaignId" Role="Role" Compact="true" OnMoved="m => gameClock = m" />
+                            break;
+                        case "handouts" when RunsTheTable:
+                            <CampaignHandouts CampaignId="CampaignId" Role="Role" Compact="true" OnChanged="RefreshAsync" />
                             break;
                         case "sheet" when SheetToken is { } sheetToken:
                             @QuickSheetPanel(sheetToken)
@@ -873,7 +924,7 @@ else
                     {
                         <span class="rf-vtt-ping" @key="pg.At" style="left: @(N(pg.X))px; top: @(N(pg.Y))px; --rf-token: @pg.Color;" data-test="map-ping"><span class="rf-vtt-ping-dot"></span></span>
                     }
-                    @if (InfoToken is { } selected)
+                    @if (InfoToken is { } selected && !PhoneSheet)
                     {
                         @Toolbar(selected)
                     }
@@ -886,6 +937,46 @@ else
     // ===== The options of the tool in use, at the bottom of the map =====
 
     //	The light of the map and dynamic vision; the masters may look at the table as the characters see it
+    //	Theater of the mind: the handout of the scene over the map, with the portraits of the characters at the table
+    private RenderFragment SceneView => __builder =>
+    {
+        var scene = sceneHandout!;
+        <section class="rf-vtt-scene" aria-label="@scene.Title" data-test="vtt-scene">
+            @if (scene.ImageId is { } image)
+            {
+                <img class="rf-vtt-scene-image" src="@Images.FileUrl(image)" alt="@scene.Title" />
+            }
+            <div class="rf-vtt-scene-caption">
+                <span class="rf-vtt-scene-tag"><Icon Name="images" /> @UiText.SceneActive(Lang)</span>
+                <h2>@scene.Title</h2>
+                @if (!string.IsNullOrWhiteSpace(scene.Body))
+                {
+                    <div class="rf-markdown-container">@((MarkupString)MarkdownText.ToHtml(scene.Body, null))</div>
+                }
+                @if (RunsTheTable)
+                {
+                    <button type="button" class="btn btn-sm btn-rf-orange align-self-start" disabled="@busy" @onclick="EndSceneAsync" data-test="vtt-scene-end"><Icon Name="map" /> @UiText.SceneEnd(Lang)</button>
+                }
+            </div>
+            <div class="rf-vtt-scene-party" data-test="vtt-scene-party">
+                @foreach (var pc in tokens.Where(k => k.Kind == TokenKind.Character && !k.Hidden))
+                {
+                    var face = PortraitOf(pc);
+                    <span class="rf-vtt-scene-face" style="--rf-token: @pc.Color;" title="@pc.Label">
+                        @if (face is not null)
+                        {
+                            <img src="@face" alt="" />
+                        }
+                        else
+                        {
+                            <span>@Initials(pc.Label)</span>
+                        }
+                    </span>
+                }
+            </div>
+        </section>
+    };
+
     private RenderFragment LightBar => __builder =>
     {
         <div class="rf-vtt-options" data-test="vtt-light-options">
@@ -3614,6 +3705,7 @@ else
         if (firstRender && Table)
         {
             await LoadLayoutAsync();
+            await WatchPhoneAsync();
         }
         //	The turn that just came is brought into view in a long order
         if (combat?.CurrentId is { } currentId && currentId != revealedTurn)
@@ -5286,6 +5378,10 @@ else
         fogEnabled = table.FogEnabled;
         fog = table.Fog;
         ApplyVision(table);
+        _ = ShowSceneAsync(table.Scene);
+        _ = ShowHandoutAsync(table.Handout);
+        gameClock = table.Clock;
+        _ = ApplySoundAsync(table.Sound);
         undoLeft = table.Undo;
         saveCalls = table.Saves ?? new();
         playersLocked = table.PlayersLocked;
@@ -6026,8 +6122,10 @@ else
     public async ValueTask DisposeAsync()
     {
         stop?.Cancel();
+        await StopSoundAsync();
         Live.Changed -= OnLiveChanged;
         await UnwatchNetworkAsync();
+        await UnwatchPhoneAsync();
         try
         {
             if (!string.IsNullOrEmpty(stageElement.Id))

@@ -32,6 +32,14 @@ A modular, bilingual web platform for managing tabletop RPG campaigns, sessions 
   Sign-in with passkeys (iPhone, Safari, Android, Windows Hello, security keys) offered right in the e-mail field, rate limiting, e-mail change, account suspension and deletion confirmed by e-mail.
   *Accesso con passkey (iPhone, Safari, Android, Windows Hello, chiavi di sicurezza) proposte già nel campo email, limiti di frequenza, cambio email, sospensione ed eliminazione dell'account confermate via email.*
 
+- **Clone and customise** · *Clona e personalizza*
+  Any entry you can read (Base content or someone's public Homebrew) becomes a private copy of yours with one click, with everything that belongs to it, ready to change for your campaign; the copy shows "Based on …" with a link to the original.
+  *Qualsiasi voce che puoi leggere (contenuti Base o Homebrew pubblico di altri) diventa con un clic una tua copia privata, con tutto ciò che le appartiene, pronta da modificare per la tua campagna; la copia mostra "Basato su …" con il link all'originale.*
+
+- **JSON files and the author's page** · *File JSON e pagina dell'autore*
+  Characters and Homebrew (with everything that belongs to each entry) export to a versioned JSON file and import back, also on another RealmForge (self-hosting); "My Homebrew" lists what you created by kind, with the languages each entry is written in and a filter for what is left to translate.
+  *Personaggi e Homebrew (con tutto ciò che appartiene a ogni voce) si esportano in un file JSON versionato e si reimportano, anche su un altro RealmForge (self-hosting); "Il mio Homebrew" elenca ciò che hai creato per tipo, con le lingue in cui è scritta ogni voce e un filtro per ciò che resta da tradurre.*
+
 - **Search, pins, bin and moderation** · *Ricerca, pagine fissate, cestino e moderazione*
   Global search with quick lookup (`/` or Ctrl+K), recently viewed entries and a random entry; any page (a character, a campaign, a list of the compendium) pinned to the side menu from the top bar; deleted Homebrew goes to a bin first; administrators manage accounts and Homebrew.
   *Ricerca globale con consultazione rapida (`/` o Ctrl+K), voci viste di recente e voce casuale; qualsiasi pagina (un personaggio, una campagna, un elenco del compendio) fissabile nella barra laterale dal pulsante in alto; gli Homebrew eliminati passano prima dal cestino; gli amministratori gestiscono account e Homebrew.*
@@ -98,6 +106,40 @@ The table of a campaign, on its own page: the master prepares the maps away from
 **Light and vision · *Luce e visione***
 - Map light (bright, dim, dark) and **dynamic vision**: each player sees only what their creatures see. Walls and closed doors block the sight; torches, lanterns and the Light spell light the way; darkvision comes from the sheet, the statblock or is set by hand. Creatures out of sight are never sent to the player.
   *Luce della mappa (piena, penombra, buio) e **visione dinamica**: ogni giocatore vede solo ciò che vedono le sue creature. Muri e porte chiuse bloccano la vista; torce, lanterne e l'incantesimo Luce illuminano; la scurovisione arriva dalla scheda, dal bestiario o è impostata a mano. Le creature fuori vista non vengono mai inviate al giocatore.*
+
+**Handouts · *Handout***
+- Letters, clues, portraits and maps that are not tactical, written in Italian and English with a picture: hidden until the master reveals them (from the campaign or from the table), then they open on the players' screens, each in their own language, and stay in the campaign's Handouts tab.
+  *Lettere, indizi, ritratti e mappe non tattiche, scritti in italiano e inglese con un'immagine: nascosti finché il master non li rivela (dalla campagna o dal tavolo), poi si aprono sullo schermo dei giocatori, ciascuno nella propria lingua, e restano nella scheda Handout della campagna.*
+
+**Theater of the mind · *Teatro della mente***
+- A handout shown as a scene in place of the tactical map for the whole table (a landscape, an NPC's portrait, a letter), with the party's portraits; dice, log and initiative stay active. One click goes back to the map.
+  *Un handout mostrato come scena al posto della mappa tattica per tutto il tavolo (un paesaggio, il ritratto di un PNG, una lettera), con i ritratti del gruppo; dadi, log e iniziativa restano attivi. Un clic e si torna alla mappa.*
+
+**Shops · *Negozi***
+- Merchants prepared by the master in the campaign's Shops tab: equipment and magic items of the compendium (list price, or the usual price of the rarity) or free items, with a price multiplier and an optional stock. Once opened, the players buy for their characters: the coins come off the purse (with change in smaller coins) and the item lands in the inventory, magic properties included.
+  *Mercanti preparati dal master nella scheda Negozi della campagna: equipaggiamento e oggetti magici del compendio (prezzo di listino, o quello abituale della rarità) oppure oggetti liberi, con un moltiplicatore di prezzo e scorte facoltative. Una volta aperti, i giocatori comprano per i propri personaggi: le monete escono dalla borsa (con il resto in monete più piccole) e l'oggetto finisce nell'inventario, proprietà magiche comprese.*
+
+**Game time and supplies · *Tempo di gioco e scorte***
+- Each campaign has a game clock (day and hour) that the master moves on from the campaign overview or from the table's top bar: +10 minutes, +1 hour, a long rest, days of travel. Spells of ten minutes or more cast from the sheet run on it and end on their own (concentration included); days of travel can eat a ration a day from every active character, and the master sees who went hungry.
+  *Ogni campagna ha un orologio di gioco (giorno e ora) che il master fa avanzare dalla panoramica della campagna o dalla barra del tavolo: +10 minuti, +1 ora, riposo lungo, giorni di viaggio. Gli incantesimi di almeno dieci minuti lanciati dalla scheda vi scorrono sopra e terminano da soli (concentrazione compresa); i giorni di viaggio possono consumare una razione al giorno per ogni personaggio attivo, e il master vede chi è rimasto senza.*
+- The sheet shows the supplies (rations, torches, ammunition) with quick steppers and, after a fight, recovers half of the ammunition shot. Purchases, rations and loot changed at the table win over an older copy of the sheet left open.
+  *La scheda mostra le scorte (razioni, torce, munizioni) con contatori rapidi e, dopo uno scontro, recupera metà delle munizioni tirate. Acquisti, razioni e bottino cambiati al tavolo prevalgono su una copia più vecchia della scheda rimasta aperta.*
+
+**Homebrew collections · *Raccolte di Homebrew***
+- On "My Homebrew" an author gathers the selected entries into a collection with one link. Whoever opens the link can add every entry to their own collection at once, or switch the whole collection on in a campaign (and off again as a block from the campaign's Content tab).
+  *In "Il mio Homebrew" l'autore riunisce i contenuti selezionati in una raccolta con un unico link. Chi apre il link può aggiungere tutti i contenuti alla propria raccolta in un colpo, oppure attivare l'intera raccolta in una campagna (e disattivarla in blocco dalla scheda Contenuti della campagna).*
+
+**Soundboard · *Soundboard sincronizzata***
+- In the table's Soundboard drawer the master keeps links to audio files or streams hosted elsewhere (https, nothing is uploaded): tracks that loop (music, ambience) and one-shot effects. Playing one reaches every screen at the table: the track in time with its start, the effect once. Each player turns the sound on with one click (browsers require it) and can mute it just for themselves.
+  *Nel cassetto Soundboard del tavolo il master tiene link a file audio o stream ospitati altrove (https, nulla viene caricato): tracce in loop (musica, ambiente) ed effetti singoli. Avviarne uno raggiunge tutti gli schermi del tavolo: la traccia sincronizzata con il suo inizio, l'effetto una volta. Ogni giocatore attiva l'audio con un clic (lo richiedono i browser) e può silenziarlo solo per sé.*
+
+**2014 ↔ 2024 equivalences · *Equivalenze 2014 ↔ 2024***
+- The detail pages of the compendium (and of Homebrew) suggest the corresponding entry of the other edition, by its English name ("Melf's Acid Arrow" finds "Acid Arrow" too): one click moves from a 2014 spell, monster or item to its 2024 version and back.
+  *Le pagine di dettaglio del compendio (e dell'Homebrew) suggeriscono la voce corrispondente dell'altra edizione, tramite il nome inglese ("Melf's Acid Arrow" trova anche "Acid Arrow"): un clic porta da un incantesimo, mostro o oggetto 2014 alla sua versione 2024 e viceversa.*
+
+**Installable app, offline sheet · *App installabile, scheda offline***
+- RealmForge can be installed as an app (phone home screen or desktop). Once opened online, the app and the characters read last stay on the device: a sheet opens without network, and its changes are kept on the device and sent as soon as the connection is back. Signing out forgets the characters kept.
+  *RealmForge si può installare come app (schermata home del telefono o desktop). Dopo averla aperta online, l'app e gli ultimi personaggi letti restano sul dispositivo: una scheda si apre senza rete e le modifiche vengono conservate sul dispositivo e inviate appena torna la connessione. Uscendo dall'account i personaggi conservati vengono dimenticati.*
 
 **Master tools · *Strumenti del master***
 - **Undo** (button or Ctrl+Z) for the master's own edits: tokens, doors, drawings, terrain and fog (the last 40 steps per map).

@@ -177,7 +177,7 @@ namespace RealmForge.Client.Components
 						ammoProblem = UiText.AmmoNone(weapon!.Name, Lang);
 						return;
 					}
-					var left = InventoryRules.Spend(ammo, sheet.Inventory);
+					var left = InventoryRules.Shoot(sheet, ammo);
 					spent = true;
 					var name = ammo.EquipmentId is { } aid && context?.Items.FirstOrDefault(x => x.Id == aid) is { } item ? item.Name : ammo.Name ?? string.Empty;
 					ammoProblem = left == 0 ? UiText.AmmoLast(name, Lang) : left <= InventoryRules.LowAmmunition ? UiText.AmmoLow(name, left, Lang) : null;

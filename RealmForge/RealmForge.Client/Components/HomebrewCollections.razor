@@ -1,0 +1,137 @@
+﻿@using RealmForge.Client.Localization
+@using RealmForge.Client.Services
+@using RealmForge.Shared.DTOs
+@using RealmForge.Shared.Enums
+@inject TransferDataService Transfer
+@inject LanguageStateService LanguageState
+@inject NavigationManager Navigation
+@inject IJSRuntime JS
+
+@* The account's collections of Homebrew: made from the entries selected in the page, each with its link *@
+<section class="rf-card2 mt-4 d-flex flex-column gap-2" data-test="homebrew-collections">
+    <h2 class="rf-homebrew-kind mb-0">@UiText.CollectionsTitle(Lang) <span>@(collections?.Count ?? 0)</span></h2>
+    <span class="small" style="color: var(--rf-text-muted);">@UiText.CollectionsHint(Lang)</span>
+
+    @if (draft is null)
+    {
+        <button type="button" class="btn btn-sm btn-rf-orange align-self-start" disabled="@(Selected.Count == 0)" title="@(Selected.Count == 0 ? UiText.CollectionSelectFirst(Lang) : null)"
+                @onclick="New" data-test="collection-new"><Icon Name="collection" /> @UiText.CollectionNewFromSelection(Selected.Count, Lang)</button>
+    }
+    else
+    {
+        <div class="d-flex flex-column gap-2" data-test="collection-form">
+            <input class="rf-form-control" maxlength="100" placeholder="@UiText.CollectionName(Lang)" @bind="draft.Name" data-test="collection-name" />
+            <textarea class="rf-form-control" rows="2" maxlength="2000" placeholder="@UiText.CollectionDescription(Lang)" @bind="draft.Description"></textarea>
+            <div class="d-flex justify-content-end gap-2">
+                <button type="button" class="btn btn-sm btn-rf-outline" @onclick="() => draft = null">@UiText.BtnCancel(Lang)</button>
+                <button type="button" class="btn btn-sm btn-rf-orange" disabled="@(busy || string.IsNullOrWhiteSpace(draft.Name))" @onclick="CreateAsync" data-test="collection-save">@UiText.BtnConfirm(Lang)</button>
+            </div>
+        </div>
+    }
+    @if (message is not null)
+    {
+        <span class="small" role="status" data-test="collection-message">@message</span>
+    }
+
+    @if (collections is { Count: 0 })
+    {
+        <span class="small" style="color: var(--rf-text-muted);">@UiText.CollectionsEmpty(Lang)</span>
+    }
+    else if (collections is not null)
+    {
+        <div class="rf-handout-list">
+            @foreach (var c in collections)
+            {
+                var collection = c;
+                <div class="rf-handout-row" data-test="collection-row">
+                    <a class="rf-handout-open" href="@($"collections/{collection.Code}")">
+                        <span class="rf-handout-icon"><Icon Name="collection" /></span>
+                        <span class="rf-handout-row-text">
+                            <strong>@collection.Name</strong>
+                            <span class="small">@UiText.CollectionEntries(collection.EntityIds.Count, Lang)</span>
+                        </span>
+                    </a>
+                    <span class="rf-handout-actions">
+                        <button type="button" class="btn btn-sm btn-rf-outline" @onclick="() => CopyAsync(collection)" data-test="collection-copy"><Icon Name="link" /> @UiText.CollectionCopyLink(Lang)</button>
+                        @if (Selected.Count > 0)
+                        {
+                            <button type="button" class="btn btn-sm btn-rf-outline" disabled="@busy" @onclick="() => ReplaceAsync(collection)" data-test="collection-replace">@UiText.CollectionReplace(Selected.Count, Lang)</button>
+                        }
+                        <button type="button" class="rf-vtt-row-action" disabled="@busy" title="@UiText.BtnRemove(Lang)" aria-label="@UiText.BtnRemove(Lang)" @onclick="() => DeleteAsync(collection)" data-test="collection-delete"><Icon Name="trash" /></button>
+                    </span>
+                </div>
+            }
+        </div>
+    }
+</section>
+
+@code {
+    //	The entries selected in the page
+    [Parameter, EditorRequired] public IReadOnlyCollection<Guid> Selected { get; set; } = Array.Empty<Guid>();
+
+    private List<ContentCollectionSummaryDto>? collections;
+    private SaveContentCollectionDto? draft;
+    private bool busy;
+    private string? message;
+
+    private LanguageCode Lang => LanguageState.CurrentLanguage;
+
+    protected override async Task OnInitializedAsync() => await LoadAsync();
+
+    private async Task LoadAsync() => collections = (await Transfer.MyCollectionsAsync()).Value ?? new();
+
+    private void New()
+    {
+        draft = new SaveContentCollectionDto();
+        message = null;
+    }
+
+    private async Task CreateAsync()
+    {
+        if (draft is null)
+        {
+            return;
+        }
+        draft.EntityIds = Selected.ToList();
+        await SaveAsync(null, draft);
+    }
+
+    private Task ReplaceAsync(ContentCollectionSummaryDto c) =>
+        SaveAsync(c.Id, new SaveContentCollectionDto { Name = c.Name, Description = c.Description, EntityIds = Selected.ToList() });
+
+    private async Task SaveAsync(Guid? id, SaveContentCollectionDto dto)
+    {
+        busy = true;
+        var result = await Transfer.SaveCollectionAsync(id, dto);
+        busy = false;
+        if (result.Value is null)
+        {
+            message = UiText.CollectionFailed(result.Title, Lang);
+            return;
+        }
+        draft = null;
+        message = null;
+        await LoadAsync();
+    }
+
+    private async Task DeleteAsync(ContentCollectionSummaryDto c)
+    {
+        busy = true;
+        await Transfer.DeleteCollectionAsync(c.Id);
+        busy = false;
+        await LoadAsync();
+    }
+
+    private async Task CopyAsync(ContentCollectionSummaryDto c)
+    {
+        try
+        {
+            await JS.InvokeVoidAsync("navigator.clipboard.writeText", $"{Navigation.BaseUri}collections/{c.Code}");
+            message = UiText.CollectionLinkCopied(Lang);
+        }
+        catch (Exception)
+        {
+            message = $"{Navigation.BaseUri}collections/{c.Code}";
+        }
+    }
+}

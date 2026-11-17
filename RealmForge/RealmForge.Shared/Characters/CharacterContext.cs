@@ -70,7 +70,9 @@ public sealed record ContextFeat(
 	int IncreaseMaximum,
 	List<RuleEffect>? Effects = null);
 
-public sealed record ContextSpell(Guid Id, string Name, int Level, SpellSchool School, List<SpellcastingClass> Classes, bool Ritual, bool Concentration, string? Key = null);
+//	Minutes: how long it lasts when that is at least ten minutes (followed on the clock of the campaign), else null
+public sealed record ContextSpell(Guid Id, string Name, int Level, SpellSchool School, List<SpellcastingClass> Classes, bool Ritual, bool Concentration, string? Key = null,
+	int? Minutes = null);
 
 public sealed record ContextItem(
 	Guid Id,

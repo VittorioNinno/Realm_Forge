@@ -275,6 +275,12 @@ namespace RealmForge.Api.Controllers
 			var campaigns = canEdit
 				? await _context.CampaignCharacters.AsNoTracking().Where(cc => cc.CharacterId == character.Id).Select(cc => cc.CampaignId).ToListAsync()
 				: null;
+
+			//	The clock of the campaign it played in last
+			var clock = campaigns is { Count: > 0 }
+				? await _context.Campaigns.AsNoTracking().Where(c => campaigns.Contains(c.Id))
+					.OrderByDescending(c => c.TableOpenedAt ?? c.UpdatedAt).Select(c => new { c.Id, c.GameMinutes }).FirstOrDefaultAsync()
+				: null;
 			return Ok(ToDto(character) with
 			{
 				ReadOnly = !canEdit,
@@ -283,7 +289,9 @@ namespace RealmForge.Api.Controllers
 				//	Shown when the last change was made by someone else (the owner after a master, a master after the owner)
 				LastEditedBy = character.UpdatedById is { } editor && editor != UserId ? names.GetValueOrDefault(editor) : null,
 				Campaigns = campaigns,
-				CampaignModuleIds = await CampaignModulesAsync(character.Id)
+				CampaignModuleIds = await CampaignModulesAsync(character.Id),
+				ClockCampaignId = clock?.Id,
+				GameMinutes = clock?.GameMinutes
 			});
 		}
 
@@ -379,9 +387,18 @@ namespace RealmForge.Api.Controllers
 			//	those values win, and go back to the client with the answer
 			var stored = ReadSheet(character.Sheet);
 			var fromEncounter = sheet.VitalsStamp != stored.VitalsStamp;
+			var serverVitals = SheetVitalsDto.From(stored, character.MaxHitPoints, character.UpdatedAt);
 			if (fromEncounter)
 			{
-				SheetVitalsDto.From(stored, character.MaxHitPoints, character.UpdatedAt).ApplyTo(sheet);
+				serverVitals.ApplyTo(sheet);
+			}
+
+			//	The inventory or the purse changed on the server (a shop, the rations of a journey, loot) after this copy
+			//	was read: the server's win too
+			var fromStore = sheet.StoreStamp != stored.StoreStamp;
+			if (fromStore)
+			{
+				serverVitals.ApplyStoreTo(sheet);
 			}
 
 			var build = ReadBuild(character.Build);
@@ -415,7 +432,7 @@ namespace RealmForge.Api.Controllers
 			await _context.SaveChangesAsync();
 
 			return Ok(new CharacterSavedDto(character.Id, character.MaxHitPoints, character.ArmorClass, character.UpdatedAt,
-				fromEncounter ? SheetVitalsDto.From(sheet, character.MaxHitPoints, character.UpdatedAt) : null));
+				fromEncounter || fromStore ? SheetVitalsDto.From(sheet, character.MaxHitPoints, character.UpdatedAt) : null));
 		}
 
 		//	GET: api/characters/{id}/vitals — hit points and conditions, read often by an open sheet to follow the encounters
@@ -451,6 +468,69 @@ namespace RealmForge.Api.Controllers
 			_context.Characters.Remove(character);
 			await _context.SaveChangesAsync();
 			return NoContent();
+		}
+
+		//	GET: api/characters/{id}/export — the character as a file (its owner, or a master who runs it)
+		[HttpGet("{id:guid}/export")]
+		public async Task<ActionResult<CharacterExportDto>> ExportCharacter(Guid id)
+		{
+			var character = await _context.Characters.AsNoTracking().FirstOrDefaultAsync(c => c.Id == id && (c.OwnerId == UserId || RunByMe.Contains(c.Id)));
+			if (character is null)
+			{
+				return NotFound();
+			}
+			return Ok(new CharacterExportDto
+			{
+				Name = character.Name,
+				Ruleset = character.Ruleset,
+				SpeciesId = character.SpeciesId,
+				SubspeciesId = character.SubspeciesId,
+				BackgroundId = character.BackgroundId,
+				Build = ReadBuild(character.Build),
+				Sheet = ReadSheet(character.Sheet)
+			});
+		}
+
+		//	POST: api/characters/import — a character from a file: a new character of the account, as it was (its inventory
+		//	and its play state kept), when it still follows the rules with the content found here
+		[HttpPost("import")]
+		[RequestSizeLimit(2_000_000)]
+		public async Task<ActionResult<CharacterDto>> ImportCharacter([FromBody] CharacterExportDto file)
+		{
+			if (file.Format != CharacterExportDto.FormatName || file.Version is < 1 or > CharacterExportDto.CurrentVersion)
+			{
+				return Problem(statusCode: StatusCodes.Status400BadRequest, title: "Not a RealmForge character file.", detail: "format");
+			}
+			if (!Enum.IsDefined(file.Ruleset) || file.Build?.Levels is not { Count: > 0 } || string.IsNullOrWhiteSpace(file.Name))
+			{
+				return Problem(statusCode: StatusCodes.Status400BadRequest, title: "The file has no character in it.", detail: "empty");
+			}
+			if (await _context.Characters.CountAsync(c => c.OwnerId == UserId) >= MaxCharactersPerUser)
+			{
+				return Problem(statusCode: StatusCodes.Status400BadRequest, title: $"At most {MaxCharactersPerUser} characters per account.", detail: "full");
+			}
+			var dto = new SaveCharacterDto
+			{
+				Name = file.Name.Trim().Length > 100 ? file.Name.Trim()[..100] : file.Name.Trim(),
+				Ruleset = file.Ruleset,
+				SpeciesId = file.SpeciesId,
+				SubspeciesId = file.SubspeciesId,
+				BackgroundId = file.BackgroundId,
+				Build = file.Build
+			};
+			var sheet = Sanitize(file.Sheet ?? new CharacterSheetState());
+			var context = await _builder.BuildAsync(dto.Ruleset, LanguageCode.En, User);
+			var computed = CharacterCalculator.Compute(Input(dto, sheet), context);
+			if (!computed.CanSave)
+			{
+				return Problem(statusCode: StatusCodes.Status400BadRequest, title: Describe(computed), detail: "rules");
+			}
+			CharacterVitals.Normalize(sheet, computed.MaxHitPoints);
+			var character = new Character { OwnerId = UserId, UpdatedById = UserId };
+			Apply(character, dto, sheet, computed);
+			_context.Characters.Add(character);
+			await _context.SaveChangesAsync();
+			return CreatedAtAction(nameof(GetCharacter), new { id = character.Id }, ToDto(character));
 		}
 
 		// ===== Helpers =====
@@ -573,6 +653,18 @@ namespace RealmForge.Api.Controllers
 			sheet.Exhaustion = Clamp(sheet.Exhaustion, 0, 10);
 			sheet.SpentSlots = (sheet.SpentSlots ?? new()).Take(9).Select(s => Clamp(s, 0, 9)).ToList();
 			sheet.SpentPactSlots = Clamp(sheet.SpentPactSlots, 0, 9);
+			sheet.TimedEffects = (sheet.TimedEffects ?? new()).Take(30).Select(e =>
+			{
+				e.Name = Text(e.Name, 120) ?? string.Empty;
+				e.Until = Math.Clamp(e.Until, 0, GameClock.MaxMinutes);
+				return e;
+			}).ToList();
+			sheet.SpentAmmunition = (sheet.SpentAmmunition ?? new()).Where(a => a.Count > 0).Take(10).Select(a =>
+			{
+				a.Name = Text(a.Name, 150);
+				a.Count = Clamp(a.Count, 0, 9999);
+				return a;
+			}).ToList();
 			sheet.Inventory = (sheet.Inventory ?? new()).Take(300).Select(i =>
 			{
 				i.Name = Text(i.Name, 150);

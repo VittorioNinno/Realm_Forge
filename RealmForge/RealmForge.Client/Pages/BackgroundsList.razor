@@ -161,6 +161,7 @@
                 <button class="btn btn-sm btn-rf-outline" @onclick="CloseDetail"><Icon Name="close" /></button>
             </div>
 
+            <ForkBar Kind="background" EntityId="SelectedBackground.Id" />
             @if (!SelectedBackground.IsOfficialSRD)
             {
                 <ShareLink Visibility="SelectedBackground.Visibility" CanEdit="SelectedBackground.CanEdit" EntityId="SelectedBackground.Id" Path="@($"backgrounds?id={SelectedBackground.Id}")" />

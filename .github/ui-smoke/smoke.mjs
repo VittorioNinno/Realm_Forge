@@ -31,6 +31,7 @@ const overflowOf = async (target, label) => target.evaluate((label) => {
 }, label);
 const ok = (name) => { results.push(`OK ${name}`); };
 const characterAudits = [];
+const phoneWide = [];
 
 const browser = await chromium.launch();
 // Explicit context: the e-mail confirmation test opens a second tab in the same browser session
@@ -93,6 +94,15 @@ try {
   results.push(`INFO brand icon loaded=${brand.loaded} favicon=${brand.favicon} (${brand.status}) images in page body=${brand.heroLogos}`);
   if (!brand.loaded || brand.favicon !== 'img/favicon-32.png' || brand.status !== 200 || brand.heroLogos !== 0) throw new Error('unexpected brand icons');
   ok('emblem in the sidebar only, RealmForge favicon served');
+
+  // Installable app: the manifest and the service worker are served
+  const pwa = await page.evaluate(async () => {
+    const href = document.querySelector('link[rel=manifest]')?.getAttribute('href');
+    const manifest = href ? await (await fetch(href)).json() : null;
+    return { name: manifest?.name, display: manifest?.display, icons: manifest?.icons?.length ?? 0, worker: (await fetch('service-worker.js')).status };
+  });
+  if (pwa.name !== 'RealmForge' || pwa.display !== 'standalone' || pwa.icons < 1 || pwa.worker !== 200) throw new Error(`unexpected app manifest: ${JSON.stringify(pwa)}`);
+  ok('installable app: manifest and service worker served');
 
   // Dashboard: one card per compendium module with Base counts per edition and the visible Homebrew
   // Dashboard: welcome, one link per section (glossary first, no figures), how it works and the house rules
@@ -427,7 +437,7 @@ try {
     return { label: el.textContent.trim(), inset: Math.round(icon.left - el.getBoundingClientRect().left), left: Math.round(icon.left) };
   }));
   results.push(`INFO menu icons: ${iconGaps.map((g) => `${g.label}@${g.left}(+${g.inset})`).join(', ')}`);
-  if (iconGaps.length !== 16 || iconGaps.some((g) => g.inset < 8) || new Set(iconGaps.map((g) => g.left)).size !== 1) throw new Error('menu icons are not padded or not aligned');
+  if (iconGaps.length !== 17 || iconGaps.some((g) => g.inset < 8) || new Set(iconGaps.map((g) => g.left)).size !== 1) throw new Error('menu icons are not padded or not aligned');
   await page.locator('[data-test=nav-compendium] button').click();
   ok('"Compendio" menu group: Specie, Background, Talenti, Incantesimi, Classi, Equipaggiamento, and Glossario next to it; collapsed elsewhere and toggles on click; icons padded and aligned');
   // The menu folded to its icons and back: the name and the labels go, the icons stay in one column
@@ -1390,6 +1400,25 @@ try {
   campaignUi.notes = await page.locator('[data-test=campaign-note]').count();
   campaignUi.noteKinds = (await page.locator('[data-test=campaign-notes-kinds] .rf-pill-btn').allInnerTexts()).map((t) => t.trim()).join(',');
   await shot(page, 'campaign-notes', 'main');
+  // The game clock: an hour on from 08:00 of day 1
+  await page.locator('[data-test=campaign-tab-overview]').click();
+  await page.locator('[data-test=clock-hour]').click();
+  await page.locator('[data-test=clock-now]', { hasText: '09:00' }).waitFor({ timeout: 15000 });
+  campaignUi.clock = (await page.locator('[data-test=clock-now]').innerText()).trim();
+  // A shop opened to the players, a free item on sale at the list price
+  await page.locator('[data-test=campaign-tab-shops]').click();
+  await page.locator('[data-test=shop-new]').click();
+  await page.locator('[data-test=shop-name-it]').fill('Emporio');
+  await page.locator('[data-test=shop-open]').check();
+  await page.locator('[data-test=shop-save]').click();
+  await page.locator('[data-test=shop]').waitFor({ timeout: 15000 });
+  await page.locator('[data-test=shop-free]').click();
+  await page.locator('[data-test=shop-free-name]').fill('Mappa del tesoro');
+  await page.locator('[data-test=shop-free-price]').fill('25');
+  await page.locator('[data-test=shop-free-save]').click();
+  await page.locator('[data-test=shop-item]').waitFor({ timeout: 15000 });
+  campaignUi.shopCost = (await page.locator('[data-test=shop-item-cost]').first().innerText()).trim();
+  await shot(page, 'campaign-shops', 'main');
   // An encounter: three goblins and the party, its difficulty, the fight starts and the turn moves on
   await page.locator('[data-test=campaign-tab-encounters]').click();
   await page.locator('[data-test=encounter-new-name]').fill('Imboscata');
@@ -1657,8 +1686,69 @@ try {
   if (mapUi.copyTokens !== 2 || mapUi.copyShown || await page.locator('[data-test=map-name]').inputValue() !== 'cripta') throw new Error('unexpected map copy');
   ok('virtual tabletop prep: a map from a picture with its square grid lined up, the character and a goblin as tokens, the character dragged two cells, the goblin\'s numbers on hover and its card on click, a hex grid, the grid aligned on a box drawn over the picture, the map shown to the players and duplicated');
   // The table on the whole window: the map shown, the tools on the left, the ruler three cells long
+  const campaignPath = new URL(page.url()).pathname;
   await page.locator('[data-test=map-open-vtt]').click();
   await page.locator('[data-test=vtt] [data-test=map-token]').first().waitFor({ timeout: 30000 });
+  const vttPath = new URL(page.url()).pathname;
+  // The signed-in pages on a phone (375 px): each one photographed and checked for content wider than the screen
+  {
+    const phone = await browser.newContext({ storageState: await context.storageState(), viewport: { width: 375, height: 812 }, isMobile: true, hasTouch: true });
+    const mobile = await phone.newPage();
+    const tour = async (path, name, ready = 'main') => {
+      await mobile.goto(`${base}${path}`);
+      await mobile.locator(ready).first().waitFor({ timeout: 60000 }).catch(() => {});
+      await mobile.waitForTimeout(2000);
+      await shot(mobile, `phone-${name}`, null);
+      const wide = await overflowOf(mobile, path);
+      if (wide) phoneWide.push(wide);
+    };
+    for (const [path, name] of [['/characters', 'characters'], ['/campaigns', 'campaigns'], ['/monsters', 'monsters'], ['/magic-items', 'magic-items'],
+      ['/npcs', 'npcs'], ['/modules', 'modules'], ['/search', 'search'], ['/trash', 'trash']]) {
+      await tour(path, name);
+    }
+    await tour(campaignPath, 'campaign', '[data-test=campaign-tabs]');
+    const tabs = mobile.locator('[data-test=campaign-tabs] button, [data-test=campaign-tabs] a');
+    for (let i = 0; i < await tabs.count(); i++) {
+      await tabs.nth(i).click().catch(() => {});
+      await mobile.waitForTimeout(1200);
+      await shot(mobile, `phone-campaign-tab-${i}`, null);
+      const wide = await overflowOf(mobile, `${campaignPath} tab ${i}`);
+      if (wide) phoneWide.push(wide);
+    }
+    // The table upright asks to turn the phone; sideways it works: the card of a token on the right, nothing off the screen
+    await mobile.goto(`${base}${vttPath}`);
+    await mobile.locator('[data-test=vtt] [data-test=map-token]').first().waitFor({ timeout: 60000 });
+    await mobile.waitForTimeout(1500);
+    const rotate = await mobile.locator('[data-test=vtt-rotate]').isVisible();
+    await shot(mobile, 'phone-vtt-upright', null);
+    await mobile.setViewportSize({ width: 812, height: 375 });
+    await mobile.waitForTimeout(1500);
+    const rotateSideways = await mobile.locator('[data-test=vtt-rotate]').isVisible();
+    await shot(mobile, 'phone-vtt-landscape', null);
+    const vttWide = await overflowOf(mobile, `${vttPath} sideways`);
+    if (vttWide) phoneWide.push(vttWide);
+    await mobile.locator('[data-test=vtt] [data-test=map-token]').first().click().catch(() => {});
+    await mobile.waitForTimeout(1200);
+    const sheet = await mobile.locator('[data-test=vtt-phone-sheet] [data-test=map-token-card]').count();
+    await shot(mobile, 'phone-vtt-token', null);
+    const sheetWide = await overflowOf(mobile, `${vttPath} token card`);
+    if (sheetWide) phoneWide.push(sheetWide);
+    await mobile.keyboard.press('Escape').catch(() => {});
+    for (const tool of ['tokens', 'fog', 'light']) {
+      await mobile.locator(`[data-test=vtt-tool-${tool}]`).click().catch(() => {});
+      await mobile.waitForTimeout(1000);
+      await shot(mobile, `phone-vtt-${tool}`, null);
+      const wide = await overflowOf(mobile, `${vttPath} ${tool}`);
+      if (wide) phoneWide.push(wide);
+      await mobile.locator(`[data-test=vtt-tool-${tool}]`).click().catch(() => {});
+    }
+    results.push(`INFO phone table: upright asks to turn=${rotate}, sideways=${!rotateSideways}, token card on the side=${sheet}`);
+    if (!rotate || rotateSideways || sheet !== 1) throw new Error(`unexpected table on a phone: rotate=${rotate} sideways=${rotateSideways} sheet=${sheet}`);
+    await phone.close();
+    results.push(`INFO phone (signed in): ${phoneWide.length ? phoneWide.join(' | ') : 'every page fits 375 px'}`);
+    if (phoneWide.length) throw new Error(`content wider than a phone: ${phoneWide.join(' | ').slice(0, 300)}`);
+    ok('phone (signed in): characters, campaigns (every tab), monsters, magic items, NPCs, modules, search, bin and the table sideways fit the screen; upright the table asks to turn the phone');
+  }
   await page.waitForTimeout(600);
   const tableHero = page.locator('[data-test=vtt] [data-test=map-token]:not([data-label=Goblin])').first();
   const hb = await tableHero.boundingBox();
@@ -1685,7 +1775,7 @@ try {
   await shot(page, 'phone-vtt-table', null);
   await page.setViewportSize({ width: 1280, height: 900 });
   results.push(`INFO vtt: ${JSON.stringify(vttUi)}`);
-  if (vttUi.ruler !== '3 · 4,5 m' || vttUi.displayed !== 1 || vttUi.zoom === '100%' || vttUi.tools !== 14 || vttUi.connection !== 'live' || vttUi.phoneZoom === vttUi.zoom) throw new Error(`unexpected virtual tabletop: ${JSON.stringify(vttUi)}`);
+  if (vttUi.ruler !== '3 · 4,5 m' || vttUi.displayed !== 1 || vttUi.zoom === '100%' || vttUi.tools !== 16 || vttUi.connection !== 'live' || vttUi.phoneZoom === vttUi.zoom) throw new Error(`unexpected virtual tabletop: ${JSON.stringify(vttUi)}`);
   ok('virtual tabletop: the table on the whole window with the map shown to the players, fitted to the screen, the tools on the left, the ruler measuring three cells (4,5 m), the map fitted again on a phone');
   // A sphere of 1 cell (1,5 m) around the hero: its cell and the three around it on the map; a stroke, then erased;
   // a note for the masters
@@ -2097,7 +2187,7 @@ try {
   await binRow.waitFor({ state: 'detached', timeout: 15000 });
   campaignUi.purged = true;
   results.push(`INFO campaign: ${JSON.stringify(campaignUi)}`);
-  if (campaignUi.role !== 'Master' || !campaignUi.link || campaignUi.share !== 1 || campaignUi.notes !== 1
+  if (campaignUi.role !== 'Master' || !campaignUi.link || campaignUi.share !== 1 || campaignUi.notes !== 1 || campaignUi.shopCost !== '25 mo' || campaignUi.clock !== 'Giorno 1 · 09:00'
     || campaignUi.combatants !== 4 || campaignUi.goblins !== 3 || !campaignUi.hero || campaignUi.sheetLink !== 1 || !/^(Facile|Medio|Difficile|Mortale)$/.test(campaignUi.rating) || campaignUi.current !== 1
     || campaignUi.binKind !== 'CAMPAGNA' || !campaignUi.restored || !campaignUi.purged
     || campaignUi.cardButtons !== 0 || !campaignUi.cardOpens || campaignUi.listActions !== 2 || !campaignUi.toggled || campaignUi.noteKinds !== 'Diario di viaggio,Personali,Per i master' || campaignUi.leftFromSheet !== 1

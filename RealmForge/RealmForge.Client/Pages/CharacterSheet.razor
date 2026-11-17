@@ -52,7 +52,7 @@
                     </div>
                 }
                 <div class="rf-sheet-toolbar">
-                    <span class="rf-sheet-save @(saveStatus == SaveStatus.Failed ? "text-warning" : null)" data-test="sheet-save-status">@SaveText</span>
+                    <span class="rf-sheet-save @(saveStatus is SaveStatus.Failed or SaveStatus.Offline ? "text-warning" : null)" data-test="sheet-save-status">@SaveText</span>
                     @if (character.LastEditedBy is { } editor)
                     {
                         <span class="small" style="color: var(--rf-text-muted);" data-test="sheet-last-edit">@UiText.SheetLastEditedBy(editor, Lang)</span>
@@ -68,6 +68,11 @@
                     }
                     <a class="rf-tool-btn" href="@($"characters/{character.Id}/edit")" title="@UiText.BtnEditCharacter(Lang)" data-test="sheet-edit"><Icon Name="edit" /><span>@UiText.BtnEditShort(Lang)</span></a>
                     <button type="button" class="rf-tool-btn" @onclick="DownloadPdfAsync" title="@UiText.BtnDownloadPdf(Lang)" data-test="sheet-pdf"><Icon Name="download" /><span>PDF</span></button>
+                    <button type="button" class="rf-tool-btn" @onclick="DownloadJsonAsync" title="@UiText.BtnDownloadJson(Lang)" data-test="sheet-json"><Icon Name="download" /><span>JSON</span></button>
+                    @if (transferError is not null)
+                    {
+                        <span class="small text-warning" data-test="sheet-json-error">@transferError</span>
+                    }
                     @if (character.IsOwner)
                     {
                         <button type="button" class="rf-tool-btn danger" @onclick="() => deleteOpen = true" title="@UiText.Delete(Lang)" data-test="sheet-delete"><Icon Name="trash" /><span>@UiText.Delete(Lang)</span></button>
@@ -1005,6 +1010,62 @@
                 </div>
             }
         </div>
+
+        @if (SupplyEntries.Count > 0 || InventoryRules.SpentAmmunitionCount(Sheet) > 1)
+        {
+            <div class="rf-supplies mt-3" data-test="sheet-supplies">
+                <span class="rf-mini-label">@UiText.SuppliesTitle(Lang)</span>
+                <div class="rf-supplies-grid">
+                    @foreach (var supplyRow in SupplyEntries)
+                    {
+                        var supplyEntry = supplyRow;
+                        <div class="rf-supply" data-test="sheet-supply">
+                            <span class="rf-supply-icon"><Icon Name="@SupplyIcon(supplyEntry.Kind)" /></span>
+                            <span class="rf-supply-name" title="@supplyEntry.Name">@supplyEntry.Name</span>
+                            <span class="rf-coin-stepper">
+                                <button type="button" class="rf-mini-btn" @onclick="() => StepSupply(supplyEntry.Item, -1)" aria-label="@UiText.SuppliesUseOne(Lang)">−</button>
+                                <span class="rf-supply-count" data-test="sheet-supply-count">@supplyEntry.Item.Quantity</span>
+                                <button type="button" class="rf-mini-btn" @onclick="() => StepSupply(supplyEntry.Item, 1)" aria-label="@UiText.SuppliesAddOne(Lang)">+</button>
+                            </span>
+                        </div>
+                    }
+                </div>
+                @if (InventoryRules.SpentAmmunitionCount(Sheet) is > 1 and var spentAmmo)
+                {
+                    <button type="button" class="btn btn-sm btn-rf-outline align-self-start" @onclick="RecoverAmmunition" data-test="sheet-recover-ammo"><Icon Name="arrow-counterclockwise" /> @UiText.SuppliesRecover(spentAmmo, Lang)</button>
+                }
+                @if (suppliesNote is not null)
+                {
+                    <span class="small" role="status">@suppliesNote</span>
+                }
+            </div>
+        }
+
+        @if (Sheet.TimedEffects.Count > 0)
+        {
+            <div class="rf-supplies mt-3" data-test="sheet-timed-effects">
+                <span class="rf-mini-label">@UiText.SheetEffectsTitle(Lang)</span>
+                @if (character?.GameMinutes is { } effectsNow)
+                {
+                    <span class="small" style="color: var(--rf-text-muted);">@UiText.SheetEffectsHint(effectsNow, Lang)</span>
+                }
+                <ul class="rf-timed-effects">
+                    @foreach (var effectRow in Sheet.TimedEffects.OrderBy(x => x.Until))
+                    {
+                        var timedEffect = effectRow;
+                        <li data-test="sheet-timed-effect">
+                            <Icon Name="hourglass-split" />
+                            <strong>@timedEffect.Name</strong>
+                            @if (character?.GameMinutes is { } effectClock && character.ClockCampaignId == timedEffect.CampaignId)
+                            {
+                                <span class="small">@UiText.ClockLeft(timedEffect.Until - effectClock, Lang)</span>
+                            }
+                            <button type="button" class="rf-vtt-row-action ms-auto" title="@UiText.SheetEffectEnd(Lang)" aria-label="@UiText.SheetEffectEnd(Lang)" @onclick="() => EndTimedEffect(timedEffect)" data-test="sheet-timed-effect-end"><Icon Name="close" /></button>
+                        </li>
+                    }
+                </ul>
+            </div>
+        }
 
         <div class="position-relative my-3">
             <input class="rf-wizard-input" placeholder="@UiText.PlaceholderSearchItem(Lang)" value="@itemSearch" @oninput="e => itemSearch = e.Value?.ToString() ?? string.Empty" data-test="sheet-item-search" />
