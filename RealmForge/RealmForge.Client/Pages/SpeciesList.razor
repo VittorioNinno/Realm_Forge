@@ -263,6 +263,7 @@
                     </div>
                 </div>
 
+                <ForkBar Kind="species" EntityId="selectedDetail.Id" />
                 @if (!selectedDetail.IsOfficialSRD)
                 {
                     <ShareLink Visibility="selectedDetail.Visibility" CanEdit="selectedDetail.CanEdit" EntityId="selectedDetail.Id" Path="@($"species?speciesId={selectedDetail.Id}")" />

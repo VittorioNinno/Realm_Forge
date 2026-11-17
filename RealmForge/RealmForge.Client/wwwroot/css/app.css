@@ -20093,3 +20093,103 @@ button.rf-qs-spell {
             scrollbar-width: none;
         }
 }
+
+/* The download icon turned upwards: an upload (an import from a file) */
+.rf-icon-flip {
+    transform: rotate(180deg);
+}
+
+/* The author's Homebrew page: entries by kind, with their edition and the languages they are written in */
+.rf-homebrew-kind {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 24px 0 8px;
+    font-size: 1rem;
+    font-weight: 700;
+}
+
+    .rf-homebrew-kind span {
+        font-size: .8rem;
+        color: var(--rf-text-muted);
+    }
+
+.rf-homebrew-list {
+    display: flex;
+    flex-direction: column;
+    border: 1px solid #303030;
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.rf-homebrew-row {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 8px 16px;
+    border-bottom: 1px solid #262626;
+}
+
+    .rf-homebrew-row:last-child {
+        border-bottom: 0;
+    }
+
+.rf-homebrew-name {
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: var(--rf-text-primary);
+}
+
+.rf-homebrew-tags {
+    display: flex;
+    gap: 8px;
+}
+
+.rf-homebrew-tag {
+    padding: 0 8px;
+    border-radius: 4px;
+    border: 1px solid #303030;
+    font-size: .75rem;
+    font-weight: 700;
+    line-height: 24px;
+    color: var(--rf-text-secondary);
+}
+
+    .rf-homebrew-tag.missing {
+        border-style: dashed;
+        border-color: #f59e0b;
+        color: #fbbf24;
+        text-decoration: line-through;
+    }
+
+.rf-homebrew-imported {
+    margin: 0 0 16px;
+    padding-left: 24px;
+    font-size: .9rem;
+}
+
+@media (max-width: 575.98px) {
+    .rf-homebrew-row {
+        gap: 8px;
+        padding: 8px;
+    }
+}
+
+/* "Clona e personalizza" in the detail of an entry, with where a clone comes from */
+.rf-fork {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 16px;
+}
+
+.rf-fork-origin {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--rf-text-muted);
+}

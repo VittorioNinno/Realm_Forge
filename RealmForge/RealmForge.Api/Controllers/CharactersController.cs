@@ -453,6 +453,69 @@ namespace RealmForge.Api.Controllers
 			return NoContent();
 		}
 
+		//	GET: api/characters/{id}/export — the character as a file (its owner, or a master who runs it)
+		[HttpGet("{id:guid}/export")]
+		public async Task<ActionResult<CharacterExportDto>> ExportCharacter(Guid id)
+		{
+			var character = await _context.Characters.AsNoTracking().FirstOrDefaultAsync(c => c.Id == id && (c.OwnerId == UserId || RunByMe.Contains(c.Id)));
+			if (character is null)
+			{
+				return NotFound();
+			}
+			return Ok(new CharacterExportDto
+			{
+				Name = character.Name,
+				Ruleset = character.Ruleset,
+				SpeciesId = character.SpeciesId,
+				SubspeciesId = character.SubspeciesId,
+				BackgroundId = character.BackgroundId,
+				Build = ReadBuild(character.Build),
+				Sheet = ReadSheet(character.Sheet)
+			});
+		}
+
+		//	POST: api/characters/import — a character from a file: a new character of the account, as it was (its inventory
+		//	and its play state kept), when it still follows the rules with the content found here
+		[HttpPost("import")]
+		[RequestSizeLimit(2_000_000)]
+		public async Task<ActionResult<CharacterDto>> ImportCharacter([FromBody] CharacterExportDto file)
+		{
+			if (file.Format != CharacterExportDto.FormatName || file.Version is < 1 or > CharacterExportDto.CurrentVersion)
+			{
+				return Problem(statusCode: StatusCodes.Status400BadRequest, title: "Not a RealmForge character file.", detail: "format");
+			}
+			if (!Enum.IsDefined(file.Ruleset) || file.Build?.Levels is not { Count: > 0 } || string.IsNullOrWhiteSpace(file.Name))
+			{
+				return Problem(statusCode: StatusCodes.Status400BadRequest, title: "The file has no character in it.", detail: "empty");
+			}
+			if (await _context.Characters.CountAsync(c => c.OwnerId == UserId) >= MaxCharactersPerUser)
+			{
+				return Problem(statusCode: StatusCodes.Status400BadRequest, title: $"At most {MaxCharactersPerUser} characters per account.", detail: "full");
+			}
+			var dto = new SaveCharacterDto
+			{
+				Name = file.Name.Trim().Length > 100 ? file.Name.Trim()[..100] : file.Name.Trim(),
+				Ruleset = file.Ruleset,
+				SpeciesId = file.SpeciesId,
+				SubspeciesId = file.SubspeciesId,
+				BackgroundId = file.BackgroundId,
+				Build = file.Build
+			};
+			var sheet = Sanitize(file.Sheet ?? new CharacterSheetState());
+			var context = await _builder.BuildAsync(dto.Ruleset, LanguageCode.En, User);
+			var computed = CharacterCalculator.Compute(Input(dto, sheet), context);
+			if (!computed.CanSave)
+			{
+				return Problem(statusCode: StatusCodes.Status400BadRequest, title: Describe(computed), detail: "rules");
+			}
+			CharacterVitals.Normalize(sheet, computed.MaxHitPoints);
+			var character = new Character { OwnerId = UserId, UpdatedById = UserId };
+			Apply(character, dto, sheet, computed);
+			_context.Characters.Add(character);
+			await _context.SaveChangesAsync();
+			return CreatedAtAction(nameof(GetCharacter), new { id = character.Id }, ToDto(character));
+		}
+
 		// ===== Helpers =====
 
 		private static CharacterInput Input(SaveCharacterDto dto, CharacterSheetState sheet) => new()

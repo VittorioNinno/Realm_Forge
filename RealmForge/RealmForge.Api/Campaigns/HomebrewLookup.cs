@@ -11,7 +11,7 @@ namespace RealmForge.Api.Campaigns
 	///	opens it, its author and edition.
 	///	</summary>
 	public sealed record HomebrewEntry(Guid Id, string Kind, string Name, string Link, string? AuthorId, RulesetVersion Ruleset, bool IsBase,
-		ContentVisibility Visibility = ContentVisibility.Public, Guid? ParentId = null);
+		ContentVisibility Visibility = ContentVisibility.Public, Guid? ParentId = null, IReadOnlyList<LanguageCode>? Languages = null);
 
 	///	<summary>
 	///	Finds Homebrew entries by id across every content table (species, subspecies, classes, subclasses, backgrounds,
@@ -83,52 +83,54 @@ namespace RealmForge.Api.Campaigns
 
 		private async IAsyncEnumerable<HomebrewEntry> QueryAsync(LanguageCode lang, System.Linq.Expressions.Expression<Func<GameEntity, bool>> filter)
 		{
-			HomebrewEntry Entry(GameEntity e, string kind, string? name, string link, Guid? parent = null) =>
-				new(e.Id, kind, name ?? "?", link, e.AuthorId, e.Ruleset, e.IsOfficialSRD, e.Visibility, parent);
+			//	The languages its texts are written in: the author's page tells what is left to translate
+			HomebrewEntry Entry(GameEntity e, string kind, string? name, string link, Guid? parent = null, IEnumerable<ITranslation>? texts = null) =>
+				new(e.Id, kind, name ?? "?", link, e.AuthorId, e.Ruleset, e.IsOfficialSRD, e.Visibility, parent,
+					texts?.Where(t => !string.IsNullOrWhiteSpace(t.Name)).Select(t => t.Language).Distinct().OrderBy(l => l).ToList());
 
 			foreach (var e in await _context.Species.AsNoTracking().Include(x => x.Translations).Where(Cast<RealmForge.Domain.Entities.Species>(filter)).ToListAsync())
 			{
-				yield return Entry(e, "species", e.Translations.Localize(lang)?.Name, $"species?id={e.Id}");
+				yield return Entry(e, "species", e.Translations.Localize(lang)?.Name, $"species?id={e.Id}", texts: e.Translations);
 			}
 			foreach (var e in await _context.Subspecies.AsNoTracking().Include(x => x.Translations).Where(Cast<RealmForge.Domain.Entities.Subspecies>(filter)).ToListAsync())
 			{
-				yield return Entry(e, "subspecies", e.Translations.Localize(lang)?.Name, $"subspecies?id={e.Id}", e.SpeciesId);
+				yield return Entry(e, "subspecies", e.Translations.Localize(lang)?.Name, $"subspecies?id={e.Id}", e.SpeciesId, texts: e.Translations);
 			}
 			foreach (var e in await _context.Classes.AsNoTracking().Include(x => x.Translations).Where(Cast<RealmForge.Domain.Entities.CharacterClass>(filter)).ToListAsync())
 			{
-				yield return Entry(e, "class", e.Translations.Localize(lang)?.Name, $"classes?id={e.Id}");
+				yield return Entry(e, "class", e.Translations.Localize(lang)?.Name, $"classes?id={e.Id}", texts: e.Translations);
 			}
 			foreach (var e in await _context.Subclasses.AsNoTracking().Include(x => x.Translations).Where(Cast<RealmForge.Domain.Entities.Subclass>(filter)).ToListAsync())
 			{
-				yield return Entry(e, "subclass", e.Translations.Localize(lang)?.Name, $"classes?id={e.CharacterClassId}&subclass={e.Id}", e.CharacterClassId);
+				yield return Entry(e, "subclass", e.Translations.Localize(lang)?.Name, $"classes?id={e.CharacterClassId}&subclass={e.Id}", e.CharacterClassId, texts: e.Translations);
 			}
 			foreach (var e in await _context.Backgrounds.AsNoTracking().Include(x => x.Translations).Where(Cast<RealmForge.Domain.Entities.Background>(filter)).ToListAsync())
 			{
-				yield return Entry(e, "background", e.Translations.Localize(lang)?.Name, $"backgrounds?id={e.Id}");
+				yield return Entry(e, "background", e.Translations.Localize(lang)?.Name, $"backgrounds?id={e.Id}", texts: e.Translations);
 			}
 			foreach (var e in await _context.Feats.AsNoTracking().Include(x => x.Translations).Where(Cast<RealmForge.Domain.Entities.Feat>(filter)).ToListAsync())
 			{
-				yield return Entry(e, "feat", e.Translations.Localize(lang)?.Name, $"feats?id={e.Id}");
+				yield return Entry(e, "feat", e.Translations.Localize(lang)?.Name, $"feats?id={e.Id}", texts: e.Translations);
 			}
 			foreach (var e in await _context.Spells.AsNoTracking().Include(x => x.Translations).Where(Cast<RealmForge.Domain.Entities.Spell>(filter)).ToListAsync())
 			{
-				yield return Entry(e, "spell", e.Translations.Localize(lang)?.Name, $"spells?id={e.Id}");
+				yield return Entry(e, "spell", e.Translations.Localize(lang)?.Name, $"spells?id={e.Id}", texts: e.Translations);
 			}
 			foreach (var e in await _context.Equipment.AsNoTracking().Include(x => x.Translations).Where(Cast<RealmForge.Domain.Entities.Equipment>(filter)).ToListAsync())
 			{
-				yield return Entry(e, "equipment", e.Translations.Localize(lang)?.Name, $"equipment?id={e.Id}");
+				yield return Entry(e, "equipment", e.Translations.Localize(lang)?.Name, $"equipment?id={e.Id}", texts: e.Translations);
 			}
 			foreach (var e in await _context.Monsters.AsNoTracking().Include(x => x.Translations).Where(Cast<RealmForge.Domain.Entities.Monster>(filter)).ToListAsync())
 			{
-				yield return Entry(e, "monster", e.Translations.Localize(lang)?.Name, e.IsNpc ? $"npcs/{e.Id}" : $"monsters?id={e.Id}");
+				yield return Entry(e, "monster", e.Translations.Localize(lang)?.Name, e.IsNpc ? $"npcs/{e.Id}" : $"monsters?id={e.Id}", texts: e.Translations);
 			}
 			foreach (var e in await _context.MagicItems.AsNoTracking().Include(x => x.Translations).Where(Cast<RealmForge.Domain.Entities.MagicItem>(filter)).ToListAsync())
 			{
-				yield return Entry(e, "magic-item", e.Translations.Localize(lang)?.Name, $"magic-items?id={e.Id}");
+				yield return Entry(e, "magic-item", e.Translations.Localize(lang)?.Name, $"magic-items?id={e.Id}", texts: e.Translations);
 			}
 			foreach (var e in await _context.RuleModules.AsNoTracking().Include(x => x.Translations).Where(Cast<RealmForge.Domain.Entities.RuleModule>(filter)).ToListAsync())
 			{
-				yield return Entry(e, "module", e.Translations.Localize(lang)?.Name, $"modules?id={e.Id}");
+				yield return Entry(e, "module", e.Translations.Localize(lang)?.Name, $"modules?id={e.Id}", texts: e.Translations);
 			}
 		}
 
