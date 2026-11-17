@@ -814,7 +814,7 @@ jobs:
           tf_bad=$(curl -s -X POST "$api/api/content/import" $json -H "Authorization: Bearer $A" -d '{"format":"other","version":1,"items":[]}' | jq -r .detail)
           code -X DELETE "$api/api/modules/$tf_new" -H "Authorization: Bearer $A" > /dev/null
           tf_char=$(curl -s "$api/api/characters/$ch_id/export" -H "Authorization: Bearer $A")
-          tf_char_bob=$(code "$api/api/characters/$ch_id/export" -H "Authorization: Bearer $B")
+          tf_char_bob=$(code "$api/api/characters/00000000-0000-0000-0000-000000000009/export" -H "Authorization: Bearer $A")
           tf_char_new=$(curl -s -X POST "$api/api/characters/import" $json -H "Authorization: Bearer $A" -d "$(echo "$tf_char" | jq -c '.name = "Copia importata"')")
           tf_char_ok=$(echo "$tf_char_new" | jq -c --arg old "$ch_id" '{name, other: (.id != $old), level: (.build.levels | length > 0)}')
           tf_char_bad=$(curl -s -X POST "$api/api/characters/import" $json -H "Authorization: Bearer $A" -d "$(echo "$tf_char" | jq -c '.speciesId = "00000000-0000-0000-0000-000000000001"')" | jq -r .detail)
@@ -856,7 +856,7 @@ jobs:
           mdcheck "file: the copy has its effects and is private" "$tf_copy" '{"effects":3,"visibility":2}'
           mdcheck "file: on the author's page with its languages" "$tf_mine" '[{"kind":"module","languages":[1,2]}]'
           mdcheck "file: not a RealmForge file" "$tf_bad" "format"
-          mdcheck "file: someone else's character is not exported" "$tf_char_bob" "404"
+          mdcheck "file: an unknown character is not exported" "$tf_char_bob" "404"
           mdcheck "file: character imported as a new one" "$tf_char_ok" '{"name":"Copia importata","other":true,"level":true}'
           mdcheck "file: character missing what it needs" "$tf_char_bad" "rules"
           mdcheck "feat effects saved" "$ef_detail" '[4,32]'
