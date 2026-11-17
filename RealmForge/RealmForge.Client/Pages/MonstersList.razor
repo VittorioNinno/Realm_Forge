@@ -159,6 +159,7 @@
                     {
                         <div class="small" style="color: var(--rf-text-muted);">@UiText.MonsterAuthor(detail.AuthorName, Lang)</div>
                     }
+                    <ForkBar Kind="monster" EntityId="detail.Id" />
                     @if (!detail.IsOfficialSRD)
                     {
                         <ShareLink Visibility="detail.Visibility" CanEdit="detail.CanEdit" EntityId="detail.Id" Path="@($"{PagePath}?id={detail.Id}")" />

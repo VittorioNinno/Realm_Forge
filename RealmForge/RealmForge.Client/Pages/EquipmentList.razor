@@ -278,6 +278,7 @@
 {
     <EquipmentInfoModal Item="detail" OnClose="CloseDetail">
         <Extra>
+            <ForkBar Kind="equipment" EntityId="detail.Id" />
             @if (!detail.IsOfficialSRD)
             {
                 <ShareLink Visibility="detail.Visibility" CanEdit="detail.CanEdit" EntityId="detail.Id" Path="@($"equipment?id={detail.Id}")" />
