@@ -14,6 +14,10 @@
     {
         <span class="small rf-fork-origin" data-test="fork-origin"><Icon Name="copy" /> @UiText.ForkBasedOn(Lang) <a href="@from.Link">@from.Name</a></span>
     }
+    @if (equivalent is { } other)
+    {
+        <span class="small rf-fork-origin" title="@UiText.EquivalentHint(Lang)" data-test="fork-equivalent"><Icon Name="arrow-left-right" /> @UiText.EquivalentIn(other.Ruleset, Lang) <a href="@other.Link" @onclick="() => Go(other.Link)" @onclick:preventDefault="true">@other.Name</a></span>
+    }
     @if (signedIn)
     {
         <button type="button" class="btn btn-sm btn-rf-outline ms-auto" disabled="@busy" title="@UiText.ForkHint(Lang)" @onclick="ForkAsync" data-test="fork-button">
@@ -31,6 +35,7 @@
     [Parameter, EditorRequired] public Guid EntityId { get; set; }
 
     private ContentOriginDto? origin;
+    private ContentEquivalentDto? equivalent;
     private Guid loadedFor;
     private bool signedIn;
     private bool busy;
@@ -47,8 +52,14 @@
         loadedFor = EntityId;
         error = null;
         signedIn = (await Auth.GetAuthenticationStateAsync()).User.Identity?.IsAuthenticated == true;
-        origin = (await Transfer.OriginAsync(Kind, EntityId, Lang)).Value;
+        var from = Transfer.OriginAsync(Kind, EntityId, Lang);
+        var other = Transfer.EquivalentAsync(Kind, EntityId, Lang);
+        origin = (await from).Value;
+        equivalent = await other;
     }
+
+    //	The detail pages read the entry from the address: a full load opens the other one
+    private void Go(string link) => Navigation.NavigateTo(link, forceLoad: true);
 
     private async Task ForkAsync()
     {

@@ -67,6 +67,20 @@ namespace RealmForge.Client.Services
 		public Task<TransferResult<bool>> DisableCollectionAsync(Guid campaignId, Guid collectionId) =>
 			SendAsync<bool>(() => _http.DeleteAsync($"api/campaigns/{campaignId}/collections/{collectionId}"), "disable collection");
 
+		//	The entry of the other edition (none: no answer)
+		public async Task<ContentEquivalentDto?> EquivalentAsync(string kind, Guid id, LanguageCode lang)
+		{
+			try
+			{
+				var response = await _http.GetAsync($"api/content/{kind}/{id}/equivalent?lang={(int)lang}");
+				return response.StatusCode == System.Net.HttpStatusCode.OK ? await response.Content.ReadFromJsonAsync<ContentEquivalentDto>() : null;
+			}
+			catch (Exception)
+			{
+				return null;
+			}
+		}
+
 		//	The entry this one was cloned from (none: no answer)
 		public async Task<TransferResult<ContentOriginDto>> OriginAsync(string kind, Guid id, LanguageCode lang)
 		{
