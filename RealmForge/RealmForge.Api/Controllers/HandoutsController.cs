@@ -7,6 +7,7 @@ using RealmForge.Infrastructure.Persistence;
 using RealmForge.Shared.Campaigns;
 using RealmForge.Shared.DTOs;
 using RealmForge.Shared.Enums;
+using RealmForge.Shared.Puzzles;
 
 namespace RealmForge.Api.Controllers
 {
@@ -126,6 +127,67 @@ namespace RealmForge.Api.Controllers
 			return NoContent();
 		}
 
+		//	GET: api/campaigns/{campaignId}/handouts/doors — the doors of the maps a riddle can open (masters)
+		[HttpGet("doors")]
+		public async Task<ActionResult<List<PuzzleDoorDto>>> Doors(Guid campaignId)
+		{
+			if (await CampaignAccess.RoleAsync(_context, campaignId, UserId) is not { } role)
+			{
+				return NotFound();
+			}
+			if (!CampaignRules.RunsTheTable(role))
+			{
+				return Forbid();
+			}
+			var doors = await _context.CampaignTokens.AsNoTracking()
+				.Where(t => t.Map.CampaignId == campaignId && t.Kind == TokenKind.Prop
+					&& (t.PropType == PropType.Door || t.PropType == PropType.Gate || t.PropType == PropType.Secret))
+				.Select(t => new { t.Id, Map = t.Map.Name, t.Label, t.PropType }).ToListAsync();
+			return Ok(doors.OrderBy(d => d.Map).ThenBy(d => d.Label)
+				.Select(d => new PuzzleDoorDto(d.Id, d.Map, d.Label.Length > 0 ? d.Label : d.PropType.ToString() ?? string.Empty)).ToList());
+		}
+
+		//	POST: api/campaigns/{campaignId}/handouts/{id}/solve — a member tries an answer; the right one solves the riddle
+		//	for everyone and opens its door
+		[HttpPost("{id:guid}/solve")]
+		public async Task<ActionResult<PuzzleResultDto>> Solve(Guid campaignId, Guid id, [FromBody] SolvePuzzleDto dto)
+		{
+			if (await CampaignAccess.RoleAsync(_context, campaignId, UserId) is not { } role)
+			{
+				return NotFound();
+			}
+			var runs = CampaignRules.RunsTheTable(role);
+			var handout = await _context.CampaignHandouts.FirstOrDefaultAsync(h => h.Id == id && h.CampaignId == campaignId && (runs || h.RevealedAt != null));
+			if (handout is null || string.IsNullOrWhiteSpace(handout.PuzzleAnswer))
+			{
+				return NotFound();
+			}
+			if (handout.SolvedAt is not null)
+			{
+				return Ok(new PuzzleResultDto(true, false, handout.SolvedAt));
+			}
+			if ((dto.Answer ?? string.Empty).Length > 200 || !Ciphers.Matches(dto.Answer, handout.PuzzleAnswer))
+			{
+				return Ok(new PuzzleResultDto(false, false, null));
+			}
+			var now = DateTimeOffset.UtcNow;
+			handout.SolvedAt = now;
+			handout.SolvedBy = (await PublicNames.LoadAsync(_context, new[] { UserId })).GetValueOrDefault(UserId);
+			handout.UpdatedAt = now;
+			var opened = false;
+			if (handout.PuzzleDoorId is { } doorId
+				&& await _context.CampaignTokens.Include(t => t.Map).FirstOrDefaultAsync(t => t.Id == doorId && t.Map.CampaignId == campaignId) is { } door
+				&& door.PropState != PropState.Open)
+			{
+				door.PropState = PropState.Open;
+				door.UpdatedAt = door.Map.UpdatedAt = now;
+				opened = true;
+			}
+			await WakeTableAsync(campaignId);
+			await _context.SaveChangesAsync();
+			return Ok(new PuzzleResultDto(true, opened, now));
+		}
+
 		//	POST: api/campaigns/{campaignId}/handouts/{id}/reveal — shown to the players now (again, when it was already)
 		[HttpPost("{id:guid}/reveal")]
 		public Task<IActionResult> Reveal(Guid campaignId, Guid id) => SetRevealedAsync(campaignId, id, true);
@@ -220,7 +282,7 @@ namespace RealmForge.Api.Controllers
 			var titleIt = (dto.TitleIt ?? string.Empty).Trim();
 			var titleEn = (dto.TitleEn ?? string.Empty).Trim();
 			if (titleIt.Length + titleEn.Length == 0 || titleIt.Length > 120 || titleEn.Length > 120
-				|| (dto.BodyIt ?? string.Empty).Length > 8000 || (dto.BodyEn ?? string.Empty).Length > 8000)
+				|| (dto.BodyIt ?? string.Empty).Length > 8000 || (dto.BodyEn ?? string.Empty).Length > 8000 || (dto.PuzzleAnswer ?? string.Empty).Length > 240)
 			{
 				return Problem(statusCode: StatusCodes.Status400BadRequest, title: "A title (up to 120 characters) and texts up to 8000 characters.");
 			}
@@ -234,6 +296,15 @@ namespace RealmForge.Api.Controllers
 			handout.BodyIt = (dto.BodyIt ?? string.Empty).Trim();
 			handout.BodyEn = (dto.BodyEn ?? string.Empty).Trim();
 			handout.ImageId = dto.ImageId;
+			var answer = string.Join('|', (dto.PuzzleAnswer ?? string.Empty).Split('|').Select(a => a.Trim()).Where(a => Ciphers.Normalize(a).Length > 0));
+			if (answer != (handout.PuzzleAnswer ?? string.Empty))
+			{
+				//	A new answer is a new riddle: unsolved again
+				handout.SolvedAt = null;
+				handout.SolvedBy = null;
+			}
+			handout.PuzzleAnswer = answer.Length > 0 ? answer : null;
+			handout.PuzzleDoorId = answer.Length > 0 ? dto.PuzzleDoorId : null;
 		}
 
 		//	The texts in the language asked, the other one when it has only that
@@ -243,9 +314,11 @@ namespace RealmForge.Api.Controllers
 			var it = lang == LanguageCode.It;
 			var title = it ? Pick(h.TitleIt, h.TitleEn) : Pick(h.TitleEn, h.TitleIt);
 			var body = it ? Pick(h.BodyIt, h.BodyEn) : Pick(h.BodyEn, h.BodyIt);
+			var puzzle = h.PuzzleAnswer is not null;
 			return runs
-				? new CampaignHandoutDto(h.Id, title, body, h.ImageId, h.RevealedAt, h.UpdatedAt, h.TitleIt, h.TitleEn, h.BodyIt, h.BodyEn)
-				: new CampaignHandoutDto(h.Id, title, body, h.ImageId, h.RevealedAt, h.UpdatedAt);
+				? new CampaignHandoutDto(h.Id, title, body, h.ImageId, h.RevealedAt, h.UpdatedAt, h.TitleIt, h.TitleEn, h.BodyIt, h.BodyEn,
+					Puzzle: puzzle, SolvedAt: h.SolvedAt, SolvedBy: h.SolvedBy, PuzzleAnswer: h.PuzzleAnswer, PuzzleDoorId: h.PuzzleDoorId)
+				: new CampaignHandoutDto(h.Id, title, body, h.ImageId, h.RevealedAt, h.UpdatedAt, Puzzle: puzzle, SolvedAt: h.SolvedAt, SolvedBy: h.SolvedBy);
 		}
 	}
 }

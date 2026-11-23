@@ -17,7 +17,12 @@ namespace RealmForge.Shared.DTOs
 		string? TitleEn = null,
 		string? BodyIt = null,
 		string? BodyEn = null,
-		bool IsScene = false);
+		bool IsScene = false,
+		bool Puzzle = false,
+		DateTimeOffset? SolvedAt = null,
+		string? SolvedBy = null,
+		string? PuzzleAnswer = null,
+		Guid? PuzzleDoorId = null);
 
 	public class SaveCampaignHandoutDto
 	{
@@ -26,7 +31,21 @@ namespace RealmForge.Shared.DTOs
 		public string BodyIt { get; set; } = string.Empty;
 		public string BodyEn { get; set; } = string.Empty;
 		public Guid? ImageId { get; set; }
+		//	A riddle: the answers accepted ("|" between them; empty: none) and the door it opens
+		public string? PuzzleAnswer { get; set; }
+		public Guid? PuzzleDoorId { get; set; }
 	}
+
+	public class SolvePuzzleDto
+	{
+		public string Answer { get; set; } = string.Empty;
+	}
+
+	//	Solved: right or wrong; Door: the door it opened
+	public record PuzzleResultDto(bool Solved, bool Door, DateTimeOffset? SolvedAt);
+
+	//	A door, gate or secret passage of the campaign's maps a riddle can open
+	public record PuzzleDoorDto(Guid Id, string Map, string Label);
 
 	//	The handout revealed last at a table: the players' screens open it when it is new to them
 	public record HandoutShownDto(Guid Id, DateTimeOffset RevealedAt);

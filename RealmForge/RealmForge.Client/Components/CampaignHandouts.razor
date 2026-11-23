@@ -38,6 +38,7 @@
                     </div>
                 </div>
                 <span class="small" style="color: var(--rf-text-muted);">@UiText.HandoutLanguagesHint(Lang)</span>
+                <RiddleLab CampaignId="CampaignId" Draft="draft" OnChanged="StateHasChanged" />
                 <label class="rf-form-label mb-0">@UiText.HandoutImage(Lang)</label>
                 <ImagePicker Selected="draft.ImageId" Name="@(draft.TitleIt.Length > 0 ? draft.TitleIt : draft.TitleEn)" OnPick="id => draft!.ImageId = id" />
                 @if (error is not null)
@@ -77,7 +78,13 @@
                             <span class="rf-handout-icon"><Icon Name="file-text" /></span>
                         }
                         <span class="rf-handout-row-text">
-                            <strong>@handout.Title</strong>
+                            <strong>
+                                @handout.Title
+                                @if (handout.Puzzle)
+                                {
+                                    <span class="rf-riddle-badge @(handout.SolvedAt is null ? null : "solved")" data-test="handout-puzzle"><Icon Name="@(handout.SolvedAt is null ? "puzzle" : "unlock")" /></span>
+                                }
+                            </strong>
                             <span class="small">@(handout.RevealedAt is { } at ? UiText.HandoutRevealedAt(at, Lang) : UiText.HandoutHidden(Lang))</span>
                         </span>
                     </button>
@@ -105,7 +112,7 @@
 
 @if (reading is not null)
 {
-    <HandoutView Handout="reading" OnClose="() => reading = null" />
+    <HandoutView Handout="reading" CampaignId="CampaignId" OnClose="() => reading = null" OnSolved="LoadAsync" />
 }
 
 @code {
@@ -145,7 +152,7 @@
 
     private void Edit(CampaignHandoutDto h)
     {
-        draft = new SaveCampaignHandoutDto { TitleIt = h.TitleIt ?? string.Empty, TitleEn = h.TitleEn ?? string.Empty, BodyIt = h.BodyIt ?? string.Empty, BodyEn = h.BodyEn ?? string.Empty, ImageId = h.ImageId };
+        draft = new SaveCampaignHandoutDto { TitleIt = h.TitleIt ?? string.Empty, TitleEn = h.TitleEn ?? string.Empty, BodyIt = h.BodyIt ?? string.Empty, BodyEn = h.BodyEn ?? string.Empty, ImageId = h.ImageId, PuzzleAnswer = h.PuzzleAnswer, PuzzleDoorId = h.PuzzleDoorId };
         editingId = h.Id;
         error = null;
     }

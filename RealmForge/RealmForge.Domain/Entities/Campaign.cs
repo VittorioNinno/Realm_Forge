@@ -167,6 +167,13 @@ namespace RealmForge.Domain.Entities
 
 		//	When it was shown to the players (null: still hidden)
 		public DateTimeOffset? RevealedAt { get; set; }
+
+		//	A riddle or a cipher to solve: the answers accepted ("|" between them), the door (a prop token) it opens, and
+		//	who solved it and when
+		public string? PuzzleAnswer { get; set; }
+		public Guid? PuzzleDoorId { get; set; }
+		public DateTimeOffset? SolvedAt { get; set; }
+		public string? SolvedBy { get; set; }
 		public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
 		public DateTimeOffset UpdatedAt { get; set; } = DateTimeOffset.UtcNow;
 	}
