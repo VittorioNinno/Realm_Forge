@@ -117,6 +117,75 @@ namespace RealmForge.Api.Controllers
 		}
 
 		//	PUT: api/campaigns/{campaignId}/shops/{id}
+		//	POST: api/campaigns/{campaignId}/shops/generate?lang=2 — a procedural shop or tavern: name, keeper, look, prices and
+		//	shelves filled from the official compendium (closed, for the master to look over before opening it)
+		[HttpPost("generate")]
+		public async Task<ActionResult<CampaignShopDto>> Generate(Guid campaignId, [FromBody] GenerateShopDto dto, [FromQuery] LanguageCode lang = LanguageCode.It)
+		{
+			if (await MasterAsync(campaignId) is { } denied)
+			{
+				return denied;
+			}
+			if (!Enum.IsDefined(dto.Kind))
+			{
+				return Problem(statusCode: StatusCodes.Status400BadRequest, title: "Unknown kind of shop.");
+			}
+			if (await _context.CampaignShops.CountAsync(s => s.CampaignId == campaignId) >= MaxShops)
+			{
+				return Problem(statusCode: StatusCodes.Status400BadRequest, title: $"At most {MaxShops} shops per campaign.");
+			}
+			var random = dto.Seed is { } seed ? new Random(seed) : Random.Shared;
+			var plan = ShopGenerator.For(dto.Kind, random);
+			var shop = new CampaignShop
+			{
+				CampaignId = campaignId, AuthorId = UserId, NameIt = plan.NameIt, NameEn = plan.NameEn,
+				DescriptionIt = plan.DescriptionIt, DescriptionEn = plan.DescriptionEn, PricePercent = plan.PricePercent, Open = false
+			};
+			var en = lang == LanguageCode.En;
+			var categories = plan.Stock.Categories;
+			if (plan.Stock.Mundane > 0 && categories.Length > 0)
+			{
+				var pool = await _context.Equipment.AsNoTracking().Include(e => e.Translations)
+					.Where(e => e.IsOfficialSRD && categories.Contains(e.Category) && e.CostInCopper != null && e.CostInCopper > 0).ToListAsync();
+				foreach (var equipment in pool.OrderBy(_ => random.Next()).Take(plan.Stock.Mundane).OrderBy(e => e.CostInCopper))
+				{
+					shop.Items.Add(new CampaignShopItem
+					{
+						EquipmentId = equipment.Id, Name = Pick(equipment.Translations, LanguageCode.En)?.Name ?? string.Empty,
+						PriceInCopper = equipment.CostInCopper ?? 0
+					});
+				}
+			}
+			if (plan.Stock.Magic > 0)
+			{
+				var types = plan.Stock.MagicTypes;
+				var rarities = plan.Stock.Rarities.Cast<ItemRarity?>().ToArray();
+				var pool = await _context.MagicItems.AsNoTracking().Include(m => m.Translations)
+					.Where(m => m.IsOfficialSRD && m.ParentId == null && types.Contains(m.Type) && rarities.Contains(m.Rarity)).ToListAsync();
+				foreach (var magic in pool.OrderBy(_ => random.Next()).Take(plan.Stock.Magic))
+				{
+					if (RarityPrice(magic.Rarity) is not { } gold)
+					{
+						continue;
+					}
+					shop.Items.Add(new CampaignShopItem
+					{
+						MagicItemId = magic.Id, Name = Pick(magic.Translations, LanguageCode.En)?.Name ?? string.Empty,
+						PriceInCopper = gold * 100, Stock = 1 + random.Next(3)
+					});
+				}
+			}
+			foreach (var extra in plan.Extras)
+			{
+				shop.Items.Add(new CampaignShopItem { Name = en ? extra.En : extra.It, PriceInCopper = extra.PriceInCopper });
+			}
+			_context.CampaignShops.Add(shop);
+			await _context.SaveChangesAsync();
+			var names = await NamesAsync(shop.Items, lang);
+			await LoadFactionsAsync(campaignId);
+			return Ok(ToDto(shop, lang, true, names));
+		}
+
 		[HttpPut("{id:guid}")]
 		public async Task<IActionResult> UpdateShop(Guid campaignId, Guid id, [FromBody] SaveCampaignShopDto dto)
 		{

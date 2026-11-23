@@ -49,5 +49,24 @@ namespace RealmForge.Client.Localization
 				.Where(p => p.Amount > 0).Select(p => $"{p.Amount} {CoinName(p.Type, lang)}").ToList();
 			return parts.Count == 0 ? T(lang, "borsa vuota", "empty purse") : string.Join(" · ", parts);
 		}
+
+		//	The shop generator
+		public static string ShopOr(LanguageCode lang) => T(lang, "oppure", "or");
+		public static string ShopGenerateKind(LanguageCode lang) => T(lang, "Tipo di negozio", "Kind of shop");
+		public static string ShopGenerate(LanguageCode lang) => T(lang, "Genera", "Generate");
+		public static string ShopGenerateHint(LanguageCode lang) => T(lang,
+			"Nome, gestore, atmosfera, prezzi e scaffali presi dal compendio ufficiale: il negozio nasce chiuso, per controllarlo prima di aprirlo",
+			"Name, keeper, atmosphere, prices and shelves from the official compendium: the shop starts closed, to check it before opening");
+		public static string ShopGenerated(string name, int items, LanguageCode lang) => T(lang,
+			$"Creato «{name}» con {items} articoli (chiuso).", $"Made “{name}” with {items} items (closed).");
+		public static string ShopKindName(RealmForge.Shared.Campaigns.ShopKind kind, LanguageCode lang) => kind switch
+		{
+			RealmForge.Shared.Campaigns.ShopKind.Blacksmith => T(lang, "Fabbro", "Blacksmith"),
+			RealmForge.Shared.Campaigns.ShopKind.Armorer => T(lang, "Armaiolo", "Armorer"),
+			RealmForge.Shared.Campaigns.ShopKind.Alchemist => T(lang, "Alchimista", "Alchemist"),
+			RealmForge.Shared.Campaigns.ShopKind.Arcane => T(lang, "Bottega arcana", "Arcane shop"),
+			RealmForge.Shared.Campaigns.ShopKind.Tavern => T(lang, "Taverna", "Tavern"),
+			_ => T(lang, "Emporio", "General store")
+		};
 	}
 }
