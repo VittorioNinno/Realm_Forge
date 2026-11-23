@@ -21139,3 +21139,48 @@ button.rf-vtt-clock.on {
 .rf-fx-chip-radiant { --chip: #ffd60a; }
 .rf-fx-chip-heal { --chip: #4ade80; }
 .rf-fx-chip-crit { --chip: #facc15; }
+
+/* ===== Aiming on the table: distance, range and cover on each possible target ===== */
+.rf-vtt-aim-tag {
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    z-index: 25;
+    margin-top: calc(4px / var(--rf-zoom, 1));
+    padding: 0 calc(8px / var(--rf-zoom, 1));
+    border-radius: calc(8px / var(--rf-zoom, 1));
+    border: 1px solid var(--aim, #4ade80);
+    background-color: rgba(10, 10, 10, .9);
+    color: var(--aim, #4ade80);
+    font-size: calc(12px / var(--rf-zoom, 1));
+    font-weight: 700;
+    line-height: 1.6;
+    white-space: nowrap;
+    transform: translateX(-50%);
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity .15s ease;
+}
+
+    .rf-vtt-aim-tag.far {
+        --aim: #facc15;
+    }
+
+    .rf-vtt-aim-tag.cover {
+        --aim: #7cc4ff;
+    }
+
+    .rf-vtt-aim-tag.out {
+        --aim: #f87171;
+    }
+
+/* On the target under the pointer; on a touch screen, on every target */
+.rf-vtt-token:hover .rf-vtt-aim-tag {
+    opacity: 1;
+}
+
+@media (hover: none) {
+    .rf-vtt-aim-tag {
+        opacity: 1;
+    }
+}
