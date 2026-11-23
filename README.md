@@ -134,6 +134,8 @@ The table of a campaign, on its own page: the master prepares the maps away from
 **Soundboard · *Soundboard sincronizzata***
 - In the table's Soundboard drawer the master keeps links to audio files or streams hosted elsewhere (https, nothing is uploaded): tracks that loop (music, ambience) and one-shot effects. Playing one reaches every screen at the table: the track in time with its start, the effect once. Each player turns the sound on with one click (browsers require it) and can mute it just for themselves.
   *Nel cassetto Soundboard del tavolo il master tiene link a file audio o stream ospitati altrove (https, nulla viene caricato): tracce in loop (musica, ambiente) ed effetti singoli. Avviarne uno raggiunge tutti gli schermi del tavolo: la traccia sincronizzata con il suo inizio, l'effetto una volta. Ogni giocatore attiva l'audio con un clic (lo richiedono i browser) e può silenziarlo solo per sé.*
+- Sound scenes put a track, up to four ambience loops (rain, crowd, fire) and an opening effect together, started with one click; the loops fade in and out. A scene tied to a map starts by itself when the master shows that map to the players.
+  *Le scene sonore uniscono una traccia, fino a quattro loop d'ambiente (pioggia, folla, fuoco) e un effetto iniziale, avviati con un clic; i loop entrano ed escono in dissolvenza. Una scena collegata a una mappa parte da sola quando il master mostra quella mappa ai giocatori.*
 
 **2014 ↔ 2024 equivalences · *Equivalenze 2014 ↔ 2024***
 - The detail pages of the compendium (and of Homebrew) suggest the corresponding entry of the other edition, by its English name ("Melf's Acid Arrow" finds "Acid Arrow" too): one click moves from a 2014 spell, monster or item to its 2024 version and back.

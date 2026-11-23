@@ -233,6 +233,8 @@ namespace RealmForge.Api.Controllers
 			}
 			map.Shown = true;
 			map.UpdatedAt = now;
+			//	The sound scene tied to the map starts with it
+			await SoundsController.StartForMapAsync(_context, await _context.Campaigns.FirstAsync(c => c.Id == campaignId), mapId);
 			await _context.SaveChangesAsync();
 			return NoContent();
 		}
@@ -268,6 +270,10 @@ namespace RealmForge.Api.Controllers
 			if (!CampaignRules.RunsTheTable(role.Value))
 			{
 				return Forbid();
+			}
+			foreach (var scene in await _context.CampaignSoundScenes.Where(s => s.MapId == map.Id).ToListAsync())
+			{
+				scene.MapId = null;
 			}
 			_context.CampaignMaps.Remove(map);
 			await _context.SaveChangesAsync();

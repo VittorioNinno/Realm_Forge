@@ -44,6 +44,10 @@ namespace RealmForge.Domain.Entities
 		//	The party's chest: the coins not shared out yet (JSON of a CoinPurse)
 		public string? TreasureCoins { get; set; }
 		public DateTimeOffset? SoundCueAt { get; set; }
+		//	The ambience loops of the sound scene playing (ids of CampaignSound, comma separated) and the scene itself;
+		//	they start with the track (SoundTrackAt)
+		public string? SoundLayers { get; set; }
+		public Guid? SoundSceneId { get; set; }
 
 		public ICollection<CampaignMember> Members { get; set; } = new List<CampaignMember>();
 		public ICollection<CampaignInvite> Invites { get; set; } = new List<CampaignInvite>();
@@ -220,6 +224,23 @@ namespace RealmForge.Domain.Entities
 	///	A sound of the soundboard: a link to an audio file or stream hosted elsewhere, a track that loops (music,
 	///	ambience) or a one-shot effect, with its volume.
 	///	</summary>
+	///	<summary>
+	///	A sound scene: a track, up to four ambience loops played over it and an effect at the start, all with one click;
+	///	tied to a map, it starts when the master shows that map to the players.
+	///	</summary>
+	public class CampaignSoundScene
+	{
+		public Guid Id { get; set; } = Guid.NewGuid();
+		public Guid CampaignId { get; set; }
+		public string Name { get; set; } = string.Empty;
+		public Guid? TrackId { get; set; }
+		//	Ids of CampaignSound, comma separated
+		public string Layers { get; set; } = string.Empty;
+		public Guid? CueId { get; set; }
+		public Guid? MapId { get; set; }
+		public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
+	}
+
 	public class CampaignSound
 	{
 		public Guid Id { get; set; } = Guid.NewGuid();
