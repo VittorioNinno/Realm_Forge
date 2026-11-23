@@ -877,6 +877,26 @@ jobs:
           tr_split=$(curl -s -X POST "$api/api/campaigns/$cp_id/treasure/split" $json -H "Authorization: Bearer $B" -d "{\"characterIds\":[\"$sp_ch\"]}" | jq -c '{gp: .each.gp, sp: .each.sp, cp: .each.cp, characters}')
           tr_purse=$(get "$api/api/characters/$sp_ch" -H "Authorization: Bearer $A" | jq -c '.sheet.coins | {gp, sp, cp}')
           tr_emptied=$(curl -s "$api/api/campaigns/$cp_id/treasure" -H "Authorization: Bearer $A" | jq -c '.coins | {gp, sp, cp}')
+          # Progress clocks and factions: a hidden clock that fills one segment per game hour, a faction whose standing moves the
+          # prices of the shop tied to it
+          pg_player=$(code -X POST "$api/api/campaigns/$cp_id/progress/clocks" $json -H "Authorization: Bearer $A" -d '{"name":"Mio","segments":4}')
+          pg_bad=$(code -X POST "$api/api/campaigns/$cp_id/progress/clocks" $json -H "Authorization: Bearer $B" -d '{"name":"Strano","segments":5}')
+          pg_clock=$(curl -s -X POST "$api/api/campaigns/$cp_id/progress/clocks" $json -H "Authorization: Bearer $B" -d '{"name":"Il rituale","segments":4,"shown":false,"tickHours":1}' | jq -r .id)
+          pg_hidden=$(curl -s "$api/api/campaigns/$cp_id/progress" -H "Authorization: Bearer $A" | jq '.clocks | length')
+          code -X POST "$api/api/campaigns/$cp_id/clock" $json -H "Authorization: Bearer $B" -d '{"minutes":180}' > /dev/null
+          pg_ticked=$(curl -s "$api/api/campaigns/$cp_id/progress" -H "Authorization: Bearer $B" | jq -c '[.clocks[] | {name, filled}]')
+          pg_full=$(curl -s -X POST "$api/api/campaigns/$cp_id/progress/clocks/$pg_clock/step" $json -H "Authorization: Bearer $B" -d '{"delta":5}' | jq .filled)
+          pg_faction=$(curl -s -X POST "$api/api/campaigns/$cp_id/progress/factions" $json -H "Authorization: Bearer $B" -d '{"name":"Gilda dei ladri","standing":-2,"shown":true}' | jq -r .id)
+          pg_shop_bad=$(code -X POST "$api/api/campaigns/$cp_id/shops" $json -H "Authorization: Bearer $B" -d "{\"nameIt\":\"Ricettatore\",\"pricePercent\":100,\"open\":true,\"factionId\":\"$(uuidgen)\"}")
+          pg_shop=$(curl -s -X POST "$api/api/campaigns/$cp_id/shops" $json -H "Authorization: Bearer $B" -d "{\"nameIt\":\"Ricettatore\",\"pricePercent\":100,\"open\":true,\"factionId\":\"$pg_faction\"}" | jq -r .id)
+          code -X POST "$api/api/campaigns/$cp_id/shops/$pg_shop/items" $json -H "Authorization: Bearer $B" -d '{"name":"Grimaldello","priceInCopper":100}' > /dev/null
+          pg_hostile=$(curl -s "$api/api/campaigns/$cp_id/shops" -H "Authorization: Bearer $A" | jq -c --arg s "$pg_shop" '.shops[] | select(.id == $s) | {faction, effectivePercent, price: .items[0].price}')
+          code -X POST "$api/api/campaigns/$cp_id/progress/factions/$pg_faction/step" $json -H "Authorization: Bearer $B" -d '{"delta":4}' > /dev/null
+          pg_friend=$(curl -s "$api/api/campaigns/$cp_id/shops" -H "Authorization: Bearer $A" | jq -c --arg s "$pg_shop" '.shops[] | select(.id == $s) | {effectivePercent, price: .items[0].price}')
+          pg_seen=$(curl -s "$api/api/campaigns/$cp_id/progress" -H "Authorization: Bearer $A" | jq -c '[.factions[] | {name, standing, pricePercent}]')
+          code -X DELETE "$api/api/campaigns/$cp_id/progress/factions/$pg_faction" -H "Authorization: Bearer $B" > /dev/null
+          pg_untied=$(curl -s "$api/api/campaigns/$cp_id/shops" -H "Authorization: Bearer $A" | jq -c --arg s "$pg_shop" '.shops[] | select(.id == $s) | {factionId, effectivePercent}')
+          code -X DELETE "$api/api/campaigns/$cp_id/shops/$pg_shop" -H "Authorization: Bearer $B" > /dev/null
           code -X DELETE "$api/api/campaigns/$cp_id/characters/$sp_ch" -H "Authorization: Bearer $A" > /dev/null
           code -X DELETE "$api/api/characters/$sp_ch" -H "Authorization: Bearer $A" > /dev/null
           code -X DELETE "$api/api/trash/$(get "$api/api/trash?lang=2" -H "Authorization: Bearer $A" | jq -r --arg id "$sp_ch" '.[] | select(.entityId == $id) | .id')" -H "Authorization: Bearer $A" > /dev/null
@@ -985,6 +1005,11 @@ jobs:
           mdcheck "clock: two days without rations" "$ck_hungry" '{"days":2,"hungry":[2]}'
           mdcheck "clock: a sheet saved from before keeps the server's inventory" "$ck_stale" '{"inventory":0}'
           mdcheck "clock: set to a time" "$ck_set" "1230"
+          mdcheck "progress: only masters add clocks, of 4, 6, 8 or 12 segments" "$pg_player|$pg_bad" "403|400"
+          mdcheck "progress: a hidden clock fills with the game time" "$pg_hidden|$pg_ticked|$pg_full" '0|[{"name":"Il rituale","filled":3}]|4'
+          mdcheck "progress: a hostile faction raises the prices of its shop" "$pg_shop_bad|$pg_hostile" '400|{"faction":"Gilda dei ladri","effectivePercent":125,"price":125}'
+          mdcheck "progress: a friendly faction lowers them" "$pg_friend|$pg_seen" '{"effectivePercent":90,"price":90}|[{"name":"Gilda dei ladri","standing":2,"pricePercent":90}]'
+          mdcheck "progress: a deleted faction leaves its shop at its own prices" "$pg_untied" '{"factionId":null,"effectivePercent":100}'
           mdcheck "treasure: only masters set the coins" "$tr_player_coins|$tr_coins" "403|204"
           mdcheck "treasure: unidentified, the players see only its look" "$tr_seen" '{"gp":10,"item":{"name":"Fiala rossa","identified":false,"entryId":null,"value":null,"appearance":"Un liquido rosso che brilla","trueName":null}}'
           mdcheck "treasure: the masters see what it is" "$tr_master" '{"trueName":"Pozione di guarigione superiore","value":400000}'

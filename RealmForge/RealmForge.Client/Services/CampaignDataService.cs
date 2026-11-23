@@ -177,6 +177,34 @@ namespace RealmForge.Client.Services
 		public Task<(ClockMovedDto? Value, string? Error)> MoveClockAsync(Guid id, MoveClockDto dto) =>
 			TableAsync<ClockMovedDto>(() => _http.PostAsJsonAsync($"api/campaigns/{id}/clock", dto), "move clock");
 
+		// ----- Progress clocks and factions -----
+
+		public Task<CampaignProgressDto?> GetProgressAsync(Guid id) => GetAsync<CampaignProgressDto>($"api/campaigns/{id}/progress");
+
+		public Task<(ProgressClockDto? Value, string? Error)> AddProgressClockAsync(Guid id, SaveProgressClockDto dto) =>
+			TableAsync<ProgressClockDto>(() => _http.PostAsJsonAsync($"api/campaigns/{id}/progress/clocks", dto), "add clock");
+
+		public Task<CampaignResult> UpdateProgressClockAsync(Guid id, Guid clockId, SaveProgressClockDto dto) =>
+			SendAsync(() => _http.PutAsJsonAsync($"api/campaigns/{id}/progress/clocks/{clockId}", dto), "update clock");
+
+		public Task<(ProgressClockDto? Value, string? Error)> StepProgressClockAsync(Guid id, Guid clockId, int delta) =>
+			TableAsync<ProgressClockDto>(() => _http.PostAsJsonAsync($"api/campaigns/{id}/progress/clocks/{clockId}/step", new StepDto { Delta = delta }), "step clock");
+
+		public Task<CampaignResult> DeleteProgressClockAsync(Guid id, Guid clockId) =>
+			SendAsync(() => _http.DeleteAsync($"api/campaigns/{id}/progress/clocks/{clockId}"), "delete clock");
+
+		public Task<(FactionDto? Value, string? Error)> AddFactionAsync(Guid id, SaveFactionDto dto) =>
+			TableAsync<FactionDto>(() => _http.PostAsJsonAsync($"api/campaigns/{id}/progress/factions", dto), "add faction");
+
+		public Task<CampaignResult> UpdateFactionAsync(Guid id, Guid factionId, SaveFactionDto dto) =>
+			SendAsync(() => _http.PutAsJsonAsync($"api/campaigns/{id}/progress/factions/{factionId}", dto), "update faction");
+
+		public Task<(FactionDto? Value, string? Error)> StepFactionAsync(Guid id, Guid factionId, int delta) =>
+			TableAsync<FactionDto>(() => _http.PostAsJsonAsync($"api/campaigns/{id}/progress/factions/{factionId}/step", new StepDto { Delta = delta }), "step faction");
+
+		public Task<CampaignResult> DeleteFactionAsync(Guid id, Guid factionId) =>
+			SendAsync(() => _http.DeleteAsync($"api/campaigns/{id}/progress/factions/{factionId}"), "delete faction");
+
 		public Task<CampaignTreasureDto?> GetTreasureAsync(Guid id, LanguageCode lang) =>
 			GetAsync<CampaignTreasureDto>($"api/campaigns/{id}/treasure?lang={(int)lang}");
 

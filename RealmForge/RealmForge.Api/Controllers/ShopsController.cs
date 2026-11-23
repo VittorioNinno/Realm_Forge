@@ -41,6 +41,17 @@ namespace RealmForge.Api.Controllers
 
 		private string UserId => ContentAccess.GetUserId(User) ?? string.Empty;
 
+		//	The factions of the campaign of this request (name and standing), read once
+		private Dictionary<Guid, (string Name, int Standing)> factions = new();
+
+		private async Task LoadFactionsAsync(Guid campaignId) =>
+			factions = await _context.CampaignFactions.AsNoTracking().Where(f => f.CampaignId == campaignId)
+				.ToDictionaryAsync(f => f.Id, f => (f.Name, f.Standing));
+
+		//	The prices of a shop, moved by the standing of its faction
+		private int PercentOf(CampaignShop shop) =>
+			FactionRules.Effective(shop.PricePercent, shop.FactionId is { } f && factions.TryGetValue(f, out var faction) ? faction.Standing : null);
+
 		//	The usual price of a magic item of each rarity, in gold pieces (the masters change it item by item)
 		public static int? RarityPrice(ItemRarity? rarity) => rarity switch
 		{
@@ -70,6 +81,7 @@ namespace RealmForge.Api.Controllers
 				.OrderBy(s => s.CreatedAt)
 				.ToListAsync();
 			var names = await NamesAsync(shops.SelectMany(s => s.Items), lang);
+			await LoadFactionsAsync(campaignId);
 			var buyers = await BuyersQuery(campaignId, runs).OrderBy(c => c.Name).ToListAsync();
 			return Ok(new CampaignShopsDto(
 				shops.Select(s => ToDto(s, lang, runs, names)).ToList(),
@@ -92,6 +104,11 @@ namespace RealmForge.Api.Controllers
 			{
 				return Problem(statusCode: StatusCodes.Status400BadRequest, title: $"At most {MaxShops} shops per campaign.");
 			}
+			await LoadFactionsAsync(campaignId);
+			if (dto.FactionId is { } factionId && !factions.ContainsKey(factionId))
+			{
+				return Problem(statusCode: StatusCodes.Status400BadRequest, title: "Unknown faction.");
+			}
 			var shop = new CampaignShop { CampaignId = campaignId, AuthorId = UserId };
 			Apply(shop, dto);
 			_context.CampaignShops.Add(shop);
@@ -111,6 +128,11 @@ namespace RealmForge.Api.Controllers
 			if (Validate(dto) is { } invalid)
 			{
 				return invalid;
+			}
+			await LoadFactionsAsync(campaignId);
+			if (dto.FactionId is { } factionId && !factions.ContainsKey(factionId))
+			{
+				return Problem(statusCode: StatusCodes.Status400BadRequest, title: "Unknown faction.");
 			}
 			Apply(shop, dto);
 			shop.UpdatedAt = DateTimeOffset.UtcNow;
@@ -196,7 +218,8 @@ namespace RealmForge.Api.Controllers
 			shop.UpdatedAt = DateTimeOffset.UtcNow;
 			await _context.SaveChangesAsync();
 			var names = await NamesAsync(new[] { item }, lang);
-			return Ok(ItemDto(item, shop.PricePercent, names));
+			await LoadFactionsAsync(campaignId);
+			return Ok(ItemDto(item, PercentOf(shop), names));
 		}
 
 		//	PUT: api/campaigns/{campaignId}/shops/{id}/items/{itemId} — its price and stock (a free item: its name too)
@@ -278,7 +301,8 @@ namespace RealmForge.Api.Controllers
 				return Problem(statusCode: StatusCodes.Status409Conflict, title: "Not enough pieces in stock.");
 			}
 			var sheet = CharactersController.ReadSheet(character.Sheet);
-			var total = (int)Math.Min(int.MaxValue, (long)PriceOf(item.PriceInCopper, shop.PricePercent) * dto.Quantity);
+			await LoadFactionsAsync(campaignId);
+			var total = (int)Math.Min(int.MaxValue, (long)PriceOf(item.PriceInCopper, PercentOf(shop)) * dto.Quantity);
 			if (!InventoryRules.Pay(sheet.Coins, total))
 			{
 				return Problem(statusCode: StatusCodes.Status409Conflict, title: "Not enough coins.");
@@ -371,6 +395,7 @@ namespace RealmForge.Api.Controllers
 			shop.DescriptionIt = (dto.DescriptionIt ?? string.Empty).Trim();
 			shop.DescriptionEn = (dto.DescriptionEn ?? string.Empty).Trim();
 			shop.PricePercent = dto.PricePercent;
+			shop.FactionId = dto.FactionId;
 			shop.Open = dto.Open;
 		}
 
@@ -379,13 +404,14 @@ namespace RealmForge.Api.Controllers
 		private CampaignShopDto ToDto(CampaignShop s, LanguageCode lang, bool runs, Dictionary<Guid, string> names)
 		{
 			var en = lang == LanguageCode.En;
-			var items = s.Items.OrderBy(i => i.CreatedAt).Select(i => ItemDto(i, s.PricePercent, names)).ToList();
+			var items = s.Items.OrderBy(i => i.CreatedAt).Select(i => ItemDto(i, PercentOf(s), names)).ToList();
 			return new CampaignShopDto(
 				s.Id,
 				en ? Either(s.NameEn, s.NameIt) : Either(s.NameIt, s.NameEn),
 				en ? Either(s.DescriptionEn, s.DescriptionIt) : Either(s.DescriptionIt, s.DescriptionEn),
 				s.PricePercent, s.Open, items,
-				runs ? s.NameIt : null, runs ? s.NameEn : null, runs ? s.DescriptionIt : null, runs ? s.DescriptionEn : null);
+				runs ? s.NameIt : null, runs ? s.NameEn : null, runs ? s.DescriptionIt : null, runs ? s.DescriptionEn : null,
+				s.FactionId, s.FactionId is { } f && factions.TryGetValue(f, out var faction) ? faction.Name : null, PercentOf(s));
 		}
 
 		private static ShopItemDto ItemDto(CampaignShopItem i, int percent, Dictionary<Guid, string> names) => new(
