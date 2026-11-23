@@ -984,6 +984,10 @@ namespace RealmForge.Infrastructure.Migrations
                     b.Property<int>("Kind")
                         .HasColumnType("integer");
 
+                    b.Property<string>("Secret")
+                        .HasMaxLength(4000)
+                        .HasColumnType("character varying(4000)");
+
                     b.Property<string>("Title")
                         .IsRequired()
                         .HasMaxLength(120)
