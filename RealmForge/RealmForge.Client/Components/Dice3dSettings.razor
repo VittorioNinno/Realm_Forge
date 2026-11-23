@@ -1,0 +1,101 @@
+﻿@using RealmForge.Client.Localization
+@using RealmForge.Client.Services
+@using RealmForge.Shared.Enums
+@inject Dice3dService Dice3d
+@inject LanguageStateService LanguageState
+
+@* The 3D dice of this device: on or off, colour, material, sound and the rolls of the others at the table; a test
+   throw shows the choice at once *@
+<div class="rf-account-card mb-3" data-test="account-dice3d">
+    <div class="rf-account-card-title">@UiText.Dice3dTitle(Lang)</div>
+    <p class="small mb-3" style="color: var(--rf-text-secondary);">@UiText.Dice3dHint(Lang)</p>
+    @if (settings is null)
+    {
+        <span class="small" style="color: var(--rf-text-muted);">…</span>
+    }
+    else
+    {
+        @if (!available)
+        {
+            <p class="small text-warning mb-3" data-test="dice3d-unavailable">@UiText.Dice3dUnavailable(Lang)</p>
+        }
+        <div class="rf-dice3d-settings">
+            <label class="form-check form-switch d-flex align-items-center gap-2 mb-0">
+                <input type="checkbox" class="form-check-input" checked="@settings.Enabled" @onchange="e => SetAsync(s => s.Enabled = e.Value is true)" data-test="dice3d-enabled" />
+                <span>@UiText.Dice3dEnabled(Lang)</span>
+            </label>
+
+            <div class="rf-dice3d-row">
+                <span class="rf-mini-label">@UiText.Dice3dColor(Lang)</span>
+                <div class="rf-dice3d-swatches" role="radiogroup" aria-label="@UiText.Dice3dColor(Lang)">
+                    @foreach (var c in Dice3dService.Colors)
+                    {
+                        var color = c;
+                        <button type="button" role="radio" aria-checked="@(settings.Color == color ? "true" : "false")" title="@UiText.Dice3dColorName(color, Lang)"
+                                aria-label="@UiText.Dice3dColorName(color, Lang)" class="rf-dice3d-swatch rf-dice3d-swatch-@color @(settings.Color == color ? "on" : null)"
+                                @onclick="() => SetAsync(s => s.Color = color)" data-test="dice3d-color"></button>
+                    }
+                </div>
+            </div>
+
+            <div class="rf-dice3d-row">
+                <label class="rf-mini-label" for="dice3d-material">@UiText.Dice3dMaterial(Lang)</label>
+                <select id="dice3d-material" class="rf-form-control" value="@settings.Material" @onchange="e => SetAsync(s => s.Material = e.Value?.ToString() ?? s.Material)" data-test="dice3d-material">
+                    @foreach (var m in Dice3dService.Materials)
+                    {
+                        <option value="@m">@UiText.Dice3dMaterialName(m, Lang)</option>
+                    }
+                </select>
+            </div>
+
+            <label class="form-check form-switch d-flex align-items-center gap-2 mb-0">
+                <input type="checkbox" class="form-check-input" checked="@settings.Sound" @onchange="e => SetAsync(s => s.Sound = e.Value is true)" data-test="dice3d-sound" />
+                <span>@UiText.Dice3dSound(Lang)</span>
+            </label>
+            <label class="form-check form-switch d-flex align-items-center gap-2 mb-0">
+                <input type="checkbox" class="form-check-input" checked="@settings.Others" @onchange="e => SetAsync(s => s.Others = e.Value is true)" data-test="dice3d-others" />
+                <span>@UiText.Dice3dOthers(Lang)</span>
+            </label>
+
+            <button type="button" class="btn btn-sm btn-rf-outline align-self-start" disabled="@(!available || !settings.Enabled || testing)" @onclick="TestAsync" data-test="dice3d-test">
+                <Icon Name="dice-5" /> @UiText.Dice3dTest(Lang)
+            </button>
+        </div>
+    }
+</div>
+
+@code {
+    private Dice3dService.Settings? settings;
+    private bool available;
+    private bool testing;
+
+    private LanguageCode Lang => LanguageState.CurrentLanguage;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            available = await Dice3d.AvailableAsync();
+            settings = await Dice3d.GetAsync();
+            StateHasChanged();
+        }
+    }
+
+    private async Task SetAsync(Action<Dice3dService.Settings> change)
+    {
+        if (settings is null)
+        {
+            return;
+        }
+        change(settings);
+        settings = await Dice3d.SaveAsync(settings);
+    }
+
+    //	A d20 and a d6 thrown for real (random faces: only a test)
+    private async Task TestAsync()
+    {
+        testing = true;
+        await Dice3d.RollAsync(new[] { new Components.DieFace(20, Random.Shared.Next(1, 21)), new Components.DieFace(6, Random.Shared.Next(1, 7)), new Components.DieFace(8, Random.Shared.Next(1, 9)) });
+        testing = false;
+    }
+}

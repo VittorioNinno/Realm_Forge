@@ -33,7 +33,8 @@ const ok = (name) => { results.push(`OK ${name}`); };
 const characterAudits = [];
 const phoneWide = [];
 
-const browser = await chromium.launch();
+// WebGL by software (SwiftShader): the 3D dice are drawn in the headless browser too
+const browser = await chromium.launch({ args: ['--enable-unsafe-swiftshader', '--use-angle=swiftshader'] });
 // Explicit context: the e-mail confirmation test opens a second tab in the same browser session
 const context = await browser.newContext();
 const page = await context.newPage();
@@ -2165,6 +2166,26 @@ try {
   await page.locator('[data-test=campaign-delete]').click();
   await page.locator('[data-test=campaign-confirm-yes]').click();
   await page.waitForURL(/\/campaigns$/, { timeout: 15000 });
+  // The 3D dice: switched on for this test (automated browsers keep the flat dice), a test throw lands on the screen
+  await page.goto(`${base}/account`);
+  await page.evaluate(() => localStorage.setItem('rf-dice3d-test', '1'));
+  await page.reload();
+  await page.locator('[data-test=account-dice3d]').waitFor({ timeout: 30000 });
+  await page.locator('[data-test=dice3d-test]').waitFor({ timeout: 15000 });
+  const dice3dUnavailable = await page.locator('[data-test=dice3d-unavailable]').count();
+  if (dice3dUnavailable === 0) {
+    await page.locator('[data-test=dice3d-color]').nth(4).click();
+    await page.locator('[data-test=dice3d-test]').click();
+    await page.locator('#rf-dice3d.shown canvas').waitFor({ timeout: 30000 });
+    await page.waitForTimeout(3500);
+    await shot(page, 'dice3d');
+    const saved = await page.evaluate(() => JSON.parse(localStorage.getItem('rf-dice3d') || '{}').color);
+    if (saved !== 'emerald') throw new Error(`the dice colour was not kept: ${saved}`);
+    ok('3D dice: the colour is kept on the device, a test throw draws the dice over the page');
+  } else {
+    results.push('INFO 3D dice: no WebGL in this browser, the flat dice stay');
+  }
+  await page.evaluate(() => localStorage.removeItem('rf-dice3d-test'));
   // The bin: the deleted campaign is there, restored it opens again; deleted again, it is purged for good
   await page.goto(`${base}/account`);
   await page.locator('[data-test=account-trash-open]').click();
