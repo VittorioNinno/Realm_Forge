@@ -135,14 +135,22 @@ namespace RealmForge.Shared.DTOs
 	///	A campaign note (Markdown). Author: nickname; CanEdit/CanDelete: what the reader may do.
 	///	</summary>
 	public record CampaignNoteDto(Guid Id, CampaignNoteKind Kind, string Title, string Body, string AuthorId, string Author, bool IsMine,
-		DateTimeOffset CreatedAt, DateTimeOffset UpdatedAt, bool CanEdit, bool CanDelete);
+		DateTimeOffset CreatedAt, DateTimeOffset UpdatedAt, bool CanEdit, bool CanDelete, string? Secret = null);
 
 	public class SaveCampaignNoteDto
 	{
 		public CampaignNoteKind Kind { get; set; } = CampaignNoteKind.Journal;
 		public string Title { get; set; } = string.Empty;
 		public string Body { get; set; } = string.Empty;
+		//	The masters' secrets (journal pages; only who runs the table)
+		public string? Secret { get; set; }
 	}
+
+	///	<summary>
+	///	Something of the campaign a note can mention with @: a character, an NPC, a shop, a faction, a handout, a map
+	///	(masters), a page of the journal. In the text: @[Name](kind:id).
+	///	</summary>
+	public record MentionDto(string Kind, Guid Id, string Name);
 
 	///	<summary>
 	///	A Homebrew entry of the current user that could be shared with a campaign.

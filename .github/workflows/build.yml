@@ -1085,6 +1085,16 @@ jobs:
           journal=$(get "$api/api/campaigns/$cp_id/notes" -H "Authorization: Bearer $B" | jq -r '.[] | select(.kind == 3) | .id')
           cp_note_edit_other=$(code -X PUT "$api/api/campaigns/$cp_id/notes/$journal" $json -H "Authorization: Bearer $B" -d '{"kind":3,"title":"x","body":"y"}')
           cp_note_delete=$(code -X DELETE "$api/api/campaigns/$cp_id/notes/$journal" -H "Authorization: Bearer $B")
+          # The journal with @mentions and the masters' secrets: a player reads the page, not the secrets, and cannot write them
+          mn_list=$(get "$api/api/campaigns/$cp_id/mentions?lang=2" -H "Authorization: Bearer $A")
+          mn_char=$(echo "$mn_list" | jq -c '[.[] | select(.kind == "character")] | .[0] | {kind, id}')
+          mn_kinds=$(echo "$mn_list" | jq -c '[.[].kind] | unique | map(select(. == "character" or . == "map"))')
+          mn_body="Incontrano @[Eroe]($(echo "$mn_char" | jq -r '.kind'):$(echo "$mn_char" | jq -r '.id')) alla locanda."
+          mn_note=$(curl -s -X POST "$api/api/campaigns/$cp_id/notes" $json -H "Authorization: Bearer $B" -d "$(jq -n --arg b "$mn_body" '{kind:3,title:"Sessione 2",body:$b,secret:"Il locandiere è un doppelganger."}')" | jq -r .id)
+          mn_player=$(get "$api/api/campaigns/$cp_id/notes" -H "Authorization: Bearer $A" | jq -c --arg n "$mn_note" '.[] | select(.id == $n) | {mention: (.body | contains("@[Eroe](character:")), secret}')
+          mn_master=$(get "$api/api/campaigns/$cp_id/notes" -H "Authorization: Bearer $B" | jq -c --arg n "$mn_note" '.[] | select(.id == $n) | .secret')
+          mn_player_secret=$(curl -s -X POST "$api/api/campaigns/$cp_id/notes" $json -H "Authorization: Bearer $A" -d '{"kind":3,"title":"Mia","body":"x","secret":"Furto"}' | jq -c '.secret')
+          mn_master_kinds=$(get "$api/api/campaigns/$cp_id/mentions?lang=2" -H "Authorization: Bearer $B" | jq -c '[.[] | select(.kind == "note") | .name] | index("Sessione 2") != null')
           cp_promote=$(code -X PUT "$api/api/campaigns/$cp_id/members/$(get "$api/api/campaigns/$cp_id" -H "Authorization: Bearer $B" | jq -r '.members[] | select(.name == "Alice") | .userId')" $json -H "Authorization: Bearer $B" -d '{"role":2}')
           bob_id=$(get "$api/api/campaigns/$cp_id" -H "Authorization: Bearer $B" | jq -r '.members[] | select(.name == "Bob") | .userId')
           cp_comaster_promote=$(code -X PUT "$api/api/campaigns/$cp_id/members/$bob_id" $json -H "Authorization: Bearer $A" -d '{"role":3}')
@@ -1177,6 +1187,11 @@ jobs:
           chcheck "notes written" "$cp_notes_post" "200 200 200 403"
           chcheck "notes of the player" "$cp_notes_alice" "[1,3]"
           chcheck "notes of the master" "$cp_notes_bob" "[2,3]"
+          chcheck "mentions: the characters of the campaign, no maps for a player" "$mn_kinds" '["character"]'
+          chcheck "journal: a player reads the mention, not the secrets" "$mn_player" '{"mention":true,"secret":null}'
+          chcheck "journal: the master reads the secrets" "$mn_master" '"Il locandiere è un doppelganger."'
+          chcheck "journal: a player cannot write secrets" "$mn_player_secret" "null"
+          chcheck "mentions: the pages of the journal" "$mn_master_kinds" "true"
           chcheck "edit someone else's note" "$cp_note_edit_other" "403"
           chcheck "master deletes a journal page" "$cp_note_delete" "204"
           chcheck "promote to co-master" "$cp_promote" "204"

@@ -336,6 +336,17 @@
             };
         })();
 
+        // @mentions in a textarea: where the caret is, and a mention written in place of what was typed after the @
+        window.rfMention = {
+            caret: (el) => el ? el.selectionStart ?? 0 : 0,
+            insert(el, start, end, text) {
+                if (!el) return '';
+                el.focus();
+                el.setRangeText(text, start, end, 'end');
+                return el.value;
+            }
+        };
+
         window.rfVtt = (() => {
             const boards = new WeakMap();
             const S3 = Math.sqrt(3);

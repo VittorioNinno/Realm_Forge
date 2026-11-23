@@ -750,7 +750,11 @@ namespace RealmForge.Api.Controllers
 			{
 				return Problem(statusCode: StatusCodes.Status400BadRequest, title: $"At most {MaxNotes} notes per campaign.");
 			}
-			var note = new CampaignNote { CampaignId = id, Kind = dto.Kind, AuthorId = UserId, Title = dto.Title.Trim(), Body = dto.Body.Trim() };
+			var note = new CampaignNote
+			{
+				CampaignId = id, Kind = dto.Kind, AuthorId = UserId, Title = dto.Title.Trim(), Body = dto.Body.Trim(),
+				Secret = SecretOf(dto, note: null, me.Role)
+			};
 			_context.CampaignNotes.Add(note);
 			if (note.Kind != CampaignNoteKind.Private)
 			{
@@ -781,6 +785,7 @@ namespace RealmForge.Api.Controllers
 			}
 			note.Title = dto.Title.Trim();
 			note.Body = dto.Body.Trim();
+			note.Secret = SecretOf(dto, note, me.Role);
 			note.UpdatedAt = DateTimeOffset.UtcNow;
 			await _context.SaveChangesAsync();
 			return NoContent();
@@ -814,7 +819,19 @@ namespace RealmForge.Api.Controllers
 			var mine = n.AuthorId == UserId;
 			var authorRole = roles.TryGetValue(n.AuthorId, out var role) ? role : (CampaignRole?)null;
 			return new CampaignNoteDto(n.Id, n.Kind, n.Title, n.Body, n.AuthorId, names.GetValueOrDefault(n.AuthorId, "•••"), mine,
-				n.CreatedAt, n.UpdatedAt, CampaignRules.CanEditNote(mine), CampaignRules.CanDeleteNote(n.Kind, myRole, mine, authorRole));
+				n.CreatedAt, n.UpdatedAt, CampaignRules.CanEditNote(mine), CampaignRules.CanDeleteNote(n.Kind, myRole, mine, authorRole),
+				CampaignRules.RunsTheTable(myRole) ? n.Secret : null);
+		}
+
+		//	The secrets of a journal page are the masters': a player's save keeps those already there
+		private static string? SecretOf(SaveCampaignNoteDto dto, CampaignNote? note, CampaignRole role)
+		{
+			if (!CampaignRules.RunsTheTable(role) || dto.Kind != CampaignNoteKind.Journal && note?.Kind != CampaignNoteKind.Journal)
+			{
+				return note?.Secret;
+			}
+			var secret = dto.Secret?.Trim();
+			return string.IsNullOrEmpty(secret) ? null : secret;
 		}
 
 		private ActionResult? ValidateNote(SaveCampaignNoteDto dto)
@@ -823,7 +840,7 @@ namespace RealmForge.Api.Controllers
 			{
 				return Problem(statusCode: StatusCodes.Status400BadRequest, title: "An empty note.");
 			}
-			if ((dto.Title?.Trim().Length ?? 0) > 120 || (dto.Body?.Length ?? 0) > 8000)
+			if ((dto.Title?.Trim().Length ?? 0) > 120 || (dto.Body?.Length ?? 0) > 8000 || (dto.Secret?.Length ?? 0) > 4000)
 			{
 				return Problem(statusCode: StatusCodes.Status400BadRequest, title: "The note is too long.");
 			}
