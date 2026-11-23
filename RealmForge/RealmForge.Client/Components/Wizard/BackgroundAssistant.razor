@@ -1,0 +1,67 @@
+﻿@* The background assistant: three ideas for the character's past (offline tables), one click puts the chosen one in
+   the personality and the story of the Details step, where it can be edited *@
+<section class="rf-bg-assistant" data-test="background-assistant">
+    <div class="rf-bg-assistant-head">
+        <div>
+            <div class="rf-wizard-block-title mb-0"><Icon Name="lightbulb" /> @UiText.BgAssistant(Lang)</div>
+            <div class="small" style="color: var(--rf-text-muted);">@UiText.BgAssistantHint(Lang)</div>
+        </div>
+        <button type="button" class="btn btn-sm btn-rf-orange" @onclick="Propose" data-test="background-ideas">
+            <Icon Name="dice" /> @(ideas.Count == 0 ? UiText.BgAssistantPropose(Lang) : UiText.BgAssistantAgain(Lang))
+        </button>
+    </div>
+    @if (ideas.Count > 0)
+    {
+        <div class="rf-bg-ideas">
+            @foreach (var i in ideas)
+            {
+                var idea = i;
+                <article class="rf-bg-idea @(chosen == idea ? "chosen" : null)" data-test="background-idea">
+                    <span class="rf-bg-idea-theme">@idea.Theme</span>
+                    <strong>@idea.Hook</strong>
+                    <p class="rf-bg-idea-story">@idea.Backstory</p>
+                    <dl>
+                        <dt>@UiText.LabelBonds(Lang)</dt><dd>@idea.Bonds</dd>
+                        <dt>@UiText.LabelFlaws(Lang)</dt><dd>@idea.Flaws</dd>
+                    </dl>
+                    <button type="button" class="btn btn-sm @(chosen == idea ? "btn-rf-orange" : "btn-rf-outline")" @onclick="() => Use(idea)" data-test="background-idea-use">
+                        <Icon Name="@(chosen == idea ? "check" : "plus")" /> @(chosen == idea ? UiText.BgAssistantUsed(Lang) : UiText.BgAssistantUse(Lang))
+                    </button>
+                </article>
+            }
+        </div>
+    }
+</section>
+
+@code {
+    private IReadOnlyList<BackgroundIdeas.Idea> ideas = Array.Empty<BackgroundIdeas.Idea>();
+    private BackgroundIdeas.Idea? chosen;
+
+    private StorySeed Seed => new(
+        W.Input.Name,
+        Build.Alignment,
+        W.StartingClass?.Key,
+        W.StartingClass?.Name ?? string.Empty,
+        W.Subspecies?.Name ?? W.Species?.Name ?? string.Empty,
+        W.Background?.Name ?? string.Empty,
+        Lang);
+
+    private void Propose()
+    {
+        ideas = BackgroundIdeas.Three(Seed);
+        chosen = null;
+    }
+
+    //	The idea becomes the personality and the story of the sheet (the Details step shows them, to edit)
+    private void Use(BackgroundIdeas.Idea idea)
+    {
+        var sheet = W.Input.Sheet;
+        sheet.Traits = idea.Traits;
+        sheet.Ideals = idea.Ideals;
+        sheet.Bonds = idea.Bonds;
+        sheet.Flaws = idea.Flaws;
+        sheet.Backstory = idea.Backstory;
+        chosen = idea;
+        W.Update();
+    }
+}
