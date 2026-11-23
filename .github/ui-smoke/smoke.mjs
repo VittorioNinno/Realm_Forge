@@ -1575,6 +1575,8 @@ try {
   await page.locator('[data-test=map-shape-cell]').click();
   await page.mouse.click(...at(455, 315));
   await page.locator('[data-test=map-terrain-cell][data-kind=Difficult]').waitFor({ timeout: 15000 });
+  // The counter follows the save of the brush: wait for it rather than read it in the same frame
+  await page.waitForFunction(() => /Difficili: 1/.test(document.querySelector('[data-test=map-zone-counts]')?.textContent ?? ''), null, { timeout: 15000 }).catch(() => {});
   const zoneUi = {
     walls: await page.locator('[data-test=map-terrain-cell][data-kind=Wall]').count(),
     difficult: await page.locator('[data-test=map-terrain-cell][data-kind=Difficult]').count(),
