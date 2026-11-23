@@ -27,7 +27,7 @@ namespace RealmForge.Client.Components
 			var titles = new List<string> { UiText.VttAimDistance(DistanceText(gap), Lang) };
 			if (!can)
 			{
-				parts.Add(UiText.VttAimOut(Lang));
+				parts.Add(UiText.VttAimTagOut(Lang));
 				titles.Add(UiText.VttAimOutHint(Lang));
 			}
 			else if (far)

@@ -6,7 +6,7 @@ namespace RealmForge.Client.Localization
 	public static partial class UiText
 	{
 		public static string VttAimDistance(string distance, LanguageCode lang) => T(lang, $"Distanza {distance}", $"Distance {distance}");
-		public static string VttAimOut(LanguageCode lang) => T(lang, "fuori portata", "out of reach");
+		public static string VttAimTagOut(LanguageCode lang) => T(lang, "fuori portata", "out of reach");
 		public static string VttAimOutHint(LanguageCode lang) => T(lang, "troppo lontano per questo attacco", "too far for this attack");
 		public static string VttAimLong(LanguageCode lang) => T(lang, "gittata lunga", "long range");
 		public static string VttAimLongHint(LanguageCode lang) => T(lang, "gittata lunga: tiro con svantaggio", "long range: the roll has disadvantage");
