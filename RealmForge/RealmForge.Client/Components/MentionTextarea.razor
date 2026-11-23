@@ -1,0 +1,123 @@
+﻿@using RealmForge.Client.Localization
+@using RealmForge.Client.Services
+@using RealmForge.Shared.DTOs
+@using RealmForge.Shared.Enums
+@inject IJSRuntime JS
+@inject LanguageStateService LanguageState
+
+@* A textarea that offers the campaign's characters, NPCs, places and pages as soon as one types @ *@
+<div class="rf-mention-box">
+    <textarea @ref="box" class="rf-form-control" rows="@Rows" maxlength="@MaxLength" placeholder="@Placeholder" value="@Value"
+              @oninput="OnInputAsync" @onblur="Close" data-test="@DataTest"></textarea>
+    @if (hits.Count > 0)
+    {
+        <ul class="rf-mention-list" role="listbox" aria-label="@UiText.MentionPick(Lang)" data-test="mention-list">
+            @foreach (var h in hits)
+            {
+                var hit = h;
+                <li role="option">
+                    <button type="button" @onmousedown:preventDefault="true" @onmousedown="() => PickAsync(hit)" @onclick="() => PickAsync(hit)" data-test="mention-option">
+                        <Icon Name="@IconOf(hit.Kind)" />
+                        <span>@hit.Name</span>
+                        <span class="rf-mention-kind">@UiText.MentionKind(hit.Kind, Lang)</span>
+                    </button>
+                </li>
+            }
+        </ul>
+    }
+</div>
+
+@code {
+    [Parameter] public string Value { get; set; } = string.Empty;
+    [Parameter] public EventCallback<string> ValueChanged { get; set; }
+    [Parameter] public IReadOnlyList<MentionDto>? Mentions { get; set; }
+    [Parameter] public int Rows { get; set; } = 6;
+    [Parameter] public int MaxLength { get; set; } = 8000;
+    [Parameter] public string? Placeholder { get; set; }
+    [Parameter] public string? DataTest { get; set; }
+
+    private ElementReference box;
+    private List<MentionDto> hits = new();
+    private int atStart = -1;
+    private int caret;
+    private bool picking;
+
+    private LanguageCode Lang => LanguageState.CurrentLanguage;
+
+    private static string IconOf(string kind) => kind switch
+    {
+        "character" => "person",
+        "npc" => "people",
+        "shop" => "shop",
+        "faction" => "flag",
+        "handout" => "envelope",
+        "map" => "map",
+        _ => "journal-text"
+    };
+
+    private async Task OnInputAsync(ChangeEventArgs e)
+    {
+        Value = e.Value?.ToString() ?? string.Empty;
+        await ValueChanged.InvokeAsync(Value);
+        try
+        {
+            caret = await JS.InvokeAsync<int>("rfMention.caret", box);
+        }
+        catch (JSException)
+        {
+            caret = Value.Length;
+        }
+        Suggest();
+    }
+
+    //	What follows the last @ before the caret, on the same line and short enough to be a name being typed
+    private void Suggest()
+    {
+        hits.Clear();
+        atStart = -1;
+        if (Mentions is not { Count: > 0 } || caret <= 0 || caret > Value.Length)
+        {
+            return;
+        }
+        var at = Value.LastIndexOf('@', caret - 1);
+        if (at < 0 || caret - at > 31 || (at > 0 && !char.IsWhiteSpace(Value[at - 1]) && Value[at - 1] != '('))
+        {
+            return;
+        }
+        var typed = Value.Substring(at + 1, caret - at - 1);
+        if (typed.Contains('\n') || typed.Contains('[') || typed.Contains('@'))
+        {
+            return;
+        }
+        atStart = at;
+        hits = Mentions
+            .Where(m => typed.Length == 0 || m.Name.Contains(typed, StringComparison.CurrentCultureIgnoreCase))
+            .OrderBy(m => m.Name.StartsWith(typed, StringComparison.CurrentCultureIgnoreCase) ? 0 : 1)
+            .ThenBy(m => m.Name, StringComparer.CurrentCultureIgnoreCase)
+            .Take(8).ToList();
+    }
+
+    private async Task PickAsync(MentionDto mention)
+    {
+        if (picking || atStart < 0)
+        {
+            return;
+        }
+        picking = true;
+        var token = MentionText.Token(mention) + " ";
+        try
+        {
+            Value = await JS.InvokeAsync<string>("rfMention.insert", box, atStart, caret, token);
+        }
+        catch (JSException)
+        {
+            Value = Value[..atStart] + token + Value[caret..];
+        }
+        hits.Clear();
+        atStart = -1;
+        picking = false;
+        await ValueChanged.InvokeAsync(Value);
+    }
+
+    private void Close(FocusEventArgs _) => hits.Clear();
+}

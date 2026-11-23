@@ -276,6 +276,8 @@ namespace RealmForge.Client.Services
 			}
 		}
 
+		public Task<List<MentionDto>?> GetMentionsAsync(Guid id, LanguageCode lang) => GetAsync<List<MentionDto>>($"api/campaigns/{id}/mentions?lang={(int)lang}");
+
 		public Task<List<CampaignNoteDto>?> GetNotesAsync(Guid id) => GetAsync<List<CampaignNoteDto>>($"api/campaigns/{id}/notes");
 
 		public Task<CampaignResult> AddNoteAsync(Guid id, SaveCampaignNoteDto note) =>

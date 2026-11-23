@@ -226,6 +226,20 @@ namespace RealmForge.Client.Localization
 		public static string BtnNewNote(LanguageCode lang) => T(lang, "Nuova nota", "New note");
 		public static string CampaignNoteTitle(LanguageCode lang) => T(lang, "Titolo", "Title");
 		public static string CampaignNoteBody(LanguageCode lang) => T(lang, "Testo (Markdown)", "Text (Markdown)");
+		public static string CampaignNoteBodyMentions(LanguageCode lang) => T(lang, "Testo (Markdown; scrivi @ per citare personaggi, PNG, luoghi e pagine)", "Text (Markdown; type @ to mention characters, NPCs, places and pages)");
+		public static string NoteSecrets(LanguageCode lang) => T(lang, "Segreti del Master", "Master's secrets");
+		public static string NoteSecretsHint(LanguageCode lang) => T(lang, "Visibili solo a chi conduce il tavolo: cosa c'è davvero dietro questa pagina", "Only who runs the table sees them: what really lies behind this page");
+		public static string MentionPick(LanguageCode lang) => T(lang, "Cita", "Mention");
+		public static string MentionKind(string kind, LanguageCode lang) => kind switch
+		{
+			"character" => T(lang, "Personaggio", "Character"),
+			"npc" => T(lang, "PNG", "NPC"),
+			"shop" => T(lang, "Negozio", "Shop"),
+			"faction" => T(lang, "Fazione", "Faction"),
+			"handout" => T(lang, "Dispensa", "Handout"),
+			"map" => T(lang, "Mappa", "Map"),
+			_ => T(lang, "Pagina", "Page")
+		};
 		public static string CampaignNoteEdited(LanguageCode lang) => T(lang, "modificata", "edited");
 		public static string CampaignNoteEmpty(LanguageCode lang) => T(lang, "Scrivi un titolo o un testo.", "Write a title or a text.");
 

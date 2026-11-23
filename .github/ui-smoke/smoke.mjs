@@ -1395,9 +1395,15 @@ try {
   await page.locator('[data-test=campaign-tab-notes]').click();
   await page.locator('[data-test=campaign-note-new]').click();
   await page.locator('[data-test=campaign-note-title]').fill('Sessione 1');
-  await page.locator('[data-test=campaign-note-body]').fill('Il gruppo parte da Valdoras.');
+  // Typing @ offers the campaign's characters; the master's secrets go in their own box
+  await page.locator('[data-test=campaign-note-body]').fill('Il gruppo parte da Valdoras con @');
+  await page.locator('[data-test=mention-option]').first().waitFor({ timeout: 15000 });
+  await page.locator('[data-test=mention-option]').first().click();
+  await page.locator('[data-test=campaign-note-secret]').fill('Valdoras è già caduta.');
   await page.locator('[data-test=campaign-note-save]').click();
   await page.locator('[data-test=campaign-note]', { hasText: 'Sessione 1' }).waitFor({ timeout: 15000 });
+  campaignUi.mentions = await page.locator('[data-test=campaign-note-text] .rf-mention').count();
+  campaignUi.secrets = await page.locator('[data-test=campaign-note-secret-view]').count();
   campaignUi.notes = await page.locator('[data-test=campaign-note]').count();
   campaignUi.noteKinds = (await page.locator('[data-test=campaign-notes-kinds] .rf-pill-btn').allInnerTexts()).map((t) => t.trim()).join(',');
   await shot(page, 'campaign-notes', 'main');
@@ -2254,7 +2260,7 @@ try {
   await binRow.waitFor({ state: 'detached', timeout: 15000 });
   campaignUi.purged = true;
   results.push(`INFO campaign: ${JSON.stringify(campaignUi)}`);
-  if (campaignUi.role !== 'Master' || !campaignUi.link || campaignUi.share !== 1 || campaignUi.notes !== 1 || campaignUi.shopCost !== '25 mo' || !/Rubino.*50 mo/.test(campaignUi.treasure ?? '') || campaignUi.progress?.clock !== '2 / 6' || campaignUi.progress?.standing !== 'Cordiale' || campaignUi.clock !== 'Giorno 1 · 09:00'
+  if (campaignUi.role !== 'Master' || !campaignUi.link || campaignUi.share !== 1 || campaignUi.notes !== 1 || campaignUi.shopCost !== '25 mo' || !/Rubino.*50 mo/.test(campaignUi.treasure ?? '') || campaignUi.mentions !== 1 || campaignUi.secrets !== 1 || campaignUi.progress?.clock !== '2 / 6' || campaignUi.progress?.standing !== 'Cordiale' || campaignUi.clock !== 'Giorno 1 · 09:00'
     || campaignUi.combatants !== 4 || campaignUi.goblins !== 3 || !campaignUi.hero || campaignUi.sheetLink !== 1 || !/^(Facile|Medio|Difficile|Mortale)$/.test(campaignUi.rating) || campaignUi.current !== 1
     || campaignUi.binKind !== 'CAMPAGNA' || !campaignUi.restored || !campaignUi.purged
     || campaignUi.cardButtons !== 0 || !campaignUi.cardOpens || campaignUi.listActions !== 2 || !campaignUi.toggled || campaignUi.noteKinds !== 'Diario di viaggio,Personali,Per i master' || campaignUi.leftFromSheet !== 1
