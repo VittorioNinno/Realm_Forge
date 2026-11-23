@@ -175,6 +175,11 @@ namespace RealmForge.Client.Components
 			await SaveTerrainAsync(new SaveTerrainDto { Cells = cells.ToList(), Kind = kind, BlockPlayers = terrain?.BlockPlayers ?? true }, before);
 		}
 
+		//	One save of the zones at a time: two strokes in a row saved together would each start from the cells before
+		//	both, and the second would wipe the first
+		private readonly SemaphoreSlim terrainSaving = new(1, 1);
+		private int terrainQueued;
+
 		private async Task SaveTerrainAsync(SaveTerrainDto dto, MapTerrainDto? before)
 		{
 			if (map is null)
@@ -182,15 +187,27 @@ namespace RealmForge.Client.Components
 				return;
 			}
 			localEdits++;
-			var saved = await Campaigns.SaveTerrainAsync(CampaignId, map.Id, dto);
+			terrainQueued++;
+			await terrainSaving.WaitAsync();
+			MapTerrainDto? saved;
+			try
+			{
+				saved = map is null ? null : await Campaigns.SaveTerrainAsync(CampaignId, map.Id, dto);
+			}
+			finally
+			{
+				terrainQueued--;
+				terrainSaving.Release();
+			}
 			localEdits++;
 			if (saved is null)
 			{
 				TakeTerrain(before);
 				message = UiText.MapSaveFailed(Lang);
 			}
-			else
+			else if (terrainQueued == 0)
 			{
+				//	The cells drawn by the strokes still waiting stay on screen until their own save answers
 				TakeTerrain(saved);
 				message = null;
 			}
