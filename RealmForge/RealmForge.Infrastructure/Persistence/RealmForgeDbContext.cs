@@ -594,6 +594,8 @@ namespace RealmForge.Infrastructure.Persistence
 
 			modelBuilder.Entity<CampaignHandout>(entity =>
 			{
+				entity.Property(h => h.PuzzleAnswer).HasMaxLength(240);
+				entity.Property(h => h.SolvedBy).HasMaxLength(120);
 				entity.HasKey(h => h.Id);
 				entity.Property(h => h.AuthorId).IsRequired().HasMaxLength(450);
 				entity.Property(h => h.TitleIt).IsRequired().HasMaxLength(120);

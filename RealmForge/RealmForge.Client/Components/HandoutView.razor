@@ -3,6 +3,7 @@
 @using RealmForge.Shared.DTOs
 @using RealmForge.Shared.Enums
 @inject ImageDataService Images
+@inject CampaignDataService Campaigns
 @inject LanguageStateService LanguageState
 
 @* A handout read by a player (or looked at by a master): its picture over the width, its title and its text, like a
@@ -17,7 +18,31 @@
         <h2 class="rf-handout-title" data-test="handout-title">@Handout.Title</h2>
         @if (!string.IsNullOrWhiteSpace(Handout.Body))
         {
-            <div class="rf-markdown-container rf-handout-body" data-test="handout-body">@((MarkupString)MarkdownText.ToHtml(Handout.Body, null))</div>
+            <div class="rf-markdown-container rf-handout-body" data-test="handout-body">@((MarkupString)MentionText.ToHtml(Handout.Body))</div>
+        }
+        @if (Handout.Puzzle && CampaignId is { } campaignForPuzzle)
+        {
+            @if (solvedAt is not null)
+            {
+                <div class="rf-riddle-solved" role="status" data-test="riddle-solved">
+                    <Icon Name="unlock" /> @UiText.RiddleSolved(solvedBy, Lang)
+                    @if (doorOpened)
+                    {
+                        <span> @UiText.RiddleDoorOpened(Lang)</span>
+                    }
+                </div>
+            }
+            else
+            {
+                <form class="rf-riddle-try" @onsubmit="() => TryAsync(campaignForPuzzle)" @onsubmit:preventDefault="true">
+                    <input class="rf-form-control" maxlength="200" placeholder="@UiText.RiddleYourAnswer(Lang)" @bind="answer" data-test="riddle-try-answer" />
+                    <button type="submit" class="btn btn-sm btn-rf-orange" disabled="@(trying || string.IsNullOrWhiteSpace(answer))" data-test="riddle-try"><Icon Name="unlock" /> @UiText.RiddleTry(Lang)</button>
+                </form>
+                @if (wrong)
+                {
+                    <div class="small text-warning rf-riddle-wrong" role="alert" data-test="riddle-wrong">@UiText.RiddleWrong(Lang)</div>
+                }
+            }
         }
     </article>
 </div>
@@ -25,6 +50,48 @@
 @code {
     [Parameter, EditorRequired] public CampaignHandoutDto Handout { get; set; } = default!;
     [Parameter] public EventCallback OnClose { get; set; }
+
+    //	The campaign of the handout: with it a riddle can be answered from here
+    [Parameter] public Guid? CampaignId { get; set; }
+    [Parameter] public EventCallback OnSolved { get; set; }
+
+    private string answer = string.Empty;
+    private bool trying;
+    private bool wrong;
+    private bool doorOpened;
+    private DateTimeOffset? solvedAt;
+    private string? solvedBy;
+    private Guid shownId;
+
+    protected override void OnParametersSet()
+    {
+        if (Handout.Id != shownId)
+        {
+            shownId = Handout.Id;
+            solvedAt = Handout.SolvedAt;
+            solvedBy = Handout.SolvedBy;
+            answer = string.Empty;
+            wrong = doorOpened = false;
+        }
+    }
+
+    private async Task TryAsync(Guid campaignId)
+    {
+        trying = true;
+        wrong = false;
+        var (result, _) = await Campaigns.SolvePuzzleAsync(campaignId, Handout.Id, answer);
+        trying = false;
+        if (result is { Solved: true })
+        {
+            solvedAt = result.SolvedAt ?? DateTimeOffset.UtcNow;
+            doorOpened = result.Door;
+            await OnSolved.InvokeAsync();
+        }
+        else
+        {
+            wrong = true;
+        }
+    }
 
     private LanguageCode Lang => LanguageState.CurrentLanguage;
 

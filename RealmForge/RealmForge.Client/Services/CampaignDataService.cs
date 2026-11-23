@@ -143,6 +143,11 @@ namespace RealmForge.Client.Services
 		public Task<(CampaignHandoutDto? Value, string? Error)> AddHandoutAsync(Guid id, SaveCampaignHandoutDto dto, LanguageCode lang) =>
 			TableAsync<CampaignHandoutDto>(() => _http.PostAsJsonAsync($"api/campaigns/{id}/handouts?lang={(int)lang}", dto), "add handout");
 
+		public Task<List<PuzzleDoorDto>?> GetPuzzleDoorsAsync(Guid id) => GetAsync<List<PuzzleDoorDto>>($"api/campaigns/{id}/handouts/doors");
+
+		public Task<(PuzzleResultDto? Value, string? Error)> SolvePuzzleAsync(Guid id, Guid handoutId, string answer) =>
+			TableAsync<PuzzleResultDto>(() => _http.PostAsJsonAsync($"api/campaigns/{id}/handouts/{handoutId}/solve", new SolvePuzzleDto { Answer = answer }), "solve puzzle");
+
 		public Task<CampaignResult> UpdateHandoutAsync(Guid id, Guid handoutId, SaveCampaignHandoutDto dto) =>
 			SendAsync(() => _http.PutAsJsonAsync($"api/campaigns/{id}/handouts/{handoutId}", dto), "update handout");
 
