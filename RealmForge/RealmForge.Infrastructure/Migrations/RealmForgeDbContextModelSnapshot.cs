@@ -704,6 +704,10 @@ namespace RealmForge.Infrastructure.Migrations
                     b.Property<Guid?>("StrikeTokenId")
                         .HasColumnType("uuid");
 
+                    b.Property<string>("StrikeType")
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
                     b.PrimitiveCollection<List<int>>("Terrain")
                         .IsRequired()
                         .HasColumnType("integer[]");
