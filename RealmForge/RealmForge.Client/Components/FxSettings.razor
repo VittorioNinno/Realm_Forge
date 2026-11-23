@@ -1,0 +1,73 @@
+﻿@using RealmForge.Client.Localization
+@using RealmForge.Client.Services
+@using RealmForge.Shared.Enums
+@inject LanguageStateService LanguageState
+@inject IJSRuntime JS
+
+@* The visual effects of this device: full (particles), reduced (only the flashes) or off; a preview burst shows them *@
+<div class="rf-account-card mb-3" data-test="account-fx">
+    <div class="rf-account-card-title">@UiText.FxTitle(Lang)</div>
+    <p class="small mb-3" style="color: var(--rf-text-secondary);">@UiText.FxHint(Lang)</p>
+    <div class="rf-fx-levels" role="radiogroup" aria-label="@UiText.FxTitle(Lang)">
+        @foreach (var l in Levels)
+        {
+            var value = l;
+            <button type="button" role="radio" aria-checked="@(chosen == value ? "true" : "false")" class="btn btn-sm @(chosen == value ? "btn-rf-orange" : "btn-rf-outline")"
+                    @onclick="() => SetAsync(value)" data-test="fx-level">@UiText.FxLevel(value, Lang)</button>
+        }
+    </div>
+    <div class="rf-fx-preview mt-3">
+        @foreach (var k in Previews)
+        {
+            var kind = k;
+            <button type="button" class="rf-fx-chip rf-fx-chip-@kind" disabled="@(chosen != "full")" @onclick="e => PreviewAsync(kind, e)" data-test="fx-preview">@UiText.FxPreviewName(kind, Lang)</button>
+        }
+    </div>
+</div>
+
+@code {
+    private static readonly string[] Levels = { "full", "reduced", "off" };
+    private static readonly string[] Previews = { "fire", "cold", "lightning", "necrotic", "radiant", "heal", "crit" };
+
+    private string chosen = "full";
+
+    private LanguageCode Lang => LanguageState.CurrentLanguage;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            try
+            {
+                chosen = await JS.InvokeAsync<string>("rfFx.chosen");
+                StateHasChanged();
+            }
+            catch (Exception)
+            {
+            }
+        }
+    }
+
+    private async Task SetAsync(string value)
+    {
+        chosen = value;
+        try
+        {
+            await JS.InvokeAsync<string>("rfFx.setLevel", value);
+        }
+        catch (Exception)
+        {
+        }
+    }
+
+    private async Task PreviewAsync(string kind, MouseEventArgs e)
+    {
+        try
+        {
+            await JS.InvokeVoidAsync("rfFx.burst", e.ClientX, e.ClientY, kind, 1.2);
+        }
+        catch (Exception)
+        {
+        }
+    }
+}

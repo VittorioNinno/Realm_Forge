@@ -258,6 +258,7 @@ namespace RealmForge.Api.Controllers
 			map.StrikeTokenId = target.Id;
 			map.StrikeKind = !hit ? 0 : critical ? 2 : 1;
 			map.StrikeDamage = hit ? damage : null;
+			map.StrikeType = DamageDefenses.TypeOf(dto.DamageType)?.ToString().ToLowerInvariant();
 			map.StrikeAt = map.UpdatedAt;
 			await _context.SaveChangesAsync();
 			return Ok(new MapAttackResultDto(hit, critical, dice, dto.Bonus, total, damage, damageRolled, note, runs ? armorClass : null));
@@ -1310,6 +1311,7 @@ namespace RealmForge.Api.Controllers
 			map.StrikeTokenId = token.Id;
 			map.StrikeKind = target.Dealt is > 0 ? 1 : 0;
 			map.StrikeDamage = target.Dealt is > 0 ? target.Dealt : null;
+			map.StrikeType = DamageDefenses.TypeOf(call.DamageType)?.ToString().ToLowerInvariant();
 			map.StrikeAt = map.UpdatedAt;
 			await _context.SaveChangesAsync();
 			return Ok(new MapSaveCallDto(call.Id, call.CasterTokenId, call.Caster, call.Spell, call.Ability, call.Dc, call.Damage, call.DamageType, call.Half, call.At,

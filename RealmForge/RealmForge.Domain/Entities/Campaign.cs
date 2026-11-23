@@ -104,6 +104,9 @@ namespace RealmForge.Domain.Entities
 		public int StrikeKind { get; set; }
 		public int? StrikeDamage { get; set; }
 
+		//	Its damage type in English ("fire"), for the colour of the effect
+		public string? StrikeType { get; set; }
+
 		//	The saving throws a spell asks for, waiting for their rolls (JSON of MapSaveCall)
 		public string? SaveCalls { get; set; }
 		public DateTimeOffset? StrikeAt { get; set; }

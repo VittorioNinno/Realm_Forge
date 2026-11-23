@@ -442,7 +442,7 @@ namespace RealmForge.Shared.DTOs
 	///	The last attack on the map, for its effect on every screen: the target, missed (0), hit (1) or critical (2), the
 	///	damage dealt.
 	///	</summary>
-	public record MapStrikeDto(Guid TokenId, int Kind, int? Damage, DateTimeOffset At);
+	public record MapStrikeDto(Guid TokenId, int Kind, int? Damage, DateTimeOffset At, string? DamageType = null);
 
 	//	A monster of a group, and how many (MonsterGroups.MaxCount at most)
 	public class MonsterGroupEntryDto

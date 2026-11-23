@@ -971,9 +971,11 @@
             }
 
             // The effect of a hit, a miss, the damage or the healing on a token: a flash, a small shake, a number rising
-            function strike(stage, tokenId, kind, text) {
+            function strike(stage, tokenId, kind, text, damageType) {
                 const el = stage && stage.querySelector(`.rf-vtt-token[data-token="${tokenId}"]`);
                 if (!el) return;
+                // The particles of the hit, in the colour of its damage type (wwwroot/js/fx.js)
+                if (window.rfFx) window.rfFx.strike(stage, tokenId, kind, damageType);
                 const cls = `fx-${kind}`;
                 el.classList.remove('fx-hit', 'fx-miss', 'fx-crit', 'fx-heal');
                 void el.offsetWidth;
@@ -1181,6 +1183,7 @@
         })();
     </script>
     <script src="js/dice3d.js"></script>
+    <script src="js/fx.js"></script>
     <script src="_framework/blazor.webassembly#[.{fingerprint}].js"></script>
     <script>
         // Installed as an app and usable offline (not under automated browsers: the tests always want the network)
