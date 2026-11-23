@@ -17,6 +17,10 @@ namespace RealmForge.Client.Localization
 		public static string NpcImproviseHint(LanguageCode lang) => T(lang,
 			"Nome, mestiere, atteggiamento e spunto casuali su uno statblock adatto: per improvvisare al tavolo",
 			"Random name, trade, attitude and hook on a fitting statblock: to improvise at the table");
+		public static string NpcInstant(LanguageCode lang) => T(lang, "PNG istantaneo", "Instant NPC");
+		public static string NpcInstantHint(LanguageCode lang) => T(lang,
+			"Un PNG casuale salvato subito nel tuo cast, pronto da usare al tavolo",
+			"A random NPC saved straight into your cast, ready for the table");
 		public static string NpcForge(LanguageCode lang) => T(lang, "+ Forgia un PNG", "+ Forge an NPC");
 		public static string LoadingNpcs(LanguageCode lang) => T(lang, "Caricamento PNG...", "Loading NPCs...");
 		public static string NoNpcsFound(LanguageCode lang) => T(lang, "Nessun PNG corrisponde ai filtri.", "No NPCs match the filters.");

@@ -24,6 +24,9 @@
                 <button type="button" class="btn btn-rf-outline rf-npc-improvise" title="@UiText.NpcImproviseHint(Lang)" disabled="@busy" @onclick="OpenRandomAsync" data-test="npc-improvise">
                     <Icon Name="dice" /> @UiText.NpcImprovise(Lang)
                 </button>
+                <button type="button" class="btn btn-rf-outline rf-npc-improvise" title="@UiText.NpcInstantHint(Lang)" disabled="@busy" @onclick="SaveRandomAsync" data-test="npc-instant">
+                    <Icon Name="lightning" /> @UiText.NpcInstant(Lang)
+                </button>
                 <button type="button" class="btn btn-rf-orange text-uppercase" @onclick="OpenCreate" data-test="npc-new">@UiText.NpcForge(Lang)</button>
             </div>
         </ForgeAction>
@@ -429,6 +432,19 @@
         editorVariantOf = All.FirstOrDefault(m => m.Id == model.VariantOfId)?.Name;
         editorTitle = UiText.NpcImprovise(Lang);
         editor = model;
+    }
+
+    //	An NPC made up and saved in one click, straight into the cast of the account
+    private async Task SaveRandomAsync()
+    {
+        busy = true;
+        var model = await NpcModels.RandomAsync(MonsterService, All, ArchetypeFilter);
+        Guid? id = model is null ? null : (await MonsterService.SaveAsync(null, model)).Id;
+        busy = false;
+        if (id is { } saved)
+        {
+            Navigation.NavigateTo($"npcs/{saved}");
+        }
     }
 
     private void Saved(Guid id)
