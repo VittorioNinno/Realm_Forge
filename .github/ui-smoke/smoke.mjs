@@ -1420,6 +1420,15 @@ try {
   await page.locator('[data-test=shop-item]').waitFor({ timeout: 15000 });
   campaignUi.shopCost = (await page.locator('[data-test=shop-item-cost]').first().innerText()).trim();
   await shot(page, 'campaign-shops', 'main');
+  // The party's chest: a gem put in, its value shown
+  await page.locator('[data-test=campaign-tab-treasure]').click();
+  await page.locator('[data-test=treasure-free]').click();
+  await page.locator('[data-test=treasure-free-name]').fill('Rubino');
+  await page.locator('[data-test=treasure-free-value]').fill('50');
+  await page.locator('[data-test=treasure-free-save]').click();
+  await page.locator('[data-test=treasure-item]').waitFor({ timeout: 15000 });
+  campaignUi.treasure = (await page.locator('[data-test=treasure-item]').first().innerText()).replace(/\s+/g, ' ').trim();
+  await shot(page, 'campaign-treasure', 'main');
   // An encounter: three goblins and the party, its difficulty, the fight starts and the turn moves on
   await page.locator('[data-test=campaign-tab-encounters]').click();
   await page.locator('[data-test=encounter-new-name]').fill('Imboscata');
@@ -2224,7 +2233,7 @@ try {
   await binRow.waitFor({ state: 'detached', timeout: 15000 });
   campaignUi.purged = true;
   results.push(`INFO campaign: ${JSON.stringify(campaignUi)}`);
-  if (campaignUi.role !== 'Master' || !campaignUi.link || campaignUi.share !== 1 || campaignUi.notes !== 1 || campaignUi.shopCost !== '25 mo' || campaignUi.clock !== 'Giorno 1 · 09:00'
+  if (campaignUi.role !== 'Master' || !campaignUi.link || campaignUi.share !== 1 || campaignUi.notes !== 1 || campaignUi.shopCost !== '25 mo' || !/Rubino.*50 mo/.test(campaignUi.treasure ?? '') || campaignUi.clock !== 'Giorno 1 · 09:00'
     || campaignUi.combatants !== 4 || campaignUi.goblins !== 3 || !campaignUi.hero || campaignUi.sheetLink !== 1 || !/^(Facile|Medio|Difficile|Mortale)$/.test(campaignUi.rating) || campaignUi.current !== 1
     || campaignUi.binKind !== 'CAMPAGNA' || !campaignUi.restored || !campaignUi.purged
     || campaignUi.cardButtons !== 0 || !campaignUi.cardOpens || campaignUi.listActions !== 2 || !campaignUi.toggled || campaignUi.noteKinds !== 'Diario di viaggio,Personali,Per i master' || campaignUi.leftFromSheet !== 1

@@ -1,0 +1,444 @@
+﻿@using RealmForge.Client.Localization
+@using RealmForge.Client.Services
+@using RealmForge.Shared.Campaigns
+@using RealmForge.Shared.Characters
+@using RealmForge.Shared.DTOs
+@using RealmForge.Shared.Enums
+@using RealmForge.Shared.Localization
+@using System.Globalization
+@inject CampaignDataService Campaigns
+@inject AdminDataService Compendium
+@inject LanguageStateService LanguageState
+
+@* The party's chest: coins shared out among the characters, items given or taken into their inventories, the
+   unidentified ones known only by their look until someone identifies them *@
+<section class="rf-treasure" data-test="campaign-treasure">
+    <div class="small mb-3" style="color: var(--rf-text-muted);">@(Runs ? UiText.TreasureHintMaster(Lang) : UiText.TreasureHintPlayer(Lang))</div>
+
+    @if (data is null)
+    {
+        <div class="small" style="color: var(--rf-text-muted);">…</div>
+    }
+    else
+    {
+        @if (notice is not null)
+        {
+            <div class="rf-shop-notice mb-3" role="status" data-test="treasure-notice"><Icon Name="check" /> @notice</div>
+        }
+
+        <div class="rf-shop mb-3" data-test="treasure-coins">
+            <header class="rf-shop-head">
+                <span class="rf-handout-icon"><Icon Name="safe2" /></span>
+                <span class="rf-handout-row-text">
+                    <strong>@UiText.TreasureCoins(Lang)</strong>
+                    <span class="small" data-test="treasure-coins-total">@UiText.PurseText(data.Coins, Lang)</span>
+                </span>
+            </header>
+            @if (Runs)
+            {
+                <div class="rf-treasure-coins">
+                    @foreach (var type in CoinTypes)
+                    {
+                        var coin = type;
+                        <label class="rf-shop-mini">
+                            <span>@UiText.CoinName(coin, Lang)</span>
+                            <input type="number" min="0" class="rf-form-control" value="@Get(coin)" @onchange="e => SetCoin(coin, e.Value?.ToString())" data-test="treasure-coin" />
+                        </label>
+                    }
+                    <button type="button" class="btn btn-sm btn-rf-outline align-self-end" disabled="@busy" @onclick="SaveCoinsAsync" data-test="treasure-coins-save">@UiText.TreasureSaveCoins(Lang)</button>
+                </div>
+                @if (data.Characters.Count > 0)
+                {
+                    <div class="rf-treasure-split">
+                        <span class="rf-mini-label">@UiText.TreasureSplitAmong(Lang)</span>
+                        @foreach (var c in data.Characters)
+                        {
+                            var character = c;
+                            <label class="form-check d-flex align-items-center gap-2 mb-0">
+                                <input type="checkbox" class="form-check-input" checked="@splitAmong.Contains(character.Id)" @onchange="e => ToggleSplit(character.Id, e.Value is true)" data-test="treasure-split-character" />
+                                <span>@character.Name@(character.Active ? null : $" ({UiText.TreasureInactive(Lang)})")</span>
+                            </label>
+                        }
+                        <button type="button" class="btn btn-sm btn-rf-orange" disabled="@(busy || splitAmong.Count == 0 || InventoryRules.Total(data.Coins) == 0)" @onclick="SplitAsync" data-test="treasure-split">
+                            <Icon Name="coin" /> @UiText.TreasureSplit(Lang)
+                        </button>
+                    </div>
+                }
+            }
+        </div>
+
+        <article class="rf-shop" data-test="treasure-items">
+            <header class="rf-shop-head">
+                <span class="rf-handout-icon"><Icon Name="gem" /></span>
+                <span class="rf-handout-row-text"><strong>@UiText.TreasureItems(Lang)</strong></span>
+            </header>
+            @if (data.Items.Count == 0)
+            {
+                <div class="small" style="color: var(--rf-text-muted);" data-test="treasure-empty">@UiText.TreasureEmpty(Lang)</div>
+            }
+            else
+            {
+                <ul class="rf-shop-items">
+                    @foreach (var i in data.Items)
+                    {
+                        var item = i;
+                        <li class="rf-shop-item @(item.Identified ? null : "unidentified")" data-test="treasure-item">
+                            <span class="rf-shop-item-name">
+                                <strong>@(item.Name.Length > 0 ? item.Name : UiText.TreasureUnknownName(Lang))</strong>
+                                @if (item.Quantity > 1)
+                                {
+                                    <span class="small">×@item.Quantity</span>
+                                }
+                                @if (!item.Identified)
+                                {
+                                    <span class="rf-shop-tag rf-treasure-tag" data-test="treasure-unidentified">@UiText.TreasureUnidentified(Lang)</span>
+                                }
+                                else if (item.Kind == "magic-item")
+                                {
+                                    <span class="rf-shop-tag">@UiText.ShopKindMagic(Lang)</span>
+                                }
+                                @if (Runs && !item.Identified && item.TrueName is { Length: > 0 } trueName && trueName != item.Name)
+                                {
+                                    <span class="small">@UiText.TreasureTrueName(trueName, Lang)</span>
+                                }
+                                @if (item.Appearance.Length > 0)
+                                {
+                                    <span class="rf-treasure-look small">@item.Appearance</span>
+                                }
+                            </span>
+                            <span class="rf-shop-item-buy">
+                                @if (item.ValueInCopper is { } value)
+                                {
+                                    <span class="rf-shop-price">@EquipmentTerms.FormatCost(value, Lang)</span>
+                                }
+                                @if (!item.Identified)
+                                {
+                                    <button type="button" class="btn btn-sm btn-rf-outline" disabled="@busy" @onclick="() => IdentifyAsync(item)" data-test="treasure-identify"><Icon Name="magic" /> @UiText.TreasureIdentify(Lang)</button>
+                                }
+                                @if (Givable.Count > 0)
+                                {
+                                    <button type="button" class="btn btn-sm btn-rf-orange" disabled="@busy" @onclick="() => StartGive(item)" data-test="treasure-give">@(Runs ? UiText.TreasureGive(Lang) : UiText.TreasureTake(Lang))</button>
+                                }
+                                @if (Runs)
+                                {
+                                    <button type="button" class="rf-vtt-row-action" disabled="@busy" title="@UiText.BtnRemove(Lang)" aria-label="@UiText.BtnRemove(Lang)" @onclick="() => DeleteAsync(item)" data-test="treasure-delete"><Icon Name="trash" /></button>
+                                }
+                            </span>
+                            @if (giving is { } g && g.Item.Id == item.Id)
+                            {
+                                <div class="rf-shop-buy" data-test="treasure-give-panel">
+                                    <label class="rf-shop-mini">
+                                        <span>@UiText.TreasureGive(Lang)</span>
+                                        <select class="rf-form-control" @onchange="PickReceiver" data-test="treasure-give-character">
+                                            @foreach (var c in Givable)
+                                            {
+                                                <option value="@c.Id" selected="@(c.Id == g.CharacterId)">@c.Name</option>
+                                            }
+                                        </select>
+                                    </label>
+                                    @if (item.Quantity > 1)
+                                    {
+                                        <label class="rf-shop-mini">
+                                            <span>@UiText.TreasureQuantity(Lang)</span>
+                                            <input type="number" min="1" max="@item.Quantity" class="rf-form-control" @bind="g.Quantity" data-test="treasure-give-quantity" />
+                                        </label>
+                                    }
+                                    <span class="d-flex gap-2 ms-auto">
+                                        <button type="button" class="btn btn-sm btn-rf-outline" @onclick="() => giving = null">@UiText.BtnCancel(Lang)</button>
+                                        <button type="button" class="btn btn-sm btn-rf-orange" disabled="@busy" @onclick="GiveAsync" data-test="treasure-give-confirm">@UiText.BtnConfirm(Lang)</button>
+                                    </span>
+                                </div>
+                            }
+                        </li>
+                    }
+                </ul>
+            }
+
+            @if (Runs)
+            {
+                <div class="rf-shop-add">
+                    <div class="rf-shop-search">
+                        <input type="search" class="rf-form-control" placeholder="@UiText.TreasureAddSearch(Lang)" value="@searchText" @oninput="e => SearchAsync(e.Value?.ToString())" data-test="treasure-search" />
+                        @if (hits.Count > 0)
+                        {
+                            <ul class="rf-shop-hits" role="listbox">
+                                @foreach (var h in hits)
+                                {
+                                    var hit = h;
+                                    <li>
+                                        <button type="button" disabled="@busy" @onclick="() => AddHitAsync(hit)" data-test="treasure-hit">
+                                            <span>@hit.Name</span>
+                                            <span class="small">@(hit.Kind == "magic-item" ? UiText.ShopKindMagic(Lang) : string.Empty)</span>
+                                        </button>
+                                    </li>
+                                }
+                            </ul>
+                        }
+                    </div>
+                    <label class="form-check d-flex align-items-center gap-2 mb-0">
+                        <input type="checkbox" class="form-check-input" @bind="addUnidentified" data-test="treasure-add-unidentified" />
+                        <span class="small">@UiText.TreasureAddUnidentified(Lang)</span>
+                    </label>
+                    @if (freeOpen)
+                    {
+                        <div class="rf-shop-free rf-treasure-free" data-test="treasure-free-form">
+                            <input class="rf-form-control" maxlength="120" placeholder="@UiText.TreasureName(Lang)" @bind="freeName" data-test="treasure-free-name" />
+                            <input type="number" min="0" step="0.01" class="rf-form-control" placeholder="@UiText.TreasureValueGp(Lang)" @bind="freeValue" data-test="treasure-free-value" />
+                            <input type="number" min="1" max="9999" class="rf-form-control" placeholder="@UiText.TreasureQuantity(Lang)" @bind="freeQuantity" data-test="treasure-free-quantity" />
+                            <textarea class="rf-form-control w-100" rows="2" maxlength="1000" placeholder="@UiText.TreasureAppearance(Lang)" @bind="freeAppearance" data-test="treasure-free-look"></textarea>
+                            <button type="button" class="btn btn-sm btn-rf-outline" @onclick="() => freeOpen = false">@UiText.BtnCancel(Lang)</button>
+                            <button type="button" class="btn btn-sm btn-rf-orange" disabled="@(busy || string.IsNullOrWhiteSpace(freeName))" @onclick="AddFreeAsync" data-test="treasure-free-save">@UiText.BtnConfirm(Lang)</button>
+                        </div>
+                    }
+                    else
+                    {
+                        <button type="button" class="btn btn-sm btn-rf-outline" @onclick="() => freeOpen = true" data-test="treasure-free">+ @UiText.TreasureAddFree(Lang)</button>
+                    }
+                    @if (error is not null)
+                    {
+                        <div class="small text-warning w-100">@error</div>
+                    }
+                </div>
+            }
+        </article>
+    }
+</section>
+
+@code {
+    [Parameter, EditorRequired] public Guid CampaignId { get; set; }
+    [Parameter] public CampaignRole Role { get; set; } = CampaignRole.Player;
+    [Parameter] public RulesetVersion? Ruleset { get; set; }
+
+    private sealed class Giving
+    {
+        public required TreasureItemDto Item { get; init; }
+        public Guid CharacterId { get; set; }
+        public int Quantity { get; set; } = 1;
+    }
+
+    private static readonly CoinType[] CoinTypes = { CoinType.Pp, CoinType.Gp, CoinType.Ep, CoinType.Sp, CoinType.Cp };
+    private static readonly string[] Kinds = { "equipment", "magic-item" };
+
+    private CampaignTreasureDto? data;
+    private CoinPurse coins = new();
+    private HashSet<Guid> splitAmong = new();
+    private Giving? giving;
+    private bool busy;
+    private string? notice;
+    private string? error;
+
+    private string searchText = string.Empty;
+    private List<SearchResultDto> hits = new();
+    private CancellationTokenSource? searchCts;
+    private bool addUnidentified;
+
+    private bool freeOpen;
+    private string? freeName;
+    private decimal? freeValue;
+    private int? freeQuantity;
+    private string? freeAppearance;
+
+    private LanguageCode Lang => LanguageState.CurrentLanguage;
+    private bool Runs => CampaignRules.RunsTheTable(Role);
+    private List<TreasureCharacterDto> Givable => data?.Characters.Where(c => c.CanTake).ToList() ?? new();
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (data is null)
+        {
+            await LoadAsync();
+        }
+    }
+
+    private async Task LoadAsync()
+    {
+        data = await Campaigns.GetTreasureAsync(CampaignId, Lang) ?? new CampaignTreasureDto(new CoinPurse(), new(), new());
+        coins = TreasureRules.Copy(data.Coins);
+        splitAmong = data.Characters.Where(c => c.Active).Select(c => c.Id).ToHashSet();
+    }
+
+    private int Get(CoinType type) => type switch
+    {
+        CoinType.Pp => coins.Pp,
+        CoinType.Gp => coins.Gp,
+        CoinType.Ep => coins.Ep,
+        CoinType.Sp => coins.Sp,
+        _ => coins.Cp
+    };
+
+    private void SetCoin(CoinType type, string? text)
+    {
+        var value = int.TryParse(text, out var v) ? Math.Clamp(v, 0, 10_000_000) : 0;
+        switch (type)
+        {
+            case CoinType.Pp: coins.Pp = value; break;
+            case CoinType.Gp: coins.Gp = value; break;
+            case CoinType.Ep: coins.Ep = value; break;
+            case CoinType.Sp: coins.Sp = value; break;
+            default: coins.Cp = value; break;
+        }
+    }
+
+    private async Task SaveCoinsAsync()
+    {
+        busy = true;
+        var result = await Campaigns.SetTreasureCoinsAsync(CampaignId, coins);
+        busy = false;
+        error = result.Ok ? null : UiText.TreasureFailed(Lang);
+        await LoadAsync();
+    }
+
+    private void ToggleSplit(Guid id, bool on)
+    {
+        if (on)
+        {
+            splitAmong.Add(id);
+        }
+        else
+        {
+            splitAmong.Remove(id);
+        }
+    }
+
+    private async Task SplitAsync()
+    {
+        busy = true;
+        var (split, failure) = await Campaigns.SplitTreasureAsync(CampaignId, new SplitTreasureDto { CharacterIds = splitAmong.ToList() });
+        busy = false;
+        if (split is null)
+        {
+            error = failure ?? UiText.TreasureFailed(Lang);
+            return;
+        }
+        error = null;
+        notice = UiText.TreasureSplitDone(UiText.PurseText(split.Each, Lang), InventoryRules.Total(split.Left) > 0 ? UiText.PurseText(split.Left, Lang) : string.Empty, split.Characters.Count, Lang);
+        await LoadAsync();
+    }
+
+    // ----- Items -----
+
+    private async Task SearchAsync(string? text)
+    {
+        searchText = text ?? string.Empty;
+        searchCts?.Cancel();
+        if (searchText.Trim().Length < 2)
+        {
+            hits = new();
+            return;
+        }
+        var cts = searchCts = new CancellationTokenSource();
+        try
+        {
+            await Task.Delay(250, cts.Token);
+        }
+        catch (TaskCanceledException)
+        {
+            return;
+        }
+        var found = await Compendium.SearchAsync(searchText, Lang, Kinds, cts.Token);
+        if (cts.IsCancellationRequested || found is null)
+        {
+            return;
+        }
+        hits = found.Where(h => Ruleset is null || h.Ruleset == Ruleset).Take(12).ToList();
+        StateHasChanged();
+    }
+
+    private async Task AddHitAsync(SearchResultDto hit)
+    {
+        var dto = hit.Kind == "magic-item" ? new SaveTreasureItemDto { MagicItemId = hit.Id } : new SaveTreasureItemDto { EquipmentId = hit.Id };
+        dto.Identified = !addUnidentified;
+        if (addUnidentified)
+        {
+            dto.Name = UiText.TreasureUnknownName(Lang);
+        }
+        if (await AddAsync(dto))
+        {
+            searchText = string.Empty;
+            hits = new();
+        }
+    }
+
+    private async Task AddFreeAsync()
+    {
+        var dto = new SaveTreasureItemDto
+        {
+            Name = freeName?.Trim(),
+            Appearance = freeAppearance?.Trim(),
+            Quantity = Math.Clamp(freeQuantity ?? 1, 1, 9999),
+            ValueInCopper = freeValue is { } gp && gp >= 0 ? (int)Math.Round(gp * 100) : null,
+            Identified = !addUnidentified
+        };
+        if (await AddAsync(dto))
+        {
+            freeOpen = false;
+            freeName = freeAppearance = null;
+            freeValue = null;
+            freeQuantity = null;
+        }
+    }
+
+    private async Task<bool> AddAsync(SaveTreasureItemDto dto)
+    {
+        busy = true;
+        var (added, failure) = await Campaigns.AddTreasureItemAsync(CampaignId, dto, Lang);
+        busy = false;
+        error = added is null ? failure ?? UiText.TreasureFailed(Lang) : null;
+        if (added is not null)
+        {
+            await LoadAsync();
+        }
+        return added is not null;
+    }
+
+    private async Task IdentifyAsync(TreasureItemDto item)
+    {
+        busy = true;
+        await Campaigns.IdentifyTreasureItemAsync(CampaignId, item.Id);
+        busy = false;
+        await LoadAsync();
+    }
+
+    private async Task DeleteAsync(TreasureItemDto item)
+    {
+        busy = true;
+        await Campaigns.DeleteTreasureItemAsync(CampaignId, item.Id);
+        busy = false;
+        await LoadAsync();
+    }
+
+    private void StartGive(TreasureItemDto item)
+    {
+        notice = null;
+        giving = new Giving { Item = item, CharacterId = Givable.FirstOrDefault()?.Id ?? Guid.Empty };
+    }
+
+    private void PickReceiver(ChangeEventArgs e)
+    {
+        if (giving is not null && Guid.TryParse(e.Value?.ToString(), out var id))
+        {
+            giving.CharacterId = id;
+        }
+    }
+
+    private async Task GiveAsync()
+    {
+        if (giving is not { } g)
+        {
+            return;
+        }
+        busy = true;
+        var result = await Campaigns.GiveTreasureItemAsync(CampaignId, g.Item.Id, new GiveTreasureDto { CharacterId = g.CharacterId, Quantity = Math.Clamp(g.Quantity, 1, g.Item.Quantity) }, Lang);
+        busy = false;
+        if (!result.Ok)
+        {
+            error = UiText.TreasureFailed(Lang);
+            return;
+        }
+        var who = data?.Characters.FirstOrDefault(c => c.Id == g.CharacterId)?.Name ?? string.Empty;
+        notice = UiText.TreasureGiven(g.Item.Name.Length > 0 ? g.Item.Name : UiText.TreasureUnknownName(Lang), who, Lang);
+        error = null;
+        giving = null;
+        await LoadAsync();
+    }
+}
