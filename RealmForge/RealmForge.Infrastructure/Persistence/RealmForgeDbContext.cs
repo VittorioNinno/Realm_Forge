@@ -670,6 +670,7 @@ namespace RealmForge.Infrastructure.Persistence
 				entity.Property(e => e.Name).IsRequired().HasMaxLength(120);
 				entity.Property(e => e.Image).IsRequired();
 				entity.Property(e => e.PingColor).HasMaxLength(9);
+				entity.Property(e => e.StrikeType).HasMaxLength(20);
 				entity.Property(e => e.TerrainBlocks).HasDefaultValue(true).HasSentinel(true);
 				entity.HasIndex(e => e.CampaignId);
 				entity.HasOne(e => e.Campaign).WithMany(c => c.Maps).HasForeignKey(e => e.CampaignId).OnDelete(DeleteBehavior.Cascade);

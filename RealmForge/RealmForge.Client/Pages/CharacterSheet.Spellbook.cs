@@ -1,4 +1,5 @@
 ﻿using System.Text.Json;
+using Microsoft.JSInterop;
 using RealmForge.Client.Localization;
 using RealmForge.Shared.Characters;
 using RealmForge.Shared.DTOs;
@@ -55,6 +56,9 @@ namespace RealmForge.Client.Pages
 					continue;
 				}
 				var gained = info.Level - seen.Value;
+
+				//	A new level: confetti over the sheet (wwwroot/js/fx.js)
+				_ = CelebrateAsync();
 				var rule = SpellChangeRules.For(Ruleset, info);
 				if (rule.LevelUpSpell)
 				{
@@ -68,6 +72,18 @@ namespace RealmForge.Client.Pages
 			if (changed)
 			{
 				Changed();
+			}
+		}
+
+		private async Task CelebrateAsync()
+		{
+			try
+			{
+				await Task.Delay(400);
+				await JS.InvokeVoidAsync("rfFx.celebrate");
+			}
+			catch (Exception)
+			{
 			}
 		}
 

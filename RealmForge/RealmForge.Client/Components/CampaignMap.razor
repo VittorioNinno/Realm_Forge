@@ -3707,6 +3707,7 @@ else
             await LoadLayoutAsync();
             await WatchPhoneAsync();
         }
+        await BloomAreasAsync();
         //	The turn that just came is brought into view in a long order
         if (combat?.CurrentId is { } currentId && currentId != revealedTurn)
         {
@@ -3856,6 +3857,7 @@ else
                     tokens = state.Tokens;
                     TakeSheetLife();
                     TakeTerrain(state.Terrain);
+                    NoteNewAreas(shapes, state.Shapes ?? new());
                     shapes = state.Shapes ?? new();
                     ApplyTable(state.Table, first: false);
                     ApplyCombat(state.Combat);
@@ -5358,11 +5360,11 @@ else
     private DateTimeOffset? strikeSeen;
     private Guid? revealedTurn;
 
-    private async Task ShowStrikeAsync(Guid tokenId, string kind, string? text)
+    private async Task ShowStrikeAsync(Guid tokenId, string kind, string? text, string? damageType = null)
     {
         try
         {
-            await JS.InvokeVoidAsync("rfVtt.strike", stageElement, tokenId, kind, text);
+            await JS.InvokeVoidAsync("rfVtt.strike", stageElement, tokenId, kind, text, damageType);
         }
         catch (JSException)
         {
@@ -5403,7 +5405,7 @@ else
             if (!first)
             {
                 _ = ShowStrikeAsync(hit.TokenId, hit.Kind == 0 ? "miss" : hit.Kind == 2 ? "crit" : "hit",
-                    hit.Kind == 0 ? UiText.VttMissed(Lang) : hit.Damage is { } dealt ? $"−{dealt}" : UiText.VttHit(Lang));
+                    hit.Kind == 0 ? UiText.VttMissed(Lang) : hit.Damage is { } dealt ? $"−{dealt}" : UiText.VttHit(Lang), hit.DamageType);
             }
         }
         if (table.Focus is { } focus && focus.At != focusSeen)
@@ -5687,6 +5689,7 @@ else
         message = shape is null ? UiText.MapSaveFailed(Lang) : null;
         if (shape is not null)
         {
+            NoteNewAreas(shapes, new[] { shape });
             shapes = shapes.Append(shape).ToList();
         }
         StateHasChanged();
