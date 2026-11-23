@@ -21184,3 +21184,37 @@ button.rf-vtt-clock.on {
         opacity: 1;
     }
 }
+
+/* ===== The party's chest ===== */
+.rf-treasure-coins,
+.rf-treasure-split {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    gap: 8px 16px;
+}
+
+.rf-treasure-split {
+    align-items: center;
+    padding-top: 8px;
+    border-top: 1px solid #303030;
+}
+
+.rf-treasure-tag {
+    color: #c77dff;
+}
+
+.rf-treasure-look {
+    flex-basis: 100%;
+    color: var(--rf-text-muted);
+    font-style: italic;
+    white-space: pre-line;
+}
+
+.rf-shop-item.unidentified {
+    border: 1px dashed rgba(199, 125, 255, .5);
+}
+
+.rf-treasure-free textarea {
+    flex-basis: 100%;
+}

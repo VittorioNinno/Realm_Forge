@@ -2,6 +2,7 @@
 using System.Net.Http.Json;
 using Microsoft.Extensions.Logging;
 using RealmForge.Shared.Campaigns;
+using RealmForge.Shared.Characters;
 using RealmForge.Shared.DTOs;
 using RealmForge.Shared.Enums;
 
@@ -175,6 +176,30 @@ namespace RealmForge.Client.Services
 
 		public Task<(ClockMovedDto? Value, string? Error)> MoveClockAsync(Guid id, MoveClockDto dto) =>
 			TableAsync<ClockMovedDto>(() => _http.PostAsJsonAsync($"api/campaigns/{id}/clock", dto), "move clock");
+
+		public Task<CampaignTreasureDto?> GetTreasureAsync(Guid id, LanguageCode lang) =>
+			GetAsync<CampaignTreasureDto>($"api/campaigns/{id}/treasure?lang={(int)lang}");
+
+		public Task<CampaignResult> SetTreasureCoinsAsync(Guid id, CoinPurse coins) =>
+			SendAsync(() => _http.PutAsJsonAsync($"api/campaigns/{id}/treasure/coins", coins), "treasure coins");
+
+		public Task<(TreasureSplitDto? Value, string? Error)> SplitTreasureAsync(Guid id, SplitTreasureDto dto) =>
+			TableAsync<TreasureSplitDto>(() => _http.PostAsJsonAsync($"api/campaigns/{id}/treasure/split", dto), "split treasure");
+
+		public Task<(TreasureItemDto? Value, string? Error)> AddTreasureItemAsync(Guid id, SaveTreasureItemDto dto, LanguageCode lang) =>
+			TableAsync<TreasureItemDto>(() => _http.PostAsJsonAsync($"api/campaigns/{id}/treasure/items?lang={(int)lang}", dto), "add treasure item");
+
+		public Task<CampaignResult> UpdateTreasureItemAsync(Guid id, Guid itemId, SaveTreasureItemDto dto) =>
+			SendAsync(() => _http.PutAsJsonAsync($"api/campaigns/{id}/treasure/items/{itemId}", dto), "update treasure item");
+
+		public Task<CampaignResult> DeleteTreasureItemAsync(Guid id, Guid itemId) =>
+			SendAsync(() => _http.DeleteAsync($"api/campaigns/{id}/treasure/items/{itemId}"), "delete treasure item");
+
+		public Task<CampaignResult> IdentifyTreasureItemAsync(Guid id, Guid itemId) =>
+			SendAsync(() => _http.PostAsync($"api/campaigns/{id}/treasure/items/{itemId}/identify", null), "identify treasure item");
+
+		public Task<CampaignResult> GiveTreasureItemAsync(Guid id, Guid itemId, GiveTreasureDto dto, LanguageCode lang) =>
+			SendAsync(() => _http.PostAsJsonAsync($"api/campaigns/{id}/treasure/items/{itemId}/give?lang={(int)lang}", dto), "give treasure item");
 
 		public Task<CampaignShopsDto?> GetShopsAsync(Guid id, LanguageCode lang) =>
 			GetAsync<CampaignShopsDto>($"api/campaigns/{id}/shops?lang={(int)lang}");

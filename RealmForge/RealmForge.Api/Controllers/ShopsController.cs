@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using RealmForge.Api.Campaigns;
 using RealmForge.Api.Security;
 using RealmForge.Domain.Common;
 using RealmForge.Domain.Entities;
@@ -28,7 +29,6 @@ namespace RealmForge.Api.Controllers
 		public const int MaxPrice = 100_000_000;
 		public const int MaxInventory = 300;
 
-		private static readonly JsonSerializerOptions MechanicsJson = new(JsonSerializerDefaults.Web);
 
 		private readonly RealmForgeDbContext _context;
 		private readonly ShareService _shares;
@@ -285,7 +285,7 @@ namespace RealmForge.Api.Controllers
 			}
 			var names = await NamesAsync(new[] { item }, lang);
 			var name = names.GetValueOrDefault(item.Id) ?? item.Name;
-			if (!await StowAsync(sheet, item, name, dto.Quantity))
+			if (!await InventoryStow.StowAsync(_context, sheet, item.EquipmentId, item.MagicItemId, name, dto.Quantity))
 			{
 				return Problem(statusCode: StatusCodes.Status400BadRequest, title: $"At most {MaxInventory} entries in the inventory.");
 			}
@@ -306,55 +306,6 @@ namespace RealmForge.Api.Controllers
 		//	The characters the reader buys for: their own at the table (a master: every one at the table)
 		private IQueryable<Character> BuyersQuery(Guid campaignId, bool runs) => _context.Characters
 			.Where(c => _context.CampaignCharacters.Any(cc => cc.CampaignId == campaignId && cc.CharacterId == c.Id) && (runs || c.OwnerId == UserId));
-
-		//	The item into the inventory: on the entry of the same equipment (or free item) when there is one; a magic item
-		//	with its rules, as the sheet applies them
-		private async Task<bool> StowAsync(CharacterSheetState sheet, CampaignShopItem item, string name, int quantity)
-		{
-			InventoryItem? existing = item.EquipmentId is { } equipmentId
-				? sheet.Inventory.FirstOrDefault(i => i.EquipmentId == equipmentId && i.Magic is null)
-				: item.MagicItemId is null
-					? sheet.Inventory.FirstOrDefault(i => i.EquipmentId is null && i.Magic is null && i.Name == name)
-					: null;
-			if (existing is not null)
-			{
-				existing.Quantity += quantity;
-				return true;
-			}
-			if (sheet.Inventory.Count >= MaxInventory)
-			{
-				return false;
-			}
-			var entry = new InventoryItem { EquipmentId = item.EquipmentId, Name = item.EquipmentId is null ? name : null, Quantity = quantity };
-			if (item.MagicItemId is { } magicId && await _context.MagicItems.AsNoTracking().FirstOrDefaultAsync(m => m.Id == magicId) is { } magic)
-			{
-				entry.Magic = ReadMechanics(magic.Mechanics) ?? new MagicItemProperties();
-				entry.Magic.Rarity = magic.Rarity ?? entry.Magic.Rarity;
-				entry.Magic.RequiresAttunement = magic.RequiresAttunement;
-			}
-			else if (item.MagicItemId is not null)
-			{
-				entry.Magic = new MagicItemProperties();
-			}
-			sheet.Inventory.Add(entry);
-			return true;
-		}
-
-		private static MagicItemProperties? ReadMechanics(string? json)
-		{
-			if (string.IsNullOrWhiteSpace(json))
-			{
-				return null;
-			}
-			try
-			{
-				return JsonSerializer.Deserialize<MagicItemProperties>(json, MechanicsJson);
-			}
-			catch (JsonException)
-			{
-				return null;
-			}
-		}
 
 		//	The names of the compendium items in the language asked (the other one when it has only that)
 		private async Task<Dictionary<Guid, string>> NamesAsync(IEnumerable<CampaignShopItem> items, LanguageCode lang)
