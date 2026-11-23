@@ -70,6 +70,7 @@ namespace RealmForge.Client
 			//	Rules glossary: kept in memory for the whole session, it also links the terms in the other modules
 			builder.Services.AddScoped<GlossaryService>();
 			builder.Services.AddScoped<PinService>();
+			builder.Services.AddScoped<Dice3dService>();
 
 			//	UI language state management service
 			builder.Services.AddSingleton<LanguageStateService>();

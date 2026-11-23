@@ -54,6 +54,7 @@
 
 @code {
     [Inject] private LanguageStateService LanguageState { get; set; } = default!;
+    [Inject] private Dice3dService Dice3d { get; set; } = default!;
 
     //	Called with every roll shown (the sheet sends it to the dice log of its campaigns)
     [Parameter] public EventCallback<DiceRollResult> OnRoll { get; set; }
@@ -66,6 +67,10 @@
 
     //	The last rolls under the result (the campaign table has its log instead)
     [Parameter] public bool ShowHistory { get; set; } = true;
+
+    //	The rolls of someone else at the table: their 3D dice follow the reader's setting for those, in DiceColor
+    [Parameter] public bool Remote { get; set; }
+    [Parameter] public string? DiceColor { get; set; }
 
     private DiceRollResult? current;
     private readonly List<DiceRollResult> history = new();
@@ -99,7 +104,9 @@
         StateHasChanged();
         try
         {
-            for (var frame = 0; frame < 10; frame++)
+            //	The 3D dice tumble across the screen meanwhile (when this device shows them): the tray lands with them
+            var thrown = Dice3d.RollAsync(roll.Dice, Remote, DiceColor, cts.Token);
+            for (var frame = 0; frame < 10 || !thrown.IsCompleted; frame++)
             {
                 await Task.Delay(65, cts.Token);
                 faces = roll.Dice.Select(d => Random.Shared.Next(1, d.Sides + 1)).ToArray();

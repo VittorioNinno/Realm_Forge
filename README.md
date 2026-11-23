@@ -137,6 +137,10 @@ The table of a campaign, on its own page: the master prepares the maps away from
 - The detail pages of the compendium (and of Homebrew) suggest the corresponding entry of the other edition, by its English name ("Melf's Acid Arrow" finds "Acid Arrow" too): one click moves from a 2014 spell, monster or item to its 2024 version and back.
   *Le pagine di dettaglio del compendio (e dell'Homebrew) suggeriscono la voce corrispondente dell'altra edizione, tramite il nome inglese ("Melf's Acid Arrow" trova anche "Acid Arrow"): un clic porta da un incantesimo, mostro o oggetto 2014 alla sua versione 2024 e viceversa.*
 
+**3D dice · *Dadi 3D***
+- Every roll of the sheet, the roll log and the table can be thrown as real 3D dice across the screen (three.js with physics), landing on the result the app already decided, as on D&D Beyond: d4 to d20 and the percentile pair. Colour, material (resin, metal, wood, glass) and sound are chosen in the account and kept on the device; the rolls of the others at the table can tumble too, in their colour. Without WebGL or with reduced motion the animated dice of the tray stay.
+  *Ogni tiro della scheda, del registro dei tiri e del tavolo può diventare un lancio di veri dadi 3D sullo schermo (three.js con fisica), che si fermano sul risultato già deciso dall'app, come su D&D Beyond: dal d4 al d20 e la coppia dei percentili. Colore, materiale (resina, metallo, legno, vetro) e suono si scelgono nell'account e restano sul dispositivo; anche i lanci degli altri al tavolo possono rotolare, nel loro colore. Senza WebGL o con il movimento ridotto restano i dadi animati del vassoio.*
+
 **Installable app, offline sheet · *App installabile, scheda offline***
 - RealmForge can be installed as an app (phone home screen or desktop). Once opened online, the app and the characters read last stay on the device: a sheet opens without network, and its changes are kept on the device and sent as soon as the connection is back. Signing out forgets the characters kept.
   *RealmForge si può installare come app (schermata home del telefono o desktop). Dopo averla aperta online, l'app e gli ultimi personaggi letti restano sul dispositivo: una scheda si apre senza rete e le modifiche vengono conservate sul dispositivo e inviate appena torna la connessione. Uscendo dall'account i personaggi conservati vengono dimenticati.*
@@ -397,3 +401,7 @@ This work includes material taken from the System Reference Document 5.1 ("SRD 5
 This work includes material from the System Reference Document 5.2 ("SRD 5.2") by Wizards of the Coast LLC, available at https://www.dndbeyond.com/srd. The SRD 5.2 is licensed under the Creative Commons Attribution 4.0 International License, available at https://creativecommons.org/licenses/by/4.0/legalcode.
 
 RealmForge is compatible with fifth edition. · *RealmForge è compatibile con la quinta edizione.*
+
+### Third-party assets
+
+The 3D dice use [dice-box-threejs](https://github.com/3d-dice/dice-box-threejs) (MIT, which bundles three.js and cannon-es, both MIT) with its dice sounds, kept in `wwwroot/lib/dice3d` with their license.
