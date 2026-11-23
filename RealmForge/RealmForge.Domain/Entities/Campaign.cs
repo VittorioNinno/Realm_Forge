@@ -168,6 +168,37 @@ namespace RealmForge.Domain.Entities
 	}
 
 	///	<summary>
+	///	A progress clock (4, 6, 8 or 12 segments): a threat or a goal that fills by hand or every few hours of game time
+	///	(TickHours); the players see it when Shown.
+	///	</summary>
+	public class CampaignProgressClock
+	{
+		public Guid Id { get; set; } = Guid.NewGuid();
+		public Guid CampaignId { get; set; }
+		public string Name { get; set; } = string.Empty;
+		public int Segments { get; set; } = 6;
+		public int Filled { get; set; }
+		public bool Shown { get; set; }
+		public string Color { get; set; } = "#ff8c00";
+		public int? TickHours { get; set; }
+		public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
+	}
+
+	///	<summary>
+	///	A faction or a city of the campaign and the party's standing with it, from hostile (-3) to allied (+3).
+	///	</summary>
+	public class CampaignFaction
+	{
+		public Guid Id { get; set; } = Guid.NewGuid();
+		public Guid CampaignId { get; set; }
+		public string Name { get; set; } = string.Empty;
+		public string Description { get; set; } = string.Empty;
+		public int Standing { get; set; }
+		public bool Shown { get; set; } = true;
+		public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
+	}
+
+	///	<summary>
 	///	An item in the party's chest: from the compendium (equipment, a magic item) or free. Until it is identified the
 	///	players see only its Appearance (and the name the masters gave it); it goes to a character's inventory when given.
 	///	</summary>
@@ -215,6 +246,9 @@ namespace RealmForge.Domain.Entities
 		public string DescriptionIt { get; set; } = string.Empty;
 		public string DescriptionEn { get; set; } = string.Empty;
 		public int PricePercent { get; set; } = 100;
+
+		//	The faction it belongs to: its standing with the party moves the prices
+		public Guid? FactionId { get; set; }
 
 		//	Open: the players see it and buy (closed: behind the screen)
 		public bool Open { get; set; }
