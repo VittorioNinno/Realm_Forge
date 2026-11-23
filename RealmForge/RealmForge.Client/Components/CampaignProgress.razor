@@ -27,7 +27,7 @@
         @if (Runs)
         {
             <div class="rf-progress-form mb-3">
-                <input class="rf-form-control" maxlength="80" placeholder="@UiText.ProgressClockName(Lang)" @bind="clockName" data-test="clock-name" />
+                <input class="rf-form-control" maxlength="80" placeholder="@UiText.ProgressClockName(Lang)" @bind="clockName" @bind:event="oninput" data-test="clock-name" />
                 <select class="rf-form-control" @bind="clockSegments" data-test="clock-segments" aria-label="@UiText.ProgressSegments(Lang)">
                     @foreach (var n in FactionRules.Segments)
                     {
@@ -95,7 +95,7 @@
         @if (Runs)
         {
             <div class="rf-progress-form mb-3">
-                <input class="rf-form-control" maxlength="80" placeholder="@UiText.ProgressFactionName(Lang)" @bind="factionName" data-test="faction-name" />
+                <input class="rf-form-control" maxlength="80" placeholder="@UiText.ProgressFactionName(Lang)" @bind="factionName" @bind:event="oninput" data-test="faction-name" />
                 <input class="rf-form-control rf-progress-wide" maxlength="1000" placeholder="@UiText.ProgressFactionDescription(Lang)" @bind="factionDescription" />
                 <label class="form-check d-flex align-items-center gap-2 mb-0">
                     <input type="checkbox" class="form-check-input" @bind="factionShown" />
