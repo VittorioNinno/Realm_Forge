@@ -235,7 +235,7 @@
                             }
                             break;
                         case "sounds" when RunsTheTable:
-                            <CampaignSoundboard CampaignId="CampaignId" OnChanged="RefreshAsync" />
+                            <CampaignSoundboard CampaignId="CampaignId" MapId="map?.Id" OnChanged="RefreshAsync" />
                             break;
                         case "clock" when RunsTheTable:
                             <CampaignClock CampaignId="CampaignId" Role="Role" Compact="true" OnMoved="m => gameClock = m" />

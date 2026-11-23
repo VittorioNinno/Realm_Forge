@@ -72,6 +72,7 @@ namespace RealmForge.Infrastructure.Persistence
 		public DbSet<CampaignHandout> CampaignHandouts => Set<CampaignHandout>();
 		public DbSet<CampaignShop> CampaignShops => Set<CampaignShop>();
 		public DbSet<CampaignSound> CampaignSounds => Set<CampaignSound>();
+		public DbSet<CampaignSoundScene> CampaignSoundScenes => Set<CampaignSoundScene>();
 		public DbSet<CampaignLoot> CampaignLoot => Set<CampaignLoot>();
 		public DbSet<CampaignProgressClock> CampaignProgressClocks => Set<CampaignProgressClock>();
 		public DbSet<CampaignFaction> CampaignFactions => Set<CampaignFaction>();
@@ -638,6 +639,15 @@ namespace RealmForge.Infrastructure.Persistence
 				entity.Property(l => l.Appearance).IsRequired().HasMaxLength(1000);
 				entity.HasIndex(l => l.CampaignId);
 				entity.HasOne<Campaign>().WithMany().HasForeignKey(l => l.CampaignId).OnDelete(DeleteBehavior.Cascade);
+			});
+
+			modelBuilder.Entity<CampaignSoundScene>(entity =>
+			{
+				entity.HasKey(s => s.Id);
+				entity.Property(s => s.Name).IsRequired().HasMaxLength(80);
+				entity.Property(s => s.Layers).IsRequired().HasMaxLength(200);
+				entity.HasIndex(s => s.CampaignId);
+				entity.HasOne<Campaign>().WithMany().HasForeignKey(s => s.CampaignId).OnDelete(DeleteBehavior.Cascade);
 			});
 
 			modelBuilder.Entity<CampaignSound>(entity =>

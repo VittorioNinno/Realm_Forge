@@ -39,7 +39,7 @@
     }
     else
     {
-        @if (board.Playing is not null)
+        @if (board.Playing is not null || board.PlayingScene is not null)
         {
             <button type="button" class="btn btn-sm btn-rf-outline align-self-start" disabled="@busy" @onclick="StopAsync" data-test="sound-stop"><Icon Name="stop-fill" /> @UiText.SoundStop(Lang)</button>
         }
@@ -60,6 +60,88 @@
                 }
             </ul>
         }
+
+        @* Sound scenes: a track, loops over it and an effect, with one click *@
+        <span class="rf-mini-label d-flex align-items-center gap-2"><Icon Name="collection-play" /> @UiText.SoundScenes(Lang)</span>
+        @if ((board.Scenes ?? new()).Count == 0 && scene is null)
+        {
+            <span class="small" style="color: var(--rf-text-muted);">@UiText.SoundScenesHint(Lang)</span>
+        }
+        <ul class="rf-sound-list">
+            @foreach (var sc in board.Scenes ?? new())
+            {
+                var soundScene = sc;
+                <li class="@(board.PlayingScene == soundScene.Id ? "on" : null)" data-test="scene-row">
+                    <button type="button" class="rf-sound-play" disabled="@busy" title="@UiText.SoundScenePlay(Lang)" @onclick="() => PlaySceneAsync(soundScene)" data-test="scene-play">
+                        <Icon Name="collection-play" />
+                        <span>@soundScene.Name</span>
+                        <span class="rf-sound-scene-meta">@SceneSummary(soundScene)</span>
+                        @if (soundScene.MapId is not null)
+                        {
+                            <span class="rf-sound-scene-meta" title="@UiText.SoundSceneMapLinked(Lang)"><Icon Name="map" /></span>
+                        }
+                    </button>
+                    <button type="button" class="rf-vtt-row-action" disabled="@busy" title="@UiText.BtnRemove(Lang)" aria-label="@UiText.BtnRemove(Lang)" @onclick="() => DeleteSceneAsync(soundScene)" data-test="scene-delete"><Icon Name="trash" /></button>
+                </li>
+            }
+        </ul>
+        @if (scene is null)
+        {
+            <button type="button" class="btn btn-sm btn-rf-outline align-self-start" disabled="@(busy || board.Sounds.Count == 0)" @onclick="NewScene" data-test="scene-new"><Icon Name="plus" /> @UiText.SoundSceneNew(Lang)</button>
+        }
+        else
+        {
+            <div class="rf-card2 d-flex flex-column gap-2" data-test="scene-form">
+                <input class="rf-form-control" maxlength="80" placeholder="@UiText.SoundSceneName(Lang)" @bind="scene.Name" data-test="scene-name" />
+                <label class="d-flex flex-column gap-1">
+                    <span class="small">@UiText.SoundTracks(Lang)</span>
+                    <select class="rf-form-control" value="@(scene.TrackId?.ToString() ?? string.Empty)" @onchange="PickTrack" data-test="scene-track">
+                        <option value="">@UiText.SoundSceneNone(Lang)</option>
+                        @foreach (var trackOption in board.Sounds.Where(x => !x.Effect))
+                        {
+                            <option value="@trackOption.Id">@trackOption.Name</option>
+                        }
+                    </select>
+                </label>
+                <span class="small">@UiText.SoundSceneLayers(SoundsLimits.MaxLayers, Lang)</span>
+                <div class="rf-sound-scene-layers">
+                    @foreach (var layerOption in board.Sounds)
+                    {
+                        var layer = layerOption;
+                        var picked = scene.Layers.Contains(layer.Id);
+                        <label class="form-check d-flex align-items-center gap-2 mb-0">
+                            <input type="checkbox" class="form-check-input" checked="@picked" disabled="@(!picked && scene.Layers.Count >= SoundsLimits.MaxLayers)" @onchange="() => ToggleLayer(layer.Id)" data-test="scene-layer" />
+                            <span class="small">@layer.Name</span>
+                        </label>
+                    }
+                </div>
+                <label class="d-flex flex-column gap-1">
+                    <span class="small">@UiText.SoundSceneCue(Lang)</span>
+                    <select class="rf-form-control" value="@(scene.CueId?.ToString() ?? string.Empty)" @onchange="PickCue">
+                        <option value="">@UiText.SoundSceneNone(Lang)</option>
+                        @foreach (var cueOption in board.Sounds.Where(x => x.Effect))
+                        {
+                            <option value="@cueOption.Id">@cueOption.Name</option>
+                        }
+                    </select>
+                </label>
+                @if (MapId is not null)
+                {
+                    <label class="form-check d-flex align-items-center gap-2 mb-0">
+                        <input type="checkbox" class="form-check-input" @bind="sceneOnMap" data-test="scene-map" />
+                        <span class="small">@UiText.SoundSceneOnMap(Lang)</span>
+                    </label>
+                }
+                @if (sceneError is not null)
+                {
+                    <span class="small text-warning">@sceneError</span>
+                }
+                <div class="d-flex justify-content-end gap-2">
+                    <button type="button" class="btn btn-sm btn-rf-outline" @onclick="() => scene = null">@UiText.BtnCancel(Lang)</button>
+                    <button type="button" class="btn btn-sm btn-rf-orange" disabled="@busy" @onclick="SaveSceneAsync" data-test="scene-save">@UiText.BtnConfirm(Lang)</button>
+                </div>
+            </div>
+        }
     }
 </section>
 
@@ -68,6 +150,18 @@
 
     //	Something the table plays changed (the table refreshes at once)
     [Parameter] public EventCallback OnChanged { get; set; }
+
+    //	The map open at the table: a new scene can start with it
+    [Parameter] public Guid? MapId { get; set; }
+
+    private static class SoundsLimits
+    {
+        public const int MaxLayers = 4;
+    }
+
+    private SaveSoundSceneDto? scene;
+    private bool sceneOnMap;
+    private string? sceneError;
 
     private CampaignSoundboardDto? board;
     private SaveCampaignSoundDto draft = new();
@@ -79,6 +173,87 @@
     protected override async Task OnInitializedAsync() => await LoadAsync();
 
     private async Task LoadAsync() => board = await Campaigns.GetSoundsAsync(CampaignId) ?? new CampaignSoundboardDto(new(), null);
+
+    // ----- Scenes -----
+
+    private string SceneSummary(SoundSceneDto s) => UiText.SoundSceneSummary(s.TrackId is not null, s.Layers.Count, s.CueId is not null, Lang);
+
+    private void NewScene()
+    {
+        scene = new SaveSoundSceneDto();
+        sceneOnMap = false;
+        sceneError = null;
+    }
+
+    private void PickTrack(ChangeEventArgs e)
+    {
+        if (scene is not null)
+        {
+            scene.TrackId = Guid.TryParse(e.Value?.ToString(), out var picked) ? picked : null;
+        }
+    }
+
+    private void PickCue(ChangeEventArgs e)
+    {
+        if (scene is not null)
+        {
+            scene.CueId = Guid.TryParse(e.Value?.ToString(), out var picked) ? picked : null;
+        }
+    }
+
+    private void ToggleLayer(Guid id)
+    {
+        if (scene is null)
+        {
+            return;
+        }
+        if (!scene.Layers.Remove(id) && scene.Layers.Count < SoundsLimits.MaxLayers)
+        {
+            scene.Layers.Add(id);
+        }
+    }
+
+    private async Task SaveSceneAsync()
+    {
+        if (scene is null)
+        {
+            return;
+        }
+        if (string.IsNullOrWhiteSpace(scene.Name) || (scene.TrackId is null && scene.Layers.Count == 0 && scene.CueId is null))
+        {
+            sceneError = UiText.SoundSceneInvalid(Lang);
+            return;
+        }
+        scene.MapId = sceneOnMap ? MapId : null;
+        busy = true;
+        var (added, failure) = await Campaigns.AddSoundSceneAsync(CampaignId, scene);
+        busy = false;
+        if (added is null)
+        {
+            sceneError = failure ?? UiText.SoundSceneInvalid(Lang);
+            return;
+        }
+        scene = null;
+        await LoadAsync();
+    }
+
+    private async Task PlaySceneAsync(SoundSceneDto s)
+    {
+        await UnlockAsync();
+        busy = true;
+        await Campaigns.PlaySoundSceneAsync(CampaignId, s.Id);
+        busy = false;
+        await LoadAsync();
+        await OnChanged.InvokeAsync();
+    }
+
+    private async Task DeleteSceneAsync(SoundSceneDto s)
+    {
+        busy = true;
+        await Campaigns.DeleteSoundSceneAsync(CampaignId, s.Id);
+        busy = false;
+        await LoadAsync();
+    }
 
     private async Task AddAsync()
     {

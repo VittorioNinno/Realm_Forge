@@ -169,6 +169,15 @@ namespace RealmForge.Client.Services
 		public Task<CampaignResult> PlaySoundAsync(Guid id, Guid soundId) =>
 			SendAsync(() => _http.PostAsync($"api/campaigns/{id}/sounds/{soundId}/play", null), "play sound");
 
+		public Task<(SoundSceneDto? Value, string? Error)> AddSoundSceneAsync(Guid id, SaveSoundSceneDto dto) =>
+			TableAsync<SoundSceneDto>(() => _http.PostAsJsonAsync($"api/campaigns/{id}/sounds/scenes", dto), "add sound scene");
+
+		public Task<CampaignResult> PlaySoundSceneAsync(Guid id, Guid sceneId) =>
+			SendAsync(() => _http.PostAsync($"api/campaigns/{id}/sounds/scenes/{sceneId}/play", null), "play sound scene");
+
+		public Task<CampaignResult> DeleteSoundSceneAsync(Guid id, Guid sceneId) =>
+			SendAsync(() => _http.DeleteAsync($"api/campaigns/{id}/sounds/scenes/{sceneId}"), "delete sound scene");
+
 		public Task<CampaignResult> StopSoundsAsync(Guid id) =>
 			SendAsync(() => _http.PostAsync($"api/campaigns/{id}/sounds/stop", null), "stop sounds");
 
