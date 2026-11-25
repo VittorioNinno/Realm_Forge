@@ -148,7 +148,7 @@ namespace RealmForge.Client.Services
 				{
 					await Task.WhenAny(UnlockedAsync(), Task.Delay(1500, cancel));
 				}
-				var list = dice.Select(d => new { sides = d.Sides, value = d.Value }).ToList();
+				var list = dice.Select(d => new { sides = d.Sides, value = d.Value, dropped = d.Dropped }).ToList();
 				return list.Count > 0 && await _js.InvokeAsync<bool>("rfDice3d.roll", cancel, list, new { remote, color });
 			}
 			catch (Exception)
