@@ -907,6 +907,12 @@ try {
   const fixGone = await page.locator('[data-test=wizard-class-skill-fix]').count();
   if (knownBeforeBackground !== 0 || fixGone !== 0) throw new Error(`skill overlap not handled: known before background=${knownBeforeBackground} fix still shown=${fixGone}`);
   ok('wizard skills: the preselected background does not lock class skills, an overlap is re-picked in the background step');
+  // The backstory assistant: three ideas, one chosen goes to the Details step
+  await page.locator('[data-test=background-ideas]').click();
+  const ideaCount = await page.locator('[data-test=background-idea]').count();
+  await page.locator('[data-test=background-idea-use]').first().click();
+  if (ideaCount !== 3) throw new Error(`the backstory assistant offered ${ideaCount} ideas`);
+  ok('wizard background: the assistant offers three ideas');
   await page.locator('[data-test=wizard-feat-list]').waitFor({ timeout: 15000 });
   await nextOption('wizard-feat-list');
   await nextOption('wizard-feat-ability');
@@ -954,6 +960,9 @@ try {
   await next();
 
   await wizardStep('details');
+  const assistedStory = (await page.locator('[data-test=wizard-detail-backstory]').inputValue()).trim();
+  if (!assistedStory.includes('Eroe di prova')) throw new Error(`the chosen idea did not reach the details: ${assistedStory}`);
+  ok('wizard details: the idea chosen in the background step fills the backstory');
   await page.locator('[data-test=wizard-suggest-all]').click();
   const suggestedTraits = (await page.locator('[data-test=wizard-detail-traits]').inputValue()).trim();
   const suggestedStory = (await page.locator('[data-test=wizard-detail-backstory]').inputValue()).trim();

@@ -21657,3 +21657,101 @@ html.rf-fx-off .rf-riddle-wrong {
         flex-direction: column;
     }
 }
+
+/* ===== Backstory assistant of the wizard ===== */
+.rf-bg-assistant {
+    margin-top: 24px;
+    padding: 16px;
+    border: 1px solid var(--rf-border-subtle);
+    border-radius: 16px;
+    background: var(--rf-bg-card);
+}
+
+.rf-bg-assistant-head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+}
+
+.rf-bg-assistant-head .rf-wizard-block-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.rf-bg-ideas {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 16px;
+    margin-top: 16px;
+}
+
+.rf-bg-idea {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 16px;
+    border: 1px solid var(--rf-border-light);
+    border-radius: 16px;
+    background: var(--rf-bg-surface);
+    transition: border-color 0.2s, box-shadow 0.2s;
+    animation: rf-bg-idea-in 0.35s ease-out both;
+}
+
+.rf-bg-idea:nth-child(2) { animation-delay: 0.08s; }
+.rf-bg-idea:nth-child(3) { animation-delay: 0.16s; }
+
+@keyframes rf-bg-idea-in {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: none; }
+}
+
+.rf-bg-idea.chosen {
+    border-color: var(--rf-orange-primary);
+    box-shadow: 0 0 16px var(--rf-orange-glow);
+}
+
+.rf-bg-idea-theme {
+    align-self: flex-start;
+    padding: 0 8px;
+    border-radius: 8px;
+    background: rgba(255, 140, 0, 0.14);
+    color: var(--rf-orange-primary);
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.rf-bg-idea-story {
+    margin: 0;
+    font-size: 0.9rem;
+    color: var(--rf-text-secondary);
+}
+
+.rf-bg-idea dl {
+    margin: 0;
+    font-size: 0.85rem;
+}
+
+.rf-bg-idea dt {
+    color: var(--rf-text-muted);
+    font-weight: 600;
+}
+
+.rf-bg-idea dd {
+    margin: 0 0 8px;
+}
+
+.rf-bg-idea .btn {
+    margin-top: auto;
+    align-self: flex-start;
+}
+
+html.rf-fx-off .rf-bg-idea { animation: none; }
+
+@media (max-width: 991.98px) {
+    .rf-bg-ideas { grid-template-columns: 1fr; }
+}
