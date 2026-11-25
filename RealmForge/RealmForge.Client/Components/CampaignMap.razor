@@ -1180,6 +1180,19 @@ else
                 }
                 <button type="button" class="rf-vtt-card-close rf-vtt-icon-button" @onclick="CloseToolbar" aria-label="@UiText.TokenClose(Lang)" title="@UiText.TokenClose(Lang)"><Icon Name="close" /></button>
             </header>
+            @if (it.PropType is null && ConditionLimits.Limiting(it.Conditions) is { Count: > 0 } limits)
+            {
+                @* What the conditions stop, before a player tries: the heaviest first *@
+                <ul class="rf-hud-limits" aria-label="@UiText.VttLimits(Lang)" data-test="map-token-limits">
+                    @foreach (var key in limits)
+                    {
+                        <li class="@($"rf-hud-limit rf-hud-limit-{UiText.ConditionFamily(key)}")" data-condition="@key">
+                            <Icon Name="warning" />
+                            <span><strong>@UiText.ConditionName(key, Lang)</strong> · @ConditionLimits.Limit(key, Lang == LanguageCode.It)</span>
+                        </li>
+                    }
+                </ul>
+            }
             @if (Table && PropRules.Leads(it.PropType) && (RunsTheTable || it.PlayersInteract))
             {
                 var travellers = TravellersAt(it);
@@ -2251,6 +2264,10 @@ else
                     {
                         <p class="rf-qs-note rf-qs-down-note" data-test="vtt-quick-sheet-down"><Icon Name="moon-stars" /> @UiText.VttDownNoActions(Lang)</p>
                     }
+                    else if (ConditionLimits.ActionBlocker(t.Conditions) is { } blocker)
+                    {
+                        <p class="rf-qs-note rf-qs-down-note" role="status" data-test="vtt-quick-sheet-blocked"><Icon Name="warning" /> @ConditionLimits.NoActionText(blocker, Lang == LanguageCode.It)</p>
+                    }
                     @if (sheet.Attacks.Count > 0)
                     {
                         <section class="rf-qs-card">
@@ -2260,11 +2277,11 @@ else
                                 {
                                     var attack = line;
                                     <div class="rf-qs-attack">
-                                        <button type="button" class="rf-qs-attack-main" disabled="@(!canRoll || busy || attack.Roll is null || KnockedOut(t) || AttacksGone(t))" @onclick="() => RollAsync(t, attack.Roll!)" data-test="map-token-attack">
+                                        <button type="button" class="rf-qs-attack-main" disabled="@(!canRoll || busy || attack.Roll is null || KnockedOut(t) || CannotAct(t) || AttacksGone(t))" @onclick="() => RollAsync(t, attack.Roll!)" data-test="map-token-attack">
                                             <span class="rf-qs-attack-name">@attack.Name</span>
                                             <span class="rf-qs-attack-detail">@attack.Detail</span>
                                         </button>
-                                        @if (CanAim(t) && !KnockedOut(t))
+                                        @if (CanAim(t) && !KnockedOut(t) && !CannotAct(t))
                                         {
                                             <button type="button" class="rf-qs-attack-damage aim @(aim is { } aiming && aiming.AttackerId == t.Id && aiming.Attack.Name == attack.Name ? "active" : null)" disabled="@(busy || AttacksGone(t))"
                                                     title="@UiText.VttAimStart(attack.Name, Lang)" aria-label="@UiText.VttAimStart(attack.Name, Lang)" @onclick="() => StartAimAsync(t, attack)" data-test="map-token-aim"><Icon Name="crosshair" /></button>
@@ -2441,6 +2458,9 @@ else
     };
 
     //	A character at 0 hit points: unconscious, no actions nor bonus actions, only the death saves
+    //	Unconscious, paralyzed, petrified, stunned, incapacitated: no actions (the buttons say so before the dice roll)
+    private static bool CannotAct(MapTokenDto t) => ConditionLimits.ActionBlocker(t.Conditions) is not null;
+
     private bool KnockedOut(MapTokenDto t) => t.CharacterId is { } id && Characters.FirstOrDefault(c => c.Character.Id == id) is { } c && LifeMax(c) > 0 && LifeHp(c) == 0;
 
     private bool deathRolling;
@@ -4030,6 +4050,14 @@ else
             StateHasChanged();
             return;
         }
+        //	Unconscious, paralyzed, petrified, restrained, grappled: speed 0, and the message says which
+        if (!RunsTheTable && t.Kind != TokenKind.Prop && ConditionLimits.MoveBlocker(t.Conditions) is { } stuck)
+        {
+            message = ConditionLimits.NoMoveText(stuck, Lang == LanguageCode.It);
+            Replace(t);
+            StateHasChanged();
+            return;
+        }
         //	A player's token goes around the walls and the closed doors: the way it takes is what it moves
         var cost = MapGeometry.Distance(gridType, t.X, t.Y, col, row);
         if (FollowsTerrain && t.Kind != TokenKind.Prop)
@@ -4061,7 +4089,12 @@ else
         Replace(t with { X = col, Y = row, Turn = t.Turn is { } turn && IsTurnOf(t) ? turn with { Moved = turn.Moved + cost } : t.Turn });
         StateHasChanged();
         var result = await Campaigns.MoveTokenAsync(CampaignId, map.Id, t.Id, col, row);
-        message = result.Ok ? null : result.Status == System.Net.HttpStatusCode.Conflict ? (OffTurn(t) ? UiText.VttNotYourTurn(Lang) : UiText.VttWayBlocked(Lang)) : UiText.MapMoveFailed(Lang);
+        message = result.Ok ? null : result.Status == System.Net.HttpStatusCode.Conflict
+            ? OffTurn(t) ? UiText.VttNotYourTurn(Lang)
+                : HolderOf(t) is not null ? UiText.VttGrappledMove(Lang)
+                : ConditionLimits.MoveBlocker(t.Conditions) is { } held ? ConditionLimits.NoMoveText(held, Lang == LanguageCode.It)
+                : UiText.VttWayBlocked(Lang)
+            : UiText.MapMoveFailed(Lang);
         if (!result.Ok)
         {
             Replace(t);

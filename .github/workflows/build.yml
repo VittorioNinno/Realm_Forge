@@ -1425,6 +1425,13 @@ jobs:
           tr_master=$(code -X POST "$api/api/campaigns/$ss_cp/maps/$mp2/tokens/$ctl_tree/move" $json -H "Authorization: Bearer $B" -d '{"x":8,"y":3}')
           tr_clear=$(curl -s -X PUT "$api/api/campaigns/$ss_cp/maps/$mp2/terrain" $json -H "Authorization: Bearer $B" -d '{"cells":[],"replace":true,"blockPlayers":true}' | jq -c '.cells | length')
           tr_back=$(code -X POST "$api/api/campaigns/$ss_cp/maps/$mp2/tokens/$ctl_tree/move" $json -H "Authorization: Bearer $A" -d '{"x":8,"y":6}')
+          # Conditions: a restrained marker does not move for its player (409 naming the condition), the master moves it anyway;
+          # freed, it moves again
+          code -X PUT "$api/api/campaigns/$ss_cp/maps/$mp2/tokens/$ctl_tree/state" $json -H "Authorization: Bearer $B" -d '{"conditions":["restrained"],"hp":5}' > /dev/null
+          cl_held=$(curl -s -X POST "$api/api/campaigns/$ss_cp/maps/$mp2/tokens/$ctl_tree/move" $json -H "Authorization: Bearer $A" -d '{"x":8,"y":5}' | jq -c '{status, detail}')
+          cl_master=$(code -X POST "$api/api/campaigns/$ss_cp/maps/$mp2/tokens/$ctl_tree/move" $json -H "Authorization: Bearer $B" -d '{"x":8,"y":5}')
+          code -X PUT "$api/api/campaigns/$ss_cp/maps/$mp2/tokens/$ctl_tree/state" $json -H "Authorization: Bearer $B" -d '{"conditions":[],"hp":5}' > /dev/null
+          cl_free=$(code -X POST "$api/api/campaigns/$ss_cp/maps/$mp2/tokens/$ctl_tree/move" $json -H "Authorization: Bearer $A" -d '{"x":8,"y":6}')
           # A quick fight with the marker: its initiative rolled, set by the master only, the marker leaves, the fight ends
           qf=$(code -X POST "$api/api/campaigns/$ss_cp/maps/$mp2/combat/quick" $json -H "Authorization: Bearer $B" -d "{\"tokenIds\":[\"$ctl_tree\"]}")
           qf_again=$(code -X POST "$api/api/campaigns/$ss_cp/maps/$mp2/combat/quick" $json -H "Authorization: Bearer $B" -d "{\"tokenIds\":[\"$ctl_tree\"]}")
@@ -1793,6 +1800,9 @@ jobs:
           sscheck "terrain: the master moves freely" "$tr_master" "204"
           sscheck "terrain: cleared" "$tr_clear" "0"
           sscheck "terrain: without walls the player walks back" "$tr_back" "204"
+          sscheck "conditions: a restrained marker stays put for its player" "$cl_held" '{"status":409,"detail":"restrained"}'
+          sscheck "conditions: the master moves it anyway" "$cl_master" "204"
+          sscheck "conditions: freed, the player moves it" "$cl_free" "204"
           sscheck "told at once, not at the next poll" "$lp_fast" "yes"
           sscheck "image of another type" "$img_bad" "400"
           sscheck "image file" "$img_file" "200|image/png"

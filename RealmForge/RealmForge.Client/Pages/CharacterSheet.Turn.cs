@@ -286,6 +286,17 @@ namespace RealmForge.Client.Pages
 
 		private bool CannotAct => Sheet.Conditions.Contains("incapacitated") || IsImplied("incapacitated") || CurrentHp == 0;
 
+		//	The condition that stops the actions (null at 0 hit points without one): the warnings name it
+		private string? ActionCause => RealmForge.Shared.Campaigns.ConditionLimits.ActionBlocker(Sheet.Conditions);
+
+		private string TurnBlockedText => ActionCause is { } cause
+			? RealmForge.Shared.Campaigns.ConditionLimits.NoActionText(cause, Lang == LanguageCode.It)
+			: UiText.TurnBlocked(Lang);
+
+		private string CastBlockedText => ActionCause is { } cause
+			? UiText.CastBlockedBy(UiText.ConditionName(cause, Lang), Lang)
+			: UiText.CastBlocked(Lang);
+
 		private static string FreeKey(Guid id) => $"free:{id:N}";
 
 		//	Spells from a species or a feat: once per long rest without a slot

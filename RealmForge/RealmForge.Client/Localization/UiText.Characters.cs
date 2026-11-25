@@ -984,6 +984,7 @@ namespace RealmForge.Client.Localization
 			"Tap a spell to read and cast it: pick the slot, the free use or the ritual and the sheet updates slots and concentration.");
 		public static string BtnCast(LanguageCode lang) => T(lang, "Lancia", "Cast");
 		public static string CastWith(LanguageCode lang) => T(lang, "Lancia con", "Cast with");
+		public static string CastBlockedBy(string condition, LanguageCode lang) => T(lang, $"{condition}: ora non puoi lanciare incantesimi.", $"{condition}: you cannot cast spells now.");
 		public static string CastBlocked(LanguageCode lang) => T(lang, "Ora non puoi lanciare incantesimi: sei incapacitato o a 0 punti ferita.", "You cannot cast spells now: you are incapacitated or at 0 hit points.");
 		public static string CastEndsConcentration(string spell, LanguageCode lang) => T(lang, $"Lanciarlo termina la concentrazione su {spell}.", $"Casting it ends your concentration on {spell}.");
 		public static string CastFree(LanguageCode lang) => T(lang, "Uso gratuito", "Free use");

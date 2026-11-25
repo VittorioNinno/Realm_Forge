@@ -1576,7 +1576,7 @@
             @ConcentrationBanner()
             @if (CannotAct)
             {
-                <div class="rf-cast-warning">@UiText.TurnBlocked(Lang)</div>
+                <div class="rf-cast-warning" role="status" data-test="sheet-turn-blocked">@TurnBlockedText</div>
             }
             @if (lastCast is not null)
             {
@@ -1730,7 +1730,7 @@
             <div class="rf-cast" data-test="spell-cast">
                 @if (CannotAct)
                 {
-                    <div class="rf-cast-warning" data-test="spell-cast-blocked">@UiText.CastBlocked(Lang)</div>
+                    <div class="rf-cast-warning" data-test="spell-cast-blocked">@CastBlockedText</div>
                 }
                 else
                 {
@@ -1749,7 +1749,7 @@
             <div class="rf-cast" data-test="spell-cast">
                 @if (CannotAct)
                 {
-                    <div class="rf-cast-warning" data-test="spell-cast-blocked">@UiText.CastBlocked(Lang)</div>
+                    <div class="rf-cast-warning" data-test="spell-cast-blocked">@CastBlockedText</div>
                 }
                 else
                 {
