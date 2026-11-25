@@ -140,8 +140,12 @@
 
     private async Task LoadAsync()
     {
-        notes = await Campaigns.GetNotesAsync(CampaignId) ?? new List<CampaignNoteDto>();
-        mentions = await Campaigns.GetMentionsAsync(CampaignId, Lang) ?? new();
+        //	Together: the form opens only when what it can mention is there too
+        var reading = Campaigns.GetNotesAsync(CampaignId);
+        var mentioning = Campaigns.GetMentionsAsync(CampaignId, Lang);
+        await Task.WhenAll(reading, mentioning);
+        mentions = mentioning.Result ?? new();
+        notes = reading.Result ?? new List<CampaignNoteDto>();
     }
 
     private void Select(CampaignNoteKind kind)
