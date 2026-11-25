@@ -635,6 +635,7 @@ namespace RealmForge.Client.Localization
 		public static string VttEscape(LanguageCode lang) => T(lang, "Liberati", "Escape");
 		public static string VttEscapeHint(LanguageCode lang) => T(lang, "Usa l'azione: Atletica o Acrobazia per liberarti", "Takes the action: Athletics or Acrobatics to escape");
 		public static string VttLetGo(LanguageCode lang) => T(lang, "Lascia la presa", "Let go");
+		public static string VttLimits(LanguageCode lang) => T(lang, "Cosa impediscono le condizioni", "What the conditions stop");
 		public static string VttGrappledMove(LanguageCode lang) => T(lang, "Afferrato: non può muoversi finché non si libera.", "Grappled: it cannot move until it escapes.");
 		public static string VttReadyOther(LanguageCode lang) => T(lang, "Altro", "Something else");
 		public static string VttReadyWhat(LanguageCode lang) => T(lang, "Cosa prepari", "What is readied");

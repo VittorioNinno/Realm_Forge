@@ -12383,6 +12383,67 @@ textarea.rf-form-control {
     color: #f59e0b;
 }
 
+/* What the conditions stop: one line each, the colour of the condition's family on the left */
+.rf-hud-limits {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    margin: 0;
+    padding: 8px 16px 0;
+    list-style: none;
+}
+
+.rf-hud-limit {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    padding: 4px 8px;
+    border-left: 3px solid #f59e0b;
+    border-radius: 4px;
+    background: rgba(245, 158, 11, .08);
+    color: var(--rf-text-secondary);
+    font-size: .75rem;
+    line-height: 1.35;
+}
+
+    .rf-hud-limit strong {
+        color: var(--rf-text-primary);
+    }
+
+    .rf-hud-limit svg {
+        flex: none;
+        margin-top: 2px;
+        color: #f59e0b;
+    }
+
+    .rf-hud-limit-out {
+        border-left-color: #dc2626;
+        background: rgba(220, 38, 38, .1);
+    }
+
+        .rf-hud-limit-out svg {
+            color: #ef4444;
+        }
+
+    .rf-hud-limit-move {
+        border-left-color: #ea580c;
+    }
+
+    .rf-hud-limit-mind {
+        border-left-color: #7c3aed;
+        background: rgba(124, 58, 237, .1);
+    }
+
+    .rf-hud-limit-sense {
+        border-left-color: #0284c7;
+        background: rgba(2, 132, 199, .1);
+    }
+
+    .rf-hud-limit-body {
+        border-left-color: #16a34a;
+        background: rgba(22, 163, 74, .1);
+    }
+
 .rf-hud-dock {
     display: grid;
     grid-auto-columns: minmax(0, 1fr);

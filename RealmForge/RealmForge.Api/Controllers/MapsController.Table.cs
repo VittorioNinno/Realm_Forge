@@ -117,6 +117,11 @@ namespace RealmForge.Api.Controllers
 			var characterIds = new[] { attacker.CharacterId, target.CharacterId, target.SheetCharacterId }.OfType<Guid>().Distinct().ToList();
 			var characters = await _context.Characters.Where(c => characterIds.Contains(c.Id)).ToListAsync();
 			var attackerConditions = ConditionsOf(attacker, attackerCombatant, characters);
+			//	Unconscious, paralyzed, petrified, stunned, incapacitated: no attack (the master's call stands)
+			if (!runs && ConditionLimits.ActionBlocker(attackerConditions) is { } blocker)
+			{
+				return Problem(statusCode: StatusCodes.Status409Conflict, title: ConditionLimits.NoActionText(blocker, italian), detail: blocker);
+			}
 			var targetConditions = ConditionsOf(target, targetCombatant, characters);
 			if (targetCombatant?.Dodging == true)
 			{
@@ -316,6 +321,14 @@ namespace RealmForge.Api.Controllers
 			token.CharacterId is { } id && characters.FirstOrDefault(c => c.Id == id) is { } character
 				? EncounterSheetSync.ConditionsOf(CharactersController.ReadSheet(character.Sheet))
 				: combatant?.Conditions ?? token.Conditions;
+
+		//	The conditions of a token that moves or acts: its character's sheet, else the fight's, else the token's
+		private async Task<List<string>> MoveConditionsAsync(CampaignMap map, CampaignToken token)
+		{
+			var characters = token.CharacterId is { } id ? await _context.Characters.Where(c => c.Id == id).ToListAsync() : new List<Character>();
+			var combatant = token.CombatantId is { } cid && await FightAsync(map, track: false) is { } fight ? fight.Combatants.FirstOrDefault(c => c.Id == cid) : null;
+			return ConditionsOf(token, combatant, characters);
+		}
 
 		//	The armour class set at the table, else the fight's, the sheet's (a character or the sheet a copy uses), the
 		//	statblock's

@@ -423,6 +423,11 @@ namespace RealmForge.Api.Controllers
 			{
 				return Problem(statusCode: StatusCodes.Status409Conflict, title: "Grappled: its speed is 0.", detail: "grappled");
 			}
+			//	Unconscious, paralyzed, petrified, restrained, grappled: speed 0 (the detail names the condition)
+			if (!CampaignRules.RunsTheTable(role.Value) && token.Kind != TokenKind.Prop && ConditionLimits.MoveBlocker(await MoveConditionsAsync(map, token)) is { } stuck)
+			{
+				return Problem(statusCode: StatusCodes.Status409Conflict, title: ConditionLimits.NoMoveText(stuck, false), detail: stuck);
+			}
 			var before = TokensBefore(map, role.Value);
 			var from = (token.X, token.Y);
 			token.X = dto.X;
