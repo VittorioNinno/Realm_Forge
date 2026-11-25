@@ -412,7 +412,6 @@
     private bool invalid;
     private bool clearing;
     private string filter = "all";
-    private PeriodicTimer? timer;
     private CancellationTokenSource? stop;
 
     private bool RunsTheTable => CampaignRules.RunsTheTable(Role);
@@ -704,6 +703,5 @@
     public void Dispose()
     {
         stop?.Cancel();
-        timer?.Dispose();
     }
 }

@@ -39,9 +39,19 @@ const browser = await chromium.launch({ args: ['--enable-unsafe-swiftshader', '-
 const context = await browser.newContext();
 const page = await context.newPage();
 const consoleErrors = [];
-page.on('console', (m) => { if (m.type() === 'error' || m.type() === 'warning') consoleErrors.push(m.text()); });
+// A resource that failed is reported by its address (from the responses below), not by the browser's generic line
+page.on('console', (m) => {
+  if ((m.type() === 'error' || m.type() === 'warning') && !m.text().startsWith('Failed to load resource')) consoleErrors.push(m.text());
+});
 const authCalls = [];
-page.on('response', (r) => { if (r.url().includes('/api/auth/')) authCalls.push(`${r.request().method()} ${new URL(r.url()).pathname} -> ${r.status()}`); });
+const failedResponses = new Map();
+page.on('response', (r) => {
+  if (r.url().includes('/api/auth/')) authCalls.push(`${r.request().method()} ${new URL(r.url()).pathname} -> ${r.status()}`);
+  if (r.status() >= 400) {
+    const key = `${r.status()} ${r.request().method()} ${new URL(r.url()).pathname.replace(/[0-9a-f]{8}-[0-9a-f-]{27}/gi, '{id}')}`;
+    failedResponses.set(key, (failedResponses.get(key) ?? 0) + 1);
+  }
+});
 
 try {
   await page.goto(`${base}/feats`);
@@ -2541,6 +2551,7 @@ try {
   for (const r of results.filter((r) => r.startsWith('INFO character'))) console.log(`::notice title=character::${r.slice(0, 2000)}`);
   for (const r of results.filter((r) => r.startsWith('FAIL') || r.startsWith('DEBUG'))) console.log(`::error title=ui-fail::${r.slice(0, 2000)}`);
   for (const c of consoleErrors.slice(0, 5)) console.log(`::warning title=ui-console::${c.slice(0, 200)}`);
+  for (const [key, count] of failedResponses) console.log(`failed response: ${key} ×${count}`);
   await browser.close();
   if (results.some((r) => r.startsWith('FAIL'))) process.exit(1);
 }

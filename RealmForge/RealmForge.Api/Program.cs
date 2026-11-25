@@ -197,7 +197,14 @@ namespace RealmForge.Api
 				app.MapScalarApiReference();
 			}
 
-			app.UseHttpsRedirection();
+			//	HTTPS is terminated in front of the API (Cloudflare, Render): inside the container it listens on HTTP only, and
+			//	the redirect would have no port to send to. It stays on where the API itself has an HTTPS address (local runs)
+			var urls = app.Configuration["URLS"] ?? string.Empty;
+			if (!string.IsNullOrEmpty(app.Configuration["HTTPS_PORTS"]) || !string.IsNullOrEmpty(app.Configuration["HTTPS_PORT"])
+				|| urls.Contains("https://", StringComparison.OrdinalIgnoreCase))
+			{
+				app.UseHttpsRedirection();
+			}
 
 			app.UseCors(CorsPolicyName);
 
