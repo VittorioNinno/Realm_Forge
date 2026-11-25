@@ -21755,3 +21755,123 @@ html.rf-fx-off .rf-bg-idea { animation: none; }
 @media (max-width: 991.98px) {
     .rf-bg-ideas { grid-template-columns: 1fr; }
 }
+
+/* ===== Backstory assistant: the conversation ===== */
+.rf-bg-engine {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    margin-top: 16px;
+}
+
+.rf-bg-engine-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 0 8px;
+    border-radius: 8px;
+    background: var(--rf-bg-surface);
+    color: var(--rf-text-secondary);
+    font-size: 0.8rem;
+    font-weight: 600;
+}
+
+.rf-bg-engine-badge.ready {
+    background: rgba(25, 135, 84, 0.18);
+    color: #6fd3a1;
+}
+
+.rf-bg-progress {
+    flex: 1 1 200px;
+    height: 8px;
+    border-radius: 4px;
+    background: var(--rf-bg-surface);
+    overflow: hidden;
+}
+
+.rf-bg-progress > div {
+    height: 100%;
+    background: var(--rf-orange-primary);
+    transition: width 0.3s;
+}
+
+.rf-bg-chat {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    max-height: 400px;
+    margin-top: 16px;
+    padding: 8px;
+    overflow-y: auto;
+    border: 1px solid var(--rf-border-subtle);
+    border-radius: 16px;
+    background: var(--rf-bg-main);
+}
+
+.rf-bg-chat-empty {
+    padding: 8px;
+    color: var(--rf-text-muted);
+    font-style: italic;
+}
+
+.rf-bg-msg {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+    max-width: 88%;
+    padding: 8px 16px;
+    border-radius: 16px;
+    background: var(--rf-bg-surface);
+    animation: rf-bg-idea-in 0.25s ease-out both;
+}
+
+.rf-bg-msg.mine {
+    align-self: flex-end;
+    background: rgba(255, 140, 0, 0.14);
+    border-bottom-right-radius: 4px;
+}
+
+.rf-bg-msg.theirs {
+    align-self: flex-start;
+    border-bottom-left-radius: 4px;
+}
+
+.rf-bg-msg.writing .rf-bg-msg-text::after {
+    content: "▍";
+    margin-left: 2px;
+    animation: rf-bg-caret 1s steps(1) infinite;
+}
+
+@keyframes rf-bg-caret {
+    50% { opacity: 0; }
+}
+
+.rf-bg-msg-text {
+    white-space: pre-wrap;
+    font-size: 0.92rem;
+    color: var(--rf-text-primary);
+}
+
+.rf-bg-chat-input {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-top: 8px;
+}
+
+.rf-bg-chat-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 8px;
+}
+
+html.rf-fx-off .rf-bg-msg { animation: none; }
+
+@media (max-width: 575.98px) {
+    .rf-bg-msg { max-width: 100%; }
+    .rf-bg-chat { max-height: 50vh; }
+}

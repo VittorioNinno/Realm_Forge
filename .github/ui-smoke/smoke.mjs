@@ -907,12 +907,18 @@ try {
   const fixGone = await page.locator('[data-test=wizard-class-skill-fix]').count();
   if (knownBeforeBackground !== 0 || fixGone !== 0) throw new Error(`skill overlap not handled: known before background=${knownBeforeBackground} fix still shown=${fixGone}`);
   ok('wizard skills: the preselected background does not lock class skills, an overlap is re-picked in the background step');
-  // The backstory assistant: three ideas, one chosen goes to the Details step
-  await page.locator('[data-test=background-ideas]').click();
-  const ideaCount = await page.locator('[data-test=background-idea]').count();
-  await page.locator('[data-test=background-idea-use]').first().click();
-  if (ideaCount !== 3) throw new Error(`the backstory assistant offered ${ideaCount} ideas`);
-  ok('wizard background: the assistant offers three ideas');
+  // The backstory assistant: an idea of the player, an answer that builds on it (the rule-based assistant in automated
+  // browsers), the answer added to the story and the personality filled from the conversation
+  await page.locator('[data-test=background-chat-input]').fill('Mio fratello Aldric è sparito nella foresta e la mia famiglia mi incolpa.');
+  await page.locator('[data-test=background-chat-send]').click();
+  await page.locator('[data-test=background-msg-assistant]').first().waitFor({ timeout: 15000 });
+  const assistantAnswer = (await page.locator('[data-test=background-msg-assistant]').first().innerText()).trim();
+  if (!/Aldric/.test(assistantAnswer) || !assistantAnswer.includes('?')) throw new Error(`the assistant did not build on the idea: ${assistantAnswer}`);
+  await page.locator('[data-test=background-msg-use]').first().click();
+  await page.locator('[data-test=background-fill]').click();
+  await page.locator('[data-test=background-notice]').waitFor({ timeout: 15000 });
+  await shot(page, 'wizard-backstory-chat', '[data-test=background-assistant]');
+  ok('wizard background: the assistant answers the player\'s idea, its answer goes into the story');
   await page.locator('[data-test=wizard-feat-list]').waitFor({ timeout: 15000 });
   await nextOption('wizard-feat-list');
   await nextOption('wizard-feat-ability');
@@ -961,8 +967,8 @@ try {
 
   await wizardStep('details');
   const assistedStory = (await page.locator('[data-test=wizard-detail-backstory]').inputValue()).trim();
-  if (!assistedStory.includes('Eroe di prova')) throw new Error(`the chosen idea did not reach the details: ${assistedStory}`);
-  ok('wizard details: the idea chosen in the background step fills the backstory');
+  if (!assistedStory.includes('Eroe di prova')) throw new Error(`the assistant's answer did not reach the details: ${assistedStory}`);
+  ok('wizard details: the answer added in the background step fills the backstory');
   await page.locator('[data-test=wizard-suggest-all]').click();
   const suggestedTraits = (await page.locator('[data-test=wizard-detail-traits]').inputValue()).trim();
   const suggestedStory = (await page.locator('[data-test=wizard-detail-backstory]').inputValue()).trim();

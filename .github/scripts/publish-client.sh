@@ -23,7 +23,7 @@ css_hash=$(sha256sum css/app.css | cut -c1-12)
 sed -i "s|href=\"css/app.css\"|href=\"css/app.css?v=$css_hash\"|" index.html
 grep -q "css/app.css?v=$css_hash" index.html || { echo "::error title=publish-client::the stylesheet link was not versioned"; exit 1; }
 # The app's own scripts (3D dice, visual effects), versioned the same way
-for script in dice3d fx; do
+for script in dice3d fx backstory; do
   script_hash=$(sha256sum "js/$script.js" | cut -c1-12)
   sed -i "s|src=\"js/$script.js\"|src=\"js/$script.js?v=$script_hash\"|" index.html
   grep -q "js/$script.js?v=$script_hash" index.html || { echo "::error title=publish-client::js/$script.js was not versioned"; exit 1; }
