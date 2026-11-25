@@ -1851,7 +1851,7 @@ try {
   await shot(page, 'phone-vtt-table', null);
   await page.setViewportSize({ width: 1280, height: 900 });
   results.push(`INFO vtt: ${JSON.stringify(vttUi)}`);
-  if (vttUi.ruler !== '3 · 4,5 m' || vttUi.displayed !== 1 || vttUi.zoom === '100%' || vttUi.tools !== 16 || vttUi.connection !== 'live' || vttUi.phoneZoom === vttUi.zoom) throw new Error(`unexpected virtual tabletop: ${JSON.stringify(vttUi)}`);
+  if (vttUi.ruler !== '3 · 4,5 m' || vttUi.displayed !== 1 || vttUi.zoom === '100%' || vttUi.tools !== 19 || vttUi.connection !== 'live' || vttUi.phoneZoom === vttUi.zoom) throw new Error(`unexpected virtual tabletop: ${JSON.stringify(vttUi)}`);
   ok('virtual tabletop: the table on the whole window with the map shown to the players, fitted to the screen, the tools on the left, the ruler measuring three cells (4,5 m), the map fitted again on a phone');
   // A sphere of 1 cell (1,5 m) around the hero: its cell and the three around it on the map; a stroke, then erased;
   // a note for the masters
@@ -2171,6 +2171,45 @@ try {
   results.push(`INFO vtt objects: ${JSON.stringify(propUi)}`);
   if (propUi.before !== 'Closed' || propUi.opened !== 'Open' || propUi.locked !== 'Locked' || propUi.stuck !== 1) throw new Error(`unexpected objects: ${JSON.stringify(propUi)}`);
   ok('virtual tabletop objects: a door placed from the tokens panel, opened from its toolbar, then locked so it no longer opens');
+  // A chest dragged from the tokens panel onto the map lands on the cell under the pointer (not on the first free one),
+  // then is removed
+  await page.locator('[data-test=vtt-tool-tokens]').click();
+  await page.locator('[data-test=map-add-prop][data-type=Chest]').waitFor({ timeout: 10000 });
+  await page.waitForTimeout(1000);
+  const stageBox = await page.locator('[data-test=vtt] [data-test=map-stage]').boundingBox();
+  const boardBox = await page.locator('[data-test=vtt] [data-board]').boundingBox();
+  const heroBox = await page.locator('[data-test=vtt] [data-test=map-token][data-label="Eroe di prova"]').boundingBox();
+  // Two cells from the hero towards the middle of the map's visible part (always on the map, never under the hero)
+  const seen = {
+    left: Math.max(stageBox.x, boardBox.x), right: Math.min(stageBox.x + stageBox.width, boardBox.x + boardBox.width),
+    top: Math.max(stageBox.y, boardBox.y), bottom: Math.min(stageBox.y + stageBox.height, boardBox.y + boardBox.height)
+  };
+  const heroMid = { x: heroBox.x + heroBox.width / 2, y: heroBox.y + heroBox.height / 2 };
+  const dropPoint = {
+    x: heroMid.x + (heroMid.x < (seen.left + seen.right) / 2 ? 2 : -2) * heroBox.width,
+    y: heroMid.y + (heroMid.y < (seen.top + seen.bottom) / 2 ? 1 : -1) * heroBox.height
+  };
+  await page.locator('[data-test=map-add-prop][data-type=Chest]').dragTo(page.locator('[data-test=vtt] [data-test=map-stage]'), {
+    targetPosition: { x: dropPoint.x - stageBox.x, y: dropPoint.y - stageBox.y }
+  });
+  const chest = page.locator('[data-test=vtt] [data-test=map-token][data-label="Forziere"]');
+  await chest.waitFor({ timeout: 15000 });
+  const chestBox = await chest.boundingBox();
+  const dropUi = {
+    off: Math.round(Math.hypot(chestBox.x + chestBox.width / 2 - dropPoint.x, chestBox.y + chestBox.height / 2 - dropPoint.y)),
+    cell: Math.round(heroBox.width),
+    drop: [Math.round(dropPoint.x), Math.round(dropPoint.y)],
+    landed: [Math.round(chestBox.x + chestBox.width / 2), Math.round(chestBox.y + chestBox.height / 2)],
+    hint: await page.locator('[data-test=map-drag-hint]').count()
+  };
+  await page.locator('[data-test=vtt-tool-tokens]').click();
+  await chest.click();
+  await page.locator('[data-test=map-token-tab-more]').click();
+  await page.locator('[data-test=map-token-remove]').click();
+  await chest.waitFor({ state: 'detached', timeout: 15000 });
+  results.push(`INFO vtt drop: ${JSON.stringify(dropUi)}`);
+  if (dropUi.off > dropUi.cell || dropUi.hint !== 1) throw new Error(`a token dragged onto the map is not where it was dropped: ${JSON.stringify(dropUi)}`);
+  ok('virtual tabletop: a chest dragged from the tokens panel lands on the cell where it is dropped');
   // A long rest from the hero's quick sheet: saved on its sheet, the hit points full
   await page.locator('[data-test=vtt] [data-test=map-token][data-label="Eroe di prova"]').click();
   await page.locator('[data-test=map-token-sheet]').click();
@@ -2261,6 +2300,18 @@ try {
     const saved = await page.evaluate(() => JSON.parse(localStorage.getItem('rf-dice3d') || '{}').color);
     if (saved !== 'emerald') throw new Error(`the dice colour was not kept: ${saved}`);
     ok('3D dice: the colour is kept on the device, a test throw draws the dice over the page');
+    // A colour of one's own (RGB), the special dice locked until a code, a wrong code opening nothing
+    await page.locator('[data-test=dice3d-hex]').fill('#22c55e');
+    await page.locator('[data-test=dice3d-hex]').press('Enter');
+    await page.locator('[data-test=dice3d-hex]').blur();
+    await page.waitForFunction(() => JSON.parse(localStorage.getItem('rf-dice3d') || '{}').color === '#22c55e', null, { timeout: 15000 });
+    const lockedSkins = await page.locator('[data-test=dice3d-skin]:disabled').count();
+    await page.locator('[data-test=dice3d-code]').fill('nessun codice');
+    await page.locator('[data-test=dice3d-unlock]').click();
+    await page.locator('[data-test=dice3d-code-message]').waitFor({ timeout: 15000 });
+    await shot(page, 'dice3d-settings', '[data-test=account-dice3d]');
+    if (lockedSkins !== 2) throw new Error(`special dice locked: ${lockedSkins}`);
+    ok('3D dice: a colour of one\'s own is kept, the special dice wait for a code');
   } else {
     results.push('INFO 3D dice: no WebGL in this browser, the flat dice stay');
   }

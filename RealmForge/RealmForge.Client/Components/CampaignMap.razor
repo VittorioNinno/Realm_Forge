@@ -122,6 +122,14 @@
                     <button type="button" class="rf-vtt-tool @(panel == "tokens" ? "active" : null)" title="@UiText.VttToolTokens(Lang)" aria-label="@UiText.VttToolTokens(Lang)" @onclick="@(() => TogglePanel("tokens"))" data-test="vtt-tool-tokens"><Icon Name="people" /></button>
                     <button type="button" class="rf-vtt-tool @(panel == "handouts" ? "active" : null)" title="@UiText.VttToolHandouts(Lang)" aria-label="@UiText.VttToolHandouts(Lang)" @onclick="@(() => TogglePanel("handouts"))" data-test="vtt-tool-handouts"><Icon Name="file-text" /></button>
                     <button type="button" class="rf-vtt-tool @(panel == "sounds" ? "active" : null)" title="@UiText.VttToolSounds(Lang)" aria-label="@UiText.VttToolSounds(Lang)" @onclick="@(() => TogglePanel("sounds"))" data-test="vtt-tool-sounds"><Icon Name="music-note-beamed" /></button>
+                    @if (Table)
+                    {
+                        @* The campaign at hand: its encounters to start, the party's chest to hand out, the progress clocks *@
+                        <span class="rf-vtt-tools-sep"></span>
+                        <button type="button" class="rf-vtt-tool @(panel == "encounters" ? "active" : null)" title="@UiText.VttToolEncounters(Lang)" aria-label="@UiText.VttToolEncounters(Lang)" @onclick="@(() => CampaignPanel("encounters"))" data-test="vtt-tool-encounters"><Icon Name="flag" /></button>
+                        <button type="button" class="rf-vtt-tool @(panel == "treasure" ? "active" : null)" title="@UiText.VttToolTreasure(Lang)" aria-label="@UiText.VttToolTreasure(Lang)" @onclick="@(() => CampaignPanel("treasure"))" data-test="vtt-tool-treasure"><Icon Name="gem" /></button>
+                        <button type="button" class="rf-vtt-tool @(panel == "progress" ? "active" : null)" title="@UiText.VttToolProgress(Lang)" aria-label="@UiText.VttToolProgress(Lang)" @onclick="@(() => CampaignPanel("progress"))" data-test="vtt-tool-progress"><Icon Name="clock-history" /></button>
+                    }
                 }
                 <span class="rf-vtt-tools-sep"></span>
                 <button type="button" class="rf-vtt-tool" title="@UiText.VttFullscreen(Lang)" aria-label="@UiText.VttFullscreen(Lang)" @onclick="FullscreenAsync" data-test="vtt-fullscreen"><Icon Name="fullscreen" /></button>
@@ -242,6 +250,21 @@
                             break;
                         case "handouts" when RunsTheTable:
                             <CampaignHandouts CampaignId="CampaignId" Role="Role" Compact="true" OnChanged="RefreshAsync" />
+                            break;
+                        case "encounters" when RunsTheTable:
+                            @EncountersPanel
+                            break;
+                        case "treasure" when RunsTheTable:
+                            <div class="rf-vtt-campaign-panel" data-test="vtt-treasure">
+                                <h3 class="rf-qs-card-title">@UiText.VttToolTreasure(Lang)</h3>
+                                <CampaignTreasure CampaignId="CampaignId" Role="Role" MapId="map?.Id" PlaceTargets="PlaceTargets" OnPlaced="RefreshAsync" />
+                            </div>
+                            break;
+                        case "progress" when RunsTheTable:
+                            <div class="rf-vtt-campaign-panel" data-test="vtt-progress">
+                                <h3 class="rf-qs-card-title">@UiText.VttToolProgress(Lang)</h3>
+                                <CampaignProgress CampaignId="CampaignId" Role="Role" />
+                            </div>
                             break;
                         case "sheet" when SheetToken is { } sheetToken:
                             @QuickSheetPanel(sheetToken)
@@ -1180,6 +1203,19 @@ else
                 }
                 <button type="button" class="rf-vtt-card-close rf-vtt-icon-button" @onclick="CloseToolbar" aria-label="@UiText.TokenClose(Lang)" title="@UiText.TokenClose(Lang)"><Icon Name="close" /></button>
             </header>
+            @if (it.PropType is null && ConditionLimits.Limiting(it.Conditions) is { Count: > 0 } limits)
+            {
+                @* What the conditions stop, before a player tries: the heaviest first *@
+                <ul class="rf-hud-limits" aria-label="@UiText.VttLimits(Lang)" data-test="map-token-limits">
+                    @foreach (var key in limits)
+                    {
+                        <li class="@($"rf-hud-limit rf-hud-limit-{UiText.ConditionFamily(key)}")" data-condition="@key">
+                            <Icon Name="warning" />
+                            <span><strong>@UiText.ConditionName(key, Lang)</strong> · @ConditionLimits.Limit(key, Lang == LanguageCode.It)</span>
+                        </li>
+                    }
+                </ul>
+            }
             @if (Table && PropRules.Leads(it.PropType) && (RunsTheTable || it.PlayersInteract))
             {
                 var travellers = TravellersAt(it);
@@ -1203,8 +1239,9 @@ else
             {
                 <p class="rf-hud-message" data-test="map-prop-message">@propMessage</p>
             }
-            @if (it.PropType == PropType.Item)
+            @if (it.PropType == PropType.Item || (Table && it.PropType == PropType.Chest && (it.PropState == PropState.Open || (RunsTheTable && it.Gear is not null))))
             {
+                @* What lies there, or what an open chest holds (the masters see a closed one's too) *@
                 @TakeList(it)
             }
             @if (moreDock && RunsTheTable)
@@ -2251,6 +2288,10 @@ else
                     {
                         <p class="rf-qs-note rf-qs-down-note" data-test="vtt-quick-sheet-down"><Icon Name="moon-stars" /> @UiText.VttDownNoActions(Lang)</p>
                     }
+                    else if (ConditionLimits.ActionBlocker(t.Conditions) is { } blocker)
+                    {
+                        <p class="rf-qs-note rf-qs-down-note" role="status" data-test="vtt-quick-sheet-blocked"><Icon Name="warning" /> @ConditionLimits.NoActionText(blocker, Lang == LanguageCode.It)</p>
+                    }
                     @if (sheet.Attacks.Count > 0)
                     {
                         <section class="rf-qs-card">
@@ -2260,11 +2301,11 @@ else
                                 {
                                     var attack = line;
                                     <div class="rf-qs-attack">
-                                        <button type="button" class="rf-qs-attack-main" disabled="@(!canRoll || busy || attack.Roll is null || KnockedOut(t) || AttacksGone(t))" @onclick="() => RollAsync(t, attack.Roll!)" data-test="map-token-attack">
+                                        <button type="button" class="rf-qs-attack-main" disabled="@(!canRoll || busy || attack.Roll is null || KnockedOut(t) || CannotAct(t) || AttacksGone(t))" @onclick="() => RollAsync(t, attack.Roll!)" data-test="map-token-attack">
                                             <span class="rf-qs-attack-name">@attack.Name</span>
                                             <span class="rf-qs-attack-detail">@attack.Detail</span>
                                         </button>
-                                        @if (CanAim(t) && !KnockedOut(t))
+                                        @if (CanAim(t) && !KnockedOut(t) && !CannotAct(t))
                                         {
                                             <button type="button" class="rf-qs-attack-damage aim @(aim is { } aiming && aiming.AttackerId == t.Id && aiming.Attack.Name == attack.Name ? "active" : null)" disabled="@(busy || AttacksGone(t))"
                                                     title="@UiText.VttAimStart(attack.Name, Lang)" aria-label="@UiText.VttAimStart(attack.Name, Lang)" @onclick="() => StartAimAsync(t, attack)" data-test="map-token-aim"><Icon Name="crosshair" /></button>
@@ -2441,6 +2482,9 @@ else
     };
 
     //	A character at 0 hit points: unconscious, no actions nor bonus actions, only the death saves
+    //	Unconscious, paralyzed, petrified, stunned, incapacitated: no actions (the buttons say so before the dice roll)
+    private static bool CannotAct(MapTokenDto t) => ConditionLimits.ActionBlocker(t.Conditions) is not null;
+
     private bool KnockedOut(MapTokenDto t) => t.CharacterId is { } id && Characters.FirstOrDefault(c => c.Character.Id == id) is { } c && LifeMax(c) > 0 && LifeHp(c) == 0;
 
     private bool deathRolling;
@@ -3596,13 +3640,14 @@ else
     {
         <section class="rf-vtt-box" data-test="map-add-tokens">
             <span class="rf-vtt-title">@UiText.MapAddTokens(Lang)</span>
+            <span class="rf-vtt-drag-hint small" data-test="map-drag-hint"><Icon Name="arrows-move" /> @UiText.MapDragHint(Lang)</span>
             @if (FreeCharacters.Any())
             {
                 <div class="rf-vtt-chips">
                     @foreach (var c in FreeCharacters)
                     {
                         var ch = c;
-                        <button type="button" @onclick="() => AddCharacterAsync(ch)" data-test="map-add-character"><Icon Name="plus" /> @ch.Character.Name</button>
+                        <button type="button" draggable="true" data-drag-token="@($"character:{ch.Character.Id}")" title="@UiText.MapDragHint(Lang)" @onclick="() => AddCharacterAsync(ch)" data-test="map-add-character"><Icon Name="plus" /> @ch.Character.Name</button>
                     }
                 </div>
             }
@@ -3615,7 +3660,7 @@ else
                         {
                             var monster = m;
                             <div class="rf-vtt-drawer-result">
-                                <button type="button" class="rf-forge-selector-option" @onclick="() => AddMonsterAsync(monster)" data-test="map-monster-result">
+                                <button type="button" class="rf-forge-selector-option" draggable="true" data-drag-token="@($"monster:{monster.Id}")" title="@UiText.MapDragHint(Lang)" @onclick="() => AddMonsterAsync(monster)" data-test="map-monster-result">
                                     @monster.Name <span class="small" style="color: var(--rf-text-muted);">· @UiText.MonsterChallengeShort(Lang) @RealmForge.Shared.Monsters.MonsterMath.FormatChallenge(monster.ChallengeRating)</span>
                                 </button>
                                 <button type="button" class="rf-vtt-drawer-add" title="@UiText.VttDrawerAdd(Lang)" aria-label="@UiText.VttDrawerAdd(Lang)" @onclick="() => AddToDrawer(monster)" data-test="map-monster-drawer-add"><Icon Name="inbox" /></button>
@@ -3628,14 +3673,14 @@ else
             <div class="d-flex gap-2">
                 <input class="rf-form-control" maxlength="100" placeholder="@UiText.MapMarkerHint(Lang)" @bind="markerLabel" data-test="map-marker-label" />
                 <input type="color" class="rf-vtt-color" @bind="markerColor" aria-label="@UiText.MapColor(Lang)" />
-                <button type="button" class="btn btn-sm btn-rf-outline" disabled="@string.IsNullOrWhiteSpace(markerLabel)" @onclick="AddMarkerAsync" data-test="map-add-marker"><Icon Name="plus" /></button>
+                <button type="button" class="btn btn-sm btn-rf-outline" disabled="@string.IsNullOrWhiteSpace(markerLabel)" draggable="@(string.IsNullOrWhiteSpace(markerLabel) ? "false" : "true")" data-drag-token="marker" title="@UiText.MapDragHint(Lang)" @onclick="AddMarkerAsync" data-test="map-add-marker"><Icon Name="plus" /></button>
             </div>
             <span class="rf-vtt-label">@UiText.PropAdd(Lang)</span>
             <div class="rf-vtt-chips" data-test="map-add-props">
                 @foreach (var type in Enum.GetValues<PropType>().Where(p => p != PropType.Item))
                 {
                     var propType = type;
-                    <button type="button" @onclick="() => AddPropAsync(propType)" data-test="map-add-prop" data-type="@propType"><Icon Name="@PropIcon(propType, PropState.Closed)" /> @UiText.PropTypeName(propType, Lang)</button>
+                    <button type="button" draggable="true" data-drag-token="@($"prop:{propType}")" title="@UiText.MapDragHint(Lang)" @onclick="() => AddPropAsync(propType)" data-test="map-add-prop" data-type="@propType"><Icon Name="@PropIcon(propType, PropState.Closed)" /> @UiText.PropTypeName(propType, Lang)</button>
                 }
             </div>
         </section>
@@ -4030,6 +4075,14 @@ else
             StateHasChanged();
             return;
         }
+        //	Unconscious, paralyzed, petrified, restrained, grappled: speed 0, and the message says which
+        if (!RunsTheTable && t.Kind != TokenKind.Prop && ConditionLimits.MoveBlocker(t.Conditions) is { } stuck)
+        {
+            message = ConditionLimits.NoMoveText(stuck, Lang == LanguageCode.It);
+            Replace(t);
+            StateHasChanged();
+            return;
+        }
         //	A player's token goes around the walls and the closed doors: the way it takes is what it moves
         var cost = MapGeometry.Distance(gridType, t.X, t.Y, col, row);
         if (FollowsTerrain && t.Kind != TokenKind.Prop)
@@ -4061,7 +4114,12 @@ else
         Replace(t with { X = col, Y = row, Turn = t.Turn is { } turn && IsTurnOf(t) ? turn with { Moved = turn.Moved + cost } : t.Turn });
         StateHasChanged();
         var result = await Campaigns.MoveTokenAsync(CampaignId, map.Id, t.Id, col, row);
-        message = result.Ok ? null : result.Status == System.Net.HttpStatusCode.Conflict ? (OffTurn(t) ? UiText.VttNotYourTurn(Lang) : UiText.VttWayBlocked(Lang)) : UiText.MapMoveFailed(Lang);
+        message = result.Ok ? null : result.Status == System.Net.HttpStatusCode.Conflict
+            ? OffTurn(t) ? UiText.VttNotYourTurn(Lang)
+                : HolderOf(t) is not null ? UiText.VttGrappledMove(Lang)
+                : ConditionLimits.MoveBlocker(t.Conditions) is { } held ? ConditionLimits.NoMoveText(held, Lang == LanguageCode.It)
+                : UiText.VttWayBlocked(Lang)
+            : UiText.MapMoveFailed(Lang);
         if (!result.Ok)
         {
             Replace(t);
@@ -4073,6 +4131,7 @@ else
     {
         tokens = tokens.Select(x => x.Id == token.Id ? token : x).ToList();
         localEdits++;
+        SeeAgain();
     }
 
     //	Changes made here since a wait for the API began: its answer may predate them, so it is not shown
@@ -4240,6 +4299,95 @@ else
             }
         }
     }
+
+    // ===== The campaign at hand: encounters, treasure, progress clocks =====
+
+    //	A panel of the campaign opened from the tools (the encounters read again: one may have been made meanwhile)
+    private async Task CampaignPanel(string name)
+    {
+        TogglePanel(name);
+        drawerFolded = false;
+        if (panel == "encounters")
+        {
+            await LoadEncountersAsync();
+        }
+    }
+
+    //	The tokens an item of the chest can be put on: chests and things on the ground, the creatures that are not characters
+    private IReadOnlyList<CampaignTreasure.PlaceTarget> PlaceTargets => tokens
+        .Where(t => t.PropType is PropType.Chest or PropType.Item || (t.PropType is null && t.CharacterId is null && t.Kind is TokenKind.Npc or TokenKind.Monster))
+        .OrderBy(t => t.PropType is null)
+        .ThenBy(t => t.Label)
+        .Select(t => new CampaignTreasure.PlaceTarget(t.Id, t.PropType is { } type ? $"{t.Label} · {UiText.PropTypeName(type, Lang)}" : t.Label + (t.Hidden ? $" ({UiText.MapHiddenShort(Lang)})" : null)))
+        .ToList();
+
+    //	An encounter started from the table, on its own map when it has one
+    private async Task StartEncounterAsync(EncounterSummaryDto e)
+    {
+        if (busy)
+        {
+            return;
+        }
+        if (e.MapId is { } mapId && mapId != selectedId && maps?.Any(m => m.Id == mapId) == true)
+        {
+            await SelectAsync(mapId);
+        }
+        encounterId = e.Id;
+        await StartCombatAsync();
+        await LoadEncountersAsync();
+    }
+
+    private RenderFragment EncountersPanel => __builder =>
+    {
+        var open = encounters.Where(e => e.Status != EncounterStatus.Finished)
+            .OrderBy(e => e.Status == EncounterStatus.Running ? 0 : 1).ThenBy(e => e.Name).ToList();
+        <div class="rf-vtt-campaign-panel" data-test="vtt-encounters">
+            <h3 class="rf-qs-card-title">@UiText.VttToolEncounters(Lang)</h3>
+            @if (open.Count == 0)
+            {
+                <p class="small mb-2" style="color: var(--rf-text-muted);" data-test="vtt-encounters-empty">@UiText.VttEncountersNone(Lang)</p>
+            }
+            else
+            {
+                <ul class="rf-vtt-enc-list">
+                    @foreach (var item in open)
+                    {
+                        var e = item;
+                        var here = combat?.EncounterId == e.Id;
+                        <li class="rf-vtt-enc @(e.Status == EncounterStatus.Running ? "running" : null)" data-test="vtt-encounter-row">
+                            <span class="rf-vtt-enc-text">
+                                <strong>@e.Name</strong>
+                                <span class="small">
+                                    @UiText.EncounterStatusName(e.Status, Lang)
+                                    @if (e.MapName is not null)
+                                    {
+                                        <span> · @UiText.EncounterOnMap(e.MapName, Lang)</span>
+                                    }
+                                    <span> · @UiText.EncounterSides(e.Characters, e.Monsters, Lang)</span>
+                                </span>
+                            </span>
+                            @if (here)
+                            {
+                                <span class="rf-vtt-enc-here" data-test="vtt-encounter-here"><Icon Name="shield" /> @UiText.VttEncounterHere(Lang)</span>
+                            }
+                            else if (e.Status == EncounterStatus.Running && e.MapId is { } fightMap && fightMap != selectedId)
+                            {
+                                <button type="button" class="btn btn-sm btn-rf-outline" disabled="@busy" @onclick="() => SelectAsync(fightMap)" data-test="vtt-encounter-goto"><Icon Name="map" /> @UiText.VttEncounterGoTo(Lang)</button>
+                            }
+                            else if (e.Status == EncounterStatus.Planned)
+                            {
+                                <button type="button" class="btn btn-sm btn-rf-orange" disabled="@(busy || combat is not null && (e.MapId is null || e.MapId == selectedId))"
+                                        title="@(combat is not null ? UiText.VttEncounterBusy(Lang) : null)" @onclick="() => StartEncounterAsync(e)" data-test="vtt-encounter-start">
+                                    <Icon Name="play" /> @UiText.VttStartCombat(Lang)
+                                </button>
+                            }
+                        </li>
+                    }
+                </ul>
+            }
+            <a class="small" href="@($"campaigns/{CampaignId}")" target="_blank" rel="noopener" data-test="vtt-encounters-page"><Icon Name="external" /> @UiText.VttEncountersPage(Lang)</a>
+        </div>
+    };
 
     // ===== Who fights =====
 
@@ -5371,8 +5519,10 @@ else
     private DateTimeOffset? strikeSeen;
     private Guid? revealedTurn;
 
+    //	The strike tells the result: it waits for the dice of the roll to rest (at most a few seconds)
     private async Task ShowStrikeAsync(Guid tokenId, string kind, string? text, string? damageType = null)
     {
+        await DiceActivity.WhenIdleAsync(TimeSpan.FromMilliseconds(350), TimeSpan.FromSeconds(12));
         try
         {
             await JS.InvokeVoidAsync("rfVtt.strike", stageElement, tokenId, kind, text, damageType);
@@ -5993,19 +6143,73 @@ else
         return (0, 0);
     }
 
+    //	Where a token dragged from the panel was dropped (in the map's pixels), while it is being added
+    private (double X, double Y)? dropAt;
+
+    //	A token dragged from the panel and dropped on the map: added on the cell under the pointer (the first free one when
+    //	that is off the map)
+    [JSInvokable]
+    public async Task NewTokenDropped(string key, double x, double y)
+    {
+        if (map is null || !RunsTheTable || busy)
+        {
+            return;
+        }
+        var parts = key.Split(':', 2);
+        var what = parts[0];
+        var id = parts.Length > 1 ? parts[1] : string.Empty;
+        dropAt = (x, y);
+        try
+        {
+            switch (what)
+            {
+                case "character" when Guid.TryParse(id, out var characterId) && FreeCharacters.FirstOrDefault(c => c.Character.Id == characterId) is { } character:
+                    await AddCharacterAsync(character);
+                    break;
+                case "monster" when Guid.TryParse(id, out var monsterId):
+                    var monster = monsterResults.FirstOrDefault(m => m.Id == monsterId)
+                        ?? (monsters.TryGetValue(monsterId, out var known) ? known : (await MonsterService.GetMonstersAsync(Lang)).FirstOrDefault(m => m.Id == monsterId));
+                    if (monster is not null)
+                    {
+                        await AddMonsterAsync(monster);
+                    }
+                    break;
+                case "prop" when Enum.TryParse<PropType>(id, out var propType) && propType != PropType.Item:
+                    await AddPropAsync(propType);
+                    break;
+                case "marker":
+                    await AddMarkerAsync();
+                    break;
+            }
+        }
+        finally
+        {
+            dropAt = null;
+        }
+        StateHasChanged();
+    }
+
+    //	The cell a token dropped at a point of the map goes on: the nearest one, else the first free one
+    private (int X, int Y) DropCell((double X, double Y) at, int size)
+    {
+        var (col, row) = MapGeometry.Nearest(gridType, grid, offsetX, offsetY, at.X, at.Y, size);
+        return map is not null && MapGeometry.Inside(gridType, grid, offsetX, offsetY, col, row, size, map.Width, map.Height) ? (col, row) : FreeCell(size);
+    }
+
     private async Task AddAsync(SaveTokenDto dto)
     {
         if (map is null)
         {
             return;
         }
-        (dto.X, dto.Y) = FreeCell(dto.Size);
+        (dto.X, dto.Y) = dropAt is { } at ? DropCell(at, dto.Size) : FreeCell(dto.Size);
         var token = await Campaigns.AddTokenAsync(CampaignId, map.Id, dto);
         message = token is null ? UiText.MapSaveFailed(Lang) : null;
         if (token is not null)
         {
             //	A refresh of the table may have brought the new token already while it was being saved: never twice
             tokens = tokens.Where(existing => existing.Id != token.Id).Append(token).ToList();
+            SeeAgain();
             localEdits++;
         }
     }
@@ -6129,6 +6333,7 @@ else
         if (map is not null && (await Campaigns.DeleteTokenAsync(CampaignId, map.Id, t.Id)).Ok)
         {
             tokens = tokens.Where(x => x.Id != t.Id).ToList();
+            SeeAgain();
             localEdits++;
             infoToken = null;
         }

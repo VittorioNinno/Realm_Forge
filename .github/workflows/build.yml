@@ -1085,6 +1085,16 @@ jobs:
           journal=$(get "$api/api/campaigns/$cp_id/notes" -H "Authorization: Bearer $B" | jq -r '.[] | select(.kind == 3) | .id')
           cp_note_edit_other=$(code -X PUT "$api/api/campaigns/$cp_id/notes/$journal" $json -H "Authorization: Bearer $B" -d '{"kind":3,"title":"x","body":"y"}')
           cp_note_delete=$(code -X DELETE "$api/api/campaigns/$cp_id/notes/$journal" -H "Authorization: Bearer $B")
+          # The special dice: an easter-egg code (a test one, added here: the real codes are never in the repository) unlocks
+          # them once, a wrong code nothing; the seeded codes are kept as hashes only
+          dc_seeded=$(psql -h localhost -U postgres -d realm_forge_ci -tAc "SELECT count(*) FROM \"DiceUnlockCodes\" WHERE length(\"CodeHash\") = 64 AND \"Skin\" IN ('ember','stardust')")
+          dc_hash=$(printf '%s' 'CODICEDIPROVA42' | sha256sum | cut -d' ' -f1)
+          psql -h localhost -U postgres -d realm_forge_ci -v ON_ERROR_STOP=1 -c "INSERT INTO \"DiceUnlockCodes\" (\"Id\", \"CodeHash\", \"Skin\", \"Active\", \"CreatedAt\") VALUES (gen_random_uuid(), '$dc_hash', 'stardust', true, now())" > /dev/null
+          dc_before=$(get "$api/api/account/dice" -H "Authorization: Bearer $A" | jq -c .unlocked)
+          dc_wrong=$(curl -s -X POST "$api/api/account/dice/unlock" $json -H "Authorization: Bearer $A" -d '{"code":"non-esiste"}' | jq -c '{skin, new}')
+          dc_right=$(curl -s -X POST "$api/api/account/dice/unlock" $json -H "Authorization: Bearer $A" -d '{"code":"codice di prova 42"}' | jq -c '{skin, new, unlocked}')
+          dc_again=$(curl -s -X POST "$api/api/account/dice/unlock" $json -H "Authorization: Bearer $A" -d '{"code":"CODICE-DI-PROVA-42"}' | jq -c '{skin, new}')
+          dc_other=$(get "$api/api/account/dice" -H "Authorization: Bearer $B" | jq -c .unlocked)
           # The journal with @mentions and the masters' secrets: a player reads the page, not the secrets, and cannot write them
           mn_list=$(get "$api/api/campaigns/$cp_id/mentions?lang=2" -H "Authorization: Bearer $A")
           mn_char=$(echo "$mn_list" | jq -c '[.[] | select(.kind == "character")] | .[0] | {kind, id}')
@@ -1187,6 +1197,9 @@ jobs:
           chcheck "notes written" "$cp_notes_post" "200 200 200 403"
           chcheck "notes of the player" "$cp_notes_alice" "[1,3]"
           chcheck "notes of the master" "$cp_notes_bob" "[2,3]"
+          chcheck "dice: two codes seeded as hashes, none unlocked at first" "$dc_seeded|$dc_before" '2|[]'
+          chcheck "dice: a wrong code opens nothing, the right one (any case, spaces, dashes) unlocks once" "$dc_wrong|$dc_right|$dc_again" '{"skin":null,"new":false}|{"skin":"stardust","new":true,"unlocked":["stardust"]}|{"skin":"stardust","new":false}'
+          chcheck "dice: what a user unlocks is theirs only" "$dc_other" '[]'
           chcheck "mentions: the characters of the campaign, no maps for a player" "$mn_kinds" '["character"]'
           chcheck "journal: a player reads the mention, not the secrets" "$mn_player" '{"mention":true,"secret":null}'
           chcheck "journal: the master reads the secrets" "$mn_master" '"Il locandiere è un doppelganger."'
@@ -1412,6 +1425,13 @@ jobs:
           tr_master=$(code -X POST "$api/api/campaigns/$ss_cp/maps/$mp2/tokens/$ctl_tree/move" $json -H "Authorization: Bearer $B" -d '{"x":8,"y":3}')
           tr_clear=$(curl -s -X PUT "$api/api/campaigns/$ss_cp/maps/$mp2/terrain" $json -H "Authorization: Bearer $B" -d '{"cells":[],"replace":true,"blockPlayers":true}' | jq -c '.cells | length')
           tr_back=$(code -X POST "$api/api/campaigns/$ss_cp/maps/$mp2/tokens/$ctl_tree/move" $json -H "Authorization: Bearer $A" -d '{"x":8,"y":6}')
+          # Conditions: a restrained marker does not move for its player (409 naming the condition), the master moves it anyway;
+          # freed, it moves again
+          code -X PUT "$api/api/campaigns/$ss_cp/maps/$mp2/tokens/$ctl_tree/state" $json -H "Authorization: Bearer $B" -d '{"conditions":["restrained"],"hp":5}' > /dev/null
+          cl_held=$(curl -s -X POST "$api/api/campaigns/$ss_cp/maps/$mp2/tokens/$ctl_tree/move" $json -H "Authorization: Bearer $A" -d '{"x":8,"y":5}' | jq -c '{status, detail}')
+          cl_master=$(code -X POST "$api/api/campaigns/$ss_cp/maps/$mp2/tokens/$ctl_tree/move" $json -H "Authorization: Bearer $B" -d '{"x":8,"y":5}')
+          code -X PUT "$api/api/campaigns/$ss_cp/maps/$mp2/tokens/$ctl_tree/state" $json -H "Authorization: Bearer $B" -d '{"conditions":[],"hp":5}' > /dev/null
+          cl_free=$(code -X POST "$api/api/campaigns/$ss_cp/maps/$mp2/tokens/$ctl_tree/move" $json -H "Authorization: Bearer $A" -d '{"x":8,"y":6}')
           # A quick fight with the marker: its initiative rolled, set by the master only, the marker leaves, the fight ends
           qf=$(code -X POST "$api/api/campaigns/$ss_cp/maps/$mp2/combat/quick" $json -H "Authorization: Bearer $B" -d "{\"tokenIds\":[\"$ctl_tree\"]}")
           qf_again=$(code -X POST "$api/api/campaigns/$ss_cp/maps/$mp2/combat/quick" $json -H "Authorization: Bearer $B" -d "{\"tokenIds\":[\"$ctl_tree\"]}")
@@ -1678,6 +1698,22 @@ jobs:
           chest_barred=$(code -X POST "$api/api/campaigns/$ss_cp/maps/$mp2/tokens" $json -H "Authorization: Bearer $B" -d '{"label":"Forziere","kind":5,"propType":4,"propState":4,"x":3,"y":2,"size":1}')
           door_seen=$(curl -s "$api/api/campaigns/$ss_cp/maps/$mp2/state" -H "Authorization: Bearer $A" | jq -c '[.tokens[] | select(.kind == 5) | {propType, propState, playersInteract, canMove}]')
           echo "::notice title=maps::door open=$door_open locked=$door_locked off=$door_closed_off master=$door_master chest barred=$chest_barred seen=$door_seen"
+          # The party's chest at the table: a master puts an item on a closed chest next to the marker (a player cannot); the
+          # players see nothing in it until it is open, then the marker's player takes it; the emptied chest stays
+          tc_item=$(curl -s -X POST "$api/api/campaigns/$ss_cp/treasure/items" $json -H "Authorization: Bearer $B" -d '{"name":"Corda di seta","identified":true,"quantity":2}' | jq -r .id)
+          tc_at=$(curl -s "$api/api/campaigns/$ss_cp/maps/$mp2/state" -H "Authorization: Bearer $B" | jq -c '[.tokens[] | select(.label == "Albero")][0] | [.x + 1, .y]')
+          tc_chest=$(curl -s -X POST "$api/api/campaigns/$ss_cp/maps/$mp2/tokens" $json -H "Authorization: Bearer $B" -d "{\"label\":\"Baule\",\"kind\":5,\"propType\":4,\"propState\":0,\"playersInteract\":true,\"x\":$(echo "$tc_at" | jq '.[0]'),\"y\":$(echo "$tc_at" | jq '.[1]'),\"size\":1,\"layer\":1}" | jq -r .id)
+          tc_player=$(code -X POST "$api/api/campaigns/$ss_cp/treasure/items/$tc_item/place" $json -H "Authorization: Bearer $A" -d "{\"mapId\":\"$mp2\",\"tokenId\":\"$tc_chest\",\"quantity\":1}")
+          tc_place=$(code -X POST "$api/api/campaigns/$ss_cp/treasure/items/$tc_item/place?lang=2" $json -H "Authorization: Bearer $B" -d "{\"mapId\":\"$mp2\",\"tokenId\":\"$tc_chest\",\"quantity\":1}")
+          tc_left=$(curl -s "$api/api/campaigns/$ss_cp/treasure" -H "Authorization: Bearer $B" | jq -c '[.items[] | select(.name == "Corda di seta") | .quantity]')
+          tc_closed=$(curl -s "$api/api/campaigns/$ss_cp/maps/$mp2/state" -H "Authorization: Bearer $A" | jq -c --arg c "$tc_chest" '[.tokens[] | select(.id == $c) | [(.gear.items // [])[] | .name]]')
+          tc_take_closed=$(code -X POST "$api/api/campaigns/$ss_cp/maps/$mp2/tokens/$tc_chest/take?lang=2" $json -H "Authorization: Bearer $A" -d "{\"byTokenId\":\"$ctl_tree\",\"index\":0}")
+          code -X POST "$api/api/campaigns/$ss_cp/maps/$mp2/tokens/$tc_chest/interact" -H "Authorization: Bearer $B" > /dev/null
+          tc_open=$(curl -s "$api/api/campaigns/$ss_cp/maps/$mp2/state" -H "Authorization: Bearer $A" | jq -c --arg c "$tc_chest" '[.tokens[] | select(.id == $c) | [.propState, [(.gear.items // [])[] | .name]]]')
+          tc_take=$(code -X POST "$api/api/campaigns/$ss_cp/maps/$mp2/tokens/$tc_chest/take?lang=2" $json -H "Authorization: Bearer $A" -d "{\"byTokenId\":\"$ctl_tree\",\"index\":0}")
+          tc_after=$(curl -s "$api/api/campaigns/$ss_cp/maps/$mp2/state" -H "Authorization: Bearer $B" | jq -c --arg c "$tc_chest" '{chest: [.tokens[] | select(.id == $c) | (.gear.items // [] | length)], tree: [.tokens[] | select(.label == "Albero") | .gear.items[] | select(.name == "Corda di seta") | .quantity]}')
+          code -X DELETE "$api/api/campaigns/$ss_cp/maps/$mp2/tokens/$tc_chest" -H "Authorization: Bearer $B" > /dev/null
+          echo "::notice title=maps::chest player=$tc_player place=$tc_place left=$tc_left closed=$tc_closed/$tc_take_closed open=$tc_open take=$tc_take after=$tc_after"
           # Images: uploaded, served to anyone with the link (cached), chosen for a monster and a token, renamed, deleted
           png='data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg=='
           img=$(curl -s -X POST "$api/api/images" $json -H "Authorization: Bearer $B" -d "{\"name\":\"Lupo\",\"image\":\"$png\",\"width\":1,\"height\":1}" | jq -r .id)
@@ -1780,6 +1816,9 @@ jobs:
           sscheck "terrain: the master moves freely" "$tr_master" "204"
           sscheck "terrain: cleared" "$tr_clear" "0"
           sscheck "terrain: without walls the player walks back" "$tr_back" "204"
+          sscheck "conditions: a restrained marker stays put for its player" "$cl_held" '{"status":409,"detail":"restrained"}'
+          sscheck "conditions: the master moves it anyway" "$cl_master" "204"
+          sscheck "conditions: freed, the player moves it" "$cl_free" "204"
           sscheck "told at once, not at the next poll" "$lp_fast" "yes"
           sscheck "image of another type" "$img_bad" "400"
           sscheck "image file" "$img_file" "200|image/png"
@@ -1932,6 +1971,9 @@ jobs:
           sscheck "loot of a creature standing" "$at_take_alive" "409"
           sscheck "loot seen once down" "$at_loot_seen" '[{"items":["Pozione"],"coins":15}]'
           sscheck "coins taken" "$at_take_coins/$at_coins" '204/[15]'
+          sscheck "chest: only masters put treasure on a token" "$tc_player|$tc_place|$tc_left" '403|204|[1]'
+          sscheck "chest: closed, nothing seen nor taken" "$tc_closed|$tc_take_closed" '[[]]|409'
+          sscheck "chest: open, its player takes it and the chest stays" "$tc_open|$tc_take|$tc_after" '[[1,["Corda di seta"]]]|204|{"chest":[0],"tree":[1]}'
 
           sscheck "player sets the fog" "$fog_player" "403"
           sscheck "unknown fog step" "$fog_bad" "400"

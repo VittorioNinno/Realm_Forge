@@ -171,6 +171,7 @@ namespace RealmForge.Client.Components
 			}
 			var before = terrain;
 			TakeTerrain(new MapTerrainDto(MapTerrain.Paint(terrain?.Cells, cells, kind), terrain?.BlockPlayers ?? true));
+			SeeAgain();
 			StateHasChanged();
 			await SaveTerrainAsync(new SaveTerrainDto { Cells = cells.ToList(), Kind = kind, BlockPlayers = terrain?.BlockPlayers ?? true }, before);
 		}
@@ -203,6 +204,7 @@ namespace RealmForge.Client.Components
 			if (saved is null)
 			{
 				TakeTerrain(before);
+				SeeAgain();
 				message = UiText.MapSaveFailed(Lang);
 			}
 			else if (terrainQueued == 0)
@@ -219,6 +221,7 @@ namespace RealmForge.Client.Components
 		{
 			var before = terrain;
 			TakeTerrain(new MapTerrainDto(new List<int>(), terrain?.BlockPlayers ?? true));
+			SeeAgain();
 			await SaveTerrainAsync(new SaveTerrainDto { Replace = true, BlockPlayers = terrain?.BlockPlayers ?? true }, before);
 		}
 
@@ -252,6 +255,7 @@ namespace RealmForge.Client.Components
 			}
 			var before = terrain;
 			TakeTerrain(new MapTerrainDto(MapTerrain.Paint(terrain?.Cells, cells, TerrainKind.Wall), terrain?.BlockPlayers ?? true));
+			SeeAgain();
 			await SaveTerrainAsync(new SaveTerrainDto { Cells = cells, Kind = TerrainKind.Wall, BlockPlayers = terrain?.BlockPlayers ?? true }, before);
 		}
 
@@ -260,6 +264,7 @@ namespace RealmForge.Client.Components
 			var block = e.Value is true || (e.Value is string text && bool.TryParse(text, out var parsed) && parsed);
 			var before = terrain;
 			TakeTerrain(new MapTerrainDto(terrain?.Cells ?? new List<int>(), block));
+			SeeAgain();
 			await SaveTerrainAsync(new SaveTerrainDto { Cells = terrain!.Cells.ToList(), Replace = true, BlockPlayers = block }, before);
 		}
 

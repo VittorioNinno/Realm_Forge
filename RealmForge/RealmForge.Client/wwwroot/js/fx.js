@@ -35,7 +35,9 @@ window.rfFx = (() => {
         miss: { colors: ['#a1a1aa', '#71717a', '#d4d4d8'], rise: -10, spread: 70, size: [4, 9], life: [0.4, 0.8], shape: 'smoke' },
         heal: { colors: ['#86efac', '#4ade80', '#bbf7d0', '#fef9c3'], rise: -70, spread: 60, size: [2, 4], life: [0.8, 1.6], shape: 'mote', glow: true },
         crit: { colors: ['#fff7cc', '#facc15', '#f59e0b', '#ffffff'], rise: 0, spread: 320, size: [2, 5], life: [0.5, 1.1], shape: 'ray', glow: true, rings: 2 },
-        fumble: { colors: ['#7f1d1d', '#ef4444', '#3f3f46'], rise: 80, spread: 120, size: [2, 5], life: [0.4, 0.9], shape: 'shard' }
+        fumble: { colors: ['#7f1d1d', '#ef4444', '#3f3f46'], rise: 80, spread: 120, size: [2, 5], life: [0.4, 0.9], shape: 'shard' },
+        // The trail of the special dice of starlight
+        stardust: { colors: ['#ffffff', '#cfe3ff', '#a78bfa', '#fde68a', '#7dd3fc'], rise: -25, spread: 150, size: [1, 3], life: [0.5, 1.2], shape: 'ray', glow: true }
     };
 
     const rnd = (a, b) => a + Math.random() * (b - a);

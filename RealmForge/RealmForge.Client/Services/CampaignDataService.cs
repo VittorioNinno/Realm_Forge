@@ -243,6 +243,9 @@ namespace RealmForge.Client.Services
 		public Task<CampaignResult> GiveTreasureItemAsync(Guid id, Guid itemId, GiveTreasureDto dto, LanguageCode lang) =>
 			SendAsync(() => _http.PostAsJsonAsync($"api/campaigns/{id}/treasure/items/{itemId}/give?lang={(int)lang}", dto), "give treasure item");
 
+		public Task<CampaignResult> PlaceTreasureItemAsync(Guid id, Guid itemId, PlaceTreasureDto dto, LanguageCode lang) =>
+			SendAsync(() => _http.PostAsJsonAsync($"api/campaigns/{id}/treasure/items/{itemId}/place?lang={(int)lang}", dto), "place treasure item");
+
 		public Task<CampaignShopsDto?> GetShopsAsync(Guid id, LanguageCode lang) =>
 			GetAsync<CampaignShopsDto>($"api/campaigns/{id}/shops?lang={(int)lang}");
 
