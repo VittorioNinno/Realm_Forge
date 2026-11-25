@@ -21386,3 +21386,23 @@ html.rf-fx-off .rf-progress-wedge.on { animation: none; }
     .rf-progress-dial { width: 88px; height: 88px; }
     .rf-progress-factions { grid-template-columns: 1fr; }
 }
+
+/* ===== Sound scenes ===== */
+.rf-sound-play .rf-sound-scene-meta {
+    flex: none;
+    margin-left: auto;
+    font-size: 0.75rem;
+    color: var(--rf-text-muted);
+}
+
+.rf-sound-play .rf-sound-scene-meta + .rf-sound-scene-meta {
+    margin-left: 0;
+}
+
+.rf-sound-scene-layers {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(144px, 1fr));
+    gap: 8px;
+    max-height: 160px;
+    overflow-y: auto;
+}

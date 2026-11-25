@@ -238,6 +238,17 @@
         // one-shot effects; the browser plays only after a gesture on the page (unlock), the volume is the reader's
         window.rfSound = (() => {
             let track = null, trackKey = null, unlocked = false, volume = 1;
+            // The ambience loops of a sound scene, by id: each fades in and out on its own
+            const loops = new Map();
+            const fade = (a, to, ms, done) => {
+                const from = a.volume, start = performance.now();
+                const step = (now) => {
+                    const k = Math.min(1, (now - start) / ms);
+                    try { a.volume = Math.min(1, Math.max(0, from + (to - from) * k)); } catch { }
+                    if (k < 1) requestAnimationFrame(step); else if (done) done();
+                };
+                requestAnimationFrame(step);
+            };
             try { const v = parseFloat(localStorage.getItem('rf-sound-volume')); if (!isNaN(v)) volume = Math.min(1, Math.max(0, v)); } catch { }
             const level = (v) => Math.min(1, Math.max(0, (v / 100) * volume));
             return {
@@ -245,6 +256,7 @@
                 unlock() {
                     unlocked = true;
                     if (track) track.play().catch(() => { });
+                    loops.forEach(a => a.play().catch(() => { }));
                     return true;
                 },
                 volume: () => volume,
@@ -252,7 +264,38 @@
                     volume = Math.min(1, Math.max(0, v));
                     try { localStorage.setItem('rf-sound-volume', String(volume)); } catch { }
                     if (track) track.volume = level(track._rfVolume);
+                    loops.forEach(a => { a.volume = level(a._rfVolume); });
                 },
+                // The loops of the scene: [{id, url, volume}]; those gone fade out, the new ones fade in
+                layers(list, offsetSeconds) {
+                    const wanted = new Map((list || []).filter(l => l && l.url).map(l => [l.id, l]));
+                    loops.forEach((a, id) => {
+                        if (wanted.has(id)) return;
+                        loops.delete(id);
+                        fade(a, 0, 800, () => { a.pause(); a.src = ''; });
+                    });
+                    wanted.forEach((l, id) => {
+                        const playing = loops.get(id);
+                        if (playing) {
+                            playing._rfVolume = l.volume;
+                            playing.volume = level(l.volume);
+                            return;
+                        }
+                        const a = new Audio(l.url);
+                        a.loop = true;
+                        a._rfVolume = l.volume;
+                        a.volume = 0;
+                        a.addEventListener('loadedmetadata', () => {
+                            if (isFinite(a.duration) && a.duration > 0 && offsetSeconds > 0) {
+                                try { a.currentTime = offsetSeconds % a.duration; } catch { }
+                            }
+                        }, { once: true });
+                        loops.set(id, a);
+                        if (unlocked) a.play().then(() => fade(a, level(l.volume), 1200)).catch(() => { });
+                        else a.volume = level(l.volume);
+                    });
+                },
+                playing: () => (track ? 1 : 0) + loops.size,
                 // The track of the table: the same key keeps playing (only the volume follows), a new one starts at its offset
                 track(key, url, trackVolume, offsetSeconds) {
                     if (!url) {
@@ -287,6 +330,8 @@
                 stopAll() {
                     if (track) { track.pause(); track.src = ''; }
                     track = null; trackKey = null;
+                    loops.forEach(a => { a.pause(); a.src = ''; });
+                    loops.clear();
                 }
             };
         })();

@@ -1569,6 +1569,22 @@ jobs:
           sb_board=$(curl -s "$api/api/campaigns/$ss_cp/sounds" -H "Authorization: Bearer $B" | jq -c --arg t "$sb_track" '{sounds: (.sounds | length), playing: (.playing == $t)}')
           sb_stop=$(code -X POST "$api/api/campaigns/$ss_cp/sounds/stop" -H "Authorization: Bearer $B")
           sb_after=$(curl -s "$api/api/campaigns/$ss_cp/maps/$mp2/state" -H "Authorization: Bearer $A" | jq -c '.table.sound | {trackUrl, cueUrl}')
+          # Sound scenes: a track, a rain loop over it and a thunder at the start, with one click; tied to the map, showing it starts them
+          sb_rain=$(curl -s -X POST "$api/api/campaigns/$ss_cp/sounds" $json -H "Authorization: Bearer $B" -d '{"name":"Pioggia","url":"https://example.org/pioggia.mp3","volume":40}' | jq -r .id)
+          sn_bad=$(code -X POST "$api/api/campaigns/$ss_cp/sounds/scenes" $json -H "Authorization: Bearer $B" -d "{\"name\":\"Strana\",\"trackId\":\"$sb_cue\"}")
+          sn_player=$(code -X POST "$api/api/campaigns/$ss_cp/sounds/scenes" $json -H "Authorization: Bearer $A" -d "{\"name\":\"Mia\",\"layers\":[\"$sb_rain\"]}")
+          sn=$(curl -s -X POST "$api/api/campaigns/$ss_cp/sounds/scenes" $json -H "Authorization: Bearer $B" -d "{\"name\":\"Taverna sotto la pioggia\",\"trackId\":\"$sb_track\",\"layers\":[\"$sb_rain\"],\"cueId\":\"$sb_cue\",\"mapId\":\"$mp2\"}" | jq -r .id)
+          sn_play=$(code -X POST "$api/api/campaigns/$ss_cp/sounds/scenes/$sn/play" -H "Authorization: Bearer $B")
+          sn_table=$(curl -s "$api/api/campaigns/$ss_cp/maps/$mp2/state" -H "Authorization: Bearer $A" | jq -c '.table.sound | {trackUrl, layers: [.layers[] | {url, volume}], cueUrl}')
+          sn_board=$(curl -s "$api/api/campaigns/$ss_cp/sounds" -H "Authorization: Bearer $B" | jq -c --arg s "$sn" '{scenes: (.scenes | length), playing: (.playingScene == $s)}')
+          code -X POST "$api/api/campaigns/$ss_cp/sounds/stop" -H "Authorization: Bearer $B" > /dev/null
+          sn_stopped=$(curl -s "$api/api/campaigns/$ss_cp/maps/$mp2/state" -H "Authorization: Bearer $A" | jq -c '.table.sound | {trackUrl, layers: (.layers // [] | length)}')
+          code -X POST "$api/api/campaigns/$ss_cp/maps/$mp2/display" -H "Authorization: Bearer $B" > /dev/null
+          sn_shown=$(curl -s "$api/api/campaigns/$ss_cp/maps/$mp2/state" -H "Authorization: Bearer $A" | jq -c '.table.sound | {trackUrl, layers: (.layers | length)}')
+          code -X POST "$api/api/campaigns/$ss_cp/sounds/stop" -H "Authorization: Bearer $B" > /dev/null
+          code -X DELETE "$api/api/campaigns/$ss_cp/sounds/$sb_rain" -H "Authorization: Bearer $B" > /dev/null
+          sn_pruned=$(curl -s "$api/api/campaigns/$ss_cp/sounds" -H "Authorization: Bearer $B" | jq -c '[.scenes[] | .layers | length]')
+          code -X DELETE "$api/api/campaigns/$ss_cp/sounds/scenes/$sn" -H "Authorization: Bearer $B" > /dev/null
           code -X DELETE "$api/api/campaigns/$ss_cp/sounds/$sb_cue" -H "Authorization: Bearer $B" > /dev/null
           sb_gone=$(curl -s "$api/api/campaigns/$ss_cp/maps/$mp2/state" -H "Authorization: Bearer $A" | jq -c .table.sound)
           code -X DELETE "$api/api/campaigns/$ss_cp/sounds/$sb_track" -H "Authorization: Bearer $B" > /dev/null
@@ -1832,6 +1848,10 @@ jobs:
           sscheck "soundboard: the masters see what plays" "$sb_board" '{"sounds":2,"playing":true}'
           sscheck "soundboard: silence again" "$sb_stop|$sb_after" '204|{"trackUrl":null,"cueUrl":"https://example.org/tuono.ogg"}'
           sscheck "soundboard: a deleted sound stops" "$sb_gone" "null"
+          sscheck "sound scenes: only masters, a track that loops" "$sn_player|$sn_bad" "403|400"
+          sscheck "sound scenes: track, loops and effect at once" "$sn_play|$sn_table|$sn_board" '204|{"trackUrl":"https://example.org/taverna.mp3","layers":[{"url":"https://example.org/pioggia.mp3","volume":40}],"cueUrl":"https://example.org/tuono.ogg"}|{"scenes":1,"playing":true}'
+          sscheck "sound scenes: stopped, then started by showing their map" "$sn_stopped|$sn_shown" '{"trackUrl":null,"layers":0}|{"trackUrl":"https://example.org/taverna.mp3","layers":1}'
+          sscheck "sound scenes: a deleted sound leaves them" "$sn_pruned" "[0]"
           sscheck "handouts: the master has both languages" "$ho_master" '[{"titleIt":"Lettera","titleEn":"Letter"}]'
           sscheck "scene: only masters" "$sc_player" "403"
           sscheck "scene: shown to the table" "$sc_show|$sc_table" "204|true"
