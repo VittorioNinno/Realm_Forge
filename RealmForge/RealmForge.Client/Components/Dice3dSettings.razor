@@ -6,11 +6,27 @@
 @inject Dice3dService Dice3d
 @inject LanguageStateService LanguageState
 
-@* The 3D dice of this device: on or off, the dice (resin in any colour, or a special die unlocked with a code), sound
-   and the rolls of the others at the table; a test throw shows the choice at once *@
-<div class="rf-account-card mb-3" data-test="account-dice3d">
-    <div class="rf-account-card-title">@UiText.Dice3dTitle(Lang)</div>
-    <p class="small mb-3" style="color: var(--rf-text-secondary);">@UiText.Dice3dHint(Lang)</p>
+@* The 3D dice of this device: on or off; the set chosen in a gallery (resin in a colour of the palette or any colour,
+   the special dice, shown locked until their code is found, and the secret ones, shown only once unlocked); sound and
+   the rolls of the others; the code that unlocks a die. A test throw (and, for a special die, a natural 20) shows the
+   choice at once *@
+<div class="rf-account-card mb-3 rf-d3d" data-test="account-dice3d">
+    <header class="rf-d3d-head">
+        <div class="rf-d3d-head-text">
+            <div class="rf-account-card-title rf-d3d-title">@UiText.Dice3dTitle(Lang)</div>
+            <p class="rf-d3d-sub">@UiText.Dice3dHint(Lang)</p>
+        </div>
+        @if (settings is not null)
+        {
+            <label class="rf-d3d-master" title="@UiText.Dice3dEnabled(Lang)">
+                <span class="rf-d3d-master-label">@(settings.Enabled ? UiText.Dice3dOn(Lang) : UiText.Dice3dOff(Lang))</span>
+                <input type="checkbox" class="rf-d3d-switch-input" checked="@settings.Enabled" aria-label="@UiText.Dice3dEnabled(Lang)"
+                       @onchange="e => SetAsync(s => s.Enabled = e.Value is true)" data-test="dice3d-enabled" />
+                <span class="rf-d3d-switch" aria-hidden="true"><span></span></span>
+            </label>
+        }
+    </header>
+
     @if (settings is null)
     {
         <span class="small" style="color: var(--rf-text-muted);">…</span>
@@ -19,93 +35,188 @@
     {
         @if (!available)
         {
-            <p class="small text-warning mb-3" data-test="dice3d-unavailable">@UiText.Dice3dUnavailable(Lang)</p>
+            <p class="small text-warning mb-0" data-test="dice3d-unavailable">@UiText.Dice3dUnavailable(Lang)</p>
         }
-        <div class="rf-dice3d-settings">
-            <label class="form-check form-switch d-flex align-items-center gap-2 mb-0">
-                <input type="checkbox" class="form-check-input" checked="@settings.Enabled" @onchange="e => SetAsync(s => s.Enabled = e.Value is true)" data-test="dice3d-enabled" />
-                <span>@UiText.Dice3dEnabled(Lang)</span>
-            </label>
-
-            <div class="rf-dice3d-row">
-                <span class="rf-mini-label">@UiText.Dice3dSkin(Lang)</span>
-                <div class="rf-dice3d-skins" role="radiogroup" aria-label="@UiText.Dice3dSkin(Lang)">
-                    @foreach (var s in Skins)
+        <div class="rf-d3d-body @(settings.Enabled ? null : "off")">
+            @* The set in use, and the throws that show it *@
+            <div class="rf-d3d-active" data-test="dice3d-active">
+                <div class="rf-d3d-active-set">
+                    <span class="rf-d3d-swatch lg" style="@SwatchStyle(Current)"><Icon Name="dice-5" /></span>
+                    <span class="rf-d3d-active-meta">
+                        <span class="rf-d3d-kicker">@UiText.Dice3dSelected(Lang) <span class="rf-d3d-badge">@CategoryName(Current.Category)</span></span>
+                        <strong class="rf-d3d-active-name" data-test="dice3d-active-name">@Current.Name</strong>
+                    </span>
+                </div>
+                <div class="rf-d3d-active-actions">
+                    @if (Current.Category != "resin")
                     {
-                        var skin = s;
-                        var open = skin == DiceSkins.Resin || unlocked.Contains(skin);
-                        <button type="button" role="radio" aria-checked="@(settings.Skin == skin ? "true" : "false")" disabled="@(!open)"
-                                class="rf-dice3d-skin rf-dice3d-skin-@skin @(settings.Skin == skin ? "on" : null) @(open ? null : "locked")"
-                                title="@(open ? UiText.Dice3dSkinHint(skin, Lang) : UiText.Dice3dSkinLocked(Lang))"
-                                @onclick="() => SetAsync(x => x.Skin = skin)" data-test="dice3d-skin" data-skin="@skin">
-                            <span class="rf-dice3d-skin-face" aria-hidden="true"><Icon Name="@(open ? "dice-5" : "lock")" /></span>
-                            <span class="rf-dice3d-skin-name">@(open ? UiText.Dice3dSkinName(skin, Lang) : "???")</span>
+                        <button type="button" class="rf-d3d-btn" disabled="@(!available || !settings.Enabled || testing)" title="@UiText.Dice3dCritHint(Lang)" @onclick="CriticalAsync" data-test="dice3d-crit-test">
+                            <Icon Name="stars" /> @UiText.Dice3dCritTest(Lang)
                         </button>
                     }
+                    <button type="button" class="rf-d3d-btn primary" disabled="@(!available || !settings.Enabled || testing)" @onclick="TestAsync" data-test="dice3d-test">
+                        <Icon Name="dice-5" /> @UiText.Dice3dTest(Lang)
+                    </button>
                 </div>
             </div>
 
-            @if (settings.Skin == DiceSkins.Resin)
-            {
-                <div class="rf-dice3d-row">
-                    <span class="rf-mini-label">@UiText.Dice3dColor(Lang)</span>
-                    <div class="rf-dice3d-swatches" role="radiogroup" aria-label="@UiText.Dice3dColor(Lang)">
-                        @foreach (var c in Dice3dService.Colors)
+            @* The gallery: every set at hand, by kind, searched by name *@
+            <div class="rf-d3d-gallery">
+                <div class="rf-d3d-toolbar">
+                    <div class="rf-d3d-filters" role="group" aria-label="@UiText.Dice3dSkin(Lang)">
+                        @foreach (var (key, count) in Filters)
                         {
-                            var color = c;
-                            <button type="button" role="radio" aria-checked="@(settings.Color == color ? "true" : "false")" title="@UiText.Dice3dColorName(color, Lang)"
-                                    aria-label="@UiText.Dice3dColorName(color, Lang)" class="rf-dice3d-swatch rf-dice3d-swatch-@color @(settings.Color == color ? "on" : null)"
-                                    @onclick="() => SetAsync(s => s.Color = color)" data-test="dice3d-color"></button>
+                            var k = key;
+                            <button type="button" class="rf-d3d-pill @(filter == k ? "active" : null)" aria-pressed="@(filter == k ? "true" : "false")" @onclick="() => filter = k" data-test="dice3d-filter" data-filter="@k">
+                                @FilterName(k) (@count)
+                            </button>
                         }
-                        <label class="rf-dice3d-swatch rf-dice3d-swatch-custom @(IsCustom ? "on" : null)" title="@UiText.Dice3dCustom(Lang)" style="@(IsCustom ? $"background: {settings.Color}" : null)">
-                            <span class="visually-hidden">@UiText.Dice3dCustom(Lang)</span>
-                            @if (!IsCustom)
-                            {
-                                <Icon Name="palette" />
-                            }
-                            <input type="color" value="@CustomValue" @onchange="PickColorAsync" aria-label="@UiText.Dice3dCustom(Lang)" data-test="dice3d-custom" />
-                        </label>
-                        <input class="rf-form-control rf-dice3d-hex" maxlength="7" placeholder="#rrggbb" value="@(IsCustom ? settings.Color : string.Empty)"
-                               @onchange="TypeColorAsync" aria-label="@UiText.Dice3dCustomHex(Lang)" data-test="dice3d-hex" />
                     </div>
+                    <span class="rf-d3d-search">
+                        <Icon Name="search" />
+                        <input type="search" class="rf-form-control" placeholder="@UiText.Dice3dSearch(Lang)" aria-label="@UiText.Dice3dSearch(Lang)" @bind="search" @bind:event="oninput" data-test="dice3d-search" />
+                    </span>
                 </div>
-            }
 
-            <label class="form-check form-switch d-flex align-items-center gap-2 mb-0">
-                <input type="checkbox" class="form-check-input" checked="@settings.Sound" @onchange="e => SetAsync(s => s.Sound = e.Value is true)" data-test="dice3d-sound" />
-                <span>@UiText.Dice3dSound(Lang)</span>
-            </label>
-            <label class="form-check form-switch d-flex align-items-center gap-2 mb-0">
-                <input type="checkbox" class="form-check-input" checked="@settings.Others" @onchange="e => SetAsync(s => s.Others = e.Value is true)" data-test="dice3d-others" />
-                <span>@UiText.Dice3dOthers(Lang)</span>
-            </label>
+                <div class="rf-d3d-grid" role="radiogroup" aria-label="@UiText.Dice3dSkin(Lang)" data-test="dice3d-grid">
+                    @foreach (var item in Shown)
+                    {
+                        var set = item;
+                        var on = IsSelected(set);
+                        @if (set.Locked)
+                        {
+                            <button type="button" role="radio" aria-checked="false" disabled class="rf-d3d-card locked" title="@UiText.Dice3dSkinLocked(Lang)" data-test="dice3d-skin" data-skin="@set.Key">
+                                <span class="rf-d3d-swatch locked" aria-hidden="true"><Icon Name="lock" /></span>
+                                <span class="rf-d3d-card-text">
+                                    <strong>???</strong>
+                                    <span>@UiText.Dice3dSecretCode(Lang)</span>
+                                </span>
+                            </button>
+                        }
+                        else if (set.Category == "resin")
+                        {
+                            <button type="button" role="radio" aria-checked="@(on ? "true" : "false")" class="rf-d3d-card @(on ? "on" : null)" title="@set.Name"
+                                    @onclick="() => SetAsync(s => { s.Skin = DiceSkins.Resin; s.Color = set.Key; })" data-test="dice3d-color" data-color="@set.Key">
+                                <span class="rf-d3d-swatch" style="@SwatchStyle(set)" aria-hidden="true"><Icon Name="dice-5" /></span>
+                                <span class="rf-d3d-card-text">
+                                    <strong>@set.Name</strong>
+                                    <span>@CategoryName(set.Category)</span>
+                                </span>
+                            </button>
+                        }
+                        else if (set.Category == "custom")
+                        {
+                            <label class="rf-d3d-card @(on ? "on" : null)" title="@UiText.Dice3dCustom(Lang)" data-test="dice3d-custom-card">
+                                <span class="rf-d3d-swatch custom" style="@(IsCustom ? SwatchStyle(set) : null)" aria-hidden="true"><Icon Name="palette" /></span>
+                                <span class="rf-d3d-card-text">
+                                    <strong>@set.Name</strong>
+                                    <span>@(IsCustom ? settings.Color : UiText.Dice3dCustomPick(Lang))</span>
+                                </span>
+                                <input type="color" class="rf-d3d-color-input" value="@CustomValue" @onchange="PickColorAsync" aria-label="@UiText.Dice3dCustom(Lang)" data-test="dice3d-custom" />
+                            </label>
+                        }
+                        else
+                        {
+                            <button type="button" role="radio" aria-checked="@(on ? "true" : "false")" class="rf-d3d-card @(on ? "on" : null)" title="@UiText.Dice3dSkinHint(set.Key, Lang)"
+                                    @onclick="() => SetAsync(s => s.Skin = set.Key)" data-test="dice3d-skin" data-skin="@set.Key">
+                                <span class="rf-d3d-swatch" style="@SwatchStyle(set)" aria-hidden="true"><Icon Name="dice-5" /></span>
+                                <span class="rf-d3d-card-text">
+                                    <strong>@set.Name</strong>
+                                    <span>@CategoryName(set.Category)</span>
+                                </span>
+                            </button>
+                        }
+                    }
+                    @if (!Shown.Any())
+                    {
+                        <p class="small mb-0 rf-d3d-none" data-test="dice3d-none">@UiText.Dice3dNone(Lang)</p>
+                    }
+                </div>
 
-            <form class="rf-dice3d-code" @onsubmit="UnlockAsync" @onsubmit:preventDefault="true">
+                <label class="rf-d3d-hex-row">
+                    <span>@UiText.Dice3dCustomHex(Lang)</span>
+                    <input class="rf-form-control rf-d3d-hex" maxlength="7" placeholder="#rrggbb" value="@(IsCustom ? settings.Color : string.Empty)"
+                           @onchange="TypeColorAsync" aria-label="@UiText.Dice3dCustomHex(Lang)" data-test="dice3d-hex" />
+                </label>
+            </div>
+
+            @* Sound and the rolls of the others *@
+            <div class="rf-d3d-options">
+                <label class="rf-d3d-option">
+                    <span class="rf-d3d-option-text">
+                        <strong>@UiText.Dice3dSound(Lang)</strong>
+                        <span>@UiText.Dice3dSoundHint(Lang)</span>
+                    </span>
+                    <input type="checkbox" class="rf-d3d-switch-input" checked="@settings.Sound" @onchange="e => SetAsync(s => s.Sound = e.Value is true)" data-test="dice3d-sound" />
+                    <span class="rf-d3d-switch" aria-hidden="true"><span></span></span>
+                </label>
+                <label class="rf-d3d-option">
+                    <span class="rf-d3d-option-text">
+                        <strong>@UiText.Dice3dOthersShort(Lang)</strong>
+                        <span>@UiText.Dice3dOthers(Lang)</span>
+                    </span>
+                    <input type="checkbox" class="rf-d3d-switch-input" checked="@settings.Others" @onchange="e => SetAsync(s => s.Others = e.Value is true)" data-test="dice3d-others" />
+                    <span class="rf-d3d-switch" aria-hidden="true"><span></span></span>
+                </label>
+            </div>
+        </div>
+
+        @* A code found somewhere: it unlocks a die (the special ones wait for theirs; the secret ones are not even shown) *@
+        <footer class="rf-d3d-code">
+            <form class="rf-d3d-code-row" @onsubmit="UnlockAsync" @onsubmit:preventDefault="true">
                 <input class="rf-form-control" maxlength="64" autocomplete="off" spellcheck="false" placeholder="@UiText.Dice3dCodePlaceholder(Lang)"
                        @bind="code" @bind:event="oninput" aria-label="@UiText.Dice3dCode(Lang)" data-test="dice3d-code" />
-                <button type="submit" class="btn btn-sm btn-rf-outline" disabled="@(unlocking || string.IsNullOrWhiteSpace(code))" data-test="dice3d-unlock">
+                <button type="submit" class="rf-d3d-btn" disabled="@(unlocking || string.IsNullOrWhiteSpace(code))" data-test="dice3d-unlock">
                     <Icon Name="unlock" /> @UiText.Dice3dUnlock(Lang)
                 </button>
             </form>
             @if (codeMessage is not null)
             {
-                <div class="small @(codeOk ? "rf-dice3d-code-ok" : "text-warning")" role="status" data-test="dice3d-code-message">@codeMessage</div>
+                <div class="small @(codeOk ? "rf-dice3d-code-ok" : "text-warning")" role="status" data-test="dice3d-code-message">
+                    @if (codeOk)
+                    {
+                        <Icon Name="check" />
+                    }
+                    @codeMessage
+                </div>
             }
-
-            <button type="button" class="btn btn-sm btn-rf-outline align-self-start" disabled="@(!available || !settings.Enabled || testing)" @onclick="TestAsync" data-test="dice3d-test">
-                <Icon Name="dice-5" /> @UiText.Dice3dTest(Lang)
-            </button>
-        </div>
+        </footer>
     }
 </div>
 
 @code {
-    private static readonly IReadOnlyList<string> Skins = new[] { DiceSkins.Resin }.Concat(DiceSkins.Special).ToList();
+    //	A set of the gallery: a colour of resin, the custom colour, a special or secret die
+    private sealed record DiceSet(string Key, string Name, string Category, string C1, string C2, string Dot, bool Locked = false);
+
+    //	The swatches: two colours of the die and the colour of its numbers
+    private static readonly Dictionary<string, (string C1, string C2, string Dot)> Swatches = new()
+    {
+        ["forge"] = ("#ffb04d", "#ff8c00", "#141414"),
+        ["ivory"] = ("#fffaf0", "#efe6d2", "#2a2117"),
+        ["graphite"] = ("#6a6a74", "#4a4a52", "#ffb347"),
+        ["ruby"] = ("#e0484e", "#c0262d", "#fff4dc"),
+        ["emerald"] = ("#3fc283", "#1f9d61", "#fff4dc"),
+        ["sapphire"] = ("#5f93f0", "#2f6fe0", "#fff4dc"),
+        ["amethyst"] = ("#b07ff0", "#8e4fd6", "#fff4dc"),
+        ["teal"] = ("#3ccfd4", "#13a3a8", "#06292a"),
+        [DiceSkins.Ember] = ("#ff6a10", "#5a1a08", "#fff0b8"),
+        [DiceSkins.Stardust] = ("#6366f1", "#1d1a5a", "#ffffff"),
+        [DiceSkins.Frost] = ("#e6f8ff", "#6fb8e0", "#0b2a44"),
+        [DiceSkins.Storm] = ("#55d6ff", "#1d2533", "#e6f6ff"),
+        [DiceSkins.Bone] = ("#f2ead6", "#c9bc9a", "#173d1a"),
+        [DiceSkins.Hoard] = ("#ffe08a", "#c8961e", "#3a2300"),
+        [DiceSkins.Abyss] = ("#7b3cff", "#0b0912", "#d7c2ff"),
+        [DiceSkins.Fey] = ("#a3c46a", "#4a6b2c", "#f6ffd9"),
+        [DiceSkins.Acid] = ("#8cff6a", "#1f8a24", "#0d2b06"),
+        [DiceSkins.Arcane] = ("#b48bff", "#2a1a5e", "#ffe9a8")
+    };
 
     private Dice3dService.Settings? settings;
     private List<string> unlocked = new();
     private bool available;
     private bool testing;
+    private string filter = "all";
+    private string search = string.Empty;
     private string code = string.Empty;
     private bool unlocking;
     private string? codeMessage;
@@ -114,6 +225,98 @@
     private LanguageCode Lang => LanguageState.CurrentLanguage;
     private bool IsCustom => settings?.Color is { } c && c.StartsWith('#');
     private string CustomValue => IsCustom ? settings!.Color : "#ff8c00";
+
+    //	Every set this account can see: the resin colours and the custom one, the special dice (locked or not), the
+    //	secret dice it unlocked
+    private IReadOnlyList<DiceSet> Sets
+    {
+        get
+        {
+            var list = new List<DiceSet>();
+            foreach (var color in Dice3dService.Colors)
+            {
+                var (c1, c2, dot) = Swatches[color];
+                list.Add(new DiceSet(color, UiText.Dice3dColorName(color, Lang), "resin", c1, c2, dot));
+            }
+            var custom = IsCustom ? settings!.Color : "#ff8c00";
+            list.Add(new DiceSet("custom", UiText.Dice3dCustomShort(Lang), "custom", custom, custom, "#ffffff"));
+            foreach (var skin in DiceSkins.Special)
+            {
+                var (c1, c2, dot) = Swatches[skin];
+                list.Add(new DiceSet(skin, UiText.Dice3dSkinName(skin, Lang), "special", c1, c2, dot, !unlocked.Contains(skin)));
+            }
+            foreach (var skin in DiceSkins.Secret.Where(unlocked.Contains))
+            {
+                var (c1, c2, dot) = Swatches[skin];
+                list.Add(new DiceSet(skin, UiText.Dice3dSkinName(skin, Lang), "secret", c1, c2, dot));
+            }
+            return list;
+        }
+    }
+
+    private IEnumerable<(string Key, int Count)> Filters
+    {
+        get
+        {
+            var sets = Sets;
+            yield return ("all", sets.Count);
+            yield return ("resin", sets.Count(s => s.Category is "resin" or "custom"));
+            yield return ("special", sets.Count(s => s.Category == "special"));
+            var secret = sets.Count(s => s.Category == "secret");
+            if (secret > 0)
+            {
+                yield return ("secret", secret);
+            }
+        }
+    }
+
+    private IEnumerable<DiceSet> Shown => Sets
+        .Where(s => filter == "all" || s.Category == filter || (filter == "resin" && s.Category == "custom"))
+        .Where(s => search.Trim().Length == 0 || (!s.Locked && s.Name.Contains(search.Trim(), StringComparison.OrdinalIgnoreCase)));
+
+    //	The set in use
+    private DiceSet Current
+    {
+        get
+        {
+            if (settings is null || settings.Skin == DiceSkins.Resin)
+            {
+                var color = settings?.Color ?? "forge";
+                if (color.StartsWith('#'))
+                {
+                    return new DiceSet("custom", $"{UiText.Dice3dSkinName(DiceSkins.Resin, Lang)} · {color}", "resin", color, color, "#ffffff");
+                }
+                var (c1, c2, dot) = Swatches.GetValueOrDefault(color, Swatches["forge"]);
+                return new DiceSet(color, $"{UiText.Dice3dSkinName(DiceSkins.Resin, Lang)} · {UiText.Dice3dColorName(color, Lang)}", "resin", c1, c2, dot);
+            }
+            var (s1, s2, sdot) = Swatches.GetValueOrDefault(settings.Skin, Swatches["forge"]);
+            return new DiceSet(settings.Skin, UiText.Dice3dSkinName(settings.Skin, Lang), DiceSkins.IsSecret(settings.Skin) ? "secret" : "special", s1, s2, sdot);
+        }
+    }
+
+    private bool IsSelected(DiceSet set) => settings is not null && (set.Category switch
+    {
+        "resin" => settings.Skin == DiceSkins.Resin && settings.Color == set.Key,
+        "custom" => settings.Skin == DiceSkins.Resin && IsCustom,
+        _ => settings.Skin == set.Key
+    });
+
+    private static string SwatchStyle(DiceSet set) => $"--c1: {set.C1}; --c2: {set.C2}; --dot: {set.Dot};";
+
+    private string CategoryName(string category) => category switch
+    {
+        "special" => UiText.Dice3dCategorySpecial(Lang),
+        "secret" => UiText.Dice3dCategorySecret(Lang),
+        _ => UiText.Dice3dCategoryResin(Lang)
+    };
+
+    private string FilterName(string key) => key switch
+    {
+        "resin" => UiText.Dice3dFilterResin(Lang),
+        "special" => UiText.Dice3dFilterSpecial(Lang),
+        "secret" => UiText.Dice3dFilterSecret(Lang),
+        _ => UiText.Dice3dFilterAll(Lang)
+    };
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
@@ -146,7 +349,7 @@
 
     //	Any colour as #rrggbb (the dice keep a readable ink on it)
     private Task SetColorAsync(string? value) =>
-        value is { } hex && Regex.IsMatch(hex, "^#[0-9a-fA-F]{6}$") ? SetAsync(s => s.Color = hex.ToLowerInvariant()) : Task.CompletedTask;
+        value is { } hex && Regex.IsMatch(hex, "^#[0-9a-fA-F]{6}$") ? SetAsync(s => { s.Skin = DiceSkins.Resin; s.Color = hex.ToLowerInvariant(); }) : Task.CompletedTask;
 
     private async Task UnlockAsync()
     {
@@ -160,6 +363,8 @@
             codeOk = true;
             codeMessage = result.New ? UiText.Dice3dUnlocked(UiText.Dice3dSkinName(skin, Lang), Lang) : UiText.Dice3dAlready(UiText.Dice3dSkinName(skin, Lang), Lang);
             code = string.Empty;
+            filter = "all";
+            search = string.Empty;
             await SetAsync(s => s.Skin = skin);
         }
         else
@@ -173,7 +378,15 @@
     private async Task TestAsync()
     {
         testing = true;
-        await Dice3d.RollAsync(new[] { new Components.DieFace(20, Random.Shared.Next(1, 21)), new Components.DieFace(6, Random.Shared.Next(1, 7)), new Components.DieFace(8, Random.Shared.Next(1, 9)) });
+        await Dice3d.RollAsync(new[] { new Components.DieFace(20, Random.Shared.Next(2, 20)), new Components.DieFace(6, Random.Shared.Next(1, 7)), new Components.DieFace(8, Random.Shared.Next(1, 9)) });
+        testing = false;
+    }
+
+    //	A d20 landing on a natural 20: the effect of the special die
+    private async Task CriticalAsync()
+    {
+        testing = true;
+        await Dice3d.RollAsync(new[] { new Components.DieFace(20, 20) });
         testing = false;
     }
 }

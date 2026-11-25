@@ -61,7 +61,7 @@ namespace RealmForge.Api.Controllers
 		private async Task<List<string>> UnlockedAsync()
 		{
 			var mine = await _context.UserDiceSkins.AsNoTracking().Where(s => s.UserId == UserId).Select(s => s.Skin).ToListAsync();
-			return DiceSkins.Special.Where(mine.Contains).ToList();
+			return DiceSkins.Unlockable.Where(mine.Contains).ToList();
 		}
 	}
 }

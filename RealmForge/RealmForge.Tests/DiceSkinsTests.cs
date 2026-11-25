@@ -16,7 +16,10 @@ public class DiceSkinsTests
 	public void TheLooksAreKnown()
 	{
 		Assert.True(DiceSkins.IsKnown(DiceSkins.Resin));
-		Assert.All(DiceSkins.Special, s => Assert.True(DiceSkins.IsKnown(s)));
+		Assert.All(DiceSkins.Unlockable, s => Assert.True(DiceSkins.IsKnown(s)));
+		Assert.Equal(10, DiceSkins.Unlockable.Distinct().Count());
+		Assert.True(DiceSkins.IsSecret(DiceSkins.Arcane));
+		Assert.False(DiceSkins.IsSecret(DiceSkins.Ember));
 		Assert.False(DiceSkins.IsKnown("gold"));
 		Assert.False(DiceSkins.IsKnown(null));
 	}
