@@ -219,6 +219,7 @@ namespace RealmForge.Client.Localization
 
 		// ----- The map editor -----
 		public static string MapShownShort(LanguageCode lang) => T(lang, "Visibile ai giocatori", "Shown to the players");
+		public static string MapDragHint(LanguageCode lang) => T(lang, "Clic: nella prima casella libera · trascina sulla mappa: dove vuoi", "Click: on the first free cell · drag onto the map: wherever you like");
 		public static string VttToolEncounters(LanguageCode lang) => T(lang, "Incontri", "Encounters");
 		public static string VttToolTreasure(LanguageCode lang) => T(lang, "Tesoro del gruppo", "Party treasure");
 		public static string VttToolProgress(LanguageCode lang) => T(lang, "Orologi di avanzamento", "Progress clocks");

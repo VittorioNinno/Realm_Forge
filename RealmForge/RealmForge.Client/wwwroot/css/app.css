@@ -11819,6 +11819,23 @@ textarea.rf-form-control {
     background-color: var(--rf-bg-surface);
 }
 
+/* New tokens dragged from the panel onto the map: the hint, the map waiting for the drop */
+.rf-vtt-drag-hint {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--rf-text-muted);
+}
+
+[data-drag-token][draggable="true"] {
+    cursor: grab;
+}
+
+.rf-vtt-stage.dropping {
+    outline: 2px dashed var(--rf-orange-primary);
+    outline-offset: -2px;
+}
+
 .rf-vtt-title {
     font-size: .7rem;
     font-weight: 800;
