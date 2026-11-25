@@ -2158,8 +2158,9 @@ jobs:
           node-version: '22'
 
       - name: Build once
-        # Building API and client with two concurrent "dotnet run" makes them race on the shared projects (flaky starts)
-        run: dotnet build RealmForge/RealmForge.slnx --configuration Debug
+        # Building API and client with two concurrent "dotnet run" makes them race on the shared projects (flaky starts).
+        # No WebAssembly hot reload in CI: its browser tools look for a settings file on every page and get a 404
+        run: dotnet build RealmForge/RealmForge.slnx --configuration Debug -p:WasmEnableHotReload=false
 
       - name: Start API and client
         shell: bash
@@ -2203,7 +2204,7 @@ jobs:
 
       - name: Keep the screenshots of the smoke test
         if: always()
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v7
         with:
           name: ui-shots
           path: |

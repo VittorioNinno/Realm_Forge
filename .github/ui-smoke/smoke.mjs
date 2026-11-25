@@ -2551,7 +2551,12 @@ try {
   for (const r of results.filter((r) => r.startsWith('INFO character'))) console.log(`::notice title=character::${r.slice(0, 2000)}`);
   for (const r of results.filter((r) => r.startsWith('FAIL') || r.startsWith('DEBUG'))) console.log(`::error title=ui-fail::${r.slice(0, 2000)}`);
   for (const c of consoleErrors.slice(0, 5)) console.log(`::warning title=ui-console::${c.slice(0, 200)}`);
-  for (const [key, count] of failedResponses) console.log(`failed response: ${key} ×${count}`);
+  // The refusals the checks ask for on purpose (wrong password, an admin page for a player, sharing with nobody) are
+  // logged; anything else that failed is a warning
+  const expected = /^(400 DELETE \/api\/account|400 POST \/api\/auth\/manage\/info|403 GET \/api\/admin\/stats|404 POST \/api\/characters\/\{id\}\/shares)$/;
+  for (const [key, count] of failedResponses) {
+    console.log(expected.test(key) ? `expected refusal: ${key} ×${count}` : `::warning title=ui-failed-response::${key} ×${count}`);
+  }
   await browser.close();
   if (results.some((r) => r.startsWith('FAIL'))) process.exit(1);
 }
