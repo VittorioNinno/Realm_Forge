@@ -1,41 +1,120 @@
-﻿@* The background assistant: three ideas for the character's past (offline tables), one click puts the chosen one in
-   the personality and the story of the Details step, where it can be edited *@
+﻿@using Microsoft.JSInterop
+@implements IDisposable
+@inject BackstoryChatService StoryModel
+
+@* The backstory assistant: a conversation. The player gives ideas, the assistant enriches them and asks a question,
+   and so on; any answer can go into the story, and the conversation can fill the personality. With WebGPU a language
+   model runs in this browser (downloaded once, no tokens, no limits); without it, the rule-based assistant answers. *@
 <section class="rf-bg-assistant" data-test="background-assistant">
     <div class="rf-bg-assistant-head">
         <div>
             <div class="rf-wizard-block-title mb-0"><Icon Name="lightbulb" /> @UiText.BgAssistant(Lang)</div>
-            <div class="small" style="color: var(--rf-text-muted);">@UiText.BgAssistantHint(Lang)</div>
+            <div class="small" style="color: var(--rf-text-muted);">@UiText.BgChatHint(Lang)</div>
         </div>
-        <button type="button" class="btn btn-sm btn-rf-orange" @onclick="Propose" data-test="background-ideas">
-            <Icon Name="dice" /> @(ideas.Count == 0 ? UiText.BgAssistantPropose(Lang) : UiText.BgAssistantAgain(Lang))
-        </button>
     </div>
-    @if (ideas.Count > 0)
-    {
-        <div class="rf-bg-ideas">
-            @foreach (var i in ideas)
-            {
-                var idea = i;
-                <article class="rf-bg-idea @(chosen == idea ? "chosen" : null)" data-test="background-idea">
-                    <span class="rf-bg-idea-theme">@idea.Theme</span>
-                    <strong>@idea.Hook</strong>
-                    <p class="rf-bg-idea-story">@idea.Backstory</p>
-                    <dl>
-                        <dt>@UiText.LabelBonds(Lang)</dt><dd>@idea.Bonds</dd>
-                        <dt>@UiText.LabelFlaws(Lang)</dt><dd>@idea.Flaws</dd>
-                    </dl>
-                    <button type="button" class="btn btn-sm @(chosen == idea ? "btn-rf-orange" : "btn-rf-outline")" @onclick="() => Use(idea)" data-test="background-idea-use">
-                        <Icon Name="@(chosen == idea ? "check" : "plus")" /> @(chosen == idea ? UiText.BgAssistantUsed(Lang) : UiText.BgAssistantUse(Lang))
+
+    <div class="rf-bg-engine" data-test="background-engine">
+        @switch (engine)
+        {
+            case Engine.Checking:
+                <span class="small">…</span>
+                break;
+            case Engine.Rules:
+                <span class="rf-bg-engine-badge"><Icon Name="journal-text" /> @UiText.BgEngineRules(Lang)</span>
+                <span class="small" style="color: var(--rf-text-muted);">@UiText.BgEngineRulesHint(Lang)</span>
+                break;
+            case Engine.Available:
+                <span class="rf-bg-engine-badge"><Icon Name="journal-text" /> @UiText.BgEngineRules(Lang)</span>
+                <button type="button" class="btn btn-sm btn-rf-outline" @onclick="DownloadAsync" data-test="background-model-download">
+                    <Icon Name="download" /> @UiText.BgEngineDownload(support?.SizeMb ?? 0, Lang)
+                </button>
+                <span class="small" style="color: var(--rf-text-muted);">@UiText.BgEngineDownloadHint(Lang)</span>
+                break;
+            case Engine.Loading:
+                <div class="rf-bg-progress" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="@((int)(progress * 100))">
+                    <div style="width: @((int)(progress * 100))%"></div>
+                </div>
+                <span class="small" style="color: var(--rf-text-muted);">@UiText.BgEngineLoading((int)(progress * 100), Lang)</span>
+                break;
+            case Engine.Ready:
+                <span class="rf-bg-engine-badge ready"><Icon Name="cpu" /> @UiText.BgEngineReady(Lang)</span>
+                <button type="button" class="btn btn-link btn-sm p-0" @onclick="RemoveAsync">@UiText.BgEngineRemove(Lang)</button>
+                break;
+        }
+        @if (failure is not null)
+        {
+            <span class="small text-warning">@UiText.BgEngineFailed(Lang)</span>
+        }
+    </div>
+
+    <div class="rf-bg-chat" data-test="background-chat" aria-live="polite">
+        @if (turns.Count == 0 && streaming is null)
+        {
+            <div class="small rf-bg-chat-empty">@UiText.BgChatEmpty(Lang)</div>
+        }
+        @foreach (var t in turns)
+        {
+            var turn = t;
+            <div class="rf-bg-msg @(turn.Role == "user" ? "mine" : "theirs")" data-test="@(turn.Role == "user" ? "background-msg-player" : "background-msg-assistant")">
+                <div class="rf-bg-msg-text">@turn.Content</div>
+                @if (turn.Role == "assistant")
+                {
+                    <button type="button" class="btn btn-link btn-sm p-0" @onclick="() => AddToStory(turn.Content)" data-test="background-msg-use">
+                        <Icon Name="plus" /> @UiText.BgChatAddToStory(Lang)
                     </button>
-                </article>
+                }
+            </div>
+        }
+        @if (streaming is not null)
+        {
+            <div class="rf-bg-msg theirs writing"><div class="rf-bg-msg-text">@(streaming.Length == 0 ? "…" : streaming.ToString())</div></div>
+        }
+    </div>
+
+    <div class="rf-bg-chat-input">
+        <textarea class="rf-form-control" rows="2" maxlength="1500" placeholder="@UiText.BgChatPlaceholder(Lang)" @bind="input" @bind:event="oninput"
+                  disabled="@(streaming is not null)" data-test="background-chat-input"></textarea>
+        <div class="rf-bg-chat-actions">
+            <button type="button" class="btn btn-sm btn-rf-outline" @onclick="Inspire" disabled="@(streaming is not null)" title="@UiText.BgChatInspireHint(Lang)" data-test="background-inspire"><Icon Name="dice" /> @UiText.BgChatInspire(Lang)</button>
+            @if (streaming is not null)
+            {
+                <button type="button" class="btn btn-sm btn-rf-outline" @onclick="StopAsync"><Icon Name="stop" /> @UiText.BgChatStop(Lang)</button>
+            }
+            else
+            {
+                <button type="button" class="btn btn-sm btn-rf-orange" @onclick="SendAsync" disabled="@string.IsNullOrWhiteSpace(input)" data-test="background-chat-send"><Icon Name="send" /> @UiText.BgChatSend(Lang)</button>
             }
         </div>
-    }
+        @if (turns.Any(x => x.Role == "assistant"))
+        {
+            <div class="rf-bg-chat-actions">
+                <button type="button" class="btn btn-sm btn-rf-outline" @onclick="FillFieldsAsync" disabled="@(streaming is not null)" data-test="background-fill">
+                    <Icon Name="person-lines-fill" /> @UiText.BgChatFill(Lang)
+                </button>
+                <button type="button" class="btn btn-link btn-sm" @onclick="Restart" disabled="@(streaming is not null)">@UiText.BgChatRestart(Lang)</button>
+            </div>
+        }
+        @if (notice is not null)
+        {
+            <div class="small" style="color: var(--rf-text-muted);" role="status" data-test="background-notice">@notice</div>
+        }
+    </div>
 </section>
 
 @code {
-    private IReadOnlyList<BackgroundIdeas.Idea> ideas = Array.Empty<BackgroundIdeas.Idea>();
-    private BackgroundIdeas.Idea? chosen;
+    private enum Engine { Checking, Rules, Available, Loading, Ready }
+
+    private Engine engine = Engine.Checking;
+    private BackstoryChatService.Support? support;
+    private double progress;
+    private string? failure;
+    private string? notice;
+
+    private readonly List<BackstoryPrompt.Message> turns = new();
+    private System.Text.StringBuilder? streaming;
+    private string input = string.Empty;
+    private BackstoryCoach coach = new();
+    private DotNetObjectReference<BackgroundAssistant>? self;
 
     private StorySeed Seed => new(
         W.Input.Name,
@@ -46,22 +125,148 @@
         W.Background?.Name ?? string.Empty,
         Lang);
 
-    private void Propose()
+    private BackstoryPrompt.Sheet SheetNow => new(
+        W.Input.Sheet.Traits ?? string.Empty, W.Input.Sheet.Ideals ?? string.Empty, W.Input.Sheet.Bonds ?? string.Empty,
+        W.Input.Sheet.Flaws ?? string.Empty, W.Input.Sheet.Backstory ?? string.Empty);
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        ideas = BackgroundIdeas.Three(Seed);
-        chosen = null;
+        if (!firstRender)
+        {
+            return;
+        }
+        self = DotNetObjectReference.Create(this);
+        support = await StoryModel.SupportAsync();
+        engine = support is { WebGpu: true, Model: not null } ? Engine.Available : Engine.Rules;
+        StateHasChanged();
+        //	Already downloaded: it starts by itself, from the browser's cache
+        if (support is { WebGpu: true, Cached: true })
+        {
+            await DownloadAsync();
+        }
     }
 
-    //	The idea becomes the personality and the story of the sheet (the Details step shows them, to edit)
-    private void Use(BackgroundIdeas.Idea idea)
+    private async Task DownloadAsync()
+    {
+        if (support?.Model is not { } model || self is null)
+        {
+            return;
+        }
+        failure = null;
+        engine = Engine.Loading;
+        progress = 0;
+        StateHasChanged();
+        var ok = await StoryModel.LoadAsync(model, self);
+        engine = ok ? Engine.Ready : Engine.Available;
+        StateHasChanged();
+    }
+
+    private async Task RemoveAsync()
+    {
+        if (support?.Model is { } model)
+        {
+            await StoryModel.RemoveAsync(model);
+            support = support with { Cached = false };
+            engine = Engine.Available;
+        }
+    }
+
+    [JSInvokable]
+    public Task Progress(double value, string text)
+    {
+        progress = Math.Clamp(value, 0, 1);
+        return InvokeAsync(StateHasChanged);
+    }
+
+    [JSInvokable]
+    public Task Chunk(string piece)
+    {
+        streaming?.Append(piece);
+        return InvokeAsync(StateHasChanged);
+    }
+
+    [JSInvokable]
+    public Task Failed(string message)
+    {
+        failure = message;
+        return InvokeAsync(StateHasChanged);
+    }
+
+    private async Task SendAsync()
+    {
+        var idea = input.Trim();
+        if (idea.Length == 0 || streaming is not null)
+        {
+            return;
+        }
+        input = string.Empty;
+        notice = null;
+        turns.Add(new BackstoryPrompt.Message("user", idea));
+        if (engine == Engine.Ready && self is not null)
+        {
+            var answer = await AskModelAsync(BackstoryPrompt.Build(Seed, SheetNow, turns), 400);
+            turns.Add(new BackstoryPrompt.Message("assistant", answer ?? coach.Reply(Seed, idea)));
+        }
+        else
+        {
+            turns.Add(new BackstoryPrompt.Message("assistant", coach.Reply(Seed, idea)));
+        }
+    }
+
+    //	The model's answer, streamed into the chat; null when it fails (the rules answer instead)
+    private async Task<string?> AskModelAsync(List<BackstoryPrompt.Message> messages, int maxTokens)
+    {
+        streaming = new();
+        StateHasChanged();
+        var ok = await StoryModel.ChatAsync(messages, self!, maxTokens);
+        var text = streaming.ToString().Trim();
+        streaming = null;
+        return ok && text.Length > 0 ? text : null;
+    }
+
+    private Task StopAsync() => StoryModel.StopAsync();
+
+    private void Inspire()
+    {
+        var idea = BackgroundIdeas.Three(Seed)[0];
+        input = idea.Hook;
+    }
+
+    private void AddToStory(string text)
     {
         var sheet = W.Input.Sheet;
-        sheet.Traits = idea.Traits;
-        sheet.Ideals = idea.Ideals;
-        sheet.Bonds = idea.Bonds;
-        sheet.Flaws = idea.Flaws;
-        sheet.Backstory = idea.Backstory;
-        chosen = idea;
+        sheet.Backstory = string.IsNullOrWhiteSpace(sheet.Backstory) ? text.Trim() : $"{sheet.Backstory.TrimEnd()}\n\n{text.Trim()}";
+        notice = UiText.BgChatAdded(Lang);
         W.Update();
     }
+
+    //	The conversation becomes traits, ideals, bonds and flaws (the model sums it up; the rules suggest from the tables)
+    private async Task FillFieldsAsync()
+    {
+        string? traits = null, ideals = null, bonds = null, flaws = null;
+        if (engine == Engine.Ready && self is not null)
+        {
+            var messages = BackstoryPrompt.Build(Seed, SheetNow, turns.Append(new BackstoryPrompt.Message("user", BackstoryPrompt.FieldsRequest(Lang))).ToList());
+            if (await AskModelAsync(messages, 220) is { } answer)
+            {
+                (traits, ideals, bonds, flaws) = BackstoryPrompt.ReadFields(answer);
+            }
+        }
+        var sheet = W.Input.Sheet;
+        sheet.Traits = traits ?? CharacterStoryGenerator.Suggest(StoryField.Traits, Seed);
+        sheet.Ideals = ideals ?? CharacterStoryGenerator.Suggest(StoryField.Ideals, Seed);
+        sheet.Bonds = bonds ?? CharacterStoryGenerator.Suggest(StoryField.Bonds, Seed);
+        sheet.Flaws = flaws ?? CharacterStoryGenerator.Suggest(StoryField.Flaws, Seed);
+        notice = UiText.BgChatFilled(Lang);
+        W.Update();
+    }
+
+    private void Restart()
+    {
+        turns.Clear();
+        coach = new();
+        notice = null;
+    }
+
+    public void Dispose() => self?.Dispose();
 }
