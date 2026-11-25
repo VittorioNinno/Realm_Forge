@@ -1835,6 +1835,54 @@ namespace RealmForge.Infrastructure.Migrations
                     b.ToTable("ContentShares");
                 });
 
+            modelBuilder.Entity("RealmForge.Domain.Entities.DiceUnlockCode", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("Active")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("CodeHash")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Skin")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CodeHash")
+                        .IsUnique();
+
+                    b.ToTable("DiceUnlockCodes");
+
+                    b.HasData(
+                        new
+                        {
+                            Id = new Guid("6f1c2a5e-4d1b-4c7e-9a2f-1b9e7c3d5a01"),
+                            Active = true,
+                            CodeHash = "a28ce0368d56879f4c34b360c91e37a134f68e4ba0535db46e096f0cb5ca5114",
+                            CreatedAt = new DateTimeOffset(new DateTime(2026, 11, 25, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            Skin = "ember"
+                        },
+                        new
+                        {
+                            Id = new Guid("6f1c2a5e-4d1b-4c7e-9a2f-1b9e7c3d5a02"),
+                            Active = true,
+                            CodeHash = "ff4019dd8bc1b49e62ab6719d8b52109105664591d0b2034bd1f788ba34416c8",
+                            CreatedAt = new DateTimeOffset(new DateTime(2026, 11, 25, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            Skin = "stardust"
+                        });
+                });
+
             modelBuilder.Entity("RealmForge.Domain.Entities.Equipment", b =>
                 {
                     b.Property<Guid>("Id")
@@ -3067,6 +3115,24 @@ namespace RealmForge.Infrastructure.Migrations
                     b.HasIndex("UserId", "ExpiresAt");
 
                     b.ToTable("TrashEntries");
+                });
+
+            modelBuilder.Entity("RealmForge.Domain.Entities.UserDiceSkin", b =>
+                {
+                    b.Property<string>("UserId")
+                        .HasMaxLength(450)
+                        .HasColumnType("character varying(450)");
+
+                    b.Property<string>("Skin")
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)");
+
+                    b.Property<DateTimeOffset>("UnlockedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("UserId", "Skin");
+
+                    b.ToTable("UserDiceSkins");
                 });
 
             modelBuilder.Entity("RealmForge.Domain.Entities.UserImage", b =>

@@ -30,6 +30,7 @@ namespace RealmForge.Api.Security
 			var characters = await _context.Characters.Where(c => c.OwnerId == userId).ToListAsync();
 			_context.Characters.RemoveRange(characters);
 			_context.CharacterShares.RemoveRange(await _context.CharacterShares.Where(s => s.UserId == userId).ToListAsync());
+			_context.UserDiceSkins.RemoveRange(await _context.UserDiceSkins.Where(s => s.UserId == userId).ToListAsync());
 
 			// ----- Homebrew -----
 			var shared = (await _context.ContentShares.Where(s => s.UserId != userId).Select(s => s.EntityId).ToListAsync()).ToHashSet();
