@@ -2174,9 +2174,21 @@ try {
   // A chest dragged from the tokens panel onto the map lands on the cell under the pointer (not on the first free one),
   // then is removed
   await page.locator('[data-test=vtt-tool-tokens]').click();
+  await page.locator('[data-test=map-add-prop][data-type=Chest]').waitFor({ timeout: 10000 });
+  await page.waitForTimeout(1000);
   const stageBox = await page.locator('[data-test=vtt] [data-test=map-stage]').boundingBox();
+  const boardBox = await page.locator('[data-test=vtt] [data-board]').boundingBox();
   const heroBox = await page.locator('[data-test=vtt] [data-test=map-token][data-label="Eroe di prova"]').boundingBox();
-  const dropPoint = { x: heroBox.x + heroBox.width / 2 + (heroBox.x + heroBox.width * 3 < stageBox.x + stageBox.width ? heroBox.width * 2 : -heroBox.width * 2), y: heroBox.y + heroBox.height / 2 };
+  // Two cells from the hero towards the middle of the map's visible part (always on the map, never under the hero)
+  const seen = {
+    left: Math.max(stageBox.x, boardBox.x), right: Math.min(stageBox.x + stageBox.width, boardBox.x + boardBox.width),
+    top: Math.max(stageBox.y, boardBox.y), bottom: Math.min(stageBox.y + stageBox.height, boardBox.y + boardBox.height)
+  };
+  const heroMid = { x: heroBox.x + heroBox.width / 2, y: heroBox.y + heroBox.height / 2 };
+  const dropPoint = {
+    x: heroMid.x + (heroMid.x < (seen.left + seen.right) / 2 ? 2 : -2) * heroBox.width,
+    y: heroMid.y + (heroMid.y < (seen.top + seen.bottom) / 2 ? 1 : -1) * heroBox.height
+  };
   await page.locator('[data-test=map-add-prop][data-type=Chest]').dragTo(page.locator('[data-test=vtt] [data-test=map-stage]'), {
     targetPosition: { x: dropPoint.x - stageBox.x, y: dropPoint.y - stageBox.y }
   });
@@ -2186,6 +2198,8 @@ try {
   const dropUi = {
     off: Math.round(Math.hypot(chestBox.x + chestBox.width / 2 - dropPoint.x, chestBox.y + chestBox.height / 2 - dropPoint.y)),
     cell: Math.round(heroBox.width),
+    drop: [Math.round(dropPoint.x), Math.round(dropPoint.y)],
+    landed: [Math.round(chestBox.x + chestBox.width / 2), Math.round(chestBox.y + chestBox.height / 2)],
     hint: await page.locator('[data-test=map-drag-hint]').count()
   };
   await page.locator('[data-test=vtt-tool-tokens]').click();
