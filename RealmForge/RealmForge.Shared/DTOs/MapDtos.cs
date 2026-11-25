@@ -119,9 +119,11 @@ namespace RealmForge.Shared.DTOs
 
 	///	<summary>
 	///	What the account's creatures see (the masters: what the characters see together), as columns and rows in pairs:
-	///	the cells in bright light, those in dim light or seen through darkvision.
+	///	the cells in bright light, those in dim light or seen through darkvision; to the players also the cells of the
+	///	closed doors the table does not show them, so that their screen works out the sight again after a move as the
+	///	server does.
 	///	</summary>
-	public record MapVisionDto(List<int> Bright, List<int> Dim);
+	public record MapVisionDto(List<int> Bright, List<int> Dim, List<int>? Blocking = null);
 
 	//	A creature called by a token: a monster of the compendium next to it, controlled by the same players; in a fight it
 	//	acts right after the one that called it (or rolls its own initiative)
