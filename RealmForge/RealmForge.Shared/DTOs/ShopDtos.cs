@@ -22,7 +22,10 @@ namespace RealmForge.Shared.DTOs
 		string? NameIt = null,
 		string? NameEn = null,
 		string? DescriptionIt = null,
-		string? DescriptionEn = null);
+		string? DescriptionEn = null,
+		Guid? FactionId = null,
+		string? Faction = null,
+		int? EffectivePercent = null);
 
 	///	<summary>
 	///	An item on sale: ListPrice of one piece before the shop's multiplier, Price what a piece costs in the shop
@@ -40,6 +43,8 @@ namespace RealmForge.Shared.DTOs
 		public string DescriptionEn { get; set; } = string.Empty;
 		public int PricePercent { get; set; } = 100;
 		public bool Open { get; set; }
+		//	The faction the shop belongs to: its standing moves the prices
+		public Guid? FactionId { get; set; }
 	}
 
 	///	<summary>

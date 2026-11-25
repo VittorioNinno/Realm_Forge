@@ -116,6 +116,12 @@ namespace RealmForge.Api.Controllers
 				}
 			}
 
+			//	The progress clocks that fill with the game time advance one segment every TickHours crossed
+			foreach (var progress in await _context.CampaignProgressClocks.Where(c => c.CampaignId == campaignId && c.TickHours != null).ToListAsync())
+			{
+				progress.Filled = Math.Min(progress.Segments, progress.Filled + FactionRules.Ticks(from, to, progress.TickHours!.Value));
+			}
+
 			//	The table of the map shown wakes up: the clock on the players' screens follows
 			var now = DateTimeOffset.UtcNow;
 			foreach (var map in await _context.CampaignMaps.Where(m => m.CampaignId == campaignId && m.Shown).ToListAsync())

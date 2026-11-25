@@ -1429,6 +1429,25 @@ try {
   await page.locator('[data-test=treasure-item]').waitFor({ timeout: 15000 });
   campaignUi.treasure = (await page.locator('[data-test=treasure-item]').first().innerText()).replace(/\s+/g, ' ').trim();
   await shot(page, 'campaign-treasure', 'main');
+  // Progress clocks and factions: a clock filled twice, a faction made friendlier
+  await page.locator('[data-test=campaign-tab-progress]').click();
+  await page.locator('[data-test=clock-name]').fill('Il rituale');
+  await page.locator('[data-test=clock-add]').click();
+  await page.locator('[data-test=clock]').waitFor({ timeout: 15000 });
+  for (let step = 0; step < 2; step++) {
+    await page.locator('[data-test=clock-plus]').first().click();
+    await page.waitForFunction((n) => document.querySelector('[data-test=clock-filled]')?.textContent?.trim().startsWith(`${n} `), step + 1, { timeout: 15000 });
+  }
+  await page.locator('[data-test=faction-name]').fill('Gilda dei ladri');
+  await page.locator('[data-test=faction-add]').click();
+  await page.locator('[data-test=faction]').waitFor({ timeout: 15000 });
+  await page.locator('[data-test=faction-plus]').first().click();
+  await page.locator('[data-test=faction-prices]').waitFor({ timeout: 15000 });
+  campaignUi.progress = {
+    clock: (await page.locator('[data-test=clock-filled]').first().innerText()).replace(/\s+/g, ' ').trim(),
+    standing: (await page.locator('[data-test=faction-standing]').first().innerText()).trim()
+  };
+  await shot(page, 'campaign-progress', 'main');
   // An encounter: three goblins and the party, its difficulty, the fight starts and the turn moves on
   await page.locator('[data-test=campaign-tab-encounters]').click();
   await page.locator('[data-test=encounter-new-name]').fill('Imboscata');
@@ -1579,6 +1598,7 @@ try {
   await page.mouse.move(...at(140, 175), { steps: 3 });
   await page.mouse.move(...at(200, 205), { steps: 3 });
   await page.mouse.up();
+  await shot(page, 'map-editor-walls', 'body');
   await page.locator('[data-test=map-terrain-cell][data-kind=Wall]').nth(1).waitFor({ timeout: 15000 });
   await page.locator('[data-test=map-brush-difficult]').click();
   await page.locator('[data-test=map-shape-cell]').click();
@@ -2235,7 +2255,7 @@ try {
   await binRow.waitFor({ state: 'detached', timeout: 15000 });
   campaignUi.purged = true;
   results.push(`INFO campaign: ${JSON.stringify(campaignUi)}`);
-  if (campaignUi.role !== 'Master' || !campaignUi.link || campaignUi.share !== 1 || campaignUi.notes !== 1 || campaignUi.shopCost !== '25 mo' || !/Rubino.*50 mo/.test(campaignUi.treasure ?? '') || campaignUi.clock !== 'Giorno 1 · 09:00'
+  if (campaignUi.role !== 'Master' || !campaignUi.link || campaignUi.share !== 1 || campaignUi.notes !== 1 || campaignUi.shopCost !== '25 mo' || !/Rubino.*50 mo/.test(campaignUi.treasure ?? '') || campaignUi.progress?.clock !== '2 / 6' || campaignUi.progress?.standing !== 'Cordiale' || campaignUi.clock !== 'Giorno 1 · 09:00'
     || campaignUi.combatants !== 4 || campaignUi.goblins !== 3 || !campaignUi.hero || campaignUi.sheetLink !== 1 || !/^(Facile|Medio|Difficile|Mortale)$/.test(campaignUi.rating) || campaignUi.current !== 1
     || campaignUi.binKind !== 'CAMPAGNA' || !campaignUi.restored || !campaignUi.purged
     || campaignUi.cardButtons !== 0 || !campaignUi.cardOpens || campaignUi.listActions !== 2 || !campaignUi.toggled || campaignUi.noteKinds !== 'Diario di viaggio,Personali,Per i master' || campaignUi.leftFromSheet !== 1

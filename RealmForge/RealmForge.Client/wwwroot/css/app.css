@@ -21221,3 +21221,168 @@ button.rf-vtt-clock.on {
 .rf-treasure-free textarea {
     flex-basis: 100%;
 }
+
+/* ===== Progress clocks and factions ===== */
+.rf-progress-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 0 0 16px;
+    font-family: var(--rf-font-display);
+    font-size: 1.1rem;
+    color: var(--rf-text-primary);
+}
+
+.rf-progress-form {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+}
+
+.rf-progress-form .rf-form-control {
+    flex: 1 1 160px;
+    width: auto;
+}
+
+.rf-progress-form select.rf-form-control {
+    flex: 0 1 176px;
+}
+
+.rf-progress-form .rf-progress-wide {
+    flex: 2 1 240px;
+}
+
+.rf-progress-color {
+    width: 40px;
+    height: 32px;
+    padding: 0;
+    border: 1px solid var(--rf-border-light);
+    border-radius: 8px;
+    background: none;
+    cursor: pointer;
+}
+
+.rf-progress-clocks {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 16px;
+}
+
+.rf-progress-clock {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    padding: 16px;
+    border: 1px solid var(--rf-border-subtle);
+    border-radius: 16px;
+    background: var(--rf-bg-card);
+    text-align: center;
+    transition: border-color 0.3s, box-shadow 0.3s;
+}
+
+.rf-progress-clock.full {
+    border-color: var(--rf-orange-primary);
+    box-shadow: 0 0 16px var(--rf-orange-glow);
+}
+
+.rf-progress-dial {
+    width: 112px;
+    height: 112px;
+    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.35));
+}
+
+.rf-progress-wedge {
+    fill: var(--rf-bg-surface);
+    stroke: var(--rf-border-light);
+    stroke-width: 1;
+    transition: fill 0.35s;
+}
+
+.rf-progress-wedge.on {
+    animation: rf-progress-fill 0.45s ease-out;
+}
+
+@keyframes rf-progress-fill {
+    from { opacity: 0.2; }
+    to { opacity: 1; }
+}
+
+.rf-progress-clock-text {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+}
+
+.rf-progress-actions {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 8px;
+}
+
+.rf-progress-factions {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 16px;
+}
+
+.rf-progress-faction {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 16px;
+    border: 1px solid var(--rf-border-subtle);
+    border-radius: 16px;
+    background: var(--rf-bg-card);
+}
+
+.rf-progress-faction .rf-progress-actions {
+    justify-content: flex-start;
+}
+
+.rf-progress-faction-head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 8px;
+}
+
+.rf-progress-standing {
+    padding: 0 8px;
+    border-radius: 8px;
+    font-size: 0.8rem;
+    font-weight: 600;
+}
+
+.rf-progress-standing.bad { background: rgba(220, 53, 69, 0.18); color: #f08a94; }
+.rf-progress-standing.neutral { background: var(--rf-bg-surface); color: var(--rf-text-secondary); }
+.rf-progress-standing.good { background: rgba(25, 135, 84, 0.2); color: #6fd3a1; }
+
+.rf-progress-bar {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 4px;
+}
+
+.rf-progress-pip {
+    height: 8px;
+    border-radius: 4px;
+    background: var(--rf-bg-surface);
+    transition: background 0.3s;
+}
+
+.rf-progress-pip.mid { background: var(--rf-border-light); }
+.rf-progress-pip.on.neutral { background: var(--rf-text-secondary); }
+.rf-progress-pip.on.bad { background: #dc3545; }
+.rf-progress-pip.on.good { background: #198754; }
+
+html.rf-fx-off .rf-progress-wedge.on { animation: none; }
+
+@media (max-width: 575.98px) {
+    .rf-progress-clocks { grid-template-columns: repeat(2, 1fr); gap: 8px; }
+    .rf-progress-clock { padding: 8px; }
+    .rf-progress-dial { width: 88px; height: 88px; }
+    .rf-progress-factions { grid-template-columns: 1fr; }
+}
