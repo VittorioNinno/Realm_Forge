@@ -241,6 +241,9 @@ namespace RealmForge.Client.Services
 		public Task<CampaignShopsDto?> GetShopsAsync(Guid id, LanguageCode lang) =>
 			GetAsync<CampaignShopsDto>($"api/campaigns/{id}/shops?lang={(int)lang}");
 
+		public Task<(CampaignShopDto? Value, string? Error)> GenerateShopAsync(Guid id, GenerateShopDto dto, LanguageCode lang) =>
+			TableAsync<CampaignShopDto>(() => _http.PostAsJsonAsync($"api/campaigns/{id}/shops/generate?lang={(int)lang}", dto), "generate shop");
+
 		public Task<(CampaignShopDto? Value, string? Error)> AddShopAsync(Guid id, SaveCampaignShopDto dto, LanguageCode lang) =>
 			TableAsync<CampaignShopDto>(() => _http.PostAsJsonAsync($"api/campaigns/{id}/shops?lang={(int)lang}", dto), "add shop");
 

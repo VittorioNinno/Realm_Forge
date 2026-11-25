@@ -18,7 +18,21 @@
     {
         @if (draft is null)
         {
-            <button type="button" class="btn btn-sm btn-rf-orange mb-3" @onclick="New" data-test="shop-new">+ @UiText.ShopNew(Lang)</button>
+            <div class="rf-shop-generate mb-3">
+                <button type="button" class="btn btn-sm btn-rf-orange" @onclick="New" data-test="shop-new">+ @UiText.ShopNew(Lang)</button>
+                <span class="small" style="color: var(--rf-text-muted);">@UiText.ShopOr(Lang)</span>
+                <select class="rf-form-control" @bind="generateKind" aria-label="@UiText.ShopGenerateKind(Lang)" data-test="shop-generate-kind">
+                    @foreach (var kindOption in Enum.GetValues<ShopKind>())
+                    {
+                        <option value="@kindOption">@UiText.ShopKindName(kindOption, Lang)</option>
+                    }
+                </select>
+                <button type="button" class="btn btn-sm btn-rf-outline" disabled="@busy" title="@UiText.ShopGenerateHint(Lang)" @onclick="GenerateAsync" data-test="shop-generate"><Icon Name="dice" /> @UiText.ShopGenerate(Lang)</button>
+            </div>
+            @if (error is not null)
+            {
+                <div class="small text-warning mb-3" role="alert">@error</div>
+            }
         }
         else
         {
@@ -288,6 +302,7 @@
 
     private CampaignShopsDto? data;
     private List<FactionDto> factions = new();
+    private ShopKind generateKind = ShopKind.Tavern;
     private SaveCampaignShopDto? draft;
     private Guid? editingId;
     private bool busy;
@@ -329,6 +344,17 @@
         {
             factions = (await Campaigns.GetProgressAsync(CampaignId))?.Factions ?? new();
         }
+    }
+
+    //	A procedural shop of the kind chosen, closed until the master opens it
+    private async Task GenerateAsync()
+    {
+        busy = true;
+        var (made, failure) = await Campaigns.GenerateShopAsync(CampaignId, new GenerateShopDto { Kind = generateKind }, Lang);
+        busy = false;
+        notice = made is null ? null : UiText.ShopGenerated(made.Name, made.Items.Count, Lang);
+        error = made is null ? failure ?? UiText.ShopFailed(Lang) : null;
+        await LoadAsync();
     }
 
     private void PickFaction(ChangeEventArgs e)

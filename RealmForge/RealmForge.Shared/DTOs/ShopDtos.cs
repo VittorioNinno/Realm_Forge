@@ -35,6 +35,13 @@ namespace RealmForge.Shared.DTOs
 
 	public record ShopBuyerDto(Guid CharacterId, string Name, CoinPurse Coins);
 
+	///	<summary>A procedural shop or tavern of a kind; Seed: the same seed, the same shop (tests).</summary>
+	public class GenerateShopDto
+	{
+		public RealmForge.Shared.Campaigns.ShopKind Kind { get; set; } = RealmForge.Shared.Campaigns.ShopKind.General;
+		public int? Seed { get; set; }
+	}
+
 	public class SaveCampaignShopDto
 	{
 		public string NameIt { get; set; } = string.Empty;

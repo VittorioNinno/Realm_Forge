@@ -877,6 +877,15 @@ jobs:
           tr_split=$(curl -s -X POST "$api/api/campaigns/$cp_id/treasure/split" $json -H "Authorization: Bearer $B" -d "{\"characterIds\":[\"$sp_ch\"]}" | jq -c '{gp: .each.gp, sp: .each.sp, cp: .each.cp, characters}')
           tr_purse=$(get "$api/api/characters/$sp_ch" -H "Authorization: Bearer $A" | jq -c '.sheet.coins | {gp, sp, cp}')
           tr_emptied=$(curl -s "$api/api/campaigns/$cp_id/treasure" -H "Authorization: Bearer $A" | jq -c '.coins | {gp, sp, cp}')
+          # Quick generators: a tavern with its menu and a blacksmith stocked from the compendium, both closed
+          gn_player=$(code -X POST "$api/api/campaigns/$cp_id/shops/generate" $json -H "Authorization: Bearer $A" -d '{"kind":6}')
+          gn_bad=$(code -X POST "$api/api/campaigns/$cp_id/shops/generate" $json -H "Authorization: Bearer $B" -d '{"kind":99}')
+          gn_tavern=$(curl -s -X POST "$api/api/campaigns/$cp_id/shops/generate?lang=2" $json -H "Authorization: Bearer $B" -d '{"kind":6,"seed":7}')
+          gn_tavern_view=$(echo "$gn_tavern" | jq -c '{named: (.name | length > 0), open, items: (.items | length), free: ([.items[] | select(.kind == "free")] | length), rumour: (.description | test("mormora"))}')
+          gn_smith=$(curl -s -X POST "$api/api/campaigns/$cp_id/shops/generate?lang=2" $json -H "Authorization: Bearer $B" -d '{"kind":2,"seed":7}')
+          gn_smith_view=$(echo "$gn_smith" | jq -c '{stocked: ([.items[] | select(.kind == "equipment")] | length > 0), priced: ([.items[] | select(.listPrice <= 0)] | length == 0)}')
+          code -X DELETE "$api/api/campaigns/$cp_id/shops/$(echo "$gn_tavern" | jq -r .id)" -H "Authorization: Bearer $B" > /dev/null
+          code -X DELETE "$api/api/campaigns/$cp_id/shops/$(echo "$gn_smith" | jq -r .id)" -H "Authorization: Bearer $B" > /dev/null
           # Progress clocks and factions: a hidden clock that fills one segment per game hour, a faction whose standing moves the
           # prices of the shop tied to it
           pg_player=$(code -X POST "$api/api/campaigns/$cp_id/progress/clocks" $json -H "Authorization: Bearer $A" -d '{"name":"Mio","segments":4}')
@@ -1005,6 +1014,9 @@ jobs:
           mdcheck "clock: two days without rations" "$ck_hungry" '{"days":2,"hungry":[2]}'
           mdcheck "clock: a sheet saved from before keeps the server's inventory" "$ck_stale" '{"inventory":0}'
           mdcheck "clock: set to a time" "$ck_set" "1230"
+          mdcheck "generators: only masters, known kinds" "$gn_player|$gn_bad" "403|400"
+          mdcheck "generators: a tavern with its menu and a rumour, closed" "$gn_tavern_view" '{"named":true,"open":false,"items":6,"free":6,"rumour":true}'
+          mdcheck "generators: a blacksmith stocked from the compendium" "$gn_smith_view" '{"stocked":true,"priced":true}'
           mdcheck "progress: only masters add clocks, of 4, 6, 8 or 12 segments" "$pg_player|$pg_bad" "403|400"
           mdcheck "progress: a hidden clock fills with the game time" "$pg_hidden|$pg_ticked|$pg_full" '0|[{"name":"Il rituale","filled":3}]|4'
           mdcheck "progress: a hostile faction raises the prices of its shop" "$pg_shop_bad|$pg_hostile" '400|{"faction":"Gilda dei ladri","effectivePercent":125,"price":125}'
