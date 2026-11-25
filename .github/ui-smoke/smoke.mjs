@@ -1851,7 +1851,7 @@ try {
   await shot(page, 'phone-vtt-table', null);
   await page.setViewportSize({ width: 1280, height: 900 });
   results.push(`INFO vtt: ${JSON.stringify(vttUi)}`);
-  if (vttUi.ruler !== '3 · 4,5 m' || vttUi.displayed !== 1 || vttUi.zoom === '100%' || vttUi.tools !== 16 || vttUi.connection !== 'live' || vttUi.phoneZoom === vttUi.zoom) throw new Error(`unexpected virtual tabletop: ${JSON.stringify(vttUi)}`);
+  if (vttUi.ruler !== '3 · 4,5 m' || vttUi.displayed !== 1 || vttUi.zoom === '100%' || vttUi.tools !== 19 || vttUi.connection !== 'live' || vttUi.phoneZoom === vttUi.zoom) throw new Error(`unexpected virtual tabletop: ${JSON.stringify(vttUi)}`);
   ok('virtual tabletop: the table on the whole window with the map shown to the players, fitted to the screen, the tools on the left, the ruler measuring three cells (4,5 m), the map fitted again on a phone');
   // A sphere of 1 cell (1,5 m) around the hero: its cell and the three around it on the map; a stroke, then erased;
   // a note for the masters
@@ -2300,6 +2300,18 @@ try {
     const saved = await page.evaluate(() => JSON.parse(localStorage.getItem('rf-dice3d') || '{}').color);
     if (saved !== 'emerald') throw new Error(`the dice colour was not kept: ${saved}`);
     ok('3D dice: the colour is kept on the device, a test throw draws the dice over the page');
+    // A colour of one's own (RGB), the special dice locked until a code, a wrong code opening nothing
+    await page.locator('[data-test=dice3d-hex]').fill('#22c55e');
+    await page.locator('[data-test=dice3d-hex]').press('Enter');
+    await page.locator('[data-test=dice3d-hex]').blur();
+    await page.waitForFunction(() => JSON.parse(localStorage.getItem('rf-dice3d') || '{}').color === '#22c55e', null, { timeout: 15000 });
+    const lockedSkins = await page.locator('[data-test=dice3d-skin]:disabled').count();
+    await page.locator('[data-test=dice3d-code]').fill('nessun codice');
+    await page.locator('[data-test=dice3d-unlock]').click();
+    await page.locator('[data-test=dice3d-code-message]').waitFor({ timeout: 15000 });
+    await shot(page, 'dice3d-settings', '[data-test=account-dice3d]');
+    if (lockedSkins !== 2) throw new Error(`special dice locked: ${lockedSkins}`);
+    ok('3D dice: a colour of one\'s own is kept, the special dice wait for a code');
   } else {
     results.push('INFO 3D dice: no WebGL in this browser, the flat dice stay');
   }

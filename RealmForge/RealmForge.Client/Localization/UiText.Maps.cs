@@ -220,6 +220,14 @@ namespace RealmForge.Client.Localization
 		// ----- The map editor -----
 		public static string MapShownShort(LanguageCode lang) => T(lang, "Visibile ai giocatori", "Shown to the players");
 		public static string MapDragHint(LanguageCode lang) => T(lang, "Clic: nella prima casella libera · trascina sulla mappa: dove vuoi", "Click: on the first free cell · drag onto the map: wherever you like");
+		public static string VttToolEncounters(LanguageCode lang) => T(lang, "Incontri", "Encounters");
+		public static string VttToolTreasure(LanguageCode lang) => T(lang, "Tesoro del gruppo", "Party treasure");
+		public static string VttToolProgress(LanguageCode lang) => T(lang, "Orologi di avanzamento", "Progress clocks");
+		public static string VttEncountersNone(LanguageCode lang) => T(lang, "Nessun incontro da giocare: preparane uno nella pagina della campagna.", "No encounter to play: prepare one on the campaign page.");
+		public static string VttEncounterHere(LanguageCode lang) => T(lang, "In corso qui", "Under way here");
+		public static string VttEncounterGoTo(LanguageCode lang) => T(lang, "Vai alla mappa", "Go to its map");
+		public static string VttEncounterBusy(LanguageCode lang) => T(lang, "Su questa mappa c'è già un combattimento", "A fight is already under way on this map");
+		public static string VttEncountersPage(LanguageCode lang) => T(lang, "Prepara gli incontri nella pagina della campagna", "Prepare the encounters on the campaign page");
 		public static string MapHiddenShort(LanguageCode lang) => T(lang, "Non mostrata", "Not shown");
 		public static string MapViewAs(LanguageCode lang) => T(lang, "Vista", "View");
 		public static string MapViewEditor(LanguageCode lang) => T(lang, "Editor", "Editor");
@@ -636,6 +644,7 @@ namespace RealmForge.Client.Localization
 		public static string VttEscape(LanguageCode lang) => T(lang, "Liberati", "Escape");
 		public static string VttEscapeHint(LanguageCode lang) => T(lang, "Usa l'azione: Atletica o Acrobazia per liberarti", "Takes the action: Athletics or Acrobatics to escape");
 		public static string VttLetGo(LanguageCode lang) => T(lang, "Lascia la presa", "Let go");
+		public static string VttLimits(LanguageCode lang) => T(lang, "Cosa impediscono le condizioni", "What the conditions stop");
 		public static string VttGrappledMove(LanguageCode lang) => T(lang, "Afferrato: non può muoversi finché non si libera.", "Grappled: it cannot move until it escapes.");
 		public static string VttReadyOther(LanguageCode lang) => T(lang, "Altro", "Something else");
 		public static string VttReadyWhat(LanguageCode lang) => T(lang, "Cosa prepari", "What is readied");

@@ -208,6 +208,8 @@ namespace RealmForge.Client.Components
 				//	A spell attack is the whole action; a weapon's, one of the attacks of the Attack action
 				ActionAttacks = attacker.CharacterId is null ? null : current.Attack.InventoryId is null && current.Attack.Spell ? 1 : StatsOf(attacker)?.ActionAttacks
 			};
+			//	From the request to the last damage die the dice are rolling: the strike on the target waits for them
+			using var rolling = DiceActivity.Hold();
 			var (result, error) = await Campaigns.AttackAsync(CampaignId, map.Id, attack, Lang);
 			//	Seeking Spell: a spell attack that missed rolls its d20 again
 			if (result is { Hit: false } && plan?.Meta.Contains("seeking") == true)

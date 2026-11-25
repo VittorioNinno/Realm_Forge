@@ -267,6 +267,63 @@ namespace RealmForge.Api.Controllers
 			return NoContent();
 		}
 
+		//	POST: api/campaigns/{campaignId}/treasure/items/{id}/place?lang=2 — the masters, from the table: the item goes on a
+		//	token of a map of the campaign (a chest, a creature that carries it, a corpse), for whoever opens or loots it;
+		//	it keeps what it is (magic, unidentified) and goes into the inventory as it was when someone takes it
+		[HttpPost("items/{id:guid}/place")]
+		public async Task<IActionResult> Place(Guid campaignId, Guid id, [FromBody] PlaceTreasureDto dto, [FromQuery] LanguageCode lang = LanguageCode.It)
+		{
+			var (item, error) = await MastersItemAsync(campaignId, id);
+			if (item is null)
+			{
+				return error!;
+			}
+			var token = await _context.CampaignTokens.Include(t => t.Map)
+				.FirstOrDefaultAsync(t => t.Id == dto.TokenId && t.MapId == dto.MapId && t.Map.CampaignId == campaignId);
+			if (token is null)
+			{
+				return NotFound();
+			}
+			if (token.CharacterId is not null || (token.Kind == TokenKind.Prop && token.PropType != PropType.Chest && token.PropType != PropType.Item))
+			{
+				return Problem(statusCode: StatusCodes.Status400BadRequest, title: "A character takes it from the chest; a door or a lever holds nothing.");
+			}
+			if (dto.Quantity < 1 || dto.Quantity > item.Quantity)
+			{
+				return Problem(statusCode: StatusCodes.Status400BadRequest, title: "Not that many in the chest.");
+			}
+			var gear = MapsController.ReadGear(token.Gear);
+			if (gear.Items.Count >= TokenGear.MaxItems)
+			{
+				return Problem(statusCode: StatusCodes.Status400BadRequest, title: $"At most {TokenGear.MaxItems} things on a token.");
+			}
+
+			//	The inventory entry it will be (as a gift from the chest would make it)
+			var names = await NamesAsync(new[] { item }, lang);
+			var trueName = names.GetValueOrDefault(item.Id) ?? item.Name;
+			var shown = item.Identified ? trueName : item.Name.Length > 0 ? item.Name : item.Appearance.Length > 0 ? item.Appearance : "?";
+			var look = item.Appearance.Length > 0 ? item.Appearance : null;
+			var scratch = new CharacterSheetState();
+			await InventoryStow.StowAsync(_context, scratch, item.Identified ? item.EquipmentId : null, item.Identified ? item.MagicItemId : null, item.Identified ? trueName : shown, dto.Quantity, look);
+			var entry = scratch.Inventory[0];
+			gear.Items.Add(new TokenItem
+			{
+				Name = shown.Length > 100 ? shown[..100] : shown,
+				Quantity = dto.Quantity,
+				EquipmentId = item.Identified ? item.EquipmentId : null,
+				Entry = JsonSerializer.Serialize(entry, CharactersController.Json)
+			});
+			MapsController.WriteGear(token, gear);
+			token.UpdatedAt = token.Map.UpdatedAt = DateTimeOffset.UtcNow;
+			item.Quantity -= dto.Quantity;
+			if (item.Quantity == 0)
+			{
+				_context.CampaignLoot.Remove(item);
+			}
+			await _context.SaveChangesAsync();
+			return NoContent();
+		}
+
 		// ----- Helpers -----
 
 		//	A sheet changed here: written back, its stamp moved (an open copy of the sheet takes the server's inventory)

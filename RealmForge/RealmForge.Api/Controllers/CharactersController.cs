@@ -426,9 +426,21 @@ namespace RealmForge.Api.Controllers
 			character.MaxHitPoints = computed.MaxHitPoints;
 			character.ArmorClass = computed.ArmorClass;
 			character.Defenses = DamageDefenses.Write(computed.Resistances, computed.Immunities);
+			//	What the creature sees changed (darkvision, blinded or any other condition): the maps it stands on wake up,
+			//	so the tables work out the sight again at once
+			var seesOtherwise = character.Darkvision != computed.Darkvision || !stored.Conditions.ToHashSet().SetEquals(sheet.Conditions);
 			character.Darkvision = computed.Darkvision;
 			character.UpdatedAt = DateTimeOffset.UtcNow;
 			character.UpdatedById = UserId;
+			if (seesOtherwise)
+			{
+				var now = DateTimeOffset.UtcNow;
+				var mapIds = await _context.CampaignTokens.Where(t => t.CharacterId == character.Id || t.SheetCharacterId == character.Id).Select(t => t.MapId).Distinct().ToListAsync();
+				foreach (var map in await _context.CampaignMaps.Where(m => mapIds.Contains(m.Id)).ToListAsync())
+				{
+					map.UpdatedAt = now;
+				}
+			}
 			await _context.SaveChangesAsync();
 
 			return Ok(new CharacterSavedDto(character.Id, character.MaxHitPoints, character.ArmorClass, character.UpdatedAt,

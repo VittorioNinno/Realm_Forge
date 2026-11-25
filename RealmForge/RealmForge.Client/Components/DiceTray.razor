@@ -105,6 +105,7 @@
         faces = roll.Dice.Select(d => Random.Shared.Next(1, d.Sides + 1)).ToArray();
         rolling = true;
         StateHasChanged();
+        using var tumbling = DiceActivity.Hold();
         try
         {
             //	The 3D dice tumble across the screen meanwhile (when this device shows them): the tray lands with them

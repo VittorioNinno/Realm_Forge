@@ -11601,6 +11601,59 @@ textarea.rf-form-control {
         font-weight: 700;
     }
 
+/* The campaign at hand in the drawer (encounters, treasure, progress clocks) */
+.rf-vtt-campaign-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    min-width: 0;
+}
+
+.rf-vtt-enc-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.rf-vtt-enc {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 8px;
+    border: 1px solid var(--rf-border-light);
+    border-radius: 8px;
+    background: var(--rf-bg-card);
+}
+
+    .rf-vtt-enc.running {
+        border-color: var(--rf-orange-primary);
+    }
+
+.rf-vtt-enc-text {
+    display: flex;
+    flex: 1 1 160px;
+    flex-direction: column;
+    min-width: 0;
+}
+
+    .rf-vtt-enc-text .small {
+        color: var(--rf-text-muted);
+    }
+
+.rf-vtt-enc-here {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    color: var(--rf-orange-primary);
+    font-size: .8rem;
+    font-weight: 700;
+}
+
 .rf-vtt-drawer {
     display: flex;
     flex: none;
@@ -12399,6 +12452,67 @@ textarea.rf-form-control {
     font-size: .8rem;
     color: #f59e0b;
 }
+
+/* What the conditions stop: one line each, the colour of the condition's family on the left */
+.rf-hud-limits {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    margin: 0;
+    padding: 8px 16px 0;
+    list-style: none;
+}
+
+.rf-hud-limit {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    padding: 4px 8px;
+    border-left: 3px solid #f59e0b;
+    border-radius: 4px;
+    background: rgba(245, 158, 11, .08);
+    color: var(--rf-text-secondary);
+    font-size: .75rem;
+    line-height: 1.35;
+}
+
+    .rf-hud-limit strong {
+        color: var(--rf-text-primary);
+    }
+
+    .rf-hud-limit svg {
+        flex: none;
+        margin-top: 2px;
+        color: #f59e0b;
+    }
+
+    .rf-hud-limit-out {
+        border-left-color: #dc2626;
+        background: rgba(220, 38, 38, .1);
+    }
+
+        .rf-hud-limit-out svg {
+            color: #ef4444;
+        }
+
+    .rf-hud-limit-move {
+        border-left-color: #ea580c;
+    }
+
+    .rf-hud-limit-mind {
+        border-left-color: #7c3aed;
+        background: rgba(124, 58, 237, .1);
+    }
+
+    .rf-hud-limit-sense {
+        border-left-color: #0284c7;
+        background: rgba(2, 132, 199, .1);
+    }
+
+    .rf-hud-limit-body {
+        border-left-color: #16a34a;
+        background: rgba(22, 163, 74, .1);
+    }
 
 .rf-hud-dock {
     display: grid;
@@ -20998,6 +21112,8 @@ button.rf-vtt-clock.on {
         height: 100% !important;
     }
 
+
+
 .rf-dice3d-settings {
     display: flex;
     flex-direction: column;
@@ -21053,11 +21169,106 @@ button.rf-vtt-clock.on {
 
 .rf-dice3d-swatch-forge { background: linear-gradient(135deg, #ffb04d, #ff8c00 55%, #b86500); }
 .rf-dice3d-swatch-ivory { background: linear-gradient(135deg, #fffaf0, #efe6d2 55%, #b9ab8c); }
-.rf-dice3d-swatch-obsidian { background: linear-gradient(135deg, #3a3a3d, #1d1d1f 55%, #000); }
-.rf-dice3d-swatch-ruby { background: linear-gradient(135deg, #c43a3a, #8b1a1a 55%, #3d0909); }
-.rf-dice3d-swatch-emerald { background: linear-gradient(135deg, #3a9b6b, #1f6b45 55%, #0c2e1d); }
-.rf-dice3d-swatch-sapphire { background: linear-gradient(135deg, #3f66c4, #1f3f8b 55%, #0b1a3d); }
-.rf-dice3d-swatch-amethyst { background: linear-gradient(135deg, #8a52b8, #5b2a86 55%, #25103a); }
+.rf-dice3d-swatch-graphite { background: linear-gradient(135deg, #6a6a74, #4a4a52 55%, #1c1c20); }
+.rf-dice3d-swatch-ruby { background: linear-gradient(135deg, #e0484e, #c0262d 55%, #4d0a0d); }
+.rf-dice3d-swatch-emerald { background: linear-gradient(135deg, #3fc283, #1f9d61 55%, #0a3a23); }
+.rf-dice3d-swatch-sapphire { background: linear-gradient(135deg, #5f93f0, #2f6fe0 55%, #0d2659); }
+.rf-dice3d-swatch-amethyst { background: linear-gradient(135deg, #b07ff0, #8e4fd6 55%, #32125a); }
+.rf-dice3d-swatch-teal { background: linear-gradient(135deg, #3ccfd4, #13a3a8 55%, #063d3f); }
+
+/* The free colour: a swatch that opens the colour picker, and the hex field beside it */
+.rf-dice3d-swatch-custom {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0;
+    overflow: hidden;
+    background: conic-gradient(#ff5f5f, #ffd25f, #6fe36f, #5fd3ff, #8f7dff, #ff5fd3, #ff5f5f);
+    color: #141414;
+}
+
+    .rf-dice3d-swatch-custom input[type="color"] {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        opacity: 0;
+        cursor: pointer;
+    }
+
+.rf-dice3d-hex {
+    width: 104px !important;
+    font-family: ui-monospace, monospace;
+}
+
+/* The dice to choose: resin and the special ones (locked until a code opens them) */
+.rf-dice3d-skins {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.rf-dice3d-skin {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-height: 40px;
+    padding: 4px 16px 4px 4px;
+    border: 2px solid var(--rf-border-light);
+    border-radius: 16px;
+    background: var(--rf-bg-surface);
+    color: var(--rf-text-primary);
+    font-weight: 600;
+    transition: transform .15s ease, border-color .15s ease, box-shadow .15s ease;
+}
+
+    .rf-dice3d-skin:not(:disabled):hover {
+        transform: translateY(-2px);
+        border-color: var(--rf-orange-primary);
+    }
+
+    .rf-dice3d-skin.on {
+        border-color: var(--rf-orange-primary);
+        box-shadow: 0 0 12px var(--rf-orange-glow);
+    }
+
+    .rf-dice3d-skin.locked {
+        opacity: .55;
+        cursor: not-allowed;
+    }
+
+.rf-dice3d-skin-face {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    color: #fff4dc;
+}
+
+.rf-dice3d-skin-resin .rf-dice3d-skin-face { background: linear-gradient(135deg, #ffb04d, #ff8c00 55%, #b86500); color: #141414; }
+.rf-dice3d-skin-ember .rf-dice3d-skin-face { background: radial-gradient(circle at 35% 35%, #ffb347, #c2410c 45%, #3a0e04); box-shadow: 0 0 10px rgba(255, 106, 16, .6); }
+.rf-dice3d-skin-stardust .rf-dice3d-skin-face { background: radial-gradient(circle at 30% 30%, #8f7dff, #33208a 50%, #0b1033); box-shadow: 0 0 10px rgba(143, 125, 255, .6); }
+.rf-dice3d-skin.locked .rf-dice3d-skin-face { background: var(--rf-bg-main); box-shadow: none; color: var(--rf-text-muted); }
+
+.rf-dice3d-code {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+    .rf-dice3d-code .rf-form-control {
+        flex: 1 1 200px;
+        width: auto;
+        text-transform: uppercase;
+    }
+
+.rf-dice3d-code-ok {
+    color: #6fd3a1;
+    font-weight: 600;
+}
 
 /* ===== Visual effects (wwwroot/js/fx.js) ===== */
 

@@ -302,25 +302,6 @@ namespace RealmForge.Client.Localization
 			_ => "other"
 		};
 
-		public static string ConditionName(string key, LanguageCode lang) => key switch
-		{
-			"blinded" => T(lang, "Accecato", "Blinded"),
-			"charmed" => T(lang, "Affascinato", "Charmed"),
-			"deafened" => T(lang, "Assordato", "Deafened"),
-			"frightened" => T(lang, "Spaventato", "Frightened"),
-			"grappled" => T(lang, "Afferrato", "Grappled"),
-			"incapacitated" => T(lang, "Incapacitato", "Incapacitated"),
-			"invisible" => T(lang, "Invisibile", "Invisible"),
-			"paralyzed" => T(lang, "Paralizzato", "Paralyzed"),
-			"petrified" => T(lang, "Pietrificato", "Petrified"),
-			"poisoned" => T(lang, "Avvelenato", "Poisoned"),
-			"prone" => T(lang, "Prono", "Prone"),
-			"restrained" => T(lang, "Trattenuto", "Restrained"),
-			"stunned" => T(lang, "Stordito", "Stunned"),
-			"unconscious" => T(lang, "Privo di sensi", "Unconscious"),
-			"exhaustion" => T(lang, "Indebolimento", "Exhaustion"),
-			"concentrating" => T(lang, "Concentrazione", "Concentrating"),
-			_ => key
-		};
+		public static string ConditionName(string key, LanguageCode lang) => RealmForge.Shared.Campaigns.ConditionLimits.Name(key, lang == LanguageCode.It);
 	}
 }
