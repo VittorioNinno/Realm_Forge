@@ -403,7 +403,7 @@ window.rfDice3d = (() => {
         const st = { until: 0, peak: 1 };
         const step = (now) => {
             if (!pulseOn) return;
-            const k = Math.max(0.1, f(now / 1000, st));
+            const k = Math.max(0.1, f(now / 1000, st) + critFlare);
             for (const die of b.diceList || []) {
                 const list = Array.isArray(die.material) ? die.material : [die.material];
                 for (const m of list) if (m && m.emissive) m.emissiveIntensity = special.glowIntensity * k;
@@ -577,23 +577,20 @@ window.rfDice3d = (() => {
         return { text: `${parts.join('+')}@${values.join(',')}`, thrown: ordered };
     }
 
-    // Where a die is on the screen
-    function onScreen(b, die) {
-        try {
-            const p = die.position.clone().project(b.camera);
-            const r = layer.getBoundingClientRect();
-            return { x: r.left + (p.x + 1) / 2 * r.width, y: r.top + (1 - p.y) / 2 * r.height };
-        } catch { return null; }
-    }
-
     // ----- The critical moment: a natural 20 or 1 of the d20 of a special die -----
     //
-    // Drawn on a canvas of its own over the dice, for about three seconds. A natural 20: a flash, a column of light,
-    // rings of shock and the die's own burst (embers, stars, shards of ice, bolts, wisps, gold coins, a vortex,
-    // fireflies, drops of acid, a circle of runes), then motes that drift away. A natural 1: the light dies: a
-    // dark pulse, cracks running out of the die, smoke and a few falling sparks.
+    // Played in the space of the dice, not flat on the page: every point of the effect lives on the table or above it
+    // (the box looks down on its table, z up) and is drawn through the camera of the dice, so the rings lie on the
+    // table around the die, the light rises from the die towards the eye and the sparks grow as they come closer;
+    // the die itself flares with the colour of the effect. A natural 20: the flare, rings across the table, a pillar of
+    // light, the die's own burst (embers, stars, shards of ice, bolts, wisps, gold coins, a vortex, fireflies, drops of
+    // acid, a magic circle drawn on the table), motes drifting up. A natural 1: the light dies: a shadow on the table,
+    // cracks running out of the die, smoke rising, sparks falling back. About three seconds, on a canvas of its own.
 
     let fxCanvas = null;
+    let critFlare = 0;
+    let fxUnit = 34;
+    let fxDie = false;
 
     function fxLayer() {
         if (fxCanvas && document.body.contains(fxCanvas)) return fxCanvas;
@@ -611,44 +608,110 @@ window.rfDice3d = (() => {
 
     function rgba(hex, a) {
         const n = parseInt(hex.slice(1), 16);
-        return `rgba(${n >> 16},${(n >> 8) & 255},${n & 255},${Math.max(0, Math.min(1, a))})`;
+        // Rounded: a tiny alpha in exponent form (1e-17) is not a colour, and a gradient stop would throw
+        return `rgba(${n >> 16},${(n >> 8) & 255},${n & 255},${(Math.max(0, Math.min(1, a)) || 0).toFixed(3)})`;
     }
 
-    // A particle drawn in the style of the die
-    function drawParticle(g, p, style, life) {
-        const a = p.alpha * (1 - life);
+    // The space of the effect: world points (in die radii, z up from the table under the die) to the screen, with the
+    // scale of a point at that height. Through the camera of the box when there is a die; else a view from above in
+    // the middle of the screen (the preview of the settings)
+    function space(b, die) {
+        try {
+            if (b && die && b.camera && die.position) {
+                const V = die.position.constructor;
+                const geo = die.geometry;
+                if (geo && !geo.boundingSphere && geo.computeBoundingSphere) geo.computeBoundingSphere();
+                const R = (geo && geo.boundingSphere ? geo.boundingSphere.radius : 40) * (die.scale ? die.scale.x : 1);
+                const rect = layer.getBoundingClientRect();
+                const cam = b.camera.position;
+                const base = { x: die.position.x, y: die.position.y, z: die.position.z - R * 0.9 };
+                const toScreen = (x, y, z) => {
+                    const v = new V(base.x + x * R, base.y + y * R, base.z + z * R).project(b.camera);
+                    const dist = Math.max(1, cam.z - (base.z + z * R));
+                    return { x: rect.left + (v.x + 1) / 2 * rect.width, y: rect.top + (1 - v.y) / 2 * rect.height, k: (cam.z - base.z) / dist };
+                };
+                const o = toScreen(0, 0, 0), e = toScreen(1, 0, 0);
+                const px = Math.max(8, Math.hypot(e.x - o.x, e.y - o.y));
+                return { P: toScreen, px };
+            }
+        } catch { }
+        const cx = innerWidth / 2, cy = innerHeight / 2, px = 34, eye = 14;
+        return { P: (x, y, z) => { const k = eye / Math.max(1, eye - z); return { x: cx + x * px * k, y: cy - y * px * k, k }; }, px };
+    }
+
+    // A shape lying on the table (z = 0): its outline through the camera
+    function onTable(P, points, z = 0) {
+        return points.map(([x, y]) => P(x, y, z));
+    }
+
+    function circle(r, n = 56) {
+        return Array.from({ length: n + 1 }, (_, i) => [Math.cos(i / n * TAU) * r, Math.sin(i / n * TAU) * r]);
+    }
+
+    function path(g, pts, close) {
+        g.beginPath();
+        pts.forEach((q, i) => i ? g.lineTo(q.x, q.y) : g.moveTo(q.x, q.y));
+        if (close) g.closePath();
+    }
+
+    function glowLine(g, pts, width, color, glow) {
         g.save();
-        g.translate(p.x, p.y);
+        g.strokeStyle = color;
+        g.lineWidth = width;
+        g.lineJoin = 'round';
+        g.lineCap = 'round';
+        g.shadowColor = glow || color;
+        g.shadowBlur = glow ? 16 : 0;
+        path(g, pts);
+        g.stroke();
+        g.restore();
+    }
+
+    // A jagged line on the table or in the air, in die radii
+    function jagged3(from, to, roughness, steps = 8) {
+        const out = [];
+        for (let i = 0; i <= steps; i++) {
+            const t = i / steps, off = i === 0 || i === steps ? 0 : (Math.random() - 0.5) * roughness;
+            out.push([from[0] + (to[0] - from[0]) * t + off, from[1] + (to[1] - from[1]) * t + off * 0.7, from[2] + (to[2] - from[2]) * t]);
+        }
+        return out;
+    }
+
+    // A particle drawn at its place on the screen, its size following its height
+    function drawParticle(g, q, p, style, life) {
+        const a = p.alpha * (1 - life);
+        if (a <= 0.01) return;
+        const s = Math.max(0.5, p.size * q.k);
+        g.save();
+        g.translate(q.x, q.y);
         g.rotate(p.spin);
-        g.globalAlpha = Math.max(0, a);
+        g.globalAlpha = Math.min(1, a);
         g.fillStyle = p.color;
         g.strokeStyle = p.color;
         g.shadowColor = p.color;
-        g.shadowBlur = 10;
-        const s = p.size;
+        g.shadowBlur = 12;
         switch (style) {
-            case 'star': {
+            case 'star':
                 g.beginPath();
                 for (let i = 0; i < 8; i++) {
-                    const r = i % 2 ? s * 0.35 : s * 1.3, ang = i / 8 * TAU;
+                    const r = i % 2 ? s * 0.35 : s * 1.4, ang = i / 8 * TAU;
                     g.lineTo(Math.cos(ang) * r, Math.sin(ang) * r);
                 }
                 g.closePath();
                 g.fill();
                 break;
-            }
             case 'shard':
                 g.beginPath();
-                g.moveTo(0, -s * 1.8); g.lineTo(s * 0.5, 0); g.lineTo(0, s * 1.8); g.lineTo(-s * 0.5, 0);
+                g.moveTo(0, -s * 2); g.lineTo(s * 0.55, 0); g.lineTo(0, s * 2); g.lineTo(-s * 0.55, 0);
                 g.closePath();
                 g.fill();
                 break;
             case 'coin': {
-                const w = Math.abs(Math.cos(p.flip)) * s * 1.4 + 1;
+                const w = Math.abs(Math.cos(p.flip)) * s * 1.4 + 0.8;
                 g.beginPath();
                 g.ellipse(0, 0, w, s * 1.4, 0, 0, TAU);
                 g.fill();
-                g.globalAlpha = Math.max(0, a * 0.7);
+                g.globalAlpha = Math.min(1, a * 0.8);
                 g.fillStyle = '#fffbe6';
                 g.beginPath();
                 g.ellipse(-w * 0.3, -s * 0.4, w * 0.25, s * 0.35, 0, 0, TAU);
@@ -657,26 +720,20 @@ window.rfDice3d = (() => {
             }
             case 'drop':
                 g.beginPath();
-                g.moveTo(0, -s * 1.6);
+                g.moveTo(0, -s * 1.7);
                 g.quadraticCurveTo(s, 0, 0, s);
-                g.quadraticCurveTo(-s, 0, 0, -s * 1.6);
+                g.quadraticCurveTo(-s, 0, 0, -s * 1.7);
                 g.fill();
-                break;
-            case 'rune':
-                g.lineWidth = 1.6;
-                g.beginPath();
-                g.moveTo(-s, -s); g.lineTo(s, s); g.moveTo(s, -s); g.lineTo(0, 0); g.moveTo(-s, s * 0.2); g.lineTo(s * 0.4, s * 1.1);
-                g.stroke();
                 break;
             case 'wisp':
             case 'smoke': {
-                const grad = g.createRadialGradient(0, 0, 0, 0, 0, s * 2.4);
-                grad.addColorStop(0, rgba(p.color, 0.9));
+                const grad = g.createRadialGradient(0, 0, 0, 0, 0, s * 2.6);
+                grad.addColorStop(0, rgba(p.color, 0.85));
                 grad.addColorStop(1, rgba(p.color, 0));
                 g.fillStyle = grad;
                 g.shadowBlur = 0;
                 g.beginPath();
-                g.arc(0, 0, s * 2.4, 0, TAU);
+                g.arc(0, 0, s * 2.6, 0, TAU);
                 g.fill();
                 break;
             }
@@ -688,264 +745,737 @@ window.rfDice3d = (() => {
         g.restore();
     }
 
-    // A jagged line from a point (a bolt, a crack)
-    function jagged(x, y, angle, length, roughness) {
-        const pts = [[x, y]];
-        const steps = 7;
-        for (let i = 1; i <= steps; i++) {
-            const d = length * i / steps;
-            const off = (Math.random() - 0.5) * roughness;
-            pts.push([x + Math.cos(angle) * d - Math.sin(angle) * off, y + Math.sin(angle) * d + Math.cos(angle) * off]);
-        }
-        return pts;
+    const clamp01 = (t) => Math.min(1, Math.max(0, t));
+    const lerp = (a, b, t) => a + (b - a) * t;
+    // 0 before a, rising to 1 by b, 1 until c, falling to 0 by d
+    const span = (t, a, b, c, d) => t < a ? 0 : t < b ? (t - a) / (b - a) : t < c ? 1 : t < d ? 1 - (t - c) / (d - c) : 0;
+    const turn = (a) => ([x, y]) => [x * Math.cos(a) - y * Math.sin(a), x * Math.sin(a) + y * Math.cos(a)];
+    const shift = (dx, dy) => ([x, y]) => [x + dx, y + dy];
+
+    // A soft light (or shadow) lying on the table
+    function pool(g, P, x, y, r, inner, outer, z = 0) {
+        const o = P(x, y, z), e = P(x + r, y, z);
+        const rr = Math.max(1, Math.hypot(e.x - o.x, e.y - o.y));
+        const grad = g.createRadialGradient(o.x, o.y, 0, o.x, o.y, rr);
+        grad.addColorStop(0, inner);
+        grad.addColorStop(1, outer);
+        g.fillStyle = grad;
+        path(g, onTable(P, circle(r, 40).map(shift(x, y)), z), true);
+        g.fill();
     }
 
-    function polyline(g, pts, width, color, glow) {
+    // A glowing blob at a point of the space, its size in die radii
+    function blob(g, q, r, color, a) {
+        const rr = Math.max(0.5, r * fxUnit * q.k);
+        const grad = g.createRadialGradient(q.x, q.y, 0, q.x, q.y, rr);
+        grad.addColorStop(0, rgba(color, a));
+        grad.addColorStop(1, rgba(color, 0));
+        g.fillStyle = grad;
+        g.fillRect(q.x - rr, q.y - rr, rr * 2, rr * 2);
+    }
+
+    // Clears the effect drawn so far where the die stands, so what lies on the table passes under the die
+    function hole(g, P) {
+        if (!fxDie) return;
+        const q = P(0, 0, 1.2), r = fxUnit * q.k * 1.05;
         g.save();
-        g.strokeStyle = color;
-        g.lineWidth = width;
-        g.lineJoin = 'round';
-        g.shadowColor = glow || color;
-        g.shadowBlur = glow ? 14 : 0;
-        g.beginPath();
-        pts.forEach(([px, py], i) => i ? g.lineTo(px, py) : g.moveTo(px, py));
-        g.stroke();
+        g.globalCompositeOperation = 'destination-out';
+        const grad = g.createRadialGradient(q.x, q.y, r * 0.6, q.x, q.y, r);
+        grad.addColorStop(0, 'rgba(0,0,0,1)');
+        grad.addColorStop(1, 'rgba(0,0,0,0)');
+        g.fillStyle = grad;
+        g.fillRect(q.x - r, q.y - r, r * 2, r * 2);
         g.restore();
     }
 
-    // The particles of a natural 20, by style: where they start, how they move
-    function burstParticles(x, y, fx) {
-        const list = [];
-        const style = fx.style;
-        const count = style === 'void' ? 90 : style === 'coin' ? 46 : 70;
-        for (let i = 0; i < count; i++) {
-            const ang = Math.random() * TAU;
-            const speed = 2 + Math.random() * 6;
-            const p = { x, y, vx: Math.cos(ang) * speed, vy: Math.sin(ang) * speed, size: 2.5 + Math.random() * 4, color: pick(fx.colors), alpha: 1, spin: Math.random() * TAU, vs: (Math.random() - 0.5) * 0.3, flip: Math.random() * TAU, delay: 0, life: 1.6 + Math.random() * 1.1, gravity: 0, drag: 0.95 };
-            switch (style) {
-                case 'ember': p.vy -= 3; p.gravity = -0.06; p.size *= 0.8; break;
-                case 'coin': p.vy = -6 - Math.random() * 8; p.vx *= 0.7; p.gravity = 0.38; p.drag = 0.99; p.size = 4 + Math.random() * 3; break;
-                case 'drop': p.vy = -4 - Math.random() * 6; p.gravity = 0.3; p.drag = 0.98; break;
-                case 'shard': p.size = 3 + Math.random() * 3; p.drag = 0.92; break;
-                case 'wisp': p.vx *= 0.4; p.vy = -1.5 - Math.random() * 2.5; p.size = 5 + Math.random() * 5; p.drag = 0.97; p.alpha = 0.5; break;
-                case 'firefly': p.orbit = 30 + Math.random() * 110; p.angle = ang; p.av = (Math.random() > 0.5 ? 1 : -1) * (0.02 + Math.random() * 0.04); p.size = 2 + Math.random() * 2; break;
-                case 'void': {
-                    // Drawn in from far away, then thrown out
-                    const far = 160 + Math.random() * 160;
-                    p.x = x + Math.cos(ang) * far; p.y = y + Math.sin(ang) * far;
-                    p.home = { x, y }; p.angle = ang; p.far = far; p.size = 2.5 + Math.random() * 3; p.color = pick([fx.colors[0], fx.colors[3], fx.colors[0]]);
-                    break;
+    function line3(g, P, pts, width, color, glow) {
+        glowLine(g, pts.map(([x, y, z]) => P(x, y, z)), width, color, glow);
+    }
+
+    function particle(o) {
+        return { x: 0, y: 0, z: 1, vx: 0, vy: 0, vz: 0, g: 0, drag: 1, size: 2, color: '#ffffff', alpha: 1, spin: Math.random() * TAU, vs: 0, flip: Math.random() * TAU, life: 1, born: 0, bounce: false, ...o };
+    }
+
+    function step(p, dt) {
+        const d = Math.pow(p.drag, dt);
+        p.vx *= d; p.vy *= d;
+        p.vz += p.g * dt;
+        p.x += p.vx * dt; p.y += p.vy * dt; p.z += p.vz * dt;
+        if (p.z < 0) {
+            p.z = 0;
+            if (p.bounce && p.vz < -1.5) { p.vz = -p.vz * 0.35; p.vx *= 0.6; p.vy *= 0.6; }
+            else { p.vz = 0; p.vx *= 0.85; p.vy *= 0.85; }
+        }
+        p.spin += p.vs * dt;
+        p.flip += 9 * dt;
+    }
+
+    // Steps and draws a list of particles, dropping the spent ones
+    function run(g, P, list, t, dt, style) {
+        for (let i = list.length - 1; i >= 0; i--) {
+            const p = list[i], life = (t - p.born) / p.life;
+            if (life >= 1) { list.splice(i, 1); continue; }
+            step(p, dt);
+            drawParticle(g, P(p.x, p.y, p.z), p, p.style || style, life);
+        }
+    }
+
+    // A small rune of strokes, in the plane, around (cx, cy)
+    function glyph(seed, cx, cy, s) {
+        const r = (n) => { const v = Math.sin(seed * 12.9898 + n * 78.233) * 43758.5453; return v - Math.floor(v); };
+        const pts = [[cx, cy - s]];
+        for (let i = 0; i < 3; i++) pts.push([cx + (r(i) - 0.5) * s * 2, cy + (r(i + 7) - 0.5) * s * 2]);
+        pts.push([cx, cy + s]);
+        return pts;
+    }
+
+    // ----- One effect for each die: (ctx) => a frame (t, dt) drawn in the space of the die -----
+    // ctx: g (the canvas), P (world → screen), fx (the colours), high (a natural 20, else a natural 1)
+
+    const effects = {
+        // Breath of the dragon: a cone of fire sweeps across the table and leaves it scorched, embers rising.
+        // A 1: the flame sputters out in a puff of black smoke and ash
+        ember({ g, P, fx, high }) {
+            const flames = [], embers = [], smoke = [];
+            const a0 = Math.random() * TAU;
+            const colorAt = (age) => age < 0.25 ? fx.colors[0] : age < 0.5 ? fx.colors[3] : age < 0.75 ? fx.colors[1] : fx.colors[2];
+            if (!high) {
+                for (let i = 0; i < 26; i++) smoke.push(particle({ x: (Math.random() - 0.5) * 0.6, y: (Math.random() - 0.5) * 0.6, z: 1, vx: (Math.random() - 0.5) * 0.6, vy: (Math.random() - 0.5) * 0.6, vz: 1 + Math.random() * 1.5, drag: 0.6, size: 4 + Math.random() * 4, color: Math.random() > 0.3 ? '#6b625c' : '#8a6a50', alpha: 0.5, born: 0.25 + Math.random() * 0.4, life: 1.6 }));
+                for (let i = 0; i < 30; i++) embers.push(particle({ x: (Math.random() - 0.5) * 5, y: (Math.random() - 0.5) * 5, z: 4 + Math.random() * 4, vz: -1.2 - Math.random(), vx: (Math.random() - 0.5) * 0.6, drag: 0.8, size: 0.9, color: Math.random() > 0.7 ? fx.colors[2] : '#6b6460', alpha: 0.8, born: 0.3, life: 1.8 }));
+            }
+            return (t, dt) => {
+                if (high) {
+                    const sweep = clamp01((t - 0.1) / 1.1), ang = a0 - 0.9 + sweep * 1.8;
+                    // Scorched where the fire passed
+                    const burn = span(t, 0.1, 0.4, 1.6, 2.8);
+                    if (burn > 0) {
+                        const arc = [[0, 0]];
+                        for (let i = 0; i <= 24; i++) { const a = a0 - 0.9 + (i / 24) * 1.8 * sweep; arc.push([Math.cos(a) * 6.5, Math.sin(a) * 6.5]); }
+                        g.globalCompositeOperation = 'source-over';
+                        g.fillStyle = `rgba(20,6,0,${(0.45 * burn).toFixed(3)})`;
+                        path(g, onTable(P, arc), true);
+                        g.fill();
+                        g.globalCompositeOperation = 'lighter';
+                        line3(g, P, arc.slice(1).map(([x, y]) => [x, y, 0]), 1.5, rgba(fx.colors[2], 0.5 * burn), fx.colors[1]);
+                        hole(g, P);
+                    }
+                    g.globalCompositeOperation = 'lighter';
+                    if (t > 0.1 && t < 1.3) {
+                        blob(g, P(0, 0, 1.6), 1.3, fx.colors[1], 0.7);
+                        for (let i = 0; i < 9; i++) {
+                            const a = ang + (Math.random() - 0.5) * 0.45, sp = 7 + Math.random() * 4;
+                            flames.push(particle({ z: 1.6, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, vz: -1 + Math.random() * 1.5, drag: 0.35, size: 1, born: t, life: 0.55 + Math.random() * 0.3 }));
+                        }
+                    }
+                    for (let i = flames.length - 1; i >= 0; i--) {
+                        const f = flames[i], age = (t - f.born) / f.life;
+                        if (age >= 1) {
+                            flames.splice(i, 1);
+                            if (Math.random() < 0.12) embers.push(particle({ x: f.x, y: f.y, z: 0.2, vz: 1.5 + Math.random() * 2, vx: (Math.random() - 0.5), vy: (Math.random() - 0.5), g: 0.5, drag: 0.7, size: 0.9, color: pick(fx.colors), born: t, life: 1.2 + Math.random() }));
+                            continue;
+                        }
+                        step(f, dt);
+                        blob(g, P(f.x, f.y, f.z), 0.5 + age * 1.8, colorAt(age), 0.3 * (1 - age));
+                    }
+                    run(g, P, embers, t, dt, 'dot');
+                } else {
+                    g.globalCompositeOperation = 'lighter';
+                    const flick = t < 0.8 ? (0.4 + Math.random() * 0.6) * (1 - t / 0.8) : 0;
+                    if (flick > 0) { blob(g, P(0, 0, 1.4), 1.1, fx.colors[1], flick); blob(g, P(0, 0, 1.8 + Math.random() * 0.4), 0.5, fx.colors[0], flick); }
+                    g.globalCompositeOperation = 'source-over';
+                    run(g, P, smoke, t, dt, 'smoke');
+                    run(g, P, embers, t, dt, 'dot');
                 }
-                case 'rune': p.size = 4 + Math.random() * 3; p.drag = 0.95; break;
-                default: break;
-            }
-            list.push(p);
-        }
-        return list;
-    }
+            };
+        },
 
-    function stepParticle(p, style, t, x, y) {
-        if (style === 'firefly') {
-            p.angle += p.av;
-            p.orbit += 0.6;
-            p.x = x + Math.cos(p.angle) * p.orbit + Math.sin(t * 7 + p.spin) * 4;
-            p.y = y + Math.sin(p.angle) * p.orbit * 0.6 - t * 30;
-            p.alpha = 0.5 + 0.5 * Math.abs(Math.sin(t * 9 + p.spin));
-            return;
-        }
-        if (style === 'void') {
-            if (t < 0.7) {
-                // The spiral inwards
-                const k = 1 - ease(t / 0.7);
-                p.angle += 0.08;
-                p.x = p.home.x + Math.cos(p.angle) * p.far * k;
-                p.y = p.home.y + Math.sin(p.angle) * p.far * k;
-                return;
-            }
-            if (!p.out) {
-                p.out = true;
-                const sp = 4 + Math.random() * 8;
-                p.vx = Math.cos(p.angle) * sp;
-                p.vy = Math.sin(p.angle) * sp;
-            }
-        }
-        p.vx *= p.drag;
-        p.vy = p.vy * p.drag + p.gravity;
-        p.x += p.vx;
-        p.y += p.vy;
-        p.spin += p.vs;
-        p.flip += 0.25;
-    }
+        // A constellation is drawn above the die, star by star; then a falling star strikes it.
+        // A 1: the stars come out dim and fall from the sky one after the other
+        stardust({ g, P, fx, high }) {
+            const stars = Array.from({ length: 7 }, (_, i) => {
+                const a = i / 7 * TAU + Math.random() * 0.5, r = 2.4 + Math.random() * 1.8;
+                return { x: Math.cos(a) * r, y: Math.sin(a) * r, z: 3 + Math.random() * 3, at: 0.1 + i * 0.1, tw: Math.random() * TAU, fall: 0.7 + i * 0.12, vz: 0 };
+            });
+            const links = [[0, 1], [1, 2], [2, 3], [3, 4], [4, 5], [5, 6], [1, 4], [6, 0]];
+            const sparks = [], dust = [];
+            const from = [-14 + Math.random() * 4, 10, 16];
+            let struck = false;
+            return (t, dt) => {
+                g.globalCompositeOperation = 'lighter';
+                const fade = high ? 1 - clamp01((t - 2.2) / 0.7) : 1;
+                if (high) {
+                    links.forEach(([a, b], i) => {
+                        const k = clamp01((t - 0.45 - i * 0.08) / 0.25);
+                        if (k <= 0) return;
+                        const A = stars[a], B = stars[b];
+                        line3(g, P, [[A.x, A.y, A.z], [lerp(A.x, B.x, k), lerp(A.y, B.y, k), lerp(A.z, B.z, k)]], 1.4, rgba(fx.colors[2], 0.75 * fade), fx.colors[2]);
+                    });
+                }
+                for (const s of stars) {
+                    if (t < s.at) continue;
+                    if (!high && t > s.fall) {
+                        s.vz -= 18 * dt;
+                        s.z += s.vz * dt;
+                        if (s.z <= 0 && !s.down) {
+                            s.down = true;
+                            for (let i = 0; i < 6; i++) dust.push(particle({ x: s.x, y: s.y, z: 0.1, vx: (Math.random() - 0.5) * 2, vy: (Math.random() - 0.5) * 2, vz: 0.6, drag: 0.5, size: 2.4, color: '#8a86a8', alpha: 0.35, born: t, life: 0.9 }));
+                        }
+                        if (s.down) continue;
+                        line3(g, P, [[s.x, s.y, s.z], [s.x, s.y, s.z - s.vz * 0.06]], 2, rgba(fx.colors[0], 0.5), fx.colors[2]);
+                    }
+                    const tw = (high ? 0.75 : 0.35) + 0.25 * Math.sin(t * 9 + s.tw);
+                    const q = P(s.x, s.y, s.z);
+                    blob(g, q, 0.7, fx.colors[high ? 1 : 2], tw * fade * clamp01((t - s.at) / 0.15));
+                    drawParticle(g, q, particle({ size: high ? 2.6 : 1.6, color: fx.colors[0], spin: t * 0.6 }), 'star', 1 - tw * fade);
+                }
+                if (high) {
+                    // The falling star
+                    const k = clamp01((t - 1.15) / 0.35);
+                    if (k > 0 && k < 1) {
+                        const at = (u) => [lerp(from[0], 0, u), lerp(from[1], 0, u), lerp(from[2], 1, u)];
+                        const tail = Array.from({ length: 10 }, (_, i) => at(Math.max(0, k - i * 0.03)));
+                        line3(g, P, tail, 3, rgba(fx.colors[0], 0.9), fx.colors[3]);
+                        blob(g, P(...at(k)), 1.2, '#ffffff', 1);
+                    }
+                    if (k >= 1 && !struck) {
+                        struck = true;
+                        for (let i = 0; i < 46; i++) {
+                            const a = Math.random() * TAU, sp = 2 + Math.random() * 6;
+                            sparks.push(particle({ vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, vz: 2 + Math.random() * 5, g: -5, drag: 0.5, size: 1.4 + Math.random() * 1.6, color: pick(fx.colors), born: t, life: 1 + Math.random() }));
+                        }
+                    }
+                    const ring = clamp01((t - 1.5) / 0.9);
+                    if (ring > 0 && ring < 1) line3(g, P, circle(0.8 + ease(ring) * 6).map(([x, y]) => [x, y, 0]), 3 * (1 - ring) + 0.5, rgba(fx.colors[3], 0.8 * (1 - ring)), fx.colors[2]);
+                    run(g, P, sparks, t, dt, 'star');
+                } else {
+                    g.globalCompositeOperation = 'source-over';
+                    run(g, P, dust, t, dt, 'smoke');
+                }
+            };
+        },
 
-    function critical(x, y, fx, high) {
+        // Frost crawls across the table in branching ferns and spikes of ice rise round the die; snow falls.
+        // A 1: a ring of ice forms, cracks and bursts into shards
+        frost({ g, P, fx, high }) {
+            const segs = [];
+            const grow = (x, y, a, len, depth, t0) => {
+                const x2 = x + Math.cos(a) * len, y2 = y + Math.sin(a) * len;
+                segs.push({ a: [x, y], b: [x2, y2], t0, d: depth });
+                if (depth < 3) {
+                    grow(x2, y2, a + 0.55 + Math.random() * 0.2, len * 0.6, depth + 1, t0 + 0.12);
+                    grow(x2, y2, a - 0.55 - Math.random() * 0.2, len * 0.6, depth + 1, t0 + 0.12);
+                    grow(x2, y2, a + (Math.random() - 0.5) * 0.2, len * 0.75, depth + 1, t0 + 0.12);
+                }
+            };
+            for (let i = 0; i < 7; i++) { const a = i / 7 * TAU + Math.random() * 0.3; grow(Math.cos(a) * 0.7, Math.sin(a) * 0.7, a, 1.4, 0, 0.05); }
+            const spikes = Array.from({ length: 10 }, (_, i) => {
+                const a = i / 10 * TAU + Math.random() * 0.4, r = 1.5 + Math.random() * 1.8;
+                return { x: Math.cos(a) * r, y: Math.sin(a) * r, a, h: 1.4 + Math.random() * 2.2, w: 0.28 + Math.random() * 0.2, at: 0.25 + Math.random() * 0.4 };
+            });
+            const snow = high ? Array.from({ length: 50 }, () => particle({ x: (Math.random() - 0.5) * 12, y: (Math.random() - 0.5) * 9, z: 6 + Math.random() * 10, vz: -2.5 - Math.random() * 1.5, size: 1 + Math.random() * 1.4, color: '#ffffff', alpha: 0.9, vs: 1, born: 0.2, life: 2.7 })) : [];
+            const cracks = Array.from({ length: 9 }, (_, i) => { const a = i / 9 * TAU + Math.random() * 0.3; return jagged3([Math.cos(a) * 0.8, Math.sin(a) * 0.8, 0], [Math.cos(a) * 2.9, Math.sin(a) * 2.9, 0], 0.4, 6); });
+            const shards = [], mist = [];
+            let burst = false;
+            return (t, dt) => {
+                g.globalCompositeOperation = 'lighter';
+                if (high) {
+                    const fade = 1 - clamp01((t - 2.2) / 0.7);
+                    pool(g, P, 0, 0, 4.5, rgba(fx.colors[2], 0.35 * fade), rgba(fx.colors[2], 0));
+                    // One stroke for each depth of the ferns (a glow on each of hundreds of strokes is too slow)
+                    for (let d = 0; d <= 3; d++) {
+                        g.save();
+                        g.strokeStyle = rgba(fx.colors[1], 0.85 * fade);
+                        g.lineWidth = 2.2 - d * 0.45;
+                        g.lineCap = 'round';
+                        g.shadowColor = fx.colors[2];
+                        g.shadowBlur = d < 2 ? 12 : 0;
+                        g.beginPath();
+                        for (const sgm of segs) {
+                            if (sgm.d !== d) continue;
+                            const k = clamp01((t - sgm.t0) / 0.14);
+                            if (k <= 0) continue;
+                            const a = P(sgm.a[0], sgm.a[1], 0), b = P(lerp(sgm.a[0], sgm.b[0], k), lerp(sgm.a[1], sgm.b[1], k), 0);
+                            g.moveTo(a.x, a.y);
+                            g.lineTo(b.x, b.y);
+                        }
+                        g.stroke();
+                        g.restore();
+                    }
+                    hole(g, P);
+                    // Spikes, the far ones first
+                    g.globalCompositeOperation = 'source-over';
+                    const order = [...spikes].sort((u, v) => v.y - u.y);
+                    for (const s of order) {
+                        const k = ease(clamp01((t - s.at) / 0.3)) * fade;
+                        if (k <= 0) continue;
+                        const px_ = -Math.sin(s.a) * s.w, py_ = Math.cos(s.a) * s.w;
+                        const top = P(s.x, s.y, s.h * k), l = P(s.x + px_, s.y + py_, 0), r = P(s.x - px_, s.y - py_, 0), f = P(s.x + Math.cos(s.a) * s.w, s.y + Math.sin(s.a) * s.w, 0);
+                        g.globalAlpha = 0.85 * fade;
+                        g.fillStyle = rgba(fx.colors[2], 0.75);
+                        path(g, [l, top, f], true); g.fill();
+                        g.fillStyle = rgba(fx.colors[3], 0.9);
+                        path(g, [f, top, r], true); g.fill();
+                        g.strokeStyle = 'rgba(255,255,255,0.9)';
+                        g.lineWidth = 1;
+                        path(g, [l, top, r]); g.stroke();
+                        g.globalAlpha = 1;
+                    }
+                    g.globalCompositeOperation = 'lighter';
+                    for (const p of snow) { p.x += Math.sin(t * 2 + p.spin) * 0.6 * dt; }
+                    run(g, P, snow, t, dt, 'star');
+                } else {
+                    const ring = ease(clamp01(t / 0.35)), fade = 1 - clamp01((t - 0.55) / 0.2);
+                    if (fade > 0) {
+                        g.globalCompositeOperation = 'source-over';
+                        g.fillStyle = rgba(fx.colors[3], 0.35 * fade);
+                        path(g, onTable(P, circle(2.9 * ring)), true); g.fill();
+                        line3(g, P, circle(2.9 * ring).map(([x, y]) => [x, y, 0]), 2, rgba('#ffffff', 0.9 * fade), fx.colors[2]);
+                        if (t > 0.35) for (const c of cracks) line3(g, P, c.slice(0, Math.max(2, Math.round(c.length * clamp01((t - 0.35) / 0.15)))), 1.6, rgba(fx.dark, 0.9 * fade));
+                    }
+                    if (t > 0.6 && !burst) {
+                        burst = true;
+                        for (let i = 0; i < 40; i++) {
+                            const a = Math.random() * TAU, r = 0.8 + Math.random() * 2, sp = 2 + Math.random() * 4;
+                            shards.push(particle({ x: Math.cos(a) * r, y: Math.sin(a) * r, z: 0.2, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, vz: 2 + Math.random() * 4, g: -14, bounce: true, drag: 0.5, size: 1.6 + Math.random() * 1.5, vs: (Math.random() - 0.5) * 10, color: pick(fx.colors), born: t, life: 1.3 }));
+                        }
+                        for (let i = 0; i < 14; i++) mist.push(particle({ x: (Math.random() - 0.5) * 4, y: (Math.random() - 0.5) * 4, z: 0.3, vz: 0.5, drag: 0.6, size: 4, color: fx.colors[3], alpha: 0.25, born: t, life: 1.4 }));
+                    }
+                    g.globalCompositeOperation = 'source-over';
+                    run(g, P, mist, t, dt, 'smoke');
+                    run(g, P, shards, t, dt, 'shard');
+                }
+            };
+        },
+
+        // Lightning strikes the die from the sky three times and runs over the table in chains.
+        // A 1: rain, and the one bolt misses the die
+        storm({ g, P, fx, high }) {
+            const strikes = high ? [0.05, 0.35, 0.7, 1.1, 1.55] : [0.45];
+            const target = high ? [0, 0] : [2.6 + Math.random(), -2 + Math.random()];
+            const sparks = [], splashes = [];
+            const rain = high ? [] : Array.from({ length: 110 }, () => ({ x: (Math.random() - 0.5) * 16, y: (Math.random() - 0.5) * 11, z: Math.random() * 18, v: 22 + Math.random() * 8 }));
+            let shapes = [], at = -1;
+            return (t, dt) => {
+                g.globalCompositeOperation = 'lighter';
+                const live = strikes.find(s => t >= s && t < s + 0.22);
+                if (live !== undefined) {
+                    if (performance.now() - at > 55) {
+                        at = performance.now();
+                        const [tx, ty] = target;
+                        shapes = [jagged3([tx + (Math.random() - 0.5) * 6, ty + (Math.random() - 0.5) * 6, 30], [tx, ty, high ? 1.2 : 0], 2.2, 12)];
+                        if (high) for (let i = 0; i < 4; i++) { const a = Math.random() * TAU, l = 3 + Math.random() * 3; shapes.push(jagged3([0, 0, 0.4], [Math.cos(a) * l, Math.sin(a) * l, 0], 0.9, 7)); }
+                        if (sparks.length < 120) for (let i = 0; i < 10; i++) { const a = Math.random() * TAU, sp = 2 + Math.random() * 5; sparks.push(particle({ x: target[0], y: target[1], z: 0.5, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, vz: 2 + Math.random() * 4, g: -14, bounce: true, drag: 0.5, size: 1, color: pick(fx.colors), born: t, life: 0.7 })); }
+                    }
+                    pool(g, P, target[0], target[1], high ? 6 : 3, rgba(fx.colors[2], 0.45), rgba(fx.colors[2], 0));
+                    for (const sh of shapes) {
+                        line3(g, P, sh, 6, rgba(fx.colors[2], 0.35), fx.colors[2]);
+                        line3(g, P, sh, 2, 'rgba(255,255,255,0.95)', fx.colors[1]);
+                    }
+                }
+                if (high) {
+                    const k = span(t, 0.1, 0.3, 1.6, 2.4);
+                    if (k > 0) {
+                        const ring = circle(2.6, 40).map(([x, y]) => [x + (Math.random() - 0.5) * 0.25, y + (Math.random() - 0.5) * 0.25, 0]);
+                        line3(g, P, ring, 1.6, rgba(fx.colors[1], 0.7 * k), fx.colors[2]);
+                    }
+                } else {
+                    g.globalCompositeOperation = 'source-over';
+                    pool(g, P, 0, 0, 3.5, 'rgba(0,0,0,0.35)', 'rgba(0,0,0,0)');
+                    g.globalCompositeOperation = 'lighter';
+                    const fade = 1 - clamp01((t - 1.6) / 0.6);
+                    for (const d of rain) {
+                        d.z -= d.v * dt;
+                        if (d.z < 0) { if (splashes.length < 60) splashes.push({ x: d.x, y: d.y, born: t }); d.z += 18; }
+                        line3(g, P, [[d.x, d.y, d.z], [d.x - 0.1, d.y, d.z + 1.1]], 1, rgba(fx.colors[1], 0.35 * fade));
+                    }
+                    for (let i = splashes.length - 1; i >= 0; i--) {
+                        const sp = splashes[i], k = (t - sp.born) / 0.35;
+                        if (k >= 1) { splashes.splice(i, 1); continue; }
+                        line3(g, P, circle(0.1 + k * 0.4, 12).map(([x, y]) => [x + sp.x, y + sp.y, 0]), 1, rgba(fx.colors[1], 0.4 * (1 - k) * fade));
+                    }
+                }
+                run(g, P, sparks, t, dt, 'dot');
+            };
+        },
+
+        // The dead answer: spirits spiral up out of the die through a green mist, and a spectral skull looks down.
+        // A 1: the ground cracks and the spirits are dragged under, bone chips flying
+        bone({ g, P, fx, high }) {
+            const spirits = Array.from({ length: 6 }, (_, i) => ({ a: i / 6 * TAU, r: 1.3 + Math.random() * 0.6, sp: 2.6 + Math.random(), delay: i * 0.08 }));
+            const fog = Array.from({ length: 16 }, (_, i) => { const a = i / 16 * TAU; return particle({ x: Math.cos(a) * 2.6, y: Math.sin(a) * 2.6, z: 0.3, vx: Math.cos(a) * 0.4, vy: Math.sin(a) * 0.4, vz: 0.1, drag: 0.8, size: 4 + Math.random() * 2, color: fx.colors[2], alpha: 0.25, born: 0, life: 2.8 }); });
+            const chips = [];
+            const cracks = high ? [] : Array.from({ length: 7 }, (_, i) => { const a = i / 7 * TAU + Math.random() * 0.4; return jagged3([Math.cos(a) * 0.7, Math.sin(a) * 0.7, 0], [Math.cos(a) * 3.2, Math.sin(a) * 3.2, 0], 0.5, 7); });
+            let chipped = false;
+            const pos = (s, t) => {
+                const u = Math.max(0, t - s.delay);
+                if (high) return [Math.cos(s.a + u * s.sp) * s.r * (1 - u * 0.12), Math.sin(s.a + u * s.sp) * s.r * (1 - u * 0.12), 0.6 + u * 3.2];
+                return [Math.cos(s.a - u * s.sp) * s.r * (1 + u * 0.2), Math.sin(s.a - u * s.sp) * s.r * (1 + u * 0.2), Math.max(-1, 4.5 - u * 3.4)];
+            };
+            return (t, dt) => {
+                const fade = 1 - clamp01((t - (high ? 2.2 : 1.6)) / 0.6);
+                g.globalCompositeOperation = 'lighter';
+                run(g, P, fog, t, dt, 'smoke');
+                if (!high) {
+                    g.globalCompositeOperation = 'source-over';
+                    pool(g, P, 0, 0, 3.6, `rgba(0,0,0,${(0.5 * fade).toFixed(3)})`, 'rgba(0,0,0,0)');
+                    g.globalCompositeOperation = 'lighter';
+                    const ck = clamp01(t / 0.3);
+                    for (const c of cracks) line3(g, P, c.slice(0, Math.max(2, Math.round(c.length * ck))), 2, rgba(fx.colors[1], 0.8 * fade), fx.colors[1]);
+                    if (t > 0.1 && !chipped) {
+                        chipped = true;
+                        for (let i = 0; i < 16; i++) { const a = Math.random() * TAU, sp = 1 + Math.random() * 3; chips.push(particle({ z: 0.6, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, vz: 3 + Math.random() * 3, g: -14, bounce: true, drag: 0.5, size: 1.4, vs: 8, color: fx.colors[3], born: t, life: 1.6 })); }
+                    }
+                }
+                for (const s of spirits) {
+                    if (t < s.delay) continue;
+                    const trail = Array.from({ length: 12 }, (_, i) => pos(s, t - i * 0.035)).filter(p => p[2] > -0.2);
+                    if (trail.length < 2) continue;
+                    line3(g, P, trail, 3, rgba(fx.colors[1], 0.45 * fade), fx.colors[1]);
+                    blob(g, P(...trail[0]), 1.3, fx.colors[0], 0.8 * fade);
+                }
+                if (high) {
+                    // The skull, above the die
+                    const k = span(t, 0.5, 0.9, 1.9, 2.5);
+                    if (k > 0) {
+                        const q = P(0, 2.6, 3.5 + t * 0.4), s = 0.9 * fxUnit * q.k * (0.85 + 0.15 * ease(clamp01((t - 0.5) / 0.4)));
+                        g.save();
+                        g.translate(q.x, q.y);
+                        g.globalAlpha = 0.55 * k;
+                        g.shadowColor = fx.colors[1];
+                        g.shadowBlur = 24;
+                        g.fillStyle = fx.colors[0];
+                        g.beginPath(); g.ellipse(0, -s * 0.15, s, s * 0.9, 0, 0, TAU); g.fill();
+                        g.beginPath(); g.roundRect(-s * 0.55, s * 0.45, s * 1.1, s * 0.55, s * 0.15); g.fill();
+                        g.globalCompositeOperation = 'source-over';
+                        g.shadowBlur = 0;
+                        g.globalAlpha = 0.8 * k;
+                        g.fillStyle = fx.dark;
+                        g.beginPath(); g.ellipse(-s * 0.38, s * 0.05, s * 0.26, s * 0.3, 0, 0, TAU); g.fill();
+                        g.beginPath(); g.ellipse(s * 0.38, s * 0.05, s * 0.26, s * 0.3, 0, 0, TAU); g.fill();
+                        g.beginPath(); g.moveTo(0, s * 0.3); g.lineTo(-s * 0.1, s * 0.5); g.lineTo(s * 0.1, s * 0.5); g.closePath(); g.fill();
+                        for (let i = -2; i <= 2; i++) g.fillRect(i * s * 0.18 - s * 0.05, s * 0.62, s * 0.1, s * 0.3);
+                        g.globalCompositeOperation = 'lighter';
+                        g.fillStyle = fx.colors[1];
+                        g.shadowColor = fx.colors[1];
+                        g.shadowBlur = 14;
+                        g.globalAlpha = k * (0.6 + 0.4 * Math.sin(t * 12));
+                        g.beginPath(); g.arc(-s * 0.38, s * 0.08, s * 0.08, 0, TAU); g.arc(s * 0.38, s * 0.08, s * 0.08, 0, TAU); g.fill();
+                        g.restore();
+                    }
+                } else {
+                    g.globalCompositeOperation = 'source-over';
+                    run(g, P, chips, t, dt, 'shard');
+                }
+            };
+        },
+
+        // The hoard spills: a fountain of gold coins and gems rains on the table and glints.
+        // A 1: a single coin flips up, lands and rolls round until it falls flat
+        hoard({ g, P, fx, high }) {
+            const coins = [], glints = [];
+            const gems = ['#ff4d6d', '#4dabf7', '#51cf66', '#cc5de8'];
+            const lone = { a: Math.random() * TAU, x: 0, y: 0, z: 1, vz: 13 };
+            const copper = high ? [] : Array.from({ length: 4 }, () => { const a = Math.random() * TAU, sp = 1 + Math.random() * 2; return particle({ z: 1, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, vz: 4 + Math.random() * 2, g: -20, bounce: true, drag: 0.4, size: 4, color: '#b87333', alpha: 0.9, born: 0.1, life: 2 }); });
+            return (t, dt) => {
+                g.globalCompositeOperation = 'lighter';
+                if (high) {
+                    pool(g, P, 0, 0, 5, rgba(fx.colors[1], 0.4 * span(t, 0, 0.3, 1.8, 2.8)), rgba(fx.colors[1], 0));
+                    if (t < 1 && coins.length < 150) {
+                        for (let i = 0; i < 5; i++) {
+                            const a = Math.random() * TAU, sp = 1 + Math.random() * 3.5, gem = Math.random() < 0.15;
+                            coins.push(particle({ z: 1.2, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, vz: 9 + Math.random() * 6, g: -22, bounce: true, drag: 0.6, size: gem ? 1.8 : 2.6 + Math.random() * 1.2, vs: (Math.random() - 0.5) * 8, color: gem ? pick(gems) : pick(fx.colors.slice(1, 3)), style: gem ? 'shard' : 'coin', born: t, life: 2.9 - t }));
+                        }
+                    }
+                    g.globalCompositeOperation = 'source-over';
+                    run(g, P, coins, t, dt, 'coin');
+                    g.globalCompositeOperation = 'lighter';
+                    if (t > 0.6 && coins.length && Math.random() < 0.5) { const c = pick(coins); if (c.z < 0.1) glints.push(particle({ x: c.x, y: c.y, z: 0.2, size: 2.8, color: '#ffffff', born: t, life: 0.35 })); }
+                    run(g, P, glints, t, dt, 'star');
+                } else {
+                    // The lone coin: up, down, then rolling round in a narrowing circle
+                    lone.vz -= 24 * dt;
+                    lone.z = Math.max(0, lone.z + lone.vz * dt);
+                    const roll = clamp01((t - 1.1) / 0.9);
+                    if (lone.z === 0) lone.a += (1 - roll) * 5 * dt;
+                    const r = lone.z > 0 ? 1.5 * clamp01(t / 1.1) : 1.5 * (1 - roll * 0.3);
+                    const q = P(Math.cos(lone.a) * r, Math.sin(lone.a) * r, lone.z + 0.2);
+                    const c = particle({ size: 7, color: fx.colors[1], flip: lone.z > 0 ? t * 14 : lerp(Math.PI / 2 - 0.25, 0, roll), spin: lone.a });
+                    g.globalCompositeOperation = 'source-over';
+                    drawParticle(g, q, c, 'coin', clamp01((t - 1.9) / 0.3) * 0.9);
+                    run(g, P, copper, t, dt, 'coin');
+                }
+            };
+        },
+
+        // The eye of the abyss opens on the table round the die, looks about, drawing the light in, and closes.
+        // A 1: darkness spreads under the die and black tendrils reach up out of it
+        abyss({ g, P, fx, high }) {
+            const rot = Math.random() * TAU, L = 4.6, H = 1.9;
+            const motes = Array.from({ length: 60 }, () => ({ a: Math.random() * TAU, r: 5 + Math.random() * 5, z: 0.2 + Math.random() * 2, s: 1 + Math.random() * 1.5 }));
+            const tendrils = Array.from({ length: 9 }, (_, i) => ({ a: i / 9 * TAU + Math.random() * 0.3, h: 1.5 + Math.random() * 2, ph: Math.random() * TAU }));
+            return (t, dt) => {
+                if (high) {
+                    const open = ease(span(t, 0.1, 0.55, 2.0, 2.5));
+                    const lid = (sign) => Array.from({ length: 25 }, (_, i) => { const x = -L + i / 24 * 2 * L; return [x, sign * H * (1 - (x / L) ** 2) * open]; }).map(turn(rot));
+                    const upper = lid(1), lower = lid(-1).reverse();
+                    const eye = onTable(P, [...upper, ...lower]);
+                    // Light drawn into the eye
+                    g.globalCompositeOperation = 'lighter';
+                    for (const m of motes) {
+                        m.a += 2.2 * dt;
+                        m.r = Math.max(0, m.r - (2 + (6 - m.r) * 0.8) * dt * (t < 2 ? 1 : 0));
+                        if (m.r > 0.3) drawParticle(g, P(Math.cos(m.a) * m.r, Math.sin(m.a) * m.r, m.z * m.r / 8), particle({ size: m.s, color: fx.colors[0], alpha: 0.9 }), 'dot', 0);
+                    }
+                    if (open > 0.02) {
+                        g.globalCompositeOperation = 'source-over';
+                        g.fillStyle = 'rgba(2,0,8,0.92)';
+                        path(g, eye, true); g.fill();
+                        g.save();
+                        path(g, eye, true); g.clip();
+                        const look = [Math.sin(t * 2.4) * 0.9, Math.cos(t * 1.7) * 0.3];
+                        const [ix, iy] = turn(rot)(look);
+                        g.globalCompositeOperation = 'lighter';
+                        pool(g, P, ix, iy, 1.7, rgba(fx.colors[0], 0.95), rgba(fx.colors[1], 0.2));
+                        line3(g, P, circle(1.7, 40).map(shift(ix, iy)).map(([x, y]) => [x, y, 0]), 2, rgba(fx.colors[3], 0.9), fx.colors[1]);
+                        g.globalCompositeOperation = 'source-over';
+                        g.fillStyle = '#000';
+                        const slit = Array.from({ length: 21 }, (_, i) => { const a = i / 20 * TAU; return [Math.cos(a) * 0.32, Math.sin(a) * 1.35]; }).map(turn(rot)).map(shift(ix, iy));
+                        path(g, onTable(P, slit), true); g.fill();
+                        g.restore();
+                        g.globalCompositeOperation = 'lighter';
+                        glowLine(g, onTable(P, upper), 2.5, rgba(fx.colors[0], 0.9), fx.colors[1]);
+                        glowLine(g, onTable(P, lower), 2.5, rgba(fx.colors[0], 0.9), fx.colors[1]);
+                        // Lashes of shadow
+                        g.globalCompositeOperation = 'source-over';
+                        for (let i = 2; i < 23; i += 3) {
+                            const [x, y] = upper[i], d = turn(rot)([0, 1])[0], e = turn(rot)([0, 1])[1];
+                            line3(g, P, [[x, y, 0], [x + d * 0.8 * open, y + e * 0.8 * open, 0.3]], 2, rgba(fx.dark, 0.9));
+                        }
+                        hole(g, P);
+                    }
+                } else {
+                    const grow = ease(clamp01(t / 0.6)), fade = 1 - clamp01((t - 1.6) / 0.6);
+                    g.globalCompositeOperation = 'source-over';
+                    pool(g, P, 0, 0, 0.5 + grow * 4, `rgba(0,0,0,${(0.85 * fade).toFixed(3)})`, `rgba(0,0,0,${(0.3 * fade).toFixed(3)})`);
+                    hole(g, P);
+                    g.globalCompositeOperation = 'lighter';
+                    line3(g, P, circle(0.5 + grow * 4, 48).map(([x, y]) => [x, y, 0]), 1.5, rgba(fx.colors[2], 0.6 * fade), fx.colors[1]);
+                    g.globalCompositeOperation = 'source-over';
+                    const reach = span(t, 0.3, 0.8, 1.2, 1.8);
+                    for (const td of tendrils) {
+                        const r = 0.5 + grow * 4;
+                        const pts = Array.from({ length: 10 }, (_, i) => { const u = i / 9; return [Math.cos(td.a) * r * (1 - u * 0.5) + Math.sin(t * 5 + td.ph + u * 4) * 0.3 * u, Math.sin(td.a) * r * (1 - u * 0.5), td.h * u * reach]; });
+                        line3(g, P, pts, 4, rgba(fx.dark, 0.95 * fade), fx.colors[2]);
+                    }
+                }
+            };
+        },
+
+        // The wood wakes: vines curl out of the die across the table and flowers bloom at their ends, fireflies dancing.
+        // A 1: wilted petals drift down and the fireflies go out
+        fey({ g, P, fx, high }) {
+            const vines = Array.from({ length: 6 }, (_, i) => ({ a: i / 6 * TAU + Math.random() * 0.3, dir: Math.random() > 0.5 ? 1 : -1, len: 3 + Math.random() * 1.5 }));
+            const vinePt = (v, u) => { const r = 0.6 + u * v.len, a = v.a + v.dir * u * 1.6; return [Math.cos(a) * r, Math.sin(a) * r]; };
+            const petals = ['#ffe5f4', '#ffd1ea', '#fff7c2', '#f0abfc'];
+            const flies = Array.from({ length: 22 }, () => ({ a: Math.random() * TAU, r: 1.5 + Math.random() * 3.5, z: 0.6 + Math.random() * 2.5, av: (Math.random() > 0.5 ? 1 : -1) * (0.8 + Math.random() * 1.4), ph: Math.random() * TAU, out: 0.4 + Math.random() * 1.2 }));
+            const falling = high ? [] : Array.from({ length: 30 }, () => ({ x: (Math.random() - 0.5) * 9, y: (Math.random() - 0.5) * 7, z: 5 + Math.random() * 6, v: 1.6 + Math.random(), ph: Math.random() * TAU, c: pick(['#9c7a5b', '#8a8f6a', '#b9a58c', '#6e5a48']), rot: Math.random() * TAU }));
+            const petal = (cx, cy, a, len, wid) => Array.from({ length: 13 }, (_, i) => { const u = i / 12 * TAU; return [Math.cos(u) * len * 0.5 + len * 0.5, Math.sin(u) * wid]; }).map(turn(a)).map(shift(cx, cy));
+            return (t, dt) => {
+                const fade = 1 - clamp01((t - (high ? 2.3 : 1.7)) / 0.6);
+                if (high) {
+                    g.globalCompositeOperation = 'source-over';
+                    const grow = ease(clamp01((t - 0.05) / 0.9));
+                    for (const v of vines) {
+                        const pts = Array.from({ length: 20 }, (_, i) => vinePt(v, i / 19 * grow));
+                        glowLine(g, onTable(P, pts), 2.6, rgba('#3f6b22', 0.95 * fade));
+                        for (let i = 4; i < 20; i += 5) {
+                            if (i / 19 > grow) break;
+                            const [x, y] = pts[i], a = v.a + v.dir * (i / 19) * 1.6 + (i % 2 ? 1.2 : -1.2);
+                            g.fillStyle = rgba(fx.colors[1], 0.85 * fade);
+                            path(g, onTable(P, petal(x, y, a, 0.6, 0.18)), true); g.fill();
+                        }
+                        // The flower at the end
+                        const bloom = ease(clamp01((t - 0.8 - v.a * 0.02) / 0.5));
+                        if (bloom > 0) {
+                            const [x, y] = vinePt(v, 1);
+                            for (let k = 0; k < 5; k++) {
+                                g.fillStyle = rgba(petals[k % petals.length], 0.92 * fade);
+                                path(g, onTable(P, petal(x, y, k / 5 * TAU + v.a + t * 0.3, 0.9 * bloom, 0.34 * bloom)), true); g.fill();
+                            }
+                            g.globalCompositeOperation = 'lighter';
+                            blob(g, P(x, y, 0.1), 0.6, '#ffe066', 0.9 * bloom * fade);
+                            g.globalCompositeOperation = 'source-over';
+                        }
+                    }
+                    hole(g, P);
+                }
+                g.globalCompositeOperation = 'lighter';
+                for (const f of flies) {
+                    f.a += f.av * dt;
+                    const on = high ? fade : clamp01(1 - (t - f.out) / 0.3);
+                    if (on <= 0) continue;
+                    const z = f.z + Math.sin(t * 3 + f.ph) * 0.4 + (high ? t * 0.3 : 0);
+                    const a = (0.5 + 0.5 * Math.abs(Math.sin(t * 8 + f.ph))) * on * (high ? 1 : 0.5);
+                    blob(g, P(Math.cos(f.a) * f.r, Math.sin(f.a) * f.r, z), 0.45, fx.colors[0], a);
+                }
+                if (!high) {
+                    g.globalCompositeOperation = 'source-over';
+                    for (const p of falling) {
+                        p.z = Math.max(0, p.z - p.v * dt);
+                        const sway = Math.sin(t * 3 + p.ph) * 0.5;
+                        g.fillStyle = rgba(p.c, 0.85 * fade);
+                        path(g, onTable(P, petal(p.x + sway, p.y, p.rot + t * (p.z > 0 ? 2 : 0), 0.7, 0.26), p.z), true); g.fill();
+                    }
+                }
+            };
+        },
+
+        // Acid eats into the table: a seething pool spreads out of the die, bubbles swelling and bursting, fumes rising.
+        // A 1: the acid hisses, steams and dries into a dark stain
+        acid({ g, P, fx, high }) {
+            const bubbles = [], fumes = [], drops = [];
+            const size = high ? 3.4 : 1.8;
+            if (high) for (let i = 0; i < 26; i++) { const a = Math.random() * TAU, sp = 2 + Math.random() * 4; drops.push(particle({ z: 1, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, vz: 4 + Math.random() * 5, g: -18, drag: 0.5, size: 1.4 + Math.random(), color: pick(fx.colors), born: 0, life: 1 })); }
+            const blobAt = (r, t) => Array.from({ length: 49 }, (_, i) => { const a = i / 48 * TAU; const k = 1 + 0.12 * Math.sin(5 * a + t * 3) + 0.07 * Math.sin(9 * a - t * 4); return [Math.cos(a) * r * k, Math.sin(a) * r * k]; });
+            return (t, dt) => {
+                const r = size * ease(clamp01(t / 0.6)) * (high ? 1 : 1 - clamp01((t - 0.9) / 0.9) * 0.3);
+                const fade = 1 - clamp01((t - (high ? 2.3 : 1.7)) / 0.5);
+                const dry = high ? 0 : clamp01((t - 0.6) / 1);
+                if (r > 0.05) {
+                    g.globalCompositeOperation = 'source-over';
+                    g.fillStyle = `rgba(10,20,4,${(0.35 * fade).toFixed(3)})`;
+                    path(g, onTable(P, blobAt(r * 1.08, t)), true); g.fill();
+                    g.globalCompositeOperation = 'lighter';
+                    pool(g, P, 0, 0, r * 1.15, rgba(fx.colors[3], (0.32 - dry * 0.28) * fade), rgba(fx.colors[2], (0.22 - dry * 0.2) * fade));
+                    g.save(); path(g, onTable(P, blobAt(r, t)), true); g.clip();
+                    pool(g, P, 0, 0, r * 1.2, rgba(fx.colors[2], (0.35 - dry * 0.3) * fade), rgba(fx.colors[2], 0.1 * fade));
+                    g.restore();
+                    glowLine(g, onTable(P, blobAt(r, t)), 2, rgba(fx.colors[1], (0.9 - dry * 0.8) * fade), fx.colors[1]);
+                    hole(g, P);
+                }
+                // Bubbles swell and burst into rings
+                if (t < (high ? 2.1 : 1) && Math.random() < (high ? 0.6 : 0.2)) {
+                    const a = Math.random() * TAU, d = Math.sqrt(Math.random()) * r * 0.85;
+                    bubbles.push({ x: Math.cos(a) * d, y: Math.sin(a) * d, s: 0.15 + Math.random() * 0.3, born: t });
+                }
+                g.globalCompositeOperation = 'lighter';
+                for (let i = bubbles.length - 1; i >= 0; i--) {
+                    const bb = bubbles[i], k = (t - bb.born) / 0.5;
+                    if (k >= 1) { bubbles.splice(i, 1); continue; }
+                    if (k < 0.7) {
+                        const q = P(bb.x, bb.y, bb.s * k);
+                        blob(g, q, bb.s * 2.2 * (k / 0.7) + 0.2, fx.colors[0], 0.8 * fade);
+                    } else {
+                        const u = (k - 0.7) / 0.3;
+                        line3(g, P, circle(bb.s * (1 + u * 1.6), 14).map(([x, y]) => [x + bb.x, y + bb.y, 0.05]), 1.2, rgba(fx.colors[0], 0.8 * (1 - u) * fade));
+                        if (high && fumes.length < 60 && Math.random() < 0.5) fumes.push(particle({ x: bb.x, y: bb.y, z: 0.2, vz: 1 + Math.random(), vx: (Math.random() - 0.5) * 0.4, drag: 0.7, size: 2.5, color: fx.colors[1], alpha: 0.25, born: t, life: 1.2 }));
+                    }
+                }
+                if (!high && t > 0.4 && fumes.length < 40 && Math.random() < 0.6) fumes.push(particle({ x: (Math.random() - 0.5) * r * 1.4, y: (Math.random() - 0.5) * r * 1.4, z: 0.2, vz: 1.4 + Math.random(), drag: 0.7, size: 3, color: '#e9f5e0', alpha: 0.3, born: t, life: 1.1 }));
+                run(g, P, fumes, t, dt, 'smoke');
+                run(g, P, drops, t, dt, 'drop');
+            };
+        },
+
+        // A ritual: the magic circle is drawn on the table and two more rise from it round the die, counter-turning,
+        // runes orbiting. A 1: the circle is half drawn, flickers and shatters, its pieces falling away
+        arcane({ g, P, fx, high }) {
+            const frags = [];
+            let broke = false;
+            const runeRing = (r, z, rot, n, k, a) => {
+                for (let i = 0; i < n; i++) {
+                    const ang = i / n * TAU + rot, cx = Math.cos(ang) * r, cy = Math.sin(ang) * r;
+                    line3(g, P, glyph(i + n, cx, cy, 0.2 * k).map(turn(0)).map(([x, y]) => [x, y, z]), 1.4, rgba(fx.colors[0], a), fx.colors[2]);
+                }
+            };
+            return (t, dt) => {
+                g.globalCompositeOperation = 'lighter';
+                if (high) {
+                    const fade = 1 - clamp01((t - 2.2) / 0.7), k = ease(clamp01(t / 0.6));
+                    pool(g, P, 0, 0, 4.4, rgba(fx.colors[2], 0.3 * fade), rgba(fx.colors[2], 0));
+                    // The ground circle, drawn round as it appears
+                    const drawn = circle(3.7, 64).slice(0, Math.max(2, Math.round(65 * k)));
+                    line3(g, P, drawn.map(turn(t * 0.5)).map(([x, y]) => [x, y, 0]), 2.4, rgba(fx.colors[0], 0.9 * fade), fx.colors[2]);
+                    line3(g, P, circle(3.1, 64).map(turn(t * 0.5)).map(([x, y]) => [x, y, 0]), 1.4, rgba(fx.colors[1], 0.8 * fade * k), fx.colors[2]);
+                    const star = Array.from({ length: 6 }, (_, i) => { const a = (i * 2) / 5 * TAU - Math.PI / 2; return [Math.cos(a) * 3.0, Math.sin(a) * 3.0]; }).map(turn(t * 0.5));
+                    line3(g, P, star.map(([x, y]) => [x, y, 0]), 1.6, rgba(fx.colors[0], 0.75 * fade * k), fx.colors[2]);
+                    runeRing(3.4, 0, t * 0.5, 12, k, 0.85 * fade);
+                    hole(g, P);
+                    // Two rings rising round the die
+                    [[2.5, 2.2, -1.4, 0.5], [1.7, 4.2, 1.9, 0.75]].forEach(([r, h, sp, at]) => {
+                        const u = ease(clamp01((t - at) / 0.6));
+                        if (u <= 0) return;
+                        const z = h * u;
+                        line3(g, P, circle(r, 48).map(turn(t * sp)).map(([x, y]) => [x, y, z]), 2, rgba(fx.colors[1], 0.85 * fade), fx.colors[2]);
+                        runeRing(r - 0.3, z, t * sp, 8, u, 0.8 * fade);
+                    });
+                    // A shaft of light through the rings, from the die
+                    const beam = span(t, 0.9, 1.2, 1.7, 2.4);
+                    for (let i = 0; i < 8 && beam > 0; i++) blob(g, P(0, 0, 1 + i * 0.7), 1.2 - i * 0.08, fx.colors[3], 0.18 * beam);
+                } else {
+                    const k = ease(clamp01(t / 0.45)) * 0.62;
+                    const pts = circle(3.4, 64).slice(0, Math.max(2, Math.round(65 * k)));
+                    const flick = t > 0.45 ? (Math.random() > 0.4 ? 1 : 0.2) : 1;
+                    if (t < 0.75) line3(g, P, pts.map(([x, y]) => [x, y, 0]), 2.2, rgba(fx.colors[2], 0.85 * flick), fx.colors[2]);
+                    if (t >= 0.75 && !broke) {
+                        broke = true;
+                        for (let i = 0; i + 4 < pts.length; i += 4) {
+                            const [x, y] = pts[i], [x2, y2] = pts[i + 4], a = Math.atan2(y, x), sp = 1.5 + Math.random() * 2.5;
+                            frags.push(particle({ x, y, z: 0.1, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, vz: 2 + Math.random() * 3, g: -10, drag: 0.6, dx: x2 - x, dy: y2 - y, vs: (Math.random() - 0.5) * 6, color: fx.colors[2], born: t, life: 1.2 }));
+                        }
+                    }
+                    for (let i = frags.length - 1; i >= 0; i--) {
+                        const f = frags[i], life = (t - f.born) / f.life;
+                        if (life >= 1) { frags.splice(i, 1); continue; }
+                        step(f, dt);
+                        const c = Math.cos(f.spin), sn = Math.sin(f.spin);
+                        line3(g, P, [[f.x, f.y, f.z], [f.x + f.dx * c - f.dy * sn, f.y + f.dx * sn + f.dy * c, f.z]], 2, rgba(fx.colors[2], 0.9 * (1 - life)), fx.colors[2]);
+                    }
+                }
+            };
+        }
+    };
+
+    // A natural 20 (high) or 1 of a special die; with the box and the die it is played where the die rests
+    function critical(fx, high, b, die, skin) {
         const c = fxLayer(), g = c.getContext('2d');
         const dpr = Math.min(2, window.devicePixelRatio || 1);
         c.width = Math.round(innerWidth * dpr);
         c.height = Math.round(innerHeight * dpr);
         c.classList.add('shown');
-        const main = fx.colors[1], light = fx.colors[0], dark = fx.dark;
-        const particles = high ? burstParticles(x, y, fx) : [];
-        const smoke = high ? [] : Array.from({ length: 34 }, () => ({ x: x + (Math.random() - 0.5) * 30, y: y + (Math.random() - 0.5) * 20, vx: (Math.random() - 0.5) * 0.8, vy: -0.4 - Math.random() * 1.1, size: 6 + Math.random() * 8, color: Math.random() > 0.4 ? '#3a3a3a' : dark, alpha: 0.55, spin: 0, vs: 0, drag: 0.99, gravity: -0.004 }));
-        const sparks = high ? [] : Array.from({ length: 16 }, () => ({ x, y, vx: (Math.random() - 0.5) * 5, vy: -2 - Math.random() * 3, size: 1.5 + Math.random() * 1.5, color: main, alpha: 0.9, spin: 0, vs: 0, drag: 0.98, gravity: 0.22 }));
-        const cracks = high ? [] : Array.from({ length: 7 }, (_, i) => jagged(x, y, i / 7 * TAU + Math.random() * 0.5, 50 + Math.random() * 70, 18));
-        const motes = [];
-        let bolts = [], boltAt = 0;
-        const duration = high ? 3 : 2;
+        const { P, px } = space(b, die);
+        fxUnit = px;
+        fxDie = !!(b && die);
+        const make = effects[skin] || effects.ember;
+        const frameOf = make({ g, P, px, fx, high });
+        const duration = high ? 3 : 2.3;
         const start = performance.now();
+        let last = start;
         return new Promise((done) => {
-            const frame = (now) => {
-                const t = (now - start) / 1000;
+            const frame = () => {
+                const now = performance.now();
+                const t = (now - start) / 1000, dt = Math.min(0.05, Math.max(0, (now - last) / 1000));
+                last = now;
+                // The die flares with the colour of the effect, or dims on a 1 (the pulse of its texture multiplies it)
+                critFlare = high ? Math.max(0, 1 - t / 1.4) * 3 : -Math.min(0.8, Math.sin(Math.min(1, t / 1.2) * Math.PI) * 0.8);
                 g.setTransform(dpr, 0, 0, dpr, 0, 0);
                 g.clearRect(0, 0, innerWidth, innerHeight);
-                g.globalCompositeOperation = high ? 'lighter' : 'source-over';
-                if (high) {
-                    // The flash
-                    const fl = Math.max(0, 1 - t / 0.6);
-                    if (fl > 0) {
-                        const rad = 40 + ease(t / 0.6) * 300;
-                        const grad = g.createRadialGradient(x, y, 0, x, y, rad);
-                        grad.addColorStop(0, rgba(light, 0.95 * fl));
-                        grad.addColorStop(0.4, rgba(main, 0.55 * fl));
-                        grad.addColorStop(1, rgba(main, 0));
-                        g.fillStyle = grad;
-                        g.fillRect(x - rad, y - rad, rad * 2, rad * 2);
-                    }
-                    // The column of light (the vortex for the abyss)
-                    const col = Math.sin(Math.min(1, t / 1.6) * Math.PI);
-                    if (col > 0 && fx.style !== 'void') {
-                        const w = 30 + 40 * col;
-                        const grad = g.createLinearGradient(x - w, 0, x + w, 0);
-                        grad.addColorStop(0, rgba(main, 0));
-                        grad.addColorStop(0.5, rgba(light, 0.55 * col));
-                        grad.addColorStop(1, rgba(main, 0));
-                        g.fillStyle = grad;
-                        g.fillRect(x - w, 0, w * 2, y + 20);
-                    } else if (fx.style === 'void' && t < 1.6) {
-                        const k = t < 0.7 ? ease(t / 0.7) : 1 - ease((t - 0.7) / 0.9);
-                        const rad = 20 + 70 * k;
-                        const grad = g.createRadialGradient(x, y, 0, x, y, rad);
-                        grad.addColorStop(0, 'rgba(0,0,0,0.95)');
-                        grad.addColorStop(0.7, rgba(dark, 0.8 * k));
-                        grad.addColorStop(1, rgba(main, 0));
-                        g.globalCompositeOperation = 'source-over';
-                        g.fillStyle = grad;
-                        g.beginPath();
-                        g.arc(x, y, rad, 0, TAU);
-                        g.fill();
+                g.globalAlpha = 1;
+                // The first light (or shadow) on the table, under every effect
+                try {
+                    if (high) {
                         g.globalCompositeOperation = 'lighter';
-                        // Its rim of violet light, turning
-                        g.save();
-                        g.strokeStyle = rgba(light, 0.85 * k);
-                        g.shadowColor = main;
-                        g.shadowBlur = 24;
-                        g.lineWidth = 3;
-                        g.beginPath();
-                        g.arc(x, y, rad, t * 6, t * 6 + TAU * 0.8);
-                        g.stroke();
-                        g.lineWidth = 1.5;
-                        g.beginPath();
-                        g.arc(x, y, rad * 1.35, -t * 4, -t * 4 + TAU * 0.6);
-                        g.stroke();
-                        g.restore();
+                        const fl = Math.max(0, 1 - t / 0.7);
+                        if (fl > 0.01) pool(g, P, 0, 0, 2 + ease(t / 0.7) * 4, rgba(fx.colors[0], 0.7 * fl), rgba(fx.colors[1], 0));
                     }
-                    // The rings
-                    for (let i = 0; i < 3; i++) {
-                        const rt = (t - 0.08 - i * 0.2) / 1.2;
-                        if (rt <= 0 || rt >= 1) continue;
-                        g.save();
-                        g.strokeStyle = rgba(i === 1 ? light : main, 0.8 * (1 - rt));
-                        g.lineWidth = 7 * (1 - rt) + 1;
-                        g.shadowColor = main;
-                        g.shadowBlur = 18;
-                        g.beginPath();
-                        g.ellipse(x, y, 20 + ease(rt) * 280, (20 + ease(rt) * 280) * 0.55, 0, 0, TAU);
-                        g.stroke();
-                        g.restore();
-                    }
-                    // The bolts of the storm, struck again every few frames
-                    if (fx.style === 'bolt' && t < 1.8) {
-                        if (now - boltAt > 70) {
-                            boltAt = now;
-                            bolts = Array.from({ length: 5 }, () => jagged(x, y, Math.random() * TAU, 120 + Math.random() * 180, 40));
-                        }
-                        for (const b of bolts) {
-                            polyline(g, b, 5, rgba(main, 0.35), main);
-                            polyline(g, b, 1.8, rgba('#ffffff', 0.9), main);
-                        }
-                    }
-                    // The circle of runes, turning as it grows
-                    if (fx.style === 'rune' && t < 2.8) {
-                        const k = ease(t / 0.8), fade = t < 2 ? 1 : 1 - (t - 2) / 0.8;
-                        g.save();
-                        g.translate(x, y);
-                        g.scale(1, 0.55);
-                        g.rotate(t * 1.4);
-                        g.strokeStyle = rgba(light, 0.85 * fade);
-                        g.shadowColor = main;
-                        g.shadowBlur = 16;
-                        g.lineWidth = 2;
-                        for (const rad of [90 * k, 70 * k]) { g.beginPath(); g.arc(0, 0, rad, 0, TAU); g.stroke(); }
-                        for (let i = 0; i < 12; i++) {
-                            const ang = i / 12 * TAU;
-                            g.save();
-                            g.rotate(ang);
-                            g.translate(80 * k, 0);
-                            g.beginPath();
-                            g.moveTo(-4, -5); g.lineTo(4, 5); g.moveTo(4, -5); g.lineTo(0, 0); g.moveTo(-4, 2); g.lineTo(2, 6);
-                            g.stroke();
-                            g.restore();
-                        }
-                        g.beginPath();
-                        for (let i = 0; i <= 5; i++) {
-                            const ang = (i * 2) / 5 * TAU - Math.PI / 2;
-                            const px = Math.cos(ang) * 60 * k, py = Math.sin(ang) * 60 * k;
-                            i ? g.lineTo(px, py) : g.moveTo(px, py);
-                        }
-                        g.stroke();
-                        g.restore();
-                    }
-                    for (const p of particles) {
-                        stepParticle(p, fx.style, t, x, y);
-                        const life = Math.min(1, t / p.life);
-                        if (life < 1) drawParticle(g, p, fx.style === 'void' || fx.style === 'firefly' || fx.style === 'ember' ? 'dot' : fx.style, life);
-                    }
-                    // Motes drifting up as it all fades
-                    if (t > 0.6 && t < 2.2 && Math.random() < 0.7) {
-                        motes.push({ x: x + (Math.random() - 0.5) * 160, y: y + (Math.random() - 0.5) * 60, vx: 0, vy: -0.6 - Math.random(), size: 1 + Math.random() * 1.8, color: pick(fx.colors), alpha: 0.8, spin: 0, vs: 0, drag: 1, gravity: 0, born: t });
-                    }
-                    for (const m of motes) {
-                        m.y += m.vy;
-                        m.x += Math.sin(t * 3 + m.size) * 0.4;
-                        drawParticle(g, m, 'dot', Math.min(1, (t - m.born) / 1.1));
-                    }
-                } else {
-                    // The light dies: a dark pulse, the cracks, the smoke, a few sparks falling
-                    const pl = Math.sin(Math.min(1, t / 0.9) * Math.PI);
-                    const grad = g.createRadialGradient(x, y, 0, x, y, 140);
-                    grad.addColorStop(0, `rgba(0,0,0,${0.55 * pl})`);
-                    grad.addColorStop(0.6, rgba(dark, 0.35 * pl));
-                    grad.addColorStop(1, 'rgba(0,0,0,0)');
-                    g.fillStyle = grad;
-                    g.fillRect(x - 140, y - 140, 280, 280);
-                    const ck = Math.min(1, t / 0.35), cf = t < 0.9 ? 1 : Math.max(0, 1 - (t - 0.9) / 0.6);
-                    for (const crack of cracks) {
-                        const n = Math.max(2, Math.round(crack.length * ck));
-                        polyline(g, crack.slice(0, n), 3, rgba('#000000', 0.7 * cf));
-                        polyline(g, crack.slice(0, n), 1.2, rgba(main, 0.55 * cf), main);
-                    }
-                    for (const p of smoke) {
-                        stepParticle(p, 'smoke', t, x, y);
-                        p.size += 0.15;
-                        drawParticle(g, p, 'smoke', Math.min(1, t / duration));
-                    }
-                    for (const p of sparks) {
-                        stepParticle(p, 'dot', t, x, y);
-                        drawParticle(g, p, 'dot', Math.min(1, t / 0.9));
-                    }
-                }
+                    frameOf(t, dt);
+                } catch { }
+                g.globalCompositeOperation = 'source-over';
+                g.globalAlpha = 1;
                 if (t < duration) {
                     requestAnimationFrame(frame);
                 } else {
+                    critFlare = 0;
                     g.setTransform(1, 0, 0, 1, 0, 0);
                     g.clearRect(0, 0, c.width, c.height);
                     c.classList.remove('shown');
@@ -1005,9 +1535,8 @@ window.rfDice3d = (() => {
         const crits = special ? d20s(b, thrown).filter(x => !x.face.dropped && (x.face.value === 20 || x.face.value === 1)) : [];
         if (crits.length > 0) {
             const shown = crits.find(x => x.face.value === 20) || crits[0];
-            const at = (shown.die && onScreen(b, shown.die)) || { x: innerWidth / 2, y: innerHeight / 2 };
             hideLater(3300);
-            await critical(at.x, at.y, special.fx, shown.face.value === 20);
+            await critical(special.fx, shown.face.value === 20, b, shown.die, skin);
             return true;
         }
         hideLater(1100);
@@ -1067,7 +1596,7 @@ window.rfDice3d = (() => {
         critical(skin, high) {
             const special = specials[skin];
             if (!special || !available()) return Promise.resolve(false);
-            return critical(innerWidth / 2, innerHeight / 2, special.fx, high !== false).then(() => true);
+            return critical(special.fx, high !== false, null, null, skin).then(() => true);
         },
         // The special dice the account has unlocked (from the server)
         unlocked(list) {
