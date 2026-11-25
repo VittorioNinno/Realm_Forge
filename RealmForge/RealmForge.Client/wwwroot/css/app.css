@@ -11601,6 +11601,59 @@ textarea.rf-form-control {
         font-weight: 700;
     }
 
+/* The campaign at hand in the drawer (encounters, treasure, progress clocks) */
+.rf-vtt-campaign-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    min-width: 0;
+}
+
+.rf-vtt-enc-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.rf-vtt-enc {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 8px;
+    border: 1px solid var(--rf-border-light);
+    border-radius: 8px;
+    background: var(--rf-bg-card);
+}
+
+    .rf-vtt-enc.running {
+        border-color: var(--rf-orange-primary);
+    }
+
+.rf-vtt-enc-text {
+    display: flex;
+    flex: 1 1 160px;
+    flex-direction: column;
+    min-width: 0;
+}
+
+    .rf-vtt-enc-text .small {
+        color: var(--rf-text-muted);
+    }
+
+.rf-vtt-enc-here {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    color: var(--rf-orange-primary);
+    font-size: .8rem;
+    font-weight: 700;
+}
+
 .rf-vtt-drawer {
     display: flex;
     flex: none;

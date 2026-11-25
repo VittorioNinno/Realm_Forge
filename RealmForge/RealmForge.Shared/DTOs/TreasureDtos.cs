@@ -31,6 +31,14 @@ namespace RealmForge.Shared.DTOs
 		public int Quantity { get; set; } = 1;
 	}
 
+	//	An item of the chest put on a token of a map (a chest, a creature that carries it)
+	public class PlaceTreasureDto
+	{
+		public Guid MapId { get; set; }
+		public Guid TokenId { get; set; }
+		public int Quantity { get; set; } = 1;
+	}
+
 	//	The coins shared out among these characters (none: every active character at the table)
 	public class SplitTreasureDto
 	{

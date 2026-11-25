@@ -34,7 +34,7 @@ namespace RealmForge.Api.Controllers
 			}
 		}
 
-		private static void WriteGear(CampaignToken token, TokenGear gear) => token.Gear = JsonSerializer.Serialize(gear, GearJson);
+		public static void WriteGear(CampaignToken token, TokenGear gear) => token.Gear = JsonSerializer.Serialize(gear, GearJson);
 
 		private static string T(bool italian, string it, string en) => italian ? it : en;
 
@@ -1498,7 +1498,8 @@ namespace RealmForge.Api.Controllers
 			var fight = await FightAsync(map, track: true);
 			var sourceCombatant = source.CombatantId is { } sid ? fight?.Combatants.FirstOrDefault(c => c.Id == sid) : null;
 			var gear = ReadGear(source.Gear);
-			var lying = source.PropType == PropType.Item;
+			//	On the ground, or in an open chest: anyone next to it takes it
+			var lying = source.PropType == PropType.Item || (source.PropType == PropType.Chest && source.PropState == PropState.Open);
 			if (!runs)
 			{
 				var down = sourceCombatant is not null ? sourceCombatant.MaxHp > 0 && sourceCombatant.Hp <= 0 : source.MaxHp is > 0 && source.Hp is <= 0;
@@ -1582,7 +1583,8 @@ namespace RealmForge.Api.Controllers
 			{
 				gear.Coins = 0;
 			}
-			if (lying && gear.Items.Count == 0 && gear.Coins == 0)
+			//	An item on the ground taken up leaves the map; an emptied chest stays where it is
+			if (source.PropType == PropType.Item && gear.Items.Count == 0 && gear.Coins == 0)
 			{
 				_context.CampaignTokens.Remove(source);
 			}
@@ -1678,7 +1680,7 @@ namespace RealmForge.Api.Controllers
 			return NoContent();
 		}
 
-		//	What the account sees of what a token carries: an item on the ground everyone; a creature's loot the masters
+		//	What the account sees of what a token carries: an item on the ground or in an open chest everyone; a creature's loot the masters
 		//	and whoever controls it, the others once it is down; the attacks it lost whoever knows its numbers
 		private static TokenGearDto? GearOf(CampaignToken t, bool runs, bool controls, bool down)
 		{
@@ -1687,7 +1689,7 @@ namespace RealmForge.Api.Controllers
 			{
 				return null;
 			}
-			var seesItems = t.PropType == PropType.Item || runs || controls || down;
+			var seesItems = t.PropType == PropType.Item || (t.PropType == PropType.Chest && t.PropState == PropState.Open) || runs || controls || down;
 			return new TokenGearDto(
 				seesItems ? gear.Items.Select((i, index) => new TokenItemDto(index, i.Name, i.Quantity, i.EquipmentId)).ToList() : new List<TokenItemDto>(),
 				seesItems ? gear.Coins : 0,
