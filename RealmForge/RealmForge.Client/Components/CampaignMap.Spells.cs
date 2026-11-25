@@ -144,8 +144,53 @@ namespace RealmForge.Client.Components
 
 		//	Cast: the part of the turn it takes is checked and marked (in a fight, on its own turn), the slot and the
 		//	Metamagic chosen spent, then its area is placed or its target aimed at
+		//	A spell with concentration cast while the caster already holds one: asked first (the other one ends)
+		private sealed record ConcentrationAsk(MapTokenDto Token, SheetSpell Spell, int Level, bool Pact, string? Previous);
+
+		private ConcentrationAsk? concentrationAsk;
+		private bool concentrationConfirmed;
+
+		private async Task ConfirmConcentrationAsync()
+		{
+			if (concentrationAsk is not { } ask)
+			{
+				return;
+			}
+			concentrationAsk = null;
+			concentrationConfirmed = true;
+			try
+			{
+				//	The aura of the spell let go goes with it
+				if (ask.Previous is { } previous && ask.Token.Aura is { } aura && string.Equals(aura.Name, previous, StringComparison.OrdinalIgnoreCase) && map is not null)
+				{
+					await Campaigns.SaveAuraAsync(CampaignId, map.Id, ask.Token.Id, new SaveAuraDto { Radius = 0 });
+				}
+				await CastAsync(ask.Token, ask.Spell, ask.Level, ask.Pact);
+			}
+			finally
+			{
+				concentrationConfirmed = false;
+			}
+		}
+
+		//	The name of the spell a character's token holds with concentration (its sheet, when read)
+		private string? ConcentrationOf(MapTokenDto t) =>
+			t.CharacterId is { } id && charVitals.TryGetValue(id, out var vitals) && vitals.Concentration is { } spellId
+				? contexts.GetValueOrDefault(id)?.Spells.FirstOrDefault(s => s.Id == spellId)?.Name
+				: null;
+
 		private async Task CastAsync(MapTokenDto t, SheetSpell spell, int level, bool pact)
 		{
+			//	Already concentrating on another spell: the player confirms that it ends
+			if ((spell.Concentration || preMeta.Contains("ready")) && !concentrationConfirmed
+				&& t.Conditions?.Contains(EncounterRules.Concentrating) == true && ConcentrationOf(t) is var previous
+				&& !string.Equals(previous, spell.Name, StringComparison.OrdinalIgnoreCase))
+			{
+				castChoice = null;
+				concentrationAsk = new ConcentrationAsk(t, spell, level, pact, previous);
+				return;
+			}
+
 			//	Readied (in a fight, on its own turn): the slot spent now, the effect when the trigger comes
 			var ready = preMeta.Contains("ready") && TurnOf(t) is not null && IsTurnOf(t);
 			var trigger = readyTrigger.Trim();
