@@ -2857,6 +2857,9 @@ button.rf-stat-card {
     gap: 8px;
     overflow-x: auto;
     border-bottom: 2px solid var(--rf-orange-primary);
+    /* The tabs scroll inside the bar: however many there are, they do not widen the page */
+    min-width: 0;
+    contain: inline-size;
 }
 
 .rf-sheet-tab {
