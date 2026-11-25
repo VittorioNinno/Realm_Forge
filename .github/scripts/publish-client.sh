@@ -22,6 +22,10 @@ cd "$out/wwwroot"
 css_hash=$(sha256sum css/app.css | cut -c1-12)
 sed -i "s|href=\"css/app.css\"|href=\"css/app.css?v=$css_hash\"|" index.html
 grep -q "css/app.css?v=$css_hash" index.html || { echo "::error title=publish-client::the stylesheet link was not versioned"; exit 1; }
+# The 3D dice script, versioned the same way
+dice_hash=$(sha256sum js/dice3d.js | cut -c1-12)
+sed -i "s|src=\"js/dice3d.js\"|src=\"js/dice3d.js?v=$dice_hash\"|" index.html
+grep -q "js/dice3d.js?v=$dice_hash" index.html || { echo "::error title=publish-client::the dice script was not versioned"; exit 1; }
 # index.html is always asked again, so it points to the files of the release just published
 printf '/index.html\n  Cache-Control: no-cache\n/\n  Cache-Control: no-cache\n' > _headers
 

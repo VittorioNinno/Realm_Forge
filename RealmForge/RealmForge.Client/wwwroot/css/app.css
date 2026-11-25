@@ -20948,3 +20948,93 @@ button.rf-vtt-clock.on {
         display: none;
     }
 }
+
+/* ===== 3D dice ===== */
+
+/* The layer the dice are thrown on: over the whole page, never in the way of a click */
+.rf-dice3d-layer {
+    position: fixed;
+    inset: 0;
+    z-index: 3000;
+    pointer-events: none;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity .4s ease, visibility 0s linear .4s;
+}
+
+    .rf-dice3d-layer.shown {
+        opacity: 1;
+        visibility: visible;
+        transition: opacity .15s ease;
+    }
+
+    .rf-dice3d-layer.fading {
+        opacity: 0;
+    }
+
+    .rf-dice3d-layer canvas {
+        display: block;
+        width: 100% !important;
+        height: 100% !important;
+    }
+
+.rf-dice3d-settings {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.rf-dice3d-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px 16px;
+}
+
+    .rf-dice3d-row .rf-mini-label {
+        min-width: 96px;
+        margin: 0;
+    }
+
+    .rf-dice3d-row select.rf-form-control {
+        width: auto;
+        min-width: 160px;
+    }
+
+.rf-dice3d-swatches {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.rf-dice3d-swatch {
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    border-radius: 8px;
+    border: 2px solid #303030;
+    cursor: pointer;
+    transition: transform .15s ease, border-color .15s ease;
+}
+
+    .rf-dice3d-swatch:hover {
+        transform: translateY(-2px);
+    }
+
+    .rf-dice3d-swatch.on {
+        border-color: #f5f5f5;
+        box-shadow: 0 0 0 2px var(--rf-orange-primary);
+    }
+
+    .rf-dice3d-swatch:focus-visible {
+        outline: 2px solid var(--rf-orange-primary);
+        outline-offset: 2px;
+    }
+
+.rf-dice3d-swatch-forge { background: linear-gradient(135deg, #ffb04d, #ff8c00 55%, #b86500); }
+.rf-dice3d-swatch-ivory { background: linear-gradient(135deg, #fffaf0, #efe6d2 55%, #b9ab8c); }
+.rf-dice3d-swatch-obsidian { background: linear-gradient(135deg, #3a3a3d, #1d1d1f 55%, #000); }
+.rf-dice3d-swatch-ruby { background: linear-gradient(135deg, #c43a3a, #8b1a1a 55%, #3d0909); }
+.rf-dice3d-swatch-emerald { background: linear-gradient(135deg, #3a9b6b, #1f6b45 55%, #0c2e1d); }
+.rf-dice3d-swatch-sapphire { background: linear-gradient(135deg, #3f66c4, #1f3f8b 55%, #0b1a3d); }
+.rf-dice3d-swatch-amethyst { background: linear-gradient(135deg, #8a52b8, #5b2a86 55%, #25103a); }
