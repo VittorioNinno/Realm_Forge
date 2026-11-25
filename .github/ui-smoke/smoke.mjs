@@ -1396,8 +1396,20 @@ try {
   await page.locator('[data-test=campaign-note-new]').click();
   await page.locator('[data-test=campaign-note-title]').fill('Sessione 1');
   // Typing @ offers the campaign's characters; the master's secrets go in their own box
-  await page.locator('[data-test=campaign-note-body]').fill('Il gruppo parte da Valdoras con @');
-  await page.locator('[data-test=mention-option]').first().waitFor({ timeout: 15000 });
+  await page.locator('[data-test=campaign-note-body]').fill('Il gruppo parte da Valdoras con ');
+  await page.locator('[data-test=campaign-note-body]').press('End');
+  await page.keyboard.type('@');
+  await page.locator('[data-test=mention-option]').first().waitFor({ timeout: 15000 }).catch(async (error) => {
+    // What the page knows when no suggestion shows: the mentions of the campaign and the field
+    const probe = await page.evaluate(async (apiBase) => {
+      const token = JSON.parse(localStorage.getItem('realmforge.auth') ?? '{}').AccessToken;
+      const id = location.pathname.split('/').pop();
+      const res = await fetch(`${apiBase}/api/campaigns/${id}/mentions?lang=2`, { headers: { Authorization: `Bearer ${token}` } });
+      const box = document.querySelector('[data-test=campaign-note-body]');
+      return { status: res.status, body: (await res.text()).slice(0, 300), value: box?.value, caret: box?.selectionStart, tag: box?.tagName, mention: typeof window.rfMention };
+    }, 'http://localhost:5080').catch(e => ({ probeError: String(e) }));
+    throw new Error(`no mention suggestions: ${JSON.stringify(probe)} | ${error.message.split('\n')[0]}`);
+  });
   await page.locator('[data-test=mention-option]').first().click();
   await page.locator('[data-test=campaign-note-secret]').fill('Valdoras è già caduta.');
   await page.locator('[data-test=campaign-note-save]').click();
