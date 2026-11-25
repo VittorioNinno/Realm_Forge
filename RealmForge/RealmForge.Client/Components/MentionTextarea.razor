@@ -55,6 +55,22 @@
         _ => "journal-text"
     };
 
+    private IReadOnlyList<MentionDto>? seenMentions;
+
+    //	The list of what can be mentioned may arrive after an @ was typed: the suggestions show up then
+    protected override void OnParametersSet()
+    {
+        if (!ReferenceEquals(Mentions, seenMentions))
+        {
+            seenMentions = Mentions;
+            if (hits.Count == 0 && Value.Length > 0 && !picking)
+            {
+                caret = Math.Clamp(caret == 0 ? Value.Length : caret, 0, Value.Length);
+                Suggest();
+            }
+        }
+    }
+
     private async Task OnInputAsync(ChangeEventArgs e)
     {
         Value = e.Value?.ToString() ?? string.Empty;
