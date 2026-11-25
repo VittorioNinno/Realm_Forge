@@ -2,6 +2,7 @@
 using System.Net.Http.Json;
 using Microsoft.Extensions.Logging;
 using RealmForge.Shared.Campaigns;
+using RealmForge.Shared.Characters;
 using RealmForge.Shared.DTOs;
 using RealmForge.Shared.Enums;
 
@@ -142,6 +143,11 @@ namespace RealmForge.Client.Services
 		public Task<(CampaignHandoutDto? Value, string? Error)> AddHandoutAsync(Guid id, SaveCampaignHandoutDto dto, LanguageCode lang) =>
 			TableAsync<CampaignHandoutDto>(() => _http.PostAsJsonAsync($"api/campaigns/{id}/handouts?lang={(int)lang}", dto), "add handout");
 
+		public Task<List<PuzzleDoorDto>?> GetPuzzleDoorsAsync(Guid id) => GetAsync<List<PuzzleDoorDto>>($"api/campaigns/{id}/handouts/doors");
+
+		public Task<(PuzzleResultDto? Value, string? Error)> SolvePuzzleAsync(Guid id, Guid handoutId, string answer) =>
+			TableAsync<PuzzleResultDto>(() => _http.PostAsJsonAsync($"api/campaigns/{id}/handouts/{handoutId}/solve", new SolvePuzzleDto { Answer = answer }), "solve puzzle");
+
 		public Task<CampaignResult> UpdateHandoutAsync(Guid id, Guid handoutId, SaveCampaignHandoutDto dto) =>
 			SendAsync(() => _http.PutAsJsonAsync($"api/campaigns/{id}/handouts/{handoutId}", dto), "update handout");
 
@@ -168,6 +174,15 @@ namespace RealmForge.Client.Services
 		public Task<CampaignResult> PlaySoundAsync(Guid id, Guid soundId) =>
 			SendAsync(() => _http.PostAsync($"api/campaigns/{id}/sounds/{soundId}/play", null), "play sound");
 
+		public Task<(SoundSceneDto? Value, string? Error)> AddSoundSceneAsync(Guid id, SaveSoundSceneDto dto) =>
+			TableAsync<SoundSceneDto>(() => _http.PostAsJsonAsync($"api/campaigns/{id}/sounds/scenes", dto), "add sound scene");
+
+		public Task<CampaignResult> PlaySoundSceneAsync(Guid id, Guid sceneId) =>
+			SendAsync(() => _http.PostAsync($"api/campaigns/{id}/sounds/scenes/{sceneId}/play", null), "play sound scene");
+
+		public Task<CampaignResult> DeleteSoundSceneAsync(Guid id, Guid sceneId) =>
+			SendAsync(() => _http.DeleteAsync($"api/campaigns/{id}/sounds/scenes/{sceneId}"), "delete sound scene");
+
 		public Task<CampaignResult> StopSoundsAsync(Guid id) =>
 			SendAsync(() => _http.PostAsync($"api/campaigns/{id}/sounds/stop", null), "stop sounds");
 
@@ -176,8 +191,63 @@ namespace RealmForge.Client.Services
 		public Task<(ClockMovedDto? Value, string? Error)> MoveClockAsync(Guid id, MoveClockDto dto) =>
 			TableAsync<ClockMovedDto>(() => _http.PostAsJsonAsync($"api/campaigns/{id}/clock", dto), "move clock");
 
+		// ----- Progress clocks and factions -----
+
+		public Task<CampaignProgressDto?> GetProgressAsync(Guid id) => GetAsync<CampaignProgressDto>($"api/campaigns/{id}/progress");
+
+		public Task<(ProgressClockDto? Value, string? Error)> AddProgressClockAsync(Guid id, SaveProgressClockDto dto) =>
+			TableAsync<ProgressClockDto>(() => _http.PostAsJsonAsync($"api/campaigns/{id}/progress/clocks", dto), "add clock");
+
+		public Task<CampaignResult> UpdateProgressClockAsync(Guid id, Guid clockId, SaveProgressClockDto dto) =>
+			SendAsync(() => _http.PutAsJsonAsync($"api/campaigns/{id}/progress/clocks/{clockId}", dto), "update clock");
+
+		public Task<(ProgressClockDto? Value, string? Error)> StepProgressClockAsync(Guid id, Guid clockId, int delta) =>
+			TableAsync<ProgressClockDto>(() => _http.PostAsJsonAsync($"api/campaigns/{id}/progress/clocks/{clockId}/step", new StepDto { Delta = delta }), "step clock");
+
+		public Task<CampaignResult> DeleteProgressClockAsync(Guid id, Guid clockId) =>
+			SendAsync(() => _http.DeleteAsync($"api/campaigns/{id}/progress/clocks/{clockId}"), "delete clock");
+
+		public Task<(FactionDto? Value, string? Error)> AddFactionAsync(Guid id, SaveFactionDto dto) =>
+			TableAsync<FactionDto>(() => _http.PostAsJsonAsync($"api/campaigns/{id}/progress/factions", dto), "add faction");
+
+		public Task<CampaignResult> UpdateFactionAsync(Guid id, Guid factionId, SaveFactionDto dto) =>
+			SendAsync(() => _http.PutAsJsonAsync($"api/campaigns/{id}/progress/factions/{factionId}", dto), "update faction");
+
+		public Task<(FactionDto? Value, string? Error)> StepFactionAsync(Guid id, Guid factionId, int delta) =>
+			TableAsync<FactionDto>(() => _http.PostAsJsonAsync($"api/campaigns/{id}/progress/factions/{factionId}/step", new StepDto { Delta = delta }), "step faction");
+
+		public Task<CampaignResult> DeleteFactionAsync(Guid id, Guid factionId) =>
+			SendAsync(() => _http.DeleteAsync($"api/campaigns/{id}/progress/factions/{factionId}"), "delete faction");
+
+		public Task<CampaignTreasureDto?> GetTreasureAsync(Guid id, LanguageCode lang) =>
+			GetAsync<CampaignTreasureDto>($"api/campaigns/{id}/treasure?lang={(int)lang}");
+
+		public Task<CampaignResult> SetTreasureCoinsAsync(Guid id, CoinPurse coins) =>
+			SendAsync(() => _http.PutAsJsonAsync($"api/campaigns/{id}/treasure/coins", coins), "treasure coins");
+
+		public Task<(TreasureSplitDto? Value, string? Error)> SplitTreasureAsync(Guid id, SplitTreasureDto dto) =>
+			TableAsync<TreasureSplitDto>(() => _http.PostAsJsonAsync($"api/campaigns/{id}/treasure/split", dto), "split treasure");
+
+		public Task<(TreasureItemDto? Value, string? Error)> AddTreasureItemAsync(Guid id, SaveTreasureItemDto dto, LanguageCode lang) =>
+			TableAsync<TreasureItemDto>(() => _http.PostAsJsonAsync($"api/campaigns/{id}/treasure/items?lang={(int)lang}", dto), "add treasure item");
+
+		public Task<CampaignResult> UpdateTreasureItemAsync(Guid id, Guid itemId, SaveTreasureItemDto dto) =>
+			SendAsync(() => _http.PutAsJsonAsync($"api/campaigns/{id}/treasure/items/{itemId}", dto), "update treasure item");
+
+		public Task<CampaignResult> DeleteTreasureItemAsync(Guid id, Guid itemId) =>
+			SendAsync(() => _http.DeleteAsync($"api/campaigns/{id}/treasure/items/{itemId}"), "delete treasure item");
+
+		public Task<CampaignResult> IdentifyTreasureItemAsync(Guid id, Guid itemId) =>
+			SendAsync(() => _http.PostAsync($"api/campaigns/{id}/treasure/items/{itemId}/identify", null), "identify treasure item");
+
+		public Task<CampaignResult> GiveTreasureItemAsync(Guid id, Guid itemId, GiveTreasureDto dto, LanguageCode lang) =>
+			SendAsync(() => _http.PostAsJsonAsync($"api/campaigns/{id}/treasure/items/{itemId}/give?lang={(int)lang}", dto), "give treasure item");
+
 		public Task<CampaignShopsDto?> GetShopsAsync(Guid id, LanguageCode lang) =>
 			GetAsync<CampaignShopsDto>($"api/campaigns/{id}/shops?lang={(int)lang}");
+
+		public Task<(CampaignShopDto? Value, string? Error)> GenerateShopAsync(Guid id, GenerateShopDto dto, LanguageCode lang) =>
+			TableAsync<CampaignShopDto>(() => _http.PostAsJsonAsync($"api/campaigns/{id}/shops/generate?lang={(int)lang}", dto), "generate shop");
 
 		public Task<(CampaignShopDto? Value, string? Error)> AddShopAsync(Guid id, SaveCampaignShopDto dto, LanguageCode lang) =>
 			TableAsync<CampaignShopDto>(() => _http.PostAsJsonAsync($"api/campaigns/{id}/shops?lang={(int)lang}", dto), "add shop");
@@ -210,6 +280,8 @@ namespace RealmForge.Client.Services
 				return (null, null);
 			}
 		}
+
+		public Task<List<MentionDto>?> GetMentionsAsync(Guid id, LanguageCode lang) => GetAsync<List<MentionDto>>($"api/campaigns/{id}/mentions?lang={(int)lang}");
 
 		public Task<List<CampaignNoteDto>?> GetNotesAsync(Guid id) => GetAsync<List<CampaignNoteDto>>($"api/campaigns/{id}/notes");
 

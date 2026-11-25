@@ -233,6 +233,8 @@ namespace RealmForge.Api.Controllers
 			}
 			map.Shown = true;
 			map.UpdatedAt = now;
+			//	The sound scene tied to the map starts with it
+			await SoundsController.StartForMapAsync(_context, await _context.Campaigns.FirstAsync(c => c.Id == campaignId), mapId);
 			await _context.SaveChangesAsync();
 			return NoContent();
 		}
@@ -268,6 +270,10 @@ namespace RealmForge.Api.Controllers
 			if (!CampaignRules.RunsTheTable(role.Value))
 			{
 				return Forbid();
+			}
+			foreach (var scene in await _context.CampaignSoundScenes.Where(s => s.MapId == map.Id).ToListAsync())
+			{
+				scene.MapId = null;
 			}
 			_context.CampaignMaps.Remove(map);
 			await _context.SaveChangesAsync();
@@ -1815,7 +1821,7 @@ namespace RealmForge.Api.Controllers
 			map.PingAt is { } pingAt ? new MapPingDto(map.PingX ?? 0, map.PingY ?? 0, map.PingColor ?? PlayerColors.Master, pingAt) : null,
 			map.FocusAt is { } focusAt ? new MapFocusDto(map.FocusX ?? 0, map.FocusY ?? 0, map.FocusZoom ?? 1, focusAt) : null,
 			map.PlayersLocked,
-			map.StrikeAt is { } strikeAt && map.StrikeTokenId is { } struck ? new MapStrikeDto(struck, map.StrikeKind, map.StrikeDamage, strikeAt) : null,
+			map.StrikeAt is { } strikeAt && map.StrikeTokenId is { } struck ? new MapStrikeDto(struck, map.StrikeKind, map.StrikeDamage, strikeAt, map.StrikeType) : null,
 			SavesOf(map, CampaignRules.RunsTheTable(role)),
 			map.Lighting,
 			map.DynamicVision,

@@ -30,7 +30,15 @@
         {
             <div class="rf-card2 mb-3" data-test="campaign-note-form">
                 <input class="rf-form-control mb-2" maxlength="120" placeholder="@UiText.CampaignNoteTitle(Lang)" @bind="draft.Title" data-test="campaign-note-title" />
-                <textarea class="rf-form-control mb-2" rows="6" maxlength="8000" placeholder="@UiText.CampaignNoteBody(Lang)" @bind="draft.Body" data-test="campaign-note-body"></textarea>
+                <MentionTextarea @bind-Value="draft.Body" Mentions="mentions" Rows="6" MaxLength="8000" Placeholder="@UiText.CampaignNoteBodyMentions(Lang)" DataTest="campaign-note-body" />
+                @if (draft.Kind == CampaignNoteKind.Journal && CampaignRules.RunsTheTable(Role))
+                {
+                    <div class="rf-note-secret-edit mt-2">
+                        <span class="rf-mini-label"><Icon Name="eye-slash" /> @UiText.NoteSecrets(Lang)</span>
+                        <MentionTextarea @bind-Value="secretDraft" Mentions="mentions" Rows="3" MaxLength="4000" Placeholder="@UiText.NoteSecretsHint(Lang)" DataTest="campaign-note-secret" />
+                    </div>
+                }
+                <div class="mb-2"></div>
                 @if (error is not null)
                 {
                     <div class="small text-warning mb-2">@error</div>
@@ -57,7 +65,7 @@
             @foreach (var note in Shown)
             {
                 var n = note;
-                <article class="rf-campaign-note" data-test="campaign-note">
+                <article class="rf-campaign-note" id="@($"rf-note-{n.Id}")" data-test="campaign-note">
                     <div class="rf-campaign-note-head">
                         <span class="rf-campaign-note-title">@(string.IsNullOrWhiteSpace(n.Title) ? "—" : n.Title)</span>
                         <span class="rf-campaign-note-meta">
@@ -70,7 +78,14 @@
                     </div>
                     @if (!string.IsNullOrWhiteSpace(n.Body))
                     {
-                        <div class="rf-markdown-container mt-2">@((MarkupString)MarkdownText.ToHtml(n.Body, null))</div>
+                        <div class="rf-markdown-container mt-2" data-test="campaign-note-text">@((MarkupString)MentionText.ToHtml(n.Body))</div>
+                    }
+                    @if (!string.IsNullOrWhiteSpace(n.Secret))
+                    {
+                        <details class="rf-note-secret mt-2" data-test="campaign-note-secret-view">
+                            <summary><Icon Name="eye-slash" /> @UiText.NoteSecrets(Lang)</summary>
+                            <div class="rf-markdown-container">@((MarkupString)MentionText.ToHtml(n.Secret))</div>
+                        </details>
                     }
                     @if (n.CanEdit || n.CanDelete)
                     {
@@ -102,6 +117,8 @@
     //	Note being written: Guid.Empty for a new one, null when the form is closed
     private Guid? editing;
     private SaveCampaignNoteDto draft = new();
+    private string secretDraft = string.Empty;
+    private List<MentionDto> mentions = new();
     private string? error;
     private bool saving;
 
@@ -121,7 +138,15 @@
         }
     }
 
-    private async Task LoadAsync() => notes = await Campaigns.GetNotesAsync(CampaignId) ?? new List<CampaignNoteDto>();
+    private async Task LoadAsync()
+    {
+        //	Together: the form opens only when what it can mention is there too
+        var reading = Campaigns.GetNotesAsync(CampaignId);
+        var mentioning = Campaigns.GetMentionsAsync(CampaignId, Lang);
+        await Task.WhenAll(reading, mentioning);
+        mentions = mentioning.Result ?? new();
+        notes = reading.Result ?? new List<CampaignNoteDto>();
+    }
 
     private void Select(CampaignNoteKind kind)
     {
@@ -132,6 +157,7 @@
     private void NewNote()
     {
         draft = new SaveCampaignNoteDto { Kind = selected };
+        secretDraft = string.Empty;
         error = null;
         editing = Guid.Empty;
     }
@@ -139,6 +165,7 @@
     private void Edit(CampaignNoteDto note)
     {
         draft = new SaveCampaignNoteDto { Kind = note.Kind, Title = note.Title, Body = note.Body };
+        secretDraft = note.Secret ?? string.Empty;
         error = null;
         editing = note.Id;
     }
@@ -150,6 +177,7 @@
             error = UiText.CampaignNoteEmpty(Lang);
             return;
         }
+        draft.Secret = draft.Kind == CampaignNoteKind.Journal && CampaignRules.RunsTheTable(Role) ? secretDraft : null;
         saving = true;
         var result = editing is { } id && id != Guid.Empty
             ? await Campaigns.UpdateNoteAsync(CampaignId, id, draft)

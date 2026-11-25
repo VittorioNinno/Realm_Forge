@@ -6,6 +6,7 @@
 @using RealmForge.Shared.Rules
 @inject CampaignDataService Campaigns
 @inject LanguageStateService LanguageState
+@inject Dice3dService Dice3d
 @inject IJSRuntime JS
 @implements IDisposable
 
@@ -411,7 +412,6 @@
     private bool invalid;
     private bool clearing;
     private string filter = "all";
-    private PeriodicTimer? timer;
     private CancellationTokenSource? stop;
 
     private bool RunsTheTable => CampaignRules.RunsTheTable(Role);
@@ -605,6 +605,13 @@
                 if (news is { Count: > 0 } && !token.IsCancellationRequested)
                 {
                     var unseen = news.Count(n => !n.IsMine && rolls?.All(r => r.Id != n.Id) != false);
+
+                    //	The fresh rolls of the others tumble on this screen too, in their colour (when the reader wants them)
+                    foreach (var other in news.Where(n => !n.IsMine && !n.Removed && n.Dice.Count > 0 && DateTimeOffset.UtcNow - n.CreatedAt < TimeSpan.FromSeconds(20)
+                        && rolls?.All(r => r.Id != n.Id) != false).OrderBy(n => n.CreatedAt).Take(3))
+                    {
+                        _ = Dice3d.RollAsync(other.Dice.Select(d => new DieFace(d.Sides, d.Value, d.Dropped)), remote: true, color: other.Color);
+                    }
                     Merge(news);
                     await InvokeAsync(StateHasChanged);
                     if (unseen > 0)
@@ -696,6 +703,5 @@
     public void Dispose()
     {
         stop?.Cancel();
-        timer?.Dispose();
     }
 }

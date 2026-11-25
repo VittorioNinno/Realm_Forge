@@ -54,6 +54,11 @@
     }
 }
 
+@if (background is not null)
+{
+    <BackgroundAssistant W="W" />
+}
+
 @code {
     private List<ForgeSelector<Guid>.Option> BackgroundOptions =>
         Context.Backgrounds.Select(b => new ForgeSelector<Guid>.Option(b.Id, b.Name)).ToList();

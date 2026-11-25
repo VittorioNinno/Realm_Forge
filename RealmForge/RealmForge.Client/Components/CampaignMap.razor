@@ -26,7 +26,7 @@
 {
     @if (popupHandout is not null)
     {
-        <HandoutView Handout="popupHandout" OnClose="() => popupHandout = null" />
+        <HandoutView Handout="popupHandout" CampaignId="CampaignId" OnClose="() => popupHandout = null" />
     }
     <div class="rf-vtt-table" @ref="tableElement" data-test="vtt">
         @* Shown only on a phone held upright (CSS): the table needs the phone turned *@
@@ -145,7 +145,7 @@
                 {
                     @ConfirmBar
                 }
-                else if (map is not null && (aim is not null || placing is not null || castNote is not null || (gearNote is not null && !PanelShown("sheet"))))
+                else if (map is not null && (aim is not null || placing is not null || concentrationAsk is not null || castNote is not null || (gearNote is not null && !PanelShown("sheet"))))
                 {
                     @CombatBar
                 }
@@ -235,7 +235,7 @@
                             }
                             break;
                         case "sounds" when RunsTheTable:
-                            <CampaignSoundboard CampaignId="CampaignId" OnChanged="RefreshAsync" />
+                            <CampaignSoundboard CampaignId="CampaignId" MapId="map?.Id" OnChanged="RefreshAsync" />
                             break;
                         case "clock" when RunsTheTable:
                             <CampaignClock CampaignId="CampaignId" Role="Role" Compact="true" OnMoved="m => gameClock = m" />
@@ -838,6 +838,10 @@ else
                                 <svg class="rf-vtt-hp" viewBox="0 0 100 100" aria-hidden="true" data-test="map-token-hp-ring">
                                     <circle cx="50" cy="50" r="47" pathLength="100" stroke-dasharray="@($"{N(share * 100)} 100")" stroke="@HpColor(share)" />
                                 </svg>
+                            }
+                            @if (AimTag(t) is { } aimTag)
+                            {
+                                <span class="rf-vtt-aim-tag @aimTag.Css" title="@aimTag.Title" data-test="map-aim-tag">@aimTag.Text</span>
                             }
                             @if (t.Conditions is { Count: > 0 } conditions)
                             {
@@ -3290,6 +3294,13 @@ else
                 <span class="rf-vtt-options-hint" data-test="vtt-aim-hint">@(aimNote ?? UiText.VttAimHint(Lang))</span>
                 <button type="button" class="btn btn-sm btn-rf-outline" @onclick="CancelAim" data-test="vtt-aim-cancel">@UiText.BtnCancel(Lang)</button>
             }
+            else if (concentrationAsk is { } ask)
+            {
+                <span class="rf-vtt-combatbar-what"><Icon Name="magic" /> <strong>@ask.Spell.Name</strong></span>
+                <span class="rf-vtt-options-hint text-warning" data-test="vtt-concentration-ask">@UiText.VttConcentrationAsk(ask.Token.Label, ask.Previous, Lang)</span>
+                <button type="button" class="btn btn-sm btn-rf-orange" @onclick="ConfirmConcentrationAsync" data-test="vtt-concentration-yes">@UiText.VttConcentrationYes(Lang)</button>
+                <button type="button" class="btn btn-sm btn-rf-outline" @onclick="() => concentrationAsk = null" data-test="vtt-concentration-no">@UiText.BtnCancel(Lang)</button>
+            }
             else if (placing is { } cast)
             {
                 <span class="rf-vtt-combatbar-what"><Icon Name="magic" /> <strong>@cast.Spell</strong> <span>@UiText.AreaName(cast.Area.Kind, Lang) · @ReachText(new AttackReach(0, cast.Area.Size, cast.Area.Size))</span></span>
@@ -3707,6 +3718,7 @@ else
             await LoadLayoutAsync();
             await WatchPhoneAsync();
         }
+        await BloomAreasAsync();
         //	The turn that just came is brought into view in a long order
         if (combat?.CurrentId is { } currentId && currentId != revealedTurn)
         {
@@ -3856,6 +3868,7 @@ else
                     tokens = state.Tokens;
                     TakeSheetLife();
                     TakeTerrain(state.Terrain);
+                    NoteNewAreas(shapes, state.Shapes ?? new());
                     shapes = state.Shapes ?? new();
                     ApplyTable(state.Table, first: false);
                     ApplyCombat(state.Combat);
@@ -5358,11 +5371,11 @@ else
     private DateTimeOffset? strikeSeen;
     private Guid? revealedTurn;
 
-    private async Task ShowStrikeAsync(Guid tokenId, string kind, string? text)
+    private async Task ShowStrikeAsync(Guid tokenId, string kind, string? text, string? damageType = null)
     {
         try
         {
-            await JS.InvokeVoidAsync("rfVtt.strike", stageElement, tokenId, kind, text);
+            await JS.InvokeVoidAsync("rfVtt.strike", stageElement, tokenId, kind, text, damageType);
         }
         catch (JSException)
         {
@@ -5403,7 +5416,7 @@ else
             if (!first)
             {
                 _ = ShowStrikeAsync(hit.TokenId, hit.Kind == 0 ? "miss" : hit.Kind == 2 ? "crit" : "hit",
-                    hit.Kind == 0 ? UiText.VttMissed(Lang) : hit.Damage is { } dealt ? $"−{dealt}" : UiText.VttHit(Lang));
+                    hit.Kind == 0 ? UiText.VttMissed(Lang) : hit.Damage is { } dealt ? $"−{dealt}" : UiText.VttHit(Lang), hit.DamageType);
             }
         }
         if (table.Focus is { } focus && focus.At != focusSeen)
@@ -5687,7 +5700,8 @@ else
         message = shape is null ? UiText.MapSaveFailed(Lang) : null;
         if (shape is not null)
         {
-            shapes = shapes.Append(shape).ToList();
+            NoteNewAreas(shapes, new[] { shape });
+            shapes = shapes.Where(existing => existing.Id != shape.Id).Append(shape).ToList();
         }
         StateHasChanged();
     }
@@ -5990,7 +6004,8 @@ else
         message = token is null ? UiText.MapSaveFailed(Lang) : null;
         if (token is not null)
         {
-            tokens = tokens.Append(token).ToList();
+            //	A refresh of the table may have brought the new token already while it was being saved: never twice
+            tokens = tokens.Where(existing => existing.Id != token.Id).Append(token).ToList();
             localEdits++;
         }
     }

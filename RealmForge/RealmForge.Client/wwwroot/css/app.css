@@ -2857,6 +2857,9 @@ button.rf-stat-card {
     gap: 8px;
     overflow-x: auto;
     border-bottom: 2px solid var(--rf-orange-primary);
+    /* The tabs scroll inside the bar: however many there are, they do not widen the page */
+    min-width: 0;
+    contain: inline-size;
 }
 
 .rf-sheet-tab {
@@ -20947,4 +20950,928 @@ button.rf-vtt-clock.on {
     [data-test=vtt-clock] {
         display: none;
     }
+}
+
+/* ===== 3D dice ===== */
+
+/* The layer the dice are thrown on: over the whole page, never in the way of a click */
+.rf-dice3d-layer {
+    position: fixed;
+    inset: 0;
+    z-index: 3000;
+    pointer-events: none;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity .4s ease, visibility 0s linear .4s;
+}
+
+    .rf-dice3d-layer.shown {
+        opacity: 1;
+        visibility: visible;
+        transition: opacity .15s ease;
+    }
+
+    .rf-dice3d-layer.fading {
+        opacity: 0;
+    }
+
+    .rf-dice3d-layer canvas {
+        display: block;
+        width: 100% !important;
+        height: 100% !important;
+    }
+
+.rf-dice3d-settings {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.rf-dice3d-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px 16px;
+}
+
+    .rf-dice3d-row .rf-mini-label {
+        min-width: 96px;
+        margin: 0;
+    }
+
+    .rf-dice3d-row select.rf-form-control {
+        width: auto;
+        min-width: 160px;
+    }
+
+.rf-dice3d-swatches {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.rf-dice3d-swatch {
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    border-radius: 8px;
+    border: 2px solid #303030;
+    cursor: pointer;
+    transition: transform .15s ease, border-color .15s ease;
+}
+
+    .rf-dice3d-swatch:hover {
+        transform: translateY(-2px);
+    }
+
+    .rf-dice3d-swatch.on {
+        border-color: #f5f5f5;
+        box-shadow: 0 0 0 2px var(--rf-orange-primary);
+    }
+
+    .rf-dice3d-swatch:focus-visible {
+        outline: 2px solid var(--rf-orange-primary);
+        outline-offset: 2px;
+    }
+
+.rf-dice3d-swatch-forge { background: linear-gradient(135deg, #ffb04d, #ff8c00 55%, #b86500); }
+.rf-dice3d-swatch-ivory { background: linear-gradient(135deg, #fffaf0, #efe6d2 55%, #b9ab8c); }
+.rf-dice3d-swatch-obsidian { background: linear-gradient(135deg, #3a3a3d, #1d1d1f 55%, #000); }
+.rf-dice3d-swatch-ruby { background: linear-gradient(135deg, #c43a3a, #8b1a1a 55%, #3d0909); }
+.rf-dice3d-swatch-emerald { background: linear-gradient(135deg, #3a9b6b, #1f6b45 55%, #0c2e1d); }
+.rf-dice3d-swatch-sapphire { background: linear-gradient(135deg, #3f66c4, #1f3f8b 55%, #0b1a3d); }
+.rf-dice3d-swatch-amethyst { background: linear-gradient(135deg, #8a52b8, #5b2a86 55%, #25103a); }
+
+/* ===== Visual effects (wwwroot/js/fx.js) ===== */
+
+/* The particles: one canvas over the page, under the 3D dice, never in the way of a click */
+.rf-fx-layer {
+    position: fixed;
+    inset: 0;
+    width: 100vw;
+    height: 100vh;
+    z-index: 2990;
+    pointer-events: none;
+}
+
+@keyframes rf-fx-quake {
+    0%, 100% { transform: translate(0, 0); }
+    20% { transform: translate(-3px, 1px); }
+    40% { transform: translate(3px, -1px); }
+    60% { transform: translate(-2px, 2px); }
+    80% { transform: translate(2px, -1px); }
+}
+
+@keyframes rf-fx-quake-strong {
+    0%, 100% { transform: translate(0, 0); }
+    15% { transform: translate(-6px, 3px); }
+    30% { transform: translate(6px, -3px); }
+    45% { transform: translate(-4px, -2px); }
+    60% { transform: translate(4px, 2px); }
+    80% { transform: translate(-2px, 1px); }
+}
+
+.rf-fx-quake {
+    animation: rf-fx-quake .35s ease-in-out;
+}
+
+.rf-fx-quake-strong {
+    animation: rf-fx-quake-strong .45s ease-in-out;
+}
+
+/* Opacity only: a transform would make the fixed layers of the page (the table, the dialogs) follow the content */
+@keyframes rf-page-in {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+.rf-page-in {
+    animation: rf-page-in .35s ease-out;
+}
+
+/* The critical and the fumble of the dice tray glow a moment longer */
+.rf-dice-tray.landed.crit {
+    box-shadow: 0 0 0 1px rgba(250, 204, 21, .6), 0 0 32px rgba(250, 204, 21, .35);
+}
+
+.rf-dice-tray.landed.fumble {
+    box-shadow: 0 0 0 1px rgba(239, 68, 68, .6), 0 0 32px rgba(239, 68, 68, .3);
+}
+
+/* Off: no flash or shake anywhere */
+.rf-fx-off .rf-vtt-token[class*="fx-"],
+.rf-fx-off .rf-vtt-token[class*="fx-"] .rf-vtt-token-face,
+.rf-fx-off .rf-fx-quake,
+.rf-fx-off .rf-fx-quake-strong,
+.rf-fx-off .rf-page-in {
+    animation: none !important;
+}
+
+.rf-fx-reduced .rf-fx-quake,
+.rf-fx-reduced .rf-fx-quake-strong {
+    animation: none;
+}
+
+.rf-fx-levels,
+.rf-fx-preview {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.rf-fx-chip {
+    padding: 4px 16px;
+    border-radius: 16px;
+    border: 1px solid var(--chip);
+    background: color-mix(in srgb, var(--chip) 14%, transparent);
+    color: var(--chip);
+    font-size: .8rem;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+    .rf-fx-chip:disabled {
+        opacity: .4;
+        cursor: default;
+    }
+
+.rf-fx-chip-fire { --chip: #ff8c00; }
+.rf-fx-chip-cold { --chip: #9bd7f5; }
+.rf-fx-chip-lightning { --chip: #7cc4ff; }
+.rf-fx-chip-necrotic { --chip: #a06cd5; }
+.rf-fx-chip-radiant { --chip: #ffd60a; }
+.rf-fx-chip-heal { --chip: #4ade80; }
+.rf-fx-chip-crit { --chip: #facc15; }
+
+/* ===== Aiming on the table: distance, range and cover on each possible target ===== */
+.rf-vtt-aim-tag {
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    z-index: 25;
+    margin-top: calc(4px / var(--rf-zoom, 1));
+    padding: 0 calc(8px / var(--rf-zoom, 1));
+    border-radius: calc(8px / var(--rf-zoom, 1));
+    border: 1px solid var(--aim, #4ade80);
+    background-color: rgba(10, 10, 10, .9);
+    color: var(--aim, #4ade80);
+    font-size: calc(12px / var(--rf-zoom, 1));
+    font-weight: 700;
+    line-height: 1.6;
+    white-space: nowrap;
+    transform: translateX(-50%);
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity .15s ease;
+}
+
+    .rf-vtt-aim-tag.far {
+        --aim: #facc15;
+    }
+
+    .rf-vtt-aim-tag.cover {
+        --aim: #7cc4ff;
+    }
+
+    .rf-vtt-aim-tag.out {
+        --aim: #f87171;
+    }
+
+/* On the target under the pointer; on a touch screen, on every target */
+.rf-vtt-token:hover .rf-vtt-aim-tag {
+    opacity: 1;
+}
+
+@media (hover: none) {
+    .rf-vtt-aim-tag {
+        opacity: 1;
+    }
+}
+
+/* ===== The party's chest ===== */
+.rf-treasure-coins,
+.rf-treasure-split {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    gap: 8px 16px;
+}
+
+.rf-treasure-split {
+    align-items: center;
+    padding-top: 8px;
+    border-top: 1px solid #303030;
+}
+
+.rf-treasure-tag {
+    color: #c77dff;
+}
+
+.rf-treasure-look {
+    flex-basis: 100%;
+    color: var(--rf-text-muted);
+    font-style: italic;
+    white-space: pre-line;
+}
+
+.rf-shop-item.unidentified {
+    border: 1px dashed rgba(199, 125, 255, .5);
+}
+
+.rf-treasure-free textarea {
+    flex-basis: 100%;
+}
+
+/* ===== Progress clocks and factions ===== */
+.rf-progress-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 0 0 16px;
+    font-family: var(--rf-font-display);
+    font-size: 1.1rem;
+    color: var(--rf-text-primary);
+}
+
+.rf-progress-form {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+}
+
+.rf-progress-form .rf-form-control {
+    flex: 1 1 160px;
+    width: auto;
+}
+
+.rf-progress-form select.rf-form-control {
+    flex: 0 1 176px;
+}
+
+.rf-progress-form .rf-progress-wide {
+    flex: 2 1 240px;
+}
+
+.rf-progress-color {
+    width: 40px;
+    height: 32px;
+    padding: 0;
+    border: 1px solid var(--rf-border-light);
+    border-radius: 8px;
+    background: none;
+    cursor: pointer;
+}
+
+.rf-progress-clocks {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 16px;
+}
+
+.rf-progress-clock {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    padding: 16px;
+    border: 1px solid var(--rf-border-subtle);
+    border-radius: 16px;
+    background: var(--rf-bg-card);
+    text-align: center;
+    transition: border-color 0.3s, box-shadow 0.3s;
+}
+
+.rf-progress-clock.full {
+    border-color: var(--rf-orange-primary);
+    box-shadow: 0 0 16px var(--rf-orange-glow);
+}
+
+.rf-progress-dial {
+    width: 112px;
+    height: 112px;
+    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.35));
+}
+
+.rf-progress-wedge {
+    fill: var(--rf-bg-surface);
+    stroke: var(--rf-border-light);
+    stroke-width: 1;
+    transition: fill 0.35s;
+}
+
+.rf-progress-wedge.on {
+    animation: rf-progress-fill 0.45s ease-out;
+}
+
+@keyframes rf-progress-fill {
+    from { opacity: 0.2; }
+    to { opacity: 1; }
+}
+
+.rf-progress-clock-text {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+}
+
+.rf-progress-actions {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 8px;
+}
+
+.rf-progress-factions {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 16px;
+}
+
+.rf-progress-faction {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 16px;
+    border: 1px solid var(--rf-border-subtle);
+    border-radius: 16px;
+    background: var(--rf-bg-card);
+}
+
+.rf-progress-faction .rf-progress-actions {
+    justify-content: flex-start;
+}
+
+.rf-progress-faction-head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 8px;
+}
+
+.rf-progress-standing {
+    padding: 0 8px;
+    border-radius: 8px;
+    font-size: 0.8rem;
+    font-weight: 600;
+}
+
+.rf-progress-standing.bad { background: rgba(220, 53, 69, 0.18); color: #f08a94; }
+.rf-progress-standing.neutral { background: var(--rf-bg-surface); color: var(--rf-text-secondary); }
+.rf-progress-standing.good { background: rgba(25, 135, 84, 0.2); color: #6fd3a1; }
+
+.rf-progress-bar {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 4px;
+}
+
+.rf-progress-pip {
+    height: 8px;
+    border-radius: 4px;
+    background: var(--rf-bg-surface);
+    transition: background 0.3s;
+}
+
+.rf-progress-pip.mid { background: var(--rf-border-light); }
+.rf-progress-pip.on.neutral { background: var(--rf-text-secondary); }
+.rf-progress-pip.on.bad { background: #dc3545; }
+.rf-progress-pip.on.good { background: #198754; }
+
+html.rf-fx-off .rf-progress-wedge.on { animation: none; }
+
+@media (max-width: 575.98px) {
+    .rf-progress-clocks { grid-template-columns: repeat(2, 1fr); gap: 8px; }
+    .rf-progress-clock { padding: 8px; }
+    .rf-progress-dial { width: 88px; height: 88px; }
+    .rf-progress-factions { grid-template-columns: 1fr; }
+}
+
+/* ===== Sound scenes ===== */
+.rf-sound-play .rf-sound-scene-meta {
+    flex: none;
+    margin-left: auto;
+    font-size: 0.75rem;
+    color: var(--rf-text-muted);
+}
+
+.rf-sound-play .rf-sound-scene-meta + .rf-sound-scene-meta {
+    margin-left: 0;
+}
+
+.rf-sound-scene-layers {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(144px, 1fr));
+    gap: 8px;
+    max-height: 160px;
+    overflow-y: auto;
+}
+
+/* ===== Quick generators ===== */
+.rf-shop-generate {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+}
+
+.rf-shop-generate select.rf-form-control {
+    width: auto;
+    min-width: 160px;
+}
+
+@media (max-width: 575.98px) {
+    .rf-shop-generate select.rf-form-control {
+        flex: 1 1 100%;
+    }
+}
+
+/* ===== @mentions and the master's secrets ===== */
+.rf-mention-box {
+    position: relative;
+}
+
+.rf-mention-list {
+    position: absolute;
+    z-index: 20;
+    left: 8px;
+    right: 8px;
+    top: 100%;
+    max-height: 264px;
+    margin: 4px 0 0;
+    padding: 4px;
+    overflow-y: auto;
+    list-style: none;
+    border: 1px solid var(--rf-border-light);
+    border-radius: 8px;
+    background: var(--rf-bg-card);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+}
+
+.rf-mention-list button {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    min-height: 40px;
+    padding: 4px 8px;
+    border: 0;
+    border-radius: 8px;
+    background: none;
+    color: var(--rf-text-primary);
+    text-align: left;
+}
+
+.rf-mention-list button:hover,
+.rf-mention-list button:focus-visible {
+    background: var(--rf-bg-surface);
+}
+
+.rf-mention-list button svg {
+    flex: none;
+    color: var(--rf-orange-primary);
+}
+
+.rf-mention-kind {
+    margin-left: auto;
+    font-size: 0.75rem;
+    color: var(--rf-text-muted);
+}
+
+.rf-mention {
+    padding: 0 4px;
+    border-radius: 4px;
+    background: rgba(255, 140, 0, 0.14);
+    color: var(--rf-orange-primary);
+    font-weight: 600;
+    text-decoration: none;
+    white-space: nowrap;
+}
+
+a.rf-mention:hover {
+    background: rgba(255, 140, 0, 0.26);
+    color: var(--rf-orange-hover);
+}
+
+.rf-note-secret,
+.rf-note-secret-edit {
+    padding: 8px 16px;
+    border: 1px dashed rgba(220, 53, 69, 0.55);
+    border-radius: 8px;
+    background: rgba(220, 53, 69, 0.06);
+}
+
+.rf-note-secret summary {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: #f08a94;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.rf-note-secret-edit .rf-mini-label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 8px;
+    color: #f08a94;
+}
+
+/* ===== Riddles and ciphers ===== */
+.rf-riddle-lab {
+    padding: 8px 16px;
+    border: 1px solid var(--rf-border-subtle);
+    border-radius: 8px;
+    background: var(--rf-bg-surface);
+}
+
+.rf-riddle-lab[open] {
+    padding-bottom: 16px;
+}
+
+.rf-riddle-lab > summary {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 600;
+    color: var(--rf-orange-primary);
+    cursor: pointer;
+}
+
+.rf-riddle-lab[open] > summary {
+    margin-bottom: 8px;
+}
+
+.rf-riddle-lab > * + *,
+.rf-riddle-lab > .rf-mini-label {
+    display: block;
+    margin-top: 8px;
+}
+
+.rf-riddle-lab > .rf-riddle-row {
+    display: flex;
+}
+
+.rf-riddle-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.rf-riddle-row > * {
+    flex: 1 1 200px;
+}
+
+.rf-riddle-preview {
+    padding: 8px 16px;
+    border-radius: 8px;
+    background: var(--rf-bg-main);
+    font-family: ui-monospace, monospace;
+    font-size: 1.1rem;
+    letter-spacing: 2px;
+    overflow-wrap: anywhere;
+    color: var(--rf-text-primary);
+}
+
+.rf-riddle-card {
+    padding: 8px 16px;
+    border-left: 3px solid var(--rf-orange-primary);
+    border-radius: 8px;
+    background: var(--rf-bg-card);
+}
+
+.rf-riddle-hints {
+    margin: 8px 0;
+    padding-left: 16px;
+}
+
+.rf-riddle-dc {
+    display: inline-block;
+    margin-right: 8px;
+    padding: 0 8px;
+    border-radius: 8px;
+    background: rgba(255, 140, 0, 0.14);
+    color: var(--rf-orange-primary);
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+.rf-riddle-badge {
+    display: inline-flex;
+    margin-left: 8px;
+    color: var(--rf-orange-primary);
+    vertical-align: middle;
+}
+
+.rf-riddle-badge.solved {
+    color: #6fd3a1;
+}
+
+.rf-riddle-try {
+    display: flex;
+    gap: 8px;
+    margin-top: 16px;
+}
+
+.rf-riddle-try .rf-form-control {
+    flex: 1 1 auto;
+}
+
+.rf-riddle-solved {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    margin-top: 16px;
+    padding: 8px 16px;
+    border-radius: 8px;
+    background: rgba(25, 135, 84, 0.18);
+    color: #6fd3a1;
+    font-weight: 600;
+    animation: rf-riddle-glow 1.2s ease-out;
+}
+
+@keyframes rf-riddle-glow {
+    from { box-shadow: 0 0 0 0 rgba(111, 211, 161, 0.6); }
+    to { box-shadow: 0 0 0 16px rgba(111, 211, 161, 0); }
+}
+
+.rf-riddle-wrong {
+    margin-top: 8px;
+    animation: rf-riddle-shake 0.4s;
+}
+
+@keyframes rf-riddle-shake {
+    25% { transform: translateX(-4px); }
+    75% { transform: translateX(4px); }
+}
+
+html.rf-fx-off .rf-riddle-solved,
+html.rf-fx-off .rf-riddle-wrong {
+    animation: none;
+}
+
+@media (max-width: 575.98px) {
+    .rf-riddle-try {
+        flex-direction: column;
+    }
+}
+
+/* ===== Backstory assistant of the wizard ===== */
+.rf-bg-assistant {
+    margin-top: 24px;
+    padding: 16px;
+    border: 1px solid var(--rf-border-subtle);
+    border-radius: 16px;
+    background: var(--rf-bg-card);
+}
+
+.rf-bg-assistant-head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+}
+
+.rf-bg-assistant-head .rf-wizard-block-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.rf-bg-ideas {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 16px;
+    margin-top: 16px;
+}
+
+.rf-bg-idea {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 16px;
+    border: 1px solid var(--rf-border-light);
+    border-radius: 16px;
+    background: var(--rf-bg-surface);
+    transition: border-color 0.2s, box-shadow 0.2s;
+    animation: rf-bg-idea-in 0.35s ease-out both;
+}
+
+.rf-bg-idea:nth-child(2) { animation-delay: 0.08s; }
+.rf-bg-idea:nth-child(3) { animation-delay: 0.16s; }
+
+@keyframes rf-bg-idea-in {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: none; }
+}
+
+.rf-bg-idea.chosen {
+    border-color: var(--rf-orange-primary);
+    box-shadow: 0 0 16px var(--rf-orange-glow);
+}
+
+.rf-bg-idea-theme {
+    align-self: flex-start;
+    padding: 0 8px;
+    border-radius: 8px;
+    background: rgba(255, 140, 0, 0.14);
+    color: var(--rf-orange-primary);
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.rf-bg-idea-story {
+    margin: 0;
+    font-size: 0.9rem;
+    color: var(--rf-text-secondary);
+}
+
+.rf-bg-idea dl {
+    margin: 0;
+    font-size: 0.85rem;
+}
+
+.rf-bg-idea dt {
+    color: var(--rf-text-muted);
+    font-weight: 600;
+}
+
+.rf-bg-idea dd {
+    margin: 0 0 8px;
+}
+
+.rf-bg-idea .btn {
+    margin-top: auto;
+    align-self: flex-start;
+}
+
+html.rf-fx-off .rf-bg-idea { animation: none; }
+
+@media (max-width: 991.98px) {
+    .rf-bg-ideas { grid-template-columns: 1fr; }
+}
+
+/* ===== Backstory assistant: the conversation ===== */
+.rf-bg-engine {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    margin-top: 16px;
+}
+
+.rf-bg-engine-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 0 8px;
+    border-radius: 8px;
+    background: var(--rf-bg-surface);
+    color: var(--rf-text-secondary);
+    font-size: 0.8rem;
+    font-weight: 600;
+}
+
+.rf-bg-engine-badge.ready {
+    background: rgba(25, 135, 84, 0.18);
+    color: #6fd3a1;
+}
+
+.rf-bg-progress {
+    flex: 1 1 200px;
+    height: 8px;
+    border-radius: 4px;
+    background: var(--rf-bg-surface);
+    overflow: hidden;
+}
+
+.rf-bg-progress > div {
+    height: 100%;
+    background: var(--rf-orange-primary);
+    transition: width 0.3s;
+}
+
+.rf-bg-chat {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    max-height: 400px;
+    margin-top: 16px;
+    padding: 8px;
+    overflow-y: auto;
+    border: 1px solid var(--rf-border-subtle);
+    border-radius: 16px;
+    background: var(--rf-bg-main);
+}
+
+.rf-bg-chat-empty {
+    padding: 8px;
+    color: var(--rf-text-muted);
+    font-style: italic;
+}
+
+.rf-bg-msg {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+    max-width: 88%;
+    padding: 8px 16px;
+    border-radius: 16px;
+    background: var(--rf-bg-surface);
+    animation: rf-bg-idea-in 0.25s ease-out both;
+}
+
+.rf-bg-msg.mine {
+    align-self: flex-end;
+    background: rgba(255, 140, 0, 0.14);
+    border-bottom-right-radius: 4px;
+}
+
+.rf-bg-msg.theirs {
+    align-self: flex-start;
+    border-bottom-left-radius: 4px;
+}
+
+.rf-bg-msg.writing .rf-bg-msg-text::after {
+    content: "▍";
+    margin-left: 2px;
+    animation: rf-bg-caret 1s steps(1) infinite;
+}
+
+@keyframes rf-bg-caret {
+    50% { opacity: 0; }
+}
+
+.rf-bg-msg-text {
+    white-space: pre-wrap;
+    font-size: 0.92rem;
+    color: var(--rf-text-primary);
+}
+
+.rf-bg-chat-input {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-top: 8px;
+}
+
+.rf-bg-chat-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 8px;
+}
+
+html.rf-fx-off .rf-bg-msg { animation: none; }
+
+@media (max-width: 575.98px) {
+    .rf-bg-msg { max-width: 100%; }
+    .rf-bg-chat { max-height: 50vh; }
 }

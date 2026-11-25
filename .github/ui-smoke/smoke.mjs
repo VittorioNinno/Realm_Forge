@@ -33,14 +33,26 @@ const ok = (name) => { results.push(`OK ${name}`); };
 const characterAudits = [];
 const phoneWide = [];
 
-const browser = await chromium.launch();
+// WebGL by software (SwiftShader): the 3D dice are drawn in the headless browser too
+const browser = await chromium.launch({ args: ['--enable-unsafe-swiftshader', '--use-angle=swiftshader'] });
 // Explicit context: the e-mail confirmation test opens a second tab in the same browser session
 const context = await browser.newContext();
 const page = await context.newPage();
 const consoleErrors = [];
-page.on('console', (m) => { if (m.type() === 'error' || m.type() === 'warning') consoleErrors.push(m.text()); });
+// A resource that failed is reported by its address (from the responses below), not by the browser's generic line
+page.on('console', (m) => {
+  if ((m.type() === 'error' || m.type() === 'warning') && !m.text().startsWith('Failed to load resource')) consoleErrors.push(m.text());
+});
 const authCalls = [];
-page.on('response', (r) => { if (r.url().includes('/api/auth/')) authCalls.push(`${r.request().method()} ${new URL(r.url()).pathname} -> ${r.status()}`); });
+const failedResponses = new Map();
+
+page.on('response', (r) => {
+  if (r.url().includes('/api/auth/')) authCalls.push(`${r.request().method()} ${new URL(r.url()).pathname} -> ${r.status()}`);
+  if (r.status() >= 400) {
+    const key = `${r.status()} ${r.request().method()} ${new URL(r.url()).pathname.replace(/[0-9a-f]{8}-[0-9a-f-]{27}/gi, '{id}')}`;
+    failedResponses.set(key, (failedResponses.get(key) ?? 0) + 1);
+  }
+});
 
 try {
   await page.goto(`${base}/feats`);
@@ -906,6 +918,18 @@ try {
   const fixGone = await page.locator('[data-test=wizard-class-skill-fix]').count();
   if (knownBeforeBackground !== 0 || fixGone !== 0) throw new Error(`skill overlap not handled: known before background=${knownBeforeBackground} fix still shown=${fixGone}`);
   ok('wizard skills: the preselected background does not lock class skills, an overlap is re-picked in the background step');
+  // The backstory assistant: an idea of the player, an answer that builds on it (the rule-based assistant in automated
+  // browsers), the answer added to the story and the personality filled from the conversation
+  await page.locator('[data-test=background-chat-input]').fill('Mio fratello Aldric è sparito nella foresta e la mia famiglia mi incolpa.');
+  await page.locator('[data-test=background-chat-send]').click();
+  await page.locator('[data-test=background-msg-assistant]').first().waitFor({ timeout: 15000 });
+  const assistantAnswer = (await page.locator('[data-test=background-msg-assistant]').first().innerText()).trim();
+  if (!/Aldric/.test(assistantAnswer) || !assistantAnswer.includes('?')) throw new Error(`the assistant did not build on the idea: ${assistantAnswer}`);
+  await page.locator('[data-test=background-msg-use]').first().click();
+  await page.locator('[data-test=background-fill]').click();
+  await page.locator('[data-test=background-notice]').waitFor({ timeout: 15000 });
+  await shot(page, 'wizard-backstory-chat', '[data-test=background-assistant]');
+  ok('wizard background: the assistant answers the player\'s idea, its answer goes into the story');
   await page.locator('[data-test=wizard-feat-list]').waitFor({ timeout: 15000 });
   await nextOption('wizard-feat-list');
   await nextOption('wizard-feat-ability');
@@ -953,6 +977,9 @@ try {
   await next();
 
   await wizardStep('details');
+  const assistedStory = (await page.locator('[data-test=wizard-detail-backstory]').inputValue()).trim();
+  if (!assistedStory.includes('Eroe di prova')) throw new Error(`the assistant's answer did not reach the details: ${assistedStory}`);
+  ok('wizard details: the answer added in the background step fills the backstory');
   await page.locator('[data-test=wizard-suggest-all]').click();
   const suggestedTraits = (await page.locator('[data-test=wizard-detail-traits]').inputValue()).trim();
   const suggestedStory = (await page.locator('[data-test=wizard-detail-backstory]').inputValue()).trim();
@@ -1394,9 +1421,27 @@ try {
   await page.locator('[data-test=campaign-tab-notes]').click();
   await page.locator('[data-test=campaign-note-new]').click();
   await page.locator('[data-test=campaign-note-title]').fill('Sessione 1');
-  await page.locator('[data-test=campaign-note-body]').fill('Il gruppo parte da Valdoras.');
+  // Typing @ offers the campaign's characters; the master's secrets go in their own box
+  await page.locator('[data-test=campaign-note-body]').fill('Il gruppo parte da Valdoras con ');
+  await page.locator('[data-test=campaign-note-body]').press('End');
+  await page.keyboard.type('@');
+  await page.locator('[data-test=mention-option]').first().waitFor({ timeout: 15000 }).catch(async (error) => {
+    // What the page knows when no suggestion shows: the mentions of the campaign and the field
+    const probe = await page.evaluate(async (apiBase) => {
+      const token = JSON.parse(localStorage.getItem('realmforge.auth') ?? '{}').AccessToken;
+      const id = location.pathname.split('/').pop();
+      const res = await fetch(`${apiBase}/api/campaigns/${id}/mentions?lang=2`, { headers: { Authorization: `Bearer ${token}` } });
+      const box = document.querySelector('[data-test=campaign-note-body]');
+      return { status: res.status, body: (await res.text()).slice(0, 300), value: box?.value, caret: box?.selectionStart, tag: box?.tagName, mention: typeof window.rfMention };
+    }, 'http://localhost:5080').catch(e => ({ probeError: String(e) }));
+    throw new Error(`no mention suggestions: ${JSON.stringify(probe)} | ${error.message.split('\n')[0]}`);
+  });
+  await page.locator('[data-test=mention-option]').first().click();
+  await page.locator('[data-test=campaign-note-secret]').fill('Valdoras è già caduta.');
   await page.locator('[data-test=campaign-note-save]').click();
   await page.locator('[data-test=campaign-note]', { hasText: 'Sessione 1' }).waitFor({ timeout: 15000 });
+  campaignUi.mentions = await page.locator('[data-test=campaign-note-text] .rf-mention').count();
+  campaignUi.secrets = await page.locator('[data-test=campaign-note-secret-view]').count();
   campaignUi.notes = await page.locator('[data-test=campaign-note]').count();
   campaignUi.noteKinds = (await page.locator('[data-test=campaign-notes-kinds] .rf-pill-btn').allInnerTexts()).map((t) => t.trim()).join(',');
   await shot(page, 'campaign-notes', 'main');
@@ -1419,6 +1464,34 @@ try {
   await page.locator('[data-test=shop-item]').waitFor({ timeout: 15000 });
   campaignUi.shopCost = (await page.locator('[data-test=shop-item-cost]').first().innerText()).trim();
   await shot(page, 'campaign-shops', 'main');
+  // The party's chest: a gem put in, its value shown
+  await page.locator('[data-test=campaign-tab-treasure]').click();
+  await page.locator('[data-test=treasure-free]').click();
+  await page.locator('[data-test=treasure-free-name]').fill('Rubino');
+  await page.locator('[data-test=treasure-free-value]').fill('50');
+  await page.locator('[data-test=treasure-free-save]').click();
+  await page.locator('[data-test=treasure-item]').waitFor({ timeout: 15000 });
+  campaignUi.treasure = (await page.locator('[data-test=treasure-item]').first().innerText()).replace(/\s+/g, ' ').trim();
+  await shot(page, 'campaign-treasure', 'main');
+  // Progress clocks and factions: a clock filled twice, a faction made friendlier
+  await page.locator('[data-test=campaign-tab-progress]').click();
+  await page.locator('[data-test=clock-name]').fill('Il rituale');
+  await page.locator('[data-test=clock-add]').click();
+  await page.locator('[data-test=clock]').waitFor({ timeout: 15000 });
+  for (let step = 0; step < 2; step++) {
+    await page.locator('[data-test=clock-plus]').first().click();
+    await page.waitForFunction((n) => document.querySelector('[data-test=clock-filled]')?.textContent?.trim().startsWith(`${n} `), step + 1, { timeout: 15000 });
+  }
+  await page.locator('[data-test=faction-name]').fill('Gilda dei ladri');
+  await page.locator('[data-test=faction-add]').click();
+  await page.locator('[data-test=faction]').waitFor({ timeout: 15000 });
+  await page.locator('[data-test=faction-plus]').first().click();
+  await page.locator('[data-test=faction-prices]').waitFor({ timeout: 15000 });
+  campaignUi.progress = {
+    clock: (await page.locator('[data-test=clock-filled]').first().innerText()).replace(/\s+/g, ' ').trim(),
+    standing: (await page.locator('[data-test=faction-standing]').first().innerText()).trim()
+  };
+  await shot(page, 'campaign-progress', 'main');
   // An encounter: three goblins and the party, its difficulty, the fight starts and the turn moves on
   await page.locator('[data-test=campaign-tab-encounters]').click();
   await page.locator('[data-test=encounter-new-name]').fill('Imboscata');
@@ -1569,11 +1642,14 @@ try {
   await page.mouse.move(...at(140, 175), { steps: 3 });
   await page.mouse.move(...at(200, 205), { steps: 3 });
   await page.mouse.up();
+  await shot(page, 'map-editor-walls', 'body');
   await page.locator('[data-test=map-terrain-cell][data-kind=Wall]').nth(1).waitFor({ timeout: 15000 });
   await page.locator('[data-test=map-brush-difficult]').click();
   await page.locator('[data-test=map-shape-cell]').click();
   await page.mouse.click(...at(455, 315));
   await page.locator('[data-test=map-terrain-cell][data-kind=Difficult]').waitFor({ timeout: 15000 });
+  // The counter follows the save of the brush: wait for it rather than read it in the same frame
+  await page.waitForFunction(() => /Difficili: 1/.test(document.querySelector('[data-test=map-zone-counts]')?.textContent ?? ''), null, { timeout: 15000 }).catch(() => {});
   const zoneUi = {
     walls: await page.locator('[data-test=map-terrain-cell][data-kind=Wall]').count(),
     difficult: await page.locator('[data-test=map-terrain-cell][data-kind=Difficult]').count(),
@@ -1960,6 +2036,10 @@ try {
   await page.locator('[data-test=vtt-combat-bar]').waitFor({ timeout: 15000 });
   combatUi.aimSelf = await page.locator('.rf-vtt-token.aim-self').count();
   combatUi.aimLit = await page.locator('.rf-vtt-token.aim-in, .rf-vtt-token.aim-far, .rf-vtt-token.aim-out').count();
+  // Each possible target tells its distance (in metres), shown under the pointer
+  const aimTarget = page.locator('[data-test=vtt] [data-test=map-token][data-label="Goblin 3"]');
+  await aimTarget.hover();
+  combatUi.aimTag = (await aimTarget.locator('[data-test=map-aim-tag]').innerText().catch(() => '')).trim();
   await shot(page, 'vtt-aim', null);
   await page.locator('[data-test=vtt] [data-test=map-token][data-label="Goblin 3"]').click();
   await page.waitForTimeout(1500);
@@ -2002,7 +2082,7 @@ try {
   await page.mouse.up();
   results.push(`INFO vtt combat: ${JSON.stringify(combatUi)}`);
   if (combatUi.combatants !== 4 || combatUi.tokens !== 5 || combatUi.current !== 1 || !/^Round\s+\d+$/i.test(combatUi.round) || !combatUi.turnMoved
-    || combatUi.aimSelf !== 1 || combatUi.aimLit < 1 || combatUi.lootTab !== 1 || combatUi.ground?.take !== 1 || combatUi.ground?.back !== 1 || !(combatUi.ground?.stats >= 2)
+    || combatUi.aimSelf !== 1 || combatUi.aimLit < 1 || !/^[0-9]+(,[0-9])? m/.test(combatUi.aimTag ?? '') || combatUi.lootTab !== 1 || combatUi.ground?.take !== 1 || combatUi.ground?.back !== 1 || !(combatUi.ground?.stats >= 2)
     || combatUi.rollTray !== 1 || combatUi.sheetAttacks < 1 || !combatUi.sheetTabs.startsWith('general,actions') || !/ 2\/\d+$/.test(combatUi.sheetHp ?? '') || combatUi.sheetAbilities !== 6 || combatUi.goblinConditions !== 'Prn' || combatUi.goblinRing !== '28.57 100' || !/^3 \/ \d+(,\d)? m$/.test(combatUi.moveLabel ?? '')) throw new Error(`unexpected combat: ${JSON.stringify(combatUi)}`);
   ok('virtual tabletop combat: the encounter started on the map (four in the initiative order, tokens for the goblins), the turn passed on, a goblin knocked prone and down to 2 hit points with its initiative rolled from its card, the fight ended, the hero\'s move showing 3 m against its speed');
   // The initiative bar: a fight asked with the tokens on the map, the hero rolls its own initiative, a goblin leaves the
@@ -2165,6 +2245,38 @@ try {
   await page.locator('[data-test=campaign-delete]').click();
   await page.locator('[data-test=campaign-confirm-yes]').click();
   await page.waitForURL(/\/campaigns$/, { timeout: 15000 });
+  // The 3D dice: switched on for this test (automated browsers keep the flat dice), a test throw lands on the screen
+  await page.goto(`${base}/account`);
+  await page.evaluate(() => localStorage.setItem('rf-dice3d-test', '1'));
+  await page.reload();
+  await page.locator('[data-test=account-dice3d]').waitFor({ timeout: 30000 });
+  await page.locator('[data-test=dice3d-test]').waitFor({ timeout: 15000 });
+  const dice3dUnavailable = await page.locator('[data-test=dice3d-unavailable]').count();
+  if (dice3dUnavailable === 0) {
+    await page.locator('[data-test=dice3d-color]').nth(4).click();
+    await page.locator('[data-test=dice3d-test]').click();
+    await page.locator('#rf-dice3d.shown canvas').waitFor({ timeout: 30000 });
+    await page.waitForTimeout(3500);
+    await shot(page, 'dice3d');
+    const saved = await page.evaluate(() => JSON.parse(localStorage.getItem('rf-dice3d') || '{}').color);
+    if (saved !== 'emerald') throw new Error(`the dice colour was not kept: ${saved}`);
+    ok('3D dice: the colour is kept on the device, a test throw draws the dice over the page');
+  } else {
+    results.push('INFO 3D dice: no WebGL in this browser, the flat dice stay');
+  }
+  await page.evaluate(() => localStorage.removeItem('rf-dice3d-test'));
+  // Visual effects: switched off they stop the flashes on the whole page; full again, a preview bursts on the canvas
+  await page.locator('[data-test=account-fx]').waitFor({ timeout: 15000 });
+  await page.locator('[data-test=fx-level]').nth(2).click();
+  const fxOff = await page.evaluate(() => document.documentElement.classList.contains('rf-fx-off'));
+  await page.locator('[data-test=fx-level]').nth(0).click();
+  const fxOn = await page.evaluate(() => !document.documentElement.classList.contains('rf-fx-off') && localStorage.getItem('rf-fx') === 'full');
+  await page.locator('[data-test=fx-preview]').first().click();
+  const fxCanvas = await page.locator('canvas.rf-fx-layer').count();
+  await page.waitForTimeout(250);
+  await shot(page, 'fx-preview');
+  if (!fxOff || !fxOn || fxCanvas !== 1) throw new Error(`visual effects: off ${fxOff}, full ${fxOn}, canvas ${fxCanvas}`);
+  ok('visual effects: off stops the flashes, full again bursts particles on the canvas');
   // The bin: the deleted campaign is there, restored it opens again; deleted again, it is purged for good
   await page.goto(`${base}/account`);
   await page.locator('[data-test=account-trash-open]').click();
@@ -2187,7 +2299,7 @@ try {
   await binRow.waitFor({ state: 'detached', timeout: 15000 });
   campaignUi.purged = true;
   results.push(`INFO campaign: ${JSON.stringify(campaignUi)}`);
-  if (campaignUi.role !== 'Master' || !campaignUi.link || campaignUi.share !== 1 || campaignUi.notes !== 1 || campaignUi.shopCost !== '25 mo' || campaignUi.clock !== 'Giorno 1 · 09:00'
+  if (campaignUi.role !== 'Master' || !campaignUi.link || campaignUi.share !== 1 || campaignUi.notes !== 1 || campaignUi.shopCost !== '25 mo' || !/Rubino.*50 mo/.test(campaignUi.treasure ?? '') || campaignUi.mentions !== 1 || campaignUi.secrets !== 1 || campaignUi.progress?.clock !== '2 / 6' || campaignUi.progress?.standing !== 'Cordiale' || campaignUi.clock !== 'Giorno 1 · 09:00'
     || campaignUi.combatants !== 4 || campaignUi.goblins !== 3 || !campaignUi.hero || campaignUi.sheetLink !== 1 || !/^(Facile|Medio|Difficile|Mortale)$/.test(campaignUi.rating) || campaignUi.current !== 1
     || campaignUi.binKind !== 'CAMPAGNA' || !campaignUi.restored || !campaignUi.purged
     || campaignUi.cardButtons !== 0 || !campaignUi.cardOpens || campaignUi.listActions !== 2 || !campaignUi.toggled || campaignUi.noteKinds !== 'Diario di viaggio,Personali,Per i master' || campaignUi.leftFromSheet !== 1
@@ -2440,6 +2552,12 @@ try {
   for (const r of results.filter((r) => r.startsWith('INFO character'))) console.log(`::notice title=character::${r.slice(0, 2000)}`);
   for (const r of results.filter((r) => r.startsWith('FAIL') || r.startsWith('DEBUG'))) console.log(`::error title=ui-fail::${r.slice(0, 2000)}`);
   for (const c of consoleErrors.slice(0, 5)) console.log(`::warning title=ui-console::${c.slice(0, 200)}`);
+  // The refusals the checks ask for on purpose (wrong password, an admin page for a player, sharing with nobody) are
+  // logged; anything else that failed is a warning
+  const expected = /^(400 DELETE \/api\/account|400 POST \/api\/auth\/manage\/info|403 GET \/api\/admin\/stats|404 POST \/api\/characters\/\{id\}\/shares)$/;
+  for (const [key, count] of failedResponses) {
+    console.log(expected.test(key) ? `expected refusal: ${key} ×${count}` : `::warning title=ui-failed-response::${key} ×${count}`);
+  }
   await browser.close();
   if (results.some((r) => r.startsWith('FAIL'))) process.exit(1);
 }

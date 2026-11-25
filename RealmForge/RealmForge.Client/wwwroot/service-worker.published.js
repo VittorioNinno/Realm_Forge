@@ -15,7 +15,8 @@ const cacheNamePrefix = 'offline-cache-';
 const cacheName = `${cacheNamePrefix}${self.assetsManifest.version}`;
 const apiCacheName = 'rf-api-v1';
 const offlineAssetsInclude = [/\.dll$/, /\.pdb$/, /\.wasm/, /\.html/, /\.js$/, /\.json$/, /\.css$/, /\.woff2?$/, /\.png$/, /\.jpe?g$/, /\.gif$/, /\.ico$/, /\.blat$/, /\.dat$/, /\.webmanifest$/];
-const offlineAssetsExclude = [/^service-worker\.js$/];
+// The backstory assistant's language model library (7 MB) is fetched only by who opens the assistant, not installed by all
+const offlineAssetsExclude = [/^service-worker\.js$/, /^lib\/webllm\//];
 const base = '/';
 const baseUrl = new URL(base, self.origin);
 const manifestUrlList = self.assetsManifest.assets.map(asset => new URL(asset.url, baseUrl).href);

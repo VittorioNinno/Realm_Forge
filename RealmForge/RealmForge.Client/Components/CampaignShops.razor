@@ -18,7 +18,21 @@
     {
         @if (draft is null)
         {
-            <button type="button" class="btn btn-sm btn-rf-orange mb-3" @onclick="New" data-test="shop-new">+ @UiText.ShopNew(Lang)</button>
+            <div class="rf-shop-generate mb-3">
+                <button type="button" class="btn btn-sm btn-rf-orange" @onclick="New" data-test="shop-new">+ @UiText.ShopNew(Lang)</button>
+                <span class="small" style="color: var(--rf-text-muted);">@UiText.ShopOr(Lang)</span>
+                <select class="rf-form-control" @bind="generateKind" aria-label="@UiText.ShopGenerateKind(Lang)" data-test="shop-generate-kind">
+                    @foreach (var kindOption in Enum.GetValues<ShopKind>())
+                    {
+                        <option value="@kindOption">@UiText.ShopKindName(kindOption, Lang)</option>
+                    }
+                </select>
+                <button type="button" class="btn btn-sm btn-rf-outline" disabled="@busy" title="@UiText.ShopGenerateHint(Lang)" @onclick="GenerateAsync" data-test="shop-generate"><Icon Name="dice" /> @UiText.ShopGenerate(Lang)</button>
+            </div>
+            @if (error is not null)
+            {
+                <div class="small text-warning mb-3" role="alert">@error</div>
+            }
         }
         else
         {
@@ -43,6 +57,19 @@
                         <span class="rf-form-label mb-0">@UiText.ShopPercent(Lang)</span>
                         <input type="number" class="rf-form-control" min="0" max="1000" step="5" @bind="draft.PricePercent" data-test="shop-percent" />
                     </label>
+                    @if (factions.Count > 0)
+                    {
+                        <label class="d-flex flex-column gap-1">
+                            <span class="rf-form-label mb-0">@UiText.ShopFaction(Lang)</span>
+                            <select class="rf-form-control" value="@(draft.FactionId?.ToString() ?? string.Empty)" @onchange="PickFaction" data-test="shop-faction">
+                                <option value="">@UiText.ShopNoFaction(Lang)</option>
+                                @foreach (var shopFaction in factions)
+                                {
+                                    <option value="@shopFaction.Id">@shopFaction.Name</option>
+                                }
+                            </select>
+                        </label>
+                    }
                     <label class="form-check d-flex align-items-center gap-2 mb-0">
                         <input type="checkbox" class="form-check-input" @bind="draft.Open" data-test="shop-open" />
                         <span>@UiText.ShopOpen(Lang)</span>
@@ -89,7 +116,11 @@
                         <span class="rf-handout-row-text">
                             <strong>@shop.Name</strong>
                             <span class="small">
-                                @UiText.ShopPercentBadge(shop.PricePercent, Lang)
+                                @UiText.ShopPercentBadge(shop.EffectivePercent ?? shop.PricePercent, Lang)
+                                @if (shop.Faction is { } shopFactionName)
+                                {
+                                    <text> · </text><span data-test="shop-faction-name"><Icon Name="flag" /> @shopFactionName</span>
+                                }
                                 @if (Runs)
                                 {
                                     <text> · @(shop.Open ? UiText.ShopOpen(Lang) : UiText.ShopClosed(Lang))</text>
@@ -270,6 +301,8 @@
     }
 
     private CampaignShopsDto? data;
+    private List<FactionDto> factions = new();
+    private ShopKind generateKind = ShopKind.Tavern;
     private SaveCampaignShopDto? draft;
     private Guid? editingId;
     private bool busy;
@@ -304,7 +337,33 @@
         }
     }
 
-    private async Task LoadAsync() => data = await Campaigns.GetShopsAsync(CampaignId, Lang) ?? new CampaignShopsDto(new(), new());
+    private async Task LoadAsync()
+    {
+        data = await Campaigns.GetShopsAsync(CampaignId, Lang) ?? new CampaignShopsDto(new(), new());
+        if (Runs)
+        {
+            factions = (await Campaigns.GetProgressAsync(CampaignId))?.Factions ?? new();
+        }
+    }
+
+    //	A procedural shop of the kind chosen, closed until the master opens it
+    private async Task GenerateAsync()
+    {
+        busy = true;
+        var (made, failure) = await Campaigns.GenerateShopAsync(CampaignId, new GenerateShopDto { Kind = generateKind }, Lang);
+        busy = false;
+        notice = made is null ? null : UiText.ShopGenerated(made.Name, made.Items.Count, Lang);
+        error = made is null ? failure ?? UiText.ShopFailed(Lang) : null;
+        await LoadAsync();
+    }
+
+    private void PickFaction(ChangeEventArgs e)
+    {
+        if (draft is not null)
+        {
+            draft.FactionId = Guid.TryParse(e.Value?.ToString(), out var picked) ? picked : null;
+        }
+    }
 
     private static string Gp(int copper) => (copper / 100m).ToString("0.##", CultureInfo.InvariantCulture);
 
@@ -332,7 +391,7 @@
         {
             NameIt = s.NameIt ?? string.Empty, NameEn = s.NameEn ?? string.Empty,
             DescriptionIt = s.DescriptionIt ?? string.Empty, DescriptionEn = s.DescriptionEn ?? string.Empty,
-            PricePercent = s.PricePercent, Open = s.Open
+            PricePercent = s.PricePercent, Open = s.Open, FactionId = s.FactionId
         };
         editingId = s.Id;
         error = null;
@@ -371,7 +430,7 @@
         {
             NameIt = s.NameIt ?? string.Empty, NameEn = s.NameEn ?? string.Empty,
             DescriptionIt = s.DescriptionIt ?? string.Empty, DescriptionEn = s.DescriptionEn ?? string.Empty,
-            PricePercent = s.PricePercent, Open = !s.Open
+            PricePercent = s.PricePercent, Open = !s.Open, FactionId = s.FactionId
         });
         busy = false;
         await LoadAsync();

@@ -40,7 +40,14 @@ namespace RealmForge.Domain.Entities
 		public Guid? SoundTrackId { get; set; }
 		public DateTimeOffset? SoundTrackAt { get; set; }
 		public Guid? SoundCueId { get; set; }
+
+		//	The party's chest: the coins not shared out yet (JSON of a CoinPurse)
+		public string? TreasureCoins { get; set; }
 		public DateTimeOffset? SoundCueAt { get; set; }
+		//	The ambience loops of the sound scene playing (ids of CampaignSound, comma separated) and the scene itself;
+		//	they start with the track (SoundTrackAt)
+		public string? SoundLayers { get; set; }
+		public Guid? SoundSceneId { get; set; }
 
 		public ICollection<CampaignMember> Members { get; set; } = new List<CampaignMember>();
 		public ICollection<CampaignInvite> Invites { get; set; } = new List<CampaignInvite>();
@@ -104,6 +111,9 @@ namespace RealmForge.Domain.Entities
 		public int StrikeKind { get; set; }
 		public int? StrikeDamage { get; set; }
 
+		//	Its damage type in English ("fire"), for the colour of the effect
+		public string? StrikeType { get; set; }
+
 		//	The saving throws a spell asks for, waiting for their rolls (JSON of MapSaveCall)
 		public string? SaveCalls { get; set; }
 		public DateTimeOffset? StrikeAt { get; set; }
@@ -157,14 +167,87 @@ namespace RealmForge.Domain.Entities
 
 		//	When it was shown to the players (null: still hidden)
 		public DateTimeOffset? RevealedAt { get; set; }
+
+		//	A riddle or a cipher to solve: the answers accepted ("|" between them), the door (a prop token) it opens, and
+		//	who solved it and when
+		public string? PuzzleAnswer { get; set; }
+		public Guid? PuzzleDoorId { get; set; }
+		public DateTimeOffset? SolvedAt { get; set; }
+		public string? SolvedBy { get; set; }
 		public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
 		public DateTimeOffset UpdatedAt { get; set; } = DateTimeOffset.UtcNow;
+	}
+
+	///	<summary>
+	///	A progress clock (4, 6, 8 or 12 segments): a threat or a goal that fills by hand or every few hours of game time
+	///	(TickHours); the players see it when Shown.
+	///	</summary>
+	public class CampaignProgressClock
+	{
+		public Guid Id { get; set; } = Guid.NewGuid();
+		public Guid CampaignId { get; set; }
+		public string Name { get; set; } = string.Empty;
+		public int Segments { get; set; } = 6;
+		public int Filled { get; set; }
+		public bool Shown { get; set; }
+		public string Color { get; set; } = "#ff8c00";
+		public int? TickHours { get; set; }
+		public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
+	}
+
+	///	<summary>
+	///	A faction or a city of the campaign and the party's standing with it, from hostile (-3) to allied (+3).
+	///	</summary>
+	public class CampaignFaction
+	{
+		public Guid Id { get; set; } = Guid.NewGuid();
+		public Guid CampaignId { get; set; }
+		public string Name { get; set; } = string.Empty;
+		public string Description { get; set; } = string.Empty;
+		public int Standing { get; set; }
+		public bool Shown { get; set; } = true;
+		public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
+	}
+
+	///	<summary>
+	///	An item in the party's chest: from the compendium (equipment, a magic item) or free. Until it is identified the
+	///	players see only its Appearance (and the name the masters gave it); it goes to a character's inventory when given.
+	///	</summary>
+	public class CampaignLoot
+	{
+		public Guid Id { get; set; } = Guid.NewGuid();
+		public Guid CampaignId { get; set; }
+		public Guid? EquipmentId { get; set; }
+		public Guid? MagicItemId { get; set; }
+		public string Name { get; set; } = string.Empty;
+		public string Appearance { get; set; } = string.Empty;
+		public bool Identified { get; set; } = true;
+		public int Quantity { get; set; } = 1;
+		public int? ValueInCopper { get; set; }
+		public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
 	}
 
 	///	<summary>
 	///	A sound of the soundboard: a link to an audio file or stream hosted elsewhere, a track that loops (music,
 	///	ambience) or a one-shot effect, with its volume.
 	///	</summary>
+	///	<summary>
+	///	A sound scene: a track, up to four ambience loops played over it and an effect at the start, all with one click;
+	///	tied to a map, it starts when the master shows that map to the players.
+	///	</summary>
+	public class CampaignSoundScene
+	{
+		public Guid Id { get; set; } = Guid.NewGuid();
+		public Guid CampaignId { get; set; }
+		public string Name { get; set; } = string.Empty;
+		public Guid? TrackId { get; set; }
+		//	Ids of CampaignSound, comma separated
+		public string Layers { get; set; } = string.Empty;
+		public Guid? CueId { get; set; }
+		public Guid? MapId { get; set; }
+		public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
+	}
+
 	public class CampaignSound
 	{
 		public Guid Id { get; set; } = Guid.NewGuid();
@@ -191,6 +274,9 @@ namespace RealmForge.Domain.Entities
 		public string DescriptionIt { get; set; } = string.Empty;
 		public string DescriptionEn { get; set; } = string.Empty;
 		public int PricePercent { get; set; } = 100;
+
+		//	The faction it belongs to: its standing with the party moves the prices
+		public Guid? FactionId { get; set; }
 
 		//	Open: the players see it and buy (closed: behind the screen)
 		public bool Open { get; set; }
@@ -447,6 +533,9 @@ namespace RealmForge.Domain.Entities
 
 		//	Markdown
 		public string Body { get; set; } = string.Empty;
+
+		//	The masters' secrets of a journal page (Markdown): only who runs the table reads and writes them
+		public string? Secret { get; set; }
 		public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
 		public DateTimeOffset UpdatedAt { get; set; } = DateTimeOffset.UtcNow;
 	}

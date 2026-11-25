@@ -20,6 +20,8 @@ namespace RealmForge.Api.Controllers
 	public class SoundsController : ControllerBase
 	{
 		public const int MaxSounds = 60;
+		public const int MaxScenes = 30;
+		public const int MaxLayers = 4;
 
 		private readonly RealmForgeDbContext _context;
 
@@ -39,8 +41,9 @@ namespace RealmForge.Api.Controllers
 				return denied;
 			}
 			var sounds = await _context.CampaignSounds.AsNoTracking().Where(s => s.CampaignId == campaignId).OrderBy(s => s.Effect).ThenBy(s => s.Name).ToListAsync();
-			var playing = await _context.Campaigns.AsNoTracking().Where(c => c.Id == campaignId).Select(c => c.SoundTrackId).FirstAsync();
-			return Ok(new CampaignSoundboardDto(sounds.Select(ToDto).ToList(), playing));
+			var playing = await _context.Campaigns.AsNoTracking().Where(c => c.Id == campaignId).Select(c => new { c.SoundTrackId, c.SoundSceneId }).FirstAsync();
+			var scenes = await _context.CampaignSoundScenes.AsNoTracking().Where(s => s.CampaignId == campaignId).OrderBy(s => s.Name).ToListAsync();
+			return Ok(new CampaignSoundboardDto(sounds.Select(ToDto).ToList(), playing.SoundTrackId, scenes.Select(ToDto).ToList(), playing.SoundSceneId));
 		}
 
 		//	POST: api/campaigns/{campaignId}/sounds
@@ -105,6 +108,13 @@ namespace RealmForge.Api.Controllers
 				campaign.SoundCueId = null;
 				campaign.SoundCueAt = null;
 			}
+			campaign.SoundLayers = JoinIds(SplitIds(campaign.SoundLayers).Where(l => l != id));
+			foreach (var scene in await _context.CampaignSoundScenes.Where(s => s.CampaignId == campaignId).ToListAsync())
+			{
+				scene.TrackId = scene.TrackId == id ? null : scene.TrackId;
+				scene.CueId = scene.CueId == id ? null : scene.CueId;
+				scene.Layers = JoinIds(SplitIds(scene.Layers).Where(l => l != id)) ?? string.Empty;
+			}
 			_context.CampaignSounds.Remove(sound);
 			await WakeTableAsync(campaignId);
 			await _context.SaveChangesAsync();
@@ -130,8 +140,11 @@ namespace RealmForge.Api.Controllers
 			}
 			else
 			{
+				//	A track on its own ends the scene playing
 				campaign.SoundTrackId = sound.Id;
 				campaign.SoundTrackAt = now;
+				campaign.SoundLayers = null;
+				campaign.SoundSceneId = null;
 			}
 			await WakeTableAsync(campaignId);
 			await _context.SaveChangesAsync();
@@ -149,27 +162,141 @@ namespace RealmForge.Api.Controllers
 			var campaign = await _context.Campaigns.FirstAsync(c => c.Id == campaignId);
 			campaign.SoundTrackId = null;
 			campaign.SoundTrackAt = null;
+			campaign.SoundLayers = null;
+			campaign.SoundSceneId = null;
 			await WakeTableAsync(campaignId);
 			await _context.SaveChangesAsync();
 			return NoContent();
+		}
+
+		// ----- Scenes -----
+
+		//	POST: api/campaigns/{campaignId}/sounds/scenes
+		[HttpPost("scenes")]
+		public async Task<ActionResult<SoundSceneDto>> AddScene(Guid campaignId, [FromBody] SaveSoundSceneDto dto)
+		{
+			if (await MasterAsync(campaignId) is { } denied)
+			{
+				return denied;
+			}
+			if (await _context.CampaignSoundScenes.CountAsync(s => s.CampaignId == campaignId) >= MaxScenes)
+			{
+				return Problem(statusCode: StatusCodes.Status400BadRequest, title: $"At most {MaxScenes} scenes per campaign.");
+			}
+			var scene = new CampaignSoundScene { CampaignId = campaignId };
+			if (await ApplyAsync(scene, dto) is { } error)
+			{
+				return error;
+			}
+			_context.CampaignSoundScenes.Add(scene);
+			await _context.SaveChangesAsync();
+			return Ok(ToDto(scene));
+		}
+
+		//	PUT: api/campaigns/{campaignId}/sounds/scenes/{id}
+		[HttpPut("scenes/{id:guid}")]
+		public async Task<IActionResult> UpdateScene(Guid campaignId, Guid id, [FromBody] SaveSoundSceneDto dto)
+		{
+			var (scene, error) = await MastersSceneAsync(campaignId, id);
+			if (scene is null)
+			{
+				return error!;
+			}
+			if (await ApplyAsync(scene, dto) is { } invalid)
+			{
+				return invalid;
+			}
+			await _context.SaveChangesAsync();
+			return NoContent();
+		}
+
+		//	DELETE: api/campaigns/{campaignId}/sounds/scenes/{id} — what it plays goes on until stopped
+		[HttpDelete("scenes/{id:guid}")]
+		public async Task<IActionResult> DeleteScene(Guid campaignId, Guid id)
+		{
+			var (scene, error) = await MastersSceneAsync(campaignId, id);
+			if (scene is null)
+			{
+				return error!;
+			}
+			var campaign = await _context.Campaigns.FirstAsync(c => c.Id == campaignId);
+			if (campaign.SoundSceneId == id)
+			{
+				campaign.SoundSceneId = null;
+			}
+			_context.CampaignSoundScenes.Remove(scene);
+			await _context.SaveChangesAsync();
+			return NoContent();
+		}
+
+		//	POST: api/campaigns/{campaignId}/sounds/scenes/{id}/play — the track, the loops and the effect at once
+		[HttpPost("scenes/{id:guid}/play")]
+		public async Task<IActionResult> PlayScene(Guid campaignId, Guid id)
+		{
+			var (scene, error) = await MastersSceneAsync(campaignId, id);
+			if (scene is null)
+			{
+				return error!;
+			}
+			var campaign = await _context.Campaigns.FirstAsync(c => c.Id == campaignId);
+			Start(campaign, scene);
+			await WakeTableAsync(campaignId);
+			await _context.SaveChangesAsync();
+			return NoContent();
+		}
+
+		//	A scene starts at the table: its track from now (none: silence under the loops), its loops, its effect once
+		public static void Start(Campaign campaign, CampaignSoundScene scene)
+		{
+			var now = DateTimeOffset.UtcNow;
+			campaign.SoundTrackId = scene.TrackId;
+			campaign.SoundTrackAt = now;
+			campaign.SoundLayers = JoinIds(SplitIds(scene.Layers));
+			campaign.SoundSceneId = scene.Id;
+			if (scene.CueId is { } cue)
+			{
+				campaign.SoundCueId = cue;
+				campaign.SoundCueAt = now;
+			}
+		}
+
+		//	The scene tied to a map, started when the map is shown (nothing when none is, or it is already playing)
+		public static async Task StartForMapAsync(RealmForgeDbContext context, Campaign campaign, Guid mapId)
+		{
+			var scene = await context.CampaignSoundScenes.AsNoTracking().Where(s => s.CampaignId == campaign.Id && s.MapId == mapId).OrderBy(s => s.CreatedAt).FirstOrDefaultAsync();
+			if (scene is not null && campaign.SoundSceneId != scene.Id)
+			{
+				Start(campaign, scene);
+			}
+		}
+
+		public static List<Guid> SplitIds(string? ids) =>
+			(ids ?? string.Empty).Split(',', StringSplitOptions.RemoveEmptyEntries).Select(i => Guid.TryParse(i, out var g) ? g : Guid.Empty).Where(g => g != Guid.Empty).Distinct().ToList();
+
+		private static string? JoinIds(IEnumerable<Guid> ids)
+		{
+			var list = ids.Distinct().ToList();
+			return list.Count == 0 ? null : string.Join(',', list);
 		}
 
 		//	What the table plays: the track (with its start) and the last effect (with its moment)
 		public static async Task<MapSoundDto?> StateAsync(RealmForgeDbContext context, Guid campaignId)
 		{
 			var state = await context.Campaigns.AsNoTracking().Where(c => c.Id == campaignId)
-				.Select(c => new { c.SoundTrackId, c.SoundTrackAt, c.SoundCueId, c.SoundCueAt }).FirstOrDefaultAsync();
-			if (state is null || (state.SoundTrackId is null && state.SoundCueId is null))
+				.Select(c => new { c.SoundTrackId, c.SoundTrackAt, c.SoundCueId, c.SoundCueAt, c.SoundLayers }).FirstOrDefaultAsync();
+			var layerIds = SplitIds(state?.SoundLayers);
+			if (state is null || (state.SoundTrackId is null && state.SoundCueId is null && layerIds.Count == 0))
 			{
 				return null;
 			}
-			var ids = new[] { state.SoundTrackId, state.SoundCueId }.OfType<Guid>().ToList();
+			var ids = new[] { state.SoundTrackId, state.SoundCueId }.OfType<Guid>().Concat(layerIds).ToList();
 			var sounds = await context.CampaignSounds.AsNoTracking().Where(s => ids.Contains(s.Id)).ToDictionaryAsync(s => s.Id);
 			var track = state.SoundTrackId is { } t ? sounds.GetValueOrDefault(t) : null;
 			var cue = state.SoundCueId is { } c ? sounds.GetValueOrDefault(c) : null;
 			return new MapSoundDto(
 				track?.Id, track?.Url, track?.Volume ?? 0, track is null ? null : state.SoundTrackAt,
-				cue?.Id, cue?.Url, cue?.Volume ?? 0, cue is null ? null : state.SoundCueAt);
+				cue?.Id, cue?.Url, cue?.Volume ?? 0, cue is null ? null : state.SoundCueAt,
+				layerIds.Select(l => sounds.GetValueOrDefault(l)).OfType<CampaignSound>().Select(l => new MapSoundLayerDto(l.Id, l.Url, l.Volume)).ToList());
 		}
 
 		// ----- Helpers -----
@@ -224,5 +351,39 @@ namespace RealmForge.Api.Controllers
 		}
 
 		private static CampaignSoundDto ToDto(CampaignSound s) => new(s.Id, s.Name, s.Url, s.Effect, s.Volume);
+
+		private static SoundSceneDto ToDto(CampaignSoundScene s) => new(s.Id, s.Name, s.TrackId, SplitIds(s.Layers), s.CueId, s.MapId);
+
+		private async Task<(CampaignSoundScene? Scene, ActionResult? Error)> MastersSceneAsync(Guid campaignId, Guid id)
+		{
+			if (await MasterAsync(campaignId) is { } denied)
+			{
+				return (null, denied);
+			}
+			var scene = await _context.CampaignSoundScenes.FirstOrDefaultAsync(s => s.Id == id && s.CampaignId == campaignId);
+			return scene is null ? (null, NotFound()) : (scene, null);
+		}
+
+		//	A name, sounds of the campaign (a track that loops, up to four loops, an effect) and a map of the campaign
+		private async Task<ActionResult?> ApplyAsync(CampaignSoundScene scene, SaveSoundSceneDto dto)
+		{
+			var name = (dto.Name ?? string.Empty).Trim();
+			var layers = (dto.Layers ?? new()).Distinct().ToList();
+			var wanted = layers.Concat(new[] { dto.TrackId, dto.CueId }.OfType<Guid>()).Distinct().ToList();
+			var sounds = await _context.CampaignSounds.AsNoTracking().Where(s => s.CampaignId == scene.CampaignId && wanted.Contains(s.Id)).ToDictionaryAsync(s => s.Id);
+			var mapOk = dto.MapId is not { } mapId || await _context.CampaignMaps.AnyAsync(m => m.Id == mapId && m.CampaignId == scene.CampaignId);
+			if (name.Length is 0 or > 80 || layers.Count > MaxLayers || sounds.Count != wanted.Count || !mapOk
+				|| (dto.TrackId is { } track && sounds[track].Effect) || (dto.CueId is { } cue && !sounds[cue].Effect)
+				|| (dto.TrackId is null && layers.Count == 0 && dto.CueId is null))
+			{
+				return Problem(statusCode: StatusCodes.Status400BadRequest, title: "A name up to 80 characters, a track, up to four loops and an effect of this campaign, a map of it.");
+			}
+			scene.Name = name;
+			scene.TrackId = dto.TrackId;
+			scene.Layers = JoinIds(layers) ?? string.Empty;
+			scene.CueId = dto.CueId;
+			scene.MapId = dto.MapId;
+			return null;
+		}
 	}
 }

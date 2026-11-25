@@ -860,6 +860,52 @@ jobs:
           ck_hungry=$(curl -s -X POST "$api/api/campaigns/$cp_id/clock" $json -H "Authorization: Bearer $B" -d '{"minutes":2880,"rations":true}' | jq -c --arg c "$sp_ch" '{days, hungry: [.hungry[] | select(.characterId == $c) | .days]}')
           ck_stale=$(curl -s -X PUT "$api/api/characters/$sp_ch/sheet" $json -H "Authorization: Bearer $A" -d "$ck_sheet" | jq -c '{inventory: (.vitals.inventory | length)}')
           ck_set=$(curl -s -X POST "$api/api/campaigns/$cp_id/clock" $json -H "Authorization: Bearer $B" -d '{"set":1230}' | jq .minutes)
+          # The party's chest: coins set by the master, a potion put in unidentified (the players see only its look), identified by a
+          # player and taken for their character (into its inventory, with its magic), the coins shared out
+          tr_player_coins=$(code -X PUT "$api/api/campaigns/$cp_id/treasure/coins" $json -H "Authorization: Bearer $A" -d '{"gp":10}')
+          tr_coins=$(code -X PUT "$api/api/campaigns/$cp_id/treasure/coins" $json -H "Authorization: Bearer $B" -d '{"gp":10,"sp":5,"cp":2}')
+          tr_item=$(curl -s -X POST "$api/api/campaigns/$cp_id/treasure/items" $json -H "Authorization: Bearer $B" -d "{\"magicItemId\":\"$superior\",\"identified\":false,\"name\":\"Fiala rossa\",\"appearance\":\"Un liquido rosso che brilla\"}" | jq -r .id)
+          tr_seen=$(curl -s "$api/api/campaigns/$cp_id/treasure?lang=2" -H "Authorization: Bearer $A" | jq -c '{gp: .coins.gp, item: (.items[0] | {name, identified, entryId, value: .valueInCopper, appearance, trueName})}')
+          tr_master=$(curl -s "$api/api/campaigns/$cp_id/treasure?lang=2" -H "Authorization: Bearer $B" | jq -c '.items[0] | {trueName, value: .valueInCopper}')
+          tr_identify=$(code -X POST "$api/api/campaigns/$cp_id/treasure/items/$tr_item/identify" -H "Authorization: Bearer $A")
+          tr_known=$(curl -s "$api/api/campaigns/$cp_id/treasure?lang=2" -H "Authorization: Bearer $A" | jq -c '.items[0] | {name, kind}')
+          tr_give_other=$(code -X POST "$api/api/campaigns/$cp_id/treasure/items/$tr_item/give" $json -H "Authorization: Bearer $A" -d "{\"characterId\":\"$(uuidgen)\"}")
+          tr_give=$(code -X POST "$api/api/campaigns/$cp_id/treasure/items/$tr_item/give?lang=2" $json -H "Authorization: Bearer $A" -d "{\"characterId\":\"$sp_ch\"}")
+          tr_inventory=$(get "$api/api/characters/$sp_ch" -H "Authorization: Bearer $A" | jq -c '[.sheet.inventory[] | select(.magic != null) | {name, heal: .magic.healDice}]')
+          tr_left=$(curl -s "$api/api/campaigns/$cp_id/treasure" -H "Authorization: Bearer $A" | jq '.items | length')
+          tr_split_player=$(code -X POST "$api/api/campaigns/$cp_id/treasure/split" $json -H "Authorization: Bearer $A" -d "{\"characterIds\":[\"$sp_ch\"]}")
+          tr_split=$(curl -s -X POST "$api/api/campaigns/$cp_id/treasure/split" $json -H "Authorization: Bearer $B" -d "{\"characterIds\":[\"$sp_ch\"]}" | jq -c '{gp: .each.gp, sp: .each.sp, cp: .each.cp, characters}')
+          tr_purse=$(get "$api/api/characters/$sp_ch" -H "Authorization: Bearer $A" | jq -c '.sheet.coins | {gp, sp, cp}')
+          tr_emptied=$(curl -s "$api/api/campaigns/$cp_id/treasure" -H "Authorization: Bearer $A" | jq -c '.coins | {gp, sp, cp}')
+          # Quick generators: a tavern with its menu and a blacksmith stocked from the compendium, both closed
+          gn_player=$(code -X POST "$api/api/campaigns/$cp_id/shops/generate" $json -H "Authorization: Bearer $A" -d '{"kind":6}')
+          gn_bad=$(code -X POST "$api/api/campaigns/$cp_id/shops/generate" $json -H "Authorization: Bearer $B" -d '{"kind":99}')
+          gn_tavern=$(curl -s -X POST "$api/api/campaigns/$cp_id/shops/generate?lang=2" $json -H "Authorization: Bearer $B" -d '{"kind":6,"seed":7}')
+          gn_tavern_view=$(echo "$gn_tavern" | jq -c '{named: (.name | length > 0), open, items: (.items | length), free: ([.items[] | select(.kind == "free")] | length), rumour: (.description | test("mormora"))}')
+          gn_smith=$(curl -s -X POST "$api/api/campaigns/$cp_id/shops/generate?lang=2" $json -H "Authorization: Bearer $B" -d '{"kind":2,"seed":7}')
+          gn_smith_view=$(echo "$gn_smith" | jq -c '{stocked: ([.items[] | select(.kind == "equipment")] | length > 0), priced: ([.items[] | select(.listPrice <= 0)] | length == 0)}')
+          code -X DELETE "$api/api/campaigns/$cp_id/shops/$(echo "$gn_tavern" | jq -r .id)" -H "Authorization: Bearer $B" > /dev/null
+          code -X DELETE "$api/api/campaigns/$cp_id/shops/$(echo "$gn_smith" | jq -r .id)" -H "Authorization: Bearer $B" > /dev/null
+          # Progress clocks and factions: a hidden clock that fills one segment per game hour, a faction whose standing moves the
+          # prices of the shop tied to it
+          pg_player=$(code -X POST "$api/api/campaigns/$cp_id/progress/clocks" $json -H "Authorization: Bearer $A" -d '{"name":"Mio","segments":4}')
+          pg_bad=$(code -X POST "$api/api/campaigns/$cp_id/progress/clocks" $json -H "Authorization: Bearer $B" -d '{"name":"Strano","segments":5}')
+          pg_clock=$(curl -s -X POST "$api/api/campaigns/$cp_id/progress/clocks" $json -H "Authorization: Bearer $B" -d '{"name":"Il rituale","segments":4,"shown":false,"tickHours":1}' | jq -r .id)
+          pg_hidden=$(curl -s "$api/api/campaigns/$cp_id/progress" -H "Authorization: Bearer $A" | jq '.clocks | length')
+          code -X POST "$api/api/campaigns/$cp_id/clock" $json -H "Authorization: Bearer $B" -d '{"minutes":180}' > /dev/null
+          pg_ticked=$(curl -s "$api/api/campaigns/$cp_id/progress" -H "Authorization: Bearer $B" | jq -c '[.clocks[] | {name, filled}]')
+          pg_full=$(curl -s -X POST "$api/api/campaigns/$cp_id/progress/clocks/$pg_clock/step" $json -H "Authorization: Bearer $B" -d '{"delta":5}' | jq .filled)
+          pg_faction=$(curl -s -X POST "$api/api/campaigns/$cp_id/progress/factions" $json -H "Authorization: Bearer $B" -d '{"name":"Gilda dei ladri","standing":-2,"shown":true}' | jq -r .id)
+          pg_shop_bad=$(code -X POST "$api/api/campaigns/$cp_id/shops" $json -H "Authorization: Bearer $B" -d "{\"nameIt\":\"Ricettatore\",\"pricePercent\":100,\"open\":true,\"factionId\":\"$(uuidgen)\"}")
+          pg_shop=$(curl -s -X POST "$api/api/campaigns/$cp_id/shops" $json -H "Authorization: Bearer $B" -d "{\"nameIt\":\"Ricettatore\",\"pricePercent\":100,\"open\":true,\"factionId\":\"$pg_faction\"}" | jq -r .id)
+          code -X POST "$api/api/campaigns/$cp_id/shops/$pg_shop/items" $json -H "Authorization: Bearer $B" -d '{"name":"Grimaldello","priceInCopper":100}' > /dev/null
+          pg_hostile=$(curl -s "$api/api/campaigns/$cp_id/shops" -H "Authorization: Bearer $A" | jq -c --arg s "$pg_shop" '.shops[] | select(.id == $s) | {faction, effectivePercent, price: .items[0].price}')
+          code -X POST "$api/api/campaigns/$cp_id/progress/factions/$pg_faction/step" $json -H "Authorization: Bearer $B" -d '{"delta":4}' > /dev/null
+          pg_friend=$(curl -s "$api/api/campaigns/$cp_id/shops" -H "Authorization: Bearer $A" | jq -c --arg s "$pg_shop" '.shops[] | select(.id == $s) | {effectivePercent, price: .items[0].price}')
+          pg_seen=$(curl -s "$api/api/campaigns/$cp_id/progress" -H "Authorization: Bearer $A" | jq -c '[.factions[] | {name, standing, pricePercent}]')
+          code -X DELETE "$api/api/campaigns/$cp_id/progress/factions/$pg_faction" -H "Authorization: Bearer $B" > /dev/null
+          pg_untied=$(curl -s "$api/api/campaigns/$cp_id/shops" -H "Authorization: Bearer $A" | jq -c --arg s "$pg_shop" '.shops[] | select(.id == $s) | {factionId, effectivePercent}')
+          code -X DELETE "$api/api/campaigns/$cp_id/shops/$pg_shop" -H "Authorization: Bearer $B" > /dev/null
           code -X DELETE "$api/api/campaigns/$cp_id/characters/$sp_ch" -H "Authorization: Bearer $A" > /dev/null
           code -X DELETE "$api/api/characters/$sp_ch" -H "Authorization: Bearer $A" > /dev/null
           code -X DELETE "$api/api/trash/$(get "$api/api/trash?lang=2" -H "Authorization: Bearer $A" | jq -r --arg id "$sp_ch" '.[] | select(.entityId == $id) | .id')" -H "Authorization: Bearer $A" > /dev/null
@@ -968,6 +1014,20 @@ jobs:
           mdcheck "clock: two days without rations" "$ck_hungry" '{"days":2,"hungry":[2]}'
           mdcheck "clock: a sheet saved from before keeps the server's inventory" "$ck_stale" '{"inventory":0}'
           mdcheck "clock: set to a time" "$ck_set" "1230"
+          mdcheck "generators: only masters, known kinds" "$gn_player|$gn_bad" "403|400"
+          mdcheck "generators: a tavern with its menu and a rumour, closed" "$gn_tavern_view" '{"named":true,"open":false,"items":6,"free":6,"rumour":true}'
+          mdcheck "generators: a blacksmith stocked from the compendium" "$gn_smith_view" '{"stocked":true,"priced":true}'
+          mdcheck "progress: only masters add clocks, of 4, 6, 8 or 12 segments" "$pg_player|$pg_bad" "403|400"
+          mdcheck "progress: a hidden clock fills with the game time" "$pg_hidden|$pg_ticked|$pg_full" '0|[{"name":"Il rituale","filled":3}]|4'
+          mdcheck "progress: a hostile faction raises the prices of its shop" "$pg_shop_bad|$pg_hostile" '400|{"faction":"Gilda dei ladri","effectivePercent":125,"price":125}'
+          mdcheck "progress: a friendly faction lowers them" "$pg_friend|$pg_seen" '{"effectivePercent":90,"price":90}|[{"name":"Gilda dei ladri","standing":2,"pricePercent":90}]'
+          mdcheck "progress: a deleted faction leaves its shop at its own prices" "$pg_untied" '{"factionId":null,"effectivePercent":100}'
+          mdcheck "treasure: only masters set the coins" "$tr_player_coins|$tr_coins" "403|204"
+          mdcheck "treasure: unidentified, the players see only its look" "$tr_seen" '{"gp":10,"item":{"name":"Fiala rossa","identified":false,"entryId":null,"value":null,"appearance":"Un liquido rosso che brilla","trueName":null}}'
+          mdcheck "treasure: the masters see what it is" "$tr_master" '{"trueName":"Pozione di guarigione superiore","value":400000}'
+          mdcheck "treasure: identified by a player" "$tr_identify|$tr_known" '204|{"name":"Pozione di guarigione superiore","kind":"magic-item"}'
+          mdcheck "treasure: taken for the player's own character, with its magic" "$tr_give_other|$tr_give|$tr_inventory|$tr_left" '400|204|[{"name":"Pozione di guarigione superiore","heal":"8d4+8"}]|0'
+          mdcheck "treasure: the coins shared out by the masters" "$tr_split_player|$tr_split|$tr_purse|$tr_emptied" '403|{"gp":10,"sp":5,"cp":2,"characters":["Cliente"]}|{"gp":19,"sp":14,"cp":6}|{"gp":0,"sp":0,"cp":0}'
           mdcheck "collections: only the author's own entries" "$cl_not_mine" "400"
           mdcheck "collections: read through the link" "$cl_view" '{"name":"Ambientazione","author":"Bob","isMine":false,"entries":["Raccolta Due","Raccolta Uno"]}'
           mdcheck "collections: all added to the reader's collection" "$cl_before|$cl_collect|$cl_after" "404|2|200"
@@ -1025,6 +1085,16 @@ jobs:
           journal=$(get "$api/api/campaigns/$cp_id/notes" -H "Authorization: Bearer $B" | jq -r '.[] | select(.kind == 3) | .id')
           cp_note_edit_other=$(code -X PUT "$api/api/campaigns/$cp_id/notes/$journal" $json -H "Authorization: Bearer $B" -d '{"kind":3,"title":"x","body":"y"}')
           cp_note_delete=$(code -X DELETE "$api/api/campaigns/$cp_id/notes/$journal" -H "Authorization: Bearer $B")
+          # The journal with @mentions and the masters' secrets: a player reads the page, not the secrets, and cannot write them
+          mn_list=$(get "$api/api/campaigns/$cp_id/mentions?lang=2" -H "Authorization: Bearer $A")
+          mn_char=$(echo "$mn_list" | jq -c '[.[] | select(.kind == "character")] | .[0] | {kind, id}')
+          mn_kinds=$(echo "$mn_list" | jq -c '[.[].kind] | unique | map(select(. == "character" or . == "map"))')
+          mn_body="Incontrano @[Eroe]($(echo "$mn_char" | jq -r '.kind'):$(echo "$mn_char" | jq -r '.id')) alla locanda."
+          mn_note=$(curl -s -X POST "$api/api/campaigns/$cp_id/notes" $json -H "Authorization: Bearer $B" -d "$(jq -n --arg b "$mn_body" '{kind:3,title:"Sessione 2",body:$b,secret:"Il locandiere è un doppelganger."}')" | jq -r .id)
+          mn_player=$(get "$api/api/campaigns/$cp_id/notes" -H "Authorization: Bearer $A" | jq -c --arg n "$mn_note" '.[] | select(.id == $n) | {mention: (.body | contains("@[Eroe](character:")), secret}')
+          mn_master=$(get "$api/api/campaigns/$cp_id/notes" -H "Authorization: Bearer $B" | jq -c --arg n "$mn_note" '.[] | select(.id == $n) | .secret')
+          mn_player_secret=$(curl -s -X POST "$api/api/campaigns/$cp_id/notes" $json -H "Authorization: Bearer $A" -d '{"kind":3,"title":"Mia","body":"x","secret":"Furto"}' | jq -c '.secret')
+          mn_master_kinds=$(get "$api/api/campaigns/$cp_id/mentions?lang=2" -H "Authorization: Bearer $B" | jq -c '[.[] | select(.kind == "note") | .name] | index("Sessione 2") != null')
           cp_promote=$(code -X PUT "$api/api/campaigns/$cp_id/members/$(get "$api/api/campaigns/$cp_id" -H "Authorization: Bearer $B" | jq -r '.members[] | select(.name == "Alice") | .userId')" $json -H "Authorization: Bearer $B" -d '{"role":2}')
           bob_id=$(get "$api/api/campaigns/$cp_id" -H "Authorization: Bearer $B" | jq -r '.members[] | select(.name == "Bob") | .userId')
           cp_comaster_promote=$(code -X PUT "$api/api/campaigns/$cp_id/members/$bob_id" $json -H "Authorization: Bearer $A" -d '{"role":3}')
@@ -1117,6 +1187,11 @@ jobs:
           chcheck "notes written" "$cp_notes_post" "200 200 200 403"
           chcheck "notes of the player" "$cp_notes_alice" "[1,3]"
           chcheck "notes of the master" "$cp_notes_bob" "[2,3]"
+          chcheck "mentions: the characters of the campaign, no maps for a player" "$mn_kinds" '["character"]'
+          chcheck "journal: a player reads the mention, not the secrets" "$mn_player" '{"mention":true,"secret":null}'
+          chcheck "journal: the master reads the secrets" "$mn_master" '"Il locandiere è un doppelganger."'
+          chcheck "journal: a player cannot write secrets" "$mn_player_secret" "null"
+          chcheck "mentions: the pages of the journal" "$mn_master_kinds" "true"
           chcheck "edit someone else's note" "$cp_note_edit_other" "403"
           chcheck "master deletes a journal page" "$cp_note_delete" "204"
           chcheck "promote to co-master" "$cp_promote" "204"
@@ -1359,6 +1434,9 @@ jobs:
           at_player_out=$(code -X POST "$api/api/campaigns/$ss_cp/maps/$mp2/attack?lang=2" $json -H "Authorization: Bearer $A" -d "$(at_body $ctl_tree $at_target 1)")
           at_master=$(curl -s -X POST "$api/api/campaigns/$ss_cp/maps/$mp2/attack?lang=2" $json -H "Authorization: Bearer $B" -d "$(at_body $ctl_tree $at_target 1)" | jq -c '{hit, damage, armorClass, dice: (.dice | length)}')
           at_far=$(code -X POST "$api/api/campaigns/$ss_cp/maps/$mp2/attack?lang=2" $json -H "Authorization: Bearer $B" -d "$(at_body $ctl_tree $at_target 0)")
+          # The effect of the hit on every screen carries its damage type ("fuoco" read as fire)
+          code -X POST "$api/api/campaigns/$ss_cp/maps/$mp2/attack?lang=2" $json -H "Authorization: Bearer $B" -d "$(at_body $ctl_tree $at_target 1 | jq -c '.damageType = "fuoco"')" > /dev/null
+          fx_strike=$(curl -s "$api/api/campaigns/$ss_cp/maps/$mp2/state" -H "Authorization: Bearer $A" | jq -c '.table.strike | {damageType}')
           # A token a player controls deals no damage by itself; an enemy (the master's only) does
           at_hp_ally=$(curl -s "$api/api/campaigns/$ss_cp/maps/$mp2/state" -H "Authorization: Bearer $B" | jq -c '[.tokens[] | select(.label == "Bandito") | .hp]')
           at_enemy=$(curl -s -X POST "$api/api/campaigns/$ss_cp/maps/$mp2/tokens" $json -H "Authorization: Bearer $B" -d '{"label":"Sicario","kind":4,"x":9,"y":5,"size":1}' | jq -r .id)
@@ -1518,10 +1596,39 @@ jobs:
           sb_board=$(curl -s "$api/api/campaigns/$ss_cp/sounds" -H "Authorization: Bearer $B" | jq -c --arg t "$sb_track" '{sounds: (.sounds | length), playing: (.playing == $t)}')
           sb_stop=$(code -X POST "$api/api/campaigns/$ss_cp/sounds/stop" -H "Authorization: Bearer $B")
           sb_after=$(curl -s "$api/api/campaigns/$ss_cp/maps/$mp2/state" -H "Authorization: Bearer $A" | jq -c '.table.sound | {trackUrl, cueUrl}')
+          # Sound scenes: a track, a rain loop over it and a thunder at the start, with one click; tied to the map, showing it starts them
+          sb_rain=$(curl -s -X POST "$api/api/campaigns/$ss_cp/sounds" $json -H "Authorization: Bearer $B" -d '{"name":"Pioggia","url":"https://example.org/pioggia.mp3","volume":40}' | jq -r .id)
+          sn_bad=$(code -X POST "$api/api/campaigns/$ss_cp/sounds/scenes" $json -H "Authorization: Bearer $B" -d "{\"name\":\"Strana\",\"trackId\":\"$sb_cue\"}")
+          sn_player=$(code -X POST "$api/api/campaigns/$ss_cp/sounds/scenes" $json -H "Authorization: Bearer $A" -d "{\"name\":\"Mia\",\"layers\":[\"$sb_rain\"]}")
+          sn=$(curl -s -X POST "$api/api/campaigns/$ss_cp/sounds/scenes" $json -H "Authorization: Bearer $B" -d "{\"name\":\"Taverna sotto la pioggia\",\"trackId\":\"$sb_track\",\"layers\":[\"$sb_rain\"],\"cueId\":\"$sb_cue\",\"mapId\":\"$mp2\"}" | jq -r .id)
+          sn_play=$(code -X POST "$api/api/campaigns/$ss_cp/sounds/scenes/$sn/play" -H "Authorization: Bearer $B")
+          sn_table=$(curl -s "$api/api/campaigns/$ss_cp/maps/$mp2/state" -H "Authorization: Bearer $A" | jq -c '.table.sound | {trackUrl, layers: [.layers[] | {url, volume}], cueUrl}')
+          sn_board=$(curl -s "$api/api/campaigns/$ss_cp/sounds" -H "Authorization: Bearer $B" | jq -c --arg s "$sn" '{scenes: (.scenes | length), playing: (.playingScene == $s)}')
+          code -X POST "$api/api/campaigns/$ss_cp/sounds/stop" -H "Authorization: Bearer $B" > /dev/null
+          sn_stopped=$(curl -s "$api/api/campaigns/$ss_cp/maps/$mp2/state" -H "Authorization: Bearer $A" | jq -c '.table.sound | {trackUrl, layers: (.layers // [] | length)}')
+          code -X POST "$api/api/campaigns/$ss_cp/maps/$mp2/display" -H "Authorization: Bearer $B" > /dev/null
+          sn_shown=$(curl -s "$api/api/campaigns/$ss_cp/maps/$mp2/state" -H "Authorization: Bearer $A" | jq -c '.table.sound | {trackUrl, layers: (.layers | length)}')
+          code -X POST "$api/api/campaigns/$ss_cp/sounds/stop" -H "Authorization: Bearer $B" > /dev/null
+          code -X DELETE "$api/api/campaigns/$ss_cp/sounds/$sb_rain" -H "Authorization: Bearer $B" > /dev/null
+          sn_pruned=$(curl -s "$api/api/campaigns/$ss_cp/sounds" -H "Authorization: Bearer $B" | jq -c '[.scenes[] | .layers | length]')
+          code -X DELETE "$api/api/campaigns/$ss_cp/sounds/scenes/$sn" -H "Authorization: Bearer $B" > /dev/null
           code -X DELETE "$api/api/campaigns/$ss_cp/sounds/$sb_cue" -H "Authorization: Bearer $B" > /dev/null
           sb_gone=$(curl -s "$api/api/campaigns/$ss_cp/maps/$mp2/state" -H "Authorization: Bearer $A" | jq -c .table.sound)
           code -X DELETE "$api/api/campaigns/$ss_cp/sounds/$sb_track" -H "Authorization: Bearer $B" > /dev/null
           ho_master=$(curl -s "$api/api/campaigns/$ss_cp/handouts" -H "Authorization: Bearer $B" | jq -c '[.[] | {titleIt, titleEn}]')
+          # Riddles: a handout with an answer and a locked gate; a player tries a wrong one, then the right one with other accents
+          # and capitals, and the gate opens on the map
+          rd_gate=$(curl -s -X POST "$api/api/campaigns/$ss_cp/maps/$mp2/tokens" $json -H "Authorization: Bearer $B" -d '{"label":"Cancello runico","kind":5,"propType":2,"propState":3,"playersInteract":false,"x":6,"y":6,"size":1,"layer":1}' | jq -r .id)
+          rd_doors=$(curl -s "$api/api/campaigns/$ss_cp/handouts/doors" -H "Authorization: Bearer $B" | jq -c --arg g "$rd_gate" '[.[] | select(.id == $g) | .label]')
+          rd=$(curl -s -X POST "$api/api/campaigns/$ss_cp/handouts?lang=2" $json -H "Authorization: Bearer $B" -d "{\"titleIt\":\"Il buio\",\"bodyIt\":\"Più ce n'è, meno vedi.\",\"puzzleAnswer\":\"buio|oscurità\",\"puzzleDoorId\":\"$rd_gate\"}" | jq -r .id)
+          code -X POST "$api/api/campaigns/$ss_cp/handouts/$rd/reveal" -H "Authorization: Bearer $B" > /dev/null
+          rd_seen=$(curl -s "$api/api/campaigns/$ss_cp/handouts/$rd?lang=2" -H "Authorization: Bearer $A" | jq -c '{puzzle, puzzleAnswer, solvedAt}')
+          rd_wrong=$(curl -s -X POST "$api/api/campaigns/$ss_cp/handouts/$rd/solve" $json -H "Authorization: Bearer $A" -d '{"answer":"luce"}' | jq -c '{solved, door}')
+          rd_right=$(curl -s -X POST "$api/api/campaigns/$ss_cp/handouts/$rd/solve" $json -H "Authorization: Bearer $A" -d '{"answer":"  OSCURITA! "}' | jq -c '{solved, door}')
+          rd_open=$(curl -s "$api/api/campaigns/$ss_cp/maps/$mp2/state" -H "Authorization: Bearer $B" | jq -c --arg g "$rd_gate" '.tokens[] | select(.id == $g) | .propState')
+          rd_solved=$(curl -s "$api/api/campaigns/$ss_cp/handouts/$rd?lang=2" -H "Authorization: Bearer $A" | jq -c '{solved: (.solvedAt != null), by: (.solvedBy != null)}')
+          code -X DELETE "$api/api/campaigns/$ss_cp/handouts/$rd" -H "Authorization: Bearer $B" > /dev/null
+          code -X DELETE "$api/api/campaigns/$ss_cp/maps/$mp2/tokens/$rd_gate" -H "Authorization: Bearer $B" > /dev/null
           # Theater of the mind: the handout in place of the map for the whole table, then back to the map
           sc_player=$(code -X POST "$api/api/campaigns/$ss_cp/handouts/$ho/scene" -H "Authorization: Bearer $A")
           sc_show=$(code -X POST "$api/api/campaigns/$ss_cp/handouts/$ho/scene" -H "Authorization: Bearer $B")
@@ -1768,18 +1875,25 @@ jobs:
           sscheck "drawer: placing undone in one step" "$dr_undo|$dr_after" "tokens|$dr_before"
           sscheck "drawer: group deleted" "$dr_del" "204"
           sscheck "handouts: only masters write them" "$ho_player_add" "403"
+          sscheck "riddles: the gates of the maps, a player sees no answer" "$rd_doors|$rd_seen" '["Cancello runico"]|{"puzzle":true,"puzzleAnswer":null,"solvedAt":null}'
+          sscheck "riddles: a wrong answer, then the right one opens the gate" "$rd_wrong|$rd_right|$rd_open|$rd_solved" '{"solved":false,"door":false}|{"solved":true,"door":true}|1|{"solved":true,"by":true}'
           sscheck "handouts: hidden from the players" "$ho_hidden" "0"
           sscheck "handouts: revealed" "$ho_reveal" "204"
           sscheck "handouts: read in English" "$ho_en" '[{"title":"Letter","body":"Meet me at the tower.","both":false}]'
           sscheck "handouts: read in Italian" "$ho_it" "Lettera"
           sscheck "handouts: the table opens it" "$ho_table" "true"
           sscheck "clock: the table shows the time of the campaign" "$ck_table" "480"
+          sscheck "effects: a hit carries its damage type" "$fx_strike" '{"damageType":"fire"}'
           sscheck "soundboard: only masters add sounds, https links only" "$sb_player|$sb_http" "403|400"
           sscheck "soundboard: silence at first" "$sb_silent" "null"
           sscheck "soundboard: the table plays the track and the effect" "$sb_play|$sb_table" '204|{"trackUrl":"https://example.org/taverna.mp3","trackVolume":60,"started":true,"cueUrl":"https://example.org/tuono.ogg"}'
           sscheck "soundboard: the masters see what plays" "$sb_board" '{"sounds":2,"playing":true}'
           sscheck "soundboard: silence again" "$sb_stop|$sb_after" '204|{"trackUrl":null,"cueUrl":"https://example.org/tuono.ogg"}'
           sscheck "soundboard: a deleted sound stops" "$sb_gone" "null"
+          sscheck "sound scenes: only masters, a track that loops" "$sn_player|$sn_bad" "403|400"
+          sscheck "sound scenes: track, loops and effect at once" "$sn_play|$sn_table|$sn_board" '204|{"trackUrl":"https://example.org/taverna.mp3","layers":[{"url":"https://example.org/pioggia.mp3","volume":40}],"cueUrl":"https://example.org/tuono.ogg"}|{"scenes":1,"playing":true}'
+          sscheck "sound scenes: stopped, then started by showing their map" "$sn_stopped|$sn_shown" '{"trackUrl":null,"layers":0}|{"trackUrl":"https://example.org/taverna.mp3","layers":1}'
+          sscheck "sound scenes: a deleted sound leaves them" "$sn_pruned" "[0]"
           sscheck "handouts: the master has both languages" "$ho_master" '[{"titleIt":"Lettera","titleEn":"Letter"}]'
           sscheck "scene: only masters" "$sc_player" "403"
           sscheck "scene: shown to the table" "$sc_show|$sc_table" "204|true"
@@ -2044,8 +2158,9 @@ jobs:
           node-version: '22'
 
       - name: Build once
-        # Building API and client with two concurrent "dotnet run" makes them race on the shared projects (flaky starts)
-        run: dotnet build RealmForge/RealmForge.slnx --configuration Debug
+        # Building API and client with two concurrent "dotnet run" makes them race on the shared projects (flaky starts).
+        # No WebAssembly hot reload in CI: its browser tools look for a settings file on every page and get a 404
+        run: dotnet build RealmForge/RealmForge.slnx --configuration Debug -p:WasmEnableHotReload=false -p:EnableHotReloadInRuntimeConfigDevFile=false
 
       - name: Start API and client
         shell: bash
@@ -2089,7 +2204,7 @@ jobs:
 
       - name: Keep the screenshots of the smoke test
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: ui-shots
           path: |

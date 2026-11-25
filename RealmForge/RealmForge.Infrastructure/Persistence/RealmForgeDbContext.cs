@@ -72,6 +72,10 @@ namespace RealmForge.Infrastructure.Persistence
 		public DbSet<CampaignHandout> CampaignHandouts => Set<CampaignHandout>();
 		public DbSet<CampaignShop> CampaignShops => Set<CampaignShop>();
 		public DbSet<CampaignSound> CampaignSounds => Set<CampaignSound>();
+		public DbSet<CampaignSoundScene> CampaignSoundScenes => Set<CampaignSoundScene>();
+		public DbSet<CampaignLoot> CampaignLoot => Set<CampaignLoot>();
+		public DbSet<CampaignProgressClock> CampaignProgressClocks => Set<CampaignProgressClock>();
+		public DbSet<CampaignFaction> CampaignFactions => Set<CampaignFaction>();
 		public DbSet<ContentCollection> ContentCollections => Set<ContentCollection>();
 		public DbSet<CampaignShopItem> CampaignShopItems => Set<CampaignShopItem>();
 		public DbSet<CampaignEncounter> CampaignEncounters => Set<CampaignEncounter>();
@@ -583,12 +587,15 @@ namespace RealmForge.Infrastructure.Persistence
 				entity.Property(n => n.AuthorId).IsRequired().HasMaxLength(450);
 				entity.Property(n => n.Title).IsRequired().HasMaxLength(120);
 				entity.Property(n => n.Body).IsRequired().HasMaxLength(8000);
+				entity.Property(n => n.Secret).HasMaxLength(4000);
 				entity.HasIndex(n => new { n.CampaignId, n.Kind });
 				entity.HasOne(n => n.Campaign).WithMany(c => c.Notes).HasForeignKey(n => n.CampaignId).OnDelete(DeleteBehavior.Cascade);
 			});
 
 			modelBuilder.Entity<CampaignHandout>(entity =>
 			{
+				entity.Property(h => h.PuzzleAnswer).HasMaxLength(240);
+				entity.Property(h => h.SolvedBy).HasMaxLength(120);
 				entity.HasKey(h => h.Id);
 				entity.Property(h => h.AuthorId).IsRequired().HasMaxLength(450);
 				entity.Property(h => h.TitleIt).IsRequired().HasMaxLength(120);
@@ -608,6 +615,42 @@ namespace RealmForge.Infrastructure.Persistence
 				entity.Property(c => c.Code).IsRequired().HasMaxLength(32);
 				entity.HasIndex(c => c.Code).IsUnique();
 				entity.HasIndex(c => c.AuthorId);
+			});
+
+			modelBuilder.Entity<CampaignProgressClock>(entity =>
+			{
+				entity.HasKey(c => c.Id);
+				entity.Property(c => c.Name).IsRequired().HasMaxLength(80);
+				entity.Property(c => c.Color).IsRequired().HasMaxLength(9);
+				entity.HasIndex(c => c.CampaignId);
+				entity.HasOne<Campaign>().WithMany().HasForeignKey(c => c.CampaignId).OnDelete(DeleteBehavior.Cascade);
+			});
+
+			modelBuilder.Entity<CampaignFaction>(entity =>
+			{
+				entity.HasKey(f => f.Id);
+				entity.Property(f => f.Name).IsRequired().HasMaxLength(80);
+				entity.Property(f => f.Description).IsRequired().HasMaxLength(1000);
+				entity.HasIndex(f => f.CampaignId);
+				entity.HasOne<Campaign>().WithMany().HasForeignKey(f => f.CampaignId).OnDelete(DeleteBehavior.Cascade);
+			});
+
+			modelBuilder.Entity<CampaignLoot>(entity =>
+			{
+				entity.HasKey(l => l.Id);
+				entity.Property(l => l.Name).IsRequired().HasMaxLength(120);
+				entity.Property(l => l.Appearance).IsRequired().HasMaxLength(1000);
+				entity.HasIndex(l => l.CampaignId);
+				entity.HasOne<Campaign>().WithMany().HasForeignKey(l => l.CampaignId).OnDelete(DeleteBehavior.Cascade);
+			});
+
+			modelBuilder.Entity<CampaignSoundScene>(entity =>
+			{
+				entity.HasKey(s => s.Id);
+				entity.Property(s => s.Name).IsRequired().HasMaxLength(80);
+				entity.Property(s => s.Layers).IsRequired().HasMaxLength(200);
+				entity.HasIndex(s => s.CampaignId);
+				entity.HasOne<Campaign>().WithMany().HasForeignKey(s => s.CampaignId).OnDelete(DeleteBehavior.Cascade);
 			});
 
 			modelBuilder.Entity<CampaignSound>(entity =>
@@ -670,6 +713,7 @@ namespace RealmForge.Infrastructure.Persistence
 				entity.Property(e => e.Name).IsRequired().HasMaxLength(120);
 				entity.Property(e => e.Image).IsRequired();
 				entity.Property(e => e.PingColor).HasMaxLength(9);
+				entity.Property(e => e.StrikeType).HasMaxLength(20);
 				entity.Property(e => e.TerrainBlocks).HasDefaultValue(true).HasSentinel(true);
 				entity.HasIndex(e => e.CampaignId);
 				entity.HasOne(e => e.Campaign).WithMany(c => c.Maps).HasForeignKey(e => e.CampaignId).OnDelete(DeleteBehavior.Cascade);
