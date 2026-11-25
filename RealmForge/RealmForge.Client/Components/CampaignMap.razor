@@ -5701,7 +5701,7 @@ else
         if (shape is not null)
         {
             NoteNewAreas(shapes, new[] { shape });
-            shapes = shapes.Append(shape).ToList();
+            shapes = shapes.Where(existing => existing.Id != shape.Id).Append(shape).ToList();
         }
         StateHasChanged();
     }
@@ -6004,7 +6004,8 @@ else
         message = token is null ? UiText.MapSaveFailed(Lang) : null;
         if (token is not null)
         {
-            tokens = tokens.Append(token).ToList();
+            //	A refresh of the table may have brought the new token already while it was being saved: never twice
+            tokens = tokens.Where(existing => existing.Id != token.Id).Append(token).ToList();
             localEdits++;
         }
     }
