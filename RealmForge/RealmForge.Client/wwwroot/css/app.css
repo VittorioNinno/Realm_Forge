@@ -21517,3 +21517,143 @@ a.rf-mention:hover {
     margin-bottom: 8px;
     color: #f08a94;
 }
+
+/* ===== Riddles and ciphers ===== */
+.rf-riddle-lab {
+    padding: 8px 16px;
+    border: 1px solid var(--rf-border-subtle);
+    border-radius: 8px;
+    background: var(--rf-bg-surface);
+}
+
+.rf-riddle-lab[open] {
+    padding-bottom: 16px;
+}
+
+.rf-riddle-lab > summary {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 600;
+    color: var(--rf-orange-primary);
+    cursor: pointer;
+}
+
+.rf-riddle-lab[open] > summary {
+    margin-bottom: 8px;
+}
+
+.rf-riddle-lab > * + *,
+.rf-riddle-lab > .rf-mini-label {
+    display: block;
+    margin-top: 8px;
+}
+
+.rf-riddle-lab > .rf-riddle-row {
+    display: flex;
+}
+
+.rf-riddle-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.rf-riddle-row > * {
+    flex: 1 1 200px;
+}
+
+.rf-riddle-preview {
+    padding: 8px 16px;
+    border-radius: 8px;
+    background: var(--rf-bg-main);
+    font-family: ui-monospace, monospace;
+    font-size: 1.1rem;
+    letter-spacing: 2px;
+    overflow-wrap: anywhere;
+    color: var(--rf-text-primary);
+}
+
+.rf-riddle-card {
+    padding: 8px 16px;
+    border-left: 3px solid var(--rf-orange-primary);
+    border-radius: 8px;
+    background: var(--rf-bg-card);
+}
+
+.rf-riddle-hints {
+    margin: 8px 0;
+    padding-left: 16px;
+}
+
+.rf-riddle-dc {
+    display: inline-block;
+    margin-right: 8px;
+    padding: 0 8px;
+    border-radius: 8px;
+    background: rgba(255, 140, 0, 0.14);
+    color: var(--rf-orange-primary);
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+.rf-riddle-badge {
+    display: inline-flex;
+    margin-left: 8px;
+    color: var(--rf-orange-primary);
+    vertical-align: middle;
+}
+
+.rf-riddle-badge.solved {
+    color: #6fd3a1;
+}
+
+.rf-riddle-try {
+    display: flex;
+    gap: 8px;
+    margin-top: 16px;
+}
+
+.rf-riddle-try .rf-form-control {
+    flex: 1 1 auto;
+}
+
+.rf-riddle-solved {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    margin-top: 16px;
+    padding: 8px 16px;
+    border-radius: 8px;
+    background: rgba(25, 135, 84, 0.18);
+    color: #6fd3a1;
+    font-weight: 600;
+    animation: rf-riddle-glow 1.2s ease-out;
+}
+
+@keyframes rf-riddle-glow {
+    from { box-shadow: 0 0 0 0 rgba(111, 211, 161, 0.6); }
+    to { box-shadow: 0 0 0 16px rgba(111, 211, 161, 0); }
+}
+
+.rf-riddle-wrong {
+    margin-top: 8px;
+    animation: rf-riddle-shake 0.4s;
+}
+
+@keyframes rf-riddle-shake {
+    25% { transform: translateX(-4px); }
+    75% { transform: translateX(4px); }
+}
+
+html.rf-fx-off .rf-riddle-solved,
+html.rf-fx-off .rf-riddle-wrong {
+    animation: none;
+}
+
+@media (max-width: 575.98px) {
+    .rf-riddle-try {
+        flex-direction: column;
+    }
+}

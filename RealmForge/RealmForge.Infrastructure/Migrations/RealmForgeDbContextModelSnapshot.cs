@@ -592,8 +592,22 @@ namespace RealmForge.Infrastructure.Migrations
                     b.Property<Guid?>("ImageId")
                         .HasColumnType("uuid");
 
+                    b.Property<string>("PuzzleAnswer")
+                        .HasMaxLength(240)
+                        .HasColumnType("character varying(240)");
+
+                    b.Property<Guid?>("PuzzleDoorId")
+                        .HasColumnType("uuid");
+
                     b.Property<DateTimeOffset?>("RevealedAt")
                         .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTimeOffset?>("SolvedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("SolvedBy")
+                        .HasMaxLength(120)
+                        .HasColumnType("character varying(120)");
 
                     b.Property<string>("TitleEn")
                         .IsRequired()

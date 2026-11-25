@@ -1616,6 +1616,19 @@ jobs:
           sb_gone=$(curl -s "$api/api/campaigns/$ss_cp/maps/$mp2/state" -H "Authorization: Bearer $A" | jq -c .table.sound)
           code -X DELETE "$api/api/campaigns/$ss_cp/sounds/$sb_track" -H "Authorization: Bearer $B" > /dev/null
           ho_master=$(curl -s "$api/api/campaigns/$ss_cp/handouts" -H "Authorization: Bearer $B" | jq -c '[.[] | {titleIt, titleEn}]')
+          # Riddles: a handout with an answer and a locked gate; a player tries a wrong one, then the right one with other accents
+          # and capitals, and the gate opens on the map
+          rd_gate=$(curl -s -X POST "$api/api/campaigns/$ss_cp/maps/$mp2/tokens" $json -H "Authorization: Bearer $B" -d '{"label":"Cancello runico","kind":5,"propType":2,"propState":3,"playersInteract":false,"x":6,"y":6,"size":1,"layer":1}' | jq -r .id)
+          rd_doors=$(curl -s "$api/api/campaigns/$ss_cp/handouts/doors" -H "Authorization: Bearer $B" | jq -c --arg g "$rd_gate" '[.[] | select(.id == $g) | .label]')
+          rd=$(curl -s -X POST "$api/api/campaigns/$ss_cp/handouts?lang=2" $json -H "Authorization: Bearer $B" -d "{\"titleIt\":\"Il buio\",\"bodyIt\":\"Più ce n'è, meno vedi.\",\"puzzleAnswer\":\"buio|oscurità\",\"puzzleDoorId\":\"$rd_gate\"}" | jq -r .id)
+          code -X POST "$api/api/campaigns/$ss_cp/handouts/$rd/reveal" -H "Authorization: Bearer $B" > /dev/null
+          rd_seen=$(curl -s "$api/api/campaigns/$ss_cp/handouts/$rd?lang=2" -H "Authorization: Bearer $A" | jq -c '{puzzle, puzzleAnswer, solvedAt}')
+          rd_wrong=$(curl -s -X POST "$api/api/campaigns/$ss_cp/handouts/$rd/solve" $json -H "Authorization: Bearer $A" -d '{"answer":"luce"}' | jq -c '{solved, door}')
+          rd_right=$(curl -s -X POST "$api/api/campaigns/$ss_cp/handouts/$rd/solve" $json -H "Authorization: Bearer $A" -d '{"answer":"  OSCURITA! "}' | jq -c '{solved, door}')
+          rd_open=$(curl -s "$api/api/campaigns/$ss_cp/maps/$mp2/state" -H "Authorization: Bearer $B" | jq -c --arg g "$rd_gate" '.tokens[] | select(.id == $g) | .propState')
+          rd_solved=$(curl -s "$api/api/campaigns/$ss_cp/handouts/$rd?lang=2" -H "Authorization: Bearer $A" | jq -c '{solved: (.solvedAt != null), by: (.solvedBy != null)}')
+          code -X DELETE "$api/api/campaigns/$ss_cp/handouts/$rd" -H "Authorization: Bearer $B" > /dev/null
+          code -X DELETE "$api/api/campaigns/$ss_cp/maps/$mp2/tokens/$rd_gate" -H "Authorization: Bearer $B" > /dev/null
           # Theater of the mind: the handout in place of the map for the whole table, then back to the map
           sc_player=$(code -X POST "$api/api/campaigns/$ss_cp/handouts/$ho/scene" -H "Authorization: Bearer $A")
           sc_show=$(code -X POST "$api/api/campaigns/$ss_cp/handouts/$ho/scene" -H "Authorization: Bearer $B")
@@ -1862,6 +1875,8 @@ jobs:
           sscheck "drawer: placing undone in one step" "$dr_undo|$dr_after" "tokens|$dr_before"
           sscheck "drawer: group deleted" "$dr_del" "204"
           sscheck "handouts: only masters write them" "$ho_player_add" "403"
+          sscheck "riddles: the gates of the maps, a player sees no answer" "$rd_doors|$rd_seen" '["Cancello runico"]|{"puzzle":true,"puzzleAnswer":null,"solvedAt":null}'
+          sscheck "riddles: a wrong answer, then the right one opens the gate" "$rd_wrong|$rd_right|$rd_open|$rd_solved" '{"solved":false,"door":false}|{"solved":true,"door":true}|1|{"solved":true,"by":true}'
           sscheck "handouts: hidden from the players" "$ho_hidden" "0"
           sscheck "handouts: revealed" "$ho_reveal" "204"
           sscheck "handouts: read in English" "$ho_en" '[{"title":"Letter","body":"Meet me at the tower.","both":false}]'

@@ -26,7 +26,7 @@
 {
     @if (popupHandout is not null)
     {
-        <HandoutView Handout="popupHandout" OnClose="() => popupHandout = null" />
+        <HandoutView Handout="popupHandout" CampaignId="CampaignId" OnClose="() => popupHandout = null" />
     }
     <div class="rf-vtt-table" @ref="tableElement" data-test="vtt">
         @* Shown only on a phone held upright (CSS): the table needs the phone turned *@
