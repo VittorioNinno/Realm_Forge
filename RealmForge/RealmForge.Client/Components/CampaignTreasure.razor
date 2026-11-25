@@ -119,12 +119,41 @@
                                 {
                                     <button type="button" class="btn btn-sm btn-rf-orange" disabled="@busy" @onclick="() => StartGive(item)" data-test="treasure-give">@(Runs ? UiText.TreasureGive(Lang) : UiText.TreasureTake(Lang))</button>
                                 }
+                                @if (Runs && MapId is not null && PlaceTargets is { Count: > 0 })
+                                {
+                                    <button type="button" class="btn btn-sm btn-rf-outline" disabled="@busy" title="@UiText.TreasurePlaceHint(Lang)" @onclick="() => StartPlace(item)" data-test="treasure-place"><Icon Name="geo-alt" /> @UiText.TreasurePlace(Lang)</button>
+                                }
                                 @if (Runs)
                                 {
                                     <button type="button" class="rf-vtt-row-action" disabled="@busy" title="@UiText.BtnRemove(Lang)" aria-label="@UiText.BtnRemove(Lang)" @onclick="() => DeleteAsync(item)" data-test="treasure-delete"><Icon Name="trash" /></button>
                                 }
                             </span>
-                            @if (giving is { } g && g.Item.Id == item.Id)
+                            @if (giving is { Placing: true } p && p.Item.Id == item.Id)
+                            {
+                                <div class="rf-shop-buy" data-test="treasure-place-panel">
+                                    <label class="rf-shop-mini">
+                                        <span>@UiText.TreasurePlaceOn(Lang)</span>
+                                        <select class="rf-form-control" @onchange="PickToken" data-test="treasure-place-token">
+                                            @foreach (var target in PlaceTargets!)
+                                            {
+                                                <option value="@target.Id" selected="@(target.Id == p.TokenId)">@target.Label</option>
+                                            }
+                                        </select>
+                                    </label>
+                                    @if (item.Quantity > 1)
+                                    {
+                                        <label class="rf-shop-mini">
+                                            <span>@UiText.TreasureQuantity(Lang)</span>
+                                            <input type="number" min="1" max="@item.Quantity" class="rf-form-control" @bind="p.Quantity" data-test="treasure-place-quantity" />
+                                        </label>
+                                    }
+                                    <span class="d-flex gap-2 ms-auto">
+                                        <button type="button" class="btn btn-sm btn-rf-outline" @onclick="() => giving = null">@UiText.BtnCancel(Lang)</button>
+                                        <button type="button" class="btn btn-sm btn-rf-orange" disabled="@busy" @onclick="PlaceAsync" data-test="treasure-place-confirm">@UiText.BtnConfirm(Lang)</button>
+                                    </span>
+                                </div>
+                            }
+                            else if (giving is { } g && g.Item.Id == item.Id)
                             {
                                 <div class="rf-shop-buy" data-test="treasure-give-panel">
                                     <label class="rf-shop-mini">
@@ -209,11 +238,20 @@
     [Parameter] public CampaignRole Role { get; set; } = CampaignRole.Player;
     [Parameter] public RulesetVersion? Ruleset { get; set; }
 
+    //	At the table: the map shown and the tokens an item can be put on (a chest, a creature that carries it)
+    [Parameter] public Guid? MapId { get; set; }
+    [Parameter] public IReadOnlyList<PlaceTarget>? PlaceTargets { get; set; }
+    [Parameter] public EventCallback OnPlaced { get; set; }
+
+    public sealed record PlaceTarget(Guid Id, string Label);
+
     private sealed class Giving
     {
         public required TreasureItemDto Item { get; init; }
         public Guid CharacterId { get; set; }
         public int Quantity { get; set; } = 1;
+        public bool Placing { get; init; }
+        public Guid TokenId { get; set; }
     }
 
     private static readonly CoinType[] CoinTypes = { CoinType.Pp, CoinType.Gp, CoinType.Ep, CoinType.Sp, CoinType.Cp };
@@ -411,6 +449,43 @@
     {
         notice = null;
         giving = new Giving { Item = item, CharacterId = Givable.FirstOrDefault()?.Id ?? Guid.Empty };
+    }
+
+    private void StartPlace(TreasureItemDto item)
+    {
+        notice = null;
+        giving = new Giving { Item = item, Placing = true, TokenId = PlaceTargets?.FirstOrDefault()?.Id ?? Guid.Empty };
+    }
+
+    private void PickToken(ChangeEventArgs e)
+    {
+        if (giving is not null && Guid.TryParse(e.Value?.ToString(), out var id))
+        {
+            giving.TokenId = id;
+        }
+    }
+
+    //	On the token chosen, for whoever opens or loots it
+    private async Task PlaceAsync()
+    {
+        if (giving is not { Placing: true } g || MapId is not { } mapId)
+        {
+            return;
+        }
+        busy = true;
+        var result = await Campaigns.PlaceTreasureItemAsync(CampaignId, g.Item.Id, new PlaceTreasureDto { MapId = mapId, TokenId = g.TokenId, Quantity = Math.Clamp(g.Quantity, 1, g.Item.Quantity) }, Lang);
+        busy = false;
+        if (!result.Ok)
+        {
+            error = UiText.TreasureFailed(Lang);
+            return;
+        }
+        var on = PlaceTargets?.FirstOrDefault(t => t.Id == g.TokenId)?.Label ?? string.Empty;
+        notice = UiText.TreasurePlaced(g.Item.Name.Length > 0 ? g.Item.Name : UiText.TreasureUnknownName(Lang), on, Lang);
+        error = null;
+        giving = null;
+        await LoadAsync();
+        await OnPlaced.InvokeAsync();
     }
 
     private void PickReceiver(ChangeEventArgs e)

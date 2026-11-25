@@ -219,6 +219,14 @@ namespace RealmForge.Client.Localization
 
 		// ----- The map editor -----
 		public static string MapShownShort(LanguageCode lang) => T(lang, "Visibile ai giocatori", "Shown to the players");
+		public static string VttToolEncounters(LanguageCode lang) => T(lang, "Incontri", "Encounters");
+		public static string VttToolTreasure(LanguageCode lang) => T(lang, "Tesoro del gruppo", "Party treasure");
+		public static string VttToolProgress(LanguageCode lang) => T(lang, "Orologi di avanzamento", "Progress clocks");
+		public static string VttEncountersNone(LanguageCode lang) => T(lang, "Nessun incontro da giocare: preparane uno nella pagina della campagna.", "No encounter to play: prepare one on the campaign page.");
+		public static string VttEncounterHere(LanguageCode lang) => T(lang, "In corso qui", "Under way here");
+		public static string VttEncounterGoTo(LanguageCode lang) => T(lang, "Vai alla mappa", "Go to its map");
+		public static string VttEncounterBusy(LanguageCode lang) => T(lang, "Su questa mappa c'è già un combattimento", "A fight is already under way on this map");
+		public static string VttEncountersPage(LanguageCode lang) => T(lang, "Prepara gli incontri nella pagina della campagna", "Prepare the encounters on the campaign page");
 		public static string MapHiddenShort(LanguageCode lang) => T(lang, "Non mostrata", "Not shown");
 		public static string MapViewAs(LanguageCode lang) => T(lang, "Vista", "View");
 		public static string MapViewEditor(LanguageCode lang) => T(lang, "Editor", "Editor");

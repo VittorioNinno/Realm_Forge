@@ -34,6 +34,10 @@ namespace RealmForge.Client.Localization
 		public static string TreasureTrueName(string name, LanguageCode lang) => T(lang, $"in realtà: {name}", $"truly: {name}");
 		public static string TreasureGive(LanguageCode lang) => T(lang, "Dai a", "Give to");
 		public static string TreasureTake(LanguageCode lang) => T(lang, "Prendi", "Take");
+		public static string TreasurePlace(LanguageCode lang) => T(lang, "Sul tavolo", "On the table");
+		public static string TreasurePlaceHint(LanguageCode lang) => T(lang, "Mettilo su un segnalino della mappa: un forziere, una creatura che lo porta", "Put it on a token of the map: a chest, a creature that carries it");
+		public static string TreasurePlaceOn(LanguageCode lang) => T(lang, "Su", "On");
+		public static string TreasurePlaced(string item, string token, LanguageCode lang) => T(lang, $"{item} è su {token}: lo prende chi lo apre o lo perquisisce.", $"{item} is on {token}: whoever opens or loots it takes it.");
 		public static string TreasureGiven(string item, string character, LanguageCode lang) => T(lang, $"{item} è nell'inventario di {character}.", $"{item} is in {character}'s inventory.");
 		public static string TreasureNoCharacters(LanguageCode lang) => T(lang, "Nessun personaggio al tavolo.", "No characters at the table.");
 		public static string TreasureFailed(LanguageCode lang) => T(lang, "Non è stato possibile.", "That did not work.");
