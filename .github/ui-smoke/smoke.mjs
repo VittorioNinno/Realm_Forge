@@ -1604,6 +1604,7 @@ try {
   await page.mouse.move(...at(140, 175), { steps: 3 });
   await page.mouse.move(...at(200, 205), { steps: 3 });
   await page.mouse.up();
+  await shot(page, 'map-editor-walls', 'body');
   await page.locator('[data-test=map-terrain-cell][data-kind=Wall]').nth(1).waitFor({ timeout: 15000 });
   await page.locator('[data-test=map-brush-difficult]').click();
   await page.locator('[data-test=map-shape-cell]').click();
