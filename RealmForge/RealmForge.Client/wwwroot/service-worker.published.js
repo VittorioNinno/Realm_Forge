@@ -28,9 +28,26 @@ async function onInstall() {
     const assetsRequests = self.assetsManifest.assets
         .filter(asset => offlineAssetsInclude.some(pattern => pattern.test(asset.url)))
         .filter(asset => !offlineAssetsExclude.some(pattern => pattern.test(asset.url)))
-        // index.html is versioned again after the publish (the stylesheet link): it is kept without its hash
-        .map(asset => new Request(asset.url, asset.url === 'index.html' ? { cache: 'no-cache' } : { integrity: asset.hash, cache: 'no-cache' }));
-    await caches.open(cacheName).then(cache => cache.addAll(assetsRequests));
+        .filter(asset => asset.url !== 'index.html')
+        .map(asset => new Request(asset.url, { integrity: asset.hash, cache: 'no-cache' }));
+    const cache = await caches.open(cacheName);
+    await cache.addAll(assetsRequests);
+    // index.html is versioned again after the publish (the stylesheet link): it is kept without its hash. The host
+    // answers /index.html with a redirect to /: the page is asked at / and kept as a plain answer, because a
+    // redirected answer given to a navigation makes the browser refuse the page (ERR_FAILED)
+    const index = await fetch(new Request(base, { cache: 'no-cache' }));
+    if (!index.ok) {
+        throw new Error(`index.html: ${index.status}`);
+    }
+    await cache.put('index.html', await plain(index));
+}
+
+// An answer as it is, without the trace of a redirect
+async function plain(response) {
+    if (!response.redirected) {
+        return response;
+    }
+    return new Response(await response.blob(), { status: response.status, statusText: response.statusText, headers: response.headers });
 }
 
 async function onActivate() {
@@ -69,5 +86,9 @@ async function onFetch(event) {
     const cache = await caches.open(cacheName);
     // The stylesheet is asked with its version (css/app.css?v=…): kept without it
     const cached = await cache.match(shouldServeIndexHtml ? 'index.html' : request, { ignoreSearch: true });
-    return cached || fetch(request);
+    if (cached) {
+        // Kept by an earlier version that stored a redirected answer: cleaned before it reaches a navigation
+        return request.mode === 'navigate' ? plain(cached) : cached;
+    }
+    return fetch(request);
 }
