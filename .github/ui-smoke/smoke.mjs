@@ -2189,9 +2189,17 @@ try {
     x: heroMid.x + (heroMid.x < (seen.left + seen.right) / 2 ? 2 : -2) * heroBox.width,
     y: heroMid.y + (heroMid.y < (seen.top + seen.bottom) / 2 ? 1 : -1) * heroBox.height
   };
-  await page.locator('[data-test=map-add-prop][data-type=Chest]').dragTo(page.locator('[data-test=vtt] [data-test=map-stage]'), {
-    targetPosition: { x: dropPoint.x - stageBox.x, y: dropPoint.y - stageBox.y }
-  });
+  // The drag and drop of the browser, as its events (a mouse drag can end as a plain click on a busy runner)
+  await page.evaluate(({ x, y }) => {
+    const chip = document.querySelector('[data-test=map-add-prop][data-type=Chest]');
+    const stage = document.querySelector('[data-test=vtt] [data-test=map-stage]');
+    const data = new DataTransfer();
+    chip.dispatchEvent(new DragEvent('dragstart', { bubbles: true, cancelable: true, dataTransfer: data }));
+    for (const type of ['dragenter', 'dragover', 'drop']) {
+      stage.dispatchEvent(new DragEvent(type, { bubbles: true, cancelable: true, clientX: x, clientY: y, dataTransfer: data }));
+    }
+    chip.dispatchEvent(new DragEvent('dragend', { bubbles: true, cancelable: true, dataTransfer: data }));
+  }, dropPoint);
   const chest = page.locator('[data-test=vtt] [data-test=map-token][data-label="Forziere"]');
   await chest.waitFor({ timeout: 15000 });
   const chestBox = await chest.boundingBox();
