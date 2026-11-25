@@ -1575,6 +1575,8 @@ try {
   await page.locator('[data-test=map-shape-cell]').click();
   await page.mouse.click(...at(455, 315));
   await page.locator('[data-test=map-terrain-cell][data-kind=Difficult]').waitFor({ timeout: 15000 });
+  // The counter follows the save of the brush: wait for it rather than read it in the same frame
+  await page.waitForFunction(() => /Difficili: 1/.test(document.querySelector('[data-test=map-zone-counts]')?.textContent ?? ''), null, { timeout: 15000 }).catch(() => {});
   const zoneUi = {
     walls: await page.locator('[data-test=map-terrain-cell][data-kind=Wall]').count(),
     difficult: await page.locator('[data-test=map-terrain-cell][data-kind=Difficult]').count(),
@@ -2186,6 +2188,18 @@ try {
     results.push('INFO 3D dice: no WebGL in this browser, the flat dice stay');
   }
   await page.evaluate(() => localStorage.removeItem('rf-dice3d-test'));
+  // Visual effects: switched off they stop the flashes on the whole page; full again, a preview bursts on the canvas
+  await page.locator('[data-test=account-fx]').waitFor({ timeout: 15000 });
+  await page.locator('[data-test=fx-level]').nth(2).click();
+  const fxOff = await page.evaluate(() => document.documentElement.classList.contains('rf-fx-off'));
+  await page.locator('[data-test=fx-level]').nth(0).click();
+  const fxOn = await page.evaluate(() => !document.documentElement.classList.contains('rf-fx-off') && localStorage.getItem('rf-fx') === 'full');
+  await page.locator('[data-test=fx-preview]').first().click();
+  const fxCanvas = await page.locator('canvas.rf-fx-layer').count();
+  await page.waitForTimeout(250);
+  await shot(page, 'fx-preview');
+  if (!fxOff || !fxOn || fxCanvas !== 1) throw new Error(`visual effects: off ${fxOff}, full ${fxOn}, canvas ${fxCanvas}`);
+  ok('visual effects: off stops the flashes, full again bursts particles on the canvas');
   // The bin: the deleted campaign is there, restored it opens again; deleted again, it is purged for good
   await page.goto(`${base}/account`);
   await page.locator('[data-test=account-trash-open]').click();

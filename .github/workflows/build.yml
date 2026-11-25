@@ -1359,6 +1359,9 @@ jobs:
           at_player_out=$(code -X POST "$api/api/campaigns/$ss_cp/maps/$mp2/attack?lang=2" $json -H "Authorization: Bearer $A" -d "$(at_body $ctl_tree $at_target 1)")
           at_master=$(curl -s -X POST "$api/api/campaigns/$ss_cp/maps/$mp2/attack?lang=2" $json -H "Authorization: Bearer $B" -d "$(at_body $ctl_tree $at_target 1)" | jq -c '{hit, damage, armorClass, dice: (.dice | length)}')
           at_far=$(code -X POST "$api/api/campaigns/$ss_cp/maps/$mp2/attack?lang=2" $json -H "Authorization: Bearer $B" -d "$(at_body $ctl_tree $at_target 0)")
+          # The effect of the hit on every screen carries its damage type ("fuoco" read as fire)
+          code -X POST "$api/api/campaigns/$ss_cp/maps/$mp2/attack?lang=2" $json -H "Authorization: Bearer $B" -d "$(at_body $ctl_tree $at_target 1 | jq -c '.damageType = "fuoco"')" > /dev/null
+          fx_strike=$(curl -s "$api/api/campaigns/$ss_cp/maps/$mp2/state" -H "Authorization: Bearer $A" | jq -c '.table.strike | {damageType}')
           # A token a player controls deals no damage by itself; an enemy (the master's only) does
           at_hp_ally=$(curl -s "$api/api/campaigns/$ss_cp/maps/$mp2/state" -H "Authorization: Bearer $B" | jq -c '[.tokens[] | select(.label == "Bandito") | .hp]')
           at_enemy=$(curl -s -X POST "$api/api/campaigns/$ss_cp/maps/$mp2/tokens" $json -H "Authorization: Bearer $B" -d '{"label":"Sicario","kind":4,"x":9,"y":5,"size":1}' | jq -r .id)
@@ -1774,6 +1777,7 @@ jobs:
           sscheck "handouts: read in Italian" "$ho_it" "Lettera"
           sscheck "handouts: the table opens it" "$ho_table" "true"
           sscheck "clock: the table shows the time of the campaign" "$ck_table" "480"
+          sscheck "effects: a hit carries its damage type" "$fx_strike" '{"damageType":"fire"}'
           sscheck "soundboard: only masters add sounds, https links only" "$sb_player|$sb_http" "403|400"
           sscheck "soundboard: silence at first" "$sb_silent" "null"
           sscheck "soundboard: the table plays the track and the effect" "$sb_play|$sb_table" '204|{"trackUrl":"https://example.org/taverna.mp3","trackVolume":60,"started":true,"cueUrl":"https://example.org/tuono.ogg"}'

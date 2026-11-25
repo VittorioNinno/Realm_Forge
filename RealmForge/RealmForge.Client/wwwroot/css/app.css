@@ -21038,3 +21038,104 @@ button.rf-vtt-clock.on {
 .rf-dice3d-swatch-emerald { background: linear-gradient(135deg, #3a9b6b, #1f6b45 55%, #0c2e1d); }
 .rf-dice3d-swatch-sapphire { background: linear-gradient(135deg, #3f66c4, #1f3f8b 55%, #0b1a3d); }
 .rf-dice3d-swatch-amethyst { background: linear-gradient(135deg, #8a52b8, #5b2a86 55%, #25103a); }
+
+/* ===== Visual effects (wwwroot/js/fx.js) ===== */
+
+/* The particles: one canvas over the page, under the 3D dice, never in the way of a click */
+.rf-fx-layer {
+    position: fixed;
+    inset: 0;
+    width: 100vw;
+    height: 100vh;
+    z-index: 2990;
+    pointer-events: none;
+}
+
+@keyframes rf-fx-quake {
+    0%, 100% { transform: translate(0, 0); }
+    20% { transform: translate(-3px, 1px); }
+    40% { transform: translate(3px, -1px); }
+    60% { transform: translate(-2px, 2px); }
+    80% { transform: translate(2px, -1px); }
+}
+
+@keyframes rf-fx-quake-strong {
+    0%, 100% { transform: translate(0, 0); }
+    15% { transform: translate(-6px, 3px); }
+    30% { transform: translate(6px, -3px); }
+    45% { transform: translate(-4px, -2px); }
+    60% { transform: translate(4px, 2px); }
+    80% { transform: translate(-2px, 1px); }
+}
+
+.rf-fx-quake {
+    animation: rf-fx-quake .35s ease-in-out;
+}
+
+.rf-fx-quake-strong {
+    animation: rf-fx-quake-strong .45s ease-in-out;
+}
+
+/* Opacity only: a transform would make the fixed layers of the page (the table, the dialogs) follow the content */
+@keyframes rf-page-in {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+.rf-page-in {
+    animation: rf-page-in .35s ease-out;
+}
+
+/* The critical and the fumble of the dice tray glow a moment longer */
+.rf-dice-tray.landed.crit {
+    box-shadow: 0 0 0 1px rgba(250, 204, 21, .6), 0 0 32px rgba(250, 204, 21, .35);
+}
+
+.rf-dice-tray.landed.fumble {
+    box-shadow: 0 0 0 1px rgba(239, 68, 68, .6), 0 0 32px rgba(239, 68, 68, .3);
+}
+
+/* Off: no flash or shake anywhere */
+.rf-fx-off .rf-vtt-token[class*="fx-"],
+.rf-fx-off .rf-vtt-token[class*="fx-"] .rf-vtt-token-face,
+.rf-fx-off .rf-fx-quake,
+.rf-fx-off .rf-fx-quake-strong,
+.rf-fx-off .rf-page-in {
+    animation: none !important;
+}
+
+.rf-fx-reduced .rf-fx-quake,
+.rf-fx-reduced .rf-fx-quake-strong {
+    animation: none;
+}
+
+.rf-fx-levels,
+.rf-fx-preview {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.rf-fx-chip {
+    padding: 4px 16px;
+    border-radius: 16px;
+    border: 1px solid var(--chip);
+    background: color-mix(in srgb, var(--chip) 14%, transparent);
+    color: var(--chip);
+    font-size: .8rem;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+    .rf-fx-chip:disabled {
+        opacity: .4;
+        cursor: default;
+    }
+
+.rf-fx-chip-fire { --chip: #ff8c00; }
+.rf-fx-chip-cold { --chip: #9bd7f5; }
+.rf-fx-chip-lightning { --chip: #7cc4ff; }
+.rf-fx-chip-necrotic { --chip: #a06cd5; }
+.rf-fx-chip-radiant { --chip: #ffd60a; }
+.rf-fx-chip-heal { --chip: #4ade80; }
+.rf-fx-chip-crit { --chip: #facc15; }

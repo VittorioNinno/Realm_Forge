@@ -47,6 +47,8 @@
         Navigation.LocationChanged += OnLocationChanged;
     }
 
+    private string? lastPath;
+
     private void OnLocationChanged(object? sender, Microsoft.AspNetCore.Components.Routing.LocationChangedEventArgs e)
     {
         if (!OnWizard)
@@ -54,6 +56,25 @@
             wizardCollapsed = null;
         }
         StateHasChanged();
+
+        //	A new page (not only a new query) fades in (wwwroot/js/fx.js)
+        var path = new Uri(e.Location).AbsolutePath;
+        if (path != lastPath)
+        {
+            lastPath = path;
+            _ = PageInAsync();
+        }
+    }
+
+    private async Task PageInAsync()
+    {
+        try
+        {
+            await JS.InvokeVoidAsync("rfFx.pageIn", ".content");
+        }
+        catch (Exception)
+        {
+        }
     }
 
     private async Task ToggleSidebarAsync()

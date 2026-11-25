@@ -7,7 +7,7 @@
 
 @if (current is not null)
 {
-    <div class="rf-dice-tray @(rolling ? "rolling" : "landed") @Outcome" role="status" aria-live="polite" data-test="sheet-last-roll">
+    <div class="rf-dice-tray @(rolling ? "rolling" : "landed") @Outcome" role="status" aria-live="polite" data-test="sheet-last-roll" @ref="trayElement">
         <div class="rf-dice-tray-head">
             <span class="rf-dice-tray-label">@current.Label</span>
             <button type="button" class="rf-dice-tray-close" @onclick="Close" aria-label="@UiText.BtnClose(LanguageState.CurrentLanguage)"><Icon Name="close" /></button>
@@ -55,6 +55,9 @@
 @code {
     [Inject] private LanguageStateService LanguageState { get; set; } = default!;
     [Inject] private Dice3dService Dice3d { get; set; } = default!;
+    [Inject] private IJSRuntime JS { get; set; } = default!;
+
+    private ElementReference trayElement;
 
     //	Called with every roll shown (the sheet sends it to the dice log of its campaigns)
     [Parameter] public EventCallback<DiceRollResult> OnRoll { get; set; }
@@ -119,6 +122,19 @@
         }
         rolling = false;
         StateHasChanged();
+
+        //	A natural 20 bursts in gold from the tray, a natural 1 cracks red (wwwroot/js/fx.js)
+        if (Outcome is { } outcome)
+        {
+            try
+            {
+                await Task.Yield();
+                await JS.InvokeVoidAsync("rfFx.dice", trayElement, outcome);
+            }
+            catch (Exception)
+            {
+            }
+        }
         if (AutoHideMs > 0)
         {
             try
