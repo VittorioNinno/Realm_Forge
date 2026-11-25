@@ -1396,7 +1396,9 @@ try {
   await page.locator('[data-test=campaign-note-new]').click();
   await page.locator('[data-test=campaign-note-title]').fill('Sessione 1');
   // Typing @ offers the campaign's characters; the master's secrets go in their own box
-  await page.locator('[data-test=campaign-note-body]').fill('Il gruppo parte da Valdoras con @');
+  await page.locator('[data-test=campaign-note-body]').fill('Il gruppo parte da Valdoras con ');
+  await page.locator('[data-test=campaign-note-body]').press('End');
+  await page.keyboard.type('@');
   await page.locator('[data-test=mention-option]').first().waitFor({ timeout: 15000 }).catch(async (error) => {
     // What the page knows when no suggestion shows: the mentions of the campaign and the field
     const probe = await page.evaluate(async (apiBase) => {
