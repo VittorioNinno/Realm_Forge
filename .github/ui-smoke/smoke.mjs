@@ -45,10 +45,20 @@ page.on('console', (m) => {
 });
 const authCalls = [];
 const failedResponses = new Map();
+const failedFrom = new Map();
+// Who asked for a resource that then failed: the first script in the request's initiator stack (DevTools protocol)
+const initiators = new Map();
+const cdp = await context.newCDPSession(page);
+await cdp.send('Network.enable');
+cdp.on('Network.requestWillBeSent', (e) => {
+  const frame = e.initiator?.stack?.callFrames?.[0] ?? e.initiator?.stack?.parent?.callFrames?.[0];
+  initiators.set(e.request.url, frame ? `${frame.url.replace(/^https?:\/\/[^/]+/, '')}:${frame.lineNumber}` : e.initiator?.type ?? '?');
+});
 page.on('response', (r) => {
   if (r.url().includes('/api/auth/')) authCalls.push(`${r.request().method()} ${new URL(r.url()).pathname} -> ${r.status()}`);
   if (r.status() >= 400) {
     const key = `${r.status()} ${r.request().method()} ${new URL(r.url()).pathname.replace(/[0-9a-f]{8}-[0-9a-f-]{27}/gi, '{id}')}`;
+    if (!failedFrom.has(key)) failedFrom.set(key, initiators.get(r.url()) ?? '?');
     failedResponses.set(key, (failedResponses.get(key) ?? 0) + 1);
   }
 });
@@ -2555,7 +2565,7 @@ try {
   // logged; anything else that failed is a warning
   const expected = /^(400 DELETE \/api\/account|400 POST \/api\/auth\/manage\/info|403 GET \/api\/admin\/stats|404 POST \/api\/characters\/\{id\}\/shares)$/;
   for (const [key, count] of failedResponses) {
-    console.log(expected.test(key) ? `expected refusal: ${key} ×${count}` : `::warning title=ui-failed-response::${key} ×${count}`);
+    console.log(expected.test(key) ? `expected refusal: ${key} ×${count}` : `::warning title=ui-failed-response::${key} ×${count} (from ${failedFrom.get(key)})`);
   }
   await browser.close();
   if (results.some((r) => r.startsWith('FAIL'))) process.exit(1);

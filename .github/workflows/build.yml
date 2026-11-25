@@ -2160,7 +2160,7 @@ jobs:
       - name: Build once
         # Building API and client with two concurrent "dotnet run" makes them race on the shared projects (flaky starts).
         # No WebAssembly hot reload in CI: its browser tools look for a settings file on every page and get a 404
-        run: dotnet build RealmForge/RealmForge.slnx --configuration Debug -p:WasmEnableHotReload=false
+        run: dotnet build RealmForge/RealmForge.slnx --configuration Debug -p:WasmEnableHotReload=false -p:EnableHotReloadInRuntimeConfigDevFile=false
 
       - name: Start API and client
         shell: bash
