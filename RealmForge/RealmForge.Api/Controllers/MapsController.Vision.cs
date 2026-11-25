@@ -110,7 +110,9 @@ namespace RealmForge.Api.Controllers
 				.Select(t => new MapVision.Light(t.X, t.Y, t.Size, gears[t.Id].Light!.Bright, gears[t.Id].Light!.Dim)).ToList();
 			var looking = viewers.Select(t => new MapVision.Viewer(t.X, t.Y, t.Size, DarkvisionOf(t), t.Conditions?.Contains("blinded") == true)).ToList();
 			var (bright, dim) = MapVision.Seen(board, map.Lighting, looking, lights);
-			vision = new MapVisionDto(bright.SelectMany(c => new[] { c.Col, c.Row }).ToList(), dim.SelectMany(c => new[] { c.Col, c.Row }).ToList());
+			var unseenDoors = runs ? null : map.Tokens.Where(t => t.Hidden && t.Kind == TokenKind.Prop && t.PropType is { } type && MapTerrain.Closes(type, t.PropState))
+				.SelectMany(t => MapTerrain.Footprint(map.GridType, t.X, t.Y, t.Size)).SelectMany(c => new[] { c.Col, c.Row }).ToList();
+			vision = new MapVisionDto(bright.SelectMany(c => new[] { c.Col, c.Row }).ToList(), dim.SelectMany(c => new[] { c.Col, c.Row }).ToList(), unseenDoors);
 			var knows = tokens.Where(t => runs || t.Controlled).Select(t => t.Id).ToHashSet();
 			var shown = tokens.Select(t => knows.Contains(t.Id) ? t with { Darkvision = DarkvisionOf(t) } : t).ToList();
 			return runs ? shown : shown.Where(t => t.Controlled || !Creature(t.Kind) || MapVision.Spotted(map.GridType, t.X, t.Y, t.Size, bright, dim)).ToList();

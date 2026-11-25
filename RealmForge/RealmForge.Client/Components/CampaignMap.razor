@@ -4106,6 +4106,7 @@ else
     {
         tokens = tokens.Select(x => x.Id == token.Id ? token : x).ToList();
         localEdits++;
+        SeeAgain();
     }
 
     //	Changes made here since a wait for the API began: its answer may predate them, so it is not shown
@@ -6041,6 +6042,7 @@ else
         {
             //	A refresh of the table may have brought the new token already while it was being saved: never twice
             tokens = tokens.Where(existing => existing.Id != token.Id).Append(token).ToList();
+            SeeAgain();
             localEdits++;
         }
     }
@@ -6164,6 +6166,7 @@ else
         if (map is not null && (await Campaigns.DeleteTokenAsync(CampaignId, map.Id, t.Id)).Ok)
         {
             tokens = tokens.Where(x => x.Id != t.Id).ToList();
+            SeeAgain();
             localEdits++;
             infoToken = null;
         }
