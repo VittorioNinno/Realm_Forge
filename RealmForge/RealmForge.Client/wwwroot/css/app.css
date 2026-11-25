@@ -21425,3 +21425,95 @@ html.rf-fx-off .rf-progress-wedge.on { animation: none; }
         flex: 1 1 100%;
     }
 }
+
+/* ===== @mentions and the master's secrets ===== */
+.rf-mention-box {
+    position: relative;
+}
+
+.rf-mention-list {
+    position: absolute;
+    z-index: 20;
+    left: 8px;
+    right: 8px;
+    top: 100%;
+    max-height: 264px;
+    margin: 4px 0 0;
+    padding: 4px;
+    overflow-y: auto;
+    list-style: none;
+    border: 1px solid var(--rf-border-light);
+    border-radius: 8px;
+    background: var(--rf-bg-card);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+}
+
+.rf-mention-list button {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    min-height: 40px;
+    padding: 4px 8px;
+    border: 0;
+    border-radius: 8px;
+    background: none;
+    color: var(--rf-text-primary);
+    text-align: left;
+}
+
+.rf-mention-list button:hover,
+.rf-mention-list button:focus-visible {
+    background: var(--rf-bg-surface);
+}
+
+.rf-mention-list button svg {
+    flex: none;
+    color: var(--rf-orange-primary);
+}
+
+.rf-mention-kind {
+    margin-left: auto;
+    font-size: 0.75rem;
+    color: var(--rf-text-muted);
+}
+
+.rf-mention {
+    padding: 0 4px;
+    border-radius: 4px;
+    background: rgba(255, 140, 0, 0.14);
+    color: var(--rf-orange-primary);
+    font-weight: 600;
+    text-decoration: none;
+    white-space: nowrap;
+}
+
+a.rf-mention:hover {
+    background: rgba(255, 140, 0, 0.26);
+    color: var(--rf-orange-hover);
+}
+
+.rf-note-secret,
+.rf-note-secret-edit {
+    padding: 8px 16px;
+    border: 1px dashed rgba(220, 53, 69, 0.55);
+    border-radius: 8px;
+    background: rgba(220, 53, 69, 0.06);
+}
+
+.rf-note-secret summary {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: #f08a94;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.rf-note-secret-edit .rf-mini-label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 8px;
+    color: #f08a94;
+}

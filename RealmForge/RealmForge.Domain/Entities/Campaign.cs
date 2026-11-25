@@ -526,6 +526,9 @@ namespace RealmForge.Domain.Entities
 
 		//	Markdown
 		public string Body { get; set; } = string.Empty;
+
+		//	The masters' secrets of a journal page (Markdown): only who runs the table reads and writes them
+		public string? Secret { get; set; }
 		public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
 		public DateTimeOffset UpdatedAt { get; set; } = DateTimeOffset.UtcNow;
 	}

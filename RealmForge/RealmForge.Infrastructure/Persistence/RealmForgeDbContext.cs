@@ -587,6 +587,7 @@ namespace RealmForge.Infrastructure.Persistence
 				entity.Property(n => n.AuthorId).IsRequired().HasMaxLength(450);
 				entity.Property(n => n.Title).IsRequired().HasMaxLength(120);
 				entity.Property(n => n.Body).IsRequired().HasMaxLength(8000);
+				entity.Property(n => n.Secret).HasMaxLength(4000);
 				entity.HasIndex(n => new { n.CampaignId, n.Kind });
 				entity.HasOne(n => n.Campaign).WithMany(c => c.Notes).HasForeignKey(n => n.CampaignId).OnDelete(DeleteBehavior.Cascade);
 			});
