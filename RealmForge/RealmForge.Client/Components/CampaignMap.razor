@@ -185,9 +185,10 @@
                         @* Folded to a rail: an icon per tab, the map gets the room *@
                         <nav class="rf-vtt-rail" aria-label="@UiText.VttDrawer(Lang)">
                             <button type="button" class="rf-vtt-rail-btn" title="@UiText.CardExpand(Lang)" aria-label="@UiText.CardExpand(Lang)" @onclick="() => drawerFolded = false" data-test="vtt-drawer-unfold"><Icon Name="chevron-double-left" /></button>
-                            @if (RunsTheTable)
+                            @foreach (var openTool in openTools)
                             {
-                                <button type="button" class="rf-vtt-rail-btn @(panel == "tokens" ? "active" : null)" title="@UiText.VttTokensShort(Lang)" @onclick="@(() => OpenDrawer("tokens"))"><Icon Name="people" /></button>
+                                var t = openTool;
+                                <button type="button" class="rf-vtt-rail-btn @(panel == t ? "active" : null)" title="@ToolName(t)" aria-label="@ToolName(t)" @onclick="@(() => OpenDrawer(t))" data-test="vtt-rail-tool" data-tool="@t"><Icon Name="@ToolIcon(t)" /></button>
                             }
                             @foreach (var tab in SheetTabs)
                             {
@@ -207,9 +208,13 @@
                     else
                     {
                     <nav class="rf-vtt-panel-tabs">
-                        @if (RunsTheTable)
+                        @foreach (var openTool in openTools)
                         {
-                            <button type="button" class="@(panel == "tokens" ? "active" : null)" @onclick="@(() => panel = "tokens")">@UiText.VttTokensShort(Lang)</button>
+                            var t = openTool;
+                            <span class="rf-vtt-sheet-tab rf-vtt-tool-tab @(panel == t ? "active" : null)" data-test="vtt-tab-tool" data-tool="@t">
+                                <button type="button" class="rf-vtt-sheet-tab-name" title="@ToolName(t)" @onclick="@(() => panel = t)"><Icon Name="@ToolIcon(t)" /> @ToolName(t)</button>
+                                <button type="button" class="rf-vtt-sheet-tab-close" title="@UiText.TokenClose(Lang)" aria-label="@UiText.TokenClose(Lang)" @onclick="@(() => CloseTool(t))" data-test="vtt-tab-tool-close"><Icon Name="close" /></button>
+                            </span>
                         }
                         @foreach (var tab in SheetTabs)
                         {
@@ -606,11 +611,78 @@ else
     private string? panel;
     private CampaignRolls? rollLog;
 
-    private void TogglePanel(string name) => panel = panel == name ? null : name;
+    //	The tools opened in the side panel, one tab each, until their tab is closed: a tool opened beside another does
+    //	not replace it, and a folded panel opens again on the tool asked
+    private static readonly string[] ToolPanels = { "tokens", "handouts", "sounds", "clock", "encounters", "treasure", "progress" };
+    private readonly List<string> openTools = new();
+
+    private static bool IsToolPanel(string name) => ToolPanels.Contains(name);
+
+    //	A tool of the bar: opened (or brought forward, the panel unfolded); asked again while in front, its tab closes
+    private void TogglePanel(string name)
+    {
+        if (!IsToolPanel(name))
+        {
+            panel = panel == name ? null : name;
+            return;
+        }
+        if (panel == name && !drawerFolded)
+        {
+            CloseTool(name);
+            return;
+        }
+        OpenDrawer(name);
+    }
+
+    private void CloseTool(string name)
+    {
+        openTools.Remove(name);
+        if (panel == name)
+        {
+            panel = NextPanel();
+        }
+    }
+
+    //	What the panel shows once a tab is closed: the tool opened last, else a sheet, the dice, the log; else it closes
+    private string? NextPanel(string? leaving = null) =>
+        openTools.LastOrDefault(t => t != leaving)
+        ?? (leaving != "sheet" && sheetTokenId is not null ? "sheet" : null)
+        ?? (leaving != "dice" && diceDocked ? "dice" : null)
+        ?? (leaving != "log" && logDocked ? "log" : null);
+
+    private string ToolName(string name) => name switch
+    {
+        "tokens" => UiText.VttTokensShort(Lang),
+        "handouts" => UiText.VttToolHandouts(Lang),
+        "sounds" => UiText.VttToolSounds(Lang),
+        "clock" => UiText.VttClock(Lang),
+        "encounters" => UiText.VttToolEncounters(Lang),
+        "treasure" => UiText.VttToolTreasure(Lang),
+        _ => UiText.VttToolProgress(Lang)
+    };
+
+    private static string ToolIcon(string name) => name switch
+    {
+        "tokens" => "people",
+        "handouts" => "file-text",
+        "sounds" => "music-note-beamed",
+        "clock" => "hourglass-split",
+        "encounters" => "flag",
+        "treasure" => "gem",
+        _ => "clock-history"
+    };
 
     private bool PanelShown(string name) => panel == name;
 
-    private void ShowPanel(string name) => panel = name;
+    private void ShowPanel(string name)
+    {
+        if (IsToolPanel(name))
+        {
+            OpenDrawer(name);
+            return;
+        }
+        panel = name;
+    }
 
     private string tool = "select";
 
@@ -2118,7 +2190,7 @@ else
         sheetTokenId = SheetTabs.LastOrDefault()?.Id;
         if (panel == "sheet")
         {
-            panel = sheetTokenId is not null ? "sheet" : null;
+            panel = sheetTokenId is not null ? "sheet" : NextPanel("sheet");
         }
     }
 
@@ -2126,6 +2198,7 @@ else
     private void ClosePanel()
     {
         panel = null;
+        openTools.Clear();
         openSheets.Clear();
         sheetTokenId = null;
     }
@@ -3579,13 +3652,29 @@ else
     };
 
     //	The monster drawer: what was gathered from the search (how many of each), placed in one go or kept as a group
+    //	The monster drawer: monsters gathered with how many of each, placed in one go or kept as a group; the groups kept
+    //	open under it on demand
+    private bool groupsOpen;
+
+    private async Task ToggleGroupsAsync()
+    {
+        groupsOpen = !groupsOpen;
+        if (groupsOpen)
+        {
+            await LoadGroupsAsync();
+        }
+    }
+
     private RenderFragment MonsterDrawer => __builder =>
     {
-        <div class="rf-vtt-drawer" data-test="map-drawer">
-            <span class="rf-vtt-label"><Icon Name="inbox" /> @UiText.VttMonsterDrawer(Lang)</span>
+        <section class="rf-atp-drawer" data-test="map-drawer">
+            <div class="rf-atp-drawer-head">
+                <span class="rf-atp-drawer-title"><Icon Name="inbox" /> @UiText.VttMonsterDrawer(Lang)</span>
+                <button type="button" class="rf-atp-mini @(groupsOpen ? "active" : null)" aria-pressed="@(groupsOpen ? "true" : "false")" @onclick="ToggleGroupsAsync" data-test="map-groups-load">@UiText.VttGroupsShow(Lang)</button>
+            </div>
             @if (drawer.Count == 0)
             {
-                <span class="rf-vtt-options-hint">@UiText.VttDrawerHint(Lang)</span>
+                <p class="rf-atp-desc">@UiText.VttDrawerHint(Lang)</p>
             }
             else
             {
@@ -3603,56 +3692,76 @@ else
                     <input type="checkbox" class="rf-checkbox" @bind="drawerHidden" data-test="map-drawer-hidden" />
                     <span>@UiText.VttDrawerHidden(Lang)</span>
                 </label>
-                <div class="d-flex gap-2 flex-wrap">
-                    <button type="button" class="btn btn-sm btn-rf-primary" disabled="@busy" @onclick="PlaceDrawerAsync" data-test="map-drawer-place"><Icon Name="geo-alt" /> @UiText.VttDrawerPlace(drawer.Sum(d => d.Count), Lang)</button>
-                    <button type="button" class="btn btn-sm btn-rf-outline" @onclick="() => drawer.Clear()" data-test="map-drawer-clear">@UiText.VttDrawerClear(Lang)</button>
+                <div class="rf-atp-two">
+                    <button type="button" class="rf-atp-btn primary" disabled="@busy" @onclick="PlaceDrawerAsync" data-test="map-drawer-place"><Icon Name="geo-alt" /> @UiText.VttDrawerPlace(drawer.Sum(d => d.Count), Lang)</button>
+                    <button type="button" class="rf-atp-btn" @onclick="() => drawer.Clear()" data-test="map-drawer-clear">@UiText.VttDrawerClear(Lang)</button>
                 </div>
-                <div class="d-flex gap-2">
-                    <input class="rf-form-control" maxlength="80" placeholder="@UiText.VttGroupName(Lang)" aria-label="@UiText.VttGroupName(Lang)" @bind="groupName" @bind:event="oninput" data-test="map-group-name" />
-                    <button type="button" class="btn btn-sm btn-rf-outline" disabled="@(busy || string.IsNullOrWhiteSpace(groupName))" @onclick="SaveGroupAsync" data-test="map-group-save"><Icon Name="bookmark" /> @UiText.VttGroupSave(Lang)</button>
+                <div class="rf-atp-row">
+                    <input class="rf-form-control rf-atp-input" maxlength="80" placeholder="@UiText.VttGroupName(Lang)" aria-label="@UiText.VttGroupName(Lang)" @bind="groupName" @bind:event="oninput" data-test="map-group-name" />
+                    <button type="button" class="rf-atp-square" disabled="@(busy || string.IsNullOrWhiteSpace(groupName))" title="@UiText.VttGroupSave(Lang)" aria-label="@UiText.VttGroupSave(Lang)" @onclick="SaveGroupAsync" data-test="map-group-save"><Icon Name="bookmark" /></button>
                 </div>
             }
-            @if (monsterGroups is null)
+            @if (groupsOpen)
             {
-                <button type="button" class="rf-vtt-row-action align-self-start" @onclick="LoadGroupsAsync" data-test="map-groups-load">@UiText.VttGroupsShow(Lang)</button>
-            }
-            else if (monsterGroups.Count > 0)
-            {
-                <span class="rf-vtt-label">@UiText.VttGroups(Lang)</span>
-                @foreach (var g in monsterGroups)
+                @if (monsterGroups is null)
                 {
-                    var group = g;
-                    <div class="rf-vtt-row" data-test="map-group-row">
-                        <span class="rf-vtt-row-info">
-                            <strong>@group.Name</strong>
-                            <span>@GroupLine(group)</span>
-                        </span>
-                        <button type="button" class="rf-vtt-row-action" disabled="@busy" title="@UiText.VttGroupPlace(Lang)" aria-label="@UiText.VttGroupPlace(Lang)" @onclick="() => PlaceAsync(group.Entries)" data-test="map-group-place"><Icon Name="geo-alt" /></button>
-                        <button type="button" class="rf-vtt-row-action" title="@UiText.VttGroupEdit(Lang)" aria-label="@UiText.VttGroupEdit(Lang)" @onclick="() => LoadGroup(group)" data-test="map-group-edit"><Icon Name="pencil" /></button>
-                        <button type="button" class="rf-vtt-row-action" disabled="@busy" title="@UiText.VttGroupDelete(Lang)" aria-label="@UiText.VttGroupDelete(Lang)" @onclick="() => DeleteGroupAsync(group)" data-test="map-group-delete"><Icon Name="trash" /></button>
+                    <p class="rf-atp-desc">…</p>
+                }
+                else if (monsterGroups.Count == 0)
+                {
+                    <p class="rf-atp-desc" data-test="map-groups-empty">@UiText.VttGroupsNone(Lang)</p>
+                }
+                else
+                {
+                    <div class="rf-atp-groups">
+                        @foreach (var g in monsterGroups)
+                        {
+                            var group = g;
+                            <div class="rf-atp-group" data-test="map-group-row">
+                                <span class="rf-atp-group-text">
+                                    <strong>@group.Name</strong>
+                                    <span>@GroupLine(group)</span>
+                                </span>
+                                <button type="button" class="rf-vtt-row-action" disabled="@busy" title="@UiText.VttGroupPlace(Lang)" aria-label="@UiText.VttGroupPlace(Lang)" @onclick="() => PlaceAsync(group.Entries)" data-test="map-group-place"><Icon Name="geo-alt" /></button>
+                                <button type="button" class="rf-vtt-row-action" title="@UiText.VttGroupEdit(Lang)" aria-label="@UiText.VttGroupEdit(Lang)" @onclick="() => LoadGroup(group)" data-test="map-group-edit"><Icon Name="pencil" /></button>
+                                <button type="button" class="rf-vtt-row-action" disabled="@busy" title="@UiText.VttGroupDelete(Lang)" aria-label="@UiText.VttGroupDelete(Lang)" @onclick="() => DeleteGroupAsync(group)" data-test="map-group-delete"><Icon Name="trash" /></button>
+                            </div>
+                        }
                     </div>
                 }
             }
-        </div>
+        </section>
     };
 
+    //	Adding tokens: the characters not on the map yet, a monster or an NPC by name (one, or gathered in the drawer), a
+    //	marker of one's own, an object; a click puts it on the first free cell, a drag where it is dropped
     private RenderFragment AddTokens => __builder =>
     {
-        <section class="rf-vtt-box" data-test="map-add-tokens">
-            <span class="rf-vtt-title">@UiText.MapAddTokens(Lang)</span>
-            <span class="rf-vtt-drag-hint small" data-test="map-drag-hint"><Icon Name="arrows-move" /> @UiText.MapDragHint(Lang)</span>
+        var props = Enum.GetValues<PropType>().Where(p => p != PropType.Item).ToList();
+        <section class="rf-atp" data-test="map-add-tokens">
+            <header class="rf-atp-head">
+                <span class="rf-atp-kicker">@UiText.MapAddTokens(Lang)</span>
+                <span class="rf-atp-hint" data-test="map-drag-hint">
+                    <Icon Name="arrows-move" />
+                    <span><strong>@UiText.MapHintClick(Lang):</strong> @UiText.MapHintClickWhere(Lang) · <strong>@UiText.MapHintDrag(Lang):</strong> @UiText.MapHintDragWhere(Lang)</span>
+                </span>
+            </header>
             @if (FreeCharacters.Any())
             {
-                <div class="rf-vtt-chips">
-                    @foreach (var c in FreeCharacters)
-                    {
-                        var ch = c;
-                        <button type="button" draggable="true" data-drag-token="@($"character:{ch.Character.Id}")" title="@UiText.MapDragHint(Lang)" @onclick="() => AddCharacterAsync(ch)" data-test="map-add-character"><Icon Name="plus" /> @ch.Character.Name</button>
-                    }
+                <div class="rf-atp-section">
+                    <span class="rf-atp-sub">@UiText.MapAddCharacters(Lang)</span>
+                    <div class="rf-atp-grid">
+                        @foreach (var c in FreeCharacters)
+                        {
+                            var ch = c;
+                            <button type="button" class="rf-atp-obj" draggable="true" data-drag-token="@($"character:{ch.Character.Id}")" title="@UiText.MapDragHint(Lang)" @onclick="() => AddCharacterAsync(ch)" data-test="map-add-character"><Icon Name="person" /><span>@ch.Character.Name</span></button>
+                        }
+                    </div>
                 </div>
             }
-            <div class="position-relative">
-                <input class="rf-form-control" placeholder="@UiText.MapMonsterSearch(Lang)" value="@monsterSearch" @oninput="SearchMonstersAsync" data-test="map-monster-search" />
+            <div class="rf-atp-search">
+                <Icon Name="search" />
+                <input class="rf-form-control rf-atp-input" placeholder="@UiText.MapMonsterSearch(Lang)" value="@monsterSearch" @oninput="SearchMonstersAsync" data-test="map-monster-search" />
                 @if (monsterResults.Count > 0)
                 {
                     <div class="rf-forge-selector-menu" style="left: 0; right: 0;">
@@ -3670,18 +3779,25 @@ else
                 }
             </div>
             @MonsterDrawer
-            <div class="d-flex gap-2">
-                <input class="rf-form-control" maxlength="100" placeholder="@UiText.MapMarkerHint(Lang)" @bind="markerLabel" data-test="map-marker-label" />
-                <input type="color" class="rf-vtt-color" @bind="markerColor" aria-label="@UiText.MapColor(Lang)" />
-                <button type="button" class="btn btn-sm btn-rf-outline" disabled="@string.IsNullOrWhiteSpace(markerLabel)" draggable="@(string.IsNullOrWhiteSpace(markerLabel) ? "false" : "true")" data-drag-token="marker" title="@UiText.MapDragHint(Lang)" @onclick="AddMarkerAsync" data-test="map-add-marker"><Icon Name="plus" /></button>
+            <div class="rf-atp-custom">
+                <input class="rf-form-control rf-atp-input" maxlength="100" placeholder="@UiText.MapMarkerHint(Lang)" @bind="markerLabel" @bind:event="oninput" data-test="map-marker-label" />
+                <label class="rf-atp-color" title="@UiText.MapColor(Lang)">
+                    <input type="color" @bind="markerColor" aria-label="@UiText.MapColor(Lang)" />
+                </label>
+                <button type="button" class="rf-atp-square primary" disabled="@string.IsNullOrWhiteSpace(markerLabel)" draggable="@(string.IsNullOrWhiteSpace(markerLabel) ? "false" : "true")" data-drag-token="marker" title="@UiText.MapDragHint(Lang)" aria-label="@UiText.MapAddMarker(Lang)" @onclick="AddMarkerAsync" data-test="map-add-marker"><Icon Name="plus" /></button>
             </div>
-            <span class="rf-vtt-label">@UiText.PropAdd(Lang)</span>
-            <div class="rf-vtt-chips" data-test="map-add-props">
-                @foreach (var type in Enum.GetValues<PropType>().Where(p => p != PropType.Item))
-                {
-                    var propType = type;
-                    <button type="button" draggable="true" data-drag-token="@($"prop:{propType}")" title="@UiText.MapDragHint(Lang)" @onclick="() => AddPropAsync(propType)" data-test="map-add-prop" data-type="@propType"><Icon Name="@PropIcon(propType, PropState.Closed)" /> @UiText.PropTypeName(propType, Lang)</button>
-                }
+            <div class="rf-atp-section">
+                <span class="rf-atp-sub">@UiText.PropAdd(Lang)</span>
+                <div class="rf-atp-grid" data-test="map-add-props">
+                    @for (var i = 0; i < props.Count; i++)
+                    {
+                        var propType = props[i];
+                        var wide = i == props.Count - 1 && props.Count % 2 == 1;
+                        <button type="button" class="rf-atp-obj @(wide ? "wide" : null)" draggable="true" data-drag-token="@($"prop:{propType}")" title="@UiText.MapDragHint(Lang)" @onclick="() => AddPropAsync(propType)" data-test="map-add-prop" data-type="@propType">
+                            <Icon Name="@PropIcon(propType, PropState.Closed)" /><span>@UiText.PropTypeName(propType, Lang)</span>
+                        </button>
+                    }
+                </div>
             </div>
         </section>
     };
@@ -4306,7 +4422,6 @@ else
     private async Task CampaignPanel(string name)
     {
         TogglePanel(name);
-        drawerFolded = false;
         if (panel == "encounters")
         {
             await LoadEncountersAsync();
@@ -4687,6 +4802,10 @@ else
 
     private void OpenDrawer(string name)
     {
+        if (IsToolPanel(name) && !openTools.Contains(name))
+        {
+            openTools.Add(name);
+        }
         panel = name;
         drawerFolded = false;
     }
@@ -4706,7 +4825,7 @@ else
         diceMin = false;
         if (panel == "dice")
         {
-            panel = sheetTokenId is not null ? "sheet" : logDocked ? "log" : null;
+            panel = NextPanel("dice");
         }
         await SaveLayoutAsync();
     }
@@ -4726,7 +4845,7 @@ else
         logMin = false;
         if (panel == "log")
         {
-            panel = sheetTokenId is not null ? "sheet" : diceDocked ? "dice" : null;
+            panel = NextPanel("log");
         }
         await SaveLayoutAsync();
     }
@@ -4767,7 +4886,7 @@ else
         {
             if (panel == "dice" && !drawerFolded)
             {
-                panel = null;
+                panel = NextPanel("dice");
             }
             else
             {
@@ -4786,7 +4905,7 @@ else
             unreadRolls = 0;
             if (panel == "log" && !drawerFolded)
             {
-                panel = null;
+                panel = NextPanel("log");
             }
             else
             {

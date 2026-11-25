@@ -27,7 +27,7 @@ namespace RealmForge.Client.Localization
 		public static string MapShown(LanguageCode lang) => T(lang, "Mostra ai giocatori", "Show to the players");
 		public static string MapAddTokens(LanguageCode lang) => T(lang, "Aggiungi segnalini", "Add tokens");
 		public static string MapMonsterSearch(LanguageCode lang) => T(lang, "Mostro o PNG (es. Goblin)…", "Monster or NPC (e.g. Goblin)…");
-		public static string MapMarkerHint(LanguageCode lang) => T(lang, "Segnalino (es. Porta, Trappola)", "Marker (e.g. Door, Trap)");
+		public static string MapMarkerHint(LanguageCode lang) => T(lang, "Nome del segnalino…", "Marker name…");
 		public static string MapColor(LanguageCode lang) => T(lang, "Colore", "Colour");
 		public static string MapTokenSize(LanguageCode lang) => T(lang, "Dimensione (caselle)", "Size (cells)");
 		public static string MapTokenHidden(LanguageCode lang) => T(lang, "Nascosto ai giocatori", "Hidden from the players");
@@ -219,6 +219,13 @@ namespace RealmForge.Client.Localization
 
 		// ----- The map editor -----
 		public static string MapShownShort(LanguageCode lang) => T(lang, "Visibile ai giocatori", "Shown to the players");
+		public static string MapHintClick(LanguageCode lang) => T(lang, "Clic", "Click");
+		public static string MapHintClickWhere(LanguageCode lang) => T(lang, "prima casella libera", "first free cell");
+		public static string MapHintDrag(LanguageCode lang) => T(lang, "Trascina", "Drag");
+		public static string MapHintDragWhere(LanguageCode lang) => T(lang, "dove vuoi", "wherever you like");
+		public static string MapAddCharacters(LanguageCode lang) => T(lang, "Personaggi", "Characters");
+		public static string MapAddMarker(LanguageCode lang) => T(lang, "Aggiungi il segnalino", "Add the marker");
+		public static string VttGroupsNone(LanguageCode lang) => T(lang, "Nessun gruppo salvato: raccogli dei mostri nel cassetto e salvali con un nome.", "No group kept: gather monsters in the drawer and keep them under a name.");
 		public static string MapDragHint(LanguageCode lang) => T(lang, "Clic: nella prima casella libera · trascina sulla mappa: dove vuoi", "Click: on the first free cell · drag onto the map: wherever you like");
 		public static string VttToolEncounters(LanguageCode lang) => T(lang, "Incontri", "Encounters");
 		public static string VttToolTreasure(LanguageCode lang) => T(lang, "Tesoro del gruppo", "Party treasure");
@@ -586,7 +593,7 @@ namespace RealmForge.Client.Localization
 		public static string VttGroupName(LanguageCode lang) => T(lang, "Nome del gruppo (es. Pattuglia goblin)", "Group name (e.g. Goblin patrol)");
 		public static string VttGroupSave(LanguageCode lang) => T(lang, "Salva gruppo", "Save group");
 		public static string VttGroups(LanguageCode lang) => T(lang, "Gruppi salvati", "Saved groups");
-		public static string VttGroupsShow(LanguageCode lang) => T(lang, "Mostra i gruppi salvati", "Show the saved groups");
+		public static string VttGroupsShow(LanguageCode lang) => T(lang, "Gruppi salvati", "Saved groups");
 		public static string VttGroupPlace(LanguageCode lang) => T(lang, "Piazza il gruppo al centro della vista", "Place the group in the middle of the view");
 		public static string VttGroupEdit(LanguageCode lang) => T(lang, "Apri nel cassetto", "Open in the drawer");
 		public static string VttGroupDelete(LanguageCode lang) => T(lang, "Elimina il gruppo", "Delete the group");

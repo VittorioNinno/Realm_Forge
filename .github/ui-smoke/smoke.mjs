@@ -1844,7 +1844,28 @@ try {
   await page.locator('[data-test=vtt-tool-tokens]').click();
   await page.locator('[data-test=vtt-drawer]').waitFor({ timeout: 15000 });
   await shot(page, 'vtt-table', null);
+  // The tools open side by side as tabs: a second one does not replace the first, a folded panel opens again on the
+  // tool asked, and each tab is named after its tool
+  await page.locator('[data-test=vtt-tool-handouts]').click();
+  await page.locator('[data-test=vtt-tab-tool][data-tool=handouts].active').waitFor({ timeout: 10000 });
+  await page.locator('[data-test=vtt-drawer-fold]').click();
+  await page.locator('.rf-vtt-drawer.folded').waitFor({ timeout: 10000 });
+  await page.locator('[data-test=vtt-tool-sounds]').click();
+  await page.locator('[data-test=vtt-tab-tool][data-tool=sounds].active').waitFor({ timeout: 10000 });
+  const drawerUi = {
+    tabs: await page.locator('[data-test=vtt-tab-tool]').evaluateAll((els) => els.map((e) => e.dataset.tool)),
+    folded: await page.locator('.rf-vtt-drawer.folded').count()
+  };
+  await shot(page, 'vtt-drawer-tabs', '[data-test=vtt-drawer]');
+  await page.locator('[data-test=vtt-tab-tool][data-tool=sounds] [data-test=vtt-tab-tool-close]').click();
+  drawerUi.afterClose = await page.locator('[data-test=vtt-tab-tool].active').getAttribute('data-tool');
   await page.locator('[data-test=vtt-tool-tokens]').click();
+  await page.locator('[data-test=vtt-tool-tokens]').click();
+  drawerUi.left = await page.locator('[data-test=vtt-tab-tool]').evaluateAll((els) => els.map((e) => e.dataset.tool));
+  await page.locator('[data-test=vtt-drawer-close]').click();
+  results.push(`INFO vtt drawer tabs: ${JSON.stringify(drawerUi)}`);
+  if (JSON.stringify(drawerUi.tabs) !== '["tokens","handouts","sounds"]' || drawerUi.folded !== 0 || drawerUi.afterClose !== 'handouts' || JSON.stringify(drawerUi.left) !== '["handouts"]') throw new Error(`unexpected drawer tabs: ${JSON.stringify(drawerUi)}`);
+  ok('virtual tabletop: the tools open side by side as named tabs, a folded panel opens again on the tool asked, a closed tab leaves the others');
   await page.setViewportSize({ width: 390, height: 844 });
   await page.waitForTimeout(800);
   vttUi.phoneZoom = (await page.locator('[data-test=vtt] [data-test=map-zoom]').innerText()).trim();
