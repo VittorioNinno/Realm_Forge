@@ -41,7 +41,7 @@ window.rfDice3d = (() => {
     };
 
     let unlocked = new Set();
-    let box = null, boxSound = null, look = null, layer = null, loading = null, hideTimer = null, queue = Promise.resolve();
+    let box = null, boxSound = null, look = null, layer = null, loading = null, hideTimer = null, fadeTimer = null, queue = Promise.resolve();
     const textures = {};
 
     function hexColor(value) {
@@ -963,36 +963,44 @@ window.rfDice3d = (() => {
         return faces.map((f, i) => ({ face: f, die: list[i] || null }));
     }
 
+    // The dice fade away a while after they rest. A throw that starts meanwhile cancels both steps: before, the fading
+    // of the previous throw could still empty the box under the new dice, which vanished in the middle of their roll
     function hideLater(ms) {
-        clearTimeout(hideTimer);
+        keepShown();
         hideTimer = setTimeout(() => {
             if (!layer) return;
             layer.classList.add('fading');
             stopPulse();
-            setTimeout(() => {
+            fadeTimer = setTimeout(() => {
                 layer.classList.remove('shown', 'fading');
                 try { box && box.clearDice(); } catch { }
             }, 350);
         }, ms);
     }
 
+    function keepShown() {
+        clearTimeout(hideTimer);
+        clearTimeout(fadeTimer);
+        hideTimer = fadeTimer = null;
+    }
+
     async function throwDice(dice, colorOverride) {
         const s = read();
         // The dice of another player are resin in their colour
         const skin = colorOverride ? 'resin' : s.skin;
+        keepShown();
         const b = await ensureBox(s.sound);
         await applyLook(b, skin, colorOverride || s.color);
-        clearTimeout(hideTimer);
         layer.classList.remove('fading');
         layer.classList.add('shown');
         layer.dataset.skin = skin;
         try { b.clearDice(); } catch { }
         const special = specials[skin];
         const { text, thrown } = notation(dice);
-        // The physics settles in one or two seconds; never wait longer than six
+        // The physics settles in one or two seconds; never wait longer than ten (a slow device painting new dice)
         const rolled = b.roll(text);
         if (special) startPulse(b, special);
-        await Promise.race([rolled, new Promise(r => setTimeout(r, 6000))]);
+        await Promise.race([rolled, new Promise(r => setTimeout(r, 10000))]);
         // A natural 20 or 1 of a d20 that counts (not the one set aside by advantage or disadvantage)
         const crits = special ? d20s(b, thrown).filter(x => !x.face.dropped && (x.face.value === 20 || x.face.value === 1)) : [];
         if (crits.length > 0) {
@@ -1004,6 +1012,26 @@ window.rfDice3d = (() => {
         }
         hideLater(1100);
         return true;
+    }
+
+    // The look chosen made ready before it is thrown: the box, the colours or the texture of the special die, and the
+    // faces of every kind of die painted once (the slow part on the first throw of a new look). Queued with the throws,
+    // so a throw asked meanwhile waits for it instead of starting half ready
+    function ready() {
+        const s = read();
+        if (!s.enabled || !available()) return Promise.resolve(false);
+        const run = queue.then(async () => {
+            const b = await ensureBox(s.sound);
+            await applyLook(b, s.skin, s.color);
+            const f = b.DiceFactory;
+            for (const type of ['d4', 'd6', 'd8', 'd10', 'd12', 'd20', 'd100']) {
+                try { f.create(type); } catch { }
+            }
+            await new Promise(r => setTimeout(r, 0));
+            return true;
+        }).catch(() => false);
+        queue = run.then(() => { }, () => { });
+        return run;
     }
 
     // Prepares the box while the page is idle: the library, the scene and the sounds are ready before the first roll
@@ -1018,8 +1046,10 @@ window.rfDice3d = (() => {
         else setTimeout(fn, 2500);
     }
 
-    if (document.readyState === 'complete') idle(prepare);
-    else window.addEventListener('load', () => setTimeout(() => idle(prepare), 1500), { once: true });
+    // While the page is idle: the box, then the look chosen (the first throw does not paint the dice)
+    const warm = () => prepare().then(ok => ok && ready());
+    if (document.readyState === 'complete') idle(warm);
+    else window.addEventListener('load', () => setTimeout(() => idle(warm), 1500), { once: true });
 
     return {
         // The settings of this device: { enabled, skin, color (a palette name or "#rrggbb"), sound, others }
@@ -1046,6 +1076,7 @@ window.rfDice3d = (() => {
         },
         available,
         prepare,
+        ready,
 
         // Throws the dice of a roll already decided ([{ sides, value }]) and resolves when they rest: true when they
         // were shown, false when the flat animation is to be used (switched off, no WebGL, a die it cannot draw).
@@ -1063,7 +1094,7 @@ window.rfDice3d = (() => {
         },
 
         clear() {
-            clearTimeout(hideTimer);
+            keepShown();
             if (layer) layer.classList.remove('shown', 'fading');
             try { box && box.clearDice(); } catch { }
         }
