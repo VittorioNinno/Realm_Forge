@@ -2171,6 +2171,27 @@ try {
   results.push(`INFO vtt objects: ${JSON.stringify(propUi)}`);
   if (propUi.before !== 'Closed' || propUi.opened !== 'Open' || propUi.locked !== 'Locked' || propUi.stuck !== 1) throw new Error(`unexpected objects: ${JSON.stringify(propUi)}`);
   ok('virtual tabletop objects: a door placed from the tokens panel, opened from its toolbar, then locked so it no longer opens');
+  // A handout written from the table: one language at a time (a dot where something is written), saved, listed as a card
+  await page.locator('[data-test=vtt-tool-handouts]').click();
+  await page.locator('[data-test=handout-new]').click();
+  await page.locator('[data-test=handout-title-it]').fill('Lettera del borgomastro');
+  await page.locator('[data-test=handout-body-it]').fill('Il **ponte** crolla a mezzanotte.');
+  await page.locator('[data-test=handout-tab-en]').click();
+  const hoUi = {
+    itVisible: await page.locator('[data-test=handout-title-it]').isVisible(),
+    enVisible: await page.locator('[data-test=handout-title-en]').isVisible(),
+    dots: await page.locator('[data-test=handout-form] .rf-ho-dot.filled').count()
+  };
+  await shot(page, 'vtt-handout-form', '[data-test=campaign-handouts]');
+  await page.locator('[data-test=handout-save]').click();
+  await page.locator('[data-test=handout-row]', { hasText: 'Lettera del borgomastro' }).waitFor({ timeout: 15000 });
+  hoUi.count = (await page.locator('[data-test=handouts-count]').innerText()).trim();
+  await page.locator('[data-test=handout-row]', { hasText: 'Lettera del borgomastro' }).locator('[data-test=handout-delete]').click();
+  await page.locator('[data-test=handout-row]', { hasText: 'Lettera del borgomastro' }).waitFor({ state: 'detached', timeout: 15000 });
+  await page.locator('[data-test=vtt-tool-handouts]').click();
+  results.push(`INFO vtt handout: ${JSON.stringify(hoUi)}`);
+  if (hoUi.itVisible || !hoUi.enVisible || hoUi.dots !== 1 || hoUi.count === '0') throw new Error(`unexpected handout form: ${JSON.stringify(hoUi)}`);
+  ok('virtual tabletop handouts: written one language at a time from the table, saved as a card, removed');
   // A chest dragged from the tokens panel onto the map lands on the cell under the pointer (not on the first free one),
   // then is removed
   await page.locator('[data-test=vtt-tool-tokens]').click();

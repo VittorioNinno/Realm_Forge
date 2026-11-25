@@ -9,7 +9,7 @@
 @* The riddles lab of a handout: the answer that solves it and the door it opens, a cipher to turn a text into a
    message to decode, the catalogue of riddles with the hints of each check *@
 <details class="rf-riddle-lab" open="@(Draft.PuzzleAnswer is { Length: > 0 })" data-test="riddle-lab">
-    <summary><Icon Name="puzzle" /> @UiText.RiddleLab(Lang)</summary>
+    <summary><span class="rf-riddle-sum"><Icon Name="puzzle" /> @UiText.RiddleLab(Lang)</span><span class="rf-riddle-chevron"><Icon Name="chevron-down" /></span></summary>
 
     <div class="rf-riddle-row">
         <label class="d-flex flex-column gap-1 flex-grow-1">
@@ -29,7 +29,7 @@
     </div>
 
     <span class="rf-mini-label">@UiText.RiddleCipher(Lang)</span>
-    <div class="rf-riddle-row">
+    <div class="rf-riddle-row rf-riddle-cipher">
         <select class="rf-form-control" @bind="cipher" aria-label="@UiText.RiddleCipher(Lang)" data-test="riddle-cipher">
             @foreach (var kindOption in Enum.GetValues<CipherKind>())
             {

@@ -22102,6 +22102,373 @@ a.rf-mention:hover {
     color: #f08a94;
 }
 
+/* ===== Handouts: the list (a card each) and the form, in the table's panel and on the campaign page ===== */
+.rf-ho {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    min-width: 0;
+}
+
+.rf-ho-head {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.rf-ho-kicker {
+    color: var(--rf-text-primary);
+    font-size: .7rem;
+    font-weight: 900;
+    letter-spacing: .8px;
+    text-transform: uppercase;
+}
+
+.rf-ho-count {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 24px;
+    height: 24px;
+    padding: 0 8px;
+    border: 1px solid var(--rf-border-light);
+    border-radius: 16px;
+    background: var(--rf-bg-card);
+    color: var(--rf-orange-primary);
+    font-size: .7rem;
+    font-weight: 800;
+}
+
+.rf-ho-intro {
+    margin: 0;
+    color: var(--rf-text-muted);
+    font-size: .8rem;
+    line-height: 1.45;
+}
+
+.rf-ho-new {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    width: 100%;
+    height: 40px;
+    border: 0;
+    border-radius: 8px;
+    background: var(--rf-orange-primary);
+    color: #0a0a0a;
+    font-size: .75rem;
+    font-weight: 900;
+    letter-spacing: .5px;
+    text-transform: uppercase;
+}
+
+    .rf-ho-new:hover {
+        background: var(--rf-orange-hover);
+    }
+
+.rf-ho.page .rf-ho-new {
+    width: auto;
+    align-self: flex-start;
+    padding: 0 24px;
+}
+
+.rf-ho-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    padding: 24px 16px;
+    border: 1px dashed var(--rf-border-light);
+    border-radius: 8px;
+    background: var(--rf-bg-card);
+    color: var(--rf-text-muted);
+    text-align: center;
+}
+
+    .rf-ho-empty svg {
+        width: 24px;
+        height: 24px;
+        color: #52525b;
+    }
+
+    .rf-ho-empty p {
+        margin: 0;
+        color: var(--rf-text-secondary);
+        font-size: .85rem;
+        font-weight: 700;
+    }
+
+    .rf-ho-empty span {
+        font-size: .75rem;
+        line-height: 1.4;
+    }
+
+.rf-ho-list {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 8px;
+}
+
+.rf-ho.page .rf-ho-list {
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 16px;
+}
+
+.rf-ho-card {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    min-width: 0;
+    padding: 8px;
+    border: 1px solid var(--rf-border-light);
+    border-radius: 8px;
+    background: var(--rf-bg-card);
+}
+
+    .rf-ho-card.hidden {
+        border-style: dashed;
+    }
+
+    .rf-ho-card.scene {
+        border-color: var(--rf-orange-primary);
+        box-shadow: inset 3px 0 0 var(--rf-orange-primary);
+    }
+
+.rf-ho-open {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    min-width: 0;
+    padding: 0;
+    border: 0;
+    background: none;
+    color: var(--rf-text-primary);
+    text-align: left;
+}
+
+    .rf-ho-open img,
+    .rf-ho-thumb {
+        flex: none;
+        width: 48px;
+        height: 48px;
+        border-radius: 8px;
+        object-fit: cover;
+    }
+
+.rf-ho-thumb {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--rf-bg-surface);
+    color: var(--rf-orange-primary);
+}
+
+.rf-ho-card-text {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    min-width: 0;
+}
+
+    .rf-ho-card-text strong {
+        overflow: hidden;
+        font-size: .85rem;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+.rf-ho-meta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    font-size: .7rem;
+}
+
+.rf-ho-state {
+    color: var(--rf-text-muted);
+}
+
+    .rf-ho-state.on {
+        color: #6fd3a1;
+    }
+
+.rf-ho-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 4px;
+    padding-top: 8px;
+    border-top: 1px solid var(--rf-border-subtle);
+}
+
+.rf-ho-show {
+    display: inline-flex;
+    flex: 1 1 auto;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    height: 32px;
+    padding: 0 8px;
+    border: 1px solid rgba(255, 140, 0, .45);
+    border-radius: 8px;
+    background: rgba(255, 140, 0, .12);
+    color: #ffb74d;
+    font-size: .7rem;
+    font-weight: 800;
+    text-transform: uppercase;
+}
+
+    .rf-ho-show.primary {
+        border-color: var(--rf-orange-primary);
+        background: var(--rf-orange-primary);
+        color: #0a0a0a;
+    }
+
+/* The form */
+.rf-ho-form {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.rf-ho-langbar {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.rf-ho-seg {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 4px;
+    height: 40px;
+    padding: 4px;
+    border: 1px solid var(--rf-border-light);
+    border-radius: 8px;
+    background: var(--rf-bg-card);
+}
+
+.rf-ho.page .rf-ho-seg {
+    max-width: 400px;
+}
+
+    .rf-ho-seg button {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        border: 1px solid transparent;
+        border-radius: 4px;
+        background: transparent;
+        color: var(--rf-text-muted);
+        font-size: .75rem;
+        font-weight: 800;
+    }
+
+        .rf-ho-seg button.active {
+            border-color: rgba(255, 140, 0, .45);
+            background: rgba(255, 140, 0, .14);
+            color: #ffb74d;
+        }
+
+.rf-ho-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: transparent;
+}
+
+    .rf-ho-dot.filled {
+        background: #10b981;
+    }
+
+.rf-ho-note {
+    color: var(--rf-text-muted);
+    font-size: .7rem;
+}
+
+.rf-ho-fields {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+    .rf-ho-fields[hidden] {
+        display: none;
+    }
+
+.rf-ho-field {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    min-width: 0;
+    margin: 0;
+}
+
+.rf-ho-label-row {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 8px;
+}
+
+.rf-ho-label {
+    color: var(--rf-orange-primary);
+    font-size: .65rem;
+    font-weight: 800;
+    letter-spacing: .6px;
+    text-transform: uppercase;
+}
+
+.rf-ho-md {
+    color: #52525b;
+    font-family: ui-monospace, monospace;
+    font-size: .65rem;
+}
+
+.rf-ho-input {
+    height: 40px;
+}
+
+.rf-ho-footer {
+    display: grid;
+    grid-template-columns: 1fr 1.3fr;
+    gap: 8px;
+    padding-top: 8px;
+    border-top: 1px solid var(--rf-border-subtle);
+}
+
+.rf-ho.page .rf-ho-footer {
+    display: flex;
+    justify-content: flex-end;
+}
+
+.rf-ho-btn {
+    height: 40px;
+    padding: 0 24px;
+    border: 1px solid var(--rf-border-light);
+    border-radius: 8px;
+    background: var(--rf-bg-card);
+    color: var(--rf-text-secondary);
+    font-size: .75rem;
+    font-weight: 800;
+    letter-spacing: .5px;
+    text-transform: uppercase;
+}
+
+    .rf-ho-btn.primary {
+        border-color: var(--rf-orange-primary);
+        background: var(--rf-orange-primary);
+        color: #0a0a0a;
+        font-weight: 900;
+    }
+
+    .rf-ho-btn:disabled {
+        opacity: .5;
+    }
+
 /* ===== Riddles and ciphers ===== */
 .rf-riddle-lab {
     padding: 8px 16px;
@@ -22117,10 +22484,43 @@ a.rf-mention:hover {
 .rf-riddle-lab > summary {
     display: flex;
     align-items: center;
+    justify-content: space-between;
     gap: 8px;
-    font-weight: 600;
+    min-height: 24px;
+    list-style: none;
+    font-weight: 800;
     color: var(--rf-orange-primary);
     cursor: pointer;
+}
+
+    .rf-riddle-lab > summary::-webkit-details-marker {
+        display: none;
+    }
+
+.rf-riddle-sum {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.rf-riddle-chevron {
+    display: inline-flex;
+    color: var(--rf-text-muted);
+    transition: transform .2s ease;
+}
+
+.rf-riddle-lab[open] .rf-riddle-chevron {
+    transform: rotate(180deg);
+    color: var(--rf-orange-primary);
+}
+
+.rf-riddle-lab[open] {
+    border-color: rgba(255, 140, 0, .45);
+}
+
+.rf-riddle-lab > .rf-riddle-row.rf-riddle-cipher:has(> input) {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 96px;
 }
 
 .rf-riddle-lab[open] > summary {
