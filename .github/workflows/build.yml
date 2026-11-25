@@ -2203,7 +2203,7 @@ jobs:
 
       - name: Keep the screenshots of the smoke test
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: ui-shots
           path: |

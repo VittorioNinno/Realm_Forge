@@ -26,13 +26,13 @@ jobs:
       - name: Image name (lower case, as the registry requires)
         run: echo "IMAGE=ghcr.io/${GITHUB_REPOSITORY_OWNER,,}/realmforge-api" >> "$GITHUB_ENV"
 
-      - uses: docker/login-action@v3
+      - uses: docker/login-action@v4
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - uses: docker/build-push-action@v6
+      - uses: docker/build-push-action@v7
         with:
           context: .
           file: RealmForge/RealmForge.Api/Dockerfile
