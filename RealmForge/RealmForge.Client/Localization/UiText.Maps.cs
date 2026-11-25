@@ -219,6 +219,7 @@ namespace RealmForge.Client.Localization
 
 		// ----- The map editor -----
 		public static string MapShownShort(LanguageCode lang) => T(lang, "Visibile ai giocatori", "Shown to the players");
+		public static string MapDragHint(LanguageCode lang) => T(lang, "Clic: nella prima casella libera · trascina sulla mappa: dove vuoi", "Click: on the first free cell · drag onto the map: wherever you like");
 		public static string MapHiddenShort(LanguageCode lang) => T(lang, "Non mostrata", "Not shown");
 		public static string MapViewAs(LanguageCode lang) => T(lang, "Vista", "View");
 		public static string MapViewEditor(LanguageCode lang) => T(lang, "Editor", "Editor");

@@ -2171,6 +2171,31 @@ try {
   results.push(`INFO vtt objects: ${JSON.stringify(propUi)}`);
   if (propUi.before !== 'Closed' || propUi.opened !== 'Open' || propUi.locked !== 'Locked' || propUi.stuck !== 1) throw new Error(`unexpected objects: ${JSON.stringify(propUi)}`);
   ok('virtual tabletop objects: a door placed from the tokens panel, opened from its toolbar, then locked so it no longer opens');
+  // A chest dragged from the tokens panel onto the map lands on the cell under the pointer (not on the first free one),
+  // then is removed
+  await page.locator('[data-test=vtt-tool-tokens]').click();
+  const stageBox = await page.locator('[data-test=vtt] [data-test=map-stage]').boundingBox();
+  const heroBox = await page.locator('[data-test=vtt] [data-test=map-token][data-label="Eroe di prova"]').boundingBox();
+  const dropPoint = { x: heroBox.x + heroBox.width / 2 + (heroBox.x + heroBox.width * 3 < stageBox.x + stageBox.width ? heroBox.width * 2 : -heroBox.width * 2), y: heroBox.y + heroBox.height / 2 };
+  await page.locator('[data-test=map-add-prop][data-type=Chest]').dragTo(page.locator('[data-test=vtt] [data-test=map-stage]'), {
+    targetPosition: { x: dropPoint.x - stageBox.x, y: dropPoint.y - stageBox.y }
+  });
+  const chest = page.locator('[data-test=vtt] [data-test=map-token][data-label="Forziere"]');
+  await chest.waitFor({ timeout: 15000 });
+  const chestBox = await chest.boundingBox();
+  const dropUi = {
+    off: Math.round(Math.hypot(chestBox.x + chestBox.width / 2 - dropPoint.x, chestBox.y + chestBox.height / 2 - dropPoint.y)),
+    cell: Math.round(heroBox.width),
+    hint: await page.locator('[data-test=map-drag-hint]').count()
+  };
+  await page.locator('[data-test=vtt-tool-tokens]').click();
+  await chest.click();
+  await page.locator('[data-test=map-token-tab-more]').click();
+  await page.locator('[data-test=map-token-remove]').click();
+  await chest.waitFor({ state: 'detached', timeout: 15000 });
+  results.push(`INFO vtt drop: ${JSON.stringify(dropUi)}`);
+  if (dropUi.off > dropUi.cell || dropUi.hint !== 1) throw new Error(`a token dragged onto the map is not where it was dropped: ${JSON.stringify(dropUi)}`);
+  ok('virtual tabletop: a chest dragged from the tokens panel lands on the cell where it is dropped');
   // A long rest from the hero's quick sheet: saved on its sheet, the hit points full
   await page.locator('[data-test=vtt] [data-test=map-token][data-label="Eroe di prova"]').click();
   await page.locator('[data-test=map-token-sheet]').click();

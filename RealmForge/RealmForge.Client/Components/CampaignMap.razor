@@ -3596,13 +3596,14 @@ else
     {
         <section class="rf-vtt-box" data-test="map-add-tokens">
             <span class="rf-vtt-title">@UiText.MapAddTokens(Lang)</span>
+            <span class="rf-vtt-drag-hint small" data-test="map-drag-hint"><Icon Name="arrows-move" /> @UiText.MapDragHint(Lang)</span>
             @if (FreeCharacters.Any())
             {
                 <div class="rf-vtt-chips">
                     @foreach (var c in FreeCharacters)
                     {
                         var ch = c;
-                        <button type="button" @onclick="() => AddCharacterAsync(ch)" data-test="map-add-character"><Icon Name="plus" /> @ch.Character.Name</button>
+                        <button type="button" draggable="true" data-drag-token="@($"character:{ch.Character.Id}")" title="@UiText.MapDragHint(Lang)" @onclick="() => AddCharacterAsync(ch)" data-test="map-add-character"><Icon Name="plus" /> @ch.Character.Name</button>
                     }
                 </div>
             }
@@ -3615,7 +3616,7 @@ else
                         {
                             var monster = m;
                             <div class="rf-vtt-drawer-result">
-                                <button type="button" class="rf-forge-selector-option" @onclick="() => AddMonsterAsync(monster)" data-test="map-monster-result">
+                                <button type="button" class="rf-forge-selector-option" draggable="true" data-drag-token="@($"monster:{monster.Id}")" title="@UiText.MapDragHint(Lang)" @onclick="() => AddMonsterAsync(monster)" data-test="map-monster-result">
                                     @monster.Name <span class="small" style="color: var(--rf-text-muted);">· @UiText.MonsterChallengeShort(Lang) @RealmForge.Shared.Monsters.MonsterMath.FormatChallenge(monster.ChallengeRating)</span>
                                 </button>
                                 <button type="button" class="rf-vtt-drawer-add" title="@UiText.VttDrawerAdd(Lang)" aria-label="@UiText.VttDrawerAdd(Lang)" @onclick="() => AddToDrawer(monster)" data-test="map-monster-drawer-add"><Icon Name="inbox" /></button>
@@ -3628,14 +3629,14 @@ else
             <div class="d-flex gap-2">
                 <input class="rf-form-control" maxlength="100" placeholder="@UiText.MapMarkerHint(Lang)" @bind="markerLabel" data-test="map-marker-label" />
                 <input type="color" class="rf-vtt-color" @bind="markerColor" aria-label="@UiText.MapColor(Lang)" />
-                <button type="button" class="btn btn-sm btn-rf-outline" disabled="@string.IsNullOrWhiteSpace(markerLabel)" @onclick="AddMarkerAsync" data-test="map-add-marker"><Icon Name="plus" /></button>
+                <button type="button" class="btn btn-sm btn-rf-outline" disabled="@string.IsNullOrWhiteSpace(markerLabel)" draggable="@(string.IsNullOrWhiteSpace(markerLabel) ? "false" : "true")" data-drag-token="marker" title="@UiText.MapDragHint(Lang)" @onclick="AddMarkerAsync" data-test="map-add-marker"><Icon Name="plus" /></button>
             </div>
             <span class="rf-vtt-label">@UiText.PropAdd(Lang)</span>
             <div class="rf-vtt-chips" data-test="map-add-props">
                 @foreach (var type in Enum.GetValues<PropType>().Where(p => p != PropType.Item))
                 {
                     var propType = type;
-                    <button type="button" @onclick="() => AddPropAsync(propType)" data-test="map-add-prop" data-type="@propType"><Icon Name="@PropIcon(propType, PropState.Closed)" /> @UiText.PropTypeName(propType, Lang)</button>
+                    <button type="button" draggable="true" data-drag-token="@($"prop:{propType}")" title="@UiText.MapDragHint(Lang)" @onclick="() => AddPropAsync(propType)" data-test="map-add-prop" data-type="@propType"><Icon Name="@PropIcon(propType, PropState.Closed)" /> @UiText.PropTypeName(propType, Lang)</button>
                 }
             </div>
         </section>
@@ -5993,13 +5994,66 @@ else
         return (0, 0);
     }
 
+    //	Where a token dragged from the panel was dropped (in the map's pixels), while it is being added
+    private (double X, double Y)? dropAt;
+
+    //	A token dragged from the panel and dropped on the map: added on the cell under the pointer (the first free one when
+    //	that is off the map)
+    [JSInvokable]
+    public async Task NewTokenDropped(string key, double x, double y)
+    {
+        if (map is null || !RunsTheTable || busy)
+        {
+            return;
+        }
+        var parts = key.Split(':', 2);
+        var what = parts[0];
+        var id = parts.Length > 1 ? parts[1] : string.Empty;
+        dropAt = (x, y);
+        try
+        {
+            switch (what)
+            {
+                case "character" when Guid.TryParse(id, out var characterId) && FreeCharacters.FirstOrDefault(c => c.Character.Id == characterId) is { } character:
+                    await AddCharacterAsync(character);
+                    break;
+                case "monster" when Guid.TryParse(id, out var monsterId):
+                    var monster = monsterResults.FirstOrDefault(m => m.Id == monsterId)
+                        ?? (monsters.TryGetValue(monsterId, out var known) ? known : (await MonsterService.GetMonstersAsync(Lang)).FirstOrDefault(m => m.Id == monsterId));
+                    if (monster is not null)
+                    {
+                        await AddMonsterAsync(monster);
+                    }
+                    break;
+                case "prop" when Enum.TryParse<PropType>(id, out var propType) && propType != PropType.Item:
+                    await AddPropAsync(propType);
+                    break;
+                case "marker":
+                    await AddMarkerAsync();
+                    break;
+            }
+        }
+        finally
+        {
+            dropAt = null;
+        }
+        StateHasChanged();
+    }
+
+    //	The cell a token dropped at a point of the map goes on: the nearest one, else the first free one
+    private (int X, int Y) DropCell((double X, double Y) at, int size)
+    {
+        var (col, row) = MapGeometry.Nearest(gridType, grid, offsetX, offsetY, at.X, at.Y, size);
+        return map is not null && MapGeometry.Inside(gridType, grid, offsetX, offsetY, col, row, size, map.Width, map.Height) ? (col, row) : FreeCell(size);
+    }
+
     private async Task AddAsync(SaveTokenDto dto)
     {
         if (map is null)
         {
             return;
         }
-        (dto.X, dto.Y) = FreeCell(dto.Size);
+        (dto.X, dto.Y) = dropAt is { } at ? DropCell(at, dto.Size) : FreeCell(dto.Size);
         var token = await Campaigns.AddTokenAsync(CampaignId, map.Id, dto);
         message = token is null ? UiText.MapSaveFailed(Lang) : null;
         if (token is not null)

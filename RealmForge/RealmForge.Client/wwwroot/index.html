@@ -349,6 +349,16 @@
 
         window.rfVtt = (() => {
             const boards = new WeakMap();
+            // A new token dragged from the masters' panel (a character, a monster, a marker, an object): what it is travels
+            // with the drag, the map it is dropped on places it on that cell
+            const dragType = 'application/x-rf-token';
+            document.addEventListener('dragstart', (e) => {
+                const el = e.target.closest?.('[data-drag-token]');
+                if (!el || !e.dataTransfer) return;
+                e.dataTransfer.setData(dragType, el.dataset.dragToken);
+                e.dataTransfer.setData('text/plain', el.textContent.trim());
+                e.dataTransfer.effectAllowed = 'copy';
+            });
             const S3 = Math.sqrt(3);
             const cell = (t, g) => t === 1 ? [g, 2 * g / S3] : t === 2 ? [2 * g / S3, g] : [g, g];
             const center = (t, g, ox, oy, c, r) => {
@@ -977,6 +987,38 @@
                     dotnet.invokeMethodAsync('Wheel', e.deltaY < 0 ? 1 : -1);
                 };
                 stage.addEventListener('pointerdown', st.down);
+                // A new token dropped on the map: the cell under the pointer is highlighted, the drop places it there
+                st.dragover = (e) => {
+                    if (!board() || !e.dataTransfer || !Array.from(e.dataTransfer.types).includes(dragType)) return;
+                    e.preventDefault();
+                    e.dataTransfer.dropEffect = 'copy';
+                    const [t, g, ox, oy] = grid(), p = toMap(e), c = nearest(t, g, ox, oy, p[0], p[1]);
+                    const svg = layer();
+                    if (svg) {
+                        const z = zoom(), pts = corners(t, g, ox, oy, c[0], c[1]).map(q => q.join(',')).join(' ');
+                        svg.innerHTML = `<polygon points="${pts}" fill="rgba(255,140,0,.25)" stroke="#ff8c00" stroke-width="${2 / z}" data-test="map-drop-cell"/>`;
+                    }
+                    stage.classList.add('dropping');
+                };
+                st.dragleave = (e) => {
+                    if (stage.contains(e.relatedTarget)) return;
+                    stage.classList.remove('dropping');
+                    const svg = layer();
+                    if (svg) svg.innerHTML = '';
+                };
+                st.drop = (e) => {
+                    const key = e.dataTransfer?.getData(dragType);
+                    stage.classList.remove('dropping');
+                    const svg = layer();
+                    if (svg) svg.innerHTML = '';
+                    if (!key || !board()) return;
+                    e.preventDefault();
+                    const p = toMap(e);
+                    dotnet.invokeMethodAsync('NewTokenDropped', key, p[0], p[1]);
+                };
+                stage.addEventListener('dragover', st.dragover);
+                stage.addEventListener('dragleave', st.dragleave);
+                stage.addEventListener('drop', st.drop);
                 window.addEventListener('pointermove', st.move);
                 window.addEventListener('pointerup', st.up);
                 // A pointer lost (released outside the window, a gesture taken by the browser): what it was doing stops
@@ -1056,6 +1098,9 @@
                 const st = stage && boards.get(stage);
                 if (!st) return;
                 stage.removeEventListener('pointerdown', st.down);
+                stage.removeEventListener('dragover', st.dragover);
+                stage.removeEventListener('dragleave', st.dragleave);
+                stage.removeEventListener('drop', st.drop);
                 window.removeEventListener('pointermove', st.move);
                 window.removeEventListener('pointerup', st.up);
                 window.removeEventListener('pointercancel', st.cancel);
