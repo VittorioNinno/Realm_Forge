@@ -1880,6 +1880,70 @@ namespace RealmForge.Infrastructure.Migrations
                             CodeHash = "ff4019dd8bc1b49e62ab6719d8b52109105664591d0b2034bd1f788ba34416c8",
                             CreatedAt = new DateTimeOffset(new DateTime(2026, 11, 25, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
                             Skin = "stardust"
+                        },
+                        new
+                        {
+                            Id = new Guid("6f1c2a5e-4d1b-4c7e-9a2f-1b9e7c3d5a03"),
+                            Active = true,
+                            CodeHash = "7fbf34eac4cf85991976e8cab983dc8760f80b8ea92a259571b7a15a87dad0fd",
+                            CreatedAt = new DateTimeOffset(new DateTime(2026, 11, 25, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            Skin = "frost"
+                        },
+                        new
+                        {
+                            Id = new Guid("6f1c2a5e-4d1b-4c7e-9a2f-1b9e7c3d5a04"),
+                            Active = true,
+                            CodeHash = "2580a02cc213cf4fe7ebbbc4374ca5f192ebd1c336084a00664d34fcb624bbdf",
+                            CreatedAt = new DateTimeOffset(new DateTime(2026, 11, 25, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            Skin = "storm"
+                        },
+                        new
+                        {
+                            Id = new Guid("6f1c2a5e-4d1b-4c7e-9a2f-1b9e7c3d5a05"),
+                            Active = true,
+                            CodeHash = "1b801a85ac134526dd937a8dec243b2027524f82775cfaefe98f4e3dad45aa86",
+                            CreatedAt = new DateTimeOffset(new DateTime(2026, 11, 25, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            Skin = "bone"
+                        },
+                        new
+                        {
+                            Id = new Guid("6f1c2a5e-4d1b-4c7e-9a2f-1b9e7c3d5a06"),
+                            Active = true,
+                            CodeHash = "5e3ca5ae245f876deeb0bf58678e27f51b680432ae419ee96ad26d27cfb0a7c5",
+                            CreatedAt = new DateTimeOffset(new DateTime(2026, 11, 25, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            Skin = "hoard"
+                        },
+                        new
+                        {
+                            Id = new Guid("6f1c2a5e-4d1b-4c7e-9a2f-1b9e7c3d5a07"),
+                            Active = true,
+                            CodeHash = "5312237321c05bc4201381dfa48a16b1c9dfa3f3299f6e8103b3045e0ed48c9b",
+                            CreatedAt = new DateTimeOffset(new DateTime(2026, 11, 25, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            Skin = "abyss"
+                        },
+                        new
+                        {
+                            Id = new Guid("6f1c2a5e-4d1b-4c7e-9a2f-1b9e7c3d5a08"),
+                            Active = true,
+                            CodeHash = "4e11d9bcc3e7cb761de86485adcbb1456d750fbdd5b9dca827ba1900a587dffe",
+                            CreatedAt = new DateTimeOffset(new DateTime(2026, 11, 25, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            Skin = "fey"
+                        },
+                        new
+                        {
+                            Id = new Guid("6f1c2a5e-4d1b-4c7e-9a2f-1b9e7c3d5a09"),
+                            Active = true,
+                            CodeHash = "697e4badb1e78b3a0aad3a02255323f76fb3f0b41ba2b6146baddf31e36645f4",
+                            CreatedAt = new DateTimeOffset(new DateTime(2026, 11, 25, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            Skin = "acid"
+                        },
+                        new
+                        {
+                            Id = new Guid("6f1c2a5e-4d1b-4c7e-9a2f-1b9e7c3d5a10"),
+                            Active = true,
+                            CodeHash = "011f3e18b8e239d3ba42e698c02c772cd808690fd972e68461b9d401b3e6da24",
+                            CreatedAt = new DateTimeOffset(new DateTime(2026, 11, 25, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            Skin = "arcane"
                         });
                 });
 
