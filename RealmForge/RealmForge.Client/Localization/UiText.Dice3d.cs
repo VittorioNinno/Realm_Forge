@@ -15,7 +15,7 @@ namespace RealmForge.Client.Localization
 		public static string Dice3dEnabled(LanguageCode lang) => T(lang, "Lancia i dadi in 3D", "Throw the dice in 3D");
 		public static string Dice3dColor(LanguageCode lang) => T(lang, "Colore", "Colour");
 		public static string Dice3dSound(LanguageCode lang) => T(lang, "Suono dei dadi", "Dice sound");
-		public static string Dice3dOthers(LanguageCode lang) => T(lang, "Mostra anche i lanci degli altri al tavolo (nel loro colore)", "Show the rolls of the others at the table too (in their colour)");
+		public static string Dice3dOthers(LanguageCode lang) => T(lang, "I dadi degli altri giocatori al tavolo, nel loro colore", "The dice of the other players at the table, in their colour");
 		public static string Dice3dTest(LanguageCode lang) => T(lang, "Prova un lancio", "Try a throw");
 
 		public static string Dice3dColorName(string color, LanguageCode lang) => color switch
@@ -35,15 +35,50 @@ namespace RealmForge.Client.Localization
 		{
 			"ember" => T(lang, "Brace del drago", "Dragon ember"),
 			"stardust" => T(lang, "Polvere di stelle", "Stardust"),
+			"frost" => T(lang, "Brina eterna", "Everfrost"),
+			"storm" => T(lang, "Cuore di tempesta", "Stormheart"),
+			"bone" => T(lang, "Ossa del negromante", "Necromancer's bones"),
+			"hoard" => T(lang, "Tesoro del drago", "Dragon's hoard"),
+			"abyss" => T(lang, "Occhio dell'abisso", "Eye of the abyss"),
+			"fey" => T(lang, "Bosco fatato", "Feywood"),
+			"acid" => T(lang, "Ampolla d'acido", "Acid flask"),
+			"arcane" => T(lang, "Runa arcana", "Arcane rune"),
 			_ => T(lang, "Resina", "Resin")
 		};
 		public static string Dice3dSkinHint(string skin, LanguageCode lang) => skin switch
 		{
-			"ember" => T(lang, "Pietra lavica che arde: lasciano una scia di braci e atterrano in una fiammata", "Burning lava stone: a trail of embers, and a burst of flame where they land"),
-			"stardust" => T(lang, "Vetro notturno pieno di stelle: una scia di scintille e un lampo di luce stellare all'arrivo", "Night glass full of stars: a trail of sparkles and a flash of starlight where they land"),
+			"ember" => T(lang, "Pietra lavica che pulsa: con un 20 naturale una colonna di fuoco e una pioggia di braci", "Pulsing lava stone: on a natural 20, a column of fire and a shower of embers"),
+			"stardust" => T(lang, "Vetro notturno che scintilla: con un 20 naturale un'esplosione di stelle", "Twinkling night glass: on a natural 20, a burst of stars"),
+			"frost" => T(lang, "Ghiaccio con brina che luccica: con un 20 naturale schegge di cristallo", "Shimmering rime ice: on a natural 20, shards of crystal"),
+			"storm" => T(lang, "Ardesia percorsa da lampi: con un 20 naturale una scarica di fulmini", "Slate run through with lightning: on a natural 20, a storm of bolts"),
+			"bone" => T(lang, "Avorio crepato con rune verdi che respirano: con un 20 naturale spiriti verdi", "Cracked ivory with breathing green runes: on a natural 20, green wisps"),
+			"hoard" => T(lang, "Oro martellato a scaglie che brilla: con un 20 naturale una pioggia di monete", "Scaled hammered gold that glints: on a natural 20, a rain of coins"),
+			"abyss" => T(lang, "Nero con un vortice viola: con un 20 naturale tutto viene risucchiato e scagliato via", "Black with a violet whirl: on a natural 20 everything is drawn in and hurled out"),
+			"fey" => T(lang, "Legno vivo con muschio e piccole luci: con un 20 naturale uno sciame di lucciole", "Living wood with moss and tiny lights: on a natural 20, a swarm of fireflies"),
+			"acid" => T(lang, "Vetro verde pieno di bolle: con un 20 naturale schizzi d'acido", "Green glass full of bubbles: on a natural 20, splashes of acid"),
+			"arcane" => T(lang, "Cristallo indaco con cerchi di rune d'oro: con un 20 naturale un cerchio magico", "Indigo crystal with circles of golden runes: on a natural 20, a magic circle"),
 			_ => T(lang, "Resina classica, nel colore che preferisci", "Classic resin, in the colour you like")
 		};
 		public static string Dice3dSkinLocked(LanguageCode lang) => T(lang, "Dadi segreti: si sbloccano con un codice", "Secret dice: a code unlocks them");
+		public static string Dice3dOn(LanguageCode lang) => T(lang, "Attivi", "On");
+		public static string Dice3dOff(LanguageCode lang) => T(lang, "Spenti", "Off");
+		public static string Dice3dSelected(LanguageCode lang) => T(lang, "Set selezionato", "Selected set");
+		public static string Dice3dCritTest(LanguageCode lang) => T(lang, "Prova un critico", "Try a critical");
+		public static string Dice3dCritHint(LanguageCode lang) => T(lang, "Un d20 che cade sul 20: l'effetto del dado con un 20 naturale (con un 1 naturale la luce si spegne)", "A d20 landing on 20: the die's effect on a natural 20 (on a natural 1 the light dies)");
+		public static string Dice3dSearch(LanguageCode lang) => T(lang, "Cerca un set…", "Search a set…");
+		public static string Dice3dSecretCode(LanguageCode lang) => T(lang, "Codice segreto", "Secret code");
+		public static string Dice3dCustomShort(LanguageCode lang) => T(lang, "Personalizzato", "Custom");
+		public static string Dice3dCustomPick(LanguageCode lang) => T(lang, "Scegli un colore", "Pick a colour");
+		public static string Dice3dNone(LanguageCode lang) => T(lang, "Nessun set con questo nome.", "No set by that name.");
+		public static string Dice3dSoundHint(LanguageCode lang) => T(lang, "Rotolamenti e rimbalzi sul tavolo", "Rolling and bouncing on the table");
+		public static string Dice3dOthersShort(LanguageCode lang) => T(lang, "Lanci degli altri", "The others' rolls");
+		public static string Dice3dCategoryResin(LanguageCode lang) => T(lang, "Resina", "Resin");
+		public static string Dice3dCategorySpecial(LanguageCode lang) => T(lang, "Speciale", "Special");
+		public static string Dice3dCategorySecret(LanguageCode lang) => T(lang, "Segreto", "Secret");
+		public static string Dice3dFilterAll(LanguageCode lang) => T(lang, "Tutti", "All");
+		public static string Dice3dFilterResin(LanguageCode lang) => T(lang, "Resina", "Resin");
+		public static string Dice3dFilterSpecial(LanguageCode lang) => T(lang, "Speciali", "Special");
+		public static string Dice3dFilterSecret(LanguageCode lang) => T(lang, "Segreti", "Secret");
 		public static string Dice3dCustom(LanguageCode lang) => T(lang, "Colore personalizzato", "Custom colour");
 		public static string Dice3dCustomHex(LanguageCode lang) => T(lang, "Colore personalizzato in esadecimale", "Custom colour in hex");
 		public static string Dice3dCode(LanguageCode lang) => T(lang, "Codice di sblocco", "Unlock code");

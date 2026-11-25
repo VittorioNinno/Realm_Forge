@@ -12,11 +12,27 @@ public static class DiceSkins
 	public const string Resin = "resin";
 	public const string Ember = "ember";
 	public const string Stardust = "stardust";
+	public const string Frost = "frost";
+	public const string Storm = "storm";
+	public const string Bone = "bone";
+	public const string Hoard = "hoard";
+	public const string Abyss = "abyss";
+	public const string Fey = "fey";
+	public const string Acid = "acid";
+	public const string Arcane = "arcane";
 
-	///	<summary>The special dice, in the order they are shown.</summary>
+	///	<summary>The special dice shown locked ("???") until their code is found, in the order they are shown.</summary>
 	public static readonly IReadOnlyList<string> Special = [Ember, Stardust];
 
-	public static bool IsKnown(string? skin) => skin == Resin || Special.Contains(skin);
+	///	<summary>The secret dice: shown nowhere until their code unlocks them (whoever finds one finds a new die).</summary>
+	public static readonly IReadOnlyList<string> Secret = [Frost, Storm, Bone, Hoard, Abyss, Fey, Acid, Arcane];
+
+	///	<summary>Every die a code unlocks.</summary>
+	public static readonly IReadOnlyList<string> Unlockable = [.. Special, .. Secret];
+
+	public static bool IsKnown(string? skin) => skin == Resin || Unlockable.Contains(skin);
+
+	public static bool IsSecret(string? skin) => Secret.Contains(skin);
 
 	///	<summary>A code as it is compared: capitals and digits only ("fiato di drago" = "FIATO-DI-DRAGO").</summary>
 	public static string Normalize(string? code) =>

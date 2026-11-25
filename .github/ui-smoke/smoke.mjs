@@ -2189,9 +2189,17 @@ try {
     x: heroMid.x + (heroMid.x < (seen.left + seen.right) / 2 ? 2 : -2) * heroBox.width,
     y: heroMid.y + (heroMid.y < (seen.top + seen.bottom) / 2 ? 1 : -1) * heroBox.height
   };
-  await page.locator('[data-test=map-add-prop][data-type=Chest]').dragTo(page.locator('[data-test=vtt] [data-test=map-stage]'), {
-    targetPosition: { x: dropPoint.x - stageBox.x, y: dropPoint.y - stageBox.y }
-  });
+  // The drag and drop of the browser, as its events (a mouse drag can end as a plain click on a busy runner)
+  await page.evaluate(({ x, y }) => {
+    const chip = document.querySelector('[data-test=map-add-prop][data-type=Chest]');
+    const stage = document.querySelector('[data-test=vtt] [data-test=map-stage]');
+    const data = new DataTransfer();
+    chip.dispatchEvent(new DragEvent('dragstart', { bubbles: true, cancelable: true, dataTransfer: data }));
+    for (const type of ['dragenter', 'dragover', 'drop']) {
+      stage.dispatchEvent(new DragEvent(type, { bubbles: true, cancelable: true, clientX: x, clientY: y, dataTransfer: data }));
+    }
+    chip.dispatchEvent(new DragEvent('dragend', { bubbles: true, cancelable: true, dataTransfer: data }));
+  }, dropPoint);
   const chest = page.locator('[data-test=vtt] [data-test=map-token][data-label="Forziere"]');
   await chest.waitFor({ timeout: 15000 });
   const chestBox = await chest.boundingBox();
@@ -2310,8 +2318,25 @@ try {
     await page.locator('[data-test=dice3d-unlock]').click();
     await page.locator('[data-test=dice3d-code-message]').waitFor({ timeout: 15000 });
     await shot(page, 'dice3d-settings', '[data-test=account-dice3d]');
-    if (lockedSkins !== 2) throw new Error(`special dice locked: ${lockedSkins}`);
-    ok('3D dice: a colour of one\'s own is kept, the special dice wait for a code');
+    const gallery = {
+      locked: lockedSkins,
+      cards: await page.locator('[data-test=dice3d-grid] .rf-d3d-card').count(),
+      secretPill: await page.locator('[data-test=dice3d-filter][data-filter=secret]').count(),
+      active: (await page.locator('[data-test=dice3d-active-name]').innerText()).trim()
+    };
+    results.push(`INFO 3D dice gallery: ${JSON.stringify(gallery)}`);
+    if (gallery.locked !== 2 || gallery.cards !== 11 || gallery.secretPill !== 0 || !gallery.active.includes('#22c55e')) throw new Error(`unexpected dice gallery (the secret dice must not show): ${JSON.stringify(gallery)}`);
+    ok('3D dice: a colour of one\'s own is kept, the special dice wait for a code, the secret ones are not shown at all');
+    // The critical moment of a special die (a natural 20), drawn on its own canvas over the page
+    const crit = page.evaluate(() => window.rfDice3d.critical('arcane', true));
+    await page.locator('.rf-dice3d-fx.shown').waitFor({ timeout: 10000 });
+    await page.waitForTimeout(700);
+    await shot(page, 'dice3d-critical');
+    await crit;
+    await page.locator('.rf-dice3d-fx.shown').waitFor({ state: 'detached', timeout: 10000 }).catch(() => { });
+    const critHidden = await page.locator('.rf-dice3d-fx.shown').count();
+    if (critHidden !== 0) throw new Error('the critical effect did not end');
+    ok('3D dice: the critical effect of a special die plays over the page and ends by itself');
   } else {
     results.push('INFO 3D dice: no WebGL in this browser, the flat dice stay');
   }

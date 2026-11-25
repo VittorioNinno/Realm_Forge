@@ -21114,160 +21114,516 @@ button.rf-vtt-clock.on {
 
 
 
-.rf-dice3d-settings {
+/* The critical moment of a special die (a natural 20 or 1 of the d20): a canvas of its own over the dice */
+.rf-dice3d-fx {
+    position: fixed;
+    inset: 0;
+    width: 100vw;
+    height: 100vh;
+    z-index: 3001;
+    pointer-events: none;
+    display: none;
+}
+
+    .rf-dice3d-fx.shown {
+        display: block;
+    }
+
+/* ===== The settings of the 3D dice: the set in use, the gallery, the options, the code ===== */
+
+.rf-d3d {
     display: flex;
     flex-direction: column;
     gap: 16px;
 }
 
-.rf-dice3d-row {
+.rf-d3d-head {
     display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 8px 16px;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid var(--rf-border-subtle);
 }
 
-    .rf-dice3d-row .rf-mini-label {
-        min-width: 96px;
-        margin: 0;
+    .rf-d3d-head .rf-d3d-title {
+        margin: 0 0 8px;
+        padding: 0;
+        border: 0;
     }
 
-    .rf-dice3d-row select.rf-form-control {
-        width: auto;
-        min-width: 160px;
-    }
-
-.rf-dice3d-swatches {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
+.rf-d3d-sub {
+    margin: 0;
+    color: var(--rf-text-secondary);
+    font-size: .85rem;
+    line-height: 1.45;
 }
 
-.rf-dice3d-swatch {
-    width: 32px;
-    height: 32px;
-    padding: 0;
-    border-radius: 8px;
-    border: 2px solid #303030;
-    cursor: pointer;
-    transition: transform .15s ease, border-color .15s ease;
-}
-
-    .rf-dice3d-swatch:hover {
-        transform: translateY(-2px);
-    }
-
-    .rf-dice3d-swatch.on {
-        border-color: #f5f5f5;
-        box-shadow: 0 0 0 2px var(--rf-orange-primary);
-    }
-
-    .rf-dice3d-swatch:focus-visible {
-        outline: 2px solid var(--rf-orange-primary);
-        outline-offset: 2px;
-    }
-
-.rf-dice3d-swatch-forge { background: linear-gradient(135deg, #ffb04d, #ff8c00 55%, #b86500); }
-.rf-dice3d-swatch-ivory { background: linear-gradient(135deg, #fffaf0, #efe6d2 55%, #b9ab8c); }
-.rf-dice3d-swatch-graphite { background: linear-gradient(135deg, #6a6a74, #4a4a52 55%, #1c1c20); }
-.rf-dice3d-swatch-ruby { background: linear-gradient(135deg, #e0484e, #c0262d 55%, #4d0a0d); }
-.rf-dice3d-swatch-emerald { background: linear-gradient(135deg, #3fc283, #1f9d61 55%, #0a3a23); }
-.rf-dice3d-swatch-sapphire { background: linear-gradient(135deg, #5f93f0, #2f6fe0 55%, #0d2659); }
-.rf-dice3d-swatch-amethyst { background: linear-gradient(135deg, #b07ff0, #8e4fd6 55%, #32125a); }
-.rf-dice3d-swatch-teal { background: linear-gradient(135deg, #3ccfd4, #13a3a8 55%, #063d3f); }
-
-/* The free colour: a swatch that opens the colour picker, and the hex field beside it */
-.rf-dice3d-swatch-custom {
+/* The switches: orange when on */
+.rf-d3d-master,
+.rf-d3d-option {
     position: relative;
     display: inline-flex;
     align-items: center;
-    justify-content: center;
+    gap: 8px;
     margin: 0;
-    overflow: hidden;
-    background: conic-gradient(#ff5f5f, #ffd25f, #6fe36f, #5fd3ff, #8f7dff, #ff5fd3, #ff5f5f);
-    color: #141414;
+    cursor: pointer;
 }
 
-    .rf-dice3d-swatch-custom input[type="color"] {
+.rf-d3d-master-label {
+    color: var(--rf-text-secondary);
+    font-size: .75rem;
+    font-weight: 800;
+    letter-spacing: .5px;
+    text-transform: uppercase;
+}
+
+.rf-d3d-switch-input {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    opacity: 0;
+}
+
+.rf-d3d-switch {
+    position: relative;
+    flex: none;
+    width: 40px;
+    height: 24px;
+    border: 1px solid var(--rf-border-light);
+    border-radius: 16px;
+    background: #27272a;
+    transition: background .2s ease, border-color .2s ease;
+}
+
+    .rf-d3d-switch > span {
         position: absolute;
-        inset: 0;
-        width: 100%;
-        height: 100%;
-        opacity: 0;
-        cursor: pointer;
+        top: 3px;
+        left: 3px;
+        width: 16px;
+        height: 16px;
+        border-radius: 50%;
+        background: #a1a1aa;
+        transition: transform .2s cubic-bezier(.4, 0, .2, 1), background .2s ease;
     }
 
-.rf-dice3d-hex {
-    width: 104px !important;
-    font-family: ui-monospace, monospace;
+.rf-d3d-switch-input:checked + .rf-d3d-switch {
+    border-color: var(--rf-orange-primary);
+    background: rgba(255, 140, 0, .25);
 }
 
-/* The dice to choose: resin and the special ones (locked until a code opens them) */
-.rf-dice3d-skins {
+    .rf-d3d-switch-input:checked + .rf-d3d-switch > span {
+        transform: translateX(16px);
+        background: var(--rf-orange-primary);
+        box-shadow: 0 0 8px rgba(255, 140, 0, .7);
+    }
+
+.rf-d3d-switch-input:focus-visible + .rf-d3d-switch {
+    outline: 2px solid var(--rf-orange-primary);
+    outline-offset: 2px;
+}
+
+/* Switched off: the rest waits, dimmed */
+.rf-d3d-body {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    transition: opacity .2s ease;
+}
+
+    .rf-d3d-body.off {
+        opacity: .4;
+        pointer-events: none;
+    }
+
+/* The set in use */
+.rf-d3d-active {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 8px 16px;
+    border: 1px solid rgba(255, 140, 0, .4);
+    border-left: 3px solid var(--rf-orange-primary);
+    border-radius: 8px;
+    background: var(--rf-bg-card);
+}
+
+.rf-d3d-active-set {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    min-width: 0;
+}
+
+.rf-d3d-active-meta {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    min-width: 0;
+}
+
+.rf-d3d-kicker {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--rf-text-muted);
+    font-size: .65rem;
+    font-weight: 800;
+    letter-spacing: .6px;
+    text-transform: uppercase;
+}
+
+.rf-d3d-badge {
+    padding: 0 8px;
+    border: 1px solid rgba(255, 140, 0, .45);
+    border-radius: 4px;
+    background: rgba(255, 140, 0, .14);
+    color: #ffb74d;
+    letter-spacing: .4px;
+}
+
+.rf-d3d-active-name {
+    overflow: hidden;
+    color: var(--rf-text-primary);
+    font-size: 1rem;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.rf-d3d-active-actions {
     display: flex;
     flex-wrap: wrap;
     gap: 8px;
 }
 
-.rf-dice3d-skin {
+.rf-d3d-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    height: 40px;
+    padding: 0 16px;
+    border: 1px solid var(--rf-border-light);
+    border-radius: 8px;
+    background: var(--rf-bg-surface);
+    color: var(--rf-text-secondary);
+    font-size: .75rem;
+    font-weight: 800;
+    letter-spacing: .5px;
+    text-transform: uppercase;
+    transition: background .15s ease, color .15s ease, border-color .15s ease;
+}
+
+    .rf-d3d-btn:not(:disabled):hover {
+        border-color: var(--rf-orange-primary);
+        color: #ffb74d;
+    }
+
+    .rf-d3d-btn.primary {
+        border-color: rgba(255, 140, 0, .55);
+        color: #ffb74d;
+    }
+
+        .rf-d3d-btn.primary:not(:disabled):hover {
+            background: var(--rf-orange-primary);
+            color: #0a0a0a;
+        }
+
+    .rf-d3d-btn:disabled {
+        opacity: .5;
+        cursor: not-allowed;
+    }
+
+/* The swatch of a set: the two colours of the die, its numbers in their own ink */
+.rf-d3d-swatch {
+    display: inline-flex;
+    flex: none;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    border-radius: 8px;
+    background: linear-gradient(135deg, var(--c1, #ffb04d), var(--c2, #ff8c00));
+    color: var(--dot, #141414);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, .5);
+    font-size: 1.25rem;
+}
+
+    .rf-d3d-swatch.lg {
+        width: 48px;
+        height: 48px;
+        font-size: 1.5rem;
+    }
+
+    .rf-d3d-swatch.locked {
+        background: var(--rf-bg-main);
+        box-shadow: none;
+        color: var(--rf-text-muted);
+        font-size: 1rem;
+    }
+
+    .rf-d3d-swatch.custom:not([style]) {
+        background: conic-gradient(#ff5f5f, #ffd25f, #6fe36f, #5fd3ff, #8f7dff, #ff5fd3, #ff5f5f);
+        color: #141414;
+    }
+
+/* The gallery: kinds, search, a grid that scrolls instead of growing the page */
+.rf-d3d-gallery {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    padding: 16px;
+    border: 1px solid var(--rf-border-subtle);
+    border-radius: 8px;
+    background: var(--rf-bg-surface);
+}
+
+.rf-d3d-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+}
+
+.rf-d3d-filters {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.rf-d3d-pill {
+    height: 32px;
+    padding: 0 8px;
+    border: 1px solid var(--rf-border-light);
+    border-radius: 8px;
+    background: var(--rf-bg-card);
+    color: var(--rf-text-secondary);
+    font-size: .75rem;
+    font-weight: 700;
+}
+
+    .rf-d3d-pill:hover {
+        color: var(--rf-text-primary);
+    }
+
+    .rf-d3d-pill.active {
+        border-color: var(--rf-orange-primary);
+        background: rgba(255, 140, 0, .14);
+        color: #ffb74d;
+    }
+
+.rf-d3d-search {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    width: 192px;
+    color: var(--rf-text-muted);
+}
+
+    .rf-d3d-search svg {
+        position: absolute;
+        left: 8px;
+        pointer-events: none;
+    }
+
+    .rf-d3d-search .rf-form-control {
+        height: 32px;
+        padding-left: 32px;
+        font-size: .8rem;
+    }
+
+.rf-d3d-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
+    max-height: 200px;
+    padding-right: 4px;
+    overflow-y: auto;
+}
+
+.rf-d3d-card {
+    position: relative;
     display: flex;
     align-items: center;
     gap: 8px;
-    min-height: 40px;
-    padding: 4px 16px 4px 4px;
-    border: 2px solid var(--rf-border-light);
-    border-radius: 16px;
-    background: var(--rf-bg-surface);
-    color: var(--rf-text-primary);
-    font-weight: 600;
-    transition: transform .15s ease, border-color .15s ease, box-shadow .15s ease;
+    min-width: 0;
+    height: 56px;
+    margin: 0;
+    padding: 8px;
+    border: 1px solid var(--rf-border-light);
+    border-radius: 8px;
+    background: var(--rf-bg-card);
+    color: inherit;
+    text-align: left;
+    cursor: pointer;
+    transition: background .15s ease, border-color .15s ease, box-shadow .15s ease;
 }
 
-    .rf-dice3d-skin:not(:disabled):hover {
-        transform: translateY(-2px);
-        border-color: var(--rf-orange-primary);
+    .rf-d3d-card:not(:disabled):hover {
+        border-color: #4a4a4a;
+        background: #1d1d1d;
     }
 
-    .rf-dice3d-skin.on {
+    .rf-d3d-card.on {
         border-color: var(--rf-orange-primary);
-        box-shadow: 0 0 12px var(--rf-orange-glow);
+        background: rgba(255, 140, 0, .12);
+        box-shadow: 0 0 12px rgba(255, 140, 0, .16);
     }
 
-    .rf-dice3d-skin.locked {
+        .rf-d3d-card.on::after {
+            content: "";
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--rf-orange-primary);
+            box-shadow: 0 0 8px var(--rf-orange-primary);
+        }
+
+    .rf-d3d-card.locked {
+        border-style: dashed;
         opacity: .55;
         cursor: not-allowed;
     }
 
-.rf-dice3d-skin-face {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 32px;
-    height: 32px;
-    border-radius: 8px;
-    color: #fff4dc;
+.rf-d3d-card-text {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
 }
 
-.rf-dice3d-skin-resin .rf-dice3d-skin-face { background: linear-gradient(135deg, #ffb04d, #ff8c00 55%, #b86500); color: #141414; }
-.rf-dice3d-skin-ember .rf-dice3d-skin-face { background: radial-gradient(circle at 35% 35%, #ffb347, #c2410c 45%, #3a0e04); box-shadow: 0 0 10px rgba(255, 106, 16, .6); }
-.rf-dice3d-skin-stardust .rf-dice3d-skin-face { background: radial-gradient(circle at 30% 30%, #8f7dff, #33208a 50%, #0b1033); box-shadow: 0 0 10px rgba(143, 125, 255, .6); }
-.rf-dice3d-skin.locked .rf-dice3d-skin-face { background: var(--rf-bg-main); box-shadow: none; color: var(--rf-text-muted); }
+    .rf-d3d-card-text strong {
+        overflow: hidden;
+        color: var(--rf-text-primary);
+        font-size: .8rem;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
 
-.rf-dice3d-code {
+    .rf-d3d-card-text span {
+        overflow: hidden;
+        color: var(--rf-text-muted);
+        font-size: .7rem;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+/* The colour picker of the custom set, over the whole card */
+.rf-d3d-color-input {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    opacity: 0;
+    cursor: pointer;
+}
+
+.rf-d3d-none {
+    grid-column: 1 / -1;
+    color: var(--rf-text-muted);
+}
+
+.rf-d3d-hex-row {
     display: flex;
     flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    margin: 0;
+    color: var(--rf-text-secondary);
+    font-size: .8rem;
+}
+
+.rf-d3d-hex {
+    width: 112px !important;
+    height: 32px;
+    font-family: ui-monospace, monospace;
+}
+
+/* Sound and the rolls of the others, side by side */
+.rf-d3d-options {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
     gap: 8px;
 }
 
-    .rf-dice3d-code .rf-form-control {
-        flex: 1 1 200px;
-        width: auto;
+.rf-d3d-option {
+    justify-content: space-between;
+    gap: 16px;
+    padding: 8px 16px;
+    border: 1px solid var(--rf-border-subtle);
+    border-radius: 8px;
+    background: var(--rf-bg-card);
+    user-select: none;
+}
+
+    .rf-d3d-option:hover {
+        border-color: var(--rf-border-light);
+    }
+
+.rf-d3d-option-text {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+    .rf-d3d-option-text strong {
+        color: var(--rf-text-primary);
+        font-size: .8rem;
+    }
+
+    .rf-d3d-option-text span {
+        color: var(--rf-text-muted);
+        font-size: .7rem;
+        line-height: 1.3;
+    }
+
+/* The code: found somewhere, typed here */
+.rf-d3d-code {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding-top: 16px;
+    border-top: 1px solid var(--rf-border-subtle);
+}
+
+.rf-d3d-code-row {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 8px;
+}
+
+    .rf-d3d-code-row .rf-form-control {
+        height: 40px;
+        font-weight: 700;
+        letter-spacing: .6px;
         text-transform: uppercase;
     }
 
 .rf-dice3d-code-ok {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
     color: #6fd3a1;
     font-weight: 600;
+}
+
+@media (max-width: 680px) {
+    .rf-d3d-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .rf-d3d-options {
+        grid-template-columns: 1fr;
+    }
+
+    .rf-d3d-search {
+        width: 100%;
+    }
 }
 
 /* ===== Visual effects (wwwroot/js/fx.js) ===== */
