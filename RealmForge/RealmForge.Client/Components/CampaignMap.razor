@@ -5371,8 +5371,10 @@ else
     private DateTimeOffset? strikeSeen;
     private Guid? revealedTurn;
 
+    //	The strike tells the result: it waits for the dice of the roll to rest (at most a few seconds)
     private async Task ShowStrikeAsync(Guid tokenId, string kind, string? text, string? damageType = null)
     {
+        await DiceActivity.WhenIdleAsync(TimeSpan.FromMilliseconds(350), TimeSpan.FromSeconds(12));
         try
         {
             await JS.InvokeVoidAsync("rfVtt.strike", stageElement, tokenId, kind, text, damageType);

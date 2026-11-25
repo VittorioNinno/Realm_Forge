@@ -72,6 +72,8 @@ namespace RealmForge.Infrastructure.Persistence
 		public DbSet<CampaignHandout> CampaignHandouts => Set<CampaignHandout>();
 		public DbSet<CampaignShop> CampaignShops => Set<CampaignShop>();
 		public DbSet<CampaignSound> CampaignSounds => Set<CampaignSound>();
+		public DbSet<DiceUnlockCode> DiceUnlockCodes => Set<DiceUnlockCode>();
+		public DbSet<UserDiceSkin> UserDiceSkins => Set<UserDiceSkin>();
 		public DbSet<CampaignSoundScene> CampaignSoundScenes => Set<CampaignSoundScene>();
 		public DbSet<CampaignLoot> CampaignLoot => Set<CampaignLoot>();
 		public DbSet<CampaignProgressClock> CampaignProgressClocks => Set<CampaignProgressClock>();
@@ -642,6 +644,35 @@ namespace RealmForge.Infrastructure.Persistence
 				entity.Property(l => l.Appearance).IsRequired().HasMaxLength(1000);
 				entity.HasIndex(l => l.CampaignId);
 				entity.HasOne<Campaign>().WithMany().HasForeignKey(l => l.CampaignId).OnDelete(DeleteBehavior.Cascade);
+			});
+
+			//	The easter eggs of the dice: the first two codes (only their hashes; the codes are given by hand)
+			modelBuilder.Entity<DiceUnlockCode>(entity =>
+			{
+				entity.HasKey(c => c.Id);
+				entity.Property(c => c.CodeHash).IsRequired().HasMaxLength(64);
+				entity.Property(c => c.Skin).IsRequired().HasMaxLength(30);
+				entity.HasIndex(c => c.CodeHash).IsUnique();
+				entity.HasData(
+					new DiceUnlockCode
+					{
+						Id = Guid.Parse("6f1c2a5e-4d1b-4c7e-9a2f-1b9e7c3d5a01"), Skin = "ember", Active = true,
+						CodeHash = "a28ce0368d56879f4c34b360c91e37a134f68e4ba0535db46e096f0cb5ca5114",
+						CreatedAt = new DateTimeOffset(2026, 11, 25, 0, 0, 0, TimeSpan.Zero)
+					},
+					new DiceUnlockCode
+					{
+						Id = Guid.Parse("6f1c2a5e-4d1b-4c7e-9a2f-1b9e7c3d5a02"), Skin = "stardust", Active = true,
+						CodeHash = "ff4019dd8bc1b49e62ab6719d8b52109105664591d0b2034bd1f788ba34416c8",
+						CreatedAt = new DateTimeOffset(2026, 11, 25, 0, 0, 0, TimeSpan.Zero)
+					});
+			});
+
+			modelBuilder.Entity<UserDiceSkin>(entity =>
+			{
+				entity.HasKey(s => new { s.UserId, s.Skin });
+				entity.Property(s => s.UserId).HasMaxLength(450);
+				entity.Property(s => s.Skin).IsRequired().HasMaxLength(30);
 			});
 
 			modelBuilder.Entity<CampaignSoundScene>(entity =>

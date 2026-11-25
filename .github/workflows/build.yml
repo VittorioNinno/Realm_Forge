@@ -1085,6 +1085,16 @@ jobs:
           journal=$(get "$api/api/campaigns/$cp_id/notes" -H "Authorization: Bearer $B" | jq -r '.[] | select(.kind == 3) | .id')
           cp_note_edit_other=$(code -X PUT "$api/api/campaigns/$cp_id/notes/$journal" $json -H "Authorization: Bearer $B" -d '{"kind":3,"title":"x","body":"y"}')
           cp_note_delete=$(code -X DELETE "$api/api/campaigns/$cp_id/notes/$journal" -H "Authorization: Bearer $B")
+          # The special dice: an easter-egg code (a test one, added here: the real codes are never in the repository) unlocks
+          # them once, a wrong code nothing; the seeded codes are kept as hashes only
+          dc_seeded=$(psql -h localhost -U postgres -d realm_forge_ci -tAc "SELECT count(*) FROM \"DiceUnlockCodes\" WHERE length(\"CodeHash\") = 64 AND \"Skin\" IN ('ember','stardust')")
+          dc_hash=$(printf '%s' 'CODICEDIPROVA42' | sha256sum | cut -d' ' -f1)
+          psql -h localhost -U postgres -d realm_forge_ci -v ON_ERROR_STOP=1 -c "INSERT INTO \"DiceUnlockCodes\" (\"Id\", \"CodeHash\", \"Skin\", \"Active\", \"CreatedAt\") VALUES (gen_random_uuid(), '$dc_hash', 'stardust', true, now())" > /dev/null
+          dc_before=$(get "$api/api/account/dice" -H "Authorization: Bearer $A" | jq -c .unlocked)
+          dc_wrong=$(curl -s -X POST "$api/api/account/dice/unlock" $json -H "Authorization: Bearer $A" -d '{"code":"non-esiste"}' | jq -c '{skin, new}')
+          dc_right=$(curl -s -X POST "$api/api/account/dice/unlock" $json -H "Authorization: Bearer $A" -d '{"code":"codice di prova 42"}' | jq -c '{skin, new, unlocked}')
+          dc_again=$(curl -s -X POST "$api/api/account/dice/unlock" $json -H "Authorization: Bearer $A" -d '{"code":"CODICE-DI-PROVA-42"}' | jq -c '{skin, new}')
+          dc_other=$(get "$api/api/account/dice" -H "Authorization: Bearer $B" | jq -c .unlocked)
           # The journal with @mentions and the masters' secrets: a player reads the page, not the secrets, and cannot write them
           mn_list=$(get "$api/api/campaigns/$cp_id/mentions?lang=2" -H "Authorization: Bearer $A")
           mn_char=$(echo "$mn_list" | jq -c '[.[] | select(.kind == "character")] | .[0] | {kind, id}')
@@ -1187,6 +1197,9 @@ jobs:
           chcheck "notes written" "$cp_notes_post" "200 200 200 403"
           chcheck "notes of the player" "$cp_notes_alice" "[1,3]"
           chcheck "notes of the master" "$cp_notes_bob" "[2,3]"
+          chcheck "dice: two codes seeded as hashes, none unlocked at first" "$dc_seeded|$dc_before" '2|[]'
+          chcheck "dice: a wrong code opens nothing, the right one (any case, spaces, dashes) unlocks once" "$dc_wrong|$dc_right|$dc_again" '{"skin":null,"new":false}|{"skin":"stardust","new":true,"unlocked":["stardust"]}|{"skin":"stardust","new":false}'
+          chcheck "dice: what a user unlocks is theirs only" "$dc_other" '[]'
           chcheck "mentions: the characters of the campaign, no maps for a player" "$mn_kinds" '["character"]'
           chcheck "journal: a player reads the mention, not the secrets" "$mn_player" '{"mention":true,"secret":null}'
           chcheck "journal: the master reads the secrets" "$mn_master" '"Il locandiere è un doppelganger."'

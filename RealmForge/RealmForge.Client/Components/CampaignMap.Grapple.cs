@@ -77,6 +77,7 @@ namespace RealmForge.Client.Components
 			busy = true;
 			turnNote = null;
 			localEdits++;
+			using var rolling = DiceActivity.Hold();
 			var (result, error) = await Campaigns.GrappleAsync(CampaignId, map.Id, actor.Id, dto, Lang);
 			busy = false;
 			aim = null;

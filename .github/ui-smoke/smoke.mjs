@@ -2261,6 +2261,18 @@ try {
     const saved = await page.evaluate(() => JSON.parse(localStorage.getItem('rf-dice3d') || '{}').color);
     if (saved !== 'emerald') throw new Error(`the dice colour was not kept: ${saved}`);
     ok('3D dice: the colour is kept on the device, a test throw draws the dice over the page');
+    // A colour of one's own (RGB), the special dice locked until a code, a wrong code opening nothing
+    await page.locator('[data-test=dice3d-hex]').fill('#22c55e');
+    await page.locator('[data-test=dice3d-hex]').press('Enter');
+    await page.locator('[data-test=dice3d-hex]').blur();
+    await page.waitForFunction(() => JSON.parse(localStorage.getItem('rf-dice3d') || '{}').color === '#22c55e', null, { timeout: 15000 });
+    const lockedSkins = await page.locator('[data-test=dice3d-skin]:disabled').count();
+    await page.locator('[data-test=dice3d-code]').fill('nessun codice');
+    await page.locator('[data-test=dice3d-unlock]').click();
+    await page.locator('[data-test=dice3d-code-message]').waitFor({ timeout: 15000 });
+    await shot(page, 'dice3d-settings', '[data-test=account-dice3d]');
+    if (lockedSkins !== 2) throw new Error(`special dice locked: ${lockedSkins}`);
+    ok('3D dice: a colour of one\'s own is kept, the special dice wait for a code');
   } else {
     results.push('INFO 3D dice: no WebGL in this browser, the flat dice stay');
   }
