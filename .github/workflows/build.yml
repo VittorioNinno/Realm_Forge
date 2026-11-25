@@ -860,6 +860,23 @@ jobs:
           ck_hungry=$(curl -s -X POST "$api/api/campaigns/$cp_id/clock" $json -H "Authorization: Bearer $B" -d '{"minutes":2880,"rations":true}' | jq -c --arg c "$sp_ch" '{days, hungry: [.hungry[] | select(.characterId == $c) | .days]}')
           ck_stale=$(curl -s -X PUT "$api/api/characters/$sp_ch/sheet" $json -H "Authorization: Bearer $A" -d "$ck_sheet" | jq -c '{inventory: (.vitals.inventory | length)}')
           ck_set=$(curl -s -X POST "$api/api/campaigns/$cp_id/clock" $json -H "Authorization: Bearer $B" -d '{"set":1230}' | jq .minutes)
+          # The party's chest: coins set by the master, a potion put in unidentified (the players see only its look), identified by a
+          # player and taken for their character (into its inventory, with its magic), the coins shared out
+          tr_player_coins=$(code -X PUT "$api/api/campaigns/$cp_id/treasure/coins" $json -H "Authorization: Bearer $A" -d '{"gp":10}')
+          tr_coins=$(code -X PUT "$api/api/campaigns/$cp_id/treasure/coins" $json -H "Authorization: Bearer $B" -d '{"gp":10,"sp":5,"cp":2}')
+          tr_item=$(curl -s -X POST "$api/api/campaigns/$cp_id/treasure/items" $json -H "Authorization: Bearer $B" -d "{\"magicItemId\":\"$superior\",\"identified\":false,\"name\":\"Fiala rossa\",\"appearance\":\"Un liquido rosso che brilla\"}" | jq -r .id)
+          tr_seen=$(curl -s "$api/api/campaigns/$cp_id/treasure?lang=2" -H "Authorization: Bearer $A" | jq -c '{gp: .coins.gp, item: (.items[0] | {name, identified, entryId, value: .valueInCopper, appearance, trueName})}')
+          tr_master=$(curl -s "$api/api/campaigns/$cp_id/treasure?lang=2" -H "Authorization: Bearer $B" | jq -c '.items[0] | {trueName, value: .valueInCopper}')
+          tr_identify=$(code -X POST "$api/api/campaigns/$cp_id/treasure/items/$tr_item/identify" -H "Authorization: Bearer $A")
+          tr_known=$(curl -s "$api/api/campaigns/$cp_id/treasure?lang=2" -H "Authorization: Bearer $A" | jq -c '.items[0] | {name, kind}')
+          tr_give_other=$(code -X POST "$api/api/campaigns/$cp_id/treasure/items/$tr_item/give" $json -H "Authorization: Bearer $A" -d "{\"characterId\":\"$(uuidgen)\"}")
+          tr_give=$(code -X POST "$api/api/campaigns/$cp_id/treasure/items/$tr_item/give?lang=2" $json -H "Authorization: Bearer $A" -d "{\"characterId\":\"$sp_ch\"}")
+          tr_inventory=$(get "$api/api/characters/$sp_ch" -H "Authorization: Bearer $A" | jq -c '[.sheet.inventory[] | select(.magic != null) | {name, heal: .magic.healDice}]')
+          tr_left=$(curl -s "$api/api/campaigns/$cp_id/treasure" -H "Authorization: Bearer $A" | jq '.items | length')
+          tr_split_player=$(code -X POST "$api/api/campaigns/$cp_id/treasure/split" $json -H "Authorization: Bearer $A" -d "{\"characterIds\":[\"$sp_ch\"]}")
+          tr_split=$(curl -s -X POST "$api/api/campaigns/$cp_id/treasure/split" $json -H "Authorization: Bearer $B" -d "{\"characterIds\":[\"$sp_ch\"]}" | jq -c '{gp: .each.gp, sp: .each.sp, cp: .each.cp, characters}')
+          tr_purse=$(get "$api/api/characters/$sp_ch" -H "Authorization: Bearer $A" | jq -c '.sheet.coins | {gp, sp, cp}')
+          tr_emptied=$(curl -s "$api/api/campaigns/$cp_id/treasure" -H "Authorization: Bearer $A" | jq -c '.coins | {gp, sp, cp}')
           code -X DELETE "$api/api/campaigns/$cp_id/characters/$sp_ch" -H "Authorization: Bearer $A" > /dev/null
           code -X DELETE "$api/api/characters/$sp_ch" -H "Authorization: Bearer $A" > /dev/null
           code -X DELETE "$api/api/trash/$(get "$api/api/trash?lang=2" -H "Authorization: Bearer $A" | jq -r --arg id "$sp_ch" '.[] | select(.entityId == $id) | .id')" -H "Authorization: Bearer $A" > /dev/null
@@ -968,6 +985,12 @@ jobs:
           mdcheck "clock: two days without rations" "$ck_hungry" '{"days":2,"hungry":[2]}'
           mdcheck "clock: a sheet saved from before keeps the server's inventory" "$ck_stale" '{"inventory":0}'
           mdcheck "clock: set to a time" "$ck_set" "1230"
+          mdcheck "treasure: only masters set the coins" "$tr_player_coins|$tr_coins" "403|204"
+          mdcheck "treasure: unidentified, the players see only its look" "$tr_seen" '{"gp":10,"item":{"name":"Fiala rossa","identified":false,"entryId":null,"value":null,"appearance":"Un liquido rosso che brilla","trueName":null}}'
+          mdcheck "treasure: the masters see what it is" "$tr_master" '{"trueName":"Pozione di guarigione superiore","value":400000}'
+          mdcheck "treasure: identified by a player" "$tr_identify|$tr_known" '204|{"name":"Pozione di guarigione superiore","kind":"magic-item"}'
+          mdcheck "treasure: taken for the player's own character, with its magic" "$tr_give_other|$tr_give|$tr_inventory|$tr_left" '400|204|[{"name":"Pozione di guarigione superiore","heal":"8d4+8"}]|0'
+          mdcheck "treasure: the coins shared out by the masters" "$tr_split_player|$tr_split|$tr_purse|$tr_emptied" '403|{"gp":10,"sp":5,"cp":2,"characters":["Cliente"]}|{"gp":19,"sp":14,"cp":6}|{"gp":0,"sp":0,"cp":0}'
           mdcheck "collections: only the author's own entries" "$cl_not_mine" "400"
           mdcheck "collections: read through the link" "$cl_view" '{"name":"Ambientazione","author":"Bob","isMine":false,"entries":["Raccolta Due","Raccolta Uno"]}'
           mdcheck "collections: all added to the reader's collection" "$cl_before|$cl_collect|$cl_after" "404|2|200"

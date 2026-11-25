@@ -40,6 +40,9 @@ namespace RealmForge.Domain.Entities
 		public Guid? SoundTrackId { get; set; }
 		public DateTimeOffset? SoundTrackAt { get; set; }
 		public Guid? SoundCueId { get; set; }
+
+		//	The party's chest: the coins not shared out yet (JSON of a CoinPurse)
+		public string? TreasureCoins { get; set; }
 		public DateTimeOffset? SoundCueAt { get; set; }
 
 		public ICollection<CampaignMember> Members { get; set; } = new List<CampaignMember>();
@@ -162,6 +165,24 @@ namespace RealmForge.Domain.Entities
 		public DateTimeOffset? RevealedAt { get; set; }
 		public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
 		public DateTimeOffset UpdatedAt { get; set; } = DateTimeOffset.UtcNow;
+	}
+
+	///	<summary>
+	///	An item in the party's chest: from the compendium (equipment, a magic item) or free. Until it is identified the
+	///	players see only its Appearance (and the name the masters gave it); it goes to a character's inventory when given.
+	///	</summary>
+	public class CampaignLoot
+	{
+		public Guid Id { get; set; } = Guid.NewGuid();
+		public Guid CampaignId { get; set; }
+		public Guid? EquipmentId { get; set; }
+		public Guid? MagicItemId { get; set; }
+		public string Name { get; set; } = string.Empty;
+		public string Appearance { get; set; } = string.Empty;
+		public bool Identified { get; set; } = true;
+		public int Quantity { get; set; } = 1;
+		public int? ValueInCopper { get; set; }
+		public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
 	}
 
 	///	<summary>

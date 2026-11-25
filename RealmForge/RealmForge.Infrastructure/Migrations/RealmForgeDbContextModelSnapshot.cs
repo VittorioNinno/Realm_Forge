@@ -368,6 +368,9 @@ namespace RealmForge.Infrastructure.Migrations
                     b.Property<string>("TableOpenedById")
                         .HasColumnType("text");
 
+                    b.Property<string>("TreasureCoins")
+                        .HasColumnType("text");
+
                     b.Property<DateTimeOffset>("UpdatedAt")
                         .HasColumnType("timestamp with time zone");
 
@@ -604,6 +607,50 @@ namespace RealmForge.Infrastructure.Migrations
                         .IsUnique();
 
                     b.ToTable("CampaignInvites");
+                });
+
+            modelBuilder.Entity("RealmForge.Domain.Entities.CampaignLoot", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Appearance")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<Guid>("CampaignId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("EquipmentId")
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("Identified")
+                        .HasColumnType("boolean");
+
+                    b.Property<Guid?>("MagicItemId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("character varying(120)");
+
+                    b.Property<int>("Quantity")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("ValueInCopper")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CampaignId");
+
+                    b.ToTable("CampaignLoot");
                 });
 
             modelBuilder.Entity("RealmForge.Domain.Entities.CampaignMap", b =>
@@ -3178,6 +3225,15 @@ namespace RealmForge.Infrastructure.Migrations
                         .IsRequired();
 
                     b.Navigation("Campaign");
+                });
+
+            modelBuilder.Entity("RealmForge.Domain.Entities.CampaignLoot", b =>
+                {
+                    b.HasOne("RealmForge.Domain.Entities.Campaign", null)
+                        .WithMany()
+                        .HasForeignKey("CampaignId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("RealmForge.Domain.Entities.CampaignMap", b =>

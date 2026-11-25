@@ -2857,6 +2857,9 @@ button.rf-stat-card {
     gap: 8px;
     overflow-x: auto;
     border-bottom: 2px solid var(--rf-orange-primary);
+    /* The tabs scroll inside the bar: however many there are, they do not widen the page */
+    min-width: 0;
+    contain: inline-size;
 }
 
 .rf-sheet-tab {
@@ -21183,4 +21186,38 @@ button.rf-vtt-clock.on {
     .rf-vtt-aim-tag {
         opacity: 1;
     }
+}
+
+/* ===== The party's chest ===== */
+.rf-treasure-coins,
+.rf-treasure-split {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    gap: 8px 16px;
+}
+
+.rf-treasure-split {
+    align-items: center;
+    padding-top: 8px;
+    border-top: 1px solid #303030;
+}
+
+.rf-treasure-tag {
+    color: #c77dff;
+}
+
+.rf-treasure-look {
+    flex-basis: 100%;
+    color: var(--rf-text-muted);
+    font-style: italic;
+    white-space: pre-line;
+}
+
+.rf-shop-item.unidentified {
+    border: 1px dashed rgba(199, 125, 255, .5);
+}
+
+.rf-treasure-free textarea {
+    flex-basis: 100%;
 }

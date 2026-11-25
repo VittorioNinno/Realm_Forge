@@ -55,3 +55,28 @@ public class GameClockTests
 		Assert.Equal(InventoryRules.Supply.Torches, InventoryRules.SupplyOf(sheet.Inventory[0], null));
 	}
 }
+
+public class TreasureRulesTests
+{
+	[Fact]
+	public void Coins_are_shared_out_with_the_rest_changed()
+	{
+		var (each, left) = TreasureRules.Split(new CoinPurse { Gp = 10, Sp = 5, Cp = 2 }, 3);
+		//	3 gp and 1 sp each, then 1 gp + 2 sp + 2 cp = 122 cp left over: 40 cp each (4 sp), 2 cp stay
+		Assert.Equal(3, each.Gp);
+		Assert.Equal(5, each.Sp);
+		Assert.Equal(0, each.Cp);
+		Assert.Equal(2, left.Cp);
+		Assert.Equal(1000 + 50 + 2, InventoryRules.Total(new CoinPurse { Gp = 10, Sp = 5, Cp = 2 }));
+		Assert.Equal(InventoryRules.Total(new CoinPurse { Gp = 10, Sp = 5, Cp = 2 }), 3 * InventoryRules.Total(each) + InventoryRules.Total(left));
+	}
+
+	[Fact]
+	public void One_share_takes_everything()
+	{
+		var (each, left) = TreasureRules.Split(new CoinPurse { Pp = 1, Ep = 3 }, 1);
+		Assert.Equal(1, each.Pp);
+		Assert.Equal(3, each.Ep);
+		Assert.Equal(0, InventoryRules.Total(left));
+	}
+}
