@@ -29,9 +29,9 @@ namespace RealmForge.Client.Components
 			try
 			{
 				var offset = sound?.TrackAt is { } at ? Math.Max(0, (DateTimeOffset.UtcNow - at).TotalSeconds) : 0;
-				await JS.InvokeVoidAsync("rfSound.track", sound?.TrackId is { } id ? $"{id}|{sound.TrackAt:O}" : null, sound?.TrackUrl, sound?.TrackVolume ?? 0, offset);
+				await JS.InvokeVoidAsync("rfSound.track", sound?.TrackId is { } id ? $"{id}|{sound.TrackAt:O}" : null, Campaigns.SoundUrl(sound?.TrackUrl), sound?.TrackVolume ?? 0, offset);
 				//	The ambience loops of the scene, over the track
-				await JS.InvokeVoidAsync("rfSound.layers", (sound?.Layers ?? new()).Select(l => new { id = l.Id.ToString(), url = l.Url, volume = l.Volume }).ToArray(), offset);
+				await JS.InvokeVoidAsync("rfSound.layers", (sound?.Layers ?? new()).Select(l => new { id = l.Id.ToString(), url = Campaigns.SoundUrl(l.Url), volume = l.Volume }).ToArray(), offset);
 
 				//	An effect plays once, and not when the table opens long after it
 				var cue = sound?.CueAt is { } cueAt ? $"{sound.CueId}|{cueAt:O}" : null;
@@ -40,7 +40,7 @@ namespace RealmForge.Client.Components
 					cueHeard = cue;
 					if (!first || DateTimeOffset.UtcNow - sound!.CueAt!.Value < TimeSpan.FromSeconds(15))
 					{
-						await JS.InvokeVoidAsync("rfSound.cue", sound!.CueUrl, sound.CueVolume);
+						await JS.InvokeVoidAsync("rfSound.cue", Campaigns.SoundUrl(sound!.CueUrl), sound.CueVolume);
 					}
 				}
 			}

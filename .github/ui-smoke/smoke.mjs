@@ -1445,6 +1445,23 @@ try {
   campaignUi.notes = await page.locator('[data-test=campaign-note]').count();
   campaignUi.noteKinds = (await page.locator('[data-test=campaign-notes-kinds] .rf-pill-btn').allInnerTexts()).map((t) => t.trim()).join(',');
   await shot(page, 'campaign-notes', 'main');
+  // The audio prepared away from the table: a short wav uploaded from this device, kept by the campaign
+  await page.locator('[data-test=campaign-tab-audio]').click();
+  await page.locator('[data-test=sounds-empty]').waitFor({ timeout: 15000 });
+  await page.locator('[data-test=sound-src-file]').click();
+  const wav = Buffer.alloc(44 + 8000);
+  wav.write('RIFF', 0, 'latin1'); wav.writeUInt32LE(36 + 8000, 4); wav.write('WAVE', 8, 'latin1'); wav.write('fmt ', 12, 'latin1');
+  wav.writeUInt32LE(16, 16); wav.writeUInt16LE(1, 20); wav.writeUInt16LE(1, 22); wav.writeUInt32LE(8000, 24); wav.writeUInt32LE(8000, 28); wav.writeUInt16LE(1, 32); wav.writeUInt16LE(8, 34);
+  wav.write('data', 36, 'latin1'); wav.writeUInt32LE(8000, 40); wav.fill(128, 44);
+  await page.locator('[data-test=sound-drop] input[type=file]').setInputFiles({ name: 'Pioggia.wav', mimeType: 'audio/wav', buffer: wav });
+  await page.locator('[data-test=sound-effect]').click();
+  await page.locator('[data-test=sound-add]').click();
+  const audioRow = page.locator('[data-test=sound-row]', { hasText: 'Pioggia' });
+  await audioRow.waitFor({ timeout: 15000 });
+  campaignUi.audio = { row: (await audioRow.innerText()).replace(/\s+/g, ' ').trim(), count: (await page.locator('[data-test=sounds-count]').innerText()).trim() };
+  await shot(page, 'campaign-audio', 'main');
+  if (!/Effetto 1×/i.test(campaignUi.audio.row) || !/File · 80%/.test(campaignUi.audio.row) || campaignUi.audio.count !== '1') throw new Error(`unexpected campaign audio: ${JSON.stringify(campaignUi.audio)}`);
+  ok('campaign audio: a wav file uploaded from the campaign page as a one-shot effect, listed with its source and volume');
   // The game clock: an hour on from 08:00 of day 1
   await page.locator('[data-test=campaign-tab-overview]').click();
   await page.locator('[data-test=clock-hour]').click();

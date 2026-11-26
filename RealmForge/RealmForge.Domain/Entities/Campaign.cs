@@ -248,6 +248,20 @@ namespace RealmForge.Domain.Entities
 		public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
 	}
 
+	///	<summary>
+	///	An audio file a master uploaded for the soundboard of a campaign (mp3, ogg, m4a, wav), kept in the database
+	///	within limits (see SoundsController); the sound that plays it has the link "rf-file:{Id}".
+	///	</summary>
+	public class CampaignSoundFile
+	{
+		public Guid Id { get; set; } = Guid.NewGuid();
+		public Guid CampaignId { get; set; }
+		public string ContentType { get; set; } = string.Empty;
+		public int Size { get; set; }
+		public byte[] Data { get; set; } = Array.Empty<byte>();
+		public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
+	}
+
 	public class CampaignSound
 	{
 		public Guid Id { get; set; } = Guid.NewGuid();
