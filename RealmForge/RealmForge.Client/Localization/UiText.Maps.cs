@@ -372,6 +372,16 @@ namespace RealmForge.Client.Localization
 		public static string VttTableShort(LanguageCode lang) => T(lang, "Tavolo", "Table");
 		public static string VttPanels(LanguageCode lang) => T(lang, "Pannelli", "Panels");
 		public static string VttInitShort(LanguageCode lang) => T(lang, "Iniziativa", "Initiative");
+		public static string MapCatalogSearch(LanguageCode lang) => T(lang, "Cerca PG, PNG o mostro…", "Search a character, NPC or monster…");
+		public static string MapCatalogKind(string kind, LanguageCode lang) => kind switch
+		{
+			"character" => T(lang, "Personaggi", "Characters"),
+			"npc" => T(lang, "PNG", "NPCs"),
+			_ => T(lang, "Mostri", "Monsters")
+		};
+		public static string MapCatalogNone(LanguageCode lang) => T(lang, "Nessun risultato.", "No match.");
+		public static string MapCatalogAllPlaced(LanguageCode lang) => T(lang, "Tutti i personaggi sono già sulla mappa.", "Every character is on the map already.");
+		public static string MapCatalogMore(int more, LanguageCode lang) => T(lang, $"Altri {more}: scrivi il nome per trovarli.", $"{more} more: type a name to find them.");
 		public static string VttQuickCombat(LanguageCode lang) => T(lang, "Combattimento con i segnalini", "Fight with the tokens");
 		public static string VttQuickCombatEmpty(LanguageCode lang) => T(lang, "Metti sulla mappa personaggi e mostri per combattere.", "Put characters and monsters on the map to fight.");
 		public static string VttQuickCombatStart(LanguageCode lang) => T(lang, "Tira l'iniziativa e inizia", "Roll initiative and start");
