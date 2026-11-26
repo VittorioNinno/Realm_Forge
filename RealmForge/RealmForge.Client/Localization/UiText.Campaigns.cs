@@ -81,6 +81,11 @@ namespace RealmForge.Client.Localization
 
 		//	Invite link
 		public static string CampaignLinkTitle(LanguageCode lang) => T(lang, "Link di invito", "Invite link");
+		public static string CampaignLinkOn(LanguageCode lang) => T(lang, "Attivo", "Active");
+		public static string CampaignLinkOff(LanguageCode lang) => T(lang, "Disattivato", "Off");
+		public static string CampaignDetailsTitle(LanguageCode lang) => T(lang, "Dettagli campagna", "Campaign details");
+		public static string CampaignDangerZone(LanguageCode lang) => T(lang, "Zona pericolo", "Danger zone");
+		public static string CampaignDangerHint(LanguageCode lang) => T(lang, "Azioni irreversibili sulla partecipazione o sulla campagna.", "Actions on your membership or on the campaign that cannot be undone.");
 		public static string CampaignLinkHint(LanguageCode lang) => T(lang, "Chi apre il link entra come giocatore.", "Whoever opens the link joins as a player.");
 		public static string CampaignLinkDisabled(LanguageCode lang) => T(lang, "Link disattivato: si entra solo su invito.", "Link disabled: people join only by invitation.");
 		public static string BtnNewLink(LanguageCode lang) => T(lang, "Nuovo link", "New link");

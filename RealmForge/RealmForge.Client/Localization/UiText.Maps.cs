@@ -569,6 +569,10 @@ namespace RealmForge.Client.Localization
 		public static string VttRollMissing(int missing, LanguageCode lang) => T(lang, $"Tira ({missing})", $"Roll ({missing})");
 		public static string VttThen(LanguageCode lang) => T(lang, "Poi:", "Next:");
 		public static string VttNextUp(string name, LanguageCode lang) => T(lang, $"Turno successivo: {name}", $"Next turn: {name}");
+		public static string ToolTreasure(LanguageCode lang) => T(lang, "Tesoro", "Treasure");
+		public static string VttChestTreasureHint(LanguageCode lang) => T(lang, "Metti nel forziere un oggetto del tesoro del gruppo", "Put an item of the party's treasure in the chest");
+		public static string VttChestTreasureNone(LanguageCode lang) => T(lang, "Il tesoro del gruppo è vuoto: aggiungi oggetti dalla sezione Tesoro.", "The party's treasure is empty: add items from the Treasure section.");
+		public static string VttChestPut(LanguageCode lang) => T(lang, "Metti", "Put");
 		public static string VttApotheosis(LanguageCode lang) => T(lang, "Apoteosi arcana", "Arcane Apotheosis");
 		public static string VttApotheosisHint(LanguageCode lang) => T(lang,
 			"Con la Stregoneria innata attiva: un'opzione di metamagia gratis in questo turno",

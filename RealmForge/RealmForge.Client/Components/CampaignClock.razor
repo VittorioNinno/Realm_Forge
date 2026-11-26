@@ -8,51 +8,65 @@
 
 @* The clock of a campaign: the time inside the game and the effects of the characters running on it; the masters move
    it on (the long spells end, days of travel eat the rations). Compact: the drawer of the table *@
-<section class="rf-clock @(Compact ? "compact" : "rf-card2 mb-3")" data-test="campaign-clock">
+<section class="rf-clock @(Compact ? "compact" : "rf-ov-card rf-ov-time")" data-test="campaign-clock">
     <div class="rf-clock-head">
-        <span class="rf-handout-icon"><Icon Name="hourglass-split" /></span>
-        <span class="rf-handout-row-text">
-            <span class="rf-mini-label">@UiText.ClockTitle(Lang)</span>
-            <strong class="rf-clock-now" data-test="clock-now">@(clock is null ? "…" : UiText.ClockText(clock.Minutes, Lang))</strong>
+        <span class="rf-ov-icon"><Icon Name="hourglass-split" /></span>
+        <span class="rf-clock-title">
+            <span class="rf-ov-kicker">@UiText.ClockTitle(Lang)</span>
+            <span class="rf-clock-line">
+                <strong class="rf-clock-now" data-test="clock-now">@(clock is null ? "…" : UiText.ClockText(clock.Minutes, Lang))</strong>
+                @if (clock is not null)
+                {
+                    var phase = PhaseOf(GameClock.Hour(clock.Minutes));
+                    <span class="rf-clock-phase @phase">@UiText.ClockPhase(phase, Lang)</span>
+                }
+            </span>
         </span>
+        @if (Runs && clock is not null)
+        {
+            <button type="button" class="rf-ov-ghost @(setOpen ? "on" : null)" aria-expanded="@(setOpen ? "true" : "false")" @onclick="() => setOpen = !setOpen" data-test="clock-set-open"><Icon Name="clock" /> @UiText.ClockSetShort(Lang)</button>
+        }
     </div>
-    <div class="small" style="color: var(--rf-text-muted);">@(Runs ? UiText.ClockHintMaster(Lang) : UiText.ClockHintPlayer(Lang))</div>
+    <p class="rf-ov-desc">@(Runs ? UiText.ClockHintMaster(Lang) : UiText.ClockHintPlayer(Lang))</p>
 
     @if (Runs && clock is not null)
     {
-        <div class="rf-clock-steps">
-            <button type="button" class="btn btn-sm btn-rf-outline" disabled="@busy" @onclick="() => MoveAsync(10)" data-test="clock-10">@UiText.ClockPlus10(Lang)</button>
-            <button type="button" class="btn btn-sm btn-rf-outline" disabled="@busy" @onclick="() => MoveAsync(60)" data-test="clock-hour">@UiText.ClockPlusHour(Lang)</button>
-            <button type="button" class="btn btn-sm btn-rf-outline" disabled="@busy" @onclick="() => MoveAsync(480)" data-test="clock-rest">@UiText.ClockLongRest(Lang)</button>
-            <button type="button" class="btn btn-sm btn-rf-outline" disabled="@busy" @onclick="() => MoveAsync(GameClock.MinutesPerDay)" data-test="clock-day">@UiText.ClockPlusDay(Lang)</button>
-        </div>
-        <div class="rf-clock-custom">
-            <span class="small">@UiText.ClockCustom(Lang)</span>
-            <input type="number" class="rf-form-control" min="1" max="720" @bind="amount" aria-label="@UiText.ClockCustom(Lang)" data-test="clock-amount" />
-            <select class="rf-form-control" @bind="unit" aria-label="@UiText.ClockCustom(Lang)" data-test="clock-unit">
-                <option value="h">@UiText.ClockHours(Lang)</option>
-                <option value="d">@UiText.ClockDays(Lang)</option>
-            </select>
-            <button type="button" class="btn btn-sm btn-rf-orange" disabled="@busy" @onclick="MoveCustomAsync" data-test="clock-go">@UiText.ClockGo(Lang)</button>
-        </div>
-        <label class="form-check d-flex align-items-center gap-2 mb-0">
-            <input type="checkbox" class="form-check-input" @bind="rations" data-test="clock-rations" />
-            <span class="small">@UiText.ClockRations(Lang)</span>
-        </label>
-        <details class="rf-clock-set">
-            <summary class="small">@UiText.ClockSet(Lang)</summary>
-            <div class="rf-clock-custom">
-                <label class="d-flex align-items-center gap-2 mb-0">
-                    <span class="small">@UiText.ClockDay(Lang)</span>
-                    <input type="number" class="rf-form-control" min="1" @bind="setDay" data-test="clock-set-day" />
+        @if (setOpen)
+        {
+            <div class="rf-clock-set" data-test="clock-set-box">
+                <label class="rf-ov-field">
+                    <span class="rf-ov-micro">@UiText.ClockDay(Lang)</span>
+                    <input type="number" class="rf-form-control text-center" min="1" @bind="setDay" data-test="clock-set-day" />
                 </label>
-                <label class="d-flex align-items-center gap-2 mb-0">
-                    <span class="small">@UiText.ClockTime(Lang)</span>
+                <label class="rf-ov-field">
+                    <span class="rf-ov-micro">@UiText.ClockTime(Lang)</span>
                     <input type="time" class="rf-form-control" @bind="setTime" data-test="clock-set-time" />
                 </label>
-                <button type="button" class="btn btn-sm btn-rf-outline" disabled="@busy" @onclick="SetAsync" data-test="clock-set">@UiText.ClockSet(Lang)</button>
+                <button type="button" class="btn btn-rf-orange" disabled="@busy" @onclick="SetAsync" data-test="clock-set">@UiText.ClockApply(Lang)</button>
             </div>
-        </details>
+        }
+        <div class="rf-clock-steps">
+            <button type="button" class="rf-clock-step" disabled="@busy" @onclick="() => MoveAsync(10)" data-test="clock-10">@UiText.ClockPlus10(Lang)</button>
+            <button type="button" class="rf-clock-step" disabled="@busy" @onclick="() => MoveAsync(60)" data-test="clock-hour">@UiText.ClockPlusHour(Lang)</button>
+            <button type="button" class="rf-clock-step featured" disabled="@busy" @onclick="() => MoveAsync(480)" data-test="clock-rest">@UiText.ClockLongRest(Lang)</button>
+            <button type="button" class="rf-clock-step" disabled="@busy" @onclick="() => MoveAsync(GameClock.MinutesPerDay)" data-test="clock-day">@UiText.ClockPlusDay(Lang)</button>
+        </div>
+        <div class="rf-clock-box">
+            <div class="rf-clock-custom">
+                <span class="rf-clock-custom-label">@UiText.ClockCustom(Lang)</span>
+                <input type="number" class="rf-form-control text-center" min="1" max="720" @bind="amount" aria-label="@UiText.ClockCustom(Lang)" data-test="clock-amount" />
+                <select class="rf-form-control" @bind="unit" aria-label="@UiText.ClockCustom(Lang)" data-test="clock-unit">
+                    <option value="m">@UiText.ClockMinutes(Lang)</option>
+                    <option value="h">@UiText.ClockHours(Lang)</option>
+                    <option value="d">@UiText.ClockDays(Lang)</option>
+                </select>
+                <button type="button" class="btn btn-rf-orange" disabled="@busy" @onclick="MoveCustomAsync" data-test="clock-go">@UiText.ClockGo(Lang)</button>
+            </div>
+            <label class="rf-ov-check">
+                <input type="checkbox" @bind="rations" data-test="clock-rations" />
+                <span>@UiText.ClockRations(Lang)</span>
+            </label>
+        </div>
     }
 
     @if (report.Count > 0)
@@ -68,10 +82,13 @@
     @if (clock is not null)
     {
         <div class="rf-clock-effects">
-            <span class="rf-mini-label">@UiText.ClockEffects(Lang)</span>
+            <div class="rf-clock-effects-head">
+                <span class="rf-ov-micro">@UiText.ClockEffects(Lang)</span>
+                <span class="rf-clock-count">@UiText.ClockActive(clock.Effects.Count, Lang)</span>
+            </div>
             @if (clock.Effects.Count == 0)
             {
-                <span class="small" style="color: var(--rf-text-muted);">@UiText.ClockNoEffects(Lang)</span>
+                <div class="rf-ov-empty">@UiText.ClockNoEffects(Lang)</div>
             }
             else
             {
@@ -99,6 +116,16 @@
     private int amount = 2;
     private string unit = "h";
     private bool UnitDays => unit == "d";
+    private bool setOpen;
+
+    //	The part of the day an hour falls in
+    private static string PhaseOf(int hour) => hour switch
+    {
+        >= 6 and < 12 => "morning",
+        >= 12 and < 18 => "afternoon",
+        >= 18 and < 22 => "evening",
+        _ => "night"
+    };
     private bool rations = true;
     private long setDay = 1;
     private TimeOnly setTime = new(8, 0);
@@ -130,7 +157,7 @@
     private Task MoveCustomAsync()
     {
         var steps = Math.Clamp(amount, 1, UnitDays ? 30 : 720);
-        return MoveAsync(UnitDays ? steps * GameClock.MinutesPerDay : steps * 60);
+        return MoveAsync(unit switch { "d" => steps * GameClock.MinutesPerDay, "m" => steps, _ => steps * 60 });
     }
 
     private Task SetAsync() => SendAsync(new MoveClockDto { Set = (Math.Max(1, setDay) - 1) * GameClock.MinutesPerDay + setTime.Hour * 60 + setTime.Minute });
