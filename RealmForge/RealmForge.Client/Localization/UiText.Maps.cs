@@ -551,6 +551,8 @@ namespace RealmForge.Client.Localization
 		public static string VttSubtleDone(LanguageCode lang) => T(lang, "senza componenti verbali né somatiche", "without verbal or somatic components");
 		public static string VttCastDown(string who, string condition, LanguageCode lang) => T(lang,
 			$"{who} non può lanciare incantesimi: è {condition.ToLowerInvariant()}.", $"{who} cannot cast spells: {condition.ToLowerInvariant()}.");
+		public static string VttCastSilenced(string who, string spell, LanguageCode lang) => T(lang,
+			$"{who} è dentro {spell}: niente componenti verbali (Incantesimo celato le evita).", $"{who} is inside {spell}: no verbal components (Subtle Spell does without them).");
 		public static string VttCastNoHand(LanguageCode lang) => T(lang,
 			"Serve una mano libera per le componenti somatiche (o un focus in mano se l'incantesimo ha componenti materiali, o il talento Incantatore da guerra).",
 			"A free hand is needed for the somatic components (or a focus in hand when the spell has a material component, or the War Caster feat).");

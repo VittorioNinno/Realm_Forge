@@ -228,6 +228,12 @@ namespace RealmForge.Client.Components
 				componentStop = new(t, spell, level, pact, meta, apotheosis, UiText.VttCastDown(t.Label, UiText.ConditionName(down, Lang), Lang));
 				return true;
 			}
+			//	Inside the area of a Silence spell: no verbal components (Subtle Spell does without them)
+			if (detail is { Verbal: true } && !meta.Contains("subtle") && SilenceAround(t) is { } silence)
+			{
+				componentStop = new(t, spell, level, pact, meta, apotheosis, UiText.VttCastSilenced(t.Label, silence, Lang));
+				return true;
+			}
 			if (detail is null || t.CharacterId is not { } id || (!detail.Somatic && !detail.Material))
 			{
 				return false;
@@ -260,6 +266,24 @@ namespace RealmForge.Client.Components
 				return true;
 			}
 			return false;
+		}
+
+		//	The Silence spell whose area covers a token (its name), placed at the table as a spell area
+		private string? SilenceAround(MapTokenDto t)
+		{
+			if (map is null)
+			{
+				return null;
+			}
+			foreach (var s in shapes.Where(s => MapRules.IsArea(s.Kind) && s.Points.Count >= 4 && s.Text is { } name && Regex.IsMatch(name, @"\b(silence|silenzio)\b", RegexOptions.IgnoreCase)))
+			{
+				var cells = MapAreas.Cells(gridType, grid, offsetX, offsetY, s.Kind, s.Points[0], s.Points[1], s.Points[2], s.Points[3], s.Size, map.Width, map.Height).ToHashSet();
+				if (Covered(t).Any(cells.Contains))
+				{
+					return s.Text;
+				}
+			}
+			return null;
 		}
 
 		//	Cast all the same: a costly component confirmed (and spent when consumed), or the master's call over a refusal
@@ -572,7 +596,7 @@ namespace RealmForge.Client.Components
 				StateHasChanged();
 				return;
 			}
-			await AddShapeAsync(new SaveShapeDto { Kind = k, Points = new() { ox, oy, tx, ty }, Size = size, Color = drawColorChoice });
+			await AddShapeAsync(new SaveShapeDto { Kind = k, Points = new() { ox, oy, tx, ty }, Size = size, Color = drawColorChoice, Text = spell });
 			//	The cells the area reaches: not those behind a wall or a closed door, seen from where it spreads
 			var spread = k == ShapeKind.Cube ? (ox + size * grid / 2.0, oy) : (ox, oy);
 			var closed = ClosedDoors().ToHashSet();
