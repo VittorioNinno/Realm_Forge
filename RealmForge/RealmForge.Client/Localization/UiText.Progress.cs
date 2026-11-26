@@ -51,6 +51,13 @@ namespace RealmForge.Client.Localization
 		public static string ProgressPrices(int percent, LanguageCode lang) => T(lang,
 			$"Prezzi nei suoi negozi: {(percent > 100 ? "+" : string.Empty)}{percent - 100}%",
 			$"Prices in its shops: {(percent > 100 ? "+" : string.Empty)}{percent - 100}%");
+		public static string ProgressPricesShort(int percent, LanguageCode lang) => T(lang,
+			$"Prezzi {(percent > 100 ? "+" : string.Empty)}{percent - 100}%", $"Prices {(percent > 100 ? "+" : string.Empty)}{percent - 100}%");
+		public static string ProgressPricesStandard(LanguageCode lang) => T(lang, "Prezzi standard", "List prices");
+		public static string ProgressClocksShort(LanguageCode lang) => T(lang, "Orologi", "Clocks");
+		public static string ProgressClocksSub(LanguageCode lang) => T(lang, "Clicca sul quadrante o usa + / −", "Click the dial or use + / −");
+		public static string ProgressFactionsSub(LanguageCode lang) => T(lang, "Reputazione e prezzi dei negozi", "Standing and shop prices");
+		public static string ProgressShownShort(LanguageCode lang) => T(lang, "Visibile", "Shown");
 		public static string ProgressFailed(LanguageCode lang) => T(lang, "Operazione non riuscita.", "That didn't work.");
 		public static string ShopFaction(LanguageCode lang) => T(lang, "Fazione", "Faction");
 		public static string ShopNoFaction(LanguageCode lang) => T(lang, "Nessuna", "None");

@@ -267,8 +267,7 @@
                             break;
                         case "progress" when RunsTheTable:
                             <div class="rf-vtt-campaign-panel" data-test="vtt-progress">
-                                <h3 class="rf-qs-card-title">@UiText.VttToolProgress(Lang)</h3>
-                                <CampaignProgress CampaignId="CampaignId" Role="Role" />
+                                <CampaignProgress CampaignId="CampaignId" Role="Role" Compact="true" />
                             </div>
                             break;
                         case "sheet" when SheetToken is { } sheetToken:
