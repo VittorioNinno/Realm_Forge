@@ -1832,7 +1832,10 @@ try {
     await shot(mobile, 'phone-vtt-landscape', null);
     const vttWide = await overflowOf(mobile, `${vttPath} sideways`);
     if (vttWide) phoneWide.push(vttWide);
-    await mobile.locator('[data-test=vtt] [data-test=map-token]').first().click().catch(() => {});
+    // The card may still be open from upright: a click on its token would close it
+    if (await mobile.locator('[data-test=vtt-phone-sheet] [data-test=map-token-card]').count() === 0) {
+      await mobile.locator('[data-test=vtt] [data-test=map-token]').first().click().catch(() => {});
+    }
     await mobile.waitForTimeout(1200);
     const sheet = await mobile.locator('[data-test=vtt-phone-sheet] [data-test=map-token-card]').count();
     await shot(mobile, 'phone-vtt-token', null);
