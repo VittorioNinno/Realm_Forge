@@ -27,7 +27,7 @@ namespace RealmForge.Client.Localization
 		public static string MapShown(LanguageCode lang) => T(lang, "Mostra ai giocatori", "Show to the players");
 		public static string MapAddTokens(LanguageCode lang) => T(lang, "Aggiungi segnalini", "Add tokens");
 		public static string MapMonsterSearch(LanguageCode lang) => T(lang, "Mostro o PNG (es. Goblin)…", "Monster or NPC (e.g. Goblin)…");
-		public static string MapMarkerHint(LanguageCode lang) => T(lang, "Segnalino (es. Porta, Trappola)", "Marker (e.g. Door, Trap)");
+		public static string MapMarkerHint(LanguageCode lang) => T(lang, "Nome del segnalino…", "Marker name…");
 		public static string MapColor(LanguageCode lang) => T(lang, "Colore", "Colour");
 		public static string MapTokenSize(LanguageCode lang) => T(lang, "Dimensione (caselle)", "Size (cells)");
 		public static string MapTokenHidden(LanguageCode lang) => T(lang, "Nascosto ai giocatori", "Hidden from the players");
@@ -219,15 +219,30 @@ namespace RealmForge.Client.Localization
 
 		// ----- The map editor -----
 		public static string MapShownShort(LanguageCode lang) => T(lang, "Visibile ai giocatori", "Shown to the players");
+		public static string MapHintClick(LanguageCode lang) => T(lang, "Clic", "Click");
+		public static string MapHintClickWhere(LanguageCode lang) => T(lang, "prima casella libera", "first free cell");
+		public static string MapHintDrag(LanguageCode lang) => T(lang, "Trascina", "Drag");
+		public static string MapHintDragWhere(LanguageCode lang) => T(lang, "dove vuoi", "wherever you like");
+		public static string MapAddCharacters(LanguageCode lang) => T(lang, "Personaggi", "Characters");
+		public static string MapAddMarker(LanguageCode lang) => T(lang, "Aggiungi il segnalino", "Add the marker");
+		public static string VttGroupsNone(LanguageCode lang) => T(lang, "Nessun gruppo salvato: raccogli dei mostri nel cassetto e salvali con un nome.", "No group kept: gather monsters in the drawer and keep them under a name.");
 		public static string MapDragHint(LanguageCode lang) => T(lang, "Clic: nella prima casella libera · trascina sulla mappa: dove vuoi", "Click: on the first free cell · drag onto the map: wherever you like");
 		public static string VttToolEncounters(LanguageCode lang) => T(lang, "Incontri", "Encounters");
 		public static string VttToolTreasure(LanguageCode lang) => T(lang, "Tesoro del gruppo", "Party treasure");
 		public static string VttToolProgress(LanguageCode lang) => T(lang, "Orologi di avanzamento", "Progress clocks");
 		public static string VttEncountersNone(LanguageCode lang) => T(lang, "Nessun incontro da giocare: preparane uno nella pagina della campagna.", "No encounter to play: prepare one on the campaign page.");
-		public static string VttEncounterHere(LanguageCode lang) => T(lang, "In corso qui", "Under way here");
 		public static string VttEncounterGoTo(LanguageCode lang) => T(lang, "Vai alla mappa", "Go to its map");
 		public static string VttEncounterBusy(LanguageCode lang) => T(lang, "Su questa mappa c'è già un combattimento", "A fight is already under way on this map");
-		public static string VttEncountersPage(LanguageCode lang) => T(lang, "Prepara gli incontri nella pagina della campagna", "Prepare the encounters on the campaign page");
+		public static string VttEncountersPage(LanguageCode lang) => T(lang, "Prepara gli incontri nella campagna", "Prepare the encounters in the campaign");
+		public static string VttEncounterLive(LanguageCode lang) => T(lang, "In corso", "Live");
+		public static string VttEncounterPrep(LanguageCode lang) => T(lang, "In preparazione", "Prepared");
+		public static string VttEncounterMap(LanguageCode lang) => T(lang, "Mappa collegata", "Linked map");
+		public static string VttEncounterNoMap(LanguageCode lang) => T(lang, "Nessuna mappa", "No map");
+		public static string VttEncounterSides(LanguageCode lang) => T(lang, "Partecipanti", "Participants");
+		public static string VttEncounterVersus(int characters, int monsters, LanguageCode lang) => T(lang,
+			$"{characters} PG vs {monsters} {(monsters == 1 ? "nemico" : "nemici")}", $"{characters} PCs vs {monsters} {(monsters == 1 ? "enemy" : "enemies")}");
+		public static string VttEncounterInitiative(LanguageCode lang) => T(lang, "Iniziativa", "Initiative");
+		public static string VttEncounterEnd(LanguageCode lang) => T(lang, "Termina", "End");
 		public static string MapHiddenShort(LanguageCode lang) => T(lang, "Non mostrata", "Not shown");
 		public static string MapViewAs(LanguageCode lang) => T(lang, "Vista", "View");
 		public static string MapViewEditor(LanguageCode lang) => T(lang, "Editor", "Editor");
@@ -520,8 +535,40 @@ namespace RealmForge.Client.Localization
 			"quickened" => T(lang, "Lanciato come azione bonus invece che come azione", "Cast as a bonus action instead of an action"),
 			"seeking" => T(lang, "Se l'attacco manca, il d20 si ritira una volta", "If the attack misses, the d20 is rolled again once"),
 			"transmuted" => T(lang, "Cambia il tipo di danni con un altro della lista", "Change the damage type to another of the list"),
+			"subtle" => T(lang, "Lanciato senza componenti verbali né somatiche", "Cast without verbal or somatic components"),
+			"extended" => T(lang, "Durata raddoppiata (fino a 24 ore)", "Twice the duration (up to 24 hours)"),
+			"twinned" => T(lang, "Un secondo bersaglio per un incantesimo che ne colpisce uno solo", "A second target for a spell that has only one"),
 			_ => string.Empty
 		};
+		public static string VttTwinnedNo(LanguageCode lang) => T(lang,
+			"Incantesimo raddoppiato vale solo per un incantesimo con un solo bersaglio, che non sia l'incantatore.",
+			"Twinned Spell works only on a spell with a single target other than the caster.");
+		public static string VttTwinnedSecond(string first, LanguageCode lang) => T(lang, $"Incantesimo raddoppiato: primo bersaglio {first}, scegli il secondo", $"Twinned Spell: first target {first}, choose the second");
+		public static string VttTwinnedOther(LanguageCode lang) => T(lang, "Scegli un bersaglio diverso dal primo", "Choose a target other than the first");
+		public static string VttExtendedDone(string? duration, LanguageCode lang) => T(lang,
+			string.IsNullOrWhiteSpace(duration) ? "durata raddoppiata" : $"durata raddoppiata ({duration} × 2, max 24 ore)",
+			string.IsNullOrWhiteSpace(duration) ? "twice the duration" : $"twice the duration ({duration} × 2, up to 24 hours)");
+		public static string VttSubtleDone(LanguageCode lang) => T(lang, "senza componenti verbali né somatiche", "without verbal or somatic components");
+		public static string VttCastDown(string who, string condition, LanguageCode lang) => T(lang,
+			$"{who} non può lanciare incantesimi: è {condition.ToLowerInvariant()}.", $"{who} cannot cast spells: {condition.ToLowerInvariant()}.");
+		public static string VttCastSilenced(string who, string spell, LanguageCode lang) => T(lang,
+			$"{who} è dentro {spell}: niente componenti verbali (Incantesimo celato le evita).", $"{who} is inside {spell}: no verbal components (Subtle Spell does without them).");
+		public static string VttCastNoHand(LanguageCode lang) => T(lang,
+			"Serve una mano libera per le componenti somatiche (o un focus in mano se l'incantesimo ha componenti materiali, o il talento Incantatore da guerra).",
+			"A free hand is needed for the somatic components (or a focus in hand when the spell has a material component, or the War Caster feat).");
+		public static string VttCastNoFocus(LanguageCode lang) => T(lang,
+			"Servono le componenti materiali: un focus da incantatore o una borsa per componenti nell'equipaggiamento.",
+			"The material components are needed: a spellcasting focus or a component pouch in the equipment.");
+		public static string VttCastMaterial(string material, LanguageCode lang) => T(lang, $"Componente con un costo: {material}", $"Costly component: {material}");
+		public static string VttCastMaterialPick(LanguageCode lang) => T(lang, "Oggetto dello zaino da consumare", "Item of the pack to spend");
+		public static string VttCastMaterialHave(LanguageCode lang) => T(lang, "Ce l'ho, lancia", "I have it, cast");
+		public static string VttCastMaterialSpend(LanguageCode lang) => T(lang, "Consuma e lancia", "Spend and cast");
+		public static string VttCastForce(LanguageCode lang) => T(lang, "Lancia comunque", "Cast anyway");
+		public static string VttCastForceHint(LanguageCode lang) => T(lang, "Decisione del master: il lancio ignora il requisito", "The master's call: the casting ignores the requirement");
+		public static string VttApotheosis(LanguageCode lang) => T(lang, "Apoteosi arcana", "Arcane Apotheosis");
+		public static string VttApotheosisHint(LanguageCode lang) => T(lang,
+			"Con la Stregoneria innata attiva: un'opzione di metamagia gratis in questo turno",
+			"With Innate Sorcery active: one Metamagic option for free this turn");
 		public static string VttMetamagicCost(int cost, LanguageCode lang) => T(lang, $"{cost} PS", $"{cost} SP");
 		public static string VttMetamagicPoints(int left, LanguageCode lang) => T(lang, $"Punti stregoneria: {left}", $"Sorcery Points: {left}");
 		public static string VttCompanions(LanguageCode lang) => T(lang, "Evocazioni e cavalcature", "Summons and mounts");
@@ -586,7 +633,7 @@ namespace RealmForge.Client.Localization
 		public static string VttGroupName(LanguageCode lang) => T(lang, "Nome del gruppo (es. Pattuglia goblin)", "Group name (e.g. Goblin patrol)");
 		public static string VttGroupSave(LanguageCode lang) => T(lang, "Salva gruppo", "Save group");
 		public static string VttGroups(LanguageCode lang) => T(lang, "Gruppi salvati", "Saved groups");
-		public static string VttGroupsShow(LanguageCode lang) => T(lang, "Mostra i gruppi salvati", "Show the saved groups");
+		public static string VttGroupsShow(LanguageCode lang) => T(lang, "Gruppi salvati", "Saved groups");
 		public static string VttGroupPlace(LanguageCode lang) => T(lang, "Piazza il gruppo al centro della vista", "Place the group in the middle of the view");
 		public static string VttGroupEdit(LanguageCode lang) => T(lang, "Apri nel cassetto", "Open in the drawer");
 		public static string VttGroupDelete(LanguageCode lang) => T(lang, "Elimina il gruppo", "Delete the group");

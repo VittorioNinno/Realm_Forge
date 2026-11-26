@@ -120,6 +120,22 @@ namespace RealmForge.Client.Services
 			}
 		}
 
+		///	<summary>
+		///	The look chosen made ready (its colours or texture, the faces of every die painted once) before it is thrown:
+		///	a throw asked meanwhile waits for it. False when the dice are not shown.
+		///	</summary>
+		public async Task<bool> ReadyAsync()
+		{
+			try
+			{
+				return await _js.InvokeAsync<bool>("rfDice3d.ready");
+			}
+			catch (Exception)
+			{
+				return false;
+			}
+		}
+
 		//	Whether this browser can show them (WebGL, no reduced motion)
 		public async Task<bool> AvailableAsync()
 		{

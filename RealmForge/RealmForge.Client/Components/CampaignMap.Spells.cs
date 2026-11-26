@@ -46,11 +46,40 @@ namespace RealmForge.Client.Components
 
 		private void TogglePreMeta(string option)
 		{
-			if (!preMeta.Remove(option))
+			if (preMeta.Remove(option))
 			{
-				preMeta.Add(option);
+				return;
 			}
+			//	One Metamagic option a spell: another one chosen takes the place of the first (Empowered and Seeking add up)
+			if (option is not ("ready" or "apotheosis") && castChoice is { } choice && tokens.FirstOrDefault(k => k.Id == choice.TokenId) is { } caster
+				&& !OptionsOf(caster).Stacks(option))
+			{
+				preMeta.RemoveWhere(o => o is not ("ready" or "apotheosis") && !OptionsOf(caster).Stacks(o));
+			}
+			preMeta.Add(option);
 		}
+
+		//	The Metamagic used in the casting of each caster's last spell (the confirmation keeps to one option a spell)
+		private readonly Dictionary<Guid, HashSet<string>> castMeta = new();
+
+		//	Arcane Apotheosis: the turn (token, round) its free option was used; the caster it waits for when chosen
+		private readonly HashSet<(Guid Token, int Round)> apotheosisUsed = new();
+		private Guid? apotheosisFor;
+
+		private int RoundNow => combat?.Round ?? 0;
+
+		private bool ApotheosisReady(MapTokenDto t) => OptionsOf(t).Apotheosis && !apotheosisUsed.Contains((t.Id, RoundNow));
+
+		//	What options cost a caster on a spell of a level, the dearest one free with Arcane Apotheosis
+		private int MetaCost(MapTokenDto t, IEnumerable<string> meta, int spellLevel, bool free)
+		{
+			var costs = meta.Where(o => o is not ("ready" or "apotheosis")).Select(o => OptionsOf(t).Cost(o, spellLevel)).ToList();
+			return costs.Sum() - (free && costs.Count > 0 ? costs.Max() : 0);
+		}
+
+		//	Twinned Spell: the second target it waits for (the caster, the first target chosen)
+		private sealed record Twin(Guid CasterId, Guid? First);
+		private Twin? twin;
 
 		//	The slots that can cast it: its level or higher with one left, the pact slots of a high enough level
 		private List<(int Level, int Left, bool Pact)> CastSlots(MapTokenDto t, SheetSpell spell)
@@ -179,6 +208,126 @@ namespace RealmForge.Client.Components
 				? contexts.GetValueOrDefault(id)?.Spells.FirstOrDefault(s => s.Id == spellId)?.Name
 				: null;
 
+		// ----- The components of a spell -----
+
+		//	A casting stopped by its components: why, and what the master can force (Meta: the options chosen)
+		private sealed record ComponentStop(MapTokenDto Token, SheetSpell Spell, int Level, bool Pact, HashSet<string> Meta, bool Apotheosis, string Reason,
+			string? Material = null, bool Consumed = false, List<(Guid Id, string Name)>? Items = null);
+
+		private ComponentStop? componentStop;
+		private Guid? componentItem;
+		private bool componentsConfirmed;
+
+		//	True when the casting waits: refused (the reason said, a master may force it) or asking for a costly component
+		private async Task<bool> ComponentsAsync(MapTokenDto t, SheetSpell spell, int level, bool pact, SpellDetailResponseDto? detail, HashSet<string> meta, bool apotheosis)
+		{
+			componentStop = null;
+			componentItem = null;
+			if (t.Conditions?.FirstOrDefault(EncounterRules.Incapacitating.Contains) is { } down)
+			{
+				componentStop = new(t, spell, level, pact, meta, apotheosis, UiText.VttCastDown(t.Label, UiText.ConditionName(down, Lang), Lang));
+				return true;
+			}
+			//	Inside the area of a Silence spell: no verbal components (Subtle Spell does without them)
+			if (detail is { Verbal: true } && !meta.Contains("subtle") && SilenceAround(t) is { } silence)
+			{
+				componentStop = new(t, spell, level, pact, meta, apotheosis, UiText.VttCastSilenced(t.Label, silence, Lang));
+				return true;
+			}
+			if (detail is null || t.CharacterId is not { } id || (!detail.Somatic && !detail.Material))
+			{
+				return false;
+			}
+			if (await ComputeCharacterAsync(id) is not { } loaded)
+			{
+				return false;
+			}
+			var context = contexts.GetValueOrDefault(id);
+			ContextItem? Lookup(InventoryItem item) => item.EquipmentId is { } eid ? context?.Items.FirstOrDefault(x => x.Id == eid) : null;
+			var inventory = loaded.Character.Sheet.Inventory;
+			var kit = SpellComponents.KitOf(loaded.Computed, inventory, Lookup);
+			var problem = SpellComponents.Check(detail.Somatic, detail.Material, detail.MaterialComponent, meta.Contains("subtle"), kit);
+			if (problem != SpellComponents.Problem.None)
+			{
+				var reason = problem == SpellComponents.Problem.NoHand ? UiText.VttCastNoHand(Lang) : UiText.VttCastNoFocus(Lang);
+				componentStop = new(t, spell, level, pact, meta, apotheosis, reason);
+				return true;
+			}
+			//	A component with a price: the caster says which item of its pack it is (spent when the spell consumes it)
+			if (detail.Material && SpellComponents.Price(detail.MaterialComponent) is not null)
+			{
+				var items = inventory.Where(i => i.Quantity > 0)
+					.Select(i => (i.Id, Name: Lookup(i)?.Name ?? i.Name ?? string.Empty))
+					.Where(x => x.Name.Length > 0)
+					.OrderBy(x => x.Name)
+					.ToList();
+				componentStop = new(t, spell, level, pact, meta, apotheosis, UiText.VttCastMaterial(detail.MaterialComponent!, Lang),
+					detail.MaterialComponent, SpellComponents.Consumed(detail.MaterialComponent), items);
+				return true;
+			}
+			return false;
+		}
+
+		//	The Silence spell whose area covers a token (its name), placed at the table as a spell area
+		private string? SilenceAround(MapTokenDto t)
+		{
+			if (map is null)
+			{
+				return null;
+			}
+			foreach (var s in shapes.Where(s => MapRules.IsArea(s.Kind) && s.Points.Count >= 4 && s.Text is { } name && Regex.IsMatch(name, @"\b(silence|silenzio)\b", RegexOptions.IgnoreCase)))
+			{
+				var cells = MapAreas.Cells(gridType, grid, offsetX, offsetY, s.Kind, s.Points[0], s.Points[1], s.Points[2], s.Points[3], s.Size, map.Width, map.Height).ToHashSet();
+				if (Covered(t).Any(cells.Contains))
+				{
+					return s.Text;
+				}
+			}
+			return null;
+		}
+
+		//	Cast all the same: a costly component confirmed (and spent when consumed), or the master's call over a refusal
+		private async Task ConfirmComponentsAsync()
+		{
+			if (componentStop is not { } stop)
+			{
+				return;
+			}
+			componentStop = null;
+			if (stop.Consumed && componentItem is { } itemId)
+			{
+				await ChangeCharacterAsync(stop.Token, (sheet, _) =>
+				{
+					if (sheet.Inventory.FirstOrDefault(i => i.Id == itemId) is { } item)
+					{
+						item.Quantity--;
+						if (item.Quantity <= 0)
+						{
+							sheet.Inventory.Remove(item);
+						}
+					}
+				});
+			}
+			componentItem = null;
+			preMeta.Clear();
+			preMeta.UnionWith(stop.Meta);
+			if (stop.Apotheosis)
+			{
+				preMeta.Add("apotheosis");
+			}
+			componentsConfirmed = true;
+			try
+			{
+				await CastAsync(stop.Token, stop.Spell, stop.Level, stop.Pact);
+			}
+			finally
+			{
+				componentsConfirmed = false;
+			}
+		}
+
+		private void PickComponentItem(Microsoft.AspNetCore.Components.ChangeEventArgs e) => componentItem = Guid.TryParse(e.Value?.ToString(), out var id) ? id : null;
+
 		private async Task CastAsync(MapTokenDto t, SheetSpell spell, int level, bool pact)
 		{
 			//	Already concentrating on another spell: the player confirms that it ends
@@ -204,7 +353,15 @@ namespace RealmForge.Client.Components
 			var detail = await SpellService.GetSpellDetailAsync(spell.Id, Lang);
 			var options = OptionsOf(t);
 			var meta = preMeta.Where(options.Has).ToHashSet();
+			var apotheosis = preMeta.Contains("apotheosis");
 			preMeta.Clear();
+
+			//	What the casting asks: not incapacitated, a hand for the gestures, a focus or the components themselves
+			if (!componentsConfirmed && await ComponentsAsync(t, spell, level, pact, detail, meta, apotheosis))
+			{
+				StateHasChanged();
+				return;
+			}
 			var part = PartOf(detail?.CastingTime);
 			if (meta.Contains("quickened") && part == "action")
 			{
@@ -214,12 +371,29 @@ namespace RealmForge.Client.Components
 			{
 				meta.Remove("quickened");
 			}
-			var cost = meta.Sum(o => CastingOptions.CostOf(o));
+			//	Twinned Spell only on a spell with one target that is not the caster (no area)
+			if (meta.Contains("twinned") && (detail is null || TableCombat.AreaOf(detail.Range, detail.Description) is not null
+				|| TableCombat.TargetOf(detail.Range, detail.Description, detail.HigherLevels, spell.Level, Math.Max(level, spell.Level), spell.CasterLevel) is null
+				|| Regex.IsMatch(detail.Range ?? string.Empty, @"\b(self|personale|incantatore)\b", RegexOptions.IgnoreCase)))
+			{
+				castNote = UiText.VttTwinnedNo(Lang);
+				return;
+			}
+			var free = apotheosis || apotheosisFor == t.Id;
+			free = free && ApotheosisReady(t);
+			var cost = MetaCost(t, meta, spell.Level, free && meta.Count > 0);
 			if (cost > PointsLeft(t))
 			{
 				castNote = UiText.VttMetamagicNoPoints(Lang);
 				return;
 			}
+			apotheosisFor = free && meta.Count == 0 ? t.Id : null;
+			if (free && meta.Count > 0)
+			{
+				apotheosisUsed.Add((t.Id, RoundNow));
+			}
+			castMeta[t.Id] = meta.ToHashSet();
+			twin = meta.Contains("twinned") ? new Twin(t.Id, null) : null;
 
 			//	In a fight: the action, bonus action or reaction it takes (refused when already used, or when the spells of
 			//	the turn do not allow it)
@@ -288,7 +462,9 @@ namespace RealmForge.Client.Components
 			}
 			var used = meta.Count > 0 ? string.Join(", ", meta.Select(m => UiText.VttMetamagicName(m, Lang))) : null;
 			castNote = UiText.VttCastDone(spell.Name, level > 0 ? pact ? UiText.CastPact(level, Lang) : UiText.CastSlot(level, Lang) : null, Lang)
-				+ (used is null ? string.Empty : $" · {used}");
+				+ (used is null ? string.Empty : $" · {used}")
+				+ (meta.Contains("extended") ? $" · {UiText.VttExtendedDone(detail?.Duration, Lang)}" : string.Empty)
+				+ (meta.Contains("subtle") ? $" · {UiText.VttSubtleDone(Lang)}" : string.Empty);
 			InvalidateStats(StatsKey(t));
 			_ = LoadStatsAsync(t);
 			if (ready)
@@ -420,7 +596,7 @@ namespace RealmForge.Client.Components
 				StateHasChanged();
 				return;
 			}
-			await AddShapeAsync(new SaveShapeDto { Kind = k, Points = new() { ox, oy, tx, ty }, Size = size, Color = drawColorChoice });
+			await AddShapeAsync(new SaveShapeDto { Kind = k, Points = new() { ox, oy, tx, ty }, Size = size, Color = drawColorChoice, Text = spell });
 			//	The cells the area reaches: not those behind a wall or a closed door, seen from where it spreads
 			var spread = k == ShapeKind.Cube ? (ox + size * grid / 2.0, oy) : (ox, oy);
 			var closed = ClosedDoors().ToHashSet();
@@ -487,7 +663,8 @@ namespace RealmForge.Client.Components
 			pending = null;
 		}
 
-		//	The options a confirmation offers: the Metamagic the caster knows that fits it
+		//	The options a confirmation offers: the Metamagic the caster knows that fits it (one a spell: none of those that do
+		//	not add up when the casting already used one)
 		private IEnumerable<string> MetaFor(Pending p, MapTokenDto caster)
 		{
 			var options = OptionsOf(caster);
@@ -495,7 +672,8 @@ namespace RealmForge.Client.Components
 			{
 				yield break;
 			}
-			foreach (var key in options.Metamagic)
+			var spent = castMeta.TryGetValue(caster.Id, out var before) && before.Any(o => !options.Stacks(o));
+			foreach (var key in options.Metamagic.Where(k => !spent || options.Stacks(k)))
 			{
 				var fits = key switch
 				{
@@ -526,6 +704,16 @@ namespace RealmForge.Client.Components
 			}
 			if (!pending.Meta.Remove(option))
 			{
+				if (tokens.FirstOrDefault(t => t.Id == pending.CasterId) is { } caster && !OptionsOf(caster).Stacks(option))
+				{
+					foreach (var other in pending.Meta.Where(o => !OptionsOf(caster).Stacks(o)).ToList())
+					{
+						pending.Meta.Remove(other);
+					}
+					pending.Careful.RemoveWhere(_ => !pending.Sculpt);
+					pending.Heightened = null;
+					pending.Transmute = null;
+				}
 				pending.Meta.Add(option);
 			}
 			if (option == "careful" && !pending.Meta.Contains("careful") && !pending.Sculpt)
@@ -568,7 +756,13 @@ namespace RealmForge.Client.Components
 			}
 		}
 
-		private int PendingCost(Pending p) => p.Meta.Sum(o => CastingOptions.CostOf(o));
+		private int PendingCost(Pending p) => tokens.FirstOrDefault(t => t.Id == p.CasterId) is { } caster
+			? MetaCost(caster, p.Meta, p.Info?.Level ?? 0, apotheosisFor == caster.Id && ApotheosisReady(caster))
+			: 0;
+
+		private int PendingOptionCost(Pending p, string option) => tokens.FirstOrDefault(t => t.Id == p.CasterId) is { } caster
+			? OptionsOf(caster).Cost(option, p.Info?.Level ?? 0)
+			: CastingOptions.CostOf(option);
 
 		private async Task ConfirmPendingAsync()
 		{
@@ -582,16 +776,26 @@ namespace RealmForge.Client.Components
 				castNote = UiText.VttMetamagicNoPoints(Lang);
 				return;
 			}
+			var cost = PendingCost(p);
+			if (apotheosisFor == caster.Id && p.Meta.Count > 0)
+			{
+				apotheosisUsed.Add((caster.Id, RoundNow));
+				apotheosisFor = null;
+			}
 			pending = null;
-			if (!await SpendPointsAsync(caster, PendingCost(p)))
+			if (!await SpendPointsAsync(caster, cost))
 			{
 				return;
 			}
 			var damage = DamageWith(p.Damage, OptionsOf(caster), p.Info);
-			if (p.Kind == "attack" && p.Aim is { } current && tokens.FirstOrDefault(t => t.Id == p.Targets.FirstOrDefault()) is { } target)
+			if (p.Kind == "attack" && p.Aim is { } current)
 			{
+				//	Each target its own attack (two with Twinned Spell)
 				p.Damage = damage;
-				await StrikeAsync(current, caster, target, p.Mode, p.Condition, p);
+				foreach (var target in p.Targets.Select(id => tokens.FirstOrDefault(t => t.Id == id)).OfType<MapTokenDto>().ToList())
+				{
+					await StrikeAsync(current, caster, target, p.Mode, p.Condition, p);
+				}
 				return;
 			}
 			busy = true;

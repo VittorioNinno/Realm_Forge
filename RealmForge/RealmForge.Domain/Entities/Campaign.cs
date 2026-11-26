@@ -248,6 +248,20 @@ namespace RealmForge.Domain.Entities
 		public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
 	}
 
+	///	<summary>
+	///	An audio file a master uploaded for the soundboard of a campaign (mp3, ogg, m4a, wav), kept in the database
+	///	within limits (see SoundsController); the sound that plays it has the link "rf-file:{Id}".
+	///	</summary>
+	public class CampaignSoundFile
+	{
+		public Guid Id { get; set; } = Guid.NewGuid();
+		public Guid CampaignId { get; set; }
+		public string ContentType { get; set; } = string.Empty;
+		public int Size { get; set; }
+		public byte[] Data { get; set; } = Array.Empty<byte>();
+		public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
+	}
+
 	public class CampaignSound
 	{
 		public Guid Id { get; set; } = Guid.NewGuid();
@@ -278,6 +292,9 @@ namespace RealmForge.Domain.Entities
 		//	The faction it belongs to: its standing with the party moves the prices
 		public Guid? FactionId { get; set; }
 
+		//	The merchant who keeps it: an NPC shared with the campaign
+		public Guid? NpcId { get; set; }
+
 		//	Open: the players see it and buy (closed: behind the screen)
 		public bool Open { get; set; }
 		public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
@@ -299,6 +316,12 @@ namespace RealmForge.Domain.Entities
 		public Guid? MagicItemId { get; set; }
 		public string Name { get; set; } = string.Empty;
 		public int PriceInCopper { get; set; }
+
+		//	The master's own list price for this shop, over the standard one (PriceInCopper); null: the standard
+		public int? CustomPrice { get; set; }
+
+		//	A discount on this item alone, in percent (0 to 90), after the shop's multiplier
+		public int Discount { get; set; }
 		public int? Stock { get; set; }
 		public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
 	}

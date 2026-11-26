@@ -10,8 +10,8 @@ using RealmForge.Shared.DTOs;
 namespace RealmForge.Api.Controllers
 {
 	///	<summary>
-	///	The soundboard of a campaign: links to audio files or streams hosted elsewhere (nothing is uploaded), as tracks
-	///	that loop (music, ambience) or one-shot effects. A master plays one and every screen at the table follows: the
+	///	The soundboard of a campaign: links to audio files or streams hosted elsewhere, or audio files the masters upload
+	///	(kept in the database: up to 4 MB each, 30 MB a campaign), as tracks that loop (music, ambience) or one-shot effects. A master plays one and every screen at the table follows: the
 	///	track in time with its start, the effect once.
 	///	</summary>
 	[ApiController]
@@ -43,7 +43,8 @@ namespace RealmForge.Api.Controllers
 			var sounds = await _context.CampaignSounds.AsNoTracking().Where(s => s.CampaignId == campaignId).OrderBy(s => s.Effect).ThenBy(s => s.Name).ToListAsync();
 			var playing = await _context.Campaigns.AsNoTracking().Where(c => c.Id == campaignId).Select(c => new { c.SoundTrackId, c.SoundSceneId }).FirstAsync();
 			var scenes = await _context.CampaignSoundScenes.AsNoTracking().Where(s => s.CampaignId == campaignId).OrderBy(s => s.Name).ToListAsync();
-			return Ok(new CampaignSoundboardDto(sounds.Select(ToDto).ToList(), playing.SoundTrackId, scenes.Select(ToDto).ToList(), playing.SoundSceneId));
+			var used = await StorageUsedAsync(campaignId);
+			return Ok(new CampaignSoundboardDto(sounds.Select(ToDto).ToList(), playing.SoundTrackId, scenes.Select(ToDto).ToList(), playing.SoundSceneId, used, SoundFiles.MaxCampaignBytes));
 		}
 
 		//	POST: api/campaigns/{campaignId}/sounds
@@ -69,6 +70,52 @@ namespace RealmForge.Api.Controllers
 			return Ok(ToDto(sound));
 		}
 
+		//	POST: api/campaigns/{campaignId}/sounds/file — a sound from an audio file of the master's device (multipart: file,
+		//	name, effect, volume): mp3, ogg, m4a or wav by its content, up to 4 MB, within the 30 MB of the campaign
+		[HttpPost("file")]
+		[RequestSizeLimit(SoundFiles.MaxFileBytes + 64 * 1024)]
+		[RequestFormLimits(MultipartBodyLengthLimit = SoundFiles.MaxFileBytes + 64 * 1024)]
+		public async Task<ActionResult<CampaignSoundDto>> UploadSound(Guid campaignId, IFormFile? file, [FromForm] string? name, [FromForm] bool effect, [FromForm] int volume = 80)
+		{
+			if (await MasterAsync(campaignId) is { } denied)
+			{
+				return denied;
+			}
+			var title = (name ?? string.Empty).Trim();
+			if (file is null || file.Length is 0 || title.Length is 0 or > 80 || volume is < 0 or > 100)
+			{
+				return Problem(statusCode: StatusCodes.Status400BadRequest, title: "A name up to 80 characters, an audio file, a volume from 0 to 100.");
+			}
+			if (file.Length > SoundFiles.MaxFileBytes)
+			{
+				return Problem(statusCode: StatusCodes.Status400BadRequest, title: "An audio file up to 4 MB.");
+			}
+			if (await _context.CampaignSounds.CountAsync(s => s.CampaignId == campaignId) >= MaxSounds)
+			{
+				return Problem(statusCode: StatusCodes.Status400BadRequest, title: $"At most {MaxSounds} sounds per campaign.");
+			}
+			if (await StorageUsedAsync(campaignId) + file.Length > SoundFiles.MaxCampaignBytes)
+			{
+				return Problem(statusCode: StatusCodes.Status400BadRequest, title: "The audio files of this campaign would pass 30 MB: remove some first.");
+			}
+			byte[] data;
+			using (var stream = new MemoryStream((int)file.Length))
+			{
+				await file.CopyToAsync(stream);
+				data = stream.ToArray();
+			}
+			if (SoundFiles.Sniff(data) is not { } type)
+			{
+				return Problem(statusCode: StatusCodes.Status400BadRequest, title: "An mp3, ogg, m4a or wav file.");
+			}
+			var stored = new CampaignSoundFile { CampaignId = campaignId, ContentType = type, Size = data.Length, Data = data };
+			var sound = new CampaignSound { CampaignId = campaignId, Name = title, Url = SoundFiles.Prefix + stored.Id, Effect = effect, Volume = volume };
+			_context.CampaignSoundFiles.Add(stored);
+			_context.CampaignSounds.Add(sound);
+			await _context.SaveChangesAsync();
+			return Ok(ToDto(sound));
+		}
+
 		//	PUT: api/campaigns/{campaignId}/sounds/{id}
 		[HttpPut("{id:guid}")]
 		public async Task<IActionResult> UpdateSound(Guid campaignId, Guid id, [FromBody] SaveCampaignSoundDto dto)
@@ -78,7 +125,7 @@ namespace RealmForge.Api.Controllers
 			{
 				return error!;
 			}
-			if (Validate(dto) is { } invalid)
+			if (Validate(dto, sound.Url) is { } invalid)
 			{
 				return invalid;
 			}
@@ -114,6 +161,10 @@ namespace RealmForge.Api.Controllers
 				scene.TrackId = scene.TrackId == id ? null : scene.TrackId;
 				scene.CueId = scene.CueId == id ? null : scene.CueId;
 				scene.Layers = JoinIds(SplitIds(scene.Layers).Where(l => l != id)) ?? string.Empty;
+			}
+			if (SoundFiles.FileId(sound.Url) is { } fileId)
+			{
+				await _context.CampaignSoundFiles.Where(f => f.Id == fileId && f.CampaignId == campaignId).ExecuteDeleteAsync();
 			}
 			_context.CampaignSounds.Remove(sound);
 			await WakeTableAsync(campaignId);
@@ -329,13 +380,18 @@ namespace RealmForge.Api.Controllers
 			return sound is null ? (null, NotFound()) : (sound, null);
 		}
 
-		//	A name and a link to an audio file or stream over https
-		private ActionResult? Validate(SaveCampaignSoundDto dto)
+		//	The bytes of the audio files of a campaign
+		private Task<long> StorageUsedAsync(Guid campaignId) =>
+			_context.CampaignSoundFiles.Where(f => f.CampaignId == campaignId).SumAsync(f => (long)f.Size);
+
+		//	A name and a link to an audio file or stream over https (or, for a sound already of an uploaded file, its own)
+		private ActionResult? Validate(SaveCampaignSoundDto dto, string? current = null)
 		{
 			var name = (dto.Name ?? string.Empty).Trim();
 			var url = (dto.Url ?? string.Empty).Trim();
+			var ownFile = SoundFiles.IsFile(current) && url == current;
 			if (name.Length is 0 or > 80 || url.Length is 0 or > 500 || dto.Volume is < 0 or > 100
-				|| !Uri.TryCreate(url, UriKind.Absolute, out var uri) || uri.Scheme != Uri.UriSchemeHttps)
+				|| (!ownFile && (!Uri.TryCreate(url, UriKind.Absolute, out var uri) || uri.Scheme != Uri.UriSchemeHttps)))
 			{
 				return Problem(statusCode: StatusCodes.Status400BadRequest, title: "A name up to 80 characters, an https link up to 500, a volume from 0 to 100.");
 			}

@@ -45,17 +45,28 @@
                     <span class="rf-d3d-active-meta">
                         <span class="rf-d3d-kicker">@UiText.Dice3dSelected(Lang) <span class="rf-d3d-badge">@CategoryName(Current.Category)</span></span>
                         <strong class="rf-d3d-active-name" data-test="dice3d-active-name">@Current.Name</strong>
+                        @if (preparing > 0)
+                        {
+                            <span class="rf-d3d-preparing" role="status" data-test="dice3d-preparing">@UiText.Dice3dPreparingHint(Lang)</span>
+                        }
                     </span>
                 </div>
                 <div class="rf-d3d-active-actions">
                     @if (Current.Category != "resin")
                     {
-                        <button type="button" class="rf-d3d-btn" disabled="@(!available || !settings.Enabled || testing)" title="@UiText.Dice3dCritHint(Lang)" @onclick="CriticalAsync" data-test="dice3d-crit-test">
+                        <button type="button" class="rf-d3d-btn" disabled="@(!available || !settings.Enabled || testing || preparing > 0)" title="@UiText.Dice3dCritHint(Lang)" @onclick="CriticalAsync" data-test="dice3d-crit-test">
                             <Icon Name="stars" /> @UiText.Dice3dCritTest(Lang)
                         </button>
                     }
-                    <button type="button" class="rf-d3d-btn primary" disabled="@(!available || !settings.Enabled || testing)" @onclick="TestAsync" data-test="dice3d-test">
-                        <Icon Name="dice-5" /> @UiText.Dice3dTest(Lang)
+                    <button type="button" class="rf-d3d-btn primary" disabled="@(!available || !settings.Enabled || testing || preparing > 0)" @onclick="TestAsync" data-test="dice3d-test">
+                        @if (preparing > 0)
+                        {
+                            <span class="rf-d3d-spinner" aria-hidden="true"></span> @UiText.Dice3dPreparing(Lang)
+                        }
+                        else
+                        {
+                            <Icon Name="dice-5" /> @UiText.Dice3dTest(Lang)
+                        }
                     </button>
                 </div>
             </div>
@@ -335,8 +346,30 @@
         {
             return;
         }
+        var look = (settings.Skin, settings.Color, settings.Enabled);
         change(settings);
         settings = await Dice3d.SaveAsync(settings);
+        if (available && settings.Enabled && (settings.Skin, settings.Color, settings.Enabled) != look)
+        {
+            await PrepareAsync();
+        }
+    }
+
+    //	A new look is made ready before it can be thrown: the throws wait, and the reader is told
+    private int preparing;
+
+    private async Task PrepareAsync()
+    {
+        preparing++;
+        StateHasChanged();
+        try
+        {
+            await Dice3d.ReadyAsync();
+        }
+        finally
+        {
+            preparing--;
+        }
     }
 
     private Task PickColorAsync(ChangeEventArgs e) => SetColorAsync(e.Value?.ToString());

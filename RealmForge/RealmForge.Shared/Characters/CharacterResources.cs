@@ -137,7 +137,7 @@ public static class CharacterResources
 			}
 			if (sorcerer >= 2)
 			{
-				Add("sorcerer-points", T("Punti stregoneria", "Sorcery Points"), sorcerer, ResourceReset.LongRest, pool: true);
+				Add("sorcerer-points", T("Punti stregoneria", "Sorcery Points"), sorcerer + (c.Feats.Any(f => CastingOptions.IsAdept(f.Feat)) ? 2 : 0), ResourceReset.LongRest, pool: true);
 			}
 		}
 
@@ -205,6 +205,11 @@ public static class CharacterResources
 			case "dragonborn" when is2024 && level >= 5:
 				Add("species-flight", T("Volo Draconico", "Draconic Flight"), 1, ResourceReset.LongRest);
 				break;
+		}
+		//	Metamagic Adept without the sorcerer's points: two of its own
+		if (c.ClassLevel("sorcerer") < 2 && c.Feats.Any(f => CastingOptions.IsAdept(f.Feat)))
+		{
+			Add("sorcerer-points", T("Punti stregoneria", "Sorcery Points"), 2, ResourceReset.LongRest, pool: true);
 		}
 		if (c.Feats.Any(f => f.Feat.Key == "lucky"))
 		{

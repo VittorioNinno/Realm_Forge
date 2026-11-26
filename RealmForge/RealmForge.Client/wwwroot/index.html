@@ -237,7 +237,7 @@
         // The soundboard of the table: one track (music, ambience) in a loop, kept in time with the master's start, and
         // one-shot effects; the browser plays only after a gesture on the page (unlock), the volume is the reader's
         window.rfSound = (() => {
-            let track = null, trackKey = null, unlocked = false, volume = 1;
+            let track = null, trackKey = null, unlocked = false, volume = 1, preview = null;
             // The ambience loops of a sound scene, by id: each fades in and out on its own
             const loops = new Map();
             const fade = (a, to, ms, done) => {
@@ -326,6 +326,20 @@
                     const a = new Audio(url);
                     a.volume = level(cueVolume);
                     a.play().catch(() => { });
+                },
+                // Listening to one sound on this device only (the preparation page): again on the same one stops it.
+                // Resolves true while it plays; the callback hears when it ends
+                preview(url, previewVolume, ended) {
+                    const same = preview && preview._rfUrl === url;
+                    if (preview) { preview.pause(); preview.src = ''; preview = null; }
+                    if (same || !url) return false;
+                    unlocked = true;
+                    const a = new Audio(url);
+                    a._rfUrl = url;
+                    a.volume = level(previewVolume);
+                    a.addEventListener('ended', () => { if (preview === a) preview = null; if (ended) ended.invokeMethodAsync('PreviewEnded').catch(() => { }); });
+                    preview = a;
+                    return a.play().then(() => true, () => { if (preview === a) preview = null; return false; });
                 },
                 stopAll() {
                     if (track) { track.pause(); track.src = ''; }

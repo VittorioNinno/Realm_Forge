@@ -1445,6 +1445,23 @@ try {
   campaignUi.notes = await page.locator('[data-test=campaign-note]').count();
   campaignUi.noteKinds = (await page.locator('[data-test=campaign-notes-kinds] .rf-pill-btn').allInnerTexts()).map((t) => t.trim()).join(',');
   await shot(page, 'campaign-notes', 'main');
+  // The audio prepared away from the table: a short wav uploaded from this device, kept by the campaign
+  await page.locator('[data-test=campaign-tab-audio]').click();
+  await page.locator('[data-test=sounds-empty]').waitFor({ timeout: 15000 });
+  await page.locator('[data-test=sound-src-file]').click();
+  const wav = Buffer.alloc(44 + 8000);
+  wav.write('RIFF', 0, 'latin1'); wav.writeUInt32LE(36 + 8000, 4); wav.write('WAVE', 8, 'latin1'); wav.write('fmt ', 12, 'latin1');
+  wav.writeUInt32LE(16, 16); wav.writeUInt16LE(1, 20); wav.writeUInt16LE(1, 22); wav.writeUInt32LE(8000, 24); wav.writeUInt32LE(8000, 28); wav.writeUInt16LE(1, 32); wav.writeUInt16LE(8, 34);
+  wav.write('data', 36, 'latin1'); wav.writeUInt32LE(8000, 40); wav.fill(128, 44);
+  await page.locator('[data-test=sound-drop] input[type=file]').setInputFiles({ name: 'Pioggia.wav', mimeType: 'audio/wav', buffer: wav });
+  await page.locator('[data-test=sound-effect]').click();
+  await page.locator('[data-test=sound-add]').click();
+  const audioRow = page.locator('[data-test=sound-row]', { hasText: 'Pioggia' });
+  await audioRow.waitFor({ timeout: 15000 });
+  campaignUi.audio = { row: (await audioRow.innerText()).replace(/\s+/g, ' ').trim(), count: (await page.locator('[data-test=sounds-count]').innerText()).trim() };
+  await shot(page, 'campaign-audio', 'main');
+  if (!/Effetto 1×/i.test(campaignUi.audio.row) || !/File · 80%/.test(campaignUi.audio.row) || campaignUi.audio.count !== '1') throw new Error(`unexpected campaign audio: ${JSON.stringify(campaignUi.audio)}`);
+  ok('campaign audio: a wav file uploaded from the campaign page as a one-shot effect, listed with its source and volume');
   // The game clock: an hour on from 08:00 of day 1
   await page.locator('[data-test=campaign-tab-overview]').click();
   await page.locator('[data-test=clock-hour]').click();
@@ -1844,7 +1861,28 @@ try {
   await page.locator('[data-test=vtt-tool-tokens]').click();
   await page.locator('[data-test=vtt-drawer]').waitFor({ timeout: 15000 });
   await shot(page, 'vtt-table', null);
+  // The tools open side by side as tabs: a second one does not replace the first, a folded panel opens again on the
+  // tool asked, and each tab is named after its tool
+  await page.locator('[data-test=vtt-tool-handouts]').click();
+  await page.locator('[data-test=vtt-tab-tool][data-tool=handouts].active').waitFor({ timeout: 10000 });
+  await page.locator('[data-test=vtt-drawer-fold]').click();
+  await page.locator('.rf-vtt-drawer.folded').waitFor({ timeout: 10000 });
+  await page.locator('[data-test=vtt-tool-sounds]').click();
+  await page.locator('[data-test=vtt-tab-tool][data-tool=sounds].active').waitFor({ timeout: 10000 });
+  const drawerUi = {
+    tabs: await page.locator('[data-test=vtt-tab-tool]').evaluateAll((els) => els.map((e) => e.dataset.tool)),
+    folded: await page.locator('.rf-vtt-drawer.folded').count()
+  };
+  await shot(page, 'vtt-drawer-tabs', '[data-test=vtt-drawer]');
+  await page.locator('[data-test=vtt-tab-tool][data-tool=sounds] [data-test=vtt-tab-tool-close]').click();
+  drawerUi.afterClose = await page.locator('[data-test=vtt-tab-tool].active').getAttribute('data-tool');
   await page.locator('[data-test=vtt-tool-tokens]').click();
+  await page.locator('[data-test=vtt-tool-tokens]').click();
+  drawerUi.left = await page.locator('[data-test=vtt-tab-tool]').evaluateAll((els) => els.map((e) => e.dataset.tool));
+  await page.locator('[data-test=vtt-drawer-close]').click();
+  results.push(`INFO vtt drawer tabs: ${JSON.stringify(drawerUi)}`);
+  if (JSON.stringify(drawerUi.tabs) !== '["tokens","handouts","sounds"]' || drawerUi.folded !== 0 || drawerUi.afterClose !== 'handouts' || JSON.stringify(drawerUi.left) !== '["handouts"]') throw new Error(`unexpected drawer tabs: ${JSON.stringify(drawerUi)}`);
+  ok('virtual tabletop: the tools open side by side as named tabs, a folded panel opens again on the tool asked, a closed tab leaves the others');
   await page.setViewportSize({ width: 390, height: 844 });
   await page.waitForTimeout(800);
   vttUi.phoneZoom = (await page.locator('[data-test=vtt] [data-test=map-zoom]').innerText()).trim();
@@ -2171,6 +2209,27 @@ try {
   results.push(`INFO vtt objects: ${JSON.stringify(propUi)}`);
   if (propUi.before !== 'Closed' || propUi.opened !== 'Open' || propUi.locked !== 'Locked' || propUi.stuck !== 1) throw new Error(`unexpected objects: ${JSON.stringify(propUi)}`);
   ok('virtual tabletop objects: a door placed from the tokens panel, opened from its toolbar, then locked so it no longer opens');
+  // A handout written from the table: one language at a time (a dot where something is written), saved, listed as a card
+  await page.locator('[data-test=vtt-tool-handouts]').click();
+  await page.locator('[data-test=handout-new]').click();
+  await page.locator('[data-test=handout-title-it]').fill('Lettera del borgomastro');
+  await page.locator('[data-test=handout-body-it]').fill('Il **ponte** crolla a mezzanotte.');
+  await page.locator('[data-test=handout-tab-en]').click();
+  const hoUi = {
+    itVisible: await page.locator('[data-test=handout-title-it]').isVisible(),
+    enVisible: await page.locator('[data-test=handout-title-en]').isVisible(),
+    dots: await page.locator('[data-test=handout-form] .rf-ho-dot.filled').count()
+  };
+  await shot(page, 'vtt-handout-form', '[data-test=campaign-handouts]');
+  await page.locator('[data-test=handout-save]').click();
+  await page.locator('[data-test=handout-row]', { hasText: 'Lettera del borgomastro' }).waitFor({ timeout: 15000 });
+  hoUi.count = (await page.locator('[data-test=handouts-count]').innerText()).trim();
+  await page.locator('[data-test=handout-row]', { hasText: 'Lettera del borgomastro' }).locator('[data-test=handout-delete]').click();
+  await page.locator('[data-test=handout-row]', { hasText: 'Lettera del borgomastro' }).waitFor({ state: 'detached', timeout: 15000 });
+  await page.locator('[data-test=vtt-tool-handouts]').click();
+  results.push(`INFO vtt handout: ${JSON.stringify(hoUi)}`);
+  if (hoUi.itVisible || !hoUi.enVisible || hoUi.dots !== 1 || hoUi.count === '0') throw new Error(`unexpected handout form: ${JSON.stringify(hoUi)}`);
+  ok('virtual tabletop handouts: written one language at a time from the table, saved as a card, removed');
   // A chest dragged from the tokens panel onto the map lands on the cell under the pointer (not on the first free one),
   // then is removed
   await page.locator('[data-test=vtt-tool-tokens]').click();

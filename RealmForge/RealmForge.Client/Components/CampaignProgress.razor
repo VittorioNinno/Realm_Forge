@@ -9,8 +9,15 @@
 
 @* Progress clocks (4 to 12 segments, filled by hand or by the game time) and the standing of the party with the
    factions, which moves the prices of the shops tied to them *@
-<section class="rf-progress" data-test="campaign-progress">
-    <div class="small mb-3" style="color: var(--rf-text-muted);">@(Runs ? UiText.ProgressHintMaster(Lang) : UiText.ProgressHintPlayer(Lang))</div>
+<section class="rf-progress @(Compact ? "compact" : null)" data-test="campaign-progress">
+    <div class="rf-cf-head">
+        <span class="rf-cf-kicker">@UiText.CampaignTabProgress(Lang)</span>
+        @if (data is not null)
+        {
+            <span class="rf-cf-count">@(data.Clocks.Count + data.Factions.Count)</span>
+        }
+    </div>
+    <p class="rf-cf-hint">@(Runs ? UiText.ProgressHintMaster(Lang) : UiText.ProgressHintPlayer(Lang))</p>
 
     @if (data is null)
     {
@@ -20,139 +27,205 @@
     {
         @if (error is not null)
         {
-            <div class="small text-warning mb-3" role="alert">@error</div>
+            <div class="small text-warning" role="alert">@error</div>
         }
 
-        <h3 class="rf-progress-title"><Icon Name="clock-history" /> @UiText.ProgressClocks(Lang)</h3>
-        @if (Runs)
+        @if (Compact)
         {
-            <div class="rf-progress-form mb-3">
-                <input class="rf-form-control" maxlength="80" placeholder="@UiText.ProgressClockName(Lang)" @bind="clockName" @bind:event="oninput" data-test="clock-name" />
-                <select class="rf-form-control" @bind="clockSegments" data-test="clock-segments" aria-label="@UiText.ProgressSegments(Lang)">
-                    @foreach (var n in FactionRules.Segments)
-                    {
-                        <option value="@n">@UiText.ProgressSegmentsOption(n, Lang)</option>
-                    }
-                </select>
-                <select class="rf-form-control" @bind="clockTick" data-test="clock-tick" aria-label="@UiText.ProgressTick(Lang)">
-                    @foreach (var hours in TickChoices)
-                    {
-                        <option value="@hours">@TickText(hours)</option>
-                    }
-                </select>
-                <input type="color" class="rf-progress-color" @bind="clockColor" aria-label="@UiText.ProgressColor(Lang)" />
-                <label class="form-check d-flex align-items-center gap-2 mb-0">
-                    <input type="checkbox" class="form-check-input" @bind="clockShown" data-test="clock-shown" />
-                    <span>@UiText.ProgressShown(Lang)</span>
-                </label>
-                <button type="button" class="btn btn-sm btn-rf-orange" disabled="@(busy || string.IsNullOrWhiteSpace(clockName))" @onclick="AddClockAsync" data-test="clock-add"><Icon Name="plus" /> @UiText.ProgressAddClock(Lang)</button>
+            <div class="rf-cf-switch" role="tablist">
+                <button type="button" role="tab" aria-selected="@(!showFactions)" class="@(!showFactions ? "on" : null)" @onclick="() => showFactions = false" data-test="progress-tab-clocks"><Icon Name="clock-history" /> @UiText.ProgressClocksShort(Lang) (@data.Clocks.Count)</button>
+                <button type="button" role="tab" aria-selected="@showFactions" class="@(showFactions ? "on" : null)" @onclick="() => showFactions = true" data-test="progress-tab-factions"><Icon Name="flag" /> @UiText.ProgressFactions(Lang) (@data.Factions.Count)</button>
             </div>
         }
-        @if (data.Clocks.Count == 0)
-        {
-            <div class="small mb-4" style="color: var(--rf-text-muted);" data-test="clocks-empty">@UiText.ProgressNoClocks(Lang)</div>
-        }
-        else
-        {
-            <div class="rf-progress-clocks mb-4">
-                @foreach (var c in data.Clocks)
-                {
-                    var clock = c;
-                    <article class="rf-progress-clock @(clock.Filled >= clock.Segments ? "full" : null)" data-test="clock">
-                        <svg viewBox="0 0 100 100" class="rf-progress-dial" role="img" aria-label="@UiText.ProgressClockLabel(clock.Name, clock.Filled, clock.Segments, Lang)">
-                            @for (var i = 0; i < clock.Segments; i++)
-                            {
-                                var index = i;
-                                <path d="@Wedge(index, clock.Segments)" class="rf-progress-wedge @(index < clock.Filled ? "on" : null)" style="@(index < clock.Filled ? $"fill: {clock.Color}" : null)" />
-                            }
-                        </svg>
-                        <div class="rf-progress-clock-text">
-                            <strong>@clock.Name</strong>
-                            <span class="small" data-test="clock-filled">@clock.Filled / @clock.Segments</span>
+
+        <div class="rf-cf-grid">
+            @if (!Compact || !showFactions)
+            {
+                <article class="rf-cf-card">
+                    <header class="rf-cf-card-head">
+                        <span class="rf-cf-icon"><Icon Name="clock-history" /></span>
+                        <span class="rf-cf-card-text">
+                            <strong>@UiText.ProgressClocks(Lang)</strong>
                             @if (Runs)
                             {
-                                <span class="small" style="color: var(--rf-text-muted);">
-                                    @(clock.TickHours is { } every ? TickText(every) : UiText.ProgressByHand(Lang))
-                                    · @(clock.Shown ? UiText.ProgressShown(Lang) : UiText.ProgressHidden(Lang))
-                                </span>
+                                <span>@UiText.ProgressClocksSub(Lang)</span>
+                            }
+                        </span>
+                    </header>
+                    @if (Runs)
+                    {
+                        <div class="rf-cf-form">
+                            <input class="rf-form-control" maxlength="80" placeholder="@UiText.ProgressClockName(Lang)" @bind="clockName" @bind:event="oninput" data-test="clock-name" />
+                            <div class="rf-cf-opts">
+                                <select class="rf-form-control" @bind="clockSegments" data-test="clock-segments" aria-label="@UiText.ProgressSegments(Lang)">
+                                    @foreach (var n in FactionRules.Segments)
+                                    {
+                                        <option value="@n">@UiText.ProgressSegmentsOption(n, Lang)</option>
+                                    }
+                                </select>
+                                <select class="rf-form-control" @bind="clockTick" data-test="clock-tick" aria-label="@UiText.ProgressTick(Lang)">
+                                    @foreach (var hours in TickChoices)
+                                    {
+                                        <option value="@hours">@TickText(hours)</option>
+                                    }
+                                </select>
+                                <label class="rf-cf-color" title="@UiText.ProgressColor(Lang)">
+                                    <input type="color" @bind="clockColor" aria-label="@UiText.ProgressColor(Lang)" />
+                                </label>
+                            </div>
+                            <div class="rf-cf-form-foot">
+                                <label class="rf-cf-chip">
+                                    <input type="checkbox" @bind="clockShown" data-test="clock-shown" />
+                                    <span>@UiText.ProgressShown(Lang)</span>
+                                </label>
+                                <button type="button" class="rf-cf-btn primary" disabled="@(busy || string.IsNullOrWhiteSpace(clockName))" @onclick="AddClockAsync" data-test="clock-add"><Icon Name="plus" /> @UiText.ProgressAddClock(Lang)</button>
+                            </div>
+                        </div>
+                    }
+                    @if (data.Clocks.Count == 0)
+                    {
+                        <div class="rf-cf-empty" data-test="clocks-empty"><Icon Name="clock-history" /><span>@UiText.ProgressNoClocks(Lang)</span></div>
+                    }
+                    else
+                    {
+                        <div class="rf-cf-list">
+                            @foreach (var c in data.Clocks)
+                            {
+                                var clock = c;
+                                var full = clock.Filled >= clock.Segments;
+                                <div class="rf-cf-clock @(full ? "full" : null)" data-test="clock">
+                                    <button type="button" class="rf-cf-dial" disabled="@(!Runs || busy || full)" title="@(Runs ? UiText.ProgressMore(Lang) : null)" @onclick="() => StepClockAsync(clock, 1)">
+                                        <svg viewBox="0 0 100 100" role="img" aria-label="@UiText.ProgressClockLabel(clock.Name, clock.Filled, clock.Segments, Lang)">
+                                            @for (var i = 0; i < clock.Segments; i++)
+                                            {
+                                                var index = i;
+                                                <path d="@Wedge(index, clock.Segments)" class="rf-progress-wedge @(index < clock.Filled ? "on" : null)" style="@(index < clock.Filled ? $"fill: {clock.Color}" : null)" />
+                                            }
+                                        </svg>
+                                    </button>
+                                    <div class="rf-cf-clock-text">
+                                        <strong>@clock.Name</strong>
+                                        <span class="rf-cf-meta">
+                                            <span class="rf-cf-frac" data-test="clock-filled">@clock.Filled / @clock.Segments</span>
+                                            @if (Runs)
+                                            {
+                                                <span>· @(clock.TickHours is { } every ? TickText(every) : UiText.ProgressByHand(Lang))</span>
+                                                <span class="@(clock.Shown ? "vis" : null)">· @(clock.Shown ? UiText.ProgressShownShort(Lang) : UiText.ProgressHidden(Lang))</span>
+                                            }
+                                        </span>
+                                    </div>
+                                    @if (Runs)
+                                    {
+                                        <div class="rf-cf-controls">
+                                            <button type="button" class="rf-cf-mini" title="@UiText.ProgressLess(Lang)" aria-label="@UiText.ProgressLess(Lang)" disabled="@(busy || clock.Filled == 0)" @onclick="() => StepClockAsync(clock, -1)" data-test="clock-minus"><Icon Name="dash" /></button>
+                                            <button type="button" class="rf-cf-mini primary" title="@UiText.ProgressMore(Lang)" aria-label="@UiText.ProgressMore(Lang)" disabled="@(busy || full)" @onclick="() => StepClockAsync(clock, 1)" data-test="clock-plus"><Icon Name="plus" /></button>
+                                            <button type="button" class="rf-cf-mini @(clock.Shown ? "vis" : null)" title="@(clock.Shown ? UiText.ProgressHide(Lang) : UiText.ProgressShow(Lang))" aria-label="@(clock.Shown ? UiText.ProgressHide(Lang) : UiText.ProgressShow(Lang))" aria-pressed="@clock.Shown" disabled="@busy" @onclick="() => ToggleClockAsync(clock)" data-test="clock-toggle"><Icon Name="@(clock.Shown ? "eye" : "eye-slash")" /></button>
+                                            <button type="button" class="rf-cf-mini del" title="@UiText.Delete(Lang)" aria-label="@UiText.Delete(Lang)" disabled="@busy" @onclick="() => DeleteClockAsync(clock)" data-test="clock-delete"><Icon Name="trash" /></button>
+                                        </div>
+                                    }
+                                </div>
                             }
                         </div>
-                        @if (Runs)
-                        {
-                            <div class="rf-progress-actions">
-                                <button type="button" class="btn btn-sm btn-rf-outline" title="@UiText.ProgressLess(Lang)" aria-label="@UiText.ProgressLess(Lang)" disabled="@(busy || clock.Filled == 0)" @onclick="() => StepClockAsync(clock, -1)" data-test="clock-minus"><Icon Name="dash" /></button>
-                                <button type="button" class="btn btn-sm btn-rf-orange" title="@UiText.ProgressMore(Lang)" aria-label="@UiText.ProgressMore(Lang)" disabled="@(busy || clock.Filled >= clock.Segments)" @onclick="() => StepClockAsync(clock, 1)" data-test="clock-plus"><Icon Name="plus" /></button>
-                                <button type="button" class="btn btn-sm btn-rf-outline" title="@(clock.Shown ? UiText.ProgressHide(Lang) : UiText.ProgressShow(Lang))" aria-label="@(clock.Shown ? UiText.ProgressHide(Lang) : UiText.ProgressShow(Lang))" disabled="@busy" @onclick="() => ToggleClockAsync(clock)" data-test="clock-toggle"><Icon Name="@(clock.Shown ? "eye" : "eye-slash")" /></button>
-                                <button type="button" class="btn btn-sm btn-rf-outline" title="@UiText.Delete(Lang)" aria-label="@UiText.Delete(Lang)" disabled="@busy" @onclick="() => DeleteClockAsync(clock)" data-test="clock-delete"><Icon Name="trash" /></button>
-                            </div>
-                        }
-                    </article>
-                }
-            </div>
-        }
+                    }
+                </article>
+            }
 
-        <h3 class="rf-progress-title"><Icon Name="flag" /> @UiText.ProgressFactions(Lang)</h3>
-        @if (Runs)
-        {
-            <div class="rf-progress-form mb-3">
-                <input class="rf-form-control" maxlength="80" placeholder="@UiText.ProgressFactionName(Lang)" @bind="factionName" @bind:event="oninput" data-test="faction-name" />
-                <input class="rf-form-control rf-progress-wide" maxlength="1000" placeholder="@UiText.ProgressFactionDescription(Lang)" @bind="factionDescription" />
-                <label class="form-check d-flex align-items-center gap-2 mb-0">
-                    <input type="checkbox" class="form-check-input" @bind="factionShown" />
-                    <span>@UiText.ProgressShown(Lang)</span>
-                </label>
-                <button type="button" class="btn btn-sm btn-rf-orange" disabled="@(busy || string.IsNullOrWhiteSpace(factionName))" @onclick="AddFactionAsync" data-test="faction-add"><Icon Name="plus" /> @UiText.ProgressAddFaction(Lang)</button>
-            </div>
-        }
-        @if (data.Factions.Count == 0)
-        {
-            <div class="small" style="color: var(--rf-text-muted);" data-test="factions-empty">@UiText.ProgressNoFactions(Lang)</div>
-        }
-        else
-        {
-            <div class="rf-progress-factions">
-                @foreach (var f in data.Factions)
-                {
-                    var faction = f;
-                    <article class="rf-progress-faction" data-test="faction">
-                        <div class="rf-progress-faction-head">
-                            <strong>@faction.Name</strong>
-                            <span class="rf-progress-standing @StandingCss(faction.Standing)" data-test="faction-standing">@UiText.ProgressStanding(faction.Standing, Lang)</span>
-                            @if (faction.PricePercent != 100)
-                            {
-                                <span class="small" style="color: var(--rf-text-muted);" data-test="faction-prices">@UiText.ProgressPrices(faction.PricePercent, Lang)</span>
-                            }
-                        </div>
-                        @if (faction.Description.Length > 0)
-                        {
-                            <div class="small" style="color: var(--rf-text-muted);">@faction.Description</div>
-                        }
-                        <div class="rf-progress-bar" role="meter" aria-valuemin="@FactionRules.Hostile" aria-valuemax="@FactionRules.Allied" aria-valuenow="@faction.Standing" aria-label="@faction.Name">
-                            @for (var step = FactionRules.Hostile; step <= FactionRules.Allied; step++)
-                            {
-                                var level = step;
-                                <span class="rf-progress-pip @PipCss(level, faction.Standing)"></span>
-                            }
-                        </div>
-                        @if (Runs)
-                        {
-                            <div class="rf-progress-actions">
-                                <button type="button" class="btn btn-sm btn-rf-outline" title="@UiText.ProgressWorse(Lang)" aria-label="@UiText.ProgressWorse(Lang)" disabled="@(busy || faction.Standing <= FactionRules.Hostile)" @onclick="() => StepFactionAsync(faction, -1)" data-test="faction-minus"><Icon Name="dash" /></button>
-                                <button type="button" class="btn btn-sm btn-rf-orange" title="@UiText.ProgressBetter(Lang)" aria-label="@UiText.ProgressBetter(Lang)" disabled="@(busy || faction.Standing >= FactionRules.Allied)" @onclick="() => StepFactionAsync(faction, 1)" data-test="faction-plus"><Icon Name="plus" /></button>
-                                <button type="button" class="btn btn-sm btn-rf-outline" title="@(faction.Shown ? UiText.ProgressHide(Lang) : UiText.ProgressShow(Lang))" aria-label="@(faction.Shown ? UiText.ProgressHide(Lang) : UiText.ProgressShow(Lang))" disabled="@busy" @onclick="() => ToggleFactionAsync(faction)"><Icon Name="@(faction.Shown ? "eye" : "eye-slash")" /></button>
-                                <button type="button" class="btn btn-sm btn-rf-outline" title="@UiText.Delete(Lang)" aria-label="@UiText.Delete(Lang)" disabled="@busy" @onclick="() => DeleteFactionAsync(faction)" data-test="faction-delete"><Icon Name="trash" /></button>
+            @if (!Compact || showFactions)
+            {
+                <article class="rf-cf-card">
+                    <header class="rf-cf-card-head">
+                        <span class="rf-cf-icon"><Icon Name="flag" /></span>
+                        <span class="rf-cf-card-text">
+                            <strong>@UiText.ProgressFactions(Lang)</strong>
+                            <span>@UiText.ProgressFactionsSub(Lang)</span>
+                        </span>
+                    </header>
+                    @if (Runs)
+                    {
+                        <div class="rf-cf-form">
+                            <input class="rf-form-control" maxlength="80" placeholder="@UiText.ProgressFactionName(Lang)" @bind="factionName" @bind:event="oninput" data-test="faction-name" />
+                            <input class="rf-form-control" maxlength="1000" placeholder="@UiText.ProgressFactionDescription(Lang)" @bind="factionDescription" />
+                            <div class="rf-cf-form-foot">
+                                <label class="rf-cf-chip">
+                                    <input type="checkbox" @bind="factionShown" />
+                                    <span>@UiText.ProgressShown(Lang)</span>
+                                </label>
+                                <button type="button" class="rf-cf-btn primary" disabled="@(busy || string.IsNullOrWhiteSpace(factionName))" @onclick="AddFactionAsync" data-test="faction-add"><Icon Name="plus" /> @UiText.ProgressAddFaction(Lang)</button>
                             </div>
-                        }
-                    </article>
-                }
-            </div>
-        }
+                        </div>
+                    }
+                    @if (data.Factions.Count == 0)
+                    {
+                        <div class="rf-cf-empty" data-test="factions-empty"><Icon Name="flag" /><span>@UiText.ProgressNoFactions(Lang)</span></div>
+                    }
+                    else
+                    {
+                        <div class="rf-cf-list">
+                            @foreach (var f in data.Factions)
+                            {
+                                var faction = f;
+                                <div class="rf-cf-faction" data-test="faction">
+                                    <div class="rf-cf-faction-top">
+                                        <span class="rf-cf-faction-text">
+                                            <strong>@faction.Name</strong>
+                                            @if (faction.Description.Length > 0)
+                                            {
+                                                <span>@faction.Description</span>
+                                            }
+                                        </span>
+                                        @if (Runs)
+                                        {
+                                            <span class="rf-cf-controls">
+                                                <button type="button" class="rf-cf-mini @(faction.Shown ? "vis" : null)" title="@(faction.Shown ? UiText.ProgressHide(Lang) : UiText.ProgressShow(Lang))" aria-label="@(faction.Shown ? UiText.ProgressHide(Lang) : UiText.ProgressShow(Lang))" aria-pressed="@faction.Shown" disabled="@busy" @onclick="() => ToggleFactionAsync(faction)"><Icon Name="@(faction.Shown ? "eye" : "eye-slash")" /></button>
+                                                <button type="button" class="rf-cf-mini del" title="@UiText.Delete(Lang)" aria-label="@UiText.Delete(Lang)" disabled="@busy" @onclick="() => DeleteFactionAsync(faction)" data-test="faction-delete"><Icon Name="trash" /></button>
+                                            </span>
+                                        }
+                                    </div>
+                                    <div class="rf-progress-bar" role="meter" aria-valuemin="@FactionRules.Hostile" aria-valuemax="@FactionRules.Allied" aria-valuenow="@faction.Standing" aria-label="@faction.Name">
+                                        @for (var step = FactionRules.Hostile; step <= FactionRules.Allied; step++)
+                                        {
+                                            var level = step;
+                                            <span class="rf-progress-pip @PipCss(level, faction.Standing)"></span>
+                                        }
+                                    </div>
+                                    <div class="rf-cf-rep">
+                                        <span class="rf-cf-pills">
+                                            <span class="rf-cf-pill @StandingCss(faction.Standing)"><span data-test="faction-standing">@UiText.ProgressStanding(faction.Standing, Lang)</span> (@(faction.Standing > 0 ? "+" : null)@faction.Standing)</span>
+                                            @if (faction.PricePercent != 100)
+                                            {
+                                                <span class="rf-cf-pill price" title="@UiText.ProgressPrices(faction.PricePercent, Lang)" data-test="faction-prices">@UiText.ProgressPricesShort(faction.PricePercent, Lang)</span>
+                                            }
+                                            else
+                                            {
+                                                <span class="rf-cf-pill price">@UiText.ProgressPricesStandard(Lang)</span>
+                                            }
+                                        </span>
+                                        @if (Runs)
+                                        {
+                                            <span class="rf-cf-controls">
+                                                <button type="button" class="rf-cf-mini" title="@UiText.ProgressWorse(Lang)" aria-label="@UiText.ProgressWorse(Lang)" disabled="@(busy || faction.Standing <= FactionRules.Hostile)" @onclick="() => StepFactionAsync(faction, -1)" data-test="faction-minus"><Icon Name="dash" /></button>
+                                                <button type="button" class="rf-cf-mini primary" title="@UiText.ProgressBetter(Lang)" aria-label="@UiText.ProgressBetter(Lang)" disabled="@(busy || faction.Standing >= FactionRules.Allied)" @onclick="() => StepFactionAsync(faction, 1)" data-test="faction-plus"><Icon Name="plus" /></button>
+                                            </span>
+                                        }
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                    }
+                </article>
+            }
+        </div>
     }
 </section>
 
 @code {
     [Parameter, EditorRequired] public Guid CampaignId { get; set; }
     [Parameter] public CampaignRole Role { get; set; }
+
+    //	In the drawer of the table: clocks and factions on two tabs
+    [Parameter] public bool Compact { get; set; }
+
+    private bool showFactions;
 
     //	Every how many hours of game time a clock fills a segment by itself (0: by hand only)
     private static readonly int[] TickChoices = { 0, 1, 4, 8, 24, 72, 168 };
