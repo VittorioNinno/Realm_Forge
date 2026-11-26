@@ -10,6 +10,7 @@ namespace RealmForge.Client.Components
 	public partial class CampaignMap
 	{
 		private bool phone;
+		private bool initFoldedForPhone;
 
 		private bool PhoneSheet => phone && Table;
 
@@ -21,9 +22,16 @@ namespace RealmForge.Client.Components
 				return Task.CompletedTask;
 			}
 			phone = narrow;
-			if (narrow)
+			//	Folded for the phone, opened again when the screen is wide once more (unless folded by hand meanwhile)
+			if (narrow && !initCollapsed)
 			{
 				initCollapsed = true;
+				initFoldedForPhone = true;
+			}
+			else if (!narrow && initFoldedForPhone)
+			{
+				initCollapsed = false;
+				initFoldedForPhone = false;
 			}
 			return InvokeAsync(StateHasChanged);
 		}
