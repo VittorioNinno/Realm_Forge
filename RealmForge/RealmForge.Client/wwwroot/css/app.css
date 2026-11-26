@@ -24638,3 +24638,152 @@ html.rf-fx-off .rf-bg-msg { animation: none; }
     .rf-bg-msg { max-width: 100%; }
     .rf-bg-chat { max-height: 50vh; }
 }
+
+/* ===== The table on a phone held upright: the map takes the screen, the tools run along the bottom (scrolled with a
+   finger), the side panel and the card of a token rise as sheets over the map; every tool stays at hand ===== */
+@media (max-width: 767.98px) and (orientation: portrait) {
+    .rf-vtt-top {
+        gap: 8px;
+        min-height: 48px;
+        padding: 4px 8px;
+    }
+
+        .rf-vtt-top .rf-vtt-select {
+            flex: 1 1 120px;
+            min-width: 0;
+        }
+
+    .rf-vtt-top-actions {
+        overflow-x: auto;
+        scrollbar-width: none;
+    }
+
+    .rf-vtt-body {
+        flex-direction: column;
+    }
+
+    .rf-vtt-viewport {
+        flex: 1 1 auto;
+        min-height: 0;
+    }
+
+    .rf-vtt-tools {
+        order: 3;
+        flex-direction: row;
+        justify-content: flex-start;
+        width: 100%;
+        height: 56px;
+        padding: 8px;
+        overflow-x: auto;
+        overflow-y: hidden;
+        border-top: 1px solid var(--rf-border-subtle);
+        border-right: 0;
+        scrollbar-width: none;
+    }
+
+        .rf-vtt-tools::-webkit-scrollbar {
+            display: none;
+        }
+
+    .rf-vtt-tool {
+        flex: none;
+        width: 40px;
+        height: 40px;
+    }
+
+    .rf-vtt-tools-sep {
+        width: 1px !important;
+        height: 24px !important;
+        margin: 0 4px !important;
+    }
+
+    /* The side panel as a sheet over the bottom of the map, above the tools */
+    .rf-vtt-drawer,
+    .rf-vtt-table .rf-vtt-drawer {
+        position: absolute;
+        top: auto;
+        right: 0;
+        bottom: 56px;
+        left: 0;
+        z-index: 60;
+        width: 100%;
+        max-height: 60%;
+        border-top: 2px solid var(--rf-orange-primary);
+        border-left: 0;
+        border-radius: 16px 16px 0 0;
+        box-shadow: 0 -16px 32px rgba(0, 0, 0, .6);
+    }
+
+        .rf-vtt-drawer.folded {
+            max-height: 56px;
+            overflow: hidden;
+        }
+
+    /* The card of a token: a sheet along the bottom, over the whole width */
+    .rf-vtt-phone-sheet {
+        position: absolute;
+        right: 8px;
+        bottom: 8px;
+        left: 8px;
+        z-index: 55;
+        max-height: 55%;
+        overflow-y: auto;
+        border-radius: 12px;
+    }
+
+        .rf-vtt-phone-sheet .rf-vtt-toolbar {
+            position: relative;
+            top: auto !important;
+            left: auto !important;
+            width: 100%;
+            min-width: 0;
+            max-width: none;
+            transform: none;
+        }
+
+        .rf-vtt-phone-sheet .rf-hud-dock {
+            grid-auto-columns: minmax(64px, 1fr);
+            overflow-x: auto;
+            scrollbar-width: none;
+        }
+
+    .rf-vtt-cluster {
+        right: 8px;
+        bottom: 8px;
+        max-width: calc(100% - 16px);
+    }
+
+    .rf-vtt-options {
+        right: 8px;
+        bottom: 8px;
+        left: 8px;
+        max-height: 50%;
+        overflow-y: auto;
+    }
+
+    .rf-init-widget {
+        top: 8px;
+        right: 8px;
+        left: 8px;
+    }
+
+        .rf-init-widget .rf-init-shell {
+            max-width: 100%;
+            overflow-x: auto;
+        }
+}
+
+/* A finger, not a mouse: bigger targets on the table */
+@media (pointer: coarse) {
+    .rf-vtt-tool,
+    .rf-hud-dock-item,
+    .rf-init-icon,
+    .rf-vtt-row-action {
+        min-width: 40px;
+        min-height: 40px;
+    }
+
+    .rf-vtt-stage {
+        -webkit-tap-highlight-color: transparent;
+    }
+}

@@ -451,7 +451,7 @@
 
             function attach(stage, dotnet, options) {
                 detach(stage);
-                const st = { dotnet, options, tool: 'select', drag: null, pan: null, ruler: null };
+                const st = { dotnet, options, tool: 'select', drag: null, pan: null, ruler: null, touches: new Map(), pinch: null };
                 const board = () => stage.querySelector('[data-board]');
                 const zoom = () => parseFloat(board()?.dataset.zoom || '1');
                 const toMap = (e) => {
@@ -741,7 +741,25 @@
                     const w = Math.abs(st.box.to[0] - st.box.from[0]), h = Math.abs(st.box.to[1] - st.box.from[1]);
                     svg.innerHTML = `<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="rgba(255,140,0,.18)" stroke="#ff8c00" stroke-width="${2 / z}" stroke-dasharray="${6 / z} ${4 / z}"/>`;
                 };
+                // Two fingers on the map: they move the view and pinch the zoom, whatever the tool; what one finger had
+                // started (a drag, a pan, a ping on hold) is dropped
+                const pinchStart = () => {
+                    const [a, b] = [...st.touches.values()];
+                    st.pinch = { d: Math.hypot(a.x - b.x, a.y - b.y) || 1, cx: (a.x + b.x) / 2, cy: (a.y + b.y) / 2, left: stage.scrollLeft, top: stage.scrollTop };
+                };
                 st.down = (e) => {
+                    if (e.pointerType === 'touch' && board()) {
+                        st.touches.set(e.pointerId, { x: e.clientX, y: e.clientY });
+                        if (st.touches.size === 2) {
+                            if (st.pan) { clearTimeout(st.pan.timer); st.pan = null; stage.classList.remove('panning'); }
+                            if (st.drag) { st.drag.el.style.transform = ''; st.drag = null; }
+                            st.ruler = null;
+                            pinchStart();
+                            e.preventDefault();
+                            return;
+                        }
+                        if (st.touches.size > 2) return;
+                    }
                     if (e.button !== 0 || !board()) return;
                     // The token's toolbar and the other controls drawn on the map work as a normal page
                     if (e.target.closest('[data-ui]')) return;
@@ -855,6 +873,22 @@
                     }
                 };
                 st.move = (e) => {
+                    if (e.pointerType === 'touch' && st.touches.has(e.pointerId)) {
+                        st.touches.set(e.pointerId, { x: e.clientX, y: e.clientY });
+                        if (st.pinch && st.touches.size >= 2) {
+                            const [a, b] = [...st.touches.values()];
+                            const d = Math.hypot(a.x - b.x, a.y - b.y), cx = (a.x + b.x) / 2, cy = (a.y + b.y) / 2;
+                            stage.scrollLeft = st.pinch.left - (cx - st.pinch.cx);
+                            stage.scrollTop = st.pinch.top - (cy - st.pinch.cy);
+                            const ratio = d / st.pinch.d;
+                            if (ratio > 1.18 || ratio < 0.85) {
+                                dotnet.invokeMethodAsync('Wheel', ratio > 1 ? 1 : -1);
+                                pinchStart();
+                            }
+                            e.preventDefault();
+                            return;
+                        }
+                    }
                     if (st.textDrag) {
                         const d = st.textDrag, z = zoom();
                         if (!d.moved && Math.hypot(e.clientX - d.x, e.clientY - d.y) < 4) return;
@@ -907,6 +941,14 @@
                     }
                 };
                 st.up = async (e) => {
+                    if (e && e.pointerType === 'touch') {
+                        st.touches.delete(e.pointerId);
+                        if (st.pinch) {
+                            // The pinch ends when the fingers leave: nothing under them is clicked
+                            if (st.touches.size < 2) st.pinch = st.touches.size === 0 ? null : st.pinch;
+                            return;
+                        }
+                    }
                     if (st.eraseBox) {
                         const b = st.eraseBox;
                         st.eraseBox = null;
@@ -1036,7 +1078,10 @@
                 window.addEventListener('pointermove', st.move);
                 window.addEventListener('pointerup', st.up);
                 // A pointer lost (released outside the window, a gesture taken by the browser): what it was doing stops
-                st.cancel = () => { if (st.pan) { clearTimeout(st.pan.timer); st.pan = null; stage.classList.remove('panning'); } };
+                st.cancel = (e) => {
+                    if (e && e.pointerType === 'touch') { st.touches.delete(e.pointerId); if (st.touches.size === 0) st.pinch = null; }
+                    if (st.pan) { clearTimeout(st.pan.timer); st.pan = null; stage.classList.remove('panning'); }
+                };
                 window.addEventListener('pointercancel', st.cancel);
                 stage.addEventListener('scroll', () => { if (st.pan && !st.pan.drag) clearTimeout(st.pan.timer); }, { passive: true });
                 stage.addEventListener('wheel', st.wheel, { passive: false });

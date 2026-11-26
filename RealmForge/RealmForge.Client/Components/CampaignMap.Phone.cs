@@ -3,9 +3,9 @@
 namespace RealmForge.Client.Components
 {
 	///	<summary>
-	///	The table on a phone held sideways (the only way the table works on a phone: upright it asks to turn it): the card
-	///	of a token opens on the right side of the screen instead of next to the token, where it would go off the screen.
-	///	The rest of the phone layout is CSS only; the desktop one does not change.
+	///	The table on a phone, upright or sideways: the card of a token opens as a sheet instead of next to the token, where
+	///	it would go off the screen, and the initiative starts folded to leave the map its room. The rest of the phone
+	///	layout is CSS only (upright: the tools along the bottom, the side panel as a sheet); the desktop one does not change.
 	///	</summary>
 	public partial class CampaignMap
 	{
@@ -21,6 +21,10 @@ namespace RealmForge.Client.Components
 				return Task.CompletedTask;
 			}
 			phone = narrow;
+			if (narrow)
+			{
+				initCollapsed = true;
+			}
 			return InvokeAsync(StateHasChanged);
 		}
 
@@ -32,7 +36,7 @@ namespace RealmForge.Client.Components
 			}
 			try
 			{
-				await JS.InvokeVoidAsync("rfMedia.watch", self, "(max-height: 500px) and (max-width: 1023.98px) and (orientation: landscape)", "PhoneChanged");
+				await JS.InvokeVoidAsync("rfMedia.watch", self, "(max-width: 767.98px), (max-height: 500px) and (max-width: 1023.98px) and (orientation: landscape)", "PhoneChanged");
 			}
 			catch (JSException)
 			{
