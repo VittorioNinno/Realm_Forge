@@ -12131,9 +12131,26 @@ html:not(.rf-fx-off) .rf-area[data-element] .rf-area-edge {
 
 .rf-vtt-grid-fields {
     display: grid;
-    grid-template-columns: minmax(0, 1fr);
+    grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 8px;
 }
+
+    /* Cell size and offsets side by side: compact steppers, the number in the middle taking the room left */
+    .rf-vtt-grid-fields .rf-stepper {
+        display: grid;
+        grid-template-columns: 32px minmax(0, 1fr) 32px;
+        width: 100%;
+        height: 40px;
+    }
+
+    .rf-vtt-grid-fields .rf-stepper-btn {
+        width: 32px;
+    }
+
+    .rf-vtt-grid-fields .rf-stepper-input {
+        width: 100%;
+        min-width: 0;
+    }
 
 .rf-vtt-chips {
     display: flex;
@@ -12178,7 +12195,7 @@ html:not(.rf-fx-off) .rf-area[data-element] .rf-area-edge {
     }
 
     .rf-vtt-grid-fields {
-        grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+        grid-template-columns: repeat(3, minmax(0, 1fr));
     }
 }
 
@@ -25107,6 +25124,17 @@ html.rf-fx-off .rf-bg-msg { animation: none; }
 
 .rf-pl-title {
     display: inline-flex;
+/* The party's treasure in the panel of a chest: a row an item, its quantity, the button that puts it in */
+.rf-hud-treasure {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    max-height: 240px;
+    overflow-y: auto;
+}
+
+.rf-hud-treasure-row {
+    display: flex;
     align-items: center;
     gap: 8px;
 }
@@ -25865,4 +25893,11 @@ html.rf-fx-off .rf-bg-msg { animation: none; }
     .rf-sounds-page .rf-snd-list {
         grid-template-columns: minmax(0, 1fr);
     }
+.rf-hud-treasure-name {
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 13px;
 }

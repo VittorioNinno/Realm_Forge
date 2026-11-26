@@ -565,6 +565,10 @@ namespace RealmForge.Client.Localization
 		public static string VttCastMaterialSpend(LanguageCode lang) => T(lang, "Consuma e lancia", "Spend and cast");
 		public static string VttCastForce(LanguageCode lang) => T(lang, "Lancia comunque", "Cast anyway");
 		public static string VttCastForceHint(LanguageCode lang) => T(lang, "Decisione del master: il lancio ignora il requisito", "The master's call: the casting ignores the requirement");
+		public static string ToolTreasure(LanguageCode lang) => T(lang, "Tesoro", "Treasure");
+		public static string VttChestTreasureHint(LanguageCode lang) => T(lang, "Metti nel forziere un oggetto del tesoro del gruppo", "Put an item of the party's treasure in the chest");
+		public static string VttChestTreasureNone(LanguageCode lang) => T(lang, "Il tesoro del gruppo è vuoto: aggiungi oggetti dalla sezione Tesoro.", "The party's treasure is empty: add items from the Treasure section.");
+		public static string VttChestPut(LanguageCode lang) => T(lang, "Metti", "Put");
 		public static string VttApotheosis(LanguageCode lang) => T(lang, "Apoteosi arcana", "Arcane Apotheosis");
 		public static string VttApotheosisHint(LanguageCode lang) => T(lang,
 			"Con la Stregoneria innata attiva: un'opzione di metamagia gratis in questo turno",
