@@ -16,6 +16,20 @@ namespace RealmForge.Client.Localization
 			: T(lang, "Le date, il programma e i riassunti delle serate, scritti dai master.", "Dates, plans and recaps of the games, written by the GMs.");
 		public static string BtnNewSession(LanguageCode lang) => T(lang, "Nuova sessione", "New session");
 		public static string SessionsEmpty(LanguageCode lang) => T(lang, "Ancora nessuna sessione.", "No sessions yet.");
+		public static string SessionsKicker(LanguageCode lang) => T(lang, "Diario e programmazione", "Log and schedule");
+		public static string SessionsEmptyHint(LanguageCode lang) => T(lang, "Crea una nuova sessione per fissare la prossima serata di gioco.", "Create a new session to set the next game night.");
+		public static string SessionsNoneHere(LanguageCode lang) => T(lang, "Nessuna sessione con questo filtro.", "No session with this filter.");
+		public static string SessionsHistory(int count, LanguageCode lang) => T(lang, $"Cronologia sessioni ({count})", $"Session history ({count})");
+		public static string SessionFilter(string filter, LanguageCode lang) => filter switch
+		{
+			"planned" => T(lang, "In programma", "Planned"),
+			"played" => T(lang, "Giocate", "Played"),
+			_ => T(lang, "Tutte", "All")
+		};
+		public static string SessionTitlePlaceholder(LanguageCode lang) => T(lang, "es. L'imboscata fuori dalla locanda", "e.g. The ambush outside the inn");
+		public static string SessionVisibleAll(LanguageCode lang) => T(lang, "Visibile a tutti", "Seen by everyone");
+		public static string SessionMastersOnly(LanguageCode lang) => T(lang, "Solo master e co-master", "Masters and co-masters only");
+		public static string SessionRecapLater(LanguageCode lang) => T(lang, "Puoi aggiornare il riassunto anche dopo la fine della sessione.", "You can update the recap after the session too.");
 		public static string SessionNumber(int number, LanguageCode lang) => T(lang, $"Sessione {number}", $"Session {number}");
 		public static string SessionTitle(LanguageCode lang) => T(lang, "Titolo (facoltativo)", "Title (optional)");
 		public static string SessionWhen(LanguageCode lang) => T(lang, "Data e ora", "Date and time");

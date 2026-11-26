@@ -55,6 +55,17 @@ namespace RealmForge.Client.Localization
 		public static string ClockGo(LanguageCode lang) => T(lang, "Avanza", "Move on");
 		public static string ClockRations(LanguageCode lang) => T(lang, "Consuma una razione al giorno", "Eat a ration a day");
 		public static string ClockSet(LanguageCode lang) => T(lang, "Imposta", "Set");
+		public static string ClockSetShort(LanguageCode lang) => T(lang, "Imposta", "Set");
+		public static string ClockApply(LanguageCode lang) => T(lang, "Applica", "Apply");
+		public static string ClockMinutes(LanguageCode lang) => T(lang, "minuti", "minutes");
+		public static string ClockActive(int count, LanguageCode lang) => T(lang, count == 1 ? "1 attivo" : $"{count} attivi", $"{count} active");
+		public static string ClockPhase(string phase, LanguageCode lang) => phase switch
+		{
+			"morning" => T(lang, "Mattina", "Morning"),
+			"afternoon" => T(lang, "Pomeriggio", "Afternoon"),
+			"evening" => T(lang, "Sera", "Evening"),
+			_ => T(lang, "Notte", "Night")
+		};
 		public static string ClockDay(LanguageCode lang) => T(lang, "Giorno", "Day");
 		public static string ClockTime(LanguageCode lang) => T(lang, "Ora", "Time");
 		public static string ClockEffects(LanguageCode lang) => T(lang, "Effetti in corso", "Running effects");

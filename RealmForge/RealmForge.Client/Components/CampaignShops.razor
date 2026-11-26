@@ -36,7 +36,9 @@
         }
         else
         {
-            <div class="rf-card2 mb-3 d-flex flex-column gap-2" data-test="shop-form">
+            <div class="rf-se-card mb-3" data-test="shop-form">
+                <div class="rf-se-grid">
+                <div class="rf-se-left">
                 <div class="rf-sh-form-head">
                     <span class="rf-sh-kicker">@UiText.ShopDetails(Lang)</span>
                     <div class="rf-sh-langs" role="tablist">
@@ -113,10 +115,32 @@
                 {
                     <div class="small text-warning">@error</div>
                 }
-                <div class="d-flex justify-content-end gap-2">
-                    <button type="button" class="btn btn-sm btn-rf-outline" @onclick="() => draft = null">@UiText.BtnCancel(Lang)</button>
-                    <button type="button" class="btn btn-sm btn-rf-orange" disabled="@busy" @onclick="SaveAsync" data-test="shop-save">@UiText.BtnConfirm(Lang)</button>
                 </div>
+                <div class="rf-se-right">
+                    @if (editingId is { } shopId && data?.Shops.FirstOrDefault(x => x.Id == shopId) is { } edited)
+                    {
+                        <div class="rf-sh-form-head">
+                            <span class="rf-sh-kicker">@UiText.ShopItemsTitle(edited.Items.Count, Lang)</span>
+                            <span class="rf-ses-hint">@UiText.ShopItemsHint(Lang)</span>
+                        </div>
+                        @ShopItems(edited)
+                    }
+                    else
+                    {
+                        <div class="rf-sh-form-head">
+                            <span class="rf-sh-kicker">@UiText.ShopItemsTitle(0, Lang)</span>
+                        </div>
+                        <div class="rf-ov-empty">@UiText.ShopItemsAfterSave(Lang)</div>
+                    }
+                </div>
+                </div>
+                <footer class="rf-se-foot">
+                    <span class="rf-ses-hint">@UiText.ShopManualWins(Lang)</span>
+                    <span class="d-flex gap-2">
+                        <button type="button" class="btn btn-rf-outline" @onclick="() => draft = null">@UiText.BtnCancel(Lang)</button>
+                        <button type="button" class="btn btn-rf-orange" disabled="@busy" @onclick="SaveAsync" data-test="shop-save">@UiText.BtnConfirm(Lang)</button>
+                    </span>
+                </footer>
             </div>
         }
     }
@@ -141,7 +165,7 @@
             <div class="small text-warning mb-3">@UiText.ShopNoBuyer(Lang)</div>
         }
         <div class="rf-shop-list">
-            @foreach (var s in data.Shops)
+            @foreach (var s in data.Shops.Where(x => x.Id != editingId || draft is null))
             {
                 var shop = s;
                 <article class="rf-shop @(shop.Open ? null : "closed")" data-test="shop">
@@ -180,160 +204,7 @@
                         <p class="rf-shop-description small">@shop.Description</p>
                     }
 
-                    @if (shop.Items.Count == 0)
-                    {
-                        <div class="small" style="color: var(--rf-text-muted);">@UiText.ShopEmpty(Lang)</div>
-                    }
-                    else
-                    {
-                        <ul class="rf-shop-items">
-                            @foreach (var i in shop.Items)
-                            {
-                                var item = i;
-                                <li class="rf-shop-item @(item.Stock == 0 ? "out" : null)" data-test="shop-item">
-                                    <span class="rf-shop-item-name">
-                                        <strong>@item.Name</strong>
-                                        @if (item.Kind == "magic-item")
-                                        {
-                                            <span class="rf-shop-tag">@UiText.ShopKindMagic(Lang)</span>
-                                        }
-                                        @if (item.Discount > 0)
-                                        {
-                                            <span class="rf-shop-tag rf-sh-discount" data-test="shop-item-discount">−@item.Discount%</span>
-                                        }
-                                        @if (item.Stock is { } stock)
-                                        {
-                                            <span class="small">@UiText.ShopStockLeft(stock, Lang)</span>
-                                        }
-                                        @if (Runs && item.Kind != "free")
-                                        {
-                                            <span class="small rf-sh-std @(item.CustomPrice ? "custom" : null)">@UiText.ShopStandardPrice(EquipmentTerms.FormatCost(item.StandardPrice, Lang), Lang)</span>
-                                        }
-                                    </span>
-                                    @if (Runs)
-                                    {
-                                        <span class="rf-shop-item-edit">
-                                            <label class="rf-shop-mini" title="@UiText.ShopPriceGp(Lang)">
-                                                <span>@UiText.ShopPriceGp(Lang)</span>
-                                                <input type="number" min="0" step="0.01" class="rf-form-control" value="@Gp(item.ListPrice)"
-                                                       @onchange="e => SetPriceAsync(shop, item, e.Value?.ToString())" data-test="shop-item-price" />
-                                            </label>
-                                            <label class="rf-shop-mini" title="@UiText.ShopDiscountHint(Lang)">
-                                                <span>@UiText.ShopDiscount(Lang)</span>
-                                                <input type="number" min="0" max="90" step="5" class="rf-form-control" placeholder="0" value="@(item.Discount > 0 ? item.Discount : null)"
-                                                       @onchange="e => SetDiscountAsync(shop, item, e.Value?.ToString())" data-test="shop-item-discount-input" />
-                                            </label>
-                                            <label class="rf-shop-mini" title="@UiText.ShopStockHint(Lang)">
-                                                <span>@UiText.ShopStock(Lang)</span>
-                                                <input type="number" min="0" max="9999" class="rf-form-control" placeholder="∞" value="@item.Stock"
-                                                       @onchange="e => SetStockAsync(shop, item, e.Value?.ToString())" data-test="shop-item-stock" />
-                                            </label>
-                                            <span class="rf-shop-price" data-test="shop-item-cost">@EquipmentTerms.FormatCost(item.Price, Lang)</span>
-                                            @if (item.CustomPrice || item.Discount > 0)
-                                            {
-                                                <button type="button" class="rf-vtt-row-action" disabled="@busy" title="@UiText.ShopResetPrice(Lang)" aria-label="@UiText.ShopResetPrice(Lang)" @onclick="() => ResetItemAsync(shop, item)" data-test="shop-item-reset"><Icon Name="arrow-counterclockwise" /></button>
-                                            }
-                                            <button type="button" class="rf-vtt-row-action" disabled="@busy" title="@UiText.BtnRemove(Lang)" aria-label="@UiText.BtnRemove(Lang)" @onclick="() => RemoveItemAsync(shop, item)" data-test="shop-item-delete"><Icon Name="trash" /></button>
-                                        </span>
-                                    }
-                                    else
-                                    {
-                                        <span class="rf-shop-item-buy">
-                                            <span class="rf-shop-price" data-test="shop-item-cost">
-                                                @EquipmentTerms.FormatCost(item.Price, Lang)
-                                                @if (item.Price != item.ListPrice)
-                                                {
-                                                    <span class="small">@UiText.ShopListPrice(EquipmentTerms.FormatCost(item.ListPrice, Lang), Lang)</span>
-                                                }
-                                            </span>
-                                            <button type="button" class="btn btn-sm btn-rf-orange" disabled="@(busy || item.Stock == 0 || data.Buyers.Count == 0)" @onclick="() => StartBuy(shop, item)" data-test="shop-buy">
-                                                <Icon Name="cart-plus" /> @UiText.ShopBuy(Lang)
-                                            </button>
-                                        </span>
-                                    }
-                                    @if (buying is { } b && b.Item.Id == item.Id)
-                                    {
-                                        <div class="rf-shop-buy" data-test="shop-buy-panel">
-                                            @if (data.Buyers.Count > 1)
-                                            {
-                                                <label class="rf-shop-mini">
-                                                    <span>@UiText.ShopBuyFor(Lang)</span>
-                                                    <select class="rf-form-control" @onchange="PickBuyer" data-test="shop-buy-character">
-                                                        @foreach (var c in data.Buyers)
-                                                        {
-                                                            <option value="@c.CharacterId" selected="@(c.CharacterId == b.CharacterId)">@c.Name</option>
-                                                        }
-                                                    </select>
-                                                </label>
-                                            }
-                                            <label class="rf-shop-mini">
-                                                <span>@UiText.ShopQuantity(Lang)</span>
-                                                <input type="number" min="1" max="@(Math.Min(99, item.Stock ?? 99))" class="rf-form-control" @bind="b.Quantity" @bind:event="oninput" data-test="shop-buy-quantity" />
-                                            </label>
-                                            <span class="rf-shop-buy-sum">
-                                                <strong>@UiText.ShopTotal(EquipmentTerms.FormatCost(item.Price * Math.Clamp(b.Quantity, 1, 99), Lang), Lang)</strong>
-                                                @if (BuyerOf(b) is { } buyer)
-                                                {
-                                                    <span class="small">@buyer.Name · @UiText.PurseText(buyer.Coins, Lang)</span>
-                                                }
-                                            </span>
-                                            @if (buyError is not null)
-                                            {
-                                                <span class="small text-warning w-100">@buyError</span>
-                                            }
-                                            <span class="d-flex gap-2 ms-auto">
-                                                <button type="button" class="btn btn-sm btn-rf-outline" @onclick="() => buying = null">@UiText.BtnCancel(Lang)</button>
-                                                <button type="button" class="btn btn-sm btn-rf-orange" disabled="@busy" @onclick="BuyAsync" data-test="shop-buy-confirm">@UiText.BtnConfirm(Lang)</button>
-                                            </span>
-                                        </div>
-                                    }
-                                </li>
-                            }
-                        </ul>
-                    }
-
-                    @if (Runs)
-                    {
-                        <div class="rf-shop-add">
-                            <div class="rf-shop-search">
-                                <input type="search" class="rf-form-control" placeholder="@UiText.ShopAddSearch(Lang)" value="@(searchShop == shop.Id ? searchText : string.Empty)"
-                                       @oninput="e => SearchAsync(shop.Id, e.Value?.ToString())" data-test="shop-search" />
-                                @if (searchShop == shop.Id && hits.Count > 0)
-                                {
-                                    <ul class="rf-shop-hits" role="listbox">
-                                        @foreach (var h in hits)
-                                        {
-                                            var hit = h;
-                                            <li>
-                                                <button type="button" disabled="@busy" @onclick="() => AddHitAsync(shop, hit)" data-test="shop-hit">
-                                                    <span>@hit.Name</span>
-                                                    <span class="small">@(hit.Kind == "magic-item" ? UiText.ShopKindMagic(Lang) : string.Empty)</span>
-                                                </button>
-                                            </li>
-                                        }
-                                    </ul>
-                                }
-                            </div>
-                            @if (freeShop == shop.Id)
-                            {
-                                <div class="rf-shop-free" data-test="shop-free-form">
-                                    <input class="rf-form-control" maxlength="120" placeholder="@UiText.ShopFreeName(Lang)" @bind="freeName" data-test="shop-free-name" />
-                                    <input type="number" min="0" step="0.01" class="rf-form-control" placeholder="@UiText.ShopPriceGp(Lang)" @bind="freePrice" data-test="shop-free-price" />
-                                    <input type="number" min="0" max="9999" class="rf-form-control" placeholder="@UiText.ShopStock(Lang)" @bind="freeStock" />
-                                    <button type="button" class="btn btn-sm btn-rf-outline" @onclick="() => freeShop = null">@UiText.BtnCancel(Lang)</button>
-                                    <button type="button" class="btn btn-sm btn-rf-orange" disabled="@busy" @onclick="() => AddFreeAsync(shop)" data-test="shop-free-save">@UiText.BtnConfirm(Lang)</button>
-                                </div>
-                            }
-                            else
-                            {
-                                <button type="button" class="btn btn-sm btn-rf-outline" @onclick="() => OpenFree(shop.Id)" data-test="shop-free">+ @UiText.ShopAddFree(Lang)</button>
-                            }
-                            @if (itemError is not null && itemErrorShop == shop.Id)
-                            {
-                                <div class="small text-warning w-100">@itemError</div>
-                            }
-                        </div>
-                    }
+                    @ShopItems(shop)
                 </article>
             }
         </div>
@@ -666,4 +537,165 @@
         buying = null;
         await LoadAsync();
     }
+}
+
+@code {
+    //	What a shop sells, its prices and the masters' row to add more (in its card, and on the right of the editor)
+    private RenderFragment ShopItems(CampaignShopDto shop) => __builder =>
+    {
+        @if (shop.Items.Count == 0)
+        {
+            <div class="small" style="color: var(--rf-text-muted);">@UiText.ShopEmpty(Lang)</div>
+        }
+        else
+        {
+            <ul class="rf-shop-items">
+                @foreach (var i in shop.Items)
+                {
+                    var item = i;
+                    <li class="rf-shop-item @(item.Stock == 0 ? "out" : null)" data-test="shop-item">
+                        <span class="rf-shop-item-name">
+                            <strong>@item.Name</strong>
+                            @if (item.Kind == "magic-item")
+                            {
+                                <span class="rf-shop-tag">@UiText.ShopKindMagic(Lang)</span>
+                            }
+                            @if (item.Discount > 0)
+                            {
+                                <span class="rf-shop-tag rf-sh-discount" data-test="shop-item-discount">−@item.Discount%</span>
+                            }
+                            @if (item.Stock is { } stock)
+                            {
+                                <span class="small">@UiText.ShopStockLeft(stock, Lang)</span>
+                            }
+                            @if (Runs && item.Kind != "free")
+                            {
+                                <span class="small rf-sh-std @(item.CustomPrice ? "custom" : null)">@UiText.ShopStandardPrice(EquipmentTerms.FormatCost(item.StandardPrice, Lang), Lang)</span>
+                            }
+                        </span>
+                        @if (Runs)
+                        {
+                            <span class="rf-shop-item-edit">
+                                <label class="rf-shop-mini" title="@UiText.ShopPriceGp(Lang)">
+                                    <span>@UiText.ShopPriceGp(Lang)</span>
+                                    <input type="number" min="0" step="0.01" class="rf-form-control" value="@Gp(item.ListPrice)"
+                                           @onchange="e => SetPriceAsync(shop, item, e.Value?.ToString())" data-test="shop-item-price" />
+                                </label>
+                                <label class="rf-shop-mini" title="@UiText.ShopDiscountHint(Lang)">
+                                    <span>@UiText.ShopDiscount(Lang)</span>
+                                    <input type="number" min="0" max="90" step="5" class="rf-form-control" placeholder="0" value="@(item.Discount > 0 ? item.Discount : null)"
+                                           @onchange="e => SetDiscountAsync(shop, item, e.Value?.ToString())" data-test="shop-item-discount-input" />
+                                </label>
+                                <label class="rf-shop-mini" title="@UiText.ShopStockHint(Lang)">
+                                    <span>@UiText.ShopStock(Lang)</span>
+                                    <input type="number" min="0" max="9999" class="rf-form-control" placeholder="∞" value="@item.Stock"
+                                           @onchange="e => SetStockAsync(shop, item, e.Value?.ToString())" data-test="shop-item-stock" />
+                                </label>
+                                <span class="rf-shop-price" data-test="shop-item-cost">@EquipmentTerms.FormatCost(item.Price, Lang)</span>
+                                @if (item.CustomPrice || item.Discount > 0)
+                                {
+                                    <button type="button" class="rf-vtt-row-action" disabled="@busy" title="@UiText.ShopResetPrice(Lang)" aria-label="@UiText.ShopResetPrice(Lang)" @onclick="() => ResetItemAsync(shop, item)" data-test="shop-item-reset"><Icon Name="arrow-counterclockwise" /></button>
+                                }
+                                <button type="button" class="rf-vtt-row-action" disabled="@busy" title="@UiText.BtnRemove(Lang)" aria-label="@UiText.BtnRemove(Lang)" @onclick="() => RemoveItemAsync(shop, item)" data-test="shop-item-delete"><Icon Name="trash" /></button>
+                            </span>
+                        }
+                        else
+                        {
+                            <span class="rf-shop-item-buy">
+                                <span class="rf-shop-price" data-test="shop-item-cost">
+                                    @EquipmentTerms.FormatCost(item.Price, Lang)
+                                    @if (item.Price != item.ListPrice)
+                                    {
+                                        <span class="small">@UiText.ShopListPrice(EquipmentTerms.FormatCost(item.ListPrice, Lang), Lang)</span>
+                                    }
+                                </span>
+                                <button type="button" class="btn btn-sm btn-rf-orange" disabled="@(busy || item.Stock == 0 || data.Buyers.Count == 0)" @onclick="() => StartBuy(shop, item)" data-test="shop-buy">
+                                    <Icon Name="cart-plus" /> @UiText.ShopBuy(Lang)
+                                </button>
+                            </span>
+                        }
+                        @if (buying is { } b && b.Item.Id == item.Id)
+                        {
+                            <div class="rf-shop-buy" data-test="shop-buy-panel">
+                                @if (data.Buyers.Count > 1)
+                                {
+                                    <label class="rf-shop-mini">
+                                        <span>@UiText.ShopBuyFor(Lang)</span>
+                                        <select class="rf-form-control" @onchange="PickBuyer" data-test="shop-buy-character">
+                                            @foreach (var c in data.Buyers)
+                                            {
+                                                <option value="@c.CharacterId" selected="@(c.CharacterId == b.CharacterId)">@c.Name</option>
+                                            }
+                                        </select>
+                                    </label>
+                                }
+                                <label class="rf-shop-mini">
+                                    <span>@UiText.ShopQuantity(Lang)</span>
+                                    <input type="number" min="1" max="@(Math.Min(99, item.Stock ?? 99))" class="rf-form-control" @bind="b.Quantity" @bind:event="oninput" data-test="shop-buy-quantity" />
+                                </label>
+                                <span class="rf-shop-buy-sum">
+                                    <strong>@UiText.ShopTotal(EquipmentTerms.FormatCost(item.Price * Math.Clamp(b.Quantity, 1, 99), Lang), Lang)</strong>
+                                    @if (BuyerOf(b) is { } buyer)
+                                    {
+                                        <span class="small">@buyer.Name · @UiText.PurseText(buyer.Coins, Lang)</span>
+                                    }
+                                </span>
+                                @if (buyError is not null)
+                                {
+                                    <span class="small text-warning w-100">@buyError</span>
+                                }
+                                <span class="d-flex gap-2 ms-auto">
+                                    <button type="button" class="btn btn-sm btn-rf-outline" @onclick="() => buying = null">@UiText.BtnCancel(Lang)</button>
+                                    <button type="button" class="btn btn-sm btn-rf-orange" disabled="@busy" @onclick="BuyAsync" data-test="shop-buy-confirm">@UiText.BtnConfirm(Lang)</button>
+                                </span>
+                            </div>
+                        }
+                    </li>
+                }
+            </ul>
+        }
+
+        @if (Runs)
+        {
+            <div class="rf-shop-add">
+                <div class="rf-shop-search">
+                    <input type="search" class="rf-form-control" placeholder="@UiText.ShopAddSearch(Lang)" value="@(searchShop == shop.Id ? searchText : string.Empty)"
+                           @oninput="e => SearchAsync(shop.Id, e.Value?.ToString())" data-test="shop-search" />
+                    @if (searchShop == shop.Id && hits.Count > 0)
+                    {
+                        <ul class="rf-shop-hits" role="listbox">
+                            @foreach (var h in hits)
+                            {
+                                var hit = h;
+                                <li>
+                                    <button type="button" disabled="@busy" @onclick="() => AddHitAsync(shop, hit)" data-test="shop-hit">
+                                        <span>@hit.Name</span>
+                                        <span class="small">@(hit.Kind == "magic-item" ? UiText.ShopKindMagic(Lang) : string.Empty)</span>
+                                    </button>
+                                </li>
+                            }
+                        </ul>
+                    }
+                </div>
+                @if (freeShop == shop.Id)
+                {
+                    <div class="rf-shop-free" data-test="shop-free-form">
+                        <input class="rf-form-control" maxlength="120" placeholder="@UiText.ShopFreeName(Lang)" @bind="freeName" data-test="shop-free-name" />
+                        <input type="number" min="0" step="0.01" class="rf-form-control" placeholder="@UiText.ShopPriceGp(Lang)" @bind="freePrice" data-test="shop-free-price" />
+                        <input type="number" min="0" max="9999" class="rf-form-control" placeholder="@UiText.ShopStock(Lang)" @bind="freeStock" />
+                        <button type="button" class="btn btn-sm btn-rf-outline" @onclick="() => freeShop = null">@UiText.BtnCancel(Lang)</button>
+                        <button type="button" class="btn btn-sm btn-rf-orange" disabled="@busy" @onclick="() => AddFreeAsync(shop)" data-test="shop-free-save">@UiText.BtnConfirm(Lang)</button>
+                    </div>
+                }
+                else
+                {
+                    <button type="button" class="btn btn-sm btn-rf-outline" @onclick="() => OpenFree(shop.Id)" data-test="shop-free">+ @UiText.ShopAddFree(Lang)</button>
+                }
+                @if (itemError is not null && itemErrorShop == shop.Id)
+                {
+                    <div class="small text-warning w-100">@itemError</div>
+                }
+            </div>
+        }
+    };
 }

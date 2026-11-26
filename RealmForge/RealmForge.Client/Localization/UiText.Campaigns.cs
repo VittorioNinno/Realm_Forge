@@ -64,7 +64,17 @@ namespace RealmForge.Client.Localization
 
 		//	Campaign page
 		public static string CampaignTabOverview(LanguageCode lang) => T(lang, "Panoramica", "Overview");
-		public static string CampaignTabMembers(LanguageCode lang) => T(lang, "Persone", "People");
+		public static string CampaignTabMembers(LanguageCode lang) => T(lang, "Giocatori", "Players");
+		public static string PlayersKicker(LanguageCode lang) => T(lang, "Partecipanti e permessi", "Members and rights");
+		public static string PlayersIntro(LanguageCode lang) => T(lang, "Gestisci i giocatori della campagna, assegna i ruoli di master o co-master e controlla gli inviti in sospeso.", "Manage the players of the campaign, give the master and co-master roles and keep an eye on pending invites.");
+		public static string PlayersMasters(int n, LanguageCode lang) => T(lang, $"{n} Master", $"{n} Master{(n == 1 ? string.Empty : "s")}");
+		public static string PlayersCoMasters(int n, LanguageCode lang) => T(lang, $"{n} Co-master", $"{n} Co-master{(n == 1 ? string.Empty : "s")}");
+		public static string PlayersPlayers(int n, LanguageCode lang) => T(lang, n == 1 ? "1 Giocatore" : $"{n} Giocatori", n == 1 ? "1 Player" : $"{n} Players");
+		public static string PlayersAtTable(LanguageCode lang) => T(lang, "Giocatori al tavolo", "Players at the table");
+		public static string PlayersColorHint(LanguageCode lang) => T(lang, "Il pallino è il colore del giocatore al tavolo", "The dot is the player's colour at the table");
+		public static string PlayersMasterRights(LanguageCode lang) => T(lang, "controllo completo su campagna e persone.", "full control of the campaign and its people.");
+		public static string PlayersCoMasterRights(LanguageCode lang) => T(lang, "prepara mappe, incontri e contenuti.", "prepares maps, encounters and contents.");
+		public static string PlayersNoInvites(LanguageCode lang) => T(lang, "Nessun invito in attesa: gli inviti via e-mail compaiono qui finché non vengono accettati.", "No pending invites: e-mail invites show here until accepted.");
 		public static string CampaignTabCharacters(LanguageCode lang) => T(lang, "Personaggi", "Characters");
 		public static string CampaignTabContent(LanguageCode lang) => T(lang, "Contenuti", "Content");
 		public static string CampaignYourRole(CampaignRole role, LanguageCode lang) => T(lang, $"Il tuo ruolo: {CampaignRoleName(role, lang)}", $"Your role: {CampaignRoleName(role, lang)}");
@@ -81,6 +91,11 @@ namespace RealmForge.Client.Localization
 
 		//	Invite link
 		public static string CampaignLinkTitle(LanguageCode lang) => T(lang, "Link di invito", "Invite link");
+		public static string CampaignLinkOn(LanguageCode lang) => T(lang, "Attivo", "Active");
+		public static string CampaignLinkOff(LanguageCode lang) => T(lang, "Disattivato", "Off");
+		public static string CampaignDetailsTitle(LanguageCode lang) => T(lang, "Dettagli campagna", "Campaign details");
+		public static string CampaignDangerZone(LanguageCode lang) => T(lang, "Zona pericolo", "Danger zone");
+		public static string CampaignDangerHint(LanguageCode lang) => T(lang, "Azioni irreversibili sulla partecipazione o sulla campagna.", "Actions on your membership or on the campaign that cannot be undone.");
 		public static string CampaignLinkHint(LanguageCode lang) => T(lang, "Chi apre il link entra come giocatore.", "Whoever opens the link joins as a player.");
 		public static string CampaignLinkDisabled(LanguageCode lang) => T(lang, "Link disattivato: si entra solo su invito.", "Link disabled: people join only by invitation.");
 		public static string BtnNewLink(LanguageCode lang) => T(lang, "Nuovo link", "New link");
