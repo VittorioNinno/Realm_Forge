@@ -1984,6 +1984,22 @@ namespace RealmForge.Infrastructure.Migrations
                             CodeHash = "011f3e18b8e239d3ba42e698c02c772cd808690fd972e68461b9d401b3e6da24",
                             CreatedAt = new DateTimeOffset(new DateTime(2026, 11, 25, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
                             Skin = "arcane"
+                        },
+                        new
+                        {
+                            Id = new Guid("6f1c2a5e-4d1b-4c7e-9a2f-1b9e7c3d5a11"),
+                            Active = true,
+                            CodeHash = "778c22fa2b2fb2daae0114258560acee94bde24669889b7f8e04699d998310a6",
+                            CreatedAt = new DateTimeOffset(new DateTime(2026, 11, 26, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            Skin = "dawn"
+                        },
+                        new
+                        {
+                            Id = new Guid("6f1c2a5e-4d1b-4c7e-9a2f-1b9e7c3d5a12"),
+                            Active = true,
+                            CodeHash = "ce2b1612776d08650a3dc05f21bd4334640f91bbe175b69dc9cd0f995c969c69",
+                            CreatedAt = new DateTimeOffset(new DateTime(2026, 11, 26, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            Skin = "tide"
                         });
                 });
 
