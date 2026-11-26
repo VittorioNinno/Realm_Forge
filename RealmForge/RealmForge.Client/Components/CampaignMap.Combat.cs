@@ -74,6 +74,7 @@ namespace RealmForge.Client.Components
 		private void CancelAim()
 		{
 			aim = null;
+			twin = null;
 			aimNote = null;
 		}
 
@@ -122,9 +123,14 @@ namespace RealmForge.Client.Components
 				await ManeuverAsync(attacker, target, maneuver == "grapple" ? "grapple" : aimShove);
 				return true;
 			}
+			//	Twinned Spell: the first target is kept, the spell waits for a second one
+			if (TwinTargets(attacker, target) is not { } targets)
+			{
+				return true;
+			}
 			if (current.Save is { } ability)
 			{
-				return AimSave(current, attacker, target, ability);
+				return AimSave(current, attacker, target, ability, targets);
 			}
 			//	A character's attack waits for its confirmation, with the options it may take (Metamagic on a spell)
 			if (attacker.CharacterId is not null)
@@ -137,7 +143,7 @@ namespace RealmForge.Client.Components
 					Aim = current,
 					Mode = aimMode,
 					Condition = aimCondition,
-					Targets = new() { target.Id },
+					Targets = targets,
 					Damage = current.Attack.DamageDice,
 					DamageType = current.Attack.DamageType,
 					Info = current.Info
@@ -257,7 +263,30 @@ namespace RealmForge.Client.Components
 
 		//	A spell with a saving throw at a target: not behind a wall; the caster confirms (with its options), then the
 		//	table is asked for the save
-		private bool AimSave(Aim current, MapTokenDto caster, MapTokenDto target, string ability)
+		//	The targets of a spell aimed at one: with Twinned Spell, null until the second one is chosen
+		private List<Guid>? TwinTargets(MapTokenDto caster, MapTokenDto target)
+		{
+			if (twin is not { } waiting || waiting.CasterId != caster.Id)
+			{
+				return new() { target.Id };
+			}
+			if (waiting.First is not { } first)
+			{
+				twin = waiting with { First = target.Id };
+				aimNote = UiText.VttTwinnedSecond(target.Label, Lang);
+				StateHasChanged();
+				return null;
+			}
+			if (first == target.Id)
+			{
+				aimNote = UiText.VttTwinnedOther(Lang);
+				return null;
+			}
+			twin = null;
+			return new() { first, target.Id };
+		}
+
+		private bool AimSave(Aim current, MapTokenDto caster, MapTokenDto target, string ability, List<Guid>? targets = null)
 		{
 			if (MapTerrain.Cover(gridType, grid, offsetX, offsetY, terrainCells, ClosedDoors().ToHashSet(),
 				(caster.X, caster.Y, caster.Size), (target.X, target.Y, target.Size)) >= MapTerrain.TotalCover)
@@ -270,7 +299,7 @@ namespace RealmForge.Client.Components
 				Kind = "save",
 				CasterId = caster.Id,
 				Name = current.Attack.Name,
-				Targets = new() { target.Id },
+				Targets = targets ?? new() { target.Id },
 				Ability = MapSaveRules.AbilityOf(ability),
 				Dc = current.Dc,
 				Damage = current.Attack.DamageDice,

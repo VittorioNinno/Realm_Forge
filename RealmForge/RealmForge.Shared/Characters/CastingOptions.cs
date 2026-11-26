@@ -4,7 +4,9 @@ namespace RealmForge.Shared.Characters;
 
 ///	<summary>
 ///	What changes a character's spells at the table: the sorcerer's Metamagic (paid with Sorcery Points), the
-///	Evocation wizard's Sculpt Spells, Potent Cantrip and Empowered Evocation, the warlock's Agonizing Blast.
+///	Evocation wizard's Sculpt Spells, Potent Cantrip and Empowered Evocation, the warlock's Agonizing Blast. Is2014: the
+///	costs and the rules of that edition; Apotheosis: Arcane Apotheosis (2024, sorcerer 20), one option a turn for free
+///	while Innate Sorcery is active.
 ///	</summary>
 public sealed record CastingOptions(
 	string? PointsKey,
@@ -14,11 +16,33 @@ public sealed record CastingOptions(
 	int SculptCount,
 	bool PotentCantrip,
 	int EmpoweredEvocation,
-	int AgonizingBlast)
+	int AgonizingBlast,
+	bool Is2014 = false,
+	bool Apotheosis = false)
 {
 	public static readonly CastingOptions None = new(null, Array.Empty<string>(), 0, false, 0, false, 0, 0);
 
 	public bool Has(string option) => Metamagic.Contains(option);
+
+	//	What an option costs on a spell of a level, by the caster's edition: in 2014 Heightened Spell costs 3 points
+	//	and Twinned Spell as many as the spell's level (1 for a cantrip)
+	public int Cost(string option, int spellLevel) => (option, Is2014) switch
+	{
+		("heightened", true) => 3,
+		("twinned", true) => Math.Max(1, spellLevel),
+		_ => CostOf(option)
+	};
+
+	//	One Metamagic option a spell, save those that say otherwise: Empowered Spell (and Seeking Spell in 2024) can be
+	//	added to another
+	public bool Stacks(string option) => option == "empowered" || (!Is2014 && option == "seeking");
+
+	//	The options chosen break the rule of one a spell
+	public bool TooMany(IEnumerable<string> options) => options.Count(o => !Stacks(o)) > 1;
+
+	//	Metamagic Adept: the feat that gives two Metamagic options and two Sorcery Points to any character
+	public static bool IsAdept(ContextFeat feat) =>
+		feat.Key is "metamagic-adept" || feat.Name.Contains("metamagic", StringComparison.OrdinalIgnoreCase) || feat.Name.Contains("metamagia", StringComparison.OrdinalIgnoreCase);
 
 	//	The Metamagic options, by key, with their cost in Sorcery Points
 	public static readonly IReadOnlyList<(string Key, int Cost)> All = new[]
@@ -54,7 +78,8 @@ public sealed record CastingOptions(
 		var is2014 = c.Ruleset == RulesetVersion.Dnd5e_2014;
 		var sorcerer = c.ClassLevel("sorcerer");
 		var metamagic = new List<string>();
-		if (sorcerer >= (is2014 ? 3 : 2))
+		var adept = c.Feats.Any(f => IsAdept(f.Feat));
+		if (sorcerer >= (is2014 ? 3 : 2) || adept)
 		{
 			metamagic.AddRange(Names.Where(n => n.Value.Any(notes.Contains)).Select(n => n.Key));
 			if (metamagic.Count == 0)
@@ -75,6 +100,8 @@ public sealed record CastingOptions(
 			evoker > 0 ? 1 : 0,
 			evoker >= (is2014 ? 6 : 3),
 			evoker >= 10 ? intelligence : 0,
-			agonizing);
+			agonizing,
+			is2014,
+			!is2014 && sorcerer >= 20);
 	}
 }
