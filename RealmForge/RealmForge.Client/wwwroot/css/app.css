@@ -25124,6 +25124,155 @@ html.rf-fx-off .rf-bg-msg { animation: none; }
 
 .rf-pl-title {
     display: inline-flex;
+/* ===== The initiative bar, compact: one line over the map, the names only of who acts (all of them in the column),
+   a mini bar when folded with the round, who acts and who comes next ===== */
+.rf-init-widget .rf-init-shell {
+    flex-wrap: nowrap;
+    gap: 12px;
+    min-height: 48px;
+    max-width: 100%;
+    padding: 8px 12px;
+}
+
+.rf-init-widget:not(.vertical) .rf-init-head,
+.rf-init-widget:not(.vertical) .rf-init-round {
+    flex: none;
+    padding-right: 12px;
+}
+
+.rf-init-widget:not(.vertical) .rf-init-strip {
+    flex-wrap: nowrap;
+    max-width: 720px;
+    max-height: none;
+    min-width: 0;
+    padding: 2px 0 4px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255, 255, 255, .14) transparent;
+}
+
+    .rf-init-widget .rf-init-strip::-webkit-scrollbar {
+        width: 4px;
+        height: 4px;
+    }
+
+    .rf-init-widget .rf-init-strip::-webkit-scrollbar-thumb {
+        border-radius: 2px;
+        background: rgba(255, 255, 255, .14);
+    }
+
+        .rf-init-widget .rf-init-strip::-webkit-scrollbar-thumb:hover {
+            background: rgba(255, 140, 0, .65);
+        }
+
+.rf-init-widget .rf-init-chip,
+.rf-init-widget .rf-init-card {
+    flex: none;
+    gap: 8px;
+    height: 36px;
+}
+
+.rf-init-widget:not(.vertical) .rf-init-card:not(.current) .rf-init-meta {
+    display: none;
+}
+
+.rf-init-widget:not(.vertical) .rf-init-card.current .rf-init-meta {
+    min-width: 72px;
+}
+
+.rf-init-widget .rf-init-avatar {
+    width: 24px;
+    height: 24px;
+    font-size: 10px;
+}
+
+.rf-init-widget .rf-init-actions {
+    flex: none;
+    gap: 8px;
+    padding-left: 12px;
+    border-left: 1px solid #242424;
+}
+
+.rf-init-widget .rf-init-btn,
+.rf-init-widget .rf-init-icon {
+    height: 32px;
+}
+
+.rf-init-widget .rf-init-icon {
+    width: 32px;
+}
+
+.rf-init-pill {
+    display: inline-flex;
+    align-items: center;
+    height: 24px;
+    padding: 0 8px;
+    border: 1px solid #2e2e2e;
+    border-radius: 6px;
+    background: #1a1a1a;
+    color: #e4e4e7;
+    font-size: 11px;
+    font-weight: 800;
+    white-space: nowrap;
+}
+
+    .rf-init-pill.round {
+        height: 28px;
+        border-color: rgba(255, 140, 0, .45);
+        background: rgba(255, 140, 0, .14);
+        color: #ffb74d;
+        font-weight: 900;
+    }
+
+.rf-init-now {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+}
+
+    .rf-init-now strong {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        color: #ffffff;
+        font-size: 12.5px;
+        line-height: 1.1;
+    }
+
+.rf-init-next {
+    padding-left: 8px;
+    border-left: 1px solid #262626;
+    color: #888;
+    font-size: 11px;
+    white-space: nowrap;
+}
+
+    .rf-init-next strong {
+        color: #d4d4d8;
+    }
+
+.rf-init-widget.collapsed .rf-init-shell {
+    min-height: 40px;
+    padding: 4px 8px 4px 12px;
+    gap: 8px;
+}
+
+/* The column: 256px wide, rows of 40px */
+.rf-init-widget.vertical:not(.collapsed) .rf-init-shell {
+    width: 256px;
+}
+
+.rf-init-widget.vertical .rf-init-card,
+.rf-init-widget.vertical .rf-init-chip {
+    height: 40px;
+}
+
+@media (max-width: 575.98px) {
+    .rf-init-next {
+        display: none;
+    }
 /* The party's treasure in the panel of a chest: a row an item, its quantity, the button that puts it in */
 .rf-hud-treasure {
     display: flex;
