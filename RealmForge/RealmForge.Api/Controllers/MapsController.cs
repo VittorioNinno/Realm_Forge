@@ -788,7 +788,10 @@ namespace RealmForge.Api.Controllers
 				Kind = dto.Kind,
 				Points = dto.Points.Select(v => Math.Round(v, 1)).ToList(),
 				Color = dto.Color ?? (runs ? PlayerColors.Master : colors.TryGetValue(UserId, out var mine) ? mine : PlayerColors.Master),
-				Text = dto.Kind == ShapeKind.Text ? dto.Text!.Trim() : null,
+				//	A text, or the spell an area belongs to (Silence: the table knows who is inside it)
+				Text = dto.Kind == ShapeKind.Text ? dto.Text!.Trim()
+					: MapRules.IsArea(dto.Kind) && !string.IsNullOrWhiteSpace(dto.Text) ? dto.Text.Trim() is var spell && spell.Length > MapRules.MaxShapeText ? spell[..MapRules.MaxShapeText] : spell
+					: null,
 				Size = MapRules.IsArea(dto.Kind) ? dto.Size : 0,
 				MasterOnly = MapRules.IsPrivate(dto.Kind, runs, dto.Shared)
 			};

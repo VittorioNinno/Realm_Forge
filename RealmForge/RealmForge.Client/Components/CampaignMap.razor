@@ -153,7 +153,7 @@
                 {
                     @ConfirmBar
                 }
-                else if (map is not null && (aim is not null || placing is not null || concentrationAsk is not null || castNote is not null || (gearNote is not null && !PanelShown("sheet"))))
+                else if (map is not null && (aim is not null || placing is not null || concentrationAsk is not null || componentStop is not null || castNote is not null || (gearNote is not null && !PanelShown("sheet"))))
                 {
                     @CombatBar
                 }
@@ -3415,6 +3415,30 @@ else
                 }
                 <span class="rf-vtt-options-hint" data-test="vtt-aim-hint">@(aimNote ?? UiText.VttAimHint(Lang))</span>
                 <button type="button" class="btn btn-sm btn-rf-outline" @onclick="CancelAim" data-test="vtt-aim-cancel">@UiText.BtnCancel(Lang)</button>
+            }
+            else if (componentStop is { } stop)
+            {
+                <span class="rf-vtt-combatbar-what"><Icon Name="magic" /> <strong>@stop.Spell.Name</strong></span>
+                <span class="rf-vtt-options-hint @(stop.Material is null ? "text-warning" : null)" data-test="vtt-components">@stop.Reason</span>
+                @if (stop.Material is not null)
+                {
+                    @if (stop.Consumed && stop.Items is { Count: > 0 } items)
+                    {
+                        <select class="rf-form-control rf-vtt-combatbar-select" aria-label="@UiText.VttCastMaterialPick(Lang)" @onchange="PickComponentItem" data-test="vtt-components-item">
+                            <option value="">@UiText.VttCastMaterialPick(Lang)</option>
+                            @foreach (var (itemId, itemName) in items)
+                            {
+                                <option value="@itemId">@itemName</option>
+                            }
+                        </select>
+                    }
+                    <button type="button" class="btn btn-sm btn-rf-orange" disabled="@busy" @onclick="ConfirmComponentsAsync" data-test="vtt-components-yes">@(stop.Consumed ? UiText.VttCastMaterialSpend(Lang) : UiText.VttCastMaterialHave(Lang))</button>
+                }
+                else if (RunsTheTable)
+                {
+                    <button type="button" class="btn btn-sm btn-rf-outline" disabled="@busy" title="@UiText.VttCastForceHint(Lang)" @onclick="ConfirmComponentsAsync" data-test="vtt-components-force">@UiText.VttCastForce(Lang)</button>
+                }
+                <button type="button" class="btn btn-sm btn-rf-outline" @onclick="() => componentStop = null" data-test="vtt-components-no">@UiText.BtnCancel(Lang)</button>
             }
             else if (concentrationAsk is { } ask)
             {

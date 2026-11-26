@@ -549,6 +549,22 @@ namespace RealmForge.Client.Localization
 			string.IsNullOrWhiteSpace(duration) ? "durata raddoppiata" : $"durata raddoppiata ({duration} × 2, max 24 ore)",
 			string.IsNullOrWhiteSpace(duration) ? "twice the duration" : $"twice the duration ({duration} × 2, up to 24 hours)");
 		public static string VttSubtleDone(LanguageCode lang) => T(lang, "senza componenti verbali né somatiche", "without verbal or somatic components");
+		public static string VttCastDown(string who, string condition, LanguageCode lang) => T(lang,
+			$"{who} non può lanciare incantesimi: è {condition.ToLowerInvariant()}.", $"{who} cannot cast spells: {condition.ToLowerInvariant()}.");
+		public static string VttCastSilenced(string who, string spell, LanguageCode lang) => T(lang,
+			$"{who} è dentro {spell}: niente componenti verbali (Incantesimo celato le evita).", $"{who} is inside {spell}: no verbal components (Subtle Spell does without them).");
+		public static string VttCastNoHand(LanguageCode lang) => T(lang,
+			"Serve una mano libera per le componenti somatiche (o un focus in mano se l'incantesimo ha componenti materiali, o il talento Incantatore da guerra).",
+			"A free hand is needed for the somatic components (or a focus in hand when the spell has a material component, or the War Caster feat).");
+		public static string VttCastNoFocus(LanguageCode lang) => T(lang,
+			"Servono le componenti materiali: un focus da incantatore o una borsa per componenti nell'equipaggiamento.",
+			"The material components are needed: a spellcasting focus or a component pouch in the equipment.");
+		public static string VttCastMaterial(string material, LanguageCode lang) => T(lang, $"Componente con un costo: {material}", $"Costly component: {material}");
+		public static string VttCastMaterialPick(LanguageCode lang) => T(lang, "Oggetto dello zaino da consumare", "Item of the pack to spend");
+		public static string VttCastMaterialHave(LanguageCode lang) => T(lang, "Ce l'ho, lancia", "I have it, cast");
+		public static string VttCastMaterialSpend(LanguageCode lang) => T(lang, "Consuma e lancia", "Spend and cast");
+		public static string VttCastForce(LanguageCode lang) => T(lang, "Lancia comunque", "Cast anyway");
+		public static string VttCastForceHint(LanguageCode lang) => T(lang, "Decisione del master: il lancio ignora il requisito", "The master's call: the casting ignores the requirement");
 		public static string VttApotheosis(LanguageCode lang) => T(lang, "Apoteosi arcana", "Arcane Apotheosis");
 		public static string VttApotheosisHint(LanguageCode lang) => T(lang,
 			"Con la Stregoneria innata attiva: un'opzione di metamagia gratis in questo turno",

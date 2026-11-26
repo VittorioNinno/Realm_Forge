@@ -208,6 +208,126 @@ namespace RealmForge.Client.Components
 				? contexts.GetValueOrDefault(id)?.Spells.FirstOrDefault(s => s.Id == spellId)?.Name
 				: null;
 
+		// ----- The components of a spell -----
+
+		//	A casting stopped by its components: why, and what the master can force (Meta: the options chosen)
+		private sealed record ComponentStop(MapTokenDto Token, SheetSpell Spell, int Level, bool Pact, HashSet<string> Meta, bool Apotheosis, string Reason,
+			string? Material = null, bool Consumed = false, List<(Guid Id, string Name)>? Items = null);
+
+		private ComponentStop? componentStop;
+		private Guid? componentItem;
+		private bool componentsConfirmed;
+
+		//	True when the casting waits: refused (the reason said, a master may force it) or asking for a costly component
+		private async Task<bool> ComponentsAsync(MapTokenDto t, SheetSpell spell, int level, bool pact, SpellDetailResponseDto? detail, HashSet<string> meta, bool apotheosis)
+		{
+			componentStop = null;
+			componentItem = null;
+			if (t.Conditions?.FirstOrDefault(EncounterRules.Incapacitating.Contains) is { } down)
+			{
+				componentStop = new(t, spell, level, pact, meta, apotheosis, UiText.VttCastDown(t.Label, UiText.ConditionName(down, Lang), Lang));
+				return true;
+			}
+			//	Inside the area of a Silence spell: no verbal components (Subtle Spell does without them)
+			if (detail is { Verbal: true } && !meta.Contains("subtle") && SilenceAround(t) is { } silence)
+			{
+				componentStop = new(t, spell, level, pact, meta, apotheosis, UiText.VttCastSilenced(t.Label, silence, Lang));
+				return true;
+			}
+			if (detail is null || t.CharacterId is not { } id || (!detail.Somatic && !detail.Material))
+			{
+				return false;
+			}
+			if (await ComputeCharacterAsync(id) is not { } loaded)
+			{
+				return false;
+			}
+			var context = contexts.GetValueOrDefault(id);
+			ContextItem? Lookup(InventoryItem item) => item.EquipmentId is { } eid ? context?.Items.FirstOrDefault(x => x.Id == eid) : null;
+			var inventory = loaded.Character.Sheet.Inventory;
+			var kit = SpellComponents.KitOf(loaded.Computed, inventory, Lookup);
+			var problem = SpellComponents.Check(detail.Somatic, detail.Material, detail.MaterialComponent, meta.Contains("subtle"), kit);
+			if (problem != SpellComponents.Problem.None)
+			{
+				var reason = problem == SpellComponents.Problem.NoHand ? UiText.VttCastNoHand(Lang) : UiText.VttCastNoFocus(Lang);
+				componentStop = new(t, spell, level, pact, meta, apotheosis, reason);
+				return true;
+			}
+			//	A component with a price: the caster says which item of its pack it is (spent when the spell consumes it)
+			if (detail.Material && SpellComponents.Price(detail.MaterialComponent) is not null)
+			{
+				var items = inventory.Where(i => i.Quantity > 0)
+					.Select(i => (i.Id, Name: Lookup(i)?.Name ?? i.Name ?? string.Empty))
+					.Where(x => x.Name.Length > 0)
+					.OrderBy(x => x.Name)
+					.ToList();
+				componentStop = new(t, spell, level, pact, meta, apotheosis, UiText.VttCastMaterial(detail.MaterialComponent!, Lang),
+					detail.MaterialComponent, SpellComponents.Consumed(detail.MaterialComponent), items);
+				return true;
+			}
+			return false;
+		}
+
+		//	The Silence spell whose area covers a token (its name), placed at the table as a spell area
+		private string? SilenceAround(MapTokenDto t)
+		{
+			if (map is null)
+			{
+				return null;
+			}
+			foreach (var s in shapes.Where(s => MapRules.IsArea(s.Kind) && s.Points.Count >= 4 && s.Text is { } name && Regex.IsMatch(name, @"\b(silence|silenzio)\b", RegexOptions.IgnoreCase)))
+			{
+				var cells = MapAreas.Cells(gridType, grid, offsetX, offsetY, s.Kind, s.Points[0], s.Points[1], s.Points[2], s.Points[3], s.Size, map.Width, map.Height).ToHashSet();
+				if (Covered(t).Any(cells.Contains))
+				{
+					return s.Text;
+				}
+			}
+			return null;
+		}
+
+		//	Cast all the same: a costly component confirmed (and spent when consumed), or the master's call over a refusal
+		private async Task ConfirmComponentsAsync()
+		{
+			if (componentStop is not { } stop)
+			{
+				return;
+			}
+			componentStop = null;
+			if (stop.Consumed && componentItem is { } itemId)
+			{
+				await ChangeCharacterAsync(stop.Token, (sheet, _) =>
+				{
+					if (sheet.Inventory.FirstOrDefault(i => i.Id == itemId) is { } item)
+					{
+						item.Quantity--;
+						if (item.Quantity <= 0)
+						{
+							sheet.Inventory.Remove(item);
+						}
+					}
+				});
+			}
+			componentItem = null;
+			preMeta.Clear();
+			preMeta.UnionWith(stop.Meta);
+			if (stop.Apotheosis)
+			{
+				preMeta.Add("apotheosis");
+			}
+			componentsConfirmed = true;
+			try
+			{
+				await CastAsync(stop.Token, stop.Spell, stop.Level, stop.Pact);
+			}
+			finally
+			{
+				componentsConfirmed = false;
+			}
+		}
+
+		private void PickComponentItem(Microsoft.AspNetCore.Components.ChangeEventArgs e) => componentItem = Guid.TryParse(e.Value?.ToString(), out var id) ? id : null;
+
 		private async Task CastAsync(MapTokenDto t, SheetSpell spell, int level, bool pact)
 		{
 			//	Already concentrating on another spell: the player confirms that it ends
@@ -235,6 +355,13 @@ namespace RealmForge.Client.Components
 			var meta = preMeta.Where(options.Has).ToHashSet();
 			var apotheosis = preMeta.Contains("apotheosis");
 			preMeta.Clear();
+
+			//	What the casting asks: not incapacitated, a hand for the gestures, a focus or the components themselves
+			if (!componentsConfirmed && await ComponentsAsync(t, spell, level, pact, detail, meta, apotheosis))
+			{
+				StateHasChanged();
+				return;
+			}
 			var part = PartOf(detail?.CastingTime);
 			if (meta.Contains("quickened") && part == "action")
 			{
@@ -469,7 +596,7 @@ namespace RealmForge.Client.Components
 				StateHasChanged();
 				return;
 			}
-			await AddShapeAsync(new SaveShapeDto { Kind = k, Points = new() { ox, oy, tx, ty }, Size = size, Color = drawColorChoice });
+			await AddShapeAsync(new SaveShapeDto { Kind = k, Points = new() { ox, oy, tx, ty }, Size = size, Color = drawColorChoice, Text = spell });
 			//	The cells the area reaches: not those behind a wall or a closed door, seen from where it spreads
 			var spread = k == ShapeKind.Cube ? (ox + size * grid / 2.0, oy) : (ox, oy);
 			var closed = ClosedDoors().ToHashSet();
