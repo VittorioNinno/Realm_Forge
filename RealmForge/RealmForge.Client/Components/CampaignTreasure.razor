@@ -12,8 +12,15 @@
 
 @* The party's chest: coins shared out among the characters, items given or taken into their inventories, the
    unidentified ones known only by their look until someone identifies them *@
-<section class="rf-treasure" data-test="campaign-treasure">
-    <div class="small mb-3" style="color: var(--rf-text-muted);">@(Runs ? UiText.TreasureHintMaster(Lang) : UiText.TreasureHintPlayer(Lang))</div>
+<section class="rf-treasure @(MapId is not null ? "at-table" : null)" data-test="campaign-treasure">
+    <div class="rf-tr-head">
+        <span class="rf-tr-kicker">@UiText.VttToolTreasure(Lang)</span>
+        @if (data is not null)
+        {
+            <span class="rf-tr-total" data-test="treasure-total">@EquipmentTerms.FormatCost(InventoryRules.Total(data.Coins), Lang)</span>
+        }
+    </div>
+    <p class="rf-tr-hint">@(Runs ? UiText.TreasureHintMaster(Lang) : UiText.TreasureHintPlayer(Lang))</p>
 
     @if (data is null)
     {
@@ -23,58 +30,73 @@
     {
         @if (notice is not null)
         {
-            <div class="rf-shop-notice mb-3" role="status" data-test="treasure-notice"><Icon Name="check" /> @notice</div>
+            <div class="rf-shop-notice" role="status" data-test="treasure-notice"><Icon Name="check" /> @notice</div>
         }
 
-        <div class="rf-shop mb-3" data-test="treasure-coins">
-            <header class="rf-shop-head">
-                <span class="rf-handout-icon"><Icon Name="safe2" /></span>
-                <span class="rf-handout-row-text">
+        <div class="rf-tr-grid">
+        <article class="rf-tr-card" data-test="treasure-coins">
+            <header class="rf-tr-card-head">
+                <span class="rf-tr-icon"><Icon Name="safe2" /></span>
+                <span class="rf-tr-card-text">
                     <strong>@UiText.TreasureCoins(Lang)</strong>
-                    <span class="small" data-test="treasure-coins-total">@UiText.PurseText(data.Coins, Lang)</span>
+                    <span data-test="treasure-coins-total">@(InventoryRules.Total(data.Coins) > 0 ? UiText.PurseText(data.Coins, Lang) : UiText.TreasurePurseEmpty(Lang))</span>
                 </span>
+                @if (Runs)
+                {
+                    <button type="button" class="rf-tr-save" disabled="@busy" @onclick="SaveCoinsAsync" data-test="treasure-coins-save">@UiText.TreasureSaveCoins(Lang)</button>
+                }
             </header>
             @if (Runs)
             {
-                <div class="rf-treasure-coins">
+                <div class="rf-tr-coins">
                     @foreach (var type in CoinTypes)
                     {
                         var coin = type;
-                        <label class="rf-shop-mini">
-                            <span>@UiText.CoinName(coin, Lang)</span>
-                            <input type="number" min="0" class="rf-form-control" value="@Get(coin)" @onchange="e => SetCoin(coin, e.Value?.ToString())" data-test="treasure-coin" />
+                        <label class="rf-tr-coin @coin.ToString().ToLowerInvariant()">
+                            <span><i class="rf-tr-dot"></i>@UiText.CoinName(coin, Lang)</span>
+                            <input type="number" min="0" inputmode="numeric" value="@Get(coin)" @onchange="e => SetCoin(coin, e.Value?.ToString())" aria-label="@UiText.CoinName(coin, Lang)" data-test="treasure-coin" />
                         </label>
                     }
-                    <button type="button" class="btn btn-sm btn-rf-outline align-self-end" disabled="@busy" @onclick="SaveCoinsAsync" data-test="treasure-coins-save">@UiText.TreasureSaveCoins(Lang)</button>
                 </div>
                 @if (data.Characters.Count > 0)
                 {
-                    <div class="rf-treasure-split">
-                        <span class="rf-mini-label">@UiText.TreasureSplitAmong(Lang)</span>
-                        @foreach (var c in data.Characters)
-                        {
-                            var character = c;
-                            <label class="form-check d-flex align-items-center gap-2 mb-0">
-                                <input type="checkbox" class="form-check-input" checked="@splitAmong.Contains(character.Id)" @onchange="e => ToggleSplit(character.Id, e.Value is true)" data-test="treasure-split-character" />
-                                <span>@character.Name@(character.Active ? null : $" ({UiText.TreasureInactive(Lang)})")</span>
-                            </label>
-                        }
-                        <button type="button" class="btn btn-sm btn-rf-orange" disabled="@(busy || splitAmong.Count == 0 || InventoryRules.Total(data.Coins) == 0)" @onclick="SplitAsync" data-test="treasure-split">
+                    <div class="rf-tr-split">
+                        <div class="rf-tr-split-top">
+                            <span class="rf-tr-label">@UiText.TreasureSplitAmong(Lang)</span>
+                            @if (splitAmong.Count > 0 && InventoryRules.Total(data.Coins) > 0)
+                            {
+                                <span class="rf-tr-preview" data-test="treasure-split-preview">@UiText.TreasureEach(UiText.PurseText(TreasureRules.Split(data.Coins, splitAmong.Count).Each, Lang), Lang)</span>
+                            }
+                        </div>
+                        <div class="rf-tr-chips">
+                            @foreach (var c in data.Characters)
+                            {
+                                var character = c;
+                                <label class="rf-tr-chip">
+                                    <input type="checkbox" checked="@splitAmong.Contains(character.Id)" @onchange="e => ToggleSplit(character.Id, e.Value is true)" data-test="treasure-split-character" />
+                                    <span>@character.Name@(character.Active ? null : $" ({UiText.TreasureInactive(Lang)})")</span>
+                                </label>
+                            }
+                        </div>
+                        <button type="button" class="rf-tr-btn primary" disabled="@(busy || splitAmong.Count == 0 || InventoryRules.Total(data.Coins) == 0)" @onclick="SplitAsync" data-test="treasure-split">
                             <Icon Name="coin" /> @UiText.TreasureSplit(Lang)
                         </button>
                     </div>
                 }
             }
-        </div>
+        </article>
 
-        <article class="rf-shop" data-test="treasure-items">
-            <header class="rf-shop-head">
-                <span class="rf-handout-icon"><Icon Name="gem" /></span>
-                <span class="rf-handout-row-text"><strong>@UiText.TreasureItems(Lang)</strong></span>
+        <article class="rf-tr-card" data-test="treasure-items">
+            <header class="rf-tr-card-head">
+                <span class="rf-tr-icon"><Icon Name="gem" /></span>
+                <span class="rf-tr-card-text">
+                    <strong>@UiText.TreasureItems(Lang)</strong>
+                    <span>@(data.Items.Count == 0 ? UiText.TreasureEmpty(Lang) : UiText.TreasureItemCount(data.Items.Sum(i => i.Quantity), Lang))</span>
+                </span>
             </header>
             @if (data.Items.Count == 0)
             {
-                <div class="small" style="color: var(--rf-text-muted);" data-test="treasure-empty">@UiText.TreasureEmpty(Lang)</div>
+                <span class="d-none" data-test="treasure-empty"></span>
             }
             else
             {
@@ -185,8 +207,9 @@
 
             @if (Runs)
             {
-                <div class="rf-shop-add">
-                    <div class="rf-shop-search">
+                <div class="rf-shop-add rf-tr-add">
+                    <div class="rf-shop-search rf-tr-search">
+                        <Icon Name="search" />
                         <input type="search" class="rf-form-control" placeholder="@UiText.TreasureAddSearch(Lang)" value="@searchText" @oninput="e => SearchAsync(e.Value?.ToString())" data-test="treasure-search" />
                         @if (hits.Count > 0)
                         {
@@ -204,24 +227,42 @@
                             </ul>
                         }
                     </div>
-                    <label class="form-check d-flex align-items-center gap-2 mb-0">
-                        <input type="checkbox" class="form-check-input" @bind="addUnidentified" data-test="treasure-add-unidentified" />
-                        <span class="small">@UiText.TreasureAddUnidentified(Lang)</span>
-                    </label>
+                    <div class="rf-tr-add-row">
+                        <label class="rf-tr-chip">
+                            <input type="checkbox" @bind="addUnidentified" data-test="treasure-add-unidentified" />
+                            <span>@UiText.TreasureAddUnidentified(Lang)</span>
+                        </label>
+                        @if (!freeOpen)
+                        {
+                            <button type="button" class="rf-tr-link" @onclick="() => freeOpen = true" data-test="treasure-free">+ @UiText.TreasureAddFree(Lang)</button>
+                        }
+                    </div>
                     @if (freeOpen)
                     {
-                        <div class="rf-shop-free rf-treasure-free" data-test="treasure-free-form">
-                            <input class="rf-form-control" maxlength="120" placeholder="@UiText.TreasureName(Lang)" @bind="freeName" data-test="treasure-free-name" />
-                            <input type="number" min="0" step="0.01" class="rf-form-control" placeholder="@UiText.TreasureValueGp(Lang)" @bind="freeValue" data-test="treasure-free-value" />
-                            <input type="number" min="1" max="9999" class="rf-form-control" placeholder="@UiText.TreasureQuantity(Lang)" @bind="freeQuantity" data-test="treasure-free-quantity" />
-                            <textarea class="rf-form-control w-100" rows="2" maxlength="1000" placeholder="@UiText.TreasureAppearance(Lang)" @bind="freeAppearance" data-test="treasure-free-look"></textarea>
-                            <button type="button" class="btn btn-sm btn-rf-outline" @onclick="() => freeOpen = false">@UiText.BtnCancel(Lang)</button>
-                            <button type="button" class="btn btn-sm btn-rf-orange" disabled="@(busy || string.IsNullOrWhiteSpace(freeName))" @onclick="AddFreeAsync" data-test="treasure-free-save">@UiText.BtnConfirm(Lang)</button>
+                        <div class="rf-tr-free" data-test="treasure-free-form">
+                            <label class="rf-tr-field">
+                                <span class="rf-tr-label">@UiText.TreasureName(Lang)</span>
+                                <input class="rf-form-control" maxlength="120" @bind="freeName" data-test="treasure-free-name" />
+                            </label>
+                            <div class="rf-tr-row2">
+                                <label class="rf-tr-field">
+                                    <span class="rf-tr-label">@UiText.TreasureQuantity(Lang)</span>
+                                    <input type="number" min="1" max="9999" class="rf-form-control" placeholder="1" @bind="freeQuantity" data-test="treasure-free-quantity" />
+                                </label>
+                                <label class="rf-tr-field">
+                                    <span class="rf-tr-label">@UiText.TreasureValueGp(Lang)</span>
+                                    <input type="number" min="0" step="0.01" class="rf-form-control" placeholder="0" @bind="freeValue" data-test="treasure-free-value" />
+                                </label>
+                            </div>
+                            <label class="rf-tr-field">
+                                <span class="rf-tr-label">@UiText.TreasureAppearance(Lang)</span>
+                                <textarea class="rf-form-control" rows="2" maxlength="1000" @bind="freeAppearance" data-test="treasure-free-look"></textarea>
+                            </label>
+                            <div class="rf-tr-free-foot">
+                                <button type="button" class="rf-tr-btn" @onclick="() => freeOpen = false">@UiText.BtnCancel(Lang)</button>
+                                <button type="button" class="rf-tr-btn primary" disabled="@(busy || string.IsNullOrWhiteSpace(freeName))" @onclick="AddFreeAsync" data-test="treasure-free-save">@UiText.BtnConfirm(Lang)</button>
+                            </div>
                         </div>
-                    }
-                    else
-                    {
-                        <button type="button" class="btn btn-sm btn-rf-outline" @onclick="() => freeOpen = true" data-test="treasure-free">+ @UiText.TreasureAddFree(Lang)</button>
                     }
                     @if (error is not null)
                     {
@@ -230,6 +271,7 @@
                 </div>
             }
         </article>
+        </div>
     }
 </section>
 
