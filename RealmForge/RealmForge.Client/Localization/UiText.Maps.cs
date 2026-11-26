@@ -565,6 +565,10 @@ namespace RealmForge.Client.Localization
 		public static string VttCastMaterialSpend(LanguageCode lang) => T(lang, "Consuma e lancia", "Spend and cast");
 		public static string VttCastForce(LanguageCode lang) => T(lang, "Lancia comunque", "Cast anyway");
 		public static string VttCastForceHint(LanguageCode lang) => T(lang, "Decisione del master: il lancio ignora il requisito", "The master's call: the casting ignores the requirement");
+		public static string VttInitReady(int ready, int all, LanguageCode lang) => T(lang, $"{ready}/{all} pronti", $"{ready}/{all} ready");
+		public static string VttRollMissing(int missing, LanguageCode lang) => T(lang, $"Tira ({missing})", $"Roll ({missing})");
+		public static string VttThen(LanguageCode lang) => T(lang, "Poi:", "Next:");
+		public static string VttNextUp(string name, LanguageCode lang) => T(lang, $"Turno successivo: {name}", $"Next turn: {name}");
 		public static string VttApotheosis(LanguageCode lang) => T(lang, "Apoteosi arcana", "Arcane Apotheosis");
 		public static string VttApotheosisHint(LanguageCode lang) => T(lang,
 			"Con la Stregoneria innata attiva: un'opzione di metamagia gratis in questo turno",
