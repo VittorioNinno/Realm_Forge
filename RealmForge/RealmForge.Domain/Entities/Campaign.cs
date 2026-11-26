@@ -292,6 +292,9 @@ namespace RealmForge.Domain.Entities
 		//	The faction it belongs to: its standing with the party moves the prices
 		public Guid? FactionId { get; set; }
 
+		//	The merchant who keeps it: an NPC shared with the campaign
+		public Guid? NpcId { get; set; }
+
 		//	Open: the players see it and buy (closed: behind the screen)
 		public bool Open { get; set; }
 		public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
@@ -313,6 +316,12 @@ namespace RealmForge.Domain.Entities
 		public Guid? MagicItemId { get; set; }
 		public string Name { get; set; } = string.Empty;
 		public int PriceInCopper { get; set; }
+
+		//	The master's own list price for this shop, over the standard one (PriceInCopper); null: the standard
+		public int? CustomPrice { get; set; }
+
+		//	A discount on this item alone, in percent (0 to 90), after the shop's multiplier
+		public int Discount { get; set; }
 		public int? Stock { get; set; }
 		public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
 	}

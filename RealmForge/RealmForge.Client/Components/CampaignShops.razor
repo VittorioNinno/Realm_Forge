@@ -37,26 +37,60 @@
         else
         {
             <div class="rf-card2 mb-3 d-flex flex-column gap-2" data-test="shop-form">
-                <div class="rf-handout-langs">
-                    <div class="d-flex flex-column gap-2">
-                        <label class="rf-form-label mb-0">@UiText.ShopName(Lang) · IT</label>
-                        <input class="rf-form-control" maxlength="120" @bind="draft.NameIt" data-test="shop-name-it" />
-                        <label class="rf-form-label mb-0">@UiText.ShopDescription(Lang) · IT</label>
-                        <textarea class="rf-form-control" rows="3" maxlength="2000" @bind="draft.DescriptionIt"></textarea>
-                    </div>
-                    <div class="d-flex flex-column gap-2">
-                        <label class="rf-form-label mb-0">@UiText.ShopName(Lang) · EN</label>
-                        <input class="rf-form-control" maxlength="120" @bind="draft.NameEn" data-test="shop-name-en" />
-                        <label class="rf-form-label mb-0">@UiText.ShopDescription(Lang) · EN</label>
-                        <textarea class="rf-form-control" rows="3" maxlength="2000" @bind="draft.DescriptionEn"></textarea>
+                <div class="rf-sh-form-head">
+                    <span class="rf-sh-kicker">@UiText.ShopDetails(Lang)</span>
+                    <div class="rf-sh-langs" role="tablist">
+                        <button type="button" role="tab" aria-selected="@(!langEn)" class="@(!langEn ? "on" : null)" @onclick="() => langEn = false" data-test="shop-tab-it">IT <i class="@(draft.NameIt.Length + draft.DescriptionIt.Length > 0 ? "on" : null)"></i></button>
+                        <button type="button" role="tab" aria-selected="@langEn" class="@(langEn ? "on" : null)" @onclick="() => langEn = true" data-test="shop-tab-en">EN <i class="@(draft.NameEn.Length + draft.DescriptionEn.Length > 0 ? "on" : null)"></i></button>
                     </div>
                 </div>
+                <div class="d-flex flex-column gap-2" hidden="@langEn">
+                    <label class="rf-form-label mb-0">@UiText.ShopName(Lang) · IT</label>
+                    <input class="rf-form-control" maxlength="120" @bind="draft.NameIt" @bind:event="oninput" data-test="shop-name-it" />
+                    <label class="rf-form-label mb-0">@UiText.ShopDescription(Lang) · IT</label>
+                    <textarea class="rf-form-control" rows="3" maxlength="2000" @bind="draft.DescriptionIt" @bind:event="oninput"></textarea>
+                </div>
+                <div class="d-flex flex-column gap-2" hidden="@(!langEn)">
+                    <label class="rf-form-label mb-0">@UiText.ShopName(Lang) · EN</label>
+                    <input class="rf-form-control" maxlength="120" @bind="draft.NameEn" @bind:event="oninput" data-test="shop-name-en" />
+                    <label class="rf-form-label mb-0">@UiText.ShopDescription(Lang) · EN</label>
+                    <textarea class="rf-form-control" rows="3" maxlength="2000" @bind="draft.DescriptionEn" @bind:event="oninput"></textarea>
+                </div>
                 <span class="small" style="color: var(--rf-text-muted);">@UiText.HandoutLanguagesHint(Lang)</span>
+                <label class="d-flex flex-column gap-1">
+                    <span class="rf-form-label mb-0">@UiText.ShopNpc(Lang)</span>
+                    <select class="rf-form-control" value="@(draft.NpcId?.ToString() ?? string.Empty)" @onchange="PickNpc" data-test="shop-npc">
+                        <option value="">@UiText.ShopNoNpc(Lang)</option>
+                        @foreach (var npcOption in npcs)
+                        {
+                            <option value="@npcOption.Id">@npcOption.Name</option>
+                        }
+                    </select>
+                </label>
+                @if (npcs.Count == 0)
+                {
+                    <span class="small" style="color: var(--rf-text-muted);">@UiText.ShopNpcHint(Lang)</span>
+                }
+                else if (draft.NpcId is { } chosenNpc && npcs.FirstOrDefault(n => n.Id == chosenNpc) is { } merchant)
+                {
+                    <div class="rf-sh-npc" data-test="shop-npc-preview">
+                        <span class="rf-sh-npc-ava">@Initials(merchant.Name)</span>
+                        <strong>@merchant.Name</strong>
+                        <span class="rf-sh-npc-badge">@UiText.ShopNpcLinked(Lang)</span>
+                    </div>
+                }
                 <div class="rf-shop-form-row">
-                    <label class="d-flex flex-column gap-1">
+                    <div class="d-flex flex-column gap-1">
                         <span class="rf-form-label mb-0">@UiText.ShopPercent(Lang)</span>
-                        <input type="number" class="rf-form-control" min="0" max="1000" step="5" @bind="draft.PricePercent" data-test="shop-percent" />
-                    </label>
+                        <div class="rf-sh-percent">
+                            <input type="number" class="rf-form-control" min="0" max="1000" step="5" @bind="draft.PricePercent" @bind:event="oninput" aria-label="@UiText.ShopPercent(Lang)" data-test="shop-percent" />
+                            @foreach (var preset in PercentPresets)
+                            {
+                                var value = preset;
+                                <button type="button" class="rf-sh-preset @(draft.PricePercent == value ? "on" : null)" @onclick="() => draft.PricePercent = value">@value%</button>
+                            }
+                        </div>
+                    </div>
                     @if (factions.Count > 0)
                     {
                         <label class="d-flex flex-column gap-1">
@@ -117,6 +151,10 @@
                             <strong>@shop.Name</strong>
                             <span class="small">
                                 @UiText.ShopPercentBadge(shop.EffectivePercent ?? shop.PricePercent, Lang)
+                                @if (shop.Npc is { } merchantName)
+                                {
+                                    <text> · </text><span data-test="shop-npc-name"><Icon Name="person" /> @merchantName</span>
+                                }
                                 @if (shop.Faction is { } shopFactionName)
                                 {
                                     <text> · </text><span data-test="shop-faction-name"><Icon Name="flag" /> @shopFactionName</span>
@@ -159,9 +197,17 @@
                                         {
                                             <span class="rf-shop-tag">@UiText.ShopKindMagic(Lang)</span>
                                         }
+                                        @if (item.Discount > 0)
+                                        {
+                                            <span class="rf-shop-tag rf-sh-discount" data-test="shop-item-discount">−@item.Discount%</span>
+                                        }
                                         @if (item.Stock is { } stock)
                                         {
                                             <span class="small">@UiText.ShopStockLeft(stock, Lang)</span>
+                                        }
+                                        @if (Runs && item.Kind != "free")
+                                        {
+                                            <span class="small rf-sh-std @(item.CustomPrice ? "custom" : null)">@UiText.ShopStandardPrice(EquipmentTerms.FormatCost(item.StandardPrice, Lang), Lang)</span>
                                         }
                                     </span>
                                     @if (Runs)
@@ -172,12 +218,21 @@
                                                 <input type="number" min="0" step="0.01" class="rf-form-control" value="@Gp(item.ListPrice)"
                                                        @onchange="e => SetPriceAsync(shop, item, e.Value?.ToString())" data-test="shop-item-price" />
                                             </label>
+                                            <label class="rf-shop-mini" title="@UiText.ShopDiscountHint(Lang)">
+                                                <span>@UiText.ShopDiscount(Lang)</span>
+                                                <input type="number" min="0" max="90" step="5" class="rf-form-control" placeholder="0" value="@(item.Discount > 0 ? item.Discount : null)"
+                                                       @onchange="e => SetDiscountAsync(shop, item, e.Value?.ToString())" data-test="shop-item-discount-input" />
+                                            </label>
                                             <label class="rf-shop-mini" title="@UiText.ShopStockHint(Lang)">
                                                 <span>@UiText.ShopStock(Lang)</span>
                                                 <input type="number" min="0" max="9999" class="rf-form-control" placeholder="∞" value="@item.Stock"
                                                        @onchange="e => SetStockAsync(shop, item, e.Value?.ToString())" data-test="shop-item-stock" />
                                             </label>
                                             <span class="rf-shop-price" data-test="shop-item-cost">@EquipmentTerms.FormatCost(item.Price, Lang)</span>
+                                            @if (item.CustomPrice || item.Discount > 0)
+                                            {
+                                                <button type="button" class="rf-vtt-row-action" disabled="@busy" title="@UiText.ShopResetPrice(Lang)" aria-label="@UiText.ShopResetPrice(Lang)" @onclick="() => ResetItemAsync(shop, item)" data-test="shop-item-reset"><Icon Name="arrow-counterclockwise" /></button>
+                                            }
                                             <button type="button" class="rf-vtt-row-action" disabled="@busy" title="@UiText.BtnRemove(Lang)" aria-label="@UiText.BtnRemove(Lang)" @onclick="() => RemoveItemAsync(shop, item)" data-test="shop-item-delete"><Icon Name="trash" /></button>
                                         </span>
                                     }
@@ -343,6 +398,7 @@
         if (Runs)
         {
             factions = (await Campaigns.GetProgressAsync(CampaignId))?.Factions ?? new();
+            npcs = (await Campaigns.GetMentionsAsync(CampaignId, Lang) ?? new()).Where(m => m.Kind == "npc").OrderBy(m => m.Name).ToList();
         }
     }
 
@@ -356,6 +412,21 @@
         error = made is null ? failure ?? UiText.ShopFailed(Lang) : null;
         await LoadAsync();
     }
+
+    private static readonly int[] PercentPresets = { 80, 100, 125, 150 };
+    private bool langEn;
+    private List<MentionDto> npcs = new();
+
+    private void PickNpc(ChangeEventArgs e)
+    {
+        if (draft is not null)
+        {
+            draft.NpcId = Guid.TryParse(e.Value?.ToString(), out var picked) ? picked : null;
+        }
+    }
+
+    private static string Initials(string name) =>
+        string.Concat(name.Split(' ', StringSplitOptions.RemoveEmptyEntries).Take(2).Select(w => char.ToUpperInvariant(w[0])));
 
     private void PickFaction(ChangeEventArgs e)
     {
@@ -381,6 +452,7 @@
     private void New()
     {
         draft = new SaveCampaignShopDto();
+        langEn = false;
         editingId = null;
         error = null;
     }
@@ -391,7 +463,7 @@
         {
             NameIt = s.NameIt ?? string.Empty, NameEn = s.NameEn ?? string.Empty,
             DescriptionIt = s.DescriptionIt ?? string.Empty, DescriptionEn = s.DescriptionEn ?? string.Empty,
-            PricePercent = s.PricePercent, Open = s.Open, FactionId = s.FactionId
+            PricePercent = s.PricePercent, Open = s.Open, FactionId = s.FactionId, NpcId = s.NpcId
         };
         editingId = s.Id;
         error = null;
@@ -526,10 +598,22 @@
     private Task SetStockAsync(CampaignShopDto shop, ShopItemDto item, string? text) =>
         SaveItemAsync(shop, item, item.ListPrice, int.TryParse(text, out var stock) ? Math.Clamp(stock, 0, 9999) : null);
 
-    private async Task SaveItemAsync(CampaignShopDto shop, ShopItemDto item, int price, int? stock)
+    private Task SetDiscountAsync(CampaignShopDto shop, ShopItemDto item, string? text) =>
+        SaveItemAsync(shop, item, item.ListPrice, item.Stock, int.TryParse(text, out var off) ? Math.Clamp(off, 0, 90) : 0);
+
+    //	Back to the standard price of the compendium, without a discount
+    private async Task ResetItemAsync(CampaignShopDto shop, ShopItemDto item)
     {
         busy = true;
-        await Campaigns.UpdateShopItemAsync(CampaignId, shop.Id, item.Id, new SaveShopItemDto { PriceInCopper = price, Stock = stock });
+        await Campaigns.UpdateShopItemAsync(CampaignId, shop.Id, item.Id, new SaveShopItemDto { Stock = item.Stock, Reset = true });
+        busy = false;
+        await LoadAsync();
+    }
+
+    private async Task SaveItemAsync(CampaignShopDto shop, ShopItemDto item, int price, int? stock, int? discount = null)
+    {
+        busy = true;
+        await Campaigns.UpdateShopItemAsync(CampaignId, shop.Id, item.Id, new SaveShopItemDto { PriceInCopper = price, Stock = stock, Discount = discount ?? item.Discount });
         busy = false;
         await LoadAsync();
     }
