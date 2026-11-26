@@ -9,138 +9,161 @@
 
 @* Sessions of a campaign: the next one on top with its date and plan, then the played ones with their recap; masters
    and co-masters write them and keep their notes behind the screen *@
-<section data-test="campaign-sessions">
-    <div class="small mb-3" style="color: var(--rf-text-muted);">@UiText.SessionsHint(Manage, Lang)</div>
-
-    @if (Manage && editing is null)
-    {
-        <button type="button" class="btn btn-sm btn-rf-orange mb-3" @onclick="NewSession" data-test="session-new">+ @UiText.BtnNewSession(Lang)</button>
-    }
+<section class="rf-ses" data-test="campaign-sessions">
+    <header class="rf-ses-top">
+        <div class="rf-ses-top-text">
+            <span class="rf-ov-kicker">@UiText.SessionsKicker(Lang)</span>
+            <p class="rf-ses-intro">@UiText.SessionsHint(Manage, Lang)</p>
+        </div>
+        @if (Manage && editing is null)
+        {
+            <button type="button" class="btn btn-rf-orange rf-ses-new" @onclick="NewSession" data-test="session-new"><Icon Name="plus" /> @UiText.BtnNewSession(Lang)</button>
+        }
+    </header>
 
     @if (editing is not null)
     {
-        <div class="rf-card2 mb-3" data-test="session-form">
-            <div class="rf-mini-title">@(editing == Guid.Empty ? UiText.BtnNewSession(Lang) : UiText.SessionNumber(editingNumber, Lang))</div>
-            <div class="rf-session-form-grid">
-                <label class="d-block">
-                    <span class="rf-form-label">@UiText.SessionTitle(Lang)</span>
-                    <input class="rf-form-control" maxlength="120" @bind="draft.Title" data-test="session-title" />
+        <div class="rf-ses-editor" data-test="session-form">
+            <div class="rf-ses-editor-head">
+                <span class="rf-ov-kicker">@(editing == Guid.Empty ? UiText.BtnNewSession(Lang) : UiText.SessionNumber(editingNumber, Lang))</span>
+                <button type="button" class="rf-ses-close" title="@UiText.BtnCancel(Lang)" aria-label="@UiText.BtnCancel(Lang)" @onclick="() => editing = null"><Icon Name="close" /></button>
+            </div>
+            <div class="rf-ses-meta">
+                <label class="rf-ses-field">
+                    <span class="rf-ses-label">@UiText.SessionTitle(Lang)</span>
+                    <input class="rf-form-control" maxlength="120" placeholder="@UiText.SessionTitlePlaceholder(Lang)" @bind="draft.Title" data-test="session-title" />
                 </label>
-                <label class="d-block">
-                    <span class="rf-form-label">@UiText.SessionWhen(Lang)</span>
+                <label class="rf-ses-field">
+                    <span class="rf-ses-label">@UiText.SessionWhen(Lang)</span>
                     <input class="rf-form-control" type="datetime-local" value="@WhenText" @onchange="e => WhenText = e.Value?.ToString()" data-test="session-when" />
                 </label>
-                <div data-test="session-status">
-                    <span class="rf-form-label">@UiText.SessionStatusLabel(Lang)</span>
-                    <RfSelect TValue="CampaignSessionStatus" @bind-Value="draft.Status" Options="StatusOptions" />
+                <div class="rf-ses-field" data-test="session-status">
+                    <span class="rf-ses-label">@UiText.SessionStatusLabel(Lang)</span>
+                    <RfSelect TValue="CampaignSessionStatus" Value="draft.Status" ValueChanged="SetStatus" Options="StatusOptions" />
                 </div>
             </div>
-            <label class="d-block mt-2">
-                <span class="rf-form-label">@UiText.SessionPlan(Lang)</span>
-                <textarea class="rf-form-control" rows="4" maxlength="8000" placeholder="@UiText.SessionPlanHint(Lang)" @bind="draft.Plan" data-test="session-plan"></textarea>
-            </label>
-            <label class="d-block mt-2">
-                <span class="rf-form-label">@UiText.SessionRecap(Lang)</span>
-                <textarea class="rf-form-control" rows="5" maxlength="8000" placeholder="@UiText.SessionRecapHint(Lang)" @bind="draft.Recap" data-test="session-recap"></textarea>
-            </label>
-            <label class="d-block mt-2">
-                <span class="rf-form-label"><Icon Name="eye-slash" /> @UiText.SessionMasterNotes(Lang)</span>
-                <textarea class="rf-form-control rf-session-secret" rows="4" maxlength="8000" placeholder="@UiText.SessionMasterNotesHint(Lang)" @bind="draft.MasterNotes" data-test="session-master-notes"></textarea>
-            </label>
+            <div class="rf-ses-split">
+                <div class="rf-ses-pane">
+                    <div class="rf-ses-pane-head">
+                        <div class="rf-ses-tabs" role="tablist">
+                            <button type="button" role="tab" aria-selected="@(!recapTab)" class="@(!recapTab ? "on" : null)" @onclick="() => recapTab = false" data-test="session-tab-plan">@UiText.SessionPlan(Lang) <i class="@(string.IsNullOrWhiteSpace(draft.Plan) ? null : "on")"></i></button>
+                            <button type="button" role="tab" aria-selected="@recapTab" class="@(recapTab ? "on" : null)" @onclick="() => recapTab = true" data-test="session-tab-recap">@UiText.SessionRecap(Lang) <i class="@(string.IsNullOrWhiteSpace(draft.Recap) ? null : "on")"></i></button>
+                        </div>
+                        <span class="rf-ses-tag public">@UiText.SessionVisibleAll(Lang)</span>
+                    </div>
+                    <textarea class="rf-form-control rf-ses-text" rows="6" maxlength="8000" placeholder="@UiText.SessionPlanHint(Lang)" @bind="draft.Plan" @bind:event="oninput" hidden="@recapTab" data-test="session-plan"></textarea>
+                    <textarea class="rf-form-control rf-ses-text" rows="6" maxlength="8000" placeholder="@UiText.SessionRecapHint(Lang)" @bind="draft.Recap" @bind:event="oninput" hidden="@(!recapTab)" data-test="session-recap"></textarea>
+                </div>
+                <div class="rf-ses-pane secret">
+                    <div class="rf-ses-pane-head">
+                        <span class="rf-ses-label"><Icon Name="eye-slash" /> @UiText.SessionMasterNotes(Lang)</span>
+                        <span class="rf-ses-tag private">@UiText.SessionMastersOnly(Lang)</span>
+                    </div>
+                    <textarea class="rf-form-control rf-ses-text" rows="6" maxlength="8000" placeholder="@UiText.SessionMasterNotesHint(Lang)" @bind="draft.MasterNotes" data-test="session-master-notes"></textarea>
+                </div>
+            </div>
             @if (error is not null)
             {
-                <div class="small text-warning mt-2">@error</div>
+                <div class="small text-warning rf-ses-error">@error</div>
             }
-            <div class="d-flex justify-content-end gap-2 mt-3">
-                <button type="button" class="btn btn-sm btn-rf-outline" @onclick="() => editing = null">@UiText.BtnCancel(Lang)</button>
-                <button type="button" class="btn btn-sm btn-rf-orange" disabled="@saving" @onclick="SaveAsync" data-test="session-save">@UiText.BtnConfirm(Lang)</button>
-            </div>
+            <footer class="rf-ses-editor-foot">
+                <span class="rf-ses-hint">@UiText.SessionRecapLater(Lang)</span>
+                <span class="d-flex gap-2">
+                    <button type="button" class="btn btn-rf-outline" @onclick="() => editing = null">@UiText.BtnCancel(Lang)</button>
+                    <button type="button" class="btn btn-rf-orange" disabled="@saving" @onclick="SaveAsync" data-test="session-save">@UiText.BtnConfirm(Lang)</button>
+                </span>
+            </footer>
         </div>
     }
 
+    <div class="rf-ses-list-head">
+        <span class="rf-ov-kicker">@UiText.SessionsHistory(sessions?.Count ?? 0, Lang)</span>
+        <div class="rf-ses-filters" role="tablist">
+            @foreach (var f in new[] { "all", "planned", "played" })
+            {
+                var key = f;
+                <button type="button" role="tab" aria-selected="@(filter == key)" class="rf-ses-filter @(filter == key ? "on" : null)" @onclick="() => filter = key" data-test="session-filter" data-filter="@key">@UiText.SessionFilter(key, Lang)</button>
+            }
+        </div>
+    </div>
+
     @if (sessions is null)
     {
-        <div class="rf-card2 small" style="color: var(--rf-text-muted);">…</div>
+        <div class="rf-ses-empty">…</div>
     }
-    else if (sessions.Count == 0)
+    else if (sessions.Count == 0 || !Shown.Any())
     {
-        <div class="rf-card2 small" style="color: var(--rf-text-muted);" data-test="sessions-empty">@UiText.SessionsEmpty(Lang)</div>
+        <div class="rf-ses-empty" data-test="sessions-empty">
+            <Icon Name="calendar-event" />
+            <strong>@(sessions.Count == 0 ? UiText.SessionsEmpty(Lang) : UiText.SessionsNoneHere(Lang))</strong>
+            @if (Manage && sessions.Count == 0)
+            {
+                <span>@UiText.SessionsEmptyHint(Lang)</span>
+            }
+        </div>
     }
     else
     {
-        @foreach (var session in Ordered)
+        <div class="rf-ses-list">
+        @foreach (var session in Shown)
         {
             var s = session;
             var isNext = s.Id == Next?.Id;
-            <article class="rf-session @(isNext ? "next" : null) @StatusClass(s.Status)" data-test="session" data-status="@s.Status.ToString().ToLowerInvariant()">
-                <header class="rf-session-head">
-                    <div>
-                        <div class="rf-session-number">
-                            @UiText.SessionNumber(s.Number, Lang)
-                            @if (isNext)
+            <article class="rf-ses-card @(isNext ? "next" : null) @StatusClass(s.Status)" data-test="session" data-status="@s.Status.ToString().ToLowerInvariant()">
+                <span class="rf-ses-num">#@s.Number</span>
+                <div class="rf-ses-main">
+                    <div class="rf-ses-title-row">
+                        <h4 data-test="session-title-text">@(string.IsNullOrWhiteSpace(s.Title) ? UiText.SessionNumber(s.Number, Lang) : s.Title)</h4>
+                        <span class="rf-ses-status @(isNext ? "next" : StatusClass(s.Status))">@(isNext ? UiText.SessionNext(Lang) : UiText.SessionStatusName(s.Status, Lang))</span>
+                        <span class="rf-ses-date" data-test="session-when-text">
+                            @if (s.ScheduledAt is { } at)
                             {
-                                <span class="rf-session-badge next">@UiText.SessionNext(Lang)</span>
+                                @UiText.FormatDateTime(at, Lang)
+                                @if (s.Status == CampaignSessionStatus.Planned && UiText.SessionCountdown(at, Lang) is { Length: > 0 } countdown)
+                                {
+                                    <span class="rf-session-countdown">&nbsp;· @countdown</span>
+                                }
                             }
                             else
                             {
-                                <span class="rf-session-badge">@UiText.SessionStatusName(s.Status, Lang)</span>
+                                @UiText.SessionNoDate(Lang)
                             }
+                        </span>
+                    </div>
+                    @if (!string.IsNullOrWhiteSpace(s.Plan) && s.Status != CampaignSessionStatus.Played)
+                    {
+                        <div class="rf-ses-block">
+                            <span class="rf-ses-label">@UiText.SessionPlan(Lang)</span>
+                            <div class="rf-markdown-container" data-test="session-plan-text">@((MarkupString)MarkdownText.ToHtml(s.Plan, null))</div>
                         </div>
-                        @if (!string.IsNullOrWhiteSpace(s.Title))
-                        {
-                            <div class="rf-session-title" data-test="session-title-text">@s.Title</div>
-                        }
-                    </div>
-                    <div class="rf-session-when" data-test="session-when-text">
-                        <Icon Name="calendar-event" />
-                        @if (s.ScheduledAt is { } at)
-                        {
-                            <span>@UiText.FormatDateTime(at, Lang)</span>
-                            @if (s.Status == CampaignSessionStatus.Planned && UiText.SessionCountdown(at, Lang) is { Length: > 0 } countdown)
-                            {
-                                <span class="rf-session-countdown">· @countdown</span>
-                            }
-                        }
-                        else
-                        {
-                            <span>@UiText.SessionNoDate(Lang)</span>
-                        }
-                    </div>
-                </header>
-                @if (!string.IsNullOrWhiteSpace(s.Plan) && s.Status != CampaignSessionStatus.Played)
-                {
-                    <div class="rf-session-block">
-                        <div class="rf-mini-label">@UiText.SessionPlan(Lang)</div>
-                        <div class="rf-markdown-container" data-test="session-plan-text">@((MarkupString)MarkdownText.ToHtml(s.Plan, null))</div>
-                    </div>
-                }
-                @if (!string.IsNullOrWhiteSpace(s.Recap))
-                {
-                    <div class="rf-session-block">
-                        <div class="rf-mini-label">@UiText.SessionRecap(Lang)</div>
-                        <div class="rf-markdown-container" data-test="session-recap-text">@((MarkupString)MarkdownText.ToHtml(s.Recap, null))</div>
-                    </div>
-                }
-                @if (!string.IsNullOrWhiteSpace(s.MasterNotes))
-                {
-                    <div class="rf-session-block secret">
-                        <div class="rf-mini-label"><Icon Name="eye-slash" /> @UiText.SessionMasterNotes(Lang)</div>
-                        <div class="rf-markdown-container" data-test="session-master-notes-text">@((MarkupString)MarkdownText.ToHtml(s.MasterNotes, null))</div>
-                    </div>
-                }
-                <footer class="rf-session-foot">
-                    <span>@UiText.SessionUpdatedBy(s.UpdatedBy, s.UpdatedAt, Lang)</span>
-                    <span class="d-flex gap-2">
-                        <button type="button" class="btn btn-sm btn-rf-outline" disabled="@(exporting == s.Id)" title="@UiText.ExportSessionHint(Lang)" @onclick="() => ExportAsync(s)" data-test="session-export"><Icon Name="download" /> @UiText.ExportLog(Lang)</button>
+                    }
+                    @if (!string.IsNullOrWhiteSpace(s.Recap))
+                    {
+                        <div class="rf-ses-block">
+                            <span class="rf-ses-label">@UiText.SessionRecap(Lang)</span>
+                            <div class="rf-markdown-container" data-test="session-recap-text">@((MarkupString)MarkdownText.ToHtml(s.Recap, null))</div>
+                        </div>
+                    }
+                    @if (!string.IsNullOrWhiteSpace(s.MasterNotes))
+                    {
+                        <details class="rf-ses-secret" open>
+                            <summary><Icon Name="eye-slash" /> @UiText.SessionMasterNotes(Lang)</summary>
+                            <div class="rf-markdown-container" data-test="session-master-notes-text">@((MarkupString)MarkdownText.ToHtml(s.MasterNotes, null))</div>
+                        </details>
+                    }
+                    <span class="rf-ses-by">@UiText.SessionUpdatedBy(s.UpdatedBy, s.UpdatedAt, Lang)</span>
+                </div>
+                <div class="rf-ses-actions">
+                    <button type="button" class="rf-ses-icon" disabled="@(exporting == s.Id)" title="@UiText.ExportSessionHint(Lang)" aria-label="@UiText.ExportLog(Lang)" @onclick="() => ExportAsync(s)" data-test="session-export"><Icon Name="download" /></button>
                     @if (s.CanEdit)
                     {
-                            <button type="button" class="btn btn-sm btn-rf-outline" @onclick="() => Edit(s)" data-test="session-edit">@UiText.Edit(Lang)</button>
-                            <button type="button" class="btn btn-sm btn-rf-outline" @onclick="() => removing = s" data-test="session-delete">@UiText.BtnRemove(Lang)</button>
+                        <button type="button" class="rf-ses-icon" title="@UiText.Edit(Lang)" aria-label="@UiText.Edit(Lang)" @onclick="() => Edit(s)" data-test="session-edit"><Icon Name="pencil" /></button>
+                        <button type="button" class="rf-ses-icon danger" title="@UiText.BtnRemove(Lang)" aria-label="@UiText.BtnRemove(Lang)" @onclick="() => removing = s" data-test="session-delete"><Icon Name="close" /></button>
                     }
-                    </span>
-                </footer>
+                </div>
             </article>
         }
+        </div>
     }
 </section>
 
@@ -231,6 +254,26 @@
         .ThenBy(s => s.Number)
         .FirstOrDefault();
 
+    private bool recapTab;
+    private string filter = "all";
+
+    private IEnumerable<CampaignSessionDto> Shown => Ordered.Where(s => filter switch
+    {
+        "planned" => s.Status == CampaignSessionStatus.Planned,
+        "played" => s.Status == CampaignSessionStatus.Played,
+        _ => true
+    });
+
+    //	A session marked as played opens on its recap
+    private void SetStatus(CampaignSessionStatus status)
+    {
+        draft.Status = status;
+        if (status == CampaignSessionStatus.Played)
+        {
+            recapTab = true;
+        }
+    }
+
     private static string StatusClass(CampaignSessionStatus status) => status switch
     {
         CampaignSessionStatus.Played => "played",
@@ -249,6 +292,7 @@
     private void NewSession()
     {
         draft = new SaveCampaignSessionDto();
+        recapTab = false;
         //	A week after the last dated session, at the same time: the usual rhythm of a table
         var last = sessions?.Where(s => s.ScheduledAt is not null).MaxBy(s => s.ScheduledAt);
         when = last?.ScheduledAt is { } previous ? previous.ToLocalTime().AddDays(7).DateTime : null;
