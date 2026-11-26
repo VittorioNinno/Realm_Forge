@@ -3038,7 +3038,7 @@ else
             </div>
             @{
                 var options = OptionsOf(t);
-                var before = new[] { "quickened", "distant" }.Where(options.Has).ToList();
+                var before = new[] { "quickened", "distant", "subtle", "extended", "twinned" }.Where(options.Has).ToList();
             }
             @if (before.Count > 0)
             {
@@ -3048,10 +3048,17 @@ else
                     @foreach (var m in before)
                     {
                         var option = m;
-                        var cost = RealmForge.Shared.Characters.CastingOptions.CostOf(option);
+                        var cost = options.Cost(option, spell.Level);
+                        @* One option a spell: choosing another replaces it, so only its own cost counts *@
+                        var others = preMeta.Where(o => o is not ("ready" or "apotheosis") && (options.Stacks(option) || options.Stacks(o)));
                         <button type="button" class="rf-vtt-chip @(preMeta.Contains(option) ? "active" : null)" aria-pressed="@(preMeta.Contains(option) ? "true" : "false")"
-                                disabled="@(!preMeta.Contains(option) && PointsLeft(t) < preMeta.Sum(o => RealmForge.Shared.Characters.CastingOptions.CostOf(o)) + cost)" title="@UiText.VttMetamagicHint(option, Lang)"
+                                disabled="@(!preMeta.Contains(option) && !preMeta.Contains("apotheosis") && PointsLeft(t) < MetaCost(t, others, spell.Level, false) + cost)" title="@UiText.VttMetamagicHint(option, Lang)"
                                 @onclick="() => TogglePreMeta(option)" data-test="map-token-cast-meta-option" data-option="@option">@UiText.VttMetamagicName(option, Lang) <small>@UiText.VttMetamagicCost(cost, Lang)</small></button>
+                    }
+                    @if (ApotheosisReady(t))
+                    {
+                        <button type="button" class="rf-vtt-chip @(preMeta.Contains("apotheosis") ? "active" : null)" aria-pressed="@(preMeta.Contains("apotheosis") ? "true" : "false")"
+                                title="@UiText.VttApotheosisHint(Lang)" @onclick="@(() => TogglePreMeta("apotheosis"))" data-test="map-token-cast-apotheosis"><Icon Name="stars" /> @UiText.VttApotheosis(Lang)</button>
                     }
                 </div>
             }
@@ -3260,7 +3267,7 @@ else
                     @foreach (var m in metas)
                     {
                         var option = m;
-                        var cost = RealmForge.Shared.Characters.CastingOptions.CostOf(option);
+                        var cost = PendingOptionCost(p, option);
                         <button type="button" class="rf-vtt-chip @(p.Meta.Contains(option) ? "active" : null)" aria-pressed="@(p.Meta.Contains(option) ? "true" : "false")"
                                 disabled="@(caster is null || (!p.Meta.Contains(option) && PointsLeft(caster) < PendingCost(p) + cost))" title="@UiText.VttMetamagicHint(option, Lang)"
                                 @onclick="() => TogglePendingMeta(option)" data-test="vtt-confirm-meta" data-option="@option">@UiText.VttMetamagicName(option, Lang) <small>@UiText.VttMetamagicCost(cost, Lang)</small></button>

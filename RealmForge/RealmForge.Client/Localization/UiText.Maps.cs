@@ -535,8 +535,24 @@ namespace RealmForge.Client.Localization
 			"quickened" => T(lang, "Lanciato come azione bonus invece che come azione", "Cast as a bonus action instead of an action"),
 			"seeking" => T(lang, "Se l'attacco manca, il d20 si ritira una volta", "If the attack misses, the d20 is rolled again once"),
 			"transmuted" => T(lang, "Cambia il tipo di danni con un altro della lista", "Change the damage type to another of the list"),
+			"subtle" => T(lang, "Lanciato senza componenti verbali né somatiche", "Cast without verbal or somatic components"),
+			"extended" => T(lang, "Durata raddoppiata (fino a 24 ore)", "Twice the duration (up to 24 hours)"),
+			"twinned" => T(lang, "Un secondo bersaglio per un incantesimo che ne colpisce uno solo", "A second target for a spell that has only one"),
 			_ => string.Empty
 		};
+		public static string VttTwinnedNo(LanguageCode lang) => T(lang,
+			"Incantesimo raddoppiato vale solo per un incantesimo con un solo bersaglio, che non sia l'incantatore.",
+			"Twinned Spell works only on a spell with a single target other than the caster.");
+		public static string VttTwinnedSecond(string first, LanguageCode lang) => T(lang, $"Incantesimo raddoppiato: primo bersaglio {first}, scegli il secondo", $"Twinned Spell: first target {first}, choose the second");
+		public static string VttTwinnedOther(LanguageCode lang) => T(lang, "Scegli un bersaglio diverso dal primo", "Choose a target other than the first");
+		public static string VttExtendedDone(string? duration, LanguageCode lang) => T(lang,
+			string.IsNullOrWhiteSpace(duration) ? "durata raddoppiata" : $"durata raddoppiata ({duration} × 2, max 24 ore)",
+			string.IsNullOrWhiteSpace(duration) ? "twice the duration" : $"twice the duration ({duration} × 2, up to 24 hours)");
+		public static string VttSubtleDone(LanguageCode lang) => T(lang, "senza componenti verbali né somatiche", "without verbal or somatic components");
+		public static string VttApotheosis(LanguageCode lang) => T(lang, "Apoteosi arcana", "Arcane Apotheosis");
+		public static string VttApotheosisHint(LanguageCode lang) => T(lang,
+			"Con la Stregoneria innata attiva: un'opzione di metamagia gratis in questo turno",
+			"With Innate Sorcery active: one Metamagic option for free this turn");
 		public static string VttMetamagicCost(int cost, LanguageCode lang) => T(lang, $"{cost} PS", $"{cost} SP");
 		public static string VttMetamagicPoints(int left, LanguageCode lang) => T(lang, $"Punti stregoneria: {left}", $"Sorcery Points: {left}");
 		public static string VttCompanions(LanguageCode lang) => T(lang, "Evocazioni e cavalcature", "Summons and mounts");
