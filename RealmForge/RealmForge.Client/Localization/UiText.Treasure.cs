@@ -21,6 +21,9 @@ namespace RealmForge.Client.Localization
 			$"Shared among {count} characters: {each} each{(left.Length > 0 ? $"; {left} left" : string.Empty)}.");
 		public static string TreasureItems(LanguageCode lang) => T(lang, "Oggetti", "Items");
 		public static string TreasureEmpty(LanguageCode lang) => T(lang, "Il forziere è vuoto.", "The chest is empty.");
+		public static string TreasurePurseEmpty(LanguageCode lang) => T(lang, "Borsa vuota", "Empty purse");
+		public static string TreasureEach(string purse, LanguageCode lang) => T(lang, $"{purse} a testa", $"{purse} each");
+		public static string TreasureItemCount(int count, LanguageCode lang) => T(lang, count == 1 ? "1 oggetto" : $"{count} oggetti", count == 1 ? "1 item" : $"{count} items");
 		public static string TreasureAddSearch(LanguageCode lang) => T(lang, "Aggiungi dal compendio (equipaggiamento, oggetti magici)…", "Add from the compendium (equipment, magic items)…");
 		public static string TreasureAddFree(LanguageCode lang) => T(lang, "Oggetto libero o gemma", "Free item or gem");
 		public static string TreasureName(LanguageCode lang) => T(lang, "Nome", "Name");

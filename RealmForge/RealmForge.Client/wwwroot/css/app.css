@@ -22665,19 +22665,390 @@ button.rf-vtt-clock.on {
     }
 }
 
-/* ===== The party's chest ===== */
-.rf-treasure-coins,
-.rf-treasure-split {
+/* ===== The party's chest: a coins card and an items card, side by side on the campaign page, stacked at the table ===== */
+.rf-treasure {
     display: flex;
-    flex-wrap: wrap;
-    align-items: flex-end;
-    gap: 8px 16px;
+    flex-direction: column;
+    gap: 16px;
 }
 
-.rf-treasure-split {
+.rf-tr-head {
+    display: flex;
     align-items: center;
-    padding-top: 8px;
-    border-top: 1px solid #303030;
+    gap: 8px;
+}
+
+.rf-tr-kicker {
+    font-size: 11px;
+    font-weight: 900;
+    letter-spacing: 0.8px;
+    text-transform: uppercase;
+    color: #e4e4e7;
+}
+
+.rf-tr-total {
+    display: inline-flex;
+    align-items: center;
+    height: 24px;
+    padding: 0 8px;
+    border: 1px solid #4a3a0a;
+    border-radius: 12px;
+    background: #231b05;
+    color: #facc15;
+    font-size: 11.5px;
+    font-weight: 800;
+    font-variant-numeric: tabular-nums;
+}
+
+.rf-tr-hint {
+    margin: 0;
+    font-size: 12.5px;
+    line-height: 1.5;
+    color: var(--rf-text-muted);
+}
+
+.rf-tr-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 16px;
+    align-items: start;
+}
+
+@media (min-width: 992px) {
+    .rf-treasure:not(.at-table) .rf-tr-grid {
+        grid-template-columns: minmax(0, 2fr) minmax(0, 3fr);
+    }
+}
+
+.rf-tr-card {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    min-width: 0;
+    padding: 16px;
+    border: 1px solid #242424;
+    border-radius: 12px;
+    background: #141414;
+}
+
+.rf-tr-card-head {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+.rf-tr-icon {
+    display: inline-flex;
+    flex: none;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    border: 1px solid #2e2e2e;
+    border-radius: 10px;
+    background: #1c1c1c;
+    color: var(--rf-orange-primary);
+}
+
+.rf-tr-card-text {
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    min-width: 0;
+}
+
+    .rf-tr-card-text strong {
+        font-size: 14px;
+        color: #f4f4f5;
+    }
+
+    .rf-tr-card-text span {
+        font-size: 12px;
+        color: var(--rf-text-muted);
+    }
+
+.rf-tr-save {
+    flex: none;
+    min-height: 32px;
+    padding: 0 16px;
+    border: 1px solid #333;
+    border-radius: 8px;
+    background: #1c1c1c;
+    color: #e4e4e7;
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 0.4px;
+    text-transform: uppercase;
+}
+
+    .rf-tr-save:hover:not(:disabled) {
+        border-color: var(--rf-orange-primary);
+        color: var(--rf-orange-primary);
+    }
+
+.rf-tr-coins {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 8px;
+}
+
+.rf-tr-coin {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    margin: 0;
+}
+
+    .rf-tr-coin > span {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 4px;
+        font-size: 10.5px;
+        font-weight: 800;
+        text-transform: lowercase;
+        color: #a1a1aa;
+    }
+
+    .rf-tr-coin input {
+        width: 100%;
+        height: 40px;
+        padding: 0 4px;
+        border: 1px solid #2a2a2a;
+        border-radius: 8px;
+        background: #0b0b0b;
+        color: #f4f4f5;
+        font-weight: 700;
+        text-align: center;
+        font-variant-numeric: tabular-nums;
+    }
+
+        .rf-tr-coin input:focus {
+            outline: none;
+            border-color: var(--rf-orange-primary);
+        }
+
+.rf-tr-dot {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #888;
+}
+
+.rf-tr-coin.pp .rf-tr-dot { background: #e5e7eb; }
+.rf-tr-coin.gp .rf-tr-dot { background: #facc15; }
+.rf-tr-coin.ep .rf-tr-dot { background: #a3e635; }
+.rf-tr-coin.sp .rf-tr-dot { background: #94a3b8; }
+.rf-tr-coin.cp .rf-tr-dot { background: #c2703d; }
+
+.rf-tr-split {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding-top: 16px;
+    border-top: 1px solid #242424;
+}
+
+.rf-tr-split-top {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+}
+
+.rf-tr-label {
+    font-size: 10.5px;
+    font-weight: 800;
+    letter-spacing: 0.6px;
+    text-transform: uppercase;
+    color: #8a8a8a;
+}
+
+.rf-tr-preview {
+    font-size: 12px;
+    font-weight: 700;
+    color: #facc15;
+}
+
+.rf-tr-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.rf-tr-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    min-height: 32px;
+    margin: 0;
+    padding: 0 16px 0 8px;
+    border: 1px solid #2a2a2a;
+    border-radius: 16px;
+    background: #0e0e0e;
+    color: #d4d4d8;
+    font-size: 12.5px;
+    cursor: pointer;
+}
+
+    .rf-tr-chip input {
+        appearance: none;
+        display: inline-grid;
+        place-content: center;
+        width: 16px;
+        height: 16px;
+        margin: 0;
+        border: 1px solid #4a4a4a;
+        border-radius: 4px;
+        background: #141414;
+        cursor: pointer;
+    }
+
+        .rf-tr-chip input::after {
+            content: "";
+            width: 8px;
+            height: 4px;
+            margin-top: -2px;
+            border: solid #111;
+            border-width: 0 0 2px 2px;
+            transform: rotate(-45deg) scale(0);
+            transition: transform 120ms ease;
+        }
+
+        .rf-tr-chip input:checked {
+            border-color: var(--rf-orange-primary);
+            background: var(--rf-orange-primary);
+        }
+
+            .rf-tr-chip input:checked::after {
+                transform: rotate(-45deg) scale(1);
+            }
+
+        .rf-tr-chip input:focus-visible {
+            outline: 2px solid var(--rf-orange-glow);
+            outline-offset: 2px;
+        }
+
+    .rf-tr-chip:has(input:checked) {
+        border-color: #4a2e0a;
+        color: #f4f4f5;
+    }
+
+.rf-tr-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    min-height: 40px;
+    padding: 0 16px;
+    border: 1px solid #333;
+    border-radius: 8px;
+    background: #1c1c1c;
+    color: #e4e4e7;
+    font-size: 11.5px;
+    font-weight: 800;
+    letter-spacing: 0.4px;
+    text-transform: uppercase;
+}
+
+    .rf-tr-btn:disabled {
+        opacity: 0.5;
+    }
+
+    .rf-tr-btn.primary {
+        border-color: var(--rf-orange-primary);
+        background: var(--rf-orange-primary);
+        color: #111;
+    }
+
+        .rf-tr-btn.primary:hover:not(:disabled) {
+            background: var(--rf-orange-hover);
+        }
+
+.rf-tr-add {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+    padding-top: 16px;
+    border-top: 1px solid #242424;
+}
+
+.rf-tr-search {
+    flex: none;
+}
+
+    .rf-tr-search > svg {
+        position: absolute;
+        top: 50%;
+        left: 12px;
+        width: 14px;
+        height: 14px;
+        color: #71717a;
+        transform: translateY(-50%);
+        pointer-events: none;
+    }
+
+    .rf-tr-search input {
+        padding-left: 32px;
+    }
+
+.rf-tr-add-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+}
+
+.rf-tr-link {
+    padding: 0;
+    border: 0;
+    background: none;
+    color: var(--rf-orange-primary);
+    font-size: 11.5px;
+    font-weight: 800;
+    letter-spacing: 0.4px;
+    text-transform: uppercase;
+}
+
+    .rf-tr-link:hover {
+        color: var(--rf-orange-hover);
+    }
+
+.rf-tr-free {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 16px;
+    border: 1px solid #2a2a2a;
+    border-radius: 10px;
+    background: #0e0e0e;
+}
+
+.rf-tr-field {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    margin: 0;
+    min-width: 0;
+}
+
+.rf-tr-row2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+}
+
+.rf-tr-free-foot {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+}
+
+.rf-tr-card .rf-shop-items {
+    margin: 0;
 }
 
 .rf-treasure-tag {
@@ -22693,10 +23064,6 @@ button.rf-vtt-clock.on {
 
 .rf-shop-item.unidentified {
     border: 1px dashed rgba(199, 125, 255, .5);
-}
-
-.rf-treasure-free textarea {
-    flex-basis: 100%;
 }
 
 /* ===== Progress clocks and factions ===== */
