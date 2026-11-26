@@ -26317,3 +26317,136 @@ html.rf-fx-off .rf-bg-msg { animation: none; }
         -webkit-tap-highlight-color: transparent;
     }
 }
+
+/* ===== Number fields in the forge style: the browser's spinner stays (so a click still steps the value) but it is
+   invisible, and our two chevrons are drawn in its place; the fields that hide the spinner keep hiding it ===== */
+input[type="number"]:not(.rf-stepper-input):not(.rf-coin-input):not(.rf-hp-amount):not(.rf-hud-hp-amount):not(.rf-init-value) {
+    padding-right: 8px;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='16' viewBox='0 0 10 16' fill='none' stroke='%2371717a' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M2 6l3-3 3 3M2 10l3 3 3-3'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 11px center;
+    background-size: 10px 16px;
+}
+
+    input[type="number"]:not(.rf-stepper-input):not(.rf-coin-input):not(.rf-hp-amount):not(.rf-hud-hp-amount):not(.rf-init-value):hover:not(:disabled),
+    input[type="number"]:not(.rf-stepper-input):not(.rf-coin-input):not(.rf-hp-amount):not(.rf-hud-hp-amount):not(.rf-init-value):focus {
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='16' viewBox='0 0 10 16' fill='none' stroke='%23ff8c00' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M2 6l3-3 3 3M2 10l3 3 3-3'/%3E%3C/svg%3E");
+    }
+
+    input[type="number"]::-webkit-inner-spin-button {
+        width: 16px;
+        margin-left: 4px;
+        opacity: 0;
+        cursor: pointer;
+    }
+
+    input[type="number"]:disabled {
+        background-image: none;
+    }
+
+.rf-npc-stepper input[type="number"],
+.rf-hud-stat input[type="number"] {
+    background-image: none !important;
+}
+
+/* Firefox draws its own spinner that cannot be hidden under ours: there it stays the browser's */
+@supports (-moz-appearance: none) {
+    input[type="number"] {
+        background-image: none !important;
+    }
+}
+
+/* The side panel: a tool's tab keeps its whole name (only a sheet's tab, a character's name, is cut) */
+.rf-vtt-sheet-tab.rf-vtt-tool-tab {
+    flex: none;
+    max-width: none;
+}
+
+/* ===== The initiative folded in the column: a 56px rail, from the top: the round, who acts (face, health, the name
+   read upward), who comes next, the master's step, the tools ===== */
+.rf-init-widget.vertical.collapsed .rf-init-shell {
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    width: 56px;
+    min-height: 0;
+    padding: 12px 0;
+}
+
+.rf-init-widget.vertical.collapsed .rf-init-summary {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    max-height: none;
+    overflow: visible;
+    writing-mode: horizontal-tb;
+    transform: none;
+}
+
+    .rf-init-widget.vertical.collapsed .rf-init-summary > .rf-init-kicker,
+    .rf-init-widget.vertical.collapsed .rf-init-summary > .rf-init-pill,
+    .rf-init-widget.vertical.collapsed .rf-init-now strong,
+    .rf-init-widget.vertical.collapsed .rf-init-next {
+        max-height: 112px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        writing-mode: vertical-rl;
+        transform: rotate(180deg);
+    }
+
+    .rf-init-widget.vertical.collapsed .rf-init-summary > .rf-init-pill {
+        height: auto;
+        padding: 8px 0;
+        width: 24px;
+        justify-content: center;
+    }
+
+    .rf-init-widget.vertical.collapsed .rf-init-summary .rf-init-avatar {
+        width: 32px;
+        height: 32px;
+        font-size: 11px;
+    }
+
+.rf-init-widget.vertical.collapsed .rf-init-pill.round {
+    justify-content: center;
+    min-width: 40px;
+}
+
+.rf-init-widget.vertical.collapsed .rf-init-now {
+    align-items: center;
+    gap: 8px;
+}
+
+    .rf-init-widget.vertical.collapsed .rf-init-now .rf-init-hp {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 4px;
+        font-size: 10px;
+        color: #a1a1aa;
+    }
+
+        .rf-init-widget.vertical.collapsed .rf-init-now .rf-init-hp .rf-vtt-hpbar {
+            width: 32px;
+        }
+
+.rf-init-widget.vertical.collapsed .rf-init-next {
+    max-height: 96px;
+    padding: 0 0 8px;
+    border-left: 0;
+    border-bottom: 1px solid #262626;
+    font-size: 11px;
+}
+
+.rf-init-widget.vertical.collapsed .rf-init-shell > .rf-init-btn {
+    width: 40px;
+    height: 40px;
+    padding: 0;
+    justify-content: center;
+}
+
+    .rf-init-widget.vertical.collapsed .rf-init-shell > .rf-init-btn .rf-init-btn-text {
+        display: none;
+    }
