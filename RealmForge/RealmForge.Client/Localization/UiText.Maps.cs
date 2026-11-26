@@ -331,7 +331,7 @@ namespace RealmForge.Client.Localization
 		public static string VttRollAllHint(LanguageCode lang) => T(lang, "Tira per chi manca, tranne i personaggi dei giocatori", "Roll for whoever is missing, but the players' characters");
 		public static string VttBegin(LanguageCode lang) => T(lang, "Avvia", "Start");
 		public static string VttActiveTurn(LanguageCode lang) => T(lang, "Turno attivo", "Active turn");
-		public static string VttTurnShort(LanguageCode lang) => T(lang, "Turno", "Turn");
+		public static string VttTurnShort(LanguageCode lang) => T(lang, "Avanti", "Next");
 		public static string VttRoundLabel(LanguageCode lang) => T(lang, "Round", "Round");
 		public static string VttPreviousTurn(LanguageCode lang) => T(lang, "Turno precedente", "Previous turn");
 		public static string VttShowHealth(LanguageCode lang) => T(lang, "Mostra ai giocatori la salute dei nemici", "Show the enemies' health to the players");
