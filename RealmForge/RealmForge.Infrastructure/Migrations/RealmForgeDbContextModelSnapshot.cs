@@ -1222,6 +1222,9 @@ namespace RealmForge.Infrastructure.Migrations
                         .HasMaxLength(120)
                         .HasColumnType("character varying(120)");
 
+                    b.Property<Guid?>("NpcId")
+                        .HasColumnType("uuid");
+
                     b.Property<bool>("Open")
                         .HasColumnType("boolean");
 
@@ -1246,6 +1249,12 @@ namespace RealmForge.Infrastructure.Migrations
 
                     b.Property<DateTimeOffset>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
+
+                    b.Property<int?>("CustomPrice")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("Discount")
+                        .HasColumnType("integer");
 
                     b.Property<Guid?>("EquipmentId")
                         .HasColumnType("uuid");
