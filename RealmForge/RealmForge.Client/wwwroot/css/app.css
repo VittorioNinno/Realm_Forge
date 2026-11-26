@@ -21581,10 +21581,283 @@ button.rf-qs-spell {
 
 /* ===== Game clock, supplies and timed effects ===== */
 
+/* ===== The overview of a campaign: the clock on the left, details, invite link and danger zone on the right ===== */
+.rf-ov-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 24px;
+    align-items: start;
+}
+
+@media (min-width: 992px) {
+    .rf-ov-grid {
+        grid-template-columns: minmax(0, 1.05fr) minmax(0, .95fr);
+    }
+}
+
+.rf-ov-side {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    min-width: 0;
+}
+
+.rf-ov-card {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    min-width: 0;
+    padding: 24px;
+    border: 1px solid #242424;
+    border-radius: 12px;
+    background: #0e0e0e;
+}
+
+.rf-ov-time {
+    border-top: 2px solid var(--rf-orange-primary);
+}
+
+.rf-ov-kicker {
+    display: block;
+    font-size: 10px;
+    font-weight: 900;
+    letter-spacing: .7px;
+    text-transform: uppercase;
+    color: var(--rf-orange-primary);
+}
+
+.rf-ov-micro {
+    font-size: 9.5px;
+    font-weight: 800;
+    letter-spacing: .6px;
+    text-transform: uppercase;
+    color: #71717a;
+}
+
+    .rf-ov-micro.danger {
+        color: #fca5a5;
+    }
+
+.rf-ov-desc {
+    margin: 0;
+    font-size: 12.5px;
+    line-height: 1.45;
+    color: #a1a1aa;
+}
+
+.rf-ov-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+}
+
+.rf-ov-stack {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    min-width: 0;
+}
+
+.rf-ov-role-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+}
+
+.rf-ov-role {
+    padding: 2px 8px;
+    border: 1px solid rgba(255, 140, 0, .45);
+    border-radius: 4px;
+    background: rgba(255, 140, 0, .14);
+    color: #ffb74d;
+    font-size: 10px;
+    font-weight: 800;
+}
+
+.rf-ov-perms {
+    font-size: 12px;
+    color: #888;
+}
+
+.rf-ov-icon {
+    display: inline-flex;
+    flex: none;
+    align-items: center;
+    justify-content: center;
+    width: 48px;
+    height: 48px;
+    border: 1px solid #2c2c2c;
+    border-radius: 10px;
+    background: #161616;
+    color: var(--rf-orange-primary);
+}
+
+.rf-ov-ghost {
+    display: inline-flex;
+    flex: none;
+    align-items: center;
+    gap: 8px;
+    height: 32px;
+    padding: 0 12px;
+    border: 1px solid #2e2e2e;
+    border-radius: 6px;
+    background: #161616;
+    color: #d4d4d8;
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: .4px;
+    text-transform: uppercase;
+}
+
+    .rf-ov-ghost:hover,
+    .rf-ov-ghost.on {
+        border-color: var(--rf-orange-primary);
+        color: #ffb74d;
+    }
+
+    .rf-ov-ghost.danger:hover {
+        border-color: #ef4444;
+        color: #fca5a5;
+    }
+
+.rf-ov-description p:last-child {
+    margin-bottom: 0;
+}
+
+.rf-ov-none {
+    margin: 0;
+    color: #71717a;
+    font-style: italic;
+}
+
+.rf-ov-status {
+    flex: none;
+    padding: 4px 8px;
+    border-radius: 6px;
+    font-size: 10px;
+    font-weight: 900;
+    text-transform: uppercase;
+}
+
+    .rf-ov-status.on {
+        border: 1px solid rgba(16, 185, 129, .45);
+        background: rgba(16, 185, 129, .14);
+        color: #34d399;
+    }
+
+    .rf-ov-status.off {
+        border: 1px solid #303030;
+        background: #1c1c1c;
+        color: #888;
+    }
+
+.rf-ov-link {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 8px;
+}
+
+.rf-ov-url {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 12px;
+}
+
+.rf-ov-copied {
+    border-color: #10b981 !important;
+    background: #10b981 !important;
+}
+
+.rf-ov-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.rf-ov-danger {
+    padding: 16px 24px;
+    border-color: rgba(239, 68, 68, .25);
+    background: rgba(239, 68, 68, .03);
+}
+
+.rf-ov-danger-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+}
+
+.rf-ov-danger-btn {
+    height: 32px;
+    padding: 0 12px;
+    border: 1px solid rgba(239, 68, 68, .45);
+    border-radius: 6px;
+    background: rgba(239, 68, 68, .12);
+    color: #fca5a5;
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: .4px;
+    text-transform: uppercase;
+}
+
+    .rf-ov-danger-btn:hover {
+        background: #ef4444;
+        color: #ffffff;
+    }
+
+.rf-ov-field {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    margin: 0;
+}
+
+.rf-ov-check {
+    display: inline-flex;
+    align-self: flex-start;
+    align-items: center;
+    gap: 8px;
+    min-height: 36px;
+    margin: 0;
+    padding: 0 12px;
+    border: 1px solid #282828;
+    border-radius: 8px;
+    background: #161616;
+    color: #a1a1aa;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+    .rf-ov-check input {
+        width: 16px;
+        height: 16px;
+        margin: 0;
+        accent-color: var(--rf-orange-primary);
+    }
+
+    .rf-ov-check:has(input:checked) {
+        border-color: rgba(255, 140, 0, .4);
+        background: rgba(255, 140, 0, .08);
+        color: #ffffff;
+    }
+
+.rf-ov-empty {
+    padding: 16px;
+    border: 1px dashed #282828;
+    border-radius: 8px;
+    background: #121212;
+    color: #71717a;
+    font-size: 12px;
+}
+
+/* The clock: the time and the part of the day, quick steps, a custom step with the rations, the running effects */
 .rf-clock {
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: 16px;
 }
 
 .rf-clock-head {
@@ -21593,39 +21866,107 @@ button.rf-qs-spell {
     gap: 16px;
 }
 
-    .rf-clock-head .rf-handout-icon {
-        width: 48px;
-        height: 48px;
-        border-radius: 8px;
-    }
-
-.rf-clock-now {
-    font-size: 1.25rem;
-    font-variant-numeric: tabular-nums;
+.rf-clock-title {
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    min-width: 0;
 }
 
-.rf-clock-steps,
-.rf-clock-custom {
+.rf-clock-line {
     display: flex;
     flex-wrap: wrap;
     align-items: center;
     gap: 8px;
 }
 
-    .rf-clock-custom .rf-form-control {
-        width: 96px;
-        min-height: 32px;
-        padding: 0 8px;
+.rf-clock-now {
+    font-size: 20px;
+    font-weight: 900;
+    color: #ffffff;
+    font-variant-numeric: tabular-nums;
+}
+
+.rf-clock-phase {
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-size: 10px;
+    font-weight: 800;
+}
+
+    .rf-clock-phase.morning { border: 1px solid rgba(251, 191, 36, .4); background: rgba(251, 191, 36, .14); color: #fcd34d; }
+    .rf-clock-phase.afternoon { border: 1px solid rgba(255, 140, 0, .4); background: rgba(255, 140, 0, .14); color: #ffb74d; }
+    .rf-clock-phase.evening { border: 1px solid rgba(168, 85, 247, .4); background: rgba(168, 85, 247, .14); color: #d8b4fe; }
+    .rf-clock-phase.night { border: 1px solid rgba(59, 130, 246, .4); background: rgba(59, 130, 246, .14); color: #93c5fd; }
+
+.rf-clock-set {
+    display: grid;
+    grid-template-columns: 96px minmax(0, 1fr) auto;
+    align-items: end;
+    gap: 8px;
+    padding: 12px;
+    border: 1px solid #2a2a2a;
+    border-left: 3px solid var(--rf-orange-primary);
+    border-radius: 8px;
+    background: #141414;
+}
+
+.rf-clock-steps {
+    display: grid;
+    grid-template-columns: repeat(4, auto);
+    gap: 8px;
+}
+
+.rf-clock-step {
+    min-height: 36px;
+    padding: 0 8px;
+    border: 1px solid #2c2c2c;
+    border-radius: 8px;
+    background: #151515;
+    color: #d4d4d8;
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: .3px;
+    text-transform: uppercase;
+}
+
+    .rf-clock-step:hover:not(:disabled) {
+        border-color: var(--rf-orange-primary);
+        color: #ffffff;
     }
 
-    .rf-clock-custom input[type=time].rf-form-control {
-        width: 120px;
+    .rf-clock-step.featured {
+        border-color: rgba(255, 140, 0, .45);
+        background: rgba(255, 140, 0, .1);
+        color: #ffb74d;
     }
 
-.rf-clock-set summary {
-    cursor: pointer;
-    color: var(--rf-text-muted);
-    margin-bottom: 8px;
+        .rf-clock-step.featured:hover:not(:disabled) {
+            background: var(--rf-orange-primary);
+            color: #09090b;
+        }
+
+.rf-clock-box {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding: 12px;
+    border: 1px solid #222;
+    border-radius: 8px;
+    background: #131313;
+}
+
+.rf-clock-custom {
+    display: grid;
+    grid-template-columns: auto 72px minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 8px;
+}
+
+.rf-clock-custom-label {
+    font-size: 12.5px;
+    font-weight: 700;
+    color: #a1a1aa;
 }
 
 .rf-clock-report {
@@ -21639,7 +21980,21 @@ button.rf-qs-spell {
 .rf-clock-effects {
     display: flex;
     flex-direction: column;
-    gap: 4px;
+    gap: 8px;
+    padding-top: 12px;
+    border-top: 1px solid #1f1f1f;
+}
+
+.rf-clock-effects-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.rf-clock-count {
+    font-size: 11px;
+    font-weight: 700;
+    color: #71717a;
 }
 
     .rf-clock-effects ul {
@@ -21654,6 +22009,41 @@ button.rf-qs-spell {
     .rf-clock-effects .small {
         color: var(--rf-text-muted);
     }
+
+/* In the drawer of the table: narrower */
+.rf-clock.compact .rf-clock-steps {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.rf-clock.compact .rf-clock-custom {
+    grid-template-columns: 64px minmax(0, 1fr) auto;
+}
+
+    .rf-clock.compact .rf-clock-custom-label {
+        display: none;
+    }
+
+.rf-clock.compact .rf-clock-set {
+    grid-template-columns: 1fr 1fr;
+}
+
+@media (max-width: 767.98px) {
+    .rf-clock-steps {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .rf-clock-custom {
+        grid-template-columns: 64px minmax(0, 1fr) auto;
+    }
+
+    .rf-clock-custom-label {
+        display: none;
+    }
+
+    .rf-clock-set {
+        grid-template-columns: 1fr 1fr;
+    }
+}
 
 .rf-vtt-clock {
     display: inline-flex;
