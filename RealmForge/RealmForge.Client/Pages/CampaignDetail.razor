@@ -101,54 +101,82 @@
                         <Icon Name="chevron-right" />
                     </button>
                 }
-                <section class="rf-card2 mb-3" data-test="campaign-overview">
-                    <div class="small mb-2" style="color: var(--rf-text-muted);">@UiText.CampaignRoleHint(role, Lang)</div>
-                    <div class="rf-markdown-container" data-test="campaign-description">
-                        @if (string.IsNullOrWhiteSpace(campaign.Description))
-                        {
-                            <p style="color: var(--rf-text-muted);">@UiText.CampaignNoDescription(Lang)</p>
-                        }
-                        else
-                        {
-                            @((MarkupString)MarkdownText.ToHtml(campaign.Description, null))
-                        }
-                    </div>
-                    @if (CampaignRules.CanEditCampaign(role))
-                    {
-                        <button type="button" class="btn btn-sm btn-rf-outline mt-2" @onclick="OpenEdit" data-test="campaign-edit">@UiText.BtnEditCampaign(Lang)</button>
-                    }
-                </section>
+                <div class="rf-ov-grid">
+                    <CampaignClock CampaignId="campaign.Id" Role="role" />
 
-                <CampaignClock CampaignId="campaign.Id" Role="role" />
-
-                @if (CampaignRules.CanManageInviteLink(role))
-                {
-                    <section class="rf-card2 mb-3" data-test="campaign-link">
-                        <div class="rf-mini-title">@UiText.CampaignLinkTitle(Lang)</div>
-                        @if (campaign.InviteCode is { } code)
-                        {
-                            <div class="small mb-2" style="color: var(--rf-text-muted);">@UiText.CampaignLinkHint(Lang)</div>
-                            <div class="d-flex flex-wrap gap-2">
-                                <input class="rf-form-control flex-grow-1" readonly value="@JoinUrl(code)" data-test="campaign-link-url" />
-                                <button type="button" class="btn btn-sm btn-rf-outline" @onclick="() => CopyAsync(JoinUrl(code))">@if (copied) { <Icon Name="check" /> } @(copied ? UiText.LinkCopied(Lang) : UiText.BtnCopyLink(Lang))</button>
-                                <button type="button" class="btn btn-sm btn-rf-outline" @onclick="NewLinkAsync" data-test="campaign-link-new">@UiText.BtnNewLink(Lang)</button>
-                                <button type="button" class="btn btn-sm btn-rf-outline" @onclick="DisableLinkAsync" data-test="campaign-link-disable">@UiText.BtnDisableLink(Lang)</button>
+                    <div class="rf-ov-side">
+                        <section class="rf-ov-card" data-test="campaign-overview">
+                            <header class="rf-ov-head">
+                                <div class="rf-ov-stack">
+                                    <span class="rf-ov-role-row">
+                                        <span class="rf-ov-kicker">@UiText.CampaignDetailsTitle(Lang)</span>
+                                        <span class="rf-ov-role">@UiText.CampaignRoleName(role, Lang)</span>
+                                    </span>
+                                    <span class="rf-ov-perms">@UiText.CampaignRoleHint(role, Lang)</span>
+                                </div>
+                                @if (CampaignRules.CanEditCampaign(role))
+                                {
+                                    <button type="button" class="rf-ov-ghost" @onclick="OpenEdit" data-test="campaign-edit"><Icon Name="pencil" /> @UiText.BtnEditShort(Lang)</button>
+                                }
+                            </header>
+                            <div class="rf-markdown-container rf-ov-description" data-test="campaign-description">
+                                @if (string.IsNullOrWhiteSpace(campaign.Description))
+                                {
+                                    <p class="rf-ov-none">@UiText.CampaignNoDescription(Lang)</p>
+                                }
+                                else
+                                {
+                                    @((MarkupString)MarkdownText.ToHtml(campaign.Description, null))
+                                }
                             </div>
-                        }
-                        else
-                        {
-                            <div class="small mb-2" style="color: var(--rf-text-muted);">@UiText.CampaignLinkDisabled(Lang)</div>
-                            <button type="button" class="btn btn-sm btn-rf-outline" @onclick="NewLinkAsync" data-test="campaign-link-new">@UiText.BtnEnableLink(Lang)</button>
-                        }
-                    </section>
-                }
+                        </section>
 
-                <div class="d-flex flex-wrap gap-2">
-                    <button type="button" class="btn btn-sm btn-rf-outline" @onclick="() => confirm = Confirm.Leave" data-test="campaign-leave">@UiText.BtnLeaveCampaign(Lang)</button>
-                    @if (CampaignRules.CanDeleteCampaign(role))
-                    {
-                        <button type="button" class="btn btn-sm btn-rf-outline" style="border-color: #dc3545; color: #dc3545;" @onclick="() => confirm = Confirm.Delete" data-test="campaign-delete">@UiText.BtnDeleteCampaign(Lang)</button>
-                    }
+                        @if (CampaignRules.CanManageInviteLink(role))
+                        {
+                            <section class="rf-ov-card" data-test="campaign-link">
+                                <header class="rf-ov-head">
+                                    <div class="rf-ov-stack">
+                                        <span class="rf-ov-kicker">@UiText.CampaignLinkTitle(Lang)</span>
+                                        <span class="rf-ov-perms">@(campaign.InviteCode is null ? UiText.CampaignLinkDisabled(Lang) : UiText.CampaignLinkHint(Lang))</span>
+                                    </div>
+                                    <span class="rf-ov-status @(campaign.InviteCode is null ? "off" : "on")">@(campaign.InviteCode is null ? UiText.CampaignLinkOff(Lang) : UiText.CampaignLinkOn(Lang))</span>
+                                </header>
+                                @if (campaign.InviteCode is { } code)
+                                {
+                                    <div class="rf-ov-link">
+                                        <input class="rf-form-control rf-ov-url" readonly value="@JoinUrl(code)" data-test="campaign-link-url" />
+                                        <button type="button" class="btn btn-rf-orange @(copied ? "rf-ov-copied" : null)" @onclick="() => CopyAsync(JoinUrl(code))">@if (copied) { <Icon Name="check" /> } @(copied ? UiText.LinkCopied(Lang) : UiText.BtnCopyLink(Lang))</button>
+                                    </div>
+                                    <div class="rf-ov-actions">
+                                        <button type="button" class="rf-ov-ghost" @onclick="NewLinkAsync" data-test="campaign-link-new"><Icon Name="arrow-counterclockwise" /> @UiText.BtnNewLink(Lang)</button>
+                                        <button type="button" class="rf-ov-ghost danger" @onclick="DisableLinkAsync" data-test="campaign-link-disable">@UiText.BtnDisableLink(Lang)</button>
+                                    </div>
+                                }
+                                else
+                                {
+                                    <div class="rf-ov-actions">
+                                        <button type="button" class="btn btn-rf-orange" @onclick="NewLinkAsync" data-test="campaign-link-new">@UiText.BtnEnableLink(Lang)</button>
+                                    </div>
+                                }
+                            </section>
+                        }
+
+                        <section class="rf-ov-card rf-ov-danger">
+                            <div class="rf-ov-danger-row">
+                                <div class="rf-ov-stack">
+                                    <span class="rf-ov-micro danger">@UiText.CampaignDangerZone(Lang)</span>
+                                    <span class="rf-ov-perms">@UiText.CampaignDangerHint(Lang)</span>
+                                </div>
+                                <div class="rf-ov-actions">
+                                    <button type="button" class="rf-ov-ghost" @onclick="() => confirm = Confirm.Leave" data-test="campaign-leave">@UiText.BtnLeaveCampaign(Lang)</button>
+                                    @if (CampaignRules.CanDeleteCampaign(role))
+                                    {
+                                        <button type="button" class="rf-ov-danger-btn" @onclick="() => confirm = Confirm.Delete" data-test="campaign-delete">@UiText.BtnDeleteCampaign(Lang)</button>
+                                    }
+                                </div>
+                            </div>
+                        </section>
+                    </div>
                 </div>
                 break;
 
