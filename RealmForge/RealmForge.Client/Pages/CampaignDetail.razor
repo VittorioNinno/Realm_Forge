@@ -353,6 +353,10 @@
                 <CampaignNotes CampaignId="campaign.Id" Role="role" />
                 break;
 
+            case Tab.Audio when CampaignRules.RunsTheTable(role):
+                <CampaignSoundboard CampaignId="campaign.Id" Standalone="true" />
+                break;
+
             case Tab.Handouts:
                 <CampaignHandouts CampaignId="campaign.Id" Role="role" />
                 break;
@@ -432,7 +436,7 @@
 @code {
     [Parameter] public Guid Id { get; set; }
 
-    private enum Tab { Overview, Sessions, Members, Characters, Encounters, Map, Rolls, Content, Notes, Handouts, Shops, Treasure, Progress }
+    private enum Tab { Overview, Sessions, Members, Characters, Encounters, Map, Audio, Rolls, Content, Notes, Handouts, Shops, Treasure, Progress }
     private enum Confirm { None, Leave, Delete }
 
     private LanguageCode Lang => LanguageState.CurrentLanguage;
@@ -471,16 +475,17 @@
         Tab.Rolls => UiText.CampaignTabRolls(Lang),
         Tab.Map => UiText.CampaignTabMaps(Lang),
         Tab.Handouts => UiText.CampaignTabHandouts(Lang),
+        Tab.Audio => UiText.CampaignTabAudio(Lang),
         Tab.Shops => UiText.CampaignTabShops(Lang),
         Tab.Treasure => UiText.CampaignTabTreasure(Lang),
         Tab.Progress => UiText.CampaignTabProgress(Lang),
         _ => UiText.CampaignTabNotes(Lang)
     };
 
-    //	Maps and encounters are the masters' preparation: the players meet them at the virtual tabletop
+    //	Maps, encounters and the audio are the masters' preparation: the players meet them at the virtual tabletop
     private static IEnumerable<Tab> VisibleTabs(CampaignRole role) =>
-        new[] { Tab.Overview, Tab.Sessions, Tab.Members, Tab.Characters, Tab.Encounters, Tab.Map, Tab.Handouts, Tab.Shops, Tab.Treasure, Tab.Progress, Tab.Rolls, Tab.Content, Tab.Notes }
-            .Where(t => CampaignRules.RunsTheTable(role) || (t != Tab.Encounters && t != Tab.Map));
+        new[] { Tab.Overview, Tab.Sessions, Tab.Members, Tab.Characters, Tab.Encounters, Tab.Map, Tab.Audio, Tab.Handouts, Tab.Shops, Tab.Treasure, Tab.Progress, Tab.Rolls, Tab.Content, Tab.Notes }
+            .Where(t => CampaignRules.RunsTheTable(role) || (t != Tab.Encounters && t != Tab.Map && t != Tab.Audio));
 
     //	My characters not yet at the table, of the campaign's edition
     private List<CharacterSummaryDto> Bringable => campaign is null ? new() : myCharacters

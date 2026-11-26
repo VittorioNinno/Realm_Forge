@@ -168,6 +168,24 @@ namespace RealmForge.Client.Services
 		public Task<(CampaignSoundDto? Value, string? Error)> AddSoundAsync(Guid id, SaveCampaignSoundDto dto) =>
 			TableAsync<CampaignSoundDto>(() => _http.PostAsJsonAsync($"api/campaigns/{id}/sounds", dto), "add sound");
 
+		//	The address a browser plays a sound from: its link, or the API's for an uploaded file
+		public string? SoundUrl(string? url) =>
+			SoundFiles.FileId(url) is { } fileId ? new Uri(_http.BaseAddress!, $"api/sound-files/{fileId}").ToString() : url;
+
+		//	A sound from an audio file of this device (already checked: type and size)
+		public Task<(CampaignSoundDto? Value, string? Error)> UploadSoundAsync(Guid id, Stream file, string fileName, string contentType, string name, bool effect, int volume) =>
+			TableAsync<CampaignSoundDto>(() =>
+			{
+				var form = new MultipartFormDataContent();
+				var content = new StreamContent(file);
+				content.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue(string.IsNullOrWhiteSpace(contentType) ? "application/octet-stream" : contentType);
+				form.Add(content, "file", fileName);
+				form.Add(new StringContent(name), "name");
+				form.Add(new StringContent(effect ? "true" : "false"), "effect");
+				form.Add(new StringContent(volume.ToString(System.Globalization.CultureInfo.InvariantCulture)), "volume");
+				return _http.PostAsync($"api/campaigns/{id}/sounds/file", form);
+			}, "upload sound");
+
 		public Task<CampaignResult> DeleteSoundAsync(Guid id, Guid soundId) =>
 			SendAsync(() => _http.DeleteAsync($"api/campaigns/{id}/sounds/{soundId}"), "delete sound");
 

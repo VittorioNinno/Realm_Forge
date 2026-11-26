@@ -5,28 +5,63 @@
 @inject CampaignDataService Campaigns
 @inject LanguageStateService LanguageState
 @inject IJSRuntime JS
+@implements IDisposable
 
-@* The masters' soundboard in the drawer of the table: links to audio hosted elsewhere, played for everyone *@
-<section class="rf-sounds" data-test="vtt-sounds">
-    <div class="small" style="color: var(--rf-text-muted);">@UiText.SoundsHint(Lang)</div>
-    <div class="rf-card2 d-flex flex-column gap-2">
-        <input class="rf-form-control" maxlength="80" placeholder="@UiText.SoundName(Lang)" @bind="draft.Name" data-test="sound-name" />
-        <input class="rf-form-control" maxlength="500" type="url" placeholder="@UiText.SoundUrl(Lang)" @bind="draft.Url" data-test="sound-url" />
-        <div class="d-flex flex-wrap align-items-center gap-2">
-            <label class="form-check d-flex align-items-center gap-2 mb-0">
-                <input type="checkbox" class="form-check-input" @bind="draft.Effect" data-test="sound-effect" />
-                <span class="small">@UiText.SoundEffect(Lang)</span>
-            </label>
-            <label class="d-flex align-items-center gap-2 mb-0 ms-auto">
-                <span class="small">@UiText.SoundVolume(Lang)</span>
-                <input type="range" min="0" max="100" step="5" @bind="draft.Volume" @bind:event="oninput" aria-label="@UiText.SoundVolume(Lang)" />
-            </label>
+@* The masters' soundboard: in the drawer of the table (played for everyone) and on the campaign page (Standalone: prepared
+   there, listened to on this device only). A sound is a link to audio hosted elsewhere or an audio file uploaded *@
+<section class="rf-sounds@(Standalone ? " rf-sounds-page" : null)" data-test="vtt-sounds">
+    <div class="rf-snd-head">
+        <span class="rf-snd-kicker">@UiText.SoundsKicker(Lang)</span>
+        <span class="rf-snd-count" data-test="sounds-count">@(board?.Sounds.Count ?? 0)</span>
+    </div>
+    <p class="rf-snd-hint">@(Standalone ? UiText.SoundsPageHint(Lang) : UiText.SoundsHint(Lang))</p>
+
+    <div class="rf-snd-form">
+        <div class="rf-snd-seg" role="tablist">
+            <button type="button" role="tab" aria-selected="@(!fromFile)" class="@(!fromFile ? "on" : null)" @onclick="() => SetSource(false)" data-test="sound-src-link"><Icon Name="link" /> @UiText.SoundSourceLink(Lang)</button>
+            <button type="button" role="tab" aria-selected="@fromFile" class="@(fromFile ? "on" : null)" @onclick="() => SetSource(true)" data-test="sound-src-file"><Icon Name="upload" /> @UiText.SoundSourceFile(Lang)</button>
         </div>
+        <input class="rf-form-control" maxlength="80" placeholder="@UiText.SoundName(Lang)" @bind="draft.Name" @bind:event="oninput" data-test="sound-name" />
+        @if (fromFile)
+        {
+            <label class="rf-snd-drop@(picked is not null ? " has-file" : null)" data-test="sound-drop">
+                <InputFile OnChange="PickFile" accept="@SoundFiles.Accept" class="rf-snd-file" data-test="sound-file" />
+                <Icon Name="music-note-beamed" />
+                <span>@(picked?.Name ?? UiText.SoundFilePick(Lang))</span>
+            </label>
+            <span class="rf-snd-quota" data-test="sound-quota">
+                <span class="rf-snd-quota-bar"><span style="width: @QuotaPercent%"></span></span>
+                @UiText.SoundFileLimits(SoundFiles.Megabytes(board?.StorageUsed ?? 0), SoundFiles.Megabytes(board?.StorageMax is > 0 ? board.StorageMax : SoundFiles.MaxCampaignBytes), Lang)
+            </span>
+        }
+        else
+        {
+            <input class="rf-form-control" maxlength="500" type="url" placeholder="@UiText.SoundUrl(Lang)" @bind="draft.Url" data-test="sound-url" />
+        }
+        <span class="rf-snd-label">@UiText.SoundMode(Lang)</span>
+        <div class="rf-snd-seg">
+            <button type="button" class="@(!draft.Effect ? "on" : null)" aria-pressed="@(!draft.Effect)" @onclick="() => draft.Effect = false" data-test="sound-mode-loop"><Icon Name="repeat" /> @UiText.SoundModeLoop(Lang)</button>
+            <button type="button" class="@(draft.Effect ? "on" : null)" aria-pressed="@draft.Effect" @onclick="() => draft.Effect = true" data-test="sound-effect"><Icon Name="lightning" /> @UiText.SoundModeOnce(Lang)</button>
+        </div>
+        <label class="rf-snd-volume">
+            <span><Icon Name="volume-up" /> @UiText.SoundVolume(Lang)</span>
+            <input type="range" min="0" max="100" step="5" @bind="draft.Volume" @bind:event="oninput" style="--val: @(draft.Volume)%" aria-label="@UiText.SoundVolume(Lang)" />
+            <span class="rf-snd-pct">@draft.Volume%</span>
+        </label>
         @if (error is not null)
         {
-            <span class="small text-warning">@error</span>
+            <span class="small text-warning" data-test="sound-error">@error</span>
         }
-        <button type="button" class="btn btn-sm btn-rf-orange align-self-end" disabled="@busy" @onclick="AddAsync" data-test="sound-add"><Icon Name="plus" /> @UiText.SoundAdd(Lang)</button>
+        <button type="button" class="btn btn-rf-orange rf-snd-add" disabled="@busy" @onclick="AddAsync" data-test="sound-add">
+            @if (uploading)
+            {
+                <span class="spinner-border spinner-border-sm" aria-hidden="true"></span> @UiText.SoundUploading(Lang)
+            }
+            else
+            {
+                <Icon Name="plus" /> @UiText.SoundAdd(Lang)
+            }
+        </button>
     </div>
 
     @if (board is null)
@@ -35,30 +70,44 @@
     }
     else if (board.Sounds.Count == 0)
     {
-        <span class="small" style="color: var(--rf-text-muted);">@UiText.SoundsEmpty(Lang)</span>
+        <div class="rf-snd-empty" data-test="sounds-empty">
+            <Icon Name="music-note-beamed" />
+            <strong>@UiText.SoundsEmptyTitle(Lang)</strong>
+            <span>@UiText.SoundsEmpty(Lang)</span>
+        </div>
     }
     else
     {
-        @if (board.Playing is not null || board.PlayingScene is not null)
+        @if (!Standalone && (board.Playing is not null || board.PlayingScene is not null))
         {
             <button type="button" class="btn btn-sm btn-rf-outline align-self-start" disabled="@busy" @onclick="StopAsync" data-test="sound-stop"><Icon Name="stop-fill" /> @UiText.SoundStop(Lang)</button>
         }
-        @foreach (var group in board.Sounds.GroupBy(s => s.Effect))
+        @foreach (var group in board.Sounds.GroupBy(s => s.Effect).OrderBy(g => g.Key))
         {
             <span class="rf-mini-label">@(group.Key ? UiText.SoundEffects(Lang) : UiText.SoundTracks(Lang))</span>
-            <ul class="rf-sound-list">
+            <div class="rf-snd-list">
                 @foreach (var s in group)
                 {
                     var sound = s;
-                    <li class="@(board.Playing == sound.Id ? "on" : null)" data-test="sound-row">
-                        <button type="button" class="rf-sound-play" disabled="@busy" title="@UiText.SoundPlay(Lang)" @onclick="() => PlayAsync(sound)" data-test="sound-play">
-                            <Icon Name="@(sound.Effect ? "volume-up" : "play-fill")" />
-                            <span>@sound.Name</span>
+                    var on = Standalone ? previewing == sound.Id : board.Playing == sound.Id;
+                    <div class="rf-snd-card@(on ? " on" : null)" data-test="sound-row">
+                        <button type="button" class="rf-snd-play" disabled="@busy"
+                                title="@(Standalone ? (on ? UiText.SoundPreviewStop(Lang) : UiText.SoundPreview(Lang)) : UiText.SoundPlay(Lang))"
+                                aria-label="@(Standalone ? (on ? UiText.SoundPreviewStop(Lang) : UiText.SoundPreview(Lang)) : UiText.SoundPlay(Lang))"
+                                @onclick="() => PlayAsync(sound)" data-test="sound-play">
+                            <Icon Name="@(on ? "stop-fill" : sound.Effect ? "lightning" : "play-fill")" />
                         </button>
-                        <button type="button" class="rf-vtt-row-action" disabled="@busy" title="@UiText.BtnRemove(Lang)" aria-label="@UiText.BtnRemove(Lang)" @onclick="() => DeleteAsync(sound)" data-test="sound-delete"><Icon Name="trash" /></button>
-                    </li>
+                        <div class="rf-snd-info">
+                            <strong>@sound.Name</strong>
+                            <span class="rf-snd-meta">
+                                <span class="rf-snd-badge@(sound.Effect ? " once" : null)">@(sound.Effect ? UiText.SoundBadgeOnce(Lang) : UiText.SoundBadgeLoop(Lang))</span>
+                                <span>@(SoundFiles.IsFile(sound.Url) ? UiText.SoundFromFile(Lang) : UiText.SoundFromLink(Lang)) · @sound.Volume%</span>
+                            </span>
+                        </div>
+                        <button type="button" class="rf-snd-del" disabled="@busy" title="@UiText.BtnRemove(Lang)" aria-label="@UiText.BtnRemove(Lang)" @onclick="() => DeleteAsync(sound)" data-test="sound-delete"><Icon Name="close" /></button>
+                    </div>
                 }
-            </ul>
+            </div>
         }
 
         @* Sound scenes: a track, loops over it and an effect, with one click *@
@@ -72,7 +121,7 @@
             {
                 var soundScene = sc;
                 <li class="@(board.PlayingScene == soundScene.Id ? "on" : null)" data-test="scene-row">
-                    <button type="button" class="rf-sound-play" disabled="@busy" title="@UiText.SoundScenePlay(Lang)" @onclick="() => PlaySceneAsync(soundScene)" data-test="scene-play">
+                    <button type="button" class="rf-sound-play" disabled="@(busy || Standalone)" title="@(Standalone ? null : UiText.SoundScenePlay(Lang))" @onclick="() => PlaySceneAsync(soundScene)" data-test="scene-play">
                         <Icon Name="collection-play" />
                         <span>@soundScene.Name</span>
                         <span class="rf-sound-scene-meta">@SceneSummary(soundScene)</span>
@@ -153,6 +202,105 @@
 
     //	The map open at the table: a new scene can start with it
     [Parameter] public Guid? MapId { get; set; }
+
+    //	On the campaign page, away from the table: sounds are listened to on this device only
+    [Parameter] public bool Standalone { get; set; }
+
+    private bool fromFile;
+    private IBrowserFile? picked;
+    private bool uploading;
+    private Guid? previewing;
+    private DotNetObjectReference<CampaignSoundboard>? self;
+
+    private double QuotaPercent => board is { StorageMax: > 0 } ? Math.Min(100, Math.Round(100d * board.StorageUsed / board.StorageMax, 1)) : 0;
+
+    private void SetSource(bool file)
+    {
+        fromFile = file;
+        error = null;
+    }
+
+    private void PickFile(InputFileChangeEventArgs e)
+    {
+        picked = e.File;
+        error = null;
+        //	The name of the file, without its extension, until the master writes one
+        if (string.IsNullOrWhiteSpace(draft.Name))
+        {
+            var bare = Path.GetFileNameWithoutExtension(e.File.Name);
+            draft.Name = bare.Length > 80 ? bare[..80] : bare;
+        }
+    }
+
+    private static readonly string[] AudioExtensions = { ".mp3", ".ogg", ".oga", ".m4a", ".wav" };
+
+    private async Task UploadAsync()
+    {
+        if (picked is null || string.IsNullOrWhiteSpace(draft.Name) || !AudioExtensions.Contains(Path.GetExtension(picked.Name).ToLowerInvariant()))
+        {
+            error = UiText.SoundFileInvalid(Lang);
+            return;
+        }
+        if (picked.Size > SoundFiles.MaxFileBytes)
+        {
+            error = UiText.SoundFileTooBig(Lang);
+            return;
+        }
+        if (board is not null && board.StorageMax > 0 && board.StorageUsed + picked.Size > board.StorageMax)
+        {
+            error = UiText.SoundFileNoRoom(Lang);
+            return;
+        }
+        busy = uploading = true;
+        (CampaignSoundDto? Value, string? Error) result;
+        try
+        {
+            await using var stream = picked.OpenReadStream(SoundFiles.MaxFileBytes);
+            result = await Campaigns.UploadSoundAsync(CampaignId, stream, picked.Name, picked.ContentType, draft.Name.Trim(), draft.Effect, draft.Volume);
+        }
+        catch (Exception)
+        {
+            result = (null, null);
+        }
+        busy = uploading = false;
+        if (result.Value is null)
+        {
+            error = string.IsNullOrWhiteSpace(result.Error) ? UiText.SoundFileInvalid(Lang) : result.Error;
+            return;
+        }
+        error = null;
+        picked = null;
+        draft = new SaveCampaignSoundDto { Effect = draft.Effect, Volume = draft.Volume };
+        await LoadAsync();
+        await OnChanged.InvokeAsync();
+    }
+
+    [JSInvokable]
+    public void PreviewEnded()
+    {
+        previewing = null;
+        StateHasChanged();
+    }
+
+    public void Dispose()
+    {
+        if (previewing is not null)
+        {
+            _ = StopPreviewAsync();
+        }
+        self?.Dispose();
+    }
+
+    private async Task StopPreviewAsync()
+    {
+        try
+        {
+            await JS.InvokeAsync<bool>("rfSound.preview", null, 0, null);
+        }
+        catch (Exception)
+        {
+        }
+    }
 
     private static class SoundsLimits
     {
@@ -257,6 +405,11 @@
 
     private async Task AddAsync()
     {
+        if (fromFile)
+        {
+            await UploadAsync();
+            return;
+        }
         if (string.IsNullOrWhiteSpace(draft.Name) || !Uri.TryCreate(draft.Url?.Trim(), UriKind.Absolute, out var uri) || uri.Scheme != Uri.UriSchemeHttps)
         {
             error = UiText.SoundInvalid(Lang);
@@ -267,7 +420,7 @@
         busy = false;
         if (added is null)
         {
-            error = failure ?? UiText.SoundInvalid(Lang);
+            error = string.IsNullOrWhiteSpace(failure) ? UiText.SoundInvalid(Lang) : failure;
             return;
         }
         error = null;
@@ -277,6 +430,20 @@
 
     private async Task PlayAsync(CampaignSoundDto sound)
     {
+        if (Standalone)
+        {
+            self ??= DotNetObjectReference.Create(this);
+            try
+            {
+                var playing = await JS.InvokeAsync<bool>("rfSound.preview", Campaigns.SoundUrl(sound.Url), sound.Volume, self);
+                previewing = playing ? sound.Id : null;
+            }
+            catch (Exception)
+            {
+                previewing = null;
+            }
+            return;
+        }
         //	The click lets this browser play too
         await UnlockAsync();
         busy = true;
@@ -297,6 +464,11 @@
 
     private async Task DeleteAsync(CampaignSoundDto sound)
     {
+        if (previewing == sound.Id)
+        {
+            await StopPreviewAsync();
+            previewing = null;
+        }
         busy = true;
         await Campaigns.DeleteSoundAsync(CampaignId, sound.Id);
         busy = false;

@@ -7,9 +7,32 @@ namespace RealmForge.Client.Localization
 	{
 		public static string VttToolSounds(LanguageCode lang) => T(lang, "Soundboard", "Soundboard");
 		public static string SoundsHint(LanguageCode lang) => T(lang,
-			"Link a file audio o stream (https) ospitati altrove: le tracce vanno in loop e restano sincronizzate per tutto il tavolo, gli effetti suonano una volta.",
-			"Links to audio files or streams (https) hosted elsewhere: tracks loop and stay in time for the whole table, effects play once.");
-		public static string SoundName(LanguageCode lang) => T(lang, "Nome", "Name");
+			"Le tracce vanno in loop e restano sincronizzate per tutto il tavolo; gli effetti suonano una volta.",
+			"Tracks loop and stay in time for the whole table; effects play once.");
+		public static string SoundName(LanguageCode lang) => T(lang, "Nome (es. Pioggia in taverna)", "Name (e.g. Rain in the tavern)");
+		public static string CampaignTabAudio(LanguageCode lang) => T(lang, "Audio", "Audio");
+		public static string SoundsKicker(LanguageCode lang) => T(lang, "Audio e suoni", "Audio and sounds");
+		public static string SoundsPageHint(LanguageCode lang) => T(lang,
+			"Prepara qui tracce, effetti e scene sonore: al tavolo li trovi pronti nella soundboard. L'ascolto da questa pagina resta sul tuo dispositivo.",
+			"Prepare tracks, effects and sound scenes here: at the table you find them ready in the soundboard. Listening from this page stays on your device.");
+		public static string SoundSourceLink(LanguageCode lang) => T(lang, "Link (https)", "Link (https)");
+		public static string SoundSourceFile(LanguageCode lang) => T(lang, "File locale", "Local file");
+		public static string SoundFilePick(LanguageCode lang) => T(lang, "Scegli un file audio (.mp3, .ogg, .m4a, .wav)", "Choose an audio file (.mp3, .ogg, .m4a, .wav)");
+		public static string SoundFileLimits(string used, string max, LanguageCode lang) => T(lang, $"Fino a 4 MB per file · usati {used} di {max} MB", $"Up to 4 MB a file · {used} of {max} MB used");
+		public static string SoundFileTooBig(LanguageCode lang) => T(lang, "Il file supera i 4 MB.", "The file is over 4 MB.");
+		public static string SoundFileNoRoom(LanguageCode lang) => T(lang, "I file audio della campagna supererebbero i 30 MB: rimuovine qualcuno.", "The audio files of the campaign would pass 30 MB: remove some first.");
+		public static string SoundFileInvalid(LanguageCode lang) => T(lang, "Scegli un file mp3, ogg, m4a o wav e dagli un nome.", "Choose an mp3, ogg, m4a or wav file and give it a name.");
+		public static string SoundUploading(LanguageCode lang) => T(lang, "Caricamento…", "Uploading…");
+		public static string SoundMode(LanguageCode lang) => T(lang, "Modalità di riproduzione", "Playback mode");
+		public static string SoundModeLoop(LanguageCode lang) => T(lang, "Traccia (loop)", "Track (loop)");
+		public static string SoundModeOnce(LanguageCode lang) => T(lang, "Effetto (1×)", "Effect (1×)");
+		public static string SoundBadgeLoop(LanguageCode lang) => T(lang, "Loop", "Loop");
+		public static string SoundBadgeOnce(LanguageCode lang) => T(lang, "Effetto 1×", "Effect 1×");
+		public static string SoundFromLink(LanguageCode lang) => T(lang, "Link", "Link");
+		public static string SoundFromFile(LanguageCode lang) => T(lang, "File", "File");
+		public static string SoundsEmptyTitle(LanguageCode lang) => T(lang, "Nessun suono ancora.", "No sounds yet.");
+		public static string SoundPreview(LanguageCode lang) => T(lang, "Ascolta qui", "Listen here");
+		public static string SoundPreviewStop(LanguageCode lang) => T(lang, "Ferma l'ascolto", "Stop listening");
 		public static string SoundUrl(LanguageCode lang) => T(lang, "Link audio (https)", "Audio link (https)");
 		public static string SoundEffect(LanguageCode lang) => T(lang, "Effetto (una volta)", "Effect (once)");
 		public static string SoundVolume(LanguageCode lang) => T(lang, "Volume", "Volume");
@@ -48,7 +71,7 @@ namespace RealmForge.Client.Localization
 		}
 		public static string SoundPlay(LanguageCode lang) => T(lang, "Riproduci al tavolo", "Play at the table");
 		public static string SoundStop(LanguageCode lang) => T(lang, "Silenzio", "Silence");
-		public static string SoundsEmpty(LanguageCode lang) => T(lang, "Nessun suono ancora.", "No sounds yet.");
+		public static string SoundsEmpty(LanguageCode lang) => T(lang, "Aggiungi un link o carica un file audio per creare la soundboard.", "Add a link or upload an audio file to build the soundboard.");
 		public static string SoundInvalid(LanguageCode lang) => T(lang, "Servono un nome e un link https.", "A name and an https link are needed.");
 		public static string SoundUnlock(LanguageCode lang) => T(lang, "Attiva l'audio del tavolo", "Turn the table's sound on");
 		public static string SoundMute(LanguageCode lang) => T(lang, "Silenzia (solo per te)", "Mute (only for you)");
