@@ -1808,8 +1808,9 @@ try {
       const wide = await overflowOf(mobile, `${campaignPath} tab ${i}`);
       if (wide) phoneWide.push(wide);
     }
-    // The table upright works too: the tools along the bottom, the card of a token as a sheet, nothing off the screen;
-    // sideways the same with the card on the right
+    // The table upright works too: the tools on a rail over the map, the phone's bar along the bottom (panels,
+    // initiative, dice, log), the card of a token as a sheet, the panels behind one button, the controls of the table
+    // behind its status; sideways the same with a dock in the corner. Nothing off the screen
     await mobile.goto(`${base}${vttPath}`);
     await mobile.locator('[data-test=vtt] [data-test=map-token]').first().waitFor({ timeout: 60000 });
     await mobile.waitForTimeout(1500);
@@ -1821,12 +1822,31 @@ try {
     const uprightSheet = await mobile.locator('[data-test=vtt-phone-sheet] [data-test=map-token-card]').count();
     await shot(mobile, 'phone-vtt-upright-token', null);
     await mobile.keyboard.press('Escape').catch(() => {});
-    await mobile.locator('[data-test=vtt-tool-tokens]').click().catch(() => {});
+    const phoneUi = { nav: await mobile.locator('[data-test=vtt-mnav]').count(), railPanels: await mobile.locator('[data-test=vtt-tool-tokens]').isVisible() };
+    await mobile.locator('[data-test=vtt-mnav-panels]').click();
+    await mobile.locator('[data-test=vtt-mhub]').waitFor({ timeout: 10000 });
+    phoneUi.tiles = await mobile.locator('[data-test=vtt-mhub-tile]').count();
+    await shot(mobile, 'phone-vtt-upright-panels', null);
+    await mobile.locator('[data-test=vtt-mhub-tile][data-tool=tokens]').click();
     await mobile.waitForTimeout(1000);
+    phoneUi.tokens = await mobile.locator('[data-test=vtt-tab-tool][data-tool=tokens]').count();
     await shot(mobile, 'phone-vtt-upright-tokens', null);
     const uprightPanelWide = await overflowOf(mobile, `${vttPath} upright tokens`);
     if (uprightPanelWide) phoneWide.push(uprightPanelWide);
-    await mobile.locator('[data-test=vtt-tool-tokens]').click().catch(() => {});
+    await mobile.locator('[data-test=vtt-drawer-close]').click();
+    await mobile.locator('[data-test=vtt-mnav-dice]').click();
+    await mobile.waitForTimeout(800);
+    phoneUi.dice = await mobile.locator('[data-test=vtt-drawer] [data-test=vtt-tab-dice]').count();
+    phoneUi.floating = await mobile.locator('[data-test=vtt-dice-card]').count();
+    await shot(mobile, 'phone-vtt-upright-dice', null);
+    await mobile.locator('[data-test=vtt-drawer-close]').click();
+    await mobile.locator('[data-test=vtt-mstatus]').click();
+    await mobile.locator('[data-test=vtt-mtable]').waitFor({ timeout: 10000 });
+    phoneUi.table = await mobile.locator('[data-test=vtt-mtable] [data-test=vtt-connection]').count();
+    await shot(mobile, 'phone-vtt-upright-table', null);
+    await mobile.locator('[data-test=vtt-drawer-close]').click();
+    results.push(`INFO phone table bar: ${JSON.stringify(phoneUi)}`);
+    if (phoneUi.nav !== 1 || phoneUi.railPanels || phoneUi.tiles !== 7 || phoneUi.tokens !== 1 || phoneUi.dice !== 1 || phoneUi.floating !== 0 || phoneUi.table !== 1) throw new Error(`unexpected phone table bar: ${JSON.stringify(phoneUi)}`);
     await mobile.setViewportSize({ width: 812, height: 375 });
     await mobile.waitForTimeout(1500);
     await shot(mobile, 'phone-vtt-landscape', null);
@@ -1842,7 +1862,7 @@ try {
     const sheetWide = await overflowOf(mobile, `${vttPath} token card`);
     if (sheetWide) phoneWide.push(sheetWide);
     await mobile.keyboard.press('Escape').catch(() => {});
-    for (const tool of ['tokens', 'fog', 'light']) {
+    for (const tool of ['fog', 'light']) {
       await mobile.locator(`[data-test=vtt-tool-${tool}]`).click().catch(() => {});
       await mobile.waitForTimeout(1000);
       await shot(mobile, `phone-vtt-${tool}`, null);
