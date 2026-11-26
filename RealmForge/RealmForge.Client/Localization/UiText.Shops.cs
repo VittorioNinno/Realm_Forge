@@ -29,6 +29,15 @@ namespace RealmForge.Client.Localization
 		public static string ShopStock(LanguageCode lang) => T(lang, "Scorte", "Stock");
 		public static string ShopStockHint(LanguageCode lang) => T(lang, "vuoto: illimitate", "empty: unlimited");
 		public static string ShopStockLeft(int stock, LanguageCode lang) => stock == 0 ? T(lang, "Esaurito", "Sold out") : T(lang, $"{stock} disponibili", $"{stock} available");
+		public static string ShopDetails(LanguageCode lang) => T(lang, "Dettagli del negozio e mercante", "Shop and merchant");
+		public static string ShopNpc(LanguageCode lang) => T(lang, "Mercante (PNG collegato)", "Merchant (linked NPC)");
+		public static string ShopNoNpc(LanguageCode lang) => T(lang, "— Nessun PNG collegato —", "— No linked NPC —");
+		public static string ShopNpcHint(LanguageCode lang) => T(lang, "Condividi un PNG con la campagna per farne il mercante.", "Share an NPC with the campaign to make them the merchant.");
+		public static string ShopNpcLinked(LanguageCode lang) => T(lang, "Collegato", "Linked");
+		public static string ShopStandardPrice(string price, LanguageCode lang) => T(lang, $"std {price}", $"std {price}");
+		public static string ShopDiscount(LanguageCode lang) => T(lang, "Sconto %", "Discount %");
+		public static string ShopDiscountHint(LanguageCode lang) => T(lang, "Sconto su questo oggetto, dopo il moltiplicatore del negozio (0–90%)", "Discount on this item, after the shop's multiplier (0–90%)");
+		public static string ShopResetPrice(LanguageCode lang) => T(lang, "Ripristina il prezzo standard", "Back to the standard price");
 		public static string ShopListPrice(string price, LanguageCode lang) => T(lang, $"listino {price}", $"list {price}");
 		public static string ShopBuy(LanguageCode lang) => T(lang, "Compra", "Buy");
 		public static string ShopBuyFor(LanguageCode lang) => T(lang, "Per", "For");

@@ -44,9 +44,19 @@ namespace RealmForge.Api.Controllers
 		//	The factions of the campaign of this request (name and standing), read once
 		private Dictionary<Guid, (string Name, int Standing)> factions = new();
 
-		private async Task LoadFactionsAsync(Guid campaignId) =>
+		//	The NPCs shared with the campaign of this request, a merchant can be (their names in Italian and English)
+		private Dictionary<Guid, (string It, string En)> npcs = new();
+
+		private async Task LoadFactionsAsync(Guid campaignId)
+		{
 			factions = await _context.CampaignFactions.AsNoTracking().Where(f => f.CampaignId == campaignId)
 				.ToDictionaryAsync(f => f.Id, f => (f.Name, f.Standing));
+			var shared = _context.CampaignContents.Where(c => c.CampaignId == campaignId).Select(c => c.EntityId);
+			npcs = (await _context.Monsters.AsNoTracking().Include(m => m.Translations).Where(m => m.IsNpc && shared.Contains(m.Id)).ToListAsync())
+				.ToDictionary(m => m.Id, m => (
+					(m.Translations.FirstOrDefault(t => t.Language == LanguageCode.It) ?? m.Translations.FirstOrDefault())?.Name ?? "?",
+					(m.Translations.FirstOrDefault(t => t.Language == LanguageCode.En) ?? m.Translations.FirstOrDefault())?.Name ?? "?"));
+		}
 
 		//	The prices of a shop, moved by the standing of its faction
 		private int PercentOf(CampaignShop shop) =>
@@ -65,6 +75,12 @@ namespace RealmForge.Api.Controllers
 
 		//	The price of one piece in a shop: the list price times the multiplier, rounded to the copper piece
 		public static int PriceOf(int listPrice, int percent) => (int)Math.Min(MaxPrice, Math.Round(listPrice * (long)percent / 100m, MidpointRounding.AwayFromZero));
+
+		//	The list price of an item in its shop: the master's own, else the standard one
+		private static int Listed(CampaignShopItem item) => item.CustomPrice ?? item.PriceInCopper;
+
+		//	What a piece costs: its list price times the shop's multiplier, less its own discount
+		public static int PriceOf(int listPrice, int percent, int discount) => PriceOf(PriceOf(listPrice, percent), 100 - Math.Clamp(discount, 0, 90));
 
 		//	GET: api/campaigns/{campaignId}/shops?lang=2 — the masters every shop, a player the open ones; with the
 		//	characters the reader can buy for
@@ -108,6 +124,10 @@ namespace RealmForge.Api.Controllers
 			if (dto.FactionId is { } factionId && !factions.ContainsKey(factionId))
 			{
 				return Problem(statusCode: StatusCodes.Status400BadRequest, title: "Unknown faction.");
+			}
+			if (dto.NpcId is { } npcId && !npcs.ContainsKey(npcId))
+			{
+				return Problem(statusCode: StatusCodes.Status400BadRequest, title: "Not an NPC shared with this campaign.");
 			}
 			var shop = new CampaignShop { CampaignId = campaignId, AuthorId = UserId };
 			Apply(shop, dto);
@@ -202,6 +222,10 @@ namespace RealmForge.Api.Controllers
 			if (dto.FactionId is { } factionId && !factions.ContainsKey(factionId))
 			{
 				return Problem(statusCode: StatusCodes.Status400BadRequest, title: "Unknown faction.");
+			}
+			if (dto.NpcId is { } npcId && !npcs.ContainsKey(npcId))
+			{
+				return Problem(statusCode: StatusCodes.Status400BadRequest, title: "Not an NPC shared with this campaign.");
 			}
 			Apply(shop, dto);
 			shop.UpdatedAt = DateTimeOffset.UtcNow;
@@ -305,15 +329,45 @@ namespace RealmForge.Api.Controllers
 			{
 				return NotFound();
 			}
-			if (dto.PriceInCopper is < 0 or > MaxPrice || dto.Stock is < 0 or > 9999)
+			if (dto.PriceInCopper is < 0 or > MaxPrice || dto.Stock is < 0 or > 9999 || dto.Discount is < 0 or > 90)
 			{
-				return Problem(statusCode: StatusCodes.Status400BadRequest, title: "Prices from 0 and stock from 0 to 9999.");
+				return Problem(statusCode: StatusCodes.Status400BadRequest, title: "Prices from 0, stock from 0 to 9999, a discount from 0 to 90%.");
 			}
-			if (item.EquipmentId is null && item.MagicItemId is null && (dto.Name ?? string.Empty).Trim() is { Length: > 0 and <= 120 } name)
+			var free = item.EquipmentId is null && item.MagicItemId is null;
+			if (free && (dto.Name ?? string.Empty).Trim() is { Length: > 0 and <= 120 } name)
 			{
 				item.Name = name;
 			}
-			item.PriceInCopper = dto.PriceInCopper ?? item.PriceInCopper;
+			if (dto.Reset)
+			{
+				//	Back to the standard price of the compendium, without a discount
+				item.CustomPrice = null;
+				item.Discount = 0;
+				if (item.EquipmentId is { } equipmentId && await _context.Equipment.AsNoTracking().Where(e => e.Id == equipmentId).Select(e => e.CostInCopper).FirstOrDefaultAsync() is { } cost)
+				{
+					item.PriceInCopper = cost;
+				}
+				else if (item.MagicItemId is { } magicId && RarityPrice(await _context.MagicItems.AsNoTracking().Where(m => m.Id == magicId).Select(m => m.Rarity).FirstOrDefaultAsync()) is { } gold)
+				{
+					item.PriceInCopper = gold * 100;
+				}
+			}
+			else
+			{
+				if (dto.PriceInCopper is { } price)
+				{
+					//	A free item has no standard price but its own; an item of the compendium keeps the standard aside
+					if (free)
+					{
+						item.PriceInCopper = price;
+					}
+					else
+					{
+						item.CustomPrice = price == item.PriceInCopper ? null : price;
+					}
+				}
+				item.Discount = dto.Discount ?? item.Discount;
+			}
 			item.Stock = dto.Stock;
 			shop.UpdatedAt = DateTimeOffset.UtcNow;
 			await _context.SaveChangesAsync();
@@ -371,7 +425,7 @@ namespace RealmForge.Api.Controllers
 			}
 			var sheet = CharactersController.ReadSheet(character.Sheet);
 			await LoadFactionsAsync(campaignId);
-			var total = (int)Math.Min(int.MaxValue, (long)PriceOf(item.PriceInCopper, PercentOf(shop)) * dto.Quantity);
+			var total = (int)Math.Min(int.MaxValue, (long)PriceOf(Listed(item), PercentOf(shop), item.Discount) * dto.Quantity);
 			if (!InventoryRules.Pay(sheet.Coins, total))
 			{
 				return Problem(statusCode: StatusCodes.Status409Conflict, title: "Not enough coins.");
@@ -465,6 +519,7 @@ namespace RealmForge.Api.Controllers
 			shop.DescriptionEn = (dto.DescriptionEn ?? string.Empty).Trim();
 			shop.PricePercent = dto.PricePercent;
 			shop.FactionId = dto.FactionId;
+			shop.NpcId = dto.NpcId;
 			shop.Open = dto.Open;
 		}
 
@@ -480,7 +535,8 @@ namespace RealmForge.Api.Controllers
 				en ? Either(s.DescriptionEn, s.DescriptionIt) : Either(s.DescriptionIt, s.DescriptionEn),
 				s.PricePercent, s.Open, items,
 				runs ? s.NameIt : null, runs ? s.NameEn : null, runs ? s.DescriptionIt : null, runs ? s.DescriptionEn : null,
-				s.FactionId, s.FactionId is { } f && factions.TryGetValue(f, out var faction) ? faction.Name : null, PercentOf(s));
+				s.FactionId, s.FactionId is { } f && factions.TryGetValue(f, out var faction) ? faction.Name : null, PercentOf(s),
+				s.NpcId, s.NpcId is { } n && npcs.TryGetValue(n, out var npc) ? (en ? npc.En : npc.It) : null);
 		}
 
 		private static ShopItemDto ItemDto(CampaignShopItem i, int percent, Dictionary<Guid, string> names) => new(
@@ -488,8 +544,12 @@ namespace RealmForge.Api.Controllers
 			i.EquipmentId is not null ? "equipment" : i.MagicItemId is not null ? "magic-item" : "free",
 			i.EquipmentId ?? i.MagicItemId,
 			names.GetValueOrDefault(i.Id) ?? i.Name,
+			Listed(i),
+			PriceOf(Listed(i), percent, i.Discount),
+			i.Stock,
+			null,
 			i.PriceInCopper,
-			PriceOf(i.PriceInCopper, percent),
-			i.Stock);
+			i.CustomPrice is not null,
+			i.Discount);
 	}
 }

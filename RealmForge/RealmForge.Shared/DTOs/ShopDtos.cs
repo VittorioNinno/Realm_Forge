@@ -25,13 +25,17 @@ namespace RealmForge.Shared.DTOs
 		string? DescriptionEn = null,
 		Guid? FactionId = null,
 		string? Faction = null,
-		int? EffectivePercent = null);
+		int? EffectivePercent = null,
+		Guid? NpcId = null,
+		string? Npc = null);
 
 	///	<summary>
-	///	An item on sale: ListPrice of one piece before the shop's multiplier, Price what a piece costs in the shop
-	///	(copper pieces); Stock null: as many as wanted. Kind: equipment, magic-item or free.
+	///	An item on sale: ListPrice of one piece before the shop's multiplier (the master's own when CustomPrice, else
+	///	StandardPrice), Price what a piece costs in the shop after the multiplier and its Discount (copper pieces);
+	///	Stock null: as many as wanted. Kind: equipment, magic-item or free.
 	///	</summary>
-	public record ShopItemDto(Guid Id, string Kind, Guid? EntryId, string Name, int ListPrice, int Price, int? Stock, ItemRarity? Rarity = null);
+	public record ShopItemDto(Guid Id, string Kind, Guid? EntryId, string Name, int ListPrice, int Price, int? Stock, ItemRarity? Rarity = null,
+		int StandardPrice = 0, bool CustomPrice = false, int Discount = 0);
 
 	public record ShopBuyerDto(Guid CharacterId, string Name, CoinPurse Coins);
 
@@ -52,6 +56,8 @@ namespace RealmForge.Shared.DTOs
 		public bool Open { get; set; }
 		//	The faction the shop belongs to: its standing moves the prices
 		public Guid? FactionId { get; set; }
+		//	The merchant: an NPC shared with the campaign
+		public Guid? NpcId { get; set; }
 	}
 
 	///	<summary>
@@ -65,6 +71,9 @@ namespace RealmForge.Shared.DTOs
 		public string? Name { get; set; }
 		public int? PriceInCopper { get; set; }
 		public int? Stock { get; set; }
+		//	On an update: a discount on this item (0 to 90%); Reset: back to the standard price, no discount
+		public int? Discount { get; set; }
+		public bool Reset { get; set; }
 	}
 
 	public class BuyShopItemDto
