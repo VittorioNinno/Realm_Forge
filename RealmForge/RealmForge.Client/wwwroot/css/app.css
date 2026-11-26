@@ -25866,3 +25866,62 @@ html.rf-fx-off .rf-bg-msg { animation: none; }
         grid-template-columns: minmax(0, 1fr);
     }
 }
+
+/* ===== The shop editor: details, merchant and prices on the left, the items on sale on the right ===== */
+.rf-se-card {
+    overflow: hidden;
+    border: 1px solid #242424;
+    border-top: 2px solid var(--rf-orange-primary);
+    border-radius: 12px;
+    background: #0e0e0e;
+}
+
+.rf-se-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+}
+
+@media (min-width: 992px) {
+    .rf-se-grid {
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    }
+
+    .rf-se-left {
+        border-right: 1px solid #222;
+    }
+}
+
+.rf-se-left,
+.rf-se-right {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    min-width: 0;
+    padding: 24px;
+}
+
+.rf-se-right {
+    background: #111;
+}
+
+    .rf-se-left > .rf-sh-form-head,
+    .rf-se-right > .rf-sh-form-head {
+        flex-wrap: wrap;
+        padding-bottom: 12px;
+        border-bottom: 1px solid #222;
+    }
+
+    .rf-se-right .rf-shop-items {
+        margin: 0;
+    }
+
+.rf-se-foot {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 16px 24px;
+    border-top: 1px solid #222;
+    background: #121212;
+}

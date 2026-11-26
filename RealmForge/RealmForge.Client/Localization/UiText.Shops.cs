@@ -29,6 +29,10 @@ namespace RealmForge.Client.Localization
 		public static string ShopStock(LanguageCode lang) => T(lang, "Scorte", "Stock");
 		public static string ShopStockHint(LanguageCode lang) => T(lang, "vuoto: illimitate", "empty: unlimited");
 		public static string ShopStockLeft(int stock, LanguageCode lang) => stock == 0 ? T(lang, "Esaurito", "Sold out") : T(lang, $"{stock} disponibili", $"{stock} available");
+		public static string ShopItemsTitle(int count, LanguageCode lang) => T(lang, $"Oggetti in vendita ({count})", $"Items on sale ({count})");
+		public static string ShopItemsHint(LanguageCode lang) => T(lang, "Modifica il prezzo per sovrascrivere il listino", "Change the price to override the list");
+		public static string ShopItemsAfterSave(LanguageCode lang) => T(lang, "Conferma il negozio: poi aggiungi gli oggetti dalla sua scheda o riaprendolo qui.", "Confirm the shop: then add its items from its card or by opening it here again.");
+		public static string ShopManualWins(LanguageCode lang) => T(lang, "I prezzi scritti a mano prevalgono sul moltiplicatore del negozio.", "Prices written by hand win over the shop's multiplier.");
 		public static string ShopDetails(LanguageCode lang) => T(lang, "Dettagli del negozio e mercante", "Shop and merchant");
 		public static string ShopNpc(LanguageCode lang) => T(lang, "Mercante (PNG collegato)", "Merchant (linked NPC)");
 		public static string ShopNoNpc(LanguageCode lang) => T(lang, "— Nessun PNG collegato —", "— No linked NPC —");
