@@ -1365,6 +1365,16 @@
             } catch { }
         };
     </script>
+    <script>
+        // The initiative strip, in a line: the mouse wheel scrolls it sideways
+        document.addEventListener('wheel', (e) => {
+            const strip = e.target.closest && e.target.closest('.rf-init-widget:not(.vertical) .rf-init-strip');
+            if (strip && e.deltaY !== 0 && strip.scrollWidth > strip.clientWidth) {
+                e.preventDefault();
+                strip.scrollLeft += e.deltaY;
+            }
+        }, { passive: false });
+    </script>
 </body>
 
 </html>

@@ -4691,13 +4691,25 @@ else
                 <div class="rf-init-shell" data-test="vtt-init-roll">
                     @if (initCollapsed)
                     {
-                        <span class="rf-init-summary">@UiText.VttInitPhase(Lang) · <strong>@rolled/@combat.Order.Count</strong></span>
+                        @* The mini bar: who is ready, and the one step the master takes next *@
+                        <span class="rf-init-summary"><span class="rf-init-kicker">@UiText.VttInitPhase(Lang)</span> <span class="rf-init-pill">@UiText.VttInitReady(rolled, combat.Order.Count, Lang)</span></span>
+                        @if (RunsTheTable)
+                        {
+                            @if (rolled < combat.Order.Count)
+                            {
+                                <button type="button" class="rf-init-btn orange" disabled="@busy" title="@UiText.VttRollAllHint(Lang)" @onclick="RollAllAsync" data-test="vtt-roll-all">@UiText.VttRollMissing(combat.Order.Count - rolled, Lang)</button>
+                            }
+                            else
+                            {
+                                <button type="button" class="rf-init-btn orange" disabled="@busy" @onclick="BeginCombatAsync" data-test="vtt-begin">@UiText.VttBegin(Lang) <Icon Name="chevron-right" /></button>
+                            }
+                        }
                     }
                     else
                     {
-                        <div class="rf-init-head">
+                        <div class="rf-init-head" title="@UiText.VttInitPhaseHint(Lang)">
                             <span class="rf-init-kicker">@UiText.VttInitPhase(Lang)</span>
-                            <span class="rf-init-sub">@UiText.VttInitPhaseHint(Lang)</span>
+                            <span class="rf-init-sub">@UiText.VttInitReady(rolled, combat.Order.Count, Lang)</span>
                         </div>
                         <div class="rf-init-strip">
                             @foreach (var c in combat.Order)
@@ -4752,7 +4764,29 @@ else
                 <div class="rf-init-shell" data-test="vtt-init-fight">
                     @if (initCollapsed)
                     {
-                        <span class="rf-init-summary">@UiText.VttActiveTurn(Lang): <strong>@(current?.Name ?? "–")</strong></span>
+                        @* The mini bar: the round, who acts with its health, who comes next *@
+                        var at = current is null ? -1 : combat.Order.IndexOf(current);
+                        var next = combat.Order.Count > 1 && at >= 0 ? combat.Order[(at + 1) % combat.Order.Count] : null;
+                        var currentToken = current is null ? null : TokenOf(current);
+                        var currentLife = BarLifeOf(currentToken);
+                        <span class="rf-init-pill round" data-test="vtt-round">R@(combat.Round)</span>
+                        <span class="rf-init-summary">
+                            @if (current is not null)
+                            {
+                                @Avatar(current, currentToken)
+                            }
+                            <span class="rf-init-now">
+                                <strong>@(current?.Name ?? "–")</strong>
+                                @if (currentLife is { } cl)
+                                {
+                                    <span class="rf-init-hp"><span class="rf-vtt-hpbar"><span class="@(cl.Fraction <= .5 ? "low" : "ok")" style="width: @N(cl.Fraction * 100)%;"></span></span><span>@cl.Text</span></span>
+                                }
+                            </span>
+                        </span>
+                        @if (next is not null)
+                        {
+                            <span class="rf-init-next" title="@UiText.VttNextUp(next.Name, Lang)">@UiText.VttThen(Lang) <strong>@next.Name</strong></span>
+                        }
                         @if (RunsTheTable)
                         {
                             <button type="button" class="rf-init-btn orange" disabled="@busy" title="@UiText.VttNextTurn(Lang)" @onclick="NextTurnAsync" data-test="vtt-next-turn"><span class="rf-init-btn-text">@UiText.VttTurnShort(Lang)</span> <Icon Name="@(initVertical ? "chevron-down" : "chevron-right")" /></button>
