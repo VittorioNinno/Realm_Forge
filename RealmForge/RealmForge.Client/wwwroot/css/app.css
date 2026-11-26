@@ -11609,50 +11609,261 @@ textarea.rf-form-control {
     min-width: 0;
 }
 
-.rf-vtt-enc-list {
+/* The encounters of the campaign in the drawer of the table: a card each, its state, map and sides, one action */
+.rf-enc-head {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.rf-enc-kicker {
+    font-size: 11px;
+    font-weight: 900;
+    letter-spacing: 0.8px;
+    text-transform: uppercase;
+    color: #e4e4e7;
+}
+
+.rf-enc-count {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 24px;
+    height: 24px;
+    padding: 0 8px;
+    border: 1px solid #2e2e2e;
+    border-radius: 12px;
+    background: #1c1c1c;
+    color: var(--rf-orange-primary);
+    font-size: 11px;
+    font-weight: 800;
+}
+
+.rf-enc-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    padding: 24px 16px;
+    border: 1px dashed #2a2a2a;
+    border-radius: 12px;
+    text-align: center;
+    font-size: 12.5px;
+    color: var(--rf-text-muted);
+}
+
+    .rf-enc-empty svg {
+        width: 24px;
+        height: 24px;
+        color: #52525b;
+    }
+
+.rf-enc-list {
     display: flex;
     flex-direction: column;
     gap: 8px;
-    margin: 0;
-    padding: 0;
-    list-style: none;
 }
 
-.rf-vtt-enc {
+.rf-enc-card {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 16px;
+    border: 1px solid #242424;
+    border-radius: 12px;
+    background: #141414;
+}
+
+    .rf-enc-card.live {
+        border-color: #4a2e0a;
+        background: linear-gradient(180deg, rgba(255, 140, 0, 0.06), #141414 64px);
+        box-shadow: inset 3px 0 0 var(--rf-orange-primary);
+    }
+
+.rf-enc-top {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 8px;
+}
+
+.rf-enc-title {
+    margin: 0;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 14px;
+    font-weight: 800;
+    color: #f4f4f5;
+}
+
+.rf-enc-status {
+    display: inline-flex;
+    flex: none;
+    align-items: center;
+    gap: 8px;
+    height: 24px;
+    padding: 0 8px;
+    border: 1px solid #2e2e2e;
+    border-radius: 12px;
+    background: #1a1a1a;
+    color: #a1a1aa;
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+}
+
+    .rf-enc-status.live {
+        border-color: #4a2e0a;
+        background: #2a1c00;
+        color: var(--rf-orange-primary);
+    }
+
+.rf-enc-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--rf-orange-primary);
+    animation: rf-enc-pulse 1.6s ease-in-out infinite;
+}
+
+@keyframes rf-enc-pulse {
+    0%, 100% {
+        box-shadow: 0 0 0 0 rgba(255, 140, 0, 0.6);
+    }
+
+    50% {
+        box-shadow: 0 0 0 4px rgba(255, 140, 0, 0);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .rf-enc-dot {
+        animation: none;
+    }
+}
+
+.rf-enc-meta {
     display: flex;
     flex-wrap: wrap;
+    gap: 8px;
+}
+
+.rf-enc-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+    max-width: 100%;
+    height: 24px;
+    padding: 0 8px;
+    border: 1px solid #262626;
+    border-radius: 6px;
+    background: #0e0e0e;
+    color: #a1a1aa;
+    font-size: 11.5px;
+}
+
+    .rf-enc-chip span {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .rf-enc-chip svg {
+        flex: none;
+        width: 12px;
+        height: 12px;
+        color: #71717a;
+    }
+
+    .rf-enc-chip.warn {
+        border-color: #4a3a0a;
+        color: #facc15;
+    }
+
+        .rf-enc-chip.warn svg {
+            color: #facc15;
+        }
+
+.rf-enc-actions {
+    display: grid;
+    gap: 8px;
+}
+
+    .rf-enc-actions.two {
+        grid-template-columns: 1fr auto;
+    }
+
+.rf-enc-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    min-height: 32px;
+    padding: 0 16px;
+    border: 1px solid #333;
+    border-radius: 8px;
+    background: #1c1c1c;
+    color: #e4e4e7;
+    font-size: 11.5px;
+    font-weight: 800;
+    letter-spacing: 0.4px;
+    text-transform: uppercase;
+}
+
+    .rf-enc-btn:hover:not(:disabled) {
+        border-color: #4a4a4a;
+        background: #242424;
+    }
+
+    .rf-enc-btn:disabled {
+        opacity: 0.5;
+    }
+
+    .rf-enc-btn.start {
+        border-color: var(--rf-orange-primary);
+        background: var(--rf-orange-primary);
+        color: #111;
+    }
+
+        .rf-enc-btn.start:hover:not(:disabled) {
+            background: var(--rf-orange-hover);
+        }
+
+    .rf-enc-btn.stop {
+        border-color: #5a1d1d;
+        background: #2a1212;
+        color: #ff8a8a;
+    }
+
+        .rf-enc-btn.stop:hover:not(:disabled) {
+            background: #3a1616;
+        }
+
+.rf-enc-footer {
+    display: flex;
     align-items: center;
     justify-content: space-between;
     gap: 8px;
-    padding: 8px;
-    border: 1px solid var(--rf-border-light);
+    min-height: 40px;
+    margin-top: 8px;
+    padding: 0 16px;
+    border: 1px solid #242424;
     border-radius: 8px;
-    background: var(--rf-bg-card);
-}
-
-    .rf-vtt-enc.running {
-        border-color: var(--rf-orange-primary);
-    }
-
-.rf-vtt-enc-text {
-    display: flex;
-    flex: 1 1 160px;
-    flex-direction: column;
-    min-width: 0;
-}
-
-    .rf-vtt-enc-text .small {
-        color: var(--rf-text-muted);
-    }
-
-.rf-vtt-enc-here {
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    color: var(--rf-orange-primary);
-    font-size: .8rem;
+    background: #121212;
+    color: #a1a1aa;
+    font-size: 12.5px;
     font-weight: 700;
+    text-decoration: none;
 }
+
+    .rf-enc-footer:hover {
+        border-color: var(--rf-orange-primary);
+        color: var(--rf-orange-primary);
+    }
 
 .rf-vtt-drawer {
     display: flex;

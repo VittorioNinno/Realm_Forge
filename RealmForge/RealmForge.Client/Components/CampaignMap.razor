@@ -4341,51 +4341,70 @@ else
     {
         var open = encounters.Where(e => e.Status != EncounterStatus.Finished)
             .OrderBy(e => e.Status == EncounterStatus.Running ? 0 : 1).ThenBy(e => e.Name).ToList();
-        <div class="rf-vtt-campaign-panel" data-test="vtt-encounters">
-            <h3 class="rf-qs-card-title">@UiText.VttToolEncounters(Lang)</h3>
+        <div class="rf-vtt-campaign-panel rf-enc-panel" data-test="vtt-encounters">
+            <div class="rf-enc-head">
+                <span class="rf-enc-kicker">@UiText.VttToolEncounters(Lang)</span>
+                <span class="rf-enc-count" data-test="vtt-encounters-count">@open.Count</span>
+            </div>
             @if (open.Count == 0)
             {
-                <p class="small mb-2" style="color: var(--rf-text-muted);" data-test="vtt-encounters-empty">@UiText.VttEncountersNone(Lang)</p>
+                <div class="rf-enc-empty" data-test="vtt-encounters-empty">
+                    <Icon Name="flag" />
+                    <span>@UiText.VttEncountersNone(Lang)</span>
+                </div>
             }
             else
             {
-                <ul class="rf-vtt-enc-list">
+                <div class="rf-enc-list">
                     @foreach (var item in open)
                     {
                         var e = item;
                         var here = combat?.EncounterId == e.Id;
-                        <li class="rf-vtt-enc @(e.Status == EncounterStatus.Running ? "running" : null)" data-test="vtt-encounter-row">
-                            <span class="rf-vtt-enc-text">
-                                <strong>@e.Name</strong>
-                                <span class="small">
-                                    @UiText.EncounterStatusName(e.Status, Lang)
-                                    @if (e.MapName is not null)
-                                    {
-                                        <span> · @UiText.EncounterOnMap(e.MapName, Lang)</span>
-                                    }
-                                    <span> · @UiText.EncounterSides(e.Characters, e.Monsters, Lang)</span>
-                                </span>
-                            </span>
+                        var live = e.Status == EncounterStatus.Running;
+                        <article class="rf-enc-card @(live ? "live" : null)" data-test="vtt-encounter-row">
+                            <div class="rf-enc-top">
+                                <h4 class="rf-enc-title">@e.Name</h4>
+                                @if (live)
+                                {
+                                    <span class="rf-enc-status live"><span class="rf-enc-dot"></span>@UiText.VttEncounterLive(Lang)</span>
+                                }
+                                else
+                                {
+                                    <span class="rf-enc-status">@UiText.VttEncounterPrep(Lang)</span>
+                                }
+                            </div>
+                            <div class="rf-enc-meta">
+                                <span class="rf-enc-chip" title="@UiText.VttEncounterMap(Lang)"><Icon Name="map" /><span>@(e.MapName ?? UiText.VttEncounterNoMap(Lang))</span></span>
+                                <span class="rf-enc-chip @(e.Monsters == 0 ? "warn" : null)" title="@UiText.VttEncounterSides(Lang)"><Icon Name="people" /><span>@UiText.VttEncounterVersus(e.Characters, e.Monsters, Lang)</span></span>
+                            </div>
                             @if (here)
                             {
-                                <span class="rf-vtt-enc-here" data-test="vtt-encounter-here"><Icon Name="shield" /> @UiText.VttEncounterHere(Lang)</span>
+                                <div class="rf-enc-actions two" data-test="vtt-encounter-here">
+                                    <button type="button" class="rf-enc-btn" @onclick="() => initCollapsed = false" data-test="vtt-encounter-initiative"><Icon Name="lightning" /> @UiText.VttEncounterInitiative(Lang)</button>
+                                    <button type="button" class="rf-enc-btn stop" disabled="@busy" @onclick="EndCombatAsync" data-test="vtt-encounter-end"><Icon Name="stop-fill" /> @UiText.VttEncounterEnd(Lang)</button>
+                                </div>
                             }
-                            else if (e.Status == EncounterStatus.Running && e.MapId is { } fightMap && fightMap != selectedId)
+                            else if (live && e.MapId is { } fightMap && fightMap != selectedId)
                             {
-                                <button type="button" class="btn btn-sm btn-rf-outline" disabled="@busy" @onclick="() => SelectAsync(fightMap)" data-test="vtt-encounter-goto"><Icon Name="map" /> @UiText.VttEncounterGoTo(Lang)</button>
+                                <div class="rf-enc-actions">
+                                    <button type="button" class="rf-enc-btn" disabled="@busy" @onclick="() => SelectAsync(fightMap)" data-test="vtt-encounter-goto"><Icon Name="map" /> @UiText.VttEncounterGoTo(Lang)</button>
+                                </div>
                             }
                             else if (e.Status == EncounterStatus.Planned)
                             {
-                                <button type="button" class="btn btn-sm btn-rf-orange" disabled="@(busy || combat is not null && (e.MapId is null || e.MapId == selectedId))"
-                                        title="@(combat is not null ? UiText.VttEncounterBusy(Lang) : null)" @onclick="() => StartEncounterAsync(e)" data-test="vtt-encounter-start">
-                                    <Icon Name="play" /> @UiText.VttStartCombat(Lang)
-                                </button>
+                                var blocked = combat is not null && (e.MapId is null || e.MapId == selectedId);
+                                <div class="rf-enc-actions">
+                                    <button type="button" class="rf-enc-btn start" disabled="@(busy || blocked)"
+                                            title="@(blocked ? UiText.VttEncounterBusy(Lang) : null)" @onclick="() => StartEncounterAsync(e)" data-test="vtt-encounter-start">
+                                        <Icon Name="play-fill" /> @UiText.VttStartCombat(Lang)
+                                    </button>
+                                </div>
                             }
-                        </li>
+                        </article>
                     }
-                </ul>
+                </div>
             }
-            <a class="small" href="@($"campaigns/{CampaignId}")" target="_blank" rel="noopener" data-test="vtt-encounters-page"><Icon Name="external" /> @UiText.VttEncountersPage(Lang)</a>
+            <a class="rf-enc-footer" href="@($"campaigns/{CampaignId}")" target="_blank" rel="noopener" data-test="vtt-encounters-page"><span>@UiText.VttEncountersPage(Lang)</span><Icon Name="external" /></a>
         </div>
     };
 
