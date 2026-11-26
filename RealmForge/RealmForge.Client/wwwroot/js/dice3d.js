@@ -840,7 +840,7 @@ window.rfDice3d = (() => {
             const a0 = Math.random() * TAU;
             const colorAt = (age) => age < 0.25 ? fx.colors[0] : age < 0.5 ? fx.colors[3] : age < 0.75 ? fx.colors[1] : fx.colors[2];
             if (!high) {
-                for (let i = 0; i < 26; i++) smoke.push(particle({ x: (Math.random() - 0.5) * 0.6, y: (Math.random() - 0.5) * 0.6, z: 1, vx: (Math.random() - 0.5) * 0.6, vy: (Math.random() - 0.5) * 0.6, vz: 1 + Math.random() * 1.5, drag: 0.6, size: 4 + Math.random() * 4, color: Math.random() > 0.3 ? '#6b625c' : '#8a6a50', alpha: 0.5, born: 0.25 + Math.random() * 0.4, life: 1.6 }));
+                for (let i = 0; i < 26; i++) smoke.push(particle({ x: (Math.random() - 0.5) * 0.6, y: (Math.random() - 0.5) * 0.6, z: 1, vx: (Math.random() - 0.5) * 0.6, vy: (Math.random() - 0.5) * 0.6, vz: 1 + Math.random() * 1.5, drag: 0.6, size: 5 + Math.random() * 5, color: Math.random() > 0.3 ? '#a39a93' : '#b08a6a', alpha: 0.55, born: 0.25 + Math.random() * 0.4, life: 1.6 }));
                 for (let i = 0; i < 30; i++) embers.push(particle({ x: (Math.random() - 0.5) * 5, y: (Math.random() - 0.5) * 5, z: 4 + Math.random() * 4, vz: -1.2 - Math.random(), vx: (Math.random() - 0.5) * 0.6, drag: 0.8, size: 0.9, color: Math.random() > 0.7 ? fx.colors[2] : '#6b6460', alpha: 0.8, born: 0.3, life: 1.8 }));
             }
             return (t, dt) => {
@@ -880,6 +880,15 @@ window.rfDice3d = (() => {
                     run(g, P, embers, t, dt, 'dot');
                 } else {
                     g.globalCompositeOperation = 'lighter';
+                    // A ring of fire round the die gutters out, cooling from orange to grey ash
+                    const cool = clamp01(t / 1.1), ringFade = 1 - clamp01((t - 1.1) / 0.8);
+                    if (ringFade > 0) {
+                        const ring = circle(2.4 - cool * 0.6, 48).map(([x, y]) => [x * (1 + (Math.random() - 0.5) * 0.06), y * (1 + (Math.random() - 0.5) * 0.06), 0]);
+                        g.globalCompositeOperation = 'source-over';
+                        line3(g, P, ring, 5, rgba('#2a2320', 0.7 * ringFade));
+                        g.globalCompositeOperation = 'lighter';
+                        line3(g, P, ring, 2.2, rgba(cool < 0.6 ? fx.colors[1] : '#8a7f78', (1 - cool * 0.7) * ringFade), cool < 0.6 ? fx.colors[2] : null);
+                    }
                     const flick = t < 0.8 ? (0.4 + Math.random() * 0.6) * (1 - t / 0.8) : 0;
                     if (flick > 0) { blob(g, P(0, 0, 1.4), 1.1, fx.colors[1], flick); blob(g, P(0, 0, 1.8 + Math.random() * 0.4), 0.5, fx.colors[0], flick); }
                     g.globalCompositeOperation = 'source-over';
@@ -1053,7 +1062,8 @@ window.rfDice3d = (() => {
             const strikes = high ? [0.05, 0.35, 0.7, 1.1, 1.55] : [0.45];
             const target = high ? [0, 0] : [2.6 + Math.random(), -2 + Math.random()];
             const sparks = [], splashes = [];
-            const rain = high ? [] : Array.from({ length: 110 }, () => ({ x: (Math.random() - 0.5) * 16, y: (Math.random() - 0.5) * 11, z: Math.random() * 18, v: 22 + Math.random() * 8 }));
+            const rain = high ? [] : Array.from({ length: 160 }, () => ({ x: (Math.random() - 0.5) * 9, y: (Math.random() - 0.5) * 7, z: Math.random() * 10, v: 16 + Math.random() * 6 }));
+            const cloud = high ? [] : Array.from({ length: 9 }, () => ({ x: (Math.random() - 0.5) * 5 - 1, y: (Math.random() - 0.5) * 4, z: 7 + Math.random() * 2, r: 2.2 + Math.random() * 1.6 }));
             let shapes = [], at = -1;
             return (t, dt) => {
                 g.globalCompositeOperation = 'lighter';
@@ -1080,18 +1090,34 @@ window.rfDice3d = (() => {
                     }
                 } else {
                     g.globalCompositeOperation = 'source-over';
-                    pool(g, P, 0, 0, 3.5, 'rgba(0,0,0,0.35)', 'rgba(0,0,0,0)');
-                    g.globalCompositeOperation = 'lighter';
                     const fade = 1 - clamp01((t - 1.6) / 0.6);
+                    pool(g, P, 0, 0, 4.5, `rgba(0,0,0,${(0.5 * fade).toFixed(3)})`, 'rgba(0,0,0,0)');
+                    hole(g, P);
+                    // The cloud: heavy, drifting just above the die
+                    for (const c of cloud) {
+                        c.x += 0.4 * dt;
+                        const q = P(c.x, c.y, c.z), r = c.r * fxUnit * q.k, a = 0.4 * fade * clamp01(t / 0.3);
+                        const grad = g.createRadialGradient(q.x, q.y, 0, q.x, q.y, r);
+                        grad.addColorStop(0, `rgba(40,48,62,${a.toFixed(3)})`);
+                        grad.addColorStop(1, 'rgba(40,48,62,0)');
+                        g.fillStyle = grad;
+                        g.fillRect(q.x - r, q.y - r, r * 2, r * 2);
+                    }
+                    g.globalCompositeOperation = 'lighter';
+                    // Zapped: after the miss, small arcs crawl over the die and fizzle
+                    if (t > 0.6 && t < 1.5 && Math.random() < 0.6) {
+                        const a = Math.random() * TAU;
+                        line3(g, P, jagged3([Math.cos(a) * 0.9, Math.sin(a) * 0.9, 1.2], [Math.cos(a + 1.4) * 0.9, Math.sin(a + 1.4) * 0.9, 1.4], 0.5, 5), 1.4, rgba('#ffffff', 0.8), fx.colors[2]);
+                    }
                     for (const d of rain) {
                         d.z -= d.v * dt;
-                        if (d.z < 0) { if (splashes.length < 60) splashes.push({ x: d.x, y: d.y, born: t }); d.z += 18; }
-                        line3(g, P, [[d.x, d.y, d.z], [d.x - 0.1, d.y, d.z + 1.1]], 1, rgba(fx.colors[1], 0.35 * fade));
+                        if (d.z < 0) { if (splashes.length < 80) splashes.push({ x: d.x, y: d.y, born: t }); d.z += 10; }
+                        line3(g, P, [[d.x, d.y, d.z], [d.x, d.y, d.z + 2.4]], 1.2, rgba(fx.colors[1], 0.6 * fade));
                     }
                     for (let i = splashes.length - 1; i >= 0; i--) {
                         const sp = splashes[i], k = (t - sp.born) / 0.35;
                         if (k >= 1) { splashes.splice(i, 1); continue; }
-                        line3(g, P, circle(0.1 + k * 0.4, 12).map(([x, y]) => [x + sp.x, y + sp.y, 0]), 1, rgba(fx.colors[1], 0.4 * (1 - k) * fade));
+                        line3(g, P, circle(0.08 + k * 0.32, 12).map(([x, y]) => [x + sp.x, y + sp.y, 0]), 1.2, rgba(fx.colors[1], 0.6 * (1 - k) * fade));
                     }
                 }
                 run(g, P, sparks, t, dt, 'dot');
@@ -1170,12 +1196,12 @@ window.rfDice3d = (() => {
         },
 
         // The hoard spills: a fountain of gold coins and gems rains on the table and glints.
-        // A 1: a single coin flips up, lands and rolls round until it falls flat
+        // A 1: it was a mimic: a toothed mouth opens in the table and bites down on the die
         hoard({ g, P, fx, high }) {
             const coins = [], glints = [];
             const gems = ['#ff4d6d', '#4dabf7', '#51cf66', '#cc5de8'];
-            const lone = { a: Math.random() * TAU, x: 0, y: 0, z: 1, vz: 13 };
-            const copper = high ? [] : Array.from({ length: 4 }, () => { const a = Math.random() * TAU, sp = 1 + Math.random() * 2; return particle({ z: 1, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, vz: 4 + Math.random() * 2, g: -20, bounce: true, drag: 0.4, size: 4, color: '#b87333', alpha: 0.9, born: 0.1, life: 2 }); });
+            const copper = [];
+            let spat = false;
             return (t, dt) => {
                 g.globalCompositeOperation = 'lighter';
                 if (high) {
@@ -1192,16 +1218,43 @@ window.rfDice3d = (() => {
                     if (t > 0.6 && coins.length && Math.random() < 0.5) { const c = pick(coins); if (c.z < 0.1) glints.push(particle({ x: c.x, y: c.y, z: 0.2, size: 2.8, color: '#ffffff', born: t, life: 0.35 })); }
                     run(g, P, glints, t, dt, 'star');
                 } else {
-                    // The lone coin: up, down, then rolling round in a narrowing circle
-                    lone.vz -= 24 * dt;
-                    lone.z = Math.max(0, lone.z + lone.vz * dt);
-                    const roll = clamp01((t - 1.1) / 0.9);
-                    if (lone.z === 0) lone.a += (1 - roll) * 5 * dt;
-                    const r = lone.z > 0 ? 1.5 * clamp01(t / 1.1) : 1.5 * (1 - roll * 0.3);
-                    const q = P(Math.cos(lone.a) * r, Math.sin(lone.a) * r, lone.z + 0.2);
-                    const c = particle({ size: 7, color: fx.colors[1], flip: lone.z > 0 ? t * 14 : lerp(Math.PI / 2 - 0.25, 0, roll), spin: lone.a });
+                    // The mimic: a mouth opens in the table under the die, a ring of teeth rising out of it and another
+                    // coming down from above; it bites twice, then spits a few coppers out and sinks away
+                    const open = ease(clamp01(t / 0.45)), gone = clamp01((t - 2.1) / 0.6);
+                    const bite = (c) => Math.exp(-Math.pow((t - c) / 0.09, 2));
+                    const shut = Math.max(bite(0.95), bite(1.45) * 0.8);
+                    const R = (2.2 + 0.8 * open) * (1 - 0.35 * shut) * (1 - gone);
+                    const H = 1.6 + 4.5 * (1 - shut) * open;
+                    if (R > 0.05) {
+                        g.globalCompositeOperation = 'source-over';
+                        g.fillStyle = 'rgba(12,0,2,0.92)';
+                        path(g, onTable(P, circle(R * 1.05)), true); g.fill();
+                        pool(g, P, Math.sin(t * 7) * 0.5, Math.cos(t * 5) * 0.4, R * 0.7, 'rgba(160,20,40,0.65)', 'rgba(120,10,30,0)');
+                        const n = 13;
+                        const tooth = (i, top) => {
+                            const a = (i + (top ? 0.5 : 0)) / n * TAU, w = 0.45 / n * TAU;
+                            const z0 = top ? H : 0, z1 = top ? H - 1.3 : 1.3;
+                            const pts = [
+                                P(Math.cos(a - w) * R, Math.sin(a - w) * R, z0),
+                                P(Math.cos(a) * R * 0.78, Math.sin(a) * R * 0.78, z1),
+                                P(Math.cos(a + w) * R, Math.sin(a + w) * R, z0)
+                            ];
+                            g.fillStyle = '#f1e6c8';
+                            g.strokeStyle = '#4a3a20';
+                            g.lineWidth = 1.2;
+                            path(g, pts, true); g.fill(); g.stroke();
+                        };
+                        for (let i = 0; i < n; i++) tooth(i, false);
+                        hole(g, P);
+                        // The gums of the upper jaw, then its teeth
+                        line3(g, P, circle(R, 48).map(([x, y]) => [x, y, H]), 5, 'rgba(110,40,30,0.95)');
+                        for (let i = 0; i < n; i++) tooth(i, true);
+                    }
+                    if (t > 1.55 && !spat) {
+                        spat = true;
+                        for (let i = 0; i < 6; i++) { const a = Math.random() * TAU, sp = 2 + Math.random() * 3; copper.push(particle({ z: 1, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, vz: 5 + Math.random() * 3, g: -20, bounce: true, drag: 0.4, size: 3.5, color: '#b87333', alpha: 0.95, born: t, life: 1.4 })); }
+                    }
                     g.globalCompositeOperation = 'source-over';
-                    drawParticle(g, q, c, 'coin', clamp01((t - 1.9) / 0.3) * 0.9);
                     run(g, P, copper, t, dt, 'coin');
                 }
             };
