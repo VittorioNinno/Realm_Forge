@@ -17,7 +17,12 @@ public class DiceSkinsTests
 	{
 		Assert.True(DiceSkins.IsKnown(DiceSkins.Resin));
 		Assert.All(DiceSkins.Unlockable, s => Assert.True(DiceSkins.IsKnown(s)));
-		Assert.Equal(10, DiceSkins.Unlockable.Distinct().Count());
+		Assert.Equal(12, DiceSkins.Unlockable.Distinct().Count());
+		//	Three special and nine secret: the rows of three in the settings are always full
+		Assert.Equal(3, DiceSkins.Special.Count);
+		Assert.Equal(9, DiceSkins.Secret.Count);
+		Assert.True(DiceSkins.IsSecret(DiceSkins.Tide));
+		Assert.False(DiceSkins.IsSecret(DiceSkins.Dawn));
 		Assert.True(DiceSkins.IsSecret(DiceSkins.Arcane));
 		Assert.False(DiceSkins.IsSecret(DiceSkins.Ember));
 		Assert.False(DiceSkins.IsKnown("gold"));

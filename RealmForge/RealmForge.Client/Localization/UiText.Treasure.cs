@@ -5,7 +5,7 @@ namespace RealmForge.Client.Localization
 	///	<summary>Texts of the party's chest.</summary>
 	public static partial class UiText
 	{
-		public static string CampaignTabTreasure(LanguageCode lang) => T(lang, "Tesoro", "Treasure");
+		public static string CampaignTabTreasure(LanguageCode lang) => T(lang, "Tesori", "Treasure");
 		public static string TreasureHintMaster(LanguageCode lang) => T(lang,
 			"Il forziere del gruppo: deposita monete, gemme e oggetti dopo uno scontro. Gli oggetti non identificati mostrano ai giocatori solo il loro aspetto finché qualcuno non li identifica; le monete si dividono in parti uguali tra i personaggi, con il resto in monete più piccole.",
 			"The party's chest: put coins, gems and items in it after a fight. Unidentified items show the players only what they look like until someone identifies them; the coins are shared out evenly among the characters, the change in smaller coins.");

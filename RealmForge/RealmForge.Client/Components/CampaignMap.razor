@@ -4697,11 +4697,11 @@ else
                         {
                             @if (rolled < combat.Order.Count)
                             {
-                                <button type="button" class="rf-init-btn orange" disabled="@busy" title="@UiText.VttRollAllHint(Lang)" @onclick="RollAllAsync" data-test="vtt-roll-all">@UiText.VttRollMissing(combat.Order.Count - rolled, Lang)</button>
+                                <button type="button" class="rf-init-btn orange" disabled="@busy" title="@UiText.VttRollAllHint(Lang)" @onclick="RollAllAsync" data-test="vtt-roll-all"><Icon Name="dice" /> <span class="rf-init-btn-text">@UiText.VttRollMissing(combat.Order.Count - rolled, Lang)</span></button>
                             }
                             else
                             {
-                                <button type="button" class="rf-init-btn orange" disabled="@busy" @onclick="BeginCombatAsync" data-test="vtt-begin">@UiText.VttBegin(Lang) <Icon Name="chevron-right" /></button>
+                                <button type="button" class="rf-init-btn orange" disabled="@busy" @onclick="BeginCombatAsync" data-test="vtt-begin"><span class="rf-init-btn-text">@UiText.VttBegin(Lang)</span> <Icon Name="@(initVertical ? "chevron-down" : "chevron-right")" /></button>
                             }
                         }
                     }

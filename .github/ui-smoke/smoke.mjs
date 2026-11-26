@@ -2399,7 +2399,7 @@ try {
       active: (await page.locator('[data-test=dice3d-active-name]').innerText()).trim()
     };
     results.push(`INFO 3D dice gallery: ${JSON.stringify(gallery)}`);
-    if (gallery.locked !== 2 || gallery.cards !== 11 || gallery.secretPill !== 0 || !gallery.active.includes('#22c55e')) throw new Error(`unexpected dice gallery (the secret dice must not show): ${JSON.stringify(gallery)}`);
+    if (gallery.locked !== 3 || gallery.cards !== 12 || gallery.secretPill !== 0 || !gallery.active.includes('#22c55e')) throw new Error(`unexpected dice gallery (the secret dice must not show): ${JSON.stringify(gallery)}`);
     ok('3D dice: a colour of one\'s own is kept, the special dice wait for a code, the secret ones are not shown at all');
     // The critical moment of a special die (a natural 20), drawn on its own canvas over the page
     const crit = page.evaluate(() => window.rfDice3d.critical('arcane', true));

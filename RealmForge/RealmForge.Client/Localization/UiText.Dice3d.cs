@@ -43,20 +43,24 @@ namespace RealmForge.Client.Localization
 			"fey" => T(lang, "Bosco fatato", "Feywood"),
 			"acid" => T(lang, "Ampolla d'acido", "Acid flask"),
 			"arcane" => T(lang, "Runa arcana", "Arcane rune"),
+			"dawn" => T(lang, "Raggio d'alba", "Dawnbeam"),
+			"tide" => T(lang, "Marea profonda", "Deep tide"),
 			_ => T(lang, "Resina", "Resin")
 		};
 		public static string Dice3dSkinHint(string skin, LanguageCode lang) => skin switch
 		{
-			"ember" => T(lang, "Pietra lavica che pulsa: con un 20 naturale una colonna di fuoco e una pioggia di braci", "Pulsing lava stone: on a natural 20, a column of fire and a shower of embers"),
-			"stardust" => T(lang, "Vetro notturno che scintilla: con un 20 naturale un'esplosione di stelle", "Twinkling night glass: on a natural 20, a burst of stars"),
-			"frost" => T(lang, "Ghiaccio con brina che luccica: con un 20 naturale schegge di cristallo", "Shimmering rime ice: on a natural 20, shards of crystal"),
+			"ember" => T(lang, "Pietra lavica che pulsa: con un 20 naturale un anello di fiamme e una pioggia di braci", "Pulsing lava stone: on a natural 20, a ring of flames and a shower of embers"),
+			"stardust" => T(lang, "Vetro notturno che scintilla: con un 20 naturale si accende il Grande Carro tra luci che scoppiettano e una stella cadente colpisce il dado", "Twinkling night glass: on a natural 20 the Plough lights up among crackling lights and a falling star strikes the die"),
+			"frost" => T(lang, "Ghiaccio con brina che luccica: con un 20 naturale un fiocco di neve si allarga sul tavolo", "Shimmering rime ice: on a natural 20 a snowflake spreads over the table"),
 			"storm" => T(lang, "Ardesia percorsa da lampi: con un 20 naturale una scarica di fulmini", "Slate run through with lightning: on a natural 20, a storm of bolts"),
 			"bone" => T(lang, "Avorio crepato con rune verdi che respirano: con un 20 naturale spiriti verdi", "Cracked ivory with breathing green runes: on a natural 20, green wisps"),
 			"hoard" => T(lang, "Oro martellato a scaglie che brilla: con un 20 naturale una pioggia di monete", "Scaled hammered gold that glints: on a natural 20, a rain of coins"),
 			"abyss" => T(lang, "Nero con un vortice viola: con un 20 naturale tutto viene risucchiato e scagliato via", "Black with a violet whirl: on a natural 20 everything is drawn in and hurled out"),
-			"fey" => T(lang, "Legno vivo con muschio e piccole luci: con un 20 naturale uno sciame di lucciole", "Living wood with moss and tiny lights: on a natural 20, a swarm of fireflies"),
+			"fey" => T(lang, "Legno vivo con muschio e piccole luci: con un 20 naturale rampicanti in fiore e lucciole", "Living wood with moss and tiny lights: on a natural 20, flowering vines and fireflies"),
 			"acid" => T(lang, "Vetro verde pieno di bolle: con un 20 naturale schizzi d'acido", "Green glass full of bubbles: on a natural 20, splashes of acid"),
 			"arcane" => T(lang, "Cristallo indaco con cerchi di rune d'oro: con un 20 naturale un cerchio magico", "Indigo crystal with circles of golden runes: on a natural 20, a magic circle"),
+			"dawn" => T(lang, "Perla e oro con venature di luce: con un 20 naturale raggi d'alba e anelli di luce", "Pearl and gold veined with light: on a natural 20, rays of dawn and rings of light"),
+			"tide" => T(lang, "Acqua profonda con riflessi di superficie: con un 20 naturale onde e una corona di gocce", "Deep water with the light of the surface on it: on a natural 20, waves and a crown of drops"),
 			_ => T(lang, "Resina classica, nel colore che preferisci", "Classic resin, in the colour you like")
 		};
 		public static string Dice3dSkinLocked(LanguageCode lang) => T(lang, "Dadi segreti: si sbloccano con un codice", "Secret dice: a code unlocks them");

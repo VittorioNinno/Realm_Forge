@@ -228,7 +228,7 @@ namespace RealmForge.Client.Localization
 		public static string VttGroupsNone(LanguageCode lang) => T(lang, "Nessun gruppo salvato: raccogli dei mostri nel cassetto e salvali con un nome.", "No group kept: gather monsters in the drawer and keep them under a name.");
 		public static string MapDragHint(LanguageCode lang) => T(lang, "Clic: nella prima casella libera · trascina sulla mappa: dove vuoi", "Click: on the first free cell · drag onto the map: wherever you like");
 		public static string VttToolEncounters(LanguageCode lang) => T(lang, "Incontri", "Encounters");
-		public static string VttToolTreasure(LanguageCode lang) => T(lang, "Tesoro del gruppo", "Party treasure");
+		public static string VttToolTreasure(LanguageCode lang) => T(lang, "Tesori", "Treasure");
 		public static string VttToolProgress(LanguageCode lang) => T(lang, "Orologi di avanzamento", "Progress clocks");
 		public static string VttEncountersNone(LanguageCode lang) => T(lang, "Nessun incontro da giocare: preparane uno nella pagina della campagna.", "No encounter to play: prepare one on the campaign page.");
 		public static string VttEncounterGoTo(LanguageCode lang) => T(lang, "Vai alla mappa", "Go to its map");
@@ -569,7 +569,7 @@ namespace RealmForge.Client.Localization
 		public static string VttRollMissing(int missing, LanguageCode lang) => T(lang, $"Tira ({missing})", $"Roll ({missing})");
 		public static string VttThen(LanguageCode lang) => T(lang, "Poi:", "Next:");
 		public static string VttNextUp(string name, LanguageCode lang) => T(lang, $"Turno successivo: {name}", $"Next turn: {name}");
-		public static string ToolTreasure(LanguageCode lang) => T(lang, "Tesoro", "Treasure");
+		public static string ToolTreasure(LanguageCode lang) => T(lang, "Tesori", "Treasure");
 		public static string VttChestTreasureHint(LanguageCode lang) => T(lang, "Metti nel forziere un oggetto del tesoro del gruppo", "Put an item of the party's treasure in the chest");
 		public static string VttChestTreasureNone(LanguageCode lang) => T(lang, "Il tesoro del gruppo è vuoto: aggiungi oggetti dalla sezione Tesoro.", "The party's treasure is empty: add items from the Treasure section.");
 		public static string VttChestPut(LanguageCode lang) => T(lang, "Metti", "Put");
