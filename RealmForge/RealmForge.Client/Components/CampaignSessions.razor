@@ -146,7 +146,7 @@
                     }
                     @if (!string.IsNullOrWhiteSpace(s.MasterNotes))
                     {
-                        <details class="rf-ses-secret">
+                        <details class="rf-ses-secret" open>
                             <summary><Icon Name="eye-slash" /> @UiText.SessionMasterNotes(Lang)</summary>
                             <div class="rf-markdown-container" data-test="session-master-notes-text">@((MarkupString)MarkdownText.ToHtml(s.MasterNotes, null))</div>
                         </details>
