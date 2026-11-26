@@ -21626,6 +21626,27 @@ button.rf-vtt-clock.on {
     white-space: nowrap;
 }
 
+.rf-d3d-preparing {
+    color: #ffb74d;
+    font-size: .7rem;
+    font-weight: 600;
+}
+
+.rf-d3d-spinner {
+    width: 16px;
+    height: 16px;
+    border: 2px solid rgba(255, 183, 77, .35);
+    border-top-color: #ffb74d;
+    border-radius: 50%;
+    animation: rf-d3d-spin .8s linear infinite;
+}
+
+@keyframes rf-d3d-spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
 .rf-d3d-active-actions {
     display: flex;
     flex-wrap: wrap;
