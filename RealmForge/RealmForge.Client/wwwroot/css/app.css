@@ -10913,6 +10913,79 @@ textarea.rf-form-control {
     font-family: var(--rf-font-display, inherit);
 }
 
+/* ===== Spell areas by element: a colour, a texture that breathes and an edge that runs (visual effects; off: the plain
+   colour of whoever placed it, reduced: no motion) ===== */
+.rf-area {
+    --rf-el: currentColor;
+}
+
+.rf-area-fire { --rf-el: #ff6a10; }
+.rf-area-cold { --rf-el: #7fd3ff; }
+.rf-area-storm { --rf-el: #55d6ff; }
+.rf-area-acid { --rf-el: #7dff3a; }
+.rf-area-dark { --rf-el: #7b3cff; }
+.rf-area-radiant { --rf-el: #ffd166; }
+.rf-area-silence { --rf-el: #94a3b8; }
+.rf-area-nature { --rf-el: #84cc16; }
+.rf-area-arcane { --rf-el: #b48bff; }
+
+html:not(.rf-fx-off) .rf-area[data-element] .rf-area-cell {
+    fill: var(--rf-el);
+    fill-opacity: .24;
+}
+
+html:not(.rf-fx-off) .rf-area[data-element] .rf-area-edge {
+    fill: var(--rf-el);
+    stroke: var(--rf-el);
+    filter: drop-shadow(0 0 6px var(--rf-el));
+}
+
+.rf-area-fx {
+    stroke: var(--rf-el);
+    stroke-dasharray: 10 8;
+    opacity: .75;
+    pointer-events: none;
+    animation: rf-area-breath 2.4s ease-in-out infinite, rf-area-run 1.6s linear infinite;
+}
+
+.rf-area-fire .rf-area-fx { animation-duration: .9s, 1s; }
+.rf-area-storm .rf-area-fx { animation: rf-area-flicker 1.8s steps(1, end) infinite, rf-area-run .6s linear infinite; }
+.rf-area-dark .rf-area-fx { animation-duration: 4s, 4s; stroke-dasharray: 2 10; }
+.rf-area-silence .rf-area-fx { animation-duration: 3.2s, 6s; stroke-dasharray: 1 6; }
+.rf-area-cold .rf-area-fx { animation-duration: 3s, 3s; }
+
+@keyframes rf-area-breath {
+    0%, 100% { opacity: .55; }
+    50% { opacity: .95; }
+}
+
+@keyframes rf-area-run {
+    to { stroke-dashoffset: -36; }
+}
+
+@keyframes rf-area-flicker {
+    0%, 100% { opacity: .5; }
+    8% { opacity: 1; }
+    12% { opacity: .4; }
+    16% { opacity: .95; }
+    55% { opacity: .6; }
+    60% { opacity: 1; }
+}
+
+.rf-fx-off .rf-area-fx {
+    display: none;
+}
+
+.rf-fx-reduced .rf-area-fx {
+    animation: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .rf-area-fx {
+        animation: none;
+    }
+}
+
 .rf-vtt-stage.tool-erase .rf-vtt-shapes .erasable {
     pointer-events: visiblePainted;
     cursor: pointer;
