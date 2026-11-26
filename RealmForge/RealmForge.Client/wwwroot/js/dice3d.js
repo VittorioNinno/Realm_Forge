@@ -26,7 +26,7 @@ window.rfDice3d = (() => {
 
     // The special dice: their own colours, a texture painted here (no image files), a material, a glow that breathes
     // with the texture while they are on the screen (pulse) and, on a natural 1 or 20 of the d20, an effect of their own
-    // (fx). Ember and stardust are shown locked until found; the others are secret: shown nowhere until unlocked
+    // (fx). Ember, stardust and dawn are shown locked until found; the others are secret: shown nowhere until unlocked
     const specials = {
         ember: { foreground: '#fff0b8', outline: '#3a0c00', background: '#5a1a08', material: 'metal', glow: '#ff6a10', glowIntensity: 0.85, pulse: 'lava', fx: { style: 'ember', colors: ['#ffe9a0', '#ff8a2a', '#ff4d00', '#ffd166'], dark: '#3a0c00' } },
         stardust: { foreground: '#ffffff', outline: '#1b0f4a', background: '#1d1a5a', material: 'glass', glow: '#8f7dff', glowIntensity: 0.55, pulse: 'twinkle', fx: { style: 'star', colors: ['#ffffff', '#fde68a', '#a5b4fc', '#f0abfc'], dark: '#1b0f4a' } },
@@ -37,7 +37,9 @@ window.rfDice3d = (() => {
         abyss: { foreground: '#d7c2ff', outline: '#000000', background: '#0b0912', material: 'none', glow: '#7b3cff', glowIntensity: 0.6, pulse: 'throb', fx: { style: 'void', colors: ['#c4a1ff', '#7b3cff', '#4c1d95', '#f0e6ff'], dark: '#05030a' } },
         fey: { foreground: '#f6ffd9', outline: '#1d2a10', background: '#4a6b2c', material: 'wood', glow: '#c6ff6a', glowIntensity: 0.35, pulse: 'firefly', fx: { style: 'firefly', colors: ['#f7ff9e', '#c6ff6a', '#ffe5f4', '#a7f3d0'], dark: '#1d2a10' } },
         acid: { foreground: '#0d2b06', outline: '#d9ffcf', background: '#3fd14a', material: 'glass', glow: '#7dff3a', glowIntensity: 0.5, pulse: 'bubble', fx: { style: 'drop', colors: ['#d9ffcf', '#7dff3a', '#3fd14a', '#e8ff7a'], dark: '#12300a' } },
-        arcane: { foreground: '#ffe9a8', outline: '#120a30', background: '#2a1a5e', material: 'glass', glow: '#b48bff', glowIntensity: 0.5, pulse: 'rune', fx: { style: 'rune', colors: ['#ffe9a8', '#ffd166', '#b48bff', '#ffffff'], dark: '#120a30' } }
+        arcane: { foreground: '#ffe9a8', outline: '#120a30', background: '#2a1a5e', material: 'glass', glow: '#b48bff', glowIntensity: 0.5, pulse: 'rune', fx: { style: 'rune', colors: ['#ffe9a8', '#ffd166', '#b48bff', '#ffffff'], dark: '#120a30' } },
+        dawn: { foreground: '#5a3a00', outline: '#fffbe8', background: '#f3d27a', material: 'metal', glow: '#ffd76a', glowIntensity: 0.4, pulse: 'sunrise', fx: { style: 'sun', colors: ['#ffffff', '#fff1b8', '#ffd76a', '#ffb347'], dark: '#4a3000' } },
+        tide: { foreground: '#e6fbff', outline: '#031522', background: '#0e5a78', material: 'glass', glow: '#38d6ff', glowIntensity: 0.4, pulse: 'wave', fx: { style: 'wave', colors: ['#e6fbff', '#7fe3ff', '#1fb6e0', '#a7f3d0'], dark: '#031522' } }
     };
 
     let unlocked = new Set();
@@ -370,7 +372,32 @@ window.rfDice3d = (() => {
         return { name: 'rf-arcane', composite: 'source-over', texture: c, material: 'glass' };
     }
 
-    const painters = { ember: emberTexture, stardust: stardustTexture, frost: frostTexture, storm: stormTexture, bone: boneTexture, hoard: hoardTexture, abyss: abyssTexture, fey: feyTexture, acid: acidTexture, arcane: arcaneTexture };
+    // Dawn: pearl and gold, soft veins of light
+    function dawnTexture() {
+        const c = canvas(TEX), g = c.getContext('2d'), r = rnd(131);
+        ground(g, ['#fff6dc', '#f3d27a', '#d9a441'], true);
+        for (let k = 0; k < 7; k++) {
+            const path = walk(r, 6, 60);
+            stroke(g, path, 6, 'rgba(255,255,255,0.35)', '#fff1b8', 10);
+            stroke(g, path, 1.6, 'rgba(200,138,30,0.55)');
+        }
+        speckle(g, r, 120, () => `rgba(255,255,255,${0.4 + r() * 0.5})`, 1.5);
+        return { name: 'rf-dawn', composite: 'source-over', texture: c, material: 'metal' };
+    }
+
+    // Tide: deep water with the light of the surface playing on it, a little foam
+    function tideTexture() {
+        const c = canvas(TEX), g = c.getContext('2d'), r = rnd(173);
+        ground(g, ['#1a7a9a', '#0e5a78', '#062a44'], true);
+        for (let k = 0; k < 16; k++) {
+            const path = walk(r, 5, 46);
+            stroke(g, path, 1.4, 'rgba(127,227,255,0.45)', '#38d6ff', 6);
+        }
+        speckle(g, r, 140, () => `rgba(230,251,255,${0.2 + r() * 0.5})`, 1.4);
+        return { name: 'rf-tide', composite: 'source-over', texture: c, material: 'glass' };
+    }
+
+    const painters = { dawn: dawnTexture, tide: tideTexture, ember: emberTexture, stardust: stardustTexture, frost: frostTexture, storm: stormTexture, bone: boneTexture, hoard: hoardTexture, abyss: abyssTexture, fey: feyTexture, acid: acidTexture, arcane: arcaneTexture };
 
     function textureOf(skin) {
         return textures[skin] ??= painters[skin]();
@@ -391,7 +418,9 @@ window.rfDice3d = (() => {
         throb: (t) => 0.5 + 0.9 * Math.pow(0.5 + 0.5 * Math.sin(t * 1.1), 2),
         firefly: (t) => 0.75 + 0.3 * Math.sin(t * 2.7 + Math.sin(t * 1.3) * 2),
         bubble: (t) => 0.85 + 0.15 * Math.sin(t * 5) + 0.12 * Math.sin(t * 8.3 + 1),
-        rune: (t) => 0.6 + 0.8 * Math.pow(Math.max(0, Math.sin(t * 2.4)), 4)
+        rune: (t) => 0.6 + 0.8 * Math.pow(Math.max(0, Math.sin(t * 2.4)), 4),
+        sunrise: (t) => 0.8 + 0.3 * Math.sin(t * 1.2),
+        wave: (t) => 0.75 + 0.25 * Math.sin(t * 2) + 0.1 * Math.sin(t * 3.7)
     };
 
     let pulseOn = false;
@@ -737,6 +766,13 @@ window.rfDice3d = (() => {
                 g.fill();
                 break;
             }
+            case 'ring':
+                g.lineWidth = 1.2;
+                g.shadowBlur = 4;
+                g.beginPath();
+                g.arc(0, 0, s, 0, TAU);
+                g.stroke();
+                break;
             default:
                 g.beginPath();
                 g.arc(0, 0, s, 0, TAU);
@@ -829,54 +865,209 @@ window.rfDice3d = (() => {
         return pts;
     }
 
+    // A tongue of fire standing at q (on the screen), h high and w wide in pixels, its tip leaning by wob
+    function tongue(g, q, h, w, wob, a, fx) {
+        if (h < 1 || a <= 0.01) return;
+        g.save();
+        g.translate(q.x, q.y);
+        g.globalAlpha = Math.min(1, a);
+        const grad = g.createLinearGradient(0, 0, 0, -h);
+        grad.addColorStop(0, rgba(fx.colors[0], 0.95));
+        grad.addColorStop(0.3, rgba(fx.colors[3], 0.9));
+        grad.addColorStop(0.65, rgba(fx.colors[1], 0.75));
+        grad.addColorStop(1, rgba(fx.colors[2], 0));
+        g.fillStyle = grad;
+        g.beginPath();
+        g.moveTo(-w / 2, 0);
+        g.bezierCurveTo(-w / 2, -h * 0.45, wob * w - w * 0.2, -h * 0.65, wob * w, -h);
+        g.bezierCurveTo(wob * w + w * 0.2, -h * 0.65, w / 2, -h * 0.45, w / 2, 0);
+        g.quadraticCurveTo(0, w * 0.3, -w / 2, 0);
+        g.fill();
+        g.restore();
+    }
+
+    // A star of four long rays and a soft halo, at a point of the screen
+    function sparkle(g, x, y, s, color, a) {
+        if (a <= 0.01 || s <= 0) return;
+        g.save();
+        g.translate(x, y);
+        g.globalAlpha = Math.min(1, a);
+        const grad = g.createRadialGradient(0, 0, 0, 0, 0, s * 2.4);
+        grad.addColorStop(0, rgba(color, 0.6));
+        grad.addColorStop(1, rgba(color, 0));
+        g.fillStyle = grad;
+        g.fillRect(-s * 2.4, -s * 2.4, s * 4.8, s * 4.8);
+        g.fillStyle = '#ffffff';
+        g.beginPath();
+        g.moveTo(0, -s * 2); g.lineTo(s * 0.2, -s * 0.2); g.lineTo(s * 2, 0); g.lineTo(s * 0.2, s * 0.2);
+        g.lineTo(0, s * 2); g.lineTo(-s * 0.2, s * 0.2); g.lineTo(-s * 2, 0); g.lineTo(-s * 0.2, -s * 0.2);
+        g.closePath();
+        g.fill();
+        g.restore();
+    }
+
+    // A bolt on the screen from a to b: each segment split, its middle pushed aside, the push halving at each level;
+    // a few branches leave it. Lines of points; a branch is marked
+    function bolt2(a, b, spread, depth, branches) {
+        let pts = [a, b];
+        for (let d = 0; d < depth; d++) {
+            const next = [pts[0]];
+            for (let i = 1; i < pts.length; i++) {
+                const p = pts[i - 1], q = pts[i], len = Math.hypot(q.x - p.x, q.y - p.y) || 1;
+                const off = (Math.random() - 0.5) * spread * len;
+                next.push({ x: (p.x + q.x) / 2 - (q.y - p.y) / len * off, y: (p.y + q.y) / 2 + (q.x - p.x) / len * off }, q);
+            }
+            pts = next;
+        }
+        const out = [pts];
+        for (let i = 0; i < branches; i++) {
+            const from = pts[Math.floor(pts.length * (0.2 + Math.random() * 0.55))];
+            const ang = Math.atan2(b.y - a.y, b.x - a.x) + (Math.random() > 0.5 ? 1 : -1) * (0.35 + Math.random() * 0.5);
+            const len = Math.hypot(b.x - a.x, b.y - a.y) * (0.15 + Math.random() * 0.25);
+            const branch = bolt2(from, { x: from.x + Math.cos(ang) * len, y: from.y + Math.sin(ang) * len }, spread, Math.max(2, depth - 2), 0)[0];
+            branch.branch = true;
+            out.push(branch);
+        }
+        return out;
+    }
+
+    // A bolt drawn as light: a wide faint aura, a coloured glow, a white core
+    function drawBolt(g, lines, fx, a) {
+        if (a <= 0.01) return;
+        for (const [w, color, blur] of [[10, rgba(fx.colors[2], 0.16 * a), 0], [4, rgba(fx.colors[1], 0.55 * a), 14], [1.6, rgba('#ffffff', 0.95 * a), 6]]) {
+            g.save();
+            g.strokeStyle = color;
+            g.lineJoin = 'round';
+            g.lineCap = 'round';
+            g.shadowColor = fx.colors[2];
+            g.shadowBlur = blur;
+            for (const l of lines) {
+                g.lineWidth = l.branch ? w * 0.5 : w;
+                path(g, l);
+                g.stroke();
+            }
+            g.restore();
+        }
+    }
+
+    // A spectral skull at (x, y) on the screen, s its half width in pixels; the jaw drops by jaw (0..1)
+    function skull(g, x, y, s, a, jaw, fx, t) {
+        if (a <= 0.01) return;
+        g.save();
+        g.translate(x, y);
+        g.globalAlpha = Math.min(1, a);
+        // Drawn over what is there: the dark of the sockets must cover, not add light
+        g.globalCompositeOperation = 'source-over';
+        const fill = g.createRadialGradient(0, -s * 0.25, s * 0.1, 0, 0, s * 1.2);
+        fill.addColorStop(0, rgba(fx.colors[3], 0.92));
+        fill.addColorStop(0.55, rgba(fx.colors[0], 0.7));
+        fill.addColorStop(1, rgba(fx.colors[2], 0.25));
+        g.fillStyle = fill;
+        g.shadowColor = fx.colors[1];
+        g.shadowBlur = 16;
+        // The cranium and the cheekbones, down to the upper teeth
+        g.beginPath();
+        g.moveTo(-0.92 * s, 0.05 * s);
+        g.bezierCurveTo(-1.02 * s, -1.05 * s, 1.02 * s, -1.05 * s, 0.92 * s, 0.05 * s);
+        g.bezierCurveTo(0.9 * s, 0.32 * s, 0.72 * s, 0.42 * s, 0.66 * s, 0.52 * s);
+        g.bezierCurveTo(0.6 * s, 0.64 * s, 0.5 * s, 0.7 * s, 0.42 * s, 0.82 * s);
+        g.lineTo(-0.42 * s, 0.82 * s);
+        g.bezierCurveTo(-0.5 * s, 0.7 * s, -0.6 * s, 0.64 * s, -0.66 * s, 0.52 * s);
+        g.bezierCurveTo(-0.72 * s, 0.42 * s, -0.9 * s, 0.32 * s, -0.92 * s, 0.05 * s);
+        g.fill();
+        // The jaw, apart
+        const jo = jaw * s * 0.22;
+        g.beginPath();
+        g.moveTo(-0.44 * s, 0.88 * s + jo);
+        g.lineTo(0.44 * s, 0.88 * s + jo);
+        g.bezierCurveTo(0.46 * s, 1.08 * s + jo, 0.3 * s, 1.24 * s + jo, 0, 1.26 * s + jo);
+        g.bezierCurveTo(-0.3 * s, 1.24 * s + jo, -0.46 * s, 1.08 * s + jo, -0.44 * s, 0.88 * s + jo);
+        g.fill();
+        // The sockets, the nose, the teeth: holes into the dark
+        g.shadowBlur = 0;
+        g.fillStyle = rgba(fx.dark, 0.92);
+        for (const side of [-1, 1]) {
+            g.beginPath();
+            g.ellipse(side * 0.36 * s, 0.12 * s, 0.25 * s, 0.21 * s, side * 0.28, 0, TAU);
+            g.fill();
+        }
+        g.beginPath();
+        g.moveTo(0, 0.34 * s);
+        g.quadraticCurveTo(-0.14 * s, 0.56 * s, -0.08 * s, 0.62 * s);
+        g.lineTo(0, 0.57 * s);
+        g.lineTo(0.08 * s, 0.62 * s);
+        g.quadraticCurveTo(0.14 * s, 0.56 * s, 0, 0.34 * s);
+        g.fill();
+        g.strokeStyle = rgba(fx.dark, 0.75);
+        g.lineWidth = Math.max(1, s * 0.045);
+        g.beginPath();
+        g.moveTo(-0.4 * s, 0.82 * s); g.lineTo(0.4 * s, 0.82 * s);
+        g.moveTo(-0.4 * s, 0.9 * s + jo); g.lineTo(0.4 * s, 0.9 * s + jo);
+        for (let i = -3; i <= 3; i++) {
+            g.moveTo(i * 0.11 * s, 0.7 * s); g.lineTo(i * 0.11 * s, 0.82 * s);
+            g.moveTo(i * 0.11 * s, 0.9 * s + jo); g.lineTo(i * 0.11 * s, 1.0 * s + jo);
+        }
+        // A crack across the brow
+        g.moveTo(0.18 * s, -0.78 * s); g.lineTo(0.3 * s, -0.5 * s); g.lineTo(0.22 * s, -0.36 * s); g.lineTo(0.34 * s, -0.18 * s);
+        g.stroke();
+        // The light in the eyes
+        g.globalCompositeOperation = 'lighter';
+        const glint = 0.6 + 0.4 * Math.sin(t * 10);
+        for (const side of [-1, 1]) {
+            const e = g.createRadialGradient(side * 0.36 * s, 0.14 * s, 0, side * 0.36 * s, 0.14 * s, s * 0.16);
+            e.addColorStop(0, rgba(fx.colors[0], glint));
+            e.addColorStop(1, rgba(fx.colors[1], 0));
+            g.fillStyle = e;
+            g.fillRect(side * 0.36 * s - s * 0.16, 0.14 * s - s * 0.16, s * 0.32, s * 0.32);
+        }
+        g.restore();
+    }
+
     // ----- One effect for each die: (ctx) => a frame (t, dt) drawn in the space of the die -----
     // ctx: g (the canvas), P (world → screen), fx (the colours), high (a natural 20, else a natural 1)
 
     const effects = {
-        // Breath of the dragon: a cone of fire sweeps across the table and leaves it scorched, embers rising.
-        // A 1: the flame sputters out in a puff of black smoke and ash
+        // A ring of fire bursts out on the table round the die, tongues of flame licking up, a shower of embers rising
+        // and falling back; the table scorched where it burned. A 1: the flame sputters out in a puff of black smoke and ash
         ember({ g, P, fx, high }) {
-            const flames = [], embers = [], smoke = [];
-            const a0 = Math.random() * TAU;
-            const colorAt = (age) => age < 0.25 ? fx.colors[0] : age < 0.5 ? fx.colors[3] : age < 0.75 ? fx.colors[1] : fx.colors[2];
+            const embers = [], smoke = [];
+            const tongues = Array.from({ length: 28 }, (_, i) => ({ a: i / 28 * TAU + Math.random() * 0.08, h: 0.9 + Math.random() * 0.9, w: 0.45 + Math.random() * 0.25, ph: Math.random() * TAU }));
+            let burst = false;
             if (!high) {
                 for (let i = 0; i < 26; i++) smoke.push(particle({ x: (Math.random() - 0.5) * 0.6, y: (Math.random() - 0.5) * 0.6, z: 1, vx: (Math.random() - 0.5) * 0.6, vy: (Math.random() - 0.5) * 0.6, vz: 1 + Math.random() * 1.5, drag: 0.6, size: 5 + Math.random() * 5, color: Math.random() > 0.3 ? '#a39a93' : '#b08a6a', alpha: 0.55, born: 0.25 + Math.random() * 0.4, life: 1.6 }));
                 for (let i = 0; i < 30; i++) embers.push(particle({ x: (Math.random() - 0.5) * 5, y: (Math.random() - 0.5) * 5, z: 4 + Math.random() * 4, vz: -1.2 - Math.random(), vx: (Math.random() - 0.5) * 0.6, drag: 0.8, size: 0.9, color: Math.random() > 0.7 ? fx.colors[2] : '#6b6460', alpha: 0.8, born: 0.3, life: 1.8 }));
             }
             return (t, dt) => {
                 if (high) {
-                    const sweep = clamp01((t - 0.1) / 1.1), ang = a0 - 0.9 + sweep * 1.8;
-                    // Scorched where the fire passed
-                    const burn = span(t, 0.1, 0.4, 1.6, 2.8);
-                    if (burn > 0) {
-                        const arc = [[0, 0]];
-                        for (let i = 0; i <= 24; i++) { const a = a0 - 0.9 + (i / 24) * 1.8 * sweep; arc.push([Math.cos(a) * 6.5, Math.sin(a) * 6.5]); }
-                        g.globalCompositeOperation = 'source-over';
-                        g.fillStyle = `rgba(20,6,0,${(0.45 * burn).toFixed(3)})`;
-                        path(g, onTable(P, arc), true);
-                        g.fill();
-                        g.globalCompositeOperation = 'lighter';
-                        line3(g, P, arc.slice(1).map(([x, y]) => [x, y, 0]), 1.5, rgba(fx.colors[2], 0.5 * burn), fx.colors[1]);
-                        hole(g, P);
+                    const r = 1 + ease(clamp01(t / 0.45)) * 1.9;
+                    const life = span(t, 0, 0.2, 1.9, 2.6);
+                    // The table scorched under the ring, its glow
+                    g.globalCompositeOperation = 'source-over';
+                    const scorch = span(t, 0.2, 0.5, 2.3, 2.95);
+                    if (scorch > 0) line3(g, P, circle(r, 56).map(([x, y]) => [x, y, 0]), 12, `rgba(24,8,0,${(0.55 * scorch).toFixed(3)})`);
+                    g.globalCompositeOperation = 'lighter';
+                    pool(g, P, 0, 0, r + 1.4, rgba(fx.colors[2], 0.3 * life), rgba(fx.colors[2], 0));
+                    hole(g, P);
+                    // The tongues, the far ones first so the near ones stand in front
+                    g.globalCompositeOperation = 'source-over';
+                    const list = tongues.map(f => ({ f, q: P(Math.cos(f.a) * r, Math.sin(f.a) * r, 0) })).sort((u, v) => u.q.y - v.q.y);
+                    for (const { f, q } of list) {
+                        const flick = 0.75 + 0.2 * Math.sin(t * 13 + f.ph) + 0.1 * Math.sin(t * 31 + f.ph * 2);
+                        tongue(g, q, f.h * flick * life * fxUnit * q.k * 1.4, f.w * fxUnit * q.k, 0.18 * Math.sin(t * 7 + f.ph), life, fx);
+                    }
+                    // The embers: a burst when the ring opens, then a few more from the flames
+                    if (!burst && t > 0.2) {
+                        burst = true;
+                        for (let i = 0; i < 60; i++) {
+                            const a = Math.random() * TAU, sp = 0.6 + Math.random() * 1.6;
+                            embers.push(particle({ x: Math.cos(a) * r, y: Math.sin(a) * r, z: 0.5, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, vz: 3 + Math.random() * 4, g: -2.2, drag: 0.75, size: 1.4 + Math.random() * 1.4, color: pick(fx.colors), born: t, life: 1.5 + Math.random() * 0.8 }));
+                        }
+                    }
+                    if (t < 1.8 && Math.random() < 0.7) {
+                        const a = Math.random() * TAU;
+                        embers.push(particle({ x: Math.cos(a) * r, y: Math.sin(a) * r, z: 0.8, vx: (Math.random() - 0.5) * 0.5, vy: (Math.random() - 0.5) * 0.5, vz: 2 + Math.random() * 2, g: -0.6, drag: 0.8, size: 1.2 + Math.random(), color: pick(fx.colors), born: t, life: 1 + Math.random() }));
                     }
                     g.globalCompositeOperation = 'lighter';
-                    if (t > 0.1 && t < 1.3) {
-                        blob(g, P(0, 0, 1.6), 1.3, fx.colors[1], 0.7);
-                        for (let i = 0; i < 9; i++) {
-                            const a = ang + (Math.random() - 0.5) * 0.45, sp = 7 + Math.random() * 4;
-                            flames.push(particle({ z: 1.6, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, vz: -1 + Math.random() * 1.5, drag: 0.35, size: 1, born: t, life: 0.55 + Math.random() * 0.3 }));
-                        }
-                    }
-                    for (let i = flames.length - 1; i >= 0; i--) {
-                        const f = flames[i], age = (t - f.born) / f.life;
-                        if (age >= 1) {
-                            flames.splice(i, 1);
-                            if (Math.random() < 0.12) embers.push(particle({ x: f.x, y: f.y, z: 0.2, vz: 1.5 + Math.random() * 2, vx: (Math.random() - 0.5), vy: (Math.random() - 0.5), g: 0.5, drag: 0.7, size: 0.9, color: pick(fx.colors), born: t, life: 1.2 + Math.random() }));
-                            continue;
-                        }
-                        step(f, dt);
-                        blob(g, P(f.x, f.y, f.z), 0.5 + age * 1.8, colorAt(age), 0.3 * (1 - age));
-                    }
                     run(g, P, embers, t, dt, 'dot');
                 } else {
                     g.globalCompositeOperation = 'lighter';
@@ -898,72 +1089,90 @@ window.rfDice3d = (() => {
             };
         },
 
-        // A constellation is drawn above the die, star by star; then a falling star strikes it.
-        // A 1: the stars come out dim and fall from the sky one after the other
+        // The Plough lights up above the die, star by star, its lines drawn between them, while little lights crackle
+        // round the die; it flares, and a falling star leaves it and strikes the die in a burst of stars. A 1: the stars come out dim and fall one after another
         stardust({ g, P, fx, high }) {
-            const stars = Array.from({ length: 7 }, (_, i) => {
-                const a = i / 7 * TAU + Math.random() * 0.5, r = 2.4 + Math.random() * 1.8;
-                return { x: Math.cos(a) * r, y: Math.sin(a) * r, z: 3 + Math.random() * 3, at: 0.1 + i * 0.1, tw: Math.random() * TAU, fall: 0.7 + i * 0.12, vz: 0 };
-            });
-            const links = [[0, 1], [1, 2], [2, 3], [3, 4], [4, 5], [5, 6], [1, 4], [6, 0]];
-            const sparks = [], dust = [];
-            const from = [-14 + Math.random() * 4, 10, 16];
-            let struck = false;
+            // Three stars of the handle, four of the bowl (in die radii, y up, above the die)
+            const plough = [[-3.3, 1.3], [-2.25, 1.05], [-1.25, 0.75], [-0.25, 0.85], [0.05, -0.35], [1.65, -0.5], [1.85, 0.75]];
+            const links = [[0, 1], [1, 2], [2, 3], [3, 4], [4, 5], [5, 6], [6, 3]];
+            const sky = Array.from({ length: 36 }, () => ({ x: (Math.random() - 0.5) * 12, y: (Math.random() - 0.5) * 8, ph: Math.random() * TAU, s: 0.6 + Math.random() * 0.8 }));
+            const falls = plough.map((_, i) => ({ at: 0.75 + i * 0.12, vy: 0, dy: 0 }));
+            const sparks = [], pops = [];
+            let struck = false, next = 0.15;
             return (t, dt) => {
                 g.globalCompositeOperation = 'lighter';
-                const fade = high ? 1 - clamp01((t - 2.2) / 0.7) : 1;
-                if (high) {
-                    links.forEach(([a, b], i) => {
-                        const k = clamp01((t - 0.45 - i * 0.08) / 0.25);
-                        if (k <= 0) return;
-                        const A = stars[a], B = stars[b];
-                        line3(g, P, [[A.x, A.y, A.z], [lerp(A.x, B.x, k), lerp(A.y, B.y, k), lerp(A.z, B.z, k)]], 1.4, rgba(fx.colors[2], 0.75 * fade), fx.colors[2]);
-                    });
+                const o = P(0, 0, 1.2), u = fxUnit * o.k;
+                const at = ([x, y], dy = 0) => ({ x: o.x + x * u, y: o.y - (y + 2.9) * u + dy });
+                const fade = 1 - clamp01((t - (high ? 2.2 : 1.8)) / 0.6);
+                // A faint sky behind
+                for (const s of sky) {
+                    const a = (0.25 + 0.25 * Math.sin(t * 5 + s.ph)) * clamp01(t / 0.4) * fade * (high ? 1 : 0.5);
+                    g.fillStyle = rgba(fx.colors[2], a);
+                    g.beginPath(); g.arc(o.x + s.x * u, o.y + s.y * u - 1.5 * u, s.s, 0, TAU); g.fill();
                 }
-                for (const s of stars) {
-                    if (t < s.at) continue;
-                    if (!high && t > s.fall) {
-                        s.vz -= 18 * dt;
-                        s.z += s.vz * dt;
-                        if (s.z <= 0 && !s.down) {
-                            s.down = true;
-                            for (let i = 0; i < 6; i++) dust.push(particle({ x: s.x, y: s.y, z: 0.1, vx: (Math.random() - 0.5) * 2, vy: (Math.random() - 0.5) * 2, vz: 0.6, drag: 0.5, size: 2.4, color: '#8a86a8', alpha: 0.35, born: t, life: 0.9 }));
+                if (high) {
+                    // The crackle: little stars popping round the die, each throwing a few sparks
+                    if (t < 1.4 && t >= next) {
+                        next = t + 0.09 + Math.random() * 0.08;
+                        const a = Math.random() * TAU, d = 1.3 + Math.random() * 2.6, z = 0.5 + Math.random() * 2.2, color = pick(fx.colors);
+                        pops.push({ x: Math.cos(a) * d, y: Math.sin(a) * d, z, born: t, color, size: 2.4 + Math.random() * 2 });
+                        for (let i = 0; i < 7; i++) {
+                            const b = Math.random() * TAU, sp = 1 + Math.random() * 2;
+                            sparks.push(particle({ x: Math.cos(a) * d, y: Math.sin(a) * d, z, vx: Math.cos(b) * sp, vy: Math.sin(b) * sp, vz: (Math.random() - 0.3) * sp, g: -3, drag: 0.35, size: 1 + Math.random() * 0.6, color: Math.random() > 0.4 ? color : '#ffffff', born: t, life: 0.4 + Math.random() * 0.25 }));
                         }
-                        if (s.down) continue;
-                        line3(g, P, [[s.x, s.y, s.z], [s.x, s.y, s.z - s.vz * 0.06]], 2, rgba(fx.colors[0], 0.5), fx.colors[2]);
                     }
-                    const tw = (high ? 0.75 : 0.35) + 0.25 * Math.sin(t * 9 + s.tw);
-                    const q = P(s.x, s.y, s.z);
-                    blob(g, q, 0.7, fx.colors[high ? 1 : 2], tw * fade * clamp01((t - s.at) / 0.15));
-                    drawParticle(g, q, particle({ size: high ? 2.6 : 1.6, color: fx.colors[0], spin: t * 0.6 }), 'star', 1 - tw * fade);
-                }
-                if (high) {
-                    // The falling star
-                    const k = clamp01((t - 1.15) / 0.35);
+                    for (let i = pops.length - 1; i >= 0; i--) {
+                        const p = pops[i], k = (t - p.born) / 0.28;
+                        if (k >= 1) { pops.splice(i, 1); continue; }
+                        const q = P(p.x, p.y, p.z);
+                        sparkle(g, q.x, q.y, p.size * (0.6 + 0.6 * ease(k)) * q.k, p.color, k < 0.2 ? k / 0.2 : 1 - (k - 0.2) / 0.8);
+                    }
+                    const flare = span(t, 1.15, 1.3, 1.4, 1.7);
+                    links.forEach(([a, b], i) => {
+                        const k = clamp01((t - 0.55 - i * 0.09) / 0.2);
+                        if (k <= 0) return;
+                        const A = at(plough[a]), B = at(plough[b]);
+                        glowLine(g, [A, { x: lerp(A.x, B.x, k), y: lerp(A.y, B.y, k) }], 1.3 + flare, rgba(fx.colors[2], (0.7 + 0.3 * flare) * fade), fx.colors[2]);
+                    });
+                    plough.forEach((p, i) => {
+                        const k = ease(clamp01((t - 0.1 - i * 0.08) / 0.2));
+                        const q = at(p), tw = 0.85 + 0.15 * Math.sin(t * 9 + i);
+                        sparkle(g, q.x, q.y, (3.2 + flare * 2.5) * k * (i === 6 ? 1.25 : 1), fx.colors[i % 2 ? 3 : 1], tw * k * fade);
+                    });
+                    // The falling star: from the end of the bowl down to the die
+                    const k = clamp01((t - 1.4) / 0.3);
                     if (k > 0 && k < 1) {
-                        const at = (u) => [lerp(from[0], 0, u), lerp(from[1], 0, u), lerp(from[2], 1, u)];
-                        const tail = Array.from({ length: 10 }, (_, i) => at(Math.max(0, k - i * 0.03)));
-                        line3(g, P, tail, 3, rgba(fx.colors[0], 0.9), fx.colors[3]);
-                        blob(g, P(...at(k)), 1.2, '#ffffff', 1);
+                        const A = at(plough[6]);
+                        const pos = (v) => ({ x: lerp(A.x, o.x, ease(v)), y: lerp(A.y, o.y, v * v) });
+                        glowLine(g, Array.from({ length: 10 }, (_, i) => pos(Math.max(0, k - i * 0.035))), 3, rgba(fx.colors[0], 0.95), fx.colors[3]);
+                        const h = pos(k);
+                        sparkle(g, h.x, h.y, 5, fx.colors[1], 1);
                     }
                     if (k >= 1 && !struck) {
                         struck = true;
                         for (let i = 0; i < 46; i++) {
-                            const a = Math.random() * TAU, sp = 2 + Math.random() * 6;
-                            sparks.push(particle({ vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, vz: 2 + Math.random() * 5, g: -5, drag: 0.5, size: 1.4 + Math.random() * 1.6, color: pick(fx.colors), born: t, life: 1 + Math.random() }));
+                            const a = Math.random() * TAU, sp = 2 + Math.random() * 5;
+                            sparks.push(particle({ vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, vz: 2 + Math.random() * 5, g: -5, drag: 0.5, size: 1.4 + Math.random() * 1.4, color: pick(fx.colors), born: t, life: 1 + Math.random() * 0.6 }));
                         }
                     }
-                    const ring = clamp01((t - 1.5) / 0.9);
-                    if (ring > 0 && ring < 1) line3(g, P, circle(0.8 + ease(ring) * 6).map(([x, y]) => [x, y, 0]), 3 * (1 - ring) + 0.5, rgba(fx.colors[3], 0.8 * (1 - ring)), fx.colors[2]);
+                    const ring = clamp01((t - 1.72) / 0.9);
+                    if (ring > 0 && ring < 1) line3(g, P, circle(0.8 + ease(ring) * 5.5).map(([x, y]) => [x, y, 0]), 3 * (1 - ring) + 0.5, rgba(fx.colors[3], 0.8 * (1 - ring)), fx.colors[2]);
+                    hole(g, P);
                     run(g, P, sparks, t, dt, 'star');
                 } else {
-                    g.globalCompositeOperation = 'source-over';
-                    run(g, P, dust, t, dt, 'smoke');
+                    plough.forEach((p, i) => {
+                        const f = falls[i];
+                        if (t > f.at) { f.vy += 900 * dt; f.dy += f.vy * dt; }
+                        const q = at(p, f.dy), k = clamp01((t - 0.1 - i * 0.06) / 0.2);
+                        const a = k * 0.6 * fade * (1 - clamp01(f.dy / (u * 6)));
+                        if (f.dy > 0) glowLine(g, [q, { x: q.x, y: q.y - Math.min(40, f.vy * 0.05) }], 1.5, rgba(fx.colors[2], a * 0.6));
+                        sparkle(g, q.x, q.y, 2.4 * k, fx.colors[2], a);
+                    });
                 }
             };
         },
 
-        // Frost crawls across the table in branching ferns and spikes of ice rise round the die; snow falls.
+        // A snowflake of frost grows on the table out of the die, its six arms branching alike; snow falls.
         // A 1: a ring of ice forms, cracks and bursts into shards
         frost({ g, P, fx, high }) {
             const segs = [];
@@ -971,17 +1180,19 @@ window.rfDice3d = (() => {
                 const x2 = x + Math.cos(a) * len, y2 = y + Math.sin(a) * len;
                 segs.push({ a: [x, y], b: [x2, y2], t0, d: depth });
                 if (depth < 3) {
-                    grow(x2, y2, a + 0.55 + Math.random() * 0.2, len * 0.6, depth + 1, t0 + 0.12);
-                    grow(x2, y2, a - 0.55 - Math.random() * 0.2, len * 0.6, depth + 1, t0 + 0.12);
-                    grow(x2, y2, a + (Math.random() - 0.5) * 0.2, len * 0.75, depth + 1, t0 + 0.12);
+                    grow(x2, y2, a + 0.62, len * 0.55, depth + 1, t0 + 0.12);
+                    grow(x2, y2, a - 0.62, len * 0.55, depth + 1, t0 + 0.12);
+                    grow(x2, y2, a, len * 0.7, depth + 1, t0 + 0.12);
                 }
             };
-            for (let i = 0; i < 7; i++) { const a = i / 7 * TAU + Math.random() * 0.3; grow(Math.cos(a) * 0.7, Math.sin(a) * 0.7, a, 1.4, 0, 0.05); }
-            const spikes = Array.from({ length: 10 }, (_, i) => {
-                const a = i / 10 * TAU + Math.random() * 0.4, r = 1.5 + Math.random() * 1.8;
-                return { x: Math.cos(a) * r, y: Math.sin(a) * r, a, h: 1.4 + Math.random() * 2.2, w: 0.28 + Math.random() * 0.2, at: 0.25 + Math.random() * 0.4 };
-            });
-            const snow = high ? Array.from({ length: 50 }, () => particle({ x: (Math.random() - 0.5) * 12, y: (Math.random() - 0.5) * 9, z: 6 + Math.random() * 10, vz: -2.5 - Math.random() * 1.5, size: 1 + Math.random() * 1.4, color: '#ffffff', alpha: 0.9, vs: 1, born: 0.2, life: 2.7 })) : [];
+            // One arm, the same six times round the die: a snowflake, not a thicket
+            grow(0.7, 0, 0, 1.45, 0, 0.05);
+            const arm = segs.splice(0, segs.length);
+            for (let i = 0; i < 6; i++) {
+                const r = turn(i / 6 * TAU);
+                for (const sg of arm) segs.push({ a: r(sg.a), b: r(sg.b), t0: sg.t0, d: sg.d });
+            }
+            const snow = high ? Array.from({ length: 60 }, () => particle({ x: (Math.random() - 0.5) * 12, y: (Math.random() - 0.5) * 9, z: 3 + Math.random() * 5, vz: -1.2 - Math.random() * 0.8, size: 1.2 + Math.random() * 1.2, color: '#ffffff', alpha: 0.85, vs: 1, born: 0.2, life: 2.7 })) : [];
             const cracks = Array.from({ length: 9 }, (_, i) => { const a = i / 9 * TAU + Math.random() * 0.3; return jagged3([Math.cos(a) * 0.8, Math.sin(a) * 0.8, 0], [Math.cos(a) * 2.9, Math.sin(a) * 2.9, 0], 0.4, 6); });
             const shards = [], mist = [];
             let burst = false;
@@ -1011,27 +1222,9 @@ window.rfDice3d = (() => {
                         g.restore();
                     }
                     hole(g, P);
-                    // Spikes, the far ones first
-                    g.globalCompositeOperation = 'source-over';
-                    const order = [...spikes].sort((u, v) => v.y - u.y);
-                    for (const s of order) {
-                        const k = ease(clamp01((t - s.at) / 0.3)) * fade;
-                        if (k <= 0) continue;
-                        const px_ = -Math.sin(s.a) * s.w, py_ = Math.cos(s.a) * s.w;
-                        const top = P(s.x, s.y, s.h * k), l = P(s.x + px_, s.y + py_, 0), r = P(s.x - px_, s.y - py_, 0), f = P(s.x + Math.cos(s.a) * s.w, s.y + Math.sin(s.a) * s.w, 0);
-                        g.globalAlpha = 0.85 * fade;
-                        g.fillStyle = rgba(fx.colors[2], 0.75);
-                        path(g, [l, top, f], true); g.fill();
-                        g.fillStyle = rgba(fx.colors[3], 0.9);
-                        path(g, [f, top, r], true); g.fill();
-                        g.strokeStyle = 'rgba(255,255,255,0.9)';
-                        g.lineWidth = 1;
-                        path(g, [l, top, r]); g.stroke();
-                        g.globalAlpha = 1;
-                    }
                     g.globalCompositeOperation = 'lighter';
                     for (const p of snow) { p.x += Math.sin(t * 2 + p.spin) * 0.6 * dt; }
-                    run(g, P, snow, t, dt, 'star');
+                    run(g, P, snow, t, dt, 'dot');
                 } else {
                     const ring = ease(clamp01(t / 0.35)), fade = 1 - clamp01((t - 0.55) / 0.2);
                     if (fade > 0) {
@@ -1056,37 +1249,50 @@ window.rfDice3d = (() => {
             };
         },
 
-        // Lightning strikes the die from the sky three times and runs over the table in chains.
-        // A 1: rain, and the one bolt misses the die
+        // Branched lightning strikes the die from the sky four times, the scene flashing, and runs over the table in
+        // crackling arcs; small arcs crawl over the die between the strikes. A 1: rain, and the one bolt misses the die
         storm({ g, P, fx, high }) {
-            const strikes = high ? [0.05, 0.35, 0.7, 1.1, 1.55] : [0.45];
+            const strikes = high ? [0.05, 0.42, 0.85, 1.35] : [0.45];
             const target = high ? [0, 0] : [2.6 + Math.random(), -2 + Math.random()];
             const sparks = [], splashes = [];
             const rain = high ? [] : Array.from({ length: 160 }, () => ({ x: (Math.random() - 0.5) * 9, y: (Math.random() - 0.5) * 7, z: Math.random() * 10, v: 16 + Math.random() * 6 }));
             const cloud = high ? [] : Array.from({ length: 9 }, () => ({ x: (Math.random() - 0.5) * 5 - 1, y: (Math.random() - 0.5) * 4, z: 7 + Math.random() * 2, r: 2.2 + Math.random() * 1.6 }));
-            let shapes = [], at = -1;
+            let lines = [], at = -1, flash = 0;
             return (t, dt) => {
                 g.globalCompositeOperation = 'lighter';
-                const live = strikes.find(s => t >= s && t < s + 0.22);
+                const live = strikes.find(s => t >= s && t < s + 0.2);
                 if (live !== undefined) {
-                    if (performance.now() - at > 55) {
+                    // A new shape every 60 ms while it lasts: the bolt flickers
+                    if (performance.now() - at > 60) {
                         at = performance.now();
-                        const [tx, ty] = target;
-                        shapes = [jagged3([tx + (Math.random() - 0.5) * 6, ty + (Math.random() - 0.5) * 6, 30], [tx, ty, high ? 1.2 : 0], 2.2, 12)];
-                        if (high) for (let i = 0; i < 4; i++) { const a = Math.random() * TAU, l = 3 + Math.random() * 3; shapes.push(jagged3([0, 0, 0.4], [Math.cos(a) * l, Math.sin(a) * l, 0], 0.9, 7)); }
+                        const q = P(target[0], target[1], high ? 1.2 : 0);
+                        const from = { x: q.x + (Math.random() - 0.5) * Math.min(innerWidth, 700) * 0.35, y: -20 };
+                        lines = bolt2(from, { x: q.x, y: q.y }, 0.42, 7, high ? 3 : 1);
+                        if (high) for (let i = 0; i < 4; i++) {
+                            const a = Math.random() * TAU, l = 2.4 + Math.random() * 2.4;
+                            lines.push(...bolt2(P(0, 0, 0.3), P(Math.cos(a) * l, Math.sin(a) * l, 0), 0.5, 5, 1).map(x => (x.branch = true, x)));
+                        }
                         if (sparks.length < 120) for (let i = 0; i < 10; i++) { const a = Math.random() * TAU, sp = 2 + Math.random() * 5; sparks.push(particle({ x: target[0], y: target[1], z: 0.5, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, vz: 2 + Math.random() * 4, g: -14, bounce: true, drag: 0.5, size: 1, color: pick(fx.colors), born: t, life: 0.7 })); }
+                        flash = 1;
                     }
-                    pool(g, P, target[0], target[1], high ? 6 : 3, rgba(fx.colors[2], 0.45), rgba(fx.colors[2], 0));
-                    for (const sh of shapes) {
-                        line3(g, P, sh, 6, rgba(fx.colors[2], 0.35), fx.colors[2]);
-                        line3(g, P, sh, 2, 'rgba(255,255,255,0.95)', fx.colors[1]);
-                    }
+                    pool(g, P, target[0], target[1], high ? 5 : 3, rgba(fx.colors[2], 0.4), rgba(fx.colors[2], 0));
+                    drawBolt(g, lines, fx, 1 - (t - live) / 0.25);
+                }
+                // The whole scene lights for an instant at each strike
+                flash = Math.max(0, flash - dt * 7);
+                if (flash > 0.01) {
+                    g.fillStyle = rgba(fx.colors[1], 0.1 * flash);
+                    g.fillRect(0, 0, innerWidth, innerHeight);
                 }
                 if (high) {
-                    const k = span(t, 0.1, 0.3, 1.6, 2.4);
+                    const k = span(t, 0.1, 0.3, 1.8, 2.5);
                     if (k > 0) {
-                        const ring = circle(2.6, 40).map(([x, y]) => [x + (Math.random() - 0.5) * 0.25, y + (Math.random() - 0.5) * 0.25, 0]);
-                        line3(g, P, ring, 1.6, rgba(fx.colors[1], 0.7 * k), fx.colors[2]);
+                        pool(g, P, 0, 0, 3, rgba(fx.colors[2], 0.2 * k), rgba(fx.colors[2], 0));
+                        hole(g, P);
+                        if (Math.random() < 0.45) {
+                            const a = Math.random() * TAU;
+                            drawBolt(g, bolt2(P(Math.cos(a) * 1.05, Math.sin(a) * 1.05, 0.7), P(Math.cos(a + 1) * 1.05, Math.sin(a + 1) * 1.05, 1.1), 0.7, 4, 0), fx, 0.7 * k);
+                        }
                     }
                 } else {
                     g.globalCompositeOperation = 'source-over';
@@ -1107,7 +1313,7 @@ window.rfDice3d = (() => {
                     // Zapped: after the miss, small arcs crawl over the die and fizzle
                     if (t > 0.6 && t < 1.5 && Math.random() < 0.6) {
                         const a = Math.random() * TAU;
-                        line3(g, P, jagged3([Math.cos(a) * 0.9, Math.sin(a) * 0.9, 1.2], [Math.cos(a + 1.4) * 0.9, Math.sin(a + 1.4) * 0.9, 1.4], 0.5, 5), 1.4, rgba('#ffffff', 0.8), fx.colors[2]);
+                        drawBolt(g, bolt2(P(Math.cos(a) * 0.9, Math.sin(a) * 0.9, 1.2), P(Math.cos(a + 1.4) * 0.9, Math.sin(a + 1.4) * 0.9, 1.4), 0.6, 4, 0), fx, 0.7);
                     }
                     for (const d of rain) {
                         d.z -= d.v * dt;
@@ -1124,7 +1330,7 @@ window.rfDice3d = (() => {
             };
         },
 
-        // The dead answer: spirits spiral up out of the die through a green mist, and a spectral skull looks down.
+        // The dead answer: spirits spiral up out of the die through a green mist, and a spectral skull rises and laughs.
         // A 1: the ground cracks and the spirits are dragged under, bone chips flying
         bone({ g, P, fx, high }) {
             const spirits = Array.from({ length: 6 }, (_, i) => ({ a: i / 6 * TAU, r: 1.3 + Math.random() * 0.6, sp: 2.6 + Math.random(), delay: i * 0.08 }));
@@ -1157,36 +1363,15 @@ window.rfDice3d = (() => {
                     const trail = Array.from({ length: 12 }, (_, i) => pos(s, t - i * 0.035)).filter(p => p[2] > -0.2);
                     if (trail.length < 2) continue;
                     line3(g, P, trail, 3, rgba(fx.colors[1], 0.45 * fade), fx.colors[1]);
-                    blob(g, P(...trail[0]), 1.3, fx.colors[0], 0.8 * fade);
+                    blob(g, P(...trail[0]), 0.7, fx.colors[0], 0.8 * fade);
                 }
                 if (high) {
-                    // The skull, above the die
-                    const k = span(t, 0.5, 0.9, 1.9, 2.5);
+                    // The skull rises behind the die, looks down and laughs, its jaw chattering
+                    const k = span(t, 0.45, 0.85, 1.9, 2.5);
                     if (k > 0) {
-                        const q = P(0, 2.6, 3.5 + t * 0.4), s = 0.9 * fxUnit * q.k * (0.85 + 0.15 * ease(clamp01((t - 0.5) / 0.4)));
-                        g.save();
-                        g.translate(q.x, q.y);
-                        g.globalAlpha = 0.55 * k;
-                        g.shadowColor = fx.colors[1];
-                        g.shadowBlur = 24;
-                        g.fillStyle = fx.colors[0];
-                        g.beginPath(); g.ellipse(0, -s * 0.15, s, s * 0.9, 0, 0, TAU); g.fill();
-                        g.beginPath(); g.roundRect(-s * 0.55, s * 0.45, s * 1.1, s * 0.55, s * 0.15); g.fill();
-                        g.globalCompositeOperation = 'source-over';
-                        g.shadowBlur = 0;
-                        g.globalAlpha = 0.8 * k;
-                        g.fillStyle = fx.dark;
-                        g.beginPath(); g.ellipse(-s * 0.38, s * 0.05, s * 0.26, s * 0.3, 0, 0, TAU); g.fill();
-                        g.beginPath(); g.ellipse(s * 0.38, s * 0.05, s * 0.26, s * 0.3, 0, 0, TAU); g.fill();
-                        g.beginPath(); g.moveTo(0, s * 0.3); g.lineTo(-s * 0.1, s * 0.5); g.lineTo(s * 0.1, s * 0.5); g.closePath(); g.fill();
-                        for (let i = -2; i <= 2; i++) g.fillRect(i * s * 0.18 - s * 0.05, s * 0.62, s * 0.1, s * 0.3);
-                        g.globalCompositeOperation = 'lighter';
-                        g.fillStyle = fx.colors[1];
-                        g.shadowColor = fx.colors[1];
-                        g.shadowBlur = 14;
-                        g.globalAlpha = k * (0.6 + 0.4 * Math.sin(t * 12));
-                        g.beginPath(); g.arc(-s * 0.38, s * 0.08, s * 0.08, 0, TAU); g.arc(s * 0.38, s * 0.08, s * 0.08, 0, TAU); g.fill();
-                        g.restore();
+                        const o = P(0, 0, 1.2), u = fxUnit * o.k;
+                        const jaw = t > 1 && t < 1.7 ? Math.abs(Math.sin((t - 1) * 14)) : 0;
+                        skull(g, o.x, o.y - (3.3 + t * 0.2) * u, 1.6 * u * (0.85 + 0.15 * ease(clamp01((t - 0.45) / 0.4))), 0.85 * k, jaw, fx, t);
                     }
                 } else {
                     g.globalCompositeOperation = 'source-over';
@@ -1324,7 +1509,7 @@ window.rfDice3d = (() => {
             };
         },
 
-        // The wood wakes: vines curl out of the die across the table and flowers bloom at their ends, fireflies dancing.
+        // The wood wakes: vines curl out of the die across the table and small flowers bloom along them, fireflies dancing.
         // A 1: wilted petals drift down and the fireflies go out
         fey({ g, P, fx, high }) {
             const vines = Array.from({ length: 6 }, (_, i) => ({ a: i / 6 * TAU + Math.random() * 0.3, dir: Math.random() > 0.5 ? 1 : -1, len: 3 + Math.random() * 1.5 }));
@@ -1347,16 +1532,17 @@ window.rfDice3d = (() => {
                             g.fillStyle = rgba(fx.colors[1], 0.85 * fade);
                             path(g, onTable(P, petal(x, y, a, 0.6, 0.18)), true); g.fill();
                         }
-                        // The flower at the end
-                        const bloom = ease(clamp01((t - 0.8 - v.a * 0.02) / 0.5));
-                        if (bloom > 0) {
-                            const [x, y] = vinePt(v, 1);
+                        // Small flowers along the vine and at its end
+                        for (const [along, size, delay] of [[0.5, 0.26, 0.55], [0.78, 0.3, 0.7], [1, 0.4, 0.85]]) {
+                            const bloom = ease(clamp01((t - delay - v.a * 0.02) / 0.45));
+                            if (bloom <= 0 || along > grow + 0.001) continue;
+                            const [x, y] = vinePt(v, along);
                             for (let k = 0; k < 5; k++) {
-                                g.fillStyle = rgba(petals[k % petals.length], 0.92 * fade);
-                                path(g, onTable(P, petal(x, y, k / 5 * TAU + v.a + t * 0.3, 0.9 * bloom, 0.34 * bloom)), true); g.fill();
+                                g.fillStyle = rgba(petals[(k + Math.round(along * 4)) % petals.length], 0.92 * fade);
+                                path(g, onTable(P, petal(x, y, k / 5 * TAU + v.a + t * 0.3, size * bloom, size * 0.4 * bloom)), true); g.fill();
                             }
                             g.globalCompositeOperation = 'lighter';
-                            blob(g, P(x, y, 0.1), 0.6, '#ffe066', 0.9 * bloom * fade);
+                            blob(g, P(x, y, 0.05), 0.18, '#ffe066', 0.9 * bloom * fade);
                             g.globalCompositeOperation = 'source-over';
                         }
                     }
@@ -1369,7 +1555,7 @@ window.rfDice3d = (() => {
                     if (on <= 0) continue;
                     const z = f.z + Math.sin(t * 3 + f.ph) * 0.4 + (high ? t * 0.3 : 0);
                     const a = (0.5 + 0.5 * Math.abs(Math.sin(t * 8 + f.ph))) * on * (high ? 1 : 0.5);
-                    blob(g, P(Math.cos(f.a) * f.r, Math.sin(f.a) * f.r, z), 0.45, fx.colors[0], a);
+                    blob(g, P(Math.cos(f.a) * f.r, Math.sin(f.a) * f.r, z), 0.3, fx.colors[0], a);
                 }
                 if (!high) {
                     g.globalCompositeOperation = 'source-over';
@@ -1430,8 +1616,8 @@ window.rfDice3d = (() => {
             };
         },
 
-        // A ritual: the magic circle is drawn on the table and two more rise from it round the die, counter-turning,
-        // runes orbiting. A 1: the circle is half drawn, flickers and shatters, its pieces falling away
+        // A ritual: the magic circle is drawn on the table round the die, a star inside it, runes orbiting, a shaft of
+        // light rising. A 1: the circle is half drawn, flickers and shatters, its pieces falling away
         arcane({ g, P, fx, high }) {
             const frags = [];
             let broke = false;
@@ -1454,15 +1640,7 @@ window.rfDice3d = (() => {
                     line3(g, P, star.map(([x, y]) => [x, y, 0]), 1.6, rgba(fx.colors[0], 0.75 * fade * k), fx.colors[2]);
                     runeRing(3.4, 0, t * 0.5, 12, k, 0.85 * fade);
                     hole(g, P);
-                    // Two rings rising round the die
-                    [[2.5, 2.2, -1.4, 0.5], [1.7, 4.2, 1.9, 0.75]].forEach(([r, h, sp, at]) => {
-                        const u = ease(clamp01((t - at) / 0.6));
-                        if (u <= 0) return;
-                        const z = h * u;
-                        line3(g, P, circle(r, 48).map(turn(t * sp)).map(([x, y]) => [x, y, z]), 2, rgba(fx.colors[1], 0.85 * fade), fx.colors[2]);
-                        runeRing(r - 0.3, z, t * sp, 8, u, 0.8 * fade);
-                    });
-                    // A shaft of light through the rings, from the die
+                    // A shaft of light out of the die
                     const beam = span(t, 0.9, 1.2, 1.7, 2.4);
                     for (let i = 0; i < 8 && beam > 0; i++) blob(g, P(0, 0, 1 + i * 0.7), 1.2 - i * 0.08, fx.colors[3], 0.18 * beam);
                 } else {
@@ -1484,6 +1662,100 @@ window.rfDice3d = (() => {
                         const c = Math.cos(f.spin), sn = Math.sin(f.spin);
                         line3(g, P, [[f.x, f.y, f.z], [f.x + f.dx * c - f.dy * sn, f.y + f.dx * sn + f.dy * c, f.z]], 2, rgba(fx.colors[2], 0.9 * (1 - life)), fx.colors[2]);
                     }
+                }
+            };
+        },
+
+        // Dawn breaks on the die: rays of gold turn round it, two rings of light run over the table, motes of light
+        // rise. A 1: an eclipse: a dark disc slides over the light on the table and only a thin corona is left
+        dawn({ g, P, fx, high }) {
+            const rays = Array.from({ length: 18 }, (_, i) => ({ a: i / 18 * TAU, l: i % 2 ? 0.6 : 1, w: i % 2 ? 0.06 : 0.1 }));
+            const motes = [];
+            return (t, dt) => {
+                const o = P(0, 0, 1.2), u = fxUnit * o.k;
+                g.globalCompositeOperation = 'lighter';
+                if (high) {
+                    const k = span(t, 0, 0.4, 2.0, 2.8), rise = ease(clamp01(t / 0.7));
+                    pool(g, P, 0, 0, 4.6 * rise + 0.5, rgba(fx.colors[2], 0.32 * k), rgba(fx.colors[3], 0));
+                    for (const r of rays) {
+                        const a = r.a + t * 0.22, len = (1.4 + 3.4 * r.l * rise) * u;
+                        const grad = g.createLinearGradient(o.x, o.y, o.x + Math.cos(a) * len, o.y + Math.sin(a) * len);
+                        grad.addColorStop(0, rgba(fx.colors[1], 0.5 * k));
+                        grad.addColorStop(1, rgba(fx.colors[2], 0));
+                        g.fillStyle = grad;
+                        g.beginPath();
+                        g.moveTo(o.x + Math.cos(a - r.w) * u, o.y + Math.sin(a - r.w) * u);
+                        g.lineTo(o.x + Math.cos(a) * len, o.y + Math.sin(a) * len);
+                        g.lineTo(o.x + Math.cos(a + r.w) * u, o.y + Math.sin(a + r.w) * u);
+                        g.closePath();
+                        g.fill();
+                    }
+                    for (const [from, reach] of [[0.15, 4.4], [0.6, 5.6]]) {
+                        const v = clamp01((t - from) / 0.9);
+                        if (v > 0 && v < 1) line3(g, P, circle(1 + ease(v) * reach).map(([x, y]) => [x, y, 0]), 3 * (1 - v) + 0.6, rgba(fx.colors[1], 0.8 * (1 - v)), fx.colors[2]);
+                    }
+                    hole(g, P);
+                    if (t < 2 && Math.random() < 0.8) {
+                        const a = Math.random() * TAU, d = 1.2 + Math.random() * 3;
+                        motes.push(particle({ x: Math.cos(a) * d, y: Math.sin(a) * d, z: 0.2, vz: 1 + Math.random() * 1.5, drag: 0.9, size: 1.2 + Math.random(), color: pick(fx.colors), born: t, life: 1.3 }));
+                    }
+                    run(g, P, motes, t, dt, 'dot');
+                } else {
+                    const k = span(t, 0, 0.3, 1.5, 2.2), cover = ease(clamp01((t - 0.25) / 1));
+                    pool(g, P, 0, 0, 3.4, rgba(fx.colors[2], 0.3 * k * (1 - cover * 0.7)), rgba(fx.colors[3], 0));
+                    line3(g, P, circle(3.2, 64).map(([x, y]) => [x, y, 0]), 2 + 2 * cover, rgba(fx.colors[1], 0.75 * k), fx.colors[2]);
+                    g.globalCompositeOperation = 'source-over';
+                    const dx = (1 - cover) * 7;
+                    g.fillStyle = `rgba(10,7,2,${(0.88 * k).toFixed(3)})`;
+                    path(g, onTable(P, circle(3.05, 56).map(shift(dx, -dx * 0.25))), true);
+                    g.fill();
+                    hole(g, P);
+                }
+            };
+        },
+
+        // The deep rises: rings of water run out over the table from the die, a crown of drops leaps up and falls back,
+        // bubbles rise. A 1: a whirlpool opens under the die and drains everything away
+        tide({ g, P, fx, high }) {
+            const drops = [], bubbles = [];
+            let splashed = false;
+            return (t, dt) => {
+                g.globalCompositeOperation = 'lighter';
+                if (high) {
+                    const k = 1 - clamp01((t - 2.2) / 0.7);
+                    pool(g, P, 0, 0, 5, rgba(fx.colors[2], 0.28 * k), rgba(fx.colors[2], 0));
+                    for (let i = 0; i < 6; i++) {
+                        const v = (t - 0.05 - i * 0.28) / 1.3;
+                        if (v <= 0 || v >= 1) continue;
+                        const R = 1 + ease(v) * 5;
+                        const ring = Array.from({ length: 65 }, (_, j) => { const a = j / 64 * TAU, w = 1 + 0.012 * Math.sin(a * 6 + t * 4 + i); return [Math.cos(a) * R * w, Math.sin(a) * R * w, 0]; });
+                        line3(g, P, ring, 2.6 * (1 - v) + 0.6, rgba(fx.colors[1], 0.85 * (1 - v) * k), fx.colors[2]);
+                        line3(g, P, ring.map(([x, y]) => [x * 0.93, y * 0.93, 0]), 1, rgba(fx.colors[0], 0.45 * (1 - v) * k));
+                    }
+                    hole(g, P);
+                    if (!splashed && t > 0.08) {
+                        splashed = true;
+                        for (let i = 0; i < 44; i++) {
+                            const a = i / 44 * TAU + Math.random() * 0.1, sp = 1.4 + Math.random() * 1.6;
+                            drops.push(particle({ x: Math.cos(a) * 1.15, y: Math.sin(a) * 1.15, z: 0.3, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, vz: 5 + Math.random() * 3, g: -16, drag: 0.8, size: 1.3 + Math.random() * 0.9, color: pick(fx.colors), born: t, life: 1.1 }));
+                        }
+                    }
+                    if (t < 2 && Math.random() < 0.5) {
+                        const a = Math.random() * TAU, d = 1.2 + Math.random() * 3;
+                        bubbles.push(particle({ x: Math.cos(a) * d, y: Math.sin(a) * d, z: 0.1, vz: 1.2 + Math.random(), drag: 0.9, size: 1.5 + Math.random() * 1.5, color: fx.colors[0], alpha: 0.7, born: t, life: 1 }));
+                    }
+                    run(g, P, bubbles, t, dt, 'ring');
+                    run(g, P, drops, t, dt, 'drop');
+                } else {
+                    const k = span(t, 0, 0.3, 1.5, 2.2);
+                    g.globalCompositeOperation = 'source-over';
+                    pool(g, P, 0, 0, 3.6, `rgba(2,14,22,${(0.6 * k).toFixed(3)})`, 'rgba(2,14,22,0)');
+                    g.globalCompositeOperation = 'lighter';
+                    for (let arm = 0; arm < 5; arm++) {
+                        const pts = Array.from({ length: 41 }, (_, s) => { const v = s / 40, r = 3.3 * (1 - v) + 0.9, a = arm / 5 * TAU + v * 4.2 + t * 3.2; return [Math.cos(a) * r, Math.sin(a) * r, 0]; });
+                        line3(g, P, pts, 1.8, rgba(fx.colors[2], 0.65 * k), fx.colors[2]);
+                    }
+                    hole(g, P);
                 }
             };
         }
