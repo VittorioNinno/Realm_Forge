@@ -647,7 +647,7 @@ namespace RealmForge.Infrastructure.Persistence
 				entity.HasOne<Campaign>().WithMany().HasForeignKey(l => l.CampaignId).OnDelete(DeleteBehavior.Cascade);
 			});
 
-			//	The easter eggs of the dice: the codes of the two special dice and of the eight secret ones (only their hashes;
+			//	The easter eggs of the dice: the codes of the three special dice and of the nine secret ones (only their hashes;
 			//	the codes are given by hand)
 			modelBuilder.Entity<DiceUnlockCode>(entity =>
 			{
@@ -715,6 +715,18 @@ namespace RealmForge.Infrastructure.Persistence
 						Id = Guid.Parse("6f1c2a5e-4d1b-4c7e-9a2f-1b9e7c3d5a10"), Skin = "arcane", Active = true,
 						CodeHash = "011f3e18b8e239d3ba42e698c02c772cd808690fd972e68461b9d401b3e6da24",
 						CreatedAt = new DateTimeOffset(2026, 11, 25, 0, 0, 0, TimeSpan.Zero)
+					},
+					new DiceUnlockCode
+					{
+						Id = Guid.Parse("6f1c2a5e-4d1b-4c7e-9a2f-1b9e7c3d5a11"), Skin = "dawn", Active = true,
+						CodeHash = "778c22fa2b2fb2daae0114258560acee94bde24669889b7f8e04699d998310a6",
+						CreatedAt = new DateTimeOffset(2026, 11, 26, 0, 0, 0, TimeSpan.Zero)
+					},
+					new DiceUnlockCode
+					{
+						Id = Guid.Parse("6f1c2a5e-4d1b-4c7e-9a2f-1b9e7c3d5a12"), Skin = "tide", Active = true,
+						CodeHash = "ce2b1612776d08650a3dc05f21bd4334640f91bbe175b69dc9cd0f995c969c69",
+						CreatedAt = new DateTimeOffset(2026, 11, 26, 0, 0, 0, TimeSpan.Zero)
 					});
 			});
 
