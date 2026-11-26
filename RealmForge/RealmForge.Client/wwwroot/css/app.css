@@ -20736,60 +20736,7 @@ button.rf-qs-spell {
     }
 }
 
-/* ===== The table on a phone: only phones change, the desktop layout stays as it is =====
-   Upright, a phone is too narrow for the map and its tools: the table asks to turn it. Sideways, the top bar is lower,
-   the tools scroll, the card of a token opens on the right side of the screen (see CampaignMap.Phone) */
-.rf-vtt-rotate {
-    display: none;
-}
-
-@media (max-width: 767.98px) and (orientation: portrait) {
-    .rf-vtt-rotate {
-        position: absolute;
-        inset: 0;
-        z-index: 2000;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        gap: 16px;
-        padding: 32px;
-        background-color: #0b0b0b;
-        color: var(--rf-text-primary);
-        text-align: center;
-    }
-
-        .rf-vtt-rotate svg {
-            width: 48px;
-            height: 48px;
-            color: var(--rf-orange-primary);
-            animation: rf-rotate-hint 2.4s ease-in-out infinite;
-        }
-
-        .rf-vtt-rotate p {
-            max-width: 280px;
-            margin: 0;
-            font-size: .9rem;
-            color: var(--rf-text-secondary);
-        }
-}
-
-@keyframes rf-rotate-hint {
-    0%, 30% {
-        transform: rotate(0deg);
-    }
-
-    60%, 100% {
-        transform: rotate(-90deg);
-    }
-}
-
-@media (prefers-reduced-motion: reduce) {
-    .rf-vtt-rotate svg {
-        animation: none;
-    }
-}
-
+/* ===== The table on a phone held sideways: a lower top bar, the tools scrolled (see also the block of the phone below) ===== */
 @media (max-height: 500px) and (max-width: 1023.98px) and (orientation: landscape) {
     .rf-vtt-top {
         gap: 8px;
@@ -26154,94 +26101,304 @@ html.rf-fx-off .rf-bg-msg { animation: none; }
     background: #121212;
 }
 
-/* ===== The table on a phone held upright: the map takes the screen, the tools run along the bottom (scrolled with a
-   finger), the side panel and the card of a token rise as sheets over the map; every tool stays at hand ===== */
-@media (max-width: 767.98px) and (orientation: portrait) {
+/* ===== The table on a phone, upright and sideways (only phones: the desktop layout stays as it is) =====
+   A slim top bar (back, the map, the status of the table that opens its controls, full screen); the tools on a rail
+   over the left of the map, scrolled with a finger; the initiative a strip over the map that opens as a list; the
+   panels, the dice and the log behind a bar along the bottom (upright) or a small dock in a corner (sideways); the
+   panels open as a sheet from the bottom (upright) or from the right (sideways); the card of a token along the bottom */
+.rf-vtt-mstatus,
+.rf-vtt-micon,
+.rf-vtt-mnav {
+    display: none;
+}
+
+@media (max-width: 767.98px), (max-height: 500px) and (max-width: 1023.98px) and (orientation: landscape) {
+    /* The top bar */
     .rf-vtt-top {
+        flex-wrap: nowrap;
         gap: 8px;
         min-height: 48px;
-        padding: 4px 8px;
+        padding: 8px;
     }
 
-        .rf-vtt-top .rf-vtt-select {
-            flex: 1 1 120px;
-            min-width: 0;
+        .rf-vtt-top .rf-vtt-back span,
+        .rf-vtt-top-actions {
+            display: none;
         }
 
-    .rf-vtt-top-actions {
-        overflow-x: auto;
-        scrollbar-width: none;
+        .rf-vtt-top .rf-vtt-select {
+            flex: 1 1 auto;
+            min-width: 0;
+            max-width: 200px;
+        }
+
+    .rf-vtt-mstatus,
+    .rf-vtt-micon {
+        display: inline-flex;
+        flex: none;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        height: 32px;
+        border-radius: 6px;
+        border: 1px solid #2c2c2c;
+        background: #181818;
+        color: #d4d4d8;
     }
 
+    .rf-vtt-top .rf-vtt-mstatus {
+        margin-left: auto;
+    }
+
+    .rf-vtt-micon {
+        width: 32px;
+        padding: 0;
+    }
+
+        .rf-vtt-micon.accent {
+            border-color: var(--rf-orange-primary);
+            color: var(--rf-orange-primary);
+        }
+
+    .rf-vtt-mstatus {
+        padding: 0 12px;
+        font-size: 11px;
+        font-weight: 800;
+        letter-spacing: .4px;
+        text-transform: uppercase;
+    }
+
+    .rf-vtt-mstatus-dot {
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: #71717a;
+    }
+
+    .rf-vtt-mstatus.live,
+    .rf-vtt-mstatus.link-live {
+        border-color: rgba(16, 185, 129, .45);
+        background: rgba(16, 185, 129, .12);
+        color: #34d399;
+    }
+
+        .rf-vtt-mstatus.live .rf-vtt-mstatus-dot,
+        .rf-vtt-mstatus.link-live .rf-vtt-mstatus-dot {
+            background: #10b981;
+        }
+
+    .rf-vtt-mstatus.link-reconnecting .rf-vtt-mstatus-dot {
+        background: #f59e0b;
+    }
+
+    .rf-vtt-mstatus.link-offline .rf-vtt-mstatus-dot {
+        background: #ef4444;
+    }
+
+    .rf-vtt-mstatus.on {
+        border-color: var(--rf-orange-primary);
+    }
+
+    /* The map takes the room; the tools ride over it */
     .rf-vtt-body {
-        flex-direction: column;
+        position: relative;
     }
 
     .rf-vtt-viewport {
         flex: 1 1 auto;
+        min-width: 0;
         min-height: 0;
     }
 
     .rf-vtt-tools {
-        order: 3;
-        flex-direction: row;
+        position: absolute;
+        top: 8px;
+        left: 8px;
+        z-index: 50;
+        order: 0;
+        flex-direction: column;
         justify-content: flex-start;
-        width: 100%;
-        height: 56px;
-        padding: 8px;
-        overflow-x: auto;
-        overflow-y: hidden;
-        border-top: 1px solid var(--rf-border-subtle);
-        border-right: 0;
+        gap: 4px;
+        width: auto;
+        height: auto;
+        max-height: min(344px, calc(100% - 16px));
+        padding: 4px;
+        overflow-x: hidden;
+        overflow-y: auto;
+        border: 1px solid #2a2a2a;
+        border-radius: 8px;
+        background: rgba(14, 14, 14, .92);
         scrollbar-width: none;
+        -webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - 16px), transparent);
+        mask-image: linear-gradient(to bottom, #000 calc(100% - 16px), transparent);
     }
 
         .rf-vtt-tools::-webkit-scrollbar {
             display: none;
         }
 
-    .rf-vtt-tool {
-        flex: none;
-        width: 40px;
-        height: 40px;
-    }
-
-    .rf-vtt-tools-sep {
-        width: 1px !important;
-        height: 24px !important;
-        margin: 0 4px !important;
-    }
-
-    /* The side panel as a sheet over the bottom of the map, above the tools */
-    .rf-vtt-drawer,
-    .rf-vtt-table .rf-vtt-drawer {
-        position: absolute;
-        top: auto;
-        right: 0;
-        bottom: 56px;
-        left: 0;
-        z-index: 60;
-        width: 100%;
-        max-height: 60%;
-        border-top: 2px solid var(--rf-orange-primary);
-        border-left: 0;
-        border-radius: 16px 16px 0 0;
-        box-shadow: 0 -16px 32px rgba(0, 0, 0, .6);
-    }
-
-        .rf-vtt-drawer.folded {
-            max-height: 56px;
-            overflow: hidden;
+        /* The panels, behind the "Panels" button; full screen, in the top bar */
+        .rf-vtt-tools .rf-vtt-tool-panel {
+            display: none !important;
         }
 
-    /* The card of a token: a sheet along the bottom, over the whole width */
+        .rf-vtt-tools .rf-vtt-tool {
+            flex: none;
+            width: 40px;
+            height: 40px;
+        }
+
+        .rf-vtt-tools .rf-vtt-tools-sep {
+            flex: none;
+            width: auto !important;
+            height: 1px !important;
+            margin: 2px 4px !important;
+        }
+
+    /* With a strip of initiative across the top, the rail starts under it */
+    .rf-vtt-body:has(.rf-init-widget.collapsed) .rf-vtt-tools {
+        top: 56px;
+        max-height: min(344px, calc(100% - 64px));
+    }
+
+    /* The initiative folded: a strip across the top of the map */
+    .rf-init-widget.phone.collapsed {
+        top: 8px;
+        right: 8px;
+        left: 8px;
+    }
+
+        .rf-init-widget.phone.collapsed .rf-init-shell {
+            width: 100%;
+            max-width: 100%;
+            min-height: 40px;
+            justify-content: flex-start;
+            overflow-x: auto;
+            scrollbar-width: none;
+        }
+
+        .rf-init-widget.phone [data-test=vtt-init-layout] {
+            display: none;
+        }
+
+    /* The initiative open: a list */
+    .rf-init-widget.phone.vertical:not(.collapsed) {
+        z-index: 58;
+    }
+
+        .rf-init-widget.phone.vertical:not(.collapsed) .rf-init-shell {
+            width: 100%;
+            max-height: 100%;
+            overflow-y: auto;
+        }
+
+    /* The phone's bar */
+    .rf-vtt-mnav {
+        display: grid;
+        grid-auto-columns: 1fr;
+        grid-auto-flow: column;
+        gap: 4px;
+    }
+
+    .rf-vtt-mnav-item {
+        position: relative;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        border: 1px solid transparent;
+        border-radius: 8px;
+        background: transparent;
+        color: #a1a1aa;
+        font-size: 11px;
+        font-weight: 800;
+    }
+
+        .rf-vtt-mnav-item.accent {
+            color: #ffb74d;
+        }
+
+        .rf-vtt-mnav-item.on {
+            border-color: rgba(255, 140, 0, .45);
+            background: rgba(255, 140, 0, .14);
+            color: #ffffff;
+        }
+
+        .rf-vtt-mnav-item .rf-vtt-dock-unread {
+            position: absolute;
+            top: 2px;
+            right: 8px;
+        }
+
+    /* The dice and the log live in the panel: the dock keeps the zoom only */
+    .rf-vtt-dock .rf-vtt-dock-btn,
+    .rf-vtt-dock .rf-vtt-dock-all,
+    .rf-vtt-dock .rf-vtt-dock-sep,
+    .rf-vtt-drawer [data-test=rolls-console-pin],
+    .rf-vtt-drawer [data-test=rolls-log-pin] {
+        display: none;
+    }
+
+    .rf-vtt-dock {
+        height: 40px;
+        padding: 0 4px;
+    }
+
+    /* The panels of the masters, a tile each */
+    .rf-vtt-mhub {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 8px;
+    }
+
+    .rf-vtt-mhub-tile {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        min-height: 48px;
+        padding: 8px 12px;
+        border: 1px solid #282828;
+        border-radius: 8px;
+        background: #161616;
+        color: #ffffff;
+        font-size: 12.5px;
+        text-align: left;
+    }
+
+        .rf-vtt-mhub-tile .rf-icon,
+        .rf-vtt-mhub-tile svg {
+            flex: none;
+            color: var(--rf-orange-primary);
+        }
+
+        .rf-vtt-mhub-tile:hover,
+        .rf-vtt-mhub-tile:focus-visible {
+            border-color: var(--rf-orange-primary);
+        }
+
+    /* The controls of the table, one under the other */
+    .rf-vtt-mtable {
+        display: flex;
+        flex-direction: column;
+        align-items: stretch;
+        gap: 8px;
+    }
+
+        .rf-vtt-mtable > * {
+            justify-content: center;
+            min-height: 40px;
+        }
+
+    /* The card of a token: along the bottom of the map */
     .rf-vtt-phone-sheet {
         position: absolute;
+        top: auto;
         right: 8px;
         bottom: 8px;
         left: 8px;
         z-index: 55;
-        max-height: 55%;
+        width: auto;
+        max-height: 60%;
         overflow-y: auto;
         border-radius: 12px;
     }
@@ -26268,21 +26425,6 @@ html.rf-fx-off .rf-bg-msg { animation: none; }
         max-width: calc(100% - 16px);
     }
 
-    /* The dock of zoom, dice and log: as wide as the screen, scrolled with a finger */
-    .rf-vtt-dock {
-        max-width: 100%;
-        overflow-x: auto;
-        scrollbar-width: none;
-    }
-
-        .rf-vtt-dock::-webkit-scrollbar {
-            display: none;
-        }
-
-        .rf-vtt-dock > * {
-            flex: none;
-        }
-
     .rf-vtt-options {
         right: 8px;
         bottom: 8px;
@@ -26290,17 +26432,141 @@ html.rf-fx-off .rf-bg-msg { animation: none; }
         max-height: 50%;
         overflow-y: auto;
     }
+}
 
-    .rf-init-widget {
-        top: 8px;
-        right: 8px;
-        left: 8px;
+/* Upright: the bar along the bottom, the panels and the initiative rise from it as sheets */
+@media (max-width: 767.98px) and (orientation: portrait) {
+    .rf-vtt-body {
+        flex-direction: column;
     }
 
-        .rf-init-widget .rf-init-shell {
-            max-width: 100%;
-            overflow-x: auto;
+    .rf-vtt-mnav {
+        order: 3;
+        flex: none;
+        height: 56px;
+        padding: 4px 8px;
+        border-top: 1px solid #242424;
+        background: #111111;
+    }
+
+    .rf-vtt-mnav-item {
+        flex-direction: column;
+        gap: 4px;
+        font-size: 10px;
+    }
+
+    .rf-vtt-drawer,
+    .rf-vtt-table .rf-vtt-drawer {
+        position: absolute;
+        top: auto;
+        right: 0;
+        bottom: 56px;
+        left: 0;
+        z-index: 60;
+        width: 100%;
+        max-height: 60%;
+        border-top: 2px solid var(--rf-orange-primary);
+        border-left: 0;
+        border-radius: 16px 16px 0 0;
+        box-shadow: 0 -16px 32px rgba(0, 0, 0, .7);
+    }
+
+        .rf-vtt-drawer.folded {
+            max-height: 56px;
+            overflow: hidden;
         }
+
+    .rf-init-widget.phone.vertical:not(.collapsed) {
+        top: auto;
+        right: 0;
+        bottom: 0;
+        left: 0;
+        width: auto;
+        max-height: 60%;
+    }
+
+        .rf-init-widget.phone.vertical:not(.collapsed) .rf-init-shell {
+            border-radius: 16px 16px 0 0;
+        }
+}
+
+/* Sideways: a small dock in the corner, the panels and the initiative open from the right */
+@media (max-height: 500px) and (max-width: 1023.98px) and (orientation: landscape) {
+    .rf-vtt-top {
+        min-height: 40px;
+        padding: 4px 8px;
+    }
+
+    .rf-vtt-mnav {
+        position: absolute;
+        right: 8px;
+        bottom: 8px;
+        z-index: 50;
+        padding: 4px;
+        border: 1px solid #2a2a2a;
+        border-radius: 8px;
+        background: rgba(14, 14, 14, .92);
+    }
+
+    .rf-vtt-mnav-item {
+        height: 32px;
+        padding: 0 10px;
+        border-color: #2c2c2c;
+        background: #181818;
+    }
+
+    .rf-vtt-cluster {
+        bottom: 64px;
+    }
+
+    .rf-vtt-drawer,
+    .rf-vtt-table .rf-vtt-drawer {
+        position: absolute;
+        top: 8px;
+        right: 8px;
+        bottom: 56px;
+        z-index: 60;
+        width: 288px;
+        max-width: calc(100% - 16px);
+        border: 1px solid #2e2e2e;
+        border-top: 2px solid var(--rf-orange-primary);
+        border-radius: 10px;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, .8);
+    }
+
+        .rf-vtt-drawer.folded {
+            width: 56px;
+        }
+
+    .rf-init-widget.phone.collapsed {
+        right: 72px;
+        left: 72px;
+    }
+
+    .rf-init-widget.phone.vertical:not(.collapsed) {
+        top: 8px;
+        right: 8px;
+        bottom: 8px;
+        left: auto;
+        width: 288px;
+    }
+
+    /* The card of a token: in the middle, above the dock, the corners free */
+    .rf-vtt-phone-sheet {
+        right: auto;
+        bottom: 56px;
+        left: 50%;
+        width: 464px;
+        max-width: calc(100% - 112px);
+        max-height: calc(100% - 64px);
+        transform: translateX(-50%);
+    }
+
+    /* The strip of initiative stands between the rail and the right edge: the rail starts at the top */
+    .rf-vtt-body:has(.rf-init-widget.collapsed) .rf-vtt-tools {
+        top: 8px;
+        max-height: calc(100% - 16px);
+    }
 }
 
 /* A finger, not a mouse: bigger targets on the table */

@@ -369,6 +369,9 @@ namespace RealmForge.Client.Localization
 			"Trascinalo sulla mappa, oppure usa le frecce della tastiera.", "Drag it on the map, or use the arrow keys.");
 		public static string VttInitiative(LanguageCode lang) => T(lang, "Iniziativa", "Initiative");
 		public static string VttDice(LanguageCode lang) => T(lang, "Dadi", "Dice");
+		public static string VttTableShort(LanguageCode lang) => T(lang, "Tavolo", "Table");
+		public static string VttPanels(LanguageCode lang) => T(lang, "Pannelli", "Panels");
+		public static string VttInitShort(LanguageCode lang) => T(lang, "Iniziativa", "Initiative");
 		public static string VttQuickCombat(LanguageCode lang) => T(lang, "Combattimento con i segnalini", "Fight with the tokens");
 		public static string VttQuickCombatEmpty(LanguageCode lang) => T(lang, "Metti sulla mappa personaggi e mostri per combattere.", "Put characters and monsters on the map to fight.");
 		public static string VttQuickCombatStart(LanguageCode lang) => T(lang, "Tira l'iniziativa e inizia", "Roll initiative and start");

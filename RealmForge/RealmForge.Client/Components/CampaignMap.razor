@@ -40,53 +40,22 @@
                 </div>
             }
             <div class="rf-vtt-top-actions">
+                @TopActions
+            </div>
+            @if (phone)
+            {
+                @* On a phone the controls of the table wait in a panel of their own: the status of the table opens it *@
                 @if (SoundWaiting)
                 {
-                    <button type="button" class="rf-vtt-clock rf-vtt-sound-unlock" @onclick="UnlockSoundAsync" data-test="vtt-sound-unlock"><Icon Name="volume-up" /> <span>@UiText.SoundUnlock(Lang)</span></button>
+                    <button type="button" class="rf-vtt-micon accent" title="@UiText.SoundUnlock(Lang)" aria-label="@UiText.SoundUnlock(Lang)" @onclick="UnlockSoundAsync"><Icon Name="volume-up" /></button>
                 }
-                else if (soundUnlocked && tableSound is not null)
-                {
-                    <button type="button" class="rf-vtt-clock" title="@(soundMuted ? UiText.SoundUnmute(Lang) : UiText.SoundMute(Lang))" aria-label="@(soundMuted ? UiText.SoundUnmute(Lang) : UiText.SoundMute(Lang))"
-                            aria-pressed="@(soundMuted ? "true" : "false")" @onclick="ToggleMuteAsync" data-test="vtt-sound-mute"><Icon Name="@(soundMuted ? "volume-mute" : "volume-up")" /></button>
-                }
-                @if (gameClock is { } clockNow)
-                {
-                    @if (RunsTheTable)
-                    {
-                        <button type="button" class="rf-vtt-clock @(panel == "clock" ? "on" : null)" title="@UiText.ClockText(clockNow, Lang)" aria-label="@UiText.VttClock(Lang)" @onclick="@(() => TogglePanel("clock"))" data-test="vtt-clock"><Icon Name="hourglass-split" /> <span>@UiText.ClockShort(clockNow, Lang)</span></button>
-                    }
-                    else
-                    {
-                        <span class="rf-vtt-clock" title="@UiText.ClockText(clockNow, Lang)" data-test="vtt-clock"><Icon Name="hourglass-split" /> <span>@UiText.ClockShort(clockNow, Lang)</span></span>
-                    }
-                }
-                <span class="rf-vtt-link rf-vtt-link-@Connection.ToString().ToLowerInvariant()" role="status" aria-live="polite" title="@ConnectionTitle" data-test="vtt-connection" data-state="@Connection.ToString().ToLowerInvariant()">
-                    <Icon Name="@(Connection == TableLink.Live ? "wifi" : "wifi-off")" />
-                    <span class="rf-vtt-link-text">@UiText.VttConnection(Connection == TableLink.Live ? 0 : Connection == TableLink.Reconnecting ? 1 : 2, Lang)</span>
-                </span>
-                @if (RunsTheTable)
-                {
-                    @if (liveTable is not null)
-                    {
-                        <span class="rf-vtt-live rf-vtt-live-on" title="@UiText.TableOpenedBy(liveTable.OpenedBy, liveTable.OpenedAt, Lang)" data-test="vtt-table-open"><span class="rf-live-dot"></span> @UiText.TableLive(Lang)</span>
-                        <button type="button" class="btn btn-sm btn-rf-outline" disabled="@tableBusy" @onclick="CloseTableAsync" data-test="vtt-table-close">@UiText.TableClose(Lang)</button>
-                    }
-                    else
-                    {
-                        <button type="button" class="btn btn-sm btn-rf-orange" disabled="@tableBusy" title="@UiText.TableOpenHint(Lang)" @onclick="OpenTableAsync" data-test="vtt-table-start"><Icon Name="broadcast" /> @UiText.TableOpen(Lang)</button>
-                    }
-                }
-                @if (RunsTheTable && map is not null)
-                {
-                    @if (map.Shown)
-                    {
-                        <button type="button" class="btn btn-sm rf-vtt-shown-toggle on" disabled="@tableBusy" title="@UiText.VttHideHint(Lang)" @onclick="HideAsync" data-test="vtt-displayed"><Icon Name="eye" /> @UiText.VttDisplayed(Lang)</button>
-                    }
-                    else
-                    {
-                        <button type="button" class="btn btn-sm btn-rf-orange" disabled="@tableBusy" @onclick="DisplayAsync" data-test="vtt-display"><Icon Name="eye" /> @UiText.VttDisplay(Lang)</button>
-                    }
-                }
+                <button type="button" class="rf-vtt-mstatus @(RunsTheTable ? (liveTable is not null ? "live" : null) : $"link-{Connection.ToString().ToLowerInvariant()}") @(panel == "table" ? "on" : null)"
+                        @onclick="@(() => TogglePanel("table"))" data-test="vtt-mstatus">
+                    <span class="rf-vtt-mstatus-dot"></span>
+                    <span>@(RunsTheTable ? UiText.VttTableShort(Lang) : UiText.VttConnection(Connection == TableLink.Live ? 0 : Connection == TableLink.Reconnecting ? 1 : 2, Lang))</span>
+                </button>
+                <button type="button" class="rf-vtt-micon" title="@UiText.VttFullscreen(Lang)" aria-label="@UiText.VttFullscreen(Lang)" @onclick="FullscreenAsync" data-test="vtt-mfullscreen"><Icon Name="fullscreen" /></button>
+            }
             </div>
         </header>
         <div class="rf-vtt-body">
@@ -111,21 +80,21 @@
                             aria-pressed="@(lightBar ? "true" : "false")" @onclick="() => lightBar = !lightBar" data-test="vtt-tool-light"><Icon Name="lightbulb" /></button>
                     <button type="button" class="rf-vtt-tool @(playersLocked ? "locked" : null)" disabled="@(map is null)" title="@(playersLocked ? UiText.VttUnlockPlayers(Lang) : UiText.VttLockPlayers(Lang))" aria-label="@(playersLocked ? UiText.VttUnlockPlayers(Lang) : UiText.VttLockPlayers(Lang))"
                             aria-pressed="@(playersLocked ? "true" : "false")" @onclick="ToggleLockAsync" data-test="vtt-lock-players"><Icon Name="@(playersLocked ? "lock" : "unlock")" /></button>
-                    <span class="rf-vtt-tools-sep"></span>
-                    <button type="button" class="rf-vtt-tool @(panel == "tokens" ? "active" : null)" title="@UiText.VttToolTokens(Lang)" aria-label="@UiText.VttToolTokens(Lang)" @onclick="@(() => TogglePanel("tokens"))" data-test="vtt-tool-tokens"><Icon Name="people" /></button>
-                    <button type="button" class="rf-vtt-tool @(panel == "handouts" ? "active" : null)" title="@UiText.VttToolHandouts(Lang)" aria-label="@UiText.VttToolHandouts(Lang)" @onclick="@(() => TogglePanel("handouts"))" data-test="vtt-tool-handouts"><Icon Name="file-text" /></button>
-                    <button type="button" class="rf-vtt-tool @(panel == "sounds" ? "active" : null)" title="@UiText.VttToolSounds(Lang)" aria-label="@UiText.VttToolSounds(Lang)" @onclick="@(() => TogglePanel("sounds"))" data-test="vtt-tool-sounds"><Icon Name="music-note-beamed" /></button>
+                    <span class="rf-vtt-tools-sep rf-vtt-tool-panel"></span>
+                    <button type="button" class="rf-vtt-tool rf-vtt-tool-panel @(panel == "tokens" ? "active" : null)" title="@UiText.VttToolTokens(Lang)" aria-label="@UiText.VttToolTokens(Lang)" @onclick="@(() => TogglePanel("tokens"))" data-test="vtt-tool-tokens"><Icon Name="people" /></button>
+                    <button type="button" class="rf-vtt-tool rf-vtt-tool-panel @(panel == "handouts" ? "active" : null)" title="@UiText.VttToolHandouts(Lang)" aria-label="@UiText.VttToolHandouts(Lang)" @onclick="@(() => TogglePanel("handouts"))" data-test="vtt-tool-handouts"><Icon Name="file-text" /></button>
+                    <button type="button" class="rf-vtt-tool rf-vtt-tool-panel @(panel == "sounds" ? "active" : null)" title="@UiText.VttToolSounds(Lang)" aria-label="@UiText.VttToolSounds(Lang)" @onclick="@(() => TogglePanel("sounds"))" data-test="vtt-tool-sounds"><Icon Name="music-note-beamed" /></button>
                     @if (Table)
                     {
                         @* The campaign at hand: its encounters to start, the party's chest to hand out, the progress clocks *@
-                        <span class="rf-vtt-tools-sep"></span>
-                        <button type="button" class="rf-vtt-tool @(panel == "encounters" ? "active" : null)" title="@UiText.VttToolEncounters(Lang)" aria-label="@UiText.VttToolEncounters(Lang)" @onclick="@(() => CampaignPanel("encounters"))" data-test="vtt-tool-encounters"><Icon Name="flag" /></button>
-                        <button type="button" class="rf-vtt-tool @(panel == "treasure" ? "active" : null)" title="@UiText.VttToolTreasure(Lang)" aria-label="@UiText.VttToolTreasure(Lang)" @onclick="@(() => CampaignPanel("treasure"))" data-test="vtt-tool-treasure"><Icon Name="gem" /></button>
-                        <button type="button" class="rf-vtt-tool @(panel == "progress" ? "active" : null)" title="@UiText.VttToolProgress(Lang)" aria-label="@UiText.VttToolProgress(Lang)" @onclick="@(() => CampaignPanel("progress"))" data-test="vtt-tool-progress"><Icon Name="clock-history" /></button>
+                        <span class="rf-vtt-tools-sep rf-vtt-tool-panel"></span>
+                        <button type="button" class="rf-vtt-tool rf-vtt-tool-panel @(panel == "encounters" ? "active" : null)" title="@UiText.VttToolEncounters(Lang)" aria-label="@UiText.VttToolEncounters(Lang)" @onclick="@(() => CampaignPanel("encounters"))" data-test="vtt-tool-encounters"><Icon Name="flag" /></button>
+                        <button type="button" class="rf-vtt-tool rf-vtt-tool-panel @(panel == "treasure" ? "active" : null)" title="@UiText.VttToolTreasure(Lang)" aria-label="@UiText.VttToolTreasure(Lang)" @onclick="@(() => CampaignPanel("treasure"))" data-test="vtt-tool-treasure"><Icon Name="gem" /></button>
+                        <button type="button" class="rf-vtt-tool rf-vtt-tool-panel @(panel == "progress" ? "active" : null)" title="@UiText.VttToolProgress(Lang)" aria-label="@UiText.VttToolProgress(Lang)" @onclick="@(() => CampaignPanel("progress"))" data-test="vtt-tool-progress"><Icon Name="clock-history" /></button>
                     }
                 }
-                <span class="rf-vtt-tools-sep"></span>
-                <button type="button" class="rf-vtt-tool" title="@UiText.VttFullscreen(Lang)" aria-label="@UiText.VttFullscreen(Lang)" @onclick="FullscreenAsync" data-test="vtt-fullscreen"><Icon Name="fullscreen" /></button>
+                <span class="rf-vtt-tools-sep rf-vtt-tool-panel"></span>
+                <button type="button" class="rf-vtt-tool rf-vtt-tool-panel" title="@UiText.VttFullscreen(Lang)" aria-label="@UiText.VttFullscreen(Lang)" @onclick="FullscreenAsync" data-test="vtt-fullscreen"><Icon Name="fullscreen" /></button>
             </nav>
             <div class="rf-vtt-viewport">
                 @InitiativeBar
@@ -170,6 +139,10 @@
                 }
                 @DiceCluster
             </div>
+            @if (phone)
+            {
+                @PhoneNav
+            }
             @if (panel is not null)
             {
                 <aside class="rf-vtt-drawer @(drawerFolded ? "folded" : null)" data-test="vtt-drawer">
@@ -232,6 +205,12 @@
                     </nav>
                     @switch (panel)
                     {
+                        case "hub" when RunsTheTable:
+                            @PanelsHub
+                            break;
+                        case "table":
+                            <div class="rf-vtt-mtable" data-test="vtt-mtable">@TopActions</div>
+                            break;
                         case "tokens" when RunsTheTable:
                             <button type="button" class="btn btn-sm btn-rf-orange" @onclick="OpenNewMap" data-test="map-new"><Icon Name="plus" /> @UiText.MapNew(Lang)</button>
                             @if (map is not null)
@@ -4662,7 +4641,7 @@ else
     {
         @if (map is not null && (combat is not null || RunsTheTable))
         {
-        <div class="rf-init-widget @(InfoToken is not null ? "behind" : null) @(initVertical ? "vertical" : null) @(initCollapsed ? "collapsed" : null) @(combat is not null && combat.Order.Count > 6 ? "many" : null)" data-test="vtt-initiative">
+        <div class="rf-init-widget @(InfoToken is not null ? "behind" : null) @(InitColumn ? "vertical" : null) @(initCollapsed ? "collapsed" : null) @(phone ? "phone" : null) @(combat is not null && combat.Order.Count > 6 ? "many" : null)" data-test="vtt-initiative">
             @if (combat is null)
             {
                 <div class="rf-init-shell idle" data-test="vtt-init-idle">
@@ -4701,7 +4680,7 @@ else
                             }
                             else
                             {
-                                <button type="button" class="rf-init-btn orange" disabled="@busy" @onclick="BeginCombatAsync" data-test="vtt-begin"><span class="rf-init-btn-text">@UiText.VttBegin(Lang)</span> <Icon Name="@(initVertical ? "chevron-down" : "chevron-right")" /></button>
+                                <button type="button" class="rf-init-btn orange" disabled="@busy" @onclick="BeginCombatAsync" data-test="vtt-begin"><span class="rf-init-btn-text">@UiText.VttBegin(Lang)</span> <Icon Name="@(InitColumn ? "chevron-down" : "chevron-right")" /></button>
                             }
                         }
                     }
@@ -4789,7 +4768,7 @@ else
                         }
                         @if (RunsTheTable)
                         {
-                            <button type="button" class="rf-init-btn orange" disabled="@busy" title="@UiText.VttNextTurn(Lang)" @onclick="NextTurnAsync" data-test="vtt-next-turn"><span class="rf-init-btn-text">@UiText.VttTurnShort(Lang)</span> <Icon Name="@(initVertical ? "chevron-down" : "chevron-right")" /></button>
+                            <button type="button" class="rf-init-btn orange" disabled="@busy" title="@UiText.VttNextTurn(Lang)" @onclick="NextTurnAsync" data-test="vtt-next-turn"><span class="rf-init-btn-text">@UiText.VttTurnShort(Lang)</span> <Icon Name="@(InitColumn ? "chevron-down" : "chevron-right")" /></button>
                         }
                     }
                     else
@@ -4839,7 +4818,7 @@ else
     };
 
     //	The strip folds toward the side it stands on: up when it runs across the top, left when it stands on the left
-    private string CollapseIcon => initVertical ? (initCollapsed ? "chevron-right" : "chevron-left") : (initCollapsed ? "down" : "up");
+    private string CollapseIcon => InitColumn ? (initCollapsed ? "chevron-right" : "chevron-left") : (initCollapsed ? "down" : "up");
 
     private RenderFragment CollapseButton => __builder =>
     {
@@ -5023,7 +5002,16 @@ else
             var json = await JS.InvokeAsync<string?>("localStorage.getItem", "realmforge.vtt.layout");
             if (!string.IsNullOrWhiteSpace(json) && System.Text.Json.JsonSerializer.Deserialize<TableLayout>(json) is { } layout)
             {
-                (diceDocked, logDocked, initVertical, groupInit) = (layout.DiceDocked, layout.LogDocked, layout.InitVertical, layout.GroupInit);
+                (initVertical, groupInit) = (layout.InitVertical, layout.GroupInit);
+                //	On a phone the dice and the log stay in the panel: the saved choice waits for a wide screen
+                if (dockedBeforePhone is not null)
+                {
+                    dockedBeforePhone = (layout.DiceDocked, layout.LogDocked);
+                }
+                else
+                {
+                    (diceDocked, logDocked) = (layout.DiceDocked, layout.LogDocked);
+                }
                 StateHasChanged();
             }
         }
@@ -5037,7 +5025,7 @@ else
     {
         try
         {
-            await JS.InvokeVoidAsync("localStorage.setItem", "realmforge.vtt.layout", System.Text.Json.JsonSerializer.Serialize(new TableLayout(diceDocked, logDocked, initVertical, groupInit)));
+            await JS.InvokeVoidAsync("localStorage.setItem", "realmforge.vtt.layout", System.Text.Json.JsonSerializer.Serialize(new TableLayout(dockedBeforePhone?.Dice ?? diceDocked, dockedBeforePhone?.Log ?? logDocked, initVertical, groupInit)));
         }
         catch (Exception)
         {
@@ -5114,6 +5102,98 @@ else
             StateHasChanged();
         }
     }
+
+    //	The controls of the table: the sound, the clock, the link, opening the table and showing the map. In the top bar on a
+    //	computer; on a phone in a panel of their own
+    private RenderFragment TopActions => __builder =>
+    {
+                @if (SoundWaiting)
+                {
+                    <button type="button" class="rf-vtt-clock rf-vtt-sound-unlock" @onclick="UnlockSoundAsync" data-test="vtt-sound-unlock"><Icon Name="volume-up" /> <span>@UiText.SoundUnlock(Lang)</span></button>
+                }
+                else if (soundUnlocked && tableSound is not null)
+                {
+                    <button type="button" class="rf-vtt-clock" title="@(soundMuted ? UiText.SoundUnmute(Lang) : UiText.SoundMute(Lang))" aria-label="@(soundMuted ? UiText.SoundUnmute(Lang) : UiText.SoundMute(Lang))"
+                            aria-pressed="@(soundMuted ? "true" : "false")" @onclick="ToggleMuteAsync" data-test="vtt-sound-mute"><Icon Name="@(soundMuted ? "volume-mute" : "volume-up")" /></button>
+                }
+                @if (gameClock is { } clockNow)
+                {
+                    @if (RunsTheTable)
+                    {
+                        <button type="button" class="rf-vtt-clock @(panel == "clock" ? "on" : null)" title="@UiText.ClockText(clockNow, Lang)" aria-label="@UiText.VttClock(Lang)" @onclick="@(() => TogglePanel("clock"))" data-test="vtt-clock"><Icon Name="hourglass-split" /> <span>@UiText.ClockShort(clockNow, Lang)</span></button>
+                    }
+                    else
+                    {
+                        <span class="rf-vtt-clock" title="@UiText.ClockText(clockNow, Lang)" data-test="vtt-clock"><Icon Name="hourglass-split" /> <span>@UiText.ClockShort(clockNow, Lang)</span></span>
+                    }
+                }
+                <span class="rf-vtt-link rf-vtt-link-@Connection.ToString().ToLowerInvariant()" role="status" aria-live="polite" title="@ConnectionTitle" data-test="vtt-connection" data-state="@Connection.ToString().ToLowerInvariant()">
+                    <Icon Name="@(Connection == TableLink.Live ? "wifi" : "wifi-off")" />
+                    <span class="rf-vtt-link-text">@UiText.VttConnection(Connection == TableLink.Live ? 0 : Connection == TableLink.Reconnecting ? 1 : 2, Lang)</span>
+                </span>
+                @if (RunsTheTable)
+                {
+                    @if (liveTable is not null)
+                    {
+                        <span class="rf-vtt-live rf-vtt-live-on" title="@UiText.TableOpenedBy(liveTable.OpenedBy, liveTable.OpenedAt, Lang)" data-test="vtt-table-open"><span class="rf-live-dot"></span> @UiText.TableLive(Lang)</span>
+                        <button type="button" class="btn btn-sm btn-rf-outline" disabled="@tableBusy" @onclick="CloseTableAsync" data-test="vtt-table-close">@UiText.TableClose(Lang)</button>
+                    }
+                    else
+                    {
+                        <button type="button" class="btn btn-sm btn-rf-orange" disabled="@tableBusy" title="@UiText.TableOpenHint(Lang)" @onclick="OpenTableAsync" data-test="vtt-table-start"><Icon Name="broadcast" /> @UiText.TableOpen(Lang)</button>
+                    }
+                }
+                @if (RunsTheTable && map is not null)
+                {
+                    @if (map.Shown)
+                    {
+                        <button type="button" class="btn btn-sm rf-vtt-shown-toggle on" disabled="@tableBusy" title="@UiText.VttHideHint(Lang)" @onclick="HideAsync" data-test="vtt-displayed"><Icon Name="eye" /> @UiText.VttDisplayed(Lang)</button>
+                    }
+                    else
+                    {
+                        <button type="button" class="btn btn-sm btn-rf-orange" disabled="@tableBusy" @onclick="DisplayAsync" data-test="vtt-display"><Icon Name="eye" /> @UiText.VttDisplay(Lang)</button>
+                    }
+                }
+    };
+
+    //	The phone's own bar: the panels of the masters, the initiative, the dice and the log (along the bottom when the phone
+    //	is upright, a small dock in a corner when sideways)
+    private RenderFragment PhoneNav => __builder =>
+    {
+        <nav class="rf-vtt-mnav" aria-label="@UiText.VttTitle(Lang)" data-test="vtt-mnav">
+            @if (RunsTheTable)
+            {
+                <button type="button" class="rf-vtt-mnav-item @(panel is not null && (panel == "hub" || IsToolPanel(panel)) ? "on" : null)" @onclick="@(() => TogglePanel("hub"))" data-test="vtt-mnav-panels"><Icon Name="collection" /><span>@UiText.VttPanels(Lang)</span></button>
+            }
+            @if (combat is not null)
+            {
+                <button type="button" class="rf-vtt-mnav-item init @(initCollapsed ? null : "on")" @onclick="TogglePhoneInit" data-test="vtt-mnav-init"><Icon Name="shield" /><span>@UiText.VttInitShort(Lang)</span></button>
+            }
+            <button type="button" class="rf-vtt-mnav-item accent @(panel == "dice" ? "on" : null)" @onclick="ToggleDice" data-test="vtt-mnav-dice"><Icon Name="dice" /><span>@UiText.VttDice(Lang)</span></button>
+            <button type="button" class="rf-vtt-mnav-item @(panel == "log" ? "on" : null)" @onclick="ToggleLog" data-test="vtt-mnav-log">
+                <Icon Name="list" /><span>@UiText.VttRollLog(Lang)</span>
+                @if (unreadRolls > 0)
+                {
+                    <span class="rf-vtt-dock-unread">@unreadRolls</span>
+                }
+            </button>
+        </nav>
+    };
+
+    //	The panels of the masters on a phone, a tile each
+    private RenderFragment PanelsHub => __builder =>
+    {
+        <div class="rf-vtt-mhub" data-test="vtt-mhub">
+            @foreach (var name in new[] { "tokens", "handouts", "sounds", "encounters", "treasure", "progress", "clock" })
+            {
+                var n = name;
+                <button type="button" class="rf-vtt-mhub-tile" @onclick="() => CampaignPanel(n)" data-test="vtt-mhub-tile" data-tool="@n">
+                    <Icon Name="@ToolIcon(n)" />
+                    <strong>@ToolName(n)</strong>
+                </button>
+            }
+        </div>
+    };
 
     private RenderFragment DiceCluster => __builder =>
     {
