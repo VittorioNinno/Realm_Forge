@@ -231,10 +231,18 @@ namespace RealmForge.Client.Localization
 		public static string VttToolTreasure(LanguageCode lang) => T(lang, "Tesoro del gruppo", "Party treasure");
 		public static string VttToolProgress(LanguageCode lang) => T(lang, "Orologi di avanzamento", "Progress clocks");
 		public static string VttEncountersNone(LanguageCode lang) => T(lang, "Nessun incontro da giocare: preparane uno nella pagina della campagna.", "No encounter to play: prepare one on the campaign page.");
-		public static string VttEncounterHere(LanguageCode lang) => T(lang, "In corso qui", "Under way here");
 		public static string VttEncounterGoTo(LanguageCode lang) => T(lang, "Vai alla mappa", "Go to its map");
 		public static string VttEncounterBusy(LanguageCode lang) => T(lang, "Su questa mappa c'è già un combattimento", "A fight is already under way on this map");
-		public static string VttEncountersPage(LanguageCode lang) => T(lang, "Prepara gli incontri nella pagina della campagna", "Prepare the encounters on the campaign page");
+		public static string VttEncountersPage(LanguageCode lang) => T(lang, "Prepara gli incontri nella campagna", "Prepare the encounters in the campaign");
+		public static string VttEncounterLive(LanguageCode lang) => T(lang, "In corso", "Live");
+		public static string VttEncounterPrep(LanguageCode lang) => T(lang, "In preparazione", "Prepared");
+		public static string VttEncounterMap(LanguageCode lang) => T(lang, "Mappa collegata", "Linked map");
+		public static string VttEncounterNoMap(LanguageCode lang) => T(lang, "Nessuna mappa", "No map");
+		public static string VttEncounterSides(LanguageCode lang) => T(lang, "Partecipanti", "Participants");
+		public static string VttEncounterVersus(int characters, int monsters, LanguageCode lang) => T(lang,
+			$"{characters} PG vs {monsters} {(monsters == 1 ? "nemico" : "nemici")}", $"{characters} PCs vs {monsters} {(monsters == 1 ? "enemy" : "enemies")}");
+		public static string VttEncounterInitiative(LanguageCode lang) => T(lang, "Iniziativa", "Initiative");
+		public static string VttEncounterEnd(LanguageCode lang) => T(lang, "Termina", "End");
 		public static string MapHiddenShort(LanguageCode lang) => T(lang, "Non mostrata", "Not shown");
 		public static string MapViewAs(LanguageCode lang) => T(lang, "Vista", "View");
 		public static string MapViewEditor(LanguageCode lang) => T(lang, "Editor", "Editor");
