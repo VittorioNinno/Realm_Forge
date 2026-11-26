@@ -24753,6 +24753,21 @@ html.rf-fx-off .rf-bg-msg { animation: none; }
         max-width: calc(100% - 16px);
     }
 
+    /* The dock of zoom, dice and log: as wide as the screen, scrolled with a finger */
+    .rf-vtt-dock {
+        max-width: 100%;
+        overflow-x: auto;
+        scrollbar-width: none;
+    }
+
+        .rf-vtt-dock::-webkit-scrollbar {
+            display: none;
+        }
+
+        .rf-vtt-dock > * {
+            flex: none;
+        }
+
     .rf-vtt-options {
         right: 8px;
         bottom: 8px;
