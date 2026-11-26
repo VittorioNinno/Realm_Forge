@@ -64,7 +64,17 @@ namespace RealmForge.Client.Localization
 
 		//	Campaign page
 		public static string CampaignTabOverview(LanguageCode lang) => T(lang, "Panoramica", "Overview");
-		public static string CampaignTabMembers(LanguageCode lang) => T(lang, "Persone", "People");
+		public static string CampaignTabMembers(LanguageCode lang) => T(lang, "Giocatori", "Players");
+		public static string PlayersKicker(LanguageCode lang) => T(lang, "Partecipanti e permessi", "Members and rights");
+		public static string PlayersIntro(LanguageCode lang) => T(lang, "Gestisci i giocatori della campagna, assegna i ruoli di master o co-master e controlla gli inviti in sospeso.", "Manage the players of the campaign, give the master and co-master roles and keep an eye on pending invites.");
+		public static string PlayersMasters(int n, LanguageCode lang) => T(lang, $"{n} Master", $"{n} Master{(n == 1 ? string.Empty : "s")}");
+		public static string PlayersCoMasters(int n, LanguageCode lang) => T(lang, $"{n} Co-master", $"{n} Co-master{(n == 1 ? string.Empty : "s")}");
+		public static string PlayersPlayers(int n, LanguageCode lang) => T(lang, n == 1 ? "1 Giocatore" : $"{n} Giocatori", n == 1 ? "1 Player" : $"{n} Players");
+		public static string PlayersAtTable(LanguageCode lang) => T(lang, "Giocatori al tavolo", "Players at the table");
+		public static string PlayersColorHint(LanguageCode lang) => T(lang, "Il pallino è il colore del giocatore al tavolo", "The dot is the player's colour at the table");
+		public static string PlayersMasterRights(LanguageCode lang) => T(lang, "controllo completo su campagna e persone.", "full control of the campaign and its people.");
+		public static string PlayersCoMasterRights(LanguageCode lang) => T(lang, "prepara mappe, incontri e contenuti.", "prepares maps, encounters and contents.");
+		public static string PlayersNoInvites(LanguageCode lang) => T(lang, "Nessun invito in attesa: gli inviti via e-mail compaiono qui finché non vengono accettati.", "No pending invites: e-mail invites show here until accepted.");
 		public static string CampaignTabCharacters(LanguageCode lang) => T(lang, "Personaggi", "Characters");
 		public static string CampaignTabContent(LanguageCode lang) => T(lang, "Contenuti", "Content");
 		public static string CampaignYourRole(CampaignRole role, LanguageCode lang) => T(lang, $"Il tuo ruolo: {CampaignRoleName(role, lang)}", $"Your role: {CampaignRoleName(role, lang)}");
