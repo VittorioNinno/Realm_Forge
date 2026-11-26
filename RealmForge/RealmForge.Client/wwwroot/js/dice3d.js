@@ -950,79 +950,6 @@ window.rfDice3d = (() => {
         }
     }
 
-    // A spectral skull at (x, y) on the screen, s its half width in pixels; the jaw drops by jaw (0..1)
-    function skull(g, x, y, s, a, jaw, fx, t) {
-        if (a <= 0.01) return;
-        g.save();
-        g.translate(x, y);
-        g.globalAlpha = Math.min(1, a);
-        // Drawn over what is there: the dark of the sockets must cover, not add light
-        g.globalCompositeOperation = 'source-over';
-        const fill = g.createRadialGradient(0, -s * 0.25, s * 0.1, 0, 0, s * 1.2);
-        fill.addColorStop(0, rgba(fx.colors[3], 0.92));
-        fill.addColorStop(0.55, rgba(fx.colors[0], 0.7));
-        fill.addColorStop(1, rgba(fx.colors[2], 0.25));
-        g.fillStyle = fill;
-        g.shadowColor = fx.colors[1];
-        g.shadowBlur = 16;
-        // The cranium and the cheekbones, down to the upper teeth
-        g.beginPath();
-        g.moveTo(-0.92 * s, 0.05 * s);
-        g.bezierCurveTo(-1.02 * s, -1.05 * s, 1.02 * s, -1.05 * s, 0.92 * s, 0.05 * s);
-        g.bezierCurveTo(0.9 * s, 0.32 * s, 0.72 * s, 0.42 * s, 0.66 * s, 0.52 * s);
-        g.bezierCurveTo(0.6 * s, 0.64 * s, 0.5 * s, 0.7 * s, 0.42 * s, 0.82 * s);
-        g.lineTo(-0.42 * s, 0.82 * s);
-        g.bezierCurveTo(-0.5 * s, 0.7 * s, -0.6 * s, 0.64 * s, -0.66 * s, 0.52 * s);
-        g.bezierCurveTo(-0.72 * s, 0.42 * s, -0.9 * s, 0.32 * s, -0.92 * s, 0.05 * s);
-        g.fill();
-        // The jaw, apart
-        const jo = jaw * s * 0.22;
-        g.beginPath();
-        g.moveTo(-0.44 * s, 0.88 * s + jo);
-        g.lineTo(0.44 * s, 0.88 * s + jo);
-        g.bezierCurveTo(0.46 * s, 1.08 * s + jo, 0.3 * s, 1.24 * s + jo, 0, 1.26 * s + jo);
-        g.bezierCurveTo(-0.3 * s, 1.24 * s + jo, -0.46 * s, 1.08 * s + jo, -0.44 * s, 0.88 * s + jo);
-        g.fill();
-        // The sockets, the nose, the teeth: holes into the dark
-        g.shadowBlur = 0;
-        g.fillStyle = rgba(fx.dark, 0.92);
-        for (const side of [-1, 1]) {
-            g.beginPath();
-            g.ellipse(side * 0.36 * s, 0.12 * s, 0.25 * s, 0.21 * s, side * 0.28, 0, TAU);
-            g.fill();
-        }
-        g.beginPath();
-        g.moveTo(0, 0.34 * s);
-        g.quadraticCurveTo(-0.14 * s, 0.56 * s, -0.08 * s, 0.62 * s);
-        g.lineTo(0, 0.57 * s);
-        g.lineTo(0.08 * s, 0.62 * s);
-        g.quadraticCurveTo(0.14 * s, 0.56 * s, 0, 0.34 * s);
-        g.fill();
-        g.strokeStyle = rgba(fx.dark, 0.75);
-        g.lineWidth = Math.max(1, s * 0.045);
-        g.beginPath();
-        g.moveTo(-0.4 * s, 0.82 * s); g.lineTo(0.4 * s, 0.82 * s);
-        g.moveTo(-0.4 * s, 0.9 * s + jo); g.lineTo(0.4 * s, 0.9 * s + jo);
-        for (let i = -3; i <= 3; i++) {
-            g.moveTo(i * 0.11 * s, 0.7 * s); g.lineTo(i * 0.11 * s, 0.82 * s);
-            g.moveTo(i * 0.11 * s, 0.9 * s + jo); g.lineTo(i * 0.11 * s, 1.0 * s + jo);
-        }
-        // A crack across the brow
-        g.moveTo(0.18 * s, -0.78 * s); g.lineTo(0.3 * s, -0.5 * s); g.lineTo(0.22 * s, -0.36 * s); g.lineTo(0.34 * s, -0.18 * s);
-        g.stroke();
-        // The light in the eyes
-        g.globalCompositeOperation = 'lighter';
-        const glint = 0.6 + 0.4 * Math.sin(t * 10);
-        for (const side of [-1, 1]) {
-            const e = g.createRadialGradient(side * 0.36 * s, 0.14 * s, 0, side * 0.36 * s, 0.14 * s, s * 0.16);
-            e.addColorStop(0, rgba(fx.colors[0], glint));
-            e.addColorStop(1, rgba(fx.colors[1], 0));
-            g.fillStyle = e;
-            g.fillRect(side * 0.36 * s - s * 0.16, 0.14 * s - s * 0.16, s * 0.32, s * 0.32);
-        }
-        g.restore();
-    }
-
     // ----- One effect for each die: (ctx) => a frame (t, dt) drawn in the space of the die -----
     // ctx: g (the canvas), P (world → screen), fx (the colours), high (a natural 20, else a natural 1)
 
@@ -1330,7 +1257,7 @@ window.rfDice3d = (() => {
             };
         },
 
-        // The dead answer: spirits spiral up out of the die through a green mist, and a spectral skull rises and laughs.
+        // The dead answer: spirits spiral up out of the die through a green mist.
         // A 1: the ground cracks and the spirits are dragged under, bone chips flying
         bone({ g, P, fx, high }) {
             const spirits = Array.from({ length: 6 }, (_, i) => ({ a: i / 6 * TAU, r: 1.3 + Math.random() * 0.6, sp: 2.6 + Math.random(), delay: i * 0.08 }));
@@ -1366,13 +1293,8 @@ window.rfDice3d = (() => {
                     blob(g, P(...trail[0]), 0.7, fx.colors[0], 0.8 * fade);
                 }
                 if (high) {
-                    // The skull rises behind the die, looks down and laughs, its jaw chattering
-                    const k = span(t, 0.45, 0.85, 1.9, 2.5);
-                    if (k > 0) {
-                        const o = P(0, 0, 1.2), u = fxUnit * o.k;
-                        const jaw = t > 1 && t < 1.7 ? Math.abs(Math.sin((t - 1) * 14)) : 0;
-                        skull(g, o.x, o.y - (3.3 + t * 0.2) * u, 1.6 * u * (0.85 + 0.15 * ease(clamp01((t - 0.45) / 0.4))), 0.85 * k, jaw, fx, t);
-                    }
+                    // A pale green light under the die while the spirits rise
+                    pool(g, P, 0, 0, 3, rgba(fx.colors[1], 0.22 * span(t, 0, 0.4, 1.8, 2.5)), rgba(fx.colors[1], 0));
                 } else {
                     g.globalCompositeOperation = 'source-over';
                     run(g, P, chips, t, dt, 'shard');
