@@ -12,6 +12,12 @@ namespace RealmForge.Client.Localization
 		public static string HandoutsHintPlayer(LanguageCode lang) => T(lang, "I documenti e gli indizi che il master vi ha mostrato.", "The documents and clues the master showed you.");
 		public static string HandoutsEmptyMaster(LanguageCode lang) => T(lang, "Nessun handout ancora.", "No handouts yet.");
 		public static string HandoutsEmptyPlayer(LanguageCode lang) => T(lang, "Il master non vi ha ancora mostrato nessun handout.", "The master has not shown you any handout yet.");
+		public static string HandoutsEmptyHint(LanguageCode lang) => T(lang, "Crea documenti, lettere o enigmi da mostrare ai giocatori al tavolo.", "Create documents, letters or riddles to show the players at the table.");
+		public static string HandoutLanguage(LanguageCode lang) => T(lang, "Lingua", "Language");
+		public static string HandoutTitlePlaceholder(LanguageCode lang) => T(lang, "es. Lettera sigillata del borgomastro", "e.g. The burgomaster's sealed letter");
+		public static string HandoutBodyPlaceholder(LanguageCode lang) => T(lang, "Scrivi il contenuto dell'handout…", "Write the content of the handout…");
+		public static string HandoutPuzzle(LanguageCode lang) => T(lang, "Enigma", "Riddle");
+		public static string HandoutSolved(LanguageCode lang) => T(lang, "Risolto", "Solved");
 		public static string HandoutNew(LanguageCode lang) => T(lang, "Nuovo handout", "New handout");
 		public static string HandoutTitle(LanguageCode lang) => T(lang, "Titolo", "Title");
 		public static string HandoutBody(LanguageCode lang) => T(lang, "Testo (Markdown)", "Text (Markdown)");

@@ -9,104 +9,134 @@
 
 @* The handouts of a campaign: the masters write them (Italian and English, a picture) and reveal them to the players
    during a session; the players find here the ones they were shown. Compact: the drawer of the table *@
-<section class="rf-handouts @(Compact ? "compact" : null)" data-test="campaign-handouts">
+<section class="rf-ho @(Compact ? "compact" : "page")" data-test="campaign-handouts">
+    <header class="rf-ho-head">
+        <span class="rf-ho-kicker">@UiText.CampaignTabHandouts(Lang)</span>
+        <span class="rf-ho-count" data-test="handouts-count">@(handouts?.Count ?? 0)</span>
+    </header>
     @if (!Compact)
     {
-        <div class="small mb-3" style="color: var(--rf-text-muted);">@(Runs ? UiText.HandoutsHintMaster(Lang) : UiText.HandoutsHintPlayer(Lang))</div>
-    }
-    @if (Runs)
-    {
-        @if (draft is null)
-        {
-            <button type="button" class="btn btn-sm btn-rf-orange mb-3" @onclick="New" data-test="handout-new">+ @UiText.HandoutNew(Lang)</button>
-        }
-        else
-        {
-            <div class="rf-card2 mb-3 d-flex flex-column gap-2" data-test="handout-form">
-                <div class="rf-handout-langs">
-                    <div class="d-flex flex-column gap-2">
-                        <label class="rf-form-label mb-0">@UiText.HandoutTitle(Lang) · IT</label>
-                        <input class="rf-form-control" maxlength="120" @bind="draft.TitleIt" data-test="handout-title-it" />
-                        <label class="rf-form-label mb-0">@UiText.HandoutBody(Lang) · IT</label>
-                        <textarea class="rf-form-control" rows="@(Compact ? 4 : 6)" maxlength="8000" @bind="draft.BodyIt" data-test="handout-body-it"></textarea>
-                    </div>
-                    <div class="d-flex flex-column gap-2">
-                        <label class="rf-form-label mb-0">@UiText.HandoutTitle(Lang) · EN</label>
-                        <input class="rf-form-control" maxlength="120" @bind="draft.TitleEn" data-test="handout-title-en" />
-                        <label class="rf-form-label mb-0">@UiText.HandoutBody(Lang) · EN</label>
-                        <textarea class="rf-form-control" rows="@(Compact ? 4 : 6)" maxlength="8000" @bind="draft.BodyEn" data-test="handout-body-en"></textarea>
-                    </div>
-                </div>
-                <span class="small" style="color: var(--rf-text-muted);">@UiText.HandoutLanguagesHint(Lang)</span>
-                <RiddleLab CampaignId="CampaignId" Draft="draft" OnChanged="StateHasChanged" />
-                <label class="rf-form-label mb-0">@UiText.HandoutImage(Lang)</label>
-                <ImagePicker Selected="draft.ImageId" Name="@(draft.TitleIt.Length > 0 ? draft.TitleIt : draft.TitleEn)" OnPick="id => draft!.ImageId = id" />
-                @if (error is not null)
-                {
-                    <div class="small text-warning">@error</div>
-                }
-                <div class="d-flex justify-content-end gap-2">
-                    <button type="button" class="btn btn-sm btn-rf-outline" @onclick="() => draft = null">@UiText.BtnCancel(Lang)</button>
-                    <button type="button" class="btn btn-sm btn-rf-orange" disabled="@busy" @onclick="SaveAsync" data-test="handout-save">@UiText.BtnConfirm(Lang)</button>
-                </div>
-            </div>
-        }
+        <p class="rf-ho-intro">@(Runs ? UiText.HandoutsHintMaster(Lang) : UiText.HandoutsHintPlayer(Lang))</p>
     }
 
-    @if (handouts is null)
+    @if (Runs && draft is not null)
     {
-        <div class="small" style="color: var(--rf-text-muted);">…</div>
-    }
-    else if (handouts.Count == 0)
-    {
-        <div class="small" style="color: var(--rf-text-muted);" data-test="handouts-empty">@(Runs ? UiText.HandoutsEmptyMaster(Lang) : UiText.HandoutsEmptyPlayer(Lang))</div>
+        @* Writing one: a language at a time (a dot where something is written), the riddle folded, the picture *@
+        <div class="rf-ho-form" data-test="handout-form">
+            <div class="rf-ho-langbar">
+                <div class="rf-ho-seg" role="tablist" aria-label="@UiText.HandoutLanguage(Lang)">
+                    <button type="button" role="tab" class="@(langTab == "it" ? "active" : null)" aria-selected="@(langTab == "it" ? "true" : "false")" @onclick="@(() => langTab = "it")" data-test="handout-tab-it">
+                        <span>Italiano (IT)</span><span class="rf-ho-dot @(Written(draft.TitleIt, draft.BodyIt) ? "filled" : null)"></span>
+                    </button>
+                    <button type="button" role="tab" class="@(langTab == "en" ? "active" : null)" aria-selected="@(langTab == "en" ? "true" : "false")" @onclick="@(() => langTab = "en")" data-test="handout-tab-en">
+                        <span>English (EN)</span><span class="rf-ho-dot @(Written(draft.TitleEn, draft.BodyEn) ? "filled" : null)"></span>
+                    </button>
+                </div>
+                <span class="rf-ho-note">@UiText.HandoutLanguagesHint(Lang)</span>
+            </div>
+            <div class="rf-ho-fields" hidden="@(langTab != "it")">
+                <label class="rf-ho-field">
+                    <span class="rf-ho-label">@UiText.HandoutTitle(Lang) · IT</span>
+                    <input class="rf-form-control rf-ho-input" maxlength="120" placeholder="@UiText.HandoutTitlePlaceholder(Lang)" @bind="draft.TitleIt" @bind:event="oninput" data-test="handout-title-it" />
+                </label>
+                <label class="rf-ho-field">
+                    <span class="rf-ho-label-row"><span class="rf-ho-label">@UiText.HandoutBody(Lang) · IT</span><span class="rf-ho-md">**grassetto**, *corsivo*</span></span>
+                    <textarea class="rf-form-control" rows="@(Compact ? 5 : 8)" maxlength="8000" placeholder="@UiText.HandoutBodyPlaceholder(Lang)" @bind="draft.BodyIt" @bind:event="oninput" data-test="handout-body-it"></textarea>
+                </label>
+            </div>
+            <div class="rf-ho-fields" hidden="@(langTab != "en")">
+                <label class="rf-ho-field">
+                    <span class="rf-ho-label">@UiText.HandoutTitle(Lang) · EN</span>
+                    <input class="rf-form-control rf-ho-input" maxlength="120" placeholder="e.g. The burgomaster's sealed letter" @bind="draft.TitleEn" @bind:event="oninput" data-test="handout-title-en" />
+                </label>
+                <label class="rf-ho-field">
+                    <span class="rf-ho-label-row"><span class="rf-ho-label">@UiText.HandoutBody(Lang) · EN</span><span class="rf-ho-md">**bold**, *italic*</span></span>
+                    <textarea class="rf-form-control" rows="@(Compact ? 5 : 8)" maxlength="8000" placeholder="Write the content of the handout…" @bind="draft.BodyEn" @bind:event="oninput" data-test="handout-body-en"></textarea>
+                </label>
+            </div>
+            <RiddleLab CampaignId="CampaignId" Draft="draft" OnChanged="StateHasChanged" />
+            <div class="rf-ho-field">
+                <span class="rf-ho-label">@UiText.HandoutImage(Lang)</span>
+                <ImagePicker Selected="draft.ImageId" Name="@(draft.TitleIt.Length > 0 ? draft.TitleIt : draft.TitleEn)" OnPick="id => draft!.ImageId = id" />
+            </div>
+            @if (error is not null)
+            {
+                <div class="small text-warning" role="alert">@error</div>
+            }
+            <footer class="rf-ho-footer">
+                <button type="button" class="rf-ho-btn" @onclick="() => draft = null" data-test="handout-cancel">@UiText.BtnCancel(Lang)</button>
+                <button type="button" class="rf-ho-btn primary" disabled="@busy" @onclick="SaveAsync" data-test="handout-save">@UiText.BtnConfirm(Lang)</button>
+            </footer>
+        </div>
     }
     else
     {
-        <div class="rf-handout-list">
-            @foreach (var h in handouts)
-            {
-                var handout = h;
-                <div class="rf-handout-row @(handout.RevealedAt is null ? "hidden" : null)" data-test="handout-row">
-                    <button type="button" class="rf-handout-open" @onclick="() => reading = handout" data-test="handout-open">
-                        @if (handout.ImageId is { } image)
-                        {
-                            <img src="@Images.FileUrl(image)" alt="" loading="lazy" />
-                        }
-                        else
-                        {
-                            <span class="rf-handout-icon"><Icon Name="file-text" /></span>
-                        }
-                        <span class="rf-handout-row-text">
-                            <strong>
-                                @handout.Title
-                                @if (handout.Puzzle)
-                                {
-                                    <span class="rf-riddle-badge @(handout.SolvedAt is null ? null : "solved")" data-test="handout-puzzle"><Icon Name="@(handout.SolvedAt is null ? "puzzle" : "unlock")" /></span>
-                                }
-                            </strong>
-                            <span class="small">@(handout.RevealedAt is { } at ? UiText.HandoutRevealedAt(at, Lang) : UiText.HandoutHidden(Lang))</span>
-                        </span>
-                    </button>
-                    @if (Runs)
-                    {
-                        <span class="rf-handout-actions">
-                            <button type="button" class="btn btn-sm @(handout.RevealedAt is null ? "btn-rf-orange" : "btn-rf-outline")" disabled="@busy" @onclick="() => RevealAsync(handout, true)" data-test="handout-reveal">
-                                <Icon Name="eye" /> @(handout.RevealedAt is null ? UiText.HandoutReveal(Lang) : UiText.HandoutRevealAgain(Lang))
-                            </button>
-                            @if (handout.RevealedAt is not null)
+        @if (Runs)
+        {
+            <button type="button" class="rf-ho-new" @onclick="New" data-test="handout-new"><Icon Name="plus" /> @UiText.HandoutNew(Lang)</button>
+        }
+        @if (handouts is null)
+        {
+            <div class="small" style="color: var(--rf-text-muted);">…</div>
+        }
+        else if (handouts.Count == 0)
+        {
+            <div class="rf-ho-empty" data-test="handouts-empty">
+                <Icon Name="file-text" />
+                <p>@(Runs ? UiText.HandoutsEmptyMaster(Lang) : UiText.HandoutsEmptyPlayer(Lang))</p>
+                @if (Runs)
+                {
+                    <span>@UiText.HandoutsEmptyHint(Lang)</span>
+                }
+            </div>
+        }
+        else
+        {
+            <div class="rf-ho-list">
+                @foreach (var h in handouts)
+                {
+                    var handout = h;
+                    <article class="rf-ho-card @(handout.RevealedAt is null ? "hidden" : "shown") @(handout.IsScene ? "scene" : null)" data-test="handout-row">
+                        <button type="button" class="rf-ho-open" @onclick="() => reading = handout" data-test="handout-open">
+                            @if (handout.ImageId is { } image)
                             {
-                                <button type="button" class="rf-vtt-row-action" disabled="@busy" title="@UiText.HandoutHide(Lang)" aria-label="@UiText.HandoutHide(Lang)" @onclick="() => RevealAsync(handout, false)" data-test="handout-hide"><Icon Name="eye-slash" /></button>
+                                <img src="@Images.FileUrl(image)" alt="" loading="lazy" />
                             }
-                            <button type="button" class="rf-vtt-row-action @(handout.IsScene ? "on" : null)" disabled="@busy" title="@(handout.IsScene ? UiText.SceneEnd(Lang) : UiText.SceneShow(Lang))"
-                                    aria-label="@(handout.IsScene ? UiText.SceneEnd(Lang) : UiText.SceneShow(Lang))" aria-pressed="@(handout.IsScene ? "true" : "false")" @onclick="() => SceneAsync(handout)" data-test="handout-scene"><Icon Name="images" /></button>
-                            <button type="button" class="rf-vtt-row-action" title="@UiText.Edit(Lang)" aria-label="@UiText.Edit(Lang)" @onclick="() => Edit(handout)" data-test="handout-edit"><Icon Name="pencil" /></button>
-                            <button type="button" class="rf-vtt-row-action" disabled="@busy" title="@UiText.BtnRemove(Lang)" aria-label="@UiText.BtnRemove(Lang)" @onclick="() => DeleteAsync(handout)" data-test="handout-delete"><Icon Name="trash" /></button>
-                        </span>
-                    }
-                </div>
-            }
-        </div>
+                            else
+                            {
+                                <span class="rf-ho-thumb"><Icon Name="file-text" /></span>
+                            }
+                            <span class="rf-ho-card-text">
+                                <strong>@handout.Title</strong>
+                                <span class="rf-ho-meta">
+                                    <span class="rf-ho-state @(handout.RevealedAt is null ? null : "on")">@(handout.RevealedAt is { } at ? UiText.HandoutRevealedAt(at, Lang) : UiText.HandoutHidden(Lang))</span>
+                                    @if (handout.Puzzle)
+                                    {
+                                        <span class="rf-riddle-badge @(handout.SolvedAt is null ? null : "solved")" data-test="handout-puzzle"><Icon Name="@(handout.SolvedAt is null ? "puzzle" : "unlock")" /> @(handout.SolvedAt is null ? UiText.HandoutPuzzle(Lang) : UiText.HandoutSolved(Lang))</span>
+                                    }
+                                </span>
+                            </span>
+                        </button>
+                        @if (Runs)
+                        {
+                            <div class="rf-ho-actions">
+                                <button type="button" class="rf-ho-show @(handout.RevealedAt is null ? "primary" : null)" disabled="@busy" @onclick="() => RevealAsync(handout, true)" data-test="handout-reveal">
+                                    <Icon Name="eye" /> @(handout.RevealedAt is null ? UiText.HandoutReveal(Lang) : UiText.HandoutRevealAgain(Lang))
+                                </button>
+                                @if (handout.RevealedAt is not null)
+                                {
+                                    <button type="button" class="rf-vtt-row-action" disabled="@busy" title="@UiText.HandoutHide(Lang)" aria-label="@UiText.HandoutHide(Lang)" @onclick="() => RevealAsync(handout, false)" data-test="handout-hide"><Icon Name="eye-slash" /></button>
+                                }
+                                <button type="button" class="rf-vtt-row-action @(handout.IsScene ? "on" : null)" disabled="@busy" title="@(handout.IsScene ? UiText.SceneEnd(Lang) : UiText.SceneShow(Lang))"
+                                        aria-label="@(handout.IsScene ? UiText.SceneEnd(Lang) : UiText.SceneShow(Lang))" aria-pressed="@(handout.IsScene ? "true" : "false")" @onclick="() => SceneAsync(handout)" data-test="handout-scene"><Icon Name="images" /></button>
+                                <button type="button" class="rf-vtt-row-action" title="@UiText.Edit(Lang)" aria-label="@UiText.Edit(Lang)" @onclick="() => Edit(handout)" data-test="handout-edit"><Icon Name="pencil" /></button>
+                                <button type="button" class="rf-vtt-row-action" disabled="@busy" title="@UiText.BtnRemove(Lang)" aria-label="@UiText.BtnRemove(Lang)" @onclick="() => DeleteAsync(handout)" data-test="handout-delete"><Icon Name="trash" /></button>
+                            </div>
+                        }
+                    </article>
+                }
+            </div>
+        }
     }
 </section>
 
@@ -129,6 +159,9 @@
     private CampaignHandoutDto? reading;
     private bool busy;
     private string? error;
+    private string langTab = "it";
+
+    private static bool Written(string? title, string? body) => !string.IsNullOrWhiteSpace(title) || !string.IsNullOrWhiteSpace(body);
 
     private LanguageCode Lang => LanguageState.CurrentLanguage;
     private bool Runs => CampaignRules.RunsTheTable(Role);
@@ -145,6 +178,7 @@
 
     private void New()
     {
+        langTab = Lang == LanguageCode.En ? "en" : "it";
         draft = new SaveCampaignHandoutDto();
         editingId = null;
         error = null;
@@ -154,6 +188,7 @@
     {
         draft = new SaveCampaignHandoutDto { TitleIt = h.TitleIt ?? string.Empty, TitleEn = h.TitleEn ?? string.Empty, BodyIt = h.BodyIt ?? string.Empty, BodyEn = h.BodyEn ?? string.Empty, ImageId = h.ImageId, PuzzleAnswer = h.PuzzleAnswer, PuzzleDoorId = h.PuzzleDoorId };
         editingId = h.Id;
+        langTab = Written(h.TitleIt, h.BodyIt) || !Written(h.TitleEn, h.BodyEn) ? "it" : "en";
         error = null;
     }
 
