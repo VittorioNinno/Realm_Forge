@@ -31,6 +31,18 @@ namespace RealmForge.Client.Localization
 		public static string SoundFromLink(LanguageCode lang) => T(lang, "Link", "Link");
 		public static string SoundFromFile(LanguageCode lang) => T(lang, "File", "File");
 		public static string SoundsEmptyTitle(LanguageCode lang) => T(lang, "Nessun suono ancora.", "No sounds yet.");
+		public static string SoundTracksCount(int n, LanguageCode lang) => T(lang, n == 1 ? "1 traccia (loop)" : $"{n} tracce (loop)", n == 1 ? "1 track (loop)" : $"{n} tracks (loop)");
+		public static string SoundEffectsCount(int n, LanguageCode lang) => T(lang, n == 1 ? "1 effetto (1×)" : $"{n} effetti (1×)", n == 1 ? "1 effect (1×)" : $"{n} effects (1×)");
+		public static string SoundAddTitle(LanguageCode lang) => T(lang, "Aggiungi alla soundboard", "Add to the soundboard");
+		public static string SoundFilter(string filter, LanguageCode lang) => filter switch
+		{
+			"loop" => T(lang, "Tracce (loop)", "Tracks (loop)"),
+			"once" => T(lang, "Effetti (1×)", "Effects (1×)"),
+			_ => T(lang, "Tutti", "All")
+		};
+		public static string SoundSearch(LanguageCode lang) => T(lang, "Cerca suono…", "Search a sound…");
+		public static string SoundStopAll(LanguageCode lang) => T(lang, "Ferma tutto", "Stop all");
+		public static string SoundsNoneHere(LanguageCode lang) => T(lang, "Nessun suono con questo filtro.", "No sound with this filter.");
 		public static string SoundPreview(LanguageCode lang) => T(lang, "Ascolta qui", "Listen here");
 		public static string SoundPreviewStop(LanguageCode lang) => T(lang, "Ferma l'ascolto", "Stop listening");
 		public static string SoundUrl(LanguageCode lang) => T(lang, "Link audio (https)", "Audio link (https)");

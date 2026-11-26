@@ -186,6 +186,9 @@ namespace RealmForge.Client.Services
 				return _http.PostAsync($"api/campaigns/{id}/sounds/file", form);
 			}, "upload sound");
 
+		public Task<CampaignResult> UpdateSoundAsync(Guid id, Guid soundId, SaveCampaignSoundDto dto) =>
+			SendAsync(() => _http.PutAsJsonAsync($"api/campaigns/{id}/sounds/{soundId}", dto), "update sound");
+
 		public Task<CampaignResult> DeleteSoundAsync(Guid id, Guid soundId) =>
 			SendAsync(() => _http.DeleteAsync($"api/campaigns/{id}/sounds/{soundId}"), "delete sound");
 
