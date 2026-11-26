@@ -26716,3 +26716,185 @@ input[type="number"]:not(.rf-stepper-input):not(.rf-coin-input):not(.rf-hp-amoun
     .rf-init-widget.vertical.collapsed .rf-init-shell > .rf-init-btn .rf-init-btn-text {
         display: none;
     }
+
+/* ===== The catalog of tokens: one search, then characters, NPCs and monsters in groups that open and close; a row
+   each (face, name, what it is, the drawer button), clicked or dragged onto the map ===== */
+.rf-atp-acc {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.rf-atp-acc-item {
+    overflow: hidden;
+    border: 1px solid #242424;
+    border-radius: 8px;
+    background: #121212;
+}
+
+.rf-atp-acc-head {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    height: 40px;
+    padding: 0 12px;
+    border: 0;
+    background: transparent;
+    color: #e4e4e7;
+    font-size: 12px;
+    text-align: left;
+}
+
+    .rf-atp-acc-head:hover {
+        background: #181818;
+    }
+
+    .rf-atp-acc-head > svg {
+        flex: none;
+        margin-left: auto;
+        color: #71717a;
+        transition: transform .15s ease;
+    }
+
+.rf-atp-acc-item.open .rf-atp-acc-head > svg {
+    transform: rotate(180deg);
+    color: var(--rf-orange-primary);
+}
+
+.rf-atp-acc-dot {
+    flex: none;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #ef4444;
+}
+
+    .rf-atp-acc-dot.character {
+        background: #3b82f6;
+    }
+
+    .rf-atp-acc-dot.npc {
+        background: #ab47bc;
+    }
+
+.rf-atp-acc-count {
+    padding: 0 8px;
+    border-radius: 8px;
+    background: #1c1c1c;
+    color: #888;
+    font-size: 10px;
+    font-weight: 800;
+    line-height: 16px;
+}
+
+.rf-atp-acc-body {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    max-height: 232px;
+    padding: 8px;
+    overflow-y: auto;
+    border-top: 1px solid #1f1f1f;
+    scrollbar-width: thin;
+}
+
+.rf-atp-cat-row {
+    display: flex;
+    flex: none;
+    align-items: center;
+    gap: 8px;
+    min-height: 40px;
+    padding: 0 4px 0 8px;
+    border: 1px solid #242424;
+    border-radius: 6px;
+    background: #161616;
+}
+
+    .rf-atp-cat-row:hover {
+        border-color: #3f3f46;
+    }
+
+.rf-atp-cat-ava {
+    display: inline-flex;
+    flex: none;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    overflow: hidden;
+    border: 1px solid #ef4444;
+    border-radius: 6px;
+    background: #2a1215;
+    color: #fca5a5;
+    font-size: 9.5px;
+    font-weight: 900;
+}
+
+    .rf-atp-cat-ava.character {
+        border-color: #3b82f6;
+        background: #172554;
+        color: #93c5fd;
+    }
+
+    .rf-atp-cat-ava.npc {
+        border-color: #ab47bc;
+        background: #2a1233;
+        color: #e9b6f2;
+    }
+
+    .rf-atp-cat-ava img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+
+.rf-atp-cat-main {
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    min-width: 0;
+    padding: 4px 0;
+    border: 0;
+    background: transparent;
+    color: inherit;
+    text-align: left;
+    line-height: 1.2;
+    cursor: grab;
+}
+
+    .rf-atp-cat-main strong,
+    .rf-atp-cat-main span {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .rf-atp-cat-main strong {
+        color: #ffffff;
+        font-size: 12px;
+    }
+
+    .rf-atp-cat-main span {
+        color: #888;
+        font-size: 10.5px;
+    }
+
+.rf-atp-cat-drawer {
+    display: inline-flex;
+    flex: none;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border: 1px solid #2e2e2e;
+    border-radius: 6px;
+    background: #1c1c1c;
+    color: #a1a1aa;
+}
+
+    .rf-atp-cat-drawer:hover {
+        border-color: var(--rf-orange-primary);
+        background: rgba(255, 140, 0, .12);
+        color: #ffb74d;
+    }

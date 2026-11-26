@@ -214,7 +214,6 @@
                             <button type="button" class="btn btn-sm btn-rf-orange" @onclick="OpenNewMap" data-test="map-new"><Icon Name="plus" /> @UiText.MapNew(Lang)</button>
                             @if (map is not null)
                             {
-                                @OnMapList
                                 @AddTokens
                             }
                             break;
@@ -3702,44 +3701,6 @@ else
     };
 
     //	The tokens on the map (masters): who they are, where; a click brings the view to them
-    private RenderFragment OnMapList => __builder =>
-    {
-        <section class="rf-vtt-box" data-test="vtt-on-map">
-            <span class="rf-vtt-title">@UiText.VttOnMap(tokens.Count, Lang)</span>
-            @if (tokens.Count == 0)
-            {
-                <p class="small mb-0" style="color: var(--rf-text-muted);">@UiText.VttOnMapEmpty(Lang)</p>
-            }
-            @foreach (var tk in tokens.OrderBy(x => x.Kind).ThenBy(x => x.Label))
-            {
-                var token = tk;
-                var portrait = PortraitOf(token);
-                var life = LifeOf(token);
-                <div class="rf-vtt-row" data-test="vtt-on-map-row">
-                    <span class="rf-vtt-row-avatar kind-@KindClass(token)" style="--rf-token: @token.Color;">
-                        @if (portrait is not null)
-                        {
-                            <img src="@portrait" alt="" draggable="false" />
-                        }
-                        else if (token.PropType is { } rowType)
-                        {
-                            <Icon Name="@PropIcon(rowType, token.PropState)" />
-                        }
-                        else
-                        {
-                            @Initials(token.Label)
-                        }
-                    </span>
-                    <span class="rf-vtt-row-info">
-                        <strong>@token.Label</strong>
-                        <span>@(token.PropType is { } infoType ? UiText.PropStateName(infoType, token.PropState, Lang) : UiText.TokenKindName(token.Kind, Lang))@(life is null ? null : $" · {life.Text}")@(token.Hidden ? $" · {UiText.MapTokenHidden(Lang)}" : null)</span>
-                    </span>
-                    <button type="button" class="rf-vtt-row-action" @onclick="() => FocusTokenAsync(token)" data-test="vtt-on-map-center">@UiText.VttCenter(Lang)</button>
-                </div>
-            }
-        </section>
-    };
-
     //	The monster drawer: what was gathered from the search (how many of each), placed in one go or kept as a group
     //	The monster drawer: monsters gathered with how many of each, placed in one go or kept as a group; the groups kept
     //	open under it on demand
@@ -3822,6 +3783,149 @@ else
         </section>
     };
 
+    //	The catalog of tokens: one search over every kind, the characters not on the map yet, the NPCs (those of this
+    //	campaign first) and the monsters in groups that open and close; with a search the groups with a match open by
+    //	themselves. A click puts one on the first free cell, a drag where it is dropped, the drawer button gathers it
+    private string tokenQuery = string.Empty;
+    private readonly HashSet<string> catalogOpen = new() { "character", "monster" };
+    private const int CatalogShown = 40;
+
+    private void ToggleCatalog(string kind)
+    {
+        if (!catalogOpen.Remove(kind))
+        {
+            catalogOpen.Add(kind);
+        }
+    }
+
+    private bool CatalogIsOpen(string kind) => tokenQuery.Trim().Length > 0 ? CatalogCount(kind) > 0 : catalogOpen.Contains(kind);
+
+    private bool Matches(params string?[] texts)
+    {
+        var term = tokenQuery.Trim();
+        return term.Length == 0 || texts.Any(t => !string.IsNullOrEmpty(t) && t.Contains(term, StringComparison.OrdinalIgnoreCase));
+    }
+
+    private IEnumerable<CampaignCharacterDto> CharacterCatalog => FreeCharacters
+        .Where(c => Matches(c.Character.Name, c.Character.ClassLine, c.OwnerName))
+        .OrderBy(c => c.Character.Name);
+
+    private IEnumerable<MonsterResponseDto> CreatureCatalog(bool npcs)
+    {
+        var term = tokenQuery.Trim();
+        var list = monsters.Values.Where(m => m.IsNpc == npcs && Matches(m.Name, m.Alias, m.Role, m.Subtitle));
+        return term.Length > 0
+            ? list.OrderBy(m => RealmForge.Shared.Text.SearchRank.Of(term, m.Name, new[] { m.Alias })).ThenBy(m => m.Name)
+            : list.OrderBy(m => npcs && m.CampaignId == CampaignId ? 0 : 1).ThenBy(m => m.Name).ThenBy(m => m.Ruleset);
+    }
+
+    private int CatalogCount(string kind) => kind switch
+    {
+        "character" => CharacterCatalog.Count(),
+        "npc" => CreatureCatalog(true).Count(),
+        _ => CreatureCatalog(false).Count()
+    };
+
+    private static string EditionShort(RulesetVersion r) => r == RulesetVersion.Dnd5e_2014 ? "2014" : "2024";
+
+    private RenderFragment TokenCatalog => __builder =>
+    {
+        <div class="rf-atp-search">
+            <Icon Name="search" />
+            <input class="rf-form-control rf-atp-input" placeholder="@UiText.MapCatalogSearch(Lang)" value="@tokenQuery" @oninput="e => tokenQuery = e.Value?.ToString() ?? string.Empty" data-test="map-monster-search" />
+        </div>
+        <div class="rf-atp-acc" data-test="map-catalog">
+            @foreach (var kind in new[] { "character", "npc", "monster" })
+            {
+                var k = kind;
+                var open = CatalogIsOpen(k);
+                var count = CatalogCount(k);
+                <section class="rf-atp-acc-item @(open ? "open" : null)" data-test="map-catalog-group" data-kind="@k">
+                    <button type="button" class="rf-atp-acc-head" aria-expanded="@(open ? "true" : "false")" @onclick="() => ToggleCatalog(k)" data-test="map-catalog-toggle">
+                        <span class="rf-atp-acc-dot @k"></span>
+                        <strong>@UiText.MapCatalogKind(k, Lang)</strong>
+                        <span class="rf-atp-acc-count" data-test="map-catalog-count">@count</span>
+                        <Icon Name="chevron-down" />
+                    </button>
+                    @if (open)
+                    {
+                        <div class="rf-atp-acc-body">
+                            @if (k == "character")
+                            {
+                                @foreach (var c in CharacterCatalog)
+                                {
+                                    var ch = c;
+                                    <div class="rf-atp-cat-row">
+                                        <span class="rf-atp-cat-ava character">
+                                            @if (ch.Character.Portrait is not null)
+                                            {
+                                                <img src="@ch.Character.Portrait" alt="" draggable="false" />
+                                            }
+                                            else
+                                            {
+                                                @Initials(ch.Character.Name)
+                                            }
+                                        </span>
+                                        <button type="button" class="rf-atp-cat-main" draggable="true" data-drag-token="@($"character:{ch.Character.Id}")" title="@UiText.MapDragHint(Lang)" @onclick="() => AddCharacterAsync(ch)" data-test="map-add-character">
+                                            <strong>@ch.Character.Name</strong>
+                                            <span>@ch.Character.ClassLine · @UiText.MonsterHitPointsShort(Lang) @ch.Character.CurrentHitPoints/@ch.Character.MaxHitPoints</span>
+                                        </button>
+                                    </div>
+                                }
+                                @if (count == 0)
+                                {
+                                    <p class="rf-atp-desc">@(tokenQuery.Trim().Length > 0 ? UiText.MapCatalogNone(Lang) : UiText.MapCatalogAllPlaced(Lang))</p>
+                                }
+                            }
+                            else
+                            {
+                                @if (monsters.Count == 0)
+                                {
+                                    <p class="rf-atp-desc">…</p>
+                                }
+                                @foreach (var m in CreatureCatalog(k == "npc").Take(CatalogShown))
+                                {
+                                    var monster = m;
+                                    <div class="rf-atp-cat-row">
+                                        <span class="rf-atp-cat-ava @k">
+                                            @if (monster.Portrait is not null)
+                                            {
+                                                <img src="@monster.Portrait" alt="" draggable="false" />
+                                            }
+                                            else
+                                            {
+                                                @Initials(monster.Name)
+                                            }
+                                        </span>
+                                        <button type="button" class="rf-atp-cat-main" draggable="true" data-drag-token="@($"monster:{monster.Id}")" title="@UiText.MapDragHint(Lang)" @onclick="() => AddMonsterAsync(monster)" data-test="map-monster-result">
+                                            <strong>@monster.Name</strong>
+                                            <span>
+                                                @if (monster.IsNpc && monster.Role.Length > 0)
+                                                {
+                                                    @($"{monster.Role} · ")
+                                                }
+                                                @UiText.MonsterChallengeShort(Lang) @RealmForge.Shared.Monsters.MonsterMath.FormatChallenge(monster.ChallengeRating) · @UiText.MonsterHitPointsShort(Lang) @monster.HitPoints · @EditionShort(monster.Ruleset)
+                                            </span>
+                                        </button>
+                                        <button type="button" class="rf-atp-cat-drawer" title="@UiText.VttDrawerAdd(Lang)" aria-label="@UiText.VttDrawerAdd(Lang)" @onclick="() => AddToDrawer(monster)" data-test="map-monster-drawer-add"><Icon Name="inbox" /></button>
+                                    </div>
+                                }
+                                @if (monsters.Count > 0 && count == 0)
+                                {
+                                    <p class="rf-atp-desc">@UiText.MapCatalogNone(Lang)</p>
+                                }
+                                else if (count > CatalogShown)
+                                {
+                                    <p class="rf-atp-desc" data-test="map-catalog-more">@UiText.MapCatalogMore(count - CatalogShown, Lang)</p>
+                                }
+                            }
+                        </div>
+                    }
+                </section>
+            }
+        </div>
+    };
+
     //	Adding tokens: the characters not on the map yet, a monster or an NPC by name (one, or gathered in the drawer), a
     //	marker of one's own, an object; a click puts it on the first free cell, a drag where it is dropped
     private RenderFragment AddTokens => __builder =>
@@ -3835,38 +3939,7 @@ else
                     <span><strong>@UiText.MapHintClick(Lang):</strong> @UiText.MapHintClickWhere(Lang) · <strong>@UiText.MapHintDrag(Lang):</strong> @UiText.MapHintDragWhere(Lang)</span>
                 </span>
             </header>
-            @if (FreeCharacters.Any())
-            {
-                <div class="rf-atp-section">
-                    <span class="rf-atp-sub">@UiText.MapAddCharacters(Lang)</span>
-                    <div class="rf-atp-grid">
-                        @foreach (var c in FreeCharacters)
-                        {
-                            var ch = c;
-                            <button type="button" class="rf-atp-obj" draggable="true" data-drag-token="@($"character:{ch.Character.Id}")" title="@UiText.MapDragHint(Lang)" @onclick="() => AddCharacterAsync(ch)" data-test="map-add-character"><Icon Name="person" /><span>@ch.Character.Name</span></button>
-                        }
-                    </div>
-                </div>
-            }
-            <div class="rf-atp-search">
-                <Icon Name="search" />
-                <input class="rf-form-control rf-atp-input" placeholder="@UiText.MapMonsterSearch(Lang)" value="@monsterSearch" @oninput="SearchMonstersAsync" data-test="map-monster-search" />
-                @if (monsterResults.Count > 0)
-                {
-                    <div class="rf-forge-selector-menu" style="left: 0; right: 0;">
-                        @foreach (var m in monsterResults)
-                        {
-                            var monster = m;
-                            <div class="rf-vtt-drawer-result">
-                                <button type="button" class="rf-forge-selector-option" draggable="true" data-drag-token="@($"monster:{monster.Id}")" title="@UiText.MapDragHint(Lang)" @onclick="() => AddMonsterAsync(monster)" data-test="map-monster-result">
-                                    @monster.Name <span class="small" style="color: var(--rf-text-muted);">· @UiText.MonsterChallengeShort(Lang) @RealmForge.Shared.Monsters.MonsterMath.FormatChallenge(monster.ChallengeRating)</span>
-                                </button>
-                                <button type="button" class="rf-vtt-drawer-add" title="@UiText.VttDrawerAdd(Lang)" aria-label="@UiText.VttDrawerAdd(Lang)" @onclick="() => AddToDrawer(monster)" data-test="map-monster-drawer-add"><Icon Name="inbox" /></button>
-                            </div>
-                        }
-                    </div>
-                }
-            </div>
+            @TokenCatalog
             @MonsterDrawer
             <div class="rf-atp-custom">
                 <input class="rf-form-control rf-atp-input" maxlength="100" placeholder="@UiText.MapMarkerHint(Lang)" @bind="markerLabel" @bind:event="oninput" data-test="map-marker-label" />
@@ -4944,6 +5017,11 @@ else
 
     private void OpenDrawer(string name)
     {
+        if (name == "tokens")
+        {
+            //	The NPCs written since the table opened show in the catalog (the list is kept by the service)
+            _ = LoadMonstersAsync();
+        }
         if (IsToolPanel(name) && !openTools.Contains(name))
         {
             openTools.Add(name);
@@ -6704,20 +6782,6 @@ else
         }
         await AddAsync(new SaveTokenDto { Label = markerLabel.Trim(), Kind = TokenKind.Marker, Color = markerColor, Size = 1 });
         markerLabel = null;
-    }
-
-    private async Task SearchMonstersAsync(ChangeEventArgs e)
-    {
-        monsterSearch = e.Value?.ToString() ?? string.Empty;
-        var term = monsterSearch.Trim();
-        if (term.Length < 2)
-        {
-            monsterResults = new();
-            return;
-        }
-        var all = await MonsterService.GetMonstersAsync(Lang);
-        monsterResults = all.Where(m => m.Name.Contains(term, StringComparison.OrdinalIgnoreCase))
-            .OrderBy(m => RealmForge.Shared.Text.SearchRank.Of(term, m.Name, new[] { m.Alias })).ThenBy(m => m.Name).Take(8).ToList();
     }
 
     private SaveTokenDto ToSave(MapTokenDto t) => new()
