@@ -11659,7 +11659,7 @@ textarea.rf-form-control {
     flex: none;
     flex-direction: column;
     gap: 16px;
-    width: 320px;
+    width: 336px;
     padding: 16px;
     overflow-y: auto;
     border-left: 1px solid var(--rf-border-subtle);
@@ -14337,6 +14337,348 @@ textarea.rf-form-control {
 .rf-vtt-table .rf-vtt-panel-tabs {
     flex-wrap: wrap;
 }
+
+/* A tool's tab: its icon and its name */
+.rf-vtt-tool-tab .rf-vtt-sheet-tab-name {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+
+    .rf-vtt-tool-tab .rf-vtt-sheet-tab-name svg {
+        flex: none;
+    }
+
+/* ===== Adding tokens (the masters' tokens panel) ===== */
+
+.rf-atp {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    min-width: 0;
+}
+
+.rf-atp-head {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.rf-atp-kicker {
+    color: var(--rf-orange-primary);
+    font-size: .7rem;
+    font-weight: 900;
+    letter-spacing: .8px;
+    text-transform: uppercase;
+}
+
+.rf-atp-hint {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--rf-text-muted);
+    font-size: .75rem;
+    line-height: 1.35;
+}
+
+    .rf-atp-hint strong {
+        color: var(--rf-text-secondary);
+    }
+
+    .rf-atp-hint svg {
+        flex: none;
+    }
+
+.rf-atp-section {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.rf-atp-sub {
+    color: var(--rf-text-muted);
+    font-size: .65rem;
+    font-weight: 800;
+    letter-spacing: .7px;
+    text-transform: uppercase;
+}
+
+.rf-atp-input {
+    height: 40px;
+    min-width: 0;
+}
+
+.rf-atp-search {
+    position: relative;
+    width: 100%;
+}
+
+    .rf-atp-search > svg {
+        position: absolute;
+        top: 12px;
+        left: 12px;
+        z-index: 1;
+        color: var(--rf-text-muted);
+        pointer-events: none;
+    }
+
+    .rf-atp-search > .rf-atp-input {
+        padding-left: 40px;
+    }
+
+/* The monster drawer: inside the panel, never wider than it */
+.rf-atp-drawer {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    width: 100%;
+    min-width: 0;
+    padding: 8px;
+    border: 1px dashed var(--rf-border-light);
+    border-radius: 8px;
+    background: var(--rf-bg-card);
+}
+
+.rf-atp-drawer-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+}
+
+.rf-atp-drawer-title {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+    color: var(--rf-text-secondary);
+    font-size: .65rem;
+    font-weight: 800;
+    letter-spacing: .6px;
+    text-transform: uppercase;
+    white-space: nowrap;
+}
+
+.rf-atp-mini {
+    flex: none;
+    height: 24px;
+    padding: 0 8px;
+    border: 1px solid var(--rf-border-light);
+    border-radius: 4px;
+    background: var(--rf-bg-surface);
+    color: var(--rf-text-secondary);
+    font-size: .7rem;
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+    .rf-atp-mini:hover,
+    .rf-atp-mini.active {
+        border-color: var(--rf-orange-primary);
+        background: rgba(255, 140, 0, .12);
+        color: #ffb74d;
+    }
+
+.rf-atp-desc {
+    margin: 0;
+    color: var(--rf-text-muted);
+    font-size: .75rem;
+    line-height: 1.45;
+    overflow-wrap: anywhere;
+}
+
+.rf-atp-two {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 8px;
+}
+
+.rf-atp-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 40px;
+    gap: 8px;
+}
+
+.rf-atp-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    min-width: 0;
+    height: 32px;
+    padding: 0 8px;
+    border: 1px solid var(--rf-border-light);
+    border-radius: 8px;
+    background: var(--rf-bg-surface);
+    color: var(--rf-text-secondary);
+    font-size: .75rem;
+    font-weight: 800;
+}
+
+    .rf-atp-btn.primary {
+        border-color: var(--rf-orange-primary);
+        background: var(--rf-orange-primary);
+        color: #0a0a0a;
+    }
+
+    .rf-atp-btn:disabled {
+        opacity: .5;
+    }
+
+.rf-atp-groups {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.rf-atp-group {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    min-width: 0;
+    padding: 4px 4px 4px 8px;
+    border: 1px solid var(--rf-border-light);
+    border-radius: 8px;
+    background: var(--rf-bg-surface);
+}
+
+.rf-atp-group-text {
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    min-width: 0;
+    font-size: .75rem;
+}
+
+    .rf-atp-group-text strong,
+    .rf-atp-group-text span {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .rf-atp-group-text span {
+        color: var(--rf-text-muted);
+    }
+
+/* A marker of one's own: its name, its colour, added */
+.rf-atp-custom {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 40px 40px;
+    gap: 8px;
+    align-items: center;
+}
+
+.rf-atp-color {
+    display: flex;
+    width: 40px;
+    height: 40px;
+    margin: 0;
+    padding: 4px;
+    border: 1px solid var(--rf-border-light);
+    border-radius: 8px;
+    background: var(--rf-bg-card);
+    cursor: pointer;
+}
+
+    .rf-atp-color:hover {
+        border-color: var(--rf-orange-primary);
+    }
+
+    .rf-atp-color input {
+        width: 100%;
+        height: 100%;
+        padding: 0;
+        border: 0;
+        background: transparent;
+        cursor: pointer;
+    }
+
+        .rf-atp-color input::-webkit-color-swatch-wrapper {
+            padding: 0;
+        }
+
+        .rf-atp-color input::-webkit-color-swatch {
+            border: 0;
+            border-radius: 4px;
+        }
+
+.rf-atp-square {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    padding: 0;
+    border: 1px solid var(--rf-border-light);
+    border-radius: 8px;
+    background: var(--rf-bg-card);
+    color: var(--rf-orange-primary);
+}
+
+    .rf-atp-square:not(:disabled):hover {
+        border-color: var(--rf-orange-primary);
+        background: var(--rf-orange-primary);
+        color: #0a0a0a;
+    }
+
+    .rf-atp-square:disabled {
+        opacity: .5;
+    }
+
+/* The objects (and the characters): two even columns, the odd last one across both */
+.rf-atp-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+}
+
+.rf-atp-obj {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+    height: 40px;
+    padding: 0 8px;
+    border: 1px solid var(--rf-border-light);
+    border-radius: 8px;
+    background: var(--rf-bg-card);
+    color: var(--rf-text-primary);
+    font-size: .8rem;
+    font-weight: 700;
+    cursor: grab;
+    transition: border-color .15s ease, background .15s ease;
+}
+
+    .rf-atp-obj svg {
+        flex: none;
+        color: var(--rf-text-secondary);
+        transition: color .15s ease;
+    }
+
+    .rf-atp-obj span {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .rf-atp-obj:hover {
+        border-color: var(--rf-orange-primary);
+        background: #1a1a1a;
+    }
+
+        .rf-atp-obj:hover svg {
+            color: var(--rf-orange-primary);
+        }
+
+    .rf-atp-obj:active {
+        cursor: grabbing;
+    }
+
+    .rf-atp-obj.wide {
+        grid-column: span 2;
+        justify-content: center;
+    }
 
 /* The quick sheet in tabs: general, actions, spells, features, notes */
 .rf-qs-tabs {
@@ -19999,14 +20341,6 @@ button.rf-qs-spell {
         color: var(--rf-orange-primary);
     }
 
-.rf-vtt-drawer {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-    padding: 8px;
-    border: 1px dashed #303030;
-    border-radius: 8px;
-}
 
 .rf-vtt-drawer-row {
     display: flex;
