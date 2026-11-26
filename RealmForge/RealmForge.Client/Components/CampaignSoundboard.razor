@@ -10,13 +10,29 @@
 @* The masters' soundboard: in the drawer of the table (played for everyone) and on the campaign page (Standalone: prepared
    there, listened to on this device only). A sound is a link to audio hosted elsewhere or an audio file uploaded *@
 <section class="rf-sounds@(Standalone ? " rf-sounds-page" : null)" data-test="vtt-sounds">
-    <div class="rf-snd-head">
-        <span class="rf-snd-kicker">@UiText.SoundsKicker(Lang)</span>
-        <span class="rf-snd-count" data-test="sounds-count">@(board?.Sounds.Count ?? 0)</span>
-    </div>
-    <p class="rf-snd-hint">@(Standalone ? UiText.SoundsPageHint(Lang) : UiText.SoundsHint(Lang))</p>
+    <header class="rf-snd-top">
+        <div class="rf-snd-top-text">
+            <div class="rf-snd-head">
+                <span class="rf-snd-kicker">@UiText.SoundsKicker(Lang)</span>
+                <span class="rf-snd-count" data-test="sounds-count">@(board?.Sounds.Count ?? 0)</span>
+            </div>
+            <p class="rf-snd-hint">@(Standalone ? UiText.SoundsPageHint(Lang) : UiText.SoundsHint(Lang))</p>
+        </div>
+        @if (Standalone && board is not null)
+        {
+            <div class="rf-pl-pills">
+                <span class="rf-pl-pill accent">@UiText.SoundTracksCount(board.Sounds.Count(x => !x.Effect), Lang)</span>
+                <span class="rf-pl-pill">@UiText.SoundEffectsCount(board.Sounds.Count(x => x.Effect), Lang)</span>
+            </div>
+        }
+    </header>
 
+    <div class="rf-snd-work">
     <div class="rf-snd-form">
+        @if (Standalone)
+        {
+            <span class="rf-ov-kicker rf-snd-form-title">@UiText.SoundAddTitle(Lang)</span>
+        }
         <div class="rf-snd-seg" role="tablist">
             <button type="button" role="tab" aria-selected="@(!fromFile)" class="@(!fromFile ? "on" : null)" @onclick="() => SetSource(false)" data-test="sound-src-link"><Icon Name="link" /> @UiText.SoundSourceLink(Lang)</button>
             <button type="button" role="tab" aria-selected="@fromFile" class="@(fromFile ? "on" : null)" @onclick="() => SetSource(true)" data-test="sound-src-file"><Icon Name="upload" /> @UiText.SoundSourceFile(Lang)</button>
@@ -64,6 +80,27 @@
         </button>
     </div>
 
+    <div class="rf-snd-lib">
+    @if (Standalone && board is { Sounds.Count: > 0 })
+    {
+        @* The library: by kind, by name, and one button that silences this device *@
+        <div class="rf-snd-toolbar">
+            <div class="rf-ses-filters" role="tablist">
+                @foreach (var f in new[] { "all", "loop", "once" })
+                {
+                    var key = f;
+                    <button type="button" role="tab" aria-selected="@(soundFilter == key)" class="rf-ses-filter @(soundFilter == key ? "on" : null)" @onclick="() => soundFilter = key" data-test="sound-filter">@UiText.SoundFilter(key, Lang)</button>
+                }
+            </div>
+            <div class="rf-snd-tools">
+                <label class="rf-snd-search">
+                    <Icon Name="search" />
+                    <input type="search" class="rf-form-control" placeholder="@UiText.SoundSearch(Lang)" @bind="soundQuery" @bind:event="oninput" aria-label="@UiText.SoundSearch(Lang)" data-test="sound-search" />
+                </label>
+                <button type="button" class="rf-snd-stopall" disabled="@(previewing is null)" @onclick="StopPreviewAllAsync" data-test="sound-stop-all"><Icon Name="stop-fill" /> @UiText.SoundStopAll(Lang)</button>
+            </div>
+        </div>
+    }
     @if (board is null)
     {
         <span class="small" style="color: var(--rf-text-muted);">…</span>
@@ -82,7 +119,7 @@
         {
             <button type="button" class="btn btn-sm btn-rf-outline align-self-start" disabled="@busy" @onclick="StopAsync" data-test="sound-stop"><Icon Name="stop-fill" /> @UiText.SoundStop(Lang)</button>
         }
-        @foreach (var group in board.Sounds.GroupBy(s => s.Effect).OrderBy(g => g.Key))
+        @foreach (var group in Listed.GroupBy(s => s.Effect).OrderBy(g => g.Key))
         {
             <span class="rf-mini-label">@(group.Key ? UiText.SoundEffects(Lang) : UiText.SoundTracks(Lang))</span>
             <div class="rf-snd-list">
@@ -105,11 +142,24 @@
                             </span>
                         </div>
                         <button type="button" class="rf-snd-del" disabled="@busy" title="@UiText.BtnRemove(Lang)" aria-label="@UiText.BtnRemove(Lang)" @onclick="() => DeleteAsync(sound)" data-test="sound-delete"><Icon Name="close" /></button>
+                        @if (Standalone)
+                        {
+                            <label class="rf-snd-card-vol">
+                                <Icon Name="volume-up" />
+                                <input type="range" min="0" max="100" step="5" value="@sound.Volume" style="--val: @(sound.Volume)%" aria-label="@UiText.SoundVolume(Lang)"
+                                       @onchange="e => SetVolumeAsync(sound, e.Value?.ToString())" data-test="sound-volume" />
+                                <span class="rf-snd-pct">@sound.Volume%</span>
+                            </label>
+                        }
                     </div>
                 }
             </div>
         }
 
+        @if (Standalone && !Listed.Any())
+        {
+            <div class="rf-ov-empty">@UiText.SoundsNoneHere(Lang)</div>
+        }
         @* Sound scenes: a track, loops over it and an effect, with one click *@
         <span class="rf-mini-label d-flex align-items-center gap-2"><Icon Name="collection-play" /> @UiText.SoundScenes(Lang)</span>
         @if ((board.Scenes ?? new()).Count == 0 && scene is null)
@@ -192,6 +242,8 @@
             </div>
         }
     }
+    </div>
+    </div>
 </section>
 
 @code {
@@ -207,6 +259,37 @@
     [Parameter] public bool Standalone { get; set; }
 
     private bool fromFile;
+    private string soundFilter = "all";
+    private string soundQuery = string.Empty;
+
+    //	The sounds of the library that pass the filter and the search (the table shows them all)
+    private IEnumerable<CampaignSoundDto> Listed => (board?.Sounds ?? new()).Where(x => !Standalone
+        || ((soundFilter == "all" || (soundFilter == "once") == x.Effect)
+            && (soundQuery.Length == 0 || x.Name.Contains(soundQuery.Trim(), StringComparison.CurrentCultureIgnoreCase))));
+
+    private async Task StopPreviewAllAsync()
+    {
+        await StopPreviewAsync();
+        previewing = null;
+    }
+
+    //	The volume of a sound, saved as it is moved
+    private async Task SetVolumeAsync(CampaignSoundDto sound, string? text)
+    {
+        if (!int.TryParse(text, out var volume))
+        {
+            return;
+        }
+        busy = true;
+        var result = await Campaigns.UpdateSoundAsync(CampaignId, sound.Id, new SaveCampaignSoundDto { Name = sound.Name, Url = sound.Url, Effect = sound.Effect, Volume = Math.Clamp(volume, 0, 100) });
+        busy = false;
+        if (!result.Ok)
+        {
+            error = UiText.SoundInvalid(Lang);
+            return;
+        }
+        await LoadAsync();
+    }
     private IBrowserFile? picked;
     private bool uploading;
     private Guid? previewing;

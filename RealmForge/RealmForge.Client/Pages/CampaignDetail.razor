@@ -181,70 +181,112 @@
                 break;
 
             case Tab.Members:
-                <section class="rf-card2 mb-3" data-test="campaign-members">
-                    @foreach (var member in campaign.Members)
-                    {
-                        var m = member;
-                        <div class="rf-campaign-row" data-test="campaign-member">
-                            <div class="rf-campaign-row-main">
-                                <span><span class="rf-member-swatch" style="background-color: @m.Color;" title="@UiText.RollMyColor(Lang)"></span>@m.Name</span>
-                                @if (m.IsMe)
+                var masters = campaign.Members.Count(m => m.Role == CampaignRole.Master);
+                var comasters = campaign.Members.Count(m => m.Role == CampaignRole.CoMaster);
+                var players = campaign.Members.Count(m => m.Role == CampaignRole.Player);
+                <div class="rf-pl">
+                    <header class="rf-pl-top">
+                        <div class="rf-pl-top-text">
+                            <span class="rf-ov-kicker">@UiText.PlayersKicker(Lang)</span>
+                            <p class="rf-ses-intro">@UiText.PlayersIntro(Lang)</p>
+                        </div>
+                        <div class="rf-pl-pills">
+                            <span class="rf-pl-pill accent">@UiText.PlayersMasters(masters, Lang)</span>
+                            <span class="rf-pl-pill">@UiText.PlayersCoMasters(comasters, Lang)</span>
+                            <span class="rf-pl-pill">@UiText.PlayersPlayers(players, Lang)</span>
+                        </div>
+                    </header>
+                    <div class="rf-pl-grid">
+                        <section class="rf-ov-card" data-test="campaign-members">
+                            <header class="rf-pl-card-head">
+                                <span class="rf-pl-title"><span class="rf-ov-kicker">@UiText.PlayersAtTable(Lang)</span> <span class="rf-pl-count">@campaign.Members.Count</span></span>
+                                <span class="rf-pl-hint">@UiText.PlayersColorHint(Lang)</span>
+                            </header>
+                            <div class="rf-pl-list">
+                                @foreach (var member in campaign.Members)
                                 {
-                                    <span class="small" style="color: var(--rf-text-muted);">(@UiText.CampaignYou(Lang))</span>
-                                }
-                            </div>
-                            <div class="d-flex gap-2 align-items-center">
-                                @if (CampaignRules.CanChangeRoles(role))
-                                {
-                                    <div class="rf-campaign-role-select" data-test="campaign-member-role">
-                                        <RfSelect TValue="CampaignRole" Value="m.Role" ValueChanged="v => ChangeRoleAsync(m, v)" Options="RoleOptions(_ => true)" />
+                                    var m = member;
+                                    <div class="rf-pl-row @(m.IsMe ? "me" : null)" data-test="campaign-member">
+                                        <div class="rf-pl-who">
+                                            <span class="rf-pl-avatar" style="--rf-p: @m.Color;" title="@UiText.RollMyColor(Lang)">@Initials(m.Name)<i></i></span>
+                                            <span class="rf-pl-name">
+                                                <strong>@m.Name @if (m.IsMe) { <span class="rf-pl-me">@UiText.CampaignYou(Lang)</span> }</strong>
+                                                <span>@UiText.CampaignRoleName(m.Role, Lang)</span>
+                                            </span>
+                                        </div>
+                                        <div class="rf-pl-controls">
+                                            @if (CampaignRules.CanChangeRoles(role))
+                                            {
+                                                <div class="rf-campaign-role-select" data-test="campaign-member-role">
+                                                    <RfSelect TValue="CampaignRole" Value="m.Role" ValueChanged="v => ChangeRoleAsync(m, v)" Options="RoleOptions(_ => true)" />
+                                                </div>
+                                            }
+                                            else
+                                            {
+                                                <span class="badge rf-role-badge rf-role-@m.Role.ToString().ToLowerInvariant()">@UiText.CampaignRoleName(m.Role, Lang)</span>
+                                            }
+                                            @if (!m.IsMe && CampaignRules.CanRemoveMember(role, false))
+                                            {
+                                                <button type="button" class="rf-pl-remove" title="@UiText.BtnRemove(Lang)" aria-label="@UiText.BtnRemove(Lang)" @onclick="() => RemoveMemberAsync(m)" data-test="campaign-member-remove"><Icon Name="close" /></button>
+                                            }
+                                            else
+                                            {
+                                                <span class="rf-pl-spacer"></span>
+                                            }
+                                        </div>
                                     </div>
                                 }
-                                else
-                                {
-                                    <span class="badge rf-role-badge rf-role-@m.Role.ToString().ToLowerInvariant()">@UiText.CampaignRoleName(m.Role, Lang)</span>
-                                }
-                                @if (!m.IsMe && CampaignRules.CanRemoveMember(role, false))
-                                {
-                                    <button type="button" class="rf-mini-btn" title="@UiText.BtnRemove(Lang)" aria-label="@UiText.BtnRemove(Lang)" @onclick="() => RemoveMemberAsync(m)" data-test="campaign-member-remove"><Icon Name="close" /></button>
-                                }
                             </div>
-                        </div>
-                    }
-                </section>
+                            <footer class="rf-pl-legend">
+                                <span><strong>@UiText.CampaignRoleName(CampaignRole.Master, Lang):</strong> @UiText.PlayersMasterRights(Lang)</span>
+                                <span><strong>@UiText.CampaignRoleName(CampaignRole.CoMaster, Lang):</strong> @UiText.PlayersCoMasterRights(Lang)</span>
+                            </footer>
+                        </section>
 
-                @if (CampaignRules.CanInvite(role, CampaignRole.Player))
-                {
-                    <section class="rf-card2 mb-3" data-test="campaign-invite">
-                        <div class="rf-mini-title">@UiText.CampaignInviteTitle(Lang)</div>
-                        <div class="d-flex flex-wrap gap-2">
-                            <input type="email" class="rf-form-control flex-grow-1" placeholder="email@example.com" @bind="inviteEmail" data-test="campaign-invite-email" />
-                            <div class="rf-campaign-role-select" data-test="campaign-invite-role">
-                                <RfSelect TValue="CampaignRole" @bind-Value="inviteRole" Options="RoleOptions(r => CampaignRules.CanInvite(role, r))" />
-                            </div>
-                            <button type="button" class="btn btn-rf-orange" @onclick="InviteAsync" data-test="campaign-invite-send">@UiText.BtnInvite(Lang)</button>
-                        </div>
-                        @if (inviteNote is not null)
-                        {
-                            <div class="small mt-2" style="color: var(--rf-text-secondary);" data-test="campaign-invite-note">@inviteNote</div>
-                        }
-                        @if (campaign.Invites.Count > 0)
-                        {
-                            <div class="rf-mini-title mt-3">@UiText.CampaignPendingInvites(Lang)</div>
-                            @foreach (var invite in campaign.Invites)
+                        <div class="rf-ov-side">
+                            @if (CampaignRules.CanInvite(role, CampaignRole.Player))
                             {
-                                var i = invite;
-                                <div class="rf-campaign-row" data-test="campaign-pending-invite">
-                                    <div class="rf-campaign-row-main"><span>@i.Name</span> <span class="small" style="color: var(--rf-text-muted);">@UiText.CampaignRoleName(i.Role, Lang)</span></div>
-                                    @if (CampaignRules.CanInvite(role, i.Role))
+                                <section class="rf-ov-card rf-ov-time" data-test="campaign-invite">
+                                    <span class="rf-ov-kicker">@UiText.CampaignInviteTitle(Lang)</span>
+                                    <input type="email" class="rf-form-control" placeholder="email@example.com" @bind="inviteEmail" data-test="campaign-invite-email" />
+                                    <div class="rf-pl-invite-row">
+                                        <div class="rf-campaign-role-select" data-test="campaign-invite-role">
+                                            <RfSelect TValue="CampaignRole" @bind-Value="inviteRole" Options="RoleOptions(r => CampaignRules.CanInvite(role, r))" />
+                                        </div>
+                                        <button type="button" class="btn btn-rf-orange rf-pl-invite" @onclick="InviteAsync" data-test="campaign-invite-send"><Icon Name="envelope" /> @UiText.BtnInvite(Lang)</button>
+                                    </div>
+                                    @if (inviteNote is not null)
                                     {
-                                        <button type="button" class="btn btn-sm btn-rf-outline" @onclick="() => WithdrawInviteAsync(i)">@UiText.BtnWithdraw(Lang)</button>
+                                        <div class="small" style="color: var(--rf-text-secondary);" data-test="campaign-invite-note">@inviteNote</div>
                                     }
-                                </div>
+                                </section>
+                                <section class="rf-ov-card">
+                                    <span class="rf-pl-title"><span class="rf-ov-kicker">@UiText.CampaignPendingInvites(Lang)</span> <span class="rf-pl-count">@campaign.Invites.Count</span></span>
+                                    @if (campaign.Invites.Count == 0)
+                                    {
+                                        <div class="rf-ov-empty">@UiText.PlayersNoInvites(Lang)</div>
+                                    }
+                                    else
+                                    {
+                                        <div class="rf-pl-list">
+                                            @foreach (var invite in campaign.Invites)
+                                            {
+                                                var i = invite;
+                                                <div class="rf-pl-invite-item" data-test="campaign-pending-invite">
+                                                    <span class="rf-pl-who"><i class="rf-pl-dot"></i><strong>@i.Name</strong> <span class="rf-pl-role-pill">@UiText.CampaignRoleName(i.Role, Lang)</span></span>
+                                                    @if (CampaignRules.CanInvite(role, i.Role))
+                                                    {
+                                                        <button type="button" class="rf-ov-ghost danger" @onclick="() => WithdrawInviteAsync(i)">@UiText.BtnWithdraw(Lang)</button>
+                                                    }
+                                                </div>
+                                            }
+                                        </div>
+                                    }
+                                </section>
                             }
-                        }
-                    </section>
-                }
+                        </div>
+                    </div>
+                </div>
                 break;
 
             case Tab.Characters:
@@ -745,4 +787,6 @@
         LanguageState.OnLanguageChanged -= HandleLanguageChanged;
         Live.Changed -= HandleLiveChanged;
     }
+
+    private static string Initials(string name) => string.Concat(name.Where(char.IsLetterOrDigit).Take(2)).ToUpperInvariant();
 }
