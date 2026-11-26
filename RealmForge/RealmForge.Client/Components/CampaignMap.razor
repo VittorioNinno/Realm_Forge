@@ -1347,6 +1347,10 @@ else
                     {
                         @DockButton("link", "link", UiText.ToolLink(Lang), "map-token-tab-link")
                     }
+                    @if (RunsTheTable && Table && it.PropType == PropType.Chest)
+                    {
+                        @DockButton("treasure", "gem", UiText.ToolTreasure(Lang), "map-token-tab-treasure")
+                    }
                     @if (it.PropType is null && (RunsTheTable || CanChangeHp(it, character)))
                     {
                         @DockButton("hp", "heart", UiText.ToolHp(Lang), "map-token-tab-hp")
@@ -1417,6 +1421,44 @@ else
                 case "loot":
                     <div class="rf-vtt-toolbar-panel rf-hud-drawer">
                         @TakeList(it)
+                    </div>
+                    break;
+                case "treasure" when it.PropType == PropType.Chest:
+                    @* The party's treasure put in the chest: whoever opens it finds it there *@
+                    <div class="rf-vtt-toolbar-panel rf-hud-drawer" data-test="map-token-treasure">
+                        <span class="rf-vtt-label">@UiText.VttChestTreasureHint(Lang)</span>
+                        @if (chestTreasure is null)
+                        {
+                            <p class="small mb-0">…</p>
+                        }
+                        else if (chestTreasure.Count == 0)
+                        {
+                            <p class="small mb-0" data-test="map-token-treasure-empty">@UiText.VttChestTreasureNone(Lang)</p>
+                        }
+                        else
+                        {
+                            <div class="rf-hud-treasure">
+                                @foreach (var t in chestTreasure)
+                                {
+                                    var item = t;
+                                    var name = item.Name.Length > 0 ? item.Name : UiText.TreasureUnknownName(Lang);
+                                    <div class="rf-hud-treasure-row" data-test="map-token-treasure-item">
+                                        <span class="rf-hud-treasure-name" title="@name">@name@(item.Identified ? null : " (?)")</span>
+                                        @if (item.Quantity > 1)
+                                        {
+                                            <input type="number" class="rf-hud-hp-amount" min="1" max="@item.Quantity" value="@ChestQuantity(item)" aria-label="@UiText.LabelQuantity(Lang)"
+                                                   @onchange="e => chestQuantities[item.Id] = int.TryParse(e.Value?.ToString(), out var q) ? Math.Clamp(q, 1, item.Quantity) : 1" />
+                                            <span class="small">/ @item.Quantity</span>
+                                        }
+                                        <button type="button" class="rf-hud-pill" disabled="@busy" @onclick="() => PutInChestAsync(it, item)" data-test="map-token-treasure-put"><Icon Name="box" /> @UiText.VttChestPut(Lang)</button>
+                                    </div>
+                                }
+                            </div>
+                        }
+                        @if (chestNote is not null)
+                        {
+                            <p class="small mb-0" data-test="map-token-treasure-note">@chestNote</p>
+                        }
                     </div>
                     break;
                 case "link" when PropRules.Leads(it.PropType):
@@ -1967,9 +2009,52 @@ else
 
     private Task HpKeyAsync(KeyboardEventArgs e, MapTokenDto t) => e.Key == "Enter" ? HealAsync(t, -1) : Task.CompletedTask;
 
+    // ----- The party's treasure, put in a chest -----
+
+    private List<TreasureItemDto>? chestTreasure;
+    private readonly Dictionary<Guid, int> chestQuantities = new();
+    private string? chestNote;
+
+    private int ChestQuantity(TreasureItemDto item) => chestQuantities.TryGetValue(item.Id, out var q) ? q : 1;
+
+    private async Task LoadChestTreasureAsync()
+    {
+        chestTreasure = null;
+        chestNote = null;
+        chestQuantities.Clear();
+        chestTreasure = (await Campaigns.GetTreasureAsync(CampaignId, Lang))?.Items ?? new();
+        StateHasChanged();
+    }
+
+    private async Task PutInChestAsync(MapTokenDto chest, TreasureItemDto item)
+    {
+        if (map is null)
+        {
+            return;
+        }
+        busy = true;
+        var quantity = Math.Clamp(ChestQuantity(item), 1, item.Quantity);
+        var result = await Campaigns.PlaceTreasureItemAsync(CampaignId, item.Id, new PlaceTreasureDto { MapId = map.Id, TokenId = chest.Id, Quantity = quantity }, Lang);
+        busy = false;
+        chestNote = result.Ok
+            ? UiText.TreasurePlaced(item.Name.Length > 0 ? item.Name : UiText.TreasureUnknownName(Lang), chest.Label, Lang)
+            : UiText.TreasureFailed(Lang);
+        if (result.Ok)
+        {
+            await RefreshAsync();
+            var note = chestNote;
+            await LoadChestTreasureAsync();
+            chestNote = note;
+        }
+    }
+
     private void Tab(string name)
     {
         toolTab = toolTab == name ? null : name;
+        if (toolTab == "treasure")
+        {
+            _ = LoadChestTreasureAsync();
+        }
         if (toolTab == "hp" && InfoToken?.CharacterId is { } characterId)
         {
             _ = LoadVitalsAsync(characterId);
