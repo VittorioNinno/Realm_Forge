@@ -24638,3 +24638,27 @@ html.rf-fx-off .rf-bg-msg { animation: none; }
     .rf-bg-msg { max-width: 100%; }
     .rf-bg-chat { max-height: 50vh; }
 }
+
+/* The party's treasure in the panel of a chest: a row an item, its quantity, the button that puts it in */
+.rf-hud-treasure {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    max-height: 240px;
+    overflow-y: auto;
+}
+
+.rf-hud-treasure-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.rf-hud-treasure-name {
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 13px;
+}
