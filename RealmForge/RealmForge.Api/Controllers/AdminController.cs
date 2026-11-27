@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using RealmForge.Api.Achievements;
 using RealmForge.Api.Campaigns;
 using RealmForge.Api.Email;
 using RealmForge.Api.Security;
@@ -145,6 +146,52 @@ namespace RealmForge.Api.Controllers
 				{
 					await notices.ReactivatedAsync(email);
 				}
+			}
+			return NoContent();
+		}
+
+		//	GET: api/admin/users/{id}/achievements — every achievement of the person, the hidden ones too
+		[HttpGet("users/{id}/achievements")]
+		public async Task<ActionResult<List<AchievementDto>>> GetAchievements(string id, [FromServices] AchievementService achievements)
+		{
+			if (!_access.IsAdmin(User))
+			{
+				return Forbid();
+			}
+			if (await _users.FindByIdAsync(id) is null)
+			{
+				return NotFound();
+			}
+			return Ok(await achievements.ListAsync(id, all: true));
+		}
+
+		//	PUT: api/admin/users/{id}/achievements/{key} — gives the achievement and its die
+		[HttpPut("users/{id}/achievements/{key}")]
+		public Task<IActionResult> GrantAchievement(string id, string key, [FromServices] AchievementService achievements) =>
+			ChangeAchievementAsync(id, key, grant: true, achievements);
+
+		//	DELETE: api/admin/users/{id}/achievements/{key} — takes the achievement and its die back
+		[HttpDelete("users/{id}/achievements/{key}")]
+		public Task<IActionResult> RevokeAchievement(string id, string key, [FromServices] AchievementService achievements) =>
+			ChangeAchievementAsync(id, key, grant: false, achievements);
+
+		private async Task<IActionResult> ChangeAchievementAsync(string id, string key, bool grant, AchievementService achievements)
+		{
+			if (!_access.IsAdmin(User))
+			{
+				return Forbid();
+			}
+			if (global::RealmForge.Shared.Dice.Achievements.Find(key) is not { } achievement || await _users.FindByIdAsync(id) is null)
+			{
+				return NotFound();
+			}
+			if (grant)
+			{
+				await achievements.GrantAsync(id, achievement, UserId);
+			}
+			else
+			{
+				await achievements.RevokeAsync(id, achievement, UserId);
 			}
 			return NoContent();
 		}

@@ -21,7 +21,7 @@ namespace RealmForge.Client.Services
 			var path = request.RequestUri?.AbsolutePath ?? string.Empty;
 			//	The check for open tables runs in the background every half minute: it never shows an error
 			if (path.Contains("/api/auth/") || path.Contains("/api/passkeys") || path.EndsWith("/api/account") || path.Contains("/api/account/nickname")
-				|| path.EndsWith("/api/campaigns/live"))
+				|| path.EndsWith("/api/campaigns/live") || path.EndsWith("/api/account/achievements/news") || path.EndsWith("/api/account/timezone"))
 			{
 				return await base.SendAsync(request, cancellationToken);
 			}

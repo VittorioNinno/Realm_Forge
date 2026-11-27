@@ -94,10 +94,11 @@
                                     }
                                 </div>
                             </div>
-                            @if (!u.IsAdmin && !u.IsMe)
-                            {
-                                <div class="rf-admin-row-actions">
-                                    @if (u.LockedUntil is null)
+                            <div class="rf-admin-row-actions">
+                                <button type="button" class="btn btn-sm btn-rf-outline" title="@UiText.AdminAchievements(Lang)" @onclick="() => OpenAchievementsAsync(u)" data-test="admin-user-achievements"><Icon Name="trophy" /></button>
+                                @if (!u.IsAdmin && !u.IsMe)
+                                {
+                                    if (u.LockedUntil is null)
                                     {
                                         <button type="button" class="btn btn-sm btn-rf-outline" @onclick="() => { suspending = u; lockDays = 7; }" data-test="admin-user-suspend">@UiText.BtnSuspend(Lang)</button>
                                     }
@@ -106,8 +107,8 @@
                                         <button type="button" class="btn btn-sm btn-rf-outline" @onclick="() => LockAsync(u, 0)" data-test="admin-user-reactivate">@UiText.BtnReactivate(Lang)</button>
                                     }
                                     <button type="button" class="btn btn-sm btn-rf-outline rf-btn-danger" @onclick="() => deleting = u" data-test="admin-user-delete"><Icon Name="trash" /></button>
-                                </div>
-                            }
+                                }
+                            </div>
                         </div>
                     }
                 }
@@ -161,6 +162,65 @@
     }
 </div>
 
+@if (rewarding is { } who)
+{
+    <div class="rf-modal-backdrop" @onclick="() => rewarding = null">
+        <div class="rf-modal-dialog" style="max-width: 640px;" @onclick:stopPropagation="true" data-test="admin-achievements">
+            <h2 class="h5 mb-2 pb-2" style="border-bottom: 1px solid var(--rf-border-light); font-family: var(--rf-font-display);">@UiText.AdminAchievementsTitle(who.Nickname ?? who.Email, Lang)</h2>
+            <p class="small mb-3" style="color: var(--rf-text-secondary);">@UiText.AdminAchievementsHint(Lang)</p>
+            @if (rewards is null)
+            {
+                <div class="small" style="color: var(--rf-text-muted);">…</div>
+            }
+            else
+            {
+                <div class="rf-ach-admin-list">
+                    @foreach (var item in rewards)
+                    {
+                        var a = item;
+                        <div class="rf-ach-admin-row" data-test="admin-achievement" data-key="@a.Key" data-earned="@(a.Earned ? "true" : "false")">
+                            <span class="rf-ach-medal"><Icon Name="@(a.Earned ? "trophy-fill" : "trophy")" /></span>
+                            <div class="rf-ach-text">
+                                <div class="rf-ach-name">
+                                    @UiText.AchievementName(a.Key, Lang)
+                                    @if (a.Hidden)
+                                    {
+                                        <span class="rf-ach-badge">@UiText.AchievementSecret(Lang)</span>
+                                    }
+                                    @if (a.Given)
+                                    {
+                                        <span class="rf-ach-badge given">@UiText.AchievementGiven(Lang)</span>
+                                    }
+                                    @if (a.Revoked)
+                                    {
+                                        <span class="rf-ach-badge">@UiText.AchievementRevoked(Lang)</span>
+                                    }
+                                </div>
+                                <div class="rf-ach-goal">@UiText.AchievementGoal(a.Key, Lang)</div>
+                                <div class="rf-ach-meta">
+                                    @(a.Earned && a.EarnedAt is { } at ? UiText.AchievementEarnedOn(at, Lang) : UiText.AchievementProgress(a.Progress, a.Target, Lang))
+                                    · @UiText.AchievementUnlocks(UiText.Dice3dSkinName(a.Skin, Lang), Lang)
+                                </div>
+                            </div>
+                            @if (a.Earned)
+                            {
+                                <button type="button" class="btn btn-sm btn-rf-outline rf-btn-danger" disabled="@changing" @onclick="() => SetAchievementAsync(a, false)" data-test="admin-achievement-revoke">@UiText.BtnRevoke(Lang)</button>
+                            }
+                            else
+                            {
+                                <button type="button" class="btn btn-sm btn-rf-orange" disabled="@changing" @onclick="() => SetAchievementAsync(a, true)" data-test="admin-achievement-grant">@UiText.BtnGrant(Lang)</button>
+                            }
+                        </div>
+                    }
+                </div>
+            }
+            <div class="d-flex justify-content-end mt-3">
+                <button type="button" class="btn btn-sm btn-rf-outline" @onclick="() => rewarding = null" data-test="admin-achievements-close">@UiText.AchievementNoticeClose(Lang)</button>
+            </div>
+        </div>
+    </div>
+}
+
 @if (suspending is not null)
 {
     <div class="rf-modal-backdrop" @onclick="() => suspending = null">
@@ -208,6 +268,9 @@
     private string? message;
     private AdminUserDto? suspending;
     private AdminUserDto? deleting;
+    private AdminUserDto? rewarding;
+    private List<AchievementDto>? rewards;
+    private bool changing;
     private int lockDays = 7;
     private CancellationTokenSource? typing;
 
@@ -288,6 +351,28 @@
         message = failed is null ? null : UiText.AdminActionFailed(failed, Lang);
         await LoadUsersAsync();
         await LoadStatsAsync();
+    }
+
+    private async Task OpenAchievementsAsync(AdminUserDto user)
+    {
+        rewarding = user;
+        rewards = null;
+        var (value, status) = await Data.GetAchievementsAsync(user.Id);
+        rewards = value ?? new List<AchievementDto>();
+        message = value is null ? UiText.AdminActionFailed(status, Lang) : null;
+    }
+
+    private async Task SetAchievementAsync(AchievementDto achievement, bool grant)
+    {
+        if (rewarding is not { } user)
+        {
+            return;
+        }
+        changing = true;
+        var failed = await Data.SetAchievementAsync(user.Id, achievement.Key, grant);
+        message = failed is null ? null : UiText.AdminActionFailed(failed, Lang);
+        rewards = (await Data.GetAchievementsAsync(user.Id)).Value ?? rewards;
+        changing = false;
     }
 
     private async Task SetVisibilityAsync(AdminHomebrewDto entry, ContentVisibility value)
