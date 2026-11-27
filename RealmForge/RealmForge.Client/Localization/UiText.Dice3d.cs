@@ -49,11 +49,11 @@ namespace RealmForge.Client.Localization
 		};
 		public static string Dice3dSkinHint(string skin, LanguageCode lang) => skin switch
 		{
-			"ember" => T(lang, "Pietra lavica che pulsa: con un 20 naturale il soffio del drago spazza il tavolo di fuoco", "Pulsing lava stone: on a natural 20 the dragon's breath sweeps the table with fire"),
+			"ember" => T(lang, "Pietra lavica che pulsa: con un 20 naturale un'esplosione di fuoco che si propaga sul tavolo", "Pulsing lava stone: on a natural 20 an explosion of fire that spreads across the table"),
 			"stardust" => T(lang, "Vetro notturno che scintilla: con un 20 naturale si accende il Grande Carro tra luci che scoppiettano e una stella cadente colpisce il dado", "Twinkling night glass: on a natural 20 the Plough lights up among crackling lights and a falling star strikes the die"),
 			"frost" => T(lang, "Ghiaccio con brina che luccica: con un 20 naturale un fiocco di neve si allarga sul tavolo", "Shimmering rime ice: on a natural 20 a snowflake spreads over the table"),
 			"storm" => T(lang, "Ardesia percorsa da lampi: con un 20 naturale una scarica di fulmini", "Slate run through with lightning: on a natural 20, a storm of bolts"),
-			"bone" => T(lang, "Avorio crepato con rune verdi che respirano: con un 20 naturale le anime salgono dal tavolo a spirale", "Cracked ivory with breathing green runes: on a natural 20 souls rise from the table in a spiral"),
+			"bone" => T(lang, "Avorio crepato con rune verdi che respirano: con un 20 naturale anime viola salgono dal tavolo a spirale", "Cracked ivory with breathing green runes: on a natural 20 violet souls rise from the table in a spiral"),
 			"hoard" => T(lang, "Oro martellato a scaglie che brilla: con un 20 naturale una pioggia di monete", "Scaled hammered gold that glints: on a natural 20, a rain of coins"),
 			"abyss" => T(lang, "Nero con un vortice viola: con un 20 naturale tutto viene risucchiato e scagliato via", "Black with a violet whirl: on a natural 20 everything is drawn in and hurled out"),
 			"fey" => T(lang, "Legno vivo con muschio e piccole luci: con un 20 naturale rampicanti in fiore e lucciole", "Living wood with moss and tiny lights: on a natural 20, flowering vines and fireflies"),
