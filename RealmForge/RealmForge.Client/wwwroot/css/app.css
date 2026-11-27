@@ -22945,10 +22945,39 @@ button.rf-vtt-clock.on {
         }
 
     .rf-d3d-card.locked {
+        align-items: flex-start;
+        height: auto;
+        min-height: 56px;
         border-style: dashed;
-        opacity: .55;
+        opacity: .85;
         cursor: not-allowed;
     }
+
+        /* A locked special die: its mission in full, with how far it has come */
+        .rf-d3d-card.locked .rf-d3d-card-text {
+            gap: 8px;
+            flex: 1 1 auto;
+        }
+
+            .rf-d3d-card.locked .rf-d3d-card-text strong {
+                display: inline-flex;
+                align-items: center;
+                gap: 8px;
+                color: #ffb74d;
+            }
+
+            .rf-d3d-card.locked .rf-d3d-card-text .rf-d3d-mission {
+                white-space: normal;
+                color: var(--rf-text-secondary);
+                text-align: left;
+                line-height: 1.4;
+            }
+
+.rf-d3d-mission-progress {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
 
 .rf-d3d-card-text {
     display: flex;
