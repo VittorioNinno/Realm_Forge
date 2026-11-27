@@ -1,0 +1,193 @@
+@using RealmForge.Client.Localization
+@using RealmForge.Client.Services
+@using RealmForge.Shared.Dice
+@using RealmForge.Shared.Enums
+@inject Dice3dService Dice3d
+@inject IJSRuntime JS
+
+@* The lab of the 3D dice, for the administrators: every look, the secret ones too, thrown on the table with a natural 20
+   or 1 or a handful of dice, its effect in the middle of the screen; a verdict and a note for each, kept in this
+   browser, and a summary to copy *@
+<div class="rf-lab" data-test="dice-lab">
+    <p class="rf-lab-hint">@UiText.DiceLabHint(Lang)</p>
+    @if (!available)
+    {
+        <div class="rf-lab-warn" data-test="dice-lab-unavailable">@UiText.DiceLabUnavailable(Lang)</div>
+    }
+
+    <div class="rf-lab-layout">
+        <div class="rf-lab-list">
+            @foreach (var (title, skins) in Groups)
+            {
+                <span class="rf-lab-kicker">@title</span>
+                <div class="rf-lab-grid">
+                    @foreach (var skin in skins)
+                    {
+                        var s = skin;
+                        var (c1, c2, dot) = Dice3dSettings.Swatches.GetValueOrDefault(s, Dice3dSettings.Swatches["forge"]);
+                        var mark = verdicts.GetValueOrDefault(s);
+                        <button type="button" class="rf-lab-card @(selected == s ? "on" : null)" @onclick="() => selected = s" data-test="dice-lab-skin" data-skin="@s">
+                            <span class="rf-lab-swatch" style="background: linear-gradient(135deg, @c1, @c2); color: @dot;"><Icon Name="dice" /></span>
+                            <strong>@UiText.Dice3dSkinName(s, Lang)</strong>
+                            @if (mark?.Verdict is { } v)
+                            {
+                                <span class="rf-lab-mark @(v ? "ok" : "fix")" title="@(v ? UiText.DiceLabOk(Lang) : UiText.DiceLabFix(Lang))"><Icon Name="@(v ? "check" : "pencil")" /></span>
+                            }
+                        </button>
+                    }
+                </div>
+            }
+        </div>
+
+        <section class="rf-lab-stage" data-test="dice-lab-stage">
+            <span class="rf-lab-kicker">@UiText.DiceLabSelected(Lang)</span>
+            <h3 class="rf-lab-name">@UiText.Dice3dSkinName(selected, Lang)</h3>
+            <p class="rf-lab-desc">@UiText.Dice3dSkinHint(selected, Lang)</p>
+
+            <div class="rf-lab-actions">
+                <button type="button" class="rf-lab-btn primary" disabled="@busy" @onclick="() => ThrowAsync(20)" data-test="dice-lab-nat20"><Icon Name="dice" /> @UiText.DiceLabNat(20, Lang)</button>
+                <button type="button" class="rf-lab-btn" disabled="@busy" @onclick="() => ThrowAsync(1)" data-test="dice-lab-nat1"><Icon Name="dice" /> @UiText.DiceLabNat(1, Lang)</button>
+                <button type="button" class="rf-lab-btn" disabled="@busy" @onclick="HandfulAsync" data-test="dice-lab-handful"><Icon Name="dice-5" /> @UiText.DiceLabHandful(Lang)</button>
+                @if (selected != DiceSkins.Resin)
+                {
+                    <button type="button" class="rf-lab-btn" disabled="@busy" @onclick="() => EffectAsync(true)" data-test="dice-lab-fx20"><Icon Name="stars" /> @UiText.DiceLabEffect(true, Lang)</button>
+                    <button type="button" class="rf-lab-btn" disabled="@busy" @onclick="() => EffectAsync(false)" data-test="dice-lab-fx1"><Icon Name="stars" /> @UiText.DiceLabEffect(false, Lang)</button>
+                }
+            </div>
+
+            <div class="rf-lab-verdict">
+                <span class="rf-lab-kicker">@UiText.DiceLabVerdict(Lang)</span>
+                <div class="rf-lab-pills">
+                    <button type="button" class="rf-lab-pill ok @(Current.Verdict == true ? "on" : null)" @onclick="() => SetVerdictAsync(true)" data-test="dice-lab-ok"><Icon Name="check" /> @UiText.DiceLabOk(Lang)</button>
+                    <button type="button" class="rf-lab-pill fix @(Current.Verdict == false ? "on" : null)" @onclick="() => SetVerdictAsync(false)" data-test="dice-lab-fix"><Icon Name="pencil" /> @UiText.DiceLabFix(Lang)</button>
+                </div>
+                <textarea class="rf-form-control rf-lab-note" rows="3" placeholder="@UiText.DiceLabNotePlaceholder(Lang)" value="@Current.Note" @onchange="SetNoteAsync" data-test="dice-lab-note"></textarea>
+            </div>
+
+            <div class="rf-lab-foot">
+                <span>@UiText.DiceLabCount(verdicts.Values.Count(v => v.Verdict == true), verdicts.Values.Count(v => v.Verdict == false), AllSkins.Count, Lang)</span>
+                <button type="button" class="rf-lab-btn" @onclick="CopyAsync" data-test="dice-lab-copy"><Icon Name="copy" /> @(copied ? UiText.DiceLabCopied(Lang) : UiText.DiceLabCopy(Lang))</button>
+            </div>
+        </section>
+    </div>
+</div>
+
+@code {
+    [Parameter] public LanguageCode Lang { get; set; }
+
+    private sealed class Mark
+    {
+        public bool? Verdict { get; set; }
+        public string Note { get; set; } = string.Empty;
+    }
+
+    private const string StoreKey = "rf-dice-lab";
+    private string selected = DiceSkins.Special[0];
+    private bool busy, available = true, copied;
+    private Dictionary<string, Mark> verdicts = new();
+
+    private static readonly List<string> AllSkins = [DiceSkins.Resin, .. DiceSkins.Special, .. DiceSkins.Secret];
+
+    private IEnumerable<(string Title, IReadOnlyList<string> Skins)> Groups =>
+    [
+        (UiText.DiceLabGroup(0, Lang), new[] { DiceSkins.Resin }),
+        (UiText.DiceLabGroup(1, Lang), DiceSkins.Special),
+        (UiText.DiceLabGroup(2, Lang), DiceSkins.Secret)
+    ];
+
+    private Mark Current => verdicts.TryGetValue(selected, out var m) ? m : new Mark();
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender) return;
+        available = await Dice3d.AvailableAsync();
+        try
+        {
+            var json = await JS.InvokeAsync<string?>("localStorage.getItem", StoreKey);
+            if (!string.IsNullOrEmpty(json))
+            {
+                verdicts = System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, Mark>>(json) ?? new();
+            }
+        }
+        catch (Exception)
+        {
+        }
+        StateHasChanged();
+    }
+
+    //	A d20 landing on the face given, in the look chosen: on a special die a 20 or a 1 plays its effect where it rests
+    private async Task ThrowAsync(int face)
+    {
+        busy = true;
+        await Dice3d.LabRollAsync(selected, new[] { new Components.DieFace(20, face) });
+        busy = false;
+    }
+
+    private async Task HandfulAsync()
+    {
+        busy = true;
+        await Dice3d.LabRollAsync(selected, new[] { 4, 6, 8, 10, 12, 20 }.Select(sides => new Components.DieFace(sides, Random.Shared.Next(1, sides + 1))));
+        busy = false;
+    }
+
+    private async Task EffectAsync(bool high)
+    {
+        busy = true;
+        await Dice3d.LabCriticalAsync(selected, high);
+        busy = false;
+    }
+
+    private async Task SetVerdictAsync(bool ok)
+    {
+        var mark = Edit();
+        mark.Verdict = mark.Verdict == ok ? null : ok;
+        await SaveAsync();
+    }
+
+    private async Task SetNoteAsync(ChangeEventArgs e)
+    {
+        Edit().Note = e.Value?.ToString()?.Trim() ?? string.Empty;
+        await SaveAsync();
+    }
+
+    private Mark Edit()
+    {
+        if (!verdicts.TryGetValue(selected, out var mark))
+        {
+            verdicts[selected] = mark = new Mark();
+        }
+        return mark;
+    }
+
+    private async Task SaveAsync()
+    {
+        copied = false;
+        try
+        {
+            await JS.InvokeVoidAsync("localStorage.setItem", StoreKey, System.Text.Json.JsonSerializer.Serialize(verdicts));
+        }
+        catch (Exception)
+        {
+        }
+    }
+
+    //	The verdicts as plain text, to paste in a message
+    private async Task CopyAsync()
+    {
+        var lines = AllSkins.Select(s =>
+        {
+            var m = verdicts.GetValueOrDefault(s);
+            var verdict = m?.Verdict switch { true => UiText.DiceLabOk(Lang), false => UiText.DiceLabFix(Lang), _ => "—" };
+            var note = string.IsNullOrWhiteSpace(m?.Note) ? string.Empty : $": {m!.Note}";
+            return $"- {UiText.Dice3dSkinName(s, Lang)} — {verdict}{note}";
+        });
+        try
+        {
+            await JS.InvokeVoidAsync("navigator.clipboard.writeText", string.Join("\n", lines));
+            copied = true;
+        }
+        catch (Exception)
+        {
+        }
+    }
+}

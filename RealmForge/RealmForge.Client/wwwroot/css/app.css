@@ -26898,3 +26898,241 @@ input[type="number"]:not(.rf-stepper-input):not(.rf-coin-input):not(.rf-hp-amoun
         background: rgba(255, 140, 0, .12);
         color: #ffb74d;
     }
+
+/* ===== The lab of the 3D dice (administration): the sets on the left, the one on trial on the right ===== */
+.rf-lab-hint {
+    margin-bottom: 16px;
+    color: var(--rf-text-muted);
+    font-size: 13px;
+}
+
+.rf-lab-warn {
+    margin-bottom: 16px;
+    padding: 8px 12px;
+    border: 1px solid rgba(245, 158, 11, .45);
+    border-radius: 8px;
+    background: rgba(245, 158, 11, .1);
+    color: #fbbf24;
+    font-size: 13px;
+}
+
+.rf-lab-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 360px;
+    gap: 24px;
+    align-items: start;
+}
+
+.rf-lab-kicker {
+    display: block;
+    margin: 0 0 8px;
+    color: var(--rf-orange-primary);
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: .8px;
+    text-transform: uppercase;
+}
+
+.rf-lab-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
+    margin-bottom: 16px;
+}
+
+.rf-lab-card {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-height: 48px;
+    padding: 8px;
+    border: 1px solid #262626;
+    border-radius: 8px;
+    background: #141414;
+    color: #e4e4e7;
+    font-size: 12.5px;
+    text-align: left;
+}
+
+    .rf-lab-card:hover {
+        border-color: #3f3f46;
+    }
+
+    .rf-lab-card.on {
+        border-color: var(--rf-orange-primary);
+        background: rgba(255, 140, 0, .08);
+    }
+
+    .rf-lab-card strong {
+        overflow: hidden;
+        min-width: 0;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+.rf-lab-swatch {
+    display: inline-flex;
+    flex: none;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+}
+
+.rf-lab-mark {
+    display: inline-flex;
+    flex: none;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    height: 20px;
+    margin-left: auto;
+    border-radius: 50%;
+    font-size: 11px;
+}
+
+    .rf-lab-mark.ok {
+        background: rgba(16, 185, 129, .16);
+        color: #34d399;
+    }
+
+    .rf-lab-mark.fix {
+        background: rgba(245, 158, 11, .16);
+        color: #fbbf24;
+    }
+
+.rf-lab-stage {
+    position: sticky;
+    top: 16px;
+    padding: 16px;
+    border: 1px solid #262626;
+    border-top: 2px solid var(--rf-orange-primary);
+    border-radius: 12px;
+    background: #121212;
+}
+
+.rf-lab-name {
+    margin: 0 0 8px;
+    color: #ffffff;
+    font-size: 18px;
+    font-weight: 800;
+}
+
+.rf-lab-desc {
+    margin-bottom: 16px;
+    color: #a1a1aa;
+    font-size: 12.5px;
+}
+
+.rf-lab-actions {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+    margin-bottom: 16px;
+}
+
+.rf-lab-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    min-height: 40px;
+    padding: 0 12px;
+    border: 1px solid #2e2e2e;
+    border-radius: 8px;
+    background: #1a1a1a;
+    color: #e4e4e7;
+    font-size: 12px;
+    font-weight: 700;
+}
+
+    .rf-lab-btn:hover:not(:disabled) {
+        border-color: var(--rf-orange-primary);
+        color: #ffb74d;
+    }
+
+    .rf-lab-btn.primary {
+        grid-column: 1 / -1;
+        border-color: var(--rf-orange-primary);
+        background: var(--rf-orange-primary);
+        color: #09090b;
+    }
+
+        .rf-lab-btn.primary:hover:not(:disabled) {
+            background: #ffa024;
+            color: #09090b;
+        }
+
+    .rf-lab-btn:disabled {
+        opacity: .5;
+    }
+
+.rf-lab-verdict {
+    padding-top: 16px;
+    border-top: 1px solid #222;
+}
+
+.rf-lab-pills {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 8px;
+}
+
+.rf-lab-pill {
+    display: inline-flex;
+    flex: 1 1 0;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    height: 32px;
+    border: 1px solid #2e2e2e;
+    border-radius: 8px;
+    background: #161616;
+    color: #a1a1aa;
+    font-size: 12px;
+    font-weight: 700;
+}
+
+    .rf-lab-pill.ok.on {
+        border-color: rgba(16, 185, 129, .55);
+        background: rgba(16, 185, 129, .12);
+        color: #34d399;
+    }
+
+    .rf-lab-pill.fix.on {
+        border-color: rgba(245, 158, 11, .55);
+        background: rgba(245, 158, 11, .12);
+        color: #fbbf24;
+    }
+
+.rf-lab-note {
+    min-height: 80px;
+    font-size: 12.5px;
+}
+
+.rf-lab-foot {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    margin-top: 16px;
+    color: #888;
+    font-size: 11.5px;
+}
+
+@media (max-width: 991.98px) {
+    .rf-lab-layout {
+        grid-template-columns: 1fr;
+    }
+
+    .rf-lab-stage {
+        position: static;
+        order: -1;
+    }
+
+    .rf-lab-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}

@@ -849,7 +849,17 @@ try {
   await admin.locator('[data-test=admin-homebrew-entry]').first().waitFor({ timeout: 15000 });
   const moderated = await admin.locator('[data-test=admin-homebrew-entry]').count();
   await shot(admin, 'admin-homebrew', 'main');
+  // The lab of the 3D dice: every set listed, the secret ones too; a verdict kept
+  await admin.locator('[data-test=admin-tab-dice]').click();
+  await admin.locator('[data-test=dice-lab]').waitFor({ timeout: 15000 });
+  const labSets = await admin.locator('[data-test=dice-lab-skin]').count();
+  await admin.locator('[data-test=dice-lab-skin][data-skin=tide]').click();
+  await admin.locator('[data-test=dice-lab-ok]').click();
+  const labMarked = await admin.locator('[data-test=dice-lab-skin][data-skin=tide] .rf-lab-mark.ok').count();
+  await shot(admin, 'admin-dice-lab', 'main');
   await adminContext.close();
+  results.push(`INFO dice lab: sets=${labSets} marked=${labMarked}`);
+  if (labSets !== 13 || labMarked !== 1) throw new Error(`unexpected dice lab: sets=${labSets} marked=${labMarked}`);
   results.push(`INFO admin: stats='${adminStats}' locked login=${lockedLogin} reactivated login=${unlockedLogin} homebrew rows=${moderated}`);
   if (lockedLogin !== 401 || unlockedLogin !== 200 || moderated < 1 || !/account/i.test(adminStats)) throw new Error('unexpected administration page');
   ok('administration: ordinary account turned away; figures, a suspended account cannot sign in until reactivated, then deleted; Homebrew listed for moderation');

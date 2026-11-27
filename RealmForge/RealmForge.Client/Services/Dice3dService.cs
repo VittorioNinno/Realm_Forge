@@ -173,6 +173,36 @@ namespace RealmForge.Client.Services
 			}
 		}
 
+		///	<summary>
+		///	The lab of the administrators: the dice thrown in any look (unlocked or not) with the faces given, or the effect
+		///	of a natural 20 (or 1) of a look in the middle of the screen. False when they cannot be shown.
+		///	</summary>
+		public async Task<bool> LabRollAsync(string skin, IEnumerable<DieFace> dice)
+		{
+			using var rolling = DiceActivity.Hold();
+			try
+			{
+				var list = dice.Select(d => new { sides = d.Sides, value = d.Value, dropped = d.Dropped }).ToList();
+				return list.Count > 0 && await _js.InvokeAsync<bool>("rfDice3d.lab", skin, list);
+			}
+			catch (Exception)
+			{
+				return false;
+			}
+		}
+
+		public async Task<bool> LabCriticalAsync(string skin, bool high)
+		{
+			try
+			{
+				return await _js.InvokeAsync<bool>("rfDice3d.labCritical", skin, high);
+			}
+			catch (Exception)
+			{
+				return false;
+			}
+		}
+
 		public async Task ClearAsync()
 		{
 			try

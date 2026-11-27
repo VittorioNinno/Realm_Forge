@@ -1874,10 +1874,10 @@ window.rfDice3d = (() => {
         hideTimer = fadeTimer = null;
     }
 
-    async function throwDice(dice, colorOverride) {
+    async function throwDice(dice, colorOverride, skinOverride) {
         const s = read();
-        // The dice of another player are resin in their colour
-        const skin = colorOverride ? 'resin' : s.skin;
+        // The dice of another player are resin in their colour; the lab of the administrators throws any look
+        const skin = skinOverride && (skinOverride === 'resin' || specials[skinOverride]) ? skinOverride : colorOverride ? 'resin' : s.skin;
         keepShown();
         const b = await ensureBox(s.sound);
         await applyLook(b, skin, colorOverride || s.color);
@@ -1980,6 +1980,21 @@ window.rfDice3d = (() => {
             const run = queue.then(() => throwDice(list, options && options.color)).catch(() => false);
             queue = run.then(() => { }, () => { });
             return run;
+        },
+
+        // The lab of the administrators: the dice thrown in a look given, unlocked or not (the codes stay secret: the
+        // looks themselves are in this file anyway); the faces decided as for a roll
+        lab(skin, dice) {
+            const list = (dice || []).filter(d => d && sides.has(d.sides));
+            if (!available() || list.length === 0) return Promise.resolve(false);
+            const run = queue.then(() => throwDice(list, null, skin)).catch(() => false);
+            queue = run.then(() => { }, () => { });
+            return run;
+        },
+        labCritical(skin, high) {
+            const special = specials[skin];
+            if (!special || !available()) return Promise.resolve(false);
+            return critical(special.fx, high !== false, null, null, skin).then(() => true);
         },
 
         clear() {

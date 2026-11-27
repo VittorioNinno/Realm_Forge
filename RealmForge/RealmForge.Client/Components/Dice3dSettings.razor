@@ -200,7 +200,7 @@
     private sealed record DiceSet(string Key, string Name, string Category, string C1, string C2, string Dot, bool Locked = false);
 
     //	The swatches: two colours of the die and the colour of its numbers
-    private static readonly Dictionary<string, (string C1, string C2, string Dot)> Swatches = new()
+    internal static readonly Dictionary<string, (string C1, string C2, string Dot)> Swatches = new()
     {
         ["forge"] = ("#ffb04d", "#ff8c00", "#141414"),
         ["ivory"] = ("#fffaf0", "#efe6d2", "#2a2117"),

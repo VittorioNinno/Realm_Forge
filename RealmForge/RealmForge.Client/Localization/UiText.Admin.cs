@@ -159,6 +159,30 @@ namespace RealmForge.Client.Localization
 		public static string BtnAdmin(LanguageCode lang) => T(lang, "Apri l'amministrazione", "Open the administration");
 		public static string AdminTabUsers(LanguageCode lang) => T(lang, "Account", "Accounts");
 		public static string AdminTabHomebrew(LanguageCode lang) => T(lang, "Homebrew", "Homebrew");
+		public static string AdminTabDice(LanguageCode lang) => T(lang, "Dadi 3D", "3D dice");
+
+		//	The lab of the 3D dice
+		public static string DiceLabHint(LanguageCode lang) => T(lang,
+			"Prova ogni set, anche quelli segreti non sbloccati: lancialo sul tavolo con un 20 o un 1 naturale, o guarda il suo effetto al centro dello schermo. Segna se va bene o cosa correggere: le note restano in questo browser e puoi copiarle tutte insieme.",
+			"Try every set, the secret ones too even when locked: throw it on the table with a natural 20 or 1, or watch its effect in the middle of the screen. Mark whether it is right or what to fix: the notes stay in this browser and can be copied all together.");
+		public static string DiceLabUnavailable(LanguageCode lang) => T(lang, "Questo browser non può mostrare i dadi 3D (WebGL assente o animazioni ridotte nel sistema).", "This browser cannot show the 3D dice (no WebGL, or reduced motion in the system).");
+		public static string DiceLabGroup(int group, LanguageCode lang) => group switch
+		{
+			0 => T(lang, "Resina", "Resin"),
+			1 => T(lang, "Speciali", "Special"),
+			_ => T(lang, "Segreti", "Secret")
+		};
+		public static string DiceLabSelected(LanguageCode lang) => T(lang, "Set in prova", "Set on trial");
+		public static string DiceLabNat(int face, LanguageCode lang) => T(lang, $"Lancia: {face} naturale", $"Throw: natural {face}");
+		public static string DiceLabHandful(LanguageCode lang) => T(lang, "Lancia d4–d20", "Throw d4–d20");
+		public static string DiceLabEffect(bool high, LanguageCode lang) => high ? T(lang, "Effetto del 20", "Effect of a 20") : T(lang, "Effetto dell'1", "Effect of a 1");
+		public static string DiceLabVerdict(LanguageCode lang) => T(lang, "Il tuo giudizio", "Your verdict");
+		public static string DiceLabOk(LanguageCode lang) => T(lang, "Va bene", "Approved");
+		public static string DiceLabFix(LanguageCode lang) => T(lang, "Da correggere", "To fix");
+		public static string DiceLabNotePlaceholder(LanguageCode lang) => T(lang, "Cosa cambiare (colori, forma, intensità, durata…)", "What to change (colours, shape, intensity, length…)");
+		public static string DiceLabCount(int ok, int fix, int all, LanguageCode lang) => T(lang, $"{ok} vanno bene · {fix} da correggere · {all} set", $"{ok} approved · {fix} to fix · {all} sets");
+		public static string DiceLabCopy(LanguageCode lang) => T(lang, "Copia il riepilogo", "Copy the summary");
+		public static string DiceLabCopied(LanguageCode lang) => T(lang, "Copiato", "Copied");
 		public static string AdminStatUsers(LanguageCode lang) => T(lang, "account", "accounts");
 		public static string AdminStatConfirmed(LanguageCode lang) => T(lang, "email verificate", "verified e-mails");
 		public static string AdminStatLocked(LanguageCode lang) => T(lang, "sospesi", "suspended");

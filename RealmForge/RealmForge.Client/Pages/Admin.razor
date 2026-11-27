@@ -43,6 +43,7 @@
         <div class="rf-sheet-tabs mb-3" role="tablist">
             <button type="button" role="tab" class="rf-sheet-tab @(tab == 0 ? "active" : null)" @onclick="() => tab = 0" data-test="admin-tab-users">@UiText.AdminTabUsers(Lang)</button>
             <button type="button" role="tab" class="rf-sheet-tab @(tab == 1 ? "active" : null)" @onclick="ShowHomebrewAsync" data-test="admin-tab-homebrew">@UiText.AdminTabHomebrew(Lang)</button>
+            <button type="button" role="tab" class="rf-sheet-tab @(tab == 2 ? "active" : null)" @onclick="() => tab = 2" data-test="admin-tab-dice">@UiText.AdminTabDice(Lang)</button>
         </div>
 
         @if (tab == 0)
@@ -112,6 +113,10 @@
                     }
                 }
             </div>
+        }
+        else if (tab == 2)
+        {
+            <Dice3dLab Lang="Lang" />
         }
         else
         {
