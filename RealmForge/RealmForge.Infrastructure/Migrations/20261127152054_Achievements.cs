@@ -24,6 +24,9 @@ namespace RealmForge.Infrastructure.Migrations
                 nullable: false,
                 defaultValue: "");
 
+            // The maps made before the creator was kept: the work of whoever created their campaign
+            migrationBuilder.Sql("UPDATE \"CampaignMaps\" AS m SET \"CreatedById\" = c.\"CreatedById\" FROM \"Campaigns\" AS c WHERE m.\"CampaignId\" = c.\"Id\" AND m.\"CreatedById\" = '';");
+
             migrationBuilder.CreateTable(
                 name: "UserAchievements",
                 columns: table => new
