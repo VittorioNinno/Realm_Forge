@@ -1009,7 +1009,18 @@ window.rfDice3d = (() => {
                     // The jet: each flame is a disc (and a faint halo three times wider) that leaves the die along the line
                     // of the breath, shrinks as it goes and rises, its colour cooling from yellow to red; pulled back to a
                     // line that writhes, so the fire has a body that tapers into ragged tongues, not a round glow
+                    // The light the fire throws on the table, following where it reaches
+                    if (breathing) pool(g, P, Math.cos(dir) * 4.2, Math.sin(dir) * 4.2, 3.6, 'rgba(255,120,30,0.1)', 'rgba(255,60,0,0)');
                     if (breathing) {
+                        // The core: smaller, faster, white-hot, dying young; and now and then a flame that peels off the
+                        // side of the jet and curls upward on its own
+                        for (let i = 0; i < 7; i++) {
+                            flames.push({ d: 0.8, o: (Math.random() - 0.5) * 0.15, z: 1.1, vd: 12 + Math.random() * 3, vo: (Math.random() - 0.5) * 0.6, vz: 0, dir, born: t, life: 0.25 + Math.random() * 0.15, r: 0.2 + Math.random() * 0.08, h: 4, ta: 0.9, ph: 0, core: true });
+                        }
+                        if (Math.random() < 0.35) {
+                            const side = Math.random() > 0.5 ? 1 : -1;
+                            flames.push({ d: 1.5 + Math.random() * 2, o: side * (0.4 + Math.random() * 0.3), z: 1.2, vd: 3, vo: side * 2.2, vz: 2.2, dir, born: t, life: 0.7, r: 0.4, h: -4, ta: 0.75, ph: 0, curl: true });
+                        }
                         for (let i = 0; i < 18; i++) {
                             flames.push({ d: 0.8 + Math.random() * 0.3, o: (Math.random() - 0.5) * 0.4, z: 1 + Math.random() * 0.3, vd: 9 + Math.random() * 4, vo: (Math.random() - 0.5) * 2, vz: Math.random() * 0.4, dir, born: t, life: 0.6 + Math.random() * 0.4, r: 0.36 + Math.random() * 0.22, h: Math.random() * 10 - 5, ta: 0.8 + Math.random() * 0.1, ph: Math.random() * TAU });
                         }
@@ -1027,14 +1038,15 @@ window.rfDice3d = (() => {
                         }
                         // The line it is pulled to writhes, and splits into a few tongues further out
                         const axis = Math.sin(f.d * 1.5 - t * 8) * 0.3 * f.d + Math.sin(f.ph) * Math.max(0, f.d - 2) * 0.35;
-                        f.vo += (axis - f.o) * 6 / (1 + f.d * 0.6) * dt + (Math.random() - 0.5) * (6 + f.d * 5) * dt;
+                        if (!f.curl) f.vo += (axis - f.o) * 6 / (1 + f.d * 0.6) * dt + (Math.random() - 0.5) * (6 + f.d * 5) * dt;
+                        else f.vo *= Math.pow(0.4, dt);
                         f.vd *= drag;
                         f.vz += 2.6 * dt;
                         f.d += f.vd * dt; f.o += f.vo * dt; f.z += f.vz * dt;
                         const q = P(x, y, f.z), r = f.r * (1 - age * 0.85) * (0.7 + Math.min(1, f.d / 3) * 0.5) * fxUnit * q.k;
                         if (r < 0.4) continue;
                         const a = (age < 0.15 ? age / 0.15 : age > 0.75 ? (1 - age) / 0.25 : 1) * f.ta;
-                        const hue = Math.max(0, 36 - age * 36 + f.h), light = 54 - age * 12;
+                        const hue = Math.min(40, Math.max(0, 36 - age * 36 + f.h)), light = (f.core ? 66 : 54) - age * 12;
                         g.fillStyle = `hsla(${hue.toFixed(0)},100%,${light.toFixed(0)}%,${(a / 40).toFixed(3)})`;
                         g.beginPath(); g.arc(q.x, q.y, r * 3, 0, TAU); g.fill();
                         g.fillStyle = `hsla(${hue.toFixed(0)},100%,${light.toFixed(0)}%,${(a * 0.22).toFixed(3)})`;
@@ -1306,129 +1318,75 @@ window.rfDice3d = (() => {
             };
         },
 
-        // The dead answer: bones surface on the table round the die, one after another, scattered, a green ghost fire
-        // rising off them through a low mist; then they crumble to dust. A 1: the ground cracks and spirits are dragged under, bone chips flying
-        // A 1: the ground cracks and the spirits are dragged under, bone chips flying
+        // The dead answer: souls rise out of the table round the die, pale wisps of light with long tails that sway and
+        // spiral upward through a low mist, shedding motes, and fade into the dark. A 1: the ground cracks and the souls
+        // are dragged down into it, bone chips flying
         bone({ g, P, fx, high }) {
-            const spirits = Array.from({ length: 6 }, (_, i) => ({ a: i / 6 * TAU, r: 1.3 + Math.random() * 0.6, sp: 2.6 + Math.random(), delay: i * 0.08 }));
-            const fog = Array.from({ length: 16 }, (_, i) => { const a = i / 16 * TAU; return particle({ x: Math.cos(a) * 2.6, y: Math.sin(a) * 2.6, z: 0.3, vx: Math.cos(a) * 0.4, vy: Math.sin(a) * 0.4, vz: 0.1, drag: 0.8, size: 4 + Math.random() * 2, color: fx.colors[2], alpha: high ? 0.14 : 0.25, born: 0, life: 2.8 }); });
-            const chips = [];
+            const pale = '#eefff8', mid = '#a8f2d6', tail = '#4fcfa4';
+            const count = high ? 9 : 6;
+            const souls = Array.from({ length: count }, (_, i) => ({
+                a: i / count * TAU + Math.random() * 0.5, r: 1.5 + Math.random() * 1.5, at: 0.05 + i * (high ? 0.11 : 0.08) + Math.random() * 0.08,
+                spin: (Math.random() > 0.5 ? 1 : -1) * (0.8 + Math.random() * 0.6), rise: 1.5 + Math.random() * 0.9, sway: Math.random() * TAU, trail: []
+            }));
+            const mist = Array.from({ length: 14 }, () => ({ a: Math.random() * TAU, d: 0.9 + Math.random() * 3.2, s: 1.3 + Math.random() * 1.2, ph: Math.random() * TAU }));
+            const motes = [], chips = [];
             const cracks = high ? [] : Array.from({ length: 7 }, (_, i) => { const a = i / 7 * TAU + Math.random() * 0.4; return jagged3([Math.cos(a) * 0.7, Math.sin(a) * 0.7, 0], [Math.cos(a) * 3.2, Math.sin(a) * 3.2, 0], 0.5, 7); });
             let chipped = false;
-            // The bones: a circle of them surfaces on the table round the die, one after another, a green ghost fire
-            // rising off each (soft lights, as the dragon's fire); then they crumble to dust
-            const bones = high ? Array.from({ length: 10 }, (_, i) => {
-                const a = i / 10 * TAU + (Math.random() - 0.5) * 0.35, tilt = (Math.random() - 0.5) * 2.2, len = 0.8 + Math.random() * 0.35, d = 2.3 + Math.random() * 1.1;
-                return { a, at: 0.08 + i * 0.07, tilt, len, x: Math.cos(a) * d, y: Math.sin(a) * d };
-            }) : [];
-            const ghost = [], dust = [];
-            let crumbled = false;
-            const pos = (s, t) => {
-                const u = Math.max(0, t - s.delay);
-                if (high) return [Math.cos(s.a + u * s.sp) * s.r * (1 - u * 0.12), Math.sin(s.a + u * s.sp) * s.r * (1 - u * 0.12), 0.6 + u * 3.2];
-                return [Math.cos(s.a - u * s.sp) * s.r * (1 + u * 0.2), Math.sin(s.a - u * s.sp) * s.r * (1 + u * 0.2), Math.max(-1, 4.5 - u * 3.4)];
+            // Where a soul is, u seconds after it left the ground (or, on a 1, after it started down)
+            const soulAt = (sl, u) => {
+                if (high) {
+                    const a = sl.a + sl.spin * u, r = sl.r * (1 - 0.3 * Math.min(1, u)) + 0.25 * Math.sin(u * 3 + sl.sway);
+                    return [Math.cos(a) * r, Math.sin(a) * r, 0.15 + sl.rise * u + 0.25 * Math.sin(u * 4 + sl.sway)];
+                }
+                const a = sl.a - sl.spin * u * 1.6, r = sl.r * Math.max(0.15, 1 - u * 0.7);
+                return [Math.cos(a) * r, Math.sin(a) * r, Math.max(-0.4, 3 - u * 3.4)];
             };
             return (t, dt) => {
                 const fade = 1 - clamp01((t - (high ? 2.2 : 1.6)) / 0.6);
-                g.globalCompositeOperation = 'lighter';
-                run(g, P, fog, t, dt, 'smoke');
+                // A low mist, drifting
+                g.globalCompositeOperation = 'screen';
+                for (const m of mist) {
+                    const q = P(Math.cos(m.a + t * 0.15) * m.d, Math.sin(m.a + t * 0.15) * m.d, 0.1);
+                    stamp(g, q, m.s * fxUnit * q.k, tail, 0.06 * fade * clamp01(t / 0.5) * (0.7 + 0.3 * Math.sin(t * 2 + m.ph)));
+                }
                 if (!high) {
                     g.globalCompositeOperation = 'source-over';
                     pool(g, P, 0, 0, 3.6, `rgba(0,0,0,${(0.5 * fade).toFixed(3)})`, 'rgba(0,0,0,0)');
+                    hole(g, P);
                     g.globalCompositeOperation = 'lighter';
                     const ck = clamp01(t / 0.3);
-                    for (const c of cracks) line3(g, P, c.slice(0, Math.max(2, Math.round(c.length * ck))), 2, rgba(fx.colors[1], 0.8 * fade), fx.colors[1]);
+                    for (const c of cracks) line3(g, P, c.slice(0, Math.max(2, Math.round(c.length * ck))), 2, rgba(tail, 0.7 * fade), tail);
                     if (t > 0.1 && !chipped) {
                         chipped = true;
                         for (let i = 0; i < 16; i++) { const a = Math.random() * TAU, sp = 1 + Math.random() * 3; chips.push(particle({ z: 0.6, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, vz: 3 + Math.random() * 3, g: -14, bounce: true, drag: 0.5, size: 1.4, vs: 8, color: fx.colors[3], born: t, life: 1.6 })); }
                     }
                 }
-                if (high) {
-                    const glow = span(t, 0, 0.4, 1.9, 2.6), crumble = clamp01((t - 1.9) / 0.5);
-                    pool(g, P, 0, 0, 3.8, rgba(fx.colors[2], 0.1 * glow), rgba(fx.colors[2], 0));
-                    g.globalCompositeOperation = 'source-over';
-                    for (const b of bones) {
-                        const up = ease(clamp01((t - b.at) / 0.4)) * (1 - crumble);
-                        if (up <= 0.02) continue;
-                        // Lying across the circle, a little askew: its two ends on the table, drawn on the screen
-                        const ta = b.a + Math.PI / 2 + b.tilt, half = b.len * up;
-                        const A = P(b.x - Math.cos(ta) * half, b.y - Math.sin(ta) * half, 0), B = P(b.x + Math.cos(ta) * half, b.y + Math.sin(ta) * half, 0);
-                        const len = Math.hypot(B.x - A.x, B.y - A.y) || 1, nx = -(B.y - A.y) / len, ny = (B.x - A.x) / len;
-                        const w = 0.3 * fxUnit * A.k, knob = w * 0.6;
-                        g.save();
-                        g.globalAlpha = Math.min(1, up * 1.4);
-                        // Its shadow on the table, a little aside
-                        g.strokeStyle = 'rgba(0,0,0,0.45)';
-                        g.lineCap = 'round';
-                        g.lineWidth = w * 1.5;
-                        g.beginPath(); g.moveTo(A.x + w * 0.35, A.y + w * 0.45); g.lineTo(B.x + w * 0.35, B.y + w * 0.45); g.stroke();
-                        // Shaded round, as bone: dark at the edges, pale along the middle
-                        const shade = g.createLinearGradient(A.x + nx * w * 0.6, A.y + ny * w * 0.6, A.x - nx * w * 0.6, A.y - ny * w * 0.6);
-                        shade.addColorStop(0, '#8f8468');
-                        shade.addColorStop(0.35, '#e8dfc8');
-                        shade.addColorStop(0.6, '#cfc3a4');
-                        shade.addColorStop(1, '#6f654d');
-                        g.fillStyle = shade;
-                        g.strokeStyle = 'rgba(40,32,20,0.75)';
-                        g.lineWidth = 1.2;
-                        g.beginPath();
-                        for (const [E, sgn] of [[A, 1], [B, -1]]) {
-                            for (const side of [-1, 1]) {
-                                g.moveTo(E.x + nx * side * knob * 0.75 + knob, E.y + ny * side * knob * 0.75);
-                                g.arc(E.x + nx * side * knob * 0.75 + (B.x - A.x) / len * sgn * knob * 0.3, E.y + ny * side * knob * 0.75 + (B.y - A.y) / len * sgn * knob * 0.3, knob, 0, TAU);
-                            }
-                        }
-                        g.fill();
-                        g.stroke();
-                        // The shaft, a little narrower in the middle
-                        g.beginPath();
-                        g.moveTo(A.x + nx * w * 0.5, A.y + ny * w * 0.5);
-                        g.quadraticCurveTo((A.x + B.x) / 2 + nx * w * 0.32, (A.y + B.y) / 2 + ny * w * 0.32, B.x + nx * w * 0.5, B.y + ny * w * 0.5);
-                        g.lineTo(B.x - nx * w * 0.5, B.y - ny * w * 0.5);
-                        g.quadraticCurveTo((A.x + B.x) / 2 - nx * w * 0.32, (A.y + B.y) / 2 - ny * w * 0.32, A.x - nx * w * 0.5, A.y - ny * w * 0.5);
-                        g.closePath();
-                        g.fill();
-                        g.stroke();
-                        // Pores and a crack or two along the shaft
-                        g.strokeStyle = 'rgba(90,78,55,0.5)';
-                        g.lineWidth = 0.8;
-                        g.beginPath();
-                        g.moveTo(A.x * 0.7 + B.x * 0.3 + nx * w * 0.1, A.y * 0.7 + B.y * 0.3 + ny * w * 0.1);
-                        g.lineTo(A.x * 0.55 + B.x * 0.45 - nx * w * 0.15, A.y * 0.55 + B.y * 0.45 - ny * w * 0.15);
-                        g.lineTo(A.x * 0.45 + B.x * 0.55 + nx * w * 0.05, A.y * 0.45 + B.y * 0.55 + ny * w * 0.05);
-                        g.stroke();
-                        g.restore();
-                        // The ghost fire off the bone
-                        if (up > 0.5 && crumble === 0 && Math.random() < 0.25) {
-                            const u = Math.random() - 0.5;
-                            ghost.push({ x: b.x + Math.cos(ta) * half * u * 1.6, y: b.y + Math.sin(ta) * half * u * 1.6, z: 0.1, vz: 1.4 + Math.random() * 1.2, dx: (Math.random() - 0.5) * 0.4, born: t, life: 0.7 + Math.random() * 0.4, s: 0.12 + Math.random() * 0.1 });
-                        }
+                g.globalCompositeOperation = 'screen';
+                for (const sl of souls) {
+                    if (t < sl.at) continue;
+                    const u = t - sl.at;
+                    const life = high ? 1 - clamp01((u - 1.4) / 0.7) : 1 - clamp01((u - 0.95) / 0.25);
+                    if (life <= 0) continue;
+                    sl.trail.unshift(soulAt(sl, u));
+                    if (sl.trail.length > 34) sl.trail.pop();
+                    const appear = clamp01(u / 0.35) * life * fade;
+                    // The tail: where it has been, thinner and fainter further back
+                    for (let k = sl.trail.length - 1; k >= 1; k--) {
+                        const v = k / 34, q = P(...sl.trail[k]);
+                        stamp(g, q, (0.46 - v * 0.38) * fxUnit * q.k, v < 0.3 ? mid : tail, (1 - v) * 0.17 * appear);
                     }
-                    g.globalCompositeOperation = 'lighter';
-                    for (let i = ghost.length - 1; i >= 0; i--) {
-                        const f = ghost[i], age = (t - f.born) / f.life;
-                        if (age >= 1) { ghost.splice(i, 1); continue; }
-                        f.z += f.vz * dt; f.x += f.dx * dt;
-                        const q = P(f.x, f.y, f.z);
-                        stamp(g, q, (f.s + age * 0.6) * fxUnit * q.k, age < 0.4 ? fx.colors[1] : fx.colors[2], (age < 0.1 ? age / 0.1 : 1) * (1 - age) * 0.09);
+                    // The head: a pale heart in a soft halo, flickering
+                    const h = P(...sl.trail[0]), fl = 0.8 + 0.2 * Math.sin(t * 11 + sl.sway);
+                    stamp(g, h, 1 * fxUnit * h.k, tail, 0.16 * appear * fl);
+                    stamp(g, h, 0.45 * fxUnit * h.k, mid, 0.35 * appear * fl);
+                    stamp(g, h, 0.2 * fxUnit * h.k, pale, 0.85 * appear * fl);
+                    if (high && motes.length < 120 && Math.random() < 0.35 * life) {
+                        const [x, y, z] = sl.trail[Math.min(sl.trail.length - 1, 3)];
+                        motes.push(particle({ x, y, z, vx: (Math.random() - 0.5) * 0.5, vy: (Math.random() - 0.5) * 0.5, vz: 0.2 + Math.random() * 0.4, drag: 0.8, size: 0.7 + Math.random() * 0.7, color: Math.random() > 0.5 ? pale : mid, alpha: 0.65, born: t, life: 0.6 + Math.random() * 0.6 }));
                     }
-                    if (crumble > 0 && !crumbled) {
-                        crumbled = true;
-                        for (const b of bones) for (let k = 0; k < 7; k++) {
-                            dust.push(particle({ x: b.x + (Math.random() - 0.5) * b.len, y: b.y + (Math.random() - 0.5) * b.len, z: 0.2, vx: (Math.random() - 0.5) * 0.8, vy: (Math.random() - 0.5) * 0.8, vz: 1 + Math.random(), g: -4, drag: 0.7, size: 1 + Math.random() * 1.2, color: pick(['#d9cfb4', '#b9ad90', '#8f8670']), born: t, life: 0.7 + Math.random() * 0.4 }));
-                        }
-                    }
-                    g.globalCompositeOperation = 'source-over';
-                    run(g, P, dust, t, dt, 'shard');
-                    g.globalCompositeOperation = 'lighter';
                 }
-                for (const s of high ? [] : spirits) {
-                    if (t < s.delay) continue;
-                    const trail = Array.from({ length: 12 }, (_, i) => pos(s, t - i * 0.035)).filter(p => p[2] > -0.2);
-                    if (trail.length < 2) continue;
-                    line3(g, P, trail, 3, rgba(fx.colors[1], 0.45 * fade), fx.colors[1]);
-                    blob(g, P(...trail[0]), 0.7, fx.colors[0], 0.8 * fade);
-                }
+                g.globalCompositeOperation = 'lighter';
+                run(g, P, motes, t, dt, 'dot');
                 if (!high) {
                     g.globalCompositeOperation = 'source-over';
                     run(g, P, chips, t, dt, 'shard');
