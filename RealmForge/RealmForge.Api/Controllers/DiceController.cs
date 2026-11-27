@@ -33,7 +33,7 @@ namespace RealmForge.Api.Controllers
 		[HttpGet("dice")]
 		public async Task<ActionResult<DiceSkinsDto>> Get()
 		{
-			await _achievements.EvaluateAsync(UserId, full: false);
+			await _achievements.EvaluateAsync(UserId);
 			var mine = await _context.UserDiceSkins.AsNoTracking().Where(s => s.UserId == UserId).Select(s => s.Skin).ToListAsync();
 			return Ok(new DiceSkinsDto(DiceSkins.Unlockable.Where(mine.Contains).ToList()));
 		}

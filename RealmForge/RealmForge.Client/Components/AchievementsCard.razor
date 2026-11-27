@@ -6,64 +6,158 @@
 @inject AchievementDataService Achievements
 @inject LanguageStateService LanguageState
 
-@* The achievements of the profile: the visible missions with how far they have come, the secret ones only once completed,
-   each with the die it unlocks *@
-<div class="rf-account-card mb-3 rf-ach" id="achievements" data-test="account-achievements">
-    <div class="rf-account-card-title d-flex align-items-center gap-2"><Icon Name="trophy" /> @UiText.AchievementsTitle(Lang)</div>
-    <p class="small mb-3" style="color: var(--rf-text-secondary);">@UiText.AchievementsHint(Lang)</p>
+@* The achievements of the profile: how many are earned of all and how far along; filters (all, earned, locked, still
+   secret); the earned ones with their date and die, the visible missions with their progress, and the secret ones still to
+   find as sealed cards that say nothing of what they ask or give *@
+<section class="rf-account-card mb-3 rf-ach" id="achievements" data-test="account-achievements">
+    <header class="rf-ach-top">
+        <div class="rf-ach-top-text">
+            <div class="rf-ach-title-row">
+                <Icon Name="trophy" Class="rf-ach-head-icon" />
+                <span class="rf-ach-kicker">@UiText.AchievementsTitle(Lang)</span>
+                @if (items is not null)
+                {
+                    <span class="rf-ach-count-pill" data-test="achievements-count">@UiText.AchievementsOf(Earned, Total, Lang)</span>
+                }
+            </div>
+            <p class="rf-ach-intro">@UiText.AchievementsHint(Lang)</p>
+        </div>
+        @if (items is not null)
+        {
+            <div class="rf-ach-overall" data-test="achievements-overall">
+                <div class="rf-ach-overall-top">
+                    <span>@UiText.AchievementsCompletion(Lang)</span>
+                    <strong>@Percent%</strong>
+                </div>
+                <div class="rf-ach-track" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="@Percent" aria-label="@UiText.AchievementsCompletion(Lang)">
+                    <span style="width: @Percent%"></span>
+                </div>
+            </div>
+        }
+    </header>
+
     @if (items is null)
     {
         <div class="small" style="color: var(--rf-text-muted);">…</div>
     }
     else
     {
-        <div class="rf-ach-count small mb-3" data-test="achievements-count">@UiText.AchievementsEarned(items.Count(a => a.Earned), Lang)</div>
+        <div class="rf-ach-filters" role="group" aria-label="@UiText.AchievementsTitle(Lang)">
+            @foreach (var key in new[] { "all", "earned", "locked", "hidden" })
+            {
+                var k = key;
+                <button type="button" class="rf-ach-pill @(filter == k ? "active" : null)" aria-pressed="@(filter == k ? "true" : "false")" @onclick="() => filter = k" data-test="achievements-filter" data-filter="@k">@FilterName(k)</button>
+            }
+        </div>
+
         <div class="rf-ach-grid" data-test="achievements-grid">
-            @foreach (var a in items.OrderByDescending(a => a.Earned).ThenBy(a => a.Hidden))
+            @foreach (var a in Shown)
             {
                 var swatch = Dice3dSettings.Swatches.TryGetValue(a.Skin, out var sw) ? sw : ("#ffb04d", "#ff8c00", "#141414");
-                <div class="rf-ach-item @(a.Earned ? "earned" : null)" data-test="achievement" data-key="@a.Key" data-earned="@(a.Earned ? "true" : "false")">
-                    <span class="rf-ach-medal" style="--ach-c1: @swatch.Item1; --ach-c2: @swatch.Item2; --ach-dot: @swatch.Item3;">
-                        <Icon Name="@(a.Earned ? "trophy-fill" : "trophy")" />
-                    </span>
-                    <div class="rf-ach-text">
-                        <div class="rf-ach-name">
-                            @UiText.AchievementName(a.Key, Lang)
-                            @if (a.Hidden)
-                            {
-                                <span class="rf-ach-badge">@UiText.AchievementSecret(Lang)</span>
-                            }
-                            @if (a.Given)
-                            {
-                                <span class="rf-ach-badge given">@UiText.AchievementGiven(Lang)</span>
-                            }
-                        </div>
-                        <div class="rf-ach-goal">@UiText.AchievementGoal(a.Key, Lang)</div>
-                        @if (a.Earned && a.EarnedAt is { } at)
+                <article class="rf-ach-card @(a.Earned ? "earned" : "locked")" data-test="achievement" data-key="@a.Key" data-earned="@(a.Earned ? "true" : "false")" data-hidden="@(a.Hidden ? "true" : "false")">
+                    <div class="rf-ach-main">
+                        @if (a.Earned)
                         {
-                            <div class="rf-ach-meta">@UiText.AchievementEarnedOn(at, Lang) · @UiText.AchievementUnlocks(UiText.Dice3dSkinName(a.Skin, Lang), Lang)</div>
+                            <span class="rf-ach-medal earned" style="--ach-c1: @swatch.Item1; --ach-c2: @swatch.Item2; --ach-dot: @swatch.Item3;"><Icon Name="trophy-fill" /></span>
                         }
                         else
                         {
-                            <div class="rf-ach-progress" role="progressbar" aria-valuemin="0" aria-valuemax="@a.Target" aria-valuenow="@a.Progress" aria-label="@UiText.AchievementName(a.Key, Lang)">
-                                <span style="width: @((a.Target == 0 ? 0 : 100.0 * a.Progress / a.Target).ToString("0.#", System.Globalization.CultureInfo.InvariantCulture))%"></span>
-                            </div>
-                            <div class="rf-ach-meta">@UiText.AchievementProgress(a.Progress, a.Target, Lang) · @UiText.AchievementUnlocks("???", Lang)</div>
+                            <span class="rf-ach-medal locked"><Icon Name="lock" /></span>
                         }
+                        <div class="rf-ach-text">
+                            <div class="rf-ach-name">
+                                <h3>@UiText.AchievementName(a.Key, Lang)</h3>
+                                @if (a.Hidden)
+                                {
+                                    <span class="rf-ach-badge secret">@UiText.AchievementSecret(Lang)</span>
+                                }
+                                else if (!a.Earned)
+                                {
+                                    <span class="rf-ach-badge">@UiText.AchievementLocked(Lang)</span>
+                                }
+                                @if (a.Given)
+                                {
+                                    <span class="rf-ach-badge given">@UiText.AchievementGiven(Lang)</span>
+                                }
+                            </div>
+                            <p class="rf-ach-goal">@UiText.AchievementGoal(a.Key, Lang)</p>
+                            @if (!a.Earned)
+                            {
+                                <div class="rf-ach-progress-row">
+                                    <div class="rf-ach-track" role="progressbar" aria-valuemin="0" aria-valuemax="@a.Target" aria-valuenow="@a.Progress" aria-label="@UiText.AchievementName(a.Key, Lang)">
+                                        <span style="width: @Ratio(a.Progress, a.Target)%"></span>
+                                    </div>
+                                    <span class="rf-ach-num">@UiText.AchievementProgress(a.Progress, a.Target, Lang)</span>
+                                </div>
+                            }
+                        </div>
                     </div>
-                </div>
+                    <footer class="rf-ach-foot">
+                        <span class="rf-ach-date">@(a.Earned && a.EarnedAt is { } at ? UiText.AchievementEarnedOn(at, Lang) : UiText.AchievementNotYet(Lang))</span>
+                        <span class="rf-ach-reward @(a.Earned ? null : "muted")"><Icon Name="dice-5" /> @(a.Earned ? UiText.Dice3dSkinName(a.Skin, Lang) : UiText.AchievementUnlocks(UiText.Dice3dSkinName(a.Skin, Lang), Lang))</span>
+                    </footer>
+                </article>
+            }
+            @if (filter is "all" or "hidden")
+            {
+                for (var i = 0; i < Sealed; i++)
+                {
+                    <article class="rf-ach-card sealed" data-test="achievement-sealed">
+                        <div class="rf-ach-main">
+                            <span class="rf-ach-medal sealed" aria-hidden="true">?</span>
+                            <div class="rf-ach-text">
+                                <div class="rf-ach-name">
+                                    <h3>@UiText.AchievementSealedName(Lang)</h3>
+                                    <span class="rf-ach-badge sealed">@UiText.AchievementSecret(Lang)</span>
+                                </div>
+                                <p class="rf-ach-goal masked">@UiText.AchievementSealedGoal(Lang)</p>
+                            </div>
+                        </div>
+                        <footer class="rf-ach-foot">
+                            <span class="rf-ach-date">@UiText.AchievementSealedWhen(Lang)</span>
+                            <span class="rf-ach-reward muted"><Icon Name="lock" /> @UiText.AchievementSealedReward(Lang)</span>
+                        </footer>
+                    </article>
+                }
             }
         </div>
-        @if (items.Count(a => a.Hidden && a.Earned) < RealmForge.Shared.Dice.Achievements.All.Count(a => a.Hidden))
+        @if (!Shown.Any() && (filter is not ("all" or "hidden") || Sealed == 0))
         {
-            <div class="rf-ach-secret small mt-3" data-test="achievements-secret-left"><Icon Name="lock" /> @UiText.AchievementsSecretLeft(Lang)</div>
+            <div class="small rf-ach-empty" data-test="achievements-empty">@UiText.AchievementsNone(Lang)</div>
+        }
+        @if (Sealed > 0)
+        {
+            <footer class="rf-ach-note" data-test="achievements-secret-left"><Icon Name="lock" /> @UiText.AchievementsSecretLeft(Lang)</footer>
         }
     }
-</div>
+</section>
 
 @code {
     private LanguageCode Lang => LanguageState.CurrentLanguage;
     private List<AchievementDto>? items;
+    private string filter = "all";
+
+    private static int Total => RealmForge.Shared.Dice.Achievements.All.Count;
+    private int Earned => items?.Count(a => a.Earned) ?? 0;
+    private int Percent => Total == 0 ? 0 : (int)Math.Round(100.0 * Earned / Total);
+
+    //	The secret achievements still to find: shown only as sealed cards
+    private int Sealed => Math.Max(0, RealmForge.Shared.Dice.Achievements.All.Count(a => a.Hidden) - (items?.Count(a => a.Hidden && a.Earned) ?? 0));
+
+    private IEnumerable<AchievementDto> Shown => (items ?? new())
+        .Where(a => filter switch { "earned" => a.Earned, "locked" => !a.Earned, "hidden" => false, _ => true })
+        .OrderByDescending(a => a.Earned).ThenBy(a => a.Hidden);
+
+    private static string Ratio(int progress, int target) =>
+        (target == 0 ? 0 : Math.Min(100, 100.0 * progress / target)).ToString("0.#", System.Globalization.CultureInfo.InvariantCulture);
+
+    private string FilterName(string key) => key switch
+    {
+        "earned" => UiText.AchievementsFilterEarned(Lang),
+        "locked" => UiText.AchievementsFilterLocked(Lang),
+        "hidden" => UiText.AchievementsFilterHidden(Lang),
+        _ => UiText.AchievementsFilterAll(Lang)
+    };
 
     protected override async Task OnInitializedAsync()
     {

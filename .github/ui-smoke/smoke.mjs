@@ -45,6 +45,11 @@ page.on('console', (m) => {
 });
 const authCalls = [];
 const failedResponses = new Map();
+// The API calls still waiting for an answer, and when they left: a page stuck loading names the call it waits for
+const pending = new Map();
+page.on('request', (r) => { if (r.url().includes('/api/')) pending.set(r, Date.now()); });
+page.on('requestfinished', (r) => pending.delete(r));
+page.on('requestfailed', (r) => pending.delete(r));
 
 page.on('response', (r) => {
   if (r.url().includes('/api/auth/')) authCalls.push(`${r.request().method()} ${new URL(r.url()).pathname} -> ${r.status()}`);
@@ -2421,6 +2426,7 @@ try {
     await page.locator('[data-test=dice3d-hex]').blur();
     await page.waitForFunction(() => JSON.parse(localStorage.getItem('rf-dice3d') || '{}').color === '#22c55e', null, { timeout: 15000 });
     const lockedSkins = await page.locator('[data-test=dice3d-skin]:disabled').count();
+    await page.locator('[data-test=account-achievements] [data-test=achievement]').first().waitFor({ timeout: 30000 });
     const codeField = await page.locator('[data-test=dice3d-code]').count();
     await shot(page, 'dice3d-settings', '[data-test=account-dice3d]');
     const gallery = {
@@ -2428,11 +2434,14 @@ try {
       cards: await page.locator('[data-test=dice3d-grid] .rf-d3d-card').count(),
       secretPill: await page.locator('[data-test=dice3d-filter][data-filter=secret]').count(),
       active: (await page.locator('[data-test=dice3d-active-name]').innerText()).trim(),
-      codeField
+      codeField,
+      // The secret dice this account has earned along the way (the smoke test reaches some missions): only those show
+      secretEarned: await page.locator('[data-test=account-achievements] [data-test=achievement][data-hidden=true][data-earned=true]').count()
     };
     results.push(`INFO 3D dice gallery: ${JSON.stringify(gallery)}`);
-    if (gallery.locked !== 3 || gallery.cards !== 12 || gallery.secretPill !== 0 || gallery.codeField !== 0 || !gallery.active.includes('#22c55e')) throw new Error(`unexpected dice gallery (the secret dice must not show): ${JSON.stringify(gallery)}`);
-    ok('3D dice: a colour of one\'s own is kept, the special dice wait for their mission, the secret ones are not shown at all, no codes');
+    if (gallery.locked !== 3 || gallery.cards !== 12 + gallery.secretEarned || gallery.secretPill !== (gallery.secretEarned > 0 ? 1 : 0)
+      || gallery.codeField !== 0 || !gallery.active.includes('#22c55e')) throw new Error(`unexpected dice gallery (the secret dice must not show): ${JSON.stringify(gallery)}`);
+    ok('3D dice: a colour of one\'s own is kept, the special dice wait for their mission, the secret ones show only once earned, no codes');
     // The critical moment of a special die (a natural 20), drawn on its own canvas over the page
     const crit = page.evaluate(() => window.rfDice3d.critical('arcane', true));
     await page.locator('.rf-dice3d-fx.shown').waitFor({ timeout: 10000 });
@@ -2451,12 +2460,16 @@ try {
   await page.locator('[data-test=account-achievements] [data-test=achievement]').first().waitFor({ timeout: 30000 });
   const achievementsUi = await page.evaluate(() => ({
     keys: [...document.querySelectorAll('[data-test=account-achievements] [data-test=achievement]')].map((a) => a.dataset.key),
-    bars: document.querySelectorAll('[data-test=account-achievements] .rf-ach-progress').length
+    bars: document.querySelectorAll('[data-test=account-achievements] .rf-ach-progress-row').length,
+    sealed: document.querySelectorAll('[data-test=account-achievements] [data-test=achievement-sealed]').length,
+    secretEarned: document.querySelectorAll('[data-test=account-achievements] [data-test=achievement][data-hidden=true][data-earned=true]').length,
+    count: document.querySelector('[data-test=achievements-count]')?.textContent.trim()
   }));
   await shot(page, 'achievements', '[data-test=account-achievements]');
   results.push(`INFO achievements: ${JSON.stringify(achievementsUi)}`);
-  if (!['ember', 'stardust', 'dawn'].every((k) => achievementsUi.keys.includes(k))) throw new Error(`unexpected achievements: ${JSON.stringify(achievementsUi)}`);
-  ok('achievements: the profile shows the missions of the special dice with their progress; the secret ones stay hidden');
+  if (!['ember', 'stardust', 'dawn'].every((k) => achievementsUi.keys.includes(k)) || achievementsUi.sealed + achievementsUi.secretEarned !== 12
+    || !/\/ 15/.test(achievementsUi.count ?? '')) throw new Error(`unexpected achievements: ${JSON.stringify(achievementsUi)}`);
+  ok('achievements: the profile shows the missions of the special dice with their progress, the secret ones still to find as sealed cards');
   // Visual effects: switched off they stop the flashes on the whole page; full again, a preview bursts on the canvas
   await page.locator('[data-test=account-fx]').waitFor({ timeout: 15000 });
   await page.locator('[data-test=fx-level]').nth(2).click();
@@ -2735,7 +2748,10 @@ try {
   const stored = await page.evaluate(() => localStorage.getItem('realmforge.auth')).catch(() => 'n/a');
   results.push(`DEBUG localStorage=${stored ? stored.slice(0, 60) : stored}`);
   results.push(`DEBUG auth calls: ${authCalls.join(' | ')}`);
+  const waiting = [...pending].map(([r, at]) => `${r.method()} ${new URL(r.url()).pathname} (${Math.round((Date.now() - at) / 1000)} s)`);
+  results.push(`DEBUG API calls still waiting: ${waiting.slice(-8).join(' | ') || 'none'}`);
   await page.screenshot({ path: 'ui-failure.png', fullPage: true });
+  await page.screenshot({ path: 'shots/ui-failure.png', fullPage: true }).catch(() => { });
 } finally {
   // GitHub shows at most 10 annotations per step: one line per result in the log, one summary annotation
   for (const r of results) console.log(r);
