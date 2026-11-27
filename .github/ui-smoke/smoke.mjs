@@ -832,6 +832,19 @@ try {
   await admin.locator('[data-test=admin-user-search]').fill(victim);
   const victimRow = admin.locator('[data-test=admin-user]', { hasText: victim });
   await victimRow.waitFor({ timeout: 15000 });
+  // The achievements of the account: a secret one given (its die with it), then revoked
+  await victimRow.locator('[data-test=admin-user-achievements]').click();
+  const frost = admin.locator('[data-test=admin-achievement][data-key=frost]');
+  await frost.waitFor({ timeout: 15000 });
+  const achievementRows = await admin.locator('[data-test=admin-achievement]').count();
+  await frost.locator('[data-test=admin-achievement-grant]').click();
+  await admin.locator('[data-test=admin-achievement][data-key=frost][data-earned=true]').waitFor({ timeout: 15000 });
+  await shot(admin, 'admin-achievements', '[data-test=admin-achievements]');
+  await frost.locator('[data-test=admin-achievement-revoke]').click();
+  await admin.locator('[data-test=admin-achievement][data-key=frost][data-earned=false]').waitFor({ timeout: 15000 });
+  await admin.locator('[data-test=admin-achievements-close]').click();
+  if (achievementRows !== 15) throw new Error(`unexpected achievements in the administration: ${achievementRows}`);
+  ok('administration: the 15 achievements of an account, a secret one given and revoked');
   await victimRow.locator('[data-test=admin-user-suspend]').click();
   await admin.locator('[data-test=admin-suspend-7]').click();
   await admin.locator('[data-test=admin-suspend-yes]').click();
@@ -2402,25 +2415,24 @@ try {
     const saved = await page.evaluate(() => JSON.parse(localStorage.getItem('rf-dice3d') || '{}').color);
     if (saved !== 'emerald') throw new Error(`the dice colour was not kept: ${saved}`);
     ok('3D dice: the colour is kept on the device, a test throw draws the dice over the page');
-    // A colour of one's own (RGB), the special dice locked until a code, a wrong code opening nothing
+    // A colour of one's own (RGB), the special dice locked until their mission is completed
     await page.locator('[data-test=dice3d-hex]').fill('#22c55e');
     await page.locator('[data-test=dice3d-hex]').press('Enter');
     await page.locator('[data-test=dice3d-hex]').blur();
     await page.waitForFunction(() => JSON.parse(localStorage.getItem('rf-dice3d') || '{}').color === '#22c55e', null, { timeout: 15000 });
     const lockedSkins = await page.locator('[data-test=dice3d-skin]:disabled').count();
-    await page.locator('[data-test=dice3d-code]').fill('nessun codice');
-    await page.locator('[data-test=dice3d-unlock]').click();
-    await page.locator('[data-test=dice3d-code-message]').waitFor({ timeout: 15000 });
+    const codeField = await page.locator('[data-test=dice3d-code]').count();
     await shot(page, 'dice3d-settings', '[data-test=account-dice3d]');
     const gallery = {
       locked: lockedSkins,
       cards: await page.locator('[data-test=dice3d-grid] .rf-d3d-card').count(),
       secretPill: await page.locator('[data-test=dice3d-filter][data-filter=secret]').count(),
-      active: (await page.locator('[data-test=dice3d-active-name]').innerText()).trim()
+      active: (await page.locator('[data-test=dice3d-active-name]').innerText()).trim(),
+      codeField
     };
     results.push(`INFO 3D dice gallery: ${JSON.stringify(gallery)}`);
-    if (gallery.locked !== 3 || gallery.cards !== 12 || gallery.secretPill !== 0 || !gallery.active.includes('#22c55e')) throw new Error(`unexpected dice gallery (the secret dice must not show): ${JSON.stringify(gallery)}`);
-    ok('3D dice: a colour of one\'s own is kept, the special dice wait for a code, the secret ones are not shown at all');
+    if (gallery.locked !== 3 || gallery.cards !== 12 || gallery.secretPill !== 0 || gallery.codeField !== 0 || !gallery.active.includes('#22c55e')) throw new Error(`unexpected dice gallery (the secret dice must not show): ${JSON.stringify(gallery)}`);
+    ok('3D dice: a colour of one\'s own is kept, the special dice wait for their mission, the secret ones are not shown at all, no codes');
     // The critical moment of a special die (a natural 20), drawn on its own canvas over the page
     const crit = page.evaluate(() => window.rfDice3d.critical('arcane', true));
     await page.locator('.rf-dice3d-fx.shown').waitFor({ timeout: 10000 });
@@ -2435,6 +2447,16 @@ try {
     results.push('INFO 3D dice: no WebGL in this browser, the flat dice stay');
   }
   await page.evaluate(() => localStorage.removeItem('rf-dice3d-test'));
+  // The achievements of the profile: the three missions of the special dice always shown, with their progress
+  await page.locator('[data-test=account-achievements] [data-test=achievement]').first().waitFor({ timeout: 30000 });
+  const achievementsUi = await page.evaluate(() => ({
+    keys: [...document.querySelectorAll('[data-test=account-achievements] [data-test=achievement]')].map((a) => a.dataset.key),
+    bars: document.querySelectorAll('[data-test=account-achievements] .rf-ach-progress').length
+  }));
+  await shot(page, 'achievements', '[data-test=account-achievements]');
+  results.push(`INFO achievements: ${JSON.stringify(achievementsUi)}`);
+  if (!['ember', 'stardust', 'dawn'].every((k) => achievementsUi.keys.includes(k))) throw new Error(`unexpected achievements: ${JSON.stringify(achievementsUi)}`);
+  ok('achievements: the profile shows the missions of the special dice with their progress; the secret ones stay hidden');
   // Visual effects: switched off they stop the flashes on the whole page; full again, a preview bursts on the canvas
   await page.locator('[data-test=account-fx]').waitFor({ timeout: 15000 });
   await page.locator('[data-test=fx-level]').nth(2).click();

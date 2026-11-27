@@ -23042,36 +23042,6 @@ button.rf-vtt-clock.on {
         line-height: 1.3;
     }
 
-/* The code: found somewhere, typed here */
-.rf-d3d-code {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-    padding-top: 16px;
-    border-top: 1px solid var(--rf-border-subtle);
-}
-
-.rf-d3d-code-row {
-    display: grid;
-    grid-template-columns: 1fr auto;
-    gap: 8px;
-}
-
-    .rf-d3d-code-row .rf-form-control {
-        height: 40px;
-        font-weight: 700;
-        letter-spacing: .6px;
-        text-transform: uppercase;
-    }
-
-.rf-dice3d-code-ok {
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    color: #6fd3a1;
-    font-weight: 600;
-}
-
 @media (max-width: 680px) {
     .rf-d3d-grid {
         grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -26898,3 +26868,157 @@ input[type="number"]:not(.rf-stepper-input):not(.rf-coin-input):not(.rf-hp-amoun
         background: rgba(255, 140, 0, .12);
         color: #ffb74d;
     }
+
+/* ----- Achievements: the missions of the profile, each one unlocking a die ----- */
+.rf-ach-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+}
+
+.rf-ach-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 16px;
+    padding: 16px;
+    border-radius: 8px;
+    border: 1px solid var(--rf-border-subtle);
+    background-color: var(--rf-bg-card);
+    opacity: .78;
+}
+
+    .rf-ach-item.earned {
+        opacity: 1;
+        border-color: rgba(255, 140, 0, .45);
+        background: linear-gradient(135deg, rgba(255, 140, 0, .08), transparent 60%), var(--rf-bg-card);
+    }
+
+.rf-ach-medal {
+    display: inline-flex;
+    flex: none;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: var(--rf-bg-elevated, #1f1f1f);
+    color: var(--rf-text-muted);
+    border: 1px solid var(--rf-border-subtle);
+    font-size: 1.25rem;
+}
+
+    .rf-ach-item.earned .rf-ach-medal,
+    .rf-ach-notice .rf-ach-medal {
+        background: linear-gradient(135deg, var(--ach-c1), var(--ach-c2));
+        color: var(--ach-dot);
+        border-color: transparent;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, .5);
+    }
+
+.rf-ach-text {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+.rf-ach-name {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    font-weight: 800;
+    color: var(--rf-text-primary);
+}
+
+.rf-ach-badge {
+    padding: 0 8px;
+    border-radius: 999px;
+    border: 1px solid var(--rf-border-light);
+    font-size: .65rem;
+    font-weight: 700;
+    letter-spacing: .6px;
+    text-transform: uppercase;
+    color: var(--rf-text-muted);
+}
+
+    .rf-ach-badge.given {
+        border-color: rgba(255, 140, 0, .5);
+        color: var(--rf-orange-primary);
+    }
+
+.rf-ach-goal {
+    font-size: .8rem;
+    color: var(--rf-text-secondary);
+}
+
+.rf-ach-meta {
+    margin-top: 8px;
+    font-size: .7rem;
+    color: var(--rf-text-muted);
+}
+
+.rf-ach-progress {
+    height: 8px;
+    margin-top: 8px;
+    border-radius: 999px;
+    background-color: rgba(255, 255, 255, .08);
+    overflow: hidden;
+}
+
+    .rf-ach-progress > span {
+        display: block;
+        height: 100%;
+        border-radius: 999px;
+        background: linear-gradient(90deg, var(--rf-orange-primary), #ffb04d);
+    }
+
+.rf-ach-count {
+    font-weight: 700;
+    color: var(--rf-text-secondary);
+}
+
+.rf-ach-secret {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--rf-text-muted);
+    font-style: italic;
+}
+
+/* The notice of an achievement earned: at the top, out of the way of the notices of the tables */
+.rf-ach-notices {
+    top: 72px;
+    bottom: auto;
+}
+
+/* Administration: the achievements of an account, given or revoked one by one */
+.rf-ach-admin-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    max-height: 60vh;
+    overflow-y: auto;
+}
+
+.rf-ach-admin-row {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 8px 16px;
+    border-radius: 8px;
+    border: 1px solid var(--rf-border-subtle);
+}
+
+    .rf-ach-admin-row .rf-ach-text {
+        font-size: .85rem;
+    }
+
+@media (max-width: 680px) {
+    .rf-ach-grid {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .rf-ach-admin-row {
+        flex-wrap: wrap;
+    }
+}
+

@@ -1,5 +1,4 @@
-﻿using System.Net;
-using System.Net.Http.Json;
+﻿using System.Net.Http.Json;
 using Microsoft.JSInterop;
 using RealmForge.Client.Components;
 using RealmForge.Shared.Dice;
@@ -10,7 +9,7 @@ namespace RealmForge.Client.Services
 	///	<summary>
 	///	The 3D dice of this device (wwwroot/js/dice3d.js): real dice thrown across the screen that land on the faces of a
 	///	roll already decided. The settings (on or off, the look, the colour, sound, the rolls of the others at the table)
-	///	stay in the browser; the special dice unlocked with a code belong to the account. Without WebGL or with reduced
+	///	stay in the browser; the special dice, unlocked by achievements, belong to the account. Without WebGL or with reduced
 	///	motion the flat dice of the tray stay.
 	///	</summary>
 	public sealed class Dice3dService
@@ -68,31 +67,6 @@ namespace RealmForge.Client.Services
 			catch (Exception)
 			{
 				return new();
-			}
-		}
-
-		///	<summary>A code tried: what it unlocked, or why not (TooManyRequests, Unknown).</summary>
-		public async Task<(DiceUnlockResultDto? Result, string? Error)> UnlockAsync(string code)
-		{
-			try
-			{
-				var response = await _http.PostAsJsonAsync("api/account/dice/unlock", new DiceUnlockDto { Code = code });
-				if (response.StatusCode == HttpStatusCode.TooManyRequests)
-				{
-					return (null, "TooManyRequests");
-				}
-				var result = response.IsSuccessStatusCode ? await response.Content.ReadFromJsonAsync<DiceUnlockResultDto>() : null;
-				if (result is null)
-				{
-					return (null, "Unknown");
-				}
-				unlocked = Task.FromResult(result.Unlocked);
-				await _js.InvokeVoidAsync("rfDice3d.unlocked", result.Unlocked);
-				return (result, null);
-			}
-			catch (Exception)
-			{
-				return (null, "Unknown");
 			}
 		}
 

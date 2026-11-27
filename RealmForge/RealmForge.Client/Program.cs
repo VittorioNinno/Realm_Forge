@@ -71,6 +71,7 @@ namespace RealmForge.Client
 			builder.Services.AddScoped<GlossaryService>();
 			builder.Services.AddScoped<PinService>();
 			builder.Services.AddScoped<Dice3dService>();
+			builder.Services.AddScoped<AchievementDataService>();
 			builder.Services.AddScoped<BackstoryChatService>();
 
 			//	UI language state management service

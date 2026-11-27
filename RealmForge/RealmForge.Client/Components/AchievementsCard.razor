@@ -1,0 +1,88 @@
+﻿@using RealmForge.Client.Localization
+@using RealmForge.Client.Services
+@using RealmForge.Shared.DTOs
+@using RealmForge.Shared.Enums
+@implements IDisposable
+@inject AchievementDataService Achievements
+@inject LanguageStateService LanguageState
+
+@* The achievements of the profile: the visible missions with how far they have come, the secret ones only once completed,
+   each with the die it unlocks *@
+<div class="rf-account-card mb-3 rf-ach" id="achievements" data-test="account-achievements">
+    <div class="rf-account-card-title d-flex align-items-center gap-2"><Icon Name="trophy" /> @UiText.AchievementsTitle(Lang)</div>
+    <p class="small mb-3" style="color: var(--rf-text-secondary);">@UiText.AchievementsHint(Lang)</p>
+    @if (items is null)
+    {
+        <div class="small" style="color: var(--rf-text-muted);">…</div>
+    }
+    else
+    {
+        <div class="rf-ach-count small mb-3" data-test="achievements-count">@UiText.AchievementsEarned(items.Count(a => a.Earned), Lang)</div>
+        <div class="rf-ach-grid" data-test="achievements-grid">
+            @foreach (var a in items.OrderByDescending(a => a.Earned).ThenBy(a => a.Hidden))
+            {
+                var swatch = Dice3dSettings.Swatches.TryGetValue(a.Skin, out var sw) ? sw : ("#ffb04d", "#ff8c00", "#141414");
+                <div class="rf-ach-item @(a.Earned ? "earned" : null)" data-test="achievement" data-key="@a.Key" data-earned="@(a.Earned ? "true" : "false")">
+                    <span class="rf-ach-medal" style="--ach-c1: @swatch.Item1; --ach-c2: @swatch.Item2; --ach-dot: @swatch.Item3;">
+                        <Icon Name="@(a.Earned ? "trophy-fill" : "trophy")" />
+                    </span>
+                    <div class="rf-ach-text">
+                        <div class="rf-ach-name">
+                            @UiText.AchievementName(a.Key, Lang)
+                            @if (a.Hidden)
+                            {
+                                <span class="rf-ach-badge">@UiText.AchievementSecret(Lang)</span>
+                            }
+                            @if (a.Given)
+                            {
+                                <span class="rf-ach-badge given">@UiText.AchievementGiven(Lang)</span>
+                            }
+                        </div>
+                        <div class="rf-ach-goal">@UiText.AchievementGoal(a.Key, Lang)</div>
+                        @if (a.Earned && a.EarnedAt is { } at)
+                        {
+                            <div class="rf-ach-meta">@UiText.AchievementEarnedOn(at, Lang) · @UiText.AchievementUnlocks(UiText.Dice3dSkinName(a.Skin, Lang), Lang)</div>
+                        }
+                        else
+                        {
+                            <div class="rf-ach-progress" role="progressbar" aria-valuemin="0" aria-valuemax="@a.Target" aria-valuenow="@a.Progress" aria-label="@UiText.AchievementName(a.Key, Lang)">
+                                <span style="width: @((a.Target == 0 ? 0 : 100.0 * a.Progress / a.Target).ToString("0.#", System.Globalization.CultureInfo.InvariantCulture))%"></span>
+                            </div>
+                            <div class="rf-ach-meta">@UiText.AchievementProgress(a.Progress, a.Target, Lang) · @UiText.AchievementUnlocks("???", Lang)</div>
+                        }
+                    </div>
+                </div>
+            }
+        </div>
+        @if (items.Count(a => a.Hidden && a.Earned) < RealmForge.Shared.Dice.Achievements.All.Count(a => a.Hidden))
+        {
+            <div class="rf-ach-secret small mt-3" data-test="achievements-secret-left"><Icon Name="lock" /> @UiText.AchievementsSecretLeft(Lang)</div>
+        }
+    }
+</div>
+
+@code {
+    private LanguageCode Lang => LanguageState.CurrentLanguage;
+    private List<AchievementDto>? items;
+
+    protected override async Task OnInitializedAsync()
+    {
+        LanguageState.OnLanguageChanged += Refresh;
+        AchievementDataService.Earned += Reload;
+        items = await Achievements.GetAsync() ?? new();
+    }
+
+    private void Refresh() => _ = InvokeAsync(StateHasChanged);
+
+    private void Reload() => _ = InvokeAsync(async () =>
+    {
+        items = await Achievements.GetAsync() ?? items;
+        StateHasChanged();
+    });
+
+    public void Dispose()
+    {
+        LanguageState.OnLanguageChanged -= Refresh;
+        AchievementDataService.Earned -= Reload;
+    }
+}

@@ -66,6 +66,14 @@ namespace RealmForge.Client.Services
 		public Task<HttpStatusCode?> SetVisibilityAsync(Guid id, ContentVisibility visibility) =>
 			SendAsync(() => _http.PutAsJsonAsync($"api/admin/homebrew/{id}/visibility", new AdminVisibilityDto { Visibility = visibility }), "visibility");
 
+		public Task<(List<AchievementDto>? Value, HttpStatusCode? Status)> GetAchievementsAsync(string userId) =>
+			GetAsync<List<AchievementDto>>($"api/admin/users/{Uri.EscapeDataString(userId)}/achievements");
+
+		public Task<HttpStatusCode?> SetAchievementAsync(string userId, string key, bool grant) =>
+			SendAsync(() => grant
+				? _http.PutAsync($"api/admin/users/{Uri.EscapeDataString(userId)}/achievements/{Uri.EscapeDataString(key)}", null)
+				: _http.DeleteAsync($"api/admin/users/{Uri.EscapeDataString(userId)}/achievements/{Uri.EscapeDataString(key)}"), "achievement");
+
 		private static string KindsQuery(IReadOnlyCollection<string>? kinds) =>
 			kinds is { Count: > 0 } ? $"&kinds={Uri.EscapeDataString(string.Join(',', kinds))}" : string.Empty;
 
