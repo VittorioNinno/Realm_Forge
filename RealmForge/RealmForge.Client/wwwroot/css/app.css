@@ -26870,53 +26870,198 @@ input[type="number"]:not(.rf-stepper-input):not(.rf-coin-input):not(.rf-hp-amoun
     }
 
 /* ----- Achievements: the missions of the profile, each one unlocking a die ----- */
-.rf-ach-grid {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+.rf-ach-top {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 24px;
+    padding-bottom: 16px;
+    margin-bottom: 16px;
+    border-bottom: 1px solid var(--rf-border-subtle);
+}
+
+.rf-ach-top-text {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    min-width: 0;
+    max-width: 640px;
+}
+
+.rf-ach-title-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
     gap: 8px;
 }
 
-.rf-ach-item {
+.rf-ach-head-icon {
+    color: var(--rf-orange-primary);
+}
+
+.rf-ach-kicker {
+    font-size: .8rem;
+    font-weight: 900;
+    letter-spacing: .8px;
+    text-transform: uppercase;
+    color: var(--rf-orange-primary);
+}
+
+.rf-ach-count-pill {
+    display: inline-flex;
+    align-items: center;
+    height: 24px;
+    padding: 0 8px;
+    border-radius: 8px;
+    border: 1px solid var(--rf-border-light);
+    background-color: var(--rf-bg-card);
+    font-size: .7rem;
+    font-weight: 800;
+    color: var(--rf-text-primary);
+}
+
+.rf-ach-intro {
+    margin: 0;
+    font-size: .85rem;
+    line-height: 1.5;
+    color: var(--rf-text-secondary);
+}
+
+.rf-ach-overall {
     display: flex;
-    align-items: flex-start;
+    flex-direction: column;
+    gap: 8px;
+    width: 240px;
+}
+
+.rf-ach-overall-top {
+    display: flex;
+    justify-content: space-between;
+    font-size: .7rem;
+    font-weight: 700;
+    color: var(--rf-text-muted);
+}
+
+    .rf-ach-overall-top strong {
+        color: #ffb74d;
+    }
+
+.rf-ach-track {
+    flex: 1 1 auto;
+    height: 8px;
+    border-radius: 8px;
+    background-color: rgba(255, 255, 255, .07);
+    overflow: hidden;
+}
+
+    .rf-ach-track > span {
+        display: block;
+        height: 100%;
+        border-radius: 8px;
+        background: linear-gradient(90deg, var(--rf-orange-primary), #fbbf24);
+        transition: width .25s ease;
+    }
+
+.rf-ach-filters {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 16px;
+}
+
+.rf-ach-pill {
+    height: 32px;
+    padding: 0 16px;
+    border-radius: 8px;
+    border: 1px solid var(--rf-border-light);
+    background-color: var(--rf-bg-card);
+    color: var(--rf-text-secondary);
+    font-size: .75rem;
+    font-weight: 700;
+}
+
+    .rf-ach-pill:hover {
+        color: var(--rf-text-primary);
+    }
+
+    .rf-ach-pill.active {
+        border-color: var(--rf-orange-primary);
+        background-color: rgba(255, 140, 0, .14);
+        color: #ffb74d;
+    }
+
+.rf-ach-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: stretch;
+    gap: 16px;
+}
+
+.rf-ach-card {
+    display: flex;
+    flex-direction: column;
     gap: 16px;
     padding: 16px;
     border-radius: 8px;
     border: 1px solid var(--rf-border-subtle);
     background-color: var(--rf-bg-card);
-    opacity: .78;
+    transition: border-color .15s;
 }
 
-    .rf-ach-item.earned {
-        opacity: 1;
-        border-color: rgba(255, 140, 0, .45);
-        background: linear-gradient(135deg, rgba(255, 140, 0, .08), transparent 60%), var(--rf-bg-card);
+    .rf-ach-card.earned {
+        border-color: rgba(255, 140, 0, .35);
+        background: linear-gradient(180deg, rgba(255, 140, 0, .05), transparent 70%), var(--rf-bg-card);
     }
+
+        .rf-ach-card.earned:hover {
+            border-color: rgba(255, 140, 0, .65);
+        }
+
+    .rf-ach-card.sealed {
+        border-style: dashed;
+        background-color: transparent;
+    }
+
+.rf-ach-main {
+    display: flex;
+    align-items: flex-start;
+    gap: 16px;
+}
 
 .rf-ach-medal {
     display: inline-flex;
     flex: none;
     align-items: center;
     justify-content: center;
-    width: 40px;
-    height: 40px;
+    width: 48px;
+    height: 48px;
     border-radius: 50%;
-    background: var(--rf-bg-elevated, #1f1f1f);
+    border: 1px solid var(--rf-border-light);
+    background-color: #181818;
     color: var(--rf-text-muted);
-    border: 1px solid var(--rf-border-subtle);
     font-size: 1.25rem;
 }
 
-    .rf-ach-item.earned .rf-ach-medal,
+    .rf-ach-medal.earned,
     .rf-ach-notice .rf-ach-medal {
-        background: linear-gradient(135deg, var(--ach-c1), var(--ach-c2));
+        border-color: rgba(255, 255, 255, .25);
+        background: radial-gradient(circle at 30% 30%, var(--ach-c1), var(--ach-c2));
         color: var(--ach-dot);
-        border-color: transparent;
-        box-shadow: 0 4px 8px rgba(0, 0, 0, .5);
+        box-shadow: 0 0 16px color-mix(in srgb, var(--ach-c1) 35%, transparent);
+    }
+
+    .rf-ach-medal.sealed {
+        border-style: dashed;
+        background-color: transparent;
+        font-weight: 900;
     }
 
 .rf-ach-text {
+    display: flex;
     flex: 1 1 auto;
+    flex-direction: column;
+    gap: 8px;
     min-width: 0;
 }
 
@@ -26929,16 +27074,42 @@ input[type="number"]:not(.rf-stepper-input):not(.rf-coin-input):not(.rf-hp-amoun
     color: var(--rf-text-primary);
 }
 
+    .rf-ach-name h3 {
+        margin: 0;
+        font-size: .95rem;
+        font-weight: 800;
+        color: var(--rf-text-primary);
+    }
+
+.rf-ach-card.locked .rf-ach-name h3 {
+    color: var(--rf-text-secondary);
+}
+
+.rf-ach-card.sealed .rf-ach-name h3 {
+    color: var(--rf-text-muted);
+}
+
 .rf-ach-badge {
     padding: 0 8px;
-    border-radius: 999px;
+    border-radius: 4px;
     border: 1px solid var(--rf-border-light);
-    font-size: .65rem;
-    font-weight: 700;
-    letter-spacing: .6px;
+    font-size: .6rem;
+    font-weight: 900;
+    letter-spacing: .5px;
+    line-height: 1.6;
     text-transform: uppercase;
     color: var(--rf-text-muted);
 }
+
+    .rf-ach-badge.secret {
+        border-color: rgba(168, 85, 247, .4);
+        background-color: rgba(168, 85, 247, .14);
+        color: #d8b4fe;
+    }
+
+    .rf-ach-badge.sealed {
+        border-style: dashed;
+    }
 
     .rf-ach-badge.given {
         border-color: rgba(255, 140, 0, .5);
@@ -26946,42 +27117,82 @@ input[type="number"]:not(.rf-stepper-input):not(.rf-coin-input):not(.rf-hp-amoun
     }
 
 .rf-ach-goal {
+    margin: 0;
     font-size: .8rem;
+    line-height: 1.4;
     color: var(--rf-text-secondary);
 }
 
+    .rf-ach-goal.masked {
+        font-style: italic;
+        color: var(--rf-text-muted);
+    }
+
 .rf-ach-meta {
-    margin-top: 8px;
     font-size: .7rem;
     color: var(--rf-text-muted);
 }
 
-.rf-ach-progress {
-    height: 8px;
-    margin-top: 8px;
-    border-radius: 999px;
-    background-color: rgba(255, 255, 255, .08);
-    overflow: hidden;
-}
-
-    .rf-ach-progress > span {
-        display: block;
-        height: 100%;
-        border-radius: 999px;
-        background: linear-gradient(90deg, var(--rf-orange-primary), #ffb04d);
-    }
-
-.rf-ach-count {
-    font-weight: 700;
-    color: var(--rf-text-secondary);
-}
-
-.rf-ach-secret {
+.rf-ach-progress-row {
     display: flex;
     align-items: center;
     gap: 8px;
+}
+
+.rf-ach-num {
+    flex: none;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: .7rem;
+    font-weight: 800;
+    color: var(--rf-text-secondary);
+}
+
+.rf-ach-foot {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    margin-top: auto;
+    padding-top: 8px;
+    border-top: 1px solid var(--rf-border-subtle);
+}
+
+.rf-ach-date {
+    font-size: .7rem;
+    font-weight: 600;
     color: var(--rf-text-muted);
+}
+
+.rf-ach-reward {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 0 8px;
+    border-radius: 8px;
+    border: 1px solid rgba(255, 140, 0, .3);
+    background-color: rgba(255, 140, 0, .1);
+    font-size: .7rem;
+    font-weight: 700;
+    line-height: 1.8;
+    color: #ffb74d;
+}
+
+    .rf-ach-reward.muted {
+        border-color: var(--rf-border-light);
+        background-color: transparent;
+        color: var(--rf-text-muted);
+    }
+
+.rf-ach-note,
+.rf-ach-empty {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 16px;
+    font-size: .8rem;
     font-style: italic;
+    color: var(--rf-text-muted);
 }
 
 /* The notice of an achievement earned: at the top, out of the way of the notices of the tables */
@@ -27008,17 +27219,26 @@ input[type="number"]:not(.rf-stepper-input):not(.rf-coin-input):not(.rf-hp-amoun
     border: 1px solid var(--rf-border-subtle);
 }
 
+    .rf-ach-admin-row .rf-ach-medal {
+        width: 40px;
+        height: 40px;
+    }
+
     .rf-ach-admin-row .rf-ach-text {
+        gap: 0;
         font-size: .85rem;
     }
 
-@media (max-width: 680px) {
+@media (max-width: 760px) {
     .rf-ach-grid {
         grid-template-columns: minmax(0, 1fr);
+    }
+
+    .rf-ach-overall {
+        width: 100%;
     }
 
     .rf-ach-admin-row {
         flex-wrap: wrap;
     }
 }
-
