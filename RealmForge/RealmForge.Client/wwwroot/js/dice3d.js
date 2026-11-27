@@ -865,6 +865,29 @@ window.rfDice3d = (() => {
         return pts;
     }
 
+    // A soft round light of a colour, painted once and stamped many times: fire and mist are hundreds of them
+    const sprites = {};
+    function glowSprite(color) {
+        if (sprites[color]) return sprites[color];
+        const c = document.createElement('canvas');
+        c.width = c.height = 64;
+        const x = c.getContext('2d');
+        const grad = x.createRadialGradient(32, 32, 0, 32, 32, 32);
+        grad.addColorStop(0, rgba(color, 1));
+        grad.addColorStop(0.35, rgba(color, 0.55));
+        grad.addColorStop(1, rgba(color, 0));
+        x.fillStyle = grad;
+        x.fillRect(0, 0, 64, 64);
+        return (sprites[color] = c);
+    }
+
+    function stamp(g, q, r, color, a) {
+        if (a <= 0.005 || r < 0.5) return;
+        g.globalAlpha = Math.min(1, a);
+        g.drawImage(glowSprite(color), q.x - r, q.y - r, r * 2, r * 2);
+        g.globalAlpha = 1;
+    }
+
     // A tongue of fire standing at q (on the screen), h high and w wide in pixels, its tip leaning by wob
     function tongue(g, q, h, w, wob, a, fx) {
         if (h < 1 || a <= 0.01) return;
@@ -954,46 +977,58 @@ window.rfDice3d = (() => {
     // ctx: g (the canvas), P (world → screen), fx (the colours), high (a natural 20, else a natural 1)
 
     const effects = {
-        // A ring of fire bursts out on the table round the die, tongues of flame licking up, a shower of embers rising
-        // and falling back; the table scorched where it burned. A 1: the flame sputters out in a puff of black smoke and ash
+        // The breath of the dragon: fire pours out of the die across the table in a cone that sweeps from one side to the
+        // other. A flame is many small soft lights, white-hot where they leave, cooling to yellow, orange and a dark red
+        // as they spread, slow down and rise; smoke and sparks come off it and the table is scorched where it passed.
+        // A 1: the flame sputters out in a puff of black smoke and ash
         ember({ g, P, fx, high }) {
-            const embers = [], smoke = [];
-            const tongues = Array.from({ length: 28 }, (_, i) => ({ a: i / 28 * TAU + Math.random() * 0.08, h: 0.9 + Math.random() * 0.9, w: 0.45 + Math.random() * 0.25, ph: Math.random() * TAU }));
-            let burst = false;
+            const flames = [], embers = [], smoke = [], scorch = [];
+            const a0 = Math.random() * TAU;
+            const heat = ['#fff4d6', '#ffd257', '#ff8a1f', '#e2460c', '#7a1a06'];
+            const heatAt = (age) => heat[Math.min(heat.length - 1, Math.floor(Math.pow(age, 0.8) * heat.length))];
             if (!high) {
                 for (let i = 0; i < 26; i++) smoke.push(particle({ x: (Math.random() - 0.5) * 0.6, y: (Math.random() - 0.5) * 0.6, z: 1, vx: (Math.random() - 0.5) * 0.6, vy: (Math.random() - 0.5) * 0.6, vz: 1 + Math.random() * 1.5, drag: 0.6, size: 5 + Math.random() * 5, color: Math.random() > 0.3 ? '#a39a93' : '#b08a6a', alpha: 0.55, born: 0.25 + Math.random() * 0.4, life: 1.6 }));
                 for (let i = 0; i < 30; i++) embers.push(particle({ x: (Math.random() - 0.5) * 5, y: (Math.random() - 0.5) * 5, z: 4 + Math.random() * 4, vz: -1.2 - Math.random(), vx: (Math.random() - 0.5) * 0.6, drag: 0.8, size: 0.9, color: Math.random() > 0.7 ? fx.colors[2] : '#6b6460', alpha: 0.8, born: 0.3, life: 1.8 }));
             }
             return (t, dt) => {
                 if (high) {
-                    const r = 1 + ease(clamp01(t / 0.45)) * 1.9;
-                    const life = span(t, 0, 0.2, 1.9, 2.6);
-                    // The table scorched under the ring, its glow
-                    g.globalCompositeOperation = 'source-over';
-                    const scorch = span(t, 0.2, 0.5, 2.3, 2.95);
-                    if (scorch > 0) line3(g, P, circle(r, 56).map(([x, y]) => [x, y, 0]), 12, `rgba(24,8,0,${(0.55 * scorch).toFixed(3)})`);
-                    g.globalCompositeOperation = 'lighter';
-                    pool(g, P, 0, 0, r + 1.4, rgba(fx.colors[2], 0.3 * life), rgba(fx.colors[2], 0));
-                    hole(g, P);
-                    // The tongues, the far ones first so the near ones stand in front
-                    g.globalCompositeOperation = 'source-over';
-                    const list = tongues.map(f => ({ f, q: P(Math.cos(f.a) * r, Math.sin(f.a) * r, 0) })).sort((u, v) => u.q.y - v.q.y);
-                    for (const { f, q } of list) {
-                        const flick = 0.75 + 0.2 * Math.sin(t * 13 + f.ph) + 0.1 * Math.sin(t * 31 + f.ph * 2);
-                        tongue(g, q, f.h * flick * life * fxUnit * q.k * 1.4, f.w * fxUnit * q.k, 0.18 * Math.sin(t * 7 + f.ph), life, fx);
-                    }
-                    // The embers: a burst when the ring opens, then a few more from the flames
-                    if (!burst && t > 0.2) {
-                        burst = true;
-                        for (let i = 0; i < 60; i++) {
-                            const a = Math.random() * TAU, sp = 0.6 + Math.random() * 1.6;
-                            embers.push(particle({ x: Math.cos(a) * r, y: Math.sin(a) * r, z: 0.5, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, vz: 3 + Math.random() * 4, g: -2.2, drag: 0.75, size: 1.4 + Math.random() * 1.4, color: pick(fx.colors), born: t, life: 1.5 + Math.random() * 0.8 }));
+                    const sweep = ease(clamp01((t - 0.12) / 1.35)), dir = a0 - 0.6 + sweep * 1.2;
+                    const breathing = t > 0.1 && t < 1.5;
+                    // The table scorched where the fire passed: soft dark marks where the flames died down
+                    const burn = span(t, 0.25, 0.7, 2.3, 2.95);
+                    if (burn > 0) {
+                        g.globalCompositeOperation = 'source-over';
+                        for (const m of scorch) {
+                            const q = P(m.x, m.y, 0);
+                            stamp(g, q, m.r * fxUnit * q.k, '#140600', 0.16 * burn);
                         }
                     }
-                    if (t < 1.8 && Math.random() < 0.7) {
-                        const a = Math.random() * TAU;
-                        embers.push(particle({ x: Math.cos(a) * r, y: Math.sin(a) * r, z: 0.8, vx: (Math.random() - 0.5) * 0.5, vy: (Math.random() - 0.5) * 0.5, vz: 2 + Math.random() * 2, g: -0.6, drag: 0.8, size: 1.2 + Math.random(), color: pick(fx.colors), born: t, life: 1 + Math.random() }));
+                    g.globalCompositeOperation = 'lighter';
+                    if (breathing) pool(g, P, Math.cos(dir) * 2.6, Math.sin(dir) * 2.6, 3.4, rgba('#ff7a1a', 0.16), rgba('#ff4d00', 0));
+                    hole(g, P);
+                    if (breathing) {
+                        for (let i = 0; i < 16; i++) {
+                            const a = dir + (Math.random() - 0.5) * 0.42, sp = 6 + Math.random() * 4.5;
+                            flames.push({ x: Math.cos(a) * 0.85, y: Math.sin(a) * 0.85, z: 1 + Math.random() * 0.35, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, vz: 0.3 + Math.random() * 1.2, born: t, life: 0.5 + Math.random() * 0.4, s: 0.16 + Math.random() * 0.12 });
+                        }
                     }
+                    const drag = Math.pow(0.22, dt);
+                    for (let i = flames.length - 1; i >= 0; i--) {
+                        const f = flames[i], age = (t - f.born) / f.life;
+                        if (age >= 1) {
+                            flames.splice(i, 1);
+                            if (scorch.length < 140 && Math.random() < 0.25) scorch.push({ x: f.x, y: f.y, r: 0.7 + Math.random() * 0.6 });
+                            if (smoke.length < 70 && Math.random() < 0.09) smoke.push(particle({ x: f.x, y: f.y, z: f.z, vx: f.vx * 0.1, vy: f.vy * 0.1, vz: 0.8 + Math.random(), drag: 0.6, size: 6 + Math.random() * 6, color: '#3d3531', alpha: 0.32, born: t, life: 1.4 }));
+                            continue;
+                        }
+                        f.vx *= drag; f.vy *= drag; f.vz += 2.2 * dt;
+                        f.x += f.vx * dt; f.y += f.vy * dt; f.z += f.vz * dt;
+                        const q = P(f.x, f.y, f.z);
+                        stamp(g, q, (f.s + age * 1.2) * fxUnit * q.k, heatAt(age), (age < 0.08 ? age / 0.08 : 1) * (1 - age) * (age < 0.2 ? 0.16 : 0.3));
+                        if (embers.length < 90 && Math.random() < 0.012) embers.push(particle({ x: f.x, y: f.y, z: f.z, vx: f.vx * 0.3 + (Math.random() - 0.5), vy: f.vy * 0.3 + (Math.random() - 0.5), vz: 1.5 + Math.random() * 2, g: -1.5, drag: 0.7, size: 1 + Math.random(), color: pick(['#ffe9a0', '#ffb347', '#ff7a1a']), born: t, life: 0.8 + Math.random() * 0.8 }));
+                    }
+                    g.globalCompositeOperation = 'source-over';
+                    run(g, P, smoke, t, dt, 'smoke');
                     g.globalCompositeOperation = 'lighter';
                     run(g, P, embers, t, dt, 'dot');
                 } else {
@@ -1257,14 +1292,23 @@ window.rfDice3d = (() => {
             };
         },
 
-        // The dead answer: spirits spiral up out of the die through a green mist.
+        // The dead answer: bones surface on the table round the die, one after another, scattered, a green ghost fire
+        // rising off them through a low mist; then they crumble to dust. A 1: the ground cracks and spirits are dragged under, bone chips flying
         // A 1: the ground cracks and the spirits are dragged under, bone chips flying
         bone({ g, P, fx, high }) {
             const spirits = Array.from({ length: 6 }, (_, i) => ({ a: i / 6 * TAU, r: 1.3 + Math.random() * 0.6, sp: 2.6 + Math.random(), delay: i * 0.08 }));
-            const fog = Array.from({ length: 16 }, (_, i) => { const a = i / 16 * TAU; return particle({ x: Math.cos(a) * 2.6, y: Math.sin(a) * 2.6, z: 0.3, vx: Math.cos(a) * 0.4, vy: Math.sin(a) * 0.4, vz: 0.1, drag: 0.8, size: 4 + Math.random() * 2, color: fx.colors[2], alpha: 0.25, born: 0, life: 2.8 }); });
+            const fog = Array.from({ length: 16 }, (_, i) => { const a = i / 16 * TAU; return particle({ x: Math.cos(a) * 2.6, y: Math.sin(a) * 2.6, z: 0.3, vx: Math.cos(a) * 0.4, vy: Math.sin(a) * 0.4, vz: 0.1, drag: 0.8, size: 4 + Math.random() * 2, color: fx.colors[2], alpha: high ? 0.14 : 0.25, born: 0, life: 2.8 }); });
             const chips = [];
             const cracks = high ? [] : Array.from({ length: 7 }, (_, i) => { const a = i / 7 * TAU + Math.random() * 0.4; return jagged3([Math.cos(a) * 0.7, Math.sin(a) * 0.7, 0], [Math.cos(a) * 3.2, Math.sin(a) * 3.2, 0], 0.5, 7); });
             let chipped = false;
+            // The bones: a circle of them surfaces on the table round the die, one after another, a green ghost fire
+            // rising off each (soft lights, as the dragon's fire); then they crumble to dust
+            const bones = high ? Array.from({ length: 10 }, (_, i) => {
+                const a = i / 10 * TAU + (Math.random() - 0.5) * 0.35, tilt = (Math.random() - 0.5) * 2.2, len = 0.8 + Math.random() * 0.35, d = 2.3 + Math.random() * 1.1;
+                return { a, at: 0.08 + i * 0.07, tilt, len, x: Math.cos(a) * d, y: Math.sin(a) * d };
+            }) : [];
+            const ghost = [], dust = [];
+            let crumbled = false;
             const pos = (s, t) => {
                 const u = Math.max(0, t - s.delay);
                 if (high) return [Math.cos(s.a + u * s.sp) * s.r * (1 - u * 0.12), Math.sin(s.a + u * s.sp) * s.r * (1 - u * 0.12), 0.6 + u * 3.2];
@@ -1285,17 +1329,79 @@ window.rfDice3d = (() => {
                         for (let i = 0; i < 16; i++) { const a = Math.random() * TAU, sp = 1 + Math.random() * 3; chips.push(particle({ z: 0.6, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, vz: 3 + Math.random() * 3, g: -14, bounce: true, drag: 0.5, size: 1.4, vs: 8, color: fx.colors[3], born: t, life: 1.6 })); }
                     }
                 }
-                for (const s of spirits) {
+                if (high) {
+                    const glow = span(t, 0, 0.4, 1.9, 2.6), crumble = clamp01((t - 1.9) / 0.5);
+                    pool(g, P, 0, 0, 3.8, rgba(fx.colors[1], 0.2 * glow), rgba(fx.colors[1], 0));
+                    g.globalCompositeOperation = 'source-over';
+                    for (const b of bones) {
+                        const up = ease(clamp01((t - b.at) / 0.4)) * (1 - crumble);
+                        if (up <= 0.02) continue;
+                        // Lying across the circle, a little askew: its two ends on the table, drawn on the screen
+                        const ta = b.a + Math.PI / 2 + b.tilt, half = b.len * up;
+                        const A = P(b.x - Math.cos(ta) * half, b.y - Math.sin(ta) * half, 0), B = P(b.x + Math.cos(ta) * half, b.y + Math.sin(ta) * half, 0);
+                        const len = Math.hypot(B.x - A.x, B.y - A.y) || 1, nx = -(B.y - A.y) / len, ny = (B.x - A.x) / len;
+                        const w = 0.26 * fxUnit * A.k, knob = w * 0.62;
+                        g.save();
+                        g.globalAlpha = Math.min(1, up * 1.4);
+                        g.fillStyle = '#ddd2b6';
+                        g.strokeStyle = 'rgba(40,32,20,0.75)';
+                        g.lineWidth = 1.2;
+                        g.beginPath();
+                        for (const [E, sgn] of [[A, 1], [B, -1]]) {
+                            for (const side of [-1, 1]) {
+                                g.moveTo(E.x + nx * side * knob * 0.75 + knob, E.y + ny * side * knob * 0.75);
+                                g.arc(E.x + nx * side * knob * 0.75 + (B.x - A.x) / len * sgn * knob * 0.3, E.y + ny * side * knob * 0.75 + (B.y - A.y) / len * sgn * knob * 0.3, knob, 0, TAU);
+                            }
+                        }
+                        g.fill();
+                        g.stroke();
+                        // The shaft, a little narrower in the middle
+                        g.beginPath();
+                        g.moveTo(A.x + nx * w * 0.5, A.y + ny * w * 0.5);
+                        g.quadraticCurveTo((A.x + B.x) / 2 + nx * w * 0.32, (A.y + B.y) / 2 + ny * w * 0.32, B.x + nx * w * 0.5, B.y + ny * w * 0.5);
+                        g.lineTo(B.x - nx * w * 0.5, B.y - ny * w * 0.5);
+                        g.quadraticCurveTo((A.x + B.x) / 2 - nx * w * 0.32, (A.y + B.y) / 2 - ny * w * 0.32, A.x - nx * w * 0.5, A.y - ny * w * 0.5);
+                        g.closePath();
+                        g.fill();
+                        g.stroke();
+                        // Light along one side, the shade of the other
+                        g.strokeStyle = 'rgba(255,250,235,0.7)';
+                        g.beginPath(); g.moveTo(A.x + nx * w * 0.2, A.y + ny * w * 0.2); g.lineTo(B.x + nx * w * 0.2, B.y + ny * w * 0.2); g.stroke();
+                        g.strokeStyle = 'rgba(120,104,72,0.55)';
+                        g.beginPath(); g.moveTo(A.x - nx * w * 0.25, A.y - ny * w * 0.25); g.lineTo(B.x - nx * w * 0.25, B.y - ny * w * 0.25); g.stroke();
+                        g.restore();
+                        // The ghost fire off the bone
+                        if (up > 0.5 && crumble === 0 && Math.random() < 0.55) {
+                            const u = Math.random() - 0.5;
+                            ghost.push({ x: b.x + Math.cos(ta) * half * u * 1.6, y: b.y + Math.sin(ta) * half * u * 1.6, z: 0.1, vz: 1.4 + Math.random() * 1.2, dx: (Math.random() - 0.5) * 0.4, born: t, life: 0.7 + Math.random() * 0.4, s: 0.12 + Math.random() * 0.1 });
+                        }
+                    }
+                    g.globalCompositeOperation = 'lighter';
+                    for (let i = ghost.length - 1; i >= 0; i--) {
+                        const f = ghost[i], age = (t - f.born) / f.life;
+                        if (age >= 1) { ghost.splice(i, 1); continue; }
+                        f.z += f.vz * dt; f.x += f.dx * dt;
+                        const q = P(f.x, f.y, f.z);
+                        stamp(g, q, (f.s + age * 0.5) * fxUnit * q.k, age < 0.3 ? fx.colors[0] : age < 0.65 ? fx.colors[1] : fx.colors[2], (age < 0.1 ? age / 0.1 : 1) * (1 - age) * 0.2);
+                    }
+                    if (crumble > 0 && !crumbled) {
+                        crumbled = true;
+                        for (const b of bones) for (let k = 0; k < 7; k++) {
+                            dust.push(particle({ x: b.x + (Math.random() - 0.5) * b.len, y: b.y + (Math.random() - 0.5) * b.len, z: 0.2, vx: (Math.random() - 0.5) * 0.8, vy: (Math.random() - 0.5) * 0.8, vz: 1 + Math.random(), g: -4, drag: 0.7, size: 1 + Math.random() * 1.2, color: pick(['#d9cfb4', '#b9ad90', '#8f8670']), born: t, life: 0.7 + Math.random() * 0.4 }));
+                        }
+                    }
+                    g.globalCompositeOperation = 'source-over';
+                    run(g, P, dust, t, dt, 'shard');
+                    g.globalCompositeOperation = 'lighter';
+                }
+                for (const s of high ? [] : spirits) {
                     if (t < s.delay) continue;
                     const trail = Array.from({ length: 12 }, (_, i) => pos(s, t - i * 0.035)).filter(p => p[2] > -0.2);
                     if (trail.length < 2) continue;
                     line3(g, P, trail, 3, rgba(fx.colors[1], 0.45 * fade), fx.colors[1]);
                     blob(g, P(...trail[0]), 0.7, fx.colors[0], 0.8 * fade);
                 }
-                if (high) {
-                    // A pale green light under the die while the spirits rise
-                    pool(g, P, 0, 0, 3, rgba(fx.colors[1], 0.22 * span(t, 0, 0.4, 1.8, 2.5)), rgba(fx.colors[1], 0));
-                } else {
+                if (!high) {
                     g.globalCompositeOperation = 'source-over';
                     run(g, P, chips, t, dt, 'shard');
                 }
@@ -1491,13 +1597,13 @@ window.rfDice3d = (() => {
             };
         },
 
-        // Acid eats into the table: a seething pool spreads out of the die, bubbles swelling and bursting, fumes rising.
+        // Acid eats into the table: a pool spreads slowly out of the die, a few bubbles swell and burst, thin fumes rise.
         // A 1: the acid hisses, steams and dries into a dark stain
         acid({ g, P, fx, high }) {
             const bubbles = [], fumes = [], drops = [];
             const size = high ? 3.4 : 1.8;
-            if (high) for (let i = 0; i < 26; i++) { const a = Math.random() * TAU, sp = 2 + Math.random() * 4; drops.push(particle({ z: 1, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, vz: 4 + Math.random() * 5, g: -18, drag: 0.5, size: 1.4 + Math.random(), color: pick(fx.colors), born: 0, life: 1 })); }
-            const blobAt = (r, t) => Array.from({ length: 49 }, (_, i) => { const a = i / 48 * TAU; const k = 1 + 0.12 * Math.sin(5 * a + t * 3) + 0.07 * Math.sin(9 * a - t * 4); return [Math.cos(a) * r * k, Math.sin(a) * r * k]; });
+            if (high) for (let i = 0; i < 9; i++) { const a = Math.random() * TAU, sp = 1.5 + Math.random() * 2.5; drops.push(particle({ z: 1, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, vz: 3 + Math.random() * 3, g: -18, drag: 0.5, size: 1.2 + Math.random() * 0.8, color: pick(fx.colors), alpha: 0.8, born: 0, life: 0.9 })); }
+            const blobAt = (r, t) => Array.from({ length: 49 }, (_, i) => { const a = i / 48 * TAU; const k = 1 + 0.05 * Math.sin(5 * a + t * 1.2) + 0.025 * Math.sin(9 * a - t * 1.6); return [Math.cos(a) * r * k, Math.sin(a) * r * k]; });
             return (t, dt) => {
                 const r = size * ease(clamp01(t / 0.6)) * (high ? 1 : 1 - clamp01((t - 0.9) / 0.9) * 0.3);
                 const fade = 1 - clamp01((t - (high ? 2.3 : 1.7)) / 0.5);
@@ -1507,15 +1613,15 @@ window.rfDice3d = (() => {
                     g.fillStyle = `rgba(10,20,4,${(0.35 * fade).toFixed(3)})`;
                     path(g, onTable(P, blobAt(r * 1.08, t)), true); g.fill();
                     g.globalCompositeOperation = 'lighter';
-                    pool(g, P, 0, 0, r * 1.15, rgba(fx.colors[3], (0.32 - dry * 0.28) * fade), rgba(fx.colors[2], (0.22 - dry * 0.2) * fade));
+                    pool(g, P, 0, 0, r * 1.15, rgba(fx.colors[3], (0.16 - dry * 0.14) * fade), rgba(fx.colors[2], (0.11 - dry * 0.1) * fade));
                     g.save(); path(g, onTable(P, blobAt(r, t)), true); g.clip();
-                    pool(g, P, 0, 0, r * 1.2, rgba(fx.colors[2], (0.35 - dry * 0.3) * fade), rgba(fx.colors[2], 0.1 * fade));
+                    pool(g, P, 0, 0, r * 1.2, rgba(fx.colors[2], (0.22 - dry * 0.18) * fade), rgba(fx.colors[2], 0.06 * fade));
                     g.restore();
-                    glowLine(g, onTable(P, blobAt(r, t)), 2, rgba(fx.colors[1], (0.9 - dry * 0.8) * fade), fx.colors[1]);
+                    glowLine(g, onTable(P, blobAt(r, t)), 1.6, rgba(fx.colors[1], (0.6 - dry * 0.5) * fade));
                     hole(g, P);
                 }
                 // Bubbles swell and burst into rings
-                if (t < (high ? 2.1 : 1) && Math.random() < (high ? 0.6 : 0.2)) {
+                if (t < (high ? 2.1 : 1) && Math.random() < (high ? 0.22 : 0.12)) {
                     const a = Math.random() * TAU, d = Math.sqrt(Math.random()) * r * 0.85;
                     bubbles.push({ x: Math.cos(a) * d, y: Math.sin(a) * d, s: 0.15 + Math.random() * 0.3, born: t });
                 }
@@ -1525,11 +1631,11 @@ window.rfDice3d = (() => {
                     if (k >= 1) { bubbles.splice(i, 1); continue; }
                     if (k < 0.7) {
                         const q = P(bb.x, bb.y, bb.s * k);
-                        blob(g, q, bb.s * 2.2 * (k / 0.7) + 0.2, fx.colors[0], 0.8 * fade);
+                        blob(g, q, bb.s * 1.6 * (k / 0.7) + 0.15, fx.colors[0], 0.45 * fade);
                     } else {
                         const u = (k - 0.7) / 0.3;
                         line3(g, P, circle(bb.s * (1 + u * 1.6), 14).map(([x, y]) => [x + bb.x, y + bb.y, 0.05]), 1.2, rgba(fx.colors[0], 0.8 * (1 - u) * fade));
-                        if (high && fumes.length < 60 && Math.random() < 0.5) fumes.push(particle({ x: bb.x, y: bb.y, z: 0.2, vz: 1 + Math.random(), vx: (Math.random() - 0.5) * 0.4, drag: 0.7, size: 2.5, color: fx.colors[1], alpha: 0.25, born: t, life: 1.2 }));
+                        if (high && fumes.length < 20 && Math.random() < 0.3) fumes.push(particle({ x: bb.x, y: bb.y, z: 0.2, vz: 0.6 + Math.random() * 0.6, vx: (Math.random() - 0.5) * 0.3, drag: 0.7, size: 2.5, color: fx.colors[1], alpha: 0.14, born: t, life: 1.2 }));
                     }
                 }
                 if (!high && t > 0.4 && fumes.length < 40 && Math.random() < 0.6) fumes.push(particle({ x: (Math.random() - 0.5) * r * 1.4, y: (Math.random() - 0.5) * r * 1.4, z: 0.2, vz: 1.4 + Math.random(), drag: 0.7, size: 3, color: '#e9f5e0', alpha: 0.3, born: t, life: 1.1 }));
@@ -1636,38 +1742,45 @@ window.rfDice3d = (() => {
             };
         },
 
-        // The deep rises: rings of water run out over the table from the die, a crown of drops leaps up and falls back,
-        // bubbles rise. A 1: a whirlpool opens under the die and drains everything away
+        // The deep rises: a shower of rain falls round the die, each drop a streak that ends in a little ring where it
+        // lands, and slow wide rings of water run out from the die. A 1: a whirlpool opens under the die and drains everything away
         tide({ g, P, fx, high }) {
-            const drops = [], bubbles = [];
-            let splashed = false;
+            const rain = [], ripples = [];
             return (t, dt) => {
                 g.globalCompositeOperation = 'lighter';
                 if (high) {
                     const k = 1 - clamp01((t - 2.2) / 0.7);
-                    pool(g, P, 0, 0, 5, rgba(fx.colors[2], 0.28 * k), rgba(fx.colors[2], 0));
-                    for (let i = 0; i < 6; i++) {
-                        const v = (t - 0.05 - i * 0.28) / 1.3;
+                    pool(g, P, 0, 0, 5, rgba(fx.colors[2], 0.2 * k), rgba(fx.colors[2], 0));
+                    for (let i = 0; i < 3; i++) {
+                        const v = (t - 0.05 - i * 0.55) / 1.8;
                         if (v <= 0 || v >= 1) continue;
                         const R = 1 + ease(v) * 5;
-                        const ring = Array.from({ length: 65 }, (_, j) => { const a = j / 64 * TAU, w = 1 + 0.012 * Math.sin(a * 6 + t * 4 + i); return [Math.cos(a) * R * w, Math.sin(a) * R * w, 0]; });
-                        line3(g, P, ring, 2.6 * (1 - v) + 0.6, rgba(fx.colors[1], 0.85 * (1 - v) * k), fx.colors[2]);
-                        line3(g, P, ring.map(([x, y]) => [x * 0.93, y * 0.93, 0]), 1, rgba(fx.colors[0], 0.45 * (1 - v) * k));
+                        line3(g, P, circle(R, 72).map(([x, y]) => [x, y, 0]), 2 * (1 - v) + 0.6, rgba(fx.colors[1], 0.7 * (1 - v) * k), fx.colors[2]);
                     }
                     hole(g, P);
-                    if (!splashed && t > 0.08) {
-                        splashed = true;
-                        for (let i = 0; i < 44; i++) {
-                            const a = i / 44 * TAU + Math.random() * 0.1, sp = 1.4 + Math.random() * 1.6;
-                            drops.push(particle({ x: Math.cos(a) * 1.15, y: Math.sin(a) * 1.15, z: 0.3, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, vz: 5 + Math.random() * 3, g: -16, drag: 0.8, size: 1.3 + Math.random() * 0.9, color: pick(fx.colors), born: t, life: 1.1 }));
+                    // The rain: streaks falling, a ring where each lands
+                    if (t < 2.2) {
+                        if (Math.random() < 0.9) {
+                            const a = Math.random() * TAU, d = 0.9 + Math.sqrt(Math.random()) * 4.6;
+                            rain.push({ x: Math.cos(a) * d, y: Math.sin(a) * d, z: 2.5 + Math.random() * 2.5, v: 9 + Math.random() * 4 });
                         }
                     }
-                    if (t < 2 && Math.random() < 0.5) {
-                        const a = Math.random() * TAU, d = 1.2 + Math.random() * 3;
-                        bubbles.push(particle({ x: Math.cos(a) * d, y: Math.sin(a) * d, z: 0.1, vz: 1.2 + Math.random(), drag: 0.9, size: 1.5 + Math.random() * 1.5, color: fx.colors[0], alpha: 0.7, born: t, life: 1 }));
+                    for (let i = rain.length - 1; i >= 0; i--) {
+                        const d = rain[i];
+                        d.z -= d.v * dt;
+                        if (d.z <= 0) {
+                            rain.splice(i, 1);
+                            ripples.push({ x: d.x, y: d.y, born: t, s: 0.25 + Math.random() * 0.25 });
+                            continue;
+                        }
+                        line3(g, P, [[d.x, d.y, d.z], [d.x, d.y, d.z + 0.35]], 1.2, rgba(fx.colors[0], 0.6 * k));
                     }
-                    run(g, P, bubbles, t, dt, 'ring');
-                    run(g, P, drops, t, dt, 'drop');
+                    for (let i = ripples.length - 1; i >= 0; i--) {
+                        const rp = ripples[i], u = (t - rp.born) / 0.7;
+                        if (u >= 1) { ripples.splice(i, 1); continue; }
+                        line3(g, P, circle(0.05 + ease(u) * rp.s, 20).map(([x, y]) => [x + rp.x, y + rp.y, 0]), 1.2, rgba(fx.colors[1], 0.75 * (1 - u) * k));
+                        if (u < 0.5) line3(g, P, circle(0.02 + ease(u * 2) * rp.s * 0.45, 14).map(([x, y]) => [x + rp.x, y + rp.y, 0]), 1, rgba(fx.colors[0], 0.5 * (1 - u * 2) * k));
+                    }
                 } else {
                     const k = span(t, 0, 0.3, 1.5, 2.2);
                     g.globalCompositeOperation = 'source-over';
