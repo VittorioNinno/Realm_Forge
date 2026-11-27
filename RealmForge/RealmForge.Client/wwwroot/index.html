@@ -192,6 +192,9 @@
             }
         };
 
+        // The person's own clock (an IANA time zone such as Europe/Rome), for the achievements made at night
+        window.rfClock = { zone: () => { try { return Intl.DateTimeFormat().resolvedOptions().timeZone || ''; } catch { return ''; } } };
+
         // A media query watched for a component: told now and on every change (the table on a phone)
         window.rfMedia = (() => {
             const watched = new Map();

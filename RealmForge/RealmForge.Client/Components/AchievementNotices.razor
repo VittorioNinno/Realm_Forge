@@ -1,0 +1,100 @@
+﻿@using RealmForge.Client.Localization
+@using RealmForge.Client.Services
+@using RealmForge.Shared.DTOs
+@using RealmForge.Shared.Enums
+@implements IAsyncDisposable
+@inject AchievementDataService Achievements
+@inject Dice3dService Dice3d
+@inject LanguageStateService LanguageState
+@inject NavigationManager Navigation
+
+@* An achievement earned (at the table, on a sheet, anywhere): a notice with the die it unlocks, wherever the person is
+   in the app. Each one is told once, then marked as seen. *@
+@if (notices.Count > 0)
+{
+    <div class="rf-live-notices rf-ach-notices" role="status" aria-live="polite" data-test="achievement-notices">
+        @foreach (var n in notices)
+        {
+            var notice = n;
+            var swatch = Dice3dSettings.Swatches.TryGetValue(notice.Skin, out var sw) ? sw : ("#ffb04d", "#ff8c00", "#141414");
+            <div class="rf-live-notice rf-ach-notice" data-test="achievement-notice" data-key="@notice.Key">
+                <span class="rf-ach-medal" style="--ach-c1: @swatch.Item1; --ach-c2: @swatch.Item2; --ach-dot: @swatch.Item3;"><Icon Name="trophy-fill" /></span>
+                <div class="rf-live-notice-text">
+                    <div class="rf-live-notice-title">@UiText.AchievementNoticeTitle(UiText.AchievementName(notice.Key, Lang), Lang)</div>
+                    <div class="rf-live-notice-by">@UiText.AchievementNoticeDie(UiText.Dice3dSkinName(notice.Skin, Lang), Lang)</div>
+                    <div class="d-flex flex-wrap gap-2 mt-2">
+                        <button type="button" class="btn btn-sm btn-rf-orange" @onclick="() => Open(notice)" data-test="achievement-notice-open"><Icon Name="trophy" /> @UiText.AchievementNoticeOpen(Lang)</button>
+                    </div>
+                </div>
+                <button type="button" class="rf-live-notice-close" aria-label="@UiText.AchievementNoticeClose(Lang)" title="@UiText.AchievementNoticeClose(Lang)" @onclick="() => Dismiss(notice)" data-test="achievement-notice-close"><Icon Name="close" /></button>
+            </div>
+        }
+    </div>
+}
+
+@code {
+    private static readonly TimeSpan Every = TimeSpan.FromSeconds(60);
+
+    private LanguageCode Lang => LanguageState.CurrentLanguage;
+    private readonly List<AchievementDto> notices = new();
+    private readonly CancellationTokenSource stop = new();
+
+    protected override void OnInitialized() => LanguageState.OnLanguageChanged += Refresh;
+
+    protected override void OnAfterRender(bool firstRender)
+    {
+        if (firstRender)
+        {
+            _ = LoopAsync();
+        }
+    }
+
+    private async Task LoopAsync()
+    {
+        try
+        {
+            await Task.Delay(TimeSpan.FromSeconds(3), stop.Token);
+            using var timer = new PeriodicTimer(Every);
+            do
+            {
+                await InvokeAsync(CheckAsync);
+            }
+            while (await timer.WaitForNextTickAsync(stop.Token));
+        }
+        catch (OperationCanceledException)
+        {
+        }
+    }
+
+    private async Task CheckAsync()
+    {
+        var news = (await Achievements.NewsAsync()).Where(a => notices.All(n => n.Key != a.Key)).ToList();
+        if (news.Count == 0)
+        {
+            return;
+        }
+        notices.AddRange(news);
+        StateHasChanged();
+        //	Told: not again, here or in another tab; the new die is ready for the next throw
+        await Achievements.SeenAsync(news.Select(a => a.Key));
+        await Dice3d.UnlockedAsync(reload: true);
+    }
+
+    private void Open(AchievementDto notice)
+    {
+        Dismiss(notice);
+        Navigation.NavigateTo("account#achievements");
+    }
+
+    private void Dismiss(AchievementDto notice) => notices.RemoveAll(n => n.Key == notice.Key);
+
+    private void Refresh() => _ = InvokeAsync(StateHasChanged);
+
+    public ValueTask DisposeAsync()
+    {
+        stop.Cancel();
+        stop.Dispose();
+        LanguageState.OnLanguageChanged -= Refresh;
+        return ValueTask.CompletedTask;
+    }
+}

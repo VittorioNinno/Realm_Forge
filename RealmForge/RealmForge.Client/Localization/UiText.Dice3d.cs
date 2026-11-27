@@ -69,7 +69,6 @@ namespace RealmForge.Client.Localization
 			"sands" => T(lang, "Sabbia dorata a onde: con un 20 naturale un quadrante sul tavolo e la sabbia che sale a spirale", "Rippled golden sand: on a natural 20, a dial on the table and sand rising in a spiral"),
 			_ => T(lang, "Resina classica, nel colore che preferisci", "Classic resin, in the colour you like")
 		};
-		public static string Dice3dSkinLocked(LanguageCode lang) => T(lang, "Dadi segreti: si sbloccano con un codice", "Secret dice: a code unlocks them");
 		public static string Dice3dOn(LanguageCode lang) => T(lang, "Attivi", "On");
 		public static string Dice3dOff(LanguageCode lang) => T(lang, "Spenti", "Off");
 		public static string Dice3dSelected(LanguageCode lang) => T(lang, "Set selezionato", "Selected set");
@@ -80,7 +79,6 @@ namespace RealmForge.Client.Localization
 		public static string Dice3dPreparing(LanguageCode lang) => T(lang, "Preparazione…", "Preparing…");
 		public static string Dice3dPreparingHint(LanguageCode lang) => T(lang, "Preparo i nuovi dadi: i lanci partono appena sono pronti.", "Preparing the new dice: the throws start as soon as they are ready.");
 		public static string Dice3dSearch(LanguageCode lang) => T(lang, "Cerca un set…", "Search a set…");
-		public static string Dice3dSecretCode(LanguageCode lang) => T(lang, "Codice segreto", "Secret code");
 		public static string Dice3dCustomShort(LanguageCode lang) => T(lang, "Personalizzato", "Custom");
 		public static string Dice3dCustomPick(LanguageCode lang) => T(lang, "Scegli un colore", "Pick a colour");
 		public static string Dice3dNone(LanguageCode lang) => T(lang, "Nessun set con questo nome.", "No set by that name.");
@@ -95,12 +93,5 @@ namespace RealmForge.Client.Localization
 		public static string Dice3dFilterSecret(LanguageCode lang) => T(lang, "Segreti", "Secret");
 		public static string Dice3dCustom(LanguageCode lang) => T(lang, "Colore personalizzato", "Custom colour");
 		public static string Dice3dCustomHex(LanguageCode lang) => T(lang, "Colore personalizzato in esadecimale", "Custom colour in hex");
-		public static string Dice3dCode(LanguageCode lang) => T(lang, "Codice di sblocco", "Unlock code");
-		public static string Dice3dCodePlaceholder(LanguageCode lang) => T(lang, "Hai un codice segreto?", "Got a secret code?");
-		public static string Dice3dUnlock(LanguageCode lang) => T(lang, "Sblocca", "Unlock");
-		public static string Dice3dUnlocked(string name, LanguageCode lang) => T(lang, $"Sbloccati: {name}! Sono già selezionati.", $"Unlocked: {name}! They are already selected.");
-		public static string Dice3dAlready(string name, LanguageCode lang) => T(lang, $"Hai già sbloccato {name}.", $"You already unlocked {name}.");
-		public static string Dice3dWrongCode(LanguageCode lang) => T(lang, "Il codice non apre nulla.", "That code opens nothing.");
-		public static string Dice3dTooMany(LanguageCode lang) => T(lang, "Troppi tentativi: riprova tra un minuto.", "Too many tries: try again in a minute.");
 	}
 }

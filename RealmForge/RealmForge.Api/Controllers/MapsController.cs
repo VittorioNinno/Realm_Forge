@@ -125,7 +125,7 @@ namespace RealmForge.Api.Controllers
 			{
 				return Problem(statusCode: StatusCodes.Status400BadRequest, title: $"At most {MapRules.MaxMaps} maps per campaign.");
 			}
-			var map = new CampaignMap { CampaignId = campaignId };
+			var map = new CampaignMap { CampaignId = campaignId, CreatedById = UserId };
 			Apply(map, dto);
 			_context.CampaignMaps.Add(map);
 			await _context.SaveChangesAsync();

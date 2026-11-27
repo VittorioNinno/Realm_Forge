@@ -71,6 +71,9 @@ namespace RealmForge.Domain.Entities
 		public Campaign Campaign { get; set; } = null!;
 		public string Name { get; set; } = string.Empty;
 		public string Image { get; set; } = string.Empty;
+
+		//	Who made it (empty for the maps made before this was kept, and for the copies, which are nobody's work)
+		public string CreatedById { get; set; } = string.Empty;
 		public int Width { get; set; }
 		public int Height { get; set; }
 		public GridType GridType { get; set; } = GridType.Square;

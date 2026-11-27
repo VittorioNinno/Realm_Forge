@@ -1,9 +1,8 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
+using RealmForge.Api.Achievements;
 using RealmForge.Api.Security;
-using RealmForge.Domain.Entities;
 using RealmForge.Infrastructure.Persistence;
 using RealmForge.Shared.Dice;
 using RealmForge.Shared.DTOs;
@@ -11,57 +10,55 @@ using RealmForge.Shared.DTOs;
 namespace RealmForge.Api.Controllers
 {
 	///	<summary>
-	///	The special looks of the 3D dice unlocked by the user: an easter egg, a code that unlocks one. The codes are kept
-	///	as hashes (DiceUnlockCodes); trying them is limited like a login, against guessing.
+	///	The special looks of the 3D dice of the user and the achievements that unlock them: what has been reached, the ones
+	///	earned and not told yet (the notices), and the person's own clock (for the achievements made at night).
 	///	</summary>
 	[ApiController]
-	[Route("api/account/dice")]
+	[Route("api/account")]
 	[Authorize]
 	public class DiceController : ControllerBase
 	{
 		private readonly RealmForgeDbContext _context;
+		private readonly AchievementService _achievements;
 
-		public DiceController(RealmForgeDbContext context)
+		public DiceController(RealmForgeDbContext context, AchievementService achievements)
 		{
 			_context = context;
+			_achievements = achievements;
 		}
 
 		private string UserId => ContentAccess.GetUserId(User) ?? string.Empty;
 
-		//	GET: api/account/dice — the special dice of the user
-		[HttpGet]
-		public async Task<ActionResult<DiceSkinsDto>> Get() =>
-			Ok(new DiceSkinsDto(await UnlockedAsync()));
-
-		//	POST: api/account/dice/unlock — a code; the right one unlocks its dice for good
-		[HttpPost("unlock")]
-		[EnableRateLimiting(Program.AuthRateLimit)]
-		public async Task<ActionResult<DiceUnlockResultDto>> Unlock([FromBody] DiceUnlockDto dto)
+		//	GET: api/account/dice — the special dice of the user (what was reached in the meantime counts)
+		[HttpGet("dice")]
+		public async Task<ActionResult<DiceSkinsDto>> Get()
 		{
-			var normalized = DiceSkins.Normalize(dto.Code);
-			if (normalized.Length is < 4 or > 64)
-			{
-				return Ok(new DiceUnlockResultDto(null, false, await UnlockedAsync()));
-			}
-			var hash = DiceSkins.Hash(normalized);
-			var code = await _context.DiceUnlockCodes.AsNoTracking().FirstOrDefaultAsync(c => c.CodeHash == hash && c.Active);
-			if (code is null || !DiceSkins.IsKnown(code.Skin))
-			{
-				return Ok(new DiceUnlockResultDto(null, false, await UnlockedAsync()));
-			}
-			var already = await _context.UserDiceSkins.AnyAsync(s => s.UserId == UserId && s.Skin == code.Skin);
-			if (!already)
-			{
-				_context.UserDiceSkins.Add(new UserDiceSkin { UserId = UserId, Skin = code.Skin });
-				await _context.SaveChangesAsync();
-			}
-			return Ok(new DiceUnlockResultDto(code.Skin, !already, await UnlockedAsync()));
-		}
-
-		private async Task<List<string>> UnlockedAsync()
-		{
+			await _achievements.EvaluateAsync(UserId, full: false);
 			var mine = await _context.UserDiceSkins.AsNoTracking().Where(s => s.UserId == UserId).Select(s => s.Skin).ToListAsync();
-			return DiceSkins.Unlockable.Where(mine.Contains).ToList();
+			return Ok(new DiceSkinsDto(DiceSkins.Unlockable.Where(mine.Contains).ToList()));
 		}
+
+		//	GET: api/account/achievements — the achievements of the profile (the hidden ones only once earned)
+		[HttpGet("achievements")]
+		public async Task<ActionResult<List<AchievementDto>>> GetAchievements() =>
+			Ok(await _achievements.ListAsync(UserId, all: false));
+
+		//	GET: api/account/achievements/news — earned and not told yet
+		[HttpGet("achievements/news")]
+		public async Task<ActionResult<List<AchievementDto>>> GetNews() =>
+			Ok(await _achievements.NewsAsync(UserId));
+
+		//	POST: api/account/achievements/seen — told
+		[HttpPost("achievements/seen")]
+		public async Task<IActionResult> Seen([FromBody] AchievementsSeenDto dto)
+		{
+			await _achievements.SeenAsync(UserId, dto.Keys.Take(50).ToList());
+			return NoContent();
+		}
+
+		//	PUT: api/account/timezone — the person's own clock
+		[HttpPut("timezone")]
+		public async Task<IActionResult> SetTimeZone([FromBody] TimeZoneDto dto) =>
+			await _achievements.SetTimeZoneAsync(UserId, dto.TimeZone?.Trim()) ? NoContent() : BadRequest();
 	}
 }

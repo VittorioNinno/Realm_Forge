@@ -7,8 +7,8 @@
 @inject LanguageStateService LanguageState
 
 @* The 3D dice of this device: on or off; the set chosen in a gallery (resin in a colour of the palette or any colour,
-   the special dice, shown locked until their code is found, and the secret ones, shown only once unlocked); sound and
-   the rolls of the others; the code that unlocks a die. A test throw (and, for a special die, a natural 20) shows the
+   the special dice, shown locked with their mission until it is completed, and the secret ones, shown only once
+   unlocked by their hidden mission); sound and the rolls of the others. A test throw (and, for a special die, a natural 20) shows the
    choice at once *@
 <div class="rf-account-card mb-3 rf-d3d" data-test="account-dice3d">
     <header class="rf-d3d-head">
@@ -99,11 +99,11 @@
                         var on = IsSelected(set);
                         @if (set.Locked)
                         {
-                            <button type="button" role="radio" aria-checked="false" disabled class="rf-d3d-card locked" title="@UiText.Dice3dSkinLocked(Lang)" data-test="dice3d-skin" data-skin="@set.Key">
+                            <button type="button" role="radio" aria-checked="false" disabled class="rf-d3d-card locked" title="@UiText.AchievementGoal(set.Key, Lang)" data-test="dice3d-skin" data-skin="@set.Key">
                                 <span class="rf-d3d-swatch locked" aria-hidden="true"><Icon Name="lock" /></span>
                                 <span class="rf-d3d-card-text">
                                     <strong>???</strong>
-                                    <span>@UiText.Dice3dSecretCode(Lang)</span>
+                                    <span>@UiText.AchievementName(set.Key, Lang)</span>
                                 </span>
                             </button>
                         }
@@ -175,26 +175,6 @@
             </div>
         </div>
 
-        @* A code found somewhere: it unlocks a die (the special ones wait for theirs; the secret ones are not even shown) *@
-        <footer class="rf-d3d-code">
-            <form class="rf-d3d-code-row" @onsubmit="UnlockAsync" @onsubmit:preventDefault="true">
-                <input class="rf-form-control" maxlength="64" autocomplete="off" spellcheck="false" placeholder="@UiText.Dice3dCodePlaceholder(Lang)"
-                       @bind="code" @bind:event="oninput" aria-label="@UiText.Dice3dCode(Lang)" data-test="dice3d-code" />
-                <button type="submit" class="rf-d3d-btn" disabled="@(unlocking || string.IsNullOrWhiteSpace(code))" data-test="dice3d-unlock">
-                    <Icon Name="unlock" /> @UiText.Dice3dUnlock(Lang)
-                </button>
-            </form>
-            @if (codeMessage is not null)
-            {
-                <div class="small @(codeOk ? "rf-dice3d-code-ok" : "text-warning")" role="status" data-test="dice3d-code-message">
-                    @if (codeOk)
-                    {
-                        <Icon Name="check" />
-                    }
-                    @codeMessage
-                </div>
-            }
-        </footer>
     }
 </div>
 
@@ -203,7 +183,7 @@
     private sealed record DiceSet(string Key, string Name, string Category, string C1, string C2, string Dot, bool Locked = false);
 
     //	The swatches: two colours of the die and the colour of its numbers
-    private static readonly Dictionary<string, (string C1, string C2, string Dot)> Swatches = new()
+    internal static readonly Dictionary<string, (string C1, string C2, string Dot)> Swatches = new()
     {
         ["forge"] = ("#ffb04d", "#ff8c00", "#141414"),
         ["ivory"] = ("#fffaf0", "#efe6d2", "#2a2117"),
@@ -236,10 +216,6 @@
     private bool testing;
     private string filter = "all";
     private string search = string.Empty;
-    private string code = string.Empty;
-    private bool unlocking;
-    private string? codeMessage;
-    private bool codeOk;
 
     private LanguageCode Lang => LanguageState.CurrentLanguage;
     private bool IsCustom => settings?.Color is { } c && c.StartsWith('#');
@@ -391,29 +367,6 @@
     //	Any colour as #rrggbb (the dice keep a readable ink on it)
     private Task SetColorAsync(string? value) =>
         value is { } hex && Regex.IsMatch(hex, "^#[0-9a-fA-F]{6}$") ? SetAsync(s => { s.Skin = DiceSkins.Resin; s.Color = hex.ToLowerInvariant(); }) : Task.CompletedTask;
-
-    private async Task UnlockAsync()
-    {
-        unlocking = true;
-        codeMessage = null;
-        var (result, error) = await Dice3d.UnlockAsync(code);
-        unlocking = false;
-        if (result is { Skin: { } skin })
-        {
-            unlocked = result.Unlocked;
-            codeOk = true;
-            codeMessage = result.New ? UiText.Dice3dUnlocked(UiText.Dice3dSkinName(skin, Lang), Lang) : UiText.Dice3dAlready(UiText.Dice3dSkinName(skin, Lang), Lang);
-            code = string.Empty;
-            filter = "all";
-            search = string.Empty;
-            await SetAsync(s => s.Skin = skin);
-        }
-        else
-        {
-            codeOk = false;
-            codeMessage = error == "TooManyRequests" ? UiText.Dice3dTooMany(Lang) : UiText.Dice3dWrongCode(Lang);
-        }
-    }
 
     //	A d20, a d6 and a d8 thrown for real (random faces: only a test)
     private async Task TestAsync()

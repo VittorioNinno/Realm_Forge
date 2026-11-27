@@ -36,9 +36,11 @@ namespace RealmForge.Api
 			//	The tables waiting for news wake the moment a map, a token or an encounter is saved
 			builder.Services.AddSingleton<RealmForge.Api.Realtime.TableSignals>();
 			builder.Services.AddSingleton<RealmForge.Api.Realtime.TableChangeInterceptor>();
+			builder.Services.AddSingleton<RealmForge.Api.Achievements.DiceStatsInterceptor>();
 			builder.Services.AddDbContext<RealmForgeDbContext>((services, options) =>
 				options.UseNpgsql(connectionString ?? string.Empty)
-					.AddInterceptors(services.GetRequiredService<RealmForge.Api.Realtime.TableChangeInterceptor>()));
+					.AddInterceptors(services.GetRequiredService<RealmForge.Api.Realtime.TableChangeInterceptor>(),
+						services.GetRequiredService<RealmForge.Api.Achievements.DiceStatsInterceptor>()));
 
 			//	Accounts: ASP.NET Core Identity with bearer tokens (endpoints mapped under /api/auth)
 			builder.Services.AddAuthorization();
@@ -116,6 +118,7 @@ namespace RealmForge.Api
 			builder.Services.AddScoped<RealmForge.Infrastructure.Persistence.Trash.TrashBin>();
 			builder.Services.AddScoped<RealmForge.Infrastructure.Persistence.Content.ContentCopier>();
 			builder.Services.AddScoped<AccountDeletion>();
+			builder.Services.AddScoped<RealmForge.Api.Achievements.AchievementService>();
 			builder.Services.AddHostedService<RealmForge.Api.Trash.TrashPurgeService>();
 
 			//	E-mails for account confirmation and password reset (SMTP settings in the "Email" section / user-secrets)

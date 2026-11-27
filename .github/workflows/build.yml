@@ -1085,20 +1085,14 @@ jobs:
           journal=$(get "$api/api/campaigns/$cp_id/notes" -H "Authorization: Bearer $B" | jq -r '.[] | select(.kind == 3) | .id')
           cp_note_edit_other=$(code -X PUT "$api/api/campaigns/$cp_id/notes/$journal" $json -H "Authorization: Bearer $B" -d '{"kind":3,"title":"x","body":"y"}')
           cp_note_delete=$(code -X DELETE "$api/api/campaigns/$cp_id/notes/$journal" -H "Authorization: Bearer $B")
-          # The special dice: an easter-egg code (a test one, added here: the real codes are never in the repository) unlocks
-          # them once, a wrong code nothing; the seeded codes are kept as hashes only
-          dc_seeded=$(psql -h localhost -U postgres -d realm_forge_ci -tAc "SELECT count(*) FROM \"DiceUnlockCodes\" WHERE length(\"CodeHash\") = 64 AND \"Skin\" IN ('ember','stardust','frost','storm','bone','hoard','abyss','fey','acid','arcane')")
-          dc_hash=$(printf '%s' 'CODICEDIPROVA42' | sha256sum | cut -d' ' -f1)
-          psql -h localhost -U postgres -d realm_forge_ci -v ON_ERROR_STOP=1 -c "INSERT INTO \"DiceUnlockCodes\" (\"Id\", \"CodeHash\", \"Skin\", \"Active\", \"CreatedAt\") VALUES (gen_random_uuid(), '$dc_hash', 'stardust', true, now())" > /dev/null
-          dc_before=$(get "$api/api/account/dice" -H "Authorization: Bearer $A" | jq -c .unlocked)
-          dc_wrong=$(curl -s -X POST "$api/api/account/dice/unlock" $json -H "Authorization: Bearer $A" -d '{"code":"non-esiste"}' | jq -c '{skin, new}')
-          dc_right=$(curl -s -X POST "$api/api/account/dice/unlock" $json -H "Authorization: Bearer $A" -d '{"code":"codice di prova 42"}' | jq -c '{skin, new, unlocked}')
-          dc_again=$(curl -s -X POST "$api/api/account/dice/unlock" $json -H "Authorization: Bearer $A" -d '{"code":"CODICE-DI-PROVA-42"}' | jq -c '{skin, new}')
+          # The dice are unlocked by achievements now: no codes any more; the profile shows the missions of the special
+          # dice, never a hidden one not earned; the person's clock is kept (a real time zone only)
+          dc_table=$(psql -h localhost -U postgres -d realm_forge_ci -tAc "SELECT to_regclass('public.\"DiceUnlockCodes\"') IS NULL")
+          dc_code=$(code -X POST "$api/api/account/dice/unlock" $json -H "Authorization: Bearer $A" -d '{"code":"x"}')
+          dc_list=$(get "$api/api/account/achievements" -H "Authorization: Bearer $A" | jq -c '{special: ([.[] | select(.hidden | not) | .key] | sort), hiddenOpen: ([.[] | select(.hidden and (.earned | not))] | length), progress: ([.[] | select(.key == "ember") | .target][0])}')
+          dc_news=$(get "$api/api/account/achievements/news" -H "Authorization: Bearer $A" | jq -r 'type')
+          dc_zone="$(code -X PUT "$api/api/account/timezone" $json -H "Authorization: Bearer $A" -d '{"timeZone":"Europe/Rome"}') $(code -X PUT "$api/api/account/timezone" $json -H "Authorization: Bearer $A" -d '{"timeZone":"Nowhere/Land"}')"
           dc_other=$(get "$api/api/account/dice" -H "Authorization: Bearer $B" | jq -c .unlocked)
-          # A secret die (shown nowhere until found): its test code unlocks it too, listed after the special ones
-          dc_secret_hash=$(printf '%s' 'RUNADIPROVA7' | sha256sum | cut -d' ' -f1)
-          psql -h localhost -U postgres -d realm_forge_ci -v ON_ERROR_STOP=1 -c "INSERT INTO \"DiceUnlockCodes\" (\"Id\", \"CodeHash\", \"Skin\", \"Active\", \"CreatedAt\") VALUES (gen_random_uuid(), '$dc_secret_hash', 'arcane', true, now())" > /dev/null
-          dc_secret=$(curl -s -X POST "$api/api/account/dice/unlock" $json -H "Authorization: Bearer $A" -d '{"code":"runa di prova 7"}' | jq -c '{skin, new, unlocked}')
           # The journal with @mentions and the masters' secrets: a player reads the page, not the secrets, and cannot write them
           mn_list=$(get "$api/api/campaigns/$cp_id/mentions?lang=2" -H "Authorization: Bearer $A")
           mn_char=$(echo "$mn_list" | jq -c '[.[] | select(.kind == "character")] | .[0] | {kind, id}')
@@ -1201,10 +1195,10 @@ jobs:
           chcheck "notes written" "$cp_notes_post" "200 200 200 403"
           chcheck "notes of the player" "$cp_notes_alice" "[1,3]"
           chcheck "notes of the master" "$cp_notes_bob" "[2,3]"
-          chcheck "dice: ten codes seeded as hashes, none unlocked at first" "$dc_seeded|$dc_before" '10|[]'
-          chcheck "dice: a secret die unlocked by its code" "$dc_secret" '{"skin":"arcane","new":true,"unlocked":["stardust","arcane"]}'
-          chcheck "dice: a wrong code opens nothing, the right one (any case, spaces, dashes) unlocks once" "$dc_wrong|$dc_right|$dc_again" '{"skin":null,"new":false}|{"skin":"stardust","new":true,"unlocked":["stardust"]}|{"skin":"stardust","new":false}'
-          chcheck "dice: what a user unlocks is theirs only" "$dc_other" '[]'
+          chcheck "dice: the codes are gone (table and endpoint)" "$dc_table|$dc_code" 't|404'
+          chcheck "achievements: the special missions shown, no hidden one not earned" "$dc_list" '{"special":["dawn","ember","stardust"],"hiddenOpen":0,"progress":100}'
+          chcheck "achievements: the news and the clock (a real time zone only)" "$dc_news|$dc_zone" 'array|204 400'
+          chcheck "dice: nothing unlocked for someone who has earned nothing" "$dc_other" '[]'
           chcheck "mentions: the characters of the campaign, no maps for a player" "$mn_kinds" '["character"]'
           chcheck "journal: a player reads the mention, not the secrets" "$mn_player" '{"mention":true,"secret":null}'
           chcheck "journal: the master reads the secrets" "$mn_master" '"Il locandiere è un doppelganger."'
@@ -2090,6 +2084,14 @@ jobs:
           ad_users=$(curl -s "$api/api/admin/users?q=example.com" -H "Authorization: Bearer $C" | jq -c '[.[] | select(.email == "carol@example.com" or .email == "erin@example.com") | {email, isAdmin, isMe}] | sort_by(.email)')
           erin_id=$(curl -s "$api/api/admin/users?q=erin" -H "Authorization: Bearer $C" | jq -r '.[0].id')
           carol_id=$(curl -s "$api/api/admin/users?q=carol" -H "Authorization: Bearer $C" | jq -r '.[0].id')
+          # Achievements given and revoked by an administrator (the die goes with them); never by someone else
+          ad_ach_all=$(curl -s "$api/api/admin/users/$erin_id/achievements" -H "Authorization: Bearer $C" | jq length)
+          ad_ach_bob=$(code -X PUT "$api/api/admin/users/$erin_id/achievements/frost" -H "Authorization: Bearer $B")
+          ad_ach_grant=$(code -X PUT "$api/api/admin/users/$erin_id/achievements/frost" -H "Authorization: Bearer $C")
+          ad_ach_given=$(curl -s "$api/api/admin/users/$erin_id/achievements" -H "Authorization: Bearer $C" | jq -c '.[] | select(.key == "frost") | {earned, given}')
+          ad_ach_revoke=$(code -X DELETE "$api/api/admin/users/$erin_id/achievements/frost" -H "Authorization: Bearer $C")
+          ad_ach_revoked=$(curl -s "$api/api/admin/users/$erin_id/achievements" -H "Authorization: Bearer $C" | jq -c '.[] | select(.key == "frost") | {earned, revoked}')
+          ad_ach_unknown=$(code -X PUT "$api/api/admin/users/$erin_id/achievements/gold" -H "Authorization: Bearer $C")
           ad_self=$(code -X PUT "$api/api/admin/users/$carol_id/lock" $json -H "Authorization: Bearer $C" -d '{"days":7}')
           ad_lock=$(code -X PUT "$api/api/admin/users/$erin_id/lock" $json -H "Authorization: Bearer $C" -d '{"days":7}')
           ad_locked_login=$(curl -s -X POST $api/api/auth/login $json -d "$(cred erin@example.com)" | jq -r '.detail // "token"')
@@ -2117,6 +2119,9 @@ jobs:
           adcheck "own private entry found" "$sr_alice" '[{"name":"Zzforge Segreto","otherName":"Zzforge Secret","isMine":true}]'
           adcheck "someone else's private entry hidden" "$sr_bob" "0"
           adcheck "not an administrator" "$ad_bob" "403"
+          adcheck "achievements of an account" "$ad_ach_all|$ad_ach_bob|$ad_ach_unknown" "15|403|404"
+          adcheck "achievement given" "$ad_ach_grant|$ad_ach_given" '204|{"earned":true,"given":true}'
+          adcheck "achievement revoked" "$ad_ach_revoke|$ad_ach_revoked" '204|{"earned":false,"revoked":true}'
           adcheck "stats" "$ad_stats" '{"users":true,"homebrew":true}'
           adcheck "users" "$ad_users" '[{"email":"carol@example.com","isAdmin":true,"isMe":true},{"email":"erin@example.com","isAdmin":false,"isMe":false}]'
           adcheck "no self lock" "$ad_self" "400"
