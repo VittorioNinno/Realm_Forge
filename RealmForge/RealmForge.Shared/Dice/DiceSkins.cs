@@ -22,12 +22,15 @@ public static class DiceSkins
 	public const string Arcane = "arcane";
 	public const string Dawn = "dawn";
 	public const string Tide = "tide";
+	public const string Blood = "blood";
+	public const string Gear = "gear";
+	public const string Sands = "sands";
 
 	///	<summary>The special dice shown locked ("???") until their code is found, in the order they are shown.</summary>
 	public static readonly IReadOnlyList<string> Special = [Ember, Stardust, Dawn];
 
 	///	<summary>The secret dice: shown nowhere until their code unlocks them (whoever finds one finds a new die).</summary>
-	public static readonly IReadOnlyList<string> Secret = [Frost, Storm, Bone, Hoard, Abyss, Fey, Acid, Arcane, Tide];
+	public static readonly IReadOnlyList<string> Secret = [Frost, Storm, Bone, Hoard, Abyss, Fey, Acid, Arcane, Tide, Blood, Gear, Sands];
 
 	///	<summary>Every die a code unlocks.</summary>
 	public static readonly IReadOnlyList<string> Unlockable = [.. Special, .. Secret];
