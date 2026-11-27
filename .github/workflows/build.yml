@@ -2244,6 +2244,11 @@ jobs:
           npx playwright install --with-deps chromium >/dev/null
           node smoke.mjs
 
+      - name: What the API said when the smoke test failed
+        if: failure()
+        run: |
+          grep -n -A8 -E "fail: |Exception|warn: Microsoft.EntityFrameworkCore" api.log | grep -v '^--$' | tail -60 | sed 's/^/api-log: /' || true
+
       - name: TEMP push the screenshots to a review branch
         if: always()
         env:
