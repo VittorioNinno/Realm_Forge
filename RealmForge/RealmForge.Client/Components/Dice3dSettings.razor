@@ -1,9 +1,11 @@
 ﻿@using RealmForge.Client.Localization
 @using RealmForge.Client.Services
 @using RealmForge.Shared.Dice
+@using RealmForge.Shared.DTOs
 @using RealmForge.Shared.Enums
 @using System.Text.RegularExpressions
 @inject Dice3dService Dice3d
+@inject AchievementDataService Achievements
 @inject LanguageStateService LanguageState
 
 @* The 3D dice of this device: on or off; the set chosen in a gallery (resin in a colour of the palette or any colour,
@@ -99,11 +101,19 @@
                         var on = IsSelected(set);
                         @if (set.Locked)
                         {
+                            var mission = missions.FirstOrDefault(m => m.Skin == set.Key);
                             <button type="button" role="radio" aria-checked="false" disabled class="rf-d3d-card locked" title="@UiText.AchievementGoal(set.Key, Lang)" data-test="dice3d-skin" data-skin="@set.Key">
                                 <span class="rf-d3d-swatch locked" aria-hidden="true"><Icon Name="lock" /></span>
                                 <span class="rf-d3d-card-text">
-                                    <strong>???</strong>
-                                    <span>@UiText.AchievementName(set.Key, Lang)</span>
+                                    <strong><Icon Name="trophy" /> @UiText.AchievementName(set.Key, Lang)</strong>
+                                    <span class="rf-d3d-mission" data-test="dice3d-mission">@UiText.AchievementGoal(set.Key, Lang)</span>
+                                    @if (mission is not null)
+                                    {
+                                        <span class="rf-d3d-mission-progress">
+                                            <span class="rf-ach-track"><span style="width: @MissionRatio(mission)%"></span></span>
+                                            <span class="rf-ach-num">@UiText.AchievementProgress(mission.Progress, mission.Target, Lang)</span>
+                                        </span>
+                                    }
                                 </span>
                             </button>
                         }
@@ -212,6 +222,12 @@
 
     private Dice3dService.Settings? settings;
     private List<string> unlocked = new();
+
+    //	The missions of the special dice still locked, with how far they have come
+    private List<AchievementDto> missions = new();
+
+    private static string MissionRatio(AchievementDto m) =>
+        (m.Target == 0 ? 0 : Math.Min(100, 100.0 * m.Progress / m.Target)).ToString("0.#", System.Globalization.CultureInfo.InvariantCulture);
     private bool available;
     private bool testing;
     private string filter = "all";
@@ -319,6 +335,7 @@
         {
             available = await Dice3d.AvailableAsync();
             unlocked = await Dice3d.UnlockedAsync(reload: true);
+            missions = await Achievements.GetAsync() ?? new();
             settings = await Dice3d.GetAsync();
             StateHasChanged();
         }
