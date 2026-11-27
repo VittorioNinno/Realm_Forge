@@ -1003,29 +1003,43 @@ window.rfDice3d = (() => {
                             stamp(g, q, m.r * fxUnit * q.k, '#140600', 0.16 * burn);
                         }
                     }
-                    g.globalCompositeOperation = 'lighter';
-                    if (breathing) pool(g, P, Math.cos(dir) * 2.6, Math.sin(dir) * 2.6, 3.4, rgba('#ff7a1a', 0.16), rgba('#ff4d00', 0));
+                    g.globalCompositeOperation = 'screen';
+                    if (breathing) pool(g, P, Math.cos(dir) * 2.6, Math.sin(dir) * 2.6, 3.2, 'rgba(255,110,20,0.12)', 'rgba(255,60,0,0)');
                     hole(g, P);
+                    // The jet: each flame is a disc (and a faint halo three times wider) that leaves the die along the line
+                    // of the breath, shrinks as it goes and rises, its colour cooling from yellow to red; pulled back to a
+                    // line that writhes, so the fire has a body that tapers into ragged tongues, not a round glow
                     if (breathing) {
-                        for (let i = 0; i < 16; i++) {
-                            const a = dir + (Math.random() - 0.5) * 0.42, sp = 6 + Math.random() * 4.5;
-                            flames.push({ x: Math.cos(a) * 0.85, y: Math.sin(a) * 0.85, z: 1 + Math.random() * 0.35, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, vz: 0.3 + Math.random() * 1.2, born: t, life: 0.5 + Math.random() * 0.4, s: 0.16 + Math.random() * 0.12 });
+                        for (let i = 0; i < 18; i++) {
+                            flames.push({ d: 0.8 + Math.random() * 0.3, o: (Math.random() - 0.5) * 0.4, z: 1 + Math.random() * 0.3, vd: 9 + Math.random() * 4, vo: (Math.random() - 0.5) * 2, vz: Math.random() * 0.4, dir, born: t, life: 0.6 + Math.random() * 0.4, r: 0.36 + Math.random() * 0.22, h: Math.random() * 10 - 5, ta: 0.8 + Math.random() * 0.1, ph: Math.random() * TAU });
                         }
                     }
-                    const drag = Math.pow(0.22, dt);
+                    const drag = Math.pow(0.42, dt);
                     for (let i = flames.length - 1; i >= 0; i--) {
                         const f = flames[i], age = (t - f.born) / f.life;
+                        const fx0 = Math.cos(f.dir), fy0 = Math.sin(f.dir);
+                        const x = fx0 * f.d - fy0 * f.o, y = fy0 * f.d + fx0 * f.o;
                         if (age >= 1) {
                             flames.splice(i, 1);
-                            if (scorch.length < 140 && Math.random() < 0.25) scorch.push({ x: f.x, y: f.y, r: 0.7 + Math.random() * 0.6 });
-                            if (smoke.length < 70 && Math.random() < 0.09) smoke.push(particle({ x: f.x, y: f.y, z: f.z, vx: f.vx * 0.1, vy: f.vy * 0.1, vz: 0.8 + Math.random(), drag: 0.6, size: 6 + Math.random() * 6, color: '#3d3531', alpha: 0.32, born: t, life: 1.4 }));
+                            if (scorch.length < 140 && Math.random() < 0.25) scorch.push({ x, y, r: 0.6 + Math.random() * 0.5 });
+                            if (smoke.length < 70 && Math.random() < 0.08) smoke.push(particle({ x, y, z: f.z, vx: fx0 * f.vd * 0.15, vy: fy0 * f.vd * 0.15, vz: 0.8 + Math.random(), drag: 0.6, size: 6 + Math.random() * 6, color: '#3d3531', alpha: 0.3, born: t, life: 1.4 }));
                             continue;
                         }
-                        f.vx *= drag; f.vy *= drag; f.vz += 2.2 * dt;
-                        f.x += f.vx * dt; f.y += f.vy * dt; f.z += f.vz * dt;
-                        const q = P(f.x, f.y, f.z);
-                        stamp(g, q, (f.s + age * 1.2) * fxUnit * q.k, heatAt(age), (age < 0.08 ? age / 0.08 : 1) * (1 - age) * (age < 0.2 ? 0.16 : 0.3));
-                        if (embers.length < 90 && Math.random() < 0.012) embers.push(particle({ x: f.x, y: f.y, z: f.z, vx: f.vx * 0.3 + (Math.random() - 0.5), vy: f.vy * 0.3 + (Math.random() - 0.5), vz: 1.5 + Math.random() * 2, g: -1.5, drag: 0.7, size: 1 + Math.random(), color: pick(['#ffe9a0', '#ffb347', '#ff7a1a']), born: t, life: 0.8 + Math.random() * 0.8 }));
+                        // The line it is pulled to writhes, and splits into a few tongues further out
+                        const axis = Math.sin(f.d * 1.5 - t * 8) * 0.3 * f.d + Math.sin(f.ph) * Math.max(0, f.d - 2) * 0.35;
+                        f.vo += (axis - f.o) * 6 / (1 + f.d * 0.6) * dt + (Math.random() - 0.5) * (6 + f.d * 5) * dt;
+                        f.vd *= drag;
+                        f.vz += 2.6 * dt;
+                        f.d += f.vd * dt; f.o += f.vo * dt; f.z += f.vz * dt;
+                        const q = P(x, y, f.z), r = f.r * (1 - age * 0.85) * (0.7 + Math.min(1, f.d / 3) * 0.5) * fxUnit * q.k;
+                        if (r < 0.4) continue;
+                        const a = (age < 0.15 ? age / 0.15 : age > 0.75 ? (1 - age) / 0.25 : 1) * f.ta;
+                        const hue = Math.max(0, 36 - age * 36 + f.h), light = 54 - age * 12;
+                        g.fillStyle = `hsla(${hue.toFixed(0)},100%,${light.toFixed(0)}%,${(a / 40).toFixed(3)})`;
+                        g.beginPath(); g.arc(q.x, q.y, r * 3, 0, TAU); g.fill();
+                        g.fillStyle = `hsla(${hue.toFixed(0)},100%,${light.toFixed(0)}%,${(a * 0.22).toFixed(3)})`;
+                        g.beginPath(); g.arc(q.x, q.y, r, 0, TAU); g.fill();
+                        if (embers.length < 90 && Math.random() < 0.01) embers.push(particle({ x, y, z: f.z, vx: fx0 * f.vd * 0.3 + (Math.random() - 0.5), vy: fy0 * f.vd * 0.3 + (Math.random() - 0.5), vz: 1.5 + Math.random() * 2, g: -1.5, drag: 0.7, size: 0.9 + Math.random() * 0.8, color: pick(['#ffd27a', '#ff9a3c', '#ff6a1a']), born: t, life: 0.8 + Math.random() * 0.8 }));
                     }
                     g.globalCompositeOperation = 'source-over';
                     run(g, P, smoke, t, dt, 'smoke');
@@ -1331,7 +1345,7 @@ window.rfDice3d = (() => {
                 }
                 if (high) {
                     const glow = span(t, 0, 0.4, 1.9, 2.6), crumble = clamp01((t - 1.9) / 0.5);
-                    pool(g, P, 0, 0, 3.8, rgba(fx.colors[1], 0.2 * glow), rgba(fx.colors[1], 0));
+                    pool(g, P, 0, 0, 3.8, rgba(fx.colors[2], 0.1 * glow), rgba(fx.colors[2], 0));
                     g.globalCompositeOperation = 'source-over';
                     for (const b of bones) {
                         const up = ease(clamp01((t - b.at) / 0.4)) * (1 - crumble);
@@ -1340,10 +1354,21 @@ window.rfDice3d = (() => {
                         const ta = b.a + Math.PI / 2 + b.tilt, half = b.len * up;
                         const A = P(b.x - Math.cos(ta) * half, b.y - Math.sin(ta) * half, 0), B = P(b.x + Math.cos(ta) * half, b.y + Math.sin(ta) * half, 0);
                         const len = Math.hypot(B.x - A.x, B.y - A.y) || 1, nx = -(B.y - A.y) / len, ny = (B.x - A.x) / len;
-                        const w = 0.26 * fxUnit * A.k, knob = w * 0.62;
+                        const w = 0.3 * fxUnit * A.k, knob = w * 0.6;
                         g.save();
                         g.globalAlpha = Math.min(1, up * 1.4);
-                        g.fillStyle = '#ddd2b6';
+                        // Its shadow on the table, a little aside
+                        g.strokeStyle = 'rgba(0,0,0,0.45)';
+                        g.lineCap = 'round';
+                        g.lineWidth = w * 1.5;
+                        g.beginPath(); g.moveTo(A.x + w * 0.35, A.y + w * 0.45); g.lineTo(B.x + w * 0.35, B.y + w * 0.45); g.stroke();
+                        // Shaded round, as bone: dark at the edges, pale along the middle
+                        const shade = g.createLinearGradient(A.x + nx * w * 0.6, A.y + ny * w * 0.6, A.x - nx * w * 0.6, A.y - ny * w * 0.6);
+                        shade.addColorStop(0, '#8f8468');
+                        shade.addColorStop(0.35, '#e8dfc8');
+                        shade.addColorStop(0.6, '#cfc3a4');
+                        shade.addColorStop(1, '#6f654d');
+                        g.fillStyle = shade;
                         g.strokeStyle = 'rgba(40,32,20,0.75)';
                         g.lineWidth = 1.2;
                         g.beginPath();
@@ -1364,14 +1389,17 @@ window.rfDice3d = (() => {
                         g.closePath();
                         g.fill();
                         g.stroke();
-                        // Light along one side, the shade of the other
-                        g.strokeStyle = 'rgba(255,250,235,0.7)';
-                        g.beginPath(); g.moveTo(A.x + nx * w * 0.2, A.y + ny * w * 0.2); g.lineTo(B.x + nx * w * 0.2, B.y + ny * w * 0.2); g.stroke();
-                        g.strokeStyle = 'rgba(120,104,72,0.55)';
-                        g.beginPath(); g.moveTo(A.x - nx * w * 0.25, A.y - ny * w * 0.25); g.lineTo(B.x - nx * w * 0.25, B.y - ny * w * 0.25); g.stroke();
+                        // Pores and a crack or two along the shaft
+                        g.strokeStyle = 'rgba(90,78,55,0.5)';
+                        g.lineWidth = 0.8;
+                        g.beginPath();
+                        g.moveTo(A.x * 0.7 + B.x * 0.3 + nx * w * 0.1, A.y * 0.7 + B.y * 0.3 + ny * w * 0.1);
+                        g.lineTo(A.x * 0.55 + B.x * 0.45 - nx * w * 0.15, A.y * 0.55 + B.y * 0.45 - ny * w * 0.15);
+                        g.lineTo(A.x * 0.45 + B.x * 0.55 + nx * w * 0.05, A.y * 0.45 + B.y * 0.55 + ny * w * 0.05);
+                        g.stroke();
                         g.restore();
                         // The ghost fire off the bone
-                        if (up > 0.5 && crumble === 0 && Math.random() < 0.55) {
+                        if (up > 0.5 && crumble === 0 && Math.random() < 0.25) {
                             const u = Math.random() - 0.5;
                             ghost.push({ x: b.x + Math.cos(ta) * half * u * 1.6, y: b.y + Math.sin(ta) * half * u * 1.6, z: 0.1, vz: 1.4 + Math.random() * 1.2, dx: (Math.random() - 0.5) * 0.4, born: t, life: 0.7 + Math.random() * 0.4, s: 0.12 + Math.random() * 0.1 });
                         }
@@ -1382,7 +1410,7 @@ window.rfDice3d = (() => {
                         if (age >= 1) { ghost.splice(i, 1); continue; }
                         f.z += f.vz * dt; f.x += f.dx * dt;
                         const q = P(f.x, f.y, f.z);
-                        stamp(g, q, (f.s + age * 0.5) * fxUnit * q.k, age < 0.3 ? fx.colors[0] : age < 0.65 ? fx.colors[1] : fx.colors[2], (age < 0.1 ? age / 0.1 : 1) * (1 - age) * 0.2);
+                        stamp(g, q, (f.s + age * 0.6) * fxUnit * q.k, age < 0.4 ? fx.colors[1] : fx.colors[2], (age < 0.1 ? age / 0.1 : 1) * (1 - age) * 0.09);
                     }
                     if (crumble > 0 && !crumbled) {
                         crumbled = true;
