@@ -57,6 +57,9 @@
                         <button type="button" class="rf-d3d-btn" disabled="@(!available || !settings.Enabled || testing || preparing > 0)" title="@UiText.Dice3dCritHint(Lang)" @onclick="CriticalAsync" data-test="dice3d-crit-test">
                             <Icon Name="stars" /> @UiText.Dice3dCritTest(Lang)
                         </button>
+                        <button type="button" class="rf-d3d-btn" disabled="@(!available || !settings.Enabled || testing || preparing > 0)" title="@UiText.Dice3dFumbleHint(Lang)" @onclick="FumbleAsync" data-test="dice3d-fumble-test">
+                            <Icon Name="dice" /> @UiText.Dice3dFumbleTest(Lang)
+                        </button>
                     }
                     <button type="button" class="rf-d3d-btn primary" disabled="@(!available || !settings.Enabled || testing || preparing > 0)" @onclick="TestAsync" data-test="dice3d-test">
                         @if (preparing > 0)
@@ -422,6 +425,14 @@
     {
         testing = true;
         await Dice3d.RollAsync(new[] { new Components.DieFace(20, 20) });
+        testing = false;
+    }
+
+    //	A d20 landing on a natural 1: the effect of the special die when it fails
+    private async Task FumbleAsync()
+    {
+        testing = true;
+        await Dice3d.RollAsync(new[] { new Components.DieFace(20, 1) });
         testing = false;
     }
 }

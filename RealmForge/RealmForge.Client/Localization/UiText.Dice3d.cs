@@ -68,7 +68,9 @@ namespace RealmForge.Client.Localization
 		public static string Dice3dOff(LanguageCode lang) => T(lang, "Spenti", "Off");
 		public static string Dice3dSelected(LanguageCode lang) => T(lang, "Set selezionato", "Selected set");
 		public static string Dice3dCritTest(LanguageCode lang) => T(lang, "Prova un critico", "Try a critical");
-		public static string Dice3dCritHint(LanguageCode lang) => T(lang, "Un d20 che cade sul 20: l'effetto del dado con un 20 naturale (con un 1 naturale la luce si spegne)", "A d20 landing on 20: the die's effect on a natural 20 (on a natural 1 the light dies)");
+		public static string Dice3dCritHint(LanguageCode lang) => T(lang, "Un d20 che cade sul 20: l'effetto del dado con un 20 naturale", "A d20 landing on 20: the die's effect on a natural 20");
+		public static string Dice3dFumbleTest(LanguageCode lang) => T(lang, "Prova un fallimento", "Try a fumble");
+		public static string Dice3dFumbleHint(LanguageCode lang) => T(lang, "Un d20 che cade sull'1: l'effetto del dado con un 1 naturale", "A d20 landing on 1: the die's effect on a natural 1");
 		public static string Dice3dPreparing(LanguageCode lang) => T(lang, "Preparazione…", "Preparing…");
 		public static string Dice3dPreparingHint(LanguageCode lang) => T(lang, "Preparo i nuovi dadi: i lanci partono appena sono pronti.", "Preparing the new dice: the throws start as soon as they are ready.");
 		public static string Dice3dSearch(LanguageCode lang) => T(lang, "Cerca un set…", "Search a set…");
