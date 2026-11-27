@@ -1090,7 +1090,7 @@ jobs:
           dc_table=$(psql -h localhost -U postgres -d realm_forge_ci -tAc "SELECT to_regclass('public.\"DiceUnlockCodes\"') IS NULL")
           dc_code=$(code -X POST "$api/api/account/dice/unlock" $json -H "Authorization: Bearer $A" -d '{"code":"x"}')
           dc_list=$(get "$api/api/account/achievements" -H "Authorization: Bearer $A" | jq -c '{special: ([.[] | select(.hidden | not) | .key] | sort), hiddenOpen: ([.[] | select(.hidden and (.earned | not))] | length), progress: ([.[] | select(.key == "ember") | .target][0])}')
-          dc_news=$(get "$api/api/account/achievements/news" -H "Authorization: Bearer $A" | jq -c 'type')
+          dc_news=$(get "$api/api/account/achievements/news" -H "Authorization: Bearer $A" | jq -r 'type')
           dc_zone="$(code -X PUT "$api/api/account/timezone" $json -H "Authorization: Bearer $A" -d '{"timeZone":"Europe/Rome"}') $(code -X PUT "$api/api/account/timezone" $json -H "Authorization: Bearer $A" -d '{"timeZone":"Nowhere/Land"}')"
           dc_other=$(get "$api/api/account/dice" -H "Authorization: Bearer $B" | jq -c .unlocked)
           # The journal with @mentions and the masters' secrets: a player reads the page, not the secrets, and cannot write them
