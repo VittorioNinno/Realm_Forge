@@ -2455,12 +2455,16 @@ try {
   await page.locator('[data-test=account-achievements] [data-test=achievement]').first().waitFor({ timeout: 30000 });
   const achievementsUi = await page.evaluate(() => ({
     keys: [...document.querySelectorAll('[data-test=account-achievements] [data-test=achievement]')].map((a) => a.dataset.key),
-    bars: document.querySelectorAll('[data-test=account-achievements] .rf-ach-progress').length
+    bars: document.querySelectorAll('[data-test=account-achievements] .rf-ach-progress-row').length,
+    sealed: document.querySelectorAll('[data-test=account-achievements] [data-test=achievement-sealed]').length,
+    secretEarned: document.querySelectorAll('[data-test=account-achievements] [data-test=achievement][data-hidden=true][data-earned=true]').length,
+    count: document.querySelector('[data-test=achievements-count]')?.textContent.trim()
   }));
   await shot(page, 'achievements', '[data-test=account-achievements]');
   results.push(`INFO achievements: ${JSON.stringify(achievementsUi)}`);
-  if (!['ember', 'stardust', 'dawn'].every((k) => achievementsUi.keys.includes(k))) throw new Error(`unexpected achievements: ${JSON.stringify(achievementsUi)}`);
-  ok('achievements: the profile shows the missions of the special dice with their progress; the secret ones stay hidden');
+  if (!['ember', 'stardust', 'dawn'].every((k) => achievementsUi.keys.includes(k)) || achievementsUi.sealed + achievementsUi.secretEarned !== 12
+    || !/\/ 15/.test(achievementsUi.count ?? '')) throw new Error(`unexpected achievements: ${JSON.stringify(achievementsUi)}`);
+  ok('achievements: the profile shows the missions of the special dice with their progress, the secret ones still to find as sealed cards');
   // Visual effects: switched off they stop the flashes on the whole page; full again, a preview bursts on the canvas
   await page.locator('[data-test=account-fx]').waitFor({ timeout: 15000 });
   await page.locator('[data-test=fx-level]').nth(2).click();

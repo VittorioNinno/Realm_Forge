@@ -9,10 +9,20 @@ namespace RealmForge.Client.Localization
 		public static string AchievementsHint(LanguageCode lang) => T(lang,
 			"Completa le missioni per sbloccare nuovi dadi. Alcune sono segrete: le scopri solo completandole.",
 			"Complete the missions to unlock new dice. Some are secret: you find them only by completing them.");
-		public static string AchievementsEarned(int count, LanguageCode lang) => count == 1
-			? T(lang, "1 trofeo ottenuto", "1 achievement earned")
-			: T(lang, $"{count} trofei ottenuti", $"{count} achievements earned");
-		public static string AchievementsSecretLeft(LanguageCode lang) => T(lang, "Altri trofei segreti ti aspettano…", "More secret achievements await…");
+		public static string AchievementsSecretLeft(LanguageCode lang) => T(lang, "Altri trofei segreti ti aspettano mentre giochi…", "More secret achievements await you as you play…");
+		public static string AchievementsOf(int earned, int total, LanguageCode lang) => T(lang, $"{earned} / {total} ottenuti", $"{earned} / {total} earned");
+		public static string AchievementsCompletion(LanguageCode lang) => T(lang, "Completamento", "Completion");
+		public static string AchievementsFilterAll(LanguageCode lang) => T(lang, "Tutti", "All");
+		public static string AchievementsFilterEarned(LanguageCode lang) => T(lang, "Ottenuti", "Earned");
+		public static string AchievementsFilterLocked(LanguageCode lang) => T(lang, "Bloccati", "Locked");
+		public static string AchievementsFilterHidden(LanguageCode lang) => T(lang, "Segreti nascosti", "Hidden secrets");
+		public static string AchievementsNone(LanguageCode lang) => T(lang, "Nessun trofeo qui, per ora.", "No achievements here, for now.");
+		public static string AchievementLocked(LanguageCode lang) => T(lang, "Bloccato", "Locked");
+		public static string AchievementNotYet(LanguageCode lang) => T(lang, "Non ancora ottenuto", "Not earned yet");
+		public static string AchievementSealedName(LanguageCode lang) => T(lang, "Trofeo segreto", "Secret achievement");
+		public static string AchievementSealedGoal(LanguageCode lang) => T(lang, "Completa una missione nascosta per rivelare questo trofeo.", "Complete a hidden mission to reveal this achievement.");
+		public static string AchievementSealedWhen(LanguageCode lang) => T(lang, "Scoprilo giocando", "Find it as you play");
+		public static string AchievementSealedReward(LanguageCode lang) => T(lang, "Ricompensa sconosciuta", "Unknown reward");
 		public static string AchievementEarnedOn(DateTimeOffset at, LanguageCode lang) => T(lang, $"Ottenuto il {at.ToLocalTime():dd/MM/yyyy}", $"Earned on {at.ToLocalTime():MMM d, yyyy}");
 		public static string AchievementGiven(LanguageCode lang) => T(lang, "Assegnato", "Given");
 		public static string AchievementRevoked(LanguageCode lang) => T(lang, "Revocato", "Revoked");
