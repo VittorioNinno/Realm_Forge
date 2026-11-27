@@ -22,7 +22,7 @@
             @foreach (var a in items.OrderByDescending(a => a.Earned).ThenBy(a => a.Hidden))
             {
                 var swatch = Dice3dSettings.Swatches.TryGetValue(a.Skin, out var sw) ? sw : ("#ffb04d", "#ff8c00", "#141414");
-                <div class="rf-ach-item @(a.Earned ? "earned" : null)" data-test="achievement" data-key="@a.Key" data-earned="@(a.Earned ? "true" : "false")">
+                <div class="rf-ach-item @(a.Earned ? "earned" : null)" data-test="achievement" data-key="@a.Key" data-earned="@(a.Earned ? "true" : "false")" data-hidden="@(a.Hidden ? "true" : "false")">
                     <span class="rf-ach-medal" style="--ach-c1: @swatch.Item1; --ach-c2: @swatch.Item2; --ach-dot: @swatch.Item3;">
                         <Icon Name="@(a.Earned ? "trophy-fill" : "trophy")" />
                     </span>

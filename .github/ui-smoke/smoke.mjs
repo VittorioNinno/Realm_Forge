@@ -2421,6 +2421,7 @@ try {
     await page.locator('[data-test=dice3d-hex]').blur();
     await page.waitForFunction(() => JSON.parse(localStorage.getItem('rf-dice3d') || '{}').color === '#22c55e', null, { timeout: 15000 });
     const lockedSkins = await page.locator('[data-test=dice3d-skin]:disabled').count();
+    await page.locator('[data-test=account-achievements] [data-test=achievement]').first().waitFor({ timeout: 30000 });
     const codeField = await page.locator('[data-test=dice3d-code]').count();
     await shot(page, 'dice3d-settings', '[data-test=account-dice3d]');
     const gallery = {
@@ -2428,11 +2429,14 @@ try {
       cards: await page.locator('[data-test=dice3d-grid] .rf-d3d-card').count(),
       secretPill: await page.locator('[data-test=dice3d-filter][data-filter=secret]').count(),
       active: (await page.locator('[data-test=dice3d-active-name]').innerText()).trim(),
-      codeField
+      codeField,
+      // The secret dice this account has earned along the way (the smoke test reaches some missions): only those show
+      secretEarned: await page.locator('[data-test=account-achievements] [data-test=achievement][data-hidden=true][data-earned=true]').count()
     };
     results.push(`INFO 3D dice gallery: ${JSON.stringify(gallery)}`);
-    if (gallery.locked !== 3 || gallery.cards !== 12 || gallery.secretPill !== 0 || gallery.codeField !== 0 || !gallery.active.includes('#22c55e')) throw new Error(`unexpected dice gallery (the secret dice must not show): ${JSON.stringify(gallery)}`);
-    ok('3D dice: a colour of one\'s own is kept, the special dice wait for their mission, the secret ones are not shown at all, no codes');
+    if (gallery.locked !== 3 || gallery.cards !== 12 + gallery.secretEarned || gallery.secretPill !== (gallery.secretEarned > 0 ? 1 : 0)
+      || gallery.codeField !== 0 || !gallery.active.includes('#22c55e')) throw new Error(`unexpected dice gallery (the secret dice must not show): ${JSON.stringify(gallery)}`);
+    ok('3D dice: a colour of one\'s own is kept, the special dice wait for their mission, the secret ones show only once earned, no codes');
     // The critical moment of a special die (a natural 20), drawn on its own canvas over the page
     const crit = page.evaluate(() => window.rfDice3d.critical('arcane', true));
     await page.locator('.rf-dice3d-fx.shown').waitFor({ timeout: 10000 });
