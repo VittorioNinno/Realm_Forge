@@ -6,8 +6,11 @@
 @using RealmForge.Shared.Enums
 @inject CampaignDataService Campaigns
 @inject LanguageStateService LanguageState
+@implements IDisposable
 
-@* The virtual tabletop of a campaign, on the whole window: the masters show a map and run it, the players play on it *@
+@* The virtual tabletop of a campaign, on the whole window: the masters show a map and run it, the players play on it.
+   ?screen=table: the table screen a master opens for the players round the table (a second monitor, a touch screen):
+   the table as the players see it, every player's character playable on it *@
 <PageTitle>RealmForge - @UiText.VttTitle(Lang)@(campaign is null ? null : $" · {campaign.Name}")</PageTitle>
 
 @if (loading)
@@ -23,7 +26,7 @@ else if (campaign is null)
 }
 else
 {
-    <CampaignMap CampaignId="campaign.Id" Role="campaign.MyRole" Characters="campaign.Characters" Members="campaign.Members" LiveTable="campaign.Table" Table="true" MyColor="@(campaign.Members.FirstOrDefault(m => m.IsMe)?.Color ?? PlayerColors.Master)" BackHref="@($"campaigns/{campaign.Id}")" StartEncounter="Encounter" />
+    <CampaignMap CampaignId="campaign.Id" Role="@(IsScreen ? CampaignRole.Player : campaign.MyRole)" Characters="@(IsScreen ? PartyCharacters : campaign.Characters)" Members="campaign.Members" LiveTable="campaign.Table" Table="true" Screen="IsScreen" MyColor="@(campaign.Members.FirstOrDefault(m => m.IsMe)?.Color ?? PlayerColors.Master)" BackHref="@($"campaigns/{campaign.Id}")" StartEncounter="@(IsScreen ? null : Encounter)" />
 }
 
 @code {
@@ -32,13 +35,41 @@ else
     //	?encounter=…: the encounter to start, from its page
     [SupplyParameterFromQuery(Name = "encounter")] public Guid? Encounter { get; set; }
 
+    //	?screen=table: this window is the table screen
+    [SupplyParameterFromQuery(Name = "screen")] public string? ScreenMode { get; set; }
+
+    private bool IsScreen => ScreenMode == "table";
+
+    //	On the table screen every player's character is played as one's own
+    private IReadOnlyList<CampaignCharacterDto> PartyCharacters
+    {
+        get
+        {
+            var party = campaign!.Members.Where(m => m.Role == CampaignRole.Player).Select(m => m.UserId).ToHashSet();
+            return campaign.Characters.Select(c => party.Contains(c.OwnerId) ? c with { IsMine = true } : c).ToList();
+        }
+    }
+
     private LanguageCode Lang => LanguageState.CurrentLanguage;
     private CampaignDetailDto? campaign;
     private bool loading = true;
 
     protected override async Task OnInitializedAsync()
     {
+        //	Before the first call: the API answers the table screen as it answers the players
+        TableScreen.CampaignId = IsScreen ? Id : null;
+        TableScreen.ActAs = null;
         campaign = await Campaigns.GetCampaignAsync(Id, Lang);
         loading = false;
+    }
+
+    //	Leaving the page, this window is no longer the table screen
+    public void Dispose()
+    {
+        if (IsScreen)
+        {
+            TableScreen.CampaignId = null;
+            TableScreen.ActAs = null;
+        }
     }
 }

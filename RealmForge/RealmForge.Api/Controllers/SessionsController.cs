@@ -436,8 +436,12 @@ namespace RealmForge.Api.Controllers
 	///	</summary>
 	internal static class CampaignAccess
 	{
-		public static async Task<CampaignRole?> RoleAsync(RealmForgeDbContext context, Guid campaignId, string userId) =>
-			await context.CampaignMembers.Where(m => m.CampaignId == campaignId && m.UserId == userId).Select(m => (CampaignRole?)m.Role).FirstOrDefaultAsync();
+		public static async Task<CampaignRole?> RoleAsync(RealmForgeDbContext context, Guid campaignId, string userId)
+		{
+			var role = await context.CampaignMembers.Where(m => m.CampaignId == campaignId && m.UserId == userId).Select(m => (CampaignRole?)m.Role).FirstOrDefaultAsync();
+			//	The table screen of a master sees the table as the players do
+			return role is { } r && CampaignRules.RunsTheTable(r) && global::RealmForge.Api.Campaigns.TableScreen.Party is not null ? CampaignRole.Player : role;
+		}
 
 		///	<summary>
 		///	Gives a colour to the members who have none yet (members from before the colours, a restored campaign) and

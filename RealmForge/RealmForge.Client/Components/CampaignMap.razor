@@ -28,11 +28,19 @@
     {
         <HandoutView Handout="popupHandout" CampaignId="CampaignId" OnClose="() => popupHandout = null" />
     }
-    <div class="rf-vtt-table" @ref="tableElement" data-test="vtt">
+    <div class="rf-vtt-table @(Screen ? "rf-vtt-screen" : null) @(Screen && touchMode ? "rf-vtt-touch" : null)" @ref="tableElement" data-test="vtt" data-screen="@(Screen ? "table" : null)">
         <DiceTray @ref="tray" AutoHideMs="1800" ShowHistory="false" />
         <EquipmentInfoModal Item="groundInfo" OnClose="() => groundInfo = null" />
         <header class="rf-vtt-top">
-            <a href="@BackHref" class="rf-vtt-back" data-test="vtt-back"><Icon Name="left" /> <span>@UiText.VttBack(Lang)</span></a>
+            @if (Screen)
+            {
+                @* The table screen: no way out to the rest of the site, the players' table only *@
+                <span class="rf-vtt-screen-badge" data-test="vtt-screen-badge"><Icon Name="window" /> <span>@UiText.TableScreenName(Lang)</span></span>
+            }
+            else
+            {
+                <a href="@BackHref" class="rf-vtt-back" data-test="vtt-back"><Icon Name="left" /> <span>@UiText.VttBack(Lang)</span></a>
+            }
             @if (RunsTheTable && maps is { Count: > 0 })
             {
                 <div class="rf-vtt-select" data-test="map-select">
@@ -743,6 +751,77 @@ else
     private static string N(double value) => value.ToString("0.##", CultureInfo.InvariantCulture);
 
     private CampaignCharacterDto? CharacterOf(MapTokenDto t) => t.CharacterId is { } id ? Characters.FirstOrDefault(c => c.Character.Id == id) : null;
+
+    // ===== The table screen: a second window of the master's table, for the players round it =====
+
+    //	This window is the table screen (opened by a master): the table as the players see it, every player acting on it
+    [Parameter] public bool Screen { get; set; }
+
+    //	Bigger targets for the fingers (a touch screen at the table); kept by this browser
+    private bool touchMode;
+
+    private HashSet<string> Party => Members.Where(m => m.Role == CampaignRole.Player).Select(m => m.UserId).ToHashSet();
+
+    //	The player a token belongs to: its character's, or the one a master gave it to
+    private string? PlayerOf(MapTokenDto t)
+    {
+        var party = Party;
+        return CharacterOf(t) is { } c && party.Contains(c.OwnerId) ? c.OwnerId : t.ControlledBy?.FirstOrDefault(party.Contains);
+    }
+
+    //	What is done next on the table screen is done by the player of this token (nothing changes for a token of nobody's)
+    private void ActFor(MapTokenDto? t)
+    {
+        if (Screen && t is not null && PlayerOf(t) is { } player)
+        {
+            TableScreen.ActAs = player;
+        }
+    }
+
+    private string? ActingName => Screen && TableScreen.ActAs is { } id ? Members.FirstOrDefault(m => m.UserId == id)?.Name : null;
+
+    private async Task OpenScreenAsync()
+    {
+        //	Its own window, to drag to the second monitor (a popup, so the browser gives it no tabs or address bar)
+        await JS.InvokeVoidAsync("open", Navigation.ToAbsoluteUri($"campaigns/{CampaignId}/vtt?screen=table").ToString(), $"rf-table-screen-{CampaignId:N}", "popup=yes,width=1280,height=800");
+    }
+
+    private async Task FullscreenAsync()
+    {
+        try
+        {
+            await JS.InvokeVoidAsync("rfScreen.fullscreen");
+        }
+        catch (JSException)
+        {
+            //	Not allowed by this browser: the window stays as it is
+        }
+    }
+
+    private async Task ToggleTouchAsync()
+    {
+        touchMode = !touchMode;
+        try
+        {
+            await JS.InvokeVoidAsync("localStorage.setItem", "rf-table-screen-touch", touchMode ? "1" : "0");
+        }
+        catch (JSException)
+        {
+        }
+    }
+
+    private async Task LoadTouchAsync()
+    {
+        try
+        {
+            //	Chosen before, or a screen that only knows fingers
+            touchMode = await JS.InvokeAsync<string?>("localStorage.getItem", "rf-table-screen-touch") is { } saved ? saved == "1" : await JS.InvokeAsync<bool>("rfScreen.touchOnly");
+        }
+        catch (JSException)
+        {
+            touchMode = false;
+        }
+    }
 
     private string? PortraitOf(MapTokenDto t) =>
         t.Portrait ?? CharacterOf(t)?.Character.Portrait ?? (t.ImageId is { } imageId ? Images.FileUrl(imageId) : null);
@@ -4040,6 +4119,11 @@ else
         {
             await LoadLayoutAsync();
             await WatchPhoneAsync();
+            if (Screen)
+            {
+                await LoadTouchAsync();
+                StateHasChanged();
+            }
         }
         await BloomAreasAsync();
         //	The turn that just came is brought into view in a long order
@@ -4230,6 +4314,7 @@ else
             return;
         }
         infoToken = Guid.TryParse(id, out var tokenId) && infoToken != tokenId ? tokenId : null;
+        ActFor(InfoToken);
         toolTab = null;
         moreDock = false;
         hpAmount = null;
@@ -4298,6 +4383,7 @@ else
             return;
         }
         var (col, row) = MapGeometry.Nearest(gridType, grid, offsetX, offsetY, x, y, t.Size);
+        ActFor(t);
         await MoveToAsync(t, col, row);
     }
 
@@ -4555,7 +4641,14 @@ else
 
     private void ApplyCombat(MapCombatDto? fight)
     {
+        var turn = combat?.CurrentId;
         combat = fight;
+        //	On the table screen the player whose turn it is acts
+        if (Screen && fight?.CurrentId is { } current && current != turn
+            && fight.Order.FirstOrDefault(c => c.Id == current)?.TokenId is { } turnToken)
+        {
+            ActFor(tokens.FirstOrDefault(k => k.Id == turnToken));
+        }
     }
 
     private async Task LoadEncountersAsync()
@@ -5184,6 +5277,19 @@ else
     //	computer; on a phone in a panel of their own
     private RenderFragment TopActions => __builder =>
     {
+                @if (Screen)
+                {
+                    @if (ActingName is { } acting)
+                    {
+                        <span class="rf-vtt-screen-actor" title="@UiText.TableScreenActingHint(Lang)" data-test="vtt-screen-actor"><Icon Name="person" /> <span>@UiText.TableScreenActing(acting, Lang)</span></span>
+                    }
+                    <button type="button" class="rf-vtt-clock @(touchMode ? "on" : null)" aria-pressed="@(touchMode ? "true" : "false")" title="@UiText.TableScreenTouchHint(Lang)" @onclick="ToggleTouchAsync" data-test="vtt-screen-touch"><Icon Name="hand-index" /> <span>@UiText.TableScreenTouch(Lang)</span></button>
+                    <button type="button" class="rf-vtt-clock" title="@UiText.TableScreenFullscreen(Lang)" aria-label="@UiText.TableScreenFullscreen(Lang)" @onclick="FullscreenAsync" data-test="vtt-screen-fullscreen"><Icon Name="fullscreen" /></button>
+                }
+                else if (RunsTheTable && Table)
+                {
+                    <button type="button" class="rf-vtt-clock" title="@UiText.TableScreenOpenHint(Lang)" @onclick="OpenScreenAsync" data-test="vtt-screen-open"><Icon Name="window" /> <span>@UiText.TableScreenOpen(Lang)</span></button>
+                }
                 @if (SoundWaiting)
                 {
                     <button type="button" class="rf-vtt-clock rf-vtt-sound-unlock" @onclick="UnlockSoundAsync" data-test="vtt-sound-unlock"><Icon Name="volume-up" /> <span>@UiText.SoundUnlock(Lang)</span></button>

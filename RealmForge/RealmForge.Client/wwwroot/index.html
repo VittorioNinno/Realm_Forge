@@ -192,6 +192,12 @@
             }
         };
 
+        // The table screen: the whole monitor for it, and whether this screen only knows fingers (a touch screen)
+        window.rfScreen = {
+            fullscreen: () => document.fullscreenElement ? document.exitFullscreen() : document.documentElement.requestFullscreen(),
+            touchOnly: () => window.matchMedia('(pointer: coarse)').matches && !window.matchMedia('(any-pointer: fine)').matches
+        };
+
         // The person's own clock (an IANA time zone such as Europe/Rome), for the achievements made at night
         window.rfClock = { zone: () => { try { return Intl.DateTimeFormat().resolvedOptions().timeZone || ''; } catch { return ''; } } };
 
