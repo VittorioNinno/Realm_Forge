@@ -27271,3 +27271,66 @@ input[type="number"]:not(.rf-stepper-input):not(.rf-coin-input):not(.rf-hp-amoun
         flex-wrap: wrap;
     }
 }
+
+/* ----- The table screen: the master's table in a second window, for the players round it ----- */
+.rf-vtt-screen-badge,
+.rf-vtt-screen-actor {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 0 8px;
+    border-radius: 8px;
+    font-size: .8rem;
+    font-weight: 800;
+    line-height: 30px;
+    white-space: nowrap;
+}
+
+.rf-vtt-screen-badge {
+    border: 1px solid rgba(255, 140, 0, .5);
+    background-color: rgba(255, 140, 0, .12);
+    color: #ffb74d;
+}
+
+.rf-vtt-screen-actor {
+    max-width: 240px;
+    overflow: hidden;
+    border: 1px solid #303030;
+    color: var(--rf-text-primary);
+    text-overflow: ellipsis;
+}
+
+    .rf-vtt-screen-actor svg {
+        color: var(--rf-orange-primary);
+    }
+
+/* Touch: every control big enough for a finger, nothing selected by a long press */
+.rf-vtt-touch {
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-touch-callout: none;
+}
+
+    .rf-vtt-touch button,
+    .rf-vtt-touch .btn,
+    .rf-vtt-touch select,
+    .rf-vtt-touch input:not([type=checkbox]):not([type=radio]) {
+        min-height: 40px;
+    }
+
+    .rf-vtt-touch button:not(.rf-vtt-token),
+    .rf-vtt-touch .btn {
+        min-width: 40px;
+    }
+
+    .rf-vtt-touch .rf-vtt-clock,
+    .rf-vtt-touch .rf-vtt-screen-badge,
+    .rf-vtt-touch .rf-vtt-screen-actor {
+        line-height: 40px;
+        font-size: .9rem;
+    }
+
+    .rf-vtt-touch .rf-vtt-toolbar button {
+        font-size: 1rem;
+    }
+

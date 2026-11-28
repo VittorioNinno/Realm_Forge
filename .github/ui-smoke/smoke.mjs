@@ -2369,6 +2369,22 @@ try {
   // The master starts the table: the top bar says it is open, the campaign shows the way in first, the list marks it
   await page.locator('[data-test=vtt-table-start]').click();
   await page.locator('[data-test=vtt-table-open]').waitFor({ timeout: 15000 });
+  // The table screen: a second window of the master's table, for the players round it (no master tools, no way out)
+  const [screen] = await Promise.all([context.waitForEvent('page'), page.locator('[data-test=vtt-screen-open]').click()]);
+  await screen.locator('[data-test=vtt-screen-badge]').waitFor({ timeout: 120000 });
+  const screenUi = {
+    url: new URL(screen.url()).search,
+    masterTools: await screen.locator('[data-test=vtt-table-start], [data-test=vtt-table-close], [data-test=vtt-screen-open], [data-test=map-preview-players]').count(),
+    back: await screen.locator('[data-test=vtt-back]').count(),
+    touch: await screen.locator('[data-test=vtt-screen-touch]').count(),
+    fullscreen: await screen.locator('[data-test=vtt-screen-fullscreen]').count()
+  };
+  await shot(screen, 'table-screen', null);
+  await screen.close();
+  results.push(`INFO table screen: ${JSON.stringify(screenUi)}`);
+  if (screenUi.url !== '?screen=table' || screenUi.masterTools !== 0 || screenUi.back !== 0 || screenUi.touch !== 1 || screenUi.fullscreen !== 1)
+    throw new Error(`unexpected table screen: ${JSON.stringify(screenUi)}`);
+  ok('table screen: a second window of the master\'s table shows it as the players see it, with touch and full screen, no master tools');
   await page.locator('[data-test=vtt-back]').click();
   await page.locator('[data-test=campaign-title]').waitFor({ timeout: 30000 });
   await page.locator('[data-test=campaign-live]').waitFor({ timeout: 15000 });

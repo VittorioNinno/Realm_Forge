@@ -23,14 +23,17 @@ namespace RealmForge.Client
 			var apiBaseUrl = builder.Configuration["ApiBaseUrl"] ?? builder.HostEnvironment.BaseAddress;
 
 			//	Failed API calls are reported to ApiErrorState and shown by the layout banner
-			//	Pipeline: ApiErrorHandler (reports final failures) -> AuthHeaderHandler (bearer token + refresh) -> network
+			//	Pipeline: ApiErrorHandler (reports final failures) -> TableScreenHandler (the table screen's calls) -> AuthHeaderHandler (bearer token + refresh) -> network
 			builder.Services.AddScoped<ApiErrorState>();
 			builder.Services.AddScoped<TokenStore>();
 			builder.Services.AddScoped(sp => new HttpClient(new ApiErrorHandler(sp.GetRequiredService<ApiErrorState>())
 			{
-				InnerHandler = new AuthHeaderHandler(sp.GetRequiredService<TokenStore>())
+				InnerHandler = new TableScreenHandler
 				{
-					InnerHandler = new HttpClientHandler()
+					InnerHandler = new AuthHeaderHandler(sp.GetRequiredService<TokenStore>())
+					{
+						InnerHandler = new HttpClientHandler()
+					}
 				}
 			})
 			{

@@ -1310,6 +1310,16 @@ jobs:
           curl -s -X PUT "$api/api/campaigns/$ss_cp/maps/$mp" $json -H "Authorization: Bearer $B" -d '{"name":"Cripta","width":700,"height":490,"gridSize":70,"gridOffsetX":0,"gridOffsetY":0,"shown":true}' > /dev/null
           mp_player_state=$(curl -s "$api/api/campaigns/$ss_cp/maps/$mp/state" -H "Authorization: Bearer $A" | jq -c '{shown, tokens: [.tokens[] | {label, canMove}]}')
           mp_player_move=$(code -X POST "$api/api/campaigns/$ss_cp/maps/$mp/tokens/$tk/move" $json -H "Authorization: Bearer $A" -d '{"x":3,"y":1}')
+          # The table screen of a master: the table as the players see it; a player acting on it is that player (same answer as
+          # theirs), only on the table, only for a player of the campaign, and only from a master
+          ts_a=$(curl -s "$api/api/campaigns/$ss_cp" -H "Authorization: Bearer $A" | jq -r '.members[] | select(.isMe) | .userId')
+          ts_b=$(curl -s "$api/api/campaigns/$ss_cp" -H "Authorization: Bearer $B" | jq -r '.members[] | select(.isMe) | .userId')
+          ts_view=$(curl -s "$api/api/campaigns/$ss_cp/maps/$mp/state" -H "Authorization: Bearer $B" -H "X-Rf-Screen: table" | jq -c '[.tokens[] | .label]')
+          ts_role=$(curl -s "$api/api/campaigns/$ss_cp/maps/$mp" -H "Authorization: Bearer $B" -H "X-Rf-Screen: table" | jq -c .canEdit)
+          ts_player=$(code "$api/api/campaigns/$ss_cp/maps/$mp/state" -H "Authorization: Bearer $A" -H "X-Rf-Screen: table")
+          ts_as=$(code -X POST "$api/api/campaigns/$ss_cp/maps/$mp/tokens/$tk/move" $json -H "Authorization: Bearer $B" -H "X-Rf-Screen: table" -H "X-Rf-Act-As: $ts_a" -d '{"x":3,"y":1}')
+          ts_as_master=$(code -X POST "$api/api/campaigns/$ss_cp/maps/$mp/tokens/$tk/move" $json -H "Authorization: Bearer $B" -H "X-Rf-Screen: table" -H "X-Rf-Act-As: $ts_b" -d '{"x":3,"y":1}')
+          ts_as_elsewhere=$(code -X POST "$api/api/campaigns/$ss_cp/notes" $json -H "Authorization: Bearer $B" -H "X-Rf-Screen: table" -H "X-Rf-Act-As: $ts_a" -d '{"title":"x","text":"x"}')
           mp_master_move=$(code -X POST "$api/api/campaigns/$ss_cp/maps/$mp/tokens/$tk/move" $json -H "Authorization: Bearer $B" -d '{"x":3,"y":1}')
           mp_master_state=$(curl -s "$api/api/campaigns/$ss_cp/maps/$mp/state" -H "Authorization: Bearer $B" | jq -c '[.tokens[] | {label, x, hidden}]')
           # A hex map displayed at the table puts the first one away; a player cannot display maps; a token beyond the last hex is refused
@@ -1775,6 +1785,8 @@ jobs:
           sscheck "map not shown to the player" "$mp_hidden_list" "0"
           sscheck "token outside the map" "$mp_outside" "400"
           sscheck "map shown to the player" "$mp_player_state" '{"shown":true,"tokens":[{"label":"Porta","canMove":false}]}'
+          sscheck "table screen: the table as the players see it, from a master only" "$ts_view|$ts_role|$ts_player" '["Porta"]|false|403'
+          sscheck "table screen: acting as a player is that player, only a player, only on the table" "$ts_as|$ts_as_master|$ts_as_elsewhere" "$mp_player_move|403|403"
           sscheck "player moves a marker" "$mp_player_move" "403"
           sscheck "master moves a marker" "$mp_master_move" "204"
           sscheck "tokens for the master" "$mp_master_state" '[{"label":"Lich","x":5,"hidden":true},{"label":"Porta","x":3,"hidden":false}]'

@@ -1626,7 +1626,9 @@ namespace RealmForge.Api.Controllers
 			var characterIds = map.Tokens.Where(t => t.CharacterId is not null).Select(t => t.CharacterId!.Value).Distinct().ToList();
 			var characters = await _context.Characters.AsNoTracking()
 				.Where(c => characterIds.Contains(c.Id)).Select(c => new { c.Id, c.OwnerId, c.Sheet, c.MaxHitPoints, c.Darkvision }).ToListAsync();
-			var mine = characters.Where(c => c.OwnerId == UserId).Select(c => c.Id).ToHashSet();
+			//	The table screen counts the whole party's characters as its own
+			var party = global::RealmForge.Api.Campaigns.TableScreen.Party;
+			var mine = characters.Where(c => c.OwnerId == UserId || party?.Contains(c.OwnerId) == true).Select(c => c.Id).ToHashSet();
 			var sheets = characters.ToDictionary(c => c.Id, c => (Sheet: CharactersController.ReadSheet(c.Sheet), Max: Math.Max(0, c.MaxHitPoints)));
 			var sheetConditions = sheets.ToDictionary(s => s.Key, s => EncounterSheetSync.ConditionsOf(s.Value.Sheet));
 			var monsterIds = map.Tokens.Where(t => t.MonsterId is not null).Select(t => t.MonsterId!.Value).Distinct().ToList();
@@ -1639,7 +1641,7 @@ namespace RealmForge.Api.Controllers
 				.OrderBy(t => t.Kind).ThenBy(t => t.Label)
 				.Select(t =>
 				{
-					var controls = (t.CharacterId is { } id && mine.Contains(id)) || t.ControlledBy.Contains(UserId);
+					var controls = (t.CharacterId is { } id && mine.Contains(id)) || t.ControlledBy.Contains(UserId) || (party is not null && t.ControlledBy.Any(party.Contains));
 					var dto = ToDto(t, MapRules.CanMove(role, controls, map.Shown, t.Hidden) && (runs || t.Layer == TokenLayer.Tokens)) with { Controlled = controls };
 					if (t.MonsterId is { } monsterId && creatures.TryGetValue(monsterId, out var creature))
 					{
@@ -1652,7 +1654,7 @@ namespace RealmForge.Api.Controllers
 					{
 						dto = dto with { TempHp = t.TempHp };
 					}
-					if (runs)
+					if (runs || party is not null)
 					{
 						dto = dto with { ControlledBy = t.ControlledBy.ToList() };
 					}

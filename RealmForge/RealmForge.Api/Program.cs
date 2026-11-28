@@ -212,6 +212,7 @@ namespace RealmForge.Api
 			app.UseCors(CorsPolicyName);
 
 			app.UseAuthentication();
+			app.Use(RealmForge.Api.Campaigns.TableScreen.Middleware);
 			app.UseAuthorization();
 			app.UseRateLimiter();
 
