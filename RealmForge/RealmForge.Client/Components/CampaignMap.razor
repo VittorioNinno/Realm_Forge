@@ -786,18 +786,6 @@ else
         await JS.InvokeVoidAsync("open", Navigation.ToAbsoluteUri($"campaigns/{CampaignId}/vtt?screen=table").ToString(), $"rf-table-screen-{CampaignId:N}", "popup=yes,width=1280,height=800");
     }
 
-    private async Task FullscreenAsync()
-    {
-        try
-        {
-            await JS.InvokeVoidAsync("rfScreen.fullscreen");
-        }
-        catch (JSException)
-        {
-            //	Not allowed by this browser: the window stays as it is
-        }
-    }
-
     private async Task ToggleTouchAsync()
     {
         touchMode = !touchMode;

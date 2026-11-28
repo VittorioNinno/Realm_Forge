@@ -192,9 +192,8 @@
             }
         };
 
-        // The table screen: the whole monitor for it, and whether this screen only knows fingers (a touch screen)
+        // The table screen: whether this screen only knows fingers (a touch screen)
         window.rfScreen = {
-            fullscreen: () => document.fullscreenElement ? document.exitFullscreen() : document.documentElement.requestFullscreen(),
             touchOnly: () => window.matchMedia('(pointer: coarse)').matches && !window.matchMedia('(any-pointer: fine)').matches
         };
 
